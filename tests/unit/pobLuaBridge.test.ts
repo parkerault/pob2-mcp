@@ -46,6 +46,20 @@ describe('PoBLuaApiClient', () => {
       );
     });
 
+    it('should separate LUA_PATH/LUA_CPATH entries with ";" on every platform', async () => {
+      // Lua's package.path syntax uses ';' everywhere (it is not the OS PATH separator);
+      // a ':'-joined value is read as one bogus template and `require("xml")` fails.
+      await client.start();
+
+      const { env } = mockSpawn.mock.calls[0][2] as { env: NodeJS.ProcessEnv };
+      for (const v of [env.LUA_PATH!, env.LUA_CPATH!]) {
+        expect(v.endsWith(';;')).toBe(true); // ';;' appends Lua's default search path
+        for (const entry of v.split(';').filter(Boolean)) {
+          expect(entry.split('?').length).toBe(2); // exactly one '?' template per entry
+        }
+      }
+    });
+
     it('should wait for ready banner before resolving', async () => {
       const startPromise = client.start();
       await expect(startPromise).resolves.toBeUndefined();

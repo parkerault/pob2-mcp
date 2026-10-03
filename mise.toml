@@ -1,0 +1,11 @@
+[tools]
+# PoB2's Lua sources use compound assignment (`+=`), which needs a LuaJIT newer than any
+# tagged release / conda build. Pin the same upstream commit PoB's own CI image builds
+# (PathOfBuilding Dockerfile), and install the native `lua-utf8` module PoB hard-requires.
+"asdf:mise-plugins/mise-luaJIT" = { version = "ref:2460b3ff93a1c955de3d62cfc825de7d68dc272e", postinstall = "luarocks install luautf8 0.1.6-1" }
+node = "24"
+
+[env]
+# The plugin above builds luarocks too, defaulting to the latest release; 3.13.0's tarball
+# ships a malformed rockspec (missing comma), so pin the previous release.
+LUAROCKS_VERSION = "3.12.2"

@@ -103,8 +103,9 @@ export class PoBLuaApiClient {
     const isWindows = process.platform === 'win32';
     const luaExt = isWindows ? 'dll' : 'so';
 
-    // On Windows, use semicolons and backslashes; on Unix, use colons and forward slashes
-    const pathSep = isWindows ? ';' : ':';
+    // Lua's package.path/cpath entries are ';'-separated on every OS (this is not the
+    // OS PATH separator); only the directory separator inside an entry is platform-specific.
+    const pathSep = ';';
 
     // The vendored bridge lives outside the PoB tree; add it to LUA_PATH so
     // `require('API.Handlers')` etc. resolve even if bootstrap.lua's own

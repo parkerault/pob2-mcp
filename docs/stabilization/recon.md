@@ -9,6 +9,11 @@ trade). Every claim cites `file:line` at commit `6442b0b` + the Linux setup fix 
 PoE2 game-model facts are verified against the PathOfBuilding-PoE2 checkout (`../PathOfBuilding-PoE2/src`,
 dev head, manifest `0.23.1`) and the live trade2 static data — not from memory.
 
+> **Citation basis (added after review):** PoB `file:line` citations here are **dev head `bb52d6b`**.
+> The build targets the pinned tag `v0.23.1`, where line numbers differ (e.g. `Build.lua` 2700 → 2386,
+> `TradeQueryGenerator.lua` is 1433 lines, not 1525). Locate code by symbol on the tag. Later
+> corrections from spikes are marked inline (E3, E4, the stats gap).
+
 ---
 
 ## 0. Environment (already fixed, uncommitted at time of writing)
@@ -36,8 +41,9 @@ dev head, manifest `0.23.1`) and the live trade2 static data — not from memory
 - Tree data comes from local `POB_FORK_PATH/TreeData/<ver>/tree.json` (`treeService.ts:56-102`);
   `find_path_to_node` matches the engine's own pathing. [V]
 - `get_leagues`, `search_stats` (loads ~8.3k trade2 stats unauthenticated, `index.ts:378-389`). [V]
-- **Trade search and fetch work without a POESESSID today** (live: 10,000-hit search, 10-listing price
-  check, no cookie). HANDOFF.md:140-144 says otherwise. [V]
+- **Plain trade search and fetch work without a POESESSID** (live: 10,000-hit search, 10-listing price
+  check, no cookie). **Weighted-sum search (the core of `find_upgrades`) does need a session** (§5,
+  spikes S-3/S-4), so HANDOFF.md:140-144's "session required" is half right. [V]
 - Session cookie only placed in the request header, never logged (`tradeClient.ts:222-224`). [V]
 - poe.ninja currency endpoint reachable (`/poe2/api/economy/exchange/current/overview`). [V]
 
@@ -187,6 +193,6 @@ README: claims 91 tools (85 default / 98 all flags); undocumented `import_build`
 5 flasks, Witch/Necromancer + Shaper workflows); install says `cd pob-mcp && npm install` and
 `apt/brew install luajit` (too old); no `lua-utf8`, Linux, or Claude Code instructions; "api-stdio
 branch" troubleshooting stale; false gem-persistence limitation. HANDOFF.md: HeadlessWrapper
-patching, Windows `.dll`, scoop — all stale; session-required claim false. `docs/*.md` (ROADMAP,
+patching, Windows `.dll`, scoop — all stale; its session-required claim holds only for weighted search (see §1). `docs/*.md` (ROADMAP,
 QUICKSTART, OPTIMIZE_TREE_GUIDE, SUGGEST_OPTIMAL_NODES_GUIDE, TRADE_API_QUICKSTART, …) inherited
 from the PoE1 project. Lockfiles: `package-lock.json` committed + untracked `bun.lock`.

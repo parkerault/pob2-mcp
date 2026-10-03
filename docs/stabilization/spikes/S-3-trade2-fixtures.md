@@ -133,6 +133,16 @@ cookie**, which the client must not store or send back.
 
 ## 5. Weighted-sum query — REJECTED without login [V]
 
+> **Review note (2026-10-03):** three statements in this report describe PoB **dev head**, not the
+> pinned `v0.23.1`:
+> - PoB prefixing `{fractured}`/`{desecrated}` onto mod lines. On the tag, `processLine` returns
+>   only `escapeGGGString(description)`, so the line's origin is lost.
+> - The "54 of 200 complexity" budget. The tag caps queries at a flat `MAX_FILTERS = 35`.
+> - The base64-gzip no-login URL. The tag's PoB builds `…?q=<urlencoded query>`.
+>
+> The facts about GGG's own responses stand. The options list at the end of this section is
+> superseded by vision decision D-15.
+
 I sent three weighted searches: PoB2's exact shape (weight group with 3 filters + `min`, empty
 `and`/`not` groups, `mirrored: false`, `price.max`, sort `statgroup.0 desc`), a 2-filter group,
 and a 1-filter group with only a category. All three returned:

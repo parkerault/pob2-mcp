@@ -103,6 +103,10 @@ Example, best live body armour with Rune Behaviour = copy: score 1.356, against 
 
 ## Anonymous fallback design (no login)
 
+> **Superseded (2026-10-03):** the user chose a logged-in session with a trade-site link as the
+> fallback (vision D-15). The anonymous prefilter-and-re-rank design below is **not** being built. It
+> is kept as a record of what was measured.
+
 Steps for each `find_upgrades` call:
 1. `trade_generate_query` returns `rankedWeights`. This takes 2–4.5 s, cacheable per (build, slot, weights).
 2. TypeScript builds an anonymous query:

@@ -144,6 +144,14 @@ Cross-cutting [V unless noted]:
 - **Cache:** `customTTL` ignored (`tradeClient.ts:274`), key collisions (`:97,122,162`), unbounded.
 - **Static stat fallback:** 37 of 51 hard-coded IDs absent on trade2.
 - **Zero trade tests.** Fetch result arrays limited to 10 ids by GGG; callers request 15–20.
+- **Policy status of the trade API (GGG developer docs, 2026-10-03):** the trade endpoints are an
+  undocumented internal website API. The docs say "Requests for access to any other internal website
+  APIs or in-game resources will be denied" and "It is against our Terms of Use (section 7i) to
+  reverse-engineer endpoints outside of this documentation." New OAuth app registration is closed
+  ("We are currently unable to process new applications"); `account:trade` is not a documented scope
+  (PoB's use of it is a special grant). Registered OAuth apps must send
+  `User-Agent: OAuth {clientId}/{version} (contact: …)` and the third-party notice "This product
+  isn't affiliated with or endorsed by Grinding Gear Games in any way." [V]
 - **User-Agent strings are inconsistent and one misattributes contact:** trade default is
   `pob2-mcp-server/0.1 (+https://github.com/PathOfBuildingCommunity)` (presents the PoB community as
   this tool's contact, `tradeClient.ts:218`); others: `poeNinjaClient.ts:151`, `craftingDataService.ts:35`

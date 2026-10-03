@@ -1,0 +1,2412 @@
+{
+  "result": [
+    {
+      "id": "2073d64d5dc3949d7e1c6adbc7e56d15ea4139d96cf6e5b4e8ab9034e55c7920",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-27T09:39:49Z",
+        "stash": {
+          "name": "1",
+          "x": 8,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 5589,
+        "account": {
+          "name": "seller-17#0017",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Tb3VsVGV0aGVyIiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/3a7bb8985a/SoulTether.png",
+        "league": "Runes of Aldur",
+        "id": "2073d64d5dc3949d7e1c6adbc7e56d15ea4139d96cf6e5b4e8ab9034e55c7920",
+        "mutated": true,
+        "name": "Soul Tether",
+        "typeLine": "Long Belt",
+        "baseType": "Long Belt",
+        "rarity": "Unique",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "20",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "17% increased [Charm] Effect Duration",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1389754388",
+            "mods": [
+              {
+                "level": 25,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 1 [Charm] Slot",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+52 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3489782002",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "40",
+                    "max": "60"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+25 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You lose 5% of maximum [EnergyShield|Energy Shield] per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2350411833",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "5"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Excess Life Recovery from [LifeLeech|Leech] is applied to [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_999436592",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Vaal bloodpriests were among the earliest intellectuals on record.\r",
+          "It was they who found that a newly freed soul would\r",
+          "desperately cling to any other source of life."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3489782002",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2350411833",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_999436592",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1389754388",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "cd037712972aaeeabf2f1326edf07d3ada20f16fbf143478a8bbc8b2c974feeb",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-05T22:30:17Z",
+        "stash": {
+          "name": "1",
+          "x": 6,
+          "y": 11
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 6366,
+        "account": {
+          "name": "seller-18#0018",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Db3dhcmRzTGVnYWN5IiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8fbdb591b3/CowardsLegacy.png",
+        "league": "Runes of Aldur",
+        "id": "cd037712972aaeeabf2f1326edf07d3ada20f16fbf143478a8bbc8b2c974feeb",
+        "mutated": true,
+        "name": "Coward's Legacy",
+        "typeLine": "Mail Belt",
+        "baseType": "Mail Belt",
+        "rarity": "Unique",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "40",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "enchantMods": [
+          {
+            "description": "+12 to [Dexterity|Dexterity]",
+            "domain": "enchant",
+            "hash": "stat.enchant.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "10",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "11% reduced [Flask|Flask] Charges used",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_644456512",
+            "mods": [
+              {
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "-12 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-20",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+30 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "38% increased Life and Mana Recovery from [Flask|Flasks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2310741722",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "40"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You are considered on [LowLife|Low Life] while at 75% of maximum Life or below instead",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_356835700",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "75",
+                    "max": "75"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Death is your most important duty.\r",
+          "Face it, or curse your bloodline for all eternity."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2310741722",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_356835700",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_644456512",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ],
+            "enchant": [
+              [
+                "enchant.stat_3261801346",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "a3a52952cbadaa8f5763184a0291bcbcefc85905ea4d6cb86f4c102e7c779cc3",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-24T08:42:22Z",
+        "stash": {
+          "name": "7",
+          "x": 4,
+          "y": 11
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 6366,
+        "account": {
+          "name": "seller-19#0019",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Db3dhcmRzTGVnYWN5IiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8fbdb591b3/CowardsLegacy.png",
+        "league": "Runes of Aldur",
+        "id": "a3a52952cbadaa8f5763184a0291bcbcefc85905ea4d6cb86f4c102e7c779cc3",
+        "mutated": true,
+        "name": "Coward's Legacy",
+        "typeLine": "Mail Belt",
+        "baseType": "Mail Belt",
+        "rarity": "Unique",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "40",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "15% reduced [Flask|Flask] Charges used",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_644456512",
+            "mods": [
+              {
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "-14 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-20",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+21 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "35% increased Life and Mana Recovery from [Flask|Flasks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2310741722",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "40"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You are considered on [LowLife|Low Life] while at 75% of maximum Life or below instead",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_356835700",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "75",
+                    "max": "75"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Death is your most important duty.\r",
+          "Face it, or curse your bloodline for all eternity."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2310741722",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_356835700",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_644456512",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "7efb76560a21a470e802b6694a1b253066bf15927cdd7334c91e7f78a412222a",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-08T20:59:46Z",
+        "stash": {
+          "name": "2",
+          "x": 6,
+          "y": 11
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 5589,
+        "account": {
+          "name": "seller-20#0020",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Tb3VsVGV0aGVyIiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/3a7bb8985a/SoulTether.png",
+        "league": "Runes of Aldur",
+        "id": "7efb76560a21a470e802b6694a1b253066bf15927cdd7334c91e7f78a412222a",
+        "mutated": true,
+        "name": "Soul Tether",
+        "typeLine": "Long Belt",
+        "baseType": "Long Belt",
+        "rarity": "Unique",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "20",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "16% increased [Charm] Effect Duration",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1389754388",
+            "mods": [
+              {
+                "level": 25,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+48 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3489782002",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "40",
+                    "max": "60"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+29 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You lose 5% of maximum [EnergyShield|Energy Shield] per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2350411833",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "5"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Excess Life Recovery from [LifeLeech|Leech] is applied to [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_999436592",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Vaal bloodpriests were among the earliest intellectuals on record.\r",
+          "It was they who found that a newly freed soul would\r",
+          "desperately cling to any other source of life."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3489782002",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2350411833",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_999436592",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1389754388",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "9c8842b4fb98f39dea13c395d49ef060b886df53c5b35a3baf874d66fc79b9a1",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-14T13:35:42Z",
+        "stash": {
+          "name": "11",
+          "x": 0,
+          "y": 7
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 21269,
+        "account": {
+          "name": "seller-21#0021",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9EYXJrbmVzc0VudGhyb25lZCIsInciOjIsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/9bbef2f97f/DarknessEnthroned.png",
+        "league": "Runes of Aldur",
+        "id": "9c8842b4fb98f39dea13c395d49ef060b886df53c5b35a3baf874d66fc79b9a1",
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Darkness Enthroned",
+        "typeLine": "Fine Belt",
+        "baseType": "Fine Belt",
+        "rarity": "Unique",
+        "ilvl": 84,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "62",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "enchantMods": [
+          {
+            "description": "+21% to [Resistances|Lightning Resistance]",
+            "domain": "enchant",
+            "hash": "stat.enchant.stat_1671376347",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "25"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "Has 1 [Charm] Slot",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "[Flask|Flasks] gain 0.17 charges per Second",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_731781020",
+            "mods": [
+              {
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "0.17",
+                    "max": "0.17"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "94% increased effect of Socketed [Augment] Items",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2081918629",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "50",
+                    "max": "100"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "This item gains bonuses from Socketed Items as though it was Gloves",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1856590738",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Kulemak sat triumphant, raising the crown.\r",
+          "Darkness coiled the world in eternal night.\r",
+          "Victory, a mere moment, came crashing down.\r",
+          "No conqueror, no conquered, only searing Light."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "socketedItems": [],
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2081918629",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_1856590738",
+                [
+                  0
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ],
+              [
+                "implicit.stat_731781020",
+                [
+                  0
+                ]
+              ]
+            ],
+            "enchant": [
+              [
+                "enchant.stat_1671376347",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "3189524c8e8fbb125bd216df31f63f73ca0e5f94d2939c5959c78447ec9c904b",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-08-21T09:13:20Z",
+        "stash": {
+          "name": "4",
+          "x": 4,
+          "y": 0
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 6366,
+        "account": {
+          "name": "seller-22#0022",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Db3dhcmRzTGVnYWN5IiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8fbdb591b3/CowardsLegacy.png",
+        "league": "Runes of Aldur",
+        "id": "3189524c8e8fbb125bd216df31f63f73ca0e5f94d2939c5959c78447ec9c904b",
+        "mutated": true,
+        "name": "Coward's Legacy",
+        "typeLine": "Mail Belt",
+        "baseType": "Mail Belt",
+        "rarity": "Unique",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "40",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "13% reduced [Flask|Flask] Charges used",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_644456512",
+            "mods": [
+              {
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "-13 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-20",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+24 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "33% increased Life and Mana Recovery from [Flask|Flasks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2310741722",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "40"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You are considered on [LowLife|Low Life] while at 84% of maximum Life or below instead",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_356835700",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "75",
+                    "max": "75"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Death is your most important duty.\r",
+          "Face it, or curse your bloodline for all eternity."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2310741722",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_356835700",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_644456512",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "4c32ef7e9b9c8fa2b9ffdcfe4eb3736dfde6d2a0fdeb81df5b78f7e4a1572532",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-02T00:22:39Z",
+        "stash": {
+          "name": "15",
+          "x": 7,
+          "y": 3
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 6366,
+        "account": {
+          "name": "seller-23#0023",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Db3dhcmRzTGVnYWN5IiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/8fbdb591b3/CowardsLegacy.png",
+        "league": "Runes of Aldur",
+        "id": "4c32ef7e9b9c8fa2b9ffdcfe4eb3736dfde6d2a0fdeb81df5b78f7e4a1572532",
+        "mutated": true,
+        "name": "Coward's Legacy",
+        "typeLine": "Mail Belt",
+        "baseType": "Mail Belt",
+        "rarity": "Unique",
+        "ilvl": 64,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Vaal Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "40",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "11% reduced [Flask|Flask] Charges used",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_644456512",
+            "mods": [
+              {
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 2 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "-12 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-20",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+28 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "31% increased Life and Mana Recovery from [Flask|Flasks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2310741722",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "40"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "You are considered on [LowLife|Low Life] while at 86% of maximum Life or below instead",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_356835700",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "75",
+                    "max": "75"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Death is your most important duty.\r",
+          "Face it, or curse your bloodline for all eternity."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2310741722",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_356835700",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_644456512",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "804bf935cf9ca40a70dca965e668cd4163233ed286ce53393173ed6179fb2718",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-11T20:25:32Z",
+        "stash": {
+          "name": "16",
+          "x": 8,
+          "y": 10
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 5736,
+        "account": {
+          "name": "seller-24#0024",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9VbWJpbGljdXNJbW1vcnRhbGlzIiwidyI6MiwiaCI6MSwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72e5991990/UmbilicusImmortalis.png",
+        "league": "Runes of Aldur",
+        "id": "804bf935cf9ca40a70dca965e668cd4163233ed286ce53393173ed6179fb2718",
+        "name": "Umbilicus Immortalis",
+        "typeLine": "Linen Belt",
+        "baseType": "Linen Belt",
+        "rarity": "Unique",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "24",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "29% increased Mana Recovery from [Flask|Flasks]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2222186378",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "31% reduced [Flask|Flask] Effect Duration",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3741323227",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-40",
+                    "max": "-30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+22 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "[Minion|Minions] have 23% increased maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_770672621",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Your Life [Flask] also applies to your [Minion|Minions]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2397460217",
+            "mods": [
+              {
+                "level": 30,
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "[Minion|Minions] cannot Die while affected by a Life [Flask]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4046380260",
+            "mods": [
+              {
+                "level": 30,
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% increased [Flask|Flask] Charges gained",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1836676211",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "\"The power of rebirth rivals that of immortality.\"\r",
+          "- Icius Perandus, Antiquities Collection, Item 3"
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3741323227",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_770672621",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2397460217",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_4046380260",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_1836676211",
+                [
+                  5
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2222186378",
+                [
+                  0
+                ]
+              ],
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "6106bbb067c56179a7d1e638b199b4a0ec6dac59f8cc57fe393a4c1fe297924e",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-09T15:56:34Z",
+        "stash": {
+          "name": "1",
+          "x": 10,
+          "y": 11
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 12671,
+        "account": {
+          "name": "seller-25#0025",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Ud2luY2xhc3AiLCJ3IjoyLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/623cb1b701/Twinclasp.png",
+        "league": "Runes of Aldur",
+        "id": "6106bbb067c56179a7d1e638b199b4a0ec6dac59f8cc57fe393a4c1fe297924e",
+        "sockets": [],
+        "name": "Bijouborne",
+        "typeLine": "Double Belt",
+        "baseType": "Double Belt",
+        "rarity": "Unique",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "44",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "grantedSkills": [
+          {
+            "name": "Grants Skill",
+            "values": [
+              [
+                "Level 18 Cast on Charm Use",
+                25
+              ]
+            ],
+            "displayMode": 0,
+            "icon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1NraWxsSWNvbnMvQ2FzdE9uQ2hhcm0iLCJyZWFsbSI6InBvZTIifV0/7d6469f5a7/CastOnCharm.png",
+            "domain": "skill",
+            "hash": "stat.skill.cast_on_charm_use"
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "Has 2 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% increased [Charm] Charges gained",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3585532255",
+            "mods": [
+              {
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+99 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "50",
+                    "max": "100"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "48% reduced [Charm] Effect Duration",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1389754388",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-50",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+2 [Charm] Slots",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2582079000",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "2",
+                    "max": "2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+20 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "25"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "22% increased [Charm] Charges gained",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3585532255",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Trifle not with the trinket mage."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9OZXcvQ2FzdE9uU2hvY2tNZXRhU2tpbGxHZW0iLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ee33578e92/CastOnShockMetaSkillGem.png",
+            "support": false,
+            "league": "Runes of Aldur",
+            "gemSockets": [
+              "W",
+              "W",
+              "W",
+              "W"
+            ],
+            "sockets": [
+              {
+                "group": 0,
+                "type": "gem"
+              },
+              {
+                "group": 1,
+                "type": "gem"
+              },
+              {
+                "group": 2,
+                "type": "gem"
+              },
+              {
+                "group": 3,
+                "type": "gem"
+              }
+            ],
+            "name": "",
+            "typeLine": "Cast on Charm Use",
+            "baseType": "Cast on Charm Use",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "[Buff], [Persistent], [Trigger], [Meta]",
+                "values": [],
+                "displayMode": 0
+              },
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "18",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 5
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "78",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "secDescrText": "While active, gains [Energy|Energy] when one of your [Charm|Charms] is used and triggers socketed [Spell|Spells] on reaching maximum [Energy|Energy].",
+            "gemTabs": [
+              {
+                "name": null,
+                "pages": [
+                  {
+                    "stats": [
+                      "When a [Charm] is used gains 2 [Energy] per Charge used",
+                      "51% increased [Energy] gained",
+                      "Triggers all Socketed [Spell|Spells] and loses all [Energy|Energy] on reaching maximum [Energy|Energy]"
+                    ],
+                    "skillName": "Cast on Charm Use"
+                  }
+                ]
+              },
+              {
+                "name": null,
+                "pages": [
+                  {
+                    "properties": [],
+                    "stats": [
+                      "Has 10 maximum Energy per 0.1 seconds of base cast time of Socketed [Spell|Spells]"
+                    ],
+                    "skillName": ""
+                  }
+                ]
+              }
+            ],
+            "gemSkill": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1NraWxsSWNvbnMvQ2FzdE9uQ2hhcm0iLCJyZWFsbSI6InBvZTIifV0/7d6469f5a7/CastOnCharm.png",
+            "descrText": "Place one or more Skill Gems into this Meta Gem's sockets in the Skills Panel. The socketed Skills will be incorporated into the Meta Gem's effect.",
+            "frameType": 4,
+            "frameTypeId": "Gem",
+            "socketedItems": []
+          }
+        ],
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_1050105434",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_1389754388",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_2582079000",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3585532255",
+                [
+                  4
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ],
+              [
+                "implicit.stat_3585532255",
+                [
+                  0
+                ]
+              ]
+            ],
+            "skill": [
+              [
+                "skill.cast_on_charm_use",
+                null
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "d47cc21280e735e61635052da9e2451155405eaf54dfcf9793ef6afa0a936849",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-29T03:08:16Z",
+        "stash": {
+          "name": "39",
+          "x": 1,
+          "y": 4
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 12671,
+        "account": {
+          "name": "seller-26#0026",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQmVsdHMvVW5pcXVlcy9Ud2luY2xhc3AiLCJ3IjoyLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/623cb1b701/Twinclasp.png",
+        "league": "Runes of Aldur",
+        "id": "d47cc21280e735e61635052da9e2451155405eaf54dfcf9793ef6afa0a936849",
+        "sockets": [],
+        "name": "Bijouborne",
+        "typeLine": "Double Belt",
+        "baseType": "Double Belt",
+        "rarity": "Unique",
+        "ilvl": 79,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Belt",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "44",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "grantedSkills": [
+          {
+            "name": "Grants Skill",
+            "values": [
+              [
+                "Level 17 Cast on Charm Use",
+                25
+              ]
+            ],
+            "displayMode": 0,
+            "icon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1NraWxsSWNvbnMvQ2FzdE9uQ2hhcm0iLCJyZWFsbSI6InBvZTIifV0/7d6469f5a7/CastOnCharm.png",
+            "domain": "skill",
+            "hash": "stat.skill.cast_on_charm_use"
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "Has 3 [Charm] Slots",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1416292992",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "3"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% increased [Charm] Charges gained",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3585532255",
+            "mods": [
+              {
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+63 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "50",
+                    "max": "100"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "18% reduced [Charm] Effect Duration",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1389754388",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "-50",
+                    "max": "-10"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+2 [Charm] Slots",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2582079000",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "2",
+                    "max": "2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+23 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "25"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "21% increased [Charm] Charges gained",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3585532255",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "flavourText": [
+          "Trifle not with the trinket mage."
+        ],
+        "frameType": 3,
+        "frameTypeId": "Unique",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9OZXcvQ2FzdE9uU2hvY2tNZXRhU2tpbGxHZW0iLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/ee33578e92/CastOnShockMetaSkillGem.png",
+            "support": false,
+            "league": "Runes of Aldur",
+            "gemSockets": [
+              "W",
+              "W",
+              "W",
+              "W"
+            ],
+            "sockets": [
+              {
+                "group": 0,
+                "type": "gem"
+              },
+              {
+                "group": 1,
+                "type": "gem"
+              },
+              {
+                "group": 2,
+                "type": "gem"
+              },
+              {
+                "group": 3,
+                "type": "gem"
+              }
+            ],
+            "name": "",
+            "typeLine": "Cast on Charm Use",
+            "baseType": "Cast on Charm Use",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "[Buff], [Persistent], [Trigger], [Meta]",
+                "values": [],
+                "displayMode": 0
+              },
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "17",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 5
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "72",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "secDescrText": "While active, gains [Energy|Energy] when one of your [Charm|Charms] is used and triggers socketed [Spell|Spells] on reaching maximum [Energy|Energy].",
+            "gemTabs": [
+              {
+                "name": null,
+                "pages": [
+                  {
+                    "stats": [
+                      "When a [Charm] is used gains 2 [Energy] per Charge used",
+                      "48% increased [Energy] gained",
+                      "Triggers all Socketed [Spell|Spells] and loses all [Energy|Energy] on reaching maximum [Energy|Energy]"
+                    ],
+                    "skillName": "Cast on Charm Use"
+                  }
+                ]
+              },
+              {
+                "name": null,
+                "pages": [
+                  {
+                    "properties": [],
+                    "stats": [
+                      "Has 10 maximum Energy per 0.1 seconds of base cast time of Socketed [Spell|Spells]"
+                    ],
+                    "skillName": ""
+                  }
+                ]
+              }
+            ],
+            "gemSkill": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1NraWxsSWNvbnMvQ2FzdE9uQ2hhcm0iLCJyZWFsbSI6InBvZTIifV0/7d6469f5a7/CastOnCharm.png",
+            "descrText": "Place one or more Skill Gems into this Meta Gem's sockets in the Skills Panel. The socketed Skills will be incorporated into the Meta Gem's effect.",
+            "frameType": 4,
+            "frameTypeId": "Gem",
+            "socketedItems": []
+          }
+        ],
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_1050105434",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_1389754388",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_2582079000",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3585532255",
+                [
+                  4
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1416292992",
+                [
+                  1
+                ]
+              ],
+              [
+                "implicit.stat_3585532255",
+                [
+                  0
+                ]
+              ]
+            ],
+            "skill": [
+              [
+                "skill.cast_on_charm_use",
+                null
+              ]
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

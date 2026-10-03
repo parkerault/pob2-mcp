@@ -1,0 +1,36 @@
+{
+  "query": {
+    "status": {
+      "option": "online"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "accessory.ring"
+          },
+          "rarity": {
+            "option": "rare"
+          }
+        }
+      },
+      "trade_filters": {
+        "filters": {
+          "price": {
+            "option": "divine",
+            "min": 1
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "and",
+        "filters": []
+      }
+    ]
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

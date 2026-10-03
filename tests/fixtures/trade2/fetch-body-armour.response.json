@@ -1,0 +1,3818 @@
+{
+  "result": [
+    {
+      "id": "88b334121f115f101825d8ec23a7a7af3113e876e19ae0e09958d4f68bdff0d5",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-08-21T17:49:03Z",
+        "stash": {
+          "name": "6",
+          "x": 0,
+          "y": 6
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "exalted"
+        },
+        "fee": 48604,
+        "account": {
+          "name": "seller-1#0001",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "88b334121f115f101825d8ec23a7a7af3113e876e19ae0e09958d4f68bdff0d5",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Dread Pelt",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 1 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "341",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "121",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "30.5 Life Regeneration per second",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3325883026",
+            "mods": [
+              {
+                "name": "of Immortality",
+                "tier": "S2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "29.1",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "66% increased [EnergyShield|Energy Shield]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_4015621042",
+            "mods": [
+              {
+                "name": "Fearless",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "56",
+                    "max": "67"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+191 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Rapturous",
+                "tier": "P2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "190",
+                    "max": "199"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+45% to [Resistances|Lightning Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1671376347",
+            "mods": [
+              {
+                "name": "of Ephij",
+                "tier": "S1",
+                "level": 82,
+                "magnitudes": [
+                  {
+                    "min": "41",
+                    "max": "45"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+10% to [Resistances|Chaos Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2923486259",
+            "mods": [
+              {
+                "name": "of Banishment",
+                "tier": "S5",
+                "level": 30,
+                "magnitudes": [
+                  {
+                    "min": "8",
+                    "max": "11"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "5 to 8 [Physical|Physical] [Thorns|Thorns] damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2881298780",
+            "mods": [
+              {
+                "name": "Spiny",
+                "tier": "P6",
+                "level": 10,
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "7"
+                  },
+                  {
+                    "min": "7",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "es": 341,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3299347043",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_1671376347",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_2923486259",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2881298780",
+                [
+                  3
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_3325883026",
+                [
+                  0
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_4015621042",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "037a9e5d765779e9717e06a44c6c6f3a384523397bb1318ec2ad8bc7d2240df0",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-29T09:35:50Z",
+        "stash": {
+          "name": "5",
+          "x": 6,
+          "y": 4
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 2,
+          "currency": "exalted"
+        },
+        "fee": 53877,
+        "account": {
+          "name": "seller-2#0002",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keURleEludDA0IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/dba7d26275/BodyDexInt04.png",
+        "league": "Runes of Aldur",
+        "id": "037a9e5d765779e9717e06a44c6c6f3a384523397bb1318ec2ad8bc7d2240df0",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          },
+          {
+            "group": 2,
+            "type": "rune"
+          }
+        ],
+        "name": "Miracle Ward",
+        "typeLine": "Rambler Jacket",
+        "baseType": "Rambler Jacket",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 2 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+22%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "708",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "219",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "70",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+7% to [Resistances|Chaos Resistance]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2923486259",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "13"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "60% reduced [Ignite|Ignite] Duration on you",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_986397080",
+            "mods": [
+              {
+                "name": "of Dousing",
+                "tier": "S1",
+                "level": 76,
+                "magnitudes": [
+                  {
+                    "min": "56",
+                    "max": "60"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+182 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Rogue's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "39"
+                  }
+                ]
+              },
+              {
+                "name": "Banshee's",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "142",
+                    "max": "161"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+57 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Rogue's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "11",
+                    "max": "12"
+                  }
+                ]
+              },
+              {
+                "name": "Banshee's",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "43",
+                    "max": "48"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "35% increased [Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1999113824",
+            "mods": [
+              {
+                "name": "Rogue's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+92 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Rotund",
+                "tier": "P7",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "85",
+                    "max": "99"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+29% to [Resistances|Fire Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3372524247",
+            "mods": [
+              {
+                "name": "of the Furnace",
+                "tier": "S4",
+                "level": 48,
+                "magnitudes": [
+                  {
+                    "min": "26",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "34.1 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of the Phoenix",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "33.1",
+                    "max": "36"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "ev": 708,
+          "es": 219,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_53045048",
+                [
+                  3,
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_4052037485",
+                [
+                  3,
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_1999113824",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3372524247",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2923486259",
+                [
+                  0
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_986397080",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "937d9f9905de114fa539d4f4b33bb36113b3154b16222b120617bceb6d239857",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-10T20:59:34Z",
+        "stash": {
+          "name": "tab-1",
+          "x": 0,
+          "y": 0
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 4,
+          "currency": "exalted"
+        },
+        "fee": 47090,
+        "account": {
+          "name": "seller-3#0003",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "937d9f9905de114fa539d4f4b33bb36113b3154b16222b120617bceb6d239857",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Grim Pelt",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 80,
+        "identified": true,
+        "note": "~b/o 4 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "343",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "121",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3523867985"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "31% increased [EnergyShield|Energy Shield]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_4015621042",
+            "mods": [
+              {
+                "name": "Bishop's",
+                "tier": "P3",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "27",
+                    "max": "32"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+26 to maximum Life",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3299347043",
+            "mods": [
+              {
+                "name": "Bishop's",
+                "tier": "P3",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "26",
+                    "max": "32"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+17% to Lightning and Chaos Resistances",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3465022881",
+            "mods": [
+              {
+                "name": "of Ulaman",
+                "tier": "S1",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "13",
+                    "max": "17"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+183 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Vigorous",
+                "tier": "P3",
+                "level": 70,
+                "magnitudes": [
+                  {
+                    "min": "175",
+                    "max": "189"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "17% increased [ESRechargeRate|Energy Shield Recharge Rate]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2339757871",
+            "mods": [
+              {
+                "name": "of Buffering",
+                "tier": "S3",
+                "level": 48,
+                "magnitudes": [
+                  {
+                    "min": "16",
+                    "max": "19"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "31.1 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of Immortality",
+                "tier": "S2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "29.1",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "57 to 80 [Physical|Physical] [Thorns|Thorns] damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2881298780",
+            "mods": [
+              {
+                "name": "Spiked",
+                "tier": "P3",
+                "level": 48,
+                "magnitudes": [
+                  {
+                    "min": "40",
+                    "max": "60"
+                  },
+                  {
+                    "min": "61",
+                    "max": "92"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "bea4a9a6becf92ccc41e2dc552de3cf23e5600ececcd55ed083f966489d54e5c",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "686db048f284b2ae166b042f1977e53c7c7589f35cab3b22d14960ebe29f1aae",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "es": 343,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3299347043",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_2339757871",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2881298780",
+                [
+                  3
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_4015621042",
+                [
+                  0
+                ]
+              ],
+              [
+                "fractured.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3523867985",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_3465022881",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "09e421a1a04e7f673b895ada15b258388338086b83e51a2d750ddc702ec6d6ab",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-08-21T18:54:21Z",
+        "stash": {
+          "name": "tab-2",
+          "x": 10,
+          "y": 9
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 5,
+          "currency": "exalted"
+        },
+        "fee": 15777,
+        "account": {
+          "name": "seller-4#0004",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keURleEludDA4IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/71ef5a36aa/BodyDexInt08.png",
+        "league": "Runes of Aldur",
+        "id": "09e421a1a04e7f673b895ada15b258388338086b83e51a2d750ddc702ec6d6ab",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Demon Shelter",
+        "typeLine": "Runeforged Ascetic Garb",
+        "baseType": "Runeforged Ascetic Garb",
+        "rarity": "Rare",
+        "ilvl": 51,
+        "identified": true,
+        "note": "~b/o 5 exalted",
+        "corrupted": true,
+        "doubleCorrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "236",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "76",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          },
+          {
+            "name": "[Ward|Runic Ward]",
+            "values": [
+              [
+                "104",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 54
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "51",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "36",
+                1
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "36",
+                1
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "enchantMods": [
+          {
+            "description": "5% additional [Physical] Damage Reduction",
+            "domain": "enchant",
+            "hash": "stat.enchant.stat_3771516363",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "3",
+                    "max": "5"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+27 to maximum Life",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3299347043",
+            "mods": [
+              {
+                "name": "Healthy",
+                "tier": "P12",
+                "level": 6,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "29"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+46 to [Spirit|Spirit]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3981240776",
+            "mods": [
+              {
+                "name": "Marchioness'",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "43",
+                    "max": "46"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% reduced [Attributes|Attribute] Requirements",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3639275092",
+            "mods": [
+              {
+                "name": "of the Apt",
+                "tier": "S4",
+                "level": 32,
+                "magnitudes": [
+                  {
+                    "min": "-20",
+                    "max": "-20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+12% to [Resistances|Fire Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3372524247",
+            "mods": [
+              {
+                "name": "of the Salamander",
+                "tier": "S7",
+                "level": 12,
+                "magnitudes": [
+                  {
+                    "min": "11",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+163 to [StunThreshold|Stun Threshold]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_915769802",
+            "mods": [
+              {
+                "name": "of Platinum Skin",
+                "tier": "S4",
+                "level": 45,
+                "magnitudes": [
+                  {
+                    "min": "125",
+                    "max": "163"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "5 to 8 [Physical|Physical] [Thorns|Thorns] damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2881298780",
+            "mods": [
+              {
+                "name": "Spiny",
+                "tier": "P6",
+                "level": 10,
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "7"
+                  },
+                  {
+                    "min": "7",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 13,
+        "frameTypeId": "RunicRare",
+        "socketedItems": [],
+        "extended": {
+          "ev": 236,
+          "es": 76,
+          "ward": 104,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3639275092",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3372524247",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_915769802",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_2881298780",
+                [
+                  0
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "enchant": [
+              [
+                "enchant.stat_3771516363",
+                [
+                  0
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_3981240776",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b7d611705f0607285989645e127345ae4505eace8c7a784112996872b2d31d0c",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-21T20:29:40Z",
+        "stash": {
+          "name": "1",
+          "x": 2,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 10,
+          "currency": "exalted"
+        },
+        "fee": 47101,
+        "account": {
+          "name": "seller-5#0005",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludFN0cjAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/79f27dfa2e/BodyIntStr02.png",
+        "league": "Runes of Aldur",
+        "id": "b7d611705f0607285989645e127345ae4505eace8c7a784112996872b2d31d0c",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Onslaught Shroud",
+        "typeLine": "Wolfskin Mantle",
+        "baseType": "Wolfskin Mantle",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 10 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "556",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "156",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+150 to [Armour|Armour]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3484657501",
+            "mods": [
+              {
+                "name": "Godly",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "150",
+                    "max": "170"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+43 to maximum [EnergyShield|Energy Shield]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_4052037485",
+            "mods": [
+              {
+                "name": "Godly",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "43",
+                    "max": "48"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+117 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Virile",
+                "tier": "P6",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "100",
+                    "max": "119"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+32 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Titan",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+31 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "name": "of the Virtuoso",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "58% reduced [Poison|Poison] Duration on you",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3301100256",
+            "mods": [
+              {
+                "name": "of the Antidote",
+                "tier": "S1",
+                "level": 76,
+                "magnitudes": [
+                  {
+                    "min": "-60",
+                    "max": "-56"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+46 to [Spirit|Spirit]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3981240776",
+            "mods": [
+              {
+                "name": "Marchioness'",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "43",
+                    "max": "46"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "ar": 556,
+          "es": 156,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3299347043",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3301100256",
+                [
+                  3
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_3484657501",
+                [
+                  0
+                ]
+              ],
+              [
+                "fractured.stat_4052037485",
+                [
+                  0
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_3981240776",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "db9df547750ba113a683191bec724303387a7b5255ca3b86c24ea2662f905955",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-06T01:30:59Z",
+        "stash": {
+          "name": "6",
+          "x": 0,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 10,
+          "currency": "exalted"
+        },
+        "fee": 42909,
+        "account": {
+          "name": "seller-6#0006",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "db9df547750ba113a683191bec724303387a7b5255ca3b86c24ea2662f905955",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Skull Pelt",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 79,
+        "identified": true,
+        "note": "~b/o 10 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "427",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "121",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+32% to [Resistances|Fire Resistance]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3372524247",
+            "mods": [
+              {
+                "name": "of the Volcano",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "108% increased [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4015621042",
+            "mods": [
+              {
+                "name": "Unfaltering",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+101 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Virile",
+                "tier": "P6",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "100",
+                    "max": "119"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Bears the [MarkofAbyssalLord|Mark of the Abyssal Lord]",
+            "flags": {
+              "crafted": true
+            },
+            "domain": "crafted",
+            "hash": "stat.crafted.stat_335885735",
+            "mods": [
+              {
+                "name": "of the Abyss",
+                "tier": "S0",
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "es": 427,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4015621042",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  1
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_3372524247",
+                [
+                  0
+                ]
+              ]
+            ],
+            "crafted": [
+              [
+                "crafted.stat_335885735",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "902b63dbe84cd30038eab268da3ff33c12dc99b2045e0327d52f13aa351fc185",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-03T20:41:12Z",
+        "stash": {
+          "name": "8",
+          "x": 8,
+          "y": 8
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 10,
+          "currency": "exalted"
+        },
+        "fee": 49563,
+        "account": {
+          "name": "seller-7#0007",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keURleEludDA2IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/512e4bd095/BodyDexInt06.png",
+        "league": "Runes of Aldur",
+        "id": "902b63dbe84cd30038eab268da3ff33c12dc99b2045e0327d52f13aa351fc185",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Morbid Pelt",
+        "typeLine": "Runeforged Falconer's Jacket",
+        "baseType": "Runeforged Falconer's Jacket",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 10 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "496",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "150",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          },
+          {
+            "name": "[Ward|Runic Ward]",
+            "values": [
+              [
+                "227",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 54
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "75",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3523867985"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "5% increased Movement Speed",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2250533757",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "5"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+196 to maximum Life",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3299347043",
+            "mods": [
+              {
+                "name": "Rapturous",
+                "tier": "P2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "190",
+                    "max": "199"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+118 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Eidolon's",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "95",
+                    "max": "119"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+35 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Eidolon's",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "36"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+49 to [Spirit|Spirit]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3981240776",
+            "mods": [
+              {
+                "name": "Countess'",
+                "tier": "P4",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "47",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+33 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Phantom",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+34% to [Resistances|Lightning Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1671376347",
+            "mods": [
+              {
+                "name": "of the Maelstrom",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Gain [Deflect|Deflection Rating] equal to 21% of [Evasion|Evasion Rating]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3033371881",
+            "mods": [
+              {
+                "name": "of Flexure",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "23"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 13,
+        "frameTypeId": "RunicRare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "3f9734d3522961c08aae541878dfe807afc7c4ce62fc31d75ac347a6349155f9",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "a7e834284f8cc06254225e16b87060f7c200547c04d2bb8e43d3e1aaac771d71",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "ev": 496,
+          "es": 150,
+          "ward": 227,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_53045048",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_4052037485",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3981240776",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_1671376347",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3033371881",
+                [
+                  0
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2250533757",
+                [
+                  0
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3523867985",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "9b86c4c9b6b4ee55aa55faea305f51bd96af184953be1822ed2a3485b10bcdb3",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-14T17:21:12Z",
+        "stash": {
+          "name": "tab-3",
+          "x": 10,
+          "y": 5
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 10,
+          "currency": "exalted"
+        },
+        "fee": 55255,
+        "account": {
+          "name": "seller-8#0008",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "9b86c4c9b6b4ee55aa55faea305f51bd96af184953be1822ed2a3485b10bcdb3",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Viper Cloak",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 10 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "691",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "78",
+                1
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3523867985"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "82% increased [EnergyShield|Energy Shield]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_4015621042",
+            "mods": [
+              {
+                "name": "Indomitable",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "80",
+                    "max": "91"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+93 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Resplendent",
+                "tier": "P1",
+                "level": 79,
+                "magnitudes": [
+                  {
+                    "min": "91",
+                    "max": "96"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+61 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Stout",
+                "tier": "P9",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "69"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "35% reduced [Attributes|Attribute] Requirements",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3639275092",
+            "mods": [
+              {
+                "name": "of the Proficient",
+                "tier": "S1",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "-35",
+                    "max": "-35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "18.7 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of Recuperation",
+                "tier": "S4",
+                "level": 58,
+                "magnitudes": [
+                  {
+                    "min": "18.1",
+                    "max": "23"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "[Hit|Hits] have 24% reduced [Critical|Critical Hit] Chance against you",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_4270096386",
+            "mods": [
+              {
+                "name": "of Ulaman",
+                "tier": "S1",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "-25",
+                    "max": "-17"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "fa70f4c639e210339efabb2cd94fedffddebd18b3481417e4e0b588f5609d7df",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "a78df16beae6bb707d2cdb5aaccab1eb20ce78cbcc850d485fdefab2aaa14f02",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "es": 691,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4052037485",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3639275092",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  2
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_4015621042",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3523867985",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_4270096386",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "c46c5284245e885af13f1cb7156b72e82503522bd4860d6315515dad5db64ba2",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-30T04:06:53Z",
+        "stash": {
+          "name": "6",
+          "x": 2,
+          "y": 3
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 11,
+          "currency": "exalted"
+        },
+        "fee": 44503,
+        "account": {
+          "name": "seller-9#0009",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "c46c5284245e885af13f1cb7156b72e82503522bd4860d6315515dad5db64ba2",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Loath Salvation",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 11 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "589",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "121",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3523867985"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "33% increased [EnergyShield|Energy Shield]",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_4015621042",
+            "mods": [
+              {
+                "name": "Exarch's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+35 to maximum Life",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3299347043",
+            "mods": [
+              {
+                "name": "Exarch's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+77 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Scintillating",
+                "tier": "P3",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "74",
+                    "max": "80"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "29% increased [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4015621042",
+            "mods": [
+              {
+                "name": "Strong-Willed",
+                "tier": "P7",
+                "level": 16,
+                "magnitudes": [
+                  {
+                    "min": "27",
+                    "max": "42"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+39% to [Resistances|Lightning Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1671376347",
+            "mods": [
+              {
+                "name": "of the Lightning",
+                "tier": "S2",
+                "level": 71,
+                "magnitudes": [
+                  {
+                    "min": "36",
+                    "max": "40"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "33.2 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of the Phoenix",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "33.1",
+                    "max": "36"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "50% reduced Duration of [Bleeding] on You",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1692879867",
+            "mods": [
+              {
+                "name": "of Allaying",
+                "tier": "S3",
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "-50",
+                    "max": "-46"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "5721c416418a457450dbce03ebb2f4eb4afac41b882ed41d311031a30075e6a9",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "ab44849a4272f1eaf22212998783050c48e950e41e5099b07dc36ca88543e533",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "es": 589,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4052037485",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4015621042",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_1671376347",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_1692879867",
+                [
+                  1
+                ]
+              ]
+            ],
+            "fractured": [
+              [
+                "fractured.stat_4015621042",
+                [
+                  0
+                ]
+              ],
+              [
+                "fractured.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3523867985",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "4bbb956ce1aaa52d530b1d2f91984dfae6b110d4ab8923cfc6713bb4a611d658",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-18T07:51:24Z",
+        "stash": {
+          "name": "4",
+          "x": 2,
+          "y": 4
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 15,
+          "currency": "exalted"
+        },
+        "fee": 51351,
+        "account": {
+          "name": "seller-10#0010",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keUludDAzIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/72f888e8c2/BodyInt03.png",
+        "league": "Runes of Aldur",
+        "id": "4bbb956ce1aaa52d530b1d2f91984dfae6b110d4ab8923cfc6713bb4a611d658",
+        "fractured": true,
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          },
+          {
+            "group": 2,
+            "type": "rune"
+          }
+        ],
+        "name": "Mind Wrap",
+        "typeLine": "Vile Robe",
+        "baseType": "Vile Robe",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 15 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "395",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "121",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "Can roll Soul modifiers",
+            "domain": "rune",
+            "hash": "stat.rune.stat_1927467683"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: 3% increased maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2246411426"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: 3% increased maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_1586906534"
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+206 to maximum Life",
+            "flags": {
+              "fractured": true
+            },
+            "domain": "fractured",
+            "hash": "stat.fractured.stat_3299347043",
+            "mods": [
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "131% increased [EnergyShield|Energy Shield]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_4015621042",
+            "mods": [
+              {
+                "name": "Exarch's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              },
+              {
+                "name": "Unassailable",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "92",
+                    "max": "100"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+41 to maximum Life",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3299347043",
+            "mods": [
+              {
+                "name": "Exarch's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+32% to [Resistances|Lightning Resistance]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_1671376347",
+            "mods": [
+              {
+                "name": "of the Maelstrom",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% increased [ESRechargeRate|Energy Shield Recharge Rate]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_2339757871",
+            "mods": [
+              {
+                "name": "of Ardour",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "23"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "42% reduced [Poison|Poison] Duration on you",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3301100256",
+            "mods": [
+              {
+                "name": "of the Remedy",
+                "tier": "S4",
+                "level": 37,
+                "magnitudes": [
+                  {
+                    "min": "-45",
+                    "max": "-41"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvR2FtZVdhcnBSdW5lQ29sZCIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/2d0641efd6/GameWarpRuneCold.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Runes of Aldur",
+            "id": "417358cb7a58bca211925bfb58d9b10ac277fb89db0f4be818ce30a39afd976e",
+            "name": "",
+            "typeLine": "Medved's Tending",
+            "baseType": "Medved's Tending",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              },
+              {
+                "name": "Limited to",
+                "values": [
+                  [
+                    "1",
+                    0
+                  ]
+                ],
+                "displayMode": 0
+              }
+            ],
+            "runeMods": [
+              "[SocketBound|Socket-bound]"
+            ],
+            "explicitMods": [
+              {
+                "description": "Body Armours: Can roll Soul modifiers"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "Body Armours:",
+              "3% increased maximum Life",
+              "3% increased maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Body Armour to apply its effect to that item. Once socketed it cannot be retrieved or replaced.",
+            "flavourText": [
+              "Before they joined the expedition, the Druids of the\r",
+              "Circle offered sanctuary to all. Criminals, dissidents,\r",
+              "and the unwanted could walk a path to redemption."
+            ],
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkU291bCIsInJlYWxtIjoicG9lMiJ9XQ/3cba21b55a/RuneSocketFilledSoul.png"
+          }
+        ],
+        "extended": {
+          "es": 395,
+          "hashes": {
+            "fractured": [
+              [
+                "fractured.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_1927467683",
+                null
+              ],
+              [
+                "rune.stat_2246411426",
+                null
+              ],
+              [
+                "rune.stat_1586906534",
+                null
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_4015621042",
+                [
+                  0,
+                  1
+                ]
+              ],
+              [
+                "desecrated.stat_3299347043",
+                [
+                  0
+                ]
+              ],
+              [
+                "desecrated.stat_1671376347",
+                [
+                  2
+                ]
+              ],
+              [
+                "desecrated.stat_2339757871",
+                [
+                  3
+                ]
+              ],
+              [
+                "desecrated.stat_3301100256",
+                [
+                  4
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

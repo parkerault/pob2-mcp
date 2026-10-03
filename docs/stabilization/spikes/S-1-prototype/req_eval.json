@@ -1,0 +1,14 @@
+[
+ {"op":"evaluate","slot":"Body Armour","fetchBodyFile":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/fetch_body.json","crossCheck":true,
+  "statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],
+  "reportStats":["Life","Armour","Evasion","ChaosResist","FireResist","Str","Dex"],"augmentBehaviour":"copy"},
+ {"op":"evaluate","slot":"Body Armour","fetchBodyFile":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/fetch_body.json",
+  "statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],
+  "reportStats":["Life","Armour","Evasion","ChaosResist","FireResist","Str","Dex"],"augmentBehaviour":"copy"},
+ {"op":"evaluate","slot":"Body Armour","fetchBodyFile":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/s3/raw/fetch-body-armour.body.json",
+  "statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],
+  "reportStats":["Life","ChaosResist"],"augmentBehaviour":"remove"},
+ {"op":"evaluate","slot":"Ring 1","fetchBodyFile":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/s3/raw/fetch-ring-divine.body.json",
+  "statWeights":[{"stat":"TotalEHP","weight":1.0},{"stat":"Life","weight":0.5}],
+  "reportStats":["FireResist","ColdResist","LightningResist"]}
+]

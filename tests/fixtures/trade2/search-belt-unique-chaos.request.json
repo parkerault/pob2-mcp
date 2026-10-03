@@ -1,0 +1,36 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "accessory.belt"
+          },
+          "rarity": {
+            "option": "unique"
+          }
+        }
+      },
+      "trade_filters": {
+        "filters": {
+          "price": {
+            "option": "chaos",
+            "min": 1
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "and",
+        "filters": []
+      }
+    ]
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

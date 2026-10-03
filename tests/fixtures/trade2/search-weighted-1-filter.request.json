@@ -1,0 +1,35 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "armour.chest"
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "weight",
+        "value": {
+          "min": 100
+        },
+        "filters": [
+          {
+            "id": "explicit.stat_3299347043",
+            "value": {
+              "weight": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "sort": {
+    "statgroup.0": "desc"
+  }
+}

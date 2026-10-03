@@ -1,0 +1,48 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "armour.chest"
+          }
+        }
+      },
+      "trade_filters": {
+        "filters": {
+          "price": {
+            "max": 30
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "weight",
+        "value": {
+          "min": 100
+        },
+        "filters": [
+          {
+            "id": "explicit.stat_3299347043",
+            "value": {
+              "weight": 1
+            }
+          },
+          {
+            "id": "explicit.stat_3372524247",
+            "value": {
+              "weight": 2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "sort": {
+    "statgroup.0": "desc"
+  }
+}

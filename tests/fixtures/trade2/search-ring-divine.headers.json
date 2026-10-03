@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "request": {
+    "method": "POST",
+    "url": "https://www.pathofexile.com/api/trade2/search/poe2/Runes%20of%20Aldur"
+  },
+  "headers": {
+    "date": "Sat, 03 Oct 2026 19:59:29 GMT",
+    "content-type": "application/json",
+    "server": "cloudflare",
+    "vary": "accept-encoding",
+    "set-cookie": "POESESSID=<redacted-anonymous-session>; path=/; domain=.pathofexile.com; secure; HttpOnly; SameSite=Lax",
+    "access-control-expose-headers": "X-Rate-Limit-Policy, X-Rate-Limit-Rules, X-Rate-Limit-Ip, X-Rate-Limit-Ip-State",
+    "x-rate-limit-policy": "trade-search-request-limit",
+    "x-rate-limit-rules": "Ip",
+    "x-rate-limit-ip": "5:10:60,15:60:300,30:300:1800,600:21600:3600",
+    "x-rate-limit-ip-state": "1:10:0,1:60:0,3:300:0,22:21600:0",
+    "x-frame-options": "SAMEORIGIN",
+    "strict-transport-security": "max-age=63115200; includeSubDomains; preload",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "a44e8711f8324458-IAH"
+  }
+}

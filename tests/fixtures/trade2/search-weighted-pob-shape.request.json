@@ -1,0 +1,71 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "armour.chest"
+          },
+          "rarity": {
+            "option": "nonunique"
+          }
+        }
+      },
+      "misc_filters": {
+        "disabled": false,
+        "filters": {
+          "mirrored": false
+        }
+      },
+      "trade_filters": {
+        "filters": {
+          "price": {
+            "max": 30
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "weight",
+        "value": {
+          "min": 150
+        },
+        "filters": [
+          {
+            "id": "explicit.stat_3299347043",
+            "value": {
+              "weight": 1
+            }
+          },
+          {
+            "id": "explicit.stat_3372524247",
+            "value": {
+              "weight": 2
+            }
+          },
+          {
+            "id": "explicit.stat_4220027924",
+            "value": {
+              "weight": 2
+            }
+          }
+        ]
+      },
+      {
+        "type": "and",
+        "filters": []
+      },
+      {
+        "type": "not",
+        "filters": []
+      }
+    ]
+  },
+  "sort": {
+    "statgroup.0": "desc"
+  }
+}

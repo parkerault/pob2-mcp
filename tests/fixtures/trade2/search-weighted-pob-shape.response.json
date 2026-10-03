@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": 2,
+    "message": "Query is too complex. Please reduce the amount of filters used.\nLogging in will increase this limit."
+  }
+}

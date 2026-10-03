@@ -1,0 +1,15 @@
+[
+ {"op":"generate","slot":"Body Armour","queryOut":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/q_body_default.json"},
+ {"op":"generate","slot":"Body Armour","statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],
+  "requiredMods":[{"tradeId":"explicit.stat_3299347043","min":100}],
+  "maxPrice":200,"maxLevel":80,"includeCorrupted":true,"augmentBehaviour":"copy","status":"securable",
+  "queryOut":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/q_body.json"},
+ {"op":"generate","slot":"Body Armour","statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],
+  "requiredMods":[{"tradeId":"explicit.stat_3299347043","min":100}],
+  "maxPrice":200,"maxLevel":80,"includeCorrupted":true,"augmentBehaviour":"copy","status":"securable",
+  "queryOut":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/q_body_warm.json"},
+ {"op":"generate","slot":"Weapon 1","statWeights":[{"stat":"FullDPS","weight":1.0}],
+  "maxPrice":5,"currency":"divine","augmentBehaviour":"keep","queryOut":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/q_weapon.json"},
+ {"op":"generate","slot":"Ring 1","statWeights":[{"stat":"TotalEHP","weight":1.0},{"stat":"Life","weight":0.5}],
+  "maxPrice":50,"currency":"exalted","includeCorrupted":false,"queryOut":"/tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/S-1/q_ring.json"}
+]

@@ -1,0 +1,38 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "armour.chest"
+          },
+          "rarity": {
+            "option": "rare"
+          }
+        }
+      },
+      "misc_filters": {
+        "filters": {
+          "fractured_item": {
+            "option": "true"
+          },
+          "corrupted": {
+            "option": "true"
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "and",
+        "filters": []
+      }
+    ]
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

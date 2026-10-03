@@ -1,0 +1,2150 @@
+{
+  "result": [
+    {
+      "id": "fe7ca0e57eb918535a9327db511be6056e63f5a310b99cbc2e594fbdc54218e8",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-13T16:31:47Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 16,
+          "y": 6
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-11#0011",
+          "online": {
+            "league": "Runes of Aldur",
+            "status": "afk"
+          },
+          "lastCharacterName": "character-1",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-1 Hi, I would like to buy your Blight Turn Amethyst Ring listed for 1 divine in Runes of Aldur (stash tab \"~price 1 divine\"; position: left 17, top 7)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL0FtZXRoeXN0UmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/352427171d/AmethystRing.png",
+        "league": "Runes of Aldur",
+        "id": "fe7ca0e57eb918535a9327db511be6056e63f5a310b99cbc2e594fbdc54218e8",
+        "name": "Blight Turn",
+        "typeLine": "Amethyst Ring",
+        "baseType": "Amethyst Ring",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "63",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+10% to [Resistances|Chaos Resistance]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2923486259",
+            "mods": [
+              {
+                "level": 25,
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "13"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 14 to 24 [Cold] damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4067062424",
+            "mods": [
+              {
+                "name": "Glaciated",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "14",
+                    "max": "15"
+                  },
+                  {
+                    "min": "22",
+                    "max": "24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+62 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Stout",
+                "tier": "P4",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "69"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+14% to [Resistances|Chaos Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2923486259",
+            "mods": [
+              {
+                "name": "of Eviction",
+                "tier": "S4",
+                "level": 44,
+                "magnitudes": [
+                  {
+                    "min": "12",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "64% increased Mana Regeneration Rate",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_789117908",
+            "mods": [
+              {
+                "name": "of Nirvana",
+                "tier": "S1",
+                "level": 79,
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "69"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4067062424",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_2923486259",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_789117908",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2923486259",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "05d509241bde45677754fa666caf987ec4c090cc38e19a7170a56be13e6e460d",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-08-01T19:50:49Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 9,
+          "y": 10
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-12#0012",
+          "online": {
+            "league": "Runes of Aldur",
+            "status": "afk"
+          },
+          "lastCharacterName": "character-2",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-2 Hi, I would like to buy your Grim Turn Breach Ring listed for 1 divine in Runes of Aldur (stash tab \"~price 1 divine\"; position: left 10, top 11)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL0JyZWFjaFJpbmciLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/cffe574bd0/BreachRing.png",
+        "league": "Runes of Aldur",
+        "id": "05d509241bde45677754fa666caf987ec4c090cc38e19a7170a56be13e6e460d",
+        "name": "Grim Turn",
+        "typeLine": "Breach Ring",
+        "baseType": "Breach Ring",
+        "rarity": "Rare",
+        "ilvl": 79,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "52",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+20% to Maximum [Quality]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2039822488",
+            "mods": [
+              {
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 15 to 21 [Physical|Physical] Damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3032590688",
+            "mods": [
+              {
+                "name": "Tempered",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "10",
+                    "max": "15"
+                  },
+                  {
+                    "min": "18",
+                    "max": "26"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "24% increased [Cold] Damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3291658075",
+            "mods": [
+              {
+                "name": "Hailing",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "23",
+                    "max": "26"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+179 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2144192055",
+            "mods": [
+              {
+                "name": "Elusory",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "175",
+                    "max": "202"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+18 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Falcon",
+                "tier": "S5",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "17",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3032590688",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3291658075",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2144192055",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2039822488",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "e91f2e3dd25244286be28431026de6ccf3e5e6f13f8e620f9b051206805ccf8b",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-22T13:40:30Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 7,
+          "y": 23
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-12#0012",
+          "online": {
+            "league": "Runes of Aldur",
+            "status": "afk"
+          },
+          "lastCharacterName": "character-2",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-2 Hi, I would like to buy your Gloom Loop Topaz Ring listed for 1 divine in Runes of Aldur (stash tab \"~price 1 divine\"; position: left 8, top 24)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1RvcGF6UmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/83315d9397/TopazRing.png",
+        "league": "Runes of Aldur",
+        "id": "e91f2e3dd25244286be28431026de6ccf3e5e6f13f8e620f9b051206805ccf8b",
+        "name": "Gloom Loop",
+        "typeLine": "Topaz Ring",
+        "baseType": "Topaz Ring",
+        "rarity": "Rare",
+        "ilvl": 80,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "52",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+26% to [Resistances|Lightning Resistance]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1671376347",
+            "mods": [
+              {
+                "level": 20,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 18 to 26 [Cold] damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4067062424",
+            "mods": [
+              {
+                "name": "Polar",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "16",
+                    "max": "20"
+                  },
+                  {
+                    "min": "25",
+                    "max": "31"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+86 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "name": "Opalescent",
+                "tier": "P6",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "80",
+                    "max": "89"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+26 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "name": "of the Sage",
+                "tier": "S3",
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "25",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+30% to [Resistances|Cold Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4220027924",
+            "mods": [
+              {
+                "name": "of the Walrus",
+                "tier": "S4",
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "26",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_4067062424",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_1050105434",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_4220027924",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1671376347",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "e9d5a9cd16d491a6962cd5a9d7d91408d20a6d9c8b63d3f627949f87968a998b",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-11T11:47:32Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 16,
+          "y": 7
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-13#0013",
+          "online": {
+            "league": "Forbidden Rites"
+          },
+          "lastCharacterName": "character-3",
+          "language": "pt_BR",
+          "realm": "poe2"
+        },
+        "whisper": "@character-3 Olá, eu gostaria de comprar seu FaixaMatança Anel de Pérola listado por 1 divine na Runes of Aldur (aba do baú: \"~price 1 divine\"; posição: esquerda 17, topo 8)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1BlYXJsUmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/5d008028ac/PearlRing.png",
+        "league": "Runes of Aldur",
+        "id": "e9d5a9cd16d491a6962cd5a9d7d91408d20a6d9c8b63d3f627949f87968a998b",
+        "name": "Onslaught Band",
+        "typeLine": "Pearl Ring",
+        "baseType": "Pearl Ring",
+        "rarity": "Rare",
+        "ilvl": 77,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "48",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "7% increased Cast Speed",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2891184298",
+            "mods": [
+              {
+                "level": 40,
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 3 to 6 [Physical|Physical] Damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3032590688",
+            "mods": [
+              {
+                "name": "Burnished",
+                "tier": "P8",
+                "level": 8,
+                "magnitudes": [
+                  {
+                    "min": "2",
+                    "max": "3"
+                  },
+                  {
+                    "min": "4",
+                    "max": "6"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+137 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2144192055",
+            "mods": [
+              {
+                "name": "Phased",
+                "tier": "P4",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "108",
+                    "max": "141"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "18% increased [ItemRarity|Rarity of Items] found",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3917489142",
+            "mods": [
+              {
+                "name": "of Archaeology",
+                "tier": "S1",
+                "level": 40,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "18"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+11 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Wrestler",
+                "tier": "S7",
+                "level": 11,
+                "magnitudes": [
+                  {
+                    "min": "9",
+                    "max": "12"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+35% to [Resistances|Fire Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3372524247",
+            "mods": [
+              {
+                "name": "of the Volcano",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3032590688",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_2144192055",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3917489142",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3372524247",
+                [
+                  0
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2891184298",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "be96fa2140585f513f70073d729aab7b2f3171760b43cf588f7dc441ca0b6428",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-29T12:50:12Z",
+        "stash": {
+          "name": "~price 20 exaltedRINGS",
+          "x": 10,
+          "y": 7
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-14#0014",
+          "online": {
+            "league": "Runes of Aldur"
+          },
+          "lastCharacterName": "character-4",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-4 Hi, I would like to buy your Agony Loop Prismatic Ring listed for 1 divine in Runes of Aldur (stash tab \"~price 20 exaltedRINGS\"; position: left 11, top 8)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1ByaXNtYXRpY1JpbmciLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/a9bd534c46/PrismaticRing.png",
+        "league": "Runes of Aldur",
+        "id": "be96fa2140585f513f70073d729aab7b2f3171760b43cf588f7dc441ca0b6428",
+        "name": "Agony Loop",
+        "typeLine": "Prismatic Ring",
+        "baseType": "Prismatic Ring",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~price 1 divine",
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "52",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+8% to all [ElementalDamage|Elemental] [Resistances]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2901986750",
+            "mods": [
+              {
+                "level": 44,
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 15 to 26 [Physical|Physical] Damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3032590688",
+            "mods": [
+              {
+                "name": "Tempered",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "10",
+                    "max": "15"
+                  },
+                  {
+                    "min": "18",
+                    "max": "26"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Adds 20 to 36 [Fire] damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1573130764",
+            "mods": [
+              {
+                "name": "Blasting",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "24"
+                  },
+                  {
+                    "min": "33",
+                    "max": "36"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+12% to all [ElementalDamage|Elemental] [Resistances]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2901986750",
+            "mods": [
+              {
+                "name": "of Variegation",
+                "tier": "S2",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "12",
+                    "max": "14"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+34% to [Resistances|Cold Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4220027924",
+            "mods": [
+              {
+                "name": "of the Polar Bear",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "14.5 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of Convalescence",
+                "tier": "S1",
+                "level": 47,
+                "magnitudes": [
+                  {
+                    "min": "13.1",
+                    "max": "18"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3032590688",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_1573130764",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_2901986750",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_4220027924",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  0
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2901986750",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "e9698875e173b7ba1f6776e800d27a96440ad5169e28f1cbeec37179ebd36d09",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-06-13T02:31:33Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 14,
+          "y": 13
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-11#0011",
+          "online": {
+            "league": "Runes of Aldur",
+            "status": "afk"
+          },
+          "lastCharacterName": "character-1",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-1 Hi, I would like to buy your Torment Gyre Unset Ring listed for 1 divine in Runes of Aldur (stash tab \"~price 1 divine\"; position: left 15, top 14)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1Vuc2V0UmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/79ee559b51/UnsetRing.png",
+        "league": "Runes of Aldur",
+        "id": "e9698875e173b7ba1f6776e800d27a96440ad5169e28f1cbeec37179ebd36d09",
+        "name": "Torment Gyre",
+        "typeLine": "Unset Ring",
+        "baseType": "Unset Ring",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "60",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "Grants 1 additional Skill Slot",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_958696139",
+            "mods": [
+              {
+                "level": 56,
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "28% increased [Lightning] Damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2231156303",
+            "mods": [
+              {
+                "name": "Smiting",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "27",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "12% increased [ItemRarity|Rarity of Items] found",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3917489142",
+            "mods": [
+              {
+                "name": "Collector's",
+                "tier": "P2",
+                "level": 29,
+                "magnitudes": [
+                  {
+                    "min": "12",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+31 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Titan",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+28% to [Resistances|Cold Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4220027924",
+            "mods": [
+              {
+                "name": "of the Walrus",
+                "tier": "S4",
+                "level": 50,
+                "magnitudes": [
+                  {
+                    "min": "26",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2231156303",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3917489142",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4220027924",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_958696139",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "de35ae6f823bea29035bc8afbe1cb99e3278c52301a9058f3f34b5b34535fbd8",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-11T11:47:32Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 2,
+          "y": 19
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-13#0013",
+          "online": {
+            "league": "Forbidden Rites"
+          },
+          "lastCharacterName": "character-3",
+          "language": "pt_BR",
+          "realm": "poe2"
+        },
+        "whisper": "@character-3 Olá, eu gostaria de comprar seu DedoFúria Anel de Lazúli listado por 1 divine na Runes of Aldur (aba do baú: \"~price 1 divine\"; posição: esquerda 3, topo 20)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL0xhenVsaVJpbmciLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/53f4255f0b/LazuliRing.png",
+        "league": "Runes of Aldur",
+        "id": "de35ae6f823bea29035bc8afbe1cb99e3278c52301a9058f3f34b5b34535fbd8",
+        "name": "Rage Finger",
+        "typeLine": "Lazuli Ring",
+        "baseType": "Lazuli Ring",
+        "rarity": "Rare",
+        "ilvl": 56,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "36",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+30 to maximum Mana",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1050105434",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+86 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "name": "Opalescent",
+                "tier": "P6",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "80",
+                    "max": "89"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+2 to all [Attributes|Attributes]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1379411836",
+            "mods": [
+              {
+                "name": "of the Clouds",
+                "tier": "S4",
+                "magnitudes": [
+                  {
+                    "min": "2",
+                    "max": "4"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+7 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Brute",
+                "tier": "S8",
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "8"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "20% increased Mana Regeneration Rate",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_789117908",
+            "mods": [
+              {
+                "name": "of the Hearth",
+                "tier": "S1",
+                "level": 30,
+                "magnitudes": [
+                  {
+                    "min": "18",
+                    "max": "22"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "15% increased [LightRadius|Light Radius]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1263695895",
+            "mods": [
+              {
+                "name": "of the Hearth",
+                "tier": "S1",
+                "level": 30,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_1050105434",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_1379411836",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_789117908",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_1263695895",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1050105434",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "138fa51488333851446dd7ea39a1bef2d8e42bef37dd0c192e14e2bb867f8eb8",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-30T18:42:14Z",
+        "stash": {
+          "name": "tab-4",
+          "x": 7,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-15#0015",
+          "online": {
+            "league": "Runes of Aldur"
+          },
+          "lastCharacterName": "character-5",
+          "language": "en_US",
+          "realm": "poe2"
+        },
+        "whisper": "@character-5 Hi, I would like to buy your Glyph Band Prismatic Ring listed for 1 divine in Runes of Aldur (stash tab \"tab-4\"; position: left 8, top 3)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1ByaXNtYXRpY1JpbmciLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/a9bd534c46/PrismaticRing.png",
+        "league": "Runes of Aldur",
+        "id": "138fa51488333851446dd7ea39a1bef2d8e42bef37dd0c192e14e2bb867f8eb8",
+        "name": "Glyph Band",
+        "typeLine": "Prismatic Ring",
+        "baseType": "Prismatic Ring",
+        "rarity": "Rare",
+        "ilvl": 74,
+        "identified": true,
+        "note": "~b/o 1 divine",
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "56",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+7% to all [ElementalDamage|Elemental] [Resistances]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2901986750",
+            "mods": [
+              {
+                "level": 44,
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "10"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 11 to 18 [Physical|Physical] Damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3032590688",
+            "mods": [
+              {
+                "name": "Razor-sharp",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "7",
+                    "max": "11"
+                  },
+                  {
+                    "min": "14",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+163 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2144192055",
+            "mods": [
+              {
+                "name": "Vaporous",
+                "tier": "P3",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "142",
+                    "max": "174"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+161 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "name": "Blue",
+                "tier": "P2",
+                "level": 70,
+                "magnitudes": [
+                  {
+                    "min": "150",
+                    "max": "164"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+20 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Lion",
+                "tier": "S5",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "17",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+15% to all [ElementalDamage|Elemental] [Resistances]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2901986750",
+            "mods": [
+              {
+                "name": "of the Rainbow",
+                "tier": "S1",
+                "level": 68,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "16"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+25% to [Resistances|Cold Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4220027924",
+            "mods": [
+              {
+                "name": "of the Yeti",
+                "tier": "S5",
+                "level": 38,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "25"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3032590688",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_2144192055",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_1050105434",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_2901986750",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_4220027924",
+                [
+                  4
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2901986750",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "0b32da36af2ed1389234011853dbfe98745482e0d4b413573328d60c0f5e5b09",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-07-11T11:47:32Z",
+        "stash": {
+          "name": "~price 1 divine",
+          "x": 1,
+          "y": 13
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-13#0013",
+          "online": {
+            "league": "Forbidden Rites"
+          },
+          "lastCharacterName": "character-3",
+          "language": "pt_BR",
+          "realm": "poe2"
+        },
+        "whisper": "@character-3 Olá, eu gostaria de comprar seu GiroCorrupção Anel de Topázio listado por 1 divine na Runes of Aldur (aba do baú: \"~price 1 divine\"; posição: esquerda 2, topo 14)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1RvcGF6UmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/83315d9397/TopazRing.png",
+        "league": "Runes of Aldur",
+        "id": "0b32da36af2ed1389234011853dbfe98745482e0d4b413573328d60c0f5e5b09",
+        "name": "Corruption Turn",
+        "typeLine": "Topaz Ring",
+        "baseType": "Topaz Ring",
+        "rarity": "Rare",
+        "ilvl": 52,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "Quality (Lightning Modifiers)",
+            "values": [
+              [
+                "+10%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "26",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+33% to [Resistances|Lightning Resistance]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1671376347",
+            "mods": [
+              {
+                "level": 20,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 1 to 14 [Lightning] damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1754445556",
+            "mods": [
+              {
+                "name": "Buzzing",
+                "tier": "P8",
+                "level": 8,
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  },
+                  {
+                    "min": "10",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "11% increased [Lightning] Damage",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2231156303",
+            "mods": [
+              {
+                "name": "Hissing",
+                "tier": "P5",
+                "level": 16,
+                "magnitudes": [
+                  {
+                    "min": "8",
+                    "max": "12"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+17 to [Intelligence|Intelligence]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_328541901",
+            "mods": [
+              {
+                "name": "of the Augur",
+                "tier": "S5",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "17",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+19% to [Resistances|Lightning Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1671376347",
+            "mods": [
+              {
+                "name": "of the Storm",
+                "tier": "S6",
+                "level": 25,
+                "magnitudes": [
+                  {
+                    "min": "16",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_1754445556",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2231156303",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_328541901",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_1671376347",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1671376347",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "cac0c1cd2179cdb24ac4adda50e5a127983f659d58a0dbc6e49e2b1c37e2d3a1",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-08-10T18:25:34Z",
+        "stash": {
+          "name": "tab-5",
+          "x": 2,
+          "y": 1
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-16#0016",
+          "online": {
+            "league": "Runes of Aldur"
+          },
+          "lastCharacterName": "character-6",
+          "language": "ru_RU",
+          "realm": "poe2"
+        },
+        "whisper": "@character-6 Здравствуйте, хочу купить у вас Вампирское потрясение Кольцо с топазом за 1 divine в лиге Runes of Aldur (секция \"tab-5\"; позиция: 3 столбец, 2 ряд)"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvUmluZ3MvQmFzZXR5cGVzL1RvcGF6UmluZyIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/83315d9397/TopazRing.png",
+        "league": "Runes of Aldur",
+        "id": "cac0c1cd2179cdb24ac4adda50e5a127983f659d58a0dbc6e49e2b1c37e2d3a1",
+        "name": "Ghoul Turn",
+        "typeLine": "Topaz Ring",
+        "baseType": "Topaz Ring",
+        "rarity": "Rare",
+        "ilvl": 78,
+        "identified": true,
+        "note": "~price 1 divine",
+        "properties": [
+          {
+            "name": "Ring",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "54",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+26% to [Resistances|Lightning Resistance]",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_1671376347",
+            "mods": [
+              {
+                "level": 20,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Adds 13 to 18 [Fire] damage to [Attack|Attacks]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1573130764",
+            "mods": [
+              {
+                "name": "Flaming",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "12",
+                    "max": "13"
+                  },
+                  {
+                    "min": "18",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+22 to maximum Mana",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1050105434",
+            "mods": [
+              {
+                "name": "Cobalt",
+                "tier": "P11",
+                "level": 6,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "16% increased [ItemRarity|Rarity of Items] found",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3917489142",
+            "mods": [
+              {
+                "name": "Hoarder's",
+                "tier": "P1",
+                "level": 47,
+                "magnitudes": [
+                  {
+                    "min": "16",
+                    "max": "19"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+15% to all [ElementalDamage|Elemental] [Resistances]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2901986750",
+            "mods": [
+              {
+                "name": "of the Rainbow",
+                "tier": "S1",
+                "level": 68,
+                "magnitudes": [
+                  {
+                    "min": "15",
+                    "max": "16"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Gain 25 Mana per enemy killed",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1368271171",
+            "mods": [
+              {
+                "name": "of Siphoning",
+                "tier": "S1",
+                "level": 56,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_1573130764",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_1050105434",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3917489142",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_2901986750",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_1368271171",
+                [
+                  4
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_1671376347",
+                [
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

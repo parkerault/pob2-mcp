@@ -1,0 +1,24 @@
+{
+  "status": 200,
+  "request": {
+    "method": "GET",
+    "url": "https://www.pathofexile.com/api/trade2/fetch/88b334121f115f101825d8ec23a7a7af3113e876e19ae0e09958d4f68bdff0d5,037a9e5d765779e9717e06a44c6c6f3a384523397bb1318ec2ad8bc7d2240df0,937d9f9905de114fa539d4f4b33bb36113b3154b16222b120617bceb6d239857,09e421a1a04e7f673b895ada15b258388338086b83e51a2d750ddc702ec6d6ab,b7d611705f0607285989645e127345ae4505eace8c7a784112996872b2d31d0c,db9df547750ba113a683191bec724303387a7b5255ca3b86c24ea2662f905955,902b63dbe84cd30038eab268da3ff33c12dc99b2045e0327d52f13aa351fc185,9b86c4c9b6b4ee55aa55faea305f51bd96af184953be1822ed2a3485b10bcdb3,c46c5284245e885af13f1cb7156b72e82503522bd4860d6315515dad5db64ba2,4bbb956ce1aaa52d530b1d2f91984dfae6b110d4ab8923cfc6713bb4a611d658?query=H4sIAAAAAAAAA3WP3QrDIAyF3yXXYw_QVymlZJpuAa0S46AU333W3Shsd_k5-XLOCUlRc4LphBCVww4T4BvZ4cMRlBts7JSkCfSItHZ9VxpUegY5Ro74kOVuXpT0QgkK6yipo_ql1KXnZP7AN0GjWciurOSHe5XcXJogkqOS_bFt-Ctmhc3fFJe53UKXbl7KUj5CqrayDgEAAA",
+    "note": "item ids in this URL are the pseudonymised ids used in the fixtures"
+  },
+  "headers": {
+    "date": "Sat, 03 Oct 2026 19:58:41 GMT",
+    "content-type": "application/json",
+    "server": "cloudflare",
+    "vary": "accept-encoding",
+    "set-cookie": "POESESSID=<redacted-anonymous-session>; path=/; domain=.pathofexile.com; secure; HttpOnly; SameSite=Lax",
+    "access-control-expose-headers": "X-Rate-Limit-Policy, X-Rate-Limit-Rules, X-Rate-Limit-Ip, X-Rate-Limit-Ip-State",
+    "x-rate-limit-policy": "trade-fetch-request-limit",
+    "x-rate-limit-rules": "Ip",
+    "x-rate-limit-ip": "12:4:10,16:12:300,50:300:300,1000:21600:1800",
+    "x-rate-limit-ip-state": "1:4:0,1:12:0,2:300:0,21:21600:0",
+    "x-frame-options": "SAMEORIGIN",
+    "strict-transport-security": "max-age=63115200; includeSubDomains; preload",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "a44e85e1ba6b16b8-IAH"
+  }
+}

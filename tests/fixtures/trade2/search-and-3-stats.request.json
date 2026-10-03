@@ -1,0 +1,54 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {
+      "type_filters": {
+        "filters": {
+          "category": {
+            "option": "armour.chest"
+          },
+          "rarity": {
+            "option": "nonunique"
+          }
+        }
+      },
+      "trade_filters": {
+        "filters": {
+          "price": {
+            "max": 30
+          }
+        }
+      }
+    },
+    "stats": [
+      {
+        "type": "and",
+        "filters": [
+          {
+            "id": "explicit.stat_3299347043",
+            "value": {
+              "min": 80
+            }
+          },
+          {
+            "id": "explicit.stat_3372524247",
+            "value": {
+              "min": 20
+            }
+          },
+          {
+            "id": "explicit.stat_4220027924",
+            "value": {
+              "min": 20
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

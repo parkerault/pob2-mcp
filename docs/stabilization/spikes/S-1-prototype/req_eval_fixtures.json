@@ -1,0 +1,8 @@
+[
+ {"op":"evaluate","slot":"Body Armour","fetchBodyFile":"/home/parker/projects/pob2-mcp/tests/fixtures/trade2/fetch-body-armour.response.json","crossCheck":true,
+  "statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],"reportStats":["Life","ChaosResist"],"augmentBehaviour":"copy"},
+ {"op":"evaluate","slot":"Ring 1","fetchBodyFile":"/home/parker/projects/pob2-mcp/tests/fixtures/trade2/fetch-ring-divine.response.json",
+  "statWeights":[{"stat":"TotalEHP","weight":1.0},{"stat":"Life","weight":0.5}],"reportStats":["FireResist","ColdResist"]},
+ {"op":"evaluate","slot":"Belt","fetchBodyFile":"/home/parker/projects/pob2-mcp/tests/fixtures/trade2/fetch-belt-unique-chaos.response.json",
+  "statWeights":[{"stat":"FullDPS","weight":1.0},{"stat":"TotalEHP","weight":0.5}],"reportStats":["Life"]}
+]

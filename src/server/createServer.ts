@@ -23,8 +23,8 @@ import { BuildExportService } from "../services/buildExportService.js";
 import { TradeApiClient } from "../services/tradeClient.js";
 import { StatMapper } from "../services/statMapper.js";
 import { PoeNinjaClient } from "../services/poeNinjaClient.js";
-import { ContextBuilder } from "../utils/contextBuilder.js";
-import { LuaClientManager } from "./luaClientManager.js";
+import { ContextBuilder, sessionScopedEngine } from "../utils/contextBuilder.js";
+import { createEngineSession, type EngineSession } from "../engine/session.js";
 import {
   getToolSchemas,
   getLuaToolSchemas,
@@ -70,16 +70,8 @@ export interface ServerDeps {
   now?: () => number;
 }
 
-/**
- * The engine handle (C-3). Until WU-08 delivers the engine session, this is the existing
- * engine manager behind a thin interface.
- */
-export interface EngineSession {
-  /** The running engine's process id, or null when no engine runs (test hook). */
-  enginePid(): number | null;
-  /** Stop the engine: `quit`, wait ≤ 2 s for exit, then SIGKILL. */
-  shutdown(): Promise<void>;
-}
+/** The engine handle is the engine session (C-3). */
+export type { EngineSession } from "../engine/session.js";
 
 /**
  * Tools whose output is truncated to 5000 characters (C-1). `find_upgrades` and
@@ -160,7 +152,9 @@ export function createServer(deps: ServerDeps): {
     cacheTTL: env.POE_CACHE_TTL ? parseInt(env.POE_CACHE_TTL, 10) : undefined,
   });
   const statMapper = new StatMapper();
-  const luaClientManager = new LuaClientManager({ env, spawn: deps.spawn });
+  // The engine session (C-3) is the only owner of the engine; nothing starts until an engine call.
+  const session = createEngineSession({ env, spawn: deps.spawn, pobDirectory: deps.pobDirectory, now });
+  const engineAccess = sessionScopedEngine(session);
 
   const contextBuilder = new ContextBuilder({
     buildService,
@@ -172,9 +166,10 @@ export function createServer(deps: ServerDeps): {
     stateDir: deps.stateDir,
     env,
     fetch: deps.fetch,
-    getLuaClient: () => luaClientManager.getClient(),
-    ensureLuaClient: () => luaClientManager.ensureClient(),
-    stopLuaClient: () => luaClientManager.stopClient(),
+    getLuaClient: engineAccess.getLuaClient,
+    ensureLuaClient: engineAccess.ensureLuaClient,
+    engine: engineAccess.engine,
+    loadedBuild: engineAccess.loadedBuild,
   });
 
   const routerDeps: ToolRouterDependencies = {
@@ -182,8 +177,9 @@ export function createServer(deps: ServerDeps): {
     tradeClient,
     statMapper,
     ninjaClient,
-    getLuaClient: () => luaClientManager.getClient(),
-    ensureLuaClient: () => luaClientManager.ensureClient(),
+    session,
+    getLuaClient: engineAccess.getLuaClient,
+    ensureLuaClient: engineAccess.ensureLuaClient,
     env,
     ensureTradeStats: lazyTradeStats(tradeClient, statMapper),
   };
@@ -238,10 +234,7 @@ export function createServer(deps: ServerDeps): {
     return result;
   });
 
-  const engine: EngineSession = {
-    enginePid: () => luaClientManager.enginePid(),
-    shutdown: () => luaClientManager.stopClient(),
-  };
+  const engine: EngineSession = session;
 
   let shuttingDown: Promise<void> | null = null;
   const shutdown = (): Promise<void> => {

@@ -1,4 +1,5 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
+import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import fs from "fs/promises";
 import path from "path";
@@ -11,7 +12,16 @@ export interface LuaHandlerContext {
   fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
-  stopLuaClient: () => Promise<void>;
+  /** The running engine call's context (C-3): every load and lua_stop go through it. */
+  engine: () => EngineCallContext;
+  /** The build the engine holds (C-3 `loaded`). */
+  loadedBuild: () => LoadedBuild | null;
+}
+
+/** `Build: <displayName>`, plus the relative path when the build came from a file (AC-E22). */
+export function formatLoadedBuild(loaded: LoadedBuild | null): string {
+  if (!loaded) return 'Build: (no engine running)';
+  return `Build: ${loaded.displayName}${loaded.path ? ` (${loaded.path})` : ''}`;
 }
 
 export async function handleLuaStart(context: LuaHandlerContext) {
@@ -31,13 +41,16 @@ export async function handleLuaStart(context: LuaHandlerContext) {
 
 export async function handleLuaStop(context: LuaHandlerContext) {
   return wrapHandler('stop Lua bridge', async () => {
-    await context.stopLuaClient();
+    // Rule L (C-3): the session stops the engine and clears the loaded build; dirty work is named.
+    const { discardedFrom } = await context.engine().stopEngine();
+    let text = "PoB Lua Bridge stopped successfully.";
+    if (discardedFrom) text += `\nDiscarded unsaved changes from \`${discardedFrom}\`.`;
 
     return {
       content: [
         {
           type: "text" as const,
-          text: "PoB Lua Bridge stopped successfully.",
+          text,
         },
       ],
     };
@@ -46,21 +59,17 @@ export async function handleLuaStop(context: LuaHandlerContext) {
 
 export async function handleLuaNewBuild(context: LuaHandlerContext, className?: string, ascendancy?: string) {
   return wrapHandler('create new build', async () => {
-    await context.ensureLuaClient();
-
-    const luaClient = context.getLuaClient();
-    if (!luaClient) {
-      throw new Error('Lua client not initialized');
-    }
-
-    await luaClient.newBuild(className || ascendancy ? { className, ascendancy } : undefined);
+    await context.engine().newBuild({
+      ...(className ? { className } : {}),
+      ...(ascendancy ? { ascendancy } : {}),
+    });
 
     const classDesc = className ? ` (${className}${ascendancy ? `/${ascendancy}` : ''})` : '';
     return {
       content: [
         {
           type: "text" as const,
-          text: `✅ New empty build created${classDesc}.`,
+          text: `✅ New empty build created${classDesc}.\n${formatLoadedBuild(context.loadedBuild())}`,
         },
       ],
     };
@@ -88,7 +97,7 @@ export async function handleLuaSaveBuild(context: LuaHandlerContext, buildName: 
       content: [
         {
           type: "text" as const,
-          text: `✅ Build saved to "${fileName}" (${result?.size ?? '?'} bytes). File-based tools can now use this build.`,
+          text: `✅ Build saved to "${fileName}" (${result?.size ?? '?'} bytes). File-based tools can now use this build.\n${formatLoadedBuild(context.loadedBuild())}`,
         },
       ],
     };
@@ -102,27 +111,21 @@ export async function handleLuaLoadBuild(
   name?: string
 ) {
   return wrapHandler('load build', async () => {
-    await context.ensureLuaClient();
-
     const luaClient = context.getLuaClient();
     if (!luaClient) {
       throw new Error('Lua client not initialized');
     }
 
-    // If build_name is provided, read the file
-    let xml = buildXml;
+    // Loads go through the session (C-3), which records the canonical path (D-52) and fingerprint.
+    let loaded: LoadedBuild;
     if (buildName) {
-      const buildPath = sanitizeBuildName(buildName, context.pobDirectory);
-      xml = await fs.readFile(buildPath, 'utf-8');
-      // Use the build filename as the name if not specified
-      if (!name) {
-        name = buildName.replace(/\.xml$/i, '');
-      }
-    } else if (!xml) {
+      loaded = await context.engine().loadFile(buildName);
+    } else if (buildXml) {
+      loaded = await context.engine().loadXml(buildXml, { displayName: name?.trim() || 'Imported build' });
+    } else {
       throw new Error('Either build_name or build_xml must be provided');
     }
-
-    await luaClient.loadBuildXml(xml, name);
+    name = loaded.displayName;
 
     // Check for multiple specs / item sets and inform the user (sequential — bridge is single-request)
     const extraLines: string[] = [];
@@ -194,7 +197,7 @@ export async function handleLuaLoadBuild(
     } catch { /* auto-context is best-effort */ }
     const summary = summaryLines.join('\n');
 
-    const loadText = `✅ Build "${name || 'MCP Build'}" loaded.${extra}` + (summary ? '\n---\n' + summary : '');
+    const loadText = `✅ Build "${loaded.displayName}" loaded.\n${formatLoadedBuild(context.loadedBuild() ?? loaded)}${extra}` + (summary ? '\n---\n' + summary : '');
 
     return {
       content: [
@@ -474,6 +477,7 @@ export async function handleLuaGetBuildInfo(context: LuaHandlerContext) {
     const text = [
       '=== Build Info ===',
       '',
+      formatLoadedBuild(context.loadedBuild()),
       `Name: ${info.name || 'Unnamed'}`,
       `Level: ${info.level ?? 'Unknown'}`,
       `Class: ${info.className || 'Unknown'}`,
@@ -489,29 +493,18 @@ export async function handleLuaGetBuildInfo(context: LuaHandlerContext) {
 
 export async function handleLuaReloadBuild(context: LuaHandlerContext, buildName?: string) {
   return wrapHandler('reload build', async () => {
-    await context.ensureLuaClient();
-    const luaClient = context.getLuaClient();
-    if (!luaClient) throw new Error('Lua client not initialized');
-
-    let targetName: string = buildName ?? '';
-
-    // If no name provided, get it from the currently loaded build
-    if (!targetName) {
-      const info = await luaClient.getBuildInfo();
-      if (!info?.name) {
-        throw new Error('No build is currently loaded and no build_name was provided. Use lua_load_build first.');
-      }
-      targetName = String(info.name);
+    // Without a name, reload the file the engine's build came from (C-3 `loaded.path`).
+    const current = context.loadedBuild();
+    const target = buildName?.trim() || current?.path;
+    if (!target) {
+      throw new Error(
+        `The engine's build ("${current?.displayName ?? 'none'}") did not come from a file and no build_name was provided. Use lua_load_build first.`,
+      );
     }
-
-    const fileName = targetName.endsWith('.xml') ? targetName : `${targetName}.xml`;
-    const buildPath = sanitizeBuildName(fileName, context.pobDirectory);
-    const xml = await fs.readFile(buildPath, 'utf-8');
-    const name = fileName.replace(/\.xml$/i, '');
-    await luaClient.loadBuildXml(xml, name);
+    const loaded = await context.engine().loadFile(target);
 
     return {
-      content: [{ type: "text" as const, text: `✅ Build "${fileName}" reloaded from disk.` }],
+      content: [{ type: "text" as const, text: `✅ Build "${loaded.path}" reloaded from disk.\n${formatLoadedBuild(loaded)}` }],
     };
   });
 }
@@ -721,15 +714,14 @@ export async function handleImportBuild(
     if (!source || !source.trim()) {
       throw new Error("Provide a PoB2 export code or a pobb.in/pastebin link as 'source'.");
     }
-    await context.ensureLuaClient();
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error('Lua client not initialized. Use lua_start first.');
 
     const { resolveBuildXml } = await import('../utils/buildCode.js');
     const xml = await resolveBuildXml(source, context.fetch);
 
-    const name = saveAs ? saveAs.replace(/\.xml$/i, '') : 'Imported Build';
-    await luaClient.loadBuildXml(xml, name);
+    const name = saveAs ? (saveAs.replace(/\.xml$/i, '').split(/[/\\]/).pop() || 'Imported build') : 'Imported build';
+    await context.engine().loadXml(xml, { displayName: name });
     const info = await luaClient.getBuildInfo();
     let skillGroups = 0;
     try { skillGroups = ((await luaClient.getSkills())?.groups || []).length; } catch { /* non-fatal */ }

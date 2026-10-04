@@ -23,7 +23,8 @@ const mockDeps: ContextDependencies = {
   fetch: mockFetch,
   getLuaClient: () => mockLuaClient,
   ensureLuaClient: async () => {},
-  stopLuaClient: async () => {},
+  engine: () => { throw new Error('no engine call'); },
+  loadedBuild: () => null,
 };
 
 describe('ContextBuilder', () => {
@@ -70,7 +71,8 @@ describe('ContextBuilder', () => {
       expect(context.fetch).toBe(mockFetch);
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
-      expect(typeof context.stopLuaClient).toBe('function');
+      expect(typeof context.engine).toBe('function');
+      expect(context.loadedBuild()).toBeNull();
     });
   });
 

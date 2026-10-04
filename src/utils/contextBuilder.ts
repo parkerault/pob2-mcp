@@ -11,6 +11,43 @@ import type { WatchService } from '../services/watchService.js';
 import type { ValidationService } from '../services/validationService.js';
 import type { BuildExportService } from '../services/buildExportService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
+import {
+  EngineAccessError,
+  type EngineCallContext,
+  type EngineSession,
+  type LoadedBuild,
+} from '../engine/session.js';
+
+/**
+ * Session-scoped engine access (C-3 step 5). Inside a `session.run`, `getLuaClient()` is the run's
+ * `ctx.client` (which rejects raw loads) and `ensureLuaClient()` resolves at once (the session already
+ * started the engine); outside one, both throw "engine access outside a session". Nothing else can
+ * reach the engine, so only the session starts it (D-59).
+ */
+export interface EngineAccess {
+  getLuaClient: () => PoBLuaApiClient;
+  ensureLuaClient: () => Promise<void>;
+  /** The running call's context: the load methods, `stopEngine` (lua_stop), `noteSaved`, … */
+  engine: () => EngineCallContext;
+  /** The build the engine holds (C-3 `loaded`). */
+  loadedBuild: () => LoadedBuild | null;
+}
+
+export function sessionScopedEngine(session: Pick<EngineSession, 'current' | 'loaded'>): EngineAccess {
+  const engine = (): EngineCallContext => {
+    const ctx = session.current();
+    if (!ctx) throw new EngineAccessError();
+    return ctx;
+  };
+  return {
+    getLuaClient: () => engine().client,
+    ensureLuaClient: async () => {
+      engine();
+    },
+    engine,
+    loadedBuild: () => session.loaded,
+  };
+}
 
 /**
  * Fields every handler context carries (C-7): the builds folder and the state dir.
@@ -50,7 +87,10 @@ export interface LuaContext extends BaseContext {
   fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
-  stopLuaClient: () => Promise<void>;
+  /** The running engine call's context (C-3): load paths and lua_stop go through it. */
+  engine: () => EngineCallContext;
+  /** The build the engine holds (C-3 `loaded`). */
+  loadedBuild: () => LoadedBuild | null;
 }
 
 /**
@@ -106,7 +146,8 @@ export interface ContextDependencies {
   fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
-  stopLuaClient: () => Promise<void>;
+  engine: () => EngineCallContext;
+  loadedBuild: () => LoadedBuild | null;
 }
 
 /**
@@ -168,7 +209,8 @@ export class ContextBuilder {
       fetch: this.deps.fetch,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
-      stopLuaClient: this.deps.stopLuaClient,
+      engine: this.deps.engine,
+      loadedBuild: this.deps.loadedBuild,
     };
   }
 
@@ -202,13 +244,20 @@ export class ContextBuilder {
    * Build context for export and persistence operations
    */
   buildExportContext(): ExportContext {
-    return {
+    const getLuaClient = this.deps.getLuaClient;
+    const context: ExportContext = {
       pobDirectory: this.deps.pobDirectory,
       stateDir: this.deps.stateDir,
       buildService: this.deps.buildService,
       exportService: this.deps.exportService,
-      luaClient: this.deps.getLuaClient() || undefined,
     };
+    // Resolved on access, not when the context is built: outside an engine call it throws (C-3).
+    Object.defineProperty(context, 'luaClient', {
+      get: () => getLuaClient() || undefined,
+      enumerable: true,
+      configurable: true,
+    });
+    return context;
   }
 
   /**

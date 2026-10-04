@@ -11,6 +11,7 @@ import type { PoeNinjaClient } from "../services/poeNinjaClient.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_META, isToolAvailable } from "./toolMeta.js";
 import { errorResponse, type ToolResponse } from "./responseUtils.js";
+import { noticesOf, type EngineSession, type EngineKind } from "../engine/session.js";
 
 // Import handlers
 import { handleListBuilds, handleAnalyzeBuild, handleCompareBuilds, handleGetBuildStats, handleGetBuildNotes, handleSetBuildNotes } from "../handlers/buildHandlers.js";
@@ -34,7 +35,11 @@ export interface ToolRouterDependencies {
   tradeClient: TradeApiClient;
   statMapper: StatMapper;
   ninjaClient: PoeNinjaClient;
+  /** The engine session (C-3): every tool whose `TOOL_META.engine` isn't `none` runs inside it. */
+  session: EngineSession;
+  /** Session-scoped (C-3 step 5): the running call's `ctx.client`; throws outside a session. */
   getLuaClient: () => import("../pobLuaBridge.js").PoBLuaApiClient | null;
+  /** Session-scoped: resolves inside a session (which started the engine); throws outside one. */
   ensureLuaClient: () => Promise<void>;
   /** The env (deps.env, C-7): decides which tool groups are routable (C-1). */
   env: Readonly<Record<string, string | undefined>>;
@@ -52,6 +57,35 @@ export interface ToolCallContext {
   sendProgress(progress: number, message?: string): Promise<void>;
   /** Epoch ms when the call arrived (deadlines run from here, D-22). */
   arrivedAt: number;
+}
+
+/** `find_upgrades`' budget from the call's arrival, lock wait included (D-22). */
+export const FIND_UPGRADES_BUDGET_MS = 90_000;
+
+/** A handler's own `isError` result: a failed call for the session (no revision bump, no snapshot). */
+class ToolResultError extends Error {
+  constructor(readonly result: HandlerResult) {
+    super(result.content.map((c) => c.text).join("\n"));
+  }
+}
+
+/** Text content only (D-36): normalize a handler result to the single response type. */
+function normalize(result: HandlerResult): ToolResponse {
+  return {
+    content: result.content.map((c) => ({ type: "text" as const, text: c.text })),
+    ...(result.isError ? { isError: true } : {}),
+  };
+}
+
+/** C-3 step 8: notices go first, one per line, then a blank line; also on `isError` results. */
+function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
+  if (notices.length === 0) return response;
+  const head = notices.join("\n");
+  const [first, ...rest] = response.content;
+  const content = first
+    ? [{ type: "text" as const, text: `${head}\n\n${first.text}` }, ...rest]
+    : [{ type: "text" as const, text: head }];
+  return { ...response, content };
 }
 
 /** Tools that do not need trade2 stat data before they run. */
@@ -117,22 +151,36 @@ export async function routeToolCall(
   call: ToolCallContext,
 ): Promise<ToolResponse> {
   if (!isToolAvailable(name, deps.env)) throw unknownTool(name);
+  const kind = TOOL_META[name].engine;
   try {
     if (TOOL_META[name].group === "trade" && !TRADE_TOOLS_WITHOUT_STATS.has(name)) {
       await deps.ensureTradeStats();
     }
-    const result = await dispatch(name, args, deps, call);
-    // Handlers produce text content only (D-36); normalize to the single response type.
-    return {
-      content: result.content.map((c) => ({ type: "text" as const, text: c.text })),
-      ...(result.isError ? { isError: true } : {}),
-    };
+    if (kind === "none") return normalize(await dispatch(name, args, deps, call));
+
+    // Engine tools run inside the session, wrapped by their C-8 kind (C-3).
+    const { value, notices } = await deps.session.run(
+      {
+        tool: name,
+        kind: kind as EngineKind,
+        signal: call.signal,
+        ...(name === "find_upgrades" ? { deadline: call.arrivedAt + FIND_UPGRADES_BUDGET_MS } : {}),
+      },
+      async () => {
+        const result = await dispatch(name, args, deps, call);
+        if (result.isError) throw new ToolResultError(result);
+        return result;
+      },
+    );
+    return withNotices(normalize(value), notices);
   } catch (error) {
     if (error instanceof McpError) throw error;
+    const notices = noticesOf(error);
+    if (error instanceof ToolResultError) return withNotices(normalize(error.result), notices);
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Tool Error] tool=${name} error=${errorMsg}`);
     if (error instanceof Error && error.stack) console.error(`[Tool Stack] ${error.stack}`);
-    return errorResponse(`Error: ${errorMsg}`);
+    return withNotices(errorResponse(`Error: ${errorMsg}`), notices);
   }
 }
 
@@ -237,7 +285,6 @@ async function dispatch(
       if (!args) throw new Error("Missing arguments");
       const level = args.level as number;
       if (!level || level < 1 || level > 100) throw new Error("level must be between 1 and 100");
-      await deps.ensureLuaClient();
       const luaClient = deps.getLuaClient();
       if (!luaClient) throw new Error("Lua bridge not active. Use lua_start first.");
       await luaClient.setLevel(level);

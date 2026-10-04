@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs/promises";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+import { EngineLoadGuardError } from "../engine/session.js";
 export type { HandlerContext } from "../utils/contextBuilder.js";
 
 export async function handleListBuilds(context: HandlerContext) {
@@ -97,7 +98,10 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
       } catch { /* advisory only */ }
     }
   } catch (error) {
-    // Continue with XML-only analysis
+    // The load guard (C-3) refuses a raw load that would replace the engine's build: surface it
+    // (D-51f) until WU-13 moves this tool to withTemporaryBuild.
+    if (error instanceof EngineLoadGuardError) throw error;
+    // Otherwise continue with XML-only analysis
   }
 
   // Build an override object that reflects the Lua-selected spec/item set/skill set,
@@ -268,7 +272,11 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
       r2 = await loadEndgame(luaClient, build2Name);
       luaOk = true;
     }
-  } catch { /* fall through to XML */ }
+  } catch (error) {
+    // The load guard (C-3) refuses raw loads: surface it (D-51f) until WU-13 uses withTemporaryBuild.
+    if (error instanceof EngineLoadGuardError) throw error;
+    /* fall through to XML */
+  }
 
   if (luaOk && r1 && r2) {
     const fmtNum = (n: any) =>

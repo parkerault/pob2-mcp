@@ -1,6 +1,6 @@
 [
-  { "tool": "compare_builds", "check": "i", "owner": "WU-09",
-    "reason": "the spec line prints \"undefined nodes\": it reads nodeCount, the engine reports pointsUsed (recon §3 shape mismatch)" },
+  { "tool": "compare_builds", "check": "ii", "owner": "WU-13",
+    "reason": "interim load guard (WU-08, D-51f): compare_builds loads both builds with a raw load_build_xml, which the engine session refuses (\"engine load outside the session\") so the engine's build is never replaced; WU-13 moves it to withTemporaryBuild" },
   { "tool": "lua_get_stats", "check": "i", "owner": "WU-09",
     "reason": "the stat list prints \"_meta: [object Object]\" (the _meta shape mismatch)" },
   { "tool": "list_specs", "check": "i", "owner": "WU-09",

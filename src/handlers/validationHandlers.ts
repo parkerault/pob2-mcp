@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+import { EngineLoadGuardError } from "../engine/session.js";
 
 export interface ValidationHandlerContext {
   buildService: BuildService;
@@ -55,7 +56,9 @@ export async function handleValidateBuild(
               const buildPath = sanitizeBuildName(buildName, context.pobDirectory);
               const buildXml = await fs.readFile(buildPath, 'utf-8');
               await luaClient.loadBuildXml(buildXml, buildName);
-            } catch {
+            } catch (error) {
+              // The load guard (C-3) refuses raw loads: surface it (D-51f) until WU-18.
+              if (error instanceof EngineLoadGuardError) throw error;
               // File doesn't exist — use already-loaded in-memory build
             }
           }
@@ -80,7 +83,8 @@ export async function handleValidateBuild(
         } catch {
           // Flask immunity check via Lua unavailable — fall back to XML parsing
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof EngineLoadGuardError) throw error;
         // Lua stats unavailable
       }
     }

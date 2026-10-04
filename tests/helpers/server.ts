@@ -7,6 +7,9 @@
  * merged in. `pobDirectory` and `stateDir` follow the entry's defaults for that env (the Jest
  * globalSetup points both at temp dirs). Callers of slow tools pass `{timeout}` to `callTool`:
  * the SDK client's default is 60 s.
+ *
+ * `session` is the server's engine session (C-3): tests read `revision`/`loaded`/`isDirty()`, subscribe
+ * with `onEvent`, find the engine with `enginePid()`, and call `session.run` directly where an AC says so.
  */
 import { spawn } from 'child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';

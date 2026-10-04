@@ -63,7 +63,7 @@ async function groupWithGem(call: Call): Promise<{ groupIndex: number; gemIndex:
 const CASES: Record<ActionName, Case> = {
   ping: {},
   version: {},
-  new_build: {},
+  new_build: { params: { className: 'Monk', ascendancy: 'Invoker' } },
   load_build_xml: { params: { xml: GOLDEN, name: 'Grenadator (again)' } },
   get_stats: {},
   get_items: {},
@@ -79,7 +79,7 @@ const CASES: Record<ActionName, Case> = {
   add_item_text: { params: { text: RUBY_RING, noAutoEquip: true } },
   export_build_xml: {},
   set_level: { params: { level: 80 } },
-  set_flask_active: { params: { index: 1, active: true } },
+  set_flask_active: { params: { slot: 'Charm 1', active: true } },
   get_build_info: {},
   update_tree_delta: { params: { addNodes: [], removeNodes: [] } },
   calc_with: {},
@@ -104,6 +104,8 @@ const CASES: Record<ActionName, Case> = {
   search_nodes: { params: { keyword: 'life', maxResults: 5 } },
   list_gems: { params: { search: 'fire', maxResults: 5 } },
   get_classes: {},
+  // The golden build's main socket group (11), measured, so `value`/`delta`/`measured` are checked too.
+  list_support_candidates: { params: { groupIndex: 11, measure: true } },
   set_socket_group_enabled: { params: { groupIndex: 1, enabled: true } },
   set_gem_enabled: { setup: async (call) => ({ ...(await groupWithGem(call)), enabled: false }) },
   create_spec: { params: { title: 'contract' } },

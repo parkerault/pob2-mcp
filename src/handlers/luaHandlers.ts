@@ -63,17 +63,23 @@ export async function handleLuaStop(context: LuaHandlerContext) {
 
 export async function handleLuaNewBuild(context: LuaHandlerContext, className?: string, ascendancy?: string) {
   return wrapHandler('create new build', async () => {
+    // The engine picks the class and ascendancy as PoB's dropdowns do; an unknown name fails before
+    // the engine's build changes.
     await context.engine().newBuild({
       ...(className ? { className } : {}),
       ...(ascendancy ? { ascendancy } : {}),
     });
 
-    const classDesc = className ? ` (${className}${ascendancy ? `/${ascendancy}` : ''})` : '';
+    // Report the engine's own class names, not the caller's spelling.
+    const info = await context.getLuaClient()?.getBuildInfo().catch(() => null);
+    const engineClass = info?.className
+      ? ` (${info.className}${info.ascendClassName && info.ascendClassName !== 'None' ? ` / ${info.ascendClassName}` : ''})`
+      : '';
     return {
       content: [
         {
           type: "text" as const,
-          text: `✅ New empty build created${classDesc}.\n${formatLoadedBuild(context.loadedBuild())}`,
+          text: `✅ New empty build created${engineClass}.\n${formatLoadedBuild(context.loadedBuild())}`,
         },
       ],
     };
@@ -237,6 +243,8 @@ const DEFENSE_PATTERNS = [
   /Life/, /Mana/, /EnergyShield/, /Ward/, /Armour/, /Evasion/, /Evade/, /Deflect/, /Block/,
   /Resist/, /Regen/, /Leech/, /Recovery/, /Recharge/, /Dodge/, /Suppression/,
 ];
+/** Stats `lua_get_stats` lists even at 0: PoE2's evade and deflect chances (AC-E41). */
+export const ALWAYS_SHOWN_STATS: ReadonlySet<string> = new Set(['EvadeChance', 'DeflectChance']);
 /** Defense keys listed first, in this order; the rest keep the engine's order. */
 const DEFENSE_HEAD = ['TotalEHP', 'Life', 'EnergyShield', 'Mana'];
 const OFFENSE_HEAD = ['CombinedDPS', 'TotalDPS', 'FullDPS', 'MinionTotalDPS', 'MinionCombinedDPS'];
@@ -299,12 +307,12 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
         'Life', 'LifeRegen', 'LifeRegenRecovery', 'LifeLeechGainRate', 'LifeUnreserved',
         'Mana', 'ManaRegen', 'ManaRegenRecovery', 'ManaLeechGainRate', 'ManaUnreserved',
         'EnergyShield', 'EnergyShieldRegen', 'EnergyShieldRegenRecovery', 'EnergyShieldLeechGainRate',
-        'Ward', 'Armour', 'Evasion', 'EvasionChance', 'PhysicalDamageReduction',
-        'BlockChance', 'SpellBlockChance', 'AttackDodgeChance', 'SpellDodgeChance',
+        'Ward', 'Armour', 'Evasion', 'EvadeChance', 'DeflectionRating', 'DeflectChance',
+        'PhysicalDamageReduction', 'BlockChance', 'SpellBlockChance', 'EffectiveBlockChance',
         'FireResist', 'ColdResist', 'LightningResist', 'ChaosResist',
         'FireResistOverCap', 'ColdResistOverCap', 'LightningResistOverCap', 'ChaosResistOverCap',
         'TotalEHP', 'PhysicalMaximumHitTaken', 'FireMaximumHitTaken', 'ColdMaximumHitTaken',
-        'LightningMaximumHitTaken', 'ChaosMaximumHitTaken', 'EffectiveSpellSuppressionChance'
+        'LightningMaximumHitTaken', 'ChaosMaximumHitTaken',
       ];
     }
     // If category is 'all' or undefined, get all stats (fields = undefined)
@@ -316,9 +324,10 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
     if (meta?.treeVersion) textLines.push(`Tree Version: ${meta.treeVersion}`, '');
 
     if (stats && typeof stats === 'object') {
-      // Filter out zero/null/undefined values to reduce noise
+      // Filter out zero/null/undefined values to reduce noise, except PoE2's avoidance layers: a 0%
+      // evade or deflect chance is itself the information.
       const nonZero = (v: unknown) => v != null && v !== 0 && v !== '0';
-      const entries = Object.entries(stats).filter(([, v]) => nonZero(v));
+      const entries = Object.entries(stats).filter(([k, v]) => nonZero(v) || (v != null && ALWAYS_SHOWN_STATS.has(k)));
 
       // Group by offense/defense if showing all. The default export is a bounded list (Lua
       // DEFAULT_STAT_FIELDS, E7), so every non-zero stat is shown, each in exactly one section.

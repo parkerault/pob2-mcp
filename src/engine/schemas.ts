@@ -44,6 +44,7 @@ export const ACTION_NAMES = [
   'search_nodes',
   'list_gems',
   'get_classes',
+  'list_support_candidates',
   'set_socket_group_enabled',
   'set_gem_enabled',
   'create_spec',
@@ -106,6 +107,11 @@ export const versionReply = baseReply.extend({
 
 /** `new_build` and `load_build_xml`: the engine's build name after the switch (C-2). */
 export const buildNameReply = baseReply.extend({ result: z.object({ name: z.string().nullable() }).passthrough() });
+
+/** `new_build`: the build name, plus the new build's engine class and ascendancy names. */
+export const newBuildReply = baseReply.extend({
+  result: z.object({ name: z.string().nullable(), className: optString, ascendClassName: optString }).passthrough(),
+});
 
 /** `get_stats` metadata: the omitted non-scalar keys (X13), and the active spec's tree version. */
 export const statsMetaSchema = z
@@ -296,6 +302,43 @@ export const listGemsReply = baseReply.extend({
     })
     .passthrough(),
 });
+
+/**
+ * `list_support_candidates`: the support gems PoB says can support a socket group's active skills
+ * (`calcLib.canGrantedEffectSupportActiveSkill`, non-legacy, not already in the group). With `measure`,
+ * each candidate carries `value` (PoB's gem-selector stat with it added, on that group as the main skill)
+ * and `delta` (minus `measured.baseline`), or `error` when its calculation failed.
+ */
+export const supportCandidateSchema = z
+  .object({
+    name: z.string(),
+    gemId: z.string(),
+    tags: optString,
+    value: optNumber,
+    delta: optNumber,
+    error: optString,
+  })
+  .passthrough();
+export type SupportCandidate = z.infer<typeof supportCandidateSchema>;
+
+export const listSupportCandidatesReply = baseReply.extend({
+  result: z
+    .object({
+      groupIndex: z.number().int(),
+      label: optString,
+      activeSkills: luaArray(z.string()),
+      candidates: luaArray(supportCandidateSchema),
+      socketed: luaArray(
+        z.object({ gemIndex: z.number().int(), name: z.string(), supportsActive: z.boolean() }).passthrough(),
+      ),
+      measured: z
+        .object({ stat: z.string(), baseline: luaNumber, groupIndex: z.number().int() })
+        .passthrough()
+        .optional(),
+    })
+    .passthrough(),
+});
+export type SupportCandidatesResult = z.infer<typeof listSupportCandidatesReply>['result'];
 
 export const getClassesReply = baseReply.extend({
   result: z
@@ -521,7 +564,7 @@ export interface TradeEvaluateItemsParams {
 const definedSchemas = {
   ping: pingReply,
   version: versionReply,
-  new_build: buildNameReply,
+  new_build: newBuildReply,
   load_build_xml: buildNameReply.extend({ result: z.object({ name: z.string() }).passthrough() }),
   get_stats: getStatsReply,
   get_items: getItemsReply,
@@ -547,6 +590,7 @@ const definedSchemas = {
   search_nodes: searchNodesReply,
   list_gems: listGemsReply,
   get_classes: getClassesReply,
+  list_support_candidates: listSupportCandidatesReply,
   set_socket_group_enabled: setSocketGroupEnabledReply,
   set_gem_enabled: emptyReply,
   create_spec: createSpecReply,
@@ -595,7 +639,8 @@ export interface ActionParamsMap {
   add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean };
   export_build_xml: NoParams;
   set_level: { level: number };
-  set_flask_active: { index: number; active: boolean };
+  /** `slot` is "Flask 1"–"Flask 2" or "Charm 1"–"Charm 3"; `index` alone means "Flask <index>". */
+  set_flask_active: { slot?: string; index?: number; active: boolean };
   get_build_info: NoParams;
   update_tree_delta: {
     addNodes?: number[];
@@ -626,6 +671,7 @@ export interface ActionParamsMap {
   search_nodes: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };
   list_gems: { type?: 'active' | 'support'; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean };
   get_classes: NoParams;
+  list_support_candidates: { groupIndex: number; measure?: boolean };
   set_socket_group_enabled: { groupIndex: number; enabled: boolean };
   set_gem_enabled: { groupIndex: number; gemIndex: number; enabled: boolean };
   create_spec: { title?: string; copyFrom?: number; activate?: boolean };

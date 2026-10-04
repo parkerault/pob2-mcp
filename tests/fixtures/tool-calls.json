@@ -65,7 +65,7 @@
   { "tool": "update_tree_delta", "args": { "add_nodes": ["29514"] }, "expect": "ok" },
   { "tool": "add_item", "args": { "item_text": "$RUBY_RING_TEXT", "slot_name": "Ring 1" }, "expect": "ok" },
   { "tool": "add_multiple_items", "args": { "items": [{ "item_text": "$RUBY_RING_TEXT", "slot_name": "Ring 2" }] }, "expect": "ok" },
-  { "tool": "toggle_flask", "args": { "flask_number": 1, "active": true }, "expect": "ok" },
+  { "tool": "toggle_flask", "args": { "slot": "Charm 1", "active": true }, "expect": "ok" },
   { "tool": "set_main_skill", "args": { "group_index": 2 }, "expect": "ok" },
   { "tool": "create_socket_group", "args": { "label": "Hygiene group", "slot": "Weapon 1" }, "expect": "ok" },
   { "tool": "add_gem", "args": { "group_index": 1, "gem_name": "Magnified Area II", "level": 1 }, "expect": "ok" },

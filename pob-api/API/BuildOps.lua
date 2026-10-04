@@ -406,6 +406,16 @@ function M.set_main_selection(params)
 end
 
 -- Items API
+
+-- The non-jewel slot an item ended up in (first in PoB's slot order), or nil when it isn't equipped.
+local function equipped_slot(itemId)
+  for _, slot in ipairs(build.itemsTab.orderedSlots or {}) do
+    if slot.selItemId == itemId and not slot.nodeId then return slot.slotName end
+  end
+  return nil
+end
+
+-- params: { text: string, slotName?: string, noAutoEquip?: boolean }
 function M.add_item_text(params)
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   if type(params) ~= 'table' or type(params.text) ~= 'string' then return nil, 'missing text' end
@@ -416,18 +426,30 @@ function M.add_item_text(params)
     return nil, string.format('item text too long (max %d bytes)', MAX_ITEM_TEXT_LENGTH)
   end
 
-  -- Use pcall to safely handle item creation
-  local ok, item = pcall(new, 'Item', params.text)
+  -- A named slot must exist; it is checked before the item is added, so a bad name changes nothing.
+  local slotCtrl
+  if params.slotName ~= nil then
+    local slotName = tostring(params.slotName)
+    slotCtrl = build.itemsTab.slots[slotName]
+    if not slotCtrl then return nil, 'unknown item slot: ' .. slotName end
+  end
+
+  -- construct() picks PoB's constructor style (C-6, E3); pcall turns a parse error into a reply.
+  local ok, item = pcall(construct, 'Item', params.text)
   if not ok then return nil, 'invalid item text: ' .. tostring(item) end
   if not item or not item.baseName then return nil, 'failed to parse item' end
+  if slotCtrl and type(build.itemsTab.IsItemValidForSlot) == 'function'
+      and not build.itemsTab:IsItemValidForSlot(item, slotCtrl.slotName) then
+    return nil, string.format('%s (%s) cannot be equipped in %s', tostring(item.name), tostring(item.baseName),
+      slotCtrl.slotName)
+  end
 
   item:NormaliseQuality()
-  build.itemsTab:AddItem(item, params.noAutoEquip == true)
-  if params.slotName then
-    local slot = tostring(params.slotName)
-    if build.itemsTab.slots[slot] then
-      build.itemsTab.slots[slot]:SetSelItemId(item.id)
-    end
+  -- With a named slot the item goes only there: PoB's auto-equip would also put it into the first
+  -- empty slot it fits.
+  build.itemsTab:AddItem(item, params.noAutoEquip == true or slotCtrl ~= nil)
+  if slotCtrl then
+    slotCtrl:SetSelItemId(item.id)
   end
   -- Re-populate every slot, as ItemsTab:AddDisplayItem does: the auto-equip path in AddItem selects a
   -- slot without refreshing its gear jewel sockets' `inactive` flags (ItemSlotControl:Populate).
@@ -435,30 +457,44 @@ function M.add_item_text(params)
   build.itemsTab:AddUndoState()
   build.buildFlag = true
   M.get_main_output()
-  return { id = item.id, name = item.name, slot = params.slotName or item:GetPrimarySlot() }
+  return { id = item.id, name = item.name, slot = slotCtrl and slotCtrl.slotName or equipped_slot(item.id) }
 end
 
+-- The slots with an activation checkbox in PoB2 (ItemSlotControl: "Flask N" and "Charm N").
+local function is_activatable_slot(slotName)
+  return slotName:match('^Flask %d+$') ~= nil or slotName:match('^Charm %d+$') ~= nil
+end
+
+-- Toggle a flask or charm, as PoB's slot checkbox does (ItemSlotControl): the calcs read the slot
+-- control's `active` (CalcSetup), the item set's `active` is what the build file saves.
+-- params: { slot: string ("Flask 1", "Charm 2", ...), active: boolean } ({ index } means "Flask <index>")
 function M.set_flask_active(params)
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   if type(params) ~= 'table' then return nil, 'invalid params' end
-  local idx = tonumber(params.index)
+  local slotName = params.slot ~= nil and tostring(params.slot) or nil
+  if not slotName and params.index ~= nil then
+    local idx = tonumber(params.index)
+    if not idx or idx < 1 then return nil, 'invalid flask index' end
+    slotName = 'Flask ' .. tostring(idx)
+  end
+  if not slotName then return nil, 'missing slot' end
+  local itemsTab = build.itemsTab
+  local slotCtrl = itemsTab.slots and itemsTab.slots[slotName]
+  if not slotCtrl or not is_activatable_slot(slotName) then
+    return nil, 'not a flask or charm slot: ' .. slotName
+  end
+  local setSlot = itemsTab.activeItemSet and itemsTab.activeItemSet[slotName]
+  if not setSlot then return nil, 'slot not found in the active item set: ' .. slotName end
+  if (slotCtrl.selItemId or 0) == 0 then return nil, 'no item equipped in ' .. slotName end
   local active = params.active == true
-  if not idx or idx < 1 then
-    return nil, 'invalid flask index'
-  end
-  local slotName = 'Flask ' .. tostring(idx)
-  -- Validate the slot actually exists in this build's item set (PoE2 flask counts differ)
-  if not build.itemsTab.slots or not build.itemsTab.slots[slotName] then
-    return nil, 'flask slot not found: ' .. slotName
-  end
-  if not build.itemsTab.activeItemSet or not build.itemsTab.activeItemSet[slotName] then return nil, 'slot not found in active item set' end
-  build.itemsTab.activeItemSet[slotName].active = active
-  build.itemsTab:AddUndoState()
+  slotCtrl.active = active
+  if slotCtrl.controls and slotCtrl.controls.activate then slotCtrl.controls.activate.state = active end
+  setSlot.active = active
+  itemsTab:AddUndoState()
   build.buildFlag = true
   M.get_main_output()
   return true
 end
-
 
 -- Whether PoB's UI would show a slot control: its `shown` property (a value or a function; weapon
 -- swap slots follow the active weapon set, Ring 3 needs AdditionalRingSlot, gear jewel sockets need
@@ -509,10 +545,9 @@ function M.get_items()
         entry.raw = it.raw
       end
     end
-    -- Flask/Tincture activation flag stored in activeItemSet
-    local set = itemsTab.activeItemSet
-    if set and set[slotName] and set[slotName].active ~= nil then
-      entry.active = set[slotName].active and true or false
+    -- Flask and charm activation: the slot control's flag, which is what the calcs read (X12).
+    if is_activatable_slot(slotName) then
+      entry.active = slotCtrl.active == true
     end
     table.insert(result, entry)
   end
@@ -563,6 +598,55 @@ function M.create_socket_group(params)
   return { index = index, label = socketGroup.label }
 end
 
+-- The most gem-name suggestions an unknown name gets (D-50).
+local MAX_GEM_SUGGESTIONS = 5
+
+-- Resolve a gem name against PoB's gem data (`data.gems`): the exact name, else the one name equal
+-- to it ignoring case. An unknown name fails with up to MAX_GEM_SUGGESTIONS names, matched ignoring
+-- case: names that start with it first, then names that contain it, each group in name order.
+function M.resolve_gem(name)
+  name = tostring(name or '')
+  if name:match('^%s*$') then return nil, 'missing gem name' end
+  local gems = build and build.data and build.data.gems
+  if not gems then return nil, 'gem data not initialized' end
+  local lower = name:lower()
+  local folded = {}
+  for _, gemData in pairs(gems) do
+    if gemData.name == name then return gemData end
+    if type(gemData.name) == 'string' and gemData.name:lower() == lower then table.insert(folded, gemData) end
+  end
+  if #folded == 1 then return folded[1] end
+  local prefix, contains, seen = {}, {}, {}
+  for _, gemData in pairs(gems) do
+    local gemName = gemData.name
+    if type(gemName) == 'string' and not seen[gemName] then
+      local start = gemName:lower():find(lower, 1, true)
+      if start == 1 then
+        seen[gemName] = true
+        table.insert(prefix, gemName)
+      elseif start then
+        seen[gemName] = true
+        table.insert(contains, gemName)
+      end
+    end
+  end
+  table.sort(prefix)
+  table.sort(contains)
+  local suggestions = {}
+  for _, list in ipairs({ prefix, contains }) do
+    for _, gemName in ipairs(list) do
+      if #suggestions < MAX_GEM_SUGGESTIONS then table.insert(suggestions, gemName) end
+    end
+  end
+  if #folded > 1 then
+    return nil, string.format('ambiguous gem name "%s"', name)
+  end
+  if #suggestions == 0 then
+    return nil, string.format('unknown gem "%s"; no gem name contains it (see list_gems)', name)
+  end
+  return nil, string.format('unknown gem "%s". Did you mean: %s', name, table.concat(suggestions, ', '))
+end
+
 -- Add a gem to a socket group
 -- params: { groupIndex: number, gemName: string, level?: number, quality?: number, qualityId?: string, enabled?: boolean }
 function M.add_gem(params)
@@ -578,9 +662,11 @@ function M.add_gem(params)
   local socketGroup = skillSet.socketGroupList[groupIndex]
   if not socketGroup then return nil, 'socket group not found at index ' .. tostring(groupIndex) end
 
-  -- Create gem instance
+  local gemData, err = M.resolve_gem(params.gemName)
+  if not gemData then return nil, err end
+
   local gemInstance = {
-    nameSpec = tostring(params.gemName),
+    nameSpec = gemData.name,
     level = tonumber(params.level) or 20,
     quality = tonumber(params.quality) or 0,
     qualityId = params.qualityId or 'Default',
@@ -588,23 +674,10 @@ function M.add_gem(params)
     enableGlobal1 = true,
     enableGlobal2 = false,
     count = tonumber(params.count) or 1,
+    gemId = gemData.id,
+    skillId = gemData.grantedEffectId or (gemData.grantedEffect and gemData.grantedEffect.id),
+    gemData = gemData,
   }
-
-  -- Try to find gem data
-  if build.data and build.data.gems then
-    for _, gemData in pairs(build.data.gems) do
-      if gemData.name == gemInstance.nameSpec or gemData.nameSpec == gemInstance.nameSpec then
-        gemInstance.gemId = gemData.id
-        if gemData.grantedEffect then
-          gemInstance.skillId = gemData.grantedEffect.id
-        elseif gemData.grantedEffectId then
-          gemInstance.skillId = gemData.grantedEffectId
-        end
-        gemInstance.gemData = gemData
-        break
-      end
-    end
-  end
 
   table.insert(socketGroup.gemList, gemInstance)
   local gemIndex = #socketGroup.gemList
@@ -756,6 +829,148 @@ function M.remove_gem(params)
   M.get_main_output()
 
   return true
+end
+
+
+-- Support candidates (suggest_supports, analyze_skills)
+
+-- PoB's gem-selector value for a calc output and its sort field (SkillsTab.sortGemsByDPSField), read as
+-- GemSelectControl:UpdateSortCache reads it: FullDPS when sorting by it, else a minion's CombinedDPS,
+-- else the field itself.
+local function selector_value(output, field)
+  if field == 'FullDPS' and output[field] ~= nil then return output[field] end
+  if output.Minion and output.Minion.CombinedDPS then return output.Minion.CombinedDPS end
+  if output[field] ~= nil then return output[field] end
+  return 0
+end
+
+-- Measure each candidate on `group`, the way PoB's gem selector sorts gems by DPS
+-- (GemSelectControl:UpdateSortCache / CalcOutputWithThisGem): the group is made the main skill, then
+-- each candidate is appended to its gem list at the default gem level and quality, run through the
+-- misc calculator, and taken out again. The main socket group and the outputs are restored afterwards.
+local function measure_candidates(groupIndex, group, candidates)
+  local skillsTab = build.skillsTab
+  local field = skillsTab.sortGemsByDPSField or 'CombinedDPS'
+  local useFullDPS = field == 'FullDPS'
+  local fastCalcOptions = {
+    nodeAlloc = true, requirementsItems = true, requirementsGems = true,
+    skipEHP = field ~= 'TotalEHP', fullDPSOnly = useFullDPS,
+  }
+  local origMain = build.mainSocketGroup
+  local savedDisplay = group.displayGemList
+  local gemList = group.gemList
+  local count = #gemList
+  local measured
+  local ok, err = pcall(function()
+    build.mainSocketGroup = groupIndex
+    build.calcsTab:BuildOutput()
+    local calcFunc, calcBase = build.calcsTab:GetMiscCalculator()
+    local baseline = selector_value(calcBase, field)
+    for _, c in ipairs(candidates) do
+      local gemData = c.gemData
+      gemList[count + 1] = {
+        level = skillsTab:ProcessGemLevel(gemData),
+        quality = tonumber(skillsTab.defaultGemQuality) or 0,
+        count = 1,
+        enabled = true,
+        enableGlobal1 = true,
+        enableGlobal2 = true,
+        gemId = gemData.id,
+        nameSpec = gemData.name,
+        skillId = gemData.grantedEffectId,
+        gemData = gemData,
+      }
+      local okCalc, output = pcall(calcFunc, nil, useFullDPS, fastCalcOptions)
+      gemList[count + 1] = nil
+      if okCalc and type(output) == 'table' then
+        c.value = selector_value(output, field)
+        c.delta = c.value - baseline
+      else
+        c.error = tostring(output)
+      end
+    end
+    measured = { stat = field, baseline = baseline, groupIndex = groupIndex }
+  end)
+  -- Restore, also after a failure.
+  while #gemList > count do table.remove(gemList) end
+  group.displayGemList = savedDisplay
+  build.mainSocketGroup = origMain
+  build.calcsTab:BuildOutput()
+  if not ok then return nil, 'support measurement failed: ' .. tostring(err) end
+  return measured
+end
+
+-- The support gems PoB says can support a socket group's active skills: every non-legacy support gem
+-- in `data.gems` for which calcLib.canGrantedEffectSupportActiveSkill accepts one of the group's
+-- active skills (`displaySkillList`), as PoB's gem selector decides it, minus the supports already in
+-- the group. `socketed` reports the group's own supports and whether PoB says each one supports them.
+-- With `measure`, each candidate also gets `value` and `delta`: PoB's gem-selector stat with the
+-- candidate added, measured on this group as the main skill (measure_candidates).
+-- params: { groupIndex: number, measure?: boolean }
+function M.list_support_candidates(params)
+  if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
+  if type(params) ~= 'table' then return nil, 'invalid params' end
+  local groups = build.skillsTab.socketGroupList or {}
+  local groupIndex = tonumber(params.groupIndex)
+  local group = groupIndex and groups[groupIndex]
+  if not group then
+    return nil, string.format('socket group %s not found (the build has %d)', tostring(params.groupIndex), #groups)
+  end
+  local gems = build.data and build.data.gems
+  if not gems then return nil, 'gem data not initialized' end
+  if group.displaySkillList == nil then M.get_main_output() end
+
+  local activeSkills = group.displaySkillList or {}
+  local activeNames = {}
+  for _, activeSkill in ipairs(activeSkills) do
+    local grantedEffect = activeSkill.activeEffect and activeSkill.activeEffect.grantedEffect
+    if grantedEffect and grantedEffect.name then table.insert(activeNames, grantedEffect.name) end
+  end
+  local function can_support(grantedEffect)
+    for _, activeSkill in ipairs(activeSkills) do
+      if calcLib.canGrantedEffectSupportActiveSkill(grantedEffect, activeSkill) then return true end
+    end
+    return false
+  end
+
+  local socketed, inGroup = {}, {}
+  for gemIndex, gem in ipairs(group.gemList or {}) do
+    local gemData = gem.gemData
+    if gemData and gemData.grantedEffect and gemData.grantedEffect.support then
+      inGroup[gemData.name] = true
+      table.insert(socketed, { gemIndex = gemIndex, name = gemData.name, supportsActive = can_support(gemData.grantedEffect) })
+    end
+  end
+
+  local candidates = {}
+  for _, gemData in pairs(gems) do
+    local grantedEffect = gemData.grantedEffect
+    if grantedEffect and grantedEffect.support and not grantedEffect.legacy and not inGroup[gemData.name]
+        and can_support(grantedEffect) then
+      table.insert(candidates, { name = gemData.name, gemId = gemData.id, tags = gemData.tagString, gemData = gemData })
+    end
+  end
+  table.sort(candidates, function(a, b) return a.name < b.name end)
+
+  local measured
+  if params.measure == true and #candidates > 0 then
+    local err
+    measured, err = measure_candidates(groupIndex, group, candidates)
+    if not measured then return nil, err end
+  end
+
+  local out = {}
+  for _, c in ipairs(candidates) do
+    table.insert(out, { name = c.name, gemId = c.gemId, tags = c.tags, value = c.value, delta = c.delta, error = c.error })
+  end
+  return {
+    groupIndex = groupIndex,
+    label = group.label,
+    activeSkills = activeNames,
+    candidates = out,
+    socketed = socketed,
+    measured = measured,
+  }
 end
 
 
@@ -960,6 +1175,100 @@ function M.list_gems(params)
   end
 
   return { gems = out, count = #out, total = total }
+end
+
+
+-- New builds
+
+-- Find a class and, optionally, one of its ascendancies by name (ignoring case) in a passive tree.
+-- An ascendancy without a class picks the class that owns it.
+local function resolve_class(tree, className, ascendancy)
+  local classes = {}
+  for classId, class in pairs(tree.classes or {}) do
+    if type(class) == 'table' and class.name then table.insert(classes, { id = classId, class = class }) end
+  end
+  table.sort(classes, function(a, b) return a.id < b.id end)
+  local function ascendancies_of(class)
+    local list = {}
+    for ascId, asc in pairs(class.classes or {}) do
+      if ascId ~= 0 and type(asc) == 'table' and asc.name and asc.name ~= 'None' then
+        table.insert(list, { id = ascId, name = asc.name })
+      end
+    end
+    table.sort(list, function(a, b) return a.id < b.id end)
+    return list
+  end
+  local function names(list, key)
+    local out = {}
+    for _, entry in ipairs(list) do table.insert(out, key(entry)) end
+    return table.concat(out, ', ')
+  end
+
+  local chosen
+  if className ~= nil then
+    local wanted = tostring(className):lower()
+    for _, entry in ipairs(classes) do
+      if entry.class.name:lower() == wanted then chosen = entry end
+    end
+    if not chosen then
+      return nil, nil, string.format('unknown class "%s" (classes: %s)', tostring(className),
+        names(classes, function(e) return e.class.name end))
+    end
+  end
+  if ascendancy == nil then return chosen and chosen.id or nil, nil end
+
+  local wantedAsc = tostring(ascendancy):lower()
+  for _, entry in ipairs(classes) do
+    if not chosen or chosen.id == entry.id then
+      for _, asc in ipairs(ascendancies_of(entry.class)) do
+        if asc.name:lower() == wantedAsc then return entry.id, asc.id end
+      end
+    end
+  end
+  if chosen then
+    return nil, nil, string.format('unknown ascendancy "%s" for %s (ascendancies: %s)', tostring(ascendancy),
+      chosen.class.name, names(ascendancies_of(chosen.class), function(a) return a.name end))
+  end
+  return nil, nil, string.format('unknown ascendancy "%s"', tostring(ascendancy))
+end
+
+-- Start a new build, as PoB's "New" does, then pick the class and ascendancy the way PoB's class and
+-- ascendancy dropdowns do (PassiveSpec:SelectClass / SelectAscendClass). The names are checked against
+-- the latest tree before anything changes, so a bad name leaves the engine's build untouched.
+-- params: { className?: string, ascendancy?: string }
+function M.new_build(params)
+  if type(params) ~= 'table' then params = {} end
+  if not _G.newBuild then return nil, 'headless wrapper not initialized' end
+  local className = params.className
+  local ascendancy = params.ascendancy
+  if className == '' then className = nil end
+  if ascendancy == '' then ascendancy = nil end
+  if className ~= nil or ascendancy ~= nil then
+    local tree = main and main.LoadTree and main:LoadTree(latestTreeVersion)
+    if not tree then return nil, 'passive tree data not available' end
+    local _, _, err = resolve_class(tree, className, ascendancy)
+    if err then return nil, err end
+  end
+
+  _G.newBuild()
+
+  if className ~= nil or ascendancy ~= nil then
+    local spec = build and build.spec
+    if not spec or not spec.tree then return nil, 'new build has no passive tree' end
+    local classId, ascendId, err = resolve_class(spec.tree, className, ascendancy)
+    if err then return nil, err end
+    if classId ~= nil and classId ~= spec.curClassId then spec:SelectClass(classId) end
+    if ascendId ~= nil then spec:SelectAscendClass(ascendId) end
+    spec:AddUndoState()
+    build.buildFlag = true
+    M.get_main_output()
+  end
+  local spec = build and build.spec
+  return {
+    name = build and build.buildName or nil,
+    className = spec and spec.curClassName or nil,
+    ascendClassName = spec and spec.curAscendClassName or nil,
+  }
 end
 
 

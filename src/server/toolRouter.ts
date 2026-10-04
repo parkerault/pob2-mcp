@@ -401,8 +401,7 @@ async function dispatch(
       return await handleSuggestSupportsPoe2(
         luaContext,
         (args?.group_index ?? args?.groupIndex) as number,
-        (args?.count) as number | undefined,
-        (args?.measure_dps ?? args?.measureDps) as boolean | undefined
+        (args?.count) as number | undefined
       );
 
     case "list_gems":
@@ -424,7 +423,7 @@ async function dispatch(
 
     case "toggle_flask":
       if (!args) throw new Error("Missing arguments");
-      return await handleToggleFlask(itemSkillContext, args.flask_number as number, args.active as boolean);
+      return await handleToggleFlask(itemSkillContext, args.slot as string, args.active as boolean);
 
     case "get_skill_setup":
       return await handleGetSkillSetup(itemSkillContext, args?.main_only !== false);

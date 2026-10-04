@@ -4,11 +4,18 @@ import { Poe2SkillService } from "../services/poe2SkillService.js";
 
 const service = new Poe2SkillService();
 
-function compatTag(c?: { compatibility: string }): string {
-  if (!c) return "";
-  if (c.compatibility === "mismatch") return " ⚠️ MISMATCH";
-  if (c.compatibility === "universal") return " (universal)";
-  return " ✓";
+/** suggest_supports' `count`: default and maximum. */
+const DEFAULT_SUGGESTIONS = 8;
+const MAX_SUGGESTIONS = 20;
+
+/** A number with thousands separators and at most one decimal. */
+function fmt(n: number): string {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+/** A signed delta, e.g. `+1,234.5` or `-12`. */
+function signed(n: number): string {
+  return `${n >= 0 ? "+" : "-"}${fmt(Math.abs(n))}`;
 }
 
 export async function handleAnalyzeSkillsPoe2(context: LuaHandlerContext) {
@@ -30,17 +37,24 @@ export async function handleAnalyzeSkillsPoe2(context: LuaHandlerContext) {
       const disabledTag = g.enabled ? "" : " [DISABLED]";
       lines.push(`## Group ${g.index}: ${g.label}${mainTag}${disabledTag}`);
       if (g.slot) lines.push(`  Slot: ${g.slot}`);
-      if (g.activeSkillName) {
-        lines.push(`  Active skill: ${g.activeSkillName}  (${g.activeSkillTags})`);
-      } else {
-        lines.push(`  Active skill: (none)`);
-      }
+      lines.push(`  Active skills: ${g.activeSkills.length > 0 ? g.activeSkills.join(", ") : "(none)"}`);
       lines.push(`  Supports: ${g.supportCount}`);
 
       for (const gem of g.gems) {
-        if (gem.isSupport) {
-          const q = gem.quality ? ` Q${gem.quality}` : "";
-          lines.push(`    - ${gem.name} (L${gem.level}${q})${compatTag(gem.compat)}${gem.enabled ? "" : " [disabled]"}`);
+        if (!gem.isSupport) continue;
+        const q = gem.quality ? ` Q${gem.quality}` : "";
+        const verdict = gem.supportsActive === undefined ? "" : gem.supportsActive ? " ✓" : " ⚠️ can't support this skill (PoB)";
+        lines.push(`    - ${gem.name} (L${gem.level}${q})${verdict}${gem.enabled ? "" : " [disabled]"}`);
+      }
+
+      if (g.activeSkills.length > 0) {
+        if (g.isMain) {
+          // The main group's full candidate pool, as list_support_candidates returns it ("; " because
+          // some PoE2 gem names contain commas).
+          lines.push(`  Compatible supports not in this group (${g.candidates.length}, PoB's own check):`);
+          lines.push(`    ${g.candidates.length > 0 ? g.candidates.join("; ") : "(none)"}`);
+        } else {
+          lines.push(`  Compatible supports not in this group: ${g.candidates.length} (suggest_supports group_index=${g.index} ranks them)`);
         }
       }
 
@@ -51,75 +65,61 @@ export async function handleAnalyzeSkillsPoe2(context: LuaHandlerContext) {
       lines.push("");
     }
 
-    lines.push("Tip: use suggest_supports (group_index) for compatible supports this build isn't using.");
+    lines.push("Tip: suggest_supports (group_index) measures every compatible support on a group and ranks them.");
     return { content: [{ type: "text" as const, text: lines.join("\n") }] };
   });
 }
 
-export async function handleSuggestSupportsPoe2(
-  context: LuaHandlerContext,
-  groupIndex: number,
-  count?: number,
-  measureDps?: boolean
-) {
+export async function handleSuggestSupportsPoe2(context: LuaHandlerContext, groupIndex: number, count?: number) {
   return wrapHandler("suggest supports (PoE2)", async () => {
     await context.ensureLuaClient();
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error("Lua client not initialized. Use lua_start first.");
 
-    if (groupIndex == null || Number.isNaN(Number(groupIndex))) {
-      throw new Error("group_index is required (see analyze_skills for group numbers).");
+    if (groupIndex == null || !Number.isInteger(Number(groupIndex)) || Number(groupIndex) < 1) {
+      throw new Error("group_index is required: a socket group number (see analyze_skills).");
+    }
+    let limit = DEFAULT_SUGGESTIONS;
+    if (count != null) {
+      if (!Number.isInteger(Number(count)) || Number(count) < 1) {
+        throw new Error(`count must be a whole number from 1 to ${MAX_SUGGESTIONS}`);
+      }
+      limit = Math.min(Number(count), MAX_SUGGESTIONS);
     }
 
-    // Measured (real-DPS) path: socket each candidate, recalc, rank by delta.
-    if (measureDps) {
-      const res = await service.measureSupportDps(luaClient, Number(groupIndex), { count: count || 6 });
-      const lines: string[] = ["=== PoE2 Support Suggestions (measured DPS) ===", ""];
-      if (!res.activeSkill) {
-        lines.push(`Group ${groupIndex} has no active skill gem, so nothing can be measured.`);
-        return { content: [{ type: "text" as const, text: lines.join("\n") }] };
-      }
-      lines.push(`Active skill: ${res.activeSkill}`);
-      lines.push(`Baseline DPS: ${res.baselineDps.toLocaleString()}`);
-      if (res.note) lines.push(`(${res.note})`);
-      lines.push("", "Candidates ranked by measured DPS gain (each socketed, recalculated, then removed):", "");
-      if (res.measured.length === 0) {
-        lines.push("No compatible unused supports to measure.");
-      } else {
-        for (const m of res.measured) {
-          const sign = m.delta >= 0 ? "+" : "";
-          const pct = res.baselineDps > 0 ? ` (${sign}${m.deltaPct.toFixed(1)}%)` : "";
-          lines.push(`- **${m.name}** — ${sign}${Math.round(m.delta).toLocaleString()} DPS${pct} → ${Math.round(m.dps).toLocaleString()}`);
-          lines.push(`    tags: ${m.tags}`);
-        }
-      }
-      lines.push("", "Note: measured on the in-memory build (transiently socketed then removed; build restored).");
+    const res = await service.suggestSupports(luaClient, Number(groupIndex), limit);
+    const lines: string[] = ["=== PoE2 Support Suggestions (measured) ===", ""];
+    lines.push(`Group ${res.groupIndex}${res.label ? `: ${res.label}` : ""}`);
+
+    if (res.activeSkills.length === 0) {
+      lines.push(`Group ${res.groupIndex} has no active skill, so no support can apply to it. Add an active skill gem first.`);
       return { content: [{ type: "text" as const, text: lines.join("\n") }] };
     }
 
-    const res = await service.suggestSupports(luaClient, Number(groupIndex), Math.min(count || 8, 20));
-    const lines: string[] = ["=== PoE2 Support Suggestions (engine gem data) ===", ""];
-
-    if (!res.activeSkill) {
-      lines.push(`Group ${groupIndex} has no active skill gem, so no support suggestions can be made.`);
-      lines.push("Add an active skill gem to the group first.");
+    lines.push(`Active skills: ${res.activeSkills.join(", ")}`);
+    lines.push(`Candidate pool: ${res.poolSize} support gems PoB2 says can support this group and that aren't in it.`);
+    if (res.poolSize === 0) {
+      lines.push("", "No compatible support gems to suggest.");
       return { content: [{ type: "text" as const, text: lines.join("\n") }] };
     }
+    const baseline = res.baseline ?? 0;
+    lines.push(`Measured on group ${res.groupIndex} as the main skill: ${res.stat} baseline ${fmt(baseline)}.`);
+    lines.push(
+      "",
+      `Top ${res.ranked.length} by measured ${res.stat} change (each added at the default gem level, recalculated, removed):`,
+      "",
+    );
 
-    lines.push(`Active skill: ${res.activeSkill}`);
-    lines.push(`Compatible supports not currently used (ranked by tag relevance):`, "");
-
-    if (res.suggestions.length === 0) {
-      lines.push("No additional compatible supports found (or all relevant supports are already socketed).");
-    } else {
-      for (const s of res.suggestions) {
-        const shared = s.shared.length ? `  [shares: ${s.shared.join(", ")}]` : "";
-        lines.push(`- **${s.name}** — ${s.reason}${shared}`);
-        lines.push(`    tags: ${s.tags}`);
+    res.ranked.forEach((m, i) => {
+      if (m.delta === null || m.value === null) {
+        lines.push(`${i + 1}. **${m.name}** — could not be measured${m.error ? ` (${m.error})` : ""}`);
+        return;
       }
-    }
-    lines.push("");
-    lines.push("Note: ranking is a tag-based heuristic. Pass measure_dps=true to rank by real DPS gain instead.");
+      const pct = baseline > 0 ? ` (${m.delta >= 0 ? "+" : ""}${((m.delta / baseline) * 100).toFixed(1)}%)` : "";
+      lines.push(`${i + 1}. **${m.name}** — ${signed(m.delta)} ${res.stat}${pct} → ${fmt(m.value)}`);
+      if (m.tags) lines.push(`    tags: ${m.tags}`);
+    });
+    lines.push("", "The loaded build is unchanged: each candidate was added for the measurement only.");
     return { content: [{ type: "text" as const, text: lines.join("\n") }] };
   });
 }

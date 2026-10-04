@@ -1,6 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { visibleItemSlots } from "../utils/itemSlots.js";
+import { ACTIVATABLE_SLOTS } from "../server/toolSchemas.js";
 
 export interface ItemSkillHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -186,7 +187,7 @@ export async function handleGetEquippedItems(context: ItemSkillHandlerContext) {
 
 export async function handleToggleFlask(
   context: ItemSkillHandlerContext,
-  flaskNumber: number,
+  slot: string,
   active: boolean
 ) {
   return wrapHandler('toggle flask', async () => {
@@ -197,13 +198,17 @@ export async function handleToggleFlask(
       throw new Error('Lua client not initialized. Use lua_start first.');
     }
 
-    if (flaskNumber < 1 || flaskNumber > 5) {
-      throw new Error('flask_number must be between 1 and 5');
+    if (!(ACTIVATABLE_SLOTS as readonly string[]).includes(slot)) {
+      throw new Error(`slot must be one of ${ACTIVATABLE_SLOTS.join(', ')}`);
+    }
+    if (typeof active !== 'boolean') {
+      throw new Error('active must be true or false');
     }
 
-    await luaClient.setFlaskActive(flaskNumber, active);
+    // Sets both the slot control's flag (what the calcs read) and the item set's (what is saved), X12.
+    await luaClient.request('set_flask_active', { slot, active });
 
-    let text = `✅ Flask ${flaskNumber} ${active ? 'activated' : 'deactivated'}.`;
+    let text = `✅ ${slot} ${active ? 'activated' : 'deactivated'}.`;
 
     // Return updated key defensive stats so the effect is visible immediately
     try {

@@ -16,6 +16,19 @@ export interface ToolSchema {
 }
 
 /**
+ * PoE2 equipment slots (WU-11): PoB2's `baseSlots` (`Classes/ItemsTab.lua`) minus the `Arm 1/2` and
+ * `Leg 1/2` slots, plus each weapon's swap slot, in PoB's slot order.
+ */
+export const ITEM_SLOTS = [
+  "Weapon 1", "Weapon 1 Swap", "Weapon 2", "Weapon 2 Swap",
+  "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Ring 3", "Belt",
+  "Charm 1", "Charm 2", "Charm 3", "Flask 1", "Flask 2",
+] as const;
+
+/** The slots with an activation toggle in PoB2: flasks and charms (`toggle_flask`). */
+export const ACTIVATABLE_SLOTS = ["Flask 1", "Flask 2", "Charm 1", "Charm 2", "Charm 3"] as const;
+
+/**
  * Get all tool schemas for registration with the MCP server
  */
 export function getToolSchemas(): ToolSchema[] {
@@ -510,26 +523,22 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "analyze_skills",
-      description: "Analyze the loaded build's actual skill setup using the PoB2 engine (PoE2-correct). Shows each socket group's active skill + support gems, flags tag-mismatched supports, empty/disabled gems, and unknown gem names.",
+      description: "Analyze the loaded build's skill setup with the PoB2 engine. For each socket group: its active skills, its support gems, and whether PoB2 says each support can support the group's skills (PoB's own compatibility check), plus disabled or unknown gems. For the main socket group it also lists every support gem PoB2 says could support it that isn't in the group; other groups show the count (use suggest_supports for those).",
       inputSchema: { type: "object", properties: {} },
     },
     {
       name: "suggest_supports",
-      description: "Suggest compatible support gems for a socket group's active skill, drawn from PoB2's gem database (PoE2-correct). By default ranks by tag relevance (fast). With measure_dps=true, ranks by REAL DPS gain — each candidate is transiently socketed, the build recalculated, and then removed. Excludes supports already socketed.",
+      description: "Rank the support gems that could go in a socket group by their measured effect. The candidates are every non-legacy support gem PoB2 says can support the group's active skills (PoB's own compatibility check) that isn't already in the group. Each one is measured on the requested group (made the main skill for the measurement) the way PoB2's gem selector sorts gems: added at the default gem level and quality, recalculated, and removed again. Results are ordered by the change in the build's gem-sort stat (CombinedDPS unless the build sorts gems by another stat), largest first. The loaded build is left as it was.",
       inputSchema: {
         type: "object",
         properties: {
           group_index: {
             type: "number",
-            description: "Socket group number to suggest supports for (see analyze_skills output).",
+            description: "Socket group number to suggest supports for (see analyze_skills or get_skill_setup).",
           },
           count: {
             type: "number",
-            description: "How many suggestions to return (tag mode default 8/max 20; measured mode default 6/max 12).",
-          },
-          measure_dps: {
-            type: "boolean",
-            description: "If true, rank by measured DPS gain via the engine instead of the tag heuristic. Slower (sockets/recalcs each candidate). Best on a fully geared, loaded build. Default false.",
+            description: "How many suggestions to return (default 8, max 20).",
           },
         },
         required: ["group_index"],
@@ -547,8 +556,8 @@ export function getLuaToolSchemas(): any[] {
           },
           slot_name: {
             type: "string",
-            description: "Slot to equip in: Weapon 1, Weapon 2, Helmet, Body Armour, Gloves, Boots, Amulet, Ring 1, Ring 2, Belt, Flask 1-5",
-            enum: ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt", "Flask 1", "Flask 2", "Flask 3", "Flask 4", "Flask 5"],
+            description: "PoE2 slot to equip the item in (it replaces what is there). Ring 3 exists only with an extra ring slot; the Swap slots are the second weapon set.",
+            enum: [...ITEM_SLOTS],
           },
         },
         required: ["item_text", "slot_name"],
@@ -564,20 +573,21 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "toggle_flask",
-      description: "Toggle a flask on/off",
+      description: "Turn a flask or charm on or off in the loaded build, as PoB2's slot checkbox does: an active flask or charm applies its effect to the calculated stats. The slot must hold an item. Returns the updated key defensive stats.",
       inputSchema: {
         type: "object",
         properties: {
-          flask_number: {
-            type: "number",
-            description: "Flask slot number (1-5)",
+          slot: {
+            type: "string",
+            description: "Flask or charm slot",
+            enum: [...ACTIVATABLE_SLOTS],
           },
           active: {
             type: "boolean",
             description: "true to activate, false to deactivate",
           },
         },
-        required: ["flask_number", "active"],
+        required: ["slot", "active"],
       },
     },
     {
@@ -624,7 +634,7 @@ export function getLuaToolSchemas(): any[] {
           slot: {
             type: "string",
             description: "Item slot for sockets (e.g., 'Weapon 1', 'Body Armour')",
-            enum: ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt", "Flask 1", "Flask 2", "Flask 3", "Flask 4", "Flask 5"],
+            enum: [...ITEM_SLOTS],
           },
           enabled: {
             type: "boolean",
@@ -636,7 +646,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_gem",
-      description: "Add a gem to a socket group. IMPORTANT: Use the gem's base name WITHOUT 'Support' suffix — e.g. 'Brutality' not 'Brutality Support', 'Concentrated Effect' not 'Concentrated Effect Support', 'Melee Physical Damage' not 'Melee Physical Damage Support'. The server will auto-resolve names but correct names ensure proper matching.",
+      description: "Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). Many PoE2 support gems come in tiers, e.g. 'Brutality I', 'Brutality II'. An unknown name is rejected with up to 5 suggested names; list_gems searches the gem data.",
       inputSchema: {
         type: "object",
         properties: {
@@ -646,7 +656,7 @@ export function getLuaToolSchemas(): any[] {
           },
           gem_name: {
             type: "string",
-            description: "Gem name WITHOUT 'Support' suffix (e.g. 'Brutality', 'Concentrated Effect', 'Multistrike')",
+            description: "PoE2 gem name (e.g. 'Fireball', 'Brutality I', 'Concentrated Area')",
           },
           level: {
             type: "number",
@@ -806,7 +816,7 @@ export function getLuaToolSchemas(): any[] {
           slot: {
             type: "string",
             description: "Item slot (optional)",
-            enum: ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt", "Flask 1", "Flask 2", "Flask 3", "Flask 4", "Flask 5"],
+            enum: [...ITEM_SLOTS],
           },
         },
         required: ["label", "active_gem", "support_gems"],

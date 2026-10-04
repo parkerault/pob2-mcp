@@ -72,13 +72,16 @@ engineDescribe("PoE2 Lua bridge (integration)", () => {
 
     const analysis = await svc.analyze(api);
     const group = analysis.groups.find((gr) => gr.index === g.index)!;
-    expect(group.activeSkillName).toBe("Ice Nova");
+    expect(group.activeSkills).toEqual(["Ice Nova"]);
+    // PoB's own check (calcLib.canGrantedEffectSupportActiveSkill) rejects an attack support on a spell.
     const runic = group.gems.find((gm) => gm.name === "Runic Infusion")!;
-    expect(runic.compat?.compatibility).toBe("mismatch");
+    expect(runic.supportsActive).toBe(false);
+    expect(group.issues.join("\n")).toContain("Runic Infusion");
 
     const suggestions = await svc.suggestSupports(api, g.index, 5);
-    expect(suggestions.activeSkill).toBe("Ice Nova");
-    expect(suggestions.suggestions.length).toBeGreaterThan(0);
+    expect(suggestions.activeSkills).toEqual(["Ice Nova"]);
+    expect(suggestions.ranked.length).toBe(5);
+    expect(suggestions.poolSize).toBeGreaterThan(5);
   }, 60000);
 
   it("plans PoE2 leveling: resolves Witch/Abyssal Lich, Trials not Labyrinth, skill-tailored", async () => {

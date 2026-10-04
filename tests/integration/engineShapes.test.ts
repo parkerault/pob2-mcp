@@ -196,7 +196,7 @@ engineDescribe('engine data shapes on the golden build (WU-09)', () => {
   );
 
   it(
-    'AC-E25/AC-E26: lua_get_stats default view shows every non-zero default stat once, defensive outputs (EnemyDamage, MaximumHitTaken, DamageReduction, TotalEHP) under Defense only, nothing truncated',
+    'AC-E25/AC-E26: lua_get_stats default view shows every non-zero default stat once (plus EvadeChance/DeflectChance at 0), defensive outputs (EnemyDamage, MaximumHitTaken, DamageReduction, TotalEHP) under Defense only, nothing truncated',
     async () => {
       const reply = await read((c) => c.request('get_stats'));
       const stats = reply.stats as Record<string, unknown>;
@@ -218,8 +218,10 @@ engineDescribe('engine data shapes on the golden build (WU-09)', () => {
         if (stat && current) sections[current].push(stat[1]);
       }
       const listed = Object.values(sections).flat();
-      // Every non-zero default stat appears exactly once.
-      expect([...listed].sort()).toEqual([...nonZero].sort());
+      // Every non-zero default stat appears exactly once, plus the avoidance chances that are listed even
+      // at 0 (AC-E41, WU-11).
+      const alwaysShown = ['EvadeChance', 'DeflectChance'].filter((k) => stats[k] != null && !nonZero.includes(k));
+      expect([...listed].sort()).toEqual([...nonZero, ...alwaysShown].sort());
 
       const defensive = (k: string) => /EnemyDamage$|MaximumHitTaken$|DamageReduction$|EHP$/.test(k);
       expect((sections.Offense ?? []).filter(defensive)).toEqual([]);

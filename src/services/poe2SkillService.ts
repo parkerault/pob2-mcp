@@ -1,37 +1,28 @@
 /**
  * PoE2 Skill / Support analysis — engine-backed.
  *
- * Unlike the legacy PoE1 `skillGemService` (hand-coded gem DB + archetype
- * templates + 6-link assumption), this service reads the build's ACTUAL skill
- * setup from the PoB2 engine (`get_skills`) and the authoritative gem database
- * (`list_gems`), so it stays correct for PoE2's uncut-skill / support-socket
- * model with no hand-maintained gem data.
+ * The build's skill setup comes from the PoB2 engine (`get_skills`), and support compatibility from
+ * PoB2 itself: the Lua `list_support_candidates` action applies
+ * `calcLib.canGrantedEffectSupportActiveSkill` to a socket group's active skills, as PoB's gem selector
+ * does, and can measure every candidate on that group (WU-11).
  *
- * Support compatibility uses a tag-gating heuristic grounded in real gem tags:
- * a support that carries a "delivery" gating tag (attack/spell/minion/…) only
- * applies to a skill that also has that tag. Descriptive tags (cold, fire, …)
- * are used for relevance ranking, not gating.
+ * The tag helpers below (`effectiveTagSet`, `rankSupportsForSkillTags`, `resolveActiveSkillTags`) serve
+ * the leveling planner, which works from a skill *name* that need not be socketed in the build.
  */
+import type { SkillsResult, SupportCandidate, SupportCandidatesResult } from "../engine/schemas.js";
 
-/** Minimal slice of the Lua bridge this service needs (keeps it decoupled). */
+/** The slice of the Lua bridge the skill analysis needs. */
 export interface SkillEngine {
-  getSkills(): Promise<any>;
-  listGems(params: { type?: "active" | "support"; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean }): Promise<{ gems: any[]; count: number; total: number }>;
-  // Optional — only needed for measured (real-DPS) support ranking.
-  getStats?(fields?: string[]): Promise<Record<string, any>>;
-  setMainSelection?(params: { mainSocketGroup?: number; mainActiveSkill?: number; skillPart?: number }): Promise<void>;
-  addGem?(params: { groupIndex: number; gemName: string; level?: number; quality?: number }): Promise<any>;
-  removeGem?(params: { groupIndex: number; gemIndex: number }): Promise<void>;
+  getSkills(): Promise<SkillsResult>;
+  request(
+    action: "list_support_candidates",
+    params: { groupIndex: number; measure?: boolean },
+  ): Promise<{ result: SupportCandidatesResult }>;
 }
 
-/** Pick the most representative DPS number PoB exposes, in priority order. */
-function pickDps(stats: Record<string, any> | undefined): number {
-  if (!stats) return 0;
-  for (const k of ["CombinedDPS", "TotalDPS", "FullDPS", "WithIgniteDPS", "TotalDotDPS"]) {
-    const v = Number(stats[k]);
-    if (Number.isFinite(v) && v > 0) return v;
-  }
-  return 0;
+/** The slice of the Lua bridge the leveling planner's tag helpers need. */
+export interface GemListEngine {
+  listGems(params: { type?: "active" | "support"; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean }): Promise<{ gems: any[]; count: number; total: number }>;
 }
 
 /** Tags that gate which skills a support can apply to. */
@@ -124,7 +115,7 @@ export interface SupportSuggestion {
  * the rest are ranked by shared descriptive + matched delivery tags.
  */
 export async function rankSupportsForSkillTags(
-  engine: Pick<SkillEngine, "listGems">,
+  engine: GemListEngine,
   skillTags: Set<string>,
   opts: { count?: number; exclude?: Set<string> } = {}
 ): Promise<SupportSuggestion[]> {
@@ -156,7 +147,7 @@ export async function rankSupportsForSkillTags(
  * first result. Returns null if nothing resembles the name.
  */
 export async function resolveActiveSkillTags(
-  engine: Pick<SkillEngine, "listGems">,
+  engine: GemListEngine,
   skillName: string
 ): Promise<{ name: string; tags: Set<string>; tagString: string } | null> {
   if (!skillName || !skillName.trim()) return null;
@@ -177,7 +168,8 @@ export interface AnalyzedGem {
   isSupport: boolean;
   tags: string;
   known: boolean;
-  compat?: SupportCompat; // supports only, relative to the group's main active skill
+  /** Supports only: whether PoB says this support can support one of the group's active skills. */
+  supportsActive?: boolean;
 }
 
 export interface AnalyzedGroup {
@@ -186,10 +178,12 @@ export interface AnalyzedGroup {
   slot?: string;
   enabled: boolean;
   isMain: boolean;
-  activeSkillName: string | null;
-  activeSkillTags: string;
+  /** The group's active skills, as PoB built them (`displaySkillList`). */
+  activeSkills: string[];
   gems: AnalyzedGem[];
   supportCount: number;
+  /** Supports PoB says can support the group's skills and that aren't in it (`list_support_candidates`). */
+  candidates: string[];
   issues: string[];
 }
 
@@ -199,24 +193,60 @@ export interface SkillAnalysis {
   summary: string;
 }
 
+export interface MeasuredSupport {
+  name: string;
+  tags: string;
+  /** The gem-sort stat with this support added, measured on the requested group. */
+  value: number | null;
+  /** `value` minus the baseline; null when its calculation failed. */
+  delta: number | null;
+  error?: string;
+}
+
+export interface SupportSuggestions {
+  groupIndex: number;
+  label: string;
+  activeSkills: string[];
+  /** PoB's gem-sort stat (`sortGemsByDPSField`), e.g. CombinedDPS. */
+  stat: string;
+  baseline: number | null;
+  /** The size of the candidate pool: every candidate was measured. */
+  poolSize: number;
+  /** The best `count` candidates, by delta descending, ties by name. */
+  ranked: MeasuredSupport[];
+}
+
+/** Delta descending (a failed measurement last), ties by name. */
+export function compareMeasured(a: MeasuredSupport, b: MeasuredSupport): number {
+  const da = a.delta ?? Number.NEGATIVE_INFINITY;
+  const db = b.delta ?? Number.NEGATIVE_INFINITY;
+  if (da !== db) return db - da;
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+}
+
 export class Poe2SkillService {
+  /** `list_support_candidates` for one socket group (C-5 validated). */
+  async candidates(engine: SkillEngine, groupIndex: number, measure = false): Promise<SupportCandidatesResult> {
+    const reply = await engine.request("list_support_candidates", measure ? { groupIndex, measure: true } : { groupIndex });
+    return reply.result;
+  }
+
   async analyze(engine: SkillEngine): Promise<SkillAnalysis> {
     const skills = await engine.getSkills();
     const groups: AnalyzedGroup[] = [];
     const mainIdx = typeof skills.mainSocketGroup === "number" ? skills.mainSocketGroup : null;
 
     for (const g of skills.groups || []) {
-      const gemList: any[] = g.gems || [];
-      const activeGem = gemList.find((gm) => !gm.isSupport) || null;
-      const skillTags = activeGem ? effectiveTagSet(activeGem) : new Set<string>();
+      const gemList = g.gems || [];
+      const pool = await this.candidates(engine, g.index);
+      const compat = new Map(pool.socketed.map((s) => [s.gemIndex, s.supportsActive]));
+      const activeSkills = pool.activeSkills;
 
       const issues: string[] = [];
-      const supports = gemList.filter((gm) => gm.isSupport);
-
       if (gemList.length === 0) {
         issues.push("Empty socket group (no gems).");
-      } else if (!activeGem) {
-        issues.push("No active skill gem — supports do nothing without a skill to support.");
+      } else if (activeSkills.length === 0) {
+        issues.push("No active skill — supports do nothing without a skill to support.");
       }
 
       const gems: AnalyzedGem[] = gemList.map((gm) => {
@@ -229,10 +259,10 @@ export class Poe2SkillService {
           tags: gm.tags || "",
           known: gm.known !== false,
         };
-        if (gm.isSupport && activeGem) {
-          base.compat = supportCompatibility(skillTags, gm);
-          if (base.compat.compatibility === "mismatch") {
-            issues.push(`Support "${gm.name}" looks mismatched: ${base.compat.reason}.`);
+        if (base.isSupport && compat.has(gm.index)) {
+          base.supportsActive = compat.get(gm.index);
+          if (base.supportsActive === false && activeSkills.length > 0) {
+            issues.push(`PoB2 says support "${gm.name}" can't support ${activeSkills.join(" / ")}.`);
           }
         }
         if (!base.enabled) issues.push(`"${gm.name}" is disabled.`);
@@ -246,10 +276,10 @@ export class Poe2SkillService {
         slot: g.slot,
         enabled: g.enabled !== false,
         isMain: mainIdx != null && g.index === mainIdx,
-        activeSkillName: activeGem ? activeGem.name : null,
-        activeSkillTags: activeGem?.tags || "",
+        activeSkills,
         gems,
-        supportCount: supports.length,
+        supportCount: gems.filter((gm) => gm.isSupport).length,
+        candidates: pool.candidates.map((c) => c.name),
         issues,
       });
     }
@@ -263,105 +293,28 @@ export class Poe2SkillService {
   }
 
   /**
-   * Suggest compatible support gems for a socket group's active skill, ranked
-   * by relevance (shared descriptive tags), excluding supports already used.
+   * Measure every candidate support on the requested group (`list_support_candidates` with
+   * `measure`, which makes the group the main skill for the measurement and restores the build), and
+   * return the best `count`, by delta descending, ties by name.
    */
-  async suggestSupports(
-    engine: SkillEngine,
-    groupIndex: number,
-    count = 8
-  ): Promise<{ activeSkill: string | null; suggestions: { name: string; tags: string; reason: string; shared: string[] }[] }> {
-    const skills = await engine.getSkills();
-    const group = (skills.groups || []).find((g: any) => g.index === groupIndex);
-    if (!group) throw new Error(`Socket group ${groupIndex} not found (build has ${(skills.groups || []).length}).`);
-
-    const gemList: any[] = group.gems || [];
-    const activeGem = gemList.find((gm) => !gm.isSupport) || null;
-    if (!activeGem) {
-      return { activeSkill: null, suggestions: [] };
-    }
-    const skillTags = effectiveTagSet(activeGem);
-    const used = new Set(gemList.filter((gm) => gm.isSupport).map((gm) => String(gm.name).toLowerCase()));
-
-    const suggestions = await rankSupportsForSkillTags(engine, skillTags, { count, exclude: used });
-    return { activeSkill: activeGem.name, suggestions };
-  }
-
-  /**
-   * Measure each candidate support's REAL DPS contribution via the engine:
-   * tag-prefilter compatible unused supports, then for each one socket it,
-   * recalculate, record the DPS delta, and remove it. Restores the original
-   * main socket group afterward. Returns candidates ranked by measured delta.
-   *
-   * Mutates the in-memory build transiently (each candidate is added then
-   * removed); the loaded build is left as it was found.
-   */
-  async measureSupportDps(
-    engine: SkillEngine,
-    groupIndex: number,
-    opts: { count?: number; candidatePool?: number; level?: number } = {}
-  ): Promise<{
-    activeSkill: string | null;
-    baselineDps: number;
-    measured: { name: string; tags: string; dps: number; delta: number; deltaPct: number }[];
-    note?: string;
-  }> {
-    if (!engine.getStats || !engine.setMainSelection || !engine.addGem || !engine.removeGem) {
-      throw new Error("Engine does not support measured DPS (needs getStats/setMainSelection/addGem/removeGem).");
-    }
-
-    const count = Math.min(opts.count || 6, 12);
-    // Measure a wide pool of the best tag-ranked candidates, since the tag score
-    // is only a proxy — the engine DPS delta is the real ranking.
-    const candidatePool = Math.min(opts.candidatePool || 28, 40);
-    const level = opts.level || 20;
-
-    // Heuristic shortlist of compatible, unused supports to measure.
-    const shortlist = await this.suggestSupports(engine, groupIndex, candidatePool);
-    if (!shortlist.activeSkill) {
-      return { activeSkill: null, baselineDps: 0, measured: [] };
-    }
-
-    // Make this group the main skill so DPS reflects it; remember the original.
-    const before = await engine.getSkills();
-    const originalMain = typeof before.mainSocketGroup === "number" ? before.mainSocketGroup : undefined;
-    await engine.setMainSelection({ mainSocketGroup: groupIndex });
-
-    const baselineDps = pickDps(await engine.getStats(["CombinedDPS", "TotalDPS", "FullDPS"]));
-
-    const measured: { name: string; tags: string; dps: number; delta: number; deltaPct: number }[] = [];
-    try {
-      for (const s of shortlist.suggestions) {
-        let added: any = null;
-        try {
-          added = await engine.addGem({ groupIndex, gemName: s.name, level });
-          const dps = pickDps(await engine.getStats(["CombinedDPS", "TotalDPS", "FullDPS"]));
-          const delta = dps - baselineDps;
-          const deltaPct = baselineDps > 0 ? (delta / baselineDps) * 100 : 0;
-          measured.push({ name: s.name, tags: s.tags, dps, delta, deltaPct });
-        } finally {
-          // Always remove the candidate we added so the build is restored.
-          if (added && typeof added.gemIndex === "number") {
-            try { await engine.removeGem({ groupIndex, gemIndex: added.gemIndex }); } catch { /* best effort */ }
-          }
-        }
-      }
-    } finally {
-      if (originalMain !== undefined) {
-        try { await engine.setMainSelection({ mainSocketGroup: originalMain }); } catch { /* best effort */ }
-      }
-    }
-
-    measured.sort((a, b) => b.delta - a.delta || a.name.localeCompare(b.name));
-    const note = baselineDps === 0
-      ? "Baseline DPS is 0 (no gear/level or non-damaging skill) — deltas may be small; load a real build for meaningful numbers."
-      : undefined;
-
+  async suggestSupports(engine: SkillEngine, groupIndex: number, count = 8): Promise<SupportSuggestions> {
+    const pool = await this.candidates(engine, groupIndex, true);
+    const measured: MeasuredSupport[] = pool.candidates.map((c: SupportCandidate) => ({
+      name: c.name,
+      tags: c.tags ?? "",
+      value: c.value ?? null,
+      delta: c.delta ?? null,
+      ...(c.error ? { error: c.error } : {}),
+    }));
+    measured.sort(compareMeasured);
     return {
-      activeSkill: shortlist.activeSkill,
-      baselineDps,
-      measured: measured.slice(0, count),
-      note,
+      groupIndex: pool.groupIndex,
+      label: pool.label ?? "",
+      activeSkills: pool.activeSkills,
+      stat: pool.measured?.stat ?? "CombinedDPS",
+      baseline: pool.measured?.baseline ?? null,
+      poolSize: measured.length,
+      ranked: measured.slice(0, count),
     };
   }
 }

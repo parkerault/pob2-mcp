@@ -85,12 +85,16 @@ handlers.version = function(params)
   return { ok = true, version = version_meta() }
 end
 
+-- new_build {className?, ascendancy?}: a fresh build of that class and ascendancy (names as get_classes
+-- lists them, case ignored). An unknown name fails before the engine's build changes.
 handlers.new_build = function(params)
-  if not _G.newBuild then
-    return { ok = false, error = 'headless wrapper not initialized' }
-  end
-  _G.newBuild()
-  return { ok = true, result = { name = _G.build and build.buildName or NULL } }
+  local res, err = BuildOps.new_build(params or {})
+  if not res then return { ok = false, error = err } end
+  return { ok = true, result = {
+    name = res.name or NULL,
+    className = res.className,
+    ascendClassName = res.ascendClassName,
+  } }
 end
 
 -- PoB colour codes (^1, ^xRRGGBB) stripped from a message shown to the caller.
@@ -329,6 +333,15 @@ end
 handlers.list_gems = function(params)
   local res, err = BuildOps.list_gems(params or {})
   if not res then return { ok = false, error = err or 'failed to list gems' } end
+  return { ok = true, result = res }
+end
+
+-- list_support_candidates {groupIndex, measure?}: the supports PoB says can support the group's active
+-- skills (calcLib.canGrantedEffectSupportActiveSkill), minus the group's own; `measure` adds each one's
+-- measured value on that group.
+handlers.list_support_candidates = function(params)
+  local res, err = BuildOps.list_support_candidates(params or {})
+  if not res then return { ok = false, error = err or 'failed to list support candidates' } end
   return { ok = true, result = res }
 end
 

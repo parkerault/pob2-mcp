@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 
-/** Every non-test action the Lua side registers (`pob-api/API/Handlers.lua`). */
+/** Every non-test action the Lua side registers (`pob-api/API/Handlers.lua`, plus `API/Trade.lua`'s). */
 export const ACTION_NAMES = [
   'ping',
   'version',
@@ -52,6 +52,9 @@ export const ACTION_NAMES = [
   'rename_spec',
   'list_item_sets',
   'select_item_set',
+  'trade_generate_query',
+  'trade_evaluate_items',
+  'trade_query_options',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -82,8 +85,155 @@ export const luaNumber = z.number().nullable();
 /** The registry's shape: at most one schema per action. */
 export type ReplySchemaRegistry = { [A in ActionName]?: z.ZodTypeAny };
 
+// ---------------------------------------------------------------------------------------------------
+// Lua trade actions (C-13, `pob-api/API/Trade.lua`)
+
+/** An effective sort weight as the trade actions report it. */
+const statWeightSchema = z.object({ stat: z.string(), label: z.string(), weight: z.number() }).passthrough();
+
+/** One stat filter of a trade query group: `{id, value: {weight} | {min} | …}`. */
+const tradeStatFilterSchema = z.object({ id: z.string(), value: luaMap(z.unknown()).optional() }).passthrough();
+
+/** PoB's trade query, as `FinishQuery` built it (the weight group first, then the always-present `and` group). */
+export const tradeQuerySchema = z
+  .object({
+    query: z
+      .object({
+        filters: luaMap(z.unknown()),
+        status: z.object({ option: z.string() }).passthrough(),
+        stats: luaArray(
+          z
+            .object({
+              type: z.string(),
+              value: luaMap(luaNumber).optional(),
+              filters: luaArray(tradeStatFilterSchema),
+            })
+            .passthrough(),
+        ),
+      })
+      .passthrough(),
+    sort: luaMap(z.string()),
+    engine: z.string(),
+  })
+  .passthrough();
+export type TradeQuery = z.infer<typeof tradeQuerySchema>;
+
+export const tradeGenerateQueryReply = baseReply.extend({
+  result: z
+    .object({
+      query: tradeQuerySchema,
+      /** The full ranked list before PoB's 35-filter cap, in D-55 order. */
+      rankedWeights: luaArray(
+        // weight = meanStatDiff / the tested mod value, so a zero test value gives inf (encoded null).
+        z.object({ tradeId: z.string(), weight: luaNumber, meanStatDiff: luaNumber }).passthrough(),
+      ),
+      minWeight: luaNumber,
+      itemCategory: z.string(),
+      statWeights: luaArray(statWeightSchema),
+      baselineScore: luaNumber,
+      meta: z.object({ calcCount: z.number().int(), ms: z.number() }).passthrough(),
+    })
+    .passthrough(),
+});
+export type TradeGenerateQueryResult = z.infer<typeof tradeGenerateQueryReply>['result'];
+
+const statDeltaSchema = z
+  .object({ base: luaNumber, new: luaNumber, delta: luaNumber, pct: luaNumber.optional() })
+  .passthrough();
+
+export const tradeEvaluateItemsReply = baseReply.extend({
+  result: z
+    .object({
+      baselineScore: luaNumber,
+      rejected: luaArray(z.object({ id: z.string(), reason: z.string() }).passthrough()),
+      items: luaArray(
+        z
+          .object({
+            id: z.string().nullable().optional(),
+            score: luaNumber,
+            stats: luaMap(statDeltaSchema),
+            itemText: z.string(),
+          })
+          .passthrough(),
+      ),
+    })
+    .passthrough(),
+});
+export type TradeEvaluateItemsResult = z.infer<typeof tradeEvaluateItemsReply>['result'];
+
+const weightSchema = z.object({ stat: z.string(), weight: z.number() }).passthrough();
+
+export const tradeQueryOptionsReply = baseReply.extend({
+  result: z
+    .object({
+      slot: z.string().nullable(),
+      supported: z.boolean(),
+      reason: z.string().optional(),
+      itemCategory: z.string().optional(),
+      sortStats: luaArray(z.object({ stat: z.string(), label: z.string() }).passthrough()),
+      defaultWeights: luaArray(weightSchema),
+      savedWeights: luaArray(weightSchema).nullable(),
+      requiredModChoices: luaArray(
+        z
+          .object({ tradeId: z.string(), text: z.string(), kind: z.enum(['explicit', 'implicit', 'corrupted']) })
+          .passthrough(),
+      ),
+      currencies: luaArray(z.object({ id: z.string().nullable(), label: z.string() }).passthrough()),
+      statuses: luaArray(z.object({ id: z.string(), label: z.string() }).passthrough()),
+      shows: z
+        .object({
+          sockets: z.boolean(),
+          runeBehaviour: z.boolean(),
+          anointBehaviour: z.boolean(),
+          jewelType: z.boolean(),
+        })
+        .passthrough(),
+    })
+    .passthrough(),
+});
+export type TradeQueryOptionsResult = z.infer<typeof tradeQueryOptionsReply>['result'];
+
+/** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */
+export type TradeItemBehaviour = 'copy' | 'keep' | 'remove';
+/** A sort weight (C-13 param): a `data.powerStatList` stat, never a `*TakenHit` one (D-57). */
+export type TradeStatWeight = { stat: string; weight: number };
+
+/** `trade_generate_query` params (C-13). Omitted options take PoB's dialog defaults (D-37). */
+export interface TradeGenerateQueryParams {
+  slot: string;
+  statWeights?: TradeStatWeight[];
+  requiredMods?: Array<{ tradeId: string; min: number }>;
+  maxPrice?: number;
+  /** null = Exalted Orb Equivalent. */
+  currency?: string | null;
+  maxLevel?: number;
+  sockets?: number;
+  includeCorrupted?: boolean;
+  includeMirrored?: boolean;
+  runeBehaviour?: TradeItemBehaviour;
+  jewelType?: 'Base' | 'Radius';
+  status?: 'securable' | 'available' | 'onlineleague' | 'online' | 'any';
+}
+
+/**
+ * `trade_evaluate_items` params (C-13). `items` are sanitized `/fetch` result entries (D-56); an entry
+ * may instead be `{id, itemText}` carrying PoB item text.
+ */
+export interface TradeEvaluateItemsParams {
+  slot: string;
+  items: unknown[];
+  statWeights?: TradeStatWeight[];
+  reportStats?: string[];
+  runeBehaviour?: TradeItemBehaviour;
+  anointBehaviour?: TradeItemBehaviour;
+}
+
 /** The schemas defined so far. WU-09 completes this to one per action. */
-const definedSchemas = {} satisfies ReplySchemaRegistry;
+const definedSchemas = {
+  trade_generate_query: tradeGenerateQueryReply,
+  trade_evaluate_items: tradeEvaluateItemsReply,
+  trade_query_options: tradeQueryOptionsReply,
+} satisfies ReplySchemaRegistry;
 type DefinedSchemas = typeof definedSchemas;
 
 /**

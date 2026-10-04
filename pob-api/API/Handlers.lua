@@ -445,6 +445,8 @@ if TEST_ACTIONS then
   end
 end
 
+for name, fn in pairs(require('API.Trade').handlers) do handlers[name] = fn end
+
 return {
   handlers = handlers,
   version_meta = version_meta,

@@ -23,6 +23,11 @@ import {
   type ActionReply,
   type TestActionName,
   type TestReply,
+  type TradeEvaluateItemsParams,
+  type TradeEvaluateItemsResult,
+  type TradeGenerateQueryParams,
+  type TradeGenerateQueryResult,
+  type TradeQueryOptionsResult,
 } from "./engine/schemas.js";
 
 /** The pin the client checks the checkout and the banner against (`pob-pin.json`, C-6). */
@@ -831,6 +836,27 @@ export class PoBLuaApiClient {
 
   async selectItemSet(id: number): Promise<any> {
     const res = await this.request("select_item_set", { id });
+    return res.result;
+  }
+
+  // Lua trade actions (C-13). Each takes the request options, so a caller can clip the timeout to its
+  // deadline and pass its abort signal (D-22); `trade_generate_query` defaults to 60 s (D-47).
+
+  /** PoB's weighted trade query for a slot, the full ranked weights and the baseline score. */
+  async tradeGenerateQuery(params: TradeGenerateQueryParams, opts?: RequestOptions): Promise<TradeGenerateQueryResult> {
+    const res = await this.request("trade_generate_query", { ...params }, opts);
+    return res.result;
+  }
+
+  /** Score fetched listings against the loaded build, one by one (failures go to `rejected`). */
+  async tradeEvaluateItems(params: TradeEvaluateItemsParams, opts?: RequestOptions): Promise<TradeEvaluateItemsResult> {
+    const res = await this.request("trade_evaluate_items", { ...params }, opts);
+    return res.result;
+  }
+
+  /** What PoB's trade dialog offers for a slot (C-15). */
+  async tradeQueryOptions(slot: string, opts?: RequestOptions): Promise<TradeQueryOptionsResult> {
+    const res = await this.request("trade_query_options", { slot }, opts);
     return res.result;
   }
 }

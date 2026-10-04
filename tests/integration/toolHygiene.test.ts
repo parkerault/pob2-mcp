@@ -6,9 +6,20 @@
  * `lua_load_build`, runs the sample's `setup` steps, then calls the sample, with trade and poe.ninja
  * HTTP served by `fixtureFetch`. Checks:
  * - (i)   the text contains none of `undefined`, `NaN`, `[object Object]`;
- * - (ii)  `expect: "ok"` ⇒ `isError` is not true (a failing setup step fails this check too, because
- *         the sample then does not exercise what it claims);
+ * - (ii)  `expect: "ok"` ⇒ `isError` is not true (a protocol error, which is not a tool result at all,
+ *         fails it too);
  * - (iii) `expect: "error"` ⇒ `isError: true`.
+ *
+ * A setup step must succeed: a failing step is a check (ii) failure of the setup step's own tool (so it
+ * needs that tool's allowlist entry), never of the sample's tool. A failed reload of the golden build
+ * (an `isError` result or a protocol error) aborts the sample, because it would otherwise run against
+ * whatever the previous sample left in the engine.
+ *
+ * Fidelity (spine §12): the trade and poe.ninja requests that `fixtureFetch` recorded are asserted per
+ * sample: each HTTP-sending sample hits its expected endpoints with the expected methods, no sample
+ * hits an endpoint outside its tool's set, `/api/trade2/data/stats` is requested exactly once (lazily,
+ * by the first trade tool that needs stats), no fetch goes unmatched, and no request carries a
+ * `Cookie` or a `POESESSID`.
  *
  * Every listed tool has at least one `expect: "ok"` sample; `expect: "error"` samples are additional
  * and carry a `reason`. A failing check is tolerated only when `tests/fixtures/tool-hygiene-allowlist.json`
@@ -26,7 +37,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { startTestServer, type TestServer } from '../helpers/server';
-import { fixtureFetch } from '../helpers/fixtureFetch';
+import { fixtureFetch, type RecordedCall } from '../helpers/fixtureFetch';
 import { engineDescribe } from '../helpers/engine';
 
 type Check = 'i' | 'ii' | 'iii';
@@ -48,7 +59,15 @@ interface AllowEntry {
 }
 interface Outcome {
   isError: boolean;
+  /** The call threw (an SDK timeout, a closed transport, -32602): not a tool result at all. */
+  protocolError: boolean;
   text: string;
+}
+/** One check that ran, against the tool it belongs to; `failed` is the reason when it failed. */
+interface CheckRun {
+  tool: string;
+  check: Check;
+  failed?: string;
 }
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -89,8 +108,39 @@ function resolve(value: unknown): unknown {
   return value;
 }
 
+const excerptOf = (text: string) => (text.length > 600 ? `${text.slice(0, 600)}…` : text);
+const failedCall = (o: Outcome) => o.isError || o.protocolError;
+
+/** Steps 1–2 guard: a reload that did not produce a successful tool result aborts the sample. */
+function requireReloaded(load: Outcome): void {
+  if (failedCall(load)) throw new Error(`reloading the golden build failed: ${excerptOf(load.text)}`);
+}
+
+/**
+ * The checks one sample ran. A failing setup step is a check (ii) failure of the setup step's tool;
+ * the sample's own checks (i) and (ii)/(iii) judge only the sample's result.
+ */
+function assessSample(sample: Sample, setup: Outcome[], out: Outcome): CheckRun[] {
+  const runs: CheckRun[] = (sample.setup ?? []).map((step, k) => ({
+    tool: step.tool,
+    check: 'ii' as Check,
+    failed: failedCall(setup[k]) ? `setup step for ${sample.tool} failed: ${excerptOf(setup[k].text)}` : undefined,
+  }));
+  const junk = JUNK.filter((j) => out.text.includes(j));
+  runs.push({ tool: sample.tool, check: 'i', failed: junk.length > 0 ? `text contains ${junk.map((j) => JSON.stringify(j)).join(', ')}` : undefined });
+  if (sample.expect === 'ok') {
+    runs.push({
+      tool: sample.tool,
+      check: 'ii',
+      failed: out.protocolError ? 'the call was a protocol error, not a tool result' : out.isError ? 'isError is true' : undefined,
+    });
+  } else {
+    runs.push({ tool: sample.tool, check: 'iii', failed: out.isError ? undefined : 'isError is not true' });
+  }
+  return runs;
+}
+
 const allowed = (tool: string, check: Check) => ALLOWLIST.some((e) => e.tool === tool && e.check === check);
-const excerpt = (text: string) => (text.length > 600 ? `${text.slice(0, 600)}…` : text);
 
 describe('AC-F26: tool-calls.json and the allowlist are well-formed (D-45)', () => {
   it('AC-F26: every listed tool has at least one expect:"ok" sample', () => {
@@ -119,13 +169,79 @@ describe('AC-F26: tool-calls.json and the allowlist are well-formed (D-45)', () 
   });
 });
 
+describe('AC-F26: the per-sample precondition and check attribution', () => {
+  const ok: Outcome = { isError: false, protocolError: false, text: 'fine' };
+  const toolError: Outcome = { isError: true, protocolError: false, text: 'Error: the engine returned no spec list' };
+  const protocol: Outcome = { isError: false, protocolError: true, text: '<protocol error> Request timed out' };
+  const withSetup: Sample = {
+    tool: 'select_spec',
+    args: { index: 2 },
+    expect: 'ok',
+    setup: [{ tool: 'create_spec', args: { title: 'x' } }],
+  };
+
+  it('AC-F26: a reload of the golden build that is a protocol error or an isError result aborts the sample', () => {
+    expect(() => requireReloaded(protocol)).toThrow(/reloading the golden build failed: <protocol error>/);
+    expect(() => requireReloaded(toolError)).toThrow(/reloading the golden build failed/);
+    expect(() => requireReloaded(ok)).not.toThrow();
+  });
+
+  it('AC-F26: a failing setup step is a check (ii) failure of the setup tool, not of the sample', () => {
+    const runs = assessSample(withSetup, [toolError], ok);
+    expect(runs.filter((r) => r.failed).map((r) => `${r.tool}/${r.check}`)).toEqual(['create_spec/ii']);
+    expect(runs.find((r) => r.tool === 'select_spec' && r.check === 'ii')?.failed).toBeUndefined();
+    expect(assessSample(withSetup, [protocol], ok).filter((r) => r.failed).map((r) => `${r.tool}/${r.check}`)).toEqual(['create_spec/ii']);
+  });
+
+  it('AC-F26: checks (ii) and (iii) treat a protocol error as no tool result; (i) finds the junk strings', () => {
+    const okSample: Sample = { tool: 'list_specs', args: {}, expect: 'ok' };
+    const errSample: Sample = { tool: 'delete_spec', args: { index: 99 }, expect: 'error', reason: 'r' };
+    expect(assessSample(okSample, [], protocol).find((r) => r.check === 'ii')?.failed).toMatch(/protocol error/);
+    expect(assessSample(okSample, [], toolError).find((r) => r.check === 'ii')?.failed).toBe('isError is true');
+    expect(assessSample(errSample, [], protocol).find((r) => r.check === 'iii')?.failed).toBe('isError is not true');
+    expect(assessSample(errSample, [], toolError).find((r) => r.check === 'iii')?.failed).toBeUndefined();
+    expect(assessSample(okSample, [], { ...ok, text: 'Nodes: undefined, [object Object]' }).find((r) => r.check === 'i')?.failed).toBe(
+      'text contains "undefined", "[object Object]"',
+    );
+  });
+});
+
+/** The trade2 and poe.ninja endpoints the hygiene server routes, keyed by a short name. */
+const ENDPOINTS = {
+  stats: { method: 'GET', match: /^https:\/\/www\.pathofexile\.com\/api\/trade2\/data\/stats(\?|$)/ },
+  leagues: { method: 'GET', match: /^https:\/\/www\.pathofexile\.com\/api\/trade2\/data\/leagues(\?|$)/ },
+  search: { method: 'POST', match: /^https:\/\/www\.pathofexile\.com\/api\/trade2\/search\/[^?]+$/ },
+  fetch: { method: 'GET', match: /^https:\/\/www\.pathofexile\.com\/api\/trade2\/fetch\/[^/?]+\?query=[^&]+/ },
+  ninja: { method: 'GET', match: /^https:\/\/poe\.ninja\// },
+} as const;
+type Endpoint = keyof typeof ENDPOINTS;
+
+/** The trade tools that wait on the lazy `/data/stats` preload (D-14). */
+const NEEDS_STATS = new Set(['search_trade_items', 'get_item_price', 'search_stats']);
+/** Per HTTP-sending tool: endpoints its sample must hit, and the full set it may hit. */
+const HTTP_EXPECT: Record<string, { required: Endpoint[]; allowed: Endpoint[] }> = {
+  search_trade_items: { required: ['search', 'fetch'], allowed: ['stats', 'leagues', 'search', 'fetch', 'ninja'] },
+  get_item_price: { required: ['search', 'fetch'], allowed: ['stats', 'leagues', 'search', 'fetch', 'ninja'] },
+  get_leagues: { required: ['leagues'], allowed: ['leagues'] },
+  search_stats: { required: [], allowed: ['stats'] },
+  get_currency_rates: { required: ['ninja'], allowed: ['ninja'] },
+};
+
+function endpointOf(call: RecordedCall): Endpoint | undefined {
+  return (Object.keys(ENDPOINTS) as Endpoint[]).find((k) => ENDPOINTS[k].match.test(call.url) && ENDPOINTS[k].method === call.method);
+}
+
 engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
   let tmp: string;
   let builds: string;
   let server: TestServer;
-  /** `<tool>/<check>` → one entry per sample run: did the check fail? */
+  let http: ReturnType<typeof fixtureFetch>;
+  /** URLs the server fetched that no fixture route matched. */
+  const unmatched: string[] = [];
+  /** `<tool>/<check>` → one entry per run: did the check fail? */
   const results = new Map<string, boolean[]>();
-  let samplesRun = 0;
+  /** Per sample, in order: the requests recorded while its setup steps and call ran. */
+  const sampleCalls: Array<{ tool: string; calls: RecordedCall[] }> = [];
 
   const call = async (tool: string, args: Record<string, unknown>): Promise<Outcome> => {
     try {
@@ -133,10 +249,10 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
         timeout: CALL_TIMEOUT_MS,
       })) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
       const text = (result.content ?? []).map((c) => (c.type === 'text' ? (c.text ?? '') : `[${c.type} content]`)).join('\n');
-      return { isError: result.isError === true, text };
+      return { isError: result.isError === true, protocolError: false, text };
     } catch (error) {
-      // A protocol error (e.g. -32602 for an unlisted tool) is not a tool result at all.
-      return { isError: false, text: `<protocol error> ${error instanceof Error ? error.message : String(error)}` };
+      // A protocol error (e.g. -32602 for an unlisted tool, an SDK timeout) is not a tool result at all.
+      return { isError: false, protocolError: true, text: `<protocol error> ${error instanceof Error ? error.message : String(error)}` };
     }
   };
 
@@ -144,15 +260,23 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-hygiene-'));
     builds = path.join(tmp, 'builds');
     fs.mkdirSync(builds);
-    const http = fixtureFetch([
+    http = fixtureFetch([
       { match: /\/api\/trade2\/data\/leagues/, respond: { fixture: 'trade2/data-leagues' } },
       { match: /\/api\/trade2\/data\/stats/, respond: { fixture: 'trade2/data-stats' } },
       { match: /\/api\/trade2\/search\//, respond: { fixture: 'trade2/search-ring-divine' } },
       { match: /\/api\/trade2\/fetch\//, respond: { fixture: 'trade2/fetch-ring-divine' } },
       { match: /^https:\/\/poe\.ninja\//, respond: { fixture: 'poeninja/currency-overview' } },
     ]);
+    const recordingFetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      try {
+        return await http.fetch(input, init);
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('unmatched fetch:')) unmatched.push(error.message);
+        throw error;
+      }
+    }) as typeof fetch;
     server = await startTestServer({
-      fetch: http.fetch,
+      fetch: recordingFetch,
       pobDirectory: builds,
       stateDir: path.join(tmp, 'state'),
       env: { POB_DIRECTORY: builds, XDG_STATE_HOME: tmp, POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: undefined },
@@ -168,50 +292,66 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     it(`AC-F26: ${sample.tool} #${n} (expect ${sample.expect})`, async () => {
       // 1–2. A fresh golden file, reloaded into the engine.
       fs.copyFileSync(GOLDEN, path.join(builds, 'grenadator.xml'));
-      const load = await call('lua_load_build', { build_name: 'grenadator.xml' });
-      if (load.isError) throw new Error(`reloading the golden build failed: ${load.text}`);
+      requireReloaded(await call('lua_load_build', { build_name: 'grenadator.xml' }));
 
-      // 3. Setup steps.
-      const setupFailures: string[] = [];
-      for (const step of sample.setup ?? []) {
-        const out = await call(step.tool, step.args);
-        if (out.isError || out.text.startsWith('<protocol error>')) setupFailures.push(`${step.tool}: ${excerpt(out.text)}`);
-      }
-
-      // 4. The sample.
+      // 3–4. Setup steps, then the sample; record the HTTP they send.
+      const before = http.calls.length;
+      const setup: Outcome[] = [];
+      for (const step of sample.setup ?? []) setup.push(await call(step.tool, step.args));
       const out = await call(sample.tool, sample.args);
-      samplesRun++;
+      sampleCalls.push({ tool: sample.tool, calls: http.calls.slice(before) });
 
-      const failed: Partial<Record<Check, string>> = {};
-      const junk = JUNK.filter((j) => out.text.includes(j));
-      if (junk.length > 0) failed.i = `text contains ${junk.map((j) => JSON.stringify(j)).join(', ')}`;
-      if (sample.expect === 'ok' && (out.isError || setupFailures.length > 0 || out.text.startsWith('<protocol error>'))) {
-        failed.ii = setupFailures.length > 0 ? `setup failed: ${setupFailures.join('; ')}` : 'isError is true';
+      const runs = assessSample(sample, setup, out);
+      for (const r of runs) {
+        const key = `${r.tool}/${r.check}`;
+        results.set(key, [...(results.get(key) ?? []), r.failed !== undefined]);
       }
-      if (sample.expect === 'error' && !out.isError) failed.iii = 'isError is not true';
-
-      const checks: Check[] = sample.expect === 'ok' ? ['i', 'ii'] : ['i', 'iii'];
-      for (const check of checks) {
-        const key = `${sample.tool}/${check}`;
-        results.set(key, [...(results.get(key) ?? []), failed[check] !== undefined]);
-      }
-
-      const unexpected = (Object.keys(failed) as Check[]).filter((c) => !allowed(sample.tool, c));
+      const unexpected = runs.filter((r) => r.failed !== undefined && !allowed(r.tool, r.check));
       if (unexpected.length > 0) {
         throw new Error(
-          unexpected.map((c) => `check (${c}) failed for ${sample.tool}: ${failed[c]}`).join('\n') +
-            `\n--- output ---\n${excerpt(out.text)}`,
+          unexpected.map((r) => `check (${r.check}) failed for ${r.tool}: ${r.failed}`).join('\n') +
+            `\n--- output of ${sample.tool} ---\n${excerptOf(out.text)}`,
         );
       }
     }, CALL_TIMEOUT_MS + 60000);
   });
 
   it('AC-F26: no allowlisted check passes (stale entries fail, D-45)', () => {
-    expect(samplesRun).toBe(SAMPLES.length);
+    expect(sampleCalls).toHaveLength(SAMPLES.length);
     const stale = ALLOWLIST.filter((e) => {
       const runs = results.get(`${e.tool}/${e.check}`) ?? [];
       return !runs.some((didFail) => didFail);
     }).map((e) => `remove ${e.tool}/${e.check} from the allowlist`);
     expect(stale).toEqual([]);
+  });
+
+  it('AC-F26: the trade and ninja samples send exactly their expected requests (fidelity rule, spine §12)', () => {
+    expect(sampleCalls).toHaveLength(SAMPLES.length);
+    expect(unmatched).toEqual([]);
+
+    // Every request is a routed endpoint with its method, and carries no session or identity.
+    const all = sampleCalls.flatMap((s) => s.calls);
+    expect(all.filter((c) => endpointOf(c) === undefined).map((c) => `${c.method} ${c.url}`)).toEqual([]);
+    for (const c of all) {
+      expect(Object.keys(c.headers).map((h) => h.toLowerCase())).not.toContain('cookie');
+      expect(`${c.url} ${JSON.stringify(c.headers)} ${c.body ?? ''}`).not.toMatch(/POESESSID/i);
+    }
+
+    // Per sample: the required endpoints are hit, and nothing outside the tool's set.
+    for (const { tool, calls } of sampleCalls) {
+      const hit = calls.map(endpointOf);
+      const want = HTTP_EXPECT[tool] ?? { required: [], allowed: [] };
+      for (const e of want.required) expect({ tool, hit }).toEqual({ tool, hit: expect.arrayContaining([e]) });
+      expect({ tool, outside: hit.filter((e) => !want.allowed.includes(e as Endpoint)) }).toEqual({ tool, outside: [] });
+    }
+
+    // The lazy /data/stats preload (D-14) runs exactly once, as the first request of the first
+    // sample whose trade tool needs stats, so every later stats-needing sample uses the fixture's stats.
+    const statsAt = sampleCalls.flatMap((s, k) => s.calls.filter((c) => endpointOf(c) === 'stats').map(() => k));
+    const firstNeedingStats = sampleCalls.findIndex((s) => NEEDS_STATS.has(s.tool));
+    expect(firstNeedingStats).toBeGreaterThanOrEqual(0);
+    expect(statsAt).toEqual([firstNeedingStats]);
+    expect(endpointOf(sampleCalls[firstNeedingStats].calls[0])).toBe('stats');
+    expect(sampleCalls.some((s) => s.tool === 'search_stats')).toBe(true);
   });
 });

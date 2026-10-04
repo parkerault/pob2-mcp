@@ -176,7 +176,7 @@ README notes that old locations are ignored.
 - **M-α, Alpha = the trade vertical.** WU-14…WU-17, WU-23, plus the human smoke WU-20. **Alpha is reached
   when all of these hold:**
   1. `mise run test` and `pnpm build` exit 0;
-  2. every AC of M-1 and M-2 is green, and so are AC-T1…AC-T45;
+  2. every AC of M-1 and M-2 is green, and so are AC-T1…AC-T46;
   3. WU-20's checklist is signed off by the user in the work-log. That means a real `find_upgrades` from
      the user's Claude Code, on their build, with their cookie, returns a ranked result or "no upgrade
      within budget", and every listing has a `Buy:` line (a whisper, or a link that opens the listing).
@@ -254,6 +254,7 @@ Proceed on all of them; don't relitigate. Wording "(vision)" means the full text
 | D-58 | The build-parse cache keys by canonical relative path, and validates each hit by `{size, mtimeMs}` (no TTL; LRU of 20). C-17 writes invalidate the written path | PROPOSED | The 60 s name-keyed cache served stale builds after saves |
 | D-59 | **Only the session starts the engine.** `request()` on a dead client rejects with `EngineExitedError`; it never spawns. If the engine dies during a tool call (pid recorded before `fn`), the call fails and step 6 is skipped | PROPOSED | A mid-call self-restart produced a blank engine labelled as the user's build |
 | D-60 | `lua_save_build` = `export_build_xml` + the C-17 writer. The Lua `save_build` action, its schema and `PoBLuaApiClient.saveBuild` are deleted (WU-22) | PROPOSED | C-17 must see every write |
+| D-61 | **`search_trade_items` loses its value scoring and gains normalized prices** (an amendment made during the build, 2026-10-04).<br>• WU-04's list said `costBenefitAnalyzer.ts` would become unreferenced, but `search_trade_items`' `formatSearchResults` still ranked and annotated results with it: a value score, a tier, a best-value rank and per-chaos stat lines.<br>• That score is build-blind (fixed weights, the same for every character), and `find_upgrades` is the build-aware ranking. So WU-04 removes the scoring and deletes the file, as listed. Listings keep the order the trade site returned.<br>• WU-15 shows each listing's native price plus its primary-currency equivalent from C-12 `convert` (AC-T46). | HUMAN (2026-10-04) | The currency conversion was the only part worth keeping |
 
 ## 7. Autonomy envelope
 

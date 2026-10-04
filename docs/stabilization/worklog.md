@@ -267,3 +267,32 @@ None recorded in the wave data.
 
 ### Friction
 - None reported.
+
+### Coordinator: AC-F7 plugin-pin full install (WU-02), 2026-10-04
+
+- Run from the build worktree:
+  `MISE_DATA_DIR=<scratch>/data MISE_CACHE_DIR=<scratch>/cache mise install`, then **rc=0**.
+- `git rev-parse HEAD` in both installed plugin dirs (`asdf-mise-plugins-mise-lua-jit` and
+  `mise-plugins-mise-lua-jit`) = `bd4977ef2c2cfd0659a4bb39acb37bd5104fb7fc`. **PASS.**
+- The coordinator allowed the LuaJIT source download from luajit.org for this one toolchain check. It
+  is the same fetch the user's own `mise install` makes; the handoff had restricted agents to GitHub
+  and npm.
+- Wave 1 note: Claude Code's permission classifier refused the WU-04 implementer's `git rm` of the
+  D-4 dead modules. The wave-1 gate fixer then deleted them (fee3d92), as the ratified spec (D-4,
+  AC-F19) requires. Git history keeps the files. WU-04's review and unit gate ran as a catch-up at the
+  start of W2.
+
+### Coordinator: D-61 (user decision, 2026-10-04)
+
+- **What blocked.** The W2 review of WU-04 found that `costBenefitAnalyzer.ts`, on WU-04's delete list, is
+  still used by `search_trade_items`' `formatSearchResults` for a build-blind value score, tier,
+  best-value rank and per-chaos lines. The gate stopped on this 3 times (`blocked:loop`).
+- **Decision (user).** The currency conversion is the only part worth keeping:
+  - WU-04 removes the scoring and deletes the file, as listed;
+  - WU-15 shows each listing's native price plus its primary-currency equivalent (new AC-T46).
+- **Spec changes.**
+  - Spine: new decision D-61.
+  - `01-foundation.md`: WU-04 touches and summary.
+  - `03-trade.md`: WU-15 summary and acceptance, the new AC-T46 definition, and the AC-T range.
+- **Rework.** The `PENDING_SPEC_AMENDMENT` carve-out in `tests/static/deletedPlumbing.test.ts` is
+  removed in the WU-04 rework.

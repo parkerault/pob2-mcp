@@ -1,7 +1,7 @@
 # Slice 03: Trade (credentials, client, limiter, currency, Lua trade actions, `find_upgrades`)
 
 Part of the [spec spine](README.md). It covers work units WU-14…WU-17 and WU-23, and acceptance
-criteria AC-T1…AC-T45.
+criteria AC-T1…AC-T46.
 
 This slice delivers the alpha's user value (G-4): **"find upgrades for slot X under budget Y, with
 optional required mods Z, ranked by weighted stats S"**. PoB2 runs it headless with its own query
@@ -584,7 +584,7 @@ Search on the trade site: <searchUrl>    ← always the last line
 - touches: [`src/trade/modLines.ts` (new), `src/trade/currency.ts` (new), `src/services/poeNinjaClient.ts`, `src/handlers/poeNinjaHandlers.ts`, `src/handlers/tradeHandlers.ts`, `src/services/tradeQueryBuilder.ts`, `src/services/statMapper.ts`, `src/types/tradeTypes.ts`, `src/server/toolSchemas.ts` (trade/ninja tool schemas and descriptions), `tests/unit/poeNinjaClient.test.ts` (rewritten on the fixture), `tests/fixtures/trade2/expected-mod-text.json` (new; generated once with PoB's `escapeGGGString` by a committed luajit script)]
 - produces: [C-12, `parseModLine`/`stripMarkup`]
 - consumes: [C-10]
-- acceptance: [AC-T14, AC-T15, AC-T16, AC-T17, AC-T18, AC-T19, AC-T20]
+- acceptance: [AC-T14, AC-T15, AC-T16, AC-T17, AC-T18, AC-T19, AC-T20, AC-T46]
 - milestone: M-α
 - summary: Changes:
   - Mod-line types and a parser that accepts both string and object lines (S-3 §1–2).
@@ -598,6 +598,8 @@ Search on the trade site: <searchUrl>    ← always the last line
     - `trade2` URLs;
     - `min_links` is replaced by `min_rune_sockets` → `equipment_filters.rune_sockets.min` (D-51h);
     - no `socket_filters`.
+  - `search_trade_items` shows each listing's native price and its primary-currency equivalent from C-12 `convert`
+    (D-61, AC-T46).
   - `get_item_price` normalizes to the primary currency.
   - `search_stats` uses live stats only (the static fallback is deleted).
   - `get_leagues` marks the D-20 default.
@@ -982,6 +984,15 @@ These are in-process and engine-required unless stated, with the same `fixtureFe
   - **Fallback rendering.** A fallback result renders with `isError` false and starts with
     `Trade search not run:`.
   - **Disposition.** `tool-disposition.json` has no `pending` left, and `listTools` count is 76 (AC-F25).
+
+- **AC-T46 (WU-15, D-61).** In-process, `fixtureFetch` serving a trade2 search fixture, a fetch fixture and the poe.ninja
+  fixture.
+  - Each `search_trade_items` listing shows its native price (`<amount> <currency>`). Where C-12 `convert` returns a number, the
+    listing also shows `(≈ <x> <primary>)`, with `x` to 2 decimal places and equal to `convert(amount, currency, primary, rates)`.
+  - With poe.ninja failing (a non-2xx fixture), or a listing in a currency `convert` can't place, the listing shows its native
+    price only, and the output carries exactly one note saying prices couldn't be normalized.
+  - Listings appear in the order the fetch fixture returned them.
+  - The output contains none of `Value Score`, `best value` or `per chaos` (case-insensitive).
 
 ## 6. Test strategy (this slice)
 

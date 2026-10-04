@@ -414,7 +414,7 @@ run = ["pnpm build", "pnpm test"]
 - kind: build
 - depends-on: [WU-03]
 - role: backend-dev
-- touches: [`src/server/toolSchemas.ts`, `src/server/toolRouter.ts`, `src/server/toolMeta.ts`, `src/server/createServer.ts` (truncation list), `src/handlers/*` (the deleted handlers, and the deleted parts of `optimizationHandlers.ts`, `treeHandlers.ts`, `poeNinjaHandlers.ts`, `exportHandlers.ts`), `src/services/*` (the deleted services; `buildExportService.ts` `saveTree`; `buildService.ts` bandit and cluster-jewel parsing), `src/*.ts` (the deleted top-level modules), `src/pobLuaBridge.ts` (`getMasteryOptions`; `calcWith` `masteryEffects`), `pob-api/API/Handlers.lua` + `BuildOps.lua` (`get_mastery_options` only), the tests of deleted modules, `tests/static/` (new), `tests/static/poe1-cruft-waivers.json` (new)]
+- touches: [`src/server/toolSchemas.ts`, `src/server/toolRouter.ts`, `src/server/toolMeta.ts`, `src/server/createServer.ts` (truncation list), `src/handlers/*` (the deleted handlers, and the deleted parts of `tradeHandlers.ts` (`handleFindItemUpgrades`; the value scoring, D-61), `optimizationHandlers.ts`, `treeHandlers.ts`, `poeNinjaHandlers.ts`, `exportHandlers.ts`), `src/services/*` (the deleted services; `buildExportService.ts` `saveTree`; `buildService.ts` bandit and cluster-jewel parsing), `src/*.ts` (the deleted top-level modules), `src/pobLuaBridge.ts` (`getMasteryOptions`; `calcWith` `masteryEffects`), `pob-api/API/Handlers.lua` + `BuildOps.lua` (`get_mastery_options` only), the tests of deleted modules, `tests/static/` (new), `tests/static/poe1-cruft-waivers.json` (new)]
 - produces: [the reduced tool set (C-1, 74 names), `tests/static/poe1Cruft.test.ts`, `tests/static/deadModules.test.ts`]
 - consumes: [C-1, C-8, C-18]
 - acceptance: [AC-F18, AC-F19, AC-F20, AC-F21, AC-F22]
@@ -436,6 +436,7 @@ run = ["pnpm build", "pnpm test"]
   - Mastery plumbing: Lua `get_mastery_options`, `getMasteryOptions`, `calcWith`'s `masteryEffects`
     param. The `get_tree`/`set_tree`/`lua_set_tree` mastery fields belong to WU-10.
   - `POB_LEGACY_GEM_TOOLS` and `ToolGate`.
+  - `search_trade_items`' value scoring (D-61). `formatSearchResults` stops using `CostBenefitAnalyzer`, so the value score, tier, best-value rank and per-chaos lines go. Listings keep the order the trade site returned.
 
   Also:
   - Remove the deleted tools from the truncation list.

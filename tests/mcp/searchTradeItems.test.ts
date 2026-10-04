@@ -86,12 +86,14 @@ describe('AC-T18 (WU-15): search_trade_items request body and links', () => {
     const links = [...text.matchAll(/https:\/\/www\.pathofexile\.com\/\S+/g)].map((m) => m[0]);
     const shown = Number(/Showing: (\d+)/.exec(text)?.[1]);
     expect(shown).toBeGreaterThan(0);
-    expect(links.length).toBe(1 + shown); // the search link + one per listing
+    // One link, the search's: each listing names its id instead of repeating the ~200-character
+    // search id (which would overrun the 5000-character truncation at limit 10, C-1).
+    expect(links.length).toBe(1);
+    expect([...text.matchAll(/^ {3}Listing: #([0-9a-f]{64})$/gm)]).toHaveLength(shown);
     const searchCall = calls.filter((c) => SEARCH.test(c.url)).at(-1)!;
     expect(searchCall.url).toBe('https://www.pathofexile.com/api/trade2/search/poe2/Runes%20of%20Aldur');
     const base = `https://www.pathofexile.com/trade2/search/poe2/Runes%20of%20Aldur/${RING_SEARCH_ID}`;
     expect(links[0]).toBe(base);
-    for (const link of links.slice(1)) expect(link).toMatch(new RegExp(`^${base.replace(/[.?/]/g, '\\$&')}#[0-9a-f]{64}$`));
     expect(text).not.toMatch(/pathofexile\.com\/trade\/search\//);
   });
 

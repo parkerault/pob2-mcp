@@ -36,6 +36,14 @@ export function convert(amount: number, from: string, to: string, rates: Rates):
   return (amount * vf) / vt;
 }
 
+/**
+ * A currency value for display: 2 decimals from 1 up, 4 significant digits below, so a small
+ * fraction of the primary (1 exalted ≈ 0.002270 divine) never shows as 0.00.
+ */
+export function formatCurrencyValue(v: number): string {
+  return v >= 1 ? v.toFixed(2) : Number(v.toPrecision(4)).toString();
+}
+
 function positive(n: unknown): number | null {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null;
 }

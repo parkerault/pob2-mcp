@@ -4,9 +4,9 @@
  * only via `fixtureFetch`, serving the trade2 `search-weighted-session` / `fetch-weighted-session`
  * captures (mixed chaos and exalted prices) and the poe.ninja fixture.
  *
- * The search response is served with a short id (the real one is ~1 KB and every listing link
- * repeats it, which would overrun the tool's 5000-character truncation, C-1). Derived listings change
- * only `listing.price` (C-18 synthesis rule).
+ * The search fixtures are served unmodified, with their real (~200 B to ~1 KB) search ids: at limit 10
+ * the output must fit under the tool's 5000-character truncation (C-1) with every listing's price
+ * shown. Derived listings change only `listing.price` (the 03 §6 fixture synthesis rule).
  */
 import fs from 'fs';
 import path from 'path';
@@ -22,11 +22,10 @@ interface FetchFixture {
 
 const ENV = { POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: undefined, POE_TRADE_BASE: undefined };
 const TRADE2 = path.resolve(__dirname, '..', 'fixtures', 'trade2');
-const SEARCH_BODY = {
-  ...(JSON.parse(fs.readFileSync(path.join(TRADE2, 'search-weighted-session.response.json'), 'utf8')) as object),
-  id: 'T46priceTest',
-};
-const FETCH_BODY = JSON.parse(fs.readFileSync(path.join(TRADE2, 'fetch-weighted-session.response.json'), 'utf8')) as FetchFixture;
+function readFixture<T>(name: string): T {
+  return JSON.parse(fs.readFileSync(path.join(TRADE2, `${name}.response.json`), 'utf8')) as T;
+}
+const FETCH_BODY = readFixture<FetchFixture>('fetch-weighted-session');
 
 let server: TestServer | null = null;
 afterEach(async () => {
@@ -40,10 +39,14 @@ async function fixtureRates(): Promise<Rates> {
   return (await new CurrencyService({ fetch: ff.fetch, userAgent: 'test', env: {} }).getRates('Standard')) as Rates;
 }
 
-async function searchText(fetchBody: FetchFixture, ninja: FixtureRespond): Promise<{ text: string; urls: string[] }> {
+async function searchText(
+  fetchBody: FetchFixture,
+  ninja: FixtureRespond,
+  searchFixture = 'search-weighted-session',
+): Promise<{ text: string; urls: string[] }> {
   const ff = fixtureFetch([
     { match: /\/api\/trade2\/data\/stats$/, respond: { fixture: 'trade2/data-stats' } },
-    { match: /\/api\/trade2\/search\//, respond: { status: 200, headers: { 'content-type': 'application/json' }, body: SEARCH_BODY } },
+    { match: /\/api\/trade2\/search\//, respond: { fixture: `trade2/${searchFixture}` } },
     { match: /\/api\/trade2\/fetch\//, respond: { status: 200, headers: { 'content-type': 'application/json' }, body: fetchBody } },
     { match: /poe\.ninja\//, respond: ninja },
   ]);
@@ -90,8 +93,8 @@ describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
   it('AC-T46: listings appear in the order the fetch fixture returned them', async () => {
     const { text } = await searchText(FETCH_BODY, { fixture: 'poeninja/currency-overview' });
     expect(listedNames(text)).toEqual(FETCH_BODY.result.map((r) => r.item.name || r.item.typeLine));
-    const links = [...text.matchAll(/#([0-9a-f]{64})$/gm)].map((m) => m[1]);
-    expect(links).toEqual(FETCH_BODY.result.map((r) => r.id));
+    const ids = [...text.matchAll(/^ {3}Listing: #([0-9a-f]{64})$/gm)].map((m) => m[1]);
+    expect(ids).toEqual(FETCH_BODY.result.map((r) => r.id));
   });
 
   it('AC-T46: with poe.ninja failing (non-2xx), listings show native prices only and exactly one note', async () => {
@@ -126,6 +129,40 @@ describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
     expect(text.match(/could not be normalized/g)).toHaveLength(1);
     expect(text).toContain(UNKNOWN);
   });
+
+  it.each([
+    ['search-weighted-session', 'fetch-weighted-session'],
+    ['search-body-armour', 'fetch-body-armour'],
+    ['search-belt-unique-chaos', 'fetch-belt-unique-chaos'],
+    ['search-ring-divine', 'fetch-ring-divine'],
+  ])(
+    'AC-T46: with the unmodified %s fixture at limit 10, every listing shows its price, untruncated',
+    async (searchFixture, fetchFixture) => {
+      const rates = await fixtureRates();
+      const searchId = readFixture<{ id: string }>(searchFixture).id;
+      expect(searchId.length).toBeGreaterThan(150); // a real trade2 search id, not a stand-in
+      const fetchBody = readFixture<FetchFixture>(fetchFixture);
+      expect(fetchBody.result).toHaveLength(10);
+      for (const ninja of [{ fixture: 'poeninja/currency-overview' }, { status: 503, body: 'unavailable' }] as FixtureRespond[]) {
+        const { text } = await searchText(fetchBody, ninja, searchFixture); // asserts no truncation
+        expect(text).toContain(`/Runes%20of%20Aldur/${searchId}`);
+        const prices = priceLines(text);
+        expect(prices).toHaveLength(10);
+        fetchBody.result.forEach((r, i) => {
+          const p = r.listing.price!;
+          const native = `${p.amount} ${p.currency}`;
+          if ('fixture' in ninja) {
+            expect(prices[i]).toBe(`${native} (≈ ${convert(p.amount, p.currency, 'divine', rates)!.toFixed(2)} divine)`);
+          } else {
+            expect(prices[i]).toBe(native);
+          }
+        });
+        expect(listedNames(text)).toEqual(fetchBody.result.map((r) => r.item.name || r.item.typeLine));
+        await server?.close();
+        server = null;
+      }
+    },
+  );
 
   it('AC-T46: the output contains none of "Value Score", "best value" or "per chaos"', async () => {
     for (const ninja of [{ fixture: 'poeninja/currency-overview' }, { status: 503, body: 'x' }] as FixtureRespond[]) {

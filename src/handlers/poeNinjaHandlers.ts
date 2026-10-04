@@ -1,13 +1,8 @@
 import { wrapHandler } from '../utils/errorHandling.js';
-import type { CurrencyService } from '../trade/currency.js';
+import { formatCurrencyValue as formatValue, type CurrencyService } from '../trade/currency.js';
 
 interface PoeNinjaContext {
   currency: CurrencyService;
-}
-
-/** A value for display: 2 decimals from 1 up, 4 significant digits below. */
-function formatValue(v: number): string {
-  return v >= 1 ? v.toFixed(2) : Number(v.toPrecision(4)).toString();
 }
 
 /**

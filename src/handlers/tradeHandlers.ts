@@ -3,7 +3,7 @@ import type { TradeApiClient, FetchEntry } from '../trade/tradeClient.js';
 import { TradeQueryBuilder } from '../services/tradeQueryBuilder.js';
 import type { StatMapper } from '../services/statMapper.js';
 import type { ItemListing } from '../types/tradeTypes.js';
-import { convert, type CurrencyService, type Rates } from '../trade/currency.js';
+import { convert, formatCurrencyValue, type CurrencyService, type Rates } from '../trade/currency.js';
 import { modTexts } from '../trade/modLines.js';
 
 export interface TradeContext {
@@ -34,15 +34,11 @@ export function tradeSearchUrl(league: string, searchId: string): string {
   return `${TRADE_SITE}/${encodeURIComponent(league)}/${encodeURIComponent(searchId)}`;
 }
 
-function tradeItemUrl(league: string, searchId: string, itemId: string): string {
-  return `${tradeSearchUrl(league, searchId)}#${itemId}`;
-}
-
 // ========================================
 // Price normalization (C-12)
 // ========================================
 
-/** A normalized price, to 2 decimal places (AC-T46). */
+/** A normalized search_trade_items price, to 2 decimal places (AC-T46). */
 function fmt2(n: number): string {
   return n.toFixed(2);
 }
@@ -172,6 +168,8 @@ function formatSearchResults(
   let output = `=== Trade Search (${league}) ===\n`;
   output += `Found: ${totalResults} | Showing: ${items.length}\n`;
   output += `🔗 ${tradeSearchUrl(league, searchId)}\n`;
+  // Each listing names its id rather than repeating the search link: trade2 search ids run to
+  // ~1 KB, and ten repeated links would overrun the tool's 5000-character truncation (C-1).
   if (prices.note) output += `${prices.note}\n`;
   output += '\n';
 
@@ -210,7 +208,7 @@ function formatSearchResults(
     } else {
       output += `   ⚡ instant buyout · ${seller?.name ?? 'unknown seller'}\n`;
     }
-    output += `   🔗 ${tradeItemUrl(league, searchId, listing.id)}\n\n`;
+    output += `   Listing: #${listing.id}\n\n`;
   });
 
   output += `\n🟢=online 🔴=offline ⚡=instant buyout`;
@@ -304,11 +302,12 @@ export async function handleGetItemPrice(
       const price = l.listing.price!;
       output += `  ${i + 1}. ${l.item.name || l.item.typeLine}: ${nativePrice(price)}`;
       const v = values[i];
-      if (v !== null && rates) output += ` (≈ ${fmt2(v)} ${rates.primary})`;
+      if (v !== null && rates) output += ` (≈ ${formatCurrencyValue(v)} ${rates.primary})`;
       output += '\n';
     });
 
-    // Per-currency counts (and, without a normalized summary, the per-currency price spread).
+    // Per-currency counts, the summary in the primary currency (when rates are known), and the
+    // native price spread per currency (always: it keeps the listed range visible).
     const byCurrency = new Map<string, number[]>();
     for (const l of items) {
       const price = l.listing.price!;
@@ -321,19 +320,18 @@ export async function handleGetItemPrice(
     if (rates && normalized.length > 0) {
       const s = spread(normalized);
       output += `\nSummary in ${rates.nameOf(rates.primary)} (${rates.primary}), from ${normalized.length} of ${items.length} listings:\n`;
-      output += `  Low: ${fmt2(s.low)} ${rates.primary}\n`;
-      output += `  Median: ${fmt2(s.median)} ${rates.primary}\n`;
-      output += `  Average: ${fmt2(s.average)} ${rates.primary}\n`;
-      output += `  High: ${fmt2(s.high)} ${rates.primary}\n`;
-    } else {
-      for (const [currency, amounts] of byCurrency.entries()) {
-        const s = spread(amounts);
-        output += `\n${currency} (${amounts.length} listings, native prices):\n`;
-        output += `  Low: ${s.low} ${currency}\n`;
-        output += `  Median: ${s.median} ${currency}\n`;
-        output += `  Average: ${fmt2(s.average)} ${currency}\n`;
-        output += `  High: ${s.high} ${currency}\n`;
-      }
+      output += `  Low: ${formatCurrencyValue(s.low)} ${rates.primary}\n`;
+      output += `  Median: ${formatCurrencyValue(s.median)} ${rates.primary}\n`;
+      output += `  Average: ${formatCurrencyValue(s.average)} ${rates.primary}\n`;
+      output += `  High: ${formatCurrencyValue(s.high)} ${rates.primary}\n`;
+    }
+    for (const [currency, amounts] of byCurrency.entries()) {
+      const s = spread(amounts);
+      output += `\n${currency} (${amounts.length} listings, native prices):\n`;
+      output += `  Low: ${s.low} ${currency}\n`;
+      output += `  Median: ${s.median} ${currency}\n`;
+      output += `  Average: ${fmt2(s.average)} ${currency}\n`;
+      output += `  High: ${s.high} ${currency}\n`;
     }
     output += `\n🔗 ${tradeSearchUrl(league, searchResult.id)}\n`;
     return text(output);

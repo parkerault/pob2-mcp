@@ -9,8 +9,9 @@ import { fixtureFetch } from '../helpers/fixtureFetch';
 
 describe('AC-F16: harness guarantees (C-18)', () => {
   it('AC-F16(a): POESESSID and POE_SESSION_ID are undefined inside a test', () => {
-    expect(process.env.POESESSID).toBeUndefined();
-    expect(process.env.POE_SESSION_ID).toBeUndefined();
+    // Value-free checks: a failing assertion must never print the cookie itself (spine §9).
+    expect('POESESSID' in process.env).toBe(false);
+    expect('POE_SESSION_ID' in process.env).toBe(false);
   });
 
   it('AC-F16(b): the global fetch throws an error mentioning D-34', () => {
@@ -72,11 +73,12 @@ describe('AC-F16: harness guarantees (C-18)', () => {
 
   it('AC-F16(f): a child spawned without an explicit env sees neither cookie variable', () => {
     // No `env` option: the child inherits this worker's env, which globalSetup scrubbed.
+    // The child reports presence as booleans, never the values, so a failure cannot leak the cookie.
     const out = execFileSync(
       process.execPath,
-      ['-e', 'process.stdout.write(JSON.stringify([process.env.POESESSID ?? null, process.env.POE_SESSION_ID ?? null]))'],
+      ['-e', "process.stdout.write(JSON.stringify(['POESESSID' in process.env, 'POE_SESSION_ID' in process.env]))"],
       { encoding: 'utf8' },
     );
-    expect(JSON.parse(out)).toEqual([null, null]);
+    expect(JSON.parse(out)).toEqual([false, false]);
   });
 });

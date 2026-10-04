@@ -18,8 +18,9 @@ describe('stdio e2e: spawned servers never reach the trade site', () => {
     expect(env.POE_TRADE_DISABLED).toBe('true');
     expect(env.POE_NINJA_DISABLED).toBe('true');
     expect(env.POE_TRADE_BASE).toBe('http://127.0.0.1:9/api/trade2');
-    expect(env.POESESSID).toBeUndefined();
-    expect(env.POE_SESSION_ID).toBeUndefined();
+    // Value-free checks: a failing assertion must never print the cookie itself (spine §9).
+    expect('POESESSID' in env).toBe(false);
+    expect('POE_SESSION_ID' in env).toBe(false);
 
     server = await spawnServer();
     const err = await server.client.callTool({ name: 'get_leagues', arguments: {} }).then(

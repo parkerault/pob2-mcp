@@ -66,6 +66,14 @@ end
 --    launcher surfaces as a ready-banner timeout.
 dofile('HeadlessWrapper.lua')
 
+-- 5b. Turn off PoB's dev-mode autosave before any load (C-2, D-29). Dev mode is always on headless
+--     (the pinned manifest has no branch/platform), and its Shutdown autosave runs on every mode
+--     switch: it targets an uncreatable `/Builds/~~temp~~.xml`, opens an Error popup per load, and
+--     wedges the engine after any failed load that follows a good one (ctx-lua X3).
+if _G.main then
+  main.disableDevAutoSave = true
+end
+
 -- 6. Safety net: ensure the globals the API relies on exist even if a future
 --    wrapper stops setting them directly.
 if not _G.build and mainObject and mainObject.main and mainObject.main.modes then

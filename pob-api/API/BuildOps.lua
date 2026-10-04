@@ -28,29 +28,40 @@ function M.get_main_output()
   return output
 end
 
--- Export a subset of useful stats from main output
--- If fields is provided, only export those keys (when present)
+-- The stats exported when the caller names no fields (get_stats, calc_with).
+M.DEFAULT_STAT_FIELDS = {
+  "Life", "EnergyShield", "Mana", "Spirit", "Ward",
+  "Armour", "Evasion",
+  "FireResist", "ColdResist", "LightningResist", "ChaosResist",
+  "BlockChance", "SpellBlockChance",
+  "LifeRegen", "ManaRegen",
+  "TotalDPS", "FullDPS", "CombinedDPS",
+}
+
+local SCALAR_TYPES = { number = true, string = true, boolean = true }
+
+-- Export a subset of useful stats from main output.
+-- If fields is provided, only export those keys (when present). Only number, string and boolean
+-- values are exported; keys whose value is anything else (an item object, a nested table) are left
+-- out and listed in `_meta.omitted`, because they cannot be encoded (ctx-lua X13).
 function M.export_stats(fields)
   local output, err = M.get_main_output()
   if not output then
     return nil, err
   end
-  local wanted = fields or {
-    "Life", "EnergyShield", "Mana", "Spirit", "Ward",
-    "Armour", "Evasion",
-    "FireResist", "ColdResist", "LightningResist", "ChaosResist",
-    "BlockChance", "SpellBlockChance",
-    "LifeRegen", "ManaRegen",
-    "TotalDPS", "FullDPS", "CombinedDPS",
-  }
+  local wanted = fields or M.DEFAULT_STAT_FIELDS
   local result = {}
+  local omitted = {}
   for _, k in ipairs(wanted) do
-    if type(output[k]) ~= 'nil' then
-      result[k] = output[k]
+    local v = output[k]
+    if SCALAR_TYPES[type(v)] then
+      result[k] = v
+    elseif v ~= nil then
+      table.insert(omitted, tostring(k))
     end
   end
   -- include some metadata if available
-  result._meta = result._meta or {}
+  result._meta = { omitted = omitted }
   if build and build.targetVersion then
     result._meta.treeVersion = tostring(build.targetVersion)
   end
@@ -201,11 +212,13 @@ function M.update_tree_delta(params)
 end
 
 
--- Calculate what-if scenario without persisting changes
--- params: { addNodes?: number[], removeNodes?: number[], useFullDPS?: boolean }
+-- Calculate what-if scenario without persisting changes.
+-- params: { addNodes?: number[], removeNodes?: number[], useFullDPS?: boolean, fields?: string[] }
+-- Returns { <field> = number } for the requested fields (default: DEFAULT_STAT_FIELDS) whose value
+-- is a number; never PoB's raw output, which holds reference cycles and cannot be encoded (E1).
 function M.calc_with(params)
   if not build or not build.calcsTab then return nil, 'build not initialized' end
-  local calcFunc, baseOut = build.calcsTab:GetMiscCalculator()
+  local calcFunc = build.calcsTab:GetMiscCalculator()
   local override = {}
   if params and type(params.addNodes) == 'table' then
     override.addNodes = {}
@@ -222,7 +235,14 @@ function M.calc_with(params)
     end
   end
   local out = calcFunc(override, params and params.useFullDPS)
-  return out, baseOut
+  if type(out) ~= 'table' then return nil, 'calculator returned no output' end
+  local fields = (params and type(params.fields) == 'table') and params.fields or M.DEFAULT_STAT_FIELDS
+  local result = {}
+  for _, k in ipairs(fields) do
+    local v = out[k]
+    if type(v) == 'number' then result[k] = v end
+  end
+  return result
 end
 
 

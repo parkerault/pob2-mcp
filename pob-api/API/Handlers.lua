@@ -53,8 +53,18 @@ do
   end
 end
 
--- API version (semantic versioning)
-local API_VERSION = "1.0.0"
+-- API version (semantic versioning). 2.x is the wire protocol v2 (C-2).
+local API_VERSION = "2.0.0"
+
+-- Test actions (C-2) exist only when the engine is started with POB_API_TEST_ACTIONS=1.
+local TEST_ACTIONS = os.getenv('POB_API_TEST_ACTIONS') == '1'
+
+-- The JSON null sentinel, set by Server.lua through configure(); nil leaves the key out.
+local NULL = nil
+
+local function configure(opts)
+  if opts and opts.null ~= nil then NULL = opts.null end
+end
 
 local function version_meta()
   return {
@@ -80,19 +90,77 @@ handlers.new_build = function(params)
     return { ok = false, error = 'headless wrapper not initialized' }
   end
   _G.newBuild()
-  return { ok = true }
+  return { ok = true, result = { name = _G.build and build.buildName or NULL } }
 end
 
-handlers.load_build_xml = function(params)
-  if not params or type(params.xml) ~= 'string' then
-    return { ok = false, error = 'missing xml' }
+-- PoB colour codes (^1, ^xRRGGBB) stripped from a message shown to the caller.
+local function plain(msg)
+  return (tostring(msg):gsub('%^x%x%x%x%x%x%x', ''):gsub('%^%d', ''))
+end
+
+local function load_failed(message)
+  return { ok = false, code = 'LOAD_FAILED', error = message }
+end
+
+-- The first element of a parsed XML document (ParseXML's top level also holds stray text).
+local function root_element_name(dbXML)
+  local first = dbXML[1]
+  if type(first) == 'table' and first.elem then return tostring(first.elem) end
+  for _, node in ipairs(dbXML) do
+    if type(node) == 'table' and node.elem then return tostring(node.elem) end
   end
-  local name = (params.name and tostring(params.name)) or 'API Build'
-  if not _G.loadBuildFromXML then
+  return '(none)'
+end
+
+-- load_build_xml {xml, name} (C-2, D-29): validate first, so a bad document never reaches PoB and the
+-- engine's current build is untouched; after the load, check that PoB really switched to it.
+handlers.load_build_xml = function(params)
+  local xml = params.xml
+  if xml ~= nil and type(xml) ~= 'string' then
+    return load_failed('xml must be a string, got ' .. type(xml))
+  end
+  if xml == nil or xml:match('^%s*$') then
+    return load_failed('empty XML')
+  end
+  if not _G.loadBuildFromXML or not _G.main or not _G.launch or not _G.common then
     return { ok = false, error = 'headless wrapper not initialized' }
   end
-  _G.loadBuildFromXML(params.xml, name)
-  return { ok = true, build_id = 1 }
+  local parsed, dbXML, parseErr = pcall(common.xml.ParseXML, xml)
+  if not parsed then
+    return load_failed('XML parse error: ' .. tostring(dbXML))
+  end
+  if not dbXML then
+    return load_failed('XML parse error: ' .. tostring(parseErr))
+  end
+  local first = dbXML[1]
+  if type(first) ~= 'table' or first.elem ~= 'PathOfBuilding2' then
+    return load_failed('root element is ' .. root_element_name(dbXML) .. ', expected PathOfBuilding2')
+  end
+
+  local name = params.name ~= nil and tostring(params.name) or 'API Build'
+  launch.promptMsg = nil
+  _G.loadBuildFromXML(xml, name)
+
+  local problems = {}
+  if main.mode ~= 'BUILD' then
+    table.insert(problems, 'engine mode is ' .. tostring(main.mode) .. ', expected BUILD')
+  end
+  if main.newMode ~= nil then
+    table.insert(problems, 'a mode switch to ' .. tostring(main.newMode) .. ' is still pending')
+  end
+  local loadedName = _G.build and build.buildName
+  if loadedName ~= name then
+    table.insert(problems, 'loaded build is named ' .. tostring(loadedName) .. ', expected ' .. name)
+  end
+  if TEST_ACTIONS and params.__forcePostCheckFailure then
+    table.insert(problems, 'post-check failure forced by the test override')
+  end
+  if #problems > 0 then
+    local message = 'load failed: ' .. table.concat(problems, '; ')
+    if launch.promptMsg then message = message .. ': ' .. plain(launch.promptMsg) end
+    return load_failed(message)
+  end
+  return { ok = true, result = { name = name } }
 end
 
 handlers.get_stats = function(params)
@@ -181,8 +249,8 @@ handlers.update_tree_delta = function(params)
 end
 
 handlers.calc_with = function(params)
-  local out, base = BuildOps.calc_with(params or {})
-  if not out then return { ok = false, error = base } end
+  local out, err = BuildOps.calc_with(params or {})
+  if not out then return { ok = false, error = err } end
   return { ok = true, output = out }
 end
 
@@ -313,7 +381,55 @@ handlers.select_item_set = function(params)
   return { ok = true, result = res }
 end
 
+-- Test actions (C-2): registered only under POB_API_TEST_ACTIONS=1; otherwise UNKNOWN_ACTION.
+if TEST_ACTIONS then
+  -- Busy-wait `ms` milliseconds of CPU time, then reply.
+  handlers.__test_sleep = function(params)
+    local ms = tonumber(params.ms) or 0
+    local t0 = os.clock()
+    while (os.clock() - t0) * 1000 < ms do end
+    return { ok = true }
+  end
+
+  handlers.__test_crash = function(params)
+    os.exit(tonumber(params.code) or 3)
+  end
+
+  -- A self-referencing reply, which exercises ENCODE.
+  handlers.__test_cycle = function(params)
+    local t = {}
+    t.self = t
+    return { ok = true, result = t }
+  end
+
+  handlers.__test_state = function(params)
+    local m = _G.main
+    local promptMsg = _G.launch and launch.promptMsg
+    local buildName = _G.build and build.buildName
+    return { ok = true, result = {
+      popups = m and m.popups and #m.popups or 0,
+      promptMsg = promptMsg ~= nil and tostring(promptMsg) or NULL,
+      devAutoSaveDisabled = m ~= nil and m.disableDevAutoSave == true,
+      mode = m and m.mode or NULL,
+      buildName = buildName ~= nil and tostring(buildName) or NULL,
+    } }
+  end
+
+  -- Run `code` in the live engine state and reply with its (first) return value.
+  handlers.__test_eval = function(params)
+    if type(params.code) ~= 'string' then
+      return { ok = false, error = 'code must be a string' }
+    end
+    local chunk, err = loadstring(params.code, '=__test_eval')
+    if not chunk then
+      return { ok = false, error = 'compile error: ' .. tostring(err) }
+    end
+    return { ok = true, result = chunk() }
+  end
+end
+
 return {
   handlers = handlers,
   version_meta = version_meta,
+  configure = configure,
 }

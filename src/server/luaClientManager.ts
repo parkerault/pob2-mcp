@@ -74,31 +74,15 @@ export class LuaClientManager {
         env: this.env,
         spawn: this.spawn,
       });
+      // Readiness probe (D-29): the ready banner, which start() waits for, plus one `ping`. No XML
+      // is loaded: a probe load would replace the engine's build.
       await stdioClient.start();
+      if (!(await stdioClient.ping())) {
+        throw new Error('the engine did not answer ping after its ready banner');
+      }
       this.client = stdioClient;
 
       console.error('[Lua Bridge] Client initialized successfully');
-
-      // Wait for HeadlessWrapper to be fully ready (loadBuildFromXML available)
-      console.error('[Lua Bridge] Waiting for HeadlessWrapper to finish loading...');
-      const testXml = '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding><Build level="1" className="Witch"/></PathOfBuilding>';
-      let attempts = 0;
-      const maxAttempts = 5;
-
-      while (attempts < maxAttempts) {
-        try {
-          await stdioClient.loadBuildXml(testXml, 'Init Test');
-          console.error('[Lua Bridge] HeadlessWrapper fully initialized');
-          break;
-        } catch (loadError) {
-          attempts++;
-          if (attempts >= maxAttempts) {
-            throw new Error(`HeadlessWrapper did not initialize after ${maxAttempts} attempts. Error: ${loadError instanceof Error ? loadError.message : String(loadError)}`);
-          }
-          console.error(`[Lua Bridge] HeadlessWrapper not ready (attempt ${attempts}/${maxAttempts}), waiting 2s...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error('[Lua Bridge] Failed to initialize:', errorMsg);

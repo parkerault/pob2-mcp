@@ -1,0 +1,2449 @@
+[{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"explicitMods[0]",
+    "raw":"+52 to maximum [EnergyShield|Energy Shield]",
+    "text":"+52 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"explicitMods[1]",
+    "raw":"+25 to [Intelligence|Intelligence]",
+    "text":"+25 to Intelligence"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"explicitMods[2]",
+    "raw":"You lose 5% of maximum [EnergyShield|Energy Shield] per second",
+    "text":"You lose 5% of maximum Energy Shield per second"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"explicitMods[3]",
+    "raw":"Excess Life Recovery from [LifeLeech|Leech] is applied to [EnergyShield|Energy Shield]",
+    "text":"Excess Life Recovery from Leech is applied to Energy Shield"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"implicitMods[0]",
+    "raw":"17% increased [Charm] Effect Duration",
+    "text":"17% increased Charm Effect Duration"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":0,
+    "path":"implicitMods[1]",
+    "raw":"Has 1 [Charm] Slot",
+    "text":"Has 1 Charm Slot"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"enchantMods[0]",
+    "raw":"+12 to [Dexterity|Dexterity]",
+    "text":"+12 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"explicitMods[0]",
+    "raw":"-12 to [Strength|Strength]",
+    "text":"-12 to Strength"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"explicitMods[1]",
+    "raw":"+30 to [Dexterity|Dexterity]",
+    "text":"+30 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"explicitMods[2]",
+    "raw":"38% increased Life and Mana Recovery from [Flask|Flasks]",
+    "text":"38% increased Life and Mana Recovery from Flasks"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"explicitMods[3]",
+    "raw":"You are considered on [LowLife|Low Life] while at 75% of maximum Life or below instead",
+    "text":"You are considered on Low Life while at 75% of maximum Life or below instead"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"implicitMods[0]",
+    "raw":"11% reduced [Flask|Flask] Charges used",
+    "text":"11% reduced Flask Charges used"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":1,
+    "path":"implicitMods[1]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"explicitMods[0]",
+    "raw":"-14 to [Strength|Strength]",
+    "text":"-14 to Strength"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"explicitMods[1]",
+    "raw":"+21 to [Dexterity|Dexterity]",
+    "text":"+21 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"explicitMods[2]",
+    "raw":"35% increased Life and Mana Recovery from [Flask|Flasks]",
+    "text":"35% increased Life and Mana Recovery from Flasks"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"explicitMods[3]",
+    "raw":"You are considered on [LowLife|Low Life] while at 75% of maximum Life or below instead",
+    "text":"You are considered on Low Life while at 75% of maximum Life or below instead"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"implicitMods[0]",
+    "raw":"15% reduced [Flask|Flask] Charges used",
+    "text":"15% reduced Flask Charges used"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":2,
+    "path":"implicitMods[1]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"explicitMods[0]",
+    "raw":"+48 to maximum [EnergyShield|Energy Shield]",
+    "text":"+48 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"explicitMods[1]",
+    "raw":"+29 to [Intelligence|Intelligence]",
+    "text":"+29 to Intelligence"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"explicitMods[2]",
+    "raw":"You lose 5% of maximum [EnergyShield|Energy Shield] per second",
+    "text":"You lose 5% of maximum Energy Shield per second"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"explicitMods[3]",
+    "raw":"Excess Life Recovery from [LifeLeech|Leech] is applied to [EnergyShield|Energy Shield]",
+    "text":"Excess Life Recovery from Leech is applied to Energy Shield"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"implicitMods[0]",
+    "raw":"16% increased [Charm] Effect Duration",
+    "text":"16% increased Charm Effect Duration"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":3,
+    "path":"implicitMods[1]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":4,
+    "path":"enchantMods[0]",
+    "raw":"+21% to [Resistances|Lightning Resistance]",
+    "text":"+21% to Lightning Resistance"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":4,
+    "path":"explicitMods[0]",
+    "raw":"94% increased effect of Socketed [Augment] Items",
+    "text":"94% increased effect of Socketed Augment Items"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":4,
+    "path":"explicitMods[1]",
+    "raw":"This item gains bonuses from Socketed Items as though it was Gloves",
+    "text":"This item gains bonuses from Socketed Items as though it was Gloves"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":4,
+    "path":"implicitMods[0]",
+    "raw":"Has 1 [Charm] Slot",
+    "text":"Has 1 Charm Slot"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":4,
+    "path":"implicitMods[1]",
+    "raw":"[Flask|Flasks] gain 0.17 charges per Second",
+    "text":"Flasks gain 0.17 charges per Second"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"explicitMods[0]",
+    "raw":"-13 to [Strength|Strength]",
+    "text":"-13 to Strength"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"explicitMods[1]",
+    "raw":"+24 to [Dexterity|Dexterity]",
+    "text":"+24 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"explicitMods[2]",
+    "raw":"33% increased Life and Mana Recovery from [Flask|Flasks]",
+    "text":"33% increased Life and Mana Recovery from Flasks"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"explicitMods[3]",
+    "raw":"You are considered on [LowLife|Low Life] while at 84% of maximum Life or below instead",
+    "text":"You are considered on Low Life while at 84% of maximum Life or below instead"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"implicitMods[0]",
+    "raw":"13% reduced [Flask|Flask] Charges used",
+    "text":"13% reduced Flask Charges used"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":5,
+    "path":"implicitMods[1]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"explicitMods[0]",
+    "raw":"-12 to [Strength|Strength]",
+    "text":"-12 to Strength"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"explicitMods[1]",
+    "raw":"+28 to [Dexterity|Dexterity]",
+    "text":"+28 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"explicitMods[2]",
+    "raw":"31% increased Life and Mana Recovery from [Flask|Flasks]",
+    "text":"31% increased Life and Mana Recovery from Flasks"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"explicitMods[3]",
+    "raw":"You are considered on [LowLife|Low Life] while at 86% of maximum Life or below instead",
+    "text":"You are considered on Low Life while at 86% of maximum Life or below instead"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"implicitMods[0]",
+    "raw":"11% reduced [Flask|Flask] Charges used",
+    "text":"11% reduced Flask Charges used"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":6,
+    "path":"implicitMods[1]",
+    "raw":"Has 2 [Charm] Slots",
+    "text":"Has 2 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[0]",
+    "raw":"31% reduced [Flask|Flask] Effect Duration",
+    "text":"31% reduced Flask Effect Duration"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[1]",
+    "raw":"+22 to [Intelligence|Intelligence]",
+    "text":"+22 to Intelligence"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[2]",
+    "raw":"[Minion|Minions] have 23% increased maximum Life",
+    "text":"Minions have 23% increased maximum Life"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[3]",
+    "raw":"Your Life [Flask] also applies to your [Minion|Minions]",
+    "text":"Your Life Flask also applies to your Minions"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[4]",
+    "raw":"[Minion|Minions] cannot Die while affected by a Life [Flask]",
+    "text":"Minions cannot Die while affected by a Life Flask"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"explicitMods[5]",
+    "raw":"20% increased [Flask|Flask] Charges gained",
+    "text":"20% increased Flask Charges gained"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"implicitMods[0]",
+    "raw":"29% increased Mana Recovery from [Flask|Flasks]",
+    "text":"29% increased Mana Recovery from Flasks"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":7,
+    "path":"implicitMods[1]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"explicitMods[0]",
+    "raw":"+99 to maximum Mana",
+    "text":"+99 to maximum Mana"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"explicitMods[1]",
+    "raw":"48% reduced [Charm] Effect Duration",
+    "text":"48% reduced Charm Effect Duration"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"explicitMods[2]",
+    "raw":"+2 [Charm] Slots",
+    "text":"+2 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"explicitMods[3]",
+    "raw":"+20 to [Dexterity|Dexterity]",
+    "text":"+20 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"explicitMods[4]",
+    "raw":"22% increased [Charm] Charges gained",
+    "text":"22% increased Charm Charges gained"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"implicitMods[0]",
+    "raw":"Has 2 [Charm] Slots",
+    "text":"Has 2 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":8,
+    "path":"implicitMods[1]",
+    "raw":"20% increased [Charm] Charges gained",
+    "text":"20% increased Charm Charges gained"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"explicitMods[0]",
+    "raw":"+63 to maximum Mana",
+    "text":"+63 to maximum Mana"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"explicitMods[1]",
+    "raw":"18% reduced [Charm] Effect Duration",
+    "text":"18% reduced Charm Effect Duration"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"explicitMods[2]",
+    "raw":"+2 [Charm] Slots",
+    "text":"+2 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"explicitMods[3]",
+    "raw":"+23 to [Dexterity|Dexterity]",
+    "text":"+23 to Dexterity"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"explicitMods[4]",
+    "raw":"21% increased [Charm] Charges gained",
+    "text":"21% increased Charm Charges gained"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"implicitMods[0]",
+    "raw":"Has 3 [Charm] Slots",
+    "text":"Has 3 Charm Slots"
+  },{
+    "fixture":"fetch-belt-unique-chaos",
+    "item":9,
+    "path":"implicitMods[1]",
+    "raw":"20% increased [Charm] Charges gained",
+    "text":"20% increased Charm Charges gained"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[0]",
+    "raw":"30.5 Life Regeneration per second",
+    "text":"30.5 Life Regeneration per second"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[1]",
+    "raw":"66% increased [EnergyShield|Energy Shield]",
+    "text":"66% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[2]",
+    "raw":"+191 to maximum Life",
+    "text":"+191 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[3]",
+    "raw":"+45% to [Resistances|Lightning Resistance]",
+    "text":"+45% to Lightning Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[4]",
+    "raw":"+10% to [Resistances|Chaos Resistance]",
+    "text":"+10% to Chaos Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":0,
+    "path":"explicitMods[5]",
+    "raw":"5 to 8 [Physical|Physical] [Thorns|Thorns] damage",
+    "text":"5 to 8 Physical Thorns damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[0]",
+    "raw":"60% reduced [Ignite|Ignite] Duration on you",
+    "text":"60% reduced Ignite Duration on you"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[1]",
+    "raw":"+182 to [Evasion] Rating",
+    "text":"+182 to Evasion Rating"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[2]",
+    "raw":"+57 to maximum [EnergyShield|Energy Shield]",
+    "text":"+57 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[3]",
+    "raw":"35% increased [Evasion] and [EnergyShield|Energy Shield]",
+    "text":"35% increased Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[4]",
+    "raw":"+92 to maximum Life",
+    "text":"+92 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[5]",
+    "raw":"+29% to [Resistances|Fire Resistance]",
+    "text":"+29% to Fire Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"explicitMods[6]",
+    "raw":"34.1 Life Regeneration per second",
+    "text":"34.1 Life Regeneration per second"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":1,
+    "path":"implicitMods[0]",
+    "raw":"+7% to [Resistances|Chaos Resistance]",
+    "text":"+7% to Chaos Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[0]",
+    "raw":"31% increased [EnergyShield|Energy Shield]",
+    "text":"31% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[1]",
+    "raw":"+26 to maximum Life",
+    "text":"+26 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[2]",
+    "raw":"+17% to Lightning and Chaos Resistances",
+    "text":"+17% to Lightning and Chaos Resistances"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[3]",
+    "raw":"+183 to maximum Life",
+    "text":"+183 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[4]",
+    "raw":"17% increased [ESRechargeRate|Energy Shield Recharge Rate]",
+    "text":"17% increased Energy Shield Recharge Rate"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[5]",
+    "raw":"31.1 Life Regeneration per second",
+    "text":"31.1 Life Regeneration per second"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"explicitMods[6]",
+    "raw":"57 to 80 [Physical|Physical] [Thorns|Thorns] damage",
+    "text":"57 to 80 Physical Thorns damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"runeMods[0]",
+    "raw":"36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"36% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[0].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":2,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"enchantMods[0]",
+    "raw":"5% additional [Physical] Damage Reduction",
+    "text":"5% additional Physical Damage Reduction"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[0]",
+    "raw":"+27 to maximum Life",
+    "text":"+27 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[1]",
+    "raw":"+46 to [Spirit|Spirit]",
+    "text":"+46 to Spirit"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[2]",
+    "raw":"20% reduced [Attributes|Attribute] Requirements",
+    "text":"20% reduced Attribute Requirements"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[3]",
+    "raw":"+12% to [Resistances|Fire Resistance]",
+    "text":"+12% to Fire Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[4]",
+    "raw":"+163 to [StunThreshold|Stun Threshold]",
+    "text":"+163 to Stun Threshold"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":3,
+    "path":"explicitMods[5]",
+    "raw":"5 to 8 [Physical|Physical] [Thorns|Thorns] damage",
+    "text":"5 to 8 Physical Thorns damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[0]",
+    "raw":"+150 to [Armour|Armour]",
+    "text":"+150 to Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[1]",
+    "raw":"+43 to maximum [EnergyShield|Energy Shield]",
+    "text":"+43 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[2]",
+    "raw":"+117 to maximum Life",
+    "text":"+117 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[3]",
+    "raw":"+32 to [Strength|Strength]",
+    "text":"+32 to Strength"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[4]",
+    "raw":"+31 to [Intelligence|Intelligence]",
+    "text":"+31 to Intelligence"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[5]",
+    "raw":"58% reduced [Poison|Poison] Duration on you",
+    "text":"58% reduced Poison Duration on you"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":4,
+    "path":"explicitMods[6]",
+    "raw":"+46 to [Spirit|Spirit]",
+    "text":"+46 to Spirit"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":5,
+    "path":"explicitMods[0]",
+    "raw":"+32% to [Resistances|Fire Resistance]",
+    "text":"+32% to Fire Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":5,
+    "path":"explicitMods[1]",
+    "raw":"108% increased [EnergyShield|Energy Shield]",
+    "text":"108% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":5,
+    "path":"explicitMods[2]",
+    "raw":"+101 to maximum Life",
+    "text":"+101 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":5,
+    "path":"explicitMods[3]",
+    "raw":"Bears the [MarkofAbyssalLord|Mark of the Abyssal Lord]",
+    "text":"Bears the Mark of the Abyssal Lord"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[0]",
+    "raw":"+196 to maximum Life",
+    "text":"+196 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[1]",
+    "raw":"+118 to [Evasion] Rating",
+    "text":"+118 to Evasion Rating"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[2]",
+    "raw":"+35 to maximum [EnergyShield|Energy Shield]",
+    "text":"+35 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[3]",
+    "raw":"+49 to [Spirit|Spirit]",
+    "text":"+49 to Spirit"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[4]",
+    "raw":"+33 to [Dexterity|Dexterity]",
+    "text":"+33 to Dexterity"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[5]",
+    "raw":"+34% to [Resistances|Lightning Resistance]",
+    "text":"+34% to Lightning Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"explicitMods[6]",
+    "raw":"Gain [Deflect|Deflection Rating] equal to 21% of [Evasion|Evasion Rating]",
+    "text":"Gain Deflection Rating equal to 21% of Evasion Rating"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"implicitMods[0]",
+    "raw":"5% increased Movement Speed",
+    "text":"5% increased Movement Speed"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"runeMods[0]",
+    "raw":"36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"36% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[0].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":6,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[0]",
+    "raw":"82% increased [EnergyShield|Energy Shield]",
+    "text":"82% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[1]",
+    "raw":"+93 to maximum [EnergyShield|Energy Shield]",
+    "text":"+93 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[2]",
+    "raw":"+61 to maximum Life",
+    "text":"+61 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[3]",
+    "raw":"35% reduced [Attributes|Attribute] Requirements",
+    "text":"35% reduced Attribute Requirements"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[4]",
+    "raw":"18.7 Life Regeneration per second",
+    "text":"18.7 Life Regeneration per second"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"explicitMods[5]",
+    "raw":"[Hit|Hits] have 24% reduced [Critical|Critical Hit] Chance against you",
+    "text":"Hits have 24% reduced Critical Hit Chance against you"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"runeMods[0]",
+    "raw":"36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"36% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[0]",
+    "raw":"33% increased [EnergyShield|Energy Shield]",
+    "text":"33% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[1]",
+    "raw":"+35 to maximum Life",
+    "text":"+35 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[2]",
+    "raw":"+77 to maximum [EnergyShield|Energy Shield]",
+    "text":"+77 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[3]",
+    "raw":"29% increased [EnergyShield|Energy Shield]",
+    "text":"29% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[4]",
+    "raw":"+39% to [Resistances|Lightning Resistance]",
+    "text":"+39% to Lightning Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[5]",
+    "raw":"33.2 Life Regeneration per second",
+    "text":"33.2 Life Regeneration per second"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"explicitMods[6]",
+    "raw":"50% reduced Duration of [Bleeding] on You",
+    "text":"50% reduced Duration of Bleeding on You"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"runeMods[0]",
+    "raw":"36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"36% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[0].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[0]",
+    "raw":"+206 to maximum Life",
+    "text":"+206 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[1]",
+    "raw":"131% increased [EnergyShield|Energy Shield]",
+    "text":"131% increased Energy Shield"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[2]",
+    "raw":"+41 to maximum Life",
+    "text":"+41 to maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[3]",
+    "raw":"+32% to [Resistances|Lightning Resistance]",
+    "text":"+32% to Lightning Resistance"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[4]",
+    "raw":"20% increased [ESRechargeRate|Energy Shield Recharge Rate]",
+    "text":"20% increased Energy Shield Recharge Rate"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"explicitMods[5]",
+    "raw":"42% reduced [Poison|Poison] Duration on you",
+    "text":"42% reduced Poison Duration on you"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"runeMods[0]",
+    "raw":"Can roll Soul modifiers",
+    "text":"Can roll Soul modifiers"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: 3% increased maximum Life",
+    "text":"Bonded: 3% increased maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: 3% increased maximum Mana",
+    "text":"Bonded: 3% increased maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"Body Armours:",
+    "text":"Body Armours:"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"3% increased maximum Life",
+    "text":"3% increased maximum Life"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"3% increased maximum Mana",
+    "text":"3% increased maximum Mana"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"Body Armours: Can roll Soul modifiers",
+    "text":"Body Armours: Can roll Soul modifiers"
+  },{
+    "fixture":"fetch-body-armour",
+    "item":9,
+    "path":"socketedItems[0].runeMods[0]",
+    "raw":"[SocketBound|Socket-bound]",
+    "text":"Socket-bound"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":0,
+    "path":"explicitMods[0]",
+    "raw":"Adds 14 to 24 [Cold] damage to [Attack|Attacks]",
+    "text":"Adds 14 to 24 Cold damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":0,
+    "path":"explicitMods[1]",
+    "raw":"+62 to maximum Life",
+    "text":"+62 to maximum Life"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":0,
+    "path":"explicitMods[2]",
+    "raw":"+14% to [Resistances|Chaos Resistance]",
+    "text":"+14% to Chaos Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":0,
+    "path":"explicitMods[3]",
+    "raw":"64% increased Mana Regeneration Rate",
+    "text":"64% increased Mana Regeneration Rate"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":0,
+    "path":"implicitMods[0]",
+    "raw":"+10% to [Resistances|Chaos Resistance]",
+    "text":"+10% to Chaos Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":1,
+    "path":"explicitMods[0]",
+    "raw":"Adds 15 to 21 [Physical|Physical] Damage to [Attack|Attacks]",
+    "text":"Adds 15 to 21 Physical Damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":1,
+    "path":"explicitMods[1]",
+    "raw":"24% increased [Cold] Damage",
+    "text":"24% increased Cold Damage"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":1,
+    "path":"explicitMods[2]",
+    "raw":"+179 to [Evasion] Rating",
+    "text":"+179 to Evasion Rating"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":1,
+    "path":"explicitMods[3]",
+    "raw":"+18 to [Dexterity|Dexterity]",
+    "text":"+18 to Dexterity"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":1,
+    "path":"implicitMods[0]",
+    "raw":"+20% to Maximum [Quality]",
+    "text":"+20% to Maximum Quality"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":2,
+    "path":"explicitMods[0]",
+    "raw":"Adds 18 to 26 [Cold] damage to [Attack|Attacks]",
+    "text":"Adds 18 to 26 Cold damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":2,
+    "path":"explicitMods[1]",
+    "raw":"+86 to maximum Mana",
+    "text":"+86 to maximum Mana"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":2,
+    "path":"explicitMods[2]",
+    "raw":"+26 to [Intelligence|Intelligence]",
+    "text":"+26 to Intelligence"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":2,
+    "path":"explicitMods[3]",
+    "raw":"+30% to [Resistances|Cold Resistance]",
+    "text":"+30% to Cold Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":2,
+    "path":"implicitMods[0]",
+    "raw":"+26% to [Resistances|Lightning Resistance]",
+    "text":"+26% to Lightning Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"explicitMods[0]",
+    "raw":"Adds 3 to 6 [Physical|Physical] Damage to [Attack|Attacks]",
+    "text":"Adds 3 to 6 Physical Damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"explicitMods[1]",
+    "raw":"+137 to [Evasion] Rating",
+    "text":"+137 to Evasion Rating"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"explicitMods[2]",
+    "raw":"18% increased [ItemRarity|Rarity of Items] found",
+    "text":"18% increased Rarity of Items found"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"explicitMods[3]",
+    "raw":"+11 to [Strength|Strength]",
+    "text":"+11 to Strength"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"explicitMods[4]",
+    "raw":"+35% to [Resistances|Fire Resistance]",
+    "text":"+35% to Fire Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":3,
+    "path":"implicitMods[0]",
+    "raw":"7% increased Cast Speed",
+    "text":"7% increased Cast Speed"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"explicitMods[0]",
+    "raw":"Adds 15 to 26 [Physical|Physical] Damage to [Attack|Attacks]",
+    "text":"Adds 15 to 26 Physical Damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"explicitMods[1]",
+    "raw":"Adds 20 to 36 [Fire] damage to [Attack|Attacks]",
+    "text":"Adds 20 to 36 Fire damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"explicitMods[2]",
+    "raw":"+12% to all [ElementalDamage|Elemental] [Resistances]",
+    "text":"+12% to all Elemental Resistances"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"explicitMods[3]",
+    "raw":"+34% to [Resistances|Cold Resistance]",
+    "text":"+34% to Cold Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"explicitMods[4]",
+    "raw":"14.5 Life Regeneration per second",
+    "text":"14.5 Life Regeneration per second"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":4,
+    "path":"implicitMods[0]",
+    "raw":"+8% to all [ElementalDamage|Elemental] [Resistances]",
+    "text":"+8% to all Elemental Resistances"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":5,
+    "path":"explicitMods[0]",
+    "raw":"28% increased [Lightning] Damage",
+    "text":"28% increased Lightning Damage"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":5,
+    "path":"explicitMods[1]",
+    "raw":"12% increased [ItemRarity|Rarity of Items] found",
+    "text":"12% increased Rarity of Items found"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":5,
+    "path":"explicitMods[2]",
+    "raw":"+31 to [Strength|Strength]",
+    "text":"+31 to Strength"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":5,
+    "path":"explicitMods[3]",
+    "raw":"+28% to [Resistances|Cold Resistance]",
+    "text":"+28% to Cold Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":5,
+    "path":"implicitMods[0]",
+    "raw":"Grants 1 additional Skill Slot",
+    "text":"Grants 1 additional Skill Slot"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"explicitMods[0]",
+    "raw":"+86 to maximum Mana",
+    "text":"+86 to maximum Mana"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"explicitMods[1]",
+    "raw":"+2 to all [Attributes|Attributes]",
+    "text":"+2 to all Attributes"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"explicitMods[2]",
+    "raw":"+7 to [Strength|Strength]",
+    "text":"+7 to Strength"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"explicitMods[3]",
+    "raw":"20% increased Mana Regeneration Rate",
+    "text":"20% increased Mana Regeneration Rate"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"explicitMods[4]",
+    "raw":"15% increased [LightRadius|Light Radius]",
+    "text":"15% increased Light Radius"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":6,
+    "path":"implicitMods[0]",
+    "raw":"+30 to maximum Mana",
+    "text":"+30 to maximum Mana"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[0]",
+    "raw":"Adds 11 to 18 [Physical|Physical] Damage to [Attack|Attacks]",
+    "text":"Adds 11 to 18 Physical Damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[1]",
+    "raw":"+163 to [Evasion] Rating",
+    "text":"+163 to Evasion Rating"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[2]",
+    "raw":"+161 to maximum Mana",
+    "text":"+161 to maximum Mana"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[3]",
+    "raw":"+20 to [Strength|Strength]",
+    "text":"+20 to Strength"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[4]",
+    "raw":"+15% to all [ElementalDamage|Elemental] [Resistances]",
+    "text":"+15% to all Elemental Resistances"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"explicitMods[5]",
+    "raw":"+25% to [Resistances|Cold Resistance]",
+    "text":"+25% to Cold Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":7,
+    "path":"implicitMods[0]",
+    "raw":"+7% to all [ElementalDamage|Elemental] [Resistances]",
+    "text":"+7% to all Elemental Resistances"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":8,
+    "path":"explicitMods[0]",
+    "raw":"Adds 1 to 14 [Lightning] damage to [Attack|Attacks]",
+    "text":"Adds 1 to 14 Lightning damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":8,
+    "path":"explicitMods[1]",
+    "raw":"11% increased [Lightning] Damage",
+    "text":"11% increased Lightning Damage"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":8,
+    "path":"explicitMods[2]",
+    "raw":"+17 to [Intelligence|Intelligence]",
+    "text":"+17 to Intelligence"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":8,
+    "path":"explicitMods[3]",
+    "raw":"+19% to [Resistances|Lightning Resistance]",
+    "text":"+19% to Lightning Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":8,
+    "path":"implicitMods[0]",
+    "raw":"+33% to [Resistances|Lightning Resistance]",
+    "text":"+33% to Lightning Resistance"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"explicitMods[0]",
+    "raw":"Adds 13 to 18 [Fire] damage to [Attack|Attacks]",
+    "text":"Adds 13 to 18 Fire damage to Attacks"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"explicitMods[1]",
+    "raw":"+22 to maximum Mana",
+    "text":"+22 to maximum Mana"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"explicitMods[2]",
+    "raw":"16% increased [ItemRarity|Rarity of Items] found",
+    "text":"16% increased Rarity of Items found"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"explicitMods[3]",
+    "raw":"+15% to all [ElementalDamage|Elemental] [Resistances]",
+    "text":"+15% to all Elemental Resistances"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"explicitMods[4]",
+    "raw":"Gain 25 Mana per enemy killed",
+    "text":"Gain 25 Mana per enemy killed"
+  },{
+    "fixture":"fetch-ring-divine",
+    "item":9,
+    "path":"implicitMods[0]",
+    "raw":"+26% to [Resistances|Lightning Resistance]",
+    "text":"+26% to Lightning Resistance"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[0]",
+    "raw":"+36 to [Armour|Armour]",
+    "text":"+36 to Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[1]",
+    "raw":"+38 to [Evasion] Rating",
+    "text":"+38 to Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[2]",
+    "raw":"140% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"140% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[3]",
+    "raw":"+190 to maximum Life",
+    "text":"+190 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[4]",
+    "raw":"+23 to [Strength|Strength]",
+    "text":"+23 to Strength"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[5]",
+    "raw":"+31 to [Dexterity|Dexterity]",
+    "text":"+31 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"explicitMods[6]",
+    "raw":"+49% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+49% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"implicitMods[0]",
+    "raw":"+71 to maximum Life",
+    "text":"+71 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":0,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 142.2",
+    "text":"Sum: 142.2"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[0]",
+    "raw":"+141 to [Evasion] Rating",
+    "text":"+141 to Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[1]",
+    "raw":"+41 to maximum [EnergyShield|Energy Shield]",
+    "text":"+41 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[2]",
+    "raw":"105% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"105% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[3]",
+    "raw":"+177 to maximum Life",
+    "text":"+177 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[4]",
+    "raw":"+31 to [Dexterity|Dexterity]",
+    "text":"+31 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"explicitMods[5]",
+    "raw":"60% reduced [Ignite|Ignite] Duration on you",
+    "text":"60% reduced Ignite Duration on you"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"implicitMods[0]",
+    "raw":"+1 to Level of all [Corrupted] Skill Gems",
+    "text":"+1 to Level of all Corrupted Skill Gems"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":1,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 129.9",
+    "text":"Sum: 129.9"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[0]",
+    "raw":"+77 to [Armour|Armour]",
+    "text":"+77 to Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[1]",
+    "raw":"+25 to maximum [EnergyShield|Energy Shield]",
+    "text":"+25 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[2]",
+    "raw":"55% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"55% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[3]",
+    "raw":"+150 to maximum Life",
+    "text":"+150 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[4]",
+    "raw":"+24 to [Dexterity|Dexterity]",
+    "text":"+24 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[5]",
+    "raw":"+43% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+43% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"explicitMods[6]",
+    "raw":"5.8 Life Regeneration per second",
+    "text":"5.8 Life Regeneration per second"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"implicitMods[0]",
+    "raw":"+1 to Level of all [Corrupted] Skill Gems",
+    "text":"+1 to Level of all Corrupted Skill Gems"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":2,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 128.2",
+    "text":"Sum: 128.2"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[0]",
+    "raw":"79% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"79% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[1]",
+    "raw":"+201 to maximum Life",
+    "text":"+201 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[2]",
+    "raw":"+33 to [Dexterity|Dexterity]",
+    "text":"+33 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[3]",
+    "raw":"+49% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+49% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[4]",
+    "raw":"31.3 Life Regeneration per second",
+    "text":"31.3 Life Regeneration per second"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[5]",
+    "raw":"41% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"41% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"explicitMods[6]",
+    "raw":"+44 to maximum Life",
+    "text":"+44 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":3,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 128.2",
+    "text":"Sum: 128.2"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"explicitMods[0]",
+    "raw":"134% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"134% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"explicitMods[1]",
+    "raw":"+253 to maximum Life",
+    "text":"+253 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"explicitMods[2]",
+    "raw":"25% reduced [Attributes|Attribute] Requirements",
+    "text":"25% reduced Attribute Requirements"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"explicitMods[3]",
+    "raw":"+30 to [Dexterity|Dexterity]",
+    "text":"+30 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"explicitMods[4]",
+    "raw":"+47% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+47% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":4,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 128.1",
+    "text":"Sum: 128.1"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[0]",
+    "raw":"+47 to [Evasion] Rating",
+    "text":"+47 to Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[1]",
+    "raw":"+15 to maximum [EnergyShield|Energy Shield]",
+    "text":"+15 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[2]",
+    "raw":"143% increased [Evasion] and [EnergyShield|Energy Shield]",
+    "text":"143% increased Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[3]",
+    "raw":"+210 to maximum Life",
+    "text":"+210 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[4]",
+    "raw":"+26 to [Dexterity|Dexterity]",
+    "text":"+26 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[5]",
+    "raw":"33.5 Life Regeneration per second",
+    "text":"33.5 Life Regeneration per second"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"explicitMods[6]",
+    "raw":"16% of Damage is taken from Mana before Life",
+    "text":"16% of Damage is taken from Mana before Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"implicitMods[0]",
+    "raw":"5% increased Movement Speed",
+    "text":"5% increased Movement Speed"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":5,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 127.6",
+    "text":"Sum: 127.6"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"explicitMods[0]",
+    "raw":"126% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"126% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"explicitMods[1]",
+    "raw":"+219 to maximum Life",
+    "text":"+219 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"explicitMods[2]",
+    "raw":"+27 to [Dexterity|Dexterity]",
+    "text":"+27 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"explicitMods[3]",
+    "raw":"+34% to [Resistances|Cold Resistance]",
+    "text":"+34% to Cold Resistance"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"explicitMods[4]",
+    "raw":"+43% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+43% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"implicitMods[0]",
+    "raw":"+73 to maximum Life",
+    "text":"+73 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":6,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 126.4",
+    "text":"Sum: 126.4"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[0]",
+    "raw":"83% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"83% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[1]",
+    "raw":"+181 to maximum Life",
+    "text":"+181 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[2]",
+    "raw":"+27 to [Dexterity|Dexterity]",
+    "text":"+27 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[3]",
+    "raw":"+46% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+    "text":"+46% of Armour also applies to Elemental Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[4]",
+    "raw":"Gain [Deflect|Deflection Rating] equal to 22% of [Evasion|Evasion Rating]",
+    "text":"Gain Deflection Rating equal to 22% of Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[5]",
+    "raw":"34% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"34% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"explicitMods[6]",
+    "raw":"+37 to maximum Life",
+    "text":"+37 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"implicitMods[0]",
+    "raw":"+75 to maximum Life",
+    "text":"+75 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 126.2",
+    "text":"Sum: 126.2"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"runeMods[0]",
+    "raw":"36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"36% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"runeMods[1]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[0].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+    "text":"Martial Weapon: 20% increased effect of Fully Broken Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+    "text":"Wand or Staff: Break Armour on Critical Hit with Spells equal to 12% of Physical Damage dealt"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage",
+    "text":"Martial Weapon: 18% increased Physical Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: 30% increased [Spell] Damage",
+    "text":"Wand or Staff: 30% increased Spell Damage"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":7,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+    "text":"Armour: 18% increased Armour, Evasion and Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[0]",
+    "raw":"+51 to [Armour|Armour]",
+    "text":"+51 to Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[1]",
+    "raw":"+47 to [Evasion] Rating",
+    "text":"+47 to Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[2]",
+    "raw":"125% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"125% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[3]",
+    "raw":"+209 to maximum Life",
+    "text":"+209 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[4]",
+    "raw":"+33 to [Dexterity|Dexterity]",
+    "text":"+33 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[5]",
+    "raw":"+25% to [Resistances|Chaos Resistance]",
+    "text":"+25% to Chaos Resistance"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"explicitMods[6]",
+    "raw":"59% reduced [Poison|Poison] Duration on you",
+    "text":"59% reduced Poison Duration on you"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"implicitMods[0]",
+    "raw":"+60 to maximum Life",
+    "text":"+60 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 125.7",
+    "text":"Sum: 125.7"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"runeMods[0]",
+    "raw":"+120 to maximum Life",
+    "text":"+120 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"runeMods[1]",
+    "raw":"[StatGain|Gain] 5% of maximum Life as Extra maximum [Ward|Runic Ward]",
+    "text":"Gain 5% of maximum Life as Extra maximum Runic Ward"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"runeMods[2]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+    "text":"Bonded: +40 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"runeMods[3]",
+    "raw":"[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+    "text":"Bonded: +40 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"runeMods[4]",
+    "raw":"[ShamanOnlyMods|Bonded]: 1% more [Ward|Runic Ward] Regeneration rate per 2% of maximum [Ward|Runic Ward] lost from [Hit|Hits] [Recently], up to 100% more",
+    "text":"Bonded: 1% more Runic Ward Regeneration rate per 2% of maximum Runic Ward lost from Hits Recently, up to 100% more"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[0].bondedMods[1]",
+    "raw":"Body Armours: 1% more [Ward|Runic Ward] Regeneration rate per 2% of maximum [Ward|Runic Ward] lost from [Hit|Hits] [Recently], up to 100% more",
+    "text":"Body Armours: 1% more Runic Ward Regeneration rate per 2% of maximum Runic Ward lost from Hits Recently, up to 100% more"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[0].explicitMods[0]",
+    "raw":"Body Armours: [StatGain|Gain] 5% of maximum Life as Extra maximum [Ward|Runic Ward]",
+    "text":"Body Armours: Gain 5% of maximum Life as Extra maximum Runic Ward"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 5% increased maximum Life",
+    "text":"Martial Weapon: 5% increased maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[2]",
+    "raw":"Wand or Staff: 5% increased maximum Life",
+    "text":"Wand or Staff: 5% increased maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: [LifeLeech|Leeches] 5% of [Physical|Physical] Damage as Life",
+    "text":"Martial Weapon: Leeches 5% of Physical Damage as Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[1]",
+    "raw":"Wand or Staff: +50 to maximum [EnergyShield|Energy Shield]",
+    "text":"Wand or Staff: +50 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[1].explicitMods[2]",
+    "raw":"Armour: +60 to maximum Life",
+    "text":"Armour: +60 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[0]",
+    "raw":"[ShamanOnlyMods|Bonded]:",
+    "text":"Bonded:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[1]",
+    "raw":"[MartialWeapon|Martial Weapon]: 5% increased maximum Life",
+    "text":"Martial Weapon: 5% increased maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[2]",
+    "raw":"Wand or Staff: 5% increased maximum Life",
+    "text":"Wand or Staff: 5% increased maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[3]",
+    "raw":"Armour:",
+    "text":"Armour:"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[4]",
+    "raw":"+20 to maximum Life",
+    "text":"+20 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].bondedMods[5]",
+    "raw":"+20 to maximum Mana",
+    "text":"+20 to maximum Mana"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].explicitMods[0]",
+    "raw":"[MartialWeapon|Martial Weapon]: [LifeLeech|Leeches] 5% of [Physical|Physical] Damage as Life",
+    "text":"Martial Weapon: Leeches 5% of Physical Damage as Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].explicitMods[1]",
+    "raw":"Wand or Staff: +50 to maximum [EnergyShield|Energy Shield]",
+    "text":"Wand or Staff: +50 to maximum Energy Shield"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":8,
+    "path":"socketedItems[2].explicitMods[2]",
+    "raw":"Armour: +60 to maximum Life",
+    "text":"Armour: +60 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[0]",
+    "raw":"+34 to [Armour|Armour]",
+    "text":"+34 to Armour"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[1]",
+    "raw":"+36 to [Evasion] Rating",
+    "text":"+36 to Evasion Rating"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[2]",
+    "raw":"148% increased [Armour|Armour] and [Evasion|Evasion]",
+    "text":"148% increased Armour and Evasion"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[3]",
+    "raw":"+202 to maximum Life",
+    "text":"+202 to maximum Life"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[4]",
+    "raw":"+30 to [Dexterity|Dexterity]",
+    "text":"+30 to Dexterity"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[5]",
+    "raw":"+20% to [Resistances|Chaos Resistance]",
+    "text":"+20% to Chaos Resistance"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"explicitMods[6]",
+    "raw":"+17% to Cold and Chaos Resistances",
+    "text":"+17% to Cold and Chaos Resistances"
+  },{
+    "fixture":"fetch-weighted-session",
+    "item":9,
+    "path":"pseudoMods[0]",
+    "raw":"Sum: 125.6",
+    "text":"Sum: 125.6"
+  }]

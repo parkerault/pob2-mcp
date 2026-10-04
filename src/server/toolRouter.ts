@@ -7,7 +7,7 @@
 import type { ContextBuilder } from "../utils/contextBuilder.js";
 import type { TradeApiClient } from "../trade/tradeClient.js";
 import type { StatMapper } from "../services/statMapper.js";
-import type { PoeNinjaClient } from "../services/poeNinjaClient.js";
+import type { CurrencyService } from "../trade/currency.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_META, isToolAvailable } from "./toolMeta.js";
 import { errorResponse, type ToolResponse } from "./responseUtils.js";
@@ -26,7 +26,7 @@ import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
 import { handleExportBuild, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
-import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats } from "../handlers/tradeHandlers.js";
+import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 
@@ -34,7 +34,8 @@ export interface ToolRouterDependencies {
   contextBuilder: ContextBuilder;
   tradeClient: TradeApiClient;
   statMapper: StatMapper;
-  ninjaClient: PoeNinjaClient;
+  /** C-12: poe.ninja currency rates (per-league cache). */
+  currency: CurrencyService;
   /** The engine session (C-3): every tool whose `TOOL_META.engine` isn't `none` runs inside it. */
   session: EngineSession;
   /** Session-scoped (C-3 step 5): the running call's `ctx.client`; throws outside a session. */
@@ -146,6 +147,16 @@ export async function routeToolCall(
     if (error instanceof Error && error.stack) console.error(`[Tool Stack] ${error.stack}`);
     return withNotices(errorResponse(`Error: ${errorMsg}`), notices);
   }
+}
+
+/** The trade handlers' context. */
+function tradeContext(deps: ToolRouterDependencies): TradeContext {
+  return {
+    tradeClient: deps.tradeClient,
+    statMapper: deps.statMapper,
+    currency: deps.currency,
+    resolveLeague: deps.resolveLeague,
+  };
 }
 
 async function dispatch(
@@ -536,22 +547,12 @@ async function dispatch(
       if (!args || !args.league) {
         throw new Error("Missing required argument: league");
       }
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleSearchTradeItems(tradeContext, args as any);
+      return await handleSearchTradeItems(tradeContext(deps), args as unknown as SearchTradeItemsArgs);
     }
 
     case "get_item_price": {
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
       if (!args) throw new Error("Missing arguments");
-      return await handleGetItemPrice(tradeContext, {
+      return await handleGetItemPrice(tradeContext(deps), {
         item_name: args.item_name as string,
         league: args.league as string | undefined,
         item_type: args.item_type as string | undefined,
@@ -559,23 +560,12 @@ async function dispatch(
       });
     }
 
-    case "get_leagues": {
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleGetLeagues(tradeContext);
-    }
+    case "get_leagues":
+      return await handleGetLeagues(tradeContext(deps));
 
     case "search_stats": {
       if (!args) throw new Error("Missing arguments");
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleSearchStats(tradeContext, {
+      return await handleSearchStats(tradeContext(deps), {
         query: args.query as string,
         limit: args.limit as number | undefined,
       });
@@ -585,11 +575,8 @@ async function dispatch(
     // poe.ninja API Tools
     // ========================================
     case "get_currency_rates": {
-      if (!args) throw new Error("Missing arguments");
-      const ninjaContext = {
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleGetCurrencyRates(ninjaContext, args as any);
+      if (!args || !args.league) throw new Error("Missing required argument: league");
+      return await handleGetCurrencyRates({ currency: deps.currency }, { league: args.league as string });
     }
 
     // Build Goals Tools

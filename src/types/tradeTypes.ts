@@ -23,146 +23,77 @@ export interface StatFilterGroup {
   disabled?: boolean;
 }
 
+/** A `{min?, max?}` range filter. */
+export interface RangeFilter {
+  min?: number;
+  max?: number;
+}
+
+/** An `{option}` filter (trade2 sends booleans as the strings "true"/"false"). */
+export interface OptionFilter {
+  option?: string;
+}
+
+/** trade2 filter groups (PoE2: no socket/link groups; rune sockets live under `equipment_filters`). */
 export interface TradeFilters {
   trade_filters?: {
     filters?: {
-      price?: {
-        min?: number;
-        max?: number;
-      };
-      indexed?: {
-        option?: string; // e.g., "1day", "3days", "1week"
-      };
-      sale_type?: {
-        option?: string; // e.g., "priced"
-      };
-      collapse?: {
-        option?: boolean;
-      };
+      /** `option` is the trade currency id; without it the server reads Exalted Orb equivalent (A-10). */
+      price?: RangeFilter & { option?: string };
+      indexed?: OptionFilter;
+      sale_type?: OptionFilter;
+      collapse?: { option?: boolean };
     };
     disabled?: boolean;
   };
   type_filters?: {
     filters?: {
-      rarity?: {
-        option?: string; // "normal", "magic", "rare", "unique", "any"
-      };
-      category?: {
-        option?: string;
-      };
-      ilvl?: {
-        min?: number;
-        max?: number;
-      };
-      links?: {
-        min?: number;
-        max?: number;
-      };
-      sockets?: {
-        r?: number;
-        g?: number;
-        b?: number;
-        w?: number;
-      };
-      quality?: {
-        min?: number;
-        max?: number;
-      };
+      rarity?: OptionFilter;
+      category?: OptionFilter;
+      ilvl?: RangeFilter;
+      quality?: RangeFilter;
     };
     disabled?: boolean;
   };
-  socket_filters?: {
+  equipment_filters?: {
     filters?: {
-      links?: {
-        min?: number;
-        max?: number;
-      };
-      sockets?: {
-        r?: number;
-        g?: number;
-        b?: number;
-        w?: number;
-      };
+      rune_sockets?: RangeFilter;
+      ar?: RangeFilter;
+      es?: RangeFilter;
+      ev?: RangeFilter;
+      block?: RangeFilter;
+      dps?: RangeFilter;
+      pdps?: RangeFilter;
+      edps?: RangeFilter;
     };
     disabled?: boolean;
   };
   req_filters?: {
     filters?: {
-      lvl?: {
-        min?: number;
-        max?: number;
-      };
-      str?: {
-        min?: number;
-        max?: number;
-      };
-      dex?: {
-        min?: number;
-        max?: number;
-      };
-      int?: {
-        min?: number;
-        max?: number;
-      };
+      lvl?: RangeFilter;
+      str?: RangeFilter;
+      dex?: RangeFilter;
+      int?: RangeFilter;
     };
     disabled?: boolean;
   };
-  weapon_filters?: {
+  misc_filters?: {
     filters?: {
-      damage?: {
-        min?: number;
-        max?: number;
-      };
-      crit?: {
-        min?: number;
-        max?: number;
-      };
-      aps?: {
-        min?: number;
-        max?: number;
-      };
-      dps?: {
-        min?: number;
-        max?: number;
-      };
-      pdps?: {
-        min?: number;
-        max?: number;
-      };
-      edps?: {
-        min?: number;
-        max?: number;
-      };
-    };
-    disabled?: boolean;
-  };
-  armour_filters?: {
-    filters?: {
-      ar?: {
-        min?: number;
-        max?: number;
-      };
-      es?: {
-        min?: number;
-        max?: number;
-      };
-      ev?: {
-        min?: number;
-        max?: number;
-      };
-      block?: {
-        min?: number;
-        max?: number;
-      };
+      corrupted?: OptionFilter;
+      identified?: OptionFilter;
+      mirrored?: OptionFilter;
     };
     disabled?: boolean;
   };
 }
 
+/** trade2 listing status: instant buyout, instant buyout or in person, online, online in league, any. */
+export type TradeStatus = 'securable' | 'available' | 'online' | 'onlineleague' | 'any';
+
 export interface TradeQuery {
   query: {
     status?: {
-      option: 'available' | 'online' | 'onlineleague' | 'any';
+      option: TradeStatus;
     };
     name?: string;
     type?: string;
@@ -203,22 +134,39 @@ export interface Requirement {
 
 export interface Socket {
   group: number;
-  attr?: string; // S, D, I, G (Str, Dex, Int, General)
-  sColour?: string; // R, G, B, W
+  /** PoE2: `"rune"`. */
+  type?: string;
 }
 
-export interface ExtendedMod {
-  name: string;
-  tier: string;
-  level: number;
-  magnitudes: Array<{
-    hash: string;
-    min: number;
-    max: number;
-  }>;
+/** One magnitude of a mod; trade2 sends `min`/`max` as strings. */
+export interface ModMagnitude {
+  hash?: string;
+  min: string | number;
+  max: string | number;
 }
+
+/** One affix behind a mod line (rare affixes carry name/tier/level; uniques only magnitudes). */
+export interface ModInfo {
+  name?: string;
+  tier?: string;
+  level?: number;
+  magnitudes?: ModMagnitude[];
+}
+
+/** A trade2 mod line object (S-3 §1). `description` carries `[Tag|Text]` markup. */
+export interface ModLineObject {
+  description: string;
+  flags?: { fractured?: boolean; desecrated?: boolean; crafted?: boolean };
+  domain?: string;
+  hash?: string;
+  mods?: ModInfo[];
+}
+
+/** A mod line as trade2 sends it: an object on items, sometimes a plain string in `socketedItems`. */
+export type RawModLine = string | ModLineObject;
 
 export interface TradeItem {
+  realm?: string;
   verified: boolean;
   w: number;
   h: number;
@@ -232,86 +180,66 @@ export interface TradeItem {
   ilvl: number;
   note?: string;
 
-  // Rarity
-  rarity?: string; // "NORMAL", "MAGIC", "RARE", "UNIQUE"
-  frameType: number; // 0-5 (0=normal, 1=magic, 2=rare, 3=unique, 4=gem, 5=currency)
+  rarity?: string; // "Normal", "Magic", "Rare", "Unique"
+  frameType: number;
 
-  // Properties and requirements
   properties?: Property[];
   requirements?: Requirement[];
 
-  // Sockets
   sockets?: Socket[];
-  socketedItems?: TradeItem[];
+  /** Runes and gems in the item's sockets (gems have no `id`). */
+  socketedItems?: Array<Partial<TradeItem> & { socket?: number; bondedMods?: RawModLine[] }>;
 
-  // Mods
-  implicitMods?: string[];
-  explicitMods?: string[];
-  craftedMods?: string[];
-  enchantMods?: string[];
-  fracturedMods?: string[];
-  utilityMods?: string[];
+  // Mod lines. Fractured, desecrated and crafted lines sit inside `explicitMods` (flags + domain).
+  implicitMods?: RawModLine[];
+  explicitMods?: RawModLine[];
+  enchantMods?: RawModLine[];
+  runeMods?: RawModLine[];
+  /** Weighted searches: `[{description: "Sum: <w>", domain: "pseudo", hash: "statgroup.0"}]`. */
+  pseudoMods?: RawModLine[];
+  craftedMods?: RawModLine[];
+  fracturedMods?: RawModLine[];
+  desecratedMods?: RawModLine[];
 
-  // Extended info
   extended?: {
-    mods?: {
-      explicit?: ExtendedMod[];
-      implicit?: ExtendedMod[];
-      crafted?: ExtendedMod[];
-      enchant?: ExtendedMod[];
-      fractured?: ExtendedMod[];
-    };
-    hashes?: {
-      explicit?: Array<[string, number[]]>;
-      implicit?: Array<[string, number[]]>;
-      crafted?: Array<[string, number[]]>;
-      enchant?: Array<[string, number[]]>;
-      fractured?: Array<[string, number[]]>;
-    };
-    text?: string;
-    category?: string;
-    subcategories?: string[];
-    prefixes?: number;
-    suffixes?: number;
+    ar?: number;
+    ev?: number;
+    es?: number;
+    ward?: number;
+    /** `hashes.<domain>` = `[[statId, [modIndex…]]]`. */
+    hashes?: Record<string, Array<[string, number[] | null]>>;
   };
 
-  // Corruption/influence
   corrupted?: boolean;
+  doubleCorrupted?: boolean;
   mirrored?: boolean;
-  split?: boolean;
-  synthesised?: boolean;
-  replica?: boolean;
-  elder?: boolean;
-  shaper?: boolean;
-  crusader?: boolean;
-  hunter?: boolean;
-  redeemer?: boolean;
-  warlord?: boolean;
+  fractured?: boolean;
+  desecrated?: boolean;
+  mutated?: boolean;
 
-  // Other
   flavourText?: string[];
   descrText?: string;
-  secDescrText?: string;
   stackSize?: number;
   maxStackSize?: number;
-  duplicated?: boolean;
-  foilVariation?: number;
 }
 
 export interface TradeAccount {
   name: string;
   lastCharacterName?: string;
+  /** `null` on instant-buyout listings. */
   online?: {
     league?: string;
     status?: string;
-  };
+  } | null;
   language?: string;
+  realm?: string;
 }
 
 export interface TradePrice {
-  type: string; // "~price", "~b/o", etc.
+  type: string; // "~price", "~b/o"
   amount: number;
-  currency: string; // "chaos", "divine", "exa", etc.
+  /** The trade currency id ("exalted", "divine", "chaos", …); also the poe.ninja id (D-33). */
+  currency: string;
 }
 
 export interface TradeListing {
@@ -322,8 +250,11 @@ export interface TradeListing {
     x: number;
     y: number;
   };
-  whisper: string;
+  /** Only on in-person listings; instant-buyout listings have `fee` and `hideout_token` instead. */
+  whisper?: string;
   whisper_token?: string;
+  fee?: number;
+  hideout_token?: string;
   account: TradeAccount;
   price?: TradePrice;
 }
@@ -371,137 +302,4 @@ export interface League {
 
 export interface LeagueData {
   result: League[];
-}
-
-// ========================================
-// Recommendation System Interfaces
-// ========================================
-
-export interface ItemRequirements {
-  slot: string;
-  minLife?: number;
-  minES?: number;
-  fireResist?: number;
-  coldResist?: number;
-  lightningResist?: number;
-  chaosResist?: number;
-  minDPS?: number;
-  minPDPS?: number;
-  minEDPS?: number;
-  minArmour?: number;
-  minEvasion?: number;
-  links?: number;
-  sockets?: {
-    r?: number;
-    g?: number;
-    b?: number;
-    w?: number;
-  };
-  stats?: Array<{
-    id: string;
-    min?: number;
-    max?: number;
-  }>;
-}
-
-export interface ResistanceRequirements {
-  fire: number;
-  cold: number;
-  lightning: number;
-  chaos?: number;
-}
-
-export interface BudgetConstraints {
-  maxPricePerItem: number;
-  totalBudget: number;
-  currency: string; // "chaos", "divine", etc.
-  preferredBudgetDistribution?: {
-    [slot: string]: number; // percentage of total budget
-  };
-}
-
-export interface BuildRequirements {
-  resistanceGaps: ResistanceRequirements;
-  lifeNeeded?: number;
-  esNeeded?: number;
-  dpsTarget?: number;
-  defenseTarget?: {
-    armour?: number;
-    evasion?: number;
-    blockChance?: number;
-  };
-  criticalStats?: Array<{
-    name: string;
-    id: string;
-    targetValue: number;
-  }>;
-}
-
-export interface StatComparison {
-  current: { [key: string]: number };
-  upgraded: { [key: string]: number };
-  delta: { [key: string]: number };
-}
-
-export interface CostBenefit {
-  price: number;
-  currency: string;
-  dpsGain?: number;
-  lifeGain?: number;
-  esGain?: number;
-  resistGain?: {
-    fire?: number;
-    cold?: number;
-    lightning?: number;
-    chaos?: number;
-  };
-  defenseGain?: {
-    armour?: number;
-    evasion?: number;
-  };
-  pointsPerChaos?: number; // General value metric
-  efficiency: number; // 0-100 score
-}
-
-export interface ItemRecommendation {
-  listing: ItemListing;
-  searchId: string; // Trade search ID for generating item URLs
-  score: number; // 0-100
-  rank: number;
-  reasons: string[];
-  statComparison?: StatComparison;
-  costBenefit: CostBenefit;
-  priority: 'high' | 'medium' | 'low';
-  warnings?: string[];
-}
-
-// ========================================
-// Rate Limiting & Caching
-// ========================================
-
-export interface RateLimitInfo {
-  limit: number;
-  remaining: number;
-  retryAfter?: number;
-  resetTime?: number;
-}
-
-export interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  expiresAt: number;
-}
-
-// ========================================
-// Search Options
-// ========================================
-
-export interface SearchOptions {
-  league: string;
-  onlineOnly?: boolean;
-  minPrice?: number;
-  maxPrice?: number;
-  priceCurrency?: string;
-  sort?: 'price_asc' | 'price_desc';
-  limit?: number; // Max results to fetch
 }

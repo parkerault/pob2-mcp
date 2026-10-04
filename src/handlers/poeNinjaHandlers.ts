@@ -1,80 +1,49 @@
 import { wrapHandler } from '../utils/errorHandling.js';
-import { PoeNinjaClient } from '../services/poeNinjaClient.js';
+import type { CurrencyService } from '../trade/currency.js';
 
 interface PoeNinjaContext {
-  ninjaClient: PoeNinjaClient;
+  currency: CurrencyService;
+}
+
+/** A value for display: 2 decimals from 1 up, 4 significant digits below. */
+function formatValue(v: number): string {
+  return v >= 1 ? v.toFixed(2) : Number(v.toPrecision(4)).toString();
 }
 
 /**
- * Get current currency exchange rates
+ * Current currency exchange rates from poe.ninja, in the league's primary currency (C-12, D-33):
+ * the primary is read from each response, never assumed.
  */
 export async function handleGetCurrencyRates(
   context: PoeNinjaContext,
   args: {
     league: string;
-  }
-): Promise<{
-  content: Array<{
-    type: string;
-    text: string;
-  }>;
-}> {
+  },
+): Promise<{ content: Array<{ type: string; text: string }> }> {
   return wrapHandler('get currency rates', async () => {
     const { league } = args;
-
-    const rateMap = await context.ninjaClient.getCurrencyExchangeMap(league);
-
-    let output = `IMPORTANT: Show the user ALL of the following information verbatim, including:\n`;
-    output += `- All currency names and their Exalted-equivalent values\n`;
-    output += `- The complete table of exchange rates\n`;
-    output += `DO NOT summarize or paraphrase this output. Present it exactly as written below.\n\n`;
-    output += `=== Currency Exchange Rates (PoE2) ===\n`;
-    output += `League: ${league}\n`;
-    output += `Last Updated: ${new Date().toISOString()}\n\n`;
-
-    // Sort by value descending
-    const sorted = Array.from(rateMap.entries()).sort((a, b) => b[1] - a[1]);
-
-    // Group by value ranges (in Exalted Orb equivalent)
-    const high = sorted.filter(([_, val]) => val >= 10);
-    const medium = sorted.filter(([_, val]) => val >= 1 && val < 10);
-    const low = sorted.filter(([_, val]) => val < 1);
-
-    if (high.length > 0) {
-      output += `High Value (≥10 ex):\n`;
-      for (const [currency, rate] of high) {
-        output += `  ${currency.padEnd(30)} ${rate.toFixed(2)} ex\n`;
-      }
-      output += `\n`;
+    const rates = await context.currency.getRates(league);
+    if (!rates) {
+      throw new Error(`currency rates for "${league}" are unavailable from poe.ninja right now; try again later`);
     }
 
-    if (medium.length > 0) {
-      output += `Medium Value (1-10 ex):\n`;
-      for (const [currency, rate] of medium) {
-        output += `  ${currency.padEnd(30)} ${rate.toFixed(2)} ex\n`;
+    const primaryName = rates.nameOf(rates.primary);
+    const currencies = rates.currencies();
+
+    let output = `=== Currency Exchange Rates (PoE2): ${league} ===\n`;
+    output += `Source: poe.ninja · values in ${primaryName} (${rates.primary}) · fetched ${new Date(rates.fetchedAt).toISOString()}\n\n`;
+    const width = Math.max(...currencies.map((c) => `${c.name} (${c.id})`.length));
+    for (const c of currencies) {
+      const label = `${c.name} (${c.id})`.padEnd(width);
+      let line = `  ${label}  ${formatValue(c.valueInPrimary)} ${rates.primary}`;
+      if (c.id !== rates.primary && c.valueInPrimary < 1) {
+        line += ` · ${formatValue(1 / c.valueInPrimary)} per ${rates.primary}`;
       }
-      output += `\n`;
+      output += `${line}\n`;
     }
+    output += `\nTotal currencies: ${currencies.length}\n`;
+    output += `Note: 1 ${primaryName} = 1 ${rates.primary}; each value is what one unit is worth in ${primaryName}. Rates are cached for up to 60 minutes.\n`;
 
-    if (low.length > 0) {
-      output += `Low Value (<1 ex):\n`;
-      for (const [currency, rate] of low) {
-        output += `  ${currency.padEnd(30)} ${rate.toFixed(4)} ex\n`;
-      }
-      output += `\n`;
-    }
-
-    output += `\nTotal Currencies: ${rateMap.size}\n`;
-    output += `\nNote: Rates are from poe.ninja (PoE2) and update periodically. All values shown in Exalted Orb equivalent.\n`;
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: output,
-        },
-      ],
-    };
+    return { content: [{ type: 'text', text: output }] };
   });
 }
-

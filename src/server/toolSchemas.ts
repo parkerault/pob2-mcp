@@ -1114,62 +1114,62 @@ export function getTradeToolSchemas(): any[] {
   return [
     {
       name: "search_trade_items",
-      description: "Search the Path of Exile trade site for items with filters. Returns matching items with prices, stats, and seller information. Default limit is 5 items to minimize token usage.",
+      description: "Search the Path of Exile 2 trade site (trade2) for items with filters. Listings come back in the trade site's order (cheapest first), each with its native price and, where poe.ninja has a rate for the currency, the equivalent in the league's primary currency (e.g. divine). Default limit is 5 items, max 10. Use search_stats to find stat ids for mods.",
       inputSchema: {
         type: "object",
         properties: {
           league: {
             type: "string",
-            description: "EXACT league name as specified by user (e.g., 'Standard', 'Settlers', 'Keepers', 'Hardcore'). Use get_leagues to see available leagues. Do not substitute or change the league name.",
+            description: "EXACT trade league name (e.g. 'Standard', 'Hardcore', or the current league). Use get_leagues to see available leagues. Do not substitute or change the league name.",
           },
           item_name: {
             type: "string",
-            description: "Specific item name to search for (e.g., 'Headhunter', 'Taste of Hate')",
+            description: "Specific item name to search for, usually a unique (e.g. 'Headhunter')",
           },
           item_type: {
             type: "string",
-            description: "Base item type (e.g., 'Corsair Sword', 'Astral Plate')",
+            description: "Item category (e.g. 'ring', 'body armour', 'boots', 'crossbow', 'spear', 'flail', 'focus', 'buckler', 'talisman', 'quarterstaff', 'charm', 'jewel') or an exact base type (e.g. 'Amethyst Ring')",
           },
           min_price: {
             type: "number",
-            description: "Minimum price in the specified currency",
+            description: "Minimum price, in price_currency",
           },
           max_price: {
             type: "number",
-            description: "Maximum price in the specified currency",
+            description: "Maximum price, in price_currency",
           },
           price_currency: {
             type: "string",
-            description: "Currency for price filter (default: 'chaos'). Options: 'chaos', 'divine', 'exalted'",
+            description: "Trade currency id for min_price/max_price (e.g. 'exalted', 'divine', 'chaos'). Omit to price in Exalted Orb equivalent.",
           },
           item_rarity: {
             type: "string",
-            description: "Item rarity filter: 'unique', 'rare', 'magic', 'normal'",
+            description: "Item rarity filter: 'normal', 'magic', 'rare', 'unique', 'nonunique' or 'any'",
           },
-          min_links: {
+          min_rune_sockets: {
             type: "number",
-            description: "Minimum number of links (for weapons/armor)",
+            description: "Minimum number of rune sockets",
           },
           corrupted: {
             type: "boolean",
-            description: "Filter by corruption status (true/false/undefined for any)",
+            description: "true = only corrupted items, false = only uncorrupted; omit for any",
           },
           identified: {
             type: "boolean",
-            description: "Filter by identification status",
+            description: "true = only identified items, false = only unidentified; omit for any",
           },
           mods: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                stat_id: { type: "string" },
+                stat_id: { type: "string", description: "Trade stat id from search_stats (e.g. 'explicit.stat_3299347043')" },
                 min: { type: "number" },
                 max: { type: "number" },
               },
               required: ["stat_id"],
             },
-            description: "List of stat filters with min/max values",
+            description: "Stat filters (all must match), each a trade stat id with optional min/max",
           },
           limit: {
             type: "number",
@@ -1181,7 +1181,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "get_item_price",
-      description: "Quick price check for a specific item by name. Returns current market price and recent sales. IMPORTANT: Use the EXACT league name the user specifies.",
+      description: "Quick price check for a specific item by name on the PoE2 trade site. Lists the cheapest listings with native prices, and summarizes them in the league's primary currency using poe.ninja rates (native prices only if rates are unavailable). IMPORTANT: Use the EXACT league name the user specifies.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1191,11 +1191,11 @@ export function getTradeToolSchemas(): any[] {
           },
           league: {
             type: "string",
-            description: "EXACT league name as specified by user",
+            description: "EXACT league name as specified by user. Default: POE_LEAGUE if set, else the current league (see get_leagues)",
           },
           item_type: {
             type: "string",
-            description: "Item base type for more accurate results (optional)",
+            description: "Item category or base type for more accurate results (optional)",
           },
           rarity: {
             type: "string",
@@ -1208,7 +1208,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "get_leagues",
-      description: "Get list of currently active Path of Exile leagues. Use this to find the correct league name before searching trade or prices.",
+      description: "List the PoE2 trade leagues, in the trade site's order, and mark the default league (POE_LEAGUE if set, else the first current league that is not Standard or Hardcore). Use this to find the correct league name before searching trade or prices.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -1216,13 +1216,13 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "search_stats",
-      description: "Search for item stat/mod IDs to use in trade searches. Use this to find the correct stat_id values for mods you want to filter by.",
+      description: "Search the trade site's live stat list for stat ids to use in trade searches (search_trade_items mods[].stat_id). Matches stat text such as 'maximum Life' or 'fire resistance'.",
       inputSchema: {
         type: "object",
         properties: {
           query: {
             type: "string",
-            description: "Search query for stat names (e.g., 'life', 'fire resistance')",
+            description: "Search query for stat text (e.g. 'maximum Life', 'fire resistance')",
           },
           limit: {
             type: "number",
@@ -1276,13 +1276,13 @@ export function getPoeNinjaToolSchemas(): any[] {
   return [
     {
       name: "get_currency_rates",
-      description: "Get current currency exchange rates from poe.ninja. Returns real-time market prices for all currencies in Chaos Orb equivalent. Updated every 5 minutes from live trading data. IMPORTANT: Use the EXACT league name the user specifies - do not substitute or guess.",
+      description: "Get current PoE2 currency exchange rates from poe.ninja. Values are given in the league's primary currency, which poe.ninja names in each response (e.g. Divine Orb). Rates are cached for up to 60 minutes. IMPORTANT: Use the EXACT league name the user specifies - do not substitute or guess.",
       inputSchema: {
         type: "object",
         properties: {
           league: {
             type: "string",
-            description: "EXACT league name as specified by user (e.g., 'Standard', 'Settlers', 'Keepers', 'Hardcore'). Do not substitute or change this value.",
+            description: "EXACT league name as specified by user (e.g. 'Standard', 'Hardcore', or the current league; see get_leagues). Do not substitute or change this value.",
           },
         },
         required: ["league"],

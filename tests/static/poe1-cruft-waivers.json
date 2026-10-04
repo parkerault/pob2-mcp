@@ -132,12 +132,6 @@
     "justification": "set_config description lists the PoE1 pantheon keys; WU-12 rewrites the config tool descriptions"
   },
   {
-    "file": "src/server/toolSchemas.ts",
-    "phrase": "chaos orb equivalent",
-    "owner": "WU-15",
-    "justification": "get_currency_rates description claims Chaos Orb equivalent prices; WU-15 makes it Divine-primary (D-11, D-33)"
-  },
-  {
     "file": "src/services/validationService.ts",
     "phrase": "spell suppression",
     "owner": "WU-18",

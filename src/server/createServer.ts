@@ -26,7 +26,7 @@ import { resolveDefaultLeague } from "../trade/league.js";
 import type { Credentials } from "../trade/credentials.js";
 import { userAgent } from "../utils/userAgent.js";
 import { StatMapper } from "../services/statMapper.js";
-import { PoeNinjaClient } from "../services/poeNinjaClient.js";
+import { CurrencyService } from "../trade/currency.js";
 import { ContextBuilder, sessionScopedEngine, type EngineAccess } from "../utils/contextBuilder.js";
 import { createEngineSession, type EngineSession } from "../engine/session.js";
 import {
@@ -124,8 +124,8 @@ export function buildCallContext(extra: CallExtra, now: () => number = Date.now)
 
 /**
  * The lazy trade2 `/data/stats` load (D-14): the first trade tool call that needs stats loads them
- * (one request); later calls reuse them. A failure is logged and the static stat mappings stay in
- * use; the next trade call retries.
+ * (one request); later calls reuse them. A failure is logged and the next trade call retries; until
+ * a load succeeds, `search_stats` reports "trade stat data unavailable" (there is no static fallback).
  */
 async function ensureTradeStats(
   tradeClient: Pick<TradeApiClient, "getStats">,
@@ -135,7 +135,7 @@ async function ensureTradeStats(
     await statMapper.ensureLoaded(() => tradeClient.getStats());
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error(`[StatMapper] Failed to load official stats, using the static fallback: ${msg}`);
+    console.error(`[StatMapper] Failed to load trade stat data: ${msg}`);
   }
 }
 
@@ -163,7 +163,8 @@ export function createServer(deps: ServerDeps): {
   const watchService = new WatchService(deps.pobDirectory, buildService);
   const validationService = new ValidationService();
   const exportService = new BuildExportService(deps.pobDirectory);
-  const ninjaClient = new PoeNinjaClient({ fetch: deps.fetch });
+  // C-12: poe.ninja rates, read lazily and cached per league.
+  const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
   const tradeLimiter = new RateLimiter({ now });
   const tradeClient = new TradeApiClient({
@@ -200,7 +201,7 @@ export function createServer(deps: ServerDeps): {
     contextBuilder,
     tradeClient,
     statMapper,
-    ninjaClient,
+    currency,
     session,
     getLuaClient: engineAccess.getLuaClient,
     ensureLuaClient: engineAccess.ensureLuaClient,

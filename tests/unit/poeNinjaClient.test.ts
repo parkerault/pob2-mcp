@@ -1,67 +1,64 @@
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+/**
+ * The poe.ninja HTTP client (WU-15), on the committed fixture: it keeps only the HTTP for the
+ * currency overview (C-12 does the conversion). HTTP via `fixtureFetch`.
+ */
+import { describe, it, expect } from '@jest/globals';
 import { PoeNinjaClient } from '../../src/services/poeNinjaClient';
+import { fixtureFetch } from '../helpers/fixtureFetch';
 
-// PoE2 poe.ninja exchange/current/overview shape (lines + items joined by id).
-// Base unit is the Exalted Orb (primaryValue=1); values are Exalted-equivalents.
-const POE2_RESPONSE = {
-  core: { rates: { chaos: 0.781 } },
-  lines: [
-    { id: 'exalted', primaryValue: 1, volumePrimaryValue: 3445250 },
-    { id: 'divine', primaryValue: 77, volumePrimaryValue: 9000 },
-    { id: 'alch', primaryValue: 1.21, volumePrimaryValue: 37059 },
-    { id: 'zero', primaryValue: 0 }, // dropped (no value)
-  ],
-  items: [
-    { id: 'exalted', name: 'Exalted Orb', detailsId: 'exalted-orb' },
-    { id: 'divine', name: 'Divine Orb', detailsId: 'divine-orb' },
-    { id: 'alch', name: 'Orb of Alchemy', detailsId: 'orb-of-alchemy' },
-    { id: 'zero', name: 'Zero Orb' },
-  ],
-};
+const NINJA = /^https:\/\/poe\.ninja\//;
+const UA = 'pob2-mcp-server/test';
 
-describe('PoeNinjaClient (PoE2)', () => {
-  let client: PoeNinjaClient;
-  let fetchMock: jest.Mock;
-
-  beforeEach(() => {
-    fetchMock = jest.fn(async () => ({
-      ok: true,
-      json: async () => POE2_RESPONSE,
-    })) as any;
-    client = new PoeNinjaClient({ fetch: fetchMock as unknown as typeof fetch });
+describe('PoeNinjaClient (WU-15): currency overview over HTTP', () => {
+  it('GETs the PoE2 exchange overview for the league with the given User-Agent', async () => {
+    const ff = fixtureFetch([{ match: NINJA, respond: { fixture: 'poeninja/currency-overview' } }]);
+    const client = new PoeNinjaClient({ fetch: ff.fetch, userAgent: UA });
+    const result = await client.currencyOverview('Runes of Aldur');
+    expect(ff.calls).toHaveLength(1);
+    expect(ff.calls[0]).toMatchObject({
+      method: 'GET',
+      url: 'https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Runes%20of%20Aldur&type=Currency',
+    });
+    expect(ff.calls[0].headers['user-agent']).toBe(UA);
+    expect(ff.calls[0].headers['if-none-match']).toBeUndefined();
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') throw new Error('unreachable');
+    expect(result.body.core?.primary).toBe('divine');
+    expect(result.body.core?.rates).toEqual({ exalted: 440.6, chaos: 2.7 });
+    expect(result.body.lines).toHaveLength(47);
+    expect(result.etag).toBeNull();
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  it('sends If-None-Match when given an ETag and reports a 304 as not_modified', async () => {
+    const ff = fixtureFetch([{ match: NINJA, respond: { status: 304 } }]);
+    const client = new PoeNinjaClient({ fetch: ff.fetch, userAgent: UA });
+    await expect(client.currencyOverview('Standard', '"abc"')).resolves.toEqual({ status: 'not_modified' });
+    expect(ff.calls[0].headers['if-none-match']).toBe('"abc"');
   });
 
-  it('calls the PoE2 exchange/current endpoint with league/type', async () => {
-    await client.getCurrencyRates('Runes of Aldur');
-    const url = String(fetchMock.mock.calls[0][0]);
-    expect(url).toContain('poe.ninja/poe2/api/economy/exchange/current/overview');
-    expect(url).toContain('league=Runes%20of%20Aldur');
-    expect(url).toContain('type=Currency');
+  it('returns the response ETag', async () => {
+    const ff = fixtureFetch([{ match: NINJA, respond: { status: 200, headers: { etag: 'W/"x1"' }, body: { core: { primary: 'divine' } } } }]);
+    const client = new PoeNinjaClient({ fetch: ff.fetch, userAgent: UA });
+    const result = await client.currencyOverview('Standard');
+    expect(result).toMatchObject({ status: 'ok', etag: 'W/"x1"' });
   });
 
-  it('transforms PoE2 lines+items into CurrencyOverview', async () => {
-    const overview = await client.getCurrencyRates('Standard');
-    const divine = overview.lines.find((l) => l.currencyTypeName === 'Divine Orb');
-    expect(divine?.chaosEquivalent).toBe(77);
-    // zero-value entries are dropped
-    expect(overview.lines.find((l) => l.currencyTypeName === 'Zero Orb')).toBeUndefined();
-  });
-
-  it('builds an exchange map with Exalted Orb base = 1 (PoE2)', async () => {
-    const map = await client.getCurrencyExchangeMap('Standard');
-    expect(map.get('Exalted Orb')).toBe(1.0);
-    expect(map.get('Divine Orb')).toBe(77);
-    expect(map.get('Orb of Alchemy')).toBe(1.21);
-  });
-
-  it('converts a trading chain using the rate map', async () => {
-    const map = await client.getCurrencyExchangeMap('Standard');
-    // 1 Divine -> exalted -> Alchemy: 1*77 / 1.21 ≈ 63.6 Alchemy
-    const alchFromDivine = (1 * map.get('Divine Orb')!) / map.get('Orb of Alchemy')!;
-    expect(alchFromDivine).toBeCloseTo(63.64, 1);
+  it('throws on a non-2xx and on a transport failure, without echoing the transport message', async () => {
+    const bad = fixtureFetch([{ match: NINJA, respond: { status: 503, body: 'down' } }]);
+    await expect(new PoeNinjaClient({ fetch: bad.fetch, userAgent: UA }).currencyOverview('Standard')).rejects.toThrow(
+      'poe.ninja returned HTTP 503',
+    );
+    const broken = fixtureFetch([
+      {
+        match: NINJA,
+        respond: () => {
+          throw new TypeError('fetch failed: secret-header-value');
+        },
+      },
+    ]);
+    const err = await new PoeNinjaClient({ fetch: broken.fetch, userAgent: UA })
+      .currencyOverview('Standard')
+      .catch((e: Error) => e);
+    expect((err as Error).message).toBe('network error contacting poe.ninja');
   });
 });

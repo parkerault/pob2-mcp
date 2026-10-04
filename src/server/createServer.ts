@@ -221,6 +221,7 @@ export function createServer(deps: ServerDeps): {
     env,
     ensureTradeStats: () => ensureTradeStats(tradeClient, statMapper),
     resolveLeague: () => resolveDefaultLeague(env, tradeClient),
+    credentials: deps.credentials,
   };
 
   server.onerror = (error) => {

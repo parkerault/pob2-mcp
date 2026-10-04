@@ -98,5 +98,6 @@
   { "tool": "get_leagues", "args": {}, "expect": "ok" },
   { "tool": "search_stats", "args": { "query": "maximum Life", "limit": 5 }, "expect": "ok" },
   { "tool": "trade_query_options", "args": { "slot": "Ring 1" }, "expect": "ok" },
+  { "tool": "find_upgrades", "args": { "slot": "Body Armour", "league": "Forbidden Rites" }, "expect": "ok" },
   { "tool": "get_currency_rates", "args": { "league": "Runes of Aldur" }, "expect": "ok" }
 ]

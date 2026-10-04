@@ -73,7 +73,7 @@
   {"name": "validate_build", "bucket": "rewrite", "lane": "C"},
   {"name": "analyze_defenses", "bucket": "rewrite", "lane": "C"},
   {"name": "get_build_issues", "bucket": "rewrite", "lane": "C"},
-  {"name": "find_upgrades", "bucket": "new", "lane": "T2", "pending": "WU-23"},
+  {"name": "find_upgrades", "bucket": "new", "lane": "T2"},
   {"name": "trade_query_options", "bucket": "new", "lane": "T2"},
   {"name": "analyze_build_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "analyze_cluster_jewels", "bucket": "delete", "lane": "D4"},

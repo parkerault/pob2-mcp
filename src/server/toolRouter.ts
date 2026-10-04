@@ -27,7 +27,8 @@ import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
 import { handleExportBuild, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
-import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleTradeQueryOptions, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
+import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleTradeQueryOptions, handleFindUpgrades, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
+import type { Credentials } from "../trade/credentials.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 
@@ -49,6 +50,8 @@ export interface ToolRouterDependencies {
   ensureTradeStats: () => Promise<void>;
   /** The default league (D-20): `POE_LEAGUE`, else the first current league on trade2. */
   resolveLeague: () => Promise<string>;
+  /** C-9: the trade session cookie, re-read on every call (`find_upgrades` decides its fallback on it). */
+  credentials: () => Credentials;
 }
 
 /**
@@ -92,8 +95,11 @@ function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
   return { ...response, content };
 }
 
-/** Tools that do not need trade2 stat data before they run. */
-const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options"]);
+/**
+ * Tools that do not need trade2 stat data before they run. `find_upgrades` loads stats itself, inside
+ * its deadline and only after its no-session check (D-49: no request before a no-session fallback).
+ */
+const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options", "find_upgrades"]);
 
 /** What handlers return: text content, possibly typed loosely by older handlers. */
 type HandlerResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
@@ -170,8 +176,7 @@ async function dispatch(
   name: string,
   args: Record<string, unknown> | undefined,
   deps: ToolRouterDependencies,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _call: ToolCallContext,
+  call: ToolCallContext,
 ): Promise<HandlerResult> {
   // Create handler contexts using contextBuilder
   const handlerContext = deps.contextBuilder.buildHandlerContext();
@@ -571,6 +576,23 @@ async function dispatch(
 
     case "trade_query_options":
       return await handleTradeQueryOptions({ getLuaClient: deps.getLuaClient }, args);
+
+    case "find_upgrades":
+      return await handleFindUpgrades(
+        {
+          session: deps.session,
+          tradeClient: deps.tradeClient,
+          currency: deps.currency,
+          credentials: deps.credentials,
+          env: deps.env,
+          call: {
+            signal: call.signal,
+            deadline: call.arrivedAt + FIND_UPGRADES_BUDGET_MS,
+            sendProgress: (progress, message) => call.sendProgress(progress, message),
+          },
+        },
+        args,
+      );
 
     case "search_stats": {
       if (!args) throw new Error("Missing arguments");

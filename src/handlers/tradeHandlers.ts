@@ -6,7 +6,11 @@ import type { ItemListing } from '../types/tradeTypes.js';
 import { convert, formatCurrencyValue, type CurrencyService, type Rates } from '../trade/currency.js';
 import { modTexts } from '../trade/modLines.js';
 import { tradeSearchUrl } from '../trade/links.js';
-import { currencyInputValue } from '../trade/findUpgrades.js';
+import { currencyInputValue, parseFindUpgradesInput, runUpgradeSearch, type Env } from '../trade/findUpgrades.js';
+import { completeUpgradeSearch } from '../trade/rankUpgrades.js';
+import { renderFallback, renderUpgradeReport } from '../trade/renderUpgrades.js';
+import type { Credentials } from '../trade/credentials.js';
+import type { EngineSession } from '../engine/session.js';
 import { z } from 'zod';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
 import type { TradeQueryOptionsResult } from '../engine/schemas.js';
@@ -481,5 +485,70 @@ export async function handleTradeQueryOptions(context: TradeQueryOptionsContext,
     if (!client) throw new Error('the engine is not running');
     const options = await client.tradeQueryOptions(parsed.data.slot);
     return text(renderTradeQueryOptions(options, parsed.data.slot));
+  });
+}
+
+// ========================================
+// find_upgrades (C-14)
+// ========================================
+
+export interface FindUpgradesContext {
+  /** The engine session (C-3): this handler runs inside its `run` (kind `read`). */
+  session: EngineSession;
+  tradeClient: TradeApiClient;
+  currency: Pick<CurrencyService, 'getRates'>;
+  /** C-9: re-read on every call. */
+  credentials: () => Credentials;
+  env: Env;
+  /** The MCP call: its abort signal, its deadline (arrival + 90 s, D-22) and progress (D-22). */
+  call: { signal: AbortSignal; deadline: number; sendProgress(progress: number, message?: string): Promise<void> };
+}
+
+/**
+ * `find_upgrades` (C-14): PoB's weighted trade search for one slot of the loaded build. The search
+ * pipeline (steps 1–9, `runUpgradeSearch`) and the evaluation, pricing, ranking and rendering (steps
+ * 10–13) run inside the one `session.run` the router opened, under one deadline.
+ */
+export async function handleFindUpgrades(context: FindUpgradesContext, args: unknown): Promise<TextResult> {
+  return wrapHandler('find upgrades', async () => {
+    const input = parseFindUpgradesInput(args);
+    const engine = context.session.current();
+    if (!engine) throw new Error('find_upgrades must run inside an engine session');
+    let step = 0;
+    const progress = async (message: string): Promise<void> => {
+      step += 1;
+      try {
+        await context.call.sendProgress(step, message);
+      } catch (error) {
+        console.error(`[find_upgrades] progress notification failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    const { signal, deadline } = context.call;
+
+    const result = await runUpgradeSearch(input, {
+      engine,
+      trade: context.tradeClient,
+      credentials: context.credentials,
+      env: context.env,
+      signal,
+      deadline,
+      progress,
+      session: context.session,
+    });
+    if (result.kind === 'fallback') {
+      await progress('done');
+      return text(renderFallback(result));
+    }
+    const loaded = context.session.loaded;
+    const report = await completeUpgradeSearch(result, input, {
+      engine,
+      signal,
+      deadline,
+      env: context.env,
+      loaded: loaded ? { displayName: loaded.displayName, path: loaded.path } : null,
+      currency: context.currency,
+      progress,
+    });
+    return text(renderUpgradeReport(report));
   });
 }

@@ -1247,6 +1247,60 @@ export function getTradeToolSchemas(): any[] {
       },
     },
     {
+      name: "find_upgrades",
+      description: "Find upgrades on the Path of Exile 2 trade site for one item slot of the loaded build, the way Path of Building's trade dialog does it: PoB generates a weighted trade query from the build (sort_stats, default the build's saved trade weights, else Full DPS 1 + Effective Hit Pool 0.5), the server searches and fetches listings (at most 5 searches, 90 s budget), PoB scores every candidate against the build, prices are normalized with poe.ninja rates and filtered by max_price, and the results are ranked by rank_by. Each listing shows its score versus the current item's baseline, whether it is an upgrade, per-stat deltas, its native and normalized price, a Buy line (the whisper, or a trade-site link to that exact listing) and PoB's item text. It always says when nothing within budget is an upgrade. Weighted search needs the pathofexile.com session cookie POESESSID; without it the result is the trade-site link for the generated search (open it while logged in), not an error. Use trade_query_options first to see a slot's sort stats, required-mod trade ids and options. Holds the engine for the whole call.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          slot: { type: "string", minLength: 1, description: "PoB slot name, e.g. 'Body Armour', 'Helmet', 'Gloves', 'Boots', 'Belt', 'Amulet', 'Ring 1', 'Weapon 1', 'Weapon 2 Swap', 'Flask 1', a gear jewel socket ('Helmet Jewel Socket 1') or a tree jewel socket ('Jewel <node id>'). Charm, Arm and Leg slots and weapon jewel sockets are not supported" },
+          sort_stats: {
+            type: "array",
+            minItems: 1,
+            maxItems: 10,
+            description: "Stats to weight the search and score by (trade_query_options lists them); default: the build's saved trade weights, else FullDPS 1 + TotalEHP 0.5. *TakenHit stats are not supported",
+            items: {
+              type: "object",
+              properties: {
+                stat: { type: "string", minLength: 1, description: "PoB stat id, e.g. 'FullDPS', 'TotalEHP', 'Life'" },
+                weight: { type: "number", minimum: 0.01, maximum: 1 },
+              },
+              required: ["stat", "weight"],
+            },
+          },
+          required_mods: {
+            type: "array",
+            maxItems: 3,
+            description: "Mods every listing must have (trade stat ids from trade_query_options), each with a minimum value",
+            items: {
+              type: "object",
+              properties: {
+                trade_id: { type: "string", minLength: 1, description: "Trade stat id, e.g. 'explicit.stat_3299347043'" },
+                min: { type: "number" },
+              },
+              required: ["trade_id", "min"],
+            },
+          },
+          max_price: { type: "number", exclusiveMinimum: 0, description: "Budget in the chosen currency; default: no budget" },
+          currency: { type: "string", enum: ["exalted_equivalent", "exalted", "chaos", "divine", "aug", "transmute", "regal", "vaal", "annul", "alch", "mirror"], description: "Budget and display currency (default exalted_equivalent: any currency, priced in exalted)" },
+          max_level: { type: "integer", minimum: 1, maximum: 100, description: "Maximum item level requirement" },
+          min_empty_rune_sockets: { type: "integer", minimum: 1, maximum: 6, description: "Minimum empty rune sockets (slots that show sockets)" },
+          weight_corrupted_mods: { type: "boolean", description: "Weight corrupted mods too (default true unless the current item is corrupted)" },
+          include_mirrored: { type: "boolean", description: "Include mirrored items (default true)" },
+          rune_behaviour: { type: "string", enum: ["copy", "keep", "remove"], description: "Runes of candidates: copy the current item's runes (default), keep the listing's, or remove them" },
+          anoint_behaviour: { type: "string", enum: ["copy", "keep", "remove"], description: "Anoints of candidates (amulets): copy the current one (default), keep, or remove" },
+          jewel_type: { type: "string", enum: ["base", "radius"], description: "Required for jewel slots" },
+          status: { type: "string", enum: ["securable", "available", "onlineleague", "online", "any"], description: "Listing status (default securable: instant buyout)" },
+          league: { type: "string", minLength: 1, description: "Trade league; default POE_LEAGUE, else the current challenge league" },
+          fetch_pages: { type: "integer", minimum: 1, maximum: 10, description: "Pages of 10 listings to fetch and evaluate (default 2)" },
+          rank_by: { type: "string", enum: ["stat_value", "stat_value_per_price", "price", "trade_weight"], description: "Ranking (default stat_value: PoB's score)" },
+          report_stats: { type: "array", maxItems: 10, items: { type: "string", minLength: 1 }, description: "Extra PoB stats to show deltas for" },
+          limit: { type: "integer", minimum: 1, maximum: 20, description: "Listings to return (default 10)" },
+          include_non_upgrades: { type: "boolean", description: "Also list the best non-upgrades, flagged (default false)" },
+        },
+        required: ["slot"],
+      },
+    },
+    {
       name: "trade_query_options",
       description: "What Path of Building's trade dialog offers for one item slot of the loaded build, for planning an upgrade search: whether PoB can generate a weighted trade search for the slot (and why not), the engine stats an upgrade search can sort by (sort_stats), the build's saved trade weights or PoB's defaults, the required-mod choices with their trade stat ids (required_mods), the currencies and trade statuses, and which slot-specific options (rune sockets, rune and anoint behaviour, jewel type) apply. Reads the engine's build; sends no trade-site request.",
       inputSchema: {

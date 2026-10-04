@@ -80,12 +80,13 @@ engineDescribe('AC-T41 (WU-17, C-15): trade_query_options through the MCP tool',
     expect(missing.text).toContain('slot');
   });
 
-  it('AC-T41: tool-disposition.json has no pending on trade_query_options, and listTools has 75 tools', async () => {
+  // AC-T41 counted 75 tools when WU-17 landed; WU-23 lists find_upgrades too, so the count is AC-T45's 76.
+  it('AC-T41: tool-disposition.json has no pending on trade_query_options, and listTools has 76 tools (75 + find_upgrades, AC-T45)', async () => {
     const entry = DISPOSITION.find((e) => e.name === 'trade_query_options');
     expect(entry).toBeDefined();
     expect(entry!.pending).toBeUndefined();
     const listed = (await fx.server.client.listTools()).tools.map((t) => t.name);
-    expect(listed).toHaveLength(75);
+    expect(listed).toHaveLength(76);
     expect(listed).toContain('trade_query_options');
     expect(TOOL_META.trade_query_options).toEqual({ engine: 'read', group: 'trade' });
   });

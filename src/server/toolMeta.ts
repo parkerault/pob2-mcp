@@ -112,6 +112,9 @@ export const TOOL_META: Record<string, ToolMeta> = {
   search_stats: trade,
   // Engine read in the trade group: PoB's trade-dialog choices for a slot (C-15); no trade request.
   trade_query_options: { engine: 'read', group: 'trade' },
+  // PoB's weighted upgrade search for one slot (C-14): one `read` session.run holds the engine lock
+  // through the HTTP phase (D-8a), under a 90 s deadline from arrival (D-22).
+  find_upgrades: { engine: 'read', group: 'trade' },
 
   // poe.ninja (hidden with POE_NINJA_DISABLED=true)
   get_currency_rates: ninja,

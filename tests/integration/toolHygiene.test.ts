@@ -224,8 +224,13 @@ const HTTP_EXPECT: Record<string, { required: Endpoint[]; allowed: Endpoint[] }>
   get_item_price: { required: ['search', 'fetch'], allowed: ['stats', 'leagues', 'search', 'fetch', 'ninja'] },
   get_leagues: { required: ['leagues'], allowed: ['leagues'] },
   search_stats: { required: [], allowed: ['stats'] },
-  get_currency_rates: { required: ['ninja'], allowed: ['ninja'] },
+  // C-12 caches rates per league for 60 min, and the trade samples (same league) convert prices
+  // first (D-61), so get_currency_rates is normally served from cache: the once-only ninja check
+  // below asserts the fetch instead.
+  get_currency_rates: { required: [], allowed: ['ninja'] },
 };
+/** The tools that read C-12 rates; the first of them to run fetches poe.ninja, the rest hit the cache. */
+const NEEDS_RATES = new Set(['search_trade_items', 'get_item_price', 'get_currency_rates']);
 
 function endpointOf(call: RecordedCall): Endpoint | undefined {
   return (Object.keys(ENDPOINTS) as Endpoint[]).find((k) => ENDPOINTS[k].match.test(call.url) && ENDPOINTS[k].method === call.method);
@@ -353,5 +358,13 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     expect(statsAt).toEqual([firstNeedingStats]);
     expect(endpointOf(sampleCalls[firstNeedingStats].calls[0])).toBe('stats');
     expect(sampleCalls.some((s) => s.tool === 'search_stats')).toBe(true);
+
+    // C-12: every rates sample uses one league, so poe.ninja is fetched exactly once, by the first
+    // sample that reads rates; later ones (get_currency_rates included) use the cached rates.
+    const ninjaAt = sampleCalls.flatMap((s, k) => s.calls.filter((c) => endpointOf(c) === 'ninja').map(() => k));
+    const firstNeedingRates = sampleCalls.findIndex((s) => NEEDS_RATES.has(s.tool));
+    expect(firstNeedingRates).toBeGreaterThanOrEqual(0);
+    expect(ninjaAt).toEqual([firstNeedingRates]);
+    expect(sampleCalls.some((s) => s.tool === 'get_currency_rates')).toBe(true);
   });
 });

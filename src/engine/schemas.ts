@@ -42,7 +42,6 @@ export const ACTION_NAMES = [
   'search_nodes',
   'list_gems',
   'get_classes',
-  'save_build',
   'set_socket_group_enabled',
   'set_gem_enabled',
   'create_spec',

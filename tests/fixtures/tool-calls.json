@@ -4,7 +4,7 @@
   { "tool": "get_build_notes", "args": { "build_name": "grenadator.xml" }, "expect": "ok" },
   { "tool": "set_build_notes", "args": { "build_name": "grenadator.xml", "notes": "Hygiene sample note." }, "expect": "ok" },
   { "tool": "compare_trees", "args": { "build1": "grenadator.xml", "build2": "grenadator-copy.xml" }, "expect": "ok",
-    "setup": [{ "tool": "lua_save_build", "args": { "build_name": "grenadator-copy" } }] },
+    "setup": [{ "tool": "lua_save_build", "args": { "build_name": "grenadator-copy", "overwrite": true } }] },
   { "tool": "start_watching", "args": {}, "expect": "ok" },
   { "tool": "stop_watching", "args": {}, "expect": "ok", "setup": [{ "tool": "start_watching", "args": {} }] },
   { "tool": "get_recent_changes", "args": { "limit": 5 }, "expect": "ok" },
@@ -12,7 +12,7 @@
 
   { "tool": "analyze_build", "args": { "build_name": "grenadator.xml" }, "expect": "ok" },
   { "tool": "compare_builds", "args": { "build1": "grenadator.xml", "build2": "grenadator-copy.xml" }, "expect": "ok",
-    "setup": [{ "tool": "lua_save_build", "args": { "build_name": "grenadator-copy" } }] },
+    "setup": [{ "tool": "lua_save_build", "args": { "build_name": "grenadator-copy", "overwrite": true } }] },
   { "tool": "get_nearby_nodes", "args": { "max_distance": 2 }, "expect": "ok" },
   { "tool": "find_path_to_node", "args": { "target_node_id": "29514" }, "expect": "ok" },
   { "tool": "find_path_to_node", "args": { "target_node_id": "99999999" }, "expect": "error",

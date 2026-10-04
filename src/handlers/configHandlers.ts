@@ -12,13 +12,16 @@ export interface ConfigHandlerContext {
 export interface ConfigPresetContext {
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
-  pobDirectory: string;
+  /** C-16: presets live in `<stateDir>/presets/`, never in the builds folder (D-18). */
+  stateDir: string;
 }
 
-const PRESET_DIR_NAME = '.pob-mcp-presets';
+function presetDir(stateDir: string): string {
+  return path.join(stateDir, 'presets');
+}
 
-async function getPresetPath(pobDirectory: string, name: string): Promise<string> {
-  const dir = path.join(pobDirectory, PRESET_DIR_NAME);
+async function getPresetPath(stateDir: string, name: string): Promise<string> {
+  const dir = presetDir(stateDir);
   await fs.mkdir(dir, { recursive: true });
   return sanitizeBuildName(`${name}.json`, dir);
 }
@@ -30,7 +33,7 @@ export async function handleSaveConfigPreset(context: ConfigPresetContext, name:
   if (!luaClient) throw new Error('Lua bridge not active. Use lua_load_build first.');
 
   const config = await luaClient.getConfig();
-  const filePath = await getPresetPath(context.pobDirectory, name);
+  const filePath = await getPresetPath(context.stateDir, name);
   await fs.writeFile(filePath, JSON.stringify(config, null, 2), 'utf-8');
 
   return {
@@ -48,7 +51,7 @@ export async function handleLoadConfigPreset(context: ConfigPresetContext, name:
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua bridge not active. Use lua_load_build first.');
 
-  const filePath = await getPresetPath(context.pobDirectory, name);
+  const filePath = await getPresetPath(context.stateDir, name);
   let config: Record<string, any>;
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
@@ -70,7 +73,7 @@ export async function handleLoadConfigPreset(context: ConfigPresetContext, name:
 
 export async function handleListConfigPresets(context: ConfigPresetContext) {
   return wrapHandler('list config presets', async () => {
-  const dir = path.join(context.pobDirectory, PRESET_DIR_NAME);
+  const dir = presetDir(context.stateDir);
   let files: string[] = [];
   try {
     files = await fs.readdir(dir);

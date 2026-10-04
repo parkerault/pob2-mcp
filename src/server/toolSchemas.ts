@@ -233,13 +233,17 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lua_save_build",
-      description: "Save the currently loaded in-memory Lua bridge build to a file. Required before using file-based tools (validate_build, analyze_build, etc.) on an in-memory build.",
+      description: "Save the engine's current build (everything loaded or changed in the PoB engine, including tree, item, gem and config changes) to a build file in your builds folder, as PoB2 XML. Saving under a new name makes that file the loaded build (like PoB's Save As). An existing file is only replaced with overwrite: true, and a backup of it is kept in the server's state directory. The save is refused if the file changed on disk since the engine loaded or saved it (for example, saved in PoB2); reload it first (lua_reload_build) or save under a new name. Required before using file-based tools (validate_build, analyze_build, etc.) on an in-memory build.",
       inputSchema: {
         type: "object",
         properties: {
           build_name: {
             type: "string",
-            description: "Output filename (e.g., 'MyBuild.xml'). .xml extension added automatically if missing.",
+            description: "Output file name relative to the builds folder (e.g., 'MyBuild' or 'sub/MyBuild.xml'). .xml is added if missing; a missing subfolder is created.",
+          },
+          overwrite: {
+            type: "boolean",
+            description: "Replace the file if it already exists (default false). The previous file is backed up first. Never overrides the changed-on-disk refusal.",
           },
         },
         required: ["build_name"],

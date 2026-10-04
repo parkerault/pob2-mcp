@@ -11,6 +11,7 @@ import type { WatchService } from '../services/watchService.js';
 import type { ValidationService } from '../services/validationService.js';
 import type { BuildExportService } from '../services/buildExportService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
+import type { BuildFileWriter } from '../services/buildFileWriter.js';
 import {
   EngineAccessError,
   type EngineCallContext,
@@ -91,6 +92,8 @@ export interface LuaContext extends BaseContext {
   engine: () => EngineCallContext;
   /** The build the engine holds (C-3 `loaded`). */
   loadedBuild: () => LoadedBuild | null;
+  /** C-17: every write into the builds folder goes through it. */
+  buildFileWriter: BuildFileWriter;
 }
 
 /**
@@ -148,6 +151,8 @@ export interface ContextDependencies {
   ensureLuaClient: () => Promise<void>;
   engine: () => EngineCallContext;
   loadedBuild: () => LoadedBuild | null;
+  /** C-17: the one build-file writer (it keeps the record of its own writes). */
+  buildFileWriter: BuildFileWriter;
 }
 
 /**
@@ -211,6 +216,7 @@ export class ContextBuilder {
       ensureLuaClient: this.deps.ensureLuaClient,
       engine: this.deps.engine,
       loadedBuild: this.deps.loadedBuild,
+      buildFileWriter: this.deps.buildFileWriter,
     };
   }
 

@@ -660,11 +660,6 @@ export class PoBLuaApiClient {
     return this.request("new_build", params || {});
   }
 
-  async saveBuild(filePath: string): Promise<any> {
-    const res = await this.request("save_build", { path: filePath });
-    return res.result;
-  }
-
   async loadBuildXml(xml: string, name = "API Build"): Promise<any> {
     return this.request("load_build_xml", { xml, name });
   }

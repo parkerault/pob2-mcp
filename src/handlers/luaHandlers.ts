@@ -1,5 +1,6 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
+import type { BuildFileWriter } from "../services/buildFileWriter.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import fs from "fs/promises";
 import path from "path";
@@ -16,6 +17,8 @@ export interface LuaHandlerContext {
   engine: () => EngineCallContext;
   /** The build the engine holds (C-3 `loaded`). */
   loadedBuild: () => LoadedBuild | null;
+  /** C-17: every write into the builds folder goes through it. */
+  buildFileWriter: Pick<BuildFileWriter, 'writeBuildFile'>;
 }
 
 /** `Build: <displayName>`, plus the relative path when the build came from a file (AC-E22). */
@@ -76,28 +79,41 @@ export async function handleLuaNewBuild(context: LuaHandlerContext, className?: 
   });
 }
 
-export async function handleLuaSaveBuild(context: LuaHandlerContext, buildName: string) {
+/**
+ * `lua_save_build` (C-17, D-60): the engine's current build (`export_build_xml`, root
+ * `<PathOfBuilding2>`) written through the build-file writer as `kind: 'engine'`: `overwrite` to replace
+ * a file (a backup is kept), the changed-on-disk guard, and `noteSaved`, which re-points the loaded build
+ * on a save under a new name (Save As, D-51d).
+ */
+export async function handleLuaSaveBuild(context: LuaHandlerContext, buildName: string, overwrite?: boolean) {
   return wrapHandler('save build', async () => {
-    await context.ensureLuaClient();
-
-    const luaClient = context.getLuaClient();
-    if (!luaClient) {
-      throw new Error('Lua client not initialized');
-    }
-
     if (!buildName || !buildName.trim()) {
       throw new Error('build_name is required');
     }
 
-    const fileName = buildName.endsWith('.xml') ? buildName : `${buildName}.xml`;
-    const filePath = sanitizeBuildName(fileName, context.pobDirectory);
-    const result = await luaClient.saveBuild(filePath);
+    const engine = context.engine();
+    const xml = await engine.client.exportBuildXml();
+    if (typeof xml !== 'string' || !/^\s*(<\?xml[^>]*\?>\s*)?<PathOfBuilding2[\s>/]/.test(xml)) {
+      throw new Error('the engine did not export a PathOfBuilding2 build, so nothing was written');
+    }
+    const result = await context.buildFileWriter.writeBuildFile({
+      name: buildName,
+      bytes: xml,
+      overwrite: overwrite === true,
+      kind: 'engine',
+      ctx: engine,
+    });
 
     return {
       content: [
         {
           type: "text" as const,
-          text: `✅ Build saved to "${fileName}" (${result?.size ?? '?'} bytes). File-based tools can now use this build.\n${formatLoadedBuild(context.loadedBuild())}`,
+          text: [
+            ...result.notices,
+            `✅ ${result.message}`,
+            'File-based tools can now use this build.',
+            formatLoadedBuild(context.loadedBuild()),
+          ].join('\n'),
         },
       ],
     };

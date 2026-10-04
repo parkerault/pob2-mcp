@@ -920,31 +920,6 @@ function M.get_classes()
 end
 
 
--- Persistence
-
--- Save the current build to a file on disk (full PathOfBuilding2 DB XML).
--- params: { path: string }
-function M.save_build(params)
-  if not build then return nil, 'build not initialized' end
-  if type(params) ~= 'table' or type(params.path) ~= 'string' or params.path == '' then
-    return nil, 'missing path'
-  end
-  if type(build.SaveDB) ~= 'function' then return nil, 'save not supported by this build' end
-  -- SaveDB composes the complete DB (Build + all savers: Tree/Skills/Items/Config/...)
-  local xmlText = build:SaveDB(params.path)
-  if not xmlText then return nil, 'failed to compose build XML' end
-  local file, ferr = io.open(params.path, 'w+')
-  if not file then
-    return nil, 'cannot open file for writing: ' .. tostring(ferr)
-  end
-  file:write(xmlText)
-  file:close()
-  -- Mirror the UI: a successful save clears the modified flags.
-  if type(build.ResetModFlags) == 'function' then build:ResetModFlags() end
-  return { path = params.path, bytes = #xmlText }
-end
-
-
 -- Skill/socket-group enablement
 
 -- Enable or disable an entire socket group.

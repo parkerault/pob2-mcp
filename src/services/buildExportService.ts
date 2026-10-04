@@ -23,16 +23,25 @@ export interface RestoreOptions {
   backupCurrent?: boolean;
 }
 
+/**
+ * Snapshots, exports and restore backups. Server state lives in the state dir (C-16, D-18), never in
+ * the builds folder, which PoB2's build browser lists in full:
+ * - `<stateDir>/snapshots/<build>/`: `snapshot_build` output;
+ * - `<stateDir>/exports/`: `export_build`'s default output directory;
+ * - `<stateDir>/backups/<build>/`: the copy `restore_snapshot` takes before overwriting a build.
+ */
 export class BuildExportService {
   private pobDirectory: string;
   private snapshotDirectory: string;
   private exportDirectory: string;
+  private backupDirectory: string;
   private xmlBuilder: XMLBuilder;
 
-  constructor(pobDirectory: string) {
+  constructor(pobDirectory: string, stateDir: string) {
     this.pobDirectory = pobDirectory;
-    this.snapshotDirectory = path.join(pobDirectory, '.pob-mcp', 'snapshots');
-    this.exportDirectory = path.join(pobDirectory, '.pob-mcp', 'exports');
+    this.snapshotDirectory = path.join(stateDir, 'snapshots');
+    this.exportDirectory = path.join(stateDir, 'exports');
+    this.backupDirectory = path.join(stateDir, 'backups');
 
     this.xmlBuilder = new XMLBuilder({
       ignoreAttributes: false,
@@ -211,9 +220,7 @@ export class BuildExportService {
    * Restore a build from a snapshot
    */
   async restoreSnapshot(options: RestoreOptions): Promise<{ message: string; backupId?: string }> {
-    // Find snapshot by ID or tag
-    const buildSnapshotDir = sanitizeBuildName(options.buildName, this.snapshotDirectory);
-
+    // Find snapshot by ID or tag (listSnapshots confines the name to the snapshots dir)
     // List snapshots and find matching one
     const { snapshots } = await this.listSnapshots(options.buildName);
 
@@ -235,7 +242,9 @@ export class BuildExportService {
       const timestamp = new Date();
       backupId = timestamp.toISOString().replace(/[:.]/g, '-').split('.')[0];
 
-      const backupPath = path.join(buildSnapshotDir, `${backupId}_before-restore.xml`);
+      const buildBackupDir = sanitizeBuildName(options.buildName, this.backupDirectory);
+      await fs.mkdir(buildBackupDir, { recursive: true });
+      const backupPath = path.join(buildBackupDir, `${backupId}_before-restore.xml`);
       const buildPath = sanitizeBuildName(options.buildName, this.pobDirectory);
       const currentContent = await fs.readFile(buildPath, 'utf-8');
       await fs.writeFile(backupPath, currentContent, 'utf-8');

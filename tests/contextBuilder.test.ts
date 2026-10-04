@@ -25,6 +25,7 @@ const mockDeps: ContextDependencies = {
   ensureLuaClient: async () => {},
   engine: () => { throw new Error('no engine call'); },
   loadedBuild: () => null,
+  buildFileWriter: {} as any,
 };
 
 describe('ContextBuilder', () => {

@@ -184,7 +184,9 @@ engineDescribe('AC-E22: loaded-build lines and the snapshot cost (NFR-6)', () =>
     expect((await f.call('lua_get_build_info')).text).toContain('Build: grenadator (grenadator.xml)');
     const save = await f.call('lua_save_build', { build_name: 'e22-saved' });
     expect(save.isError).toBe(false);
-    expect(save.text).toContain('Build: grenadator (grenadator.xml)');
+    // A save under a new name re-points the loaded build to it (Save As, C-17 step 6, D-51d).
+    expect(f.session.loaded).toMatchObject({ displayName: 'e22-saved', path: 'e22-saved.xml' });
+    expect(save.text).toContain('Build: e22-saved (e22-saved.xml)');
   }, T);
 
   it('AC-E22: the snapshot after set_character_level takes ≤ 100 ms (median of 5)', async () => {

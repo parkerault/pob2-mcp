@@ -20,6 +20,7 @@ import { TreeService } from "../services/treeService.js";
 import { WatchService } from "../services/watchService.js";
 import { ValidationService } from "../services/validationService.js";
 import { BuildExportService } from "../services/buildExportService.js";
+import { BuildFileWriter } from "../services/buildFileWriter.js";
 import { TradeApiClient } from "../trade/tradeClient.js";
 import { RateLimiter } from "../trade/rateLimiter.js";
 import { resolveDefaultLeague } from "../trade/league.js";
@@ -162,7 +163,7 @@ export function createServer(deps: ServerDeps): {
   const treeService = new TreeService(buildService, env);
   const watchService = new WatchService(deps.pobDirectory, buildService);
   const validationService = new ValidationService();
-  const exportService = new BuildExportService(deps.pobDirectory);
+  const exportService = new BuildExportService(deps.pobDirectory, deps.stateDir);
   // C-12: poe.ninja rates, read lazily and cached per league.
   const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
@@ -180,6 +181,17 @@ export function createServer(deps: ServerDeps): {
   // The engine session (C-3) is the only owner of the engine; nothing starts until an engine call.
   const session = createEngineSession({ env, spawn: deps.spawn, pobDirectory: deps.pobDirectory, now });
   const engineAccess = sessionScopedEngine(session);
+  // C-17: the only path for server writes into the builds folder (backups go to the state dir, C-16).
+  const buildFileWriter = new BuildFileWriter({
+    pobDirectory: deps.pobDirectory,
+    stateDir: deps.stateDir,
+    loaded: () => session.loaded,
+    onWritten: (rel) => {
+      // D-58: drop the build-parse cache entry for the written file, under the names it may be keyed by.
+      buildService.invalidateBuild(rel);
+      buildService.invalidateBuild(rel.replace(/\.xml$/i, ""));
+    },
+  });
 
   const contextBuilder = new ContextBuilder({
     buildService,
@@ -195,6 +207,7 @@ export function createServer(deps: ServerDeps): {
     ensureLuaClient: engineAccess.ensureLuaClient,
     engine: engineAccess.engine,
     loadedBuild: engineAccess.loadedBuild,
+    buildFileWriter,
   });
 
   const routerDeps: ToolRouterDependencies = {

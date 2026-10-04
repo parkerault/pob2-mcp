@@ -338,12 +338,6 @@ handlers.get_classes = function(params)
   return { ok = true, result = res }
 end
 
-handlers.save_build = function(params)
-  local res, err = BuildOps.save_build(params or {})
-  if not res then return { ok = false, error = err or 'failed to save build' } end
-  return { ok = true, result = res }
-end
-
 handlers.set_socket_group_enabled = function(params)
   local res, err = BuildOps.set_socket_group_enabled(params or {})
   if not res then return { ok = false, error = err or 'failed to set socket group enabled' } end

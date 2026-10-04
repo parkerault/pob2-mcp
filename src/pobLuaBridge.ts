@@ -619,6 +619,10 @@ export class PoBLuaApiClient {
   /** Stop the engine: `quit`, wait ≤ 2 s for it to exit, then SIGKILL. */
   async stop(): Promise<void> {
     this.generation++;
+    // A start still in flight is now doomed (it fails at its generation check, or because its engine
+    // is stopped below). Detach it, so a start() issued after this stop() makes a fresh attempt
+    // instead of joining the doomed one. The old attempt's settle handler only clears its own slot.
+    this.starting = null;
     const conn = this.conn;
     if (!conn) return;
     if (!conn.dead) {

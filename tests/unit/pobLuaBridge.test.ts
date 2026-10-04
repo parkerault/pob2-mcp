@@ -20,6 +20,7 @@ import {
   EngineContractError,
   EngineExitedError,
   EnginePinError,
+  EngineStartError,
   EngineTimeoutError,
 } from '../../src/pobLuaBridge.js';
 import { baseReply, replySchemas } from '../../src/engine/schemas.js';
@@ -229,6 +230,88 @@ describe('start() (C-4)', () => {
     await expect(client.start()).resolves.toBeUndefined();
     expect(mockSpawn).toHaveBeenCalledTimes(2);
     expect(client.isAlive()).toBe(true);
+  });
+
+  it('AC-E10: a start() issued after stop() makes a fresh attempt while the stopped one is still in flight', async () => {
+    newClient();
+    const first = client.start();
+    const firstOutcome = first.then(
+      () => 'resolved',
+      (e) => e,
+    );
+    const stopped = client.stop();
+    const second = client.start();
+    // The single-flight slot was detached by stop(): the second start is a different attempt.
+    expect(second).not.toBe(first);
+    await expect(second).resolves.toBeUndefined();
+    await stopped;
+    const firstErr = await firstOutcome;
+    expect(firstErr).toBeInstanceOf(EngineStartError);
+    expect(firstErr.message).toMatch(/cancelled by stop\(\)/);
+    // The cancelled attempt never spawned; the fresh one did, and its engine is running.
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
+    expect(client.isAlive()).toBe(true);
+    expect(client.pid()).toBe(mockSpawn.getLastProcess()!.pid);
+  });
+
+  it('AC-E10: a start() issued after stop() lands during the banner wait spawns a new engine', async () => {
+    newClient();
+    mockSpawn.queue({ banner: null });
+    const first = client.start();
+    const firstOutcome = first.then(
+      () => 'resolved',
+      (e) => e,
+    );
+    const firstProc = await spawned();
+    const stopped = client.stop();
+    const second = client.start();
+    expect(second).not.toBe(first);
+    await expect(second).resolves.toBeUndefined();
+    await stopped;
+    expect(await firstOutcome).toBeInstanceOf(Error);
+    expect(mockSpawn).toHaveBeenCalledTimes(2);
+    expect(firstProc.hasExited).toBe(true);
+    expect(client.isAlive()).toBe(true);
+    expect(client.pid()).toBe(mockSpawn.getLastProcess()!.pid);
+    expect(client.pid()).not.toBe(firstProc.pid);
+  });
+
+  it('an engine that prints no ready banner within 15 s rejects start() with EngineStartError and is killed (D-50)', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    newClient();
+    mockSpawn.queue({ banner: null });
+    const outcome = client.start().then(
+      () => 'resolved',
+      (e) => e,
+    );
+    // Wait (on real setImmediate ticks) for the pin check to finish and the engine to spawn.
+    for (let i = 0; i < 100_000 && mockSpawn.processes.length === 0; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    const proc = mockSpawn.getLastProcess()!;
+    expect(proc).not.toBeNull();
+    proc.sendLine('Loading modules...'); // non-JSON noise is not a banner
+    proc.sendStderr('stuck loading the tree');
+
+    let settled = false;
+    void outcome.then(() => {
+      settled = true;
+    });
+    jest.advanceTimersByTime(14_999);
+    await flush();
+    expect(settled).toBe(false);
+    expect(proc.killed).toBe(false);
+
+    jest.advanceTimersByTime(1);
+    const err = await outcome;
+    expect(err).toBeInstanceOf(EngineStartError);
+    expect(err.message).toMatch(/no ready banner within 15 s/);
+    expect(err.message).toContain('stuck loading the tree');
+    // The half-started engine is not left behind.
+    expect(proc.killed).toBe(true);
+    expect(proc.killSignal).toBe('SIGKILL');
+    expect(client.isAlive()).toBe(false);
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
   });
 
   it('AC-E11: the env given to spawn has neither cookie variable, and has LUA_PATH and LUA_CPATH', async () => {

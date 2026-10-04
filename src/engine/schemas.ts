@@ -192,8 +192,10 @@ export const treeSchema = z
     classId: z.number().int(),
     ascendClassId: z.number().int(),
     secondaryAscendClassId: z.number().int(),
+    /** The active spec's engine class and ascendancy names (`curClassName`/`curAscendClassName`). */
+    className: optString,
+    ascendClassName: optString,
     nodes: luaArray(z.number().int()),
-    masteryEffects: luaMap(z.unknown()).optional(),
   })
   .passthrough();
 export type TreeResult = z.infer<typeof treeSchema>;
@@ -257,6 +259,10 @@ export const searchNodesReply = baseReply.extend({
             orbit: optNumber,
             orbitIndex: optNumber,
             ascendancyName: optString,
+            /** PoB's point cost to allocate the node (unallocated, reachable nodes only). */
+            pathDist: z.number().int().optional(),
+            /** The node ids allocating it takes (PoB's `node.path`, the node itself first). */
+            path: luaArray(z.number().int()).optional(),
           })
           .passthrough(),
       ),
@@ -584,7 +590,6 @@ export interface ActionParamsMap {
     ascendClassId: number;
     secondaryAscendClassId?: number;
     nodes: number[];
-    masteryEffects?: Record<number, number>;
     treeVersion?: string;
   };
   add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean };

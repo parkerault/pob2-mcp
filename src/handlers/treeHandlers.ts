@@ -2,12 +2,22 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationChange, PassiveTreeData } from "../types.js";
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
+import type { LoadedBuild } from "../engine/session.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
+import { formatLoadedBuild } from "./luaHandlers.js";
 
 export interface TreeHandlerContext {
   buildService: BuildService;
   treeService: TreeService;
   getLuaClient?: () => PoBLuaApiClient | null;
+  /** The build the engine holds (C-3 `loaded`): named when the tree came from the engine. */
+  loadedBuild?: () => LoadedBuild | null;
+}
+
+/** The `Build:` line: the file read, or the engine's build when the tree came from the engine. */
+function buildLine(context: TreeHandlerContext, fileBuildName: string | null): string {
+  if (fileBuildName) return `Build: ${fileBuildName}`;
+  return formatLoadedBuild(context.loadedBuild?.() ?? null);
 }
 
 export interface PassiveUpgradesContext {
@@ -86,6 +96,7 @@ export async function handleGetNearbyNodes(
   try {
     let allocatedNodeIds: string[] = [];
     let treeVersion = 'Unknown';
+    let fileBuildName: string | null = null;
 
     // Try file-based path first
     if (buildName) {
@@ -93,6 +104,7 @@ export async function handleGetNearbyNodes(
         const build = await context.buildService.readBuild(buildName);
         allocatedNodeIds = context.buildService.parseAllocatedNodes(build);
         treeVersion = context.buildService.extractBuildVersion(build);
+        if (allocatedNodeIds.length > 0) fileBuildName = buildName;
       } catch {
         // Fall through to Lua fallback
       }
@@ -154,7 +166,7 @@ export async function handleGetNearbyNodes(
     const textLines: string[] = [
       `=== Nearby Nodes (within ${distance} nodes) ===`,
       '',
-      `Build: ${buildName}`,
+      buildLine(context, fileBuildName),
       `Found ${nearbyNodes.length} nodes`,
       '',
     ];
@@ -206,6 +218,7 @@ export async function handleFindPath(
   try {
     let allocatedNodeIds: string[] = [];
     let treeVersion = 'Unknown';
+    let fileBuildName: string | null = null;
 
     // Try file-based path first
     if (buildName) {
@@ -217,6 +230,7 @@ export async function handleFindPath(
         }
         allocatedNodeIds = context.buildService.parseAllocatedNodes(build);
         treeVersion = context.buildService.extractBuildVersion(build);
+        if (allocatedNodeIds.length > 0) fileBuildName = buildName;
       } catch (fileErr) {
         // Fall through to Lua fallback
         if (buildName) throw fileErr; // Re-throw if explicitly requested
@@ -286,7 +300,7 @@ export async function handleFindPath(
     const textLines: string[] = [
       `=== Path to ${targetNode.name || "Node " + targetNodeId} ===`,
       '',
-      `Build: ${buildName}`,
+      buildLine(context, fileBuildName),
       `Target: ${targetNode.name || "Unknown"} [${targetNodeId}]`,
     ];
     if (targetNode.isKeystone) textLines.push('Type: KEYSTONE');
@@ -344,6 +358,28 @@ export async function handleFindPath(
 }
 
 
+/** The calculator outputs `get_passive_upgrades` measures (`calc_with` fields). */
+const UPGRADE_FIELDS = ['CombinedDPS', 'TotalDPS', 'TotalEHP', 'Life'];
+/** Candidates measured per search keyword: the nearest unallocated notables by PoB's path cost. */
+const CANDIDATES_PER_KEYWORD = 8;
+
+/** One measured candidate: PoB's path to the notable, and the stat changes of allocating all of it. */
+export interface PassiveUpgrade {
+  id: number;
+  name: string;
+  stats: string[];
+  /** PoB's point cost (`node.pathDist`): the notable plus the travel nodes leading to it. */
+  pathCost: number;
+  dpsDelta: number;
+  ehpDelta: number;
+  /** Relative gain of the requested stat(s), per passive point. */
+  score: number;
+}
+
+const dpsOf = (out: Record<string, unknown>): number =>
+  Number(out.CombinedDPS ?? 0) || Number(out.TotalDPS ?? 0);
+const ehpOf = (out: Record<string, unknown>): number => Number(out.TotalEHP ?? 0) || Number(out.Life ?? 0);
+
 export async function handleGetPassiveUpgrades(
   context: PassiveUpgradesContext,
   focus: 'dps' | 'defence' | 'both' = 'both',
@@ -353,11 +389,8 @@ export async function handleGetPassiveUpgrades(
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua bridge not active. Use lua_start and lua_load_build first.');
 
-  // Step 1: get current base stats and issues to determine search keywords
-  const { issues, stats: baseStats } = await handleGetBuildIssues(context);
-
-  const baseDPS = (baseStats.CombinedDPS as number) || (baseStats.TotalDPS as number) || (baseStats.MinionTotalDPS as number) || 1;
-  const baseEHP = (baseStats.TotalEHP as number) || (baseStats.Life as number) || 1;
+  // Step 1: the build's issues, to pick search keywords
+  const { issues } = await handleGetBuildIssues(context);
 
   // Step 2: map focus + issues to search keywords
   const keywords: string[] = [];
@@ -375,108 +408,93 @@ export async function handleGetPassiveUpgrades(
     }
   }
 
-  // Step 3: search for notable candidates
-  const seen = new Set<string>();
-  const candidates: any[] = [];
+  // Step 3: the nearest unallocated notables per keyword, by PoB's own path cost. Unreachable nodes
+  // (another ascendancy, a blocked path) carry no path and are skipped.
+  const seen = new Set<number>();
+  const candidates: Array<{ id: number; name: string; stats: string[]; path: number[]; pathCost: number }> = [];
 
   for (const keyword of keywords.slice(0, 4)) {
-    try {
-      const results = await luaClient.searchNodes({
-        keyword,
-        nodeType: 'notable',
-        maxResults: 15,
-        includeAllocated: false,
-      });
-      if (results && results.nodes) {
-        for (const node of results.nodes) {
-          const id = String(node.id);
-          if (!seen.has(id)) {
-            seen.add(id);
-            candidates.push(node);
-          }
-        }
-      }
-    } catch { /* skip failed searches */ }
+    const results = await luaClient.searchNodes({
+      keyword,
+      nodeType: 'notable',
+      maxResults: 1000,
+      includeAllocated: false,
+    });
+    const reachable = results.nodes
+      .filter((n) => !n.allocated && n.path && n.path.length > 0 && Number.isInteger(n.pathDist) && n.pathDist! >= 1)
+      .sort((a, b) => a.pathDist! - b.pathDist! || a.name.localeCompare(b.name) || a.id - b.id);
+    let taken = 0;
+    for (const n of reachable) {
+      if (taken >= CANDIDATES_PER_KEYWORD) break;
+      if (seen.has(n.id)) continue;
+      seen.add(n.id);
+      candidates.push({ id: n.id, name: n.name, stats: n.stats, path: n.path!, pathCost: n.pathDist! });
+      taken++;
+    }
   }
 
   if (candidates.length === 0) {
     return {
       content: [{
         type: 'text' as const,
-        text: `=== Passive Upgrades (focus: ${focus}) ===\n\nNo unallocated notable candidates found. Make sure a build is loaded.\n`,
+        text: `=== Passive Upgrades (focus: ${focus}) ===\n\nNo reachable unallocated notable candidates found. Make sure a build is loaded.\n`,
       }],
     };
   }
 
-  // Step 4: simulate each candidate with calcWith
-  interface ScoredNode {
-    node: any;
-    dpsDelta: number;
-    ehpDelta: number;
-    score: number;
+  // Step 4: measure each candidate with PoB's calculator (calc_with), allocating the whole path to
+  // it, as PoB's tree tooltip does ("Allocating this node and all nodes leading to it"). The base is
+  // the same calculator with nothing added.
+  const base = await luaClient.calcWith({ fields: UPGRADE_FIELDS });
+  const baseDPS = dpsOf(base);
+  const baseEHP = ehpOf(base);
+  const rel = (delta: number, of: number) => (of > 0 ? delta / of : 0);
+
+  const scored: PassiveUpgrade[] = [];
+  for (const c of candidates) {
+    const out = await luaClient.calcWith({ addNodes: c.path, fields: UPGRADE_FIELDS });
+    const dpsDelta = dpsOf(out) - baseDPS;
+    const ehpDelta = ehpOf(out) - baseEHP;
+    const gain =
+      focus === 'dps' ? rel(dpsDelta, baseDPS)
+        : focus === 'defence' ? rel(ehpDelta, baseEHP)
+          : rel(dpsDelta, baseDPS) + rel(ehpDelta, baseEHP);
+    scored.push({ id: c.id, name: c.name, stats: c.stats, pathCost: c.pathCost, dpsDelta, ehpDelta, score: gain / c.pathCost });
   }
 
-  const scored: ScoredNode[] = [];
+  // Step 5: the candidates that improve the requested stat(s), best gain per point first
+  const improving = scored
+    .filter((u) => u.score > 0)
+    .sort((a, b) => b.score - a.score || a.pathCost - b.pathCost || a.name.localeCompare(b.name));
+  const top = improving.slice(0, maxResults);
 
-  for (const node of candidates) {
-    try {
-      const out = await luaClient.calcWith({ addNodes: [node.id] });
-      if (!out) continue;
-
-      // calcWith returns raw Lua output; minion stats are nested under out.Minion
-      // (unlike getStats() which remaps them to MinionTotalDPS etc.)
-      const outDPS = (out.CombinedDPS as number) || (out.TotalDPS as number) ||
-                     (out.Minion?.CombinedDPS as number) || (out.Minion?.TotalDPS as number) || baseDPS;
-      const outEHP = (out.TotalEHP as number) || (out.Life as number) || baseEHP;
-
-      const dpsDelta = outDPS - baseDPS;
-      const ehpDelta = outEHP - baseEHP;
-
-      // Relative score weighted by focus
-      let score: number;
-      if (focus === 'dps') {
-        score = dpsDelta / baseDPS;
-      } else if (focus === 'defence') {
-        score = ehpDelta / baseEHP;
-      } else {
-        score = (dpsDelta / baseDPS) + (ehpDelta / baseEHP);
-      }
-
-      scored.push({ node, dpsDelta, ehpDelta, score });
-    } catch { /* skip nodes that fail calcWith */ }
-  }
-
-  // Step 5: sort and return top N
-  scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, maxResults);
-
+  const measured = focus === 'dps' ? 'DPS' : focus === 'defence' ? 'EHP' : 'DPS + EHP';
   const textLines: string[] = [
     `=== Passive Upgrades (focus: ${focus}) ===`,
     '',
     `Base DPS: ${Math.round(baseDPS).toLocaleString()}  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
-    `Evaluated ${candidates.length} candidate notables, showing top ${top.length}:`,
+    `Measured ${candidates.length} nearby notables with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
     '',
   ];
 
   for (let i = 0; i < top.length; i++) {
-    const { node, dpsDelta, ehpDelta, score } = top[i];
-    textLines.push(`${i + 1}. **${node.name}** [${node.id}]`);
-    let scoreLine = `   Score: ${score.toFixed(4)}`;
-    if (dpsDelta !== 0) scoreLine += `  |  DPS Δ: ${dpsDelta > 0 ? '+' : ''}${Math.round(dpsDelta).toLocaleString()}`;
-    if (ehpDelta !== 0) scoreLine += `  |  EHP Δ: ${ehpDelta > 0 ? '+' : ''}${Math.round(ehpDelta).toLocaleString()}`;
-    textLines.push(scoreLine);
-    if (node.stats && node.stats.length > 0) {
-      for (const stat of (node.stats as string[]).slice(0, 2)) {
-        textLines.push(`   - ${stat}`);
-      }
+    const u = top[i];
+    textLines.push(`${i + 1}. **${u.name}** [${u.id}]`);
+    textLines.push(`   Path cost: ${u.pathCost} point${u.pathCost === 1 ? '' : 's'}  |  Score per point: ${u.score.toFixed(4)}`);
+    const deltas: string[] = [];
+    if (u.dpsDelta !== 0) deltas.push(`DPS Δ: ${u.dpsDelta > 0 ? '+' : ''}${Math.round(u.dpsDelta).toLocaleString()}`);
+    if (u.ehpDelta !== 0) deltas.push(`EHP Δ: ${u.ehpDelta > 0 ? '+' : ''}${Math.round(u.ehpDelta).toLocaleString()}`);
+    if (deltas.length) textLines.push(`   ${deltas.join('  |  ')}`);
+    for (const stat of u.stats.slice(0, 2)) {
+      textLines.push(`   - ${stat}`);
     }
     textLines.push('');
   }
 
   if (top.length === 0) {
-    textLines.push('No results after simulation. Try a different focus or ensure a build is loaded.');
+    textLines.push(`None of the measured notables improves ${measured}. Try a different focus.`);
   } else {
-    textLines.push('', '💡 Use lua_set_tree to allocate the top node and recalculate stats.');
+    textLines.push('', '💡 Use update_tree_delta to allocate a node; find_path_to_node shows the travel nodes.');
   }
 
   return {

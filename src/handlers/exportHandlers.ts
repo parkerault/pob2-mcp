@@ -171,17 +171,18 @@ export async function handleExportBuildSummary(context: ExportContext) {
       'TotalDPS', 'CombinedDPS', 'MinionTotalDPS',
       'FireResist', 'ColdResist', 'LightningResist', 'ChaosResist',
       'Armour', 'Evasion', 'PhysicalDamageReduction', 'TotalEHP',
-      'LifeRegen', 'SpellSuppressionChance', 'BlockChance',
+      'LifeRegen', 'BlockChance', 'EvadeChance', 'DeflectChance',
     ]) ?? {};
   } catch { /* best effort */ }
   try { skills = await luaClient.getSkills(); } catch { /* best effort */ }
   try { tree = await luaClient.getTree(); } catch { /* best effort */ }
 
-  const classNames = ['Scion', 'Marauder', 'Ranger', 'Witch', 'Duelist', 'Templar', 'Shadow'];
-  const className = (tree?.classId != null ? classNames[tree.classId] : null) || info?.class || 'Unknown';
+  // The engine's own class and ascendancy names (the active spec's), never a PoE1 id table.
+  const className = info?.className || tree?.className || 'Unknown';
   const buildName = info?.name || 'Unnamed Build';
   const level = info?.level || '?';
-  const ascendancy = info?.ascendancy || '';
+  const ascendName = info?.ascendClassName || tree?.ascendClassName || '';
+  const ascendancy = ascendName && ascendName !== 'None' ? ascendName : '';
 
   const dps = Number(stats.CombinedDPS || stats.TotalDPS || stats.MinionTotalDPS || 0);
   const dpsLabel = (stats.MinionTotalDPS && !stats.TotalDPS) ? 'Minion DPS' : 'DPS';
@@ -203,7 +204,8 @@ export async function handleExportBuildSummary(context: ExportContext) {
   if (Number(stats.Armour ?? 0) > 0) output += `| Armour | ${Number(stats.Armour).toLocaleString()} |\n`;
   if (Number(stats.Evasion ?? 0) > 0) output += `| Evasion | ${Number(stats.Evasion).toLocaleString()} |\n`;
   if (Number(stats.BlockChance ?? 0) > 0) output += `| Block | ${stats.BlockChance}% |\n`;
-  if (Number(stats.SpellSuppressionChance ?? 0) > 0) output += `| Spell Suppression | ${stats.SpellSuppressionChance}% |\n`;
+  if (Number(stats.EvadeChance ?? 0) > 0) output += `| Evade Chance | ${stats.EvadeChance}% |\n`;
+  if (Number(stats.DeflectChance ?? 0) > 0) output += `| Deflect Chance | ${stats.DeflectChance}% |\n`;
   output += '\n';
 
   // Main skill setup

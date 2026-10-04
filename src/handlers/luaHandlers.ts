@@ -368,17 +368,6 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
   });
 }
 
-const CLASS_NAMES: Record<number, string> = { 0:'Scion', 1:'Marauder', 2:'Ranger', 3:'Witch', 4:'Duelist', 5:'Templar', 6:'Shadow' };
-const ASCENDANCY_NAMES: Record<number, Record<number, string>> = {
-  0: {1:'Ascendant'},
-  1: {1:'Juggernaut', 2:'Berserker', 3:'Chieftain'},
-  2: {1:'Raider', 2:'Deadeye', 3:'Pathfinder'},
-  3: {1:'Occultist', 2:'Elementalist', 3:'Necromancer'},
-  4: {1:'Slayer', 2:'Gladiator', 3:'Champion'},
-  5: {1:'Inquisitor', 2:'Hierophant', 3:'Guardian'},
-  6: {1:'Assassin', 2:'Trickster', 3:'Saboteur'},
-};
-
 export async function handleLuaGetTree(context: LuaHandlerContext, includeNodeIds?: boolean) {
   return wrapHandler('get passive tree', async () => {
     await context.ensureLuaClient();
@@ -394,12 +383,10 @@ export async function handleLuaGetTree(context: LuaHandlerContext, includeNodeId
 
     if (tree && typeof tree === 'object') {
       textLines.push(`Tree Version: ${tree.treeVersion ?? 'Unknown'}`);
-      const classId = tree.classId != null ? tree.classId : undefined;
-      const className = classId != null ? CLASS_NAMES[classId] : undefined;
-      textLines.push(`Class: ${className ?? 'Unknown'} (ID: ${classId ?? 'Unknown'})`);
-      const ascId = tree.ascendClassId != null ? tree.ascendClassId : undefined;
-      const ascName = classId != null && ascId != null && ascId > 0 ? ASCENDANCY_NAMES[classId]?.[ascId] : (ascId === 0 ? 'None' : undefined);
-      textLines.push(`Ascendancy: ${ascName ?? 'Unknown'} (ID: ${ascId ?? 'Unknown'})`);
+      // The engine's own class and ascendancy names (the active spec's), never a PoE1 id table.
+      const named = (name: string | undefined, id: number) => (name ? `${name} (ID: ${id})` : `ID ${id}`);
+      textLines.push(`Class: ${named(tree.className, tree.classId)}`);
+      textLines.push(`Ascendancy: ${named(tree.ascendClassName, tree.ascendClassId)}`);
 
       if (tree.secondaryAscendClassId) {
         textLines.push(`Secondary Ascendancy ID: ${tree.secondaryAscendClassId}`);
@@ -412,11 +399,6 @@ export async function handleLuaGetTree(context: LuaHandlerContext, includeNodeId
         } else {
           textLines.push(`Node IDs: [omitted — use include_node_ids=true to see full list]`);
         }
-      }
-
-      if (tree.masteryEffects && typeof tree.masteryEffects === 'object') {
-        const effectCount = Object.keys(tree.masteryEffects).length;
-        textLines.push(`\nMastery Effects: ${effectCount} selected`);
       }
     } else {
       textLines.push('No tree data available.');
@@ -466,7 +448,6 @@ export async function handleLuaSetTree(context: LuaHandlerContext, args: any) {
       ascendClassId,
       secondaryAscendClassId,
       nodes: (args.nodes as string[]).map(Number),
-      masteryEffects: args.masteryEffects,
       treeVersion,
     });
 

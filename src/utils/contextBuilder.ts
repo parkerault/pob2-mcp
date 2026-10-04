@@ -72,6 +72,13 @@ export interface HandlerContext extends BaseContext {
 }
 
 /**
+ * Context for tree handlers: the handler context plus the build the engine holds (C-3 `loaded`)
+ */
+export interface TreeContext extends HandlerContext {
+  loadedBuild: () => LoadedBuild | null;
+}
+
+/**
  * Context for watch handlers (includes watchService)
  */
 export interface WatchContext extends BaseContext {
@@ -190,9 +197,9 @@ export class ContextBuilder {
   }
 
   /**
-   * Build context for tree operations (same as handler context currently)
+   * Build context for tree operations: the handler context plus the engine's loaded build
    */
-  buildTreeContext(): HandlerContext {
+  buildTreeContext(): TreeContext {
     return {
       buildService: this.deps.buildService,
       treeService: this.deps.treeService,
@@ -201,6 +208,7 @@ export class ContextBuilder {
       stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
+      loadedBuild: this.deps.loadedBuild,
     };
   }
 

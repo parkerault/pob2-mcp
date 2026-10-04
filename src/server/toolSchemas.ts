@@ -221,11 +221,11 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lua_new_build",
-      description: "Create a new blank build with specified class and ascendancy. Auto-starts the Lua bridge if needed (no need to call lua_start first). Classes and ascendancies (PoE1): Scion: Ascendant | Marauder: Juggernaut, Berserker, Chieftain | Ranger: Raider, Deadeye, Pathfinder | Witch: Occultist, Elementalist, Necromancer | Duelist: Slayer, Gladiator, Champion | Templar: Inquisitor, Hierophant, Guardian | Shadow: Assassin, Trickster, Saboteur",
+      description: "Create a new blank build with specified class and ascendancy. Auto-starts the Lua bridge if needed (no need to call lua_start first). Use get_classes for the PoE2 class and ascendancy names the engine knows.",
       inputSchema: {
         type: "object",
         properties: {
-          class_name: { type: "string", description: "Class name (e.g., 'Witch', 'Marauder')" },
+          class_name: { type: "string", description: "Class name (e.g., 'Witch', 'Mercenary'; see get_classes)" },
           ascendancy: { type: "string", description: "Ascendancy class name (optional)" },
         },
         required: ["class_name"],
@@ -383,11 +383,11 @@ export function getLuaToolSchemas(): any[] {
           },
           classId: {
             type: "number",
-            description: "Class ID (0=Scion, 1=Marauder, 2=Ranger, 3=Witch, 4=Duelist, 5=Templar, 6=Shadow). If omitted, preserves current class.",
+            description: "Engine class ID (see get_classes). If omitted, preserves current class.",
           },
           ascendClassId: {
             type: "number",
-            description: "Ascendancy class ID (0=None, 1-3 class-specific). Scion: 1=Ascendant | Marauder: 1=Juggernaut, 2=Berserker, 3=Chieftain | Ranger: 1=Raider, 2=Deadeye, 3=Pathfinder | Witch: 1=Occultist, 2=Elementalist, 3=Necromancer | Duelist: 1=Slayer, 2=Gladiator, 3=Champion | Templar: 1=Inquisitor, 2=Hierophant, 3=Guardian | Shadow: 1=Assassin, 2=Trickster, 3=Saboteur",
+            description: "Engine ascendancy ID within the class (0 = none; see get_classes). If omitted, preserves current ascendancy.",
           },
         },
         required: ["nodes"],
@@ -414,7 +414,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lua_get_build_info",
-      description: "Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. Useful to confirm which build is active after lua_load_build or lua_new_build. Classes and ascendancies (PoE1): Scion: Ascendant | Marauder: Juggernaut, Berserker, Chieftain | Ranger: Raider, Deadeye, Pathfinder | Witch: Occultist, Elementalist, Necromancer | Duelist: Slayer, Gladiator, Champion | Templar: Inquisitor, Hierophant, Guardian | Shadow: Assassin, Trickster, Saboteur",
+      description: "Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. Useful to confirm which build is active after lua_load_build or lua_new_build. Class and ascendancy are the engine's PoE2 names for the active passive tree spec.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -1254,7 +1254,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_passive_upgrades",
-      description: "Find the best unallocated notable passives to pick up next, ranked by their actual stat impact. Uses calcWith to simulate each candidate and scores by relative DPS/EHP gain.",
+      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points.",
       inputSchema: {
         type: "object",
         properties: {

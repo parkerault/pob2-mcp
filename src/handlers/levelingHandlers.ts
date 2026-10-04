@@ -113,14 +113,15 @@ export async function handlePlanLeveling(
 
     const luaClient = context.getLuaClient();
 
-    // Pull class / ascendancy from the loaded build. NOTE: the engine returns
-    // `className` / `ascendClassName` (resolved from the passive tree) — earlier
-    // versions read `class` / `ascendancy` here, which were always undefined.
+    // Pull class / ascendancy from the loaded build (the engine's names for the active spec). A
+    // `class_name` override wins, and the loaded build's ascendancy then applies only when the
+    // override names the loaded build's own class: another class's ascendancy would be wrong.
     if (luaClient) {
       try {
         const info = await luaClient.getBuildInfo();
+        const sameClass = !className || className.trim().toLowerCase() === String(info?.className ?? '').toLowerCase();
         className = className || info?.className;
-        ascendancy = ascendancy || info?.ascendClassName;
+        if (!ascendancy && sameClass) ascendancy = info?.ascendClassName;
       } catch {
         // use whatever args provided
       }

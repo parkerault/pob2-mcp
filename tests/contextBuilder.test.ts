@@ -54,13 +54,14 @@ describe('ContextBuilder', () => {
   });
 
   describe('buildTreeContext', () => {
-    it('should return context with buildService, treeService, and validationService', () => {
+    it('should return context with buildService, treeService, validationService and the loaded build', () => {
       const context = builder.buildTreeContext();
 
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
       expect(context.validationService).toBe(mockValidationService);
-      expect(Object.keys(context)).toHaveLength(7);
+      expect(context.loadedBuild()).toBeNull();
+      expect(Object.keys(context)).toHaveLength(8);
     });
   });
 

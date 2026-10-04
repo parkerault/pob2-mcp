@@ -8,6 +8,9 @@
 
 local M = {}
 
+-- Version-portable constructor for PoB classes (C-6, E3).
+local construct = require('API.Util').construct
+
 -- Constants
 local MIN_PLAYER_LEVEL = 1
 local MAX_PLAYER_LEVEL = 100
@@ -91,7 +94,8 @@ function M.export_stats(fields)
   return result
 end
 
--- Read current tree allocation and metadata
+-- Read current tree allocation and metadata. Class and ascendancy names are the engine's own (the
+-- active spec's tree), so callers never map ids through a table of their own.
 function M.get_tree()
   if not build or not build.spec then
     return nil, "build/spec not initialized"
@@ -102,21 +106,39 @@ function M.get_tree()
     classId = tonumber(spec.curClassId) or 0,
     ascendClassId = tonumber(spec.curAscendClassId) or 0,
     secondaryAscendClassId = tonumber(spec.curSecondaryAscendClassId or 0) or 0,
+    className = spec.curClassName,
+    ascendClassName = spec.curAscendClassName,
     nodes = {},
-    masteryEffects = {},
   }
   for id, _ in pairs(spec.allocNodes or {}) do
     table.insert(out.nodes, id)
-  end
-  for mastery, effect in pairs(spec.masterySelections or {}) do
-    out.masteryEffects[mastery] = effect
   end
   table.sort(out.nodes)
   return out
 end
 
+-- Re-import the active spec's allocation from a node list, keeping what the node list can't carry
+-- (E2), as PoB's own PassiveSpec:Load does: each allocated node's weapon-set assignment
+-- (`{[id]=node.allocMode}` for allocMode ~= 0) and the attribute choices (`hashOverrides`).
+-- Both are read before the import, which resets the nodes.
+-- PassiveSpec:ImportFromNodeList(className, classId, ascendClassId, secondaryAscendClassId,
+--   hashList, weaponSets, hashOverrides, masteryEffects, treeVersion)
+local function reimport_nodes(classId, ascendId, secondaryId, nodes, treeVersion)
+  local spec = build.spec
+  local weaponSets = {}
+  for id, node in pairs(spec.allocNodes or {}) do
+    if node.allocMode and node.allocMode ~= 0 then
+      weaponSets[id] = node.allocMode
+    end
+  end
+  local hashOverrides = copyTable(spec.hashOverrides or {}, true)
+  -- PoE2 trees have no mastery selections; pass a copy (the import wipes the spec's own table).
+  local masterySelections = copyTable(spec.masterySelections or {}, true)
+  spec:ImportFromNodeList(nil, classId, ascendId, secondaryId, nodes, weaponSets, hashOverrides, masterySelections, treeVersion)
+end
+
 -- Set tree allocation from parameters
--- params: { classId, ascendClassId, secondaryAscendClassId?, nodes:[int], masteryEffects?:{[id]=effect}, treeVersion? }
+-- params: { classId, ascendClassId, secondaryAscendClassId?, nodes:[int], treeVersion? }
 function M.set_tree(params)
   if not build or not build.spec then
     return nil, "build/spec not initialized"
@@ -133,12 +155,7 @@ function M.set_tree(params)
       table.insert(nodes, tonumber(v))
     end
   end
-  local mastery = params.masteryEffects or {}
-  local treeVersion = params.treeVersion
-  -- PoE2 signature: (className, classId, ascendClassId, secondaryAscendClassId,
-  --                  hashList, weaponSets, hashOverrides, masteryEffects, treeVersion)
-  -- Pass className=nil (we provide classId directly) and empty weaponSets/hashOverrides.
-  build.spec:ImportFromNodeList(nil, classId, ascendId, secondaryId, nodes, {}, {}, mastery, treeVersion)
+  reimport_nodes(classId, ascendId, secondaryId, nodes, params.treeVersion)
   -- Rebuild calcs to reflect changes
   M.get_main_output()
   return true
@@ -172,23 +189,18 @@ function M.set_level(level)
   return true
 end
 
--- Basic build info
+-- Basic build info. Class and ascendancy are the active spec's engine names (what PoB shows), falling
+-- back to the build's own fields when no spec is initialised.
 function M.get_build_info()
   if not build then return nil, 'build not initialized' end
-  local className = build.buildClassName or (build.Build and build.Build.className)
-  local ascendClassName = build.buildAscendName or (build.Build and build.Build.ascendClassName)
-  -- Resolve class/ascendancy from the passive spec/tree when not set directly
-  -- (e.g. after loadBuildFromXML, buildClassName is often empty).
-  if (not className or className == '') and build.spec and build.spec.tree and build.spec.curClassId then
-    local cls = build.spec.tree.classes and build.spec.tree.classes[build.spec.curClassId]
-    if type(cls) == 'table' and cls.name then
-      className = cls.name
-      local ascId = tonumber(build.spec.curAscendClassId) or 0
-      local ascendancies = cls.classes or cls.ascendancies
-      if ascId > 0 and type(ascendancies) == 'table' and ascendancies[ascId] then
-        ascendClassName = ascendancies[ascId].name or ascendClassName
-      end
-    end
+  local spec = build.spec
+  local className = spec and spec.curClassName
+  local ascendClassName = spec and spec.curAscendClassName
+  if not className or className == '' then
+    className = build.buildClassName or (build.Build and build.Build.className)
+  end
+  if not ascendClassName or ascendClassName == '' then
+    ascendClassName = build.buildAscendName or (build.Build and build.Build.ascendClassName)
   end
   local info = {
     name = build.buildName,
@@ -218,12 +230,11 @@ function M.update_tree_delta(params)
   local nodes = {}
   for id,_ in pairs(set) do table.insert(nodes, id) end
   table.sort(nodes)
-  local mastery = current.masteryEffects or {}
   local classId = params.classId or current.classId or 0
   local ascendId = params.ascendClassId or current.ascendClassId or 0
   local secId = params.secondaryAscendClassId or current.secondaryAscendClassId or 0
   local tv = params.treeVersion or current.treeVersion
-  build.spec:ImportFromNodeList(nil, tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes, {}, {}, mastery, tv)
+  reimport_nodes(tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes, tv)
   M.get_main_output()
   return true
 end
@@ -838,6 +849,17 @@ function M.search_nodes(params)
         end
       end
 
+      -- PoB's own path to an unallocated node (PassiveSpec:BuildPathFromNode): `path` lists the nodes
+      -- that allocating it takes, the node itself first, and `pathDist` is its point cost. Unreachable
+      -- nodes have no path.
+      local pathDist, path
+      if not allocatedSet[id] and type(node.path) == 'table' and #node.path > 0
+        and tonumber(node.pathDist) and node.pathDist < 1000 then
+        pathDist = node.pathDist
+        path = {}
+        for _, pathNode in ipairs(node.path) do table.insert(path, pathNode.id) end
+      end
+
       table.insert(results, {
         id = id,
         name = node.name or 'Unnamed',
@@ -849,6 +871,8 @@ function M.search_nodes(params)
         orbit = node.orbit,
         orbitIndex = node.orbitIndex,
         ascendancyName = node.ascendancyName,
+        pathDist = pathDist,
+        path = path,
       })
       count = count + 1
     end
@@ -1062,14 +1086,14 @@ function M.create_spec(params)
   if params.copyFrom then
     local src = treeTab.specList[tonumber(params.copyFrom)]
     if not src then return nil, 'copyFrom spec not found at index ' .. tostring(params.copyFrom) end
-    newSpec = new('PassiveSpec', build, src.treeVersion)
+    newSpec = construct('PassiveSpec', build, src.treeVersion)
     newSpec.title = (params.title and tostring(params.title)) or ((src.title or 'Default') .. ' (Copy)')
     newSpec.jewels = copyTable(src.jewels)
     newSpec:RestoreUndoState(src:CreateUndoState())
     newSpec:BuildClusterJewelGraphs()
   else
     local ver = rawget(_G, 'latestTreeVersion') or (build.spec and build.spec.treeVersion)
-    newSpec = new('PassiveSpec', build, ver)
+    newSpec = construct('PassiveSpec', build, ver)
     newSpec.title = (params.title and tostring(params.title)) or 'New Tree'
     if build.spec then
       newSpec:SelectClass(build.spec.curClassId)

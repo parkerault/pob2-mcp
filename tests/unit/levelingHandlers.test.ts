@@ -99,6 +99,18 @@ describe('handlePlanLeveling (PoE2)', () => {
     expect(out).toContain('Monk / Invoker');
   });
 
+  it('AC-E34: a class_name override for another class does not borrow the loaded build\'s class or ascendancy', async () => {
+    const client = makeClient({ info: { className: 'Mercenary', ascendClassName: 'Gemling Legionnaire' }, activeGems: [], supportGems: [] });
+    const out = text(await handlePlanLeveling(ctx(client), { class_name: 'Monk' }));
+    expect(out).toContain('# PoE2 Leveling Guide: Monk\n');
+    expect(out).not.toContain('Mercenary');
+    expect(out).not.toContain('Gemling Legionnaire');
+
+    // Naming the loaded build's own class keeps its ascendancy.
+    const same = text(await handlePlanLeveling(ctx(client), { class_name: 'mercenary' }));
+    expect(same).toContain('mercenary / Gemling Legionnaire');
+  });
+
   it('works with no Lua client (args only) without crashing', async () => {
     const context: LevelingContext = { getLuaClient: () => null, ensureLuaClient: async () => {} };
     const out = text(await handlePlanLeveling(context, { class_name: 'Warrior' }));

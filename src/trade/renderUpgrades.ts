@@ -7,6 +7,8 @@
  *   the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
  *   the PoB item text) while the whole output stays ≤ 30,000 characters; the rest render as one
  *   compact line each, followed by a note. The last line is always `Search on the trade site: <url>`.
+ *   The session's notices go in front of this text (the router adds them, C-3 step 8), so the renderer
+ *   is given their length and keeps the whole output, notices included, within the budget.
  */
 import { formatCurrencyValue } from './currency.js';
 import { exactItemUrl } from './links.js';
@@ -17,7 +19,6 @@ export const OUTPUT_BUDGET = 30_000;
 
 export const NO_UPGRADE = 'No upgrade within budget.';
 export const NO_MATCHES = 'No listings matched the search.';
-export const NOTHING_EVALUATED = 'No listings were evaluated, so no upgrade was found.';
 
 const LINK_INTRO = 'Open this search in a browser where you are logged in to pathofexile.com:';
 
@@ -71,7 +72,7 @@ export interface UpgradeReport {
   display: string;
   /** The last query sent (for the exact-item links). */
   query: object;
-  /** The closing statement before the search link (no upgrade, no matches, all rejected…), if any. */
+  /** The closing statement before the search link (no upgrade, no matches, all rejected…), if any; may span lines. */
   closing: string | null;
   searchUrl: string;
 }
@@ -162,8 +163,12 @@ function headLines(report: UpgradeReport): string[] {
 /**
  * The success output under the D-53 budget: listings in full while the next full listing still fits
  * (with every remaining listing compacted after it), the rest compact, with a note.
+ *
+ * `reservedChars` is the room the text placed in front of this output takes (the session's notices
+ * and their blank line, which the router prepends), so that the whole output stays within the budget.
  */
-export function renderUpgradeReport(report: UpgradeReport): string {
+export function renderUpgradeReport(report: UpgradeReport, reservedChars = 0): string {
+  const budget = OUTPUT_BUDGET - Math.max(0, reservedChars);
   const head = headLines(report).join('\n');
   const tail = [...(report.closing ? [report.closing] : []), `Search on the trade site: ${report.searchUrl}`].join('\n');
   const full = report.listings.map((row, i) => fullListing(row, i + 1, report));
@@ -180,6 +185,6 @@ export function renderUpgradeReport(report: UpgradeReport): string {
   };
 
   let k = 0;
-  while (k < full.length && assemble(k + 1).length <= OUTPUT_BUDGET) k += 1;
+  while (k < full.length && assemble(k + 1).length <= budget) k += 1;
   return assemble(k);
 }

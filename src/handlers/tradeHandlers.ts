@@ -509,7 +509,10 @@ export interface FindUpgradesContext {
  * pipeline (steps 1–9, `runUpgradeSearch`) and the evaluation, pricing, ranking and rendering (steps
  * 10–13) run inside the one `session.run` the router opened, under one deadline.
  */
-export async function handleFindUpgrades(context: FindUpgradesContext, args: unknown): Promise<TextResult> {
+export async function handleFindUpgrades(
+  context: FindUpgradesContext,
+  args: unknown,
+): Promise<TextResult & { refit?: (reservedChars: number) => string }> {
   return wrapHandler('find upgrades', async () => {
     const input = parseFindUpgradesInput(args);
     const engine = context.session.current();
@@ -549,6 +552,8 @@ export async function handleFindUpgrades(context: FindUpgradesContext, args: unk
       currency: context.currency,
       progress,
     });
-    return text(renderUpgradeReport(report));
+    // The router prepends the session's notices (C-3 step 8); `refit` renders the report again with
+    // their room reserved, so the whole output stays within the D-53 budget.
+    return { ...text(renderUpgradeReport(report)), refit: (reservedChars: number) => renderUpgradeReport(report, reservedChars) };
   });
 }

@@ -201,7 +201,9 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
 
   beforeAll(async () => {
     jest.useFakeTimers(FAKE_DATE as unknown as Parameters<typeof jest.useFakeTimers>[0]);
+    // Test actions on: AC-T44 (e) keeps the engine busy past the deadline with `__test_sleep`.
     fx = await startSessionFixture({
+      testActions: true,
       deps: {
         fetch: ((input: Parameters<typeof fetch>[0], init?: RequestInit) => http.fetch(input, init)) as typeof fetch,
         credentials: () => creds,
@@ -294,7 +296,13 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
     }
     const priceKey = (p: { amount: number; currency: string }) => `${p.amount} ${p.currency}`;
     const indexOfPrice = new Map(Array.from({ length: 30 }, (_, k) => [priceKey(priceOf(k)), k]));
-    const BASE = { slot: 'Body Armour', max_price: 200, fetch_pages: 3, limit: 20, include_non_upgrades: true };
+    /**
+     * Under the default weights every fixture-derived listing scores below the golden build's baseline,
+     * so nothing would be an upgrade. Under Life ×1 about half of the fixture's body armours are
+     * upgrades, so (i)–(vii) run on data that mixes upgrades and non-upgrades.
+     */
+    const MIXED_WEIGHTS = [{ stat: 'Life', weight: 1 }];
+    const BASE = { slot: 'Body Armour', max_price: 200, fetch_pages: 3, limit: 20, include_non_upgrades: true, sort_stats: MIXED_WEIGHTS };
 
     const outputs: Record<string, string> = {};
 
@@ -314,9 +322,14 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
         expect(countOf(out.text, 'Over budget')).toBe(1);
         expect(out.text).not.toMatch(/: 2 chaos \(/);
         expect(countOf(out.text, 'Evaluated') + countOf(out.text, 'Rejected')).toBe(30);
-        // (vi)
+        // (vi): the data mixes upgrades and non-upgrades, and each flag is PoB's 4-decimal comparison
         const baseline = baselineOf(out.text);
+        expect(countOf(out.text, 'Upgrades')).toBeGreaterThan(0);
+        expect(shown.some((s) => s.upgrade)).toBe(true);
+        expect(shown.some((s) => !s.upgrade)).toBe(true);
+        expect(out.text).toMatch(/ · UPGRADE$/m);
         for (const s of shown) expect(s.upgrade).toBe(round4(s.score) > round4(baseline));
+        expect(out.text).not.toContain('No upgrade within budget.');
         // (vii): whisper when the listing has one, else the exact-item link; an Item text block
         const full = shown.filter((s) => !s.compact);
         expect(full.length).toBeGreaterThan(0);
@@ -334,6 +347,30 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
           }
           expect(s.block).toMatch(/\n {3}Item text:\n {3}\S/);
         }
+      },
+      TIMEOUT,
+    );
+
+    it(
+      'AC-T31 (vi), C-14 step 13: without include_non_upgrades only the upgrades are listed, up to limit, each flagged UPGRADE',
+      async () => {
+        serve(routes());
+        const out = await call({ slot: 'Body Armour', max_price: 200, fetch_pages: 3, sort_stats: MIXED_WEIGHTS, rank_by: 'stat_value' });
+        expect(out.isError).toBe(false);
+        const upgrades = countOf(out.text, 'Upgrades');
+        expect(upgrades).toBeGreaterThan(0);
+        const shown = listings(out.text);
+        expect(shown).toHaveLength(Math.min(upgrades, 10));
+        const baseline = baselineOf(out.text);
+        for (const s of shown) {
+          expect(s.upgrade).toBe(true);
+          expect(round4(s.score)).toBeGreaterThan(round4(baseline));
+        }
+        // the same listings as the top upgrades of the include_non_upgrades run, in the same order
+        const withAll = listings(outputs.stat_value).filter((s) => s.upgrade);
+        expect(shown.map((s) => s.price)).toEqual(withAll.slice(0, shown.length).map((s) => s.price));
+        expect(out.text).not.toMatch(/ · not an upgrade$/m);
+        expect(out.text).not.toContain('No upgrade within budget.');
       },
       TIMEOUT,
     );
@@ -596,6 +633,51 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
     TIMEOUT,
   );
 
+  it(
+    'C-14 steps 10–11 (D-11): with < 15 s left and poe.ninja hanging, the listings are evaluated first; the cut rate lookup only costs the prices',
+    async () => {
+      let releaseNinja!: () => void;
+      const ninjaHeld = new Promise<void>((r) => (releaseNinja = r));
+      http = fixtureFetch([
+        searchSequence([SESSION_SEARCH]),
+        fetchRoute(),
+        ...DATA_ROUTES,
+        { match: /^https:\/\/poe\.ninja\//, respond: async () => (await ninjaHeld, jsonResponse({ error: 'unavailable' }, {}, 500)) },
+      ]);
+      const originalRequest = PoBLuaApiClient.prototype.request;
+      let t0 = 0;
+      jest.spyOn(PoBLuaApiClient.prototype, 'request').mockImplementation(async function (this: PoBLuaApiClient, action, params, opts) {
+        const reply = await originalRequest.call(this, action, params, opts);
+        // The current item is read just before evaluation: leave 10 s of the 90 s budget.
+        if ((action as string) === 'get_items') jest.setSystemTime(t0 + 80_000);
+        return reply;
+      });
+      try {
+        tick(4 * 3600_000);
+        t0 = Date.now();
+        const result = (await fx.server.client.callTool(
+          { name: 'find_upgrades', arguments: { slot: 'Body Armour', include_non_upgrades: true, limit: 20 } },
+          undefined,
+          { timeout: CALL_TIMEOUT_MS },
+        )) as { isError?: boolean; content: Array<{ text: string }> };
+        const elapsed = Date.now() - t0;
+        const text = result.content.map((c) => c.text).join('\n');
+        expect(result.isError).toBeFalsy();
+        expect(http.calls.some((c) => /poe\.ninja/.test(c.url))).toBe(true);
+        // every fetched listing was evaluated, and they are listed with native prices and the rates note
+        expect(countOf(text, 'Evaluated') + countOf(text, 'Rejected')).toBe(20);
+        expect(countOf(text, 'Evaluated')).toBeGreaterThan(0);
+        expect(listings(text).length).toBe(countOf(text, 'Evaluated'));
+        expect(text).toContain('Currency rates unavailable: showing native prices; the budget was enforced by the trade site only.');
+        expect(text).not.toContain('≈');
+        expect(elapsed).toBeLessThanOrEqual(90_000);
+      } finally {
+        releaseNinja();
+      }
+    },
+    TIMEOUT,
+  );
+
   // -------------------------------------------------------------------------------------------------
   // AC-T44
 
@@ -644,6 +726,45 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       expect(out.isError).toBe(false);
       expect(countOf(out.text, 'Evaluated')).toBe(0);
       expect(out.text).toMatch(/All 20 fetched items were rejected: \S/);
+      // "No upgrade within budget." is always stated when there is none (C-14), after the rejected line
+      const tail = out.text.split('\n').slice(-3);
+      expect(tail[0]).toMatch(/^All 20 fetched items were rejected: \S.*\.$/);
+      expect(tail[1]).toBe('No upgrade within budget.');
+      expect(tail[2]).toMatch(/^Search on the trade site: /);
+    }, TIMEOUT);
+
+    it('AC-T44 (c): when the deadline cuts evaluation after one all-rejected block, the rejected count is not called "all" of the fetched items', async () => {
+      serve([
+        searchSequence([SESSION_SEARCH]),
+        fetchRoute({
+          entryFor: (id, i) => {
+            const ring = JSON.parse(JSON.stringify(RING_TEMPLATE[i % RING_TEMPLATE.length])) as FetchListing;
+            ring.id = id;
+            return ring;
+          },
+        }),
+      ]);
+      const original = PoBLuaApiClient.prototype.tradeEvaluateItems;
+      let t0 = 0;
+      jest.spyOn(PoBLuaApiClient.prototype, 'tradeEvaluateItems').mockImplementation(async function (this: PoBLuaApiClient, params, opts) {
+        const result = await original.call(this, params, opts);
+        jest.setSystemTime(t0 + 89_500); // < 1 s left: the second block is not started
+        return result;
+      });
+      tick(4 * 3600_000);
+      t0 = Date.now();
+      const result = (await fx.server.client.callTool({ name: 'find_upgrades', arguments: { slot: 'Body Armour' } }, undefined, {
+        timeout: CALL_TIMEOUT_MS,
+      })) as { isError?: boolean; content: Array<{ text: string }> };
+      const text = result.content.map((c) => c.text).join('\n');
+      expect(result.isError).toBeFalsy();
+      expect(countOf(text, 'Fetched')).toBe(20);
+      expect(countOf(text, 'Evaluated')).toBe(0);
+      expect(countOf(text, 'Rejected')).toBe(10);
+      expect(text).toMatch(/^Stopped early: the 90 s budget ran out\.$/m);
+      expect(text).not.toMatch(/All \d+ fetched items were rejected/);
+      expect(text).toMatch(/^10 of 20 fetched items were rejected: \S.*\.$/m);
+      expect(text).toMatch(/^No upgrade within budget\.$/m);
     }, TIMEOUT);
 
     it('AC-T44 (d): a network error on the second page after the first was evaluated -> no isError, the first page, "Stopped early"', async () => {
@@ -694,10 +815,60 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       const text = result.content.map((c) => c.text).join('\n');
       expect(result.isError).toBeFalsy();
       expect(spy).toHaveBeenCalledTimes(1); // the second block was not started
-      expect(timeouts[0]).toBeLessThanOrEqual(30_000);
+      expect(timeouts).toHaveLength(1);
       expect(text).toMatch(/^Stopped early: the 90 s budget ran out\.$/m);
       expect(countOf(text, 'Evaluated') + countOf(text, 'Rejected')).toBe(10);
       expect(elapsed).toBeLessThanOrEqual(90_000);
+    }, TIMEOUT);
+
+    it('AC-T44 (e): an evaluate step whose clipped time runs out is ended at the deadline without killing the engine -> "budget ran out", not isError', async () => {
+      serve([searchSequence([SESSION_SEARCH]), fetchRoute()]);
+      const originalRequest = PoBLuaApiClient.prototype.request;
+      let t0 = 0;
+      jest.spyOn(PoBLuaApiClient.prototype, 'request').mockImplementation(async function (this: PoBLuaApiClient, action, params, opts) {
+        const reply = await originalRequest.call(this, action, params, opts);
+        // The current item is read just before evaluation: leave 2.5 s of the 90 s budget.
+        if ((action as string) === 'get_items') jest.setSystemTime(t0 + 87_500);
+        return reply;
+      });
+      const original = PoBLuaApiClient.prototype.tradeEvaluateItems;
+      const timeouts: Array<number | undefined> = [];
+      const spy = jest.spyOn(PoBLuaApiClient.prototype, 'tradeEvaluateItems').mockImplementation(async function (
+        this: PoBLuaApiClient,
+        params,
+        opts,
+      ) {
+        timeouts.push(opts?.timeoutMs);
+        // A block that needs longer than the 2.5 s left: the engine is busy for 6 s first.
+        await this.request('__test_sleep', { ms: 6_000 }, opts);
+        return original.call(this, params, opts);
+      });
+      const pid = fx.session.enginePid();
+      expect(pid).not.toBeNull();
+      tick(4 * 3600_000);
+      t0 = Date.now();
+      const result = (await fx.server.client.callTool({ name: 'find_upgrades', arguments: { slot: 'Body Armour', include_non_upgrades: true } }, undefined, {
+        timeout: CALL_TIMEOUT_MS,
+      })) as { isError?: boolean; content: Array<{ text: string }> };
+      const elapsed = Date.now() - t0;
+      const text = result.content.map((c) => c.text).join('\n');
+      expect(result.isError).toBeFalsy();
+      expect(text).not.toMatch(/engine exited/);
+      expect(spy).toHaveBeenCalledTimes(1);
+      // the step's timeout was clipped to the time left (C-14), and the deadline still ended it cleanly
+      expect(timeouts[0]).toBeLessThanOrEqual(2_500);
+      expect(text).toMatch(/^Stopped early: the 90 s budget ran out\.$/m);
+      expect(countOf(text, 'Fetched')).toBe(20);
+      expect(countOf(text, 'Evaluated')).toBe(0);
+      expect(text).toMatch(/^No upgrade within budget\.$/m);
+      expect(text.split('\n').pop()).toMatch(/^Search on the trade site: /);
+      expect(elapsed).toBeLessThanOrEqual(90_000);
+      // the engine was not killed: same process, and the next call works
+      expect(fx.session.enginePid()).toBe(pid);
+      jest.restoreAllMocks();
+      const info = await fx.call('lua_get_build_info');
+      expect(info.isError).toBe(false);
+      expect(fx.session.enginePid()).toBe(pid);
     }, TIMEOUT);
   });
 
@@ -729,6 +900,58 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
         await fx.call('lua_load_build', { build_name: 'grenadator.xml' });
       }
     }, TIMEOUT);
+
+    it(
+      'AC-T40 (NFR-10, D-53) with a session notice: the Reloaded notice counts toward the 30,000 characters',
+      async () => {
+        const file = path.join(fx.builds, 'grenadator.xml');
+        const reload = await fx.call('lua_load_build', { build_name: 'grenadator.xml' });
+        expect(reload.isError).toBe(false);
+        // Every listing gets a whisper (its Buy line), long enough that 20 full listings exceed the
+        // budget; one listing's whisper is then padded to bring the output to within a few characters of it.
+        const filler = 'w'.repeat(1_000);
+        const routes = (padded: number | null, pad: string) => [
+          searchSequence([SESSION_SEARCH]),
+          fetchRoute({
+            entryFor: (id, i) => {
+              const k = SESSION_IDS.indexOf(id);
+              return deriveListing(id, i, { whisper: `@seller-${k} hi ${filler}${k === padded ? ` ${pad}` : ''}` });
+            },
+          }),
+        ];
+        const args = { slot: 'Body Armour', limit: 20, include_non_upgrades: true };
+
+        serve(routes(null, ''));
+        const plain = await call(args);
+        expect(plain.isError).toBe(false);
+        expect(plain.text.startsWith('=== find_upgrades: Body Armour ===')).toBe(true); // no notices
+        expect(plain.text).toMatch(/shown compactly/);
+        const first = /^ {3}Buy: @seller-(\d+) hi w+$/m.exec(plain.text);
+        expect(first).not.toBeNull();
+        const padded = Number(first![1]);
+        const pad = 'x'.repeat(Math.max(0, 30_000 - plain.text.length - 5));
+
+        // Same build bytes plus a newline: the session reloads it (engine clean) and adds its notice.
+        writeBuild(file, `${GOLDEN_XML}\n`);
+        try {
+          serve(routes(padded, pad));
+          const out = await call(args);
+          expect(out.isError).toBe(false);
+          expect(out.text.startsWith('Reloaded grenadator.xml')).toBe(true);
+          const head = out.text.slice(0, out.text.indexOf('\n\n') + 2);
+          // Rendered without room for the notice, the padded report alone would be 29,995 characters,
+          // and the notice would push the output over the budget.
+          expect(plain.text.length + pad.length + head.length).toBeGreaterThan(30_000);
+          expect(out.text.length).toBeLessThanOrEqual(30_000);
+          expect(out.text).toMatch(/listings? (?:is|are) shown compactly to keep this output under 30,000 characters/);
+          expect(out.text.split('\n').pop()).toMatch(/^Search on the trade site: /);
+        } finally {
+          writeBuild(file, GOLDEN_XML);
+          await fx.call('lua_load_build', { build_name: 'grenadator.xml' });
+        }
+      },
+      TIMEOUT,
+    );
 
     it('AC-T45: a fallback renders with isError false, starting "Trade search not run:", and sends no request', async () => {
       creds = { sessionId: null, source: null };

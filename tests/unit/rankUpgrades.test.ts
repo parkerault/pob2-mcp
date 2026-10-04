@@ -4,7 +4,7 @@
  * through the MCP tool in `tests/mcp/findUpgrades.test.ts`.
  */
 import { describe, expect, it } from '@jest/globals';
-import { isUpgrade, priceRows, rankRows, selectRows, NO_RATES_NOTE, type ListingRow } from '../../src/trade/rankUpgrades';
+import { closingStatement, isUpgrade, priceRows, rankRows, selectRows, NO_RATES_NOTE, type ListingRow } from '../../src/trade/rankUpgrades';
 import { OUTPUT_BUDGET, renderFallback, renderUpgradeReport, type UpgradeReport } from '../../src/trade/renderUpgrades';
 import type { Rates } from '../../src/trade/currency';
 import type { FetchEntry } from '../../src/trade/tradeClient';
@@ -93,6 +93,38 @@ describe('C-14 steps 11–13', () => {
   });
 });
 
+describe('C-14: the closing statement', () => {
+  const base = { searches: 1, total: 2207, fetched: 20, evaluated: 0, rejected: [] as Array<{ reason: string }>, upgrades: 0, stopped: false };
+  const reasons = (n: number) => Array.from({ length: n }, (_, i) => ({ reason: `reason ${i}.` }));
+
+  it('every search total 0 -> "No listings matched the search." with no upgrade wording', () => {
+    expect(closingStatement({ ...base, total: 0, fetched: 0, searches: 5 })).toBe('No listings matched the search.');
+  });
+
+  it('"No upgrade within budget." is always stated when there is no upgrade', () => {
+    expect(closingStatement({ ...base, evaluated: 12 })).toBe('No upgrade within budget.');
+    // nothing evaluated (every entry unavailable, or the deadline cut evaluation before any block)
+    expect(closingStatement({ ...base, stopped: true })).toBe('No upgrade within budget.');
+    expect(closingStatement({ ...base, fetched: 2 })).toBe('No upgrade within budget.');
+    expect(closingStatement({ ...base, evaluated: 3, upgrades: 1 })).toBeNull();
+  });
+
+  it('every fetched item rejected -> "All <n> fetched items were rejected: <first 3 reasons>." then "No upgrade within budget."', () => {
+    expect(closingStatement({ ...base, rejected: reasons(20) })).toBe(
+      'All 20 fetched items were rejected: reason 0; reason 1; reason 2.\nNo upgrade within budget.',
+    );
+  });
+
+  it('only some fetched items rejected (the rest not evaluated) -> "<r> of <n> fetched items were rejected"', () => {
+    expect(closingStatement({ ...base, rejected: reasons(10), stopped: true })).toBe(
+      '10 of 20 fetched items were rejected: reason 0; reason 1; reason 2.\nNo upgrade within budget.',
+    );
+    expect(closingStatement({ ...base, fetched: 3, rejected: reasons(1) })).toBe(
+      '1 of 3 fetched items was rejected: reason 0.\nNo upgrade within budget.',
+    );
+  });
+});
+
 describe('D-53: the output budget', () => {
   function report(n: number, itemLines: number): UpgradeReport {
     const listings = Array.from({ length: n }, (_, i) =>
@@ -133,6 +165,17 @@ describe('D-53: the output budget', () => {
     expect(full).toBeLessThan(20);
     expect((text.match(/· seller seller-id\d+$/gm) ?? []).length).toBe(20 - full);
     expect(text).toContain(`${20 - full} listings are shown compactly`);
+  });
+
+  it('reserves room for the notices placed in front of it', () => {
+    const r = report(20, 60);
+    const plain = renderUpgradeReport(r);
+    const gap = OUTPUT_BUDGET - plain.length;
+    const reserved = gap + 1; // one character more than the room left
+    const fitted = renderUpgradeReport(r, reserved);
+    expect(fitted.length).toBeLessThanOrEqual(OUTPUT_BUDGET - reserved);
+    const full = (t: string) => (t.match(/^ {3}Item text:$/gm) ?? []).length;
+    expect(full(fitted)).toBe(full(plain) - 1);
   });
 
   it('a fallback starts with "Trade search not run:" and ends with the link', () => {

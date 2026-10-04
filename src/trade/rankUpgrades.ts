@@ -6,17 +6,22 @@
  *     never starts with < 1 s left, its engine timeout is `min(default, remaining)`, and a block cut by
  *     the deadline ends evaluation with the "budget ran out" stop (D-22). Items PoB could not evaluate
  *     are reported as rejected.
- * 11. **Prices** (C-12, D-11, D-33, D-54): each listing's price converted into the display currency
- *     (the requested `currency`; `exalted` for `exalted_equivalent`); over-budget listings dropped and
- *     counted; unconvertible ones flagged and never counted over budget; without rates nothing is
- *     post-filtered.
+ *
+ *     The deadline ends an engine step through an abort signal, a moment before the request's clipped
+ *     timeout would fire: the bridge kills the engine on a timeout (C-4), and the session then discards
+ *     the call's result (C-3 step 6), so a timeout would lose the listings already evaluated. An abort
+ *     rejects the request and leaves the engine running; its late reply is dropped by id.
+ * 11. **Prices** (C-12, D-11, D-33, D-54), after evaluation: the league's rates, bounded by the time
+ *     left (a cut or failed lookup means no rates, D-11), then each listing's price converted into the
+ *     display currency (the requested `currency`; `exalted` for `exalted_equivalent`); over-budget
+ *     listings dropped and counted; unconvertible ones flagged and never counted over budget; without
+ *     rates nothing is post-filtered.
  * 12. **Rank** by `rank_by`, ties by listing id; the price modes fall back to `stat_value` (with a note)
  *     when rates are unavailable or the conversion is partial. `is_upgrade` is
  *     `round(score, 4) > round(baseline, 4)`.
  * 13. **Select**: the upgrades, up to `limit`; with `include_non_upgrades`, the top `limit` regardless.
  */
 import type { EngineCallContext } from '../engine/session.js';
-import { EngineTimeoutError } from '../pobLuaBridge.js';
 import type { TradeEvaluateItemsResult } from '../engine/schemas.js';
 import { convert, type Rates } from './currency.js';
 import {
@@ -29,7 +34,7 @@ import {
   type SearchStop,
   type UpgradeSearchResult,
 } from './findUpgrades.js';
-import { NO_MATCHES, NO_UPGRADE, NOTHING_EVALUATED, type UpgradeReport } from './renderUpgrades.js';
+import { NO_MATCHES, NO_UPGRADE, type UpgradeReport } from './renderUpgrades.js';
 import type { FetchEntry } from './tradeClient.js';
 
 // ---------------------------------------------------------------------------------------------------
@@ -39,6 +44,12 @@ import type { FetchEntry } from './tradeClient.js';
 export const EVALUATE_BLOCK = 10;
 /** The engine's default request timeout (`POB_TIMEOUT_MS`, else 30 s, D-47), clipped to the time left. */
 export const DEFAULT_ENGINE_TIMEOUT_MS = 30_000;
+
+/**
+ * A deadline-bound step ends this long before the deadline (through its abort signal), so the
+ * pricing and rendering after it still finish within the 90 s (AC-T44 (e)).
+ */
+export const FINISH_RESERVE_MS = 250;
 
 export const NO_RATES_NOTE =
   'Currency rates unavailable: showing native prices; the budget was enforced by the trade site only.';
@@ -134,6 +145,29 @@ export function engineDefaultTimeout(env: Env): number {
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_ENGINE_TIMEOUT_MS;
 }
 
+/** Raised by a deadline-bound step's signal when the deadline (less the finish reserve) arrives. */
+class DeadlineReached extends Error {
+  constructor() {
+    super(STOP_BUDGET);
+    this.name = 'DeadlineReached';
+  }
+}
+
+/**
+ * The abort signal for one engine step: the caller's signal, plus one that fires
+ * `FINISH_RESERVE_MS` before the deadline. Ending the step this way rejects the request without
+ * killing the engine, unlike the bridge's timeout (see the module comment). `done()` clears the timer.
+ */
+function deadlineBound(ctx: EvaluateContext): { signal: AbortSignal; reached(): boolean; done(): void } {
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(new DeadlineReached()), Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now()));
+  return {
+    signal: AbortSignal.any([ctx.signal, deadline.signal]),
+    reached: () => deadline.signal.aborted,
+    done: () => clearTimeout(timer),
+  };
+}
+
 /**
  * C-14 step 10: score `entries` (sanitized, in trade order) against the loaded build, 10 per action
  * call, with the generation's effective weights so scores compare with `baselineScore`.
@@ -159,7 +193,9 @@ export async function evaluateEntries(
     if (ctx.signal.aborted) throw ctx.signal.reason;
     if (remaining() < MIN_STEP_MS) return { rows, rejected, stop: { reason: STOP_BUDGET } };
     const block = entries.slice(start, start + EVALUATE_BLOCK);
+    // The clipped timeout of C-14; the deadline signal fires FINISH_RESERVE_MS before it.
     const timeoutMs = Math.max(1, Math.min(defaultTimeout, remaining()));
+    const bound = deadlineBound(ctx);
     let result: TradeEvaluateItemsResult;
     try {
       result = await ctx.engine.client.tradeEvaluateItems(
@@ -171,14 +207,15 @@ export async function evaluateEntries(
           runeBehaviour: opts.runeBehaviour,
           anointBehaviour: opts.anointBehaviour,
         },
-        { timeoutMs, signal: ctx.signal },
+        { timeoutMs, signal: bound.signal },
       );
     } catch (error) {
       if (ctx.signal.aborted) throw ctx.signal.reason;
-      if (error instanceof EngineTimeoutError && timeoutMs < defaultTimeout) {
-        return { rows, rejected, stop: { reason: STOP_BUDGET } };
-      }
+      // Cut by the deadline: keep what was evaluated so far (C-14 "Stopping early").
+      if (bound.reached()) return { rows, rejected, stop: { reason: STOP_BUDGET } };
       throw error;
+    } finally {
+      bound.done();
     }
 
     const byId = new Map<string, TradeEvaluateItemsResult['items'][number]>();
@@ -338,9 +375,10 @@ type Searched = Extract<UpgradeSearchResult, { kind: 'searched' }>;
 async function currentItem(slot: string, ctx: EvaluateContext): Promise<string> {
   const remaining = ctx.deadline - Date.now();
   if (remaining < MIN_STEP_MS) return 'unknown';
+  const bound = deadlineBound(ctx);
   try {
     const timeoutMs = Math.max(1, Math.min(engineDefaultTimeout(ctx.env), remaining));
-    const reply = (await ctx.engine.client.request('get_items', {}, { timeoutMs, signal: ctx.signal })) as unknown as {
+    const reply = (await ctx.engine.client.request('get_items', {}, { timeoutMs, signal: bound.signal })) as unknown as {
       items?: unknown;
       result?: unknown;
     };
@@ -358,16 +396,19 @@ async function currentItem(slot: string, ctx: EvaluateContext): Promise<string> 
     if (ctx.signal.aborted) throw ctx.signal.reason;
     console.error(`[find_upgrades] reading the current ${slot} item failed: ${error instanceof Error ? error.message : String(error)}`);
     return 'unknown';
+  } finally {
+    bound.done();
   }
 }
 
 /**
  * The league's rates (C-12), bounded like every step (D-22): not started with < 1 s left, cut at
- * `min(15 s, remaining)`, and ended by the caller's abort. `budgetCut` says the deadline ended it.
+ * `min(15 s, remaining)` (less the finish reserve), and ended by the caller's abort. `budgetCut` says
+ * the deadline ended it. A cut or failed lookup is "no rates" (D-11); the evaluated rows are kept.
  */
 async function boundedRates(league: string, ctx: CompleteContext): Promise<{ rates: Rates | null; budgetCut: boolean }> {
-  const left = ctx.deadline - Date.now();
-  if (left < MIN_STEP_MS) return { rates: null, budgetCut: true };
+  if (ctx.deadline - Date.now() < MIN_STEP_MS) return { rates: null, budgetCut: true };
+  const left = Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now());
   const clipped = left < 15_000;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let onAbort: (() => void) | undefined;
@@ -384,6 +425,38 @@ async function boundedRates(league: string, ctx: CompleteContext): Promise<{ rat
   }
 }
 
+/**
+ * The statement before the search link (C-14 output, "Zero results"):
+ * - every search total 0 → `No listings matched the search.`, with no "upgrade" wording;
+ * - otherwise, with no upgrade, `No upgrade within budget.` is always stated, after
+ *   `All <n> fetched items were rejected: <first 3 reasons>.` when nothing was evaluated because
+ *   every fetched item was rejected (or `<r> of <n> fetched items were rejected: …` when only some
+ *   were, e.g. the deadline cut evaluation, or some entries were unavailable);
+ * - null when there are upgrades.
+ */
+export function closingStatement(c: {
+  searches: number;
+  total: number;
+  fetched: number;
+  evaluated: number;
+  rejected: Array<{ reason: string }>;
+  upgrades: number;
+  stopped: boolean;
+}): string | null {
+  if (c.fetched === 0 && c.total === 0 && c.searches > 0 && !c.stopped) return NO_MATCHES;
+  if (c.upgrades > 0) return null;
+  if (c.evaluated === 0 && c.rejected.length > 0) {
+    const n = c.rejected.length;
+    const reasons = c.rejected.slice(0, 3).map((r) => r.reason.replace(/\.+$/, ''));
+    const which =
+      n === c.fetched
+        ? `All ${n} fetched items were rejected`
+        : `${n} of ${c.fetched} fetched item${c.fetched === 1 ? '' : 's'} ${n === 1 ? 'was' : 'were'} rejected`;
+    return `${which}: ${reasons.join('; ')}.\n${NO_UPGRADE}`;
+  }
+  return NO_UPGRADE;
+}
+
 /** C-14 steps 10–13 over a `searched` pipeline result: the report `renderUpgradeReport` prints. */
 export async function completeUpgradeSearch(searched: Searched, input: FindUpgradesInput, ctx: CompleteContext): Promise<UpgradeReport> {
   const notes = [...searched.notes];
@@ -391,15 +464,6 @@ export async function completeUpgradeSearch(searched: Searched, input: FindUpgra
   const display = displayCurrency(input.currency);
 
   const current = await currentItem(input.slot, ctx);
-
-  // Rates first (a cached lookup as a rule), so a deadline cut during evaluation never also costs the prices.
-  let rates: Rates | null = null;
-  if (searched.entries.length > 0) {
-    if (ctx.signal.aborted) throw ctx.signal.reason;
-    const r = await boundedRates(searched.league, ctx);
-    rates = r.rates;
-    if (r.budgetCut && !stop) stop = { reason: STOP_BUDGET };
-  }
 
   // 10. Evaluate (each block checks the budget itself).
   let evaluation: Evaluation = { rows: [], rejected: [] };
@@ -420,6 +484,16 @@ export async function completeUpgradeSearch(searched: Searched, input: FindUpgra
     if (evaluation.stop && !stop) stop = evaluation.stop;
   }
 
+  // 11. Rates, after evaluation (C-14 step order), bounded by the time left: a slow or failing
+  // poe.ninja (D-11) costs the prices, never the evaluated listings.
+  let rates: Rates | null = null;
+  if (evaluation.rows.length > 0) {
+    if (ctx.signal.aborted) throw ctx.signal.reason;
+    const r = await boundedRates(searched.league, ctx);
+    rates = r.rates;
+    if (r.budgetCut && !stop) stop = { reason: STOP_BUDGET };
+  }
+
   // 11–13.
   const pricing = priceRows(evaluation.rows, { display, maxPrice: input.max_price, rates });
   const ranking = rankRows(pricing.kept, input.rank_by, pricing);
@@ -432,17 +506,15 @@ export async function completeUpgradeSearch(searched: Searched, input: FindUpgra
 
   const fetched = searched.entries.length + searched.dropped.nullEntries + searched.dropped.unpriced;
   const evaluated = evaluation.rows.length;
-  let closing: string | null;
-  if (fetched === 0 && searched.total === 0 && searched.searches > 0 && !stop) {
-    closing = NO_MATCHES;
-  } else if (evaluated === 0 && evaluation.rejected.length > 0) {
-    const reasons = evaluation.rejected.slice(0, 3).map((r) => r.reason.replace(/\.+$/, ''));
-    closing = `All ${evaluation.rejected.length} fetched items were rejected: ${reasons.join('; ')}.`;
-  } else if (evaluated === 0) {
-    closing = NOTHING_EVALUATED;
-  } else {
-    closing = upgrades === 0 ? NO_UPGRADE : null;
-  }
+  const closing = closingStatement({
+    searches: searched.searches,
+    total: searched.total,
+    fetched,
+    evaluated,
+    rejected: evaluation.rejected,
+    upgrades,
+    stopped: stop !== undefined,
+  });
 
   await ctx.progress('done');
   return {

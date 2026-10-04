@@ -84,6 +84,20 @@ function normalize(result: HandlerResult): ToolResponse {
   };
 }
 
+/** The text `withNotices` puts in front of a result: the notices, one per line, then a blank line. */
+function noticeHead(notices: string[]): string {
+  return notices.length === 0 ? "" : `${notices.join("\n")}\n\n`;
+}
+
+/**
+ * A result whose text has a size budget (`find_upgrades`, D-53) is rendered again with the notices'
+ * room reserved, so the notices `withNotices` adds don't push it over the budget.
+ */
+function fitNotices(result: HandlerResult, notices: string[]): HandlerResult {
+  if (notices.length === 0 || !result.refit || result.isError) return result;
+  return { content: [{ type: "text", text: result.refit(noticeHead(notices).length) }] };
+}
+
 /** C-3 step 8: notices go first, one per line, then a blank line; also on `isError` results. */
 function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
   if (notices.length === 0) return response;
@@ -101,8 +115,15 @@ function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
  */
 const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options", "find_upgrades"]);
 
-/** What handlers return: text content, possibly typed loosely by older handlers. */
-type HandlerResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
+/**
+ * What handlers return: text content, possibly typed loosely by older handlers. `refit` (a budgeted
+ * output) renders the text again with `reservedChars` of room left for the session's notices.
+ */
+type HandlerResult = {
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+  refit?: (reservedChars: number) => string;
+};
 
 function unknownTool(name: string): McpError {
   return new McpError(ErrorCode.InvalidParams, `Unknown tool: ${name}`);
@@ -146,7 +167,7 @@ export async function routeToolCall(
         return result;
       },
     );
-    return withNotices(normalize(value), notices);
+    return withNotices(normalize(fitNotices(value, notices)), notices);
   } catch (error) {
     if (error instanceof McpError) throw error;
     const notices = noticesOf(error);

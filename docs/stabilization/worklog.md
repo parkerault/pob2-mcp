@@ -218,3 +218,52 @@ None recorded in the wave data.
 - `tsc -p tsconfig.test.json` reports TS6059 rootDir errors on every test file (pre-existing; passes with `--rootDir .`).
 - Jest warns 'A worker process has failed to exit gracefully' (pre-existing; all suites pass).
 - The permission classifier blocked `git rm` for WU-04's deletions, which blocked the unit.
+
+## 2026-10-04: W2 (WU-04 review, WU-05..08, WU-14..16)
+
+### WU-04: blocked
+- **Reason:** loop ended blocked. One condition (AC-F19, all files on WU-04's delete list must be gone) is unmet: src/services/costBenefitAnalyzer.ts is on WU-04's delete list but still exists, and tests/static/deletedPlumbing.test.ts exempts it via `PENDING_SPEC_AMENDMENT`.
+- **Head:** b3d37558e6c32237fb0af31f6a3ae34b5bc0ede6
+- **Summary:** WU-04 was implemented in W1, but its unit review and gate never ran in W1. fa9cdbe removed the tools that D-4 deletes and added the PoE1-cruft and dead-module scans. The Claude Code permission classifier blocked the implementer's `git rm`, so the W1 wave-gate fixer deleted the dead modules in fee3d92, which the ratified spec D-4/AC-F19 requires. ed1a25b (the mise.toml plugin pin key, WU-02 scope) and the worklog commits are also in this range. They are known and are not out-of-scope work. The implementer's deviations are recorded under W1.
+- **Deviations:**
+  - The unit kept src/services/costBenefitAnalyzer.ts even though WU-04's delete list names it (AC-F19 bullet 3). The kept search_trade_items tool imports it (src/handlers/tradeHandlers.ts:6, used at :369). Deleting it would change that tool's output beyond its vision §4 row, which is a human-decision gate (HG-3). Proposed amendment: drop the file from WU-04's list and from AC-F19, add it to WU-15's touches, and let WU-15 decide whether it survives. Once that lands, remove the `PENDING_SPEC_AMENDMENT` entry and the spec-list cross-check's expectation in deletedPlumbing.test.ts.
+- **Review:** 12 raw / 4 material / 3 confirmed
+  - spec-1 [high]: AC-F19 bullet 3 is unmet. costBenefitAnalyzer.ts (408 lines) still exists, and deletedPlumbing.test.ts:51-67 leaves it out of its list, so the test passes. There is no spec amendment and no coordinator ruling.
+  - correctness-1 [medium]: The test checks a narrower list than the AC. Keeping the file is behaviourally correct, but the green test hides that the AC is unmet until the spec is amended.
+  - safety-1 [medium]: The test hard-coded the deviation with no pointer to it. The deviation is recorded only in the worklog.
+  - **Not fixed (all three):** The test half is fixed in b3d37558, and the test now points to the deviation and fails if that goes stale. The spec half needs a coordinator ruling for three reasons:
+    - build-handoff.md says build agents may not edit the spine or slice specs.
+    - Deleting the file instead would hit HG-3, because it changes the output of search_trade_items, which WU-15 owns.
+    - WU-15's touches don't include the file either.
+  - **Lows (7):**
+    - Dead code from deleted tools survives inside kept modules: poeNinjaClient.findArbitrageOpportunities and ArbitrageOpportunity, TreeService.refreshTreeData, and a comment that names a deleted tool. The AC-F21 dead-module scan checks only whole files, so it can't catch these.
+    - The AC-F22 tests don't prove that the registered and routed tool sets are equal. The 50 engine tools are checked only statically, and nothing asserts that TOOL_META equals the registered schemas.
+    - Some AC-F20 waivers name the wrong owning unit. The waiver-shape test accepts any WU-nn as owner.
+    - Waivers match on (file, phrase), so one waiver silences every hit of that phrase in its file. In toolSchemas.ts, 9 waivers cover 26 hits, and one waiver can span two owners.
+    - Some waiver owners don't match who owns the hit: the toolSchemas.ts class-name hits belong to WU-11, and the exportHandlers.ts 'spell suppression' hit belongs to WU-13.
+    - levelingHandlers.ts:208 (owned by WU-10, not yet merged), src/types.ts and src/types/optimization.ts were changed outside WU-04's touches. The levelingHandlers.ts edit changes plan_leveling's output.
+    - The in-process AC-F22 test treats a 'live network disabled' failure as success. It would also pass if a request really went out. None went out in this run.
+- **Gate:** 3 attempts, test rc 0, build rc 0. Suites: 37/37 passed, tests 368/368 passed, 0 skipped (`mise run test` after `rm -rf build coverage` and `jest --clearCache`).
+  - AC-F19 bullet 1: `rg -n "ToolGate|POB_LEGACY_GEM_TOOLS|get_mastery_options|getMasteryOptions|mastery_effects" src/ pob-api/` exit 1 (no hits, met)
+  - AC-F19 bullet 2: `rg -n masteryEffects src/pobLuaBridge.ts src/services/buildExportService.ts src/handlers/treeHandlers.ts src/handlers/exportHandlers.ts` exit 0. The only hit is setTree at src/pobLuaBridge.ts:379, which is outside calcWith and owned by WU-10. calcWith is clean, so this bullet is met.
+  - AC-F19 bullet 3: `test ! -e src/services/costBenefitAnalyzer.ts` exit 1 (**FAIL**; the other 15 listed files are gone)
+  - Tooling false-failures: none.
+  - Out of scope, all known or legitimate:
+    - ed1a25b changed mise.toml (a WU-02 wave-level fix).
+    - Changes within WU-04's implied scope: levelingHandlers.ts, watchHandlers.ts, src/types.ts, src/types/optimization.ts (deleted), contextBuilder.ts, three test files, and the worklog.
+  - Failure: AC-F19 bullet 3 is unmet. `git log --all -S costBenefitAnalyzer -- docs/stabilization/spec` returns only fd289ba, so no spec amendment exists on any branch.
+
+### Parked
+- WU-05, WU-06, WU-07, WU-08: parked because an earlier unit in their lane is blocked.
+- WU-14, WU-15: parked, waiting on WU-04, which did not pass.
+- WU-16: parked, waiting on WU-07, which did not pass.
+
+### Merges
+- trade lane: skipped (no passing units).
+- lua lane: skipped (no passing units).
+
+### Wave gate
+- Not run: there were no passing units.
+
+### Friction
+- None reported.

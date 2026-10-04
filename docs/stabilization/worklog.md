@@ -296,3 +296,344 @@ None recorded in the wave data.
   - `03-trade.md`: WU-15 summary and acceptance, the new AC-T46 definition, and the AC-T range.
 - **Rework.** The `PENDING_SPEC_AMENDMENT` carve-out in `tests/static/deletedPlumbing.test.ts` is
   removed in the WU-04 rework.
+
+## 2026-10-04: W2 (WU-04 rework, WU-05..08, WU-14..16)
+
+All eight units are **done**. Both lanes merged. The wave gate **passed** at `4cfd1ac`.
+
+### WU-04 (rework under D-61): done, head `53f7081`
+
+`formatSearchResults` no longer uses the analyzer. The value score, tier and budget emoji, best-value rank and re-sort are gone, so listings keep the order the trade site returned them in. What stays: the native price, links, the condensed Life/ES/Res line, the seller and the item links. `costBenefitAnalyzer.ts` is deleted. The `PENDING_SPEC_AMENDMENT` carve-out is removed, so the check that WU-04's deleted files are gone (AC-F19) covers the full list again. A new test, `tests/mcp/tradeSearchUnscored.test.ts`, pins the D-61 behaviour.
+
+Deviations:
+- Removed the `(~N chaos)` suffix and the `getCurrencyRatesMap` helper, so `search_trade_items` no longer calls poe.ninja. Rationale: keep only the native price. WU-15 adds normalized prices through the C-12 currency service's `convert` (AC-T46).
+- Kept the `Stats: +N Life, +N ES, +N% Res` line using a local extractor. Rationale: D-61 removes only the scoring and per-chaos lines.
+- Added a new test file under implied scope (§8). Rationale: D-61 has no WU-04 AC id.
+- The legend now keeps only the online/offline markers. Rationale: the other entries described the removed tiers.
+- The test replaces the search id with `D61orderTest`. Rationale: the real id is about 1 KB and repeats per listing, so the output would pass the 5000-character truncation (C-1) and only 4 listings would show. No fixture file changed.
+
+Review: 6 raw / 2 material / 2 confirmed.
+- spec-1 [medium]: the order test can't fail on a re-sort, because every fixture listing has the same price and no parseable mods.
+- correctness-1 [medium]: the same gap. The old code fails the test only because of the tier emoji and the `Value:` line, not because of ordering.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 38/38 suites and 371/371 tests, from a clean run. Script checks:
+- AC-F19 plumbing `rg`: rc 1 (pass).
+- `masteryEffects` in the build/export/tree handlers: rc 1 (pass).
+- `masteryEffects` in `pobLuaBridge.ts`: rc 0. The only hit is `setTree` at :379, which is WU-10 scope.
+- The 16 deleted paths and `CostBenefitAnalyzer`: rc 0 (none present).
+- D-61 mutation, base handler plus analyzer: rc 1, the expected failure.
+- D-61 mutation, injected price re-sort: rc 1, the expected failure.
+
+No tooling false-failures.
+
+### WU-05: done, head `7ca9390`
+
+Tests only, no `src/` changes:
+- golden save/reload: 109 PlayerStat pairs and a 711-key `get_stats` comparison (AC-F23/F24);
+- the pin refusal (AC-F4);
+- `tool-disposition.json`, 102 entries (AC-F25);
+- `tool-calls.json`, 78 samples covering 74 tools;
+- the hygiene test and its strict allowlist, 12 entries owned by WU-09/10/12 (AC-F26).
+
+A planted allowlist entry for a passing check failed as expected.
+
+Deviations:
+- Disposition `lane` holds vision §4 lane labels. The WU id lives in the allowlist `owner` field.
+- Allowlist `check` values are `i`, `ii` and `iii`, and each entry has a `reason` (D-45). Owners are limited to WU-09/10/11/12/13/15/18.
+- `tool-calls.json` uses placeholders resolved from fixtures. An unknown placeholder fails the test.
+- AC-F24's explicit-field `get_stats` goes through a separate `PoBLuaApiClient`, since no tool takes a field list before WU-08. The 711-key list comes with its generator script.
+- The golden and hygiene suites use a private mkdtemp builds dir and stateDir, to avoid collisions between parallel workers.
+- One server and engine serve all hygiene samples. The golden file is reloaded before each sample.
+- The AC-F4 test needs `vendor/`, because it builds against the real pin.
+- A failing setup step is charged to the setup tool's own check (ii).
+- HTTP expectations are per tool: a required set of endpoints and an allowed set.
+- Noted but not acted on: the misattributed User-Agent, owned by D-25/WU-14.
+
+Review: 16 raw / 7 material / 5 confirmed. 1 was not fixed (a partial claim in spec-1: the router does preload stats).
+- spec-1 [medium]: the hygiene test never asserts `fixtureFetch.calls` for its HTTP samples (the spine §12 fidelity rule).
+- spec-2 [medium]: the `select_spec/ii` allowlist entry covers a check that passes, and its reason is false.
+- correctness-1 [medium]: a protocol-level reload error doesn't stop the sample.
+- correctness-2 [medium]: no recorded-request assertion, so a broken stats route would go unnoticed.
+- safety-2 [medium]: no assertion that trade requests carry no Cookie header and go only to the expected endpoints.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 42/42 suites and 469/469 tests. Script checks, all rc 0:
+- golden-stat-fields regeneration;
+- the non-finite key check;
+- the disposition names against the router at `fd289ba`;
+- the disposition buckets against vision §4.
+
+No tooling false-failures.
+
+### WU-06: done, head `970ec31`
+
+The Lua side now speaks the v2 wire protocol (C-2):
+- replies echo the request id;
+- encoding runs inside a pcall, so an unencodable reply comes back as `ENCODE`;
+- every failure carries a code, and the banner reports apiVersion 2.0.0;
+- PoB's dev-mode autosave is turned off (D-29).
+
+`load_build_xml` validates the XML before the load and checks after it that PoB really switched builds. The `__test_*` actions exist only with `POB_API_TEST_ACTIONS=1`. `get_stats` exports only scalar values and lists the rest in `_meta.omitted`. `calc_with` returns only numeric fields. The TS readiness probe is now the banner plus one `ping`.
+
+Deviations:
+- The `new_build` reply is `{ok:true, result:{name}}`.
+- `launch.promptMsg` alone doesn't fail a load. It only adds its text to a post-check error.
+- Whitespace-only or missing `xml` fails as empty. Non-string `xml` fails as `LOAD_FAILED`.
+- `_meta.omitted` lists only non-scalar requested keys and is always present.
+- `calc_with` keeps NaN/inf, which encode as null.
+- A non-number id is not echoed, a non-table `params` becomes `{}`, and `EXCEPTION`'s error is the raw message.
+- The default stat list became the constant `M.DEFAULT_STAT_FIELDS`.
+- Unreachable bootstrap safety-net code was left as is.
+- The post-check is extended past C-2: a load also fails when `targetVersion` is nil or when `main.popups` grew. The spec C-2 text needs a note from the coordinator.
+- After a post-check failure, the popups that the load opened are closed.
+- `promptMsg` is left set after a failed load.
+- The relayed currency-conversion message was unrelated to this unit. No action.
+
+Review: 11 raw / 4 material / 2 confirmed.
+- correctness-1 [high]: a PoB raise in the middle of `Build:Init` still replied `ok:true`.
+- correctness-2 [high]: XML missing `targetVersion` replied `ok:true` while the previous build stayed loaded.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 43/43 suites and 484/484 tests. Script checks:
+- allowlist and waivers unchanged: rc 0;
+- EOF exit and banner check: rc 0;
+- `__test_crash` without the flag: rc 0;
+- bad-artifact `grep`: rc 1 (clean).
+
+No tooling false-failures.
+
+### WU-07: done, head `dfc9aea`
+
+The TypeScript side of the bridge client (C-4):
+- replies are matched to requests by id;
+- the timer starts at the stdin write, and a timeout kills the engine;
+- `start()` is single-flight and runs the pin check, the banner check and one ping;
+- the child env drops cookies, `spawn` is injected and `pid()` is exposed;
+- every ok reply goes through the `replySchemas` validation hook (C-5 scaffold in `src/engine/schemas.ts`).
+
+`luaClientManager` builds the client from deps. The mock process now speaks protocol v2.
+
+Deviations:
+- AC-E7's ids are asserted as 2, 3 and 4, because the readiness ping takes id 1. This is a contradiction inside the spec.
+- `replySchemas` is a mutable exported registry, and the test assigns and restores it.
+- A PoB version mismatch in the banner rejects with `EnginePinError`.
+- `EngineActionError`'s message is the engine's error text alone.
+- Default timeouts follow C-4 literally: `trade_generate_query` gets 60000 ms.
+- After `exit`, the client waits up to 250 ms (`EXIT_SETTLE_MS`) for `close`, so the stderr tail is complete.
+- The `JEST_WORKER_ID` hack was already gone. No change.
+- Constructor callers in `tests/setup/global.ts`, `golden` and `poe2Bridge` were adapted (implied scope). The engine-required ACs live in the new `tests/integration/bridgeClient.test.ts`.
+- The relayed currency-conversion message was unrelated. No action.
+
+Review: 15 raw / 2 material / 2 confirmed.
+- correctness-1 [medium]: a `start()` called after `stop()` during an in-flight start gets back the doomed promise.
+- safety-1 [medium]: the banner-timeout test was deleted with no replacement.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 44/44 suites and 472/472 tests. Script checks, all rc 0:
+- `mise run test`, `pnpm build`;
+- allowlist and waivers unchanged;
+- scope diff;
+- the C-5 action list matches the Lua handlers (38).
+
+Out of scope, accepted as implied: the constructor changes in `tests/setup/global.ts`, `bridgeClient`, `golden` and `poe2Bridge`. No tooling false-failures were recorded in the gate data.
+
+### WU-08: done, head `07bbed3`
+
+`src/engine/session.ts` implements the engine session (C-3):
+- a first-in-first-out lock per tool call, with abort and deadline handling while waiting;
+- it is the only code that starts the engine (D-59);
+- crash restore from a snapshot;
+- a disk-change check before each engine call (D-19);
+- the revision counter, lifecycle rule L, notices, and the `onEvent`/`enginePid` test hooks.
+
+`ctx.client` rejects raw loads. `canonicalBuildPath` is added (D-52). The router wraps every engine tool by its `TOOL_META` kind. `getLuaClient` and `ensureLuaClient` throw outside a session call. `luaClientManager.ts` is removed. `analyze_build`, `compare_builds` and `validate_build` now pass the guard error through.
+
+Deviations:
+- Added `current()`, backed by AsyncLocalStorage, to the session interface.
+- Added `stopEngine()` to `EngineCallContext`, for `lua_stop`.
+- Added `snapshot-start` and `snapshot-end` onEvent phases, for AC-E22.
+- The snapshot is discarded on a successful load, not before it.
+- `lua_start` does not bump revision. `lua_stop` does.
+- Only `compare_builds/ii` was added to the allowlist (owner WU-13), and the stale `compare_builds/i` was removed. The other expected interim entries would pass, which fails AC-F26 (D-45).
+- The engine kill uses `client.stop()` and is marked as a crash, not as an interrupted call.
+- AC-E60's engine-required part uses a private builds dir on case-sensitive ext4.
+- AC-E16 setup steps whose tool is allowlisted for check (ii) may fail without aborting the sample.
+- `tool-calls.json` changed for AC-E16. Two samples are declared `stateChange:false`.
+- `lua_load_build {build_name}` ignores `name`. `lua_reload_build` reloads `loaded.path`.
+- `createServer` gains an additive `engineAccess` test hook.
+- A load-kind call whose load succeeded but which then failed still bumps revision and takes a snapshot.
+- The relayed currency-conversion message was unrelated. No action.
+
+Review: 15 raw / 4 material / 4 confirmed.
+- spec-1 [medium]: if the restore fails and the restart after it fails too, the crash is forgotten and a blank build is silently swapped in.
+- spec-2 [medium]: the AC-E20 test never exercises the server-wired `getLuaClient`.
+- spec-3 [medium]: a crash inside `withTemporaryBuild` is reported as a deliberate kill, which loses the in-flight marker and the error suffix.
+- correctness-1 [medium]: a load-kind call can fail after its load succeeded, and then revision isn't bumped and the snapshot is discarded.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 49/49 suites and 567/567 tests, engine suites run against real luajit. No script checks. A pin-timing false-failure is noted under Friction.
+
+### WU-14: done, head `100f091`
+
+The trade client rewrite:
+- `credentials.ts` (C-9);
+- `rateLimiter.ts` (C-11): margin 1, adoption of server hit counts (D-35), lockouts, `would_wait`;
+- `tradeClient.ts` (C-10): the cookie goes only to auth search and fetch, and only `/data/*` is cached;
+- `errors.ts`, `league.ts` (D-20) and `userAgent.ts` (D-25);
+- wiring in `createServer` and `index.ts`.
+
+`bottleneck` is removed. All 13 ACs have named tests.
+
+Deviations:
+- New `src/trade/league.ts` is implied scope, wired as `routerDeps.resolveLeague` to keep AC-F21 green.
+- The limiter keeps real sends per policy and adopted sends per window. Windows are half-open.
+- Any non-abort transport failure is classed as `network`.
+- A failed `/data/stats` load is not cached, so it is retried.
+- `userAgent.ts` exports memoized functions.
+- Fetch with 0 or more than 10 ids throws a `RangeError`.
+- The `import_build` part of AC-T3 runs under `engineDescribe`.
+- The removed env vars are still mentioned in `README` and `HANDOFF`. Left for WU-19.
+- The fix uses the window (t-P-1s, t], released at stamps[k]+P+1s. This is wider than the suggested inclusive window and is safe at 1 s resolution.
+- `adoptState` counts over (now-P, now], the conservative side.
+- The 11-send burst spans exactly 30 s and is admitted, because the refusal condition is `wait > maxWaitMs`.
+
+Review: 12 raw / 4 material / 1 confirmed.
+- correctness-1 [medium]: the half-open window with no +1 s guard lets 4 searches into a closed 5 s interval, against a max of 3.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 47/47 suites and 467/467 tests. Script checks:
+- the legacy User-Agent `rg`: rc 1 (pass);
+- Mozilla only in `userAgent.ts`: rc 0, and the other-files check rc 1 (pass);
+- `bottleneck` and `POE_TRADE_USER_AGENT` absent: rc 1 (pass);
+- mutations for AC-T5 margin, AC-T8 adoption, AC-T2 cookie and AC-T9(h)/T2 TypeError text: each rc 1, all expected failures.
+
+Out of scope, accepted as not violations: `toolRouter.ts` (serialized wiring), `league.ts`, `userAgent.test.ts`. No tooling false-failures.
+
+### WU-15: done, head `cf2bf0a`
+
+- New `src/trade/modLines.ts` parses mod lines whether trade2 sends strings or objects. `stripMarkup` matches PoB2's `escapeGGGString`.
+- New `src/trade/currency.ts` is the C-12 currency service: the primary currency comes from each response, a 60-minute cache, revalidated with If-None-Match.
+- `poeNinjaClient.ts` keeps only the currency-overview HTTP, as the user asked.
+- `get_currency_rates` reports in the primary currency.
+- `search_trade_items` uses the schema's argument names, PoE2 categories, rune sockets and trade2 URLs, and shows the native price plus its primary equivalent.
+- `get_item_price` normalizes to the primary currency.
+- `search_stats` uses live stats only, and `get_leagues` marks the default league.
+- The WU-15 cruft waiver is removed.
+
+Deviations:
+- `charm` maps to the trade category `flask`, after PoB's `TradeHelpers`. WU-20 should confirm this live.
+- `Rates` gained `nameOf` and `currencies`.
+- poe.ninja requests time out after 15 s.
+- `search_trade_items` always sends status `available` and sorts by price ascending.
+- An omitted `price_currency` means exalted equivalent, no longer chaos.
+- `get_item_price` without a league uses the D-20 default.
+- `search_stats` breaks ties by shorter text, then catalogue order, and the output is reformatted.
+- The router still preloads stats. `search_stats` throws if stats never loaded.
+- `get_currency_rates` errors when poe.ninja is unavailable, and the verbatim preamble is dropped.
+- `Links: nL` becomes `Rune sockets: n`, and instant-buyout listings get their own marker.
+- Dead PoE1 types and query-builder helpers are removed.
+- The `searchTradeItems` test serves the search fixture without rate-limit headers.
+- Listings no longer carry their own URL. Each shows `Listing: #<id>` under one search link, because real ids are 194 to 919+ characters and would trip the 5000-character truncation (C-1).
+- `get_item_price` uses 4 significant digits below 1. `search_trade_items` keeps 2 decimals (AC-T46). The coordinator may revisit that.
+- `get_item_price` always prints the native spread.
+- The changed tests are AC-T46, T19 and T18 tests (implied scope).
+
+Review: 11 raw / 4 material / 4 confirmed.
+- spec-1 [high]: with limit 10, `search_trade_items` is truncated at 5000 characters. The AC-T46 test hid this by swapping the search id.
+- spec-2 [medium]: no AC-T19 test checks that the summary is computed in the primary currency.
+- correctness-1 [medium]: the same truncation, which drops the last listing's link or price.
+- correctness-2 [medium]: `get_item_price`'s 2-decimal primary summary shows 0.00/0.01 divine for exalted listings and hides the range.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 54/54 suites and 511/511 tests. Script checks:
+- AC-T17 `chaos equivalent`: rc 1 (pass);
+- AC-T20 `STAT_MAPPINGS`: rc 1 (pass);
+- AC-T46 value-score wording: rc 1 (pass);
+- AC-T14 `expected-mod-text.json` regenerates byte-identical: rc 0;
+- `mise run test` rc 0, `pnpm build` rc 0.
+
+No tooling false-failures.
+
+### WU-16: done, head `50d0e9e`
+
+New `pob-api/API/Trade.lua` drives PoB's query generator and evaluator headless for three actions (C-13):
+- generate the weighted query for a slot;
+- score fetched listings against the loaded build;
+- list a slot's trade-dialog options.
+
+It includes the listed corrections: mirrored items included by default, weights sorted into one fixed order before the query is finished (D-55), a baseline from PoB's own item path, and the `*TakenHit` sort stats refused (D-57). `schemas.ts` gains three reply schemas, and the bridge gains three typed wrappers. All 8 ACs are in `tests/integration/trade.lua.test.ts`.
+
+Deviations:
+- An additive `{id, itemText}` items form.
+- Fetch entries are fed to PoB's parser one at a time, for the per-item pcall and order.
+- Runes and anoints apply only on the slots where PoB's dialog shows them.
+- `shows` copies PoB's substring tests, so gear jewel sockets report `runeBehaviour:true`.
+- Jewel `trade_query_options` uses the `Base` type.
+- `savedWeights` uses the generator's default rule.
+- Input validation the spec leaves open fails with `FAILED`.
+- Rejected entries with no id are reported as `#<index>`.
+- `trade_evaluate_items` also runs `BuildOutput()` first.
+- PoB's `FinishQuery` re-sort does not break ties by trade id, but the result is still deterministic.
+- AC-T27 uses a private builds dir.
+- The vendor listing skips `.git`.
+- The re-bind check uses `debug.getupvalue`.
+
+Review: 12 raw / 6 material / 5 confirmed.
+- spec-2 [medium]: AC-T27's "before" snapshot is taken after the generation and evaluation tests have already run, and it compares names only.
+- spec-3 [medium]: the AC-T24 reference re-scores the implementation's own `itemText`, so fetch parsing, `FilterToSafeItems` and the rune/anoint steps go unchecked.
+- correctness-1 [medium]: the AC-T27 re-bind check can't detect a generator that was never re-bound.
+- correctness-2 [medium]: the AC-T24 reference is not independent of the implementation.
+- safety-1 [medium]: AC-T27 can't detect PoB's fixed-name write hazards.
+
+Gate: 1 attempt. Test rc 0, build rc 0, 45/45 suites and 480/480 tests. Script checks:
+- clean `mise run test`: rc 0;
+- `pnpm build`: rc 0;
+- isolated re-run of the WU-16 file: rc 0, 8/8;
+- allowlist and waivers unchanged: rc 0;
+- no skip/only markers: rc 1 (clean).
+
+Tooling false-failure: a bare `pnpm exec jest` failed with "luajit not found" outside mise. The same run under `mise exec` passed 8/8.
+
+### Merges
+
+- **trade lane: merged, head `840c5c1`.** Test rc 0, build rc 0.
+  - Conflicts resolved:
+    - `createServer.ts` keeps WU-08's session wiring and takes WU-15's `CurrencyService`. `ninjaClient` is dropped.
+    - `toolRouter.ts` keeps `session: EngineSession` and replaces `ninjaClient` with `currency: CurrencyService`.
+  - Integration fix (840c5c1): in `toolHygiene.test.ts`, `get_currency_rates` is now `required: [], allowed: ['ninja']`, because the C-12 cache serves it after the trade samples. A new assertion requires exactly one poe.ninja fetch, made by the first sample that reads rates.
+  - No fixture edits were needed.
+  - Ran `pnpm install --frozen-lockfile` after the rebase, to match the lockfile without `bottleneck`.
+- **lua lane: merged, head `4cfd1ac`.** No conflicts, no fixes. Test rc 0, build rc 0.
+
+### Wave gate: PASS at `4cfd1ac`
+
+Test rc 0, build rc 0. The clean gate gave 66/66 suites and 715/715 tests, 0 skipped. It was repeated three times with the same result:
+- a `jest --json` re-run;
+- a fresh clone with `vendor/` deleted;
+- a `jest --coverage` run.
+
+The W1 baseline `ed1a25b` reproduced 37/366, and all 37 baseline suites are still present. The engine-required suites ran and were not skipped.
+
+Script checks:
+- AC-F2: fresh fetch rc 0, second run rc 0, no network on the second run rc 0.
+- AC-F5: rc 0.
+- AC-F6: rc 0.
+- AC-F7: no pipe in `mise.toml` rc 1 (pass); fresh setup rc 0.
+- AC-F8: one zod rc 0; `@types` absent rc 1; no `coverageThreshold` rc 1; frozen install rc 0; `jest --coverage` rc 0.
+- AC-F9: HEAD rc 0; `vendor/` deleted rc 0; injected failure rc 1 from both `mise run test` and jest.
+- AC-F11: rc 0.
+- AC-F14: rc 1 (pass).
+- AC-F17: nonexistent fork path rc 1; `POB_SKIP_ENGINE=1` rc 0 (185 skipped); no luajit rc 1; no ready guards rc 1.
+- AC-F19: plumbing names rc 1; bullet 2 rc 0 (only `setTree`, WU-10); bullet 3 rc 1.
+- AC-T3: rc 1. AC-T17: rc 1. AC-T20: rc 1. `bottleneck` gone: rc 1.
+- AC-T14 mod-text regen: rc 0. AC-F24 stat-fields regen: rc 0.
+
+Tooling false-failure: AC-F3(a), the 1 s pin-check timing test (NFR-2), took 1224 ms once, under a parallel coverage run. It passed alone in 310 and 507 ms, and on a full re-run.
+
+Root cause: no gate failure. Every AC of the wave maps to a passing named test. The 840c5c1 hygiene change keeps the spine §12 recorded-request rule. AC-T24 now builds its reference through PoB's own `TradeQuery` route (4cfd1ac). No test file was deleted, and no skip, only or todo was added. `pobLuaBridge.simple.test.ts` went from 19 to 4 tests through consolidation, with those assertions moved to `pobLuaBridge.test.ts` (38 to 39). `deletedPlumbing` went from 4 to 5, and there are 29 new suites.
+
+### Friction
+
+- `mise exec -C <repo> -- luajit <rel script>` changes cwd and breaks vendor-relative scripts. Use `$(mise which luajit)` from the vendor src dir.
+- Jest sometimes reports negative test durations, likely WSL clock drift. Results were unaffected.
+- The auto-mode classifier timed out on a read-only grep (WU-05) and on a Bash call (WU-14). Retried, or done another way.
+- Engine-required tests need luajit on PATH. Run targeted jest under `mise exec --` (WU-05, WU-06, WU-08).
+- Write/Edit was refused on files that had not been opened with Read first (WU-06, WU-15).
+- WU-07: an event-loop-turn wait was flaky under load and now polls by wall clock. AC-F3(a) took 1196 ms once; it passed in isolation and on the second gate run.
+- WU-08: AC-F3(a) took 1733 ms at load average about 5. It passed on re-run.
+- WU-14: a baseline run caught a half-written `errors.ts`. A first commit swept in a staged deletion, and was soft-reset and recommitted as `146e64e`.
+- WU-16: AC-T22 timed out at load average about 12 and passed on re-run. `tsc -p tsconfig.test.json` shows TS6059 rootDir errors that predate this wave.

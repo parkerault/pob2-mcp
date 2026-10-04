@@ -1,0 +1,9 @@
+Rarity: RARE
+Pandemonium Loop
+Ruby Ring
+Item Level: 80
+Implicits: 1
++25% to Fire Resistance
++62 to maximum Life
++31% to Cold Resistance
++14 to Strength

@@ -11,20 +11,23 @@ import type {
   OptimizationSuggestion,
 } from "../types.js";
 import { BuildService } from "./buildService.js";
+import { resolvePobSrc, type PobPathEnv } from "../engine/pobPath.js";
 
 export class TreeService {
   private treeDataCache: Map<string, TreeDataCache> = new Map();
   private buildService: BuildService;
+  private env: PobPathEnv;
 
-  constructor(buildService: BuildService) {
+  constructor(buildService: BuildService, env: PobPathEnv = process.env) {
     this.buildService = buildService;
+    this.env = env;
   }
 
   /**
    * Load the PoE2 passive tree graph for the given version.
    *
    * Tree data is read from the local PathOfBuilding-PoE2 checkout
-   * (POB_FORK_PATH/TreeData/<version>/tree.json) so the pathing/optimization
+   * (<resolvePobSrc>/TreeData/<version>/tree.json) so the pathing/optimization
    * tools use the EXACT same tree the live engine does. If the requested
    * version isn't present locally (e.g. 'Unknown', or a PoE1 version string
    * from an older build), we fall back to the newest version in the checkout.
@@ -54,7 +57,7 @@ export class TreeService {
 
   /** Directory holding per-version PoE2 tree data in the PoB checkout. */
   private getForkTreeDataDir(): string {
-    return path.join(process.env.POB_FORK_PATH || "", "TreeData");
+    return path.join(resolvePobSrc(this.env), "TreeData");
   }
 
   private hasLocalVersion(version: string): boolean {
@@ -91,7 +94,7 @@ export class TreeService {
     if (!fs.existsSync(file)) {
       throw new Error(
         `PoE2 passive tree data not found at ${file}. ` +
-          `Set POB_FORK_PATH to a PathOfBuilding-PoE2 'src' directory.`
+          "Run `mise run pob:fetch` to fetch the pinned PathOfBuilding-PoE2 checkout."
       );
     }
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));

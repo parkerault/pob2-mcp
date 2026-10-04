@@ -1,20 +1,20 @@
 /**
  * Integration tests that drive the real PoB2 engine through the Lua bridge.
  *
- * These require luajit on PATH and the PathOfBuilding-PoE2 fork (with the
- * api-stdio bridge) present. They are gated on that fork existing, so they run
- * in this dev environment but skip cleanly in CI / on machines without it.
+ * These require luajit on PATH and the pinned PathOfBuilding-PoE2 checkout
+ * (`mise run pob:fetch` puts it in vendor/). They are gated on that checkout
+ * existing.
  *
- * Override the fork location with POB_FORK_PATH if it isn't the default sibling.
+ * The checkout location is resolvePobSrc's (vendor/ unless the env overrides it).
  */
 import path from "path";
 import fs from "fs";
 import { PoBLuaApiClient } from "../../src/pobLuaBridge";
 import { Poe2SkillService } from "../../src/services/poe2SkillService";
 import { handlePlanLeveling } from "../../src/handlers/levelingHandlers";
+import { resolvePobSrc } from "../../src/engine/pobPath";
 
-const forkSrc = process.env.POB_FORK_PATH
-  || path.resolve(__dirname, "..", "..", "..", "PathOfBuilding-PoE2", "src");
+const forkSrc = resolvePobSrc(process.env);
 const forkPresent = fs.existsSync(path.join(forkSrc, "HeadlessWrapper.lua"));
 
 const d = forkPresent ? describe : describe.skip;

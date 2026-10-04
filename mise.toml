@@ -2,10 +2,29 @@
 # PoB2's Lua sources use compound assignment (`+=`), which needs a LuaJIT newer than any
 # tagged release / conda build. Pin the same upstream commit PoB's own CI image builds
 # (PathOfBuilding Dockerfile), and install the native `lua-utf8` module PoB hard-requires.
-"asdf:mise-plugins/mise-luaJIT" = { version = "ref:2460b3ff93a1c955de3d62cfc825de7d68dc272e", postinstall = "luarocks install luautf8 0.1.6-1" }
-node = "24"
+# The plugin builds luarocks too, defaulting to the latest release; 3.13.0's tarball ships a
+# malformed rockspec (missing comma), so pin the previous release, scoped to the install only.
+"asdf:mise-plugins/mise-luaJIT" = { version = "ref:2460b3ff93a1c955de3d62cfc825de7d68dc272e", postinstall = "luarocks install luautf8 0.1.6-1", install_env = { LUAROCKS_VERSION = "3.12.2" } }
+# corepack provides pnpm (pinned by package.json "packageManager"); Node >= 25 no longer ships it.
+node = { version = "24", postinstall = "corepack enable" }
 
-[env]
-# The plugin above builds luarocks too, defaulting to the latest release; 3.13.0's tarball
-# ships a malformed rockspec (missing comma), so pin the previous release.
-LUAROCKS_VERSION = "3.12.2"
+[plugins]
+# Pin the LuaJIT asdf plugin revision (mise rejects abbreviated SHAs).
+"asdf-mise-plugins-mise-lua-jit" = "https://github.com/mise-plugins/mise-luaJIT.git#bd4977ef2c2cfd0659a4bb39acb37bd5104fb7fc"
+
+# Tasks contain no pipes: the mise task shell is `sh -c -o errexit`, without pipefail.
+[tasks."pob:fetch"]
+description = "Fetch the pinned PathOfBuilding-PoE2 checkout into vendor/"
+run = "bash scripts/fetch-pob.sh"
+
+[tasks.build]
+run = "pnpm build"
+
+[tasks.setup]
+description = "First-time setup: dependencies, build, pinned PoB"
+run = ["pnpm install --frozen-lockfile", "pnpm build", { task = "pob:fetch" }]
+
+[tasks.test]
+description = "The gate: pinned PoB present, fresh build, full test suite"
+depends = ["pob:fetch"]
+run = ["pnpm build", "pnpm test"]

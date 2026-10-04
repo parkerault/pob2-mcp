@@ -5,13 +5,17 @@
  */
 
 import { PoBLuaApiClient } from '../pobLuaBridge.js';
+import { resolvePobSrc, type PobPathEnv } from '../engine/pobPath.js';
+import { checkPin, readPin } from '../engine/pinCheck.js';
 
 export class LuaClientManager {
   private client: PoBLuaApiClient | null = null;
   private enabled: boolean;
+  private env: PobPathEnv;
 
-  constructor(enabled: boolean) {
+  constructor(enabled: boolean, env: PobPathEnv = process.env) {
     this.enabled = enabled;
+    this.env = env;
   }
 
   /**
@@ -39,14 +43,29 @@ export class LuaClientManager {
       this.client = null;
     }
 
+    // Refuse an unpinned PoB checkout before spawning anything (C-6).
+    const pobSrc = resolvePobSrc(this.env);
+    const pin = await checkPin({
+      pobSrc,
+      pin: readPin(),
+      allowUnpinned: this.env.POB_ALLOW_UNPINNED === 'true',
+    });
+    if (!pin.ok) {
+      console.error(`[Lua Bridge] Pin check failed: ${pin.reason}`);
+      throw new Error(`The PoB checkout at ${pobSrc} does not match the pin (pob-pin.json): ${pin.reason}. To fix, ${pin.hint}.`);
+    }
+    for (const warning of pin.warnings) {
+      console.error(`[Lua Bridge] POB_ALLOW_UNPINNED=true, continuing despite: ${warning}`);
+    }
+
     console.error('[Lua Bridge] Initializing client...');
 
     try {
       const stdioClient = new PoBLuaApiClient({
-        cwd: process.env.POB_FORK_PATH,
-        cmd: process.env.POB_CMD,
-        args: process.env.POB_ARGS ? [process.env.POB_ARGS] : undefined,
-        timeoutMs: process.env.POB_TIMEOUT_MS ? parseInt(process.env.POB_TIMEOUT_MS) : undefined,
+        cwd: pobSrc,
+        cmd: this.env.POB_CMD,
+        args: this.env.POB_ARGS ? [this.env.POB_ARGS] : undefined,
+        timeoutMs: this.env.POB_TIMEOUT_MS ? parseInt(this.env.POB_TIMEOUT_MS) : undefined,
       });
       await stdioClient.start();
       this.client = stdioClient;

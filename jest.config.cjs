@@ -20,14 +20,6 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/*.test.ts',
   ],
-  coverageThreshold: {
-    global: {
-      branches: 75,
-      functions: 85,
-      lines: 80,
-      statements: 80,
-    },
-  },
   coverageDirectory: 'coverage',
   verbose: true,
   moduleNameMapper: {

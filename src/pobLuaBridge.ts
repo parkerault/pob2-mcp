@@ -1,42 +1,13 @@
 import { spawn, ChildProcessWithoutNullStreams } from "child_process";
 import { EventEmitter } from "events";
-import fs from "fs";
 import path from "path";
 import os from "os";
+import { resolvePobApiDir, resolvePobSrc } from "./engine/pobPath.js";
 
 /**
- * Absolute path to the vendored Lua bridge (`pob-api/`) shipped inside this
- * package.
- *
- * This MUST NOT depend on `process.cwd()` as the primary anchor: the MCP server
- * is launched by clients (e.g. Claude Desktop) with an arbitrary working
- * directory — typically `C:\WINDOWS\system32` on Windows — so a cwd-relative
- * guess resolves to a bogus path and luajit exits 1 ("cannot open ...").
- *
- * Instead we anchor on the entry script (`process.argv[1]`, e.g.
- * `<pkg>/build/index.js`). `pobLuaBridge` and `index` both live in `build/`
- * (or `src/` under ts-jest), so `../pob-api` from the entry dir is the package's
- * `pob-api/`. cwd-based candidates remain only as later fallbacks for unusual
- * launches. We verify each candidate actually contains `bootstrap.lua`.
+ * The vendored Lua bridge (`pob-api/`) is located from the package root, never from the
+ * process cwd: MCP hosts launch the server from arbitrary directories (C-6, `resolvePobApiDir`).
  */
-function resolvePobApiDir(): string {
-  const candidates: string[] = [];
-  const entry = process.argv[1];
-  if (entry) {
-    const entryDir = path.dirname(entry);
-    candidates.push(path.join(entryDir, "..", "pob-api")); // build/index.js -> <pkg>/pob-api
-    candidates.push(path.join(entryDir, "pob-api"));
-  }
-  candidates.push(path.join(process.cwd(), "pob-api"));
-  candidates.push(path.join(process.cwd(), "..", "pob-api"));
-
-  for (const c of candidates) {
-    if (fs.existsSync(path.join(c, "bootstrap.lua"))) return c;
-  }
-  // Nothing found — return the best guess so the error names the expected path.
-  return candidates[0] ?? path.join(process.cwd(), "pob-api");
-}
-
 const POB_API_DIR = resolvePobApiDir();
 const POB_API_BOOTSTRAP = path.join(POB_API_DIR, "bootstrap.lua");
 
@@ -72,9 +43,8 @@ export class PoBLuaApiClient {
     this.dataEmitter.on("error", () => {});
     // cwd must be a PathOfBuilding-PoE2 `src/` directory. It no longer needs to
     // be a patched fork: the vendored `pob-api/bootstrap.lua` drives a vanilla
-    // checkout (see resolvePobApiDir). POB_FORK_PATH may point at any compatible
-    // upstream checkout.
-    const pobSrc = options.cwd || path.join(os.homedir(), "Projects", "PathOfBuilding-PoE2", "src");
+    // checkout. The default is the pinned checkout (resolvePobSrc, C-6).
+    const pobSrc = options.cwd || resolvePobSrc(process.env);
     this.options = {
       cwd: pobSrc,
       cmd: options.cmd || "luajit",
@@ -89,7 +59,7 @@ export class PoBLuaApiClient {
     if (this.proc) return;
 
     // Set up Lua paths for runtime modules
-    const pobForkPath = this.options.cwd || process.env.POB_FORK_PATH || '';
+    const pobForkPath = this.options.cwd || '';
 
     // Cross-platform path handling: remove 'src' from the end if present
     const baseDir = pobForkPath.endsWith(path.sep + 'src') || pobForkPath.endsWith('/src')
@@ -117,7 +87,7 @@ export class PoBLuaApiClient {
       ...this.options.env,
       // NOTE: We deliberately do NOT set POB_API_STDIO. bootstrap.lua always
       // starts the server itself, and omitting this flag means that even if
-      // POB_FORK_PATH points at a legacy patched fork, that fork's
+      // the PoB checkout is a legacy patched fork, that fork's
       // HeadlessWrapper will NOT auto-start its own (divergent) server —
       // control returns to our bootstrap, which uses the vendored pob-api files.
       LUA_PATH: `${apiLuaPath}${pathSep}${runtimeLuaPath}${path.sep}?.lua${pathSep}${runtimeLuaPath}${path.sep}?${path.sep}init.lua${pathSep}${pathSep}`,

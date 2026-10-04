@@ -1,3 +1,5 @@
+import { userAgent } from '../utils/userAgent.js';
+
 /**
  * poe.ninja API Client
  *
@@ -156,7 +158,7 @@ export class PoeNinjaClient {
     const url = `${this.baseUrl}/overview?league=${encodeURIComponent(league)}&type=Currency`;
     const response = await this.fetchImpl(url, {
       headers: {
-        'User-Agent': 'pob2-mcp-server/0.1',
+        'User-Agent': userAgent(),
         'Accept': 'application/json',
       },
     });

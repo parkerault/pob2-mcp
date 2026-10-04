@@ -12,6 +12,7 @@ import os from "os";
 import path from "path";
 
 import { createServer, type ServerDeps } from "./server/createServer.js";
+import { createCredentialGetter } from "./trade/credentials.js";
 import { packageRoot } from "./utils/packageRoot.js";
 
 /**
@@ -49,8 +50,9 @@ async function main(): Promise<void> {
     stateDir,
     fetch: (input, init) => globalThis.fetch(input, init),
     spawn,
-    // C-9 credentials land in WU-14; until then no session cookie is sent.
-    credentials: () => ({ sessionId: null, source: null }),
+    // C-9: the trade session cookie, re-read from the env and <packageRoot>/.env on every
+    // authenticated trade request (never cached, never logged).
+    credentials: createCredentialGetter({ env, dotenvPath: path.join(packageRoot(), ".env") }),
   };
 
   const { server, shutdown } = createServer(deps);

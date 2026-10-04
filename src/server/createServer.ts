@@ -20,7 +20,11 @@ import { TreeService } from "../services/treeService.js";
 import { WatchService } from "../services/watchService.js";
 import { ValidationService } from "../services/validationService.js";
 import { BuildExportService } from "../services/buildExportService.js";
-import { TradeApiClient } from "../services/tradeClient.js";
+import { TradeApiClient } from "../trade/tradeClient.js";
+import { RateLimiter } from "../trade/rateLimiter.js";
+import { resolveDefaultLeague } from "../trade/league.js";
+import type { Credentials } from "../trade/credentials.js";
+import { userAgent } from "../utils/userAgent.js";
 import { StatMapper } from "../services/statMapper.js";
 import { PoeNinjaClient } from "../services/poeNinjaClient.js";
 import { ContextBuilder, sessionScopedEngine, type EngineAccess } from "../utils/contextBuilder.js";
@@ -38,19 +42,13 @@ import {
 } from "./toolSchemas.js";
 import {
   routeToolCall,
-  lazyTradeStats,
   type ToolCallContext,
   type ToolRouterDependencies,
 } from "./toolRouter.js";
 import { isToolAvailable } from "./toolMeta.js";
 import { wrapWithTruncation, type ToolResponse } from "./responseUtils.js";
 
-/** Trade session credentials (C-9). WU-14 moves this type to `src/trade/credentials.ts`. */
-export interface Credentials {
-  sessionId: string | null;
-  source: "process-env" | "dotenv" | null;
-  problem?: "op-reference" | "malformed";
-}
+export type { Credentials } from "../trade/credentials.js";
 
 export interface ServerDeps {
   /** package.json version (read by the entry). */
@@ -65,7 +63,7 @@ export interface ServerDeps {
   fetch: typeof globalThis.fetch;
   /** The engine process factory. */
   spawn: typeof nodeSpawn;
-  /** C-9; until WU-14 a stub returning {sessionId: null, source: null}. */
+  /** C-9: the trade session cookie, re-read on every authenticated trade request. */
   credentials: () => Credentials;
   now?: () => number;
 }
@@ -124,6 +122,23 @@ export function buildCallContext(extra: CallExtra, now: () => number = Date.now)
   };
 }
 
+/**
+ * The lazy trade2 `/data/stats` load (D-14): the first trade tool call that needs stats loads them
+ * (one request); later calls reuse them. A failure is logged and the static stat mappings stay in
+ * use; the next trade call retries.
+ */
+async function ensureTradeStats(
+  tradeClient: Pick<TradeApiClient, "getStats">,
+  statMapper: Pick<StatMapper, "ensureLoaded">,
+): Promise<void> {
+  try {
+    await statMapper.ensureLoaded(() => tradeClient.getStats());
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[StatMapper] Failed to load official stats, using the static fallback: ${msg}`);
+  }
+}
+
 export function createServer(deps: ServerDeps): {
   server: Server;
   engine: EngineSession;
@@ -149,12 +164,16 @@ export function createServer(deps: ServerDeps): {
   const validationService = new ValidationService();
   const exportService = new BuildExportService(deps.pobDirectory);
   const ninjaClient = new PoeNinjaClient({ fetch: deps.fetch });
+  // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
+  const tradeLimiter = new RateLimiter({ now });
   const tradeClient = new TradeApiClient({
     fetch: deps.fetch,
-    env,
     credentials: deps.credentials,
-    requestsPerSecond: env.POE_RATE_LIMIT_PER_SECOND ? parseInt(env.POE_RATE_LIMIT_PER_SECOND, 10) : undefined,
-    cacheTTL: env.POE_CACHE_TTL ? parseInt(env.POE_CACHE_TTL, 10) : undefined,
+    limiter: tradeLimiter,
+    userAgent: userAgent(),
+    baseUrl: env.POE_TRADE_BASE || undefined,
+    realm: env.POE_TRADE_REALM || undefined,
+    now,
   });
   const statMapper = new StatMapper();
   // The engine session (C-3) is the only owner of the engine; nothing starts until an engine call.
@@ -186,7 +205,8 @@ export function createServer(deps: ServerDeps): {
     getLuaClient: engineAccess.getLuaClient,
     ensureLuaClient: engineAccess.ensureLuaClient,
     env,
-    ensureTradeStats: lazyTradeStats(tradeClient, statMapper),
+    ensureTradeStats: () => ensureTradeStats(tradeClient, statMapper),
+    resolveLeague: () => resolveDefaultLeague(env, tradeClient),
   };
 
   server.onerror = (error) => {

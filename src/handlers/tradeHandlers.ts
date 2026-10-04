@@ -1,5 +1,5 @@
 import { wrapHandler } from '../utils/errorHandling.js';
-import { TradeApiClient } from '../services/tradeClient.js';
+import type { TradeApiClient, FetchEntry } from '../trade/tradeClient.js';
 import { TradeQueryBuilder } from '../services/tradeQueryBuilder.js';
 import { StatMapper } from '../services/statMapper.js';
 import { ItemListing } from '../types/tradeTypes.js';
@@ -100,8 +100,9 @@ export async function handleSearchTradeItems(
 
     const query = builder.build();
 
-    // Execute search
-    const searchResult = await context.tradeClient.searchItems(league, query);
+    // Execute search. The kept tools search anonymously (auth: false): the cookie is only for
+    // weighted search (C-10).
+    const searchResult = await context.tradeClient.search(league, query, { auth: false });
 
     if (!searchResult.result || searchResult.result.length === 0) {
       return {
@@ -116,7 +117,9 @@ export async function handleSearchTradeItems(
 
     // Fetch first batch of items (up to limit)
     const itemIdsToFetch = searchResult.result.slice(0, Math.min(limit, 10));
-    const items = await context.tradeClient.fetchItems(itemIdsToFetch, searchResult.id);
+    const items = presentEntries(
+      await context.tradeClient.fetch(itemIdsToFetch, searchResult.id, { auth: false }),
+    );
 
     // Format results in the order the trade site returned them
     const output = formatSearchResults(items, searchResult.total, league, searchResult.id);
@@ -170,7 +173,7 @@ export async function handleGetItemPrice(
     const query = builder.build();
 
     // Search
-    const searchResult = await context.tradeClient.searchItems(league, query);
+    const searchResult = await context.tradeClient.search(league, query, { auth: false });
 
     if (!searchResult.result || searchResult.result.length === 0) {
       return {
@@ -185,7 +188,9 @@ export async function handleGetItemPrice(
 
     // Fetch first 10 items to get price range
     const itemIdsToFetch = searchResult.result.slice(0, Math.min(10, searchResult.result.length));
-    const items = await context.tradeClient.fetchItems(itemIdsToFetch, searchResult.id);
+    const items = presentEntries(
+      await context.tradeClient.fetch(itemIdsToFetch, searchResult.id, { auth: false }),
+    );
 
     // Calculate price statistics
     const prices = items
@@ -259,9 +264,9 @@ export async function handleGetLeagues(
   }>;
 }> {
   return wrapHandler('get leagues', async () => {
-    const leagueData = await context.tradeClient.getLeagues();
+    const leagues = await context.tradeClient.getLeagues();
 
-    if (!leagueData.result || leagueData.result.length === 0) {
+    if (leagues.length === 0) {
       return {
         content: [
           {
@@ -274,7 +279,7 @@ export async function handleGetLeagues(
 
     let output = '=== Available Leagues ===\n\n';
 
-    for (const league of leagueData.result) {
+    for (const league of leagues) {
       output += `- ${league.id}`;
       if (league.text) {
         output += ` (${league.text})`;
@@ -299,6 +304,11 @@ export async function handleGetLeagues(
 // ========================================
 // Helper Functions
 // ========================================
+
+/** The fetch entries that are listings (trade2 may return `null` for a listing that is gone). */
+function presentEntries(entries: Array<FetchEntry | null>): ItemListing[] {
+  return entries.filter((e): e is FetchEntry => e !== null && typeof e === 'object');
+}
 
 function formatSearchResults(items: ItemListing[], totalResults: number, league: string, searchId: string): string {
   let output = `=== Trade Search (${league}) ===\n`;

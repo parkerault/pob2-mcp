@@ -5,7 +5,7 @@
  */
 
 import type { ContextBuilder } from "../utils/contextBuilder.js";
-import type { TradeApiClient } from "../services/tradeClient.js";
+import type { TradeApiClient } from "../trade/tradeClient.js";
 import type { StatMapper } from "../services/statMapper.js";
 import type { PoeNinjaClient } from "../services/poeNinjaClient.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
@@ -45,6 +45,8 @@ export interface ToolRouterDependencies {
   env: Readonly<Record<string, string | undefined>>;
   /** Lazily loads trade2 stat data before the first trade tool call (D-14). */
   ensureTradeStats: () => Promise<void>;
+  /** The default league (D-20): `POE_LEAGUE`, else the first current league on trade2. */
+  resolveLeague: () => Promise<string>;
 }
 
 /**
@@ -90,44 +92,6 @@ function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
 
 /** Tools that do not need trade2 stat data before they run. */
 const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues"]);
-
-/** Single-flight, run-once wrapper: every caller shares the first call's promise. */
-export function once<T>(fn: () => Promise<T>): () => Promise<T> {
-  let promise: Promise<T> | null = null;
-  return () => {
-    if (!promise) promise = fn();
-    return promise;
-  };
-}
-
-/**
- * The lazy trade2 `/data/stats` preload (D-14): runs once, on the first trade tool call, never
- * before the MCP handshake. A failure or a timeout is logged and the static stat mappings stay in
- * use, as the startup preload did. WU-14 replaces the internals.
- */
-export function lazyTradeStats(
-  tradeClient: Pick<TradeApiClient, "getStatData">,
-  statMapper: Pick<StatMapper, "loadFromTradeAPI">,
-  timeoutMs = 15_000,
-): () => Promise<void> {
-  return once(async () => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      console.error("[StatMapper] Loading stats from the trade API...");
-      const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
-      });
-      const statData = await Promise.race([tradeClient.getStatData(), timeout]);
-      await statMapper.loadFromTradeAPI(statData);
-      console.error("[StatMapper] Loaded official stat data");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[StatMapper] Failed to load official stats, using the static fallback: ${msg}`);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  });
-}
 
 /** What handlers return: text content, possibly typed loosely by older handlers. */
 type HandlerResult = { content: Array<{ type: string; text: string }>; isError?: boolean };

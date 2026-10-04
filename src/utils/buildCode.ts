@@ -5,6 +5,7 @@
  * (`-`/`_`). Share sites (pobb.in, pastebin) host that code at a raw endpoint.
  */
 import zlib from "node:zlib";
+import { shareSiteUserAgent } from "./userAgent.js";
 
 const MAX_CODE_BYTES = 4 * 1024 * 1024; // 4MB guard for fetched codes
 const MAX_XML_BYTES = 16 * 1024 * 1024; // 16MB guard for decoded XML
@@ -63,7 +64,7 @@ export async function fetchBuildCode(url: string, fetchImpl: typeof globalThis.f
   if (!/^https?:\/\//i.test(url)) throw new Error("not an http(s) URL");
   const target = rawUrlFor(url);
   const res = await fetchImpl(target, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; pob2-mcp-server)", Accept: "*/*" },
+    headers: { "User-Agent": shareSiteUserAgent(), Accept: "*/*" },
   });
   if (!res.ok) throw new Error(`failed to fetch build (${res.status}) from ${target}`);
   const text = await res.text();

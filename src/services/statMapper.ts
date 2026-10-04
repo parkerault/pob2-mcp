@@ -446,6 +446,29 @@ export class StatMapper {
     this.loaded = true;
   }
 
+  private liveLoaded = false;
+  private liveLoading: Promise<void> | null = null;
+
+  /**
+   * Lazy-loading hook (D-14): load the live trade2 stats through `load` the first time a trade
+   * tool needs them. Concurrent callers share one load; only a successful load is remembered, so a
+   * failed one is retried by the next call.
+   */
+  ensureLoaded(load: () => Promise<unknown>): Promise<void> {
+    if (this.liveLoaded) return Promise.resolve();
+    if (!this.liveLoading) {
+      this.liveLoading = (async () => {
+        try {
+          await this.loadFromTradeAPI(await load());
+          this.liveLoaded = true;
+        } finally {
+          this.liveLoading = null;
+        }
+      })();
+    }
+    return this.liveLoading;
+  }
+
   /**
    * Load stats dynamically from official PoE trade API data
    */

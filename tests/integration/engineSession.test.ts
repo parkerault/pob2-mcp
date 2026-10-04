@@ -3,6 +3,7 @@
  * luajit and the vendor pin). Each block gets its own server over a private builds folder.
  */
 import fs from 'fs';
+import zlib from 'zlib';
 import path from 'path';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
@@ -360,5 +361,31 @@ engineDescribe('AC-E60: canonical build paths through the engine (D-52)', () => 
     expect(out.isError).toBe(false);
     expect(f.session.loaded).toMatchObject({ path: 'Grenadator.xml', displayName: 'Grenadator' });
     expect(out.text).toContain('Build: Grenadator (Grenadator.xml)');
+  }, T);
+});
+
+engineDescribe('C-3: import_build never fails after it has replaced the loaded build', () => {
+  let f: SessionFixture;
+  beforeAll(async () => {
+    f = await startSessionFixture({ files: { 'grenadator.xml': GOLDEN_XML } });
+  }, T);
+  afterAll(async () => f?.close(), 30000);
+
+  it('an invalid save_as is isError before the load: the dirty build, loaded and revision are untouched', async () => {
+    expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
+    expect((await f.call('set_character_level', { level: 61 })).isError).toBe(false);
+    const before = { xml: await canonicalExport(f.session), loaded: f.session.loaded, revision: f.session.revision };
+    expect(f.session.isDirty()).toBe(true);
+
+    const code = zlib.deflateSync(Buffer.from(goldenWithLevel(33), 'utf8')).toString('base64');
+    const out = await f.call('import_build', { source: code, save_as: '../escape' });
+    expect(out.isError).toBe(true);
+    expect(out.text).toContain('path traversal');
+    expect(await canonicalExport(f.session)).toBe(before.xml);
+    expect(f.session.loaded).toEqual(before.loaded);
+    expect(f.session.revision).toBe(before.revision);
+    expect(f.session.isDirty()).toBe(true);
+    expect(await engineLevel(f.session)).toBe(61);
+    expect(fs.existsSync(path.join(f.tmp, 'escape.xml'))).toBe(false);
   }, T);
 });

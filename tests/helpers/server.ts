@@ -10,17 +10,21 @@
  *
  * `session` is the server's engine session (C-3): tests read `revision`/`loaded`/`isDirty()`, subscribe
  * with `onEvent`, find the engine with `enginePid()`, and call `session.run` directly where an AC says so.
+ * `engineAccess` is the accessor the router and handler contexts were wired with (`getLuaClient`,
+ * `ensureLuaClient`, `engine`), so a test checks the server's real engine access, not a copy of it.
  */
 import { spawn } from 'child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createServer, type EngineSession, type ServerDeps } from '../../src/server/createServer';
+import type { EngineAccess } from '../../src/utils/contextBuilder';
 import { entryDefaults, packageVersion } from '../../src/index';
 
 export interface TestServer {
   client: Client;
   deps: ServerDeps;
   session: EngineSession;
+  engineAccess: EngineAccess;
   close(): Promise<void>;
 }
 
@@ -38,7 +42,7 @@ export async function startTestServer(overrides: Partial<ServerDeps> = {}): Prom
     env,
   };
 
-  const { server, engine, shutdown } = createServer(deps);
+  const { server, engine, engineAccess, shutdown } = createServer(deps);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   const client = new Client({ name: 'pob2-mcp-tests', version: '0.0.0' });
@@ -49,6 +53,7 @@ export async function startTestServer(overrides: Partial<ServerDeps> = {}): Prom
     client,
     deps,
     session: engine,
+    engineAccess,
     async close() {
       if (closed) return;
       closed = true;

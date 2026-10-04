@@ -391,6 +391,11 @@ class Session implements EngineSession {
     try {
       value = await this.runFn(fn, state);
     } catch (error) {
+      // A ctx load succeeded, then the call failed after it (e.g. import_build's post-load work):
+      // the engine and `loaded` already hold the new build, so it is a change like any other. Count
+      // it and snapshot it (as the auto-reload sub-step does), or two builds would share a revision
+      // and a crash would find no snapshot of the build the engine holds.
+      if (state.loaded && this.sameEngine(pid)) await this.keepLoad(call, pid, notices);
       throw this.failed(state, pid, error);
     }
 
@@ -427,6 +432,25 @@ class Session implements EngineSession {
       this.loadedValue = { ...this.loadedValue, loadedRevision: this.revisionValue, savedRevision: this.revisionValue };
     }
     return value;
+  }
+
+  /**
+   * The books for a ctx load whose call then failed: `revision += 1`, `loadedRevision =
+   * savedRevision = revision`, and a fresh recovery snapshot (discarded, with the step-6 warning, if
+   * the export fails).
+   */
+  private async keepLoad(call: EngineCall, pid: number | null, notices: string[]): Promise<void> {
+    this.revisionValue += 1;
+    if (this.loadedValue) {
+      this.loadedValue = { ...this.loadedValue, loadedRevision: this.revisionValue, savedRevision: this.revisionValue };
+    }
+    try {
+      this.snapshot = { xml: await this.exportXml(), revision: this.revisionValue, afterTool: call.tool };
+    } catch (error) {
+      console.error(`[Engine Session] snapshot after the load in ${call.tool} failed: ${errorMessage(error)}`);
+      this.snapshot = null;
+      if (this.sameEngine(pid)) notices.push(SNAPSHOT_FAILED);
+    }
   }
 
   private async runFn<T>(fn: (ctx: EngineCallContext) => Promise<T>, state: RunState): Promise<T> {
@@ -466,7 +490,8 @@ class Session implements EngineSession {
     this.engineRunning = false;
     await client.start(); // start errors propagate (the pin check runs inside)
     this.engineRunning = true;
-    this.crashed = false;
+    // After a crash, `crashed` stays set until step 3 has resolved it (restored, or fell back to the
+    // no-snapshot path): if recovery fails part-way, the next call must still take step 3.
     if (!crashed) {
       this.loadedValue = this.newBuildRecord();
       this.snapshot = null;
@@ -484,13 +509,16 @@ class Session implements EngineSession {
     if (snapshot && this.loadedValue) {
       try {
         await this.rawLoad(snapshot.xml, this.loadedValue.displayName);
+        this.crashed = false;
         notices.push(
           `Engine restarted; restored the build to its state after \`${snapshot.afterTool}\`.` +
             (interrupted ? ` The interrupted call \`${interrupted}\` was not applied.` : ""),
         );
         return;
       } catch (error) {
-        // Never retried: kill the engine, discard the snapshot, take the no-snapshot path.
+        // Never retried: kill the engine, discard the snapshot, take the no-snapshot path. `crashed`
+        // is still set, so if this restart fails the next call takes the no-snapshot path instead
+        // of mistaking it for a first start.
         console.error(`[Engine Session] restoring the snapshot failed: ${errorMessage(error)}`);
         this.snapshot = null;
         this.engineRunning = false;
@@ -501,6 +529,7 @@ class Session implements EngineSession {
     }
     this.snapshot = null;
     this.loadedValue = this.newBuildRecord();
+    this.crashed = false;
     if (call.kind === "read" || call.kind === "mutate") throw new EngineSessionError(RESTORE_FAILED);
     notices.push(RESTORE_FAILED);
   }
@@ -679,22 +708,38 @@ class Session implements EngineSession {
       },
       async withTemporaryBuild<T>(xml: string, fn: () => Promise<T>): Promise<T> {
         check();
+        const pid = session.client().pid();
         const saved = await session.exportXml();
         const name = session.loadedValue?.displayName ?? NEW_BUILD_NAME;
+        // Put the working build back. If the engine died (a crash, not ours), there is nothing to
+        // put back into: the caller's error goes to step 7 untouched, which records the crash, the
+        // in-flight tool and the suffix. Only a live engine that refuses the reload is killed on
+        // purpose, so the next step 3 restores the snapshot.
+        const putBack = async (original: { error: unknown } | null): Promise<void> => {
+          if (!session.sameEngine(pid)) {
+            if (original) throw original.error;
+            throw new Error("the engine exited during a temporary load");
+          }
+          try {
+            await session.rawLoad(saved, name);
+          } catch (error) {
+            if (!session.sameEngine(pid)) throw original ? original.error : error;
+            await session.killEngine(state);
+            throw new Error(
+              `could not put the working build back after a temporary load: ${errorMessage(error)}` +
+                (original ? ` (after: ${errorMessage(original.error)})` : ""),
+            );
+          }
+        };
         let result: T;
         try {
           await session.rawLoad(xml, "Temporary build");
           result = await fn();
-        } finally {
-          try {
-            await session.rawLoad(saved, name);
-          } catch (error) {
-            // The engine no longer holds the working build: kill it, so step 3 restores the snapshot.
-            await session.killEngine(state);
-            // eslint-disable-next-line no-unsafe-finally
-            throw new Error(`could not put the working build back after a temporary load: ${errorMessage(error)}`);
-          }
+        } catch (error) {
+          await putBack({ error });
+          throw error;
         }
+        await putBack(null);
         return result;
       },
       noteSaved(relPath: string, fp: Fingerprint): void {

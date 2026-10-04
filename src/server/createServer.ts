@@ -23,7 +23,7 @@ import { BuildExportService } from "../services/buildExportService.js";
 import { TradeApiClient } from "../services/tradeClient.js";
 import { StatMapper } from "../services/statMapper.js";
 import { PoeNinjaClient } from "../services/poeNinjaClient.js";
-import { ContextBuilder, sessionScopedEngine } from "../utils/contextBuilder.js";
+import { ContextBuilder, sessionScopedEngine, type EngineAccess } from "../utils/contextBuilder.js";
 import { createEngineSession, type EngineSession } from "../engine/session.js";
 import {
   getToolSchemas,
@@ -127,6 +127,11 @@ export function buildCallContext(extra: CallExtra, now: () => number = Date.now)
 export function createServer(deps: ServerDeps): {
   server: Server;
   engine: EngineSession;
+  /**
+   * Test hook: the session-scoped engine accessor the router and every handler context were wired
+   * with (C-3 step 5), so a test can check the server's real `getLuaClient`/`ensureLuaClient`.
+   */
+  engineAccess: EngineAccess;
   shutdown(): Promise<void>;
 } {
   const env = deps.env;
@@ -256,5 +261,5 @@ export function createServer(deps: ServerDeps): {
     return shuttingDown;
   };
 
-  return { server, engine, shutdown };
+  return { server, engine, engineAccess, shutdown };
 }

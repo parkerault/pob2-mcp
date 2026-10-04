@@ -12,7 +12,6 @@ import { startTestServer, type TestServer } from '../helpers/server';
 import { fixtureFetch } from '../helpers/fixtureFetch';
 import { engineDescribe } from '../helpers/engine';
 import { GOLDEN_XML } from '../helpers/engineSession';
-import { sessionScopedEngine } from '../../src/utils/contextBuilder';
 
 engineDescribe('AC-E20: only an engine tool starts the engine, once (D-14, D-59)', () => {
   let tmp: string;
@@ -57,9 +56,20 @@ engineDescribe('AC-E20: only an engine tool starts the engine, once (D-14, D-59)
     expect(spawnSpy).toHaveBeenCalledTimes(1);
   }, 120000);
 
-  it('AC-E20: getLuaClient() outside session.run throws "engine access outside a session"', () => {
-    const access = sessionScopedEngine(server.session);
+  it('AC-E20: the server\'s wired getLuaClient() outside session.run throws "engine access outside a session"', async () => {
+    // The accessor createServer handed to the router and every handler context, not a fresh copy.
+    const access = server.engineAccess;
     expect(() => access.getLuaClient()).toThrow('engine access outside a session');
+    await expect(access.ensureLuaClient()).rejects.toThrow('engine access outside a session');
     expect(() => access.engine()).toThrow('engine access outside a session');
-  });
+    // Inside a run it is the run's session-scoped client, which still refuses raw loads.
+    await server.session.run({ tool: 'probe', kind: 'read' }, async (ctx) => {
+      expect(access.getLuaClient()).toBe(ctx.client);
+      await expect(access.ensureLuaClient()).resolves.toBeUndefined();
+      await expect(access.getLuaClient().request('load_build_xml', { xml: GOLDEN_XML, name: 'x' })).rejects.toThrow(
+        'engine load outside the session',
+      );
+    });
+    expect(() => access.getLuaClient()).toThrow('engine access outside a session');
+  }, 120000);
 });

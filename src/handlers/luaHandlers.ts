@@ -717,6 +717,11 @@ export async function handleImportBuild(
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error('Lua client not initialized. Use lua_start first.');
 
+    // Validate save_as before the load: once the engine holds the import, a bad name can no longer
+    // fail the call without the previous build already being gone.
+    const fileName = saveAs ? (/\.xml$/i.test(saveAs) ? saveAs : `${saveAs}.xml`) : null;
+    const savePath = fileName ? sanitizeBuildName(fileName, context.pobDirectory) : null;
+
     const { resolveBuildXml } = await import('../utils/buildCode.js');
     const xml = await resolveBuildXml(source, context.fetch);
 
@@ -733,9 +738,7 @@ export async function handleImportBuild(
     lines.push(`Socket groups: ${skillGroups}`);
 
     // Optionally persist to POB_DIRECTORY so file-based tools (analyze_build, etc.) can use it.
-    if (saveAs) {
-      const fileName = /\.xml$/i.test(saveAs) ? saveAs : `${saveAs}.xml`;
-      const savePath = sanitizeBuildName(fileName, context.pobDirectory);
+    if (fileName && savePath) {
       await fs.mkdir(path.dirname(savePath), { recursive: true });
       await fs.writeFile(savePath, xml, 'utf8');
       lines.push('', `Saved to: ${fileName} (in your builds directory)`);

@@ -1,0 +1,146 @@
+[
+  {
+    "file": "src/handlers/configHandlers.ts",
+    "phrase": "bandit",
+    "owner": "WU-12",
+    "justification": "get_config output and the config key list still show PoE1 bandit; WU-12 rebuilds config on PoE2 options via input"
+  },
+  {
+    "file": "src/handlers/configHandlers.ts",
+    "phrase": "pantheon",
+    "owner": "WU-12",
+    "justification": "get_config output and the config key list still show PoE1 pantheon gods; WU-12 rebuilds config on PoE2 options via input"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "Scion",
+    "owner": "WU-10",
+    "justification": "export_build_summary maps class ids through a PoE1 class table; WU-10 switches it to engine class names"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "Marauder",
+    "owner": "WU-10",
+    "justification": "export_build_summary maps class ids through a PoE1 class table; WU-10 switches it to engine class names"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "Duelist",
+    "owner": "WU-10",
+    "justification": "export_build_summary maps class ids through a PoE1 class table; WU-10 switches it to engine class names"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "Templar",
+    "owner": "WU-10",
+    "justification": "export_build_summary maps class ids through a PoE1 class table; WU-10 switches it to engine class names"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "Shadow",
+    "owner": "WU-10",
+    "justification": "export_build_summary maps class ids through a PoE1 class table; WU-10 switches it to engine class names"
+  },
+  {
+    "file": "src/handlers/exportHandlers.ts",
+    "phrase": "spell suppression",
+    "owner": "WU-10",
+    "justification": "export_build_summary prints a PoE1 Spell Suppression row; WU-10 reworks export_build_summary on engine data"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "Scion",
+    "owner": "WU-10",
+    "justification": "lua_get_tree maps class ids through a PoE1 class table; WU-10 uses engine class/ascendancy names"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "Marauder",
+    "owner": "WU-10",
+    "justification": "lua_get_tree maps class ids through a PoE1 class table; WU-10 uses engine class/ascendancy names"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "Duelist",
+    "owner": "WU-10",
+    "justification": "lua_get_tree maps class ids through a PoE1 class table; WU-10 uses engine class/ascendancy names"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "Templar",
+    "owner": "WU-10",
+    "justification": "lua_get_tree maps class ids through a PoE1 class table; WU-10 uses engine class/ascendancy names"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "Shadow",
+    "owner": "WU-10",
+    "justification": "lua_get_tree maps class ids through a PoE1 class table; WU-10 uses engine class/ascendancy names"
+  },
+  {
+    "file": "src/handlers/luaHandlers.ts",
+    "phrase": "mastery effect",
+    "owner": "WU-10",
+    "justification": "lua_get_tree prints a mastery line; WU-10 drops it (AC-E30)"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "Scion",
+    "owner": "WU-10",
+    "justification": "PoE1 class names in the lua_set_tree and lua_get_build_info descriptions (WU-10) and the lua_new_build description (WU-11); remove once both have landed"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "Marauder",
+    "owner": "WU-10",
+    "justification": "PoE1 class names in the lua_set_tree and lua_get_build_info descriptions (WU-10) and the lua_new_build description (WU-11); remove once both have landed"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "Duelist",
+    "owner": "WU-10",
+    "justification": "PoE1 class names in the lua_set_tree and lua_get_build_info descriptions (WU-10) and the lua_new_build description (WU-11); remove once both have landed"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "Templar",
+    "owner": "WU-10",
+    "justification": "PoE1 class names in the lua_set_tree and lua_get_build_info descriptions (WU-10) and the lua_new_build description (WU-11); remove once both have landed"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "Shadow",
+    "owner": "WU-10",
+    "justification": "PoE1 class names in the lua_set_tree and lua_get_build_info descriptions (WU-10) and the lua_new_build description (WU-11); remove once both have landed"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "spell suppression",
+    "owner": "WU-18",
+    "justification": "analyze_defenses and get_build_issues descriptions mention spell suppression; WU-18 rewrites both descriptions on engine data"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "bandit",
+    "owner": "WU-12",
+    "justification": "set_config description lists the PoE1 bandit key; WU-12 rewrites the config tool descriptions"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "pantheon",
+    "owner": "WU-12",
+    "justification": "set_config description lists the PoE1 pantheon keys; WU-12 rewrites the config tool descriptions"
+  },
+  {
+    "file": "src/server/toolSchemas.ts",
+    "phrase": "chaos orb equivalent",
+    "owner": "WU-15",
+    "justification": "get_currency_rates description claims Chaos Orb equivalent prices; WU-15 makes it Divine-primary (D-11, D-33)"
+  },
+  {
+    "file": "src/services/validationService.ts",
+    "phrase": "spell suppression",
+    "owner": "WU-18",
+    "justification": "validate_build's XML-path avoidance advice; WU-18 removes the XML path and judges on engine data (D-30)"
+  }
+]

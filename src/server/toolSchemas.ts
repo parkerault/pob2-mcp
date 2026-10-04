@@ -112,19 +112,6 @@ export function getToolSchemas(): ToolSchema[] {
       },
     },
     {
-      name: "refresh_tree_data",
-      description: "Force refresh the passive skill tree data cache. Use this if tree data seems outdated.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          version: {
-            type: "string",
-            description: "Specific tree version to refresh (optional, defaults to all versions)",
-          },
-        },
-      },
-    },
-    {
       name: "compare_trees",
       description: "Compare passive skill trees between two builds, showing differences in allocated nodes",
       inputSchema: {
@@ -519,7 +506,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "analyze_skills",
-      description: "Analyze the loaded build's actual skill setup using the PoB2 engine (PoE2-correct). Shows each socket group's active skill + support gems, flags tag-mismatched supports, empty/disabled gems, and unknown gem names. Prefer this over the legacy PoE1 analyze_skill_links.",
+      description: "Analyze the loaded build's actual skill setup using the PoB2 engine (PoE2-correct). Shows each socket group's active skill + support gems, flags tag-mismatched supports, empty/disabled gems, and unknown gem names.",
       inputSchema: { type: "object", properties: {} },
     },
     {
@@ -844,14 +831,6 @@ export function getLuaToolSchemas(): any[] {
       },
     },
     {
-      name: "suggest_masteries",
-      description: "Analyze all allocated mastery nodes and suggest the best effect choices by simulating each option's DPS/EHP impact. Requires a build to be loaded via lua_load_build.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
-    },
-    {
       name: "plan_leveling",
       description: "Generate a PoE2 0.5 leveling guide for a build: act/interlude progression with bosses and level targets, Trials of Ascendancy timing, skill-tag-aware support direction, support-socket guidance, and passive tree priority order",
       inputSchema: {
@@ -862,29 +841,6 @@ export function getLuaToolSchemas(): any[] {
           main_skill: { type: "string", description: "Override main skill name" },
           ascendancy: { type: "string", description: "Override ascendancy name" },
         },
-      },
-    },
-    {
-      name: "find_item_upgrades",
-      description: "Generate a shopping spec for a gear slot — describes what item type, base, and mods to look for based on the build's current gaps (resistances, life, ES, DPS). Works with a loaded build in the Lua bridge. No trade API required.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          slot: {
-            type: "string",
-            description: "Gear slot to get a shopping spec for (e.g., 'Helmet', 'Body Armour', 'Boots', 'Gloves', 'Belt', 'Amulet', 'Ring 1', 'Ring 2', 'Weapon 1', 'Weapon 2')",
-          },
-          build_name: {
-            type: "string",
-            description: "Build file to analyze (optional if a build is loaded via lua_load_build)",
-          },
-          priority: {
-            type: "string",
-            description: "What to optimize for: 'dps', 'defense', 'resistance', or 'balanced' (default: 'balanced')",
-            enum: ["dps", "defense", "resistance", "balanced"],
-          },
-        },
-        required: ["slot"],
       },
     },
   ];
@@ -904,100 +860,6 @@ export function getOptimizationToolSchemas(): any[] {
           build_name: {
             type: "string",
             description: "Build to analyze",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "suggest_optimal_nodes",
-      description: "AI-powered suggestion of optimal passive nodes based on build goals",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to optimize",
-          },
-          goal: {
-            type: "string",
-            description: "Optimization goal: 'damage', 'defense', 'life', 'es', or stat name",
-          },
-          points_available: {
-            type: "number",
-            description: "Number of passive points to spend (default: 10)",
-          },
-        },
-        required: ["build_name", "goal"],
-      },
-    },
-    {
-      name: "optimize_tree",
-      description: "Full passive tree optimization - removes inefficient nodes and reallocates to better options",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to optimize",
-          },
-          goal: {
-            type: "string",
-            description: "Primary optimization goal: 'damage', 'defense', 'balanced'",
-          },
-          constraints: {
-            type: "object",
-            description: "Constraints like minimum life, required keystones, etc.",
-          },
-          preserve_keystones: {
-            type: "boolean",
-            description: "Whether to preserve allocated keystones (default: true)",
-          },
-        },
-        required: ["build_name", "goal"],
-      },
-    },
-    {
-      name: "analyze_items",
-      description: "Analyze equipped items and suggest upgrades or improvements",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to analyze",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "optimize_skill_links",
-      description: "Analyze skill gem setups for 'more' multipliers, penetration, and support gem synergies. Flags missing multiplicative damage supports and suggests clear-speed vs bossing balance.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to analyze",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "create_budget_build",
-      description: "Create a league-start/budget-friendly version of a build",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to create budget version of",
-          },
-          budget_tier: {
-            type: "string",
-            description: "Budget tier: 'league-start', 'low', 'medium' (default: league-start)",
           },
         },
         required: ["build_name"],
@@ -1134,167 +996,13 @@ export function getValidationToolSchemas(): any[] {
 }
 
 /**
- * Get skill gem analysis tool schemas (Phase 11)
- */
-export function getSkillGemToolSchemas(): any[] {
-  return [
-    {
-      name: "analyze_skill_links",
-      description: "Analyze skill gem setup and evaluate support gem choices. Detects build archetype, rates each support gem, and identifies issues with current setup.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to analyze",
-          },
-          skill_index: {
-            type: "number",
-            description: "Which skill to analyze (0 = main skill, default: 0)",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "suggest_support_gems",
-      description: "Get intelligent support gem recommendations based on build archetype. Provides ranked suggestions with DPS estimates, cost, and reasoning.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to analyze",
-          },
-          skill_index: {
-            type: "number",
-            description: "Which skill to optimize (0 = main skill, default: 0)",
-          },
-          count: {
-            type: "number",
-            description: "Number of suggestions to return (default: 5)",
-          },
-          include_exceptional: {
-            type: "boolean",
-            description: "Include Exceptional gem recommendations (default: true)",
-          },
-          budget: {
-            type: "string",
-            description: "Budget tier: 'league_start', 'mid_league', or 'endgame' (default: 'endgame')",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "compare_gem_setups",
-      description: "Compare multiple gem configurations side-by-side to evaluate different options. NOTE: Full DPS comparison requires Lua bridge integration (future enhancement).",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to test",
-          },
-          skill_index: {
-            type: "number",
-            description: "Which skill to test (default: 0)",
-          },
-          setups: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                gems: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-              },
-              required: ["name", "gems"],
-            },
-            description: "Array of gem setups to compare (minimum 2)",
-          },
-        },
-        required: ["build_name", "setups"],
-      },
-    },
-    {
-      name: "validate_gem_quality",
-      description: "Check all gems for quality and level improvements. Identifies missing quality, Exceptional upgrade opportunities, and corruption targets.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to validate",
-          },
-          include_corrupted: {
-            type: "boolean",
-            description: "Include corruption recommendations for 21/23 gems (default: true)",
-          },
-        },
-        required: ["build_name"],
-      },
-    },
-    {
-      name: "find_optimal_links",
-      description: "Auto-generate the best support gem combination for a skill based on budget and optimization goal. Provides step-by-step upgrade path.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to optimize",
-          },
-          skill_index: {
-            type: "number",
-            description: "Which skill to optimize (default: 0)",
-          },
-          link_count: {
-            type: "number",
-            description: "Number of links (4, 5, or 6)",
-          },
-          budget: {
-            type: "string",
-            description: "Budget tier: 'league_start', 'mid_league', or 'endgame' (default: 'endgame')",
-          },
-          optimize_for: {
-            type: "string",
-            description: "Optimization target: 'dps', 'clear_speed', 'bossing', or 'defense' (default: 'dps')",
-          },
-        },
-        required: ["build_name", "link_count"],
-      },
-    },
-    {
-      name: "gem_upgrade_path",
-      description: "Generate a prioritized gem upgrade shopping list showing which gems to level, quality, and upgrade to Exceptional versions, ordered by impact and budget",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build file (optional if loaded in Lua bridge)",
-          },
-          budget: {
-            type: "string",
-            description: "Budget tier: 'league_start', 'mid_league', 'endgame' (default: endgame)",
-          },
-        },
-      },
-    },
-  ];
-}
-
-/**
  * Get export and persistence tool schemas (Phase 8)
  */
 export function getExportToolSchemas(): any[] {
   return [
     {
       name: "export_build",
-      description: "Export a copy of a build to an XML file. Creates a variant/copy from an existing build file. NOTE: This does NOT export from Lua bridge - use save_tree to apply Lua bridge modifications back to files.",
+      description: "Export a copy of a build to an XML file. Creates a variant/copy from an existing build file. NOTE: This does NOT export from Lua bridge - use lua_save_build to write the engine's build to a file.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1320,33 +1028,6 @@ export function getExportToolSchemas(): any[] {
           },
         },
         required: ["build_name", "output_name"],
-      },
-    },
-    {
-      name: "save_tree",
-      description: "Update only the passive tree in an existing build file. Use this to apply tree optimizations or Lua bridge modifications back to the original build.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Target build filename to update",
-          },
-          nodes: {
-            type: "array",
-            items: { type: "string" },
-            description: "Array of node IDs to allocate",
-          },
-          mastery_effects: {
-            type: "object",
-            description: "Mastery selections as object mapping node ID to effect ID (optional)",
-          },
-          backup: {
-            type: "boolean",
-            description: "Create backup before modifying (default: true)",
-          },
-        },
-        required: ["build_name", "nodes"],
       },
     },
     {
@@ -1551,95 +1232,6 @@ export function getTradeToolSchemas(): any[] {
         required: ["query"],
       },
     },
-    {
-      name: "compare_trade_items",
-      description: "Compare two trade items side by side with DPS/defense calculations.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          item1_name: {
-            type: "string",
-            description: "First item name to compare",
-          },
-          item2_name: {
-            type: "string",
-            description: "Second item name to compare",
-          },
-          league: {
-            type: "string",
-            description: "EXACT league name as specified by user",
-          },
-          slot: {
-            type: "string",
-            description: "Gear slot for context-aware comparison",
-          },
-        },
-        required: ["item1_name", "item2_name", "league"],
-      },
-    },
-    {
-      name: "search_cluster_jewels",
-      description: "Search for cluster jewels with specific enchants and notables.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          league: {
-            type: "string",
-            description: "EXACT league name as specified by user",
-          },
-          jewel_size: {
-            type: "string",
-            description: "Cluster jewel size: 'large', 'medium', or 'small'",
-            enum: ["large", "medium", "small"],
-          },
-          enchant: {
-            type: "string",
-            description: "Enchant modifier name (e.g., 'Added Small Passive Skills grant: 10% increased Fire Damage')",
-          },
-          notables: {
-            type: "array",
-            items: { type: "string" },
-            description: "Notable passives to search for (e.g., ['Doryani\\'s Lesson', 'Prismatic Heart'])",
-          },
-          max_price: {
-            type: "number",
-            description: "Maximum price in Chaos Orbs",
-          },
-          limit: {
-            type: "number",
-            description: "Maximum results to return (default: 5)",
-          },
-        },
-        required: ["league", "jewel_size"],
-      },
-    },
-    {
-      name: "generate_shopping_list",
-      description: "Generate a prioritized shopping list of items to upgrade for a build within a budget.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          build_name: {
-            type: "string",
-            description: "Build to generate shopping list for",
-          },
-          league: {
-            type: "string",
-            description: "EXACT league name as specified by user",
-          },
-          budget: {
-            type: "number",
-            description: "Total budget in Chaos Orbs",
-          },
-          budget_tier: {
-            type: "string",
-            description: "Budget tier for recommendations (default: 'medium')",
-            enum: ["budget", "medium", "endgame"],
-          },
-        },
-        required: ["build_name", "league"],
-      },
-    },
   ];
 }
 
@@ -1674,73 +1266,6 @@ export function getBuildGoalsToolSchemas(): any[] {
         },
       },
     },
-    {
-      name: "analyze_build_cluster_jewels",
-      description: "Analyze the cluster jewels currently equipped in the build, evaluate which notables synergize with the build archetype, and flag wasted notables",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
-    },
-    {
-      name: "suggest_watchers_eye",
-      description: "Recommend valuable Watcher's Eye jewel mods based on the build's active auras, ranked by tier (S/A/B) with best combo suggestions",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
-    },
-    {
-      name: "check_boss_readiness",
-      description: "Check if the loaded build meets the recommended thresholds for a specific endgame boss (Shaper, Elder, Sirus, Maven, Uber Elder, Eater of Worlds, Searing Exarch)",
-      inputSchema: {
-        type: "object",
-        properties: {
-          boss: {
-            type: "string",
-            description: "Boss name: 'shaper', 'elder', 'sirus', 'maven', 'uber_elder', 'eater', 'exarch', or 'pinnacle' for generic endgame",
-          },
-        },
-        required: ["boss"],
-      },
-    },
-    {
-      name: "suggest_crafting",
-      description: "Recommend the best crafting method for an item. Provide a gear slot and optionally a base type and desired mods. If a build is loaded, auto-detects the equipped base and build gaps.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          slot: {
-            type: "string",
-            description: "Gear slot: helmet, chest, gloves, boots, weapon, offhand, ring, amulet, belt",
-            enum: ["helmet", "chest", "gloves", "boots", "weapon", "offhand", "ring", "amulet", "belt"],
-          },
-          base: {
-            type: "string",
-            description: "Base item type (e.g. 'Hubris Circlet'). Auto-detected from equipped item if a build is loaded.",
-          },
-          desired_mods: {
-            type: "array",
-            items: { type: "string" },
-            description: "List of desired mod descriptions (e.g. ['maximum life', 'cold resistance', 'spell damage'])",
-          },
-          budget: {
-            type: "string",
-            enum: ["low", "medium", "high"],
-            description: "Crafting budget: low (<50c), medium (50-500c), high (500c+)",
-          },
-          ilvl: {
-            type: "number",
-            description: "Item level — determines which mod tiers are reachable. 84+ for top tiers on most bases.",
-          },
-          league: {
-            type: "string",
-            description: "League name for currency prices (default: Standard)",
-          },
-        },
-        required: ["slot"],
-      },
-    },
   ];
 }
 
@@ -1761,49 +1286,6 @@ export function getPoeNinjaToolSchemas(): any[] {
           },
         },
         required: ["league"],
-      },
-    },
-    {
-      name: "find_arbitrage",
-      description: "Find currency arbitrage opportunities - profitable trading loops where you can trade currencies in a circle and end up with more than you started. Uses real-time poe.ninja rates to identify market inefficiencies. Perfect for making passive income through currency trading. IMPORTANT: Use the EXACT league name the user specifies - do not substitute or guess.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          league: {
-            type: "string",
-            description: "EXACT league name as specified by user (e.g., 'Standard', 'Settlers', 'Keepers', 'Hardcore'). Do not substitute or change this value.",
-          },
-          min_profit_percent: {
-            type: "number",
-            description: "Minimum profit percentage to show (default: 1.0). Lower values find more opportunities but with smaller profits.",
-          },
-        },
-        required: ["league"],
-      },
-    },
-    {
-      name: "calculate_trading_profit",
-      description: "Calculate the profit/loss from a specific trading chain. Useful for testing your own trading strategies or validating arbitrage opportunities before executing them. Shows step-by-step conversion rates. IMPORTANT: Use the EXACT league name the user specifies - do not substitute or guess.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          league: {
-            type: "string",
-            description: "EXACT league name as specified by user (e.g., 'Standard', 'Settlers', 'Keepers', 'Hardcore'). Do not substitute or change this value.",
-          },
-          currency_chain: {
-            type: "array",
-            description: "Array of currency names in trading order (e.g., ['Divine Orb', 'Chaos Orb', 'Exalted Orb', 'Divine Orb'])",
-            items: {
-              type: "string",
-            },
-          },
-          start_amount: {
-            type: "number",
-            description: "Amount of first currency to start with (default: 1)",
-          },
-        },
-        required: ["league", "currency_chain"],
       },
     },
   ];

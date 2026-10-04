@@ -34,7 +34,6 @@ export const TOOL_META: Record<string, ToolMeta> = {
   stop_watching: core('none'),
   get_recent_changes: core('none'),
   watch_status: core('none'),
-  refresh_tree_data: core('none'),
 
   // File analysis that may consult the engine without changing its build
   analyze_build: core('read'),
@@ -65,8 +64,6 @@ export const TOOL_META: Record<string, ToolMeta> = {
   get_equipped_items: core('read'),
   get_skill_setup: core('read'),
   plan_leveling: core('read'),
-  suggest_masteries: core('read'),
-  find_item_upgrades: core('read'),
   get_config: core('read'),
   save_config_preset: core('read'),
   analyze_defenses: core('read'),
@@ -75,12 +72,6 @@ export const TOOL_META: Record<string, ToolMeta> = {
   export_build_summary: core('read'),
   get_build_issues: core('read'),
   get_passive_upgrades: core('read'),
-  analyze_build_cluster_jewels: core('read'),
-  suggest_watchers_eye: core('read'),
-  check_boss_readiness: core('read'),
-  suggest_crafting: core('read'),
-  gem_upgrade_path: core('read'),
-  save_tree: core('read'),
 
   // Engine mutations
   select_spec: core('mutate'),
@@ -107,39 +98,21 @@ export const TOOL_META: Record<string, ToolMeta> = {
   set_config: core('mutate'),
   set_enemy_stats: core('mutate'),
   load_config_preset: core('mutate'),
-  // These load the named build into the engine (they are deleted in WU-04)
-  suggest_optimal_nodes: core('mutate'),
-  optimize_tree: core('mutate'),
-  analyze_items: core('mutate'),
-  optimize_skill_links: core('mutate'),
 
   // Snapshots and presets on disk (no engine)
   snapshot_build: core('none'),
   list_snapshots: core('none'),
   restore_snapshot: core('none'),
   list_config_presets: core('none'),
-  create_budget_build: core('none'),
-
-  // Legacy file-based gem tools (deleted in WU-04)
-  analyze_skill_links: core('none'),
-  suggest_support_gems: core('none'),
-  compare_gem_setups: core('none'),
-  validate_gem_quality: core('none'),
-  find_optimal_links: core('none'),
 
   // Trade (hidden with POE_TRADE_DISABLED=true)
   search_trade_items: trade,
   get_item_price: trade,
   get_leagues: trade,
   search_stats: trade,
-  compare_trade_items: trade,
-  search_cluster_jewels: trade,
-  generate_shopping_list: trade,
 
   // poe.ninja (hidden with POE_NINJA_DISABLED=true)
   get_currency_rates: ninja,
-  find_arbitrage: ninja,
-  calculate_trading_profit: ninja,
 };
 
 type Env = Readonly<Record<string, string | undefined>>;

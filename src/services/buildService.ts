@@ -322,10 +322,6 @@ export class BuildService {
       }
     }
 
-    // Parse bandit choice
-    const bandit = this.getStringInput(allInputs, 'bandit') ||
-                   build.Build?.bandit;
-
     return {
       activeConfigSetId,
       activeConfigSetTitle,
@@ -334,7 +330,6 @@ export class BuildService {
       customMods,
       enemySettings,
       multipliers,
-      bandit,
       allInputs,
     };
   }
@@ -424,11 +419,6 @@ export class BuildService {
     if (config.customMods) {
       output += "=== Custom Mods ===\n";
       output += config.customMods + "\n\n";
-    }
-
-    // Bandit
-    if (config.bandit) {
-      output += `=== Bandit Choice ===\n${config.bandit}\n\n`;
     }
 
     return output;
@@ -810,7 +800,7 @@ export class BuildService {
 
   /**
    * Parse jewels from a PoB build
-   * Extracts all jewels (regular, cluster, timeless, abyss) and their socket placements
+   * Extracts all jewels (regular, timeless, abyss) and their socket placements
    */
   parseJewels(build: PoBBuild): JewelAnalysis | null {
     if (!build.Items?.ItemSet) {
@@ -836,15 +826,8 @@ export class BuildService {
     const jewelsByType = {
       regular: 0,
       abyss: 0,
-      cluster: 0,
       timeless: 0,
       unique: 0,
-    };
-    const clusterJewels = {
-      large: 0,
-      medium: 0,
-      small: 0,
-      notables: [] as string[],
     };
 
     // Parse jewels from slots
@@ -868,21 +851,9 @@ export class BuildService {
 
         // Categorize
         if (jewel.isAbyssJewel) jewelsByType.abyss++;
-        else if (jewel.isClusterJewel) jewelsByType.cluster++;
         else if (jewel.isTimelessJewel) jewelsByType.timeless++;
         else if (jewel.rarity === 'UNIQUE') jewelsByType.unique++;
         else jewelsByType.regular++;
-
-        // Track cluster jewel info
-        if (jewel.isClusterJewel) {
-          if (jewel.clusterNodeCount === 8) clusterJewels.large++;
-          else if (jewel.clusterNodeCount && jewel.clusterNodeCount >= 4 && jewel.clusterNodeCount <= 6) clusterJewels.medium++;
-          else if (jewel.clusterNodeCount && jewel.clusterNodeCount >= 2 && jewel.clusterNodeCount <= 3) clusterJewels.small++;
-
-          if (jewel.clusterNotables) {
-            clusterJewels.notables.push(...jewel.clusterNotables);
-          }
-        }
       }
     }
 
@@ -910,7 +881,6 @@ export class BuildService {
       socketedJewels,
       unsocketedJewels,
       jewelsByType,
-      clusterJewels,
       jewels,
       socketPlacements,
       warnings,
@@ -928,7 +898,6 @@ export class BuildService {
 
     // Detect jewel types
     const isAbyssJewel = baseType.includes('Abyss Jewel') || name.includes('Abyss');
-    const isClusterJewel = baseType.includes('Cluster Jewel');
     const isTimelessJewel = baseType.includes('Timeless Jewel');
 
     // Parse level requirement
@@ -948,39 +917,6 @@ export class BuildService {
         prefix = line.replace(/Prefix:\s*{[^}]*}/, '').trim();
       } else if (line.startsWith('Suffix:') && !line.includes('None')) {
         suffix = line.replace(/Suffix:\s*{[^}]*}/, '').trim();
-      }
-    }
-
-    // Parse cluster jewel specifics
-    let clusterJewelSkill: string | undefined;
-    let clusterNodeCount: number | undefined;
-    let clusterNotables: string[] = [];
-    let clusterSmallPassiveBonus: string | undefined;
-    let clusterJewelSockets: number | undefined;
-
-    if (isClusterJewel) {
-      for (const line of lines) {
-        if (line.startsWith('Cluster Jewel Skill:')) {
-          clusterJewelSkill = line.replace('Cluster Jewel Skill: ', '');
-        } else if (line.startsWith('Cluster Jewel Node Count:')) {
-          clusterNodeCount = parseInt(line.replace('Cluster Jewel Node Count: ', ''), 10);
-        } else if (line.includes('Added Passive Skill is')) {
-          // Extract notable name
-          const match = line.match(/Added Passive Skill is (.+)/);
-          if (match) {
-            clusterNotables.push(match[1]);
-          }
-        } else if (line.includes('Added Small Passive Skills grant:')) {
-          const match = line.match(/Added Small Passive Skills grant: (.+)/);
-          if (match) {
-            clusterSmallPassiveBonus = match[1];
-          }
-        } else if (line.match(/\d+ Added Passive Skills? are Jewel Sockets?/)) {
-          const match = line.match(/(\d+) Added Passive Skills? are Jewel Sockets?/);
-          if (match) {
-            clusterJewelSockets = parseInt(match[1], 10);
-          }
-        }
       }
     }
 
@@ -1023,7 +959,6 @@ export class BuildService {
         line.startsWith('Crafted:') ||
         line.startsWith('Prefix:') ||
         line.startsWith('Suffix:') ||
-        line.startsWith('Cluster Jewel') ||
         line.startsWith('Variant:') ||
         line.startsWith('Selected Variant:') ||
         line.startsWith('Radius:') ||
@@ -1053,16 +988,10 @@ export class BuildService {
       baseType,
       levelRequirement,
       isAbyssJewel,
-      isClusterJewel,
       isTimelessJewel,
       mods,
       prefix,
       suffix,
-      clusterJewelSkill,
-      clusterNodeCount,
-      clusterNotables: clusterNotables.length > 0 ? clusterNotables : undefined,
-      clusterSmallPassiveBonus,
-      clusterJewelSockets,
       timelessType,
       timelessConqueror,
       timelessSeed,
@@ -1088,26 +1017,9 @@ export class BuildService {
     output += '=== Jewel Types ===\n';
     if (analysis.jewelsByType.regular > 0) output += `Regular: ${analysis.jewelsByType.regular}\n`;
     if (analysis.jewelsByType.abyss > 0) output += `Abyss: ${analysis.jewelsByType.abyss}\n`;
-    if (analysis.jewelsByType.cluster > 0) output += `Cluster: ${analysis.jewelsByType.cluster}\n`;
     if (analysis.jewelsByType.timeless > 0) output += `Timeless: ${analysis.jewelsByType.timeless}\n`;
     if (analysis.jewelsByType.unique > 0) output += `Unique: ${analysis.jewelsByType.unique}\n`;
     output += '\n';
-
-    // Cluster jewel breakdown
-    if (analysis.jewelsByType.cluster > 0) {
-      output += '=== Cluster Jewels ===\n';
-      if (analysis.clusterJewels.large > 0) output += `Large: ${analysis.clusterJewels.large}\n`;
-      if (analysis.clusterJewels.medium > 0) output += `Medium: ${analysis.clusterJewels.medium}\n`;
-      if (analysis.clusterJewels.small > 0) output += `Small: ${analysis.clusterJewels.small}\n`;
-
-      if (analysis.clusterJewels.notables.length > 0) {
-        output += '\nCluster Notables:\n';
-        for (const notable of analysis.clusterJewels.notables) {
-          output += `  - ${notable}\n`;
-        }
-      }
-      output += '\n';
-    }
 
     // Individual jewels
     output += '=== Jewel Details ===\n';
@@ -1124,16 +1036,6 @@ export class BuildService {
       output += `  Rarity: ${jewel.rarity}`;
       if (jewel.levelRequirement > 0) output += ` | Level: ${jewel.levelRequirement}`;
       output += '\n';
-
-      // Cluster jewel info
-      if (jewel.isClusterJewel) {
-        if (jewel.clusterNodeCount) output += `  Passives: ${jewel.clusterNodeCount}\n`;
-        if (jewel.clusterJewelSockets) output += `  Jewel Sockets: ${jewel.clusterJewelSockets}\n`;
-        if (jewel.clusterSmallPassiveBonus) output += `  Small Passive: ${jewel.clusterSmallPassiveBonus}\n`;
-        if (jewel.clusterNotables && jewel.clusterNotables.length > 0) {
-          output += `  Notables: ${jewel.clusterNotables.join(', ')}\n`;
-        }
-      }
 
       // Timeless jewel info
       if (jewel.isTimelessJewel) {

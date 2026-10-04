@@ -102,20 +102,6 @@ export function handleWatchStatus(context: WatchHandlerContext) {
   };
 }
 
-export async function handleRefreshTreeData(context: WatchHandlerContext, version?: string) {
-  return wrapHandler('refresh tree data', async () => {
-    await context.treeService.refreshTreeData(version);
-    return {
-      content: [{
-        type: "text" as const,
-        text: version
-          ? `Passive tree data cache cleared for version ${version}.\n\nTree data will be re-fetched on next analysis.`
-          : `All passive tree data caches cleared.\n\nTree data will be re-fetched on next analysis.`,
-      }],
-    };
-  });
-}
-
 function formatTimeAgo(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);

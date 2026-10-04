@@ -10,7 +10,6 @@ import type { TreeService } from '../services/treeService.js';
 import type { WatchService } from '../services/watchService.js';
 import type { ValidationService } from '../services/validationService.js';
 import type { BuildExportService } from '../services/buildExportService.js';
-import type { SkillGemService } from '../services/skillGemService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
 
 /**
@@ -82,25 +81,6 @@ export interface ExportContext extends BaseContext {
 }
 
 /**
- * Context for skill gem analysis operations
- */
-export interface SkillGemContext extends BaseContext {
-  buildService: BuildService;
-  skillGemService: SkillGemService;
-  getLuaClient: () => PoBLuaApiClient | null;
-  ensureLuaClient: () => Promise<void>;
-}
-
-/**
- * Context for advanced optimization operations (items, skill links, budget builds)
- */
-export interface AdvancedOptimizationContext extends BaseContext {
-  buildService: BuildService;
-  getLuaClient: () => PoBLuaApiClient | null;
-  ensureLuaClient: () => Promise<void>;
-}
-
-/**
  * Context for validation operations
  */
 export interface ValidationContext extends BaseContext {
@@ -119,7 +99,6 @@ export interface ContextDependencies {
   watchService: WatchService;
   validationService: ValidationService;
   exportService: BuildExportService;
-  skillGemService: SkillGemService;
   pobDirectory: string;
   stateDir: string;
   /** The env (deps.env, C-7): the only env source below the entry. */
@@ -229,33 +208,6 @@ export class ContextBuilder {
       buildService: this.deps.buildService,
       exportService: this.deps.exportService,
       luaClient: this.deps.getLuaClient() || undefined,
-    };
-  }
-
-  /**
-   * Build context for skill gem analysis operations
-   */
-  buildSkillGemContext(): SkillGemContext {
-    return {
-      buildService: this.deps.buildService,
-      skillGemService: this.deps.skillGemService,
-      pobDirectory: this.deps.pobDirectory,
-      stateDir: this.deps.stateDir,
-      getLuaClient: this.deps.getLuaClient,
-      ensureLuaClient: this.deps.ensureLuaClient,
-    };
-  }
-
-  /**
-   * Build context for advanced optimization operations
-   */
-  buildAdvancedOptimizationContext(): AdvancedOptimizationContext {
-    return {
-      buildService: this.deps.buildService,
-      pobDirectory: this.deps.pobDirectory,
-      stateDir: this.deps.stateDir,
-      getLuaClient: this.deps.getLuaClient,
-      ensureLuaClient: this.deps.ensureLuaClient,
     };
   }
 

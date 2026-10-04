@@ -54,44 +54,6 @@ export async function handleExportBuild(
   });
 }
 
-export async function handleSaveTree(
-  context: ExportHandlerContext,
-  args: {
-    build_name: string;
-    nodes: string[];
-    mastery_effects?: Record<string, number>;
-    backup?: boolean;
-  }
-) {
-  return wrapHandler('save tree', async () => {
-  const { exportService, buildService } = context;
-
-  const result = await exportService.saveTree(buildService, {
-    buildName: args.build_name,
-    nodes: args.nodes,
-    masteryEffects: args.mastery_effects,
-    backup: args.backup,
-  });
-
-  let message = result.message;
-  if (result.backupPath) {
-    message += `\n\nBackup created: ${result.backupPath}`;
-  }
-
-  // Invalidate cache for this build
-  buildService.invalidateBuild(args.build_name);
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: message,
-      },
-    ],
-  };
-  });
-}
-
 export async function handleSnapshotBuild(
   context: ExportHandlerContext,
   args: {

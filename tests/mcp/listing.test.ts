@@ -5,7 +5,7 @@ import { describe, it, expect, afterEach } from '@jest/globals';
 import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { startTestServer, type TestServer } from '../helpers/server';
 import { TOOL_META, type ToolGroup } from '../../src/server/toolMeta';
-import { getToolSchemas, getLuaToolSchemas, getOptimizationToolSchemas, getConfigToolSchemas, getValidationToolSchemas, getExportToolSchemas, getSkillGemToolSchemas, getTradeToolSchemas, getPoeNinjaToolSchemas, getBuildGoalsToolSchemas } from '../../src/server/toolSchemas';
+import { getToolSchemas, getLuaToolSchemas, getOptimizationToolSchemas, getConfigToolSchemas, getValidationToolSchemas, getExportToolSchemas, getTradeToolSchemas, getPoeNinjaToolSchemas, getBuildGoalsToolSchemas } from '../../src/server/toolSchemas';
 
 const names = (group: ToolGroup) => Object.keys(TOOL_META).filter((n) => TOOL_META[n].group === group);
 
@@ -34,7 +34,7 @@ describe('AC-F14: listing flags (C-1)', () => {
   it('AC-F14: every registered schema has exactly one TOOL_META entry, and vice versa', () => {
     const registered = [
       ...getToolSchemas(), ...getLuaToolSchemas(), ...getOptimizationToolSchemas(), ...getConfigToolSchemas(),
-      ...getValidationToolSchemas(), ...getExportToolSchemas(), ...getSkillGemToolSchemas(), ...getTradeToolSchemas(),
+      ...getValidationToolSchemas(), ...getExportToolSchemas(), ...getTradeToolSchemas(),
       ...getPoeNinjaToolSchemas(), ...getBuildGoalsToolSchemas(),
     ].map((t: { name: string }) => t.name);
     expect(new Set(registered).size).toBe(registered.length);

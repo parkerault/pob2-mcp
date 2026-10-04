@@ -37,7 +37,6 @@ export interface PoBBuild {
     level?: string;
     className?: string;
     ascendClassName?: string;
-    bandit?: string;
     PlayerStat?: Array<{stat: string; value: string}> | {stat: string; value: string};
   };
   Tree?: {
@@ -138,7 +137,6 @@ export interface ParsedConfiguration {
   multipliers: {
     [key: string]: number;
   };
-  bandit?: string;
   allInputs: Map<string, ConfigInput>;
 }
 
@@ -228,15 +226,8 @@ export interface Jewel {
   baseType: string;
   levelRequirement: number;
   isAbyssJewel: boolean;
-  isClusterJewel: boolean;
   isTimelessJewel: boolean;
   mods: string[];
-  // Cluster jewel specific
-  clusterJewelSkill?: string; // e.g., "affliction_lightning_damage"
-  clusterNodeCount?: number; // 8 for large, 4-6 for medium, 2-3 for small
-  clusterNotables?: string[]; // Notable passives granted
-  clusterSmallPassiveBonus?: string; // e.g., "12% increased Lightning Damage"
-  clusterJewelSockets?: number; // Number of jewel sockets it adds
   // Timeless jewel specific
   timelessType?: string; // Glorious Vanity, Lethal Pride, etc.
   timelessConqueror?: string; // Doryani, Xibaqua, etc.
@@ -255,15 +246,8 @@ export interface JewelAnalysis {
   jewelsByType: {
     regular: number;
     abyss: number;
-    cluster: number;
     timeless: number;
     unique: number;
-  };
-  clusterJewels: {
-    large: number;
-    medium: number;
-    small: number;
-    notables: string[]; // All cluster notables
   };
   jewels: Jewel[];
   socketPlacements: Map<string, string>; // nodeId -> jewel name

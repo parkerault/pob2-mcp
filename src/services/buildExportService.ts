@@ -11,13 +11,6 @@ export interface ExportOptions {
   notes?: string;
 }
 
-export interface SaveTreeOptions {
-  buildName: string;
-  nodes: string[];
-  masteryEffects?: Record<string, number>;
-  backup?: boolean;
-}
-
 export interface SnapshotOptions {
   buildName: string;
   description?: string;
@@ -84,64 +77,6 @@ export class BuildExportService {
     return {
       filePath,
       message: `Build exported successfully to: ${filePath}`,
-    };
-  }
-
-  /**
-   * Update only the passive tree in an existing build file
-   */
-  async saveTree(buildService: any, options: SaveTreeOptions): Promise<{ message: string; backupPath?: string }> {
-    const buildPath = sanitizeBuildName(options.buildName, this.pobDirectory);
-
-    // Create backup if requested
-    let backupPath: string | undefined;
-    if (options.backup !== false) {
-      backupPath = await this.createBackup(options.buildName);
-    }
-
-    // Read existing build
-    const build = await buildService.readBuild(options.buildName);
-
-    // Update tree nodes
-    const spec = buildService.getActiveSpec(build);
-    if (!spec) {
-      throw new Error("No active spec found in build");
-    }
-
-    // Update nodes
-    const oldNodes = spec.nodes ? spec.nodes.split(',').map((n: string) => n.trim()).filter((n: string) => n.length > 0) : [];
-    spec.nodes = options.nodes.join(',');
-
-    // Update mastery effects if provided
-    if (options.masteryEffects) {
-      // Remove existing mastery effects
-      if (spec.MasteryEffect) {
-        delete spec.MasteryEffect;
-      }
-
-      // Add new mastery effects
-      const masteryEffects = Object.entries(options.masteryEffects).map(([nodeId, effectId]) => ({
-        node: nodeId,
-        effect: effectId.toString(),
-      }));
-
-      if (masteryEffects.length > 0) {
-        spec.MasteryEffect = masteryEffects;
-      }
-    }
-
-    // Generate updated XML
-    const xmlContent = this.buildToXML(build);
-
-    // Write to file
-    await fs.writeFile(buildPath, xmlContent, 'utf-8');
-
-    const nodesAdded = options.nodes.filter((n: string) => !oldNodes.includes(n)).length;
-    const nodesRemoved = oldNodes.filter((n: string) => !options.nodes.includes(n)).length;
-
-    return {
-      message: `Tree updated successfully. Nodes added: ${nodesAdded}, removed: ${nodesRemoved}`,
-      backupPath,
     };
   }
 
@@ -376,24 +311,6 @@ export class BuildExportService {
     }
 
     await fs.writeFile(filePath, content, 'utf-8');
-  }
-
-  /**
-   * Create a timestamped backup of a build
-   */
-  private async createBackup(buildName: string): Promise<string> {
-    const buildPath = sanitizeBuildName(buildName, this.pobDirectory);
-    const buildSnapshotDir = sanitizeBuildName(buildName, this.snapshotDirectory);
-    await fs.mkdir(buildSnapshotDir, { recursive: true });
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
-    const backupFileName = `${timestamp}_backup.xml`;
-    const backupPath = path.join(buildSnapshotDir, backupFileName);
-
-    const content = await fs.readFile(buildPath, 'utf-8');
-    await fs.writeFile(backupPath, content, 'utf-8');
-
-    return backupPath;
   }
 
   /**

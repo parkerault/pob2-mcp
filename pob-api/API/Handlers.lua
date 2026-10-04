@@ -271,12 +271,6 @@ handlers.set_gem_enabled = function(params)
   return { ok = true }
 end
 
-handlers.get_mastery_options = function(params)
-  local res, err = BuildOps.get_mastery_options(params or {})
-  if not res then return { ok = false, error = err or 'failed to get mastery options' } end
-  return { ok = true, result = res }
-end
-
 handlers.create_spec = function(params)
   local res, err = BuildOps.create_spec(params or {})
   if not res then return { ok = false, error = err or 'failed to create spec' } end

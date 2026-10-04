@@ -205,7 +205,7 @@ export async function handlePlanLeveling(
     out += `3. Resistances near your path to stay capped through act transitions\n`;
     out += `4. Take your Ascendancy nodes as soon as each Trial unlocks them\n`;
     out += `5. Jewel sockets once you have worthwhile leveling jewels\n\n`;
-    out += `_Use \`suggest_optimal_nodes\` / \`get_passive_upgrades\` on a loaded build for specific node recommendations._\n`;
+    out += `_Use \`get_passive_upgrades\` on a loaded build for specific node recommendations._\n`;
 
     return { content: [{ type: "text" as const, text: out }] };
   });

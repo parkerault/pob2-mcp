@@ -20,13 +20,10 @@ import { TreeService } from "../services/treeService.js";
 import { WatchService } from "../services/watchService.js";
 import { ValidationService } from "../services/validationService.js";
 import { BuildExportService } from "../services/buildExportService.js";
-import { SkillGemService } from "../services/skillGemService.js";
 import { TradeApiClient } from "../services/tradeClient.js";
 import { StatMapper } from "../services/statMapper.js";
 import { PoeNinjaClient } from "../services/poeNinjaClient.js";
-import { ItemRecommendationEngine } from "../services/itemRecommendationEngine.js";
 import { ContextBuilder } from "../utils/contextBuilder.js";
-import { ToolGate } from "./toolGate.js";
 import { LuaClientManager } from "./luaClientManager.js";
 import {
   getToolSchemas,
@@ -35,7 +32,6 @@ import {
   getConfigToolSchemas,
   getValidationToolSchemas,
   getExportToolSchemas,
-  getSkillGemToolSchemas,
   getTradeToolSchemas,
   getPoeNinjaToolSchemas,
   getBuildGoalsToolSchemas,
@@ -90,11 +86,8 @@ export interface EngineSession {
  * `trade_query_options` are deliberately absent (D-53).
  */
 export const TRUNCATED_TOOLS: ReadonlySet<string> = new Set([
-  "analyze_build", "analyze_defenses", "suggest_optimal_nodes", "optimize_tree", "analyze_items",
-  "optimize_skill_links", "create_budget_build", "search_trade_items", "find_item_upgrades",
-  "find_resistance_gear", "compare_trade_items", "search_cluster_jewels", "generate_shopping_list",
-  "validate_build", "get_passive_upgrades", "analyze_skill_links", "suggest_support_gems",
-  "find_optimal_links", "compare_gem_setups", "lua_get_stats", "suggest_masteries",
+  "analyze_build", "analyze_defenses", "search_trade_items", "validate_build", "get_passive_upgrades",
+  "lua_get_stats",
 ]);
 
 /** Every registered tool schema, in registry order (listing filters by C-8 group). */
@@ -107,7 +100,6 @@ function allToolSchemas(): Array<{ name: string; description?: string; [k: strin
     ...getOptimizationToolSchemas(),
     ...getValidationToolSchemas(),
     ...getExportToolSchemas(),
-    ...getSkillGemToolSchemas(),
     ...getTradeToolSchemas(),
     ...getPoeNinjaToolSchemas(),
   ];
@@ -159,7 +151,6 @@ export function createServer(deps: ServerDeps): {
   const watchService = new WatchService(deps.pobDirectory, buildService);
   const validationService = new ValidationService();
   const exportService = new BuildExportService(deps.pobDirectory);
-  const skillGemService = new SkillGemService();
   const ninjaClient = new PoeNinjaClient({ fetch: deps.fetch });
   const tradeClient = new TradeApiClient({
     fetch: deps.fetch,
@@ -169,8 +160,6 @@ export function createServer(deps: ServerDeps): {
     cacheTTL: env.POE_CACHE_TTL ? parseInt(env.POE_CACHE_TTL, 10) : undefined,
   });
   const statMapper = new StatMapper();
-  const recommendationEngine = new ItemRecommendationEngine(tradeClient, statMapper);
-  const toolGate = new ToolGate();
   const luaClientManager = new LuaClientManager({ env, spawn: deps.spawn });
 
   const contextBuilder = new ContextBuilder({
@@ -179,7 +168,6 @@ export function createServer(deps: ServerDeps): {
     watchService,
     validationService,
     exportService,
-    skillGemService,
     pobDirectory: deps.pobDirectory,
     stateDir: deps.stateDir,
     env,
@@ -190,11 +178,9 @@ export function createServer(deps: ServerDeps): {
   });
 
   const routerDeps: ToolRouterDependencies = {
-    toolGate,
     contextBuilder,
     tradeClient,
     statMapper,
-    recommendationEngine,
     ninjaClient,
     getLuaClient: () => luaClientManager.getClient(),
     ensureLuaClient: () => luaClientManager.ensureClient(),

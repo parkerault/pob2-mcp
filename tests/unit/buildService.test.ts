@@ -492,38 +492,6 @@ describe('BuildService', () => {
       expect(config?.customMods).toContain('50% more damage');
     });
 
-    it('should parse bandit choice from config', () => {
-      const build = {
-        Config: {
-          ConfigSet: {
-            Input: {
-              name: 'bandit',
-              string: 'Alira',
-            },
-          },
-        },
-      };
-
-      const config = buildService.parseConfiguration(build);
-      expect(config?.bandit).toBe('Alira');
-    });
-
-    it('should fallback to build bandit if not in config', () => {
-      const build = {
-        Build: {
-          bandit: 'Oak',
-        },
-        Config: {
-          ConfigSet: {
-            Input: [],
-          },
-        },
-      };
-
-      const config = buildService.parseConfiguration(build);
-      expect(config?.bandit).toBe('Oak');
-    });
-
     it('should handle single Input instead of array', () => {
       const build = {
         Config: {
@@ -630,7 +598,6 @@ describe('BuildService', () => {
         multipliers: {
           multiplierRage: 30,
         },
-        bandit: 'Alira',
         allInputs: new Map(),
       };
 
@@ -644,7 +611,6 @@ describe('BuildService', () => {
       expect(formatted).toContain('Lightning Resist: 50%');
       expect(formatted).toContain('Rage: 30');
       expect(formatted).toContain('20% increased damage');
-      expect(formatted).toContain('Alira');
     });
 
     it('should handle empty configuration sections', () => {
@@ -1097,42 +1063,6 @@ LevelReq: 0
       expect(jewels?.jewels[0].mods).toContain('7% increased maximum Life');
     });
 
-    it('should parse large cluster jewel with notables', () => {
-      const build = {
-        Items: {
-          ItemSet: {
-            Slot: [
-              {
-                name: 'Jewel 1',
-                Item: `Rarity: RARE
-New Item
-Large Cluster Jewel
-Cluster Jewel Skill: affliction_lightning_damage
-Cluster Jewel Node Count: 8
-LevelReq: 60
-Implicits: 3
-{crafted}Adds 8 Passive Skills
-{crafted}2 Added Passive Skills are Jewel Sockets
-{crafted}Added Small Passive Skills grant: 12% increased Lightning Damage
-1 Added Passive Skill is Corrosive Elements
-1 Added Passive Skill is Storm Drinker`,
-              },
-            ],
-          },
-        },
-      };
-
-      const jewels = buildService.parseJewels(build);
-      expect(jewels?.jewelsByType.cluster).toBe(1);
-      expect(jewels?.clusterJewels.large).toBe(1);
-      expect(jewels?.jewels[0].isClusterJewel).toBe(true);
-      expect(jewels?.jewels[0].clusterNodeCount).toBe(8);
-      expect(jewels?.jewels[0].clusterJewelSockets).toBe(2);
-      expect(jewels?.jewels[0].clusterSmallPassiveBonus).toBe('12% increased Lightning Damage');
-      expect(jewels?.jewels[0].clusterNotables).toContain('Corrosive Elements');
-      expect(jewels?.jewels[0].clusterNotables).toContain('Storm Drinker');
-    });
-
     it('should parse timeless jewel', () => {
       const build = {
         Items: {
@@ -1186,50 +1116,6 @@ Passives in radius are Conquered by the Vaal`,
       expect(jewels?.jewels[1].socketNodeId).toBeUndefined();
     });
 
-    it('should categorize medium cluster jewel', () => {
-      const build = {
-        Items: {
-          ItemSet: {
-            Slot: [
-              {
-                name: 'Jewel 1',
-                Item: `Rarity: RARE
-Medium Cluster Jewel
-Medium Cluster Jewel
-Cluster Jewel Node Count: 5
-1 Added Passive Skill is Seal Mender`,
-              },
-            ],
-          },
-        },
-      };
-
-      const jewels = buildService.parseJewels(build);
-      expect(jewels?.clusterJewels.medium).toBe(1);
-      expect(jewels?.jewels[0].clusterNodeCount).toBe(5);
-    });
-
-    it('should categorize small cluster jewel', () => {
-      const build = {
-        Items: {
-          ItemSet: {
-            Slot: [
-              {
-                name: 'Jewel 1',
-                Item: `Rarity: RARE
-Small Cluster Jewel
-Small Cluster Jewel
-Cluster Jewel Node Count: 2`,
-              },
-            ],
-          },
-        },
-      };
-
-      const jewels = buildService.parseJewels(build);
-      expect(jewels?.clusterJewels.small).toBe(1);
-    });
-
     it('should warn about unsocketed jewels', () => {
       const build = {
         Items: {
@@ -1278,15 +1164,8 @@ LevelReq: 68
         jewelsByType: {
           regular: 1,
           abyss: 0,
-          cluster: 1,
           timeless: 0,
           unique: 0,
-        },
-        clusterJewels: {
-          large: 1,
-          medium: 0,
-          small: 0,
-          notables: ['Storm Drinker'],
         },
         jewels: [
           {
@@ -1294,18 +1173,15 @@ LevelReq: 68
             socketNodeId: '61834',
             socketName: 'Jewel 61834',
             rarity: 'RARE' as const,
-            name: 'Lightning Cluster',
-            baseType: 'Large Cluster Jewel',
+            name: 'Life Jewel',
+            baseType: 'Emerald',
             levelRequirement: 60,
             isAbyssJewel: false,
-            isClusterJewel: true,
             isTimelessJewel: false,
-            mods: [],
-            clusterNodeCount: 8,
-            clusterNotables: ['Storm Drinker'],
+            mods: ['7% increased maximum Life'],
           },
         ],
-        socketPlacements: new Map([['61834', 'Lightning Cluster']]),
+        socketPlacements: new Map([['61834', 'Life Jewel']]),
         warnings: ['1 jewel(s) not socketed in the tree'],
         recommendations: [],
       };
@@ -1315,9 +1191,8 @@ LevelReq: 68
       expect(formatted).toContain('Socketed: 1');
       expect(formatted).toContain('Unsocketed: 1');
       expect(formatted).toContain('Regular: 1');
-      expect(formatted).toContain('Cluster: 1');
-      expect(formatted).toContain('Large: 1');
-      expect(formatted).toContain('Storm Drinker');
+      expect(formatted).not.toContain('Cluster');
+      expect(formatted).toContain('7% increased maximum Life');
       expect(formatted).toContain('[Socketed: Jewel 61834]');
       expect(formatted).toContain('⚠️  1 jewel(s) not socketed');
     });

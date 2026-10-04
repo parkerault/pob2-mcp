@@ -986,44 +986,6 @@ function M.set_gem_enabled(params)
 end
 
 
--- Masteries
-
--- Enumerate mastery nodes with their selectable effect options and current selection.
-function M.get_mastery_options(params)
-  if not build or not build.spec then return nil, 'build/spec not initialized' end
-  local spec = build.spec
-  local tree = spec.tree
-  if not tree then return nil, 'tree not loaded' end
-
-  local masteries = {}
-  for id, node in pairs(spec.nodes) do
-    if node.type == 'Mastery' and node.masteryEffects and #node.masteryEffects > 0 then
-      local effects = {}
-      for _, eff in ipairs(node.masteryEffects) do
-        local effId = eff.effect
-        local stats = eff.stats
-        if (not stats) and tree.masteryEffects and tree.masteryEffects[effId] then
-          stats = tree.masteryEffects[effId].stats or tree.masteryEffects[effId].sd
-        end
-        table.insert(effects, {
-          effectId = effId,
-          stats = (type(stats) == 'table') and table.concat(stats, ' / ') or nil,
-        })
-      end
-      table.insert(masteries, {
-        nodeId = id,
-        name = node.dn,
-        allocated = node.alloc and true or false,
-        selectedEffect = spec.masterySelections and spec.masterySelections[id] or nil,
-        effects = effects,
-      })
-    end
-  end
-  table.sort(masteries, function(a, b) return tostring(a.name or '') < tostring(b.name or '') end)
-  return { masteries = masteries }
-end
-
-
 -- Passive tree specs (loadouts)
 
 -- List all passive tree specs.

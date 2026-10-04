@@ -482,16 +482,10 @@ async setTree(params: {
     return { tree: res.tree, autoPathedNodes: res.autoPathedNodes as number[] | undefined, skippedAscendancyNodes: res.skippedAscendancyNodes as number[] | undefined };
   }
 
-  async calcWith(params: { addNodes?: number[]; removeNodes?: number[]; masteryEffects?: Record<string | number, number>; useFullDPS?: boolean }): Promise<any> {
+  async calcWith(params: { addNodes?: number[]; removeNodes?: number[]; useFullDPS?: boolean }): Promise<any> {
     const res = await this.send({ action: "calc_with", params });
     if (!res.ok) throw new Error(res.error || "calc_with failed");
     return res.output;
-  }
-
-  async getMasteryOptions(): Promise<any> {
-    const res = await this.send({ action: "get_mastery_options" });
-    if (!res.ok) throw new Error(res.error || "get_mastery_options failed");
-    return res.result;
   }
 
   async createSpec(params?: { title?: string; copyFrom?: number; activate?: boolean }): Promise<any> {

@@ -4,12 +4,9 @@
  * Routes MCP tool calls to their corresponding handlers with proper context.
  */
 
-import type { OptimizationConstraints } from "../types/optimization.js";
-import type { ToolGate } from "./toolGate.js";
 import type { ContextBuilder } from "../utils/contextBuilder.js";
 import type { TradeApiClient } from "../services/tradeClient.js";
 import type { StatMapper } from "../services/statMapper.js";
-import type { ItemRecommendationEngine } from "../services/itemRecommendationEngine.js";
 import type { PoeNinjaClient } from "../services/poeNinjaClient.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_META, isToolAvailable } from "./toolMeta.js";
@@ -17,35 +14,25 @@ import { errorResponse, type ToolResponse } from "./responseUtils.js";
 
 // Import handlers
 import { handleListBuilds, handleAnalyzeBuild, handleCompareBuilds, handleGetBuildStats, handleGetBuildNotes, handleSetBuildNotes } from "../handlers/buildHandlers.js";
-import { handleStartWatching, handleStopWatching, handleGetRecentChanges, handleWatchStatus, handleRefreshTreeData } from "../handlers/watchHandlers.js";
-import { handleCompareTrees, handleGetNearbyNodes, handleFindPath, handleGetPassiveUpgrades, handleSuggestMasteries } from "../handlers/treeHandlers.js";
+import { handleStartWatching, handleStopWatching, handleGetRecentChanges, handleWatchStatus } from "../handlers/watchHandlers.js";
+import { handleCompareTrees, handleGetNearbyNodes, handleFindPath, handleGetPassiveUpgrades } from "../handlers/treeHandlers.js";
 import { handleGetBuildIssues, formatIssuesResponse } from "../handlers/buildGoalsHandlers.js";
 import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, handleLuaLoadBuild, handleLuaGetStats, handleLuaGetTree, handleLuaSetTree, handleSearchTreeNodes, handleListGems, handleGetClasses, handleLuaGetBuildInfo, handleLuaReloadBuild, handleUpdateTreeDelta, handleCreateSpec, handleListSpecs, handleSelectSpec, handleDeleteSpec, handleRenameSpec, handleListItemSets, handleSelectItemSet } from "../handlers/luaHandlers.js";
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
 import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
-import { handleAnalyzeDefenses, handleSuggestOptimalNodes, handleOptimizeTree } from "../handlers/optimizationHandlers.js";
-import { handleAnalyzeItems, handleOptimizeSkillLinks, handleCreateBudgetBuild } from "../handlers/advancedOptimizationHandlers.js";
+import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
-import { handleExportBuild, handleSaveTree, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
-import { handleAnalyzeSkillLinks, handleSuggestSupportGems, handleCompareGemSetups, handleValidateGemQuality, handleFindOptimalLinks, handleGemUpgradePath } from "../handlers/skillGemHandlers.js";
-import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleFindItemUpgrades, handleFindResistanceGear, handleCompareTradeItems } from "../handlers/tradeHandlers.js";
-import { handleGetCurrencyRates, handleFindArbitrage, handleCalculateTradingProfit } from "../handlers/poeNinjaHandlers.js";
-import { handleSearchClusterJewels, handleAnalyzeClusterJewels, handleAnalyzeBuildClusterJewels } from "../handlers/clusterJewelHandlers.js";
-import { handleGenerateShoppingList } from "../handlers/shoppingListHandlers.js";
+import { handleExportBuild, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
+import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats } from "../handlers/tradeHandlers.js";
+import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
-import { handleCheckBossReadiness } from "../handlers/bossReadinessHandlers.js";
-import { handleSuggestWatchersEye } from "../handlers/jewelAdvisorHandlers.js";
-import { handleSuggestCrafting } from "../handlers/craftingAdvisorHandler.js";
-import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers/itemShoppingHandler.js";
 
 export interface ToolRouterDependencies {
-  toolGate: ToolGate;
   contextBuilder: ContextBuilder;
   tradeClient: TradeApiClient;
   statMapper: StatMapper;
-  recommendationEngine: ItemRecommendationEngine;
   ninjaClient: PoeNinjaClient;
   getLuaClient: () => import("../pobLuaBridge.js").PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
@@ -156,9 +143,6 @@ async function dispatch(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _call: ToolCallContext,
 ): Promise<HandlerResult> {
-  // Check tool gate first
-  deps.toolGate.checkGate(name);
-
   // Create handler contexts using contextBuilder
   const handlerContext = deps.contextBuilder.buildHandlerContext();
   const watchContext = deps.contextBuilder.buildWatchContext();
@@ -167,7 +151,6 @@ async function dispatch(
   const itemSkillContext = deps.contextBuilder.buildItemSkillContext();
   const optimizationContext = deps.contextBuilder.buildOptimizationContext();
   const exportContext = deps.contextBuilder.buildExportContext();
-  const skillGemContext = deps.contextBuilder.buildSkillGemContext();
 
   switch (name) {
     case "list_builds":
@@ -200,9 +183,6 @@ async function dispatch(
 
     case "watch_status":
       return handleWatchStatus(watchContext);
-
-    case "refresh_tree_data":
-      return await handleRefreshTreeData(watchContext, args?.version as string | undefined);
 
     // Phase 3 tools
     case "compare_trees":
@@ -493,49 +473,6 @@ async function dispatch(
     case "analyze_defenses":
       return await handleAnalyzeDefenses(optimizationContext, args?.build_name as string | undefined);
 
-    case "suggest_optimal_nodes":
-      if (!args) throw new Error("Missing arguments");
-      return await handleSuggestOptimalNodes(
-        optimizationContext,
-        args.build_name as string,
-        args.goal as string,
-        (args.points_available || args.max_points) as number | undefined
-      );
-
-    case "optimize_tree":
-      if (!args) throw new Error("Missing arguments");
-      return await handleOptimizeTree(
-        optimizationContext,
-        args.build_name as string,
-        args.goal as string,
-        args.max_points as number | undefined,
-        args.max_iterations as number | undefined,
-        args.constraints as OptimizationConstraints | undefined
-      );
-
-    case "analyze_items":
-      const advancedOptContext = deps.contextBuilder.buildAdvancedOptimizationContext();
-      return await handleAnalyzeItems(
-        advancedOptContext,
-        args?.build_name as string | undefined
-      );
-
-    case "optimize_skill_links":
-      const skillLinkContext = deps.contextBuilder.buildAdvancedOptimizationContext();
-      return await handleOptimizeSkillLinks(
-        skillLinkContext,
-        args?.build_name as string | undefined
-      );
-
-    case "create_budget_build":
-      if (!args) throw new Error("Missing arguments");
-      const budgetBuildContext = deps.contextBuilder.buildAdvancedOptimizationContext();
-      return await handleCreateBudgetBuild(
-        budgetBuildContext,
-        args.build_name as string,
-        (args.budget_tier || 'league-start') as string
-      );
-
     // Phase 7: Build Validation
     case "validate_build":
       const validationContext = deps.contextBuilder.buildValidationContext();
@@ -552,15 +489,6 @@ async function dispatch(
         output_directory: args.output_directory as string | undefined,
         overwrite: args.overwrite as boolean | undefined,
         notes: args.notes as string | undefined,
-      });
-
-    case "save_tree":
-      if (!args) throw new Error("Missing arguments");
-      return await handleSaveTree(exportContext, {
-        build_name: args.build_name as string,
-        nodes: args.nodes as string[],
-        mastery_effects: args.mastery_effects as Record<string, number> | undefined,
-        backup: args.backup as boolean | undefined,
       });
 
     case "snapshot_build":
@@ -589,34 +517,6 @@ async function dispatch(
 
     case "export_build_summary":
       return await handleExportBuildSummary(deps.contextBuilder.buildExportContext());
-
-    // Skill Gem Analysis Tools (Phase 11)
-    case "analyze_skill_links":
-      return await handleAnalyzeSkillLinks(skillGemContext, args);
-
-    case "suggest_support_gems":
-      return await handleSuggestSupportGems(skillGemContext, args);
-
-    case "compare_gem_setups":
-      if (!args) throw new Error("Missing arguments");
-      return await handleCompareGemSetups(skillGemContext, {
-        build_name: args.build_name as string,
-        skill_index: args.skill_index as number | undefined,
-        setups: args.setups as Array<{ name: string; gems: string[] }>,
-      });
-
-    case "validate_gem_quality":
-      return await handleValidateGemQuality(skillGemContext, args);
-
-    case "find_optimal_links":
-      if (!args) throw new Error("Missing arguments");
-      return await handleFindOptimalLinks(skillGemContext, {
-        build_name: args.build_name as string,
-        skill_index: args.skill_index as number | undefined,
-        link_count: args.link_count as number,
-        budget: args.budget as "league_start" | "mid_league" | "endgame" | undefined,
-        optimize_for: args.optimize_for as "dps" | "clear_speed" | "bossing" | "defense" | undefined,
-      });
 
     // ========================================
     // Trade API Tools
@@ -670,71 +570,6 @@ async function dispatch(
       });
     }
 
-    case "find_item_upgrades": {
-      if (!args) throw new Error("Missing arguments");
-      return await handleFindItemUpgradesNew(
-        { getLuaClient: deps.getLuaClient },
-        args as any
-      );
-    }
-
-    case "find_resistance_gear": {
-      if (!args) throw new Error("Missing arguments");
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        recommendationEngine: deps.recommendationEngine,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleFindResistanceGear(tradeContext, args as any);
-    }
-
-    case "compare_trade_items": {
-      if (!args) throw new Error("Missing arguments");
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        recommendationEngine: deps.recommendationEngine,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleCompareTradeItems(tradeContext, args as any);
-    }
-
-    case "search_cluster_jewels": {
-      if (!args) throw new Error("Missing arguments");
-      const tradeContext = {
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleSearchClusterJewels(tradeContext, args as any);
-    }
-
-    case "analyze_cluster_jewels": {
-      if (!args) throw new Error("Missing arguments");
-      const buildContext = {
-        buildService: deps.contextBuilder.buildHandlerContext().buildService
-      };
-      return await handleAnalyzeClusterJewels(buildContext, {
-        build_name: args.build_name as string
-      });
-    }
-
-    case "generate_shopping_list": {
-      if (!args) throw new Error("Missing arguments");
-      const shoppingContext = {
-        buildService: deps.contextBuilder.buildHandlerContext().buildService,
-        tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper,
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleGenerateShoppingList(shoppingContext, {
-        build_name: args.build_name as string,
-        league: args.league as string,
-        budget: args.budget as 'budget' | 'medium' | 'endgame' | undefined
-      });
-    }
-
     // ========================================
     // poe.ninja API Tools
     // ========================================
@@ -744,22 +579,6 @@ async function dispatch(
         ninjaClient: deps.ninjaClient
       };
       return await handleGetCurrencyRates(ninjaContext, args as any);
-    }
-
-    case "find_arbitrage": {
-      if (!args) throw new Error("Missing arguments");
-      const ninjaContext = {
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleFindArbitrage(ninjaContext, args as any);
-    }
-
-    case "calculate_trading_profit": {
-      if (!args) throw new Error("Missing arguments");
-      const ninjaContext = {
-        ninjaClient: deps.ninjaClient
-      };
-      return await handleCalculateTradingProfit(ninjaContext, args as any);
     }
 
     // Build Goals Tools
@@ -782,36 +601,11 @@ async function dispatch(
       return await handleGetPassiveUpgrades(upgradesContext, focus, maxResults);
     }
 
-    case "analyze_build_cluster_jewels":
-      return await handleAnalyzeBuildClusterJewels({
-        getLuaClient: deps.getLuaClient,
-        ensureLuaClient: deps.ensureLuaClient,
-      });
-
-    case "suggest_watchers_eye":
-      return await handleSuggestWatchersEye({
-        getLuaClient: deps.getLuaClient,
-        ensureLuaClient: deps.ensureLuaClient,
-      });
-
-    case "check_boss_readiness":
-      if (!args?.boss) throw new Error("Missing boss name");
-      return await handleCheckBossReadiness(
-        { getLuaClient: deps.getLuaClient, ensureLuaClient: deps.ensureLuaClient },
-        args.boss as string
-      );
-
     case "plan_leveling":
       return await handlePlanLeveling(
         { getLuaClient: deps.getLuaClient, ensureLuaClient: deps.ensureLuaClient },
         args || {}
       );
-
-    case "suggest_masteries":
-      return await handleSuggestMasteries({
-        getLuaClient: deps.getLuaClient,
-        ensureLuaClient: deps.ensureLuaClient,
-      });
 
     case "get_build_notes":
       if (!args?.build_name) throw new Error("Missing build_name");
@@ -821,20 +615,6 @@ async function dispatch(
       if (!args?.build_name) throw new Error("Missing build_name");
       if (args?.notes == null) throw new Error("Missing notes");
       return await handleSetBuildNotes(deps.contextBuilder.buildHandlerContext(), args.build_name as string, args.notes as string);
-
-    case "gem_upgrade_path":
-      return await handleGemUpgradePath(
-        deps.contextBuilder.buildSkillGemContext(),
-        args || {}
-      );
-
-    case "suggest_crafting": {
-      const craftingContext = {
-        getLuaClient: deps.getLuaClient,
-        ninjaClient: deps.ninjaClient,
-      };
-      return await handleSuggestCrafting(craftingContext, args as any);
-    }
 
     default:
       // A TOOL_META entry without a case: still a protocol error, never an isError result.

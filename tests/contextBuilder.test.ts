@@ -8,7 +8,6 @@ const mockTreeService = {} as any;
 const mockWatchService = {} as any;
 const mockValidationService = {} as any;
 const mockExportService = {} as any;
-const mockSkillGemService = {} as any;
 const mockLuaClient = {} as any;
 const mockFetch = (async () => { throw new Error('no fetch'); }) as unknown as typeof fetch;
 
@@ -18,7 +17,6 @@ const mockDeps: ContextDependencies = {
   watchService: mockWatchService,
   validationService: mockValidationService,
   exportService: mockExportService,
-  skillGemService: mockSkillGemService,
   pobDirectory: '/test/pob',
   stateDir: '/test/state/pob2-mcp',
   env: {},
@@ -110,27 +108,6 @@ describe('ContextBuilder', () => {
     });
   });
 
-  describe('buildSkillGemContext', () => {
-    it('should return context with buildService and skillGemService', () => {
-      const context = builder.buildSkillGemContext();
-
-      expect(context.buildService).toBe(mockBuildService);
-      expect(context.skillGemService).toBe(mockSkillGemService);
-      expect(Object.keys(context)).toHaveLength(6);
-    });
-  });
-
-  describe('buildAdvancedOptimizationContext', () => {
-    it('should return context with buildService and Lua methods', () => {
-      const context = builder.buildAdvancedOptimizationContext();
-
-      expect(context.buildService).toBe(mockBuildService);
-      expect(context.getLuaClient()).toBe(mockLuaClient);
-      expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(5);
-    });
-  });
-
   describe('buildValidationContext', () => {
     it('should return context with buildService, validationService, and Lua methods', () => {
       const context = builder.buildValidationContext();
@@ -147,8 +124,7 @@ describe('ContextBuilder', () => {
     const contexts = [
       builder.buildHandlerContext(), builder.buildWatchContext(), builder.buildTreeContext(),
       builder.buildLuaContext(), builder.buildItemSkillContext(), builder.buildOptimizationContext(),
-      builder.buildExportContext(), builder.buildSkillGemContext(),
-      builder.buildAdvancedOptimizationContext(), builder.buildValidationContext(),
+      builder.buildExportContext(), builder.buildValidationContext(),
       builder.buildConfigPresetContext(),
     ];
     for (const c of contexts) {

@@ -1,7 +1,7 @@
 # pob2-mcp stabilization: change vision (v2)
 
-Status: **v2, revised after adversarial review** (Phase 2 of the build method). Ready for human
-ratification, then `spec-formalizer` (brownfield tier). This version folds in **25 verified review
+Status: **v2, ratified by the user 2026-10-03** (Phase 2 of the build method). Next: `spec-formalizer`
+(brownfield tier). This version folds in **25 verified review
 clusters** (6 lenses → 69 raw findings → skeptic-verified). See [`review-vision.md`](review-vision.md)
 for the findings, the verdicts, and what was refuted.
 
@@ -40,7 +40,9 @@ Make pob2-mcp a **stable, PoE2-correct** MCP server whose answers come from PoB2
 - **Multi-slot "where should I spend X" optimization.** `find_upgrades` is single-slot. Claude can
   call it once per slot, under one process-wide rate limiter. *(PROPOSED)*
 - **PoB's unique-jewel trade rows** (Megalomaniac, Heart of the Well, Against the Darkness), which
-  PoB handles as special cases. They are out of scope unless the user asks. *(PROPOSED)*
+  PoB handles as special cases. **Deferred, not dropped** *(HUMAN, 2026-10-03)*: the user wants them
+  once the core is stable, because a unique jewel can cheaply give a medium-budget build a big boost.
+  They are a follow-up epic.
 - **Hosted CI.** The repo has no CI. The gate is a local `mise run test` (D-17).
 
 ## 3. Decisions
@@ -62,7 +64,7 @@ Make pob2-mcp a **stable, PoE2-correct** MCP server whose answers come from PoB2
 | D-13 | **Package manager: pnpm** (via corepack). Done: lockfile converted, `packageManager: pnpm@11.6.0`, `mise.toml` pins `node = "24"`, undeclared `@jest/globals` declared. | HUMAN |
 | D-14 | **Trade on by default**, opt-out via `POE_TRADE_DISABLED=true` (mirrors `POE_NINJA_DISABLED`). `POE_TRADE_ENABLED` is removed. **Engine on by default too:** `POB_LUA_ENABLED` is removed and the engine starts lazily on the first engine tool call; otherwise `find_upgrades` would be listed but always fail. No network I/O before the MCP handshake: trade2 stat data loads lazily on the first trade call, with a timeout. | HUMAN (trade) / PROPOSED (engine, lazy loading) |
 | D-15 | **Session for weighted search.** **HUMAN:** the user's `POESESSID` lives in the repo's gitignored `.env` (single-user personal project; the user explicitly accepts a cookie on disk). When the cookie is missing or rejected, `find_upgrades` falls back to the trade-site link `trade2/search/poe2/<league>?q=<query>` (the pinned tag's format). **PROPOSED mechanism:** (1) **Credential getter:** read `<packageRoot>/.env` with `util.parseEnv` on each trade request. It does not mutate `process.env`, needs no restart when the user refreshes the cookie, and treats a missing file as no cookie. A non-empty process `POESESSID` takes precedence; `POE_SESSION_ID` is an alias; an `op://…` value produces an "unresolved 1Password reference; launch via `op run`" error. Tests inject the getter. (2) **Classification:** no cookie configured → don't send the weighted search; return the link with a "set POESESSID" hint. Cookie sent, and the response is 400 code 2 *without* `Account` in `X-Rate-Limit-Rules` (or its message contains "Logging in will increase this limit") → session not recognised: return the link with a "refresh POESESSID" hint. 400 code 2 *with* `Account` present → the query is over trade2's complexity limit: drop the lowest-weight filters, retry a bounded number of times, then return the link. 401/403 → generic auth message with the refresh hint. 429 → honour `Retry-After`. The actual expired-cookie response is **unverified** (S-4 [I]); the human-only live smoke records it. (3) **Rate limiting:** one process-wide limiter parses `X-Rate-Limit-Policy/-Rules/-<rule>/-<rule>-State` per response. Logged-in requests add an `Account` rule (search `3:5:60`, fetch `6:4:10`). S-4 verified the cookie lifts the rejection (HTTP 200, complexity 180). *Considered and rejected:* a GGG OAuth "connected app" (registrations closed; `account:trade` is a PoB-only grant; borrowing `client_id=pob` would misrepresent the tool), and an anonymous count-group prefilter plus engine re-rank (S-1's anonymous-fallback section, superseded). | HUMAN (cookie in `.env`, link fallback) / PROPOSED (mechanism) |
-| D-16 | **First run, host wiring, and the user's builds.** `mise run setup` = `pnpm install --frozen-lockfile && pnpm build && mise run pob:fetch`. Claude Code registration (documented and smoke-tested): `claude mcp add pob2 -s user -- mise exec -C ~/projects/pob2-mcp -- node build/index.js`. `mise exec` puts the pinned luajit and Node 24 on PATH, so the server needs no PATH logic. The server module is side-effect-free (`createServer(deps)` plus a thin entry file). The default `POB_DIRECTORY` uses PoB2's folder name `…/Path of Building (PoE2)/Builds`; the WSL path `/mnt/c/Users/<win-user>/Documents/Path of Building (PoE2)/Builds` is documented (see Q6). The file watcher uses polling for paths under `/mnt/*`, because inotify doesn't see Windows-side writes on drvfs. Engine-backed outputs name the loaded build file and warn when it is newer on disk than the engine's copy, which is cheaper and safer than auto-reloading. | PROPOSED |
+| D-16 | **First run, host wiring, and the user's builds.** `mise run setup` = `pnpm install --frozen-lockfile && pnpm build && mise run pob:fetch`. Claude Code registration (documented and smoke-tested): `claude mcp add pob2 -s user -- mise exec -C ~/projects/pob2-mcp -- node build/index.js`. `mise exec` puts the pinned luajit and Node 24 on PATH, so the server needs no PATH logic. The server module is side-effect-free (`createServer(deps)` plus a thin entry file). The default `POB_DIRECTORY` uses PoB2's folder name `…/Path of Building (PoE2)/Builds`; the WSL path `/mnt/c/Users/<win-user>/Documents/Path of Building (PoE2)/Builds` is documented, and is this user's configured value (Q6, HUMAN). The file watcher uses polling for paths under `/mnt/*`, because inotify doesn't see Windows-side writes on drvfs. Engine-backed outputs name the loaded build file and warn when it is newer on disk than the engine's copy, which is cheaper and safer than auto-reloading. | PROPOSED |
 | D-17 | **Local gate and build-fleet environment.** **The gate:** `mise run test` = `mise run pob:fetch` + `pnpm test`, with explicit exit codes. A mise task already has the pinned luajit on PATH. **Engine tests fail, not skip, whenever the engine can't run** (absent `vendor/`, luajit missing, bridge won't start) unless `POB_SKIP_ENGINE=1` is set explicitly. Integration tests use the server's own default checkout resolver (`vendor/`), never the dev-head sibling. **MCP-level tests run in-process** (SDK `InMemoryTransport` + `Client`, global `fetch` mocked, credential getter injected, `POESESSID` cleared in Jest setup). **Worktree bootstrap**, for the orchestrator handoff: `mise trust && pnpm install --frozen-lockfile && mise run pob:fetch` (mise refuses untrusted configs at new paths). **Coverage** is reported, not gated (the global thresholds are unmet today, 66/52/69/69 against 80/75/85/80, and gating would push padding). Commits are signed via the 1Password SSH agent, which can prompt; the orchestrator should batch commits or sign at the end with the human present. | PROPOSED |
 
 ## 4. Tool disposition after the epic
@@ -220,13 +222,10 @@ all ──► G docs (README tool table generated from the registry; setup + `cl
 
 ## 8. Open questions
 
-Q1–Q5 resolved 2026-10-03 (D-1, D-12, D-13, D-14, D-15).
+Q1–Q6 resolved 2026-10-03 (D-1, D-12, D-13, D-14, D-15, D-16). No open questions remain.
 
-- **Q6 (D-16) Which builds folder?** Point `POB_DIRECTORY` at the Windows PoB2 folder
-  `/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds` or at a Linux-side folder.
-  - **Windows folder:** the tool sees builds you save in PoB2 on Windows and can warn when the
-    engine's copy is stale. The server would also *write* there: `lua_save_build` under the names
-    you give, and snapshots in a `.pob-mcp/snapshots/` subfolder.
-  - **Linux-side folder:** you copy builds over manually.
-  - Recommendation: the Windows folder, since your main workflow is "edit gear in PoB2, then ask
-    Claude for upgrades".
+- **Q6 (D-16), resolved 2026-10-03 (HUMAN):** `POB_DIRECTORY` = the Windows PoB2 folder
+  `/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds`. The workflow is **collaborative
+  editing**: the user and Claude both change builds, and the user tinkers with the results in
+  Windows PoB2. The server reads and writes there (`lua_save_build` under the names given, snapshots
+  in a `.pob-mcp/snapshots/` subfolder).

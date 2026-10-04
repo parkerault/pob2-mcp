@@ -30,8 +30,16 @@ names lower-cased, values verbatim).
 | `search-weighted-2-filters.*` | minimal weight group (2 filters, `min` 100) + category + price max | **400**, same error | — |
 | `search-weighted-1-filter.*` | weight group with a single filter + category only | **400**, same error | weight groups are refused anonymously at any size |
 | `search-and-3-stats.*` | `armour.chest`, `nonunique`, price max 30, `and` group with 3 stat mins (life ≥ 80, fire res ≥ 20, cold res ≥ 20) | 200, total 10000, complexity 12 | anonymous fallback query (no fetch — request budget used up) |
+| `search-weighted-session.*` | **logged in** (the user's `POESESSID`), league `Forbidden Rites`: PoB2's generated Body Armour query from spike S-1 (`S-1-prototype/q_body.json`), 29 weighted filters + 1 `and` filter, price max 200 exalted-equivalent, max level 80, status `securable` (Instant buyout), sort `statgroup.0 desc` | **200**, total 2207, 100 ids, **complexity 180** | weighted search accepted with a session; **`x-rate-limit-rules: Account,Ip`**, `x-rate-limit-account: 3:5:60`, logged-in Ip limits |
+| `fetch-weighted-session.*` | logged in, first 10 ids of the above | 200, 10 items | **`pseudoMods: [{description: "Sum: <weight>", domain: "pseudo", hash: "statgroup.0"}]`** on every item (PoB's adjust loop reads this); **instant-buyout (`securable`) listing shape**: `method: "psapi"`, `fee`, `hideout_token`, no `whisper`, `account.online: null`; mixed `chaos`/`exalted` prices; fetch `Account` rule `6:4:10` |
+| `data-leagues.*` | `GET /api/trade2/data/leagues`, anonymous, captured 2026-10-03 18:58 UTC during the recon trade audit | 200 | `{result: [{id, realm, text}]}` in API order: Forbidden Rites, HC Forbidden Rites, Runes of Aldur, HC Runes of Aldur, Standard, Hardcore. Served from Cloudflare's cache (`cache-control: public, max-age=14400`), with **no rate-limit headers** |
+| `data-stats.*` | `GET /api/trade2/data/stats`, anonymous, captured 2026-10-03 18:58 UTC during the recon trade audit | 200 | the trade stat catalogue: `{result: [{id, label, entries: [{id, text, type, option?}]}]}`, with groups pseudo (36), explicit (3108), implicit (182), fractured (1247), crafted (1081), enchant (1001), rune/"Augment" (595), desecrated (755), sanctum (164), skill (131). Kept minified as received (853 KB). No rate-limit headers |
 
 Indices `[n]` above are positions in the fetch `result` array.
+
+The two `*-weighted-session.*` captures were made on 2026-10-03 with the user's approval: exactly two
+requests, `User-Agent: pob2-mcp-server/0.2.2`. The cookie was read from `.env` by the capture
+script and never printed, and a check confirmed its value appears in no fixture.
 
 ## Anonymization applied
 
@@ -46,6 +54,7 @@ Item data is untouched. Changes, all structure- and type-preserving:
   the fetch URLs) → `sha256("pob2-mcp-fixture:" + realId)` hex. Same 64-hex format, consistent
   between each search response and its fetch, but they no longer resolve to live listings.
 - The anonymous `POESESSID` the server sets in `set-cookie` → `<redacted-anonymous-session>`. We
-  never send it back.
+  never send it back. In the logged-in captures, every `set-cookie` value → `<redacted-set-cookie>`.
+- `listing.hideout_token` (instant-buyout listings) → `<redacted-hideout-token>`.
 - Kept: `account.online`, `language`, `realm`, `listing.indexed`, `stash.x/y`, `fee`, `item.note`,
   item names, the search `id` (it is just base64url(gzip(query JSON)) and holds no identity).

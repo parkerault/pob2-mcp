@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "request": {
+    "method": "GET",
+    "url": "https://www.pathofexile.com/api/trade2/data/stats"
+  },
+  "headers": {
+    "date": "Sat, 03 Oct 2026 18:58:13 GMT",
+    "content-type": "application/json",
+    "server": "cloudflare",
+    "last-modified": "Sat, 03 Oct 2026 18:32:44 GMT",
+    "cache-control": "public, max-age=14400",
+    "x-resty-ttl": "300",
+    "x-frame-options": "SAMEORIGIN",
+    "strict-transport-security": "max-age=63115200; includeSubDomains; preload",
+    "vary": "accept-encoding",
+    "age": "194",
+    "expires": "Sat, 03 Oct 2026 22:58:13 GMT",
+    "cf-cache-status": "HIT",
+    "cf-ray": "a44e2d54fdc8ae46-IAH"
+  }
+}

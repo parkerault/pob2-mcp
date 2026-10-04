@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "request": {
+    "method": "GET",
+    "url": "https://www.pathofexile.com/api/trade2/data/leagues"
+  },
+  "headers": {
+    "date": "Sat, 03 Oct 2026 18:58:11 GMT",
+    "content-type": "application/json",
+    "server": "cloudflare",
+    "x-frame-options": "SAMEORIGIN",
+    "strict-transport-security": "max-age=63115200; includeSubDomains; preload",
+    "vary": "accept-encoding",
+    "age": "6525",
+    "last-modified": "Sat, 03 Oct 2026 17:13:52 GMT",
+    "expires": "Sat, 03 Oct 2026 22:58:11 GMT",
+    "cache-control": "public, max-age=14400",
+    "cf-cache-status": "HIT",
+    "cf-ray": "a44e2d48af18c2f3-IAH"
+  }
+}

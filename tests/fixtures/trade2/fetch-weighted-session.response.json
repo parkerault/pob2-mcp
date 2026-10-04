@@ -1,0 +1,3674 @@
+{
+  "result": [
+    {
+      "id": "3b78575c7f46e6477265178f4f94c5044aed3571fda3c97ee1efc666074229e4",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-27T01:46:44Z",
+        "stash": {
+          "name": "tab-1",
+          "x": 0,
+          "y": 9
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 51514,
+        "account": {
+          "name": "seller-1#0001",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/a1b424ac4d/BodyStrDex02.png",
+        "league": "Forbidden Rites",
+        "id": "3b78575c7f46e6477265178f4f94c5044aed3571fda3c97ee1efc666074229e4",
+        "name": "Morbid Wrap",
+        "typeLine": "Dastard Armour",
+        "baseType": "Dastard Armour",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "814",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "754",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+71 to maximum Life",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3299347043",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "80"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+36 to [Armour|Armour]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3484657501",
+            "mods": [
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+38 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "39"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "140% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Victor's",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              },
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+190 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Rapturous",
+                "tier": "P2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "190",
+                    "max": "199"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+23 to [Strength|Strength]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4080418644",
+            "mods": [
+              {
+                "name": "of the Gorilla",
+                "tier": "S4",
+                "level": 44,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+31 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Phantom",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+49% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Thermokryptance",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "44",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 904,
+          "ev_aug": true,
+          "ar": 976,
+          "ar_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3484657501",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_53045048",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_2451402625",
+                [
+                  1,
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_4080418644",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  0
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 142.2",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "29960f391f35cee6071d1a784ca9318098fb8b1376adf10d4daabdd4293c8e70",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-02T21:08:31Z",
+        "stash": {
+          "name": "15",
+          "x": 0,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 58711,
+        "account": {
+          "name": "seller-2#0002",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleEludDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/7e5722b0ec/BodyStrDexInt02.png",
+        "league": "Forbidden Rites",
+        "id": "29960f391f35cee6071d1a784ca9318098fb8b1376adf10d4daabdd4293c8e70",
+        "name": "Rapture Jack",
+        "typeLine": "Sacrificial Regalia",
+        "baseType": "Sacrificial Regalia",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "560",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "797",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "240",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+1 to Level of all [Corrupted] Skill Gems",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2251279027",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+141 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Apparition's",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "120",
+                    "max": "141"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+41 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Apparition's",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "37",
+                    "max": "42"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "105% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3523867985",
+            "mods": [
+              {
+                "name": "Ascendant",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+177 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Vigorous",
+                "tier": "P3",
+                "level": 70,
+                "magnitudes": [
+                  {
+                    "min": "175",
+                    "max": "189"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+31 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Phantom",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "60% reduced [Ignite|Ignite] Duration on you",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_986397080",
+            "mods": [
+              {
+                "name": "of Dousing",
+                "tier": "S1",
+                "level": 76,
+                "magnitudes": [
+                  {
+                    "min": "56",
+                    "max": "60"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 957,
+          "ev_aug": true,
+          "ar": 672,
+          "ar_aug": true,
+          "es": 288,
+          "es_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_53045048",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_4052037485",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3523867985",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_986397080",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2251279027",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 129.9",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "8585fc089ff81b58bce59552c8c60391bf57ab4c472ef84e1e4bff48fee5f221",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-03T23:27:45Z",
+        "stash": {
+          "name": "1",
+          "x": 10,
+          "y": 9
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 36816,
+        "account": {
+          "name": "seller-3#0003",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleEludDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/7e5722b0ec/BodyStrDexInt02.png",
+        "league": "Forbidden Rites",
+        "id": "8585fc089ff81b58bce59552c8c60391bf57ab4c472ef84e1e4bff48fee5f221",
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          }
+        ],
+        "name": "Maelström Pelt",
+        "typeLine": "Sacrificial Regalia",
+        "baseType": "Sacrificial Regalia",
+        "rarity": "Rare",
+        "ilvl": 77,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "543",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "384",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "157",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "72",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+1 to Level of all [Corrupted] Skill Gems",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2251279027",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "1",
+                    "max": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+77 to [Armour|Armour]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3484657501",
+            "mods": [
+              {
+                "name": "Hallowed",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "72",
+                    "max": "85"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+25 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Hallowed",
+                "tier": "P5",
+                "level": 46,
+                "magnitudes": [
+                  {
+                    "min": "22",
+                    "max": "25"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "55% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3523867985",
+            "mods": [
+              {
+                "name": "Unworldly",
+                "tier": "P6",
+                "level": 33,
+                "magnitudes": [
+                  {
+                    "min": "43",
+                    "max": "55"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+150 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Fecund",
+                "tier": "P4",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "150",
+                    "max": "174"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+24 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Panther",
+                "tier": "S4",
+                "level": 44,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+43% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Furring",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "38",
+                    "max": "43"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "5.8 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of the Starfish",
+                "tier": "S8",
+                "level": 17,
+                "magnitudes": [
+                  {
+                    "min": "4.1",
+                    "max": "6"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "ev": 461,
+          "ev_aug": true,
+          "ar": 651,
+          "ar_aug": true,
+          "es": 188,
+          "es_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3484657501",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_4052037485",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3523867985",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2251279027",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 128.2",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "e76487155df84a067bc2f4218133d85a7d081e02658c89581ee61caada3cd5e6",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-03T16:08:02Z",
+        "stash": {
+          "name": "7",
+          "x": 0,
+          "y": 4
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 200,
+          "currency": "exalted"
+        },
+        "fee": 68139,
+        "account": {
+          "name": "seller-4#0004",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDA2IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/4b99433643/BodyStrDex06.png",
+        "league": "Forbidden Rites",
+        "id": "e76487155df84a067bc2f4218133d85a7d081e02658c89581ee61caada3cd5e6",
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Behemoth Sanctuary",
+        "typeLine": "Death Mail",
+        "baseType": "Death Mail",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 200 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "826",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "752",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "75",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "79% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Duelist's",
+                "tier": "P4",
+                "level": 54,
+                "magnitudes": [
+                  {
+                    "min": "68",
+                    "max": "79"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+201 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+33 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Phantom",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+49% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Thermokryptance",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "44",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "31.3 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of Immortality",
+                "tier": "S2",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "29.1",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "41% increased [Armour|Armour] and [Evasion|Evasion]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_2451402625",
+            "mods": [
+              {
+                "name": "Predator's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "39",
+                    "max": "42"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+44 to maximum Life",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3299347043",
+            "mods": [
+              {
+                "name": "Predator's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "42",
+                    "max": "49"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [],
+        "extended": {
+          "ev": 752,
+          "ar": 826,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2451402625",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  3
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_2451402625",
+                [
+                  0
+                ]
+              ],
+              [
+                "desecrated.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 128.2",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "a96b2fd60e56fea1570b686e263a4d040d27dabf4abea289aaa5672712bebed1",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-15T19:57:30Z",
+        "stash": {
+          "name": "1",
+          "x": 4,
+          "y": 2
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 2,
+          "currency": "chaos"
+        },
+        "fee": 55846,
+        "account": {
+          "name": "seller-5#0005",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDA2IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/4b99433643/BodyStrDex06.png",
+        "league": "Forbidden Rites",
+        "id": "a96b2fd60e56fea1570b686e263a4d040d27dabf4abea289aaa5672712bebed1",
+        "name": "Hypnotic Curtain",
+        "typeLine": "Golden Mail",
+        "baseType": "Golden Mail",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 2 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "611",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "555",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "64",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "40",
+                1
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "40",
+                1
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "134% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              },
+              {
+                "name": "Victor's",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+253 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              },
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "25% reduced [Attributes|Attribute] Requirements",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3639275092",
+            "mods": [
+              {
+                "name": "of the Talented",
+                "tier": "S3",
+                "level": 40,
+                "magnitudes": [
+                  {
+                    "min": "-25",
+                    "max": "-25"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+30 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Jaguar",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "28",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+47% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Thermokryptance",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "44",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 665,
+          "ev_aug": true,
+          "ar": 733,
+          "ar_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2451402625",
+                [
+                  3,
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  3,
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3639275092",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 128.1",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cf8fe4d6596feeef4a2385091f26ce4f33e0ef1364adebb3c1104e1d03be1dca",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-23T19:24:08Z",
+        "stash": {
+          "name": "12",
+          "x": 4,
+          "y": 0
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 5,
+          "currency": "chaos"
+        },
+        "fee": 62658,
+        "account": {
+          "name": "seller-6#0006",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keURleEludDA2IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/512e4bd095/BodyDexInt06.png",
+        "league": "Forbidden Rites",
+        "id": "cf8fe4d6596feeef4a2385091f26ce4f33e0ef1364adebb3c1104e1d03be1dca",
+        "name": "Plague Mantle",
+        "typeLine": "Falconer's Jacket",
+        "baseType": "Falconer's Jacket",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 5 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "717",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          },
+          {
+            "name": "[EnergyShield|Energy Shield]",
+            "values": [
+              [
+                "221",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 18
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "75",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          },
+          {
+            "name": "[Intelligence|Int]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 65
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "5% increased Movement Speed",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_2250533757",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "5",
+                    "max": "5"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+47 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Stalker's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "40",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+15 to maximum [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4052037485",
+            "mods": [
+              {
+                "name": "Stalker's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "13",
+                    "max": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "143% increased [Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_1999113824",
+            "mods": [
+              {
+                "name": "Incorporeal",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              },
+              {
+                "name": "Stalker's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "39",
+                    "max": "42"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+210 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+26 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Leopard",
+                "tier": "S3",
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "25",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "33.5 Life Regeneration per second",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3325883026",
+            "mods": [
+              {
+                "name": "of the Phoenix",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "33.1",
+                    "max": "36"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "16% of Damage is taken from Mana before Life",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_458438597",
+            "mods": [
+              {
+                "name": "of Kurgal",
+                "tier": "S1",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "10",
+                    "max": "20"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 860,
+          "ev_aug": true,
+          "es": 265,
+          "es_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_53045048",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_4052037485",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_1999113824",
+                [
+                  2,
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3325883026",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_2250533757",
+                [
+                  0
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_458438597",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 127.6",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aba87924cb4369c4078b3cd0721284305a9dbd0dc6b56a127e95f8f1a136e7a1",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-03T06:03:10Z",
+        "stash": {
+          "name": "tab-2",
+          "x": 10,
+          "y": 9
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 48235,
+        "account": {
+          "name": "seller-7#0007",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/a1b424ac4d/BodyStrDex02.png",
+        "league": "Forbidden Rites",
+        "id": "aba87924cb4369c4078b3cd0721284305a9dbd0dc6b56a127e95f8f1a136e7a1",
+        "name": "Blight Keep",
+        "typeLine": "Dastard Armour",
+        "baseType": "Dastard Armour",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "685",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "624",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+73 to maximum Life",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3299347043",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "80"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "126% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              },
+              {
+                "name": "Legend's",
+                "tier": "P2",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "92",
+                    "max": "100"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+219 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Vigorous",
+                "tier": "P3",
+                "level": 70,
+                "magnitudes": [
+                  {
+                    "min": "175",
+                    "max": "189"
+                  }
+                ]
+              },
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+27 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Leopard",
+                "tier": "S3",
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "25",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+34% to [Resistances|Cold Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_4220027924",
+            "mods": [
+              {
+                "name": "of the Polar Bear",
+                "tier": "S3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "35"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+43% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Furring",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "38",
+                    "max": "43"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 749,
+          "ev_aug": true,
+          "ar": 822,
+          "ar_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2451402625",
+                [
+                  1,
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  0,
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_4220027924",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  4
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 126.4",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ffbd820534552dee7e3314e83c062839d204b25c08fb75ff55c6f09310ad0c91",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-03T09:48:03Z",
+        "stash": {
+          "name": "12",
+          "x": 10,
+          "y": 3
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 1,
+          "currency": "chaos"
+        },
+        "fee": 47331,
+        "account": {
+          "name": "seller-8#0008",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/a1b424ac4d/BodyStrDex02.png",
+        "league": "Forbidden Rites",
+        "id": "ffbd820534552dee7e3314e83c062839d204b25c08fb75ff55c6f09310ad0c91",
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          }
+        ],
+        "name": "Gale Wrap",
+        "typeLine": "Dastard Armour",
+        "baseType": "Dastard Armour",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 1 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "767",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "698",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "36% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3523867985"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+75 to maximum Life",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3299347043",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "80"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "83% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Hero's",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "80",
+                    "max": "91"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+181 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Vigorous",
+                "tier": "P3",
+                "level": 70,
+                "magnitudes": [
+                  {
+                    "min": "175",
+                    "max": "189"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+27 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Leopard",
+                "tier": "S3",
+                "level": 55,
+                "magnitudes": [
+                  {
+                    "min": "25",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+46% of [Armour|Armour] also applies to [ElementalDamage|Elemental Damage]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3362812763",
+            "mods": [
+              {
+                "name": "of Thermokryptance",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "44",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Gain [Deflect|Deflection Rating] equal to 22% of [Evasion|Evasion Rating]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3033371881",
+            "mods": [
+              {
+                "name": "of Flexure",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "21",
+                    "max": "23"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "34% increased [Armour|Armour] and [Evasion|Evasion]",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_2451402625",
+            "mods": [
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+37 to maximum Life",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3299347043",
+            "mods": [
+              {
+                "name": "Aggressor's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Forbidden Rites",
+            "id": "183cd3db1f5e6be29a348a451f62e5140d757f5047dff6ae13e9f8c1857cb024",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvRW5oYW5jZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/6b729ab5a0/EnhanceRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Forbidden Rites",
+            "id": "8ecde2765d62b0362b3bb0a35709177be9e52d3c4f39fa222d80d4623591533b",
+            "name": "",
+            "typeLine": "Greater Iron Rune",
+            "baseType": "Greater Iron Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: 18% increased [Physical] Damage"
+              },
+              {
+                "description": "Wand or Staff: 30% increased [Spell] Damage"
+              },
+              {
+                "description": "Armour: 18% increased [Armour|Armour], [Evasion|Evasion] and [EnergyShield|Energy Shield]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 20% increased effect of [ArmourBreak|Fully Broken Armour]",
+              "Wand or Staff: [ArmourBreak|Break] [Armour] on [Critical|Critical Hit] with [Spell|Spells] equal to 12% of [Physical|Physical] Damage dealt",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "ev": 838,
+          "ev_aug": true,
+          "ar": 920,
+          "ar_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_2451402625",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3362812763",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3033371881",
+                [
+                  1
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3523867985",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_2451402625",
+                [
+                  0
+                ]
+              ],
+              [
+                "desecrated.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 126.2",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "9bd91b58a0a981c3341623c821a0840938425fffab65115ac4a29297fb9f4e4a",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-02T16:04:55Z",
+        "stash": {
+          "name": "4",
+          "x": 8,
+          "y": 3
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 50,
+          "currency": "exalted"
+        },
+        "fee": 71744,
+        "account": {
+          "name": "seller-9#0009",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDAyIiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/a1b424ac4d/BodyStrDex02.png",
+        "league": "Forbidden Rites",
+        "id": "9bd91b58a0a981c3341623c821a0840938425fffab65115ac4a29297fb9f4e4a",
+        "sockets": [
+          {
+            "group": 0,
+            "type": "rune"
+          },
+          {
+            "group": 1,
+            "type": "rune"
+          },
+          {
+            "group": 2,
+            "type": "rune"
+          }
+        ],
+        "name": "Damnation Veil",
+        "typeLine": "Dastard Armour",
+        "baseType": "Dastard Armour",
+        "rarity": "Rare",
+        "ilvl": 82,
+        "identified": true,
+        "note": "~b/o 50 exalted",
+        "corrupted": true,
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Quality]",
+            "values": [
+              [
+                "+20%",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 6
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "956",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "872",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "65",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "runeMods": [
+          {
+            "description": "+120 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_3299347043"
+          },
+          {
+            "description": "[StatGain|Gain] 5% of maximum Life as Extra maximum [Ward|Runic Ward]",
+            "domain": "rune",
+            "hash": "stat.rune.stat_386720106"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Life",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2280525771"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: +40 to maximum Mana",
+            "domain": "rune",
+            "hash": "stat.rune.stat_2926029365"
+          },
+          {
+            "description": "[ShamanOnlyMods|Bonded]: 1% more [Ward|Runic Ward] Regeneration rate per 2% of maximum [Ward|Runic Ward] lost from [Hit|Hits] [Recently], up to 100% more",
+            "domain": "rune",
+            "hash": "stat.rune.stat_103837384"
+          }
+        ],
+        "implicitMods": [
+          {
+            "description": "+60 to maximum Life",
+            "domain": "implicit",
+            "hash": "stat.implicit.stat_3299347043",
+            "mods": [
+              {
+                "magnitudes": [
+                  {
+                    "min": "60",
+                    "max": "80"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+51 to [Armour|Armour]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3484657501",
+            "mods": [
+              {
+                "name": "Centurion's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "42",
+                    "max": "52"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+47 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Centurion's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "40",
+                    "max": "50"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "125% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Centurion's",
+                "tier": "P1",
+                "level": 78,
+                "magnitudes": [
+                  {
+                    "min": "39",
+                    "max": "42"
+                  }
+                ]
+              },
+              {
+                "name": "Hero's",
+                "tier": "P3",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "80",
+                    "max": "91"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+209 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+33 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Phantom",
+                "tier": "S1",
+                "level": 74,
+                "magnitudes": [
+                  {
+                    "min": "31",
+                    "max": "33"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+25% to [Resistances|Chaos Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2923486259",
+            "mods": [
+              {
+                "name": "of Bameth",
+                "tier": "S1",
+                "level": 81,
+                "magnitudes": [
+                  {
+                    "min": "24",
+                    "max": "27"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "59% reduced [Poison|Poison] Duration on you",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3301100256",
+            "mods": [
+              {
+                "name": "of the Antidote",
+                "tier": "S1",
+                "level": 76,
+                "magnitudes": [
+                  {
+                    "min": "-60",
+                    "max": "-56"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "socketedItems": [
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvRXhwZWRpdGlvbjIvUnVuaWNXYXJkMTQiLCJ3IjoxLCJoIjoxLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/69ce5b784c/RunicWard14.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Forbidden Rites",
+            "id": "7f476cc271c23433eaad2c17b9a132cc965beb260f730a14bc58cb0108a8ed57",
+            "name": "",
+            "typeLine": "Warding Rune of Heart",
+            "baseType": "Warding Rune of Heart",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              },
+              {
+                "name": "Limited to",
+                "values": [
+                  [
+                    "1",
+                    0
+                  ]
+                ],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "Body Armours: [StatGain|Gain] 5% of maximum Life as Extra maximum [Ward|Runic Ward]"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "Body Armours: 1% more [Ward|Runic Ward] Regeneration rate per 2% of maximum [Ward|Runic Ward] lost from [Hit|Hits] [Recently], up to 100% more"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 0,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9XYXJkaWNSdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/be8eeae622/WardicRuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvTGlmZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/195c86b385/LifeRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Forbidden Rites",
+            "id": "23173efe98f6bf4a7ac5b944a0efefdcd8901648f225c10bf723e91dc68d2330",
+            "name": "",
+            "typeLine": "Greater Body Rune",
+            "baseType": "Greater Body Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: [LifeLeech|Leeches] 5% of [Physical|Physical] Damage as Life"
+              },
+              {
+                "description": "Wand or Staff: +50 to maximum [EnergyShield|Energy Shield]"
+              },
+              {
+                "description": "Armour: +60 to maximum Life"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 5% increased maximum Life",
+              "Wand or Staff: 5% increased maximum Life",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 1,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          },
+          {
+            "realm": "poe2",
+            "verified": true,
+            "w": 1,
+            "h": 1,
+            "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvUnVuZXMvTGlmZVJ1bmVUaWVyMiIsInciOjEsImgiOjEsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/195c86b385/LifeRuneTier2.png",
+            "stackSize": 1,
+            "maxStackSize": 10,
+            "league": "Forbidden Rites",
+            "id": "6e9b7004ae697f330744f9300615bbdda98c7cfb82343e3aa0f5a7d326939a50",
+            "name": "",
+            "typeLine": "Greater Body Rune",
+            "baseType": "Greater Body Rune",
+            "ilvl": 0,
+            "identified": true,
+            "properties": [
+              {
+                "name": "Stack Size",
+                "values": [
+                  [
+                    "1/10",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 32
+              },
+              {
+                "name": "[Rune|Rune]",
+                "values": [],
+                "displayMode": 0
+              }
+            ],
+            "requirements": [
+              {
+                "name": "Level",
+                "values": [
+                  [
+                    "30",
+                    0
+                  ]
+                ],
+                "displayMode": 0,
+                "type": 62
+              }
+            ],
+            "explicitMods": [
+              {
+                "description": "[MartialWeapon|Martial Weapon]: [LifeLeech|Leeches] 5% of [Physical|Physical] Damage as Life"
+              },
+              {
+                "description": "Wand or Staff: +50 to maximum [EnergyShield|Energy Shield]"
+              },
+              {
+                "description": "Armour: +60 to maximum Life"
+              }
+            ],
+            "bondedMods": [
+              "[ShamanOnlyMods|Bonded]:",
+              "[MartialWeapon|Martial Weapon]: 5% increased maximum Life",
+              "Wand or Staff: 5% increased maximum Life",
+              "Armour:",
+              "+20 to maximum Life",
+              "+20 to maximum Mana"
+            ],
+            "descrText": "Place into an empty [Augment] Socket in a Weapon or Armour to apply its effect to that item. Once socketed it cannot be retrieved but can be replaced by other [Augment] items.",
+            "frameType": 5,
+            "frameTypeId": "Currency",
+            "socket": 2,
+            "socketedIcon": "https://web.poecdn.com/gen/image/WzIxLDE0LHsiayI6IjJEQXJ0L1VJSW1hZ2VzL0luR2FtZS9SdW5lU29ja2V0RmlsbGVkIiwicmVhbG0iOiJwb2UyIn1d/d02d26cbf0/RuneSocketFilled.png"
+          }
+        ],
+        "extended": {
+          "ev": 872,
+          "ar": 956,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3484657501",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_53045048",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_2451402625",
+                [
+                  4,
+                  5
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2923486259",
+                [
+                  2
+                ]
+              ],
+              [
+                "explicit.stat_3301100256",
+                [
+                  3
+                ]
+              ]
+            ],
+            "implicit": [
+              [
+                "implicit.stat_3299347043",
+                [
+                  0
+                ]
+              ]
+            ],
+            "rune": [
+              [
+                "rune.stat_3299347043",
+                null
+              ],
+              [
+                "rune.stat_386720106",
+                null
+              ],
+              [
+                "rune.stat_2280525771",
+                null
+              ],
+              [
+                "rune.stat_2926029365",
+                null
+              ],
+              [
+                "rune.stat_103837384",
+                null
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 125.7",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "99a8099c74bcdc4e7d10c9519b556a3d9239acb7c4a2829c2ceba3151189715a",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-09-18T22:54:29Z",
+        "stash": {
+          "name": "8",
+          "x": 5,
+          "y": 6
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 9,
+          "currency": "chaos"
+        },
+        "fee": 60211,
+        "account": {
+          "name": "seller-10#00010",
+          "online": null
+        },
+        "hideout_token": "<redacted-hideout-token>"
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 2,
+        "h": 3,
+        "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9Cb2R5QXJtb3Vycy9CYXNldHlwZXMvQm9keVN0ckRleDA2IiwidyI6MiwiaCI6Mywic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/4b99433643/BodyStrDex06.png",
+        "league": "Forbidden Rites",
+        "id": "99a8099c74bcdc4e7d10c9519b556a3d9239acb7c4a2829c2ceba3151189715a",
+        "name": "Tempest Wrap",
+        "typeLine": "Death Mail",
+        "baseType": "Death Mail",
+        "rarity": "Rare",
+        "ilvl": 81,
+        "identified": true,
+        "note": "~b/o 9 chaos",
+        "properties": [
+          {
+            "name": "Body Armour",
+            "values": [],
+            "displayMode": 0,
+            "type": 109
+          },
+          {
+            "name": "[Armour]",
+            "values": [
+              [
+                "861",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 16
+          },
+          {
+            "name": "[Evasion|Evasion Rating]",
+            "values": [
+              [
+                "796",
+                1
+              ]
+            ],
+            "displayMode": 0,
+            "type": 17
+          }
+        ],
+        "requirements": [
+          {
+            "name": "Level",
+            "values": [
+              [
+                "75",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 62
+          },
+          {
+            "name": "[Strength|Str]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 63
+          },
+          {
+            "name": "[Dexterity|Dex]",
+            "values": [
+              [
+                "67",
+                0
+              ]
+            ],
+            "displayMode": 1,
+            "type": 64
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "+34 to [Armour|Armour]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3484657501",
+            "mods": [
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "41"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+36 to [Evasion] Rating",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_53045048",
+            "mods": [
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "30",
+                    "max": "39"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "148% increased [Armour|Armour] and [Evasion|Evasion]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2451402625",
+            "mods": [
+              {
+                "name": "Knight's",
+                "tier": "P2",
+                "level": 60,
+                "magnitudes": [
+                  {
+                    "min": "33",
+                    "max": "38"
+                  }
+                ]
+              },
+              {
+                "name": "Victor's",
+                "tier": "P1",
+                "level": 75,
+                "magnitudes": [
+                  {
+                    "min": "101",
+                    "max": "110"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+202 to maximum Life",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3299347043",
+            "mods": [
+              {
+                "name": "Prime",
+                "tier": "P1",
+                "level": 80,
+                "magnitudes": [
+                  {
+                    "min": "200",
+                    "max": "214"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+30 to [Dexterity|Dexterity]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_3261801346",
+            "mods": [
+              {
+                "name": "of the Jaguar",
+                "tier": "S2",
+                "level": 66,
+                "magnitudes": [
+                  {
+                    "min": "28",
+                    "max": "30"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+20% to [Resistances|Chaos Resistance]",
+            "domain": "explicit",
+            "hash": "stat.explicit.stat_2923486259",
+            "mods": [
+              {
+                "name": "of Exile",
+                "tier": "S2",
+                "level": 68,
+                "magnitudes": [
+                  {
+                    "min": "20",
+                    "max": "23"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "+17% to Cold and Chaos Resistances",
+            "flags": {
+              "desecrated": true
+            },
+            "domain": "desecrated",
+            "hash": "stat.desecrated.stat_3393628375",
+            "mods": [
+              {
+                "name": "of Kurgal",
+                "tier": "S1",
+                "level": 65,
+                "magnitudes": [
+                  {
+                    "min": "13",
+                    "max": "17"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "desecrated": true,
+        "frameType": 2,
+        "frameTypeId": "Rare",
+        "extended": {
+          "ev": 955,
+          "ev_aug": true,
+          "ar": 1033,
+          "ar_aug": true,
+          "hashes": {
+            "explicit": [
+              [
+                "explicit.stat_3484657501",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_53045048",
+                [
+                  0
+                ]
+              ],
+              [
+                "explicit.stat_2451402625",
+                [
+                  0,
+                  3
+                ]
+              ],
+              [
+                "explicit.stat_3299347043",
+                [
+                  1
+                ]
+              ],
+              [
+                "explicit.stat_3261801346",
+                [
+                  4
+                ]
+              ],
+              [
+                "explicit.stat_2923486259",
+                [
+                  2
+                ]
+              ]
+            ],
+            "desecrated": [
+              [
+                "desecrated.stat_3393628375",
+                [
+                  0
+                ]
+              ]
+            ],
+            "pseudo": []
+          }
+        },
+        "pseudoMods": [
+          {
+            "description": "Sum: 125.6",
+            "domain": "pseudo",
+            "hash": "statgroup.0"
+          }
+        ]
+      }
+    }
+  ]
+}

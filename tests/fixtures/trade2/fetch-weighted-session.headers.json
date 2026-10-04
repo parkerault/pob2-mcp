@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "request": {
+    "method": "GET",
+    "url": "https://www.pathofexile.com/api/trade2/fetch/3b78575c7f46e6477265178f4f94c5044aed3571fda3c97ee1efc666074229e4,29960f391f35cee6071d1a784ca9318098fb8b1376adf10d4daabdd4293c8e70,8585fc089ff81b58bce59552c8c60391bf57ab4c472ef84e1e4bff48fee5f221,e76487155df84a067bc2f4218133d85a7d081e02658c89581ee61caada3cd5e6,a96b2fd60e56fea1570b686e263a4d040d27dabf4abea289aaa5672712bebed1,cf8fe4d6596feeef4a2385091f26ce4f33e0ef1364adebb3c1104e1d03be1dca,aba87924cb4369c4078b3cd0721284305a9dbd0dc6b56a127e95f8f1a136e7a1,ffbd820534552dee7e3314e83c062839d204b25c08fb75ff55c6f09310ad0c91,9bd91b58a0a981c3341623c821a0840938425fffab65115ac4a29297fb9f4e4a,99a8099c74bcdc4e7d10c9519b556a3d9239acb7c4a2829c2ceba3151189715a?query=H4sIAAAAAAAAA62W207jQAyG32Wuq8inOfVVVghl2wCR2rQkKQtCfff902WhlTIUCW7aRBl_Y_u3PfPq7trN2PSDW766bTusbs_e1-1Q_940a7e8qzdDs7hc2_e7_v3b8bhwffP4VevN0-YEqZ_dMtFxsh77et2c25897vt21bwbCL1ZvOxLBqt6bO53_cv0vNuP7a5zS1f3292hr1YPzTC6yd-6b8fLJd2uO3Tt46Fxx9MWw1iPAP46g-O5RUyued5v2lU7VtOaW_PJNPkc3cI91ZvDyds_TXv_MLqlVkrJkmQjS1kBfmO023OGiGeJmWQeEqtsykmiYEkuQa44Qj5ET94Eq-yDcRmMSuBErBbmIFxRTkl8yJot-iJEgyTEE3QOQpWPIZMxI2aKWnYlZ7VIVqCwedGcJZoAWKJ4Tch_olkIVxyUWMKUuBBLDDHPRhLEz3siqsgs-2BGnIrxwF1sklOJgnzgI1QSiVwS-VpuA0kS5pBD4ngeUbd6qLv_AWVRS4gnz0Mi45siaSQWiqn9GYrGBE9ZC1mJJ5mVkOL8WcXlKS-Q4VsUC55E4M93KKKEKvAy38tUpYBhEBJZoMhS1Plq9QcTVK96L8YFnTVGFFXQ-WLhKgbLCcUvjH4uzqZrMpPPmAYaULux2ENMQQSj0KwQD6NcOTPGAtqtrDNixhC0gs5foxh5IY1W6kRGH2qehiDhr0yBhpxCKSLkTQhhh4zxVOrEH5H56nzC0UNQGr-fKYRlPhPRPISSxzGmFDClRItZ4ZwzsyYpZOWLGK_QGEdmAYK04TCzhN2sfJZZQkNPk7lE4UhoAU7ToQbMzb-LBUBvi87Mti0uCUkqFpzlGON0slhcvR3MC3yi8XSZ-diz7tZuep3MDsPF3WRoVod-ulHhbvIXCwJHH7cJAAA&realm=poe2"
+  },
+  "headers": {
+    "access-control-expose-headers": "X-Rate-Limit-Policy, X-Rate-Limit-Rules, X-Rate-Limit-Account, X-Rate-Limit-Account-State, X-Rate-Limit-Ip, X-Rate-Limit-Ip-State",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "a4507aea9e689e12-IAH",
+    "connection": "keep-alive",
+    "content-encoding": "gzip",
+    "content-type": "application/json",
+    "date": "Sun, 04 Oct 2026 01:40:43 GMT",
+    "server": "cloudflare",
+    "strict-transport-security": "max-age=63115200; includeSubDomains; preload",
+    "transfer-encoding": "chunked",
+    "vary": "accept-encoding",
+    "x-frame-options": "SAMEORIGIN",
+    "x-rate-limit-account": "6:4:10",
+    "x-rate-limit-account-state": "1:4:0",
+    "x-rate-limit-ip": "12:4:60,16:12:60,100:300:300,1000:10800:1800",
+    "x-rate-limit-ip-state": "1:4:0,1:12:0,1:300:0,35:10800:0",
+    "x-rate-limit-policy": "trade-fetch-request-limit",
+    "x-rate-limit-rules": "Account,Ip"
+  }
+}

@@ -416,9 +416,11 @@ function M.add_item_text(params)
     local slot = tostring(params.slotName)
     if build.itemsTab.slots[slot] then
       build.itemsTab.slots[slot]:SetSelItemId(item.id)
-      build.itemsTab:PopulateSlots()
     end
   end
+  -- Re-populate every slot, as ItemsTab:AddDisplayItem does: the auto-equip path in AddItem selects a
+  -- slot without refreshing its gear jewel sockets' `inactive` flags (ItemSlotControl:Populate).
+  build.itemsTab:PopulateSlots()
   build.itemsTab:AddUndoState()
   build.buildFlag = true
   M.get_main_output()
@@ -465,8 +467,10 @@ end
 function M.get_items()
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   local itemsTab = build.itemsTab
-  -- Tree sockets get their `inactive` flag only here (normally from ItemsTab:Draw), so refresh it
-  -- from the active spec's allocation first (X11).
+  -- Refresh the hidden-slot flags first. Gear jewel sockets get `inactive` from ItemSlotControl:Populate
+  -- (PopulateSlots), which only some edit paths run; tree sockets get it only from UpdateSockets
+  -- (normally from ItemsTab:Draw), from the active spec's allocation (X11).
+  if type(itemsTab.PopulateSlots) == 'function' then itemsTab:PopulateSlots() end
   if type(itemsTab.UpdateSockets) == 'function' then itemsTab:UpdateSockets() end
   local result = { }
   -- Prefer orderedSlots for deterministic order

@@ -227,6 +227,50 @@ export async function handleLuaLoadBuild(
   });
 }
 
+/**
+ * Stats that are defensive even though their names contain an offense word: the damage an enemy deals
+ * to the character (`*EnemyDamage`), physical damage reduction and the max-hit-taken outputs.
+ */
+const DEFENSE_FIRST = [/EnemyDamage$/, /DamageReduction$/, /MaximumHitTaken$/, /EHP$/];
+const OFFENSE_PATTERNS = [/DPS/, /Damage/, /Speed/, /Crit/, /Hit/, /Accuracy/, /Cost$/];
+const DEFENSE_PATTERNS = [
+  /Life/, /Mana/, /EnergyShield/, /Ward/, /Armour/, /Evasion/, /Evade/, /Deflect/, /Block/,
+  /Resist/, /Regen/, /Leech/, /Recovery/, /Recharge/, /Dodge/, /Suppression/,
+];
+/** Defense keys listed first, in this order; the rest keep the engine's order. */
+const DEFENSE_HEAD = ['TotalEHP', 'Life', 'EnergyShield', 'Mana'];
+const OFFENSE_HEAD = ['CombinedDPS', 'TotalDPS', 'FullDPS', 'MinionTotalDPS', 'MinionCombinedDPS'];
+
+/**
+ * Splits `lua_get_stats`' default view into offense, defense and other. Each stat lands in exactly one
+ * group: the defensive outputs whose names contain an offense word (`FireEnemyDamage`,
+ * `PhysicalMaximumHitTaken`, `PhysicalDamageReduction`) go to defense, costs to offense.
+ */
+export function groupDefaultStats(entries: Array<[string, unknown]>): {
+  offense: Array<[string, unknown]>;
+  defense: Array<[string, unknown]>;
+  other: Array<[string, unknown]>;
+} {
+  const offense: Array<[string, unknown]> = [];
+  const defense: Array<[string, unknown]> = [];
+  const other: Array<[string, unknown]> = [];
+  for (const entry of entries) {
+    const key = entry[0];
+    if (DEFENSE_FIRST.some((re) => re.test(key))) defense.push(entry);
+    else if (OFFENSE_PATTERNS.some((re) => re.test(key))) offense.push(entry);
+    else if (DEFENSE_PATTERNS.some((re) => re.test(key))) defense.push(entry);
+    else other.push(entry);
+  }
+  const byHead = (head: string[]) => ([a]: [string, unknown], [b]: [string, unknown]) => {
+    const ia = head.indexOf(a);
+    const ib = head.indexOf(b);
+    return (ia < 0 ? head.length : ia) - (ib < 0 ? head.length : ib);
+  };
+  offense.sort(byHead(OFFENSE_HEAD));
+  defense.sort(byHead(DEFENSE_HEAD));
+  return { offense, defense, other };
+}
+
 export async function handleLuaGetStats(context: LuaHandlerContext, category?: string) {
   return wrapHandler('get stats', async () => {
     await context.ensureLuaClient();
@@ -276,50 +320,22 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
       const nonZero = (v: unknown) => v != null && v !== 0 && v !== '0';
       const entries = Object.entries(stats).filter(([, v]) => nonZero(v));
 
-      // Group by offense/defense if showing all
+      // Group by offense/defense if showing all. The default export is a bounded list (Lua
+      // DEFAULT_STAT_FIELDS, E7), so every non-zero stat is shown, each in exactly one section.
       if (!category || category === 'all') {
-        const offenseKeys = ['DPS', 'Damage', 'Speed', 'Crit', 'Hit', 'Accuracy', 'Cost'];
-        const defenseKeys = ['Life', 'Mana', 'Energy', 'Shield', 'Resist', 'Block', 'Dodge', 'Evasion', 'Armour', 'Ward', 'EHP', 'Maximum', 'Regen', 'Leech', 'Recovery'];
-
-        // Sort offense so DPS metrics appear first, then apply cap
-        const offenseAll = entries.filter(([key]) => offenseKeys.some(ok => key.includes(ok)));
-        offenseAll.sort(([keyA], [keyB]) => {
-          const isDpsA = keyA.includes('TotalDPS') || keyA.includes('CombinedDPS') || keyA.includes('MinionTotalDPS') ? -1 : 0;
-          const isDpsB = keyB.includes('TotalDPS') || keyB.includes('CombinedDPS') || keyB.includes('MinionTotalDPS') ? -1 : 0;
-          return isDpsA - isDpsB;
-        });
-        const offense = offenseAll.slice(0, 15);
-        const defenseAll = entries.filter(([key]) => defenseKeys.some(dk => key.includes(dk)));
-        const defense = defenseAll.slice(0, 15);
-        const other = entries.filter(([key]) => !offenseAll.some(([ok]) => ok === key) && !defenseAll.some(([dk]) => dk === key));
-
-        if (offense.length > 0) {
-          textLines.push('**Offense:**');
-          for (const [key, value] of offense) {
+        const groups = groupDefaultStats(entries);
+        const sections: Array<[string, Array<[string, unknown]>]> = [
+          ['**Offense:**', groups.offense],
+          ['**Defense:**', groups.defense],
+          ['**Other:**', groups.other],
+        ];
+        for (const [heading, group] of sections) {
+          if (group.length === 0) continue;
+          textLines.push(heading);
+          for (const [key, value] of group) {
             textLines.push(`${key}: ${value}`);
-          }
-          if (offenseAll.length > 15) {
-            textLines.push(`  ... use category='offense' for full list (+${offenseAll.length - 15} more)`);
           }
           textLines.push('');
-        }
-
-        if (defense.length > 0) {
-          textLines.push('**Defense:**');
-          for (const [key, value] of defense) {
-            textLines.push(`${key}: ${value}`);
-          }
-          if (defenseAll.length > 15) {
-            textLines.push(`  ... use category='defense' for full list (+${defenseAll.length - 15} more)`);
-          }
-          textLines.push('');
-        }
-
-        if (other.length > 0 && other.length < 10) {
-          textLines.push('**Other:**');
-          for (const [key, value] of other) {
-            textLines.push(`${key}: ${value}`);
-          }
         }
       } else {
         // Just show the requested category, skip zeros

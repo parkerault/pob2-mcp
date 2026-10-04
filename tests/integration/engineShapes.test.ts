@@ -31,6 +31,9 @@ const WIDENED = [
   'Str', 'Dex', 'Int',
 ];
 
+/** A rare body armour with two jewel sockets (`Sockets: J J`, Item.lua jewelSocketCount). */
+const SOCKETED_ARMOUR = ['Rarity: Rare', 'Socket Test', 'Iron Cuirass', 'Sockets: J J'].join('\n');
+
 /** Gear slots that carry jewel sockets (`<parent> Jewel Socket N`, ItemsTab.lua). */
 const SOCKET_PARENTS = [
   'Weapon 1', 'Weapon 1 Swap', 'Weapon 2', 'Weapon 2 Swap', 'Helmet', 'Gloves', 'Body Armour', 'Boots',
@@ -188,6 +191,86 @@ engineDescribe('engine data shapes on the golden build (WU-09)', () => {
       expect(hidden.some((e) => e.slot === 'Weapon 1 Swap' && e.id > 0)).toBe(true);
       expect(equipped.text).not.toContain('89');
       expect(equipped.text).toContain('**Body Armour**');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E25/AC-E26: lua_get_stats default view shows every non-zero default stat once, defensive outputs (EnemyDamage, MaximumHitTaken, DamageReduction, TotalEHP) under Defense only, nothing truncated',
+    async () => {
+      const reply = await read((c) => c.request('get_stats'));
+      const stats = reply.stats as Record<string, unknown>;
+      const nonZero = Object.entries(stats)
+        .filter(([k, v]) => k !== '_meta' && v != null && v !== 0 && v !== '0')
+        .map(([k]) => k);
+      expect(nonZero).toContain('TotalEHP');
+
+      const view = await f.call('lua_get_stats');
+      expect(view.isError).toBe(false);
+      expect(view.text).not.toContain("use category=");
+      // Parse "**Heading:**" sections into their stat keys.
+      const sections: Record<string, string[]> = {};
+      let current = '';
+      for (const line of view.text.split('\n')) {
+        const heading = /^\*\*(\w+):\*\*$/.exec(line);
+        if (heading) { current = heading[1]; sections[current] = []; continue; }
+        const stat = /^(\w+): /.exec(line);
+        if (stat && current) sections[current].push(stat[1]);
+      }
+      const listed = Object.values(sections).flat();
+      // Every non-zero default stat appears exactly once.
+      expect([...listed].sort()).toEqual([...nonZero].sort());
+
+      const defensive = (k: string) => /EnemyDamage$|MaximumHitTaken$|DamageReduction$|EHP$/.test(k);
+      expect((sections.Offense ?? []).filter(defensive)).toEqual([]);
+      expect(sections.Defense).toContain('TotalEHP');
+      for (const k of nonZero.filter(defensive)) expect(sections.Defense).toContain(k);
+      expect(sections.Offense).toEqual(expect.arrayContaining(nonZero.filter((k) => /DPS$/.test(k))));
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E27: a jewel-socketed body armour auto-equipped by add_item (no slot name) shows its sockets as active and shown in get_items, the rest hidden',
+    async () => {
+      expect((await f.call('lua_new_build')).isError).toBe(false);
+      const added = await f.call('add_item', { item_text: SOCKETED_ARMOUR });
+      expect(added.isError).toBe(false);
+      expect(added.text).toContain('Body Armour');
+
+      const items = (await read((c) => c.request('get_items'))).items as ItemSlot[];
+      const sockets = items.filter((e) => e.slot.startsWith('Body Armour Jewel Socket '));
+      expect(sockets.length).toBeGreaterThanOrEqual(3);
+      for (const s of sockets) {
+        const n = Number(/(\d+)$/.exec(s.slot)![1]);
+        expect({ slot: s.slot, inactive: s.inactive, shown: s.shown }).toEqual(
+          { slot: s.slot, inactive: n > 2, shown: n <= 2 },
+        );
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E27: get_items refreshes gear socket flags itself, even after an engine-side auto-equip that skipped PopulateSlots',
+    async () => {
+      expect((await f.call('lua_new_build')).isError).toBe(false);
+      // ItemsTab:AddItem auto-equips without ItemSlotControl:Populate, so the socket flags are stale.
+      const stale = await luaQuery<{ slot: string; inactive: boolean }>(`
+local item = new('Item', ${JSON.stringify(SOCKETED_ARMOUR)})
+build.itemsTab:AddItem(item, false)
+local slot = build.itemsTab.slots['Body Armour']
+return { slot = tostring(slot.selItemId == item.id), inactive = slot.jewelSocketList[1].inactive == true }`);
+      expect(stale).toEqual({ slot: 'true', inactive: true });
+
+      const items = (await read((c) => c.request('get_items'))).items as ItemSlot[];
+      const flags = (n: number) => {
+        const e = items.find((x) => x.slot === `Body Armour Jewel Socket ${n}`)!;
+        return { inactive: e.inactive, shown: e.shown };
+      };
+      expect(flags(1)).toEqual({ inactive: false, shown: true });
+      expect(flags(2)).toEqual({ inactive: false, shown: true });
+      expect(flags(3)).toEqual({ inactive: true, shown: false });
     },
     ENGINE_TIMEOUT,
   );

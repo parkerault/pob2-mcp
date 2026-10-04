@@ -85,12 +85,14 @@ async function probeEngine(): Promise<string> {
         if (stderrTail.length > STDERR_LINES_SHOWN) stderrTail.shift();
       }
     };
+    const { spawn } = require('child_process') as typeof import('child_process');
+    const { resolvePobApiDir } = require('../../src/engine/pobPath') as typeof import('../../src/engine/pobPath');
     const client = new PoBLuaApiClient({
-      cwd: pobSrc,
-      cmd,
-      args: env.POB_ARGS ? [env.POB_ARGS] : undefined,
-      env,
-      timeoutMs: 60_000,
+      env: { ...env, POB_TIMEOUT_MS: '60000' },
+      spawn,
+      pobSrc,
+      pobApiDir: resolvePobApiDir(),
+      pin: readPin(REPO),
     });
     try {
       await client.start();
@@ -98,7 +100,7 @@ async function probeEngine(): Promise<string> {
       return 'ok';
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (/ENOENT|executable not found/i.test(msg)) return 'luajit not found (run via `mise run test`)';
+      if (/ENOENT|luajit not found/i.test(msg)) return 'luajit not found (run via `mise run test`)';
       const tail = stderrTail.length ? stderrTail.join('\n') : msg;
       return `bridge start failed: ${tail}`;
     } finally {

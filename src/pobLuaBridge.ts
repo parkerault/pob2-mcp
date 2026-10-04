@@ -1,364 +1,691 @@
-import { spawn as nodeSpawn, ChildProcessWithoutNullStreams } from "child_process";
-import { EventEmitter } from "events";
+/**
+ * Bridge client (C-4): the TypeScript side of the engine wire protocol v2 (C-2).
+ *
+ * - Only `start()` spawns the engine (D-59). It is single-flight while starting, and a rejected start
+ *   clears the slot so a later `start()` spawns again. It runs the pin check (C-6), waits ≤ 15 s for the
+ *   banner, checks the banner's `apiVersion` and PoB version, then sends `ping` (D-29: no XML is loaded).
+ * - `request()` is id-matched. Its timer starts when the line is written to stdin; a timeout SIGKILLs
+ *   the engine and fails every other pending request. A request on a dead client rejects with
+ *   `EngineExitedError` and never spawns.
+ * - Every `ok:true` reply is validated against `replySchemas[action]` (C-5); a contract failure rejects
+ *   with `EngineContractError` and keeps the engine alive. `__test_*` replies pass through.
+ * - The child env is `opts.env` minus the cookie variables (D-28), plus LUA_PATH/LUA_CPATH.
+ */
+import type { ChildProcessWithoutNullStreams, spawn as nodeSpawn } from "child_process";
 import path from "path";
 import os from "os";
-import { resolvePobApiDir, resolvePobSrc } from "./engine/pobPath.js";
+import type { ZodIssue } from "zod";
+import { checkPin, PIN_HINT, type PobPin } from "./engine/pinCheck.js";
+import {
+  replySchemas,
+  type ActionName,
+  type ActionParams,
+  type ActionReply,
+  type TestActionName,
+  type TestReply,
+} from "./engine/schemas.js";
 
-/**
- * The vendored Lua bridge (`pob-api/`) is located from the package root, never from the
- * process cwd: MCP hosts launch the server from arbitrary directories (C-6, `resolvePobApiDir`).
- */
-const POB_API_DIR = resolvePobApiDir();
-const POB_API_BOOTSTRAP = path.join(POB_API_DIR, "bootstrap.lua");
-
-/** Lua bridge request envelope */
-type LuaRequest = { action: string; params?: Record<string, unknown> };
-/** Lua bridge response envelope — always an object with at minimum `ok: boolean` */
-type LuaResponse = { ok: boolean; error?: string; [key: string]: unknown };
+/** The pin the client checks the checkout and the banner against (`pob-pin.json`, C-6). */
+export type Pin = PobPin;
 
 export interface PoBLuaApiOptions {
-  cwd?: string;
-  cmd?: string; // default: 'luajit'
-  args?: string[]; // default: [<pob-api>/bootstrap.lua]
   /**
-   * The child's base environment (the server's deps.env, C-7). The cookie variables are always
-   * removed (D-28); LUA_PATH/LUA_CPATH are set on top. Default: empty.
+   * The server's env (deps.env, C-7): POB_CMD, POB_ARGS, POB_TIMEOUT_MS, POB_ALLOW_UNPINNED, POB_DEBUG,
+   * and the child's base environment (minus the cookie variables, D-28).
    */
-  env?: Readonly<Record<string, string | undefined>>;
-  timeoutMs?: number; // per-request timeout
-  /** The process factory (deps.spawn, C-7). Default: child_process.spawn. */
-  spawn?: typeof nodeSpawn;
+  env: Readonly<Record<string, string | undefined>>;
+  /** The process factory (deps.spawn, C-7). */
+  spawn: typeof nodeSpawn;
+  /** The PoB checkout's `src/` directory (`resolvePobSrc`, C-6): the engine's cwd. */
+  pobSrc: string;
+  /** The vendored bridge directory (`resolvePobApiDir`, C-6). */
+  pobApiDir: string;
+  pin: Pin;
+}
+
+export interface RequestOptions {
+  /** Overrides the default timeout (POB_TIMEOUT_MS, or 60 s for `trade_generate_query`, D-47). */
+  timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 /** Cookie variables never passed to the engine child (D-28). */
 const COOKIE_VARS = ["POESESSID", "POE_SESSION_ID"];
-/** How long stop() waits for the engine to exit after `quit` before SIGKILL (C-7, D-50). */
+/** D-50 tuning constants. */
+const BANNER_TIMEOUT_MS = 15_000;
+const STDERR_RING_LINES = 50;
+const STDERR_SHOWN_LINES = 20;
 const QUIT_GRACE_MS = 2000;
+/** D-47 request timeouts. */
+const DEFAULT_TIMEOUT_MS = 30_000;
+const LONG_ACTION_TIMEOUTS: Readonly<Record<string, number>> = { trade_generate_query: 60_000 };
+/** After `exit`, how long to wait for `close` (stdio drained) before failing pending requests anyway. */
+const EXIT_SETTLE_MS = 250;
+
+// ---------------------------------------------------------------------------------------------------
+// Errors
+
+export class EngineError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = new.target.name;
+  }
+}
+
+/** `start()` failed: spawn error, exit before the banner, no banner, bad banner. */
+export class EngineStartError extends EngineError {}
+
+/** The checkout or the engine's banner doesn't match the pin (C-6). */
+export class EnginePinError extends EngineError {
+  constructor(
+    readonly reason: string,
+    readonly hint: string,
+  ) {
+    super(`The PoB checkout does not match the pin (pob-pin.json): ${reason}. To fix, ${hint}.`);
+  }
+}
+
+/** A request outlived its timeout; the engine was killed (C-4). */
+export class EngineTimeoutError extends EngineError {
+  constructor(
+    readonly action: string,
+    readonly ms: number,
+  ) {
+    super(`engine request "${action}" timed out after ${ms} ms; the engine was stopped`);
+  }
+}
+
+/** The engine is not running: it exited, was killed, or was never started (C-4, D-59). */
+export class EngineExitedError extends EngineError {
+  constructor(
+    readonly code: number | null,
+    readonly signal: string | null,
+    readonly lastStderr: readonly string[],
+    detail?: string,
+  ) {
+    const head = detail ?? `engine exited (code ${code}, signal ${signal})`;
+    const tail = lastStderr.length > 0 ? `: ${lastStderr.slice(-STDERR_SHOWN_LINES).join("\n")}` : "";
+    super(`${head}${tail}`);
+  }
+}
+
+/** An `ok:true` reply failed its C-5 schema. The engine stays alive. */
+export class EngineContractError extends EngineError {
+  constructor(
+    readonly action: string,
+    readonly issues: readonly ZodIssue[],
+  ) {
+    const described = issues
+      .map((i) => `${i.path.length > 0 ? i.path.join(".") : "(root)"}: ${i.message}`)
+      .join("; ");
+    super(`engine reply for "${action}" does not match its contract (C-5): ${described}`);
+  }
+}
+
+/** The engine replied `ok:false` (C-2). The message is the engine's error text. */
+export class EngineActionError extends EngineError {
+  constructor(
+    readonly action: string,
+    readonly code: string,
+    readonly error: string,
+  ) {
+    super(error);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Per-process state
+
+interface Pending {
+  action: string;
+  timeoutMs: number;
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  cleanup: () => void;
+}
+
+type JsonObject = Record<string, unknown>;
+
+/** One spawned engine process. A new one per `start()`, so a dead process's events can't leak. */
+interface Conn {
+  proc: ChildProcessWithoutNullStreams;
+  pid: number | null;
+  nextId: number;
+  pending: Map<number, Pending>;
+  stdoutBuf: string;
+  stderrPartial: string;
+  stderrRing: string[];
+  /** Set once start() has seen the banner and the `ping` reply. */
+  ready: boolean;
+  /** Exited, killed, errored or stopped: no request may be written. */
+  dead: boolean;
+  /** Gone for good: every pending request has been failed and `exited` resolved. */
+  gone: boolean;
+  exitInfo: { code: number | null; signal: string | null } | null;
+  spawnError: NodeJS.ErrnoException | null;
+  quitId: number | null;
+  exited: Promise<void>;
+  resolveExited: () => void;
+  onBanner: ((banner: JsonObject) => void) | null;
+  onGone: (() => void) | null;
+}
+
+function isTestAction(action: string): boolean {
+  return action.startsWith("__test_");
+}
+
+function abortError(signal: AbortSignal): Error {
+  if (signal.reason instanceof Error) return signal.reason;
+  const error = new Error("engine request aborted");
+  error.name = "AbortError";
+  return error;
+}
 
 export class PoBLuaApiClient {
-  private proc: ChildProcessWithoutNullStreams | null = null;
-  private options: PoBLuaApiOptions;
-  private buffer = "";
-  private ready = false;
-  private isSending = false;
-  private killed = false;
-  private exited: Promise<void> | null = null;
-  private hasExited = false;
-  private dataEmitter = new EventEmitter();
+  private readonly env: Readonly<Record<string, string | undefined>>;
+  private readonly spawnFn: typeof nodeSpawn;
+  private readonly pobSrc: string;
+  private readonly pobApiDir: string;
+  private readonly pin: Pin;
 
-  /** Returns true if the process is running and ready to accept requests. */
+  private conn: Conn | null = null;
+  private starting: Promise<void> | null = null;
+  /** Bumped by stop(), so a start that is still checking the pin doesn't spawn afterwards. */
+  private generation = 0;
+
+  constructor(opts: PoBLuaApiOptions) {
+    this.env = opts.env;
+    this.spawnFn = opts.spawn;
+    this.pobSrc = opts.pobSrc;
+    this.pobApiDir = opts.pobApiDir;
+    this.pin = opts.pin;
+  }
+
+  /** True while an engine is running and ready for requests. */
   isAlive(): boolean {
-    return !this.killed && this.ready && !!this.proc;
+    return this.conn !== null && this.conn.ready && !this.conn.dead;
   }
 
-  constructor(options: PoBLuaApiOptions = {}) {
-    // Prevent unhandled 'error' events (emitted on process exit) from crashing Node.js
-    this.dataEmitter.on("error", () => {});
-    // cwd must be a PathOfBuilding-PoE2 `src/` directory. It no longer needs to
-    // be a patched fork: the vendored `pob-api/bootstrap.lua` drives a vanilla
-    // checkout. The default is the pinned checkout (resolvePobSrc, C-6).
-    const pobSrc = options.cwd || resolvePobSrc(options.env ?? {});
-    this.options = {
-      cwd: pobSrc,
-      cmd: options.cmd || "luajit",
-      // Entry is our vendored bootstrap (absolute path), NOT PoB's own wrapper.
-      args: options.args || [POB_API_BOOTSTRAP],
-      env: options.env || {},
-      timeoutMs: options.timeoutMs ?? 30000, // Increased from 10s to 30s
-      spawn: options.spawn ?? nodeSpawn,
+  /** The running engine's process id, or null when none runs (a test hook for the session, C-3). */
+  pid(): number | null {
+    return this.conn !== null && !this.conn.dead ? this.conn.pid : null;
+  }
+
+  // -------------------------------------------------------------------------------------------------
+  // start
+
+  /** Spawn and check the engine. Single-flight while starting; a rejected start clears the slot. */
+  start(): Promise<void> {
+    if (this.starting) return this.starting;
+    if (this.isAlive()) return Promise.resolve();
+    const attempt = this.doStart();
+    this.starting = attempt;
+    const clear = () => {
+      if (this.starting === attempt) this.starting = null;
     };
+    attempt.then(clear, clear);
+    return attempt;
   }
 
-  async start(): Promise<void> {
-    if (this.proc) return;
-    // A client can be started again after stop(): reset the per-process state.
-    this.killed = false;
-    this.hasExited = false;
-    this.exited = null;
+  private async doStart(): Promise<void> {
+    const generation = this.generation;
+    const allowUnpinned = this.env.POB_ALLOW_UNPINNED === "true";
 
-    // Set up Lua paths for runtime modules
-    const pobForkPath = this.options.cwd || '';
+    // 1. Refuse an unpinned checkout before spawning anything (C-6).
+    const pinResult = await checkPin({ pobSrc: this.pobSrc, pin: this.pin, allowUnpinned });
+    if (!pinResult.ok) throw new EnginePinError(pinResult.reason, pinResult.hint);
+    for (const warning of pinResult.warnings) {
+      console.error(`[PoB API] POB_ALLOW_UNPINNED=true, continuing despite: ${warning}`);
+    }
+    if (generation !== this.generation) throw new EngineStartError("engine start cancelled by stop()");
 
-    // Cross-platform path handling: remove 'src' from the end if present
-    const baseDir = pobForkPath.endsWith(path.sep + 'src') || pobForkPath.endsWith('/src')
-      ? pobForkPath.slice(0, -4)
-      : pobForkPath;
-    const runtimeDir = path.join(baseDir, 'runtime');
-    const runtimeLuaPath = path.join(runtimeDir, 'lua');
-    const luaRocksPath = path.join(os.homedir(), '.luarocks', 'lib', 'lua', '5.1');
+    // A previous process that is still around (it can't take requests any more) goes first.
+    if (this.conn && !this.conn.gone) this.kill(this.conn, "the engine was replaced by a new start()");
 
-    // Platform-specific Lua paths
-    const isWindows = process.platform === 'win32';
-    const luaExt = isWindows ? 'dll' : 'so';
-
-    // Lua's package.path/cpath entries are ';'-separated on every OS (this is not the
-    // OS PATH separator); only the directory separator inside an entry is platform-specific.
-    const pathSep = ';';
-
-    // The vendored bridge lives outside the PoB tree; add it to LUA_PATH so
-    // `require('API.Handlers')` etc. resolve even if bootstrap.lua's own
-    // package.path setup is bypassed. bootstrap.lua also sets these at runtime.
-    const apiLuaPath = `${POB_API_DIR}${path.sep}?.lua${pathSep}${POB_API_DIR}${path.sep}?${path.sep}init.lua`;
-
-    const baseEnv: Record<string, string | undefined> = { ...this.options.env };
-    for (const k of COOKIE_VARS) delete baseEnv[k];
-    const env = {
-      ...baseEnv,
-      // NOTE: We deliberately do NOT set POB_API_STDIO. bootstrap.lua always
-      // starts the server itself, and omitting this flag means that even if
-      // the PoB checkout is a legacy patched fork, that fork's
-      // HeadlessWrapper will NOT auto-start its own (divergent) server —
-      // control returns to our bootstrap, which uses the vendored pob-api files.
-      LUA_PATH: `${apiLuaPath}${pathSep}${runtimeLuaPath}${path.sep}?.lua${pathSep}${runtimeLuaPath}${path.sep}?${path.sep}init.lua${pathSep}${pathSep}`,
-      LUA_CPATH: `${runtimeDir}${path.sep}?.${luaExt}${pathSep}${luaRocksPath}${path.sep}?.${luaExt}${pathSep}${pathSep}`,
-    } as NodeJS.ProcessEnv;
-
+    const conn = this.spawnConn();
+    this.conn = conn;
     try {
-      this.proc = this.options.spawn!(this.options.cmd!, this.options.args!, {
-        cwd: this.options.cwd,
-        env,
+      // 2. The banner (≤ 15 s), its protocol version and its PoB version.
+      const banner = await this.waitForBanner(conn);
+      this.checkBanner(banner, allowUnpinned);
+      // 3. Readiness: one ping (D-29). No XML is loaded.
+      await this.send(conn, "ping", {}, {});
+      if (conn.dead) throw new EngineExitedError(null, null, [], "the engine stopped during startup");
+      conn.ready = true;
+    } catch (error) {
+      if (error instanceof EngineExitedError && conn.exitInfo !== null) {
+        // It died on its own during the ping: report it like an exit before the banner.
+        await Promise.race([conn.exited, new Promise((resolve) => setTimeout(resolve, EXIT_SETTLE_MS))]);
+        throw this.startExitError(conn);
+      }
+      // Never leave a half-started engine behind.
+      if (!conn.gone) this.kill(conn, "engine start failed");
+      throw error;
+    }
+  }
+
+  private childEnv(): Record<string, string> {
+    const pobSrc = this.pobSrc;
+    // The checkout root holds runtime/ (Lua modules and native libraries) next to src/.
+    const baseDir = pobSrc.endsWith(path.sep + "src") || pobSrc.endsWith("/src") ? pobSrc.slice(0, -4) : pobSrc;
+    const runtimeDir = path.join(baseDir, "runtime");
+    const runtimeLuaPath = path.join(runtimeDir, "lua");
+    const luaRocksPath = path.join(os.homedir(), ".luarocks", "lib", "lua", "5.1");
+    const luaExt = process.platform === "win32" ? "dll" : "so";
+    // Lua's package.path/cpath entries are ';'-separated on every OS (not the OS PATH separator); a
+    // trailing ';;' appends Lua's default search path.
+    const sep = ";";
+    const api = this.pobApiDir;
+
+    const env: Record<string, string> = {};
+    for (const [key, value] of Object.entries(this.env)) {
+      if (value !== undefined && !COOKIE_VARS.includes(key)) env[key] = value;
+    }
+    // bootstrap.lua starts the server itself; POB_API_STDIO is deliberately not set.
+    env.LUA_PATH =
+      `${api}${path.sep}?.lua${sep}${api}${path.sep}?${path.sep}init.lua${sep}` +
+      `${runtimeLuaPath}${path.sep}?.lua${sep}${runtimeLuaPath}${path.sep}?${path.sep}init.lua${sep}${sep}`;
+    env.LUA_CPATH = `${runtimeDir}${path.sep}?.${luaExt}${sep}${luaRocksPath}${path.sep}?.${luaExt}${sep}${sep}`;
+    return env;
+  }
+
+  private command(): { cmd: string; args: string[] } {
+    const cmd = this.env.POB_CMD || "luajit";
+    const args = this.env.POB_ARGS ? [this.env.POB_ARGS] : [path.join(this.pobApiDir, "bootstrap.lua")];
+    return { cmd, args };
+  }
+
+  private spawnConn(): Conn {
+    const { cmd, args } = this.command();
+    let proc: ChildProcessWithoutNullStreams;
+    try {
+      proc = this.spawnFn(cmd, args, {
+        cwd: this.pobSrc,
+        env: this.childEnv(),
         stdio: ["pipe", "pipe", "pipe"],
-      });
-    } catch (error: any) {
-      throw new Error(`Failed to spawn LuaJIT process: ${error.message}`);
+      }) as ChildProcessWithoutNullStreams;
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err?.code === "ENOENT") throw new EngineStartError(this.notFoundMessage(cmd));
+      throw new EngineStartError(`failed to start the engine (${cmd}): ${err?.message ?? String(error)}`);
     }
 
-    this.proc.stdout.setEncoding("utf8");
-    this.proc.stderr.setEncoding("utf8");
+    let resolveExited!: () => void;
+    const exited = new Promise<void>((resolve) => {
+      resolveExited = resolve;
+    });
+    const conn: Conn = {
+      proc,
+      pid: typeof proc.pid === "number" ? proc.pid : null,
+      nextId: 1,
+      pending: new Map(),
+      stdoutBuf: "",
+      stderrPartial: "",
+      stderrRing: [],
+      ready: false,
+      dead: false,
+      gone: false,
+      exitInfo: null,
+      spawnError: null,
+      quitId: null,
+      exited,
+      resolveExited,
+      onBanner: null,
+      onGone: null,
+    };
+
+    proc.stdout.setEncoding("utf8");
+    proc.stderr.setEncoding("utf8");
     // A write to a dead engine's stdin must not crash the server.
-    this.proc.stdin.on?.("error", () => {});
+    proc.stdin.on("error", () => {});
+    proc.stdout.on("data", (chunk: string) => this.onStdout(conn, chunk));
+    proc.stderr.on("data", (chunk: string) => this.onStderr(conn, chunk));
 
-    // Track spawn errors
-    let spawnError: Error | null = null;
-    this.proc.on("error", (err: Error) => {
-      spawnError = err;
-      this.killed = true;
-      this.dataEmitter.emit("error", err);
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    proc.on("error", (error: NodeJS.ErrnoException) => {
+      if (conn.pid === null || error?.code === "ENOENT") {
+        // The process never started.
+        conn.spawnError = error;
+        this.markGone(conn);
+        return;
+      }
+      console.error("[PoB API] engine process error:", error?.message ?? error);
     });
-
-    this.proc.stdout.on("data", (chunk: string) => this.onStdout(chunk));
-    this.proc.stderr.on("data", (chunk: string) => {
-      // Keep stderr visible for debugging but don't reject requests by default
-      console.error("[PoB API stderr]", chunk.trim());
+    proc.on("exit", (code: number | null, signal: NodeJS.Signals | null) => {
+      conn.exitInfo ??= { code, signal };
+      conn.dead = true;
+      // Wait for `close` so the stderr tail is complete, but not forever.
+      settleTimer ??= setTimeout(() => this.markGone(conn), EXIT_SETTLE_MS);
     });
+    proc.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
+      conn.exitInfo ??= { code, signal };
+      if (settleTimer) clearTimeout(settleTimer);
+      this.markGone(conn);
+    });
+    return conn;
+  }
 
-    const proc = this.proc;
-    this.exited = new Promise<void>((resolve) => {
-      proc.once("exit", () => {
-        this.hasExited = true;
-        resolve();
+  private notFoundMessage(cmd: string): string {
+    const which = cmd === "luajit" ? "" : ` (POB_CMD=${cmd})`;
+    return (
+      `luajit not found on PATH${which}. Launch the server via \`mise exec\` (see README), ` +
+      `or run tests with \`mise run test\`.`
+    );
+  }
+
+  private startExitError(conn: Conn): EngineStartError {
+    const { cmd } = this.command();
+    if (conn.spawnError) {
+      if (conn.spawnError.code === "ENOENT") return new EngineStartError(this.notFoundMessage(cmd));
+      return new EngineStartError(`failed to start the engine (${cmd}): ${conn.spawnError.message}`);
+    }
+    const code = conn.exitInfo?.code ?? null;
+    const signal = conn.exitInfo?.signal ?? null;
+    const tail = conn.stderrRing.slice(-STDERR_SHOWN_LINES).join("\n");
+    return new EngineStartError(`engine exited during startup (code ${code}, signal ${signal}): ${tail}`);
+  }
+
+  private waitForBanner(conn: Conn): Promise<JsonObject> {
+    return new Promise<JsonObject>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        done();
+        const tail = conn.stderrRing.slice(-STDERR_SHOWN_LINES).join("\n");
+        reject(
+          new EngineStartError(
+            `the engine printed no ready banner within ${BANNER_TIMEOUT_MS / 1000} s${tail ? `: ${tail}` : ""}`,
+          ),
+        );
+      }, BANNER_TIMEOUT_MS);
+      const done = () => {
+        clearTimeout(timer);
+        conn.onBanner = null;
+        conn.onGone = null;
+      };
+      conn.onBanner = (banner) => {
+        done();
+        resolve(banner);
+      };
+      conn.onGone = () => {
+        done();
+        reject(this.startExitError(conn));
+      };
+      if (conn.gone) conn.onGone();
+    });
+  }
+
+  private checkBanner(banner: JsonObject, allowUnpinned: boolean): void {
+    const version = (banner.version ?? {}) as JsonObject;
+    const apiVersion = typeof version.apiVersion === "string" ? version.apiVersion : String(version.apiVersion ?? "");
+    if (apiVersion.split(".")[0] !== "2") {
+      throw new EngineStartError(
+        `bridge protocol mismatch: the engine bridge (pob-api/) speaks apiVersion ${apiVersion || "(none)"}, ` +
+          `this server needs 2.x. Rebuild the server and its pob-api/ from the same checkout (\`mise run build\`).`,
+      );
+    }
+    const number = version.number;
+    if (number !== this.pin.version) {
+      const reason = `the engine reports PoB version ${String(number)}, but the pinned version is ${this.pin.version}`;
+      if (!allowUnpinned) throw new EnginePinError(reason, PIN_HINT);
+      console.error(`[PoB API] POB_ALLOW_UNPINNED=true, continuing despite: ${reason}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------
+  // I/O
+
+  private onStdout(conn: Conn, chunk: string): void {
+    if (this.env.POB_DEBUG === "true") console.error("[PoB API stdout]", chunk.trim());
+    conn.stdoutBuf += chunk;
+    let idx: number;
+    while ((idx = conn.stdoutBuf.indexOf("\n")) >= 0) {
+      const line = conn.stdoutBuf.slice(0, idx);
+      conn.stdoutBuf = conn.stdoutBuf.slice(idx + 1);
+      this.onLine(conn, line);
+    }
+  }
+
+  private onStderr(conn: Conn, chunk: string): void {
+    const text = conn.stderrPartial + chunk;
+    const lines = text.split("\n");
+    conn.stderrPartial = lines.pop() ?? "";
+    for (const line of lines) this.pushStderr(conn, line);
+  }
+
+  private pushStderr(conn: Conn, rawLine: string): void {
+    const line = rawLine.replace(/\r$/, "");
+    if (line.trim() === "") return;
+    conn.stderrRing.push(line);
+    if (conn.stderrRing.length > STDERR_RING_LINES) conn.stderrRing.shift();
+    console.error("[PoB API stderr]", line);
+  }
+
+  private onLine(conn: Conn, line: string): void {
+    const text = line.trim();
+    if (!text.startsWith("{")) return; // non-JSON lines are ignored
+    let msg: unknown;
+    try {
+      msg = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (msg === null || typeof msg !== "object" || Array.isArray(msg)) return;
+    const reply = msg as JsonObject;
+
+    if (typeof reply.id !== "number") {
+      if (conn.onBanner && reply.ready === true) {
+        conn.onBanner(reply);
+        return;
+      }
+      console.error(`[PoB API] ignoring an engine line without an id: ${text.slice(0, 300)}`);
+      return;
+    }
+    if (reply.id === conn.quitId) return;
+    const pending = conn.pending.get(reply.id);
+    if (!pending) {
+      console.error(`[PoB API] dropping a reply with unknown id ${reply.id}`);
+      return;
+    }
+    conn.pending.delete(reply.id);
+    pending.cleanup();
+
+    if (reply.ok !== true) {
+      const code = typeof reply.code === "string" ? reply.code : "FAILED";
+      const error = typeof reply.error === "string" ? reply.error : `${pending.action} failed`;
+      pending.reject(new EngineActionError(pending.action, code, error));
+      return;
+    }
+    const schema = isTestAction(pending.action) ? undefined : replySchemas[pending.action as ActionName];
+    if (!schema) {
+      pending.resolve(reply);
+      return;
+    }
+    const parsed = schema.safeParse(reply);
+    if (parsed.success) pending.resolve(parsed.data);
+    else pending.reject(new EngineContractError(pending.action, parsed.error.issues));
+  }
+
+  /** Write one request on `conn` and wait for its reply. */
+  private send(conn: Conn, action: string, params: Record<string, unknown> | undefined, opts: RequestOptions): Promise<unknown> {
+    if (conn.dead) return Promise.reject(this.deadError(conn));
+    if (opts.signal?.aborted) return Promise.reject(abortError(opts.signal));
+    const timeoutMs = opts.timeoutMs ?? this.defaultTimeout(action);
+    const id = conn.nextId++;
+    return new Promise<unknown>((resolve, reject) => {
+      try {
+        conn.proc.stdin.write(JSON.stringify({ id, action, params: params ?? {} }) + "\n");
+      } catch {
+        reject(this.deadError(conn));
+        return;
+      }
+      // The timer runs from the write, not per line read (C-4).
+      const timer = setTimeout(() => this.onTimeout(conn, id), timeoutMs);
+      const signal = opts.signal;
+      const onAbort = () => {
+        const entry = conn.pending.get(id);
+        if (!entry) return;
+        conn.pending.delete(id);
+        entry.cleanup();
+        entry.reject(abortError(signal!));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      conn.pending.set(id, {
+        action,
+        timeoutMs,
+        resolve,
+        reject,
+        cleanup: () => {
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", onAbort);
+        },
       });
     });
-    this.proc.on("exit", (code, signal) => {
-      this.killed = true;
-      this.dataEmitter.emit("error", new Error(`PoB API exited: code=${code} signal=${signal}`));
-    });
-
-    // Wait for ready banner (skip non-JSON lines like log messages)
-    let ready: string = "";
-    let attempts = 0;
-    const maxAttempts = 50; // 50 lines max to find JSON banner
-
-    while (attempts < maxAttempts) {
-      // Check if process errored during spawn
-      if (spawnError !== null) {
-        const cmd = this.options.cmd;
-        const err: Error = spawnError;
-        const errMsg = err.message || String(err);
-        if (errMsg.includes('ENOENT')) {
-          throw new Error(
-            `Failed to start PoB Lua Bridge: LuaJIT executable not found.\n\n` +
-            `The command "${cmd}" does not exist or is not in PATH.\n\n` +
-            `Please:\n` +
-            `1. Install LuaJIT (https://luajit.org/download.html)\n` +
-            `2. Update your Claude Desktop config with the correct POB_CMD path\n` +
-            `3. Or add LuaJIT to your system PATH and set POB_CMD=luajit\n\n` +
-            `Current POB_CMD: ${cmd}`
-          );
-        }
-        throw new Error(`Failed to spawn LuaJIT process: ${errMsg}`);
-      }
-
-      // Check if process exited
-      if (this.killed) {
-        throw new Error('PoB API process exited before becoming ready');
-      }
-
-      ready = await this.readLineWithTimeout(this.options.timeoutMs);
-      attempts++;
-
-      // Skip empty lines or lines that don't start with '{'
-      if (!ready.trim() || !ready.trim().startsWith('{')) {
-        continue;
-      }
-
-      // Try to parse as JSON
-      try {
-        const msg = JSON.parse(ready);
-        if (msg && msg.ready === true) {
-          this.ready = true;
-          return; // Successfully initialized
-        }
-      } catch (e) {
-        // Not valid JSON, keep looking
-        continue;
-      }
-    }
-
-    throw new Error(`Failed to find valid ready banner after ${maxAttempts} lines`);
   }
 
-  private onStdout(chunk: string) {
-    if (this.options.env?.POB_DEBUG === "true") {
-      console.error("[PoB API stdout]", chunk.trim());
-    }
-    this.buffer += chunk;
-    this.dataEmitter.emit("data");
+  private defaultTimeout(action: string): number {
+    const special = LONG_ACTION_TIMEOUTS[action];
+    if (special !== undefined) return special;
+    const configured = Number.parseInt(this.env.POB_TIMEOUT_MS ?? "", 10);
+    return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_TIMEOUT_MS;
   }
 
-  private readLineWithTimeout(timeoutMs?: number): Promise<string> {
-    const ms = timeoutMs ?? this.options.timeoutMs!;
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error("Timed out waiting for response"));
-      }, ms);
-
-      const tryRead = (): boolean => {
-        const idx = this.buffer.indexOf("\n");
-        if (idx >= 0) {
-          const line = this.buffer.slice(0, idx);
-          this.buffer = this.buffer.slice(idx + 1);
-          cleanup();
-          resolve(line);
-          return true;
-        }
-        return false;
-      };
-
-      const onError = (err: Error) => {
-        cleanup();
-        reject(err);
-      };
-
-      const cleanup = () => {
-        clearTimeout(timer);
-        this.dataEmitter.off("data", onData);
-        this.dataEmitter.off("error", onError);
-      };
-
-      const onData = () => { tryRead(); };
-
-      if (!tryRead()) {
-        this.dataEmitter.on("data", onData);
-        this.dataEmitter.on("error", onError);
-      }
-    });
+  private onTimeout(conn: Conn, id: number): void {
+    const pending = conn.pending.get(id);
+    if (!pending) return;
+    conn.pending.delete(id);
+    pending.cleanup();
+    pending.reject(new EngineTimeoutError(pending.action, pending.timeoutMs));
+    this.kill(conn, `the engine was stopped after "${pending.action}" timed out`);
   }
 
-  private async send(obj: LuaRequest): Promise<LuaResponse> {
-    if (!this.proc || !this.proc.stdin) throw new Error("Process not started");
-    if (this.killed) throw new Error("PoB API exited");
-    if (!this.ready) throw new Error("Process not ready");
-    if (this.isSending) throw new Error("Concurrent request not supported");
-
-    this.isSending = true;
+  /** SIGKILL the process and fail every pending request now. */
+  private kill(conn: Conn, why: string): void {
+    conn.dead = true;
+    this.failPending(conn, new EngineExitedError(null, "SIGKILL", conn.stderrRing, why));
     try {
-      this.proc.stdin.write(JSON.stringify(obj) + "\n");
-
-      // Read lines until we get valid JSON response
-      // Skip non-JSON lines (like "LOADING", warnings, etc.)
-      let attempts = 0;
-      const maxAttempts = 100;
-
-      while (attempts < maxAttempts) {
-        const line = await this.readLineWithTimeout(this.options.timeoutMs);
-        attempts++;
-
-        // Skip empty lines or lines that don't look like JSON (debug messages, etc.)
-        if (!line.trim() || !line.trim().startsWith('{')) {
-          continue;
-        }
-
-        // Try to parse as JSON
-        try {
-          const res = JSON.parse(line);
-          return res;
-        } catch (e) {
-          // Not valid JSON, keep looking
-          continue;
-        }
-      }
-
-      throw new Error(`Failed to receive valid JSON response after ${maxAttempts} lines`);
-    } finally {
-      this.isSending = false;
+      conn.proc.kill("SIGKILL");
+    } catch {
+      // already gone
     }
   }
+
+  private failPending(conn: Conn, error: Error): void {
+    const entries = [...conn.pending.values()];
+    conn.pending.clear();
+    for (const entry of entries) {
+      entry.cleanup();
+      entry.reject(error);
+    }
+  }
+
+  /** The process is gone: flush stderr, fail pending requests, wake start(). Idempotent. */
+  private markGone(conn: Conn): void {
+    if (conn.gone) return;
+    conn.gone = true;
+    conn.dead = true;
+    if (conn.stderrPartial) {
+      this.pushStderr(conn, conn.stderrPartial);
+      conn.stderrPartial = "";
+    }
+    this.failPending(conn, this.deadError(conn));
+    conn.resolveExited();
+    conn.onGone?.();
+  }
+
+  private deadError(conn: Conn | null): EngineExitedError {
+    if (conn?.exitInfo) {
+      return new EngineExitedError(conn.exitInfo.code, conn.exitInfo.signal, conn.stderrRing);
+    }
+    if (conn?.spawnError) {
+      return new EngineExitedError(null, null, [], `the engine failed to start: ${conn.spawnError.message}`);
+    }
+    return new EngineExitedError(null, null, conn?.stderrRing ?? [], "the engine is not running");
+  }
+
+  // -------------------------------------------------------------------------------------------------
+  // Public request API
+
+  /**
+   * Send one action and wait for its reply (C-4). Rejects with `EngineExitedError` when no engine is
+   * running; it never spawns one (D-59).
+   */
+  request<A extends ActionName>(action: A, params?: ActionParams<A>, opts?: RequestOptions): Promise<ActionReply<A>>;
+  request(action: TestActionName, params?: Record<string, unknown>, opts?: RequestOptions): Promise<TestReply>;
+  request(action: string, params?: Record<string, unknown>, opts: RequestOptions = {}): Promise<unknown> {
+    const conn = this.conn;
+    if (conn === null || !conn.ready || conn.dead) return Promise.reject(this.deadError(conn));
+    return this.send(conn, action, params, opts);
+  }
+
+  /** Stop the engine: `quit`, wait ≤ 2 s for it to exit, then SIGKILL. */
+  async stop(): Promise<void> {
+    this.generation++;
+    const conn = this.conn;
+    if (!conn) return;
+    if (!conn.dead) {
+      conn.dead = true;
+      conn.quitId = conn.nextId++;
+      try {
+        conn.proc.stdin.write(JSON.stringify({ id: conn.quitId, action: "quit" }) + "\n");
+      } catch {
+        // the pipe is already gone; the grace wait below decides
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const graceOver = new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), QUIT_GRACE_MS);
+      });
+      const exitedInTime = await Promise.race([conn.exited.then(() => true), graceOver]);
+      if (timer) clearTimeout(timer);
+      if (!exitedInTime) this.kill(conn, "the engine was stopped");
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------
+  // Typed wrappers over request()
 
   async ping(): Promise<boolean> {
-    const res = await this.send({ action: "ping" });
-    return !!res.ok;
+    const res = await this.request("ping");
+    return res.ok === true;
   }
 
   async newBuild(params?: { className?: string; ascendancy?: string }): Promise<any> {
-    const res = await this.send({ action: "new_build", params: params || {} });
-    if (!res.ok) throw new Error(res.error || "new_build failed");
-    return res;
+    return this.request("new_build", params || {});
   }
 
   async saveBuild(filePath: string): Promise<any> {
-    const res = await this.send({ action: "save_build", params: { path: filePath } });
-    if (!res.ok) throw new Error(res.error || "save_build failed");
+    const res = await this.request("save_build", { path: filePath });
     return res.result;
   }
 
   async loadBuildXml(xml: string, name = "API Build"): Promise<any> {
-    const res = await this.send({ action: "load_build_xml", params: { xml, name } });
-    if (!res.ok) throw new Error(res.error || "load_build_xml failed");
-    return res;
+    return this.request("load_build_xml", { xml, name });
   }
 
   async getStats(fields?: string[]): Promise<Record<string, any>> {
-    const res = await this.send({ action: "get_stats", params: { fields } });
-    if (!res.ok) throw new Error(res.error || "get_stats failed");
+    const res = await this.request("get_stats", { fields });
     return res.stats as Record<string, any>;
   }
 
   async getTree(): Promise<any> {
-    const res = await this.send({ action: "get_tree" });
-    if (!res.ok) throw new Error(res.error || "get_tree failed");
+    const res = await this.request("get_tree");
     return res.tree;
   }
 
-  
-
   async getItems(): Promise<any[]> {
-    const res = await this.send({ action: "get_items" });
-    if (!res.ok) throw new Error(res.error || "get_items failed");
+    const res = await this.request("get_items");
     return res.items as any[];
   }
 
   async addItem(itemText: string, slotName?: string, noAutoEquip?: boolean): Promise<any> {
-    const res = await this.send({
-      action: "add_item_text",
-      params: { text: itemText, slotName, noAutoEquip },
-    });
-    if (!res.ok) throw new Error(res.error || "add_item_text failed");
+    const res = await this.request("add_item_text", { text: itemText, slotName, noAutoEquip });
     return res.item;
   }
 
   async setFlaskActive(flaskIndex: number, active: boolean): Promise<void> {
-    const res = await this.send({
-      action: "set_flask_active",
-      params: { index: flaskIndex, active },
-    });
-    if (!res.ok) throw new Error(res.error || "set_flask_active failed");
+    await this.request("set_flask_active", { index: flaskIndex, active });
   }
 
   async getSkills(): Promise<any> {
-    const res = await this.send({ action: "get_skills" });
-    if (!res.ok) throw new Error(res.error || "get_skills failed");
+    const res = await this.request("get_skills");
     return res.skills;
   }
 
@@ -367,11 +694,10 @@ export class PoBLuaApiClient {
     mainActiveSkill?: number;
     skillPart?: number;
   }): Promise<void> {
-    const res = await this.send({ action: "set_main_selection", params });
-    if (!res.ok) throw new Error(res.error || "set_main_selection failed");
+    await this.request("set_main_selection", params);
   }
 
-async setTree(params: {
+  async setTree(params: {
     classId: number;
     ascendClassId: number;
     secondaryAscendClassId?: number;
@@ -379,193 +705,128 @@ async setTree(params: {
     masteryEffects?: Record<number, number>;
     treeVersion?: string;
   }): Promise<any> {
-    const res = await this.send({ action: "set_tree", params });
-    if (!res.ok) throw new Error(res.error || "set_tree failed");
+    const res = await this.request("set_tree", params);
     return res.tree;
   }
 
   async exportBuildXml(): Promise<string> {
-    const res = await this.send({ action: "export_build_xml" });
-    if (!res.ok) throw new Error(res.error || "export_build_xml failed");
+    const res = await this.request("export_build_xml");
     return res.xml as string;
   }
 
   async getBuildInfo(): Promise<any> {
-    const res = await this.send({ action: "get_build_info" });
-    if (!res.ok) throw new Error(res.error || "get_build_info failed");
+    const res = await this.request("get_build_info");
     return res.info;
   }
 
   async setLevel(level: number): Promise<void> {
-    const res = await this.send({ action: "set_level", params: { level } });
-    if (!res.ok) throw new Error(res.error || "set_level failed");
+    await this.request("set_level", { level });
   }
 
   async getConfig(): Promise<any> {
-    const res = await this.send({ action: "get_config" });
-    if (!res.ok) throw new Error(res.error || "get_config failed");
+    const res = await this.request("get_config");
     return res.config;
   }
 
   async setConfig(params: Record<string, any>): Promise<any> {
-    const res = await this.send({ action: "set_config", params });
-    if (!res.ok) throw new Error(res.error || "set_config failed");
+    const res = await this.request("set_config", params);
     return res.config;
   }
 
   async createSocketGroup(params?: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean }): Promise<any> {
-    const res = await this.send({ action: "create_socket_group", params: params || {} });
-    if (!res.ok) throw new Error(res.error || "create_socket_group failed");
+    const res = await this.request("create_socket_group", params || {});
     return res.socketGroup;
   }
 
   async addGem(params: { groupIndex: number; gemName: string; level?: number; quality?: number; qualityId?: string; enabled?: boolean; count?: number }): Promise<any> {
-    const res = await this.send({ action: "add_gem", params });
-    if (!res.ok) throw new Error(res.error || "add_gem failed");
+    const res = await this.request("add_gem", params);
     return res.gem;
   }
 
   async setGemLevel(params: { groupIndex: number; gemIndex: number; level: number }): Promise<void> {
-    const res = await this.send({ action: "set_gem_level", params });
-    if (!res.ok) throw new Error(res.error || "set_gem_level failed");
+    await this.request("set_gem_level", params);
   }
 
   async setGemQuality(params: { groupIndex: number; gemIndex: number; quality: number; qualityId?: string }): Promise<void> {
-    const res = await this.send({ action: "set_gem_quality", params });
-    if (!res.ok) throw new Error(res.error || "set_gem_quality failed");
+    await this.request("set_gem_quality", params);
   }
 
   async removeSkill(params: { groupIndex: number }): Promise<void> {
-    const res = await this.send({ action: "remove_skill", params });
-    if (!res.ok) throw new Error(res.error || "remove_skill failed");
+    await this.request("remove_skill", params);
   }
 
   async removeGem(params: { groupIndex: number; gemIndex: number }): Promise<void> {
-    const res = await this.send({ action: "remove_gem", params });
-    if (!res.ok) throw new Error(res.error || "remove_gem failed");
+    await this.request("remove_gem", params);
   }
 
   async setSocketGroupEnabled(params: { groupIndex: number; enabled: boolean }): Promise<{ groupIndex: number; label: string; enabled: boolean }> {
-    const res = await this.send({ action: "set_socket_group_enabled", params });
-    if (!res.ok) throw new Error(res.error || "set_socket_group_enabled failed");
+    const res = await this.request("set_socket_group_enabled", params);
     return res.result as { groupIndex: number; label: string; enabled: boolean };
   }
 
   async setGemEnabled(params: { groupIndex: number; gemIndex: number; enabled: boolean }): Promise<void> {
-    const res = await this.send({ action: "set_gem_enabled", params });
-    if (!res.ok) throw new Error(res.error || "set_gem_enabled failed");
+    await this.request("set_gem_enabled", params);
   }
 
   async searchNodes(params: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean }): Promise<any> {
-    const res = await this.send({ action: "search_nodes", params });
-    if (!res.ok) throw new Error(res.error || "search_nodes failed");
+    const res = await this.request("search_nodes", params);
     return res.results;
   }
 
   /** List gems from PoB2's authoritative gem database (PoE2). */
   async listGems(params: { type?: "active" | "support"; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean } = {}): Promise<{ gems: any[]; count: number; total: number }> {
-    const res = await this.send({ action: "list_gems", params });
-    if (!res.ok) throw new Error(res.error || "list_gems failed");
+    const res = await this.request("list_gems", params);
     return res.result as { gems: any[]; count: number; total: number };
   }
 
   /** List PoE2 classes + ascendancies with their engine IDs. */
   async getClasses(): Promise<{ classes: { classId: number; name: string; ascendancies: { id: number; name: string }[] }[] }> {
-    const res = await this.send({ action: "get_classes" });
-    if (!res.ok) throw new Error(res.error || "get_classes failed");
+    const res = await this.request("get_classes");
     return res.result as { classes: { classId: number; name: string; ascendancies: { id: number; name: string }[] }[] };
   }
 
   async updateTreeDelta(params: { addNodes?: number[]; removeNodes?: number[]; classId?: number; ascendClassId?: number; secondaryAscendClassId?: number; treeVersion?: string; }): Promise<{ tree: any; autoPathedNodes?: number[]; skippedAscendancyNodes?: number[] }> {
-    const res = await this.send({ action: "update_tree_delta", params });
-    if (!res.ok) throw new Error(res.error || "update_tree_delta failed");
+    const res = await this.request("update_tree_delta", params);
     return { tree: res.tree, autoPathedNodes: res.autoPathedNodes as number[] | undefined, skippedAscendancyNodes: res.skippedAscendancyNodes as number[] | undefined };
   }
 
   async calcWith(params: { addNodes?: number[]; removeNodes?: number[]; useFullDPS?: boolean }): Promise<any> {
-    const res = await this.send({ action: "calc_with", params });
-    if (!res.ok) throw new Error(res.error || "calc_with failed");
+    const res = await this.request("calc_with", params);
     return res.output;
   }
 
   async createSpec(params?: { title?: string; copyFrom?: number; activate?: boolean }): Promise<any> {
-    const res = await this.send({ action: "create_spec", params: params || {} });
-    if (!res.ok) throw new Error(res.error || "create_spec failed");
+    const res = await this.request("create_spec", params || {});
     return res.result;
   }
 
   async listSpecs(): Promise<any> {
-    const res = await this.send({ action: "list_specs" });
-    if (!res.ok) throw new Error(res.error || "list_specs failed");
+    const res = await this.request("list_specs");
     return res.result;
   }
 
   async selectSpec(index: number): Promise<any> {
-    const res = await this.send({ action: "select_spec", params: { index } });
-    if (!res.ok) throw new Error(res.error || "select_spec failed");
+    const res = await this.request("select_spec", { index });
     return res.result;
   }
 
   async deleteSpec(index: number): Promise<any> {
-    const res = await this.send({ action: "delete_spec", params: { index } });
-    if (!res.ok) throw new Error(res.error || "delete_spec failed");
+    const res = await this.request("delete_spec", { index });
     return res.result;
   }
 
   async renameSpec(index: number, title: string): Promise<any> {
-    const res = await this.send({ action: "rename_spec", params: { index, title } });
-    if (!res.ok) throw new Error(res.error || "rename_spec failed");
+    const res = await this.request("rename_spec", { index, title });
     return res.result;
   }
 
   async listItemSets(): Promise<any> {
-    const res = await this.send({ action: "list_item_sets" });
-    if (!res.ok) throw new Error(res.error || "list_item_sets failed");
+    const res = await this.request("list_item_sets");
     return res.result;
   }
 
   async selectItemSet(id: number): Promise<any> {
-    const res = await this.send({ action: "select_item_set", params: { id } });
-    if (!res.ok) throw new Error(res.error || "select_item_set failed");
+    const res = await this.request("select_item_set", { id });
     return res.result;
   }
-
-  /** The engine process id while one is spawned (a test hook for the session, C-3). */
-  pid(): number | null {
-    return this.proc?.pid ?? null;
-  }
-
-  /**
-   * Stop the engine (C-7): send `quit`, wait up to 2 s for the process to exit, then SIGKILL.
-   */
-  async stop(): Promise<void> {
-    const proc = this.proc;
-    if (!proc) return;
-    this.proc = null;
-    this.ready = false;
-    const exited = this.exited ?? Promise.resolve();
-    // `killed` is also set by a spawn 'error' (e.g. ENOENT), after which no 'exit' may follow.
-    if (!this.hasExited && !this.killed) {
-      try {
-        proc.stdin.write(JSON.stringify({ action: "quit" }) + "\n");
-      } catch {
-        // the pipe is already gone; the grace wait below decides
-      }
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const graceOver = new Promise<boolean>((resolve) => {
-        timer = setTimeout(() => resolve(false), QUIT_GRACE_MS);
-      });
-      const exitedInTime = await Promise.race([exited.then(() => true), graceOver]);
-      if (timer) clearTimeout(timer);
-      if (!exitedInTime) {
-        try {
-          proc.kill("SIGKILL");
-        } catch {
-          // already gone
-        }
-      }
-    }
-    this.killed = true;
-  }
 }
-

@@ -10,7 +10,9 @@ import { beforeAll, afterAll, it, expect } from "@jest/globals";
 import { PoBLuaApiClient } from "../../src/pobLuaBridge";
 import { Poe2SkillService } from "../../src/services/poe2SkillService";
 import { handlePlanLeveling } from "../../src/handlers/levelingHandlers";
-import { resolvePobSrc } from "../../src/engine/pobPath";
+import { spawn } from "child_process";
+import { resolvePobApiDir, resolvePobSrc } from "../../src/engine/pobPath";
+import { readPin } from "../../src/engine/pinCheck";
 import { engineDescribe } from "../helpers/engine";
 
 engineDescribe("PoE2 Lua bridge (integration)", () => {
@@ -18,10 +20,11 @@ engineDescribe("PoE2 Lua bridge (integration)", () => {
 
   beforeAll(async () => {
     api = new PoBLuaApiClient({
-      cwd: resolvePobSrc(process.env),
-      cmd: process.env.POB_CMD || "luajit",
-      env: process.env,
-      timeoutMs: 90000,
+      env: { ...process.env, POB_TIMEOUT_MS: "90000" },
+      spawn,
+      pobSrc: resolvePobSrc(process.env),
+      pobApiDir: resolvePobApiDir(),
+      pin: readPin(),
     });
     await api.start();
     await api.newBuild();

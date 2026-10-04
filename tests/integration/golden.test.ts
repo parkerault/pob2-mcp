@@ -17,11 +17,13 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { spawn } from 'child_process';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { startTestServer, type TestServer } from '../helpers/server';
 import { engineDescribe } from '../helpers/engine';
 import { PoBLuaApiClient } from '../../src/pobLuaBridge';
-import { resolvePobSrc } from '../../src/engine/pobPath';
+import { resolvePobApiDir, resolvePobSrc } from '../../src/engine/pobPath';
+import { readPin } from '../../src/engine/pinCheck';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const GOLDEN = path.join(REPO, 'tests', 'fixtures', 'builds', 'grenadator.xml');
@@ -123,10 +125,11 @@ engineDescribe('golden build save/reload (I-1a, I-1b)', () => {
     await call('lua_save_build', { build_name: 'golden-stats' });
 
     const bridge = new PoBLuaApiClient({
-      cwd: resolvePobSrc(process.env),
-      cmd: process.env.POB_CMD || 'luajit',
-      env: process.env,
-      timeoutMs: 90000,
+      env: { ...process.env, POB_TIMEOUT_MS: '90000' },
+      spawn,
+      pobSrc: resolvePobSrc(process.env),
+      pobApiDir: resolvePobApiDir(),
+      pin: readPin(),
     });
     try {
       await bridge.start();

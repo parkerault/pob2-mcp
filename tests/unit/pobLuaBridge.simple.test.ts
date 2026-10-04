@@ -1,109 +1,61 @@
 /**
- * Simple unit tests for PoBLuaApiClient
- * These tests focus on testing the client logic without complex mocking
+ * Simple unit tests for PoBLuaApiClient: construction does no I/O, and nothing works before start().
  */
+import { describe, it, expect, jest } from '@jest/globals';
+import { PoBLuaApiClient, EngineExitedError } from '../../src/pobLuaBridge';
+import { makeFakeCheckout } from '../mocks/pobProcess.mock';
 
-import { PoBLuaApiClient } from '../../src/pobLuaBridge';
+function makeClient() {
+  const checkout = makeFakeCheckout();
+  const spawn = jest.fn(() => {
+    throw new Error('spawn must not be called');
+  });
+  const client = new PoBLuaApiClient({
+    env: {},
+    spawn: spawn as unknown as typeof import('child_process').spawn,
+    pobSrc: checkout.pobSrc,
+    pobApiDir: checkout.pobApiDir,
+    pin: checkout.pin,
+  });
+  return { client, spawn };
+}
 
 describe('PoBLuaApiClient - Simple Tests', () => {
   describe('Initialization', () => {
-    it('should create a client with default options', () => {
-      const client = new PoBLuaApiClient();
+    it('constructing a client spawns nothing', () => {
+      const { client, spawn } = makeClient();
       expect(client).toBeDefined();
-    });
-
-    it('should create a client with custom options', () => {
-      const client = new PoBLuaApiClient({
-        cwd: '/test/path',
-        cmd: 'custom-luajit',
-        timeoutMs: 5000,
-      });
-      expect(client).toBeDefined();
+      expect(client.isAlive()).toBe(false);
+      expect(client.pid()).toBeNull();
+      expect(spawn).not.toHaveBeenCalled();
     });
 
     it('should handle stop when not started', async () => {
-      const client = new PoBLuaApiClient();
-      // Should not throw
+      const { client } = makeClient();
       await expect(client.stop()).resolves.toBeUndefined();
     });
   });
 
   describe('Error handling before initialization', () => {
-    it('should throw when calling ping before start', async () => {
-      const client = new PoBLuaApiClient();
-      await expect(client.ping()).rejects.toThrow();
-    });
-
-    it('should throw when calling getStats before start', async () => {
-      const client = new PoBLuaApiClient();
-      await expect(client.getStats()).rejects.toThrow();
-    });
-
-    it('should throw when calling loadBuildXml before start', async () => {
-      const client = new PoBLuaApiClient();
-      await expect(client.loadBuildXml('<Build></Build>')).rejects.toThrow();
+    it('ping, getStats and loadBuildXml reject with EngineExitedError and never spawn', async () => {
+      const { client, spawn } = makeClient();
+      await expect(client.ping()).rejects.toBeInstanceOf(EngineExitedError);
+      await expect(client.getStats()).rejects.toBeInstanceOf(EngineExitedError);
+      await expect(client.loadBuildXml('<Build></Build>')).rejects.toBeInstanceOf(EngineExitedError);
+      expect(spawn).not.toHaveBeenCalled();
     });
   });
 
-  // These tests verify the API surface exists
   describe('API surface', () => {
-    let client: PoBLuaApiClient;
-
-    beforeEach(() => {
-      client = new PoBLuaApiClient();
-    });
-
-    it('should have start method', () => {
-      expect(typeof client.start).toBe('function');
-    });
-
-    it('should have stop method', () => {
-      expect(typeof client.stop).toBe('function');
-    });
-
-    it('should have ping method', () => {
-      expect(typeof client.ping).toBe('function');
-    });
-
-    it('should have loadBuildXml method', () => {
-      expect(typeof client.loadBuildXml).toBe('function');
-    });
-
-    it('should have getStats method', () => {
-      expect(typeof client.getStats).toBe('function');
-    });
-
-    it('should have getTree method', () => {
-      expect(typeof client.getTree).toBe('function');
-    });
-
-    it('should have setTree method', () => {
-      expect(typeof client.setTree).toBe('function');
-    });
-
-    it('should have getItems method', () => {
-      expect(typeof client.getItems).toBe('function');
-    });
-
-    it('should have addItem method', () => {
-      expect(typeof client.addItem).toBe('function');
-    });
-
-    it('should have setFlaskActive method', () => {
-      expect(typeof client.setFlaskActive).toBe('function');
-    });
-
-    it('should have getSkills method', () => {
-      expect(typeof client.getSkills).toBe('function');
-    });
-
-    it('should have setMainSelection method', () => {
-      expect(typeof client.setMainSelection).toBe('function');
-    });
-
-    it('should have PoE2 list_gems / get_classes methods', () => {
-      expect(typeof client.listGems).toBe('function');
-      expect(typeof client.getClasses).toBe('function');
+    it('keeps the typed wrappers', () => {
+      const { client } = makeClient();
+      for (const name of [
+        'start', 'stop', 'request', 'isAlive', 'pid', 'ping', 'loadBuildXml', 'getStats', 'getTree',
+        'setTree', 'getItems', 'addItem', 'setFlaskActive', 'getSkills', 'setMainSelection', 'listGems',
+        'getClasses',
+      ] as const) {
+        expect(typeof client[name]).toBe('function');
+      }
     });
   });
 });

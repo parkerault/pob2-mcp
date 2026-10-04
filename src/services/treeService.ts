@@ -18,7 +18,7 @@ export class TreeService {
   private buildService: BuildService;
   private env: PobPathEnv;
 
-  constructor(buildService: BuildService, env: PobPathEnv = process.env) {
+  constructor(buildService: BuildService, env: PobPathEnv) {
     this.buildService = buildService;
     this.env = env;
   }

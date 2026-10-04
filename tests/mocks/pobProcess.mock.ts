@@ -48,6 +48,12 @@ export class MockPoBProcess extends EventEmitter {
    * Process a request and send response
    */
   private processRequest(request: { action: string; params?: any }) {
+    // Like pob-api/API/Server.lua: reply to quit, then exit.
+    if (request.action === 'quit') {
+      this.sendToStdout(JSON.stringify({ ok: true, quit: true }) + '\n');
+      process.nextTick(() => this.exit(0));
+      return;
+    }
     const response = this.responses.get(request.action);
 
     if (response) {

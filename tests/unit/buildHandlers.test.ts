@@ -35,6 +35,7 @@ describe('BuildHandlers', () => {
         formatValidation: jest.fn(),
       } as any,
       pobDirectory: '/test/pob',
+      stateDir: '/test/state/pob2-mcp',
       getLuaClient: () => null,
       ensureLuaClient: async () => {},
     };
@@ -126,10 +127,10 @@ describe('BuildHandlers', () => {
         new Error('Invalid passive tree data detected: Node 99999 not found')
       );
 
-      const result = await handleAnalyzeBuild(context, 'test.xml');
-
-      expect(result.content[0].text).toContain('Invalid passive tree data detected');
-      expect(result.content[0].text).toContain('Node 99999 not found');
+      // An invalid tree fails the whole analysis; the router turns the throw into isError (C-1, D-27).
+      await expect(handleAnalyzeBuild(context, 'test.xml')).rejects.toThrow(
+        /Invalid passive tree data detected: Node 99999 not found/
+      );
     });
 
     it('should handle other tree analysis errors gracefully', async () => {

@@ -24,12 +24,11 @@ describe('PoeNinjaClient (PoE2)', () => {
   let fetchMock: jest.Mock;
 
   beforeEach(() => {
-    client = new PoeNinjaClient();
     fetchMock = jest.fn(async () => ({
       ok: true,
       json: async () => POE2_RESPONSE,
     })) as any;
-    (global as any).fetch = fetchMock;
+    client = new PoeNinjaClient({ fetch: fetchMock as unknown as typeof fetch });
   });
 
   afterEach(() => {

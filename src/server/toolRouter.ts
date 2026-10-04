@@ -11,6 +11,9 @@ import type { TradeApiClient } from "../services/tradeClient.js";
 import type { StatMapper } from "../services/statMapper.js";
 import type { ItemRecommendationEngine } from "../services/itemRecommendationEngine.js";
 import type { PoeNinjaClient } from "../services/poeNinjaClient.js";
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { TOOL_META, isToolAvailable } from "./toolMeta.js";
+import { errorResponse, type ToolResponse } from "./responseUtils.js";
 
 // Import handlers
 import { handleListBuilds, handleAnalyzeBuild, handleCompareBuilds, handleGetBuildStats, handleGetBuildNotes, handleSetBuildNotes } from "../handlers/buildHandlers.js";
@@ -40,29 +43,119 @@ import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers
 export interface ToolRouterDependencies {
   toolGate: ToolGate;
   contextBuilder: ContextBuilder;
-  tradeClient: TradeApiClient | null;
-  statMapper: StatMapper | null;
-  recommendationEngine: ItemRecommendationEngine | null;
+  tradeClient: TradeApiClient;
+  statMapper: StatMapper;
+  recommendationEngine: ItemRecommendationEngine;
   ninjaClient: PoeNinjaClient;
   getLuaClient: () => import("../pobLuaBridge.js").PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
+  /** The env (deps.env, C-7): decides which tool groups are routable (C-1). */
+  env: Readonly<Record<string, string | undefined>>;
+  /** Lazily loads trade2 stat data before the first trade tool call (D-14). */
+  ensureTradeStats: () => Promise<void>;
 }
 
-export type ToolResponse = Promise<{
-  content: Array<{
-    type: string;
-    text: string;
-  }>;
-}>;
+/**
+ * The per-call context the CallTool handler builds from the MCP request `extra` (C-1).
+ * `sendProgress` is a no-op when the request carried no `progressToken`.
+ */
+export interface ToolCallContext {
+  signal: AbortSignal;
+  progressToken?: string | number;
+  sendProgress(progress: number, message?: string): Promise<void>;
+  /** Epoch ms when the call arrived (deadlines run from here, D-22). */
+  arrivedAt: number;
+}
+
+/** Tools that do not need trade2 stat data before they run. */
+const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues"]);
+
+/** Single-flight, run-once wrapper: every caller shares the first call's promise. */
+export function once<T>(fn: () => Promise<T>): () => Promise<T> {
+  let promise: Promise<T> | null = null;
+  return () => {
+    if (!promise) promise = fn();
+    return promise;
+  };
+}
 
 /**
- * Routes a tool call to its handler with appropriate context
+ * The lazy trade2 `/data/stats` preload (D-14): runs once, on the first trade tool call, never
+ * before the MCP handshake. A failure or a timeout is logged and the static stat mappings stay in
+ * use, as the startup preload did. WU-14 replaces the internals.
+ */
+export function lazyTradeStats(
+  tradeClient: Pick<TradeApiClient, "getStatData">,
+  statMapper: Pick<StatMapper, "loadFromTradeAPI">,
+  timeoutMs = 15_000,
+): () => Promise<void> {
+  return once(async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      console.error("[StatMapper] Loading stats from the trade API...");
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
+      });
+      const statData = await Promise.race([tradeClient.getStatData(), timeout]);
+      await statMapper.loadFromTradeAPI(statData);
+      console.error("[StatMapper] Loaded official stat data");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[StatMapper] Failed to load official stats, using the static fallback: ${msg}`);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  });
+}
+
+/** What handlers return: text content, possibly typed loosely by older handlers. */
+type HandlerResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
+
+function unknownTool(name: string): McpError {
+  return new McpError(ErrorCode.InvalidParams, `Unknown tool: ${name}`);
+}
+
+/**
+ * Routes a tool call to its handler (C-1).
+ *
+ * - A tool without `TOOL_META`, or whose group is disabled, is a protocol error:
+ *   `McpError(InvalidParams, "Unknown tool: <name>")`.
+ * - Every error a handler throws becomes an `isError: true` result with the message as text; the
+ *   stack goes to stderr (D-27).
  */
 export async function routeToolCall(
   name: string,
   args: Record<string, unknown> | undefined,
-  deps: ToolRouterDependencies
-): ToolResponse {
+  deps: ToolRouterDependencies,
+  call: ToolCallContext,
+): Promise<ToolResponse> {
+  if (!isToolAvailable(name, deps.env)) throw unknownTool(name);
+  try {
+    if (TOOL_META[name].group === "trade" && !TRADE_TOOLS_WITHOUT_STATS.has(name)) {
+      await deps.ensureTradeStats();
+    }
+    const result = await dispatch(name, args, deps, call);
+    // Handlers produce text content only (D-36); normalize to the single response type.
+    return {
+      content: result.content.map((c) => ({ type: "text" as const, text: c.text })),
+      ...(result.isError ? { isError: true } : {}),
+    };
+  } catch (error) {
+    if (error instanceof McpError) throw error;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Tool Error] tool=${name} error=${errorMsg}`);
+    if (error instanceof Error && error.stack) console.error(`[Tool Stack] ${error.stack}`);
+    return errorResponse(`Error: ${errorMsg}`);
+  }
+}
+
+async function dispatch(
+  name: string,
+  args: Record<string, unknown> | undefined,
+  deps: ToolRouterDependencies,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _call: ToolCallContext,
+): Promise<HandlerResult> {
   // Check tool gate first
   deps.toolGate.checkGate(name);
 
@@ -529,27 +622,21 @@ export async function routeToolCall(
     // Trade API Tools
     // ========================================
     case "search_trade_items": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args || !args.league) {
         throw new Error("Missing required argument: league");
       }
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         ninjaClient: deps.ninjaClient
       };
       return await handleSearchTradeItems(tradeContext, args as any);
     }
 
     case "get_item_price": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         ninjaClient: deps.ninjaClient
       };
       if (!args) throw new Error("Missing arguments");
@@ -562,21 +649,15 @@ export async function routeToolCall(
     }
 
     case "get_leagues": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         ninjaClient: deps.ninjaClient
       };
       return await handleGetLeagues(tradeContext);
     }
 
     case "search_stats": {
-      if (!deps.tradeClient || !deps.statMapper) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args) throw new Error("Missing arguments");
       const tradeContext = {
         tradeClient: deps.tradeClient,
@@ -598,13 +679,10 @@ export async function routeToolCall(
     }
 
     case "find_resistance_gear": {
-      if (!deps.tradeClient || !deps.recommendationEngine) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args) throw new Error("Missing arguments");
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         recommendationEngine: deps.recommendationEngine,
         ninjaClient: deps.ninjaClient
       };
@@ -612,27 +690,21 @@ export async function routeToolCall(
     }
 
     case "compare_trade_items": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args) throw new Error("Missing arguments");
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
-        recommendationEngine: deps.recommendationEngine || undefined,
+        statMapper: deps.statMapper,
+        recommendationEngine: deps.recommendationEngine,
         ninjaClient: deps.ninjaClient
       };
       return await handleCompareTradeItems(tradeContext, args as any);
     }
 
     case "search_cluster_jewels": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args) throw new Error("Missing arguments");
       const tradeContext = {
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         ninjaClient: deps.ninjaClient
       };
       return await handleSearchClusterJewels(tradeContext, args as any);
@@ -649,14 +721,11 @@ export async function routeToolCall(
     }
 
     case "generate_shopping_list": {
-      if (!deps.tradeClient) {
-        throw new Error("Trade API is not enabled. Set POE_TRADE_ENABLED=true to enable.");
-      }
       if (!args) throw new Error("Missing arguments");
       const shoppingContext = {
         buildService: deps.contextBuilder.buildHandlerContext().buildService,
         tradeClient: deps.tradeClient,
-        statMapper: deps.statMapper || undefined,
+        statMapper: deps.statMapper,
         ninjaClient: deps.ninjaClient
       };
       return await handleGenerateShoppingList(shoppingContext, {
@@ -768,6 +837,7 @@ export async function routeToolCall(
     }
 
     default:
-      throw new Error(`Unknown tool: ${name}`);
+      // A TOOL_META entry without a case: still a protocol error, never an isError result.
+      throw unknownTool(name);
   }
 }

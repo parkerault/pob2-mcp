@@ -12,7 +12,7 @@ describe('TreeService', () => {
 
   beforeEach(() => {
     mockBuildService = new BuildService('/test/pob') as jest.Mocked<BuildService>;
-    treeService = new TreeService(mockBuildService);
+    treeService = new TreeService(mockBuildService, {});
   });
 
   describe('categorizeNodes', () => {

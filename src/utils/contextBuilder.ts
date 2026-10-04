@@ -14,13 +14,22 @@ import type { SkillGemService } from '../services/skillGemService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
 
 /**
+ * Fields every handler context carries (C-7): the builds folder and the state dir.
+ */
+export interface BaseContext {
+  /** The builds folder (C-7, D-16). */
+  pobDirectory: string;
+  /** The server state dir (C-7, C-16). */
+  stateDir: string;
+}
+
+/**
  * Context for basic build and tree handlers
  */
-export interface HandlerContext {
+export interface HandlerContext extends BaseContext {
   buildService: BuildService;
   treeService: TreeService;
   validationService: ValidationService;
-  pobDirectory: string;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -28,7 +37,7 @@ export interface HandlerContext {
 /**
  * Context for watch handlers (includes watchService)
  */
-export interface WatchContext {
+export interface WatchContext extends BaseContext {
   buildService: BuildService;
   treeService: TreeService;
   watchService: WatchService;
@@ -37,9 +46,9 @@ export interface WatchContext {
 /**
  * Context for Lua-related operations
  */
-export interface LuaContext {
-  pobDirectory: string;
-  luaEnabled: boolean;
+export interface LuaContext extends BaseContext {
+  /** Every outbound HTTP goes through this (deps.fetch, C-7): import_build's share-site fetch. */
+  fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
   stopLuaClient: () => Promise<void>;
@@ -48,7 +57,7 @@ export interface LuaContext {
 /**
  * Context for item and skill operations (subset of Lua operations)
  */
-export interface ItemSkillContext {
+export interface ItemSkillContext extends BaseContext {
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -56,10 +65,9 @@ export interface ItemSkillContext {
 /**
  * Context for optimization operations (combines build/tree services with Lua)
  */
-export interface OptimizationContext {
+export interface OptimizationContext extends BaseContext {
   buildService: BuildService;
   treeService: TreeService;
-  pobDirectory: string;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -67,7 +75,7 @@ export interface OptimizationContext {
 /**
  * Context for export and persistence operations
  */
-export interface ExportContext {
+export interface ExportContext extends BaseContext {
   buildService: BuildService;
   exportService: BuildExportService;
   luaClient?: PoBLuaApiClient;
@@ -76,10 +84,9 @@ export interface ExportContext {
 /**
  * Context for skill gem analysis operations
  */
-export interface SkillGemContext {
+export interface SkillGemContext extends BaseContext {
   buildService: BuildService;
   skillGemService: SkillGemService;
-  pobDirectory: string;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -87,9 +94,8 @@ export interface SkillGemContext {
 /**
  * Context for advanced optimization operations (items, skill links, budget builds)
  */
-export interface AdvancedOptimizationContext {
+export interface AdvancedOptimizationContext extends BaseContext {
   buildService: BuildService;
-  pobDirectory: string;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -97,10 +103,9 @@ export interface AdvancedOptimizationContext {
 /**
  * Context for validation operations
  */
-export interface ValidationContext {
+export interface ValidationContext extends BaseContext {
   buildService: BuildService;
   validationService: ValidationService;
-  pobDirectory: string;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
 }
@@ -116,7 +121,10 @@ export interface ContextDependencies {
   exportService: BuildExportService;
   skillGemService: SkillGemService;
   pobDirectory: string;
-  luaEnabled: boolean;
+  stateDir: string;
+  /** The env (deps.env, C-7): the only env source below the entry. */
+  env: Readonly<Record<string, string | undefined>>;
+  fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
   stopLuaClient: () => Promise<void>;
@@ -137,6 +145,7 @@ export class ContextBuilder {
       treeService: this.deps.treeService,
       validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -147,6 +156,8 @@ export class ContextBuilder {
    */
   buildWatchContext(): WatchContext {
     return {
+      pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       buildService: this.deps.buildService,
       treeService: this.deps.treeService,
       watchService: this.deps.watchService,
@@ -162,6 +173,7 @@ export class ContextBuilder {
       treeService: this.deps.treeService,
       validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -173,7 +185,8 @@ export class ContextBuilder {
   buildLuaContext(): LuaContext {
     return {
       pobDirectory: this.deps.pobDirectory,
-      luaEnabled: this.deps.luaEnabled,
+      stateDir: this.deps.stateDir,
+      fetch: this.deps.fetch,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
       stopLuaClient: this.deps.stopLuaClient,
@@ -185,6 +198,8 @@ export class ContextBuilder {
    */
   buildItemSkillContext(): ItemSkillContext {
     return {
+      pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -198,6 +213,7 @@ export class ContextBuilder {
       buildService: this.deps.buildService,
       treeService: this.deps.treeService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -208,6 +224,8 @@ export class ContextBuilder {
    */
   buildExportContext(): ExportContext {
     return {
+      pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       buildService: this.deps.buildService,
       exportService: this.deps.exportService,
       luaClient: this.deps.getLuaClient() || undefined,
@@ -222,6 +240,7 @@ export class ContextBuilder {
       buildService: this.deps.buildService,
       skillGemService: this.deps.skillGemService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -234,6 +253,7 @@ export class ContextBuilder {
     return {
       buildService: this.deps.buildService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -247,6 +267,7 @@ export class ContextBuilder {
       buildService: this.deps.buildService,
       validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
     };
@@ -255,11 +276,12 @@ export class ContextBuilder {
   /**
    * Build context for config preset operations
    */
-  buildConfigPresetContext(): import('../handlers/configHandlers.js').ConfigPresetContext {
+  buildConfigPresetContext(): import('../handlers/configHandlers.js').ConfigPresetContext & BaseContext {
     return {
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
       pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
     };
   }
 }

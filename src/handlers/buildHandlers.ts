@@ -187,15 +187,8 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (errorMsg.includes("Invalid passive tree data detected")) {
-      // Return the full error message for invalid nodes
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Error: ${errorMsg}`,
-          },
-        ],
-      };
+      // An invalid tree fails the whole analysis (an MCP tool error, C-1)
+      throw error;
     } else {
       // For other errors, show notice but continue with other sections
       summaryParts.push([

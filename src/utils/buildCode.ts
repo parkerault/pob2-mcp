@@ -55,11 +55,14 @@ export function rawUrlFor(source: string): string {
   return u;
 }
 
-/** Fetch a build code from a share URL (browser-like UA; bot filters block plain UAs). */
-export async function fetchBuildCode(url: string): Promise<string> {
+/**
+ * Fetch a build code from a share URL (browser-like UA; bot filters block plain UAs).
+ * `fetchImpl` is the server's injected fetch (deps.fetch, C-7).
+ */
+export async function fetchBuildCode(url: string, fetchImpl: typeof globalThis.fetch): Promise<string> {
   if (!/^https?:\/\//i.test(url)) throw new Error("not an http(s) URL");
   const target = rawUrlFor(url);
-  const res = await fetch(target, {
+  const res = await fetchImpl(target, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; pob2-mcp-server)", Accept: "*/*" },
   });
   if (!res.ok) throw new Error(`failed to fetch build (${res.status}) from ${target}`);
@@ -71,9 +74,9 @@ export async function fetchBuildCode(url: string): Promise<string> {
 /**
  * Resolve a source (raw PoB code OR a share URL) into build XML.
  */
-export async function resolveBuildXml(source: string): Promise<string> {
+export async function resolveBuildXml(source: string, fetchImpl: typeof globalThis.fetch): Promise<string> {
   const s = (source || "").trim();
   if (!s) throw new Error("missing build source");
-  const code = /^https?:\/\//i.test(s) ? await fetchBuildCode(s) : s;
+  const code = /^https?:\/\//i.test(s) ? await fetchBuildCode(s, fetchImpl) : s;
   return decodePobCode(code);
 }

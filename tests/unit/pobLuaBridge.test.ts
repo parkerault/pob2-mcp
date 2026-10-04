@@ -75,8 +75,8 @@ describe('PoBLuaApiClient', () => {
       // Mock process that never sends ready
       mockSpawn.mockImplementationOnce(() => {
         const proc = new MockPoBProcess();
-        // Override to never send ready
-        proc.stdout.removeAllListeners('data');
+        // Override to never send ready (the banner goes out on the next tick)
+        (proc as any).sendToStdout = () => {};
         return proc;
       });
 
@@ -435,6 +435,19 @@ describe('PoBLuaApiClient', () => {
     it('should clean up on stop', async () => {
       await client.start();
       mockProcess = mockSpawn.getLastProcess()!;
+
+      await client.stop();
+
+      // stop() sends quit; the engine exits on its own, so no kill is needed (C-7).
+      expect(mockProcess.getLastRequest()).toEqual({ action: 'quit' });
+      expect(mockProcess.exitCode).toBe(0);
+      expect(mockProcess.killed).toBe(false);
+    });
+
+    it('should SIGKILL an engine that does not exit within the quit grace (C-7)', async () => {
+      await client.start();
+      mockProcess = mockSpawn.getLastProcess()!;
+      mockProcess.simulateHang();
 
       await client.stop();
 

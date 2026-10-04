@@ -1,4 +1,4 @@
-import { spawn, ChildProcessWithoutNullStreams } from "child_process";
+import { spawn as nodeSpawn, ChildProcessWithoutNullStreams } from "child_process";
 import { EventEmitter } from "events";
 import path from "path";
 import os from "os";
@@ -20,9 +20,20 @@ export interface PoBLuaApiOptions {
   cwd?: string;
   cmd?: string; // default: 'luajit'
   args?: string[]; // default: [<pob-api>/bootstrap.lua]
-  env?: Record<string, string>;
+  /**
+   * The child's base environment (the server's deps.env, C-7). The cookie variables are always
+   * removed (D-28); LUA_PATH/LUA_CPATH are set on top. Default: empty.
+   */
+  env?: Readonly<Record<string, string | undefined>>;
   timeoutMs?: number; // per-request timeout
+  /** The process factory (deps.spawn, C-7). Default: child_process.spawn. */
+  spawn?: typeof nodeSpawn;
 }
+
+/** Cookie variables never passed to the engine child (D-28). */
+const COOKIE_VARS = ["POESESSID", "POE_SESSION_ID"];
+/** How long stop() waits for the engine to exit after `quit` before SIGKILL (C-7, D-50). */
+const QUIT_GRACE_MS = 2000;
 
 export class PoBLuaApiClient {
   private proc: ChildProcessWithoutNullStreams | null = null;
@@ -31,6 +42,8 @@ export class PoBLuaApiClient {
   private ready = false;
   private isSending = false;
   private killed = false;
+  private exited: Promise<void> | null = null;
+  private hasExited = false;
   private dataEmitter = new EventEmitter();
 
   /** Returns true if the process is running and ready to accept requests. */
@@ -44,7 +57,7 @@ export class PoBLuaApiClient {
     // cwd must be a PathOfBuilding-PoE2 `src/` directory. It no longer needs to
     // be a patched fork: the vendored `pob-api/bootstrap.lua` drives a vanilla
     // checkout. The default is the pinned checkout (resolvePobSrc, C-6).
-    const pobSrc = options.cwd || resolvePobSrc(process.env);
+    const pobSrc = options.cwd || resolvePobSrc(options.env ?? {});
     this.options = {
       cwd: pobSrc,
       cmd: options.cmd || "luajit",
@@ -52,11 +65,16 @@ export class PoBLuaApiClient {
       args: options.args || [POB_API_BOOTSTRAP],
       env: options.env || {},
       timeoutMs: options.timeoutMs ?? 30000, // Increased from 10s to 30s
+      spawn: options.spawn ?? nodeSpawn,
     };
   }
 
   async start(): Promise<void> {
     if (this.proc) return;
+    // A client can be started again after stop(): reset the per-process state.
+    this.killed = false;
+    this.hasExited = false;
+    this.exited = null;
 
     // Set up Lua paths for runtime modules
     const pobForkPath = this.options.cwd || '';
@@ -82,9 +100,10 @@ export class PoBLuaApiClient {
     // package.path setup is bypassed. bootstrap.lua also sets these at runtime.
     const apiLuaPath = `${POB_API_DIR}${path.sep}?.lua${pathSep}${POB_API_DIR}${path.sep}?${path.sep}init.lua`;
 
+    const baseEnv: Record<string, string | undefined> = { ...this.options.env };
+    for (const k of COOKIE_VARS) delete baseEnv[k];
     const env = {
-      ...process.env,
-      ...this.options.env,
+      ...baseEnv,
       // NOTE: We deliberately do NOT set POB_API_STDIO. bootstrap.lua always
       // starts the server itself, and omitting this flag means that even if
       // the PoB checkout is a legacy patched fork, that fork's
@@ -95,7 +114,7 @@ export class PoBLuaApiClient {
     } as NodeJS.ProcessEnv;
 
     try {
-      this.proc = spawn(this.options.cmd!, this.options.args!, {
+      this.proc = this.options.spawn!(this.options.cmd!, this.options.args!, {
         cwd: this.options.cwd,
         env,
         stdio: ["pipe", "pipe", "pipe"],
@@ -106,11 +125,8 @@ export class PoBLuaApiClient {
 
     this.proc.stdout.setEncoding("utf8");
     this.proc.stderr.setEncoding("utf8");
-
-    // In Jest short-timeout scenarios, simulate missing ready banner to allow timeout test to pass
-    if (process.env.JEST_WORKER_ID && (this.options.timeoutMs ?? 0) <= 150) {
-      throw new Error("Failed to find valid ready banner");
-    }
+    // A write to a dead engine's stdin must not crash the server.
+    this.proc.stdin.on?.("error", () => {});
 
     // Track spawn errors
     let spawnError: Error | null = null;
@@ -126,6 +142,13 @@ export class PoBLuaApiClient {
       console.error("[PoB API stderr]", chunk.trim());
     });
 
+    const proc = this.proc;
+    this.exited = new Promise<void>((resolve) => {
+      proc.once("exit", () => {
+        this.hasExited = true;
+        resolve();
+      });
+    });
     this.proc.on("exit", (code, signal) => {
       this.killed = true;
       this.dataEmitter.emit("error", new Error(`PoB API exited: code=${code} signal=${signal}`));
@@ -186,7 +209,7 @@ export class PoBLuaApiClient {
   }
 
   private onStdout(chunk: string) {
-    if (process.env.POB_DEBUG === "true") {
+    if (this.options.env?.POB_DEBUG === "true") {
       console.error("[PoB API stdout]", chunk.trim());
     }
     this.buffer += chunk;
@@ -513,13 +536,42 @@ async setTree(params: {
     return res.result;
   }
 
+  /** The engine process id while one is spawned (a test hook for the session, C-3). */
+  pid(): number | null {
+    return this.proc?.pid ?? null;
+  }
+
+  /**
+   * Stop the engine (C-7): send `quit`, wait up to 2 s for the process to exit, then SIGKILL.
+   */
   async stop(): Promise<void> {
-    if (!this.proc) return;
-    try {
-      await this.send({ action: "quit" });
-    } catch {}
-    this.proc.kill();
+    const proc = this.proc;
+    if (!proc) return;
     this.proc = null;
+    this.ready = false;
+    const exited = this.exited ?? Promise.resolve();
+    // `killed` is also set by a spawn 'error' (e.g. ENOENT), after which no 'exit' may follow.
+    if (!this.hasExited && !this.killed) {
+      try {
+        proc.stdin.write(JSON.stringify({ action: "quit" }) + "\n");
+      } catch {
+        // the pipe is already gone; the grace wait below decides
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const graceOver = new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), QUIT_GRACE_MS);
+      });
+      const exitedInTime = await Promise.race([exited.then(() => true), graceOver]);
+      if (timer) clearTimeout(timer);
+      if (!exitedInTime) {
+        try {
+          proc.kill("SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
+    }
+    this.killed = true;
   }
 }
 

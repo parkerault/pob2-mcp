@@ -10,6 +10,7 @@ const mockValidationService = {} as any;
 const mockExportService = {} as any;
 const mockSkillGemService = {} as any;
 const mockLuaClient = {} as any;
+const mockFetch = (async () => { throw new Error('no fetch'); }) as unknown as typeof fetch;
 
 const mockDeps: ContextDependencies = {
   buildService: mockBuildService,
@@ -19,7 +20,9 @@ const mockDeps: ContextDependencies = {
   exportService: mockExportService,
   skillGemService: mockSkillGemService,
   pobDirectory: '/test/pob',
-  luaEnabled: true,
+  stateDir: '/test/state/pob2-mcp',
+  env: {},
+  fetch: mockFetch,
   getLuaClient: () => mockLuaClient,
   ensureLuaClient: async () => {},
   stopLuaClient: async () => {},
@@ -35,7 +38,7 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
       expect(context.validationService).toBe(mockValidationService);
-      expect(Object.keys(context)).toHaveLength(6);
+      expect(Object.keys(context)).toHaveLength(7);
     });
   });
 
@@ -46,7 +49,7 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
       expect(context.watchService).toBe(mockWatchService);
-      expect(Object.keys(context)).toHaveLength(3);
+      expect(Object.keys(context)).toHaveLength(5);
     });
   });
 
@@ -57,7 +60,7 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
       expect(context.validationService).toBe(mockValidationService);
-      expect(Object.keys(context)).toHaveLength(6);
+      expect(Object.keys(context)).toHaveLength(7);
     });
   });
 
@@ -66,7 +69,7 @@ describe('ContextBuilder', () => {
       const context = builder.buildLuaContext();
 
       expect(context.pobDirectory).toBe('/test/pob');
-      expect(context.luaEnabled).toBe(true);
+      expect(context.fetch).toBe(mockFetch);
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
       expect(typeof context.stopLuaClient).toBe('function');
@@ -79,7 +82,7 @@ describe('ContextBuilder', () => {
 
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(2);
+      expect(Object.keys(context)).toHaveLength(4);
     });
   });
 
@@ -92,7 +95,7 @@ describe('ContextBuilder', () => {
       expect(context.pobDirectory).toBe('/test/pob');
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(5);
+      expect(Object.keys(context)).toHaveLength(6);
     });
   });
 
@@ -103,7 +106,7 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.exportService).toBe(mockExportService);
       expect(context.luaClient).toBe(mockLuaClient);
-      expect(Object.keys(context)).toHaveLength(3);
+      expect(Object.keys(context)).toHaveLength(5);
     });
   });
 
@@ -113,7 +116,7 @@ describe('ContextBuilder', () => {
 
       expect(context.buildService).toBe(mockBuildService);
       expect(context.skillGemService).toBe(mockSkillGemService);
-      expect(Object.keys(context)).toHaveLength(5);
+      expect(Object.keys(context)).toHaveLength(6);
     });
   });
 
@@ -124,7 +127,7 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(4);
+      expect(Object.keys(context)).toHaveLength(5);
     });
   });
 
@@ -136,7 +139,21 @@ describe('ContextBuilder', () => {
       expect(context.validationService).toBe(mockValidationService);
       expect(context.getLuaClient()).toBe(mockLuaClient);
       expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(5);
+      expect(Object.keys(context)).toHaveLength(6);
     });
+  });
+
+  it('every handler context carries pobDirectory and stateDir (C-7)', () => {
+    const contexts = [
+      builder.buildHandlerContext(), builder.buildWatchContext(), builder.buildTreeContext(),
+      builder.buildLuaContext(), builder.buildItemSkillContext(), builder.buildOptimizationContext(),
+      builder.buildExportContext(), builder.buildSkillGemContext(),
+      builder.buildAdvancedOptimizationContext(), builder.buildValidationContext(),
+      builder.buildConfigPresetContext(),
+    ];
+    for (const c of contexts) {
+      expect(c.pobDirectory).toBe('/test/pob');
+      expect(c.stateDir).toBe('/test/state/pob2-mcp');
+    }
   });
 });

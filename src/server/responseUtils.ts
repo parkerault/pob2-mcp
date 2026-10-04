@@ -4,12 +4,19 @@
  * Utilities for formatting and processing MCP tool responses
  */
 
+/** The single MCP tool result type (C-1). Text content only; `isError` marks a tool failure. */
 export type ToolResponse = {
   content: Array<{
-    type: string;
+    type: "text";
     text: string;
   }>;
+  isError?: boolean;
 };
+
+/** A tool-execution error result (C-1, D-27). */
+export function errorResponse(text: string): ToolResponse {
+  return { content: [{ type: "text", text }], isError: true };
+}
 
 /**
  * Truncate response text if it exceeds a reasonable limit for Claude Desktop.

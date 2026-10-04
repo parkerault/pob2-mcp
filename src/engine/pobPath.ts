@@ -1,7 +1,7 @@
 import path from "path";
 import { packageRoot } from "../utils/packageRoot.js";
 
-/** Env shape the resolvers read from (the caller passes it; nothing here reads process.env). */
+/** Env shape the resolvers read from (the caller passes it; nothing here reads the process environment). */
 export type PobPathEnv = Readonly<Record<string, string | undefined>>;
 
 /**

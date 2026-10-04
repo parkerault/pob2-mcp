@@ -8,14 +8,22 @@ import { PoBLuaApiClient } from '../pobLuaBridge.js';
 import { resolvePobSrc, type PobPathEnv } from '../engine/pobPath.js';
 import { checkPin, readPin } from '../engine/pinCheck.js';
 
+export interface LuaClientManagerOptions {
+  /** deps.env (C-7): engine location, command, timeouts and the child's base env. */
+  env: PobPathEnv;
+  /** deps.spawn (C-7): the engine process factory. */
+  spawn: typeof import('child_process').spawn;
+}
+
 export class LuaClientManager {
   private client: PoBLuaApiClient | null = null;
-  private enabled: boolean;
   private env: PobPathEnv;
+  private spawn: typeof import('child_process').spawn;
 
-  constructor(enabled: boolean, env: PobPathEnv = process.env) {
-    this.enabled = enabled;
-    this.env = env;
+  /** Constructing the manager starts nothing: the engine starts lazily on the first engine call (D-14). */
+  constructor(options: LuaClientManagerOptions) {
+    this.env = options.env;
+    this.spawn = options.spawn;
   }
 
   /**
@@ -29,10 +37,6 @@ export class LuaClientManager {
    * Ensure the Lua client is initialized and ready
    */
   async ensureClient(): Promise<void> {
-    if (!this.enabled) {
-      throw new Error('PoB Lua Bridge is not enabled. Set POB_LUA_ENABLED=true to use lua_* tools.');
-    }
-
     if (this.client) {
       if (this.client.isAlive()) {
         return; // Already initialized and healthy
@@ -60,12 +64,15 @@ export class LuaClientManager {
 
     console.error('[Lua Bridge] Initializing client...');
 
+    let stdioClient: PoBLuaApiClient | null = null;
     try {
-      const stdioClient = new PoBLuaApiClient({
+      stdioClient = new PoBLuaApiClient({
         cwd: pobSrc,
         cmd: this.env.POB_CMD,
         args: this.env.POB_ARGS ? [this.env.POB_ARGS] : undefined,
         timeoutMs: this.env.POB_TIMEOUT_MS ? parseInt(this.env.POB_TIMEOUT_MS) : undefined,
+        env: this.env,
+        spawn: this.spawn,
       });
       await stdioClient.start();
       this.client = stdioClient;
@@ -80,7 +87,7 @@ export class LuaClientManager {
 
       while (attempts < maxAttempts) {
         try {
-          await this.client.loadBuildXml(testXml, 'Init Test');
+          await stdioClient.loadBuildXml(testXml, 'Init Test');
           console.error('[Lua Bridge] HeadlessWrapper fully initialized');
           break;
         } catch (loadError) {
@@ -95,6 +102,11 @@ export class LuaClientManager {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error('[Lua Bridge] Failed to initialize:', errorMsg);
+      // Never leave a half-started engine behind.
+      if (stdioClient) {
+        try { await stdioClient.stop(); } catch { /* already gone */ }
+      }
+      this.client = null;
       throw new Error(`Failed to start PoB Lua Bridge: ${errorMsg}`);
     }
   }
@@ -114,10 +126,8 @@ export class LuaClientManager {
     }
   }
 
-  /**
-   * Check if Lua bridge is enabled
-   */
-  isEnabled(): boolean {
-    return this.enabled;
+  /** The running engine's process id, if any (test hook, C-3). */
+  enginePid(): number | null {
+    return this.client?.pid() ?? null;
   }
 }

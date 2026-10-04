@@ -1427,13 +1427,13 @@ export function getExportToolSchemas(): any[] {
 }
 
 /**
- * Get Trade API tool schemas (require POE_TRADE_ENABLED=true)
+ * Get Trade API tool schemas (listed unless POE_TRADE_DISABLED=true)
  */
 export function getTradeToolSchemas(): any[] {
   return [
     {
       name: "search_trade_items",
-      description: "Search the Path of Exile trade site for items with filters. Returns matching items with prices, stats, and seller information. Default limit is 5 items to minimize token usage. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Search the Path of Exile trade site for items with filters. Returns matching items with prices, stats, and seller information. Default limit is 5 items to minimize token usage.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1500,7 +1500,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "get_item_price",
-      description: "Quick price check for a specific item by name. Returns current market price and recent sales. REQUIRES: POE_TRADE_ENABLED environment variable set to true. IMPORTANT: Use the EXACT league name the user specifies.",
+      description: "Quick price check for a specific item by name. Returns current market price and recent sales. IMPORTANT: Use the EXACT league name the user specifies.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1527,7 +1527,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "get_leagues",
-      description: "Get list of currently active Path of Exile leagues. Use this to find the correct league name before searching trade or prices. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Get list of currently active Path of Exile leagues. Use this to find the correct league name before searching trade or prices.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -1535,7 +1535,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "search_stats",
-      description: "Search for item stat/mod IDs to use in trade searches. Use this to find the correct stat_id values for mods you want to filter by. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Search for item stat/mod IDs to use in trade searches. Use this to find the correct stat_id values for mods you want to filter by.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1553,7 +1553,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "compare_trade_items",
-      description: "Compare two trade items side by side with DPS/defense calculations. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Compare two trade items side by side with DPS/defense calculations.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1579,7 +1579,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "search_cluster_jewels",
-      description: "Search for cluster jewels with specific enchants and notables. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Search for cluster jewels with specific enchants and notables.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1615,7 +1615,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "generate_shopping_list",
-      description: "Generate a prioritized shopping list of items to upgrade for a build within a budget. REQUIRES: POE_TRADE_ENABLED environment variable set to true.",
+      description: "Generate a prioritized shopping list of items to upgrade for a build within a budget.",
       inputSchema: {
         type: "object",
         properties: {

@@ -7,7 +7,8 @@ import { sanitizeBuildName } from "../utils/pathSanitizer.js";
 
 export interface LuaHandlerContext {
   pobDirectory: string;
-  luaEnabled: boolean;
+  /** deps.fetch (C-7): import_build's share-site fetch goes through it. */
+  fetch: typeof globalThis.fetch;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
   stopLuaClient: () => Promise<void>;
@@ -725,7 +726,7 @@ export async function handleImportBuild(
     if (!luaClient) throw new Error('Lua client not initialized. Use lua_start first.');
 
     const { resolveBuildXml } = await import('../utils/buildCode.js');
-    const xml = await resolveBuildXml(source);
+    const xml = await resolveBuildXml(source, context.fetch);
 
     const name = saveAs ? saveAs.replace(/\.xml$/i, '') : 'Imported Build';
     await luaClient.loadBuildXml(xml, name);
@@ -787,7 +788,7 @@ export async function handleCreateSpec(context: LuaHandlerContext, title?: strin
     if (activate != null) params.activate = activate;
     const result = await luaClient.createSpec(params);
     if (!result?.specs?.length) {
-      return { content: [{ type: "text" as const, text: "Failed to create spec." }] };
+      throw new Error('the engine returned no spec list');
     }
     const newSpec = result.specs[result.specs.length - 1];
     let text = `✅ Created new spec [${newSpec.index}] "${newSpec.title}" (${newSpec.className}/${newSpec.ascendClassName}, ${newSpec.nodeCount} nodes).`;
@@ -839,7 +840,7 @@ export async function handleDeleteSpec(context: LuaHandlerContext, index: number
     if (!luaClient) throw new Error('Lua client not initialized');
     const result = await luaClient.deleteSpec(index);
     if (!result?.specs?.length) {
-      return { content: [{ type: "text" as const, text: "Failed to delete spec." }] };
+      throw new Error('the engine returned no spec list');
     }
     let text = `✅ Deleted spec ${index}. ${result.specs.length} spec(s) remaining.`;
     text += `\n\nActive: Spec ${result.activeSpec}. Use list_specs to see all.`;
@@ -854,7 +855,7 @@ export async function handleRenameSpec(context: LuaHandlerContext, index: number
     if (!luaClient) throw new Error('Lua client not initialized');
     const result = await luaClient.renameSpec(index, title);
     if (!result?.specs?.length) {
-      return { content: [{ type: "text" as const, text: "Failed to rename spec." }] };
+      throw new Error('the engine returned no spec list');
     }
     const renamed = result.specs.find((s: any) => s.index === index);
     let text = `✅ Spec ${index} renamed to "${renamed?.title ?? title}".`;

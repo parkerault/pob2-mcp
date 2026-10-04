@@ -23,19 +23,34 @@ export class TradeApiClient {
   // PoE2 trade API base (trade2). Stat IDs and leagues are fetched from this base,
   // so the StatMapper automatically picks up PoE2 trade stats. Override with
   // POE_TRADE_BASE if GGG changes the path.
-  private readonly baseUrl = process.env.POE_TRADE_BASE || 'https://www.pathofexile.com/api/trade2';
+  private readonly baseUrl: string;
   // PoE2 search/fetch include the realm (the /data/leagues feed reports realm:"poe2",
   // and the site uses /trade2/search/poe2/<league>). Override with POE_TRADE_REALM.
-  private readonly realm = process.env.POE_TRADE_REALM || 'poe2';
+  private readonly realm: string;
   private readonly limiter: Bottleneck;
   private readonly cache = new Map<string, CacheEntry<any>>();
   private readonly defaultCacheTTL: number;
   private rateLimitInfo: RateLimitInfo | null = null;
+  /** deps.fetch (C-7): every outbound HTTP goes through it. */
+  private readonly fetchImpl: typeof globalThis.fetch;
+  /** deps.env (C-7). */
+  private readonly env: Readonly<Record<string, string | undefined>>;
+  /** deps.credentials (C-7, C-9): the trade session cookie, read per request. */
+  private readonly credentials: () => { sessionId: string | null };
 
-  constructor(options?: {
+  /** Construction does no I/O (C-7): requests happen only when a trade tool runs. */
+  constructor(options: {
+    fetch: typeof globalThis.fetch;
+    env: Readonly<Record<string, string | undefined>>;
+    credentials: () => { sessionId: string | null };
     requestsPerSecond?: number;
     cacheTTL?: number;
   }) {
+    this.fetchImpl = options.fetch;
+    this.env = options.env;
+    this.credentials = options.credentials;
+    this.baseUrl = options.env.POE_TRADE_BASE || 'https://www.pathofexile.com/api/trade2';
+    this.realm = options.env.POE_TRADE_REALM || 'poe2';
     const requestsPerSecond = options?.requestsPerSecond || 4;
     this.defaultCacheTTL = (options?.cacheTTL || 300) * 1000; // Convert to ms
 
@@ -215,12 +230,13 @@ export class TradeApiClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       // GGG asks for a descriptive, contactable User-Agent.
-      'User-Agent': process.env.POE_TRADE_USER_AGENT || 'pob2-mcp-server/0.1 (+https://github.com/PathOfBuildingCommunity)',
+      'User-Agent': this.env.POE_TRADE_USER_AGENT || 'pob2-mcp-server/0.1 (+https://github.com/PathOfBuildingCommunity)',
     };
     // The trade API sits behind Cloudflare and most endpoints require a logged-in
-    // session. Provide POESESSID to authenticate (export POE_SESSION_ID=...).
-    if (process.env.POE_SESSION_ID) {
-      headers['Cookie'] = `POESESSID=${process.env.POE_SESSION_ID}`;
+    // session. The cookie comes from the injected credential getter (C-9).
+    const { sessionId } = this.credentials();
+    if (sessionId) {
+      headers['Cookie'] = `POESESSID=${sessionId}`;
     }
     const options: RequestInit = { method, headers };
 
@@ -228,7 +244,7 @@ export class TradeApiClient {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, options);
+    const response = await this.fetchImpl(url, options);
 
     // Parse rate limit headers
     this.updateRateLimitInfo(response);

@@ -1,62 +1,47 @@
 /**
- * Integration tests that drive the real PoB2 engine through the Lua bridge.
+ * Integration tests that drive the real PoB2 engine through the Lua bridge (engine-required).
  *
- * These require luajit on PATH and the pinned PathOfBuilding-PoE2 checkout
- * (`mise run pob:fetch` puts it in vendor/). They are gated on that checkout
- * existing.
- *
- * The checkout location is resolvePobSrc's (vendor/ unless the env overrides it).
+ * They run inside `engineDescribe` (C-18): when the Jest globalSetup's engine probe failed (no
+ * vendor/ checkout, a pin mismatch, no luajit, a bridge that won't start) they fail with that
+ * cause, and they are skipped only with POB_SKIP_ENGINE=1. They use the server's own checkout
+ * resolver (vendor/ unless POB_FORK_PATH overrides it), never a sibling checkout.
  */
-import path from "path";
-import fs from "fs";
+import { beforeAll, afterAll, it, expect } from "@jest/globals";
 import { PoBLuaApiClient } from "../../src/pobLuaBridge";
 import { Poe2SkillService } from "../../src/services/poe2SkillService";
 import { handlePlanLeveling } from "../../src/handlers/levelingHandlers";
 import { resolvePobSrc } from "../../src/engine/pobPath";
+import { engineDescribe } from "../helpers/engine";
 
-const forkSrc = resolvePobSrc(process.env);
-const forkPresent = fs.existsSync(path.join(forkSrc, "HeadlessWrapper.lua"));
-
-const d = forkPresent ? describe : describe.skip;
-if (!forkPresent) {
-  // eslint-disable-next-line no-console
-  console.warn(`[poe2Bridge.test] PoE2 fork not found at ${forkSrc} — skipping integration tests.`);
-}
-
-d("PoE2 Lua bridge (integration)", () => {
+engineDescribe("PoE2 Lua bridge (integration)", () => {
   let api: PoBLuaApiClient;
-  let ready = false;
 
   beforeAll(async () => {
-    try {
-      api = new PoBLuaApiClient({ cwd: forkSrc, cmd: process.env.POB_CMD || "luajit", timeoutMs: 90000 });
-      await api.start();
-      await api.newBuild();
-      ready = true;
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("[poe2Bridge.test] bridge failed to start (luajit missing?) — tests will no-op:", (e as Error).message);
-    }
+    api = new PoBLuaApiClient({
+      cwd: resolvePobSrc(process.env),
+      cmd: process.env.POB_CMD || "luajit",
+      env: process.env,
+      timeoutMs: 90000,
+    });
+    await api.start();
+    await api.newBuild();
   }, 120000);
 
   afterAll(async () => {
-    if (api) { try { await api.stop(); } catch { /* ignore */ } }
+    if (api) await api.stop();
   });
 
   it("responds to ping", async () => {
-    if (!ready) return;
     expect(await api.ping()).toBe(true);
   }, 30000);
 
   it("computes PoE2 stats including Spirit", async () => {
-    if (!ready) return;
     const stats = await api.getStats(["Life", "Mana", "Spirit"]);
     expect(stats).toHaveProperty("Spirit");
     expect(Number(stats.Life)).toBeGreaterThan(0);
   }, 30000);
 
   it("recalculates on level change", async () => {
-    if (!ready) return;
     const before = Number((await api.getStats(["Life"])).Life);
     await api.setLevel(90);
     const after = Number((await api.getStats(["Life"])).Life);
@@ -64,14 +49,12 @@ d("PoE2 Lua bridge (integration)", () => {
   }, 30000);
 
   it("lists support gems from the engine gem DB", async () => {
-    if (!ready) return;
     const res = await api.listGems({ type: "support", maxResults: 50 });
     expect(res.total).toBeGreaterThan(0);
     expect(res.gems.every((g: any) => g.kind === "support")).toBe(true);
   }, 30000);
 
   it("exposes PoE2 classes (Witch=1, Ranger=2)", async () => {
-    if (!ready) return;
     const { classes } = await api.getClasses();
     const byId = new Map(classes.map((c) => [c.classId, c.name]));
     expect(byId.get(1)).toBe("Witch");
@@ -79,7 +62,6 @@ d("PoE2 Lua bridge (integration)", () => {
   }, 30000);
 
   it("analyzes a skill setup and flags a mismatched support", async () => {
-    if (!ready) return;
     const svc = new Poe2SkillService();
     const g = await api.createSocketGroup({ label: "Ice Nova", slot: "Weapon 1" });
     await api.addGem({ groupIndex: g.index, gemName: "Ice Nova", level: 20 });
@@ -97,7 +79,6 @@ d("PoE2 Lua bridge (integration)", () => {
   }, 60000);
 
   it("plans PoE2 leveling: resolves Witch/Abyssal Lich, Trials not Labyrinth, skill-tailored", async () => {
-    if (!ready) return;
     // Set Witch / Abyssal Lich via the tree (new_build always spawns the default class).
     const { classes } = await api.getClasses();
     const witch = classes.find((c) => c.name === "Witch")!;

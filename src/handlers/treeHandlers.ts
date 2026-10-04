@@ -120,6 +120,16 @@ export async function handleGetNearbyNodes(
     const allocatedNodes = new Set<string>(allocatedNodeIds);
     const treeData = await context.treeService.getTreeData(treeVersion);
 
+    // A tree none of whose nodes exist in the tree data is invalid: searching from it would
+    // silently report "nothing nearby".
+    if (!allocatedNodeIds.some((id) => treeData.nodes.has(id))) {
+      const shown = allocatedNodeIds.slice(0, 5).join(', ');
+      const more = allocatedNodeIds.length > 5 ? `, ... (${allocatedNodeIds.length} in total)` : '';
+      throw new Error(
+        `none of the build's allocated nodes exist in the passive tree data (version ${treeData.version}): invalid node(s) ${shown}${more}`
+      );
+    }
+
     const distance = maxDistance || 3;
 
     // Find nearby nodes using TreeService
@@ -183,14 +193,7 @@ export async function handleGetNearbyNodes(
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Error: ${errorMsg}`,
-        },
-      ],
-    };
+    throw new Error(`Failed to find nearby nodes: ${errorMsg}`);
   }
 }
 
@@ -336,14 +339,7 @@ export async function handleFindPath(
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Error: ${errorMsg}`,
-        },
-      ],
-    };
+    throw new Error(`Failed to find path: ${errorMsg}`);
   }
 }
 

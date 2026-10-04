@@ -108,6 +108,14 @@ interface Poe2ExchangeOverview {
  */
 export class PoeNinjaClient {
   private baseUrl = 'https://poe.ninja/poe2/api/economy/exchange/current';
+  /** deps.fetch (C-7): every outbound HTTP goes through it. */
+  private readonly fetchImpl: typeof globalThis.fetch;
+
+  /** Construction does no I/O (C-7). */
+  constructor(deps: { fetch: typeof globalThis.fetch }) {
+    this.fetchImpl = deps.fetch;
+  }
+
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTTL = 300000; // 5 minutes
 
@@ -146,7 +154,7 @@ export class PoeNinjaClient {
     }
 
     const url = `${this.baseUrl}/overview?league=${encodeURIComponent(league)}&type=Currency`;
-    const response = await fetch(url, {
+    const response = await this.fetchImpl(url, {
       headers: {
         'User-Agent': 'pob2-mcp-server/0.1',
         'Accept': 'application/json',

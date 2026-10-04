@@ -85,7 +85,7 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
         if (numSpecs > 1 || numSets > 1) {
           const parts: string[] = [];
           if (activeSpec && numSpecs > 1) {
-            parts.push(`Spec ${activeSpec.index}/${numSpecs}: "${activeSpec.title}" (${activeSpec.nodeCount} nodes)`);
+            parts.push(`Spec ${activeSpec.index}/${numSpecs}: "${activeSpec.title}" (${activeSpec.pointsUsed} points)`);
           }
           if (activeItemSet && numSets > 1) {
             parts.push(`Item Set ${activeItemSet.id}/${numSets}: "${activeItemSet.title}"`);
@@ -300,7 +300,7 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
       '',
       `Build 1: ${r1.displayName}`,
       r1.selectedSpec
-        ? `  Spec:     "${r1.selectedSpec.title}" (${r1.selectedSpec.nodeCount} nodes, saved active)`
+        ? `  Spec:     "${r1.selectedSpec.title}" (${r1.selectedSpec.pointsUsed} points, saved active)`
         : '  Spec:     N/A',
       r1.selectedItemSet
         ? `  Item Set: "${r1.selectedItemSet.title}" (saved active)`
@@ -308,7 +308,7 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
       '',
       `Build 2: ${r2.displayName}`,
       r2.selectedSpec
-        ? `  Spec:     "${r2.selectedSpec.title}" (${r2.selectedSpec.nodeCount} nodes, saved active)`
+        ? `  Spec:     "${r2.selectedSpec.title}" (${r2.selectedSpec.pointsUsed} points, saved active)`
         : '  Spec:     N/A',
       r2.selectedItemSet
         ? `  Item Set: "${r2.selectedItemSet.title}" (saved active)`

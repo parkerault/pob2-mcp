@@ -1,6 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import type { BuildFileWriter } from "../services/buildFileWriter.js";
+import type { SpecSummary } from "../engine/schemas.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import fs from "fs/promises";
 import path from "path";
@@ -151,16 +152,16 @@ export async function handleLuaLoadBuild(
       if (specsResult?.specs?.length > 1) {
         extraLines.push('');
         extraLines.push(`📋 This build has ${specsResult.specs.length} passive tree specs:`);
-        const maxNodes = Math.max(...specsResult.specs.map((s: any) => s.nodeCount ?? 0));
+        const maxPoints = Math.max(...specsResult.specs.map((s) => s.pointsUsed));
         for (const s of specsResult.specs) {
-          const isEndgame = s.nodeCount === maxNodes && !s.active ? ' ← likely endgame' : '';
-          extraLines.push(`  ${s.active ? '▶' : ' '} [${s.index}] ${s.title} — ${s.className}/${s.ascendClassName}, ${s.nodeCount} nodes${isEndgame}`);
+          const isEndgame = s.pointsUsed === maxPoints && !s.active ? ' ← likely endgame' : '';
+          extraLines.push(`  ${s.active ? '▶' : ' '} ${formatSpecSummary(s)}${isEndgame}`);
         }
-        // Warn if active spec is not the one with the most nodes
-        const activeSpec = specsResult.specs.find((s: any) => s.active);
-        if (activeSpec && activeSpec.nodeCount < maxNodes) {
-          const endgameSpec = specsResult.specs.find((s: any) => s.nodeCount === maxNodes);
-          extraLines.push(`⚠️  Active spec is a leveling tree (${activeSpec.nodeCount} nodes). For endgame analysis, run: select_spec(${endgameSpec?.index})`);
+        // Warn if active spec is not the one with the most points spent
+        const activeSpec = specsResult.specs.find((s) => s.active);
+        if (activeSpec && activeSpec.pointsUsed < maxPoints) {
+          const endgameSpec = specsResult.specs.find((s) => s.pointsUsed === maxPoints);
+          extraLines.push(`⚠️  Active spec is a leveling tree (${activeSpec.pointsUsed} points). For endgame analysis, run: select_spec(${endgameSpec?.index})`);
         }
         extraLines.push('Use select_spec to switch specs.');
       }
@@ -264,9 +265,11 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
     }
     // If category is 'all' or undefined, get all stats (fields = undefined)
 
-    const stats = await luaClient.getStats(fields);
+    const { _meta: meta, ...stats } = await luaClient.getStats(fields);
 
     const textLines: string[] = ['=== PoB Calculated Stats ===', ''];
+    // The active passive spec's tree version (C-5 `_meta`), not the build file's game version.
+    if (meta?.treeVersion) textLines.push(`Tree Version: ${meta.treeVersion}`, '');
 
     if (stats && typeof stats === 'object') {
       // Filter out zero/null/undefined values to reduce noise
@@ -788,6 +791,11 @@ export async function handleGetClasses(context: LuaHandlerContext) {
   });
 }
 
+/** `[index] title — Class/Ascendancy, N points` for one `list_specs` entry. */
+export function formatSpecSummary(s: SpecSummary): string {
+  return `[${s.index}] ${s.title} — ${s.className || 'Unknown'}/${s.ascendClassName || 'None'}, ${s.pointsUsed} points`;
+}
+
 export async function handleCreateSpec(context: LuaHandlerContext, title?: string, copyFrom?: number, activate?: boolean) {
   return wrapHandler('create spec', async () => {
     await context.ensureLuaClient();
@@ -797,14 +805,12 @@ export async function handleCreateSpec(context: LuaHandlerContext, title?: strin
     if (title != null) params.title = title;
     if (copyFrom != null) params.copyFrom = copyFrom;
     if (activate != null) params.activate = activate;
-    const result = await luaClient.createSpec(params);
-    if (!result?.specs?.length) {
-      throw new Error('the engine returned no spec list');
-    }
-    const newSpec = result.specs[result.specs.length - 1];
-    let text = `✅ Created new spec [${newSpec.index}] "${newSpec.title}" (${newSpec.className}/${newSpec.ascendClassName}, ${newSpec.nodeCount} nodes).`;
-    if (newSpec.active) text += '\nThis spec is now active.';
-    text += `\n\nTotal specs: ${result.specs.length}. Use list_specs to see all, select_spec to switch.`;
+    const created = await luaClient.createSpec(params);
+    const { specs } = await luaClient.listSpecs();
+    const newSpec = specs.find((s) => s.index === created.index);
+    let text = `✅ Created new spec ${newSpec ? formatSpecSummary(newSpec) : `[${created.index}] ${created.title}`}.`;
+    if (created.activated) text += '\nThis spec is now active.';
+    text += `\n\nTotal specs: ${specs.length}. Use list_specs to see all, select_spec to switch.`;
     return { content: [{ type: "text" as const, text }] };
   });
 }
@@ -815,14 +821,14 @@ export async function handleListSpecs(context: LuaHandlerContext) {
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua client not initialized');
   const result = await luaClient.listSpecs();
-  if (!result?.specs?.length) {
+  if (!result.specs.length) {
     return { content: [{ type: "text" as const, text: `No specs found. Load a build first.` }] };
   }
   const textLines: string[] = [`=== Passive Tree Specs (${result.specs.length} total) ===`, ''];
   for (const s of result.specs) {
     textLines.push(`${s.active ? '▶' : ' '} [${s.index}] ${s.title}`);
     textLines.push(`      Class: ${s.className || 'Unknown'} / ${s.ascendClassName || 'None'}`);
-    textLines.push(`      Nodes: ${s.nodeCount}  |  Tree: ${s.treeVersion || 'Unknown'}`);
+    textLines.push(`      Points: ${s.pointsUsed}  |  Tree: ${s.treeVersion}`);
   }
   textLines.push(`\nActive: Spec ${result.activeSpec}. Use select_spec to switch.`);
   const text = textLines.join('\n');
@@ -835,10 +841,11 @@ export async function handleSelectSpec(context: LuaHandlerContext, index: number
   await context.ensureLuaClient();
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua client not initialized');
-  const result = await luaClient.selectSpec(index);
-  const active = result?.specs?.find((s: any) => s.active);
-  let text = `✅ Switched to Spec ${index}`;
-  if (active) text += ` — ${active.title} (${active.className}/${active.ascendClassName}, ${active.nodeCount} nodes)`;
+  const selected = await luaClient.selectSpec(index);
+  const { specs } = await luaClient.listSpecs();
+  const active = specs.find((s) => s.index === selected.activeSpec);
+  let text = `✅ Switched to Spec ${selected.activeSpec}`;
+  text += active ? ` — ${formatSpecSummary(active)}` : ` — ${selected.title}`;
   text += `.\n\nStats have been recalculated for this spec.`;
   return { content: [{ type: "text" as const, text }] };
   });
@@ -850,10 +857,7 @@ export async function handleDeleteSpec(context: LuaHandlerContext, index: number
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error('Lua client not initialized');
     const result = await luaClient.deleteSpec(index);
-    if (!result?.specs?.length) {
-      throw new Error('the engine returned no spec list');
-    }
-    let text = `✅ Deleted spec ${index}. ${result.specs.length} spec(s) remaining.`;
+    let text = `✅ Deleted spec ${result.deleted}. ${result.remaining} spec(s) remaining.`;
     text += `\n\nActive: Spec ${result.activeSpec}. Use list_specs to see all.`;
     return { content: [{ type: "text" as const, text }] };
   });
@@ -865,11 +869,7 @@ export async function handleRenameSpec(context: LuaHandlerContext, index: number
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error('Lua client not initialized');
     const result = await luaClient.renameSpec(index, title);
-    if (!result?.specs?.length) {
-      throw new Error('the engine returned no spec list');
-    }
-    const renamed = result.specs.find((s: any) => s.index === index);
-    let text = `✅ Spec ${index} renamed to "${renamed?.title ?? title}".`;
+    const text = `✅ Spec ${result.index} renamed to "${result.title}".`;
     return { content: [{ type: "text" as const, text }] };
   });
 }
@@ -880,16 +880,14 @@ export async function handleListItemSets(context: LuaHandlerContext) {
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua client not initialized');
   const result = await luaClient.listItemSets();
-  if (!result?.itemSets?.length) {
+  if (!result.itemSets.length) {
     return { content: [{ type: "text" as const, text: "No item sets found. Load a build first." }] };
   }
   const textLines: string[] = [`=== Item Sets (${result.itemSets.length} total) ===`, ''];
   for (const s of result.itemSets) {
-    let line = `${s.active ? '▶' : ' '} [${s.id}] ${s.title}`;
-    if (s.useSecondWeaponSet) line += ` (swap weapon set)`;
-    textLines.push(line);
+    textLines.push(`${s.active ? '▶' : ' '} [${s.id}] ${s.title}${s.active ? ' (active)' : ''}`);
   }
-  textLines.push(`\nActive: Item Set ${result.activeItemSetId}. Use select_item_set to switch.`);
+  textLines.push(`\nActive: Item Set ${result.activeItemSet}. Use select_item_set to switch.`);
   const text = textLines.join('\n');
   return { content: [{ type: "text" as const, text }] };
   });
@@ -901,10 +899,7 @@ export async function handleSelectItemSet(context: LuaHandlerContext, id: number
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua client not initialized');
   const result = await luaClient.selectItemSet(id);
-  const active = result?.itemSets?.find((s: any) => s.active);
-  let text = `✅ Switched to Item Set ${id}`;
-  if (active) text += ` — ${active.title}`;
-  text += `.\n\nStats have been recalculated for this item set.`;
+  const text = `✅ Switched to Item Set ${result.activeItemSet} — ${result.title}.\n\nStats have been recalculated for this item set.`;
   return { content: [{ type: "text" as const, text }] };
   });
 }

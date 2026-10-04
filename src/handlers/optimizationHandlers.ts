@@ -70,7 +70,7 @@ export async function handleAnalyzeDefenses(
       const activeItemSet = itemSetsResult?.itemSets?.find((s: any) => s.active);
       const parts: string[] = [];
       if (activeSpec && specsResult?.specs?.length > 1) {
-        parts.push(`Spec ${activeSpec.index}/${specsResult.specs.length}: "${activeSpec.title}" (${activeSpec.nodeCount} nodes)`);
+        parts.push(`Spec ${activeSpec.index}/${specsResult.specs.length}: "${activeSpec.title}" (${activeSpec.pointsUsed} points)`);
       }
       if (activeItemSet && itemSetsResult?.itemSets?.length > 1) {
         parts.push(`Item Set ${activeItemSet.id}/${itemSetsResult.itemSets.length}: "${activeItemSet.title}"`);

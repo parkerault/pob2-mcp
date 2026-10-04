@@ -1,9 +1,10 @@
-// Mock responses for PoB Lua API (CommonJS)
+// Mock responses for PoB Lua API (CommonJS). Success replies follow the C-5 reply schemas
+// (src/engine/schemas.ts), which the bridge client validates.
 
 export const MOCK_RESPONSES = {
   ready: { ready: true },
   ping: { ok: true },
-  load_build_xml: { ok: true },
+  load_build_xml: { ok: true, result: { name: 'API Build' } },
   get_stats: {
     ok: true,
     stats: {
@@ -23,6 +24,7 @@ export const MOCK_RESPONSES = {
       SpellBlockChance: 0,
       LifeRegen: 500,
       ManaRegen: 100,
+      _meta: { omitted: [], treeVersion: '0_5', level: 90, buildName: 'Test Build' },
     },
   },
   get_tree: {
@@ -36,13 +38,18 @@ export const MOCK_RESPONSES = {
       masteryEffects: {},
     },
   },
-  set_tree: { ok: true },
+  set_tree: {
+    ok: true,
+    tree: { treeVersion: '0_5', classId: 2, ascendClassId: 1, secondaryAscendClassId: 0, nodes: [1, 2, 3] },
+  },
   get_items: {
     ok: true,
     items: [
       {
         slot: 'Weapon 1',
         id: 1,
+        inactive: false,
+        shown: true,
         name: 'Death Bow',
         baseName: 'Thicket Bow',
         type: 'Bow',
@@ -52,10 +59,14 @@ export const MOCK_RESPONSES = {
       {
         slot: 'Body Armour',
         id: 0,
+        inactive: false,
+        shown: true,
       },
       {
         slot: 'Flask 1',
         id: 10,
+        inactive: false,
+        shown: true,
         name: 'Diamond Flask',
         baseName: 'Diamond Flask',
         rarity: 'MAGIC',
@@ -93,6 +104,9 @@ export const MOCK_RESPONSES = {
             'Mirage Archer Support',
             'Elemental Focus Support',
           ],
+          gems: [],
+          activeCount: 1,
+          supportCount: 5,
         },
         {
           index: 2,
@@ -102,11 +116,17 @@ export const MOCK_RESPONSES = {
           includeInFullDPS: false,
           mainActiveSkill: 1,
           skills: ['Dash', 'Second Wind Support'],
+          gems: [],
+          activeCount: 1,
+          supportCount: 1,
         },
       ],
     },
   },
-  set_main_selection: { ok: true },
+  set_main_selection: {
+    ok: true,
+    skills: { mainSocketGroup: 1, calcsSkillNumber: 1, groups: [] },
+  },
   get_config: {
     ok: true,
     config: {
@@ -114,6 +134,7 @@ export const MOCK_RESPONSES = {
       pantheonMajorGod: 'Soul of Lunaris',
       pantheonMinorGod: 'Soul of Shakari',
       enemyLevel: 84,
+      input: {},
     },
   },
   set_config: {
@@ -123,6 +144,7 @@ export const MOCK_RESPONSES = {
       pantheonMajorGod: 'Soul of Solaris',
       pantheonMinorGod: 'Soul of Gruthkul',
       enemyLevel: 85,
+      input: {},
     },
   },
   export_build_xml: {
@@ -140,7 +162,10 @@ export const MOCK_RESPONSES = {
     },
   },
   set_level: { ok: true },
-  update_tree_delta: { ok: true },
+  update_tree_delta: {
+    ok: true,
+    tree: { treeVersion: '0_5', classId: 2, ascendClassId: 1, secondaryAscendClassId: 0, nodes: [1, 2, 3] },
+  },
   calc_with: {
     ok: true,
     output: {

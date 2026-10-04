@@ -84,7 +84,8 @@ describe('request ids and the pending map (C-4)', () => {
 
     const settled: number[] = [];
     const calls = [0, 1, 2].map((n) =>
-      client.request('get_build_info', { n }).then((reply) => {
+      // get_build_info takes no params (C-5 ActionParams); `n` only tags the request lines here.
+      client.request('get_build_info', { n } as unknown as Record<string, never>).then((reply) => {
         settled.push(n);
         return reply;
       }),
@@ -162,7 +163,7 @@ describe('write-anchored timeouts (C-4)', () => {
       proc.sendLine(`LOADING noise line ${i}`);
     }
     jest.advanceTimersByTime(100); // 900 ms after the write
-    proc.reply(id, { ok: true, stats: { Life: 1 } });
+    proc.reply(id, { ok: true, stats: { Life: 1, _meta: { omitted: [] } } });
     await expect(pending).resolves.toMatchObject({ id, ok: true, stats: { Life: 1 } });
     expect(proc.killed).toBe(false);
   });
@@ -454,9 +455,12 @@ describe('start() (C-4)', () => {
 
 describe('reply validation (C-5 hook)', () => {
   it('AC-E13: a reply failing the registered ping schema rejects EngineContractError naming ping and the issue path pong; the engine stays alive; an action without a schema passes through', async () => {
-    expect(replySchemas.get_stats).toBeUndefined();
     const original = replySchemas.ping;
     replySchemas.ping = baseReply.extend({ pong: z.literal(true) });
+    // Every action has a schema since WU-09 (C-5); remove get_stats' for this test to exercise the
+    // no-schema pass-through the registry still allows (C-4).
+    const getStatsSchema = replySchemas.get_stats;
+    delete replySchemas.get_stats;
     try {
       const { client, proc } = await startedClient(); // the readiness ping replies pong:true
       proc.registerResponse('ping', { ok: true, pong: false });
@@ -481,6 +485,7 @@ describe('reply validation (C-5 hook)', () => {
     } finally {
       if (original) replySchemas.ping = original;
       else delete replySchemas.ping;
+      replySchemas.get_stats = getStatsSchema;
     }
   });
 

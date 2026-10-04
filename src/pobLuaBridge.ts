@@ -28,6 +28,19 @@ import {
   type TradeGenerateQueryParams,
   type TradeGenerateQueryResult,
   type TradeQueryOptionsResult,
+  type BuildInfoResult,
+  type CreateSpecResult,
+  type DeleteSpecResult,
+  type ItemSlot,
+  type ListItemSetsResult,
+  type ListSpecsResult,
+  type RenameSpecResult,
+  type SelectItemSetResult,
+  type SelectSpecResult,
+  type SkillsResult,
+  type StatsResult,
+  type TreeResult,
+  type Loose,
 } from "./engine/schemas.js";
 
 /** The pin the client checks the checkout and the banner against (`pob-pin.json`, C-6). */
@@ -510,7 +523,7 @@ export class PoBLuaApiClient {
   }
 
   /** Write one request on `conn` and wait for its reply. */
-  private send(conn: Conn, action: string, params: Record<string, unknown> | undefined, opts: RequestOptions): Promise<unknown> {
+  private send(conn: Conn, action: string, params: object | undefined, opts: RequestOptions): Promise<unknown> {
     if (conn.dead) return Promise.reject(this.deadError(conn));
     if (opts.signal?.aborted) return Promise.reject(abortError(opts.signal));
     const timeoutMs = opts.timeoutMs ?? this.defaultTimeout(action);
@@ -615,7 +628,7 @@ export class PoBLuaApiClient {
    */
   request<A extends ActionName>(action: A, params?: ActionParams<A>, opts?: RequestOptions): Promise<ActionReply<A>>;
   request(action: TestActionName, params?: Record<string, unknown>, opts?: RequestOptions): Promise<TestReply>;
-  request(action: string, params?: Record<string, unknown>, opts: RequestOptions = {}): Promise<unknown> {
+  request(action: string, params?: object, opts: RequestOptions = {}): Promise<unknown> {
     const conn = this.conn;
     if (conn === null || !conn.ready || conn.dead) return Promise.reject(this.deadError(conn));
     return this.send(conn, action, params, opts);
@@ -656,30 +669,32 @@ export class PoBLuaApiClient {
     return res.ok === true;
   }
 
-  async newBuild(params?: { className?: string; ascendancy?: string }): Promise<any> {
-    return this.request("new_build", params || {});
+  async newBuild(params: ActionParams<"new_build"> = {}): Promise<ActionReply<"new_build">> {
+    return this.request("new_build", params);
   }
 
-  async loadBuildXml(xml: string, name = "API Build"): Promise<any> {
+  async loadBuildXml(xml: string, name = "API Build"): Promise<ActionReply<"load_build_xml">> {
     return this.request("load_build_xml", { xml, name });
   }
 
-  async getStats(fields?: string[]): Promise<Record<string, any>> {
+  /** `get_stats`: the requested (default: the widened default list) scalar stats, plus `_meta`. */
+  async getStats(fields?: string[]): Promise<Loose<StatsResult>> {
     const res = await this.request("get_stats", { fields });
-    return res.stats as Record<string, any>;
+    return res.stats;
   }
 
-  async getTree(): Promise<any> {
+  async getTree(): Promise<Loose<TreeResult>> {
     const res = await this.request("get_tree");
     return res.tree;
   }
 
-  async getItems(): Promise<any[]> {
+  /** Every slot PoB created, hidden ones included; see `visibleItemSlots` (E8). */
+  async getItems(): Promise<ItemSlot[]> {
     const res = await this.request("get_items");
-    return res.items as any[];
+    return res.items;
   }
 
-  async addItem(itemText: string, slotName?: string, noAutoEquip?: boolean): Promise<any> {
+  async addItem(itemText: string, slotName?: string, noAutoEquip?: boolean): Promise<ActionReply<"add_item_text">["item"]> {
     const res = await this.request("add_item_text", { text: itemText, slotName, noAutoEquip });
     return res.item;
   }
@@ -688,37 +703,26 @@ export class PoBLuaApiClient {
     await this.request("set_flask_active", { index: flaskIndex, active });
   }
 
-  async getSkills(): Promise<any> {
+  async getSkills(): Promise<SkillsResult> {
     const res = await this.request("get_skills");
     return res.skills;
   }
 
-  async setMainSelection(params: {
-    mainSocketGroup?: number;
-    mainActiveSkill?: number;
-    skillPart?: number;
-  }): Promise<void> {
+  async setMainSelection(params: ActionParams<"set_main_selection">): Promise<void> {
     await this.request("set_main_selection", params);
   }
 
-  async setTree(params: {
-    classId: number;
-    ascendClassId: number;
-    secondaryAscendClassId?: number;
-    nodes: number[];
-    masteryEffects?: Record<number, number>;
-    treeVersion?: string;
-  }): Promise<any> {
+  async setTree(params: ActionParams<"set_tree">): Promise<Loose<TreeResult>> {
     const res = await this.request("set_tree", params);
     return res.tree;
   }
 
   async exportBuildXml(): Promise<string> {
     const res = await this.request("export_build_xml");
-    return res.xml as string;
+    return res.xml;
   }
 
-  async getBuildInfo(): Promise<any> {
+  async getBuildInfo(): Promise<BuildInfoResult> {
     const res = await this.request("get_build_info");
     return res.info;
   }
@@ -732,104 +736,105 @@ export class PoBLuaApiClient {
     return res.config;
   }
 
-  async setConfig(params: Record<string, any>): Promise<any> {
+  async setConfig(params: ActionParams<"set_config">): Promise<any> {
     const res = await this.request("set_config", params);
     return res.config;
   }
 
-  async createSocketGroup(params?: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean }): Promise<any> {
-    const res = await this.request("create_socket_group", params || {});
+  async createSocketGroup(params: ActionParams<"create_socket_group"> = {}): Promise<ActionReply<"create_socket_group">["socketGroup"]> {
+    const res = await this.request("create_socket_group", params);
     return res.socketGroup;
   }
 
-  async addGem(params: { groupIndex: number; gemName: string; level?: number; quality?: number; qualityId?: string; enabled?: boolean; count?: number }): Promise<any> {
+  async addGem(params: ActionParams<"add_gem">): Promise<ActionReply<"add_gem">["gem"]> {
     const res = await this.request("add_gem", params);
     return res.gem;
   }
 
-  async setGemLevel(params: { groupIndex: number; gemIndex: number; level: number }): Promise<void> {
+  async setGemLevel(params: ActionParams<"set_gem_level">): Promise<void> {
     await this.request("set_gem_level", params);
   }
 
-  async setGemQuality(params: { groupIndex: number; gemIndex: number; quality: number; qualityId?: string }): Promise<void> {
+  async setGemQuality(params: ActionParams<"set_gem_quality">): Promise<void> {
     await this.request("set_gem_quality", params);
   }
 
-  async removeSkill(params: { groupIndex: number }): Promise<void> {
+  async removeSkill(params: ActionParams<"remove_skill">): Promise<void> {
     await this.request("remove_skill", params);
   }
 
-  async removeGem(params: { groupIndex: number; gemIndex: number }): Promise<void> {
+  async removeGem(params: ActionParams<"remove_gem">): Promise<void> {
     await this.request("remove_gem", params);
   }
 
-  async setSocketGroupEnabled(params: { groupIndex: number; enabled: boolean }): Promise<{ groupIndex: number; label: string; enabled: boolean }> {
+  async setSocketGroupEnabled(params: ActionParams<"set_socket_group_enabled">): Promise<ActionReply<"set_socket_group_enabled">["result"]> {
     const res = await this.request("set_socket_group_enabled", params);
-    return res.result as { groupIndex: number; label: string; enabled: boolean };
+    return res.result;
   }
 
-  async setGemEnabled(params: { groupIndex: number; gemIndex: number; enabled: boolean }): Promise<void> {
+  async setGemEnabled(params: ActionParams<"set_gem_enabled">): Promise<void> {
     await this.request("set_gem_enabled", params);
   }
 
-  async searchNodes(params: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean }): Promise<any> {
+  async searchNodes(params: ActionParams<"search_nodes">): Promise<ActionReply<"search_nodes">["results"]> {
     const res = await this.request("search_nodes", params);
     return res.results;
   }
 
   /** List gems from PoB2's authoritative gem database (PoE2). */
-  async listGems(params: { type?: "active" | "support"; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean } = {}): Promise<{ gems: any[]; count: number; total: number }> {
+  async listGems(params: ActionParams<"list_gems"> = {}): Promise<ActionReply<"list_gems">["result"]> {
     const res = await this.request("list_gems", params);
-    return res.result as { gems: any[]; count: number; total: number };
+    return res.result;
   }
 
   /** List PoE2 classes + ascendancies with their engine IDs. */
-  async getClasses(): Promise<{ classes: { classId: number; name: string; ascendancies: { id: number; name: string }[] }[] }> {
+  async getClasses(): Promise<ActionReply<"get_classes">["result"]> {
     const res = await this.request("get_classes");
-    return res.result as { classes: { classId: number; name: string; ascendancies: { id: number; name: string }[] }[] };
+    return res.result;
   }
 
-  async updateTreeDelta(params: { addNodes?: number[]; removeNodes?: number[]; classId?: number; ascendClassId?: number; secondaryAscendClassId?: number; treeVersion?: string; }): Promise<{ tree: any; autoPathedNodes?: number[]; skippedAscendancyNodes?: number[] }> {
+  async updateTreeDelta(params: ActionParams<"update_tree_delta">): Promise<{ tree: Loose<TreeResult>; autoPathedNodes?: number[]; skippedAscendancyNodes?: number[] }> {
     const res = await this.request("update_tree_delta", params);
     return { tree: res.tree, autoPathedNodes: res.autoPathedNodes as number[] | undefined, skippedAscendancyNodes: res.skippedAscendancyNodes as number[] | undefined };
   }
 
-  async calcWith(params: { addNodes?: number[]; removeNodes?: number[]; useFullDPS?: boolean }): Promise<any> {
+  async calcWith(params: ActionParams<"calc_with">): Promise<Record<string, any>> {
     const res = await this.request("calc_with", params);
     return res.output;
   }
 
-  async createSpec(params?: { title?: string; copyFrom?: number; activate?: boolean }): Promise<any> {
-    const res = await this.request("create_spec", params || {});
+  /** `create_spec`: `{index, title, activated}` of the new spec. */
+  async createSpec(params: ActionParams<"create_spec"> = {}): Promise<CreateSpecResult> {
+    const res = await this.request("create_spec", params);
     return res.result;
   }
 
-  async listSpecs(): Promise<any> {
+  async listSpecs(): Promise<ListSpecsResult> {
     const res = await this.request("list_specs");
     return res.result;
   }
 
-  async selectSpec(index: number): Promise<any> {
+  async selectSpec(index: number): Promise<SelectSpecResult> {
     const res = await this.request("select_spec", { index });
     return res.result;
   }
 
-  async deleteSpec(index: number): Promise<any> {
+  async deleteSpec(index: number): Promise<DeleteSpecResult> {
     const res = await this.request("delete_spec", { index });
     return res.result;
   }
 
-  async renameSpec(index: number, title: string): Promise<any> {
+  async renameSpec(index: number, title: string): Promise<RenameSpecResult> {
     const res = await this.request("rename_spec", { index, title });
     return res.result;
   }
 
-  async listItemSets(): Promise<any> {
+  async listItemSets(): Promise<ListItemSetsResult> {
     const res = await this.request("list_item_sets");
     return res.result;
   }
 
-  async selectItemSet(id: number): Promise<any> {
+  async selectItemSet(id: number): Promise<SelectItemSetResult> {
     const res = await this.request("select_item_set", { id });
     return res.result;
   }
@@ -839,13 +844,13 @@ export class PoBLuaApiClient {
 
   /** PoB's weighted trade query for a slot, the full ranked weights and the baseline score. */
   async tradeGenerateQuery(params: TradeGenerateQueryParams, opts?: RequestOptions): Promise<TradeGenerateQueryResult> {
-    const res = await this.request("trade_generate_query", { ...params }, opts);
+    const res = await this.request("trade_generate_query", params, opts);
     return res.result;
   }
 
   /** Score fetched listings against the loaded build, one by one (failures go to `rejected`). */
   async tradeEvaluateItems(params: TradeEvaluateItemsParams, opts?: RequestOptions): Promise<TradeEvaluateItemsResult> {
-    const res = await this.request("trade_evaluate_items", { ...params }, opts);
+    const res = await this.request("trade_evaluate_items", params, opts);
     return res.result;
   }
 

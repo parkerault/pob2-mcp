@@ -1,5 +1,6 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import { wrapHandler } from "../utils/errorHandling.js";
+import { visibleItemSlots } from "../utils/itemSlots.js";
 
 export interface ItemSkillHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -123,14 +124,15 @@ export async function handleGetEquippedItems(context: ItemSkillHandlerContext) {
       throw new Error('Lua client not initialized. Use lua_start first.');
     }
 
-    const items = await luaClient.getItems();
+    // Only the slots PoB shows: hidden jewel sockets and the inactive weapon set are dropped (E8).
+    const items = visibleItemSlots(await luaClient.getItems());
 
     let text = "=== Equipped Items ===\n\n";
 
     if (!items || items.length === 0) {
       text += "No items equipped.\n";
     } else {
-      const equipped = items.filter((item: any) => item.id !== 0 && item.name);
+      const equipped = items.filter((item) => item.id !== 0 && item.name);
       if (equipped.length === 0) {
         text += "No items equipped.\n";
       } else {

@@ -28,7 +28,9 @@ function M.get_main_output()
   return output
 end
 
--- The stats exported when the caller names no fields (get_stats, calc_with).
+-- The stats exported when the caller names no fields (get_stats, calc_with): the original 18, plus
+-- the defence, pool, resistance-gap, max-hit and enemy-damage outputs and the attributes that callers
+-- would otherwise read as missing (E7). Names are PoB's mainOutput keys (CalcDefence, CalcPerform).
 M.DEFAULT_STAT_FIELDS = {
   "Life", "EnergyShield", "Mana", "Spirit", "Ward",
   "Armour", "Evasion",
@@ -36,7 +38,24 @@ M.DEFAULT_STAT_FIELDS = {
   "BlockChance", "SpellBlockChance",
   "LifeRegen", "ManaRegen",
   "TotalDPS", "FullDPS", "CombinedDPS",
+  "TotalEHP", "PhysicalDamageReduction",
+  "LifeUnreserved", "ManaUnreserved", "SpiritUnreserved",
+  "EvadeChance", "DeflectChance", "EffectiveBlockChance", "EnergyShieldRecharge",
+  "MissingFireResist", "MissingColdResist", "MissingLightningResist", "MissingChaosResist",
+  "PhysicalMaximumHitTaken", "FireMaximumHitTaken", "ColdMaximumHitTaken",
+  "LightningMaximumHitTaken", "ChaosMaximumHitTaken",
+  "PhysicalEnemyDamage", "FireEnemyDamage", "ColdEnemyDamage",
+  "LightningEnemyDamage", "ChaosEnemyDamage", "totalEnemyDamage",
+  "Str", "Dex", "Int",
 }
+
+-- The active passive spec's tree version (e.g. "0_5"). `build.targetVersion` is the game-version
+-- tag of the build file ("0_1"), not a tree version.
+local function active_tree_version()
+  local spec = build and build.spec
+  if spec and spec.treeVersion then return tostring(spec.treeVersion) end
+  return nil
+end
 
 local SCALAR_TYPES = { number = true, string = true, boolean = true }
 
@@ -62,9 +81,7 @@ function M.export_stats(fields)
   end
   -- include some metadata if available
   result._meta = { omitted = omitted }
-  if build and build.targetVersion then
-    result._meta.treeVersion = tostring(build.targetVersion)
-  end
+  result._meta.treeVersion = active_tree_version()
   if build and build.characterLevel then
     result._meta.level = tonumber(build.characterLevel)
   end
@@ -180,7 +197,7 @@ function M.get_build_info()
     ascendClassName = ascendClassName,
     classId = build.spec and tonumber(build.spec.curClassId) or nil,
     ascendClassId = build.spec and tonumber(build.spec.curAscendClassId) or nil,
-    treeVersion = build.targetVersion or (build.spec and build.spec.treeVersion) or nil,
+    treeVersion = active_tree_version(),
   }
   return info
 end
@@ -430,10 +447,27 @@ function M.set_flask_active(params)
 end
 
 
--- Get equipped items summary
+-- Whether PoB's UI would show a slot control: its `shown` property (a value or a function; weapon
+-- swap slots follow the active weapon set, Ring 3 needs AdditionalRingSlot, gear jewel sockets need
+-- an active socket). A `shown` function that raises counts as hidden.
+local function slot_shown(slotCtrl)
+  local shown = slotCtrl.shown
+  if type(shown) == 'function' then
+    local ok, value = pcall(shown)
+    return ok and value and true or false
+  end
+  return shown ~= false and shown ~= nil
+end
+
+-- Get equipped items summary. Every slot control PoB creates is listed, including the hidden ones
+-- (gear jewel sockets past the item's socket count, unallocated tree sockets, the inactive weapon
+-- set, Ring 3); each entry carries `inactive` and `shown`, so callers can drop the hidden slots (E8).
 function M.get_items()
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   local itemsTab = build.itemsTab
+  -- Tree sockets get their `inactive` flag only here (normally from ItemsTab:Draw), so refresh it
+  -- from the active spec's allocation first (X11).
+  if type(itemsTab.UpdateSockets) == 'function' then itemsTab:UpdateSockets() end
   local result = { }
   -- Prefer orderedSlots for deterministic order
   local ordered = itemsTab.orderedSlots or {}
@@ -444,7 +478,12 @@ function M.get_items()
     local slotCtrl = itemsTab.slots[slotName]
     if not slotCtrl then return end
     local selId = slotCtrl.selItemId or 0
-    local entry = { slot = slotName, id = selId }
+    local entry = {
+      slot = slotName,
+      id = selId,
+      inactive = slotCtrl.inactive == true,
+      shown = slot_shown(slotCtrl),
+    }
     if selId > 0 then
       local it = itemsTab.items[selId]
       if it then

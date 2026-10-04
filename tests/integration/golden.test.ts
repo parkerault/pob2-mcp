@@ -135,8 +135,7 @@ engineDescribe('golden build save/reload (I-1a, I-1b)', () => {
       await bridge.start();
       const statsOf = async (xml: string): Promise<Record<string, unknown>> => {
         await bridge.loadBuildXml(xml, 'golden');
-        const stats = { ...(await bridge.getStats(STAT_FIELDS)) };
-        delete stats._meta;
+        const { _meta, ...stats } = await bridge.getStats(STAT_FIELDS);
         return stats;
       };
 

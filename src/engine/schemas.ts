@@ -1,10 +1,12 @@
 /**
- * Lua action reply schemas (C-5): the registry scaffold.
+ * Lua action reply schemas (C-5): one zod schema per Lua action.
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
- * it reaches a caller (C-4). An action without an entry passes through unvalidated, so this scaffold
- * can land before the schemas themselves (WU-09 adds one per action and the contract test). The
- * `__test_*` actions (C-2) are not in `ActionName` and never get a schema.
+ * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and
+ * `API/Trade.lua` has a schema here (checked statically and on the golden build by
+ * `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
+ * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
+ * get a schema.
  *
  * zod v3 only (D-26). Schemas extend `baseReply`, which is `.passthrough()`, so additive fields never
  * break compatibility. dkjson encodes an empty Lua table as `[]` and can emit NaN/inf as `null`
@@ -83,6 +85,288 @@ export const luaNumber = z.number().nullable();
 
 /** The registry's shape: at most one schema per action. */
 export type ReplySchemaRegistry = { [A in ActionName]?: z.ZodTypeAny };
+
+/** A reply with no payload beyond the base (`{id, ok:true}`). */
+const emptyReply = baseReply;
+
+/** A Lua string field that may be missing (a nil value leaves the key out of the reply). */
+const optString = z.string().optional();
+const optNumber = luaNumber.optional();
+
+// ---------------------------------------------------------------------------------------------------
+// Core actions (`pob-api/API/Handlers.lua` + `BuildOps.lua`)
+
+export const pingReply = baseReply.extend({ pong: z.literal(true) });
+
+export const versionReply = baseReply.extend({
+  version: z
+    .object({ number: z.string(), branch: z.string(), platform: z.string(), apiVersion: z.string() })
+    .passthrough(),
+});
+
+/** `new_build` and `load_build_xml`: the engine's build name after the switch (C-2). */
+export const buildNameReply = baseReply.extend({ result: z.object({ name: z.string().nullable() }).passthrough() });
+
+/** `get_stats` metadata: the omitted non-scalar keys (X13), and the active spec's tree version. */
+export const statsMetaSchema = z
+  .object({
+    omitted: luaArray(z.string()),
+    treeVersion: z.string().optional(),
+    level: z.number().optional(),
+    buildName: z.string().optional(),
+  })
+  .passthrough();
+
+/** A scalar stat value; NaN/inf numbers arrive as null (R-8). */
+const statValue = z.union([z.number(), z.string(), z.boolean(), z.null()]);
+
+export const getStatsReply = baseReply.extend({
+  stats: z.object({ _meta: statsMetaSchema }).catchall(statValue),
+});
+export type StatsResult = z.infer<typeof getStatsReply>['stats'];
+
+/** One `get_items` slot. Hidden slots are listed too: `inactive`/`shown` say which (E8). */
+export const itemSlotSchema = z
+  .object({
+    slot: z.string(),
+    id: z.number().int(),
+    inactive: z.boolean(),
+    shown: z.boolean(),
+    name: z.string().optional(),
+    baseName: z.string().optional(),
+    type: z.string().optional(),
+    rarity: z.string().optional(),
+    raw: z.string().optional(),
+    active: z.boolean().optional(),
+  })
+  .passthrough();
+export type ItemSlot = z.infer<typeof itemSlotSchema>;
+
+export const getItemsReply = baseReply.extend({ items: luaArray(itemSlotSchema) });
+
+const skillGemSchema = z
+  .object({
+    index: z.number().int(),
+    name: z.string(),
+    nameSpec: optString,
+    level: optNumber,
+    quality: luaNumber,
+    enabled: z.boolean(),
+    isSupport: z.boolean(),
+    gemType: optString,
+    tags: optString,
+    tagKeys: luaArray(z.string()),
+    known: z.boolean(),
+  })
+  .passthrough();
+
+const socketGroupSchema = z
+  .object({
+    index: z.number().int(),
+    label: optString,
+    slot: optString,
+    enabled: z.boolean().optional(),
+    includeInFullDPS: z.boolean().optional(),
+    mainActiveSkill: optNumber,
+    skills: luaArray(z.string()),
+    gems: luaArray(skillGemSchema),
+    activeCount: z.number().int(),
+    supportCount: z.number().int(),
+  })
+  .passthrough();
+
+export const skillsSchema = z
+  .object({
+    mainSocketGroup: optNumber,
+    calcsSkillNumber: optNumber,
+    groups: luaArray(socketGroupSchema),
+  })
+  .passthrough();
+export type SkillsResult = z.infer<typeof skillsSchema>;
+
+export const getSkillsReply = baseReply.extend({ skills: skillsSchema });
+
+export const treeSchema = z
+  .object({
+    treeVersion: z.string(),
+    classId: z.number().int(),
+    ascendClassId: z.number().int(),
+    secondaryAscendClassId: z.number().int(),
+    nodes: luaArray(z.number().int()),
+    masteryEffects: luaMap(z.unknown()).optional(),
+  })
+  .passthrough();
+export type TreeResult = z.infer<typeof treeSchema>;
+
+/** `get_tree`, `set_tree` and `update_tree_delta`. */
+export const treeReply = baseReply.extend({ tree: treeSchema });
+
+export const addItemTextReply = baseReply.extend({
+  item: z.object({ id: z.number().int(), name: z.string(), slot: optString }).passthrough(),
+});
+
+export const exportBuildXmlReply = baseReply.extend({ xml: z.string() });
+
+export const getBuildInfoReply = baseReply.extend({
+  info: z
+    .object({
+      name: optString,
+      level: optNumber,
+      className: optString,
+      ascendClassName: optString,
+      classId: optNumber,
+      ascendClassId: optNumber,
+      /** The active passive spec's tree version (e.g. "0_5"), never the build's targetVersion. */
+      treeVersion: optString,
+    })
+    .passthrough(),
+});
+export type BuildInfoResult = z.infer<typeof getBuildInfoReply>['info'];
+
+export const calcWithReply = baseReply.extend({ output: luaMap(luaNumber) });
+
+const configScalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+export const configSchema = z
+  .object({ enemyLevel: optNumber, input: luaMap(configScalar) })
+  .passthrough();
+
+/** `get_config` and `set_config`. */
+export const configReply = baseReply.extend({ config: configSchema });
+
+export const createSocketGroupReply = baseReply.extend({
+  socketGroup: z.object({ index: z.number().int(), label: optString }).passthrough(),
+});
+
+export const addGemReply = baseReply.extend({
+  gem: z.object({ gemIndex: z.number().int(), name: z.string() }).passthrough(),
+});
+
+export const searchNodesReply = baseReply.extend({
+  results: z
+    .object({
+      nodes: luaArray(
+        z
+          .object({
+            id: z.number().int(),
+            name: z.string(),
+            type: z.string(),
+            stats: luaArray(z.string()),
+            allocated: z.boolean(),
+            x: optNumber,
+            y: optNumber,
+            orbit: optNumber,
+            orbitIndex: optNumber,
+            ascendancyName: optString,
+          })
+          .passthrough(),
+      ),
+      count: z.number().int(),
+    })
+    .passthrough(),
+});
+
+export const listGemsReply = baseReply.extend({
+  result: z
+    .object({
+      gems: luaArray(
+        z
+          .object({
+            name: z.string(),
+            kind: z.enum(['active', 'support']),
+            gemType: optString,
+            gemFamily: optString,
+            tags: optString,
+            tagKeys: luaArray(z.string()),
+            maxLevel: optNumber,
+            tier: optNumber,
+            reqStr: optNumber,
+            reqDex: optNumber,
+            reqInt: optNumber,
+          })
+          .passthrough(),
+      ),
+      count: z.number().int(),
+      total: z.number().int(),
+    })
+    .passthrough(),
+});
+
+export const getClassesReply = baseReply.extend({
+  result: z
+    .object({
+      classes: luaArray(
+        z
+          .object({
+            classId: z.number().int(),
+            name: z.string(),
+            ascendancies: luaArray(z.object({ id: z.number().int(), name: z.string() }).passthrough()),
+          })
+          .passthrough(),
+      ),
+    })
+    .passthrough(),
+});
+
+export const setSocketGroupEnabledReply = baseReply.extend({
+  result: z.object({ groupIndex: z.number().int(), label: z.string(), enabled: z.boolean() }).passthrough(),
+});
+
+/** One passive tree spec; `pointsUsed` is PoB's `CountAllocNodes()` (regular nodes). */
+export const specSummarySchema = z
+  .object({
+    index: z.number().int(),
+    title: z.string(),
+    treeVersion: z.string(),
+    classId: z.number().int(),
+    className: optString,
+    ascendClassName: optString,
+    pointsUsed: z.number().int(),
+    active: z.boolean(),
+  })
+  .passthrough();
+export type SpecSummary = z.infer<typeof specSummarySchema>;
+
+export const listSpecsReply = baseReply.extend({
+  result: z.object({ specs: luaArray(specSummarySchema), activeSpec: z.number().int() }).passthrough(),
+});
+export type ListSpecsResult = z.infer<typeof listSpecsReply>['result'];
+
+export const createSpecReply = baseReply.extend({
+  result: z.object({ index: z.number().int(), title: z.string(), activated: z.boolean() }).passthrough(),
+});
+export type CreateSpecResult = z.infer<typeof createSpecReply>['result'];
+
+export const selectSpecReply = baseReply.extend({
+  result: z.object({ activeSpec: z.number().int(), title: z.string() }).passthrough(),
+});
+export type SelectSpecResult = z.infer<typeof selectSpecReply>['result'];
+
+export const deleteSpecReply = baseReply.extend({
+  result: z
+    .object({ deleted: z.number().int(), activeSpec: z.number().int(), remaining: z.number().int() })
+    .passthrough(),
+});
+export type DeleteSpecResult = z.infer<typeof deleteSpecReply>['result'];
+
+export const renameSpecReply = baseReply.extend({
+  result: z.object({ index: z.number().int(), title: z.string() }).passthrough(),
+});
+export type RenameSpecResult = z.infer<typeof renameSpecReply>['result'];
+
+export const listItemSetsReply = baseReply.extend({
+  result: z
+    .object({
+      itemSets: luaArray(z.object({ id: z.number().int(), title: z.string(), active: z.boolean() }).passthrough()),
+      activeItemSet: z.number().int(),
+    })
+    .passthrough(),
+});
+export type ListItemSetsResult = z.infer<typeof listItemSetsReply>['result'];
+
+export const selectItemSetReply = baseReply.extend({
+  result: z.object({ activeItemSet: z.number().int(), title: z.string() }).passthrough(),
+});
+export type SelectItemSetResult = z.infer<typeof selectItemSetReply>['result'];
 
 // ---------------------------------------------------------------------------------------------------
 // Lua trade actions (C-13, `pob-api/API/Trade.lua`)
@@ -227,27 +511,138 @@ export interface TradeEvaluateItemsParams {
   anointBehaviour?: TradeItemBehaviour;
 }
 
-/** The schemas defined so far. WU-09 completes this to one per action. */
+/** One schema per action (C-5); `satisfies` makes a missing action a compile error. */
 const definedSchemas = {
+  ping: pingReply,
+  version: versionReply,
+  new_build: buildNameReply,
+  load_build_xml: buildNameReply.extend({ result: z.object({ name: z.string() }).passthrough() }),
+  get_stats: getStatsReply,
+  get_items: getItemsReply,
+  get_skills: getSkillsReply,
+  get_tree: treeReply,
+  set_main_selection: getSkillsReply,
+  set_tree: treeReply,
+  add_item_text: addItemTextReply,
+  export_build_xml: exportBuildXmlReply,
+  set_level: emptyReply,
+  set_flask_active: emptyReply,
+  get_build_info: getBuildInfoReply,
+  update_tree_delta: treeReply,
+  calc_with: calcWithReply,
+  get_config: configReply,
+  set_config: configReply,
+  create_socket_group: createSocketGroupReply,
+  add_gem: addGemReply,
+  set_gem_level: emptyReply,
+  set_gem_quality: emptyReply,
+  remove_skill: emptyReply,
+  remove_gem: emptyReply,
+  search_nodes: searchNodesReply,
+  list_gems: listGemsReply,
+  get_classes: getClassesReply,
+  set_socket_group_enabled: setSocketGroupEnabledReply,
+  set_gem_enabled: emptyReply,
+  create_spec: createSpecReply,
+  list_specs: listSpecsReply,
+  select_spec: selectSpecReply,
+  delete_spec: deleteSpecReply,
+  rename_spec: renameSpecReply,
+  list_item_sets: listItemSetsReply,
+  select_item_set: selectItemSetReply,
   trade_generate_query: tradeGenerateQueryReply,
   trade_evaluate_items: tradeEvaluateItemsReply,
   trade_query_options: tradeQueryOptionsReply,
-} satisfies ReplySchemaRegistry;
+} satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
 /**
  * The registry the bridge client validates against. Mutable on purpose: it is the one place a
- * schema is registered, and tests register a schema for an action to exercise the hook.
+ * schema is registered, and tests replace or remove a schema to exercise the hook (C-4).
  */
-export const replySchemas: ReplySchemaRegistry = definedSchemas;
+export const replySchemas: ReplySchemaRegistry = { ...definedSchemas };
 
-/** A validated reply: the schema's type when the action has one, else the base reply. */
-export type ActionReply<A extends ActionName> = A extends keyof DefinedSchemas
-  ? z.infer<DefinedSchemas[A]>
-  : BaseReply;
+/** A validated reply (C-5): the action's schema type. */
+export type ActionReply<A extends ActionName> = z.infer<DefinedSchemas[A]>;
 
-/** Request params (camelCase, C-2). WU-09 narrows these per action. */
-export type ActionParams<A extends ActionName> = A extends ActionName ? Record<string, unknown> : never;
+/** No params. */
+type NoParams = Record<string, never>;
+
+/** Request params per action (camelCase, C-2), as `pob-api/API/BuildOps.lua` reads them. */
+export interface ActionParamsMap {
+  ping: NoParams;
+  version: NoParams;
+  new_build: { className?: string; ascendancy?: string };
+  load_build_xml: { xml: string; name?: string };
+  get_stats: { fields?: string[] };
+  get_items: NoParams;
+  get_skills: NoParams;
+  get_tree: NoParams;
+  set_main_selection: { mainSocketGroup?: number; mainActiveSkill?: number; skillPart?: number };
+  set_tree: {
+    classId: number;
+    ascendClassId: number;
+    secondaryAscendClassId?: number;
+    nodes: number[];
+    masteryEffects?: Record<number, number>;
+    treeVersion?: string;
+  };
+  add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean };
+  export_build_xml: NoParams;
+  set_level: { level: number };
+  set_flask_active: { index: number; active: boolean };
+  get_build_info: NoParams;
+  update_tree_delta: {
+    addNodes?: number[];
+    removeNodes?: number[];
+    classId?: number;
+    ascendClassId?: number;
+    secondaryAscendClassId?: number;
+    treeVersion?: string;
+  };
+  calc_with: { addNodes?: number[]; removeNodes?: number[]; useFullDPS?: boolean; fields?: string[] };
+  get_config: NoParams;
+  /** `enemyLevel` and any `configTab.input` key with a scalar value. */
+  set_config: Record<string, string | number | boolean>;
+  create_socket_group: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean };
+  add_gem: {
+    groupIndex: number;
+    gemName: string;
+    level?: number;
+    quality?: number;
+    qualityId?: string;
+    enabled?: boolean;
+    count?: number;
+  };
+  set_gem_level: { groupIndex: number; gemIndex: number; level: number };
+  set_gem_quality: { groupIndex: number; gemIndex: number; quality: number; qualityId?: string };
+  remove_skill: { groupIndex: number };
+  remove_gem: { groupIndex: number; gemIndex: number };
+  search_nodes: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };
+  list_gems: { type?: 'active' | 'support'; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean };
+  get_classes: NoParams;
+  set_socket_group_enabled: { groupIndex: number; enabled: boolean };
+  set_gem_enabled: { groupIndex: number; gemIndex: number; enabled: boolean };
+  create_spec: { title?: string; copyFrom?: number; activate?: boolean };
+  list_specs: NoParams;
+  select_spec: { index: number };
+  delete_spec: { index: number };
+  rename_spec: { index: number; title: string };
+  list_item_sets: NoParams;
+  select_item_set: { id: number };
+  trade_generate_query: TradeGenerateQueryParams;
+  trade_evaluate_items: TradeEvaluateItemsParams;
+  trade_query_options: { slot: string };
+}
+
+/** Request params (camelCase, C-2) for an action. */
+export type ActionParams<A extends ActionName> = ActionParamsMap[A];
+
+/**
+ * A reply payload as handlers consume it: the schema's known fields keep their types, and any other
+ * field (`.passthrough()`) reads as `any` rather than `unknown`.
+ */
+export type Loose<T> = T & { [key: string]: any };
 
 /** A test action's reply (unvalidated). */
 export type TestReply = { id: number; ok: true; [key: string]: unknown };

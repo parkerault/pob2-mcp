@@ -15,7 +15,7 @@ const REPO = path.resolve(__dirname, '..', '..');
 const GOLDEN = fs.readFileSync(path.join(REPO, 'tests', 'fixtures', 'builds', 'grenadator.xml'), 'utf8');
 const PIN = JSON.parse(fs.readFileSync(path.join(REPO, 'pob-pin.json'), 'utf8')) as { version: string };
 
-/** `export_stats`' default field list (`pob-api/API/BuildOps.lua` DEFAULT_STAT_FIELDS). */
+/** `export_stats`' default field list (`pob-api/API/BuildOps.lua` DEFAULT_STAT_FIELDS), as widened by E7 (AC-E26). */
 const DEFAULT_STAT_FIELDS = [
   'Life', 'EnergyShield', 'Mana', 'Spirit', 'Ward',
   'Armour', 'Evasion',
@@ -23,6 +23,12 @@ const DEFAULT_STAT_FIELDS = [
   'BlockChance', 'SpellBlockChance',
   'LifeRegen', 'ManaRegen',
   'TotalDPS', 'FullDPS', 'CombinedDPS',
+  'TotalEHP', 'PhysicalDamageReduction', 'LifeUnreserved', 'ManaUnreserved', 'SpiritUnreserved',
+  'EvadeChance', 'DeflectChance', 'EffectiveBlockChance', 'EnergyShieldRecharge',
+  'MissingFireResist', 'MissingColdResist', 'MissingLightningResist', 'MissingChaosResist',
+  'PhysicalMaximumHitTaken', 'FireMaximumHitTaken', 'ColdMaximumHitTaken', 'LightningMaximumHitTaken', 'ChaosMaximumHitTaken',
+  'PhysicalEnemyDamage', 'FireEnemyDamage', 'ColdEnemyDamage', 'LightningEnemyDamage', 'ChaosEnemyDamage', 'totalEnemyDamage',
+  'Str', 'Dex', 'Int',
 ];
 
 const POE1_ROOT_XML =

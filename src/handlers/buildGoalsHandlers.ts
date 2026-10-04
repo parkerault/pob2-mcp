@@ -1,6 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { BuildIssue } from "../types.js";
 import { wrapHandler } from "../utils/errorHandling.js";
+import { visibleItemSlots } from "../utils/itemSlots.js";
 
 export interface BuildGoalsHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -114,7 +115,8 @@ export async function handleGetBuildIssues(context: BuildGoalsHandlerContext) {
 
     // Unequipped items & jewels check
     try {
-      const items = await luaClient.getItems();
+      // Only the slots PoB shows: hidden jewel sockets and the inactive weapon set are dropped (E8).
+      const items = visibleItemSlots(await luaClient.getItems());
       if (Array.isArray(items)) {
         // Find jewel slots that are empty (id === 0)
         const jewelSlots = items.filter((it: any) => it.slot && /jewel/i.test(it.slot));

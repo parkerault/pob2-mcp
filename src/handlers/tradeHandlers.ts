@@ -3,7 +3,6 @@ import { TradeApiClient } from '../services/tradeClient.js';
 import { TradeQueryBuilder } from '../services/tradeQueryBuilder.js';
 import { StatMapper } from '../services/statMapper.js';
 import { ItemListing } from '../types/tradeTypes.js';
-import { CostBenefitAnalyzer } from '../services/costBenefitAnalyzer.js';
 import { PoeNinjaClient } from '../services/poeNinjaClient.js';
 
 interface TradeContext {
@@ -119,8 +118,8 @@ export async function handleSearchTradeItems(
     const itemIdsToFetch = searchResult.result.slice(0, Math.min(limit, 10));
     const items = await context.tradeClient.fetchItems(itemIdsToFetch, searchResult.id);
 
-    // Format results with real-time currency rates
-    const output = await formatSearchResults(items, searchResult.total, league, searchResult.id, context.ninjaClient);
+    // Format results in the order the trade site returned them
+    const output = formatSearchResults(items, searchResult.total, league, searchResult.id);
 
     return {
       content: [
@@ -301,123 +300,28 @@ export async function handleGetLeagues(
 // Helper Functions
 // ========================================
 
-/**
- * Fetch and map currency rates from poe.ninja
- * Maps full currency names to short names used by trade API
- */
-async function getCurrencyRatesMap(ninjaClient: PoeNinjaClient | undefined, league: string): Promise<Map<string, number>> {
-  if (!ninjaClient) {
-    return new Map();
-  }
-
-  try {
-    const rates = await ninjaClient.getCurrencyExchangeMap(league);
-
-    // Map poe.ninja names to trade API currency names
-    const mappedRates = new Map<string, number>();
-
-    // Common currency mappings
-    const nameMap: Record<string, string[]> = {
-      'Divine Orb': ['divine', 'div'],
-      'Chaos Orb': ['chaos', 'c'],
-      'Exalted Orb': ['exalted', 'exa', 'ex'],
-      'Mirror of Kalandra': ['mirror'],
-      'Orb of Alchemy': ['alchemy', 'alch'],
-      'Orb of Fusing': ['fusing', 'fuse'],
-      'Orb of Regret': ['regret'],
-      'Gemcutter\'s Prism': ['gcp'],
-      'Chromatic Orb': ['chrome', 'chromatic'],
-      'Jeweller\'s Orb': ['jewellers', 'jew'],
-      'Orb of Alteration': ['alt', 'alteration'],
-      'Vaal Orb': ['vaal'],
-      'Cartographer\'s Chisel': ['chisel'],
-      'Blessed Orb': ['blessed'],
-      'Orb of Scouring': ['scouring', 'scour'],
-    };
-
-    // Add mappings
-    for (const [fullName, chaosValue] of rates.entries()) {
-      // Add the full name
-      mappedRates.set(fullName, chaosValue);
-
-      // Add short name mappings
-      for (const [key, aliases] of Object.entries(nameMap)) {
-        if (fullName === key) {
-          for (const alias of aliases) {
-            mappedRates.set(alias, chaosValue);
-          }
-        }
-      }
-    }
-
-    return mappedRates;
-  } catch (error) {
-    console.error('[Trade] Failed to fetch currency rates from poe.ninja:', error);
-    return new Map();
-  }
-}
-
-async function formatSearchResults(items: ItemListing[], totalResults: number, league: string, searchId: string, ninjaClient?: PoeNinjaClient): Promise<string> {
+function formatSearchResults(items: ItemListing[], totalResults: number, league: string, searchId: string): string {
   let output = `=== Trade Search (${league}) ===\n`;
   output += `Found: ${totalResults} | Showing: ${items.length}\n`;
   output += `🔗 ${getTradeSearchUrl(league, searchId)}\n\n`;
 
-  // Fetch real-time currency rates from poe.ninja
-  const currencyRates = await getCurrencyRatesMap(ninjaClient, league);
-
-  // Analyze items for cost/benefit with real rates
-  const analyzer = new CostBenefitAnalyzer();
-  const analyses = analyzer.analyzeAndRank(items, currencyRates);
-
-  for (let i = 0; i < analyses.length; i++) {
-    const analysis = analyses[i];
-    const listing = analysis.listing;
+  // Listings keep the order the trade site returned them in (D-61: no value scoring or re-ranking).
+  items.forEach((listing, i) => {
     const item = listing.item;
     const price = listing.listing.price;
     const seller = listing.listing.account;
-    const metrics = analysis.metrics;
 
-    // Rank by value, not by search order
-    const valueRank = analysis.rank || (i + 1);
-    const searchRank = items.indexOf(listing) + 1;
-
-    output += `${searchRank}. ${item.name || item.typeLine}`;
-
-    // Show value indicator
-    const tierEmoji = {
-      'excellent': ' 💎',
-      'good': ' ✨',
-      'average': '',
-      'poor': ' ⚠️'
-    }[metrics.valueTier];
-    output += tierEmoji;
-
-    if (metrics.isBudgetPick) {
-      output += ' 💰';
-    }
-
-    output += `\n`;
+    output += `${i + 1}. ${item.name || item.typeLine}\n`;
 
     if (item.name && item.typeLine && item.name !== item.typeLine) {
       output += `   Base: ${item.typeLine}\n`;
     }
 
     if (price) {
-      output += `   Price: ${price.amount} ${price.currency}`;
-      if (analysis.priceInChaos > 0 && price.currency !== 'chaos') {
-        output += ` (~${analysis.priceInChaos.toFixed(0)} chaos)`;
-      }
-      output += `\n`;
+      output += `   Price: ${price.amount} ${price.currency}\n`;
     } else {
       output += `   Price: Not listed\n`;
     }
-
-    // Show value score
-    output += `   Value: ${metrics.valueScore.toFixed(0)}/100 (${metrics.valueTier})`;
-    if (valueRank <= 3) {
-      output += ` - #${valueRank} best value`;
-    }
-    output += `\n`;
 
     output += `   ilvl: ${item.ilvl}`;
 
@@ -436,21 +340,42 @@ async function formatSearchResults(items: ItemListing[], totalResults: number, l
     }
 
     // Show key stats in condensed format
-    const stats = analysis.stats;
-    const statParts: string[] = [];
-    if (stats.life > 0) statParts.push(`+${stats.life} Life`);
-    if (stats.es > 0) statParts.push(`+${stats.es} ES`);
-    if (stats.totalResist > 0) statParts.push(`+${stats.totalResist}% Res`);
+    const statParts = keyStatParts(listing);
     if (statParts.length > 0) {
       output += `   Stats: ${statParts.join(', ')}\n`;
     }
 
     output += `   ${seller.online ? '🟢' : '🔴'} ${seller.name}\n`;
     output += `   🔗 ${getTradeItemUrl(league, searchId, listing.id)}\n\n`;
-  }
+  });
 
-  output += `\n💎=excellent ✨=good ⚠️=poor 💰=budget 🟢=online 🔴=offline`;
+  output += `\n🟢=online 🔴=offline`;
   return output;
+}
+
+/** The first `+N <stat>` value among the item's implicit, explicit and crafted mods, or 0. */
+function firstModValue(modsText: string, patterns: string[]): number {
+  for (const pattern of patterns) {
+    const match = modsText.match(new RegExp(`\\+(\\d+)(?:%)?\\s*${pattern}`, 'i'));
+    if (match) return parseInt(match[1], 10);
+  }
+  return 0;
+}
+
+/** Condensed life / energy shield / total resistance summary for one listing. */
+function keyStatParts(listing: ItemListing): string[] {
+  const item = listing.item;
+  const mods = [...(item.implicitMods || []), ...(item.explicitMods || []), ...(item.craftedMods || [])].join('\n');
+  const life = firstModValue(mods, ['to maximum Life', 'maximum Life']);
+  const es = firstModValue(mods, ['to maximum Energy Shield', 'maximum Energy Shield']);
+  const totalResist = ['Fire', 'Cold', 'Lightning', 'Chaos']
+    .map((el) => firstModValue(mods, [`to ${el} Resistance`, `${el} Resistance`]))
+    .reduce((a, b) => a + b, 0);
+  const parts: string[] = [];
+  if (life > 0) parts.push(`+${life} Life`);
+  if (es > 0) parts.push(`+${es} ES`);
+  if (totalResist > 0) parts.push(`+${totalResist}% Res`);
+  return parts;
 }
 
 function getMaxLinks(sockets: Array<{ group: number }>): number {

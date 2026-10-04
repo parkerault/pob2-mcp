@@ -637,3 +637,235 @@ Root cause: no gate failure. Every AC of the wave maps to a passing named test. 
 - WU-08: AC-F3(a) took 1733 ms at load average about 5. It passed on re-run.
 - WU-14: a baseline run caught a half-written `errors.ts`. A first commit swept in a staged deletion, and was soft-reset and recommitted as `146e64e`.
 - WU-16: AC-T22 timed out at load average about 12 and passed on re-run. `tsc -p tsconfig.test.json` shows TS6059 rootDir errors that predate this wave.
+
+## 2026-10-04: W3 (WU-22, WU-09..11, WU-17, WU-23)
+
+### WU-22: done (`e5d15ae`)
+
+The build-file writer (C-17), the state dir (C-16) and the new `lua_save_build` are in. `src/services/buildFileWriter.ts` canonicalizes the target path (D-52). It needs `overwrite` to replace a file and refuses when the file changed on disk since the engine loaded or saved it. It backs up to `<stateDir>/backups/` first, then writes a temp file and renames it over the target. It invalidates the parse cache and calls `noteSaved` only for engine bytes, so a save under a new name re-points the loaded build. `lua_save_build` is now `export_build_xml` plus the writer. The Lua `save_build` action and `PoBLuaApiClient.saveBuild` are deleted (D-60). Snapshots, exports, restore backups and config presets now live under `${XDG_STATE_HOME}/pob2-mcp/`.
+
+Deviations:
+- AC-E22 test now expects `Build: e22-saved (e22-saved.xml)` after a save under a new name. Reason: the save re-points the loaded build (C-17 step 6, D-51d).
+- `tool-calls.json`: the two `lua_save_build grenadator-copy` setup steps pass `overwrite: true`. Reason: the suites share one builds folder, so the second save is now correctly refused.
+- Spec silent on how the changed-on-disk check compares files: it uses size + sha1 and ignores mtime, matching C-3 step 4 (`buildFileWriter.ts:181`).
+- The writer gets `loaded: () => session.loaded` at construction, and `ctx` is narrowed to `{noteSaved}`. Reason: it must also cover tools that never enter the session (restore_snapshot, set_build_notes).
+- Two backups with the same timestamp: the second gets an `<id>-1` suffix and is copied exclusively, because backups are written once (spine §4).
+- restore_snapshot's `_before-restore` backup moved to `<stateDir>/backups/<build>/`. The build write itself goes through the writer in WU-13.
+- `lua_save_build` checks for a `<PathOfBuilding2>` root before writing (C-17 step 5).
+- `buildFileWriter` was added to ContextDependencies/LuaContext, and the contextBuilder test mocks were updated to match.
+
+Review: 11 raw / 0 material / 0 confirmed. Lows were recorded, including:
+- the `export_build` schema description still names the old default directory;
+- the restore backup does not follow the C-16 layout (non-canonical folder, non-exclusive write);
+- an uncaught post-rename `stat` failure;
+- a check-then-act race in the changed-on-disk guard;
+- no per-target serialization for callers outside the engine mutex.
+
+Gate: 1 attempt. test rc 0, build rc 0, 70/70 suites, 739/739 tests. AC-E62 script checks: `rg -n "save_build\b" pob-api/` rc 1, `rg -n "saveBuild\b" src/` rc 1, `rg -n "save_build" src/engine/schemas.ts` rc 1 (all pass). No tooling false-failures.
+
+### WU-09: done (`8aab1f0`)
+
+The reply schemas (C-5) are complete: each of the 41 Lua actions has a zod schema and typed params, and the typed bridge wrappers return precise types. New `tests/integration/contract.test.ts` checks every action on the golden build. It also checks statically that the Lua action names equal `Object.keys(replySchemas)`. Fixed the TS-side key mismatches: pointsUsed, bytes, `result.*`, activeItemSet, and `_meta` in lua_get_stats. The default stat export is wider (E7). get_build_info and `_meta` report the active spec's tree version. get_items calls UpdateSockets and exports `inactive`/`shown` per slot, and consumers drop hidden slots through `src/utils/itemSlots.ts` (E8). The 6 WU-09 hygiene allowlist entries are removed.
+
+Deviations:
+- Edited `buildHandlers.ts`, `optimizationHandlers.ts` (nodeCount to pointsUsed) and `buildGoalsHandlers.ts` (visibleItemSlots). These files are outside WU-09's touches, but the unit summary requires the consumer fixes.
+- Added `src/utils/itemSlots.ts` (spine §2.2 puts new helpers in `src/utils/`).
+- The contract test reads raw replies through `luaLineClient`, not the bridge, so the schemas are checked against what Lua sends.
+- Per-action `ActionParams`; no-param actions use `Record<string, never>`.
+- Loose return types are kept for getStats/getTree/setTree (`Loose<T>`), getConfig/setConfig (`any`, for WU-12) and calcWith (for WU-10).
+- Optional strings use `.optional()`, not nullable, because Lua omits nil keys.
+- Updated existing tests of changed modules (mock responses, AC-E13/E9/E7 tests, golden, protocol). No test behaviour was removed.
+- The save_build schema and contract case were kept because the action still existed on this branch. WU-22 deletes them.
+- lua_get_stats prints a `Tree Version:` line (AC-E25).
+- list_item_sets labels the active set. The spec tools say "points" instead of "nodes"; create_spec and select_spec make a follow-up list_specs call.
+- The default lua_get_stats grouping uses regex classification with no section caps (the spec is silent on this).
+- get_items now calls `ItemsTab:PopulateSlots()`, which was the reviewer's proposed fix.
+
+Review: 11 raw / 2 material / 2 confirmed (both fixed):
+- correctness-1 (medium): the widened stat export broke the default lua_get_stats view (wrong sections, duplicates, TotalEHP truncated).
+- correctness-2 (medium): gear jewel sockets were reported hidden after an auto-equip through add_item_text, because only tree sockets were refreshed.
+
+Gate: 1 attempt. test rc 0, build rc 0, 68/68 suites, 768/768 tests (clean gate).
+- `mise run test` rc 0; `pnpm build` rc 0.
+- Allowlist has no added lines: grep rc 1 (pass).
+- Cruft waivers unchanged: `git diff --quiet` rc 0.
+- No skip/only/todo added: grep rc 1 (pass).
+- Tooling false-failure: the first two full runs failed only AC-T22 (timing; 8032/14778 ms against 8000 ms at load average 12-13). It passed alone, and on the third clean run.
+- Out-of-scope edits were noted as not real violations: buildHandlers.ts, optimizationHandlers.ts and buildGoalsHandlers.ts, which are consumer fixes the summary requires.
+
+### WU-10: done (`66d47aa`)
+
+- set_tree and update_tree_delta keep each node's weapon-set assignment and a copy of `hashOverrides` (E2).
+- get_tree reports the engine's class and ascendancy names and drops `masteryEffects`.
+- The PoE1 class maps are gone from lua_get_tree, export_build_summary and the tool descriptions. get_build_info prefers the active spec's names. lua_set_tree lost `masteryEffects`.
+- get_passive_upgrades measures each notable with calc_with over PoB's own path and shows the real path cost.
+- get_nearby_nodes and find_path_to_node no longer print "Build: undefined". create_spec uses `construct()`. plan_leveling respects `class_name`.
+- 2 allowlist entries and 17 waivers are removed.
+
+Deviations:
+- search_nodes also returns PoB's `pathDist`/`path` (additive) for real path costs.
+- get_passive_upgrades: 8 nearest notables per keyword, calc_with over the whole path against a baseline, ranked by gain per point, only improving candidates listed. Engine errors now propagate.
+- get_build_info takes class names from the active spec first (AC-E30).
+- reimport_nodes passes a copy of `masterySelections` instead of `{}`.
+- The toolSchemas descriptions for lua_new_build, lua_set_tree and lua_get_build_info no longer list PoE1 classes, so the waivers could be removed.
+- `contextBuilder.ts` gains TreeContext with `loadedBuild`; its test expects 8 keys.
+- plan_leveling drops the loaded ascendancy when class_name names a different class.
+- Ascendancy notables are excluded in the TS handler (the finding's first option), because ranking is per passive point.
+
+Review: 10 raw / 2 material / 1 confirmed, fixed:
+- correctness-1 (medium): get_passive_upgrades suggested the build's own unallocated ascendancy notables, priced in passive points. On the golden build its #3 suggestion could not be allocated.
+
+Gate: 1 attempt. test rc 0, build rc 0, 69/69 suites, 775/775 tests.
+- AC-E30: `rg -n "masteryEffects" src/ pob-api/` rc 0, with the single documented hit at `BuildOps.lua:125`.
+- Verifier mutation check: putting the base BuildOps.lua back made E28/E29/E30/E32/E34 fail (rc 1).
+- No tooling false-failures.
+- Noted out-of-scope: the lua_new_build description rewrite is WU-11's content. WU-11 should rebase onto it rather than edit it again.
+
+### WU-11: done (`46a9073`)
+
+- add_item_text uses `construct()`, rejects unknown or unfitting slots, and equips only into the named slot.
+- add_gem rejects unknown names and suggests up to 5.
+- The slot enums come from PoB's `baseSlots` minus Arm/Leg, plus the two swap slots.
+- toggle_flask takes a Flask/Charm slot and sets `slot.active` and the item-set flag; get_items reads `slot.active`.
+- New Lua action `list_support_candidates {groupIndex, measure?}`, built on PoB's `canGrantedEffectSupportActiveSkill`, with a schema and a contract case.
+- suggest_supports ranks the whole pool by measured delta. analyze_skills uses PoB's check.
+- lua_new_build honours class and ascendancy and checks both names first.
+- lua_get_stats always shows EvadeChance and DeflectChance.
+
+Deviations:
+- `measure` flag on list_support_candidates: measuring in Lua with PoB's misc calculator takes about 1.4 s, against over 60 s with round trips.
+- The pool also drops legacy supports and supports already in the group (PoB FilterSupport; PoE2 has no duplicate supports).
+- Measurement uses the build's gem-sort stat, the way GemSelectControl reads it.
+- suggest_supports always measures: `measure_dps` and the tag heuristic are removed; count defaults to 8, maximum 20.
+- analyze_skills lists the full pool only for the main group, to keep the output size bounded.
+- toggle_flask input changed from `flask_number` to `slot`. An empty slot is an error.
+- add_gem accepts an exact case-insensitive match.
+- add_item_text with slotName refuses invalid slots and items; the reply's `slot` is the slot that actually holds the item.
+- EvadeChance and DeflectChance are shown at 0 (AC-E41). WU-09's AC-E25/E26 assertion was widened for these two.
+- The poe2Bridge integration test was updated to the new skill-service API.
+- New optional `validateOnly` param on add_gem and add_item_text (additive schema fields), to reject bad input before the first change.
+- Gem-name tiebreak: a base-type name beats the gem name, and a regular gem beats a unique variant. Remaining ties are rejected with gem ids, and add_gem accepts a gem id. The multi-step tool descriptions now say they are all-or-nothing.
+
+Review: 10 raw / 6 material / 6 confirmed (all fixed):
+- spec-1 (medium): the AC-E37 test could not tell whether get_items reads `active` from slot.active.
+- spec-2 (medium): the candidate pool was built from an empty `displaySkillList` for disabled or non-main groups.
+- spec-3 (medium): new rejections partway through multi-step tools left half-applied changes, and the revision was not bumped.
+- correctness-1 (medium): disabled or inactive-swap groups got wrong analyze_skills and suggest_supports output, a regression.
+- correctness-2 (medium): partial mutations in setup_skill_with_gems and add_multiple_items diverged from the session record.
+- correctness-3 (medium): duplicate gem names resolved in an order that changed between engine processes and depended on letter case.
+
+Gate: 1 attempt. test rc 0, build rc 0, 72/72 suites, 790/790 tests.
+- AC-E41: `rg -n "EvasionChance" src/` rc 1 (pass); `! rg -n "EvasionChance" src/` rc 0.
+- Tooling false-failure: AC-F3 (pin check, at most 1 s) took 1267 ms under load. It passed alone in 341 ms and on the second full run.
+
+### WU-17: done (`36642ca`)
+
+`runUpgradeSearch`, the C-21 seam with WU-23, is in `src/trade/findUpgrades.ts` and covers C-14 steps 1-9:
+- a zod input schema mapped to `trade_generate_query`;
+- a 32-entry per-session query cache;
+- the no-session fallback before any request;
+- league resolution, dropping unknown stat ids, and the complexity prefit;
+- the weight-adjust loop (at most 5 searches);
+- fetches in blocks of 10;
+- dropping null and unpriced entries;
+- the 90 s deadline and clipping, early stops, classified errors and progress.
+
+Helpers are in `prefit.ts` and `links.ts`. The `trade_query_options` tool is fully wired (75 tools listed).
+
+Deviations:
+- The C-21 ctx gains `session?: Pick<EngineSession,'revision'>` for the cache key; without it nothing is cached. This is a contract amendment for the coordinator to record.
+- A request timeout counts as the deadline cut when less than 15 s of budget is left (AC-T34(e) against the C-10 15 s cap).
+- A budget cut before the query exists fails with UpgradeSearchError, because no link can be built.
+- http, network or timeout errors after at least 1 fetched listing return `stoppedEarly`; with none fetched, they throw.
+- The "engine was busy" stop cannot come from inside `runUpgradeSearch`. `stopForError` maps EngineBusyError, and it is tested through a real session.
+- A deadline-caused `would_wait` uses the rate-limit stop text.
+- The adjust-loop order is literal: `searches` counts every request sent, including a too_complex retry.
+- Fallbacks after a search link to the last query sent; the no-session fallback links to the generated query.
+- `trade_query_options` is in TRADE_TOOLS_WITHOUT_STATS (AC-F26).
+- `tradeSearchUrl` moved to `links.ts`.
+- `currencyParam`/`currencyInputValue` are shared from findUpgrades.ts, which keeps the module imported for AC-F21.
+- `/data/*` loads are bounded by racing, not aborting, because tradeClient.ts is out of touches.
+- A budget cut at step 6 throws; a cut at step 7 returns an early stop.
+- AC-T34(f) adds find_upgrades to TOOL_META through a jest.mock until WU-23.
+- Seen, not fixed: the router still preloads `/data/stats` for find_upgrades. Left for WU-23.
+
+Review: 12 raw / 7 material / 5 confirmed (all fixed):
+- spec-1 (high): the `/data/leagues` and `/data/stats` steps were not bounded by the deadline (NFR-4).
+- spec-3 (medium): leaving out the optional `session` field silently disabled the cache (AC-T38 at the tool level).
+- spec-4 (medium): no code path produced "Stopped early: the engine was busy" (AC-T34(f)).
+- correctness-1 (medium): the league and stats steps ignored the deadline and the abort.
+- correctness-2 (medium): the EngineBusyError branch of `stopForError` was unreachable.
+
+Gate: 1 attempt. test rc 0, build rc 0, 69/69 suites, 755/755 tests.
+- Clean `mise run test` rc 0; `pnpm build` rc 0.
+- Allowlist and waivers unchanged: `git diff --exit-code` rc 0.
+- No tracked changes left: rc 0.
+- No tooling false-failures.
+
+### WU-23: done (`aeee493`)
+
+C-14 steps 10-13 and the find_upgrades tool:
+- `src/trade/rankUpgrades.ts` evaluates listings 10 per block within the 90 s budget, converts prices with poe.ninja rates, applies the budget filter, flags listings it cannot convert, ranks with a stat_value fallback, and selects upgrades.
+- `src/trade/renderUpgrades.ts` renders within 30,000 characters (full listings, then one-line entries) and renders the fallback.
+- The tool is wired: schema, TOOL_META (read, trade), router (deadline, progress, signal, credentials), handler and sample.
+
+Deviations:
+- AC-T41's tool count goes from 75 to 76 (AC-T45, AC-F25).
+- Session notices are not repeated in the header; the router puts them first (C-3 step 8).
+- The poe.ninja rates lookup runs before evaluation, bounded by min(15 s, time left).
+- find_upgrades is added to TRADE_TOOLS_WITHOUT_STATS (D-49, deadline).
+- Spec silent: the closing wording when nothing was evaluated, every search total is 0, or every item was rejected.
+- Spec silent: the Current item line comes from get_items, and can say `unknown` or `empty`.
+- Spec silent: a listing with no whisper and no Sum gets the search link plus the seller.
+- AC-T31(viii): the candidate is built with the additive `itemText` field.
+- AC-T40: only Date is faked, and the clock jumps 4 h per call.
+- correctness-1: deadline-bound engine steps end by abort at the deadline minus 250 ms. A bridge timeout would SIGKILL the engine and lose the result. The coordinator may want to record that the clipped timeout is now only a backstop.
+- spec-3: a deadline cut of the rates lookup also adds the budget stop note, and the rows are kept.
+- spec-2: new partial-rejection wording `<r> of <n> fetched item(s) ... rejected`.
+- correctness-2: optional `refit(reservedChars)` on HandlerResult, so session notices count toward the D-53 budget.
+
+Review: 16 raw / 7 material / 5 confirmed (all fixed):
+- spec-1 (high): no through-the-tool test ever produced an upgrade, so `is_upgrade`, the default selection and the UPGRADE flag were untested.
+- spec-2 (medium): "No upgrade within budget." was not always stated, and "All 10 rejected" was wrong when 20 were fetched.
+- spec-3 (medium): putting rates first meant a slow poe.ninja could cost the whole evaluation.
+- correctness-1 (high): a clipped timeout killed the engine and lost the "Stopped early" result.
+- correctness-2 (medium): session notices pushed the output past 30,000 characters.
+
+Gate: 1 attempt. test rc 0, build rc 0, 71/71 suites, 798/798 tests.
+- Clean `mise run test` rc 0; `pnpm build` rc 0.
+- Allowlist and waivers unchanged: rc 0.
+- No skip/only/todo: grep rc 1 (pass).
+- No tooling false-failures.
+
+### Merges
+
+- **Lane a3: merged (`e5beb93`).** Conflicts resolved:
+  - `luaHandlers.ts`: kept both imports and WU-22's handleLuaSaveBuild; "Saved <rel> (<n> bytes)." still meets AC-E25.
+  - `pobLuaBridge.ts`: dropped saveBuild and kept WU-09's typed loadBuildXml.
+  - `engine/schemas.ts`: removed the save_build entries and kept list_support_candidates.
+  - `contract.test.ts`: removed the save_build case and its setup, kept list_support_candidates.
+
+  No separate merge commit: the fixes were folded into the rebased commits. Post-rebase checks found no save_build or saveBuild, the slot exports intact, the toggle_flask sample `{slot:'Charm 1'}`, and the JSON files parsing. test rc 0, build rc 0.
+- **Lane trade: merged (`ec13fef`).** No conflicts, no integration fixes. test rc 0, build rc 0.
+
+### Wave gate: PASS (`ec13fef`)
+
+Clean run: test rc 0, build rc 0, 81/81 suites, 896/896 tests, 0 skipped, 110.5 s. W2 was 66 suites / 715 tests; the 15 new suites hold 173 tests, and the pre-existing suites grew to 723 from new tool-calls samples. The engine suites ran against vendor/, with POB_SKIP_ENGINE unset.
+
+Script checks:
+- AC-E62: `rg -n "save_build\b" pob-api/` rc 1; `rg -n "saveBuild\b" src/` rc 1; `rg -n "save_build" src/engine/schemas.ts` rc 1 (all pass).
+- AC-E30: `rg -n "masteryEffects" src/ pob-api/` rc 0, only the documented comment at `BuildOps.lua:125`.
+- AC-E41: `rg -n "EvasionChance" src/` rc 1 (pass).
+- Gate: `mise run test` rc 0; `pnpm build` rc 0.
+
+Every owned AC maps to a passing named test. The wider exit set is green: AC-E1..E23, E55..E62, AC-T1..T46 and the M-1 AC-F tests. The timing ACs (E8, F3, F10, T22, T34, T40) passed in the full run. No test was lost: no deleted files, no skip/only markers, and static counts are unchanged except levelingHandlers going from 6 to 7. The only removed allowlist and waiver entries are the ones the spec closes for WU-09 and WU-10. One spec-consistent deviation: the AC-T41 test asserts 76 tools, not 75. No tooling false-failures.
+
+### Friction
+
+- Engine-required tests need luajit, which is only on PATH under mise. Run them with `mise exec --` or `mise run test`; a bare `pnpm exec jest` or `npx jest` fails with "luajit not found" (all units).
+- The auto-mode classifier timed out or was unavailable on single Bash calls (WU-22, WU-23). The work was retried with Read or Edit.
+- WU-09: AC-T22 timing failures in the first two gate runs at load average 12-13, caused by the trade2 worktree's Jest running at the same time.
+- WU-11: AC-F3 took 1267 ms under concurrent load and passed on re-run.
+- WU-10: a regression check run outside mise skipped the engine suite and stashed both files. It was re-run with a targeted stash and `mise exec --`.
+- WU-23: a stray `cat > file` with no stdin blocked a Bash call for 120 s and was stopped with TaskStop.
+- WU-23: `SessionClient.request` is overloaded, so the jest.spyOn action parameter needed a cast.

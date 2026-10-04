@@ -139,6 +139,7 @@ handlers.load_build_xml = function(params)
 
   local name = params.name ~= nil and tostring(params.name) or 'API Build'
   launch.promptMsg = nil
+  local popupsBefore = main.popups and #main.popups or 0
   _G.loadBuildFromXML(xml, name)
 
   local problems = {}
@@ -152,13 +153,29 @@ handlers.load_build_xml = function(params)
   if loadedName ~= name then
     table.insert(problems, 'loaded build is named ' .. tostring(loadedName) .. ', expected ' .. name)
   end
+  -- A raise inside Build:Init is caught by launch:OnFrame's PCall and lands in promptMsg (ShowErrMsg),
+  -- while mode, newMode and buildName all look like a successful switch: the message is the evidence.
+  if launch.promptMsg ~= nil then
+    table.insert(problems, 'PoB raised while loading the build: ' .. plain(launch.promptMsg))
+  end
+  -- A <Build> without targetVersion="<live>" (missing or legacy) makes Build:Init open its "Game
+  -- Version" conversion popup and return before the tabs are rebuilt, which leaves the previous
+  -- build's tree, items and skills under the new name (Modules/Build.lua, buildMode:Init).
+  if _G.build and build.targetVersion == nil then
+    table.insert(problems, 'the <Build> targetVersion is missing or legacy (expected '
+      .. tostring(rawget(_G, 'liveTargetVersion')) .. '), so PoB opened its game-version conversion popup instead of loading it')
+  end
+  local popupsAfter = main.popups and #main.popups or 0
+  if popupsAfter > popupsBefore then
+    table.insert(problems, 'PoB opened ' .. (popupsAfter - popupsBefore) .. ' popup(s) during the load')
+    -- Close the popups this load opened, so failed loads don't pile them up in the engine.
+    while #main.popups > popupsBefore do main:ClosePopup() end
+  end
   if TEST_ACTIONS and params.__forcePostCheckFailure then
     table.insert(problems, 'post-check failure forced by the test override')
   end
   if #problems > 0 then
-    local message = 'load failed: ' .. table.concat(problems, '; ')
-    if launch.promptMsg then message = message .. ': ' .. plain(launch.promptMsg) end
-    return load_failed(message)
+    return load_failed('load failed: ' .. table.concat(problems, '; '))
   end
   return { ok = true, result = { name = name } }
 end

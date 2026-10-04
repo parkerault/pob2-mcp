@@ -30,6 +30,16 @@ const POE1_ROOT_XML =
 /** The golden build cut in half, as a truncate-then-write save in progress would leave it. */
 const MALFORMED_XML = GOLDEN.slice(0, Math.floor(GOLDEN.length / 2));
 
+/** Passes pre-validation, then raises inside Build:Init (no class 999), which launch:OnFrame's PCall catches. */
+const RAISING_XML =
+  '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding2><Build level="1" targetVersion="0_1"/>' +
+  '<Tree activeSpec="1"><Spec treeVersion="0_5" classId="999" ascendClassId="0" nodes=""/></Tree></PathOfBuilding2>';
+/** Pass pre-validation, but Build:Init opens the game-version conversion popup instead of loading. */
+const NO_TARGET_VERSION_XMLS: Array<{ kind: string; xml: string }> = [
+  { kind: 'a missing', xml: '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding2><Build level="1"/></PathOfBuilding2>' },
+  { kind: 'a legacy', xml: '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding2><Build level="1" targetVersion="0_0"/></PathOfBuilding2>' },
+];
+
 const ENGINE_TIMEOUT = 180_000;
 
 /** Lua for AC-E3: the first unallocated node adjacent to an allocated non-ascendancy node. */
@@ -182,6 +192,45 @@ engineDescribe('wire protocol v2, Lua side (C-2)', () => {
     expect(reply.code).toBe('LOAD_FAILED');
     expect(reply.error).toMatch(/post-check/);
   }, ENGINE_TIMEOUT);
+
+  it('AC-E6/C-2: a valid-root load that raises inside PoB (invalid classId) replies LOAD_FAILED carrying the promptMsg text, never ok:true', async () => {
+    const before = await engine.request('load_build_xml', { xml: GOLDEN, name: 'BeforeRaise' });
+    expect(before).toMatchObject({ ok: true, result: { name: 'BeforeRaise' } });
+
+    const reply = await engine.request('load_build_xml', { xml: RAISING_XML, name: 'BadClass' });
+    expect(reply.ok).toBe(false);
+    expect(reply.code).toBe('LOAD_FAILED');
+    expect(reply.error).toContain('PoB raised while loading the build');
+    expect(reply.error).toContain('PassiveSpec.lua');
+    expect(reply.error).not.toMatch(/\^\d/); // PoB colour codes are stripped
+
+    // promptMsg is cleared before each load, so the next valid load succeeds.
+    const after = await engine.request('load_build_xml', { xml: GOLDEN, name: 'AfterRaise' });
+    expect(after).toMatchObject({ ok: true, result: { name: 'AfterRaise' } });
+    expect(await buildName(engine)).toBe('AfterRaise');
+    const state = await engine.request('__test_state');
+    expect(state.result).toMatchObject({ promptMsg: null, popups: 0 });
+  }, ENGINE_TIMEOUT);
+
+  for (const variant of NO_TARGET_VERSION_XMLS) {
+    it(`AC-E6/C-2: a <Build> with ${variant.kind} targetVersion replies LOAD_FAILED naming the cause and leaves no popup`, async () => {
+      const before = await engine.request('load_build_xml', { xml: GOLDEN, name: 'BeforeConversion' });
+      expect(before).toMatchObject({ ok: true, result: { name: 'BeforeConversion' } });
+
+      const reply = await engine.request('load_build_xml', { xml: variant.xml, name: 'NoVersion' });
+      expect(reply.ok).toBe(false);
+      expect(reply.code).toBe('LOAD_FAILED');
+      expect(reply.error).toContain('targetVersion is missing or legacy (expected 0_1)');
+      const state = await engine.request('__test_state');
+      expect(state.result.popups).toBe(0);
+
+      const after = await engine.request('load_build_xml', { xml: GOLDEN, name: 'AfterConversion' });
+      expect(after).toMatchObject({ ok: true, result: { name: 'AfterConversion' } });
+      expect(await buildName(engine)).toBe('AfterConversion');
+      const life = await engine.request('get_stats', { fields: ['Life'] });
+      expect(life.stats.Life).toBe(2977);
+    }, ENGINE_TIMEOUT);
+  }
 });
 
 engineDescribe('wire protocol v2 without POB_API_TEST_ACTIONS', () => {

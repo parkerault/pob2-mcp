@@ -646,7 +646,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_gem",
-      description: "Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). Many PoE2 support gems come in tiers, e.g. 'Brutality I', 'Brutality II'. An unknown name is rejected with up to 5 suggested names; list_gems searches the gem data.",
+      description: "Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). Many PoE2 support gems come in tiers, e.g. 'Brutality I', 'Brutality II'. A support can also be named '<name> Support' (PoB's base-type name), which tells it apart from an active gem of the same name (e.g. 'Unleash' is the spell, 'Unleash Support' the support). An unknown name is rejected with up to 5 suggested names; a name several gems share is rejected with their PoB gem ids, any of which can be passed instead; list_gems searches the gem data.",
       inputSchema: {
         type: "object",
         properties: {
@@ -796,7 +796,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "setup_skill_with_gems",
-      description: "Setup a complete skill with multiple support gems in one operation. Does NOT auto-set as main skill for DPS. Call set_main_skill with the returned group_index afterward if this should be the primary DPS skill.",
+      description: "Setup a complete skill with multiple support gems in one operation. Every gem name is checked first (as add_gem does), so a rejected name creates nothing. Does NOT auto-set as main skill for DPS. Call set_main_skill with the returned group_index afterward if this should be the primary DPS skill.",
       inputSchema: {
         type: "object",
         properties: {
@@ -824,7 +824,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_multiple_items",
-      description: "Add multiple items at once (efficient bulk operation)",
+      description: "Add multiple items at once (efficient bulk operation). Every item is parsed and its slot checked first, so a bad item or slot adds nothing.",
       inputSchema: {
         type: "object",
         properties: {

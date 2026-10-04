@@ -11,7 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, jest } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
-import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
+import { canonicalExport, startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import type { EngineKind } from '../../src/engine/session';
 import { PoBLuaApiClient } from '../../src/pobLuaBridge';
 import type { SupportCandidatesResult } from '../../src/engine/schemas';
@@ -41,9 +41,21 @@ function exportSlot(xml: string, name: string): string {
  * `calcLib.canGrantedEffectSupportActiveSkill` accepts for one of the group's active skills
  * (`displaySkillList`), minus the supports already in the group. Sorted names.
  */
-function calcLibPoolQuery(groupIndex: number): string {
+function calcLibPoolQuery(groupIndex: number, asMain = false): string {
+  // asMain: PoB builds a group's displaySkillList only when it is the main group or enabled with its
+  // slot in the active weapon set (CalcSetup), so a group outside that set is read as the main one.
   return `
     local group = build.skillsTab.socketGroupList[${groupIndex}]
+    local origMain = build.mainSocketGroup
+    if ${asMain ? 'true' : 'false'} then
+      build.mainSocketGroup = ${groupIndex}
+      build.calcsTab:BuildOutput()
+    end
+    local skills = group.displaySkillList
+    if ${asMain ? 'true' : 'false'} then
+      build.mainSocketGroup = origMain
+      build.calcsTab:BuildOutput()
+    end
     local inGroup = {}
     for _, gem in ipairs(group.gemList) do
       if gem.gemData and gem.gemData.grantedEffect.support then inGroup[gem.gemData.name] = true end
@@ -52,7 +64,7 @@ function calcLibPoolQuery(groupIndex: number): string {
     for _, gemData in pairs(build.data.gems) do
       local ge = gemData.grantedEffect
       if ge.support and not ge.legacy and not inGroup[gemData.name] then
-        for _, activeSkill in ipairs(group.displaySkillList) do
+        for _, activeSkill in ipairs(skills) do
           if calcLib.canGrantedEffectSupportActiveSkill(ge, activeSkill) then
             table.insert(names, gemData.name)
             break
@@ -183,6 +195,19 @@ engineDescribe('engine ops: items, gems, skills on the golden build (WU-11)', ()
       expect(await slotActive()).toBe(false);
       expect(await reported()).toBe(false);
       expect(await exported()).not.toContain('active="true"');
+
+      // get_items reads slot.active, not the item set's flag: with the two made to differ, it follows
+      // the slot control's flag both ways.
+      const setActive = () => luaQuery<boolean>(`return build.itemsTab.activeItemSet['Charm 1'].active == true`);
+      await luaQuery(`build.itemsTab.slots['Charm 1'].active = true; return true`);
+      expect(await setActive()).toBe(false);
+      expect(await reported()).toBe(true);
+      await luaQuery(
+        `build.itemsTab.slots['Charm 1'].active = false; build.itemsTab.activeItemSet['Charm 1'].active = true; return true`,
+      );
+      expect(await slotActive()).toBe(false);
+      expect(await reported()).toBe(false);
+      await luaQuery(`build.itemsTab.activeItemSet['Charm 1'].active = false; return true`);
 
       const on = await f.call('toggle_flask', { slot: 'Charm 1', active: true });
       expect(on.isError).toBe(false);
@@ -322,6 +347,138 @@ engineDescribe('engine ops: items, gems, skills on the golden build (WU-11)', ()
       expect(await luaQuery<number>('return build.mainSocketGroup')).toBe(main);
       expect(await luaQuery<number>(`return #build.skillsTab.socketGroupList[${target}].gemList`)).toBe(lengthBefore);
       expect(await run('read', (c) => c.getStats(['CombinedDPS', 'Life']))).toEqual(before);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E39 on a group outside PoB\'s calc set (disabled): list_support_candidates and analyze_skills see its active skills and pool; suggest_supports measures on it; the build is left as it was',
+    async () => {
+      const main = await luaQuery<number>('return build.mainSocketGroup');
+      const target = 3;
+      expect(target).not.toBe(main);
+      const poolEnabled = (await candidates(target)).candidates.map((c) => c.name).sort();
+      expect(poolEnabled.length).toBeGreaterThan(0);
+
+      await run('mutate', (c) => c.request('set_socket_group_enabled', { groupIndex: target, enabled: false }));
+      // PoB itself leaves a disabled, non-main group's skill list empty.
+      expect(await luaQuery<number>(`return #build.skillsTab.socketGroupList[${target}].displaySkillList`)).toBe(0);
+      const before = await canonicalExport(f.session);
+
+      // list_support_candidates: the group's active skill, the calcLib pool built with the group as
+      // the main skill (the same pool as when it is enabled), and every socketed support supports it.
+      const pool = await candidates(target);
+      expect(pool.activeSkills).toEqual(['Flash Grenade']);
+      const poolNames = pool.candidates.map((c) => c.name).sort();
+      expect(poolNames).toEqual(await luaQuery<string[]>(calcLibPoolQuery(target, true)));
+      expect(poolNames).toEqual(poolEnabled);
+      expect(pool.socketed.length).toBeGreaterThan(0);
+      for (const s of pool.socketed) expect(s.supportsActive).toBe(true);
+
+      // analyze_skills: no "No active skill" issue, no support flagged, the candidate count.
+      const analysis = await f.call('analyze_skills');
+      expect(analysis.isError).toBe(false);
+      const section = analysis.text.split('## Group ').find((s) => s.startsWith(`${target}:`))!;
+      expect(section).toContain('[DISABLED]');
+      expect(section).toContain('Active skills: Flash Grenade');
+      expect(section).not.toContain('No active skill');
+      expect(section).not.toContain("can't support");
+      expect(section).toContain(`Compatible supports not in this group: ${poolNames.length} `);
+
+      // suggest_supports measures the pool on the group.
+      const suggested = await f.call('suggest_supports', { group_index: target, count: 5 });
+      expect(suggested.isError).toBe(false);
+      expect(suggested.text).not.toContain('has no active skill');
+      expect(suggested.text).toContain(`Candidate pool: ${poolNames.length} support gems`);
+      expect(suggested.text).toContain(`Measured on group ${target} as the main skill`);
+
+      // Nothing changed: still disabled, main group as it was, and the same build.
+      expect(await luaQuery<boolean>(`return build.skillsTab.socketGroupList[${target}].enabled`)).toBe(false);
+      expect(await luaQuery<number>('return build.mainSocketGroup')).toBe(main);
+      expect(await canonicalExport(f.session)).toBe(before);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'FR-E6 / C-3: setup_skill_with_gems with a rejected support name and add_multiple_items with an unknown or unfitting slot fail before changing anything (engine build and session revision unchanged)',
+    async () => {
+      const before = await canonicalExport(f.session);
+      const revision = f.session.revision;
+      const groupCount = () => luaQuery<number>('return #build.skillsTab.socketGroupList');
+      const groupsBefore = await groupCount();
+
+      const setup = await f.call('setup_skill_with_gems', { active_gem: 'Fireball', support_gems: ['Brutality'] });
+      expect(setup.isError).toBe(true);
+      expect(setup.text).toContain('unknown gem "Brutality"');
+      expect(await groupCount()).toBe(groupsBefore);
+      expect(f.session.revision).toBe(revision);
+      expect(await canonicalExport(f.session)).toBe(before);
+
+      const itemCount = () => luaQuery<number>('local n = 0; for _ in pairs(build.itemsTab.items) do n = n + 1 end; return n');
+      const itemsBefore = await itemCount();
+      for (const [slot, message] of [
+        ['Ring 9', 'unknown item slot: Ring 9'],
+        ['Helmet', 'cannot be equipped in Helmet'],
+      ]) {
+        const multi = await f.call('add_multiple_items', {
+          items: [
+            { item_text: RUBY_RING, slot_name: 'Ring 1' },
+            { item_text: RUBY_RING, slot_name: slot },
+          ],
+        });
+        expect(multi.isError).toBe(true);
+        expect(multi.text).toContain(message);
+        expect(multi.text).toContain('item 2 of 2');
+        expect(await itemCount()).toBe(itemsBefore);
+        expect(f.session.revision).toBe(revision);
+        expect(await canonicalExport(f.session)).toBe(before);
+      }
+
+      // The same calls with good names and slots still work.
+      const ok = await f.call('setup_skill_with_gems', { active_gem: 'Fireball', support_gems: ['Brutality I'] });
+      expect(ok.isError).toBe(false);
+      expect(await groupCount()).toBe(groupsBefore + 1);
+      expect(f.session.revision).toBe(revision + 1);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'add_gem resolves names PoB gives several gems the same way in every engine process: base-type name first, then the regular gem; a name still ambiguous is rejected with gem ids, and an id picks the gem',
+    async () => {
+      const lastGem = () =>
+        luaQuery<string>('local gl = build.skillsTab.socketGroupList[1].gemList; return gl[#gl].gemData.id');
+      // [input, the gem id it must pick, how add_gem names it]
+      const cases: Array<[string, string, string]> = [
+        ['Unleash', 'Metadata/Items/Gems/SkillGemUnleash', 'Added Unleash (L'],
+        ['unleash', 'Metadata/Items/Gems/SkillGemUnleash', 'Added Unleash (L'],
+        ['Unleash Support', 'Metadata/Items/Gems/SkillGemUnleashSupport', 'Added Unleash (support) (L'],
+        ['Lightning Bolt', 'Metadata/Items/Gems/SkillGemLightningBolt', 'Added Lightning Bolt (L'],
+        ['lightning bolt', 'Metadata/Items/Gems/SkillGemLightningBolt', 'Added Lightning Bolt (L'],
+      ];
+      for (const [name, id, shown] of cases) {
+        const added = await f.call('add_gem', { group_index: 1, gem_name: name });
+        expect(added.isError).toBe(false);
+        expect(added.text).toContain(shown);
+        expect(await lastGem()).toBe(id);
+      }
+
+      const groupBefore = await luaQuery<number>('return #build.skillsTab.socketGroupList[1].gemList');
+      const ambiguous = await f.call('add_gem', { group_index: 1, gem_name: 'Mace Strike' });
+      expect(ambiguous.isError).toBe(true);
+      expect(ambiguous.text).toContain('ambiguous gem name "Mace Strike"');
+      const ids = [...ambiguous.text.matchAll(/(Metadata\/Items\/Gems\/\S+)/g)].map((m) => m[1]);
+      expect(ids).toEqual([
+        'Metadata/Items/Gems/SkillGemPlayerDefault1HMace',
+        'Metadata/Items/Gems/SkillGemPlayerDefault2HMace',
+        'Metadata/Items/Gems/SkillGemPlayerDefaultMaceMace',
+      ]);
+      expect(await luaQuery<number>('return #build.skillsTab.socketGroupList[1].gemList')).toBe(groupBefore);
+
+      const byId = await f.call('add_gem', { group_index: 1, gem_name: ids[1] });
+      expect(byId.isError).toBe(false);
+      expect(await lastGem()).toBe(ids[1]);
     },
     ENGINE_TIMEOUT,
   );

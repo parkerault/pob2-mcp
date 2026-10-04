@@ -8,6 +8,12 @@ export interface ItemSkillHandlerContext {
   ensureLuaClient: () => Promise<void>;
 }
 
+/** A gem's name as an add_gem reply gives it, marked when it is a support (PoB names some supports
+ * like an active gem, e.g. "Unleash"). */
+function gemLabel(gem: { name: string; support?: boolean }): string {
+  return gem.support ? `${gem.name} (support)` : gem.name;
+}
+
 export async function handleAddItem(
   context: ItemSkillHandlerContext,
   itemText: string,
@@ -423,7 +429,7 @@ export async function handleAddGem(
       enabled,
     });
 
-    let text = `✅ Added ${result.name} (L${level || 20}, Q${quality || 0}) to group ${groupIndex}.`;
+    let text = `✅ Added ${gemLabel(result)} (L${level || 20}, Q${quality || 0}) to group ${groupIndex}.`;
 
     return {
       content: [
@@ -669,6 +675,15 @@ export async function handleSetupSkillWithGems(
       throw new Error('gems array cannot be empty');
     }
 
+    // Every gem name is checked before the first change, so a rejected name (add_gem's validateOnly:
+    // PoB's gem data, with suggestions) leaves the build as it was (C-3: a failed call changes nothing).
+    for (const gem of gems) {
+      if (!gem.name || gem.name.trim().length === 0) {
+        throw new Error('gem name cannot be empty');
+      }
+      await luaClient.request('add_gem', { gemName: gem.name, validateOnly: true });
+    }
+
     // Create socket group
     const groupResult = await luaClient.createSocketGroup({
       label,
@@ -677,23 +692,29 @@ export async function handleSetupSkillWithGems(
       includeInFullDPS,
     });
 
-    // Add all gems to the group
+    // Add all gems to the group. A failure past this point (all names were checked) takes the new
+    // group out again, so the call still changes nothing.
     const addedGems: string[] = [];
-    for (const gem of gems) {
-      if (!gem.name || gem.name.trim().length === 0) {
-        throw new Error('gem name cannot be empty');
+    try {
+      for (const gem of gems) {
+        const result = await luaClient.addGem({
+          groupIndex: groupResult.index,
+          gemName: gem.name,
+          level: gem.level,
+          quality: gem.quality,
+          qualityId: gem.quality_id,
+          enabled: gem.enabled,
+        });
+
+        addedGems.push(`${gemLabel(result)} (L${gem.level || 20}, Q${gem.quality || 0})`);
       }
-
-      const result = await luaClient.addGem({
-        groupIndex: groupResult.index,
-        gemName: gem.name,
-        level: gem.level,
-        quality: gem.quality,
-        qualityId: gem.quality_id,
-        enabled: gem.enabled,
-      });
-
-      addedGems.push(`${result.name} (L${gem.level || 20}, Q${gem.quality || 0})`);
+    } catch (error) {
+      try {
+        await luaClient.removeSkill({ groupIndex: groupResult.index });
+      } catch {
+        // The engine is gone or refused; the original error is the one to report.
+      }
+      throw error;
     }
 
     let text = `✅ Created socket group ${groupResult.index}`;
@@ -733,12 +754,22 @@ export async function handleAddMultipleItems(
       throw new Error('items array cannot be empty');
     }
 
-    const addedItems: string[] = [];
-    for (const item of items) {
+    // Every item is parsed and its slot checked before the first one is added (add_item_text's
+    // validateOnly), so a bad item or slot leaves the build as it was (C-3: a failed call changes
+    // nothing).
+    for (const [i, item] of items.entries()) {
       if (!item.item_text || item.item_text.trim().length === 0) {
         throw new Error('item_text cannot be empty');
       }
+      try {
+        await luaClient.request('add_item_text', { text: item.item_text, slotName: item.slot_name, validateOnly: true });
+      } catch (error) {
+        throw new Error(`item ${i + 1} of ${items.length}: ${error instanceof Error ? error.message : String(error)}; nothing was added`);
+      }
+    }
 
+    const addedItems: string[] = [];
+    for (const item of items) {
       const result = await luaClient.addItem(item.item_text, item.slot_name);
       addedItems.push(`${result.name || 'Unknown'} → ${result.slot || 'Not equipped'}`);
     }

@@ -246,7 +246,9 @@ export const createSocketGroupReply = baseReply.extend({
 });
 
 export const addGemReply = baseReply.extend({
-  gem: z.object({ gemIndex: z.number().int(), name: z.string() }).passthrough(),
+  gem: z
+    .object({ gemIndex: z.number().int(), name: z.string(), gemId: optString, support: z.boolean().optional() })
+    .passthrough(),
 });
 
 export const searchNodesReply = baseReply.extend({
@@ -636,7 +638,8 @@ export interface ActionParamsMap {
     nodes: number[];
     treeVersion?: string;
   };
-  add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean };
+  /** `validateOnly`: parse the text and check the slot, change nothing (the reply's `id` is 0). */
+  add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean; validateOnly?: boolean };
   export_build_xml: NoParams;
   set_level: { level: number };
   /** `slot` is "Flask 1"–"Flask 2" or "Charm 1"–"Charm 3"; `index` alone means "Flask <index>". */
@@ -655,15 +658,19 @@ export interface ActionParamsMap {
   /** `enemyLevel` and any `configTab.input` key with a scalar value. */
   set_config: Record<string, string | number | boolean>;
   create_socket_group: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean };
-  add_gem: {
-    groupIndex: number;
-    gemName: string;
-    level?: number;
-    quality?: number;
-    qualityId?: string;
-    enabled?: boolean;
-    count?: number;
-  };
+  /** `validateOnly`: resolve `gemName` only, change nothing (the reply's `gemIndex` is 0). */
+  add_gem:
+    | {
+        groupIndex: number;
+        gemName: string;
+        level?: number;
+        quality?: number;
+        qualityId?: string;
+        enabled?: boolean;
+        count?: number;
+        validateOnly?: false;
+      }
+    | { gemName: string; validateOnly: true };
   set_gem_level: { groupIndex: number; gemIndex: number; level: number };
   set_gem_quality: { groupIndex: number; gemIndex: number; quality: number; qualityId?: string };
   remove_skill: { groupIndex: number };

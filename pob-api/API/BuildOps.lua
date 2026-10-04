@@ -415,7 +415,9 @@ local function equipped_slot(itemId)
   return nil
 end
 
--- params: { text: string, slotName?: string, noAutoEquip?: boolean }
+-- With `validateOnly`, the text is parsed and the slot checked, and nothing changes (`id` is 0), so a
+-- multi-step tool can check every item before its first change.
+-- params: { text: string, slotName?: string, noAutoEquip?: boolean, validateOnly?: boolean }
 function M.add_item_text(params)
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   if type(params) ~= 'table' or type(params.text) ~= 'string' then return nil, 'missing text' end
@@ -442,6 +444,9 @@ function M.add_item_text(params)
       and not build.itemsTab:IsItemValidForSlot(item, slotCtrl.slotName) then
     return nil, string.format('%s (%s) cannot be equipped in %s', tostring(item.name), tostring(item.baseName),
       slotCtrl.slotName)
+  end
+  if params.validateOnly == true then
+    return { id = 0, name = item.name, slot = slotCtrl and slotCtrl.slotName or nil }
   end
 
   item:NormaliseQuality()
@@ -601,21 +606,81 @@ end
 -- The most gem-name suggestions an unknown name gets (D-50).
 local MAX_GEM_SUGGESTIONS = 5
 
--- Resolve a gem name against PoB's gem data (`data.gems`): the exact name, else the one name equal
--- to it ignoring case. An unknown name fails with up to MAX_GEM_SUGGESTIONS names, matched ignoring
--- case: names that start with it first, then names that contain it, each group in name order.
+-- A gem's PoB base-type names, as data.gemForBaseName keys them (Data.lua setupGem): a support's name
+-- plus " Support" (except SupportBarrage), and the gem's baseTypeName.
+local function gem_base_names(gemData)
+  local names = {}
+  local baseName = gemData.name
+  if gemData.grantedEffect and gemData.grantedEffect.support and gemData.grantedEffectId ~= 'SupportBarrage' then
+    baseName = baseName .. ' Support'
+  end
+  table.insert(names, baseName)
+  if type(gemData.baseTypeName) == 'string' and gemData.baseTypeName ~= baseName then
+    table.insert(names, gemData.baseTypeName)
+  end
+  return names
+end
+
+-- How well `gemData` matches the name `name` (`lower` is it in lower case): 4 a base-type name
+-- equals it, 3 the gem name equals it, 2 and 1 the same ignoring case; 0 no match.
+local function gem_match_score(gemData, name, lower)
+  local score = 0
+  for _, baseName in ipairs(gem_base_names(gemData)) do
+    if baseName == name then return 4 end
+    if baseName:lower() == lower then score = 2 end
+  end
+  if gemData.name == name then return 3 end
+  if score == 0 and gemData.name:lower() == lower then score = 1 end
+  return score
+end
+
+-- Resolve a gem name against PoB's gem data (`data.gems`), the same way in every engine process
+-- (pairs order never decides):
+-- - a gem id (a `data.gems` key) names that gem;
+-- - else the best-matching gems: a base-type name ("Unleash Support"; data.gemForBaseName) beats the gem
+--   name, and the exact case beats a match ignoring case. PoB gives some gems the same name ("Unleash"
+--   is a spell and a support, whose base-type name is "Unleash Support"), so this tells them apart;
+-- - several best matches: the ones not granted by a unique item (no "Unique" in the id) are kept;
+--   if several remain (e.g. the "Mace Strike" default attacks), the name is ambiguous, as PoB's own
+--   SkillsTab:FindSkillGem rules it, and the error lists their ids, one of which picks the gem.
+-- An unknown name fails with up to MAX_GEM_SUGGESTIONS names, matched ignoring case: names that start
+-- with it first, then names that contain it, each group in name order.
 function M.resolve_gem(name)
   name = tostring(name or '')
   if name:match('^%s*$') then return nil, 'missing gem name' end
   local gems = build and build.data and build.data.gems
   if not gems then return nil, 'gem data not initialized' end
+  if type(gems[name]) == 'table' and type(gems[name].name) == 'string' then return gems[name] end
   local lower = name:lower()
-  local folded = {}
+  local best, bestScore = {}, 0
   for _, gemData in pairs(gems) do
-    if gemData.name == name then return gemData end
-    if type(gemData.name) == 'string' and gemData.name:lower() == lower then table.insert(folded, gemData) end
+    if type(gemData.name) == 'string' then
+      local score = gem_match_score(gemData, name, lower)
+      if score > bestScore then
+        best, bestScore = { gemData }, score
+      elseif score > 0 and score == bestScore then
+        table.insert(best, gemData)
+      end
+    end
   end
-  if #folded == 1 then return folded[1] end
+  if #best > 1 then
+    local regular = {}
+    for _, gemData in ipairs(best) do
+      if not tostring(gemData.id):find('Unique', 1, true) then table.insert(regular, gemData) end
+    end
+    if #regular > 0 then best = regular end
+  end
+  if #best == 1 then return best[1] end
+  if #best > 1 then
+    table.sort(best, function(a, b) return tostring(a.id) < tostring(b.id) end)
+    local choices = {}
+    for _, gemData in ipairs(best) do
+      local detail = gemData.weaponRequirements or gemData.tagString
+      table.insert(choices, tostring(gemData.id) .. (detail and detail ~= '' and (' (' .. detail .. ')') or ''))
+    end
+    return nil, string.format('ambiguous gem name "%s": PoB has %d gems by that name; pass one of their ids instead: %s',
+      name, #best, table.concat(choices, '; '))
+  end
   local prefix, contains, seen = {}, {}, {}
   for _, gemData in pairs(gems) do
     local gemName = gemData.name
@@ -638,20 +703,24 @@ function M.resolve_gem(name)
       if #suggestions < MAX_GEM_SUGGESTIONS then table.insert(suggestions, gemName) end
     end
   end
-  if #folded > 1 then
-    return nil, string.format('ambiguous gem name "%s"', name)
-  end
   if #suggestions == 0 then
     return nil, string.format('unknown gem "%s"; no gem name contains it (see list_gems)', name)
   end
   return nil, string.format('unknown gem "%s". Did you mean: %s', name, table.concat(suggestions, ', '))
 end
 
--- Add a gem to a socket group
--- params: { groupIndex: number, gemName: string, level?: number, quality?: number, qualityId?: string, enabled?: boolean }
+-- Add a gem to a socket group. With `validateOnly`, only the name is resolved (resolve_gem) and nothing
+-- changes: `gemIndex` is 0 and `groupIndex` isn't needed, so a multi-step tool can check every name
+-- before its first change.
+-- params: { groupIndex: number, gemName: string, level?: number, quality?: number, qualityId?: string, enabled?: boolean, validateOnly?: boolean }
 function M.add_gem(params)
   if not build or not build.skillsTab then return nil, 'skills not initialized' end
   if type(params) ~= 'table' then return nil, 'invalid params' end
+  if params.validateOnly == true then
+    local gemData, err = M.resolve_gem(params.gemName)
+    if not gemData then return nil, err end
+    return { gemIndex = 0, name = gemData.name, gemId = gemData.id, support = gemData.grantedEffect and gemData.grantedEffect.support == true or false }
+  end
   if not params.groupIndex or not params.gemName then return nil, 'missing groupIndex or gemName' end
 
   local skillSetId = build.skillsTab.activeSkillSetId or 1
@@ -689,7 +758,8 @@ function M.add_gem(params)
   build.buildFlag = true
   M.get_main_output()
 
-  return { gemIndex = gemIndex, name = gemInstance.nameSpec }
+  return { gemIndex = gemIndex, name = gemInstance.nameSpec, gemId = gemData.id,
+    support = gemData.grantedEffect and gemData.grantedEffect.support == true or false }
 end
 
 -- Set gem level
@@ -900,6 +970,30 @@ local function measure_candidates(groupIndex, group, candidates)
   return measured
 end
 
+-- A socket group's active skills as PoB builds them (`displaySkillList`). PoB builds them only for the
+-- main group and for the enabled groups whose slot is in the active weapon set (CalcSetup: `index ==
+-- env.mainSocketGroup or (group.enabled and group.slotEnabled)`); every other group gets an empty list.
+-- For such a group (disabled, or on the inactive weapon swap) the list is built with the group made the
+-- main skill, the way PoB shows it when it is selected; the main socket group and the outputs are
+-- restored afterwards.
+local function group_active_skills(groupIndex, group)
+  if group.displaySkillList == nil then M.get_main_output() end
+  if groupIndex == build.mainSocketGroup or (group.enabled and group.slotEnabled) then
+    return group.displaySkillList or {}
+  end
+  local origMain = build.mainSocketGroup
+  local list
+  local ok, err = pcall(function()
+    build.mainSocketGroup = groupIndex
+    build.calcsTab:BuildOutput()
+    list = group.displaySkillList or {}
+  end)
+  build.mainSocketGroup = origMain
+  build.calcsTab:BuildOutput()
+  if not ok then return nil, 'building the group\'s skills failed: ' .. tostring(err) end
+  return list
+end
+
 -- The support gems PoB says can support a socket group's active skills: every non-legacy support gem
 -- in `data.gems` for which calcLib.canGrantedEffectSupportActiveSkill accepts one of the group's
 -- active skills (`displaySkillList`), as PoB's gem selector decides it, minus the supports already in
@@ -918,9 +1012,8 @@ function M.list_support_candidates(params)
   end
   local gems = build.data and build.data.gems
   if not gems then return nil, 'gem data not initialized' end
-  if group.displaySkillList == nil then M.get_main_output() end
-
-  local activeSkills = group.displaySkillList or {}
+  local activeSkills, skillsErr = group_active_skills(groupIndex, group)
+  if not activeSkills then return nil, skillsErr end
   local activeNames = {}
   for _, activeSkill in ipairs(activeSkills) do
     local grantedEffect = activeSkill.activeEffect and activeSkill.activeEffect.grantedEffect

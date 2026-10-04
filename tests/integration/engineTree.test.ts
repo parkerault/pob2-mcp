@@ -206,7 +206,7 @@ engineDescribe('engine ops: tree and specs on the golden build (WU-10)', () => {
   it(
     'AC-E32: get_passive_upgrades returns a suggestion with an integer path cost >= 1 (PoB node.pathDist) and a non-zero delta for the requested stat, and the engine is still alive',
     async () => {
-      const out = await f.call('get_passive_upgrades', { focus: 'dps', max_results: 5 });
+      const out = await f.call('get_passive_upgrades', { focus: 'dps', max_results: 10 });
       expect(out.isError).toBe(false);
       expect(out.text).not.toMatch(/undefined|NaN/);
 
@@ -236,6 +236,31 @@ engineDescribe('engine ops: tree and specs on the golden build (WU-10)', () => {
         return Number(added.CombinedDPS) - Number(base.CombinedDPS);
       });
       expect(Math.round(delta)).toBe(shownDelta);
+
+      // Every suggestion is a main-tree notable priced in passive points. The build's own unallocated
+      // ascendancy notables are reachable (PoB paths them inside the allocated ascendancy) but cost
+      // ascendancy points, so none of them is offered (on the golden build, Integrated Efficiency
+      // [57819] would otherwise rank third for dps while needing 4 more of the 8 ascendancy points).
+      const ascendancyOf = await luaQuery<Record<string, string | false>>(`
+        local out = {}
+        for _, id in ipairs({ ${suggestions.map((s) => s.id).join(', ')} }) do
+          out[tostring(id)] = build.spec.nodes[id].ascendancyName or false
+        end
+        return out`);
+      for (const s of suggestions) expect([s.id, ascendancyOf[String(s.id)]]).toEqual([s.id, false]);
+      const ownAscendancyNotables = await luaQuery<number[]>(`
+        local ids = {}
+        for id, node in pairs(build.spec.nodes) do
+          if node.isNotable and node.ascendancyName == build.spec.curAscendClassName and not build.spec.allocNodes[id]
+            and type(node.path) == 'table' and #node.path > 0 and (node.pathDist or 1000) < 1000 then
+            ids[#ids + 1] = id
+          end
+        end
+        return ids`);
+      expect(ownAscendancyNotables).toContain(57819);
+      const shownIds = [...out.text.matchAll(/^\d+\. \*\*.+\*\* \[(\d+)\]$/gm)].map((m) => Number(m[1]));
+      expect(shownIds.length).toBe(suggestions.length);
+      for (const id of ownAscendancyNotables) expect(shownIds).not.toContain(id);
 
       const pong = await run('read', (client) => client.request('ping'));
       expect(pong.pong).toBe(true);

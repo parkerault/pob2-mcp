@@ -408,8 +408,10 @@ export async function handleGetPassiveUpgrades(
     }
   }
 
-  // Step 3: the nearest unallocated notables per keyword, by PoB's own path cost. Unreachable nodes
-  // (another ascendancy, a blocked path) carry no path and are skipped.
+  // Step 3: the nearest unallocated main-tree notables per keyword, by PoB's own path cost.
+  // Unreachable nodes (another ascendancy, a blocked path) carry no path and are skipped. Ascendancy
+  // notables are skipped too: search_nodes types them 'notable', and the build's own ascendancy has
+  // real paths, but they cost ascendancy points (capped separately), not passive points.
   const seen = new Set<number>();
   const candidates: Array<{ id: number; name: string; stats: string[]; path: number[]; pathCost: number }> = [];
 
@@ -421,7 +423,7 @@ export async function handleGetPassiveUpgrades(
       includeAllocated: false,
     });
     const reachable = results.nodes
-      .filter((n) => !n.allocated && n.path && n.path.length > 0 && Number.isInteger(n.pathDist) && n.pathDist! >= 1)
+      .filter((n) => !n.allocated && !n.ascendancyName && n.path && n.path.length > 0 && Number.isInteger(n.pathDist) && n.pathDist! >= 1)
       .sort((a, b) => a.pathDist! - b.pathDist! || a.name.localeCompare(b.name) || a.id - b.id);
     let taken = 0;
     for (const n of reachable) {

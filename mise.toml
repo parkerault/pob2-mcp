@@ -9,8 +9,9 @@
 node = { version = "24", postinstall = "corepack enable" }
 
 [plugins]
-# Pin the LuaJIT asdf plugin revision (mise rejects abbreviated SHAs).
-"asdf-mise-plugins-mise-lua-jit" = "https://github.com/mise-plugins/mise-luaJIT.git#bd4977ef2c2cfd0659a4bb39acb37bd5104fb7fc"
+# Pin the LuaJIT asdf plugin revision (mise rejects abbreviated SHAs). The key must be the
+# tool's backend name exactly as in [tools]; any other key is silently ignored.
+"asdf:mise-plugins/mise-luaJIT" = "https://github.com/mise-plugins/mise-luaJIT.git#bd4977ef2c2cfd0659a4bb39acb37bd5104fb7fc"
 
 # Tasks contain no pipes: the mise task shell is `sh -c -o errexit`, without pipefail.
 [tasks."pob:fetch"]

@@ -81,3 +81,32 @@ is `build-handoff.md`.
   run. `jest --detectOpenHandles` on the new in-process suites (`tests/mcp/deletedTools`,
   `tests/mcp/toolSet`) reports no open handle, so the leak is somewhere else. It is left for a later
   unit.
+
+## 2026-10-04: wave 1 (WU-02…WU-04) second gate fix: the LuaJIT plugin pin
+
+- **Gate failure (AC-F7, WU-02).** The W1 gate at `fee3d92` found that the `[plugins]` entry in
+  `mise.toml`, which pins the LuaJIT asdf plugin revision (the C-19 developer entry points
+  contract), had no effect. It was keyed `"asdf-mise-plugins-mise-lua-jit"`, the directory name of
+  the plugin already installed on this box. mise 2026.5.15 looks up `[plugins]` pins by the tool's
+  backend name, `"asdf:mise-plugins/mise-luaJIT"`, so in a fresh data dir it ignored the pin and
+  cloned the plugin's default branch. The earlier AC-F7 check ("the plugin pin checks out
+  `bd4977e`") passed only because upstream `master` is still `bd4977e`.
+- **Fix.** `mise.toml` only: the `[plugins]` key is now `"asdf:mise-plugins/mise-luaJIT"`, the
+  backend name exactly as written in `[tools]`. The value is unchanged
+  (`https://github.com/mise-plugins/mise-luaJIT.git#bd4977ef2c2cfd0659a4bb39acb37bd5104fb7fc`).
+  The comment now says the key must match the `[tools]` backend name, because any other key is
+  ignored without a warning. No A-n assumption is needed, because the pin can be applied.
+- **Pin-effectiveness probe** (scratch copies of `mise.toml`, each with a fresh `MISE_DATA_DIR`,
+  `mise plugins install -a`, then `git rev-parse HEAD` in the installed plugin; GitHub only):
+  - new key, SHA swapped to `62c0727d83242036f51af105eace53e274b02a74`: rc 0, HEAD = `62c0727…`.
+    mise logs `check out 62c0727…`. The pin is honoured.
+  - control, old key, the same swapped SHA: rc 0, HEAD = `bd4977e…`. The pin is ignored, which
+    reproduces the gate failure.
+  - new key, committed SHA `bd4977e…`: rc 0, HEAD = `bd4977e…`.
+- **Existing data dir.** `mise ls` still resolves `asdf:mise-plugins/mise-luaJIT`
+  `ref:2460b3ff…`, and `mise which luajit` is unchanged.
+- **Gate evidence at the fix commit:** clean tree (`rm -rf build coverage`, `jest --clearCache`).
+  `mise run test` rc 0, with 37/37 suites and 366/366 tests. `pnpm build` rc 0.
+- **Still open for the coordinator.** The `costBenefitAnalyzer.ts` deviation (kept because the kept
+  `search_trade_items` tool uses it) is recorded only in this work-log. It belongs in the spine or
+  in WU-15's slice.

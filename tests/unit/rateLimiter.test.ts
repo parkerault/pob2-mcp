@@ -110,19 +110,35 @@ describe('AC-T4 (WU-14, I-8d): per-policy rule parsing', () => {
   });
 });
 
-/** Every send must satisfy every window's `max - 1` over half-open trailing windows `(s - period, s]`. */
+/**
+ * How a server might count the sends in the window that ends at send `s`. Both readings are
+ * inclusive of the window's start, which is the strict reading (PoB counts `timestamp >= now -
+ * window`):
+ * - `ms`: every send in the closed interval `[s - period, s]`;
+ * - `1s`: timestamps truncated to whole seconds, so every send whose second is in
+ *   `[sec(s) - period, sec(s)]`.
+ */
+const SERVER_READINGS = {
+  ms: (x: number, s: number, periodMs: number) => x >= s - periodMs && x <= s,
+  '1s': (x: number, s: number, periodMs: number) => Math.floor(x / 1000) >= Math.floor(s / 1000) - periodMs / 1000 && x <= s,
+} as const;
+
+/** Under both server readings, no window ending at a send holds more than `max - 1` sends. */
 function assertWithinMargin(sends: number[], windows: RateWindow[], priorHits: Map<number, { at: number; hits: number }>): void {
-  for (const w of windows) {
-    const periodMs = w.period * 1000;
-    const prior = priorHits.get(w.period);
-    for (const s of sends) {
-      let count = sends.filter((x) => x > s - periodMs && x <= s).length;
-      if (prior && prior.at > s - periodMs && prior.at <= s) count += prior.hits;
-      expect({ window: `${w.max}:${w.period}`, at: s, count: Math.min(count, w.max - 1) }).toEqual({
-        window: `${w.max}:${w.period}`,
-        at: s,
-        count,
-      });
+  for (const [reading, inWindow] of Object.entries(SERVER_READINGS)) {
+    for (const w of windows) {
+      const periodMs = w.period * 1000;
+      const prior = priorHits.get(w.period);
+      for (const s of sends) {
+        let count = sends.filter((x) => inWindow(x, s, periodMs)).length;
+        if (prior && inWindow(prior.at, s, periodMs)) count += prior.hits;
+        expect({ reading, window: `${w.max}:${w.period}`, at: s, count: Math.min(count, w.max - 1) }).toEqual({
+          reading,
+          window: `${w.max}:${w.period}`,
+          at: s,
+          count,
+        });
+      }
     }
   }
 }
@@ -146,13 +162,37 @@ describe('AC-T5 (WU-14, NFR-9): no send exceeds any window max - 1', () => {
 
     expect(sends).toHaveLength(11);
     const policy = limiter.inspect('trade-search-request-limit')!;
-    // Account 3:5 minus margin 1 = at most 2 sends in any 5 s window.
-    for (const s of sends) expect(sends.filter((x) => x > s - 5000 && x <= s).length).toBeLessThanOrEqual(2);
+    // Account 3:5 minus margin 1 = at most 2 sends in any closed 5 s interval [a, a + 5000].
+    for (const a of sends) expect(sends.filter((x) => x >= a && x <= a + 5000).length).toBeLessThanOrEqual(2);
     assertWithinMargin(sends, policy.rules.account, new Map());
     // Ip windows: the server already counted 26 other requests on the 3 h window when the first answered.
     assertWithinMargin(sends, policy.rules.ip, new Map([[10800, { at: sends[0], hits: 26 }]]));
-    // It does pace the burst rather than refuse it: the last send is 25 s after the first.
-    expect(sends[sends.length - 1] - sends[0]).toBe(25_000);
+    // It paces the burst rather than refusing it: pairs go 6 s apart (the 5 s window plus PoB's 1 s
+    // guard), never exactly 5 s apart, and the last send is 30 s after the first.
+    expect(sends.map((x) => x - sends[0])).toEqual([0, 0, 6_000, 6_000, 12_000, 12_000, 18_000, 18_000, 24_000, 24_000, 30_000]);
+  });
+
+  it('AC-T5: concurrent sends never land exactly one window apart (regression: pairs at 0, 0, 5000, 5000 put 4 in a closed 5 s interval)', async () => {
+    jest.useFakeTimers({ now: 2_000_000 });
+    const headers = fixtureHeaders('search-weighted-session');
+    const limiter = new RateLimiter();
+    const sends: number[] = [];
+    const send = async () => {
+      sends.push(Date.now());
+      return response(headers);
+    };
+    await limiter.run('search', send);
+    const burst = Array.from({ length: 7 }, () => limiter.run('search', send));
+    await jest.advanceTimersByTimeAsync(60_000);
+    await Promise.all(burst);
+
+    expect(sends).toHaveLength(8);
+    const account = limiter.inspect('trade-search-request-limit')!.rules.account[0];
+    expect(account).toEqual({ max: 3, period: 5, penalty: 60 });
+    // Any send that waited for an older one to leave the Account window is more than 5 s + 1 s later.
+    for (let i = 2; i < sends.length; i++) expect(sends[i] - sends[i - 2]).toBeGreaterThanOrEqual(6_000);
+    // No closed 5 s interval, and no 5 s window counted at 1 s resolution, holds more than 2.
+    assertWithinMargin(sends, [account], new Map());
   });
 
   it('AC-T5: 200 random-interval requests across the search and fetch policies never exceed any max - 1', async () => {
@@ -280,7 +320,8 @@ describe('AC-T6 (WU-14): lockouts and long waits', () => {
   it('AC-T6: a required wait of 40 s with the default maxWaitMs throws would_wait {waitS: 40} without sleeping', async () => {
     const clock = manualClock();
     const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep });
-    const headers = { ...base, 'x-rate-limit-ip': '2:40:60' }; // max 2 - margin 1 = 1 per 40 s
+    // max 2 - margin 1 = 1 per 39 s; the next send waits 39 s plus the 1 s guard = 40 s.
+    const headers = { ...base, 'x-rate-limit-ip': '2:39:60' };
     await limiter.run('search', async () => response(headers));
     const send = jest.fn(async () => response(headers));
     const err = await rejection(limiter.run('search', send));
@@ -298,10 +339,10 @@ describe('AC-T6 (WU-14): lockouts and long waits', () => {
     await limiter.run('search', async () => response(headers));
     const err = await rejection(limiter.run('search', async () => response(headers), { deadline: clock.now() + 5_000 }));
     expect(err.kind).toBe('would_wait');
-    expect(err.waitS).toBe(10);
+    expect(err.waitS).toBe(11); // the 10 s window plus the 1 s guard
     await limiter.run('search', async () => response(headers), { deadline: clock.now() + 20_000 });
     expect(clock.sleep).toHaveBeenCalledTimes(1);
-    expect(clock.sleep.mock.calls[0][0]).toBe(10_000);
+    expect(clock.sleep.mock.calls[0][0]).toBe(11_000);
   });
 });
 
@@ -383,9 +424,10 @@ describe('AC-T8 (WU-14, D-35): adopting higher server hit counts', () => {
     await limiter.run('search', async () => response(headers('2:10:0')));
     clock.advance(1_000);
     await limiter.run('search', async () => response(headers('3:10:0')));
-    // 2 counted sends at t0 (1 real + 1 adopted) fill the window (limit 2) until t0 + 10 s.
+    // 2 counted sends at t0 (1 real + 1 adopted) fill the window (limit 2) until t0 + 10 s, plus
+    // the 1 s guard.
     expect(clock.sleep).toHaveBeenCalledTimes(1);
-    expect(clock.sleep.mock.calls[0][0]).toBe(9_000);
+    expect(clock.sleep.mock.calls[0][0]).toBe(10_000);
   });
 
   it('AC-T8: the same sequence without the higher server count does not wait (control)', async () => {
@@ -402,7 +444,7 @@ describe('AC-T8 (WU-14, D-35): adopting higher server hit counts', () => {
     const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep });
     await limiter.run('search', async () => response(headers('2:10:0')));
     clock.advance(1_000);
-    // The window is full (1 real + 1 adopted): this one waits 9 s, and its own response reports 3
+    // The window is full (1 real + 1 adopted): this one waits 10 s, and its own response reports 3
     // hits, so the next one would have to wait for the window to roll again.
     await limiter.run('search', async () => response(headers('3:10:0')), { maxWaitMs: 60_000 });
     const err = await rejection(limiter.run('search', async () => response(headers('3:10:0')), { maxWaitMs: 1_000 }));

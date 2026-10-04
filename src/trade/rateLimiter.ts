@@ -7,6 +7,11 @@
  *
  * - **Margin.** A window admits a request only while `sent-in-window + 1 <= max - margin` (margin 1,
  *   as PoB); when `max - margin < 1` the window's `max` is used.
+ * - **Window edges.** A window of `period` P counts the sends in `(t - P - G, t]`, where G is
+ *   `WINDOW_GUARD_MS` (1 s), and a send that waits for an old one to leave goes at `old + P + G`.
+ *   That covers PoB's inclusive window (`timestamp >= now - window`) and its `+ window + 1` second
+ *   guard: two sends that count against each other are always more than P + 1 s apart, so a server
+ *   that counts its window inclusively, or at 1 s resolution, still sees at most `max - margin`.
  * - **Adopting server state** (D-35). When a window's state reports more hits than counted locally,
  *   synthetic sends at `now` make up the difference.
  * - **Lockouts.** A state with `active > 0`, or a 429, locks the policy until
@@ -106,6 +111,12 @@ export function parseRateLimitHeaders(headers: HeaderSource): ParsedRateLimitHea
 export const DEFAULT_RETRY_AFTER_S = 60;
 /** Default longest wait the limiter will sleep through (C-11). */
 export const DEFAULT_MAX_WAIT_MS = 30_000;
+/**
+ * Extra delay after an old send leaves a window before the next send that waited for it (PoB's
+ * "extra second ... to avoid problems caused by the low resolution of os.time()",
+ * `TradeQueryRateLimiter.lua:173,192`).
+ */
+export const WINDOW_GUARD_MS = 1_000;
 
 interface PolicyState {
   /** Rule name → its windows (as last sent by the server). */
@@ -295,18 +306,19 @@ export class RateLimiter {
   /** The earliest time >= now (and >= every reservation) at which every window admits one more send. */
   private earliestSendTime(policy: PolicyState, now: number): number {
     let t = Math.max(now, policy.sent.length ? policy.sent[policy.sent.length - 1] : now);
-    for (let guard = 0; guard < 10_000; guard++) {
+    for (let iter = 0; iter < 10_000; iter++) {
       let moved = false;
       for (const [rule, windows] of policy.rules) {
         for (const w of windows) {
           const limit = w.max - this.margin < 1 ? w.max : w.max - this.margin;
           if (limit < 1) return Infinity;
-          const periodMs = w.period * 1000;
-          const stamps = this.windowStamps(policy, rule, w).filter((s) => s > t - periodMs && s <= t);
+          // The guarded window (t - P - G, t]: a superset of the inclusive [t - P, t] (see the header).
+          const spanMs = w.period * 1000 + WINDOW_GUARD_MS;
+          const stamps = this.windowStamps(policy, rule, w).filter((s) => s > t - spanMs && s <= t);
           if (stamps.length + 1 > limit) {
-            // Wait until enough of the oldest sends leave the window.
-            const k = stamps.length - limit; // 0-based index of the send that must expire
-            const next = stamps[k] + periodMs;
+            // Wait until enough of the oldest sends leave the guarded window.
+            const k = stamps.length - limit; // 0-based index of the send that must leave
+            const next = stamps[k] + spanMs;
             if (next > t) {
               t = next;
               moved = true;
@@ -356,12 +368,14 @@ export class RateLimiter {
       for (const s of r.state) {
         const w = (policy.rules.get(rule) ?? []).find((x) => x.period === s.period) ?? { max: 0, period: s.period, penalty: 0 };
         const periodMs = w.period * 1000;
+        // Local count over the half-open window: at the edge this counts fewer local sends, so more
+        // synthetic ones are adopted (the conservative side).
         const local = this.windowStamps(policy, rule, w).filter((t) => t > now - periodMs && t <= now).length;
         if (s.hits > local) {
           const key = `${rule}:${w.period}`;
           const list = policy.synthetic.get(key) ?? [];
-          // Drop synthetic sends that have left every window of this period.
-          const kept = list.filter((t) => t > now - periodMs);
+          // Drop synthetic sends that have left every guarded window of this period.
+          const kept = list.filter((t) => t > now - periodMs - WINDOW_GUARD_MS);
           for (let i = local; i < s.hits; i++) kept.push(now);
           policy.synthetic.set(key, kept);
         }
@@ -380,7 +394,7 @@ export class RateLimiter {
     let longest = 0;
     for (const windows of policy.rules.values()) for (const w of windows) longest = Math.max(longest, w.period * 1000);
     if (longest === 0) return;
-    const cutoff = now - longest;
+    const cutoff = now - longest - WINDOW_GUARD_MS;
     let i = 0;
     while (i < policy.sent.length && policy.sent[i] <= cutoff) i++;
     if (i > 0) policy.sent.splice(0, i);

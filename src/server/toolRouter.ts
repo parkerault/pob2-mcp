@@ -26,7 +26,7 @@ import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
 import { handleExportBuild, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
-import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
+import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleTradeQueryOptions, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 
@@ -92,7 +92,7 @@ function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
 }
 
 /** Tools that do not need trade2 stat data before they run. */
-const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues"]);
+const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options"]);
 
 /** What handlers return: text content, possibly typed loosely by older handlers. */
 type HandlerResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
@@ -561,6 +561,9 @@ async function dispatch(
 
     case "get_leagues":
       return await handleGetLeagues(tradeContext(deps));
+
+    case "trade_query_options":
+      return await handleTradeQueryOptions({ getLuaClient: deps.getLuaClient }, args);
 
     case "search_stats": {
       if (!args) throw new Error("Missing arguments");

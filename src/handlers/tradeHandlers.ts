@@ -5,6 +5,13 @@ import type { StatMapper } from '../services/statMapper.js';
 import type { ItemListing } from '../types/tradeTypes.js';
 import { convert, formatCurrencyValue, type CurrencyService, type Rates } from '../trade/currency.js';
 import { modTexts } from '../trade/modLines.js';
+import { tradeSearchUrl } from '../trade/links.js';
+import { currencyInputValue } from '../trade/findUpgrades.js';
+import { z } from 'zod';
+import type { PoBLuaApiClient } from '../pobLuaBridge.js';
+import type { TradeQueryOptionsResult } from '../engine/schemas.js';
+
+export { tradeSearchUrl } from '../trade/links.js';
 
 export interface TradeContext {
   tradeClient: TradeApiClient;
@@ -22,17 +29,6 @@ function text(output: string): TextResult {
 
 /** Message for a search_stats call when the live stat catalogue could not be loaded. */
 export const STATS_UNAVAILABLE = 'trade stat data unavailable';
-
-// ========================================
-// Trade Site URLs (trade2)
-// ========================================
-
-const TRADE_SITE = 'https://www.pathofexile.com/trade2/search/poe2';
-
-/** `https://www.pathofexile.com/trade2/search/poe2/<league>/<search id>` (D-39 league encoding). */
-export function tradeSearchUrl(league: string, searchId: string): string {
-  return `${TRADE_SITE}/${encodeURIComponent(league)}/${encodeURIComponent(searchId)}`;
-}
 
 // ========================================
 // Price normalization (C-12)
@@ -405,5 +401,85 @@ export async function handleSearchStats(
     });
     output += `To filter search_trade_items by a stat, pass its Trade ID as mods[].stat_id.`;
     return text(output);
+  });
+}
+
+// ========================================
+// trade_query_options (C-15)
+// ========================================
+
+export interface TradeQueryOptionsContext {
+  /** The running engine call's session-scoped client (C-3 step 5). */
+  getLuaClient: () => PoBLuaApiClient | null;
+}
+
+/** `trade_query_options` input (C-15), validated at runtime (D-27: an invalid field is named). */
+export const tradeQueryOptionsInputSchema = z.object({ slot: z.string().min(1) });
+
+/** Choice lists longer than this show the first entries and a count of the rest (D-50). */
+export const CHOICE_LIST_MAX = 200;
+
+function listLines<T>(items: T[], line: (item: T) => string): string[] {
+  const shown = items.slice(0, CHOICE_LIST_MAX).map((item) => `  ${line(item)}`);
+  if (items.length > CHOICE_LIST_MAX) shown.push(`  … and ${items.length - CHOICE_LIST_MAX} more (not shown)`);
+  return shown;
+}
+
+/** C-15's text sections for a `trade_query_options` result. */
+export function renderTradeQueryOptions(options: TradeQueryOptionsResult, slot: string): string {
+  const lines: string[] = [`=== trade_query_options: ${options.slot ?? slot} ===`];
+  if (options.supported) {
+    lines.push(`Supported: yes${options.itemCategory ? ` (trade category ${options.itemCategory})` : ''}`);
+  } else {
+    lines.push(`Supported: no. ${options.reason ?? 'PoB cannot generate a weighted trade search for this slot.'}`);
+  }
+
+  lines.push('', `Sort stats (find_upgrades sort_stats[].stat), ${options.sortStats.length}:`);
+  lines.push(...listLines(options.sortStats, (s) => `${s.stat}: ${s.label}`));
+
+  const saved = options.savedWeights;
+  const weights = saved && saved.length > 0 ? saved : options.defaultWeights;
+  lines.push(
+    '',
+    saved && saved.length > 0
+      ? "Weights (the default sort_stats): the build's saved trade search weights"
+      : "Weights (the default sort_stats): PoB's defaults (the build has no saved trade search weights)",
+  );
+  lines.push(...listLines(weights, (w) => `${w.stat} ×${w.weight}`));
+
+  lines.push('', `Required-mod choices (find_upgrades required_mods[].trade_id), ${options.requiredModChoices.length}:`);
+  if (options.requiredModChoices.length === 0) lines.push('  (none for this slot)');
+  else lines.push(...listLines(options.requiredModChoices, (m) => `${m.tradeId}: ${m.text} (${m.kind})`));
+
+  lines.push('', 'Currencies (find_upgrades currency):');
+  lines.push(...listLines(options.currencies, (c) => `${currencyInputValue(c.id)} → ${c.label}`));
+
+  lines.push('', 'Statuses (find_upgrades status):');
+  lines.push(...listLines(options.statuses, (s) => `${s.id} → ${s.label}`));
+
+  const applies = (yes: boolean) => (yes ? 'applies' : 'does not apply');
+  lines.push(
+    '',
+    'find_upgrades options for this slot:',
+    `  min_empty_rune_sockets: ${applies(options.shows.sockets)}`,
+    `  rune_behaviour: ${applies(options.shows.runeBehaviour)}`,
+    `  anoint_behaviour: ${applies(options.shows.anointBehaviour)}`,
+    `  jewel_type: ${options.shows.jewelType ? 'required (base or radius)' : 'does not apply'}`,
+  );
+  return lines.join('\n');
+}
+
+/** What PoB's trade dialog offers for one slot of the loaded build (C-15). Sends no trade request. */
+export async function handleTradeQueryOptions(context: TradeQueryOptionsContext, args: unknown): Promise<TextResult> {
+  return wrapHandler('get trade query options', async () => {
+    const parsed = tradeQueryOptionsInputSchema.safeParse(args ?? {});
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      throw new Error(`invalid trade_query_options argument ${issue.path.join('.') || '(arguments)'}: ${issue.message}`);
+    }
+    const client = context.getLuaClient();
+    if (!client) throw new Error('the engine is not running');
+    const options = await client.tradeQueryOptions(parsed.data.slot);
+    return text(renderTradeQueryOptions(options, parsed.data.slot));
   });
 }

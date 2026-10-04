@@ -1246,6 +1246,21 @@ export function getTradeToolSchemas(): any[] {
         required: ["query"],
       },
     },
+    {
+      name: "trade_query_options",
+      description: "What Path of Building's trade dialog offers for one item slot of the loaded build, for planning an upgrade search: whether PoB can generate a weighted trade search for the slot (and why not), the engine stats an upgrade search can sort by (sort_stats), the build's saved trade weights or PoB's defaults, the required-mod choices with their trade stat ids (required_mods), the currencies and trade statuses, and which slot-specific options (rune sockets, rune and anoint behaviour, jewel type) apply. Reads the engine's build; sends no trade-site request.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          slot: {
+            type: "string",
+            minLength: 1,
+            description: "A PoB slot name of the loaded build, e.g. 'Body Armour', 'Ring 1', 'Weapon 1', 'Amulet', 'Helmet Jewel Socket 1' or a tree jewel socket 'Jewel <node id>'",
+          },
+        },
+        required: ["slot"],
+      },
+    },
   ];
 }
 

@@ -110,6 +110,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   get_item_price: trade,
   get_leagues: trade,
   search_stats: trade,
+  // Engine read in the trade group: PoB's trade-dialog choices for a slot (C-15); no trade request.
+  trade_query_options: { engine: 'read', group: 'trade' },
 
   // poe.ninja (hidden with POE_NINJA_DISABLED=true)
   get_currency_rates: ninja,

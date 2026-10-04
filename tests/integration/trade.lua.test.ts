@@ -6,6 +6,7 @@
  * listings come from the committed `tests/fixtures/trade2/fetch-*.response.json` fixtures; no network.
  */
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { spawn } from 'child_process';
 import { afterAll, beforeAll, expect, it } from '@jest/globals';
@@ -22,9 +23,10 @@ const GOLDEN = fs.readFileSync(path.join(FIXTURES, 'builds', 'grenadator.xml'), 
 const GOLDEN_NO_BODY = GOLDEN.replace('itemId="4" name="Body Armour"', 'itemId="0" name="Body Armour"');
 
 type FetchEntry = { id: string; item: Record<string, unknown>; listing: Record<string, unknown> };
-const fetchFixture = (name: string): FetchEntry[] =>
-  (JSON.parse(fs.readFileSync(path.join(FIXTURES, 'trade2', `${name}.response.json`), 'utf8')) as { result: FetchEntry[] })
-    .result;
+/** A committed trade2 `/fetch` response, verbatim. */
+const fetchFixtureText = (name: string): string =>
+  fs.readFileSync(path.join(FIXTURES, 'trade2', `${name}.response.json`), 'utf8');
+const fetchFixture = (name: string): FetchEntry[] => (JSON.parse(fetchFixtureText(name)) as { result: FetchEntry[] }).result;
 
 /** Every stat id trade2's `/data/stats` fixture knows. */
 const STAT_IDS: Set<string> = (() => {
@@ -38,9 +40,20 @@ const KNOWN_STALE_STAT_IDS = new Set(['rune.stat_3170380905']);
 
 const ENGINE_TIMEOUT = 240_000;
 
+/**
+ * This file's own temp builds dir (a copy of the golden build), so the AC-T27 no-files check spans the
+ * whole file without seeing writes by other test files, which share the global POB_DIRECTORY.
+ */
+let BUILDS_DIR = '';
+function makeBuildsDir(): void {
+  BUILDS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-mcp-trade-lua-builds-'));
+  fs.writeFileSync(path.join(BUILDS_DIR, 'grenadator.xml'), GOLDEN);
+}
+
 function makeClient(): PoBLuaApiClient {
+  if (!BUILDS_DIR) throw new Error('the builds dir is made in beforeAll');
   return new PoBLuaApiClient({
-    env: { ...process.env, POB_API_TEST_ACTIONS: '1' },
+    env: { ...process.env, POB_DIRECTORY: BUILDS_DIR, POB_API_TEST_ACTIONS: '1' },
     spawn,
     pobSrc: resolvePobSrc(process.env),
     pobApiDir: resolvePobApiDir(),
@@ -54,11 +67,18 @@ async function luaEval<T>(client: PoBLuaApiClient, code: string): Promise<T> {
   return reply.result as T;
 }
 
+/** A string as a Lua long-string literal, at a bracket level the text does not contain. */
+function luaLongString(text: string): string {
+  let eq = '=';
+  while (text.includes(`]${eq}]`)) eq += '=';
+  // A newline right after the opening bracket would be dropped by Lua; JSON never starts with one.
+  if (text.startsWith('\n') || text.startsWith('\r')) throw new Error('text cannot start with a newline');
+  return `[${eq}[${text}]${eq}]`;
+}
+
 /** A JSON value as a Lua expression (decoded by dkjson inside the engine). */
 function luaJson(value: unknown): string {
-  const json = JSON.stringify(value);
-  if (json.includes(']==]')) throw new Error('value cannot be embedded in a Lua long string');
-  return `require('dkjson').decode([==[${json}]==])`;
+  return `require('dkjson').decode(${luaLongString(JSON.stringify(value))})`;
 }
 
 /** The engine's error for a request that must fail. */
@@ -91,22 +111,59 @@ function inCanonicalOrder(weights: TradeGenerateQueryResult['rankedWeights']): b
   return true;
 }
 
-/** Every file under `dir`, relative, sorted. */
+/**
+ * Every file under `dir` (skipping `.git`, which git itself rewrites), relative and sorted, with its size
+ * and mtime, so an overwrite in place shows up as well as a new file.
+ */
 function listFiles(dir: string): string[] {
   return (fs.readdirSync(dir, { recursive: true, withFileTypes: true }) as fs.Dirent[])
     .filter((d) => d.isFile())
     .map((d) => path.relative(dir, path.join(d.parentPath ?? (d as unknown as { path: string }).path, d.name)))
-    .sort();
+    .filter((rel) => rel.split(path.sep)[0] !== '.git')
+    .sort()
+    .map((rel) => {
+      const st = fs.statSync(path.join(dir, rel));
+      return `${rel} size=${st.size} mtime=${st.mtimeMs}`;
+    });
 }
 
 const EQUIPPED_BODY_TEXT = `
 local slot = build.itemsTab.slots['Body Armour']
 return build.itemsTab.items[slot.selItemId]:BuildRaw()`;
 
+/**
+ * The trade module's cached PoB instances (C-13 "Caching"), read from Trade.lua's upvalues, compared
+ * with the loaded build's current itemsTab.
+ */
+const CACHED_INSTANCES_BOUND = `
+local T = require('API.Trade')
+local function upvalue(fn, name)
+  local i = 1
+  while true do
+    local n, v = debug.getupvalue(fn, i)
+    if n == nil then error('no upvalue ' .. name) end
+    if n == name then return v end
+    i = i + 1
+  end
+end
+local gen = upvalue(upvalue(T.generate_query, 'getGenerator'), 'generator')
+local tq = upvalue(upvalue(T.evaluate_items, 'getTradeQuery'), 'tradeQuery')
+return {
+  generator = gen.itemsTab == build.itemsTab,
+  generatorQueryTab = gen.queryTab.itemsTab == build.itemsTab,
+  tradeQuery = tq.itemsTab == build.itemsTab,
+  tradeQueryGenerator = tq.tradeQueryGenerator == gen,
+}`;
+
 engineDescribe('Lua trade actions on the golden build (C-13)', () => {
   const clients: PoBLuaApiClient[] = [];
   /** The shared engine, with the golden build loaded. */
   let engine: PoBLuaApiClient;
+  /** The engine's cwd is pobSrc, so PoB's `../<league>_currency_values.json` lands in this tree. */
+  const vendorRoot = path.resolve(resolvePobSrc(process.env), '..');
+  /** AC-T27: the vendor tree and the builds dir before any trade action of this file runs. */
+  let vendorBefore: string[];
+  let buildsBefore: string[];
 
   async function freshEngine(xml: string, name: string): Promise<PoBLuaApiClient> {
     const client = makeClient();
@@ -117,11 +174,17 @@ engineDescribe('Lua trade actions on the golden build (C-13)', () => {
   }
 
   beforeAll(async () => {
+    makeBuildsDir();
     engine = await freshEngine(GOLDEN, 'grenadator');
+    vendorBefore = listFiles(vendorRoot);
+    buildsBefore = listFiles(BUILDS_DIR);
+    expect(vendorBefore.length).toBeGreaterThan(0);
+    expect(buildsBefore.length).toBe(1);
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => {
     for (const c of clients) await c.stop().catch(() => undefined);
+    if (BUILDS_DIR) fs.rmSync(BUILDS_DIR, { recursive: true, force: true });
   });
 
   it(
@@ -223,30 +286,54 @@ engineDescribe('Lua trade actions on the golden build (C-13)', () => {
       expect(result.items).toHaveLength(10);
       expect(result.items.map((i) => i.id)).toEqual(entries.map((e) => e.id));
 
-      // PoB's own method, computed independently in the same engine, over the evaluated item text.
-      const reference = await luaEval<number[]>(
+      // PoB's own route, computed independently in the same engine from the raw fixture block, as the
+      // trader pane's "Find best" does it (TradeQuery.lua:1030-1068): FetchResultBlock over the whole
+      // response, FilterToSafeItems, "Copy Current" (CopyAnointsAndAugments then BuildRaw), then
+      // GetResultEvaluation with the default weights.
+      const reference = await luaEval<Array<{ id: string; score: number; itemText: string }>>(
         engine,
         `local construct = require('API.Util').construct
-         local texts = ${luaJson(result.items.map((i) => i.itemText))}
          build.calcsTab:BuildOutput()
+         local parser = construct('TradeQueryRequests')
+         local parsed, perr
+         parser:FetchResultBlock('reference://', function(items, errMsg) parsed, perr = items, errMsg end)
+         local queued = table.remove(parser.requestQueue.fetch)
+         queued.callback(${luaLongString(fetchFixtureText('fetch-weighted-session'))}, nil)
+         if perr then error(perr) end
          local tq = construct('TradeQuery', build.itemsTab)
          tq.tradeQueryGenerator = construct('TradeQueryGenerator', { itemsTab = build.itemsTab })
          tq.statSortSelectionList = {
            { stat = 'FullDPS', label = 'Full DPS', weightMult = 1.0 },
            { stat = 'TotalEHP', label = 'Effective Hit Pool', weightMult = 0.5 },
          }
+         local safe = tq:FilterToSafeItems(parsed, 'Body Armour')
+         for i in ipairs(safe) do
+           local item = construct('Item', safe[i].item_string)
+           if item.base and item.type then
+             build.itemsTab:CopyAnointsAndAugments(item, true, true, 'Body Armour')
+             safe[i].item_string = item:BuildRaw()
+           end
+         end
          tq.slotTables[1] = { slotName = 'Body Armour' }
-         tq.resultTbl[1] = {}
-         for i, text in ipairs(texts) do tq.resultTbl[1][i] = { item_string = text } end
+         tq.resultTbl[1] = safe
          local calcFunc, baseOutput = build.calcsTab:GetMiscCalculator()
          local out = {}
-         for i in ipairs(texts) do out[i] = tq:GetResultEvaluation(1, i, calcFunc, baseOutput)[1].weight end
+         for i, entry in ipairs(safe) do
+           out[i] = {
+             id = entry.id,
+             score = tq:GetResultEvaluation(1, i, calcFunc, baseOutput)[1].weight,
+             itemText = entry.item_string,
+           }
+         end
          return out`,
       );
-      expect(reference).toHaveLength(10);
-      result.items.forEach((item, i) => {
+      expect(reference.map((r) => r.id).sort()).toEqual(entries.map((e) => e.id).sort());
+      const referenceById = new Map(reference.map((r) => [r.id, r]));
+      result.items.forEach((item) => {
+        const ref = referenceById.get(item.id as string)!;
+        expect(item.itemText).toBe(ref.itemText);
         expect(item.score).toEqual(expect.any(Number));
-        expect(Math.abs((item.score as number) - reference[i])).toBeLessThanOrEqual(1e-9);
+        expect(Math.abs((item.score as number) - ref.score)).toBeLessThanOrEqual(1e-9);
         for (const stat of ['FullDPS', 'TotalEHP']) {
           const delta = item.stats[stat];
           expect(delta).toEqual({
@@ -358,34 +445,46 @@ engineDescribe('Lua trade actions on the golden build (C-13)', () => {
   );
 
   it(
-    'AC-T27: no popups and no files after generation and evaluation; after loading another build the generator is re-bound (same rankedWeights as a fresh process)',
+    'AC-T27: no popups and no files written (snapshot taken before this file ran any trade action); after loading another build the generator is re-bound (same rankedWeights as a fresh process)',
     async () => {
-      const vendorRoot = path.resolve(resolvePobSrc(process.env), '..');
-      const buildsDir = process.env.POB_DIRECTORY!;
-      expect(buildsDir).toBeTruthy();
-      const vendorBefore = listFiles(vendorRoot);
-      const buildsBefore = listFiles(buildsDir);
-
       await engine.loadBuildXml(GOLDEN, 'grenadator');
       const original = await engine.tradeGenerateQuery({ slot: 'Helmet' });
       await engine.tradeEvaluateItems({ slot: 'Body Armour', items: fetchFixture('fetch-weighted-session') });
       const state = await engine.request('__test_state');
       expect((state.result as { popups: number }).popups).toBe(0);
+      // Every earlier test of this file (fresh engines included) has generated and evaluated by now.
       expect(listFiles(vendorRoot)).toEqual(vendorBefore);
-      expect(listFiles(buildsDir)).toEqual(buildsBefore);
+      expect(listFiles(BUILDS_DIR)).toEqual(buildsBefore);
 
       // Load a different build into the same engine (its tabs are recreated) and generate again.
       await engine.loadBuildXml(GOLDEN_NO_BODY, 'grenadator-no-body');
+      // The cached instances still point at the previous build's tabs until an action re-binds them,
+      // so the check below can tell a re-bound generator from a stale one.
+      expect(await luaEval(engine, CACHED_INSTANCES_BOUND)).toEqual({
+        generator: false,
+        generatorQueryTab: false,
+        tradeQuery: false,
+        tradeQueryGenerator: true,
+      });
       const rebound = await engine.tradeGenerateQuery({ slot: 'Helmet' });
+      // C-13 "Caching": the generator and the TradeQuery now use the loaded build's itemsTab. (A stale
+      // generator still reaches the new calcsTab through the shared build object, and the old items
+      // table holds the same helmet, so rankedWeights alone cannot show the re-bind.)
+      expect(await luaEval(engine, CACHED_INSTANCES_BOUND)).toEqual({
+        generator: true,
+        generatorQueryTab: true,
+        tradeQuery: true,
+        tradeQueryGenerator: true,
+      });
       const fresh = await (await freshEngine(GOLDEN_NO_BODY, 'grenadator-no-body')).tradeGenerateQuery({ slot: 'Helmet' });
       expect(rebound.rankedWeights).toEqual(fresh.rankedWeights);
-      // The change matters, so equality shows the generator follows the loaded build.
+      // The removed body armour changes the weights, so the fresh-process comparison is not vacuous.
       expect(rebound.rankedWeights).not.toEqual(original.rankedWeights);
 
       const after = await engine.request('__test_state');
       expect((after.result as { popups: number }).popups).toBe(0);
       expect(listFiles(vendorRoot)).toEqual(vendorBefore);
-      expect(listFiles(buildsDir)).toEqual(buildsBefore);
+      expect(listFiles(BUILDS_DIR)).toEqual(buildsBefore);
 
       await engine.loadBuildXml(GOLDEN, 'grenadator');
     },

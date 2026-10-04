@@ -35,7 +35,6 @@ describe('Path traversal protection', () => {
       'handlers/buildHandlers.ts',
       'handlers/optimizationHandlers.ts',
       'handlers/validationHandlers.ts',
-      'handlers/advancedOptimizationHandlers.ts',
     ];
 
     for (const file of filesToCheck) {

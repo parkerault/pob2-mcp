@@ -7,26 +7,37 @@
  * clock (Jest modern timers drive `Date.now`, the client's timeouts and the limiter's waits). The engine
  * is faked only as the generator: it returns PoB's generated Body Armour query from the logged-in
  * capture (`search-weighted-session.request.json`, spike S-1). AC-T34 (f) uses the real engine session
- * (C-3) over a fake bridge client, to hold the engine lock.
+ * (C-3) over a fake bridge client, to hold the engine lock, and the real router: `find_upgrades` is
+ * added to the tool table here until WU-23 wires it (an entry WU-23 adds wins).
  */
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import type { spawn } from 'child_process';
+
+jest.mock('../../src/server/toolMeta', () => {
+  const actual = jest.requireActual<typeof import('../../src/server/toolMeta')>('../../src/server/toolMeta');
+  return {
+    ...actual,
+    TOOL_META: { find_upgrades: { engine: 'read', group: 'trade' }, ...actual.TOOL_META },
+    isToolAvailable: (name: string, env: Parameters<typeof actual.isToolAvailable>[1]) =>
+      name === 'find_upgrades' || actual.isToolAvailable(name, env),
+  };
+});
 import { RateLimiter } from '../../src/trade/rateLimiter';
 import { TradeApiClient } from '../../src/trade/tradeClient';
 import type { Credentials } from '../../src/trade/credentials';
 import {
   parseFindUpgradesInput,
   runUpgradeSearch,
-  stopForError,
   stoppedEarlyNote,
   STOP_BUDGET,
-  STOP_ENGINE_BUSY,
+  UpgradeSearchError,
   type UpgradeSearchContext,
   type UpgradeSearchResult,
 } from '../../src/trade/findUpgrades';
+import { routeToolCall, type ToolRouterDependencies } from '../../src/server/toolRouter';
 import { estimateComplexity, prefitQuery, weightedFilterCount, type TradeQueryBody } from '../../src/trade/prefit';
 import { exactItemUrl, tradeQueryUrl, tradeSearchUrl } from '../../src/trade/links';
-import { createEngineSession, EngineBusyError, type EngineCallContext, type SessionClient } from '../../src/engine/session';
+import { createEngineSession, type EngineCallContext, type SessionClient } from '../../src/engine/session';
 import { fixtureFetch, type FixtureRoute, type RecordedCall } from '../helpers/fixtureFetch';
 import {
   DATA_ROUTES,
@@ -70,7 +81,10 @@ function fakeEngine() {
 /** Every request with the fake time it was sent at. */
 type TimedCall = RecordedCall & { at: number };
 
-function setup(routes: FixtureRoute[], opts: { deadlineInMs?: number; credentials?: () => Credentials } = {}) {
+function setup(
+  routes: FixtureRoute[],
+  opts: { deadlineInMs?: number; credentials?: () => Credentials; env?: Record<string, string> } = {},
+) {
   const ff = fixtureFetch([...routes, ...DATA_ROUTES]);
   const calls: TimedCall[] = [];
   const timedFetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
@@ -88,12 +102,13 @@ function setup(routes: FixtureRoute[], opts: { deadlineInMs?: number; credential
     engine,
     trade,
     credentials,
-    env: {},
+    env: opts.env ?? {},
     signal: new AbortController().signal,
     deadline: start + (opts.deadlineInMs ?? 90_000),
     progress: async (m) => {
       progress.push(m);
     },
+    session: { revision: 0 },
   };
   return { ctx, calls, generate, progress, start };
 }
@@ -343,7 +358,7 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     expect(result.stoppedEarly).toEqual({ reason: STOP_BUDGET });
   });
 
-  it('AC-T34 (f): a deadline that passes while waiting for the engine lock -> "engine was busy"', async () => {
+  it('AC-T34 (f): a deadline that passes while waiting for the engine lock -> the routed tool result "engine was busy"', async () => {
     const client: SessionClient = {
       start: async () => undefined,
       stop: async () => undefined,
@@ -363,23 +378,90 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     const holder = session.run({ tool: 'lua_get_build_info', kind: 'read' }, () => new Promise<void>((r) => (release = r)));
     await jest.advanceTimersByTimeAsync(0);
 
-    const { ctx, generate, calls, start } = setup([searchSequence([searchResponse('s1', 2207)]), fetchRoute()]);
-    const deadline = start + 90_000;
-    const call = session.run({ tool: 'find_upgrades', kind: 'read', signal: ctx.signal, deadline }, (engine) =>
-      runUpgradeSearch(input(), { ...ctx, engine, deadline }),
-    );
-    const outcome = await drive(call.then(() => null, (e: unknown) => e));
-    expect(outcome).toBeInstanceOf(EngineBusyError);
-    expect(Date.now() - start).toBeLessThanOrEqual(90_000);
-    const stop = stopForError(outcome);
-    expect(stop).toEqual({ reason: STOP_ENGINE_BUSY });
-    expect(stoppedEarlyNote(stop!)).toBe('Stopped early: the engine was busy.');
-    // Nothing ran: no generation and no request.
-    expect(generate).not.toHaveBeenCalled();
-    expect(calls).toEqual([]);
+    const start = Date.now();
+    const deps = { session, env: {}, ensureTradeStats: async () => undefined } as unknown as ToolRouterDependencies;
+    const call = routeToolCall('find_upgrades', { slot: 'Body Armour' }, deps, {
+      signal: new AbortController().signal,
+      sendProgress: async () => undefined,
+      arrivedAt: start,
+    });
+    const result = await drive(call);
+    // NFR-4: back within 90 s (+1 s) of arrival, as C-14's early stop: a result, not isError.
+    expect(Date.now() - start).toBeGreaterThanOrEqual(90_000);
+    expect(Date.now() - start).toBeLessThanOrEqual(91_000);
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toHaveLength(1);
+    const text = result.content[0].text;
+    expect(text).toContain('=== find_upgrades: Body Armour ===');
+    expect(text).toContain('Stopped early: the engine was busy.');
+    // Nothing ran: dispatching would have needed the context builder these deps lack (an "Error:" result).
+    expect(text).not.toMatch(/^Error:/m);
 
     release();
     await drive(holder);
+  });
+
+  it('AC-T34 (bounds on /data/*): a hung /data/stats with 10 s left is cut at the deadline -> "budget ran out"', async () => {
+    const { ctx, calls, start } = setup([{ match: /\/api\/trade2\/data\/stats/, respond: () => new Promise<Response>(() => undefined) }, searchSequence([searchResponse('s1', 2207)]), fetchRoute()], {
+      deadlineInMs: 10_000,
+    });
+    const result = searched(await drive(runUpgradeSearch(input(), ctx)));
+    expect(Date.now() - start).toBeLessThanOrEqual(10_000);
+    expect(result.stoppedEarly).toEqual({ reason: STOP_BUDGET });
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe('Stopped early: the 90 s budget ran out.');
+    expect(result.searches).toBe(0);
+    expect(result.entries).toEqual([]);
+    expect(result.searchUrl).toBe(tradeQueryUrl(LEAGUE, GENERATED_BODY_ARMOUR_QUERY));
+    expect(searches(calls)).toHaveLength(0);
+  });
+
+  it('AC-T34 (bounds on /data/*): /data/stats does not start with < 1 s left (generation took the rest)', async () => {
+    const { ctx, calls, generate, start } = setup([searchSequence([searchResponse('s1', 2207)]), fetchRoute()], { deadlineInMs: 1_600 });
+    generate.mockImplementationOnce(async () => {
+      await new Promise((r) => setTimeout(r, 1_000));
+      return clone(GENERATED);
+    });
+    const result = searched(await drive(runUpgradeSearch(input(), ctx)));
+    expect(Date.now() - start).toBeLessThanOrEqual(1_600);
+    expect(result.stoppedEarly).toEqual({ reason: STOP_BUDGET });
+    expect(calls).toEqual([]);
+  });
+
+  it('AC-T34 (bounds on /data/*): with ample time, a hung /data/stats times out at 15 s -> "trade stat data unavailable"', async () => {
+    const { ctx, calls, start } = setup([{ match: /\/api\/trade2\/data\/stats/, respond: () => new Promise<Response>(() => undefined) }, searchSequence([searchResponse('s1', 2207)]), fetchRoute()]);
+    const outcome = await drive(runUpgradeSearch(input(), ctx).then(() => null, (e: unknown) => e));
+    expect(outcome).toBeInstanceOf(UpgradeSearchError);
+    expect((outcome as Error).message).toMatch(/^trade stat data unavailable/);
+    expect(Date.now() - start).toBeLessThanOrEqual(15_000);
+    expect(searches(calls)).toHaveLength(0);
+  });
+
+  it('AC-T34 (bounds on /data/*): a caller abort during a hung /data/stats ends the call at once', async () => {
+    const controller = new AbortController();
+    const { ctx, start } = setup([
+      {
+        match: /\/api\/trade2\/data\/stats/,
+        respond: () => {
+          setTimeout(() => controller.abort('caller gave up'), 2_000);
+          return new Promise<Response>(() => undefined);
+        },
+      },
+      searchSequence([searchResponse('s1', 2207)]),
+      fetchRoute(),
+    ]);
+    const outcome = await drive(runUpgradeSearch(input(), { ...ctx, signal: controller.signal }).then(() => null, (e: unknown) => e));
+    expect(outcome).toBe('caller gave up');
+    expect(Date.now() - start).toBeLessThan(2_500);
+  });
+
+  it('AC-T34 (bounds on /data/*): a hung /data/leagues with 10 s left is cut at the deadline', async () => {
+    const { ctx, start } = setup([{ match: /\/api\/trade2\/data\/leagues/, respond: () => new Promise<Response>(() => undefined) }, searchSequence([searchResponse('s1', 2207)]), fetchRoute()], {
+      deadlineInMs: 10_000,
+    });
+    const outcome = await drive(runUpgradeSearch(parseFindUpgradesInput({ slot: 'Body Armour' }), ctx).then(() => null, (e: unknown) => e));
+    expect(outcome).toBeInstanceOf(UpgradeSearchError);
+    expect((outcome as Error).message).toBe('Stopped early: the 90 s budget ran out before the trade league was resolved.');
+    expect(Date.now() - start).toBeLessThanOrEqual(10_000);
   });
 
   it('AC-T34: the generation request gets min(60 s, the time left) and the abort signal', async () => {
@@ -406,6 +488,31 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     expect(outcome).toBe('caller gave up');
     expect(searches(calls)).toHaveLength(1);
     expect(fetches(calls)).toHaveLength(0);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------
+
+describe('AC-T38 (WU-17): the generated-query cache is keyed by the required session revision (fake engine)', () => {
+  it('C-21: the session (revision source) is a required context field, so a caller cannot silently lose the cache', () => {
+    const { ctx } = setup([]);
+    const { session: _omitted, ...withoutSession } = ctx;
+    // @ts-expect-error -- C-21 (amended): `session` is required.
+    const missing: UpgradeSearchContext = withoutSession;
+    expect(missing).not.toHaveProperty('session');
+  });
+
+  it('AC-T38: two identical runs generate once; a revision bump regenerates; search and fetch go out every run', async () => {
+    const { ctx, generate, calls } = setup([searchSequence([1, 2, 3].map((n) => searchResponse(`s${n}`, 2207))), fetchRoute()]);
+    const session = { revision: 3 };
+    await drive(runUpgradeSearch(input(), { ...ctx, session }));
+    await drive(runUpgradeSearch(input(), { ...ctx, session }));
+    expect(generate).toHaveBeenCalledTimes(1);
+    session.revision += 1;
+    await drive(runUpgradeSearch(input(), { ...ctx, session }));
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(searches(calls)).toHaveLength(3);
+    expect(fetches(calls).length).toBeGreaterThanOrEqual(3);
   });
 });
 

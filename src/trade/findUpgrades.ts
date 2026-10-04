@@ -26,11 +26,15 @@
  *
  * Bounds (D-22): every step checks the caller's signal, no step starts with < 1 s left, every engine
  * request's timeout is `min(default, remaining)`, and every trade request carries the deadline (the
- * client clips its timeout, the limiter refuses waits past it or past 30 s).
+ * client clips its timeout, the limiter refuses waits past it or past 30 s). The `/data/leagues` and
+ * `/data/stats` loads take no deadline or signal (they are shared, cached loads), so the flow races them
+ * against the caller's signal and a `min(15 s, remaining)` timer instead.
+ *
+ * The engine-lock wait happens before this flow runs (the caller's `session.run`); its `EngineBusyError`
+ * is the router's to turn into the engine-busy stop (`engineBusyStopText`).
  */
 import { z } from 'zod';
 import type { EngineCallContext, EngineSession } from '../engine/session.js';
-import { EngineBusyError } from '../engine/session.js';
 import { EngineTimeoutError } from '../pobLuaBridge.js';
 import type { TradeGenerateQueryParams, TradeGenerateQueryResult } from '../engine/schemas.js';
 import type { Credentials } from './credentials.js';
@@ -206,10 +210,11 @@ export interface UpgradeSearchContext {
   deadline: number;
   progress: (message: string) => Promise<void>;
   /**
-   * The engine session whose `revision` keys the generated-query cache (C-14 step 4). The engine call
-   * context carries no revision, so the caller passes the session; without it nothing is cached.
+   * The engine session whose `revision` keys the generated-query cache (C-14 step 4). An amendment to
+   * C-21's ctx: the engine call context carries no revision, so the caller passes the session. It is
+   * required, so a caller cannot leave it out and silently lose the cache.
    */
-  session?: Pick<EngineSession, 'revision'>;
+  session: Pick<EngineSession, 'revision'>;
 }
 
 /** A failure of the search that the tool reports as `isError`; the message ends with the trade-site link when there is one. */
@@ -240,12 +245,11 @@ export function rateLimitStop(waitS: number | undefined): SearchStop {
 }
 
 /**
- * The early stop an error means, or null when it is not one: the limiter's refusals and a 429 (the
- * rate-limit stop), and `EngineBusyError` from the engine-lock wait (the lock is the caller's
- * `session.run`, so that error surfaces before `runUpgradeSearch` runs).
+ * The early stop a trade error means, or null when it is not one: the limiter's refusals and a 429
+ * (the rate-limit stop). The engine-busy stop is not here: the lock wait is the caller's `session.run`,
+ * so its `EngineBusyError` surfaces in the router, which renders `engineBusyStopText`.
  */
 export function stopForError(error: unknown): SearchStop | null {
-  if (error instanceof EngineBusyError) return { reason: STOP_ENGINE_BUSY };
   if (error instanceof TradeError) {
     if (error.kind === 'would_wait' || error.kind === 'locked_out') return rateLimitStop(error.waitS);
     if (error.kind === 'rate_limited') return rateLimitStop(error.retryAfterS);
@@ -256,6 +260,20 @@ export function stopForError(error: unknown): SearchStop | null {
 /** The note an early stop renders as. */
 export function stoppedEarlyNote(stop: SearchStop): string {
   return `Stopped early: ${stop.reason}.`;
+}
+
+/**
+ * The `find_upgrades` result when its deadline passed while it waited for the engine lock
+ * (`EngineBusyError` from `session.run`, C-14 "Stopping early"): nothing was generated, searched or
+ * evaluated, so there is no listing and no link. A result, not `isError`.
+ */
+export function engineBusyStopText(slot?: unknown): string {
+  const head = typeof slot === 'string' && slot.trim() ? `=== find_upgrades: ${slot.trim()} ===\n` : '';
+  return (
+    `${head}${stoppedEarlyNote({ reason: STOP_ENGINE_BUSY })}\n` +
+    'Another engine call held the engine until this call\'s 90 s budget ran out, so no trade search was run. ' +
+    'Try again once that call has finished.'
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -445,11 +463,49 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
     }
   };
 
+  /**
+   * A request that takes no deadline or signal itself (the client's shared `/data/*` loads), bounded
+   * here (D-22, C-14): it does not start with < 1 s left, the caller's abort ends the wait, and it gets
+   * `min(15 s, remaining)`. When the time left was the shorter bound, running out is the budget's cut
+   * (`BudgetExhausted`); otherwise it is the request's own timeout. An abandoned load keeps running in
+   * the client (its own 15 s timeout ends it) but no longer holds up this call or the engine lock.
+   */
+  const bounded = async <T>(start: () => Promise<T>): Promise<T> => {
+    checkpoint();
+    const left = remaining();
+    const clipped = left < REQUEST_TIMEOUT_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    try {
+      return await new Promise<T>((resolve, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(clipped ? new BudgetExhausted() : new TradeError('timeout', 'the trade site did not answer in time; try again later')),
+          Math.max(0, Math.min(REQUEST_TIMEOUT_MS, left)),
+        );
+        onAbort = () => reject(ctx.signal.reason);
+        ctx.signal.addEventListener('abort', onAbort, { once: true });
+        start().then(resolve, reject);
+      });
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      if (onAbort) ctx.signal.removeEventListener('abort', onAbort);
+    }
+  };
+
   // 2. League, when the input or POE_LEAGUE names it.
   let league: string | null = input.league?.trim() || ctx.env.POE_LEAGUE?.trim() || null;
+  /** Step 6 (D-20), bounded; a budget cut ends the call (no league means no link and no search). */
   const resolveLeague = async (): Promise<string> => {
-    if (ctx.signal.aborted) throw ctx.signal.reason;
-    return resolveDefaultLeague(ctx.env, ctx.trade);
+    try {
+      return await bounded(() => resolveDefaultLeague(ctx.env, ctx.trade));
+    } catch (error) {
+      if (ctx.signal.aborted) throw ctx.signal.reason;
+      if (error instanceof BudgetExhausted) {
+        throw new UpgradeSearchError(`Stopped early: ${STOP_BUDGET} before the trade league was resolved.`);
+      }
+      throw error;
+    }
   };
 
   // 3–4. Options, then the query (cached per session revision, slot and canonical params).
@@ -463,9 +519,9 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
     }
     throw error;
   }
-  const cacheKey = ctx.session ? `${ctx.session.revision}\u0000${input.slot}\u0000${canonicalJson(params)}` : null;
-  const cache = ctx.session ? cacheFor(ctx.session) : null;
-  const cached = cacheKey !== null && cache ? cache.get(cacheKey) : undefined;
+  const cacheKey = `${ctx.session.revision}\u0000${input.slot}\u0000${canonicalJson(params)}`;
+  const cache = cacheFor(ctx.session);
+  const cached = cache.get(cacheKey);
   await progress('generating query');
   if (cached) {
     generated = cached;
@@ -480,7 +536,7 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
       }
       throw error;
     }
-    if (cacheKey !== null && cache) cache.set(cacheKey, generated);
+    cache.set(cacheKey, generated);
   }
   if (typeof generated.baselineScore !== 'number' || !Number.isFinite(generated.baselineScore)) {
     throw new Error(`PoB returned no baseline score for ${input.slot}`);
@@ -501,13 +557,31 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
   if (league === null) league = await resolveLeague();
   const leagueName: string = league;
 
-  // 7. Stale stat ids.
-  if (ctx.signal.aborted) throw ctx.signal.reason;
+  // 7. Stale stat ids (bounded: the load takes no deadline itself).
   let stats: unknown;
   try {
-    stats = await ctx.trade.getStats();
+    stats = await bounded(() => ctx.trade.getStats());
   } catch (error) {
     if (ctx.signal.aborted) throw ctx.signal.reason;
+    if (error instanceof BudgetExhausted) {
+      // Cut by the deadline before any search: the early stop, with the generated query's link.
+      return {
+        kind: 'searched',
+        league: leagueName,
+        slot: input.slot,
+        query: generatedQuery,
+        statWeights,
+        baselineScore,
+        searches: 0,
+        total: 0,
+        entries: [],
+        dropped: { nullEntries: 0, unpriced: 0 },
+        droppedStatIds: [],
+        notes,
+        stoppedEarly: { reason: STOP_BUDGET },
+        searchUrl: tradeQueryUrl(leagueName, generatedQuery),
+      };
+    }
     console.error(`[find_upgrades] /data/stats failed: ${errorMessage(error)}`);
     throw new UpgradeSearchError('trade stat data unavailable', tradeQueryUrl(leagueName, generatedQuery));
   }

@@ -998,3 +998,82 @@ Tooling false-failures: none. Root cause: no gate failure. Two spec gaps recorde
 - WU-18: probe scripts spawning the engine directly needed LUA_PATH/LUA_CPATH set by hand (first probe got no banner); probe-only fix.
 - WU-18: plain `pnpm exec jest` fails engine-required tests with "luajit not found".
 - WU-19: first full `mise run test` failed only AC-E8 with negative elapsed time (-2213 ms, WSL wall-clock step); passed in isolation and on the next gate.
+
+## 2026-10-04: final pass
+
+The lean final pass ran after W4:
+- **2 cross-unit flow tracers:** the `find_upgrades` flow, and the session / build-file lifecycle.
+- **Spec fold-back:** the build's deviations folded into the spine as D-62..D-83, with AC-E16, AC-E48,
+  AC-E51, AC-E56, AC-E7, AC-T41 and AC-G4 amended.
+- **1 skeptic:** 5 of 5 material findings confirmed:
+  - T-F1: `report_stats` was validated only after the network requests had been sent;
+  - T-F2: query generation was cut by the bridge timeout's SIGKILL instead of by abort;
+  - T-F3: the deadline did not bound the session's own steps 2-4 (engine start, crash restore,
+    disk-change reload);
+  - S-F1: the server's own writes were flagged as "changed on disk";
+  - S-F2: the crash restore re-estimated an auto-mode character level.
+- **1 fixer:** `aa5a2c0`.
+- **Final gate PASS at `aa5a2c0`:** 89 suites / 1006 tests; M-3 checks pass; AC-G4 fresh clone pass
+  (76 tools, Life 2,977, no-session fallback). AC-E8 had one false failure from a WSL2 clock step.
+
+### Follow-up (items 1-6), head `632eee8` + this docs commit
+
+Each fix has a test that drives the real path; each was checked to fail without its fix.
+1. **`search_trade_items` normalized price** (D-61, D-71, AC-T46). It printed 2 decimals, so typical
+   exalted listings read "(≈ 0.00 divine)". It now uses `formatCurrencyValue`, the formatter
+   `find_upgrades` and `get_item_price` use (D-72: 4 significant digits below 1).
+   - AC-T46 and D-71's last bullet are amended to match, marked "(amended during build)".
+   - Test: `tests/mcp/tradePrices.test.ts` (a 1 exalted listing shows its 4-significant-digit divine value).
+2. **No send after a limiter wait with < 1 s left** (new D-87; C-11, D-22, R-1). The limiter now refuses
+   with `would_wait`, without sending, in two places:
+   - at admission, when a wait would end with < 1 s before the deadline;
+   - after any wait (a sleep that overshot, or waiting for a class's first request), when < 1 s remains.
+     The reservation is released.
+   - Test: `tests/unit/rateLimiter.test.ts` (D-87 block, plus a control: no wait means no refusal).
+3. **`export_build` kept out of the server's `backups/` and `snapshots/`** (new D-88; D-42, D-81).
+   - An `output_directory` inside either folder is `isError` naming it, even with `overwrite: true`.
+     That holds directly, through `..`, or through a symlink.
+   - AC-E49 is amended. Test: `tests/integration/buildFiles.test.ts` (D-88 case).
+4. **The changed-on-disk guard survives a build switch** (new D-86; C-17 step 3, FR-E4).
+   - The session reports every fingerprint the loaded file gets to the writer (`onFileFingerprint`):
+     a load, the disk check's refresh or reload, an engine save.
+   - The writer keeps the last fingerprint for the last 32 paths. A write to a file that is no longer
+     loaded compares with whichever came later: that record, or the writer's own last write.
+   - Tests:
+     - `tests/integration/buildFiles.test.ts`, the D-86 block: after loading another build, a new
+       build, an import, or a Save As re-point, both `lua_save_build` overwrite and `set_build_notes`
+       are refused over a PoB2 save, plus a control.
+     - `tests/unit/buildFileWriter.test.ts`: the later record wins, and the 32-path bound.
+5. **Monotonic clock for durations and deadlines** (new D-89).
+   - Tests now measure elapsed time with `performance.now()`: AC-E8 `bridgeClient`, `stdinEof`,
+     `serverFactory`, `harness`, `mcp/buildFiles`, `tradeLazyStats`, `trade.lua`, the `waitFor`
+     helper, and one `engineSession` unit case.
+   - In src, the server's `now` defaults to `performance.timeOrigin + performance.now()`
+     (`src/utils/clock.ts`). The router, session, trade client and limiter all use it.
+   - `find_upgrades` deadline checks used `Date.now()` directly; they now take the clock as `ctx.now`.
+     Session event times use the session clock.
+   - Left on the wall clock: cache ages, timestamps, mtimes and file names, plus the fake-clock suites,
+     whose `Date` is the deadline clock on purpose.
+   - Tests:
+     - `tests/mcp/monotonicClock.test.ts`: a ±1-2 h wall-clock step mid-call cuts nothing, and event
+       times never go back;
+     - `tests/unit/clock.test.ts`.
+6. **Spec fold-back:**
+   - **D-84:** `trade_generate_query` gains an optional `reportStats`; C-13 is amended.
+   - **D-85:** the deadline bounds session steps 2-4; C-3 is amended.
+   - **D-86:** C-17 step 3 accepts the writer's own last write, and keeps the per-path engine
+     fingerprints.
+   - **D-87, D-88, D-89** as above.
+   - D-75 is corrected: the poe.ninja rates lookup runs after evaluation, per C-14's step order, not
+     before.
+   - Slices: 02 (C-3, C-17 step 3, AC-E49) and 03 (C-11 admission, C-13 params, AC-T46).
+
+Gate:
+- `mise run test` rc 0: 91 suites / 1024 tests, 0 failed (+2 suites / +18 tests versus `aa5a2c0`).
+- `pnpm build` rc 0.
+
+### Friction
+
+- The WSL2 wall clock can step backwards: AC-E8 measured elapsed = -2431 ms, and a targeted jest run
+  reported a test duration of -1930 ms. Measure durations with `performance.now()`, never with
+  `Date.now()` differences.

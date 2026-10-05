@@ -247,8 +247,12 @@ greater than 0, or a 429 arrives, `lockedUntil = now + max(active, Retry-After) 
 2. Otherwise compute `wait` = the smallest delay after which, **for every window**, the count of
    timestamps in the trailing `period` plus 1 is ≤ `max − margin`. When `max − margin < 1`, use `max`.
 3. If `now + wait > deadline`, or `wait > maxWaitMs`, throw `TradeError('would_wait', {waitS})` without
-   sleeping. The default `maxWaitMs` of 30 000 applies to every trade tool.
-4. Otherwise sleep `wait` (abortable), record a timestamp, and send.
+   sleeping. The default `maxWaitMs` of 30 000 applies to every trade tool. A wait that would leave less
+   than 1 s before the deadline is refused the same way (D-22: no step starts with < 1 s left).
+4. Otherwise sleep `wait` (abortable), record a timestamp, and send. **After any wait** (this sleep, or
+   waiting for a class's first request to settle), if less than 1 s remains before the deadline, throw
+   `would_wait` without sending: a request sure to be cut would still spend an account rate-limit slot
+   (R-1). (amended during build, D-87)
 
 ### C-12: Currency service (modified)
 
@@ -303,6 +307,7 @@ export class CurrencyService { constructor(deps: { fetch; userAgent; env; now? }
 | `runeBehaviour` | `"copy"\|"keep"\|"remove"` | `"copy"` |
 | `jewelType` | `"Base"\|"Radius"` | required for jewel slots |
 | `status` | `"securable"\|"available"\|"onlineleague"\|"online"\|"any"` | `"securable"` |
+| `reportStats` | `[string]` | none. Checked first, by `trade_evaluate_items`' rule; a bad name fails `reportStats[<i>]: ...` before anything is generated (amended during build, D-84) |
 
 Behaviour:
 - `calcsTab:BuildOutput()` runs first.
@@ -990,7 +995,9 @@ These are in-process and engine-required unless stated, with the same `fixtureFe
 - **AC-T46 (WU-15, D-61).** In-process, `fixtureFetch` serving a trade2 search fixture, a fetch fixture and the poe.ninja
   fixture.
   - Each `search_trade_items` listing shows its native price (`<amount> <currency>`). Where C-12 `convert` returns a number, the
-    listing also shows `(≈ <x> <primary>)`, with `x` to 2 decimal places and equal to `convert(amount, currency, primary, rates)`.
+    listing also shows `(≈ <x> <primary>)`, with `x` equal to `convert(amount, currency, primary, rates)` in the D-72 format
+    (`formatCurrencyValue`: 2 decimals from 1 up, 4 significant digits below 1), so a 1 exalted listing never reads
+    `0.00 divine`. (amended during build, D-71)
   - With poe.ninja failing (a non-2xx fixture), or a listing in a currency `convert` can't place, the listing shows its native
     price only, and the output carries exactly one note saying prices couldn't be normalized.
   - Listings appear in the order the fetch fixture returned them.

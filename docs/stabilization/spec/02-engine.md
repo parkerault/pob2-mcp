@@ -285,6 +285,11 @@ Constants:
    - If `signal` aborts while the call is waiting, it rejects with `AbortError` and never runs.
    - If `deadline` passes while it waits, it rejects with `EngineBusyError`.
    - It emits `start` on acquiring the lock.
+   - **The deadline also bounds steps 2–4** (amended during build, D-85): no step starts with less than
+     1 s left; the engine start is raced against the deadline; the crash restore and the disk-change
+     reload get `min(default timeout, time left)` and end by abort just before the deadline. A cut step
+     rejects with `EngineDeadlineError` and leaves the session's books (snapshot, crash flag, `loaded`) for
+     the next call.
 2. **Ensure the engine.** If no engine runs, `start()`, which is single-flight. Start errors propagate.
    - On a first start, or a start after `lua_stop`, set `loaded = NEW_BUILD`.
    - A start after a crash goes to step 3.
@@ -384,9 +389,14 @@ Every server write into `POB_DIRECTORY` goes through one module, `src/services/b
    `restore_snapshot` and `set_build_notes` imply overwrite.
 3. **Changed-on-disk guard.**
    - If the canonical target is `loaded.path`, compare its current fingerprint with
-     `loaded.fingerprint`.
-   - Otherwise compare with the writer's own record of its last write to that path in this process, if
-     any.
+     `loaded.fingerprint`. A text, byte or restore write (not an engine save) also accepts the writer's
+     own last write to that path, so the server's own earlier edit is not taken for a PoB2 save.
+     (amended during build, D-86)
+   - Otherwise compare with the last fingerprint this process knows for that path, if any: the
+     writer's own last write to it, or the engine's last load or save of it while it was the loaded
+     file (kept for the last 32 such paths), whichever came later. So switching the engine to another
+     build (a load, a new build, an import, a Save As re-point) does not drop the guard on the file it
+     held. (amended during build, D-86)
 
    If they differ, the write is **refused** with:
    `<path> changed on disk since the engine loaded or saved it (probably saved in PoB2). Reload it first (lua_reload_build) or save under a new name.`
@@ -955,7 +965,9 @@ spine (§12). A "Lua query" is a `__test_eval` call.
     (`revision`, `loaded`, and the canonical export compared across the reload, AC-E16).
     (amended during build, D-62)
 - **AC-E49 (WU-13, D-42).** In-process. `export_build {output_directory:"/tmp/elsewhere"}` → `isError`.
-  An `output_directory` inside `POB_DIRECTORY` succeeds.
+  An `output_directory` inside `POB_DIRECTORY` succeeds. An `output_directory` inside `<stateDir>/backups`
+  or `<stateDir>/snapshots` (directly, through `..`, or through a symlink) → `isError` naming that folder,
+  even with `overwrite: true`, and nothing there is replaced. (amended during build, D-88)
 - **AC-E50 (WU-13, C-16/C-17).** In-process.
   - `snapshot_build`, then `list_snapshots`, then `restore_snapshot` on `grenadator.xml` works.
   - All artifacts are under `<stateDir>/snapshots/` and `<stateDir>/backups/` (the latter as

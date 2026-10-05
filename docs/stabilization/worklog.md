@@ -1089,3 +1089,13 @@ Gate:
 - The WSL2 wall clock can step backwards: AC-E8 measured elapsed = -2431 ms, and a targeted jest run
   reported a test duration of -1930 ms. Measure durations with `performance.now()`, never with
   `Date.now()` differences.
+
+### User approval for the live smoke (HG-1), 2026-10-04
+
+For running the WU-20 smoke after the final wave, the user approved:
+- a handful of live trade2 and poe.ninja requests that use their cookie (the server reads `.env` itself);
+- moving `.env` aside briefly for the fallback check, without reading it;
+- one pobb.in fetch;
+- registering the server in their Claude Code config.
+
+The two PoB2-on-Windows checks (items 6–7) and final acceptance (WU-21) stay with the user.

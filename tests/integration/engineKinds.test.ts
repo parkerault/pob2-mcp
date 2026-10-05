@@ -10,6 +10,12 @@
  *     `stateChange: false` with a reason;
  *  3. `revision` grows by exactly 1 for `mutate`/`load` and by 0 for `read` (no file changes on disk).
  * A failing mutate sample (`set_gem_level` with a bad gem index) leaves `revision` unchanged.
+ *
+ * WU-13: a `read` sample whose tool runs `withTemporaryBuild` (D-9: `analyze_build`, `compare_builds`,
+ * `export_build` with notes) reloads the working build, and PoB2 then serializes it in a different
+ * `pairs()` order; for those samples only, the exports are compared modulo that order
+ * (`tests/helpers/reloadCanonical.ts`). Every other sample keeps the strict comparison, so a read tool
+ * that reloaded the build behind the session's back would still be caught.
  */
 import fs from 'fs';
 import path from 'path';
@@ -17,6 +23,7 @@ import zlib from 'zlib';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { GOLDEN_XML, canonicalExport, startSessionFixture, type SessionFixture } from '../helpers/engineSession';
+import { canonicalExportAcrossReload } from '../helpers/reloadCanonical';
 import { TOOL_META } from '../../src/server/toolMeta';
 
 interface Step {
@@ -96,8 +103,13 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
     if (load.isError) throw new Error(`loading the golden build failed: ${load.text}`);
   };
 
+  /** The sample's tool runs `withTemporaryBuild` (D-9), which reloads the working build. */
+  const reloadsWorkingBuild = (s: Sample) =>
+    s.tool === 'analyze_build' || s.tool === 'compare_builds' || (s.tool === 'export_build' && s.args.notes !== undefined);
+
   CHECKED.forEach(({ sample, n }) => {
     const kind = TOOL_META[sample.tool].engine;
+    const exportOf = reloadsWorkingBuild(sample) ? canonicalExportAcrossReload : canonicalExport;
     it(`AC-E16: ${sample.tool} #${n} (${kind})`, async () => {
       await freshGolden();
       for (const step of sample.setup ?? []) {
@@ -106,7 +118,7 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
         // work (e.g. create_spec creates the spec, then mis-renders the reply); anything else aborts.
         if (out.isError && !allowedII(step.tool)) throw new Error(`setup ${step.tool} failed: ${out.text}`);
       }
-      const before = await canonicalExport(f.session);
+      const before = await exportOf(f.session);
       const revision = f.session.revision;
       const pid = f.session.enginePid();
 
@@ -117,7 +129,7 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
         text: '',
       });
       const delta = f.session.revision - revision;
-      const after = await canonicalExport(f.session);
+      const after = await exportOf(f.session);
       // Same engine process: a restart would make the comparison meaningless.
       expect(f.session.enginePid()).toBe(pid);
 

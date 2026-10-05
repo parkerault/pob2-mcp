@@ -20,6 +20,16 @@
  *     text edits leave `loaded.fingerprint` alone, so the session's disk-change check (C-3 step 4)
  *     reloads the file (clean engine) or warns (dirty engine).
  *
+ * Writes to one target are serialized (a per-path async lock around steps 2–6), because some callers
+ * (`set_build_notes`, `restore_snapshot`) run outside the engine lock and the MCP SDK dispatches calls
+ * concurrently: without it two writes would race on the shared temp name and on the step-3 check.
+ *
+ * A caller that must decide before an engine load whether a later write would be allowed
+ * (`import_build save_as`) calls `checkBuildFile` first (steps 1–3, no write) and passes the returned
+ * `guard` to `writeBuildFile`. The write then applies step 3 against the fingerprint taken at check time
+ * (when the target was the loaded file, `loaded.fingerprint` before the load replaced it), so a PoB2 save
+ * that lands between the check and the write is still refused.
+ *
  * Errors are thrown as `BuildFileWriteError` (handlers fail by throwing; the router makes them `isError`).
  */
 import crypto from "crypto";
@@ -75,6 +85,22 @@ export interface WriteBuildFileRequest {
   kind: BuildWriteKind;
   /** Required for `kind: 'engine'`: the running engine call's context. */
   ctx?: WriterEngineCtx;
+  /**
+   * From `checkBuildFile` on the same target: apply the changed-on-disk guard (step 3) against the
+   * fingerprint recorded at check time instead of the state at write time.
+   */
+  guard?: WriteGuard;
+}
+
+/** What `checkBuildFile` decided for a target: steps 1–3 passed at check time. */
+export interface WriteGuard {
+  /** Canonical POSIX path relative to `POB_DIRECTORY`. */
+  path: string;
+  /**
+   * The fingerprint step 3 compares the file with: `loaded.fingerprint` when the target was the loaded
+   * file, else the writer's record of its last write to it, else null (no guard).
+   */
+  reference: Fingerprint | null;
 }
 
 export interface WriteBuildFileResult {
@@ -142,46 +168,51 @@ export class BuildFileWriter {
   private readonly now: () => Date;
   /** The fingerprint of this writer's last write to each absolute path (C-17 step 3). */
   private readonly written = new Map<string, Fingerprint>();
+  /** The tail of each target's write queue (keyed case-insensitively: drvfs targets may differ in case). */
+  private readonly queues = new Map<string, Promise<void>>();
 
   constructor(private readonly opts: BuildFileWriterOptions) {
     this.fs = opts.fs ?? nodeWriterFs;
     this.now = opts.now ?? (() => new Date());
   }
 
+  /**
+   * Steps 1–3 without writing: throws what `writeBuildFile` would throw for them, else returns the guard
+   * to pass to a later `writeBuildFile` of the same target.
+   */
+  async checkBuildFile(req: Omit<WriteBuildFileRequest, "bytes" | "ctx" | "guard">): Promise<WriteGuard> {
+    const { rel, target } = await this.resolve(req.name);
+    return this.withTargetLock(target, async () => {
+      const current = await this.read(target);
+      this.checkExisting(rel, current, req);
+      const reference = this.reference(rel, target);
+      this.checkUnchanged(rel, current, reference);
+      return { path: rel, reference };
+    });
+  }
+
   async writeBuildFile(req: WriteBuildFileRequest): Promise<WriteBuildFileResult> {
     if (req.kind === "engine" && !req.ctx) {
       throw new BuildFileWriteError("internal error: a write of the engine's build needs the engine call's context");
     }
-    const base = path.resolve(this.opts.pobDirectory);
     const bytes = Buffer.isBuffer(req.bytes) ? req.bytes : Buffer.from(req.bytes, "utf8");
 
     // 1. Path.
-    const name = req.name?.trim();
-    if (!name) throw new BuildFileWriteError("build_name is required");
-    const rel = await canonicalBuildPath(name, base, { readdir: (dir) => this.fs.readdir(dir) });
-    const target = path.join(base, ...rel.split("/"));
+    const { rel, target } = await this.resolve(req.name);
+    if (req.guard && req.guard.path !== rel) {
+      throw new BuildFileWriteError(`internal error: the write guard is for ${req.guard.path}, not ${rel}`);
+    }
+    return this.withTargetLock(target, () => this.writeLocked(req, rel, target, bytes));
+  }
 
+  private async writeLocked(req: WriteBuildFileRequest, rel: string, target: string, bytes: Buffer): Promise<WriteBuildFileResult> {
     // 2. Existing target.
     const current = await this.read(target);
-    const overwrite = req.overwrite === true || req.kind === "restore" || req.kind === "text";
-    if (current && !overwrite) {
-      throw new BuildFileWriteError(`${rel} already exists; pass overwrite: true to replace it (a backup is kept).`);
-    }
+    this.checkExisting(rel, current, req);
 
     // 3. Changed-on-disk guard.
-    const notices: string[] = [];
-    const loaded = this.opts.loaded();
-    const recorded = loaded && loaded.path === rel ? loaded.fingerprint : (this.written.get(target) ?? null);
-    if (recorded) {
-      if (!current) {
-        notices.push(`${rel} no longer existed on disk; created it again.`);
-      } else if (current.bytes.length !== recorded.size || sha1(current.bytes) !== recorded.sha1) {
-        throw new BuildFileWriteError(
-          `${rel} changed on disk since the engine loaded or saved it (probably saved in PoB2). ` +
-            `Reload it first (lua_reload_build) or save under a new name.`,
-        );
-      }
-    }
+    const reference = req.guard ? req.guard.reference : this.reference(rel, target);
+    const notices = this.checkUnchanged(rel, current, reference);
 
     // 4. Backup.
     let backupPath: string | null = null;
@@ -223,6 +254,64 @@ export class BuildFileWriter {
 
     const message = `Saved ${rel} (${bytes.length} bytes).` + (current ? ` ${REOPEN_HINT}` : "");
     return { path: rel, absPath: target, bytes: bytes.length, replaced: current !== null, backupPath, fingerprint, notices, message };
+  }
+
+  /** Step 1: the canonical relative path (D-52) and the absolute target. */
+  private async resolve(rawName: string): Promise<{ rel: string; target: string }> {
+    const base = path.resolve(this.opts.pobDirectory);
+    const name = rawName?.trim();
+    if (!name) throw new BuildFileWriteError("build_name is required");
+    const rel = await canonicalBuildPath(name, base, { readdir: (dir) => this.fs.readdir(dir) });
+    return { rel, target: path.join(base, ...rel.split("/")) };
+  }
+
+  /** Step 2: replacing a file needs `overwrite: true` (`restore` and `text` imply it). */
+  private checkExisting(rel: string, current: { bytes: Buffer } | null, req: { overwrite?: boolean; kind: BuildWriteKind }): void {
+    const overwrite = req.overwrite === true || req.kind === "restore" || req.kind === "text";
+    if (current && !overwrite) {
+      throw new BuildFileWriteError(`${rel} already exists; pass overwrite: true to replace it (a backup is kept).`);
+    }
+  }
+
+  /** Step 3's reference: `loaded.fingerprint` for the loaded file, else this writer's last write, if any. */
+  private reference(rel: string, target: string): Fingerprint | null {
+    const loaded = this.opts.loaded();
+    return loaded && loaded.path === rel ? loaded.fingerprint : (this.written.get(target) ?? null);
+  }
+
+  /** Step 3: refuse when the file changed since `reference`; returns the notices for the write. */
+  private checkUnchanged(rel: string, current: { bytes: Buffer } | null, reference: Fingerprint | null): string[] {
+    const notices: string[] = [];
+    if (reference) {
+      if (!current) {
+        notices.push(`${rel} no longer existed on disk; created it again.`);
+      } else if (current.bytes.length !== reference.size || sha1(current.bytes) !== reference.sha1) {
+        throw new BuildFileWriteError(
+          `${rel} changed on disk since the engine loaded or saved it (probably saved in PoB2). ` +
+            `Reload it first (lua_reload_build) or save under a new name.`,
+        );
+      }
+    }
+    return notices;
+  }
+
+  /** Run `fn` after every earlier queued operation on `target` has settled (a per-path async mutex). */
+  private async withTargetLock<T>(target: string, fn: () => Promise<T>): Promise<T> {
+    const key = target.toLowerCase();
+    const previous = this.queues.get(key) ?? Promise.resolve();
+    let release!: () => void;
+    const mine = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tail = previous.then(() => mine);
+    this.queues.set(key, tail);
+    try {
+      await previous;
+      return await fn();
+    } finally {
+      release();
+      if (this.queues.get(key) === tail) this.queues.delete(key);
+    }
   }
 
   /** The target's bytes, or null when it doesn't exist. */

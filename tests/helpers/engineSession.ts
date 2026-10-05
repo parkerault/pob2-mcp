@@ -85,45 +85,12 @@ export async function startSessionFixture(
   };
 }
 
-/** Attributes whose value is a set of node ids that PoB writes in Lua `pairs()` order. */
-const NODE_SET_ATTRS = new Set(['nodes', 'strNodes', 'dexNodes', 'intNodes']);
-
-/** One start or self-closing tag with its attributes sorted by name and its node-id sets sorted. */
-function normalizeTag(tag: string): string {
-  const m = /^<([A-Za-z_][\w.:-]*)([^>]*?)(\/?)>$/.exec(tag);
-  if (!m) return tag;
-  const attrs = [...m[2].matchAll(/([\w.:-]+)="([^"]*)"/g)].map(([, name, value]) =>
-    NODE_SET_ATTRS.has(name) && /^\d+(,\d+)*$/.test(value)
-      ? [name, value.split(',').map(Number).sort((a, b) => a - b).join(',')]
-      : [name, value],
-  );
-  attrs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `<${m[1]}${attrs.map(([n, v]) => ` ${n}="${v}"`).join('')}${m[3] ? '/' : ''}>`;
-}
-
-/**
- * The canonical export (AC-E16): `export_build_xml` with every `<PlayerStat>`, `<MinionStat>` and
- * `<FullDPSSkill>` removed, and with what PoB serializes in Lua hash-table (`pairs()`) order put in a
- * fixed order, because that order changes whenever the same build is loaded again (WU-13: a reload of
- * an identical export reorders `<Spec nodes>`, the `<AttributeOverride>` node lists, the tree `<URL>`
- * that encodes them, and the config set's `<Input>`/`<Placeholder>` elements):
- * - attributes are sorted by name, and the node-id sets (`nodes`, `strNodes`, `dexNodes`, `intNodes`) are
- *   sorted numerically;
- * - the `<URL>` body (the same node set, encoded in that order) is dropped;
- * - each run of consecutive `<Input …/>`/`<Placeholder …/>` elements is sorted.
- * Everything else (element order, values, text) is compared as exported.
- */
+/** `export_build_xml` with every `<PlayerStat>`, `<MinionStat>` and `<FullDPSSkill>` removed (AC-E16). */
 export function canonicalize(xml: string): string {
-  const stripped = xml
+  return xml
     .replace(/<(PlayerStat|MinionStat|FullDPSSkill)\b[^>]*\/>/g, '')
     .replace(/<(PlayerStat|MinionStat|FullDPSSkill)\b[^>]*>[\s\S]*?<\/\1>/g, '')
-    .replace(/<URL>[\s\S]*?<\/URL>/g, '<URL/>')
-    .replace(/<[A-Za-z_][\w.:-]*(?:\s+[\w.:-]+="[^"]*")*\s*\/?>/g, normalizeTag)
     .replace(/\n\s*\n/g, '\n');
-  // Runs of consecutive hash-ordered elements (an attribute value may span lines, so match elements).
-  return stripped.replace(/(?:\s*<(?:Input|Placeholder)\b[^>]*\/>)+/g, (run) =>
-    '\n' + (run.match(/<(?:Input|Placeholder)\b[^>]*\/>/g) ?? []).sort().join('\n'),
-  );
 }
 
 /** The canonical export of the engine's build, read through the session (a `read` run). */

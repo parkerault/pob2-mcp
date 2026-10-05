@@ -22,7 +22,6 @@ import { engineDescribe } from '../helpers/engine';
 import {
   CALL_TIMEOUT_MS,
   GOLDEN_XML,
-  canonicalExport,
   canonicalize,
   engineLevel,
   goldenWithLevel,
@@ -30,6 +29,8 @@ import {
   writeBuild,
   type SessionFixture,
 } from '../helpers/engineSession';
+import { canonicalizeAcrossReload } from '../helpers/reloadCanonical';
+import { fixtureFetch } from '../helpers/fixtureFetch';
 
 const T = CALL_TIMEOUT_MS + 60000;
 
@@ -61,19 +62,31 @@ function code(bytes: Buffer | string): string {
 }
 
 interface EngineState {
+  /** `export_build_xml` as exported. */
   xml: string;
   loaded: unknown;
   revision: number;
 }
 
-async function engineState(f: SessionFixture): Promise<EngineState> {
-  return { xml: await canonicalExport(f.session), loaded: structuredClone(f.session.loaded), revision: f.session.revision };
+async function exportXml(f: SessionFixture): Promise<string> {
+  const { value } = await f.session.run({ tool: 'test:export', kind: 'read' }, (ctx) => ctx.client.exportBuildXml());
+  return value;
 }
 
-async function expectUnchanged(f: SessionFixture, before: EngineState): Promise<void> {
+async function engineState(f: SessionFixture): Promise<EngineState> {
+  return { xml: await exportXml(f), loaded: structuredClone(f.session.loaded), revision: f.session.revision };
+}
+
+/**
+ * `revision`, `loaded` and the canonical export are unchanged. Without a reload in between the strict
+ * AC-E16 canonical export must be identical; `acrossReload` (a tool that ran `withTemporaryBuild`, D-9)
+ * compares it modulo PoB's `pairs()` serialization order (`tests/helpers/reloadCanonical.ts`).
+ */
+async function expectUnchanged(f: SessionFixture, before: EngineState, opts: { acrossReload?: boolean } = {}): Promise<void> {
   expect(f.session.revision).toBe(before.revision);
   expect(f.session.loaded).toEqual(before.loaded);
-  expect(await canonicalExport(f.session)).toBe(before.xml);
+  const canon = opts.acrossReload ? canonicalizeAcrossReload : canonicalize;
+  expect(canon(await exportXml(f))).toBe(canon(before.xml));
 }
 
 function filesUnder(dir: string): string[] {
@@ -87,26 +100,60 @@ function filesUnder(dir: string): string[] {
   return out;
 }
 
-describe('canonicalize (the AC-E16 canonical export used by these tests)', () => {
-  const doc = (nodes: string, placeholders: string[], gems: string[], level = 90) =>
+describe('canonicalizeAcrossReload (the canonical export compared across a withTemporaryBuild reload)', () => {
+  interface Doc {
+    nodes?: string;
+    mastery?: string;
+    sockets?: string[];
+    weaponSets?: string[];
+    placeholders?: string[];
+    gems?: string[];
+    level?: number;
+  }
+  const gemsAB = ['<Gem nameSpec="A"/>', '<Gem nameSpec="B"/>'];
+  const doc = ({
+    nodes = '1,2,3',
+    mastery = '{10,1},{20,2}',
+    sockets = ['<Socket nodeId="2491" itemId="2"/>', '<Socket nodeId="54127" itemId="1"/>'],
+    weaponSets = ['<WeaponSet1 nodes="4,5"/>', '<WeaponSet2 nodes="6"/>'],
+    placeholders = ['<Placeholder name="x" number="1"/>', '<Placeholder name="y" number="2"/>'],
+    gems = gemsAB,
+    level = 90,
+  }: Doc = {}) =>
     `<PathOfBuilding2>\n<Build level="${level}">\n<PlayerStat stat="Life" value="${level}"/>\n</Build>\n` +
-    `<Tree><Spec treeVersion="0_5" nodes="${nodes}"><URL>\nhttps://x/${nodes}\n</URL></Spec></Tree>\n` +
+    `<Tree><Spec treeVersion="0_5" masteryEffects="${mastery}" nodes="${nodes}"><URL>\nhttps://x/${nodes}\n</URL>\n` +
+    `${weaponSets.join('\n')}\n<Sockets>\n${sockets.join('\n')}\n</Sockets>\n` +
+    `<Overrides><AttributeOverride strNodes="7,8" dexNodes="9"/></Overrides></Spec></Tree>\n` +
     `<Skills><Skill>${gems.join('\n')}</Skill></Skills>\n` +
     `<Config><ConfigSet id="1">\n<Input name="a" boolean="true"/>\n${placeholders.join('\n')}\n</ConfigSet></Config>\n</PathOfBuilding2>`;
-  const gems = ['<Gem nameSpec="A"/>', '<Gem nameSpec="B"/>'];
 
-  it('ignores what PoB writes in pairs() order: node-id sets, the tree URL, Input/Placeholder order, attribute order', () => {
-    const a = doc('1,2,3', ['<Placeholder name="x" number="1"/>', '<Placeholder name="y" number="2"/>'], gems);
-    const b = doc('3,1,2', ['<Placeholder number="2" name="y"/>', '<Placeholder name="x" number="1"/>'], gems);
-    expect(canonicalize(a)).toBe(canonicalize(b));
+  const reordered = doc({
+    nodes: '3,1,2',
+    mastery: '{20,2},{10,1}',
+    sockets: ['<Socket itemId="1" nodeId="54127"/>', '<Socket nodeId="2491" itemId="2"/>'],
+    weaponSets: ['<WeaponSet2 nodes="6"/>', '<WeaponSet1 nodes="5,4"/>'],
+    placeholders: ['<Placeholder number="2" name="y"/>', '<Placeholder name="x" number="1"/>'],
+  }).replace('strNodes="7,8" dexNodes="9"', 'dexNodes="9" strNodes="8,7"');
+
+  it('ignores what the pinned PoB2 writes in pairs() order: node-id sets, masteryEffects, the tree URL, Socket/WeaponSet/Input/Placeholder order, attribute order', () => {
+    expect(canonicalizeAcrossReload(reordered)).toBe(canonicalizeAcrossReload(doc()));
   });
 
-  it('still sees real changes: a value, a node, the order of gems', () => {
-    const base = canonicalize(doc('1,2,3', ['<Placeholder name="x" number="1"/>'], gems));
-    expect(canonicalize(doc('1,2,3', ['<Placeholder name="x" number="5"/>'], gems))).not.toBe(base);
-    expect(canonicalize(doc('1,2,4', ['<Placeholder name="x" number="1"/>'], gems))).not.toBe(base);
-    expect(canonicalize(doc('1,2,3', ['<Placeholder name="x" number="1"/>'], [...gems].reverse()))).not.toBe(base);
-    expect(canonicalize(doc('1,2,3', ['<Placeholder name="x" number="1"/>'], gems, 80))).not.toBe(base);
+  it('the strict AC-E16 canonical export (engineSession canonicalize) does not ignore that order', () => {
+    expect(canonicalize(reordered)).not.toBe(canonicalize(doc()));
+    // ...but it does drop the PlayerStat elements (AC-E16 step 1).
+    expect(canonicalize(doc({ level: 90 }))).not.toContain('PlayerStat');
+  });
+
+  it('still sees real changes: a value, a node, a mastery, a jewel, the order of gems', () => {
+    const base = canonicalizeAcrossReload(doc());
+    expect(canonicalizeAcrossReload(doc({ placeholders: ['<Placeholder name="x" number="5"/>', '<Placeholder name="y" number="2"/>'] }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ nodes: '1,2,4' }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ mastery: '{10,1},{20,3}' }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ sockets: ['<Socket nodeId="2491" itemId="3"/>', '<Socket nodeId="54127" itemId="1"/>'] }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ weaponSets: ['<WeaponSet1 nodes="4"/>', '<WeaponSet2 nodes="6"/>'] }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ gems: [...gemsAB].reverse() }))).not.toBe(base);
+    expect(canonicalizeAcrossReload(doc({ level: 80 }))).not.toBe(base);
   });
 });
 
@@ -137,7 +184,7 @@ engineDescribe('AC-E48 (WU-13, I-1d): export_build is a byte copy, or an engine-
     const xml = fs.readFileSync(path.join(stateDir, 'exports', 'e2.xml'), 'utf8');
     expect(rootOf(xml)).toBe('PathOfBuilding2');
     expect(notesOf(xml)?.trim()).toBe('x');
-    await expectUnchanged(f, before);
+    await expectUnchanged(f, before, { acrossReload: true });
 
     // The copy's saved stats are the golden build's 109 pairs.
     const golden = playerStatPairs(GOLDEN_XML);
@@ -267,7 +314,7 @@ engineDescribe('AC-E51 (WU-13, D-9): analyze_build and compare_builds never chan
     expect(out.isError).toBe(false);
     expect(out.text).toContain('Level: 80');
     expect(out.text).toContain('Live Calculated Stats (PoB2 engine, this file)');
-    await expectUnchanged(f, before);
+    await expectUnchanged(f, before, { acrossReload: true });
   }, T);
 
   it('AC-E51: compare_builds with it reports both levels (90 vs 80) and leaves the engine state identical', async () => {
@@ -276,7 +323,7 @@ engineDescribe('AC-E51 (WU-13, D-9): analyze_build and compare_builds never chan
     expect(out.isError).toBe(false);
     expect(out.text).toContain('Build Comparison (Live Stats)');
     expect(out.text).toContain('Level: 90 vs 80');
-    await expectUnchanged(f, before);
+    await expectUnchanged(f, before, { acrossReload: true });
   }, T);
 
   it('AC-E51: with unsaved engine changes, compare_builds keeps them (level, dirty flag)', async () => {
@@ -286,7 +333,7 @@ engineDescribe('AC-E51 (WU-13, D-9): analyze_build and compare_builds never chan
     const out = await f.call('compare_builds', { build1: 'grenadator.xml', build2: 'other.xml' });
     expect(out.isError).toBe(false);
     expect(out.text).toContain('Level: 90 vs 80');
-    await expectUnchanged(f, before);
+    await expectUnchanged(f, before, { acrossReload: true });
     expect(await engineLevel(f.session)).toBe(70);
     expect(f.session.isDirty()).toBe(true);
   }, T);
@@ -356,6 +403,82 @@ engineDescribe('AC-E52 (WU-13): import_build accepts only PathOfBuilding2 and ca
     expect(fs.readFileSync(file, 'utf8')).toBe(goldenWithLevel(66));
     expect(f.session.loaded).toEqual(before.loaded);
     expect(f.session.revision).toBe(before.revision);
+  }, T);
+});
+
+engineDescribe('WU-13 (C-17 step 3): import_build save_as never writes over a file that changed on disk', () => {
+  let f: SessionFixture;
+  let file: string;
+  /** What the share-site fetch does before it answers (e.g. PoB2 saves the target meanwhile). */
+  let duringFetch: () => void = () => undefined;
+  let fetched = '';
+  const ff = fixtureFetch([
+    {
+      match: /^https:\/\/pobb\.in\//,
+      respond: () => {
+        duringFetch();
+        return new Response(fetched, { status: 200 });
+      },
+    },
+  ]);
+  beforeAll(async () => {
+    f = await startSessionFixture({ files: { 'grenadator.xml': GOLDEN_XML, 'other.xml': goldenWithLevel(80) }, deps: { fetch: ff.fetch } });
+    file = path.join(f.builds, 'grenadator.xml');
+  }, T);
+  afterAll(async () => f?.close(), 30000);
+
+  it('a PoB2 save of the loaded target during the share-link fetch is refused at write time, not overwritten; the import stays loaded, unsaved', async () => {
+    writeBuild(file, GOLDEN_XML);
+    expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
+    ff.calls.length = 0;
+    fetched = code(goldenWithLevel(55));
+    duringFetch = () => writeBuild(file, goldenWithLevel(66)); // PoB2 saves it while the link is fetched
+    try {
+      const out = await f.call('import_build', { source: 'https://pobb.in/abcdef', save_as: 'grenadator', overwrite: true });
+      expect(out.isError).toBe(true);
+      expect(out.text).toContain('grenadator.xml changed on disk since the engine loaded or saved it');
+      expect(out.text).toContain('The imported build is loaded in the engine but was not saved.');
+    } finally {
+      duringFetch = () => undefined;
+    }
+    expect(ff.calls.map((c) => c.url)).toEqual(['https://pobb.in/abcdef/raw']);
+    expect(fs.readFileSync(file, 'utf8')).toBe(goldenWithLevel(66));
+    expect(filesUnder(path.join(f.tmp, 'state', 'backups', 'grenadator.xml'))).toEqual([]);
+    expect(await engineLevel(f.session)).toBe(55);
+    expect(f.session.loaded?.path).toBeNull();
+  }, T);
+
+  it('the loaded target that the server wrote, then PoB2 saved and the engine reloaded, can be replaced (the loaded record wins over the stale write record)', async () => {
+    writeBuild(file, GOLDEN_XML);
+    expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
+    // The server writes the loaded file (its write record), and the clean engine reloads it.
+    expect((await f.call('set_build_notes', { build_name: 'grenadator.xml', notes: 'server edit' })).isError).toBe(false);
+    expect((await f.call('lua_get_build_info')).text).toMatch(/^Reloaded grenadator\.xml/);
+    // PoB2 then saves it, and the clean engine reloads that save.
+    writeBuild(file, goldenWithLevel(66));
+    expect((await f.call('lua_get_build_info')).text).toMatch(/^Reloaded grenadator\.xml/);
+
+    const out = await f.call('import_build', { source: code(goldenWithLevel(55)), save_as: 'grenadator', overwrite: true });
+    expect(out.isError).toBe(false);
+    expect(out.text).toContain('Saved grenadator.xml');
+    expect(fs.readFileSync(file, 'utf8')).toBe(goldenWithLevel(55));
+    expect(f.session.loaded?.path).toBe('grenadator.xml');
+    expect(f.session.isDirty()).toBe(false);
+  }, T);
+
+  it('a target the server wrote that changed on disk since (not the loaded file) is refused before the load: the engine build is untouched', async () => {
+    writeBuild(file, GOLDEN_XML);
+    expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
+    const other = path.join(f.builds, 'other.xml');
+    expect((await f.call('set_build_notes', { build_name: 'other.xml', notes: 'server edit' })).isError).toBe(false);
+    writeBuild(other, goldenWithLevel(81)); // PoB2 saves other.xml
+    const before = await engineState(f);
+    const out = await f.call('import_build', { source: code(goldenWithLevel(55)), save_as: 'other', overwrite: true });
+    expect(out.isError).toBe(true);
+    expect(out.text).toContain('other.xml changed on disk since the engine loaded or saved it');
+    expect(out.text).not.toContain('was not saved');
+    expect(fs.readFileSync(other, 'utf8')).toBe(goldenWithLevel(81));
+    await expectUnchanged(f, before);
   }, T);
 });
 

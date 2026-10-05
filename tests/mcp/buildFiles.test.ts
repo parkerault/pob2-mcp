@@ -3,6 +3,8 @@
  * - AC-E53: `list_builds` lists a subfolder build by its relative path;
  * - AC-E64 (D-58): `get_build_notes` sees notes rewritten on disk within the old 60 s window;
  * - AC-E54 (C-20): the watch tools' listed descriptions don't claim to reload the engine.
+ * - C-17 under concurrency: `set_build_notes` runs outside the engine lock and the SDK dispatches calls
+ *   concurrently, so concurrent writes to one build must each report what reached the disk.
  */
 import fs from 'fs';
 import os from 'os';
@@ -117,5 +119,24 @@ describe('WU-13 file tools, in process', () => {
     expect(textOf(started)).toMatch(/does not reload the engine/i);
     expect(textOf(await call('watch_status'))).not.toMatch(/automatic build reloading/i);
     await call('stop_watching');
+  });
+
+  it('C-17: concurrent set_build_notes on one build all succeed, the disk holds one of them, no temp file is left, and a later write is not refused', async () => {
+    const file = path.join(builds, 'other.xml');
+    writeBuild(file, GOLDEN_XML);
+    const notes = [1, 2, 3, 4, 5, 6].map((n) => `n${n}:${'x'.repeat(n * 5000)}`);
+    const results = await Promise.all(notes.map((n) => call('set_build_notes', { build_name: 'other.xml', notes: n })));
+    for (const r of results) {
+      expect(r.isError).not.toBe(true);
+      expect(textOf(r)).toContain('Notes updated in other.xml');
+    }
+    const onDisk = /<Notes>([\s\S]*?)<\/Notes>/.exec(fs.readFileSync(file, 'utf8'))?.[1];
+    expect(notes).toContain(onDisk);
+    expect(fs.readdirSync(builds).filter((n) => n.includes('.pob2mcp-tmp'))).toEqual([]);
+
+    const later = await call('set_build_notes', { build_name: 'other.xml', notes: 'later' });
+    expect(later.isError).not.toBe(true);
+    expect(textOf(await call('get_build_notes', { build_name: 'other.xml' }))).toContain('later');
+    expect(spawns).toBe(0);
   });
 });

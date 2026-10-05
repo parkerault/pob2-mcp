@@ -869,3 +869,132 @@ Every owned AC maps to a passing named test. The wider exit set is green: AC-E1.
 - WU-10: a regression check run outside mise skipped the engine suite and stashed both files. It was re-run with a targeted stash and `mise exec --`.
 - WU-23: a stray `cat > file` with no stdin blocked a Bash call for 120 s and was stopped with TaskStop.
 - WU-23: `SessionClient.request` is overloaded, so the jest.spyOn action parameter needed a cast.
+
+## 2026-10-04: W4 (WU-12, WU-13, WU-18, WU-19)
+
+### WU-12 — done (head b99e2a9)
+
+Config tools now work on PoB2's own config options. Lua `get_config` reads the active config set via PoB2's option list (Modules/ConfigOptions) and returns build-set values, PoB's default for every other option (ConfigTab:GetDefaultState), option keys with type and section, and the enemy level in effect. `set_config` validates every key and value before changing anything (unknown key such as `bandit`, or wrong-typed value, fails and leaves config unchanged); `""` clears a non-checkbox option. Values are written into the config set's input as PoB's controls do, then BuildModList runs and the build recalculates. `set_config`/`set_enemy_stats` report real previous/new values; enemyLevel goes through input. Presets store `{enemyLevel, input}`, are applied through `set_config`, and clear keys the preset doesn't hold. The two WU-12 allowlist entries and four cruft waivers are removed.
+
+Deviations:
+- `get_config` prints all ~559 option keys, one `key: value` line each, grouped by PoB section (~20 KB); unset options show PoB's value marked `(default)`, text values as JSON strings. Rationale: AC-E43 needs unset booleans shown and the spec asks for keys listed (configHandlers.ts formatConfigOutput).
+- Reply schema (C-5, configSchema) gains `defaults` and `options`; `{enemyLevel, input}` unchanged; passthrough, so additive.
+- `set_config` rejects non-ConfigOptions keys and wrong-typed values (checkbox, number field, list value, text); all-or-nothing; `""` clears a non-checkbox option. Rationale: PoE2-correctness and a reliable previous value.
+- A list value differing from a PoB list value only by carriage returns is accepted and kept verbatim. Rationale: PoB's XML loader stores quest-reward strings with `\r\n` (golden build has one); otherwise the build's own preset could not load.
+- Preset file is `{enemyLevel, input}` (C-16); `load_config_preset` sends all keys in one `set_config` call and clears options the preset doesn't hold. Rationale: "restores it" must hold when the changed option was unset at save time.
+- `set_enemy_stats` drops the hard-coded "consider penetration/exposure" advice (10% threshold). Rationale: no-own-constants rule (D-3).
+- Two files outside touches changed: tests/mocks/responses.mock.ts (fake engine replies updated to the PoE2 shape; implied scope) and src/pobLuaBridge.ts (getConfig/setConfig typed ConfigResult; serialized-wiring file).
+- `""` for a list maps to what PoB's CreateConfigSet writes (`list[defaultIndex].val`, else `varData.defaultState`), not the fix direction's `list[defaultIndex or 1].val`. Same result wherever a default entry exists; for lists without one (ailmentMode, conditionUnravelling, bloodSandStance) `list[1].val` would reintroduce the bug in reverse via save/reload dropping it. Guarded by a test.
+
+Review: raw 10 / material 2 / confirmed 2.
+- spec-1 [medium] BuildOps.lua:349 config_value: `""` on a list option set nil; calc skipped the option while get_config showed the default, and save/snapshot silently reverted (FR-E6).
+- correctness-1 [medium] same path (also configHandlers.ts:133, toolSchemas.ts:909): `""` documented as "back to PoB's default" wrote nil for lists; load_config_preset clear path hits it.
+
+Gate: 1 attempt; test rc 0, build rc 0; 82 suites / 904 tests passed (clean gate); engineConfig.test.ts ran all 8 tests, none skipped. Script checks: `grep -rniE "bandit|pantheon" src pob-api/API` rc 1 (no matches); `grep -c WU-12` over allowlist and cruft waivers rc 1 (both 0). Tooling false-failures: none.
+
+### WU-13 — done (head 9b0b89b)
+
+Every remaining write into the builds folder goes through the C-17 build-file writer: restore_snapshot (always backs up), set_build_notes, import_build save_as (engine content) and export_build. export_build byte-copies when there are no notes; with notes it loads the source via withTemporaryBuild and writes the engine's `<PathOfBuilding2>` export; output_directory must be inside the builds folder or the state dir. analyze_build and compare_builds read live stats via withTemporaryBuild; compare reports both levels. import_build accepts only a `<PathOfBuilding2>` root and caps inflation at 16 MiB. Parse cache keyed by canonical relative path, validated by size+mtime, LRU 20. The watcher polls on /mnt/, ignores dotfiles and `~~temp~~`, invalidates by relative path; its descriptions no longer claim engine reloads. Snapshots keyed by canonical path. Hygiene allowlist now empty.
+
+Deviations:
+- Canonical export redefined for reload cases (tests/helpers/engineSession.ts:116, later tests/helpers/reloadCanonical.ts): withTemporaryBuild reloads reorder pairs()-written content (Spec nodes, AttributeOverride lists, tree URL, Input/Placeholder order); comparison sorts these and drops the URL body; a unit test proves real changes are still detected.
+- tool-calls.json:64: lua_set_tree sample declares stateChange:false (only change was pairs() node order).
+- engineSession.test.ts:225: AC-E56 now asserts compare_builds succeeds with export/loaded/revision unchanged.
+- import_build gains `overwrite` input, since C-17 requires overwrite:true and save_as had no way to pass it.
+- import_build save_as over the loaded file runs C-17's changed-on-disk guard against the previous loaded fingerprint before the load (spec silent).
+- export_build: relative output_directory resolves inside the builds folder; symlinks resolved before the D-42 check; builds folder checked first; state-dir export uses temp+rename and needs overwrite.
+- export_build refuses a non-`<PathOfBuilding2>` source even in byte-copy; notes appended with `---` separator; whitespace-only notes count as empty.
+- analyze_build/compare_builds fall back to file-only analysis/saved stats with a note when the engine refuses a file (EngineActionError); HandlerContext.engine/buildFileWriter optional for existing unit tests.
+- Snapshots keyed `snapshots/<rel incl .xml>/`; same-millisecond second snapshot gets `-n` suffix, written exclusively; analyze_build no longer overrides the file's active spec/item set.
+- list_builds returns sorted POSIX relative paths; readBuild errors name the canonical path.
+- Existing tests updated, none removed (watchService.test.ts, contextBuilder.test.ts).
+- Spec gap for coordinator ratification: AC-E16/E48/E51/E56 "canonical export identical" cannot hold literally across a D-9 reload on the pinned PoB2; suggested amendment to ignore pairs() order (attribute order, node sets, masteryEffects, URL body, Socket/WeaponSetN/Input/Placeholder runs).
+- C-17 writer (src/services/buildFileWriter.ts, WU-22's) extended: optional `guard`, new `checkBuildFile`, per-target lock; additive, signature unchanged; its test file extended.
+- tests/integration/engineKinds.test.ts (WU-08's AC-E16 test) compares across a reload only for analyze_build, compare_builds, export_build with notes.
+- import_build save_as whose target changes between pre-load check and write returns isError with the import loaded but unsaved; the no-replace guarantee now holds only for refusals caught pre-load.
+
+Review: raw 21 / material 7 / confirmed 6.
+- spec-1 [medium] engineSession.ts canonicalize: looser canonical export without spec amendment, and normalization incomplete (flaky risk).
+- spec-2 [medium] luaHandlers.ts import_build save_as: pre-load check covers only C-17 step 3's loaded-file case; a stale writer record refuses only after the import replaced the engine build; untested.
+- correctness-1 [high] luaHandlers.ts:761-801: save_as over the loaded file could silently overwrite a PoB2 save landing during fetch/load (guard checked only before).
+- correctness-2 [medium] set_build_notes/restore_snapshot run outside the engine lock; writer had no per-path serialization and a shared temp name, so concurrent writes misreport and poison the fingerprint.
+- safety-1 [medium] same as correctness-1 from the safety lens.
+- safety-2 [medium] shared WU-08 helper changed, redefining canonical export without a spec amendment.
+
+Not fixed: spec-1 / safety-2 spec-amendment part — code side fixed (strict canonicalize restored for AC-E16; reload cases use reloadCanonical.ts); amending spec text is the coordinator's call. Evidence: with strict canonicalize, AC-E48 (notes), AC-E51 (x3) and AC-E56's compare bullet failed due to pairs() reordering (vendor PassiveSpec.lua:226-311).
+
+Gate: 1 attempt; test rc 0, build rc 0; 84 suites / 951 tests (clean gate, engine probe ok). Script checks: `git diff b99e2a9..HEAD --exit-code -- tests/static/poe1-cruft-waivers.json` rc 0; allowlist length check prints 0, rc 0; temporary fidelity probe `mise exec -- pnpm exec jest tests/integration/zzVerifierProbe.test.ts` rc 0 (strict equal false / reload-canonical equal true after compare and set_tree). Tooling false-failures: one single-file jest rerun outside mise failed with "luajit not found" (own probe, not the gate). Note: lua_set_tree sample's stateChangeReason is stale after 9b0b89b (cosmetic, should be reworded).
+
+### WU-18 — done (head 343f16c)
+
+New Lua action `get_warnings` returns PoB's own warning lines and leaves characterLevel and its auto mode unchanged (schema, bridge wrapper getWarnings, contract case). New pure `judge(stats, warnings, items)` in src/advice/judge.ts returns Issue[]; src/advice/report.ts reads the engine and formats. Judgments: PoB warnings, Missing<Elem>Resist > 0, per-type max hit below the configured enemy's hit; empty gear slots are facts. validate_build, analyze_defenses (build_name optional, defaults to loaded build), get_build_issues and the load summary's Top Issues all use judge(); another build file goes through withTemporaryBuild. validationService.ts and defensiveAnalyzer.ts deleted; analyze_build's validation section uses judge(). Three descriptions rewritten, WU-18 cruft waivers removed; waiver and allowlist files both `[]`.
+
+Deviations:
+- treeHandlers.ts:405 (outside touches): get_passive_upgrades checks `issue.kind === 'missing_resist'`, forced by the new Issue type.
+- buildHandlers.ts (outside touches): analyze_build's "Build Validation (PoB2)" renders judge() over the same temporary load; readLive asks for named fields (LIVE_STAT_FIELDS) per AC-A6; Crit Multi shows CritMultiplier x100 (previously always N/A).
+- src/advice/report.ts new (own file); defensiveAnalyzer.ts removed rather than reduced.
+- Resistance judgment includes Chaos (all four Missing*Resist are in AC-E26's list).
+- "Gear slot" = any shown, active slot whose name lacks "Jewel"; golden-build facts: Weapon 2, Arm 1, Arm 2, Leg 1, Leg 2.
+- Load summary Top Issues lists every issue, not the first 3 (AC-A4 requires equality with get_build_issues).
+- get_warnings strips PoB colour codes, runs BuildOutput first, and rebuilds config mod list/outputs if level or auto mode changed.
+- readAdviceSubject: a build_name resolving to the loaded build analyses the engine's build as is (FR-A1); the existing hygiene sample relies on it.
+- New fixture tests/fixtures/builds/grenadator-low-str.xml (Ring 1 +17 → +7 Str; 119 → 109, below Herald of Ash's 116) with README section.
+- src/engine/session.ts (outside list): withTemporaryBuild put-back reload passes keepLevel:true.
+- C-2 gains optional `load_build_xml {keepLevel?}`; ActionParamsMap updated; internal wire addition, chosen over a new action for one round trip.
+- Flagged, not changed: crash recovery (session.ts:511) reloads a snapshot without keepLevel and could re-estimate an auto-mode level.
+
+Review: raw 10 / material 1 / confirmed 1.
+- correctness-1 [medium] report.ts:88-89 via session.ts withTemporaryBuild put-back: reloading the working export re-ran PoB's auto-level estimate, so a read tool silently changed characterLevel (revision unmoved, snapshot stale), breaking FR-A1 and reintroducing level drift (D-30).
+
+Gate: 1 attempt; test rc 0, build rc 0; 87 suites / 977 tests (clean gate, no skips, real luajit + vendor pin). Script checks (all rc 1 = no match = pass): AC-A2 `rg -n -i -w -e 4000 -e aim <advice files>`; AC-A2 PoE1-advice phrase rg over the same files; AC-A4 `rg -n 'validateDamageScaling|ValidationService|validationService|defensiveAnalyzer' src`. Tooling false-failures: none. Out-of-scope notes: Handlers.lua keepLevel extends C-2 beyond slice 04 §3 and should be noted in the contract; compare_builds Crit Multi x100 is an untested drive-by.
+
+### WU-19 — done (head 373bba4)
+
+README rewritten around the current server: setup, D-16 registration, configuration, state folder, gate, a marked migration block, and GGG's notice. Its tool table is generated from the registry by `pnpm docs:tools` (scripts/gen-tool-table.mjs, `--write` refreshes). HANDOFF.md and 8 stale docs/*.md deleted; project CLAUDE.md added. scripts/fresh-clone-check.sh + fresh-clone-check.mjs clone HEAD, run mise trust and mise run setup, and check the server behind the trade tripwire with no session. New tests/static/readme.test.ts covers AC-G1/G2/G3/G5/G6 and AC-G4's static part. Allowlist and waivers stay `[]`.
+
+Deviations:
+- AC-G4 wants 76 tools under POE_NINJA_DISABLED=true, but C-1 hides get_currency_rates under that flag (75). fresh-clone-check.mjs lists 76 on a listing-only server without the flag and asserts 75 (no get_currency_rates) on the check server with the spec's env.
+- AC-F20 matcher moved from tests/static/poe1Cruft.test.ts to tests/helpers/cruftScan.ts for reuse by AC-G2 (importing a test file would double-register tests); behaviour unchanged.
+- createServer.ts (serialized wiring) exports `listedToolSchemas(env)`, used by ListTools and the generator; behaviour unchanged.
+- Table "one-line description" = first sentence (e.g./i.e./etc./vs. don't end it), `|` escaped, `< >` as HTML entities.
+- README setup says "installs the dependencies with pnpm from the lockfile" since "pnpm install" contains the banned "npm install"; CLAUDE.md keeps the literal AC-G5 bootstrap.
+- AC-G2 hits reported as file + phrase without line number (flattening loses positions).
+
+Review: raw 19 / material 4 / confirmed 3.
+- spec-1 [medium] readme.test.ts:149,:156: AC-G2 negative checks scan line by line, so a banned phrase wrapped across lines passes (AC met today).
+- correctness-1 [medium] readme.test.ts:146-166: same line-by-line gap; AC-G3 already uses README_FLAT.
+- safety-1 [medium] README.md:64-65, :70, :92-94: README advised passing POESESSID via `-e` on `claude mcp add` (argv/history, plaintext MCP config); spec allows only the gitignored `.env`.
+
+Gate: 1 attempt; test rc 0, build rc 0; 88 suites / 995 tests, 0 snapshots, nothing skipped. Script checks: AC-G4 `scripts/fresh-clone-check.sh` rc 0; AC-G1 `pnpm -s docs:tools` vs README markers via cmp, identical (76 rows) rc 0; AC-G1 `pnpm -s docs:tools --write; git status --short` tree clean rc 0; AC-G2 flattened README/CLAUDE.md matcher, docs/ = [stabilization], HANDOFF.md absent, rc 0. Tooling false-failures: first full run failed only AC-E8 with negative elapsed time (-2213 ms, WSL clock step); passed in isolation and on the next full gate.
+
+### Merges
+
+None recorded (no conflicts, no integration fixes).
+
+### Wave gate — PASS (head 373bba4)
+
+Clean gate (rm -rf build coverage; jest --clearCache; mise run test; pnpm build): test rc 0, build rc 0; 88 suites / 995 tests, 0 skipped, 0 failed. Versus W3 (81/896): -1 suite / -9 tests (validationService.test.ts removed, allowed by WU-18 touches); +8 suites / +89 tests (advice 15, buildFiles 24, engineConfig 8, mcp/buildFiles 5, adviceNoThresholds 6, adviceStatKeys 4, readme 18, judge 9); +19 in existing suites (buildFileWriter +7, buildService +5, watchService +5, contract +1, engineKinds +1). 896-9+89+19 = 995. With POB_SKIP_ENGINE=1: 72 passed / 16 skipped suites, 636 passed / 359 skipped tests, rc 0.
+
+Script checks:
+- AC-G4 `bash scripts/fresh-clone-check.sh` rc 0
+- AC-G1 `pnpm -s docs:tools > table.md` rc 0; README marker section equals generator output (76 rows) rc 0
+- AC-G2 `test ! -e HANDOFF.md && [ "$(ls docs)" = "stabilization" ]` rc 0
+- AC-G6 allowlist and cruft waivers both `[]` rc 0
+- AC-A4 `rg -n "validateDamageScaling|ValidationService|validationService" src/` rc 1 (pass)
+- AC-A2 PoE1/threshold phrase rg over advice files rc 1 (pass); word-boundary `aim|4000` rc 1 (pass)
+- AC-F7 `rg '\|' mise.toml` rc 1 (pass)
+- AC-F8 `pnpm install --frozen-lockfile` rc 0; `pnpm why zod` rc 0
+- AC-F17 `POB_SKIP_ENGINE=1 pnpm exec jest` rc 0 (16 suites / 359 tests skipped)
+- AC-E41 `rg -n "EvasionChance" src/` rc 1 (pass)
+
+Tooling false-failures: none. Root cause: no gate failure. Two spec gaps recorded, not defects: (1) AC-E48 (notes), AC-E51 and AC-E56's compare bullet require canonical-export identity across a withTemporaryBuild reload, which PoB2's pairs() ordering makes impossible; tests use tests/helpers/reloadCanonical.ts (a unit test shows it still catches real changes), strict AC-E16 export elsewhere. (2) AC-G4's 76-tools-with-ninja-disabled conflicts with C-1; check lists 76 without the flag, asserts 75 with it. Every AC owned by WU-12 (E42..E45), WU-13 (E48..E54, E63, E64), WU-18 (A1..A6) and WU-19 (G1..G6) maps to a passing test or script check; timing ACs (E8, F3, F10, T22, T34, T40) passed; linear history; no .skip/xit/xdescribe/.only added.
+
+### Friction
+
+- WU-12: plain `pnpm exec jest` on an engine test fails with "luajit not found"; must run under `mise exec --`.
+- WU-12: the test harness blocks `ctx.client.loadBuildXml` (EngineLoadGuardError); test reloads use session.run kind 'load' with ctx.loadXml.
+- WU-13: a targeted jest run without a foreground timeout was backgrounded after 120 s; re-run in the foreground with a longer timeout.
+- WU-13: luajit only on PATH under mise; engine suites need `mise exec -- pnpm exec jest ...`.
+- WU-18: probe scripts spawning the engine directly needed LUA_PATH/LUA_CPATH set by hand (first probe got no banner); probe-only fix.
+- WU-18: plain `pnpm exec jest` fails engine-required tests with "luajit not found".
+- WU-19: first full `mise run test` failed only AC-E8 with negative elapsed time (-2213 ms, WSL wall-clock step); passed in isolation and on the next gate.

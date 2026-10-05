@@ -8,8 +8,12 @@
  * read the wall clock would be cut at once by a forward step (and stretched by a backward one); on the
  * server's clock (`monotonicNow`, threaded to every deadline check) the call runs to completion either
  * way, and the session's event times never go back. `tests/unit/clock.test.ts` checks the clock itself.
+ *
+ * `Date.now` is replaced by a steppable wall clock *before* the server is created, so the step reaches
+ * both code that calls `Date.now()` per call and code that captured the function when it was built:
+ * a server whose default clock were `Date.now` (captured by `createServer`) would see the step too.
  */
-import { afterAll, afterEach, beforeAll, expect, it, jest } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { fixtureFetch, type FixtureRoute } from '../helpers/fixtureFetch';
@@ -43,9 +47,12 @@ engineDescribe('find_upgrades deadlines on the monotonic clock: a wall-clock ste
     ]);
   }
 
+  // The steppable wall clock, installed before the server is created (see the header).
+  const realDateNow = Date.now;
+  let wallStepMs = 0;
+
   /** One find_upgrades call; the wall clock steps by `stepMs` when the session takes the lock for it. */
   async function callWithStep(stepMs: number): Promise<{ isError: boolean; text: string; events: EngineEvent[] }> {
-    const realNow = Date.now.bind(Date);
     const events: EngineEvent[] = [];
     let stepped = false;
     const off = fx.session.onEvent((e) => {
@@ -53,7 +60,7 @@ engineDescribe('find_upgrades deadlines on the monotonic clock: a wall-clock ste
       events.push(e);
       if (e.phase === 'start' && !stepped) {
         stepped = true;
-        jest.spyOn(Date, 'now').mockImplementation(() => realNow() + stepMs);
+        wallStepMs = stepMs;
       }
     });
     try {
@@ -64,11 +71,13 @@ engineDescribe('find_upgrades deadlines on the monotonic clock: a wall-clock ste
       return { isError: result.isError === true, text: (result.content ?? []).map((c) => c.text ?? '').join('\n'), events };
     } finally {
       off();
-      jest.restoreAllMocks();
+      wallStepMs = 0;
     }
   }
 
   beforeAll(async () => {
+    Date.now = () => realDateNow.call(Date) + wallStepMs;
+    // No `now` in the deps: the server takes its default clock.
     fx = await startSessionFixture({
       deps: {
         fetch: ((input: Parameters<typeof fetch>[0], init?: RequestInit) => http.fetch(input, init)) as typeof fetch,
@@ -81,11 +90,15 @@ engineDescribe('find_upgrades deadlines on the monotonic clock: a wall-clock ste
   }, TIMEOUT);
 
   afterAll(async () => {
-    if (fx) await fx.close();
+    try {
+      if (fx) await fx.close();
+    } finally {
+      Date.now = realDateNow;
+    }
   }, 60_000);
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    wallStepMs = 0;
   });
 
   it('a wall clock stepping 2 h forward mid-call: the search and evaluation still run, with no budget stop', async () => {

@@ -1018,7 +1018,19 @@ The lean final pass ran after W4:
 
 ### Follow-up (items 1-6), head `632eee8` + this docs commit
 
-Each fix has a test that drives the real path; each was checked to fail without its fix.
+Each fix has a test that drives the real path. The claim first written here, that each test was
+checked to fail without its fix, overstated it: the final gate found two tests that still passed with
+their fix removed. Both are now covered by mutation-checked tests (commit "test(final): close two
+fidelity gaps found by the gate"):
+- **D-87, waiting on a class's first request** (item 2). Its 2:10:60 policy forced an 11 s admission
+  wait, so admission refused first and the after-the-wait check was never reached. The case now uses an
+  8:10:60 policy with one hit, so admission needs no wait, and a second case covers a first request
+  that fails. Each fails when `refuseIfTooLate` is disabled, and each of its two first-request call
+  sites is covered on its own.
+- **The server's default clock** (item 5). `monotonicClock.test.ts` installed its `Date.now` spy
+  mid-call, after `createServer` had captured the clock, so it passed with the default changed to
+  `Date.now`. `Date.now` is now replaced by a steppable wall clock before the server is created; both
+  cases fail under that change.
 1. **`search_trade_items` normalized price** (D-61, D-71, AC-T46). It printed 2 decimals, so typical
    exalted listings read "(≈ 0.00 divine)". It now uses `formatCurrencyValue`, the formatter
    `find_upgrades` and `get_item_price` use (D-72: 4 significant digits below 1).

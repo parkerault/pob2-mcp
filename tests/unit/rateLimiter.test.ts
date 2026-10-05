@@ -390,20 +390,64 @@ describe('D-22 / R-1 (D-87): no send after a wait with less than 1 s before the 
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  it("waiting on a class's first request until under 1 s is left refuses without sending", async () => {
+  // The first response's policy (8:10:60, one hit) admits the waiter at once: admission needs no wait,
+  // so only the check after waiting on the first request can refuse it.
+  const roomy = { ...base, 'x-rate-limit-ip': '8:10:60', 'x-rate-limit-ip-state': '1:10:0' };
+
+  it("waiting on a class's first request until under 1 s is left refuses without sending (admission itself needs no wait)", async () => {
+    let t = 1_000_000;
+    const sleep = jest.fn(async (ms: number) => {
+      t += ms;
+    });
+    const limiter = new RateLimiter({ now: () => t, sleep });
+    const first = deferred<Response>();
+    const p1 = limiter.run('search', () => first.promise);
+    const send2 = jest.fn(async () => response(roomy));
+    const p2 = limiter.run('search', send2, { deadline: t + 5_000 });
+    await flush();
+    t += 4_500; // the first request took 4.5 s to answer: 0.5 s left
+    first.resolve(response(roomy));
+    await p1;
+    const err = await rejection(p2);
+    expect(err).toBeInstanceOf(TradeError);
+    expect(err.kind).toBe('would_wait');
+    expect(err.message).toMatch(/too little time before the deadline/);
+    expect(send2).not.toHaveBeenCalled();
+    expect(sleep).not.toHaveBeenCalled();
+    // Control: the policy admits a send at once, so a request with 1 s left goes without a wait.
+    await limiter.run('search', send2, { deadline: t + 1_000 });
+    expect(send2).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("waiting on a class's first request that fails, until under 1 s is left, refuses without sending", async () => {
     let t = 1_000_000;
     const limiter = new RateLimiter({ now: () => t });
     const first = deferred<Response>();
     const p1 = limiter.run('search', () => first.promise);
-    const send2 = jest.fn(async () => response());
+    const send2 = jest.fn(async () => response(roomy));
     const p2 = limiter.run('search', send2, { deadline: t + 5_000 });
     await flush();
-    t += 4_500; // the first request took 4.5 s to answer
-    first.resolve(response({ ...base, 'x-rate-limit-ip-state': '1:10:0' }));
-    await p1;
+    t += 4_500; // the first request failed after 4.5 s: 0.5 s left, and the class still has no policy
+    first.reject(new Error('network down'));
+    await expect(p1).rejects.toThrow('network down');
     const err = await rejection(p2);
+    expect(err).toBeInstanceOf(TradeError);
     expect(err.kind).toBe('would_wait');
+    expect(err.message).toMatch(/too little time before the deadline/);
     expect(send2).not.toHaveBeenCalled();
+
+    // Control: when a failed first request leaves 1.5 s, the waiter goes as the class's next first request.
+    const again = deferred<Response>();
+    const p3 = limiter.run('search', () => again.promise);
+    const send4 = jest.fn(async () => response(roomy));
+    const p4 = limiter.run('search', send4, { deadline: t + 5_000 });
+    await flush();
+    t += 3_500;
+    again.reject(new Error('network down'));
+    await expect(p3).rejects.toThrow('network down');
+    await p4;
+    expect(send4).toHaveBeenCalledTimes(1);
   });
 
   it('control: without a wait, a send with under 1 s left is not refused by the limiter (the caller checks between steps)', async () => {

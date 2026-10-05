@@ -35,13 +35,13 @@ export function getToolSchemas(): ToolSchema[] {
   return [
     {
       name: "analyze_build",
-      description: "Analyze a Path of Building build file and extract detailed information including stats, skills, gear, passive skill tree analysis with keystones, notables, jewel sockets, build archetype detection, and optimization suggestions",
+      description: "Analyze a Path of Building 2 build file: the file's stats, skills, gear, configuration, passive tree (keystones, notables, jewel sockets, archetype) and validation, plus live stats the PoB2 engine computes for that file. The file is loaded into the engine temporarily and the engine's working build is put back afterwards, so the loaded build and its unsaved changes are never replaced.",
       inputSchema: {
         type: "object",
         properties: {
           build_name: {
             type: "string",
-            description: "Name of the build file (e.g., 'MyBuild.xml')",
+            description: "Build file, relative to the builds folder (e.g. 'MyBuild.xml' or 'league/MyBuild'; .xml is optional)",
           },
         },
         required: ["build_name"],
@@ -49,7 +49,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "compare_builds",
-      description: "Compare two Path of Building builds side by side",
+      description: "Compare two Path of Building 2 build files side by side on stats the PoB2 engine computes (level, life, energy shield, EHP, DPS, resistances). Each file is loaded into the engine temporarily and the engine's working build is put back afterwards, so the loaded build and its unsaved changes are never replaced.",
       inputSchema: {
         type: "object",
         properties: {
@@ -67,7 +67,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "list_builds",
-      description: "List all available Path of Building builds",
+      description: "List every Path of Building 2 build (.xml) in the builds folder, including subfolders, as paths relative to it (e.g. 'league/Starter.xml'). Use these names with the other build tools.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -89,7 +89,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "start_watching",
-      description: "Start monitoring the builds directory for changes. Builds will be auto-reloaded when saved in PoB.",
+      description: "Start tracking changes to build files in the builds folder (including subfolders; polling on /mnt/ drives). Watching only records recent changes (see get_recent_changes) and refreshes cached file reads. It does not reload the engine: reloading the engine's build happens on the next engine call, which checks the loaded file on disk whether or not watching is on.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -97,7 +97,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "stop_watching",
-      description: "Stop monitoring the builds directory for changes.",
+      description: "Stop tracking changes to build files. The engine's own check of the loaded file on each engine call is unaffected.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -105,7 +105,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "get_recent_changes",
-      description: "Get a list of recently changed build files.",
+      description: "List build files that changed while watching was on (paths relative to the builds folder), newest first.",
       inputSchema: {
         type: "object",
         properties: {
@@ -118,7 +118,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "watch_status",
-      description: "Check if file watching is currently enabled.",
+      description: "Show whether change tracking (start_watching) is on, the watched folder and how many changes were recorded.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -198,7 +198,7 @@ export function getToolSchemas(): ToolSchema[] {
     },
     {
       name: "set_build_notes",
-      description: "Write notes/documentation into a PoB build file (overwrites existing notes)",
+      description: "Replace the notes in a build file in the builds folder. The previous file is backed up to the server's state folder first. Refused if the file changed on disk since the engine loaded or saved it (reload it first). If the engine has that file loaded with no unsaved changes, its next engine call reloads it.",
       inputSchema: {
         type: "object",
         properties: {
@@ -505,7 +505,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "import_build",
-      description: "Import a PoE2 build from a Path of Building export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine. After importing, use analyze_skills / suggest_supports / analyze_defenses / validate_build / lua_get_stats.",
+      description: "Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). Only PoE2 builds (a <PathOfBuilding2> document) are accepted, and a code may decode to at most 16 MiB. With save_as it is also saved into the builds folder and becomes the engine's loaded file. After importing, use analyze_skills / suggest_supports / analyze_defenses / validate_build / lua_get_stats.",
       inputSchema: {
         type: "object",
         properties: {
@@ -515,7 +515,11 @@ export function getLuaToolSchemas(): any[] {
           },
           save_as: {
             type: "string",
-            description: "Optional filename to also save the decoded build into your builds directory (so file-based tools like analyze_build can use it).",
+            description: "Optional build name to also save the decoded build into your builds folder (so file-based tools like analyze_build can use it). Subfolders are allowed; .xml is optional.",
+          },
+          overwrite: {
+            type: "boolean",
+            description: "With save_as: replace an existing file of that name (default false: an existing file is an error). The previous file is backed up first.",
           },
         },
         required: ["source"],
@@ -1016,7 +1020,7 @@ export function getExportToolSchemas(): any[] {
   return [
     {
       name: "export_build",
-      description: "Export a copy of a build to an XML file. Creates a variant/copy from an existing build file. NOTE: This does NOT export from Lua bridge - use lua_save_build to write the engine's build to a file.",
+      description: "Export a copy of a build file. Without notes it is an exact byte copy; with notes, the PoB2 engine writes the copy (a <PathOfBuilding2> document) with the notes appended, loading the source temporarily and putting the engine's working build back afterwards. Exports go to the server's state folder (<state dir>/exports) unless output_directory names a folder inside the builds folder or the state folder; anything else is refused. NOTE: this copies a file on disk, not the engine's build; use lua_save_build to write the engine's build.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1026,15 +1030,15 @@ export function getExportToolSchemas(): any[] {
           },
           output_name: {
             type: "string",
-            description: "Output filename (without .xml extension)",
+            description: "Output file name (a plain name; .xml is optional)",
           },
           output_directory: {
             type: "string",
-            description: "Target directory (optional, defaults to POB_DIRECTORY/.pob-mcp/exports)",
+            description: "Target folder (optional; default: the server's state folder, <state dir>/exports). Must be inside the builds folder or the state folder; a relative path is taken inside the builds folder. Writes into the builds folder keep a backup of a replaced file.",
           },
           overwrite: {
             type: "boolean",
-            description: "Allow overwriting existing file (default: false)",
+            description: "Replace an existing file of that name (default: false)",
           },
           notes: {
             type: "string",
@@ -1046,7 +1050,7 @@ export function getExportToolSchemas(): any[] {
     },
     {
       name: "snapshot_build",
-      description: "Create a versioned snapshot of a build for easy rollback. Snapshots are stored separately with metadata tracking stats and changes.",
+      description: "Create a versioned snapshot of a build file for easy rollback: a byte copy plus metadata (stats, tag, description), stored in the server's state folder, never in the builds folder.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1090,7 +1094,7 @@ export function getExportToolSchemas(): any[] {
     },
     {
       name: "restore_snapshot",
-      description: "Restore a build from a snapshot. Optionally creates a backup of current state before restoring.",
+      description: "Restore a build file from one of its snapshots. The current file is always backed up to the server's state folder first. Refused if the file changed on disk since the engine loaded or saved it (reload it first). If the engine has that file loaded with no unsaved changes, its next engine call reloads it.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1104,7 +1108,7 @@ export function getExportToolSchemas(): any[] {
           },
           backup_current: {
             type: "boolean",
-            description: "Create snapshot of current state before restore (default: true)",
+            description: "Ignored: the current file is always backed up before a restore (kept for compatibility).",
           },
         },
         required: ["build_name", "snapshot_id"],

@@ -3,10 +3,12 @@ import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import type { BuildFileWriter } from "../services/buildFileWriter.js";
 import type { SpecSummary } from "../engine/schemas.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
+import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { wrapHandler } from "../utils/errorHandling.js";
-import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+import { canonicalBuildPath, sanitizeBuildName } from "../utils/pathSanitizer.js";
+import { resolveBuildXml } from "../utils/buildCode.js";
 
 export interface LuaHandlerContext {
   pobDirectory: string;
@@ -730,10 +732,22 @@ export async function handleListGems(
   });
 }
 
+/**
+ * `import_build` (C-17, D-50): decode a PoB2 export code or a share link, load it through the session,
+ * and optionally save it into the builds folder.
+ *
+ * - Only a `<PathOfBuilding2>` root is accepted, and the code may inflate to at most 16 MiB
+ *   (`buildCode.ts`): both fail before the engine's build is touched.
+ * - `save_as` writes **the XML just loaded** through the build-file writer as `kind: 'engine'` (it is
+ *   the engine's current build), so the loaded build is re-pointed at the saved file (D-51d). An
+ *   existing target needs `overwrite: true`; that is checked before the load, so a refused save never
+ *   replaces the engine's build.
+ */
 export async function handleImportBuild(
   context: LuaHandlerContext,
   source: string,
-  saveAs?: string
+  saveAs?: string,
+  overwrite?: boolean,
 ) {
   return wrapHandler('import build', async () => {
     if (!source || !source.trim()) {
@@ -744,14 +758,28 @@ export async function handleImportBuild(
 
     // Validate save_as before the load: once the engine holds the import, a bad name can no longer
     // fail the call without the previous build already being gone.
-    const fileName = saveAs ? (/\.xml$/i.test(saveAs) ? saveAs : `${saveAs}.xml`) : null;
-    const savePath = fileName ? sanitizeBuildName(fileName, context.pobDirectory) : null;
+    const target = saveAs && saveAs.trim() ? await canonicalBuildPath(saveAs, context.pobDirectory) : null;
+    if (target) {
+      const current = await readIfExists(sanitizeBuildName(target, context.pobDirectory));
+      if (current && overwrite !== true) {
+        throw new Error(`${target} already exists; pass overwrite: true to replace it (a backup is kept).`);
+      }
+      // The load below replaces the engine's record of its file, so the writer could no longer see that
+      // the target is the loaded file: apply C-17's changed-on-disk guard for it here, before the load.
+      const previous = context.loadedBuild();
+      if (current && previous?.path === target && previous.fingerprint && sha1(current) !== previous.fingerprint.sha1) {
+        throw new Error(
+          `${target} changed on disk since the engine loaded or saved it (probably saved in PoB2). ` +
+            `Reload it first (lua_reload_build) or save under a new name.`,
+        );
+      }
+    }
 
-    const { resolveBuildXml } = await import('../utils/buildCode.js');
     const xml = await resolveBuildXml(source, context.fetch);
 
-    const name = saveAs ? (saveAs.replace(/\.xml$/i, '').split(/[/\\]/).pop() || 'Imported build') : 'Imported build';
-    await context.engine().loadXml(xml, { displayName: name });
+    const name = target ? path.posix.basename(target).replace(/\.xml$/i, '') : 'Imported build';
+    const engine = context.engine();
+    await engine.loadXml(xml, { displayName: name });
     const info = await luaClient.getBuildInfo();
     let skillGroups = 0;
     try { skillGroups = ((await luaClient.getSkills())?.groups || []).length; } catch { /* non-fatal */ }
@@ -762,16 +790,35 @@ export async function handleImportBuild(
     if (info?.treeVersion) lines.push(`Tree version: ${info.treeVersion}`);
     lines.push(`Socket groups: ${skillGroups}`);
 
-    // Optionally persist to POB_DIRECTORY so file-based tools (analyze_build, etc.) can use it.
-    if (fileName && savePath) {
-      await fs.mkdir(path.dirname(savePath), { recursive: true });
-      await fs.writeFile(savePath, xml, 'utf8');
-      lines.push('', `Saved to: ${fileName} (in your builds directory)`);
+    // Optionally persist to POB_DIRECTORY (C-17) so file-based tools (analyze_build, etc.) can use it.
+    if (target) {
+      const result = await context.buildFileWriter.writeBuildFile({
+        name: target,
+        bytes: xml,
+        overwrite: overwrite === true,
+        kind: 'engine',
+        ctx: engine,
+      });
+      lines.push('', ...result.notices, result.message);
     }
 
+    lines.push('', formatLoadedBuild(context.loadedBuild()));
     lines.push('', 'The build is loaded in the engine. Try: analyze_skills, suggest_supports, analyze_defenses, validate_build, lua_get_stats.');
     return { content: [{ type: "text" as const, text: lines.join('\n') }] };
   });
+}
+
+async function readIfExists(file: string): Promise<Buffer | null> {
+  try {
+    return await fs.readFile(file);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function sha1(bytes: Buffer): string {
+  return crypto.createHash('sha1').update(bytes).digest('hex');
 }
 
 export async function handleGetClasses(context: LuaHandlerContext) {

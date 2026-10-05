@@ -38,7 +38,10 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
       expect(context.validationService).toBe(mockValidationService);
-      expect(Object.keys(context)).toHaveLength(7);
+      // WU-13: analyze_build/compare_builds use the engine call's context, set_build_notes the writer.
+      expect(context.engine).toBe(mockDeps.engine);
+      expect(context.buildFileWriter).toBe(mockDeps.buildFileWriter);
+      expect(Object.keys(context)).toHaveLength(9);
     });
   });
 
@@ -108,7 +111,9 @@ describe('ContextBuilder', () => {
       expect(context.buildService).toBe(mockBuildService);
       expect(context.exportService).toBe(mockExportService);
       expect(context.luaClient).toBe(mockLuaClient);
-      expect(Object.keys(context)).toHaveLength(5);
+      // WU-13: export_build with notes uses withTemporaryBuild through the engine call's context.
+      expect(context.engine).toBe(mockDeps.engine);
+      expect(Object.keys(context)).toHaveLength(6);
     });
   });
 

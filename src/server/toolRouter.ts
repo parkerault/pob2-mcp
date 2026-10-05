@@ -425,7 +425,12 @@ async function dispatch(
 
     case "import_build":
       if (!args) throw new Error("Missing arguments");
-      return await handleImportBuild(luaContext, args.source as string, (args.save_as ?? args.saveAs) as string | undefined);
+      return await handleImportBuild(
+        luaContext,
+        args.source as string,
+        (args.save_as ?? args.saveAs) as string | undefined,
+        args.overwrite === true,
+      );
 
     case "analyze_skills":
       return await handleAnalyzeSkillsPoe2(luaContext);
@@ -563,10 +568,10 @@ async function dispatch(
 
     case "restore_snapshot":
       if (!args) throw new Error("Missing arguments");
+      // `backup_current` is accepted and ignored: a restore always backs up (D-51b).
       return await handleRestoreSnapshot(exportContext, {
         build_name: args.build_name as string,
         snapshot_id: args.snapshot_id as string,
-        backup_current: args.backup_current as boolean | undefined,
       });
 
     case "export_build_summary":

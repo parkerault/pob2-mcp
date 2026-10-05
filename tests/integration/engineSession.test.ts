@@ -220,12 +220,14 @@ engineDescribe('AC-E56: the load guard', () => {
     ).rejects.toThrow('engine load outside the session');
   }, T);
 
-  it('AC-E56: compare_builds is isError, and the canonical export, loaded and revision are unchanged', async () => {
+  // AC-E56's interim bullet said compare_builds is isError "until WU-13"; WU-13 moved it to
+  // withTemporaryBuild (D-9), so it now succeeds, and the guard's point still holds: nothing changes.
+  it('AC-E56: compare_builds (withTemporaryBuild since WU-13) leaves the canonical export, loaded and revision unchanged', async () => {
     expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
     const before = { xml: await canonicalExport(f.session), loaded: f.session.loaded, revision: f.session.revision };
     const out = await f.call('compare_builds', { build1: 'grenadator.xml', build2: 'second.xml' });
-    expect(out.isError).toBe(true);
-    expect(out.text).toContain('engine load outside the session');
+    expect(out.isError).toBe(false);
+    expect(out.text).toContain('Level: 90 vs 42');
     expect(await canonicalExport(f.session)).toBe(before.xml);
     expect(f.session.loaded).toEqual(before.loaded);
     expect(f.session.revision).toBe(before.revision);

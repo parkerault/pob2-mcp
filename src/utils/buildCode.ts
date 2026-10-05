@@ -8,9 +8,66 @@ import zlib from "node:zlib";
 import { shareSiteUserAgent } from "./userAgent.js";
 
 const MAX_CODE_BYTES = 4 * 1024 * 1024; // 4MB guard for fetched codes
-const MAX_XML_BYTES = 16 * 1024 * 1024; // 16MB guard for decoded XML
+/** The inflate cap (D-50): a code may decode to at most 16 MiB of XML. */
+export const MAX_XML_BYTES = 16 * 1024 * 1024;
 
-/** Decode a PoB export code into build XML. */
+/** The one error a too-large code produces (zlib stops at `maxOutputLength`, `ERR_BUFFER_TOO_LARGE`). */
+export const TOO_LARGE_MESSAGE = "build code too large (inflates beyond 16 MiB)";
+
+/**
+ * The name of the XML document's root element, skipping the declaration, comments, processing
+ * instructions and a doctype; null when there is none.
+ */
+export function xmlRootName(xml: string): string | null {
+  let i = 0;
+  for (;;) {
+    const lt = xml.indexOf("<", i);
+    if (lt < 0) return null;
+    if (xml.startsWith("<?", lt)) {
+      const end = xml.indexOf("?>", lt + 2);
+      if (end < 0) return null;
+      i = end + 2;
+    } else if (xml.startsWith("<!--", lt)) {
+      const end = xml.indexOf("-->", lt + 4);
+      if (end < 0) return null;
+      i = end + 3;
+    } else if (xml.startsWith("<!", lt)) {
+      const end = xml.indexOf(">", lt + 2);
+      if (end < 0) return null;
+      i = end + 1;
+    } else {
+      const m = /^<([A-Za-z_][\w.:-]*)/.exec(xml.slice(lt, lt + 256));
+      return m ? m[1] : null;
+    }
+  }
+}
+
+/**
+ * Require a PoE2 build document: the root element must be `<PathOfBuilding2>`. A PoE1 code
+ * (`<PathOfBuilding>`) or anything else is refused, naming the root it has.
+ */
+export function assertPoe2BuildXml(xml: string): void {
+  const root = xmlRootName(xml);
+  if (root === "PathOfBuilding2") return;
+  if (root === null) throw new Error("the build code does not contain a build (no XML root element; expected <PathOfBuilding2>)");
+  throw new Error(
+    `the build's XML root is <${root}>, expected <PathOfBuilding2>` +
+      (root === "PathOfBuilding" ? " (a Path of Building 1 / PoE1 build; this server reads PoE2 builds only)" : ""),
+  );
+}
+
+function isTooLarge(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  return code === "ERR_BUFFER_TOO_LARGE" || (error instanceof RangeError && /too large|maxOutputLength/i.test(error.message));
+}
+
+/**
+ * Decode a PoB export code into build XML (base64url of zlib-deflated XML).
+ *
+ * Every inflate is capped at 16 MiB of output (`maxOutputLength`, D-50); a code that inflates past
+ * it fails with "build code too large (inflates beyond 16 MiB)" rather than being decoded. The
+ * decoded document must have a `<PathOfBuilding2>` root.
+ */
 export function decodePobCode(code: string): string {
   const cleaned = (code || "").trim().replace(/\s+/g, "");
   if (!cleaned) throw new Error("empty build code");
@@ -24,21 +81,25 @@ export function decodePobCode(code: string): string {
   }
   if (buf.length === 0) throw new Error("build code decoded to empty data");
 
-  // PoB codes are zlib-deflated; fall back to raw-deflate / gzip just in case.
+  // PoB codes are zlib-deflated; fall back to raw-deflate / gzip just in case. Each one is capped.
+  const options = { maxOutputLength: MAX_XML_BYTES };
   const attempts: Array<(b: Buffer) => Buffer> = [
-    zlib.inflateSync,
-    zlib.inflateRawSync,
-    zlib.gunzipSync,
+    (b) => zlib.inflateSync(b, options),
+    (b) => zlib.inflateRawSync(b, options),
+    (b) => zlib.gunzipSync(b, options),
   ];
   for (const inflate of attempts) {
+    let xml: Buffer;
     try {
-      const xml = inflate(buf);
-      if (xml.length > MAX_XML_BYTES) throw new Error("decoded build XML exceeds size limit");
-      const text = xml.toString("utf8");
-      if (text.includes("<PathOfBuilding")) return text;
-    } catch {
-      /* try next strategy */
+      xml = inflate(buf);
+    } catch (error) {
+      if (isTooLarge(error)) throw new Error(TOO_LARGE_MESSAGE);
+      continue; // not this format: try the next one
     }
+    const text = xml.toString("utf8");
+    if (xmlRootName(text) === null) continue;
+    assertPoe2BuildXml(text);
+    return text;
   }
   throw new Error("failed to decode build code (not a valid PoB export code)");
 }

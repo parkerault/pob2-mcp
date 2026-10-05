@@ -1,15 +1,9 @@
-import { XMLBuilder } from "fast-xml-parser";
 import fs from "fs/promises";
 import path from "path";
-import type { PoBBuild, SnapshotMetadata } from "../types.js";
-import { sanitizeBuildName } from "../utils/pathSanitizer.js";
-
-export interface ExportOptions {
-  outputName: string;
-  outputDirectory?: string;
-  overwrite?: boolean;
-  notes?: string;
-}
+import type { SnapshotMetadata } from "../types.js";
+import type { BuildService } from "./buildService.js";
+import { timestampId, type BuildFileWriter } from "./buildFileWriter.js";
+import { canonicalBuildPath, sanitizeBuildName } from "../utils/pathSanitizer.js";
 
 export interface SnapshotOptions {
   buildName: string;
@@ -20,124 +14,257 @@ export interface SnapshotOptions {
 export interface RestoreOptions {
   buildName: string;
   snapshotId: string;
-  backupCurrent?: boolean;
+}
+
+/** Where an export goes (D-42): inside the builds folder (through C-17) or inside the state dir. */
+export interface ExportTarget {
+  area: "builds" | "state";
+  /** Absolute target folder. */
+  dir: string;
+}
+
+export interface WriteExportOptions {
+  /** The caller's output name; `.xml` is optional. A plain file name, never a path. */
+  outputName: string;
+  /** D-42: inside the builds folder or the state dir; default `<stateDir>/exports`. */
+  outputDirectory?: string;
+  overwrite?: boolean;
+  bytes: Buffer;
+}
+
+export interface WriteExportResult {
+  /** Absolute path written. */
+  filePath: string;
+  /** The tool's text for the write (C-17's message for a write into the builds folder). */
+  message: string;
+}
+
+/** A refusal of `export_build` (D-42 confinement, a bad output name, an existing file). */
+export class ExportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ExportError";
+  }
+}
+
+function errnoOf(error: unknown): string | undefined {
+  return (error as NodeJS.ErrnoException | null)?.code;
+}
+
+/** `target` is inside `base` (or equal to it). */
+function isInside(base: string, target: string): boolean {
+  const rel = path.relative(base, target);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/** The real path of `p`, or of its deepest existing ancestor joined with the rest (symlinks resolved). */
+async function realPathOf(p: string): Promise<string> {
+  const rest: string[] = [];
+  let current = path.resolve(p);
+  for (;;) {
+    try {
+      const real = await fs.realpath(current);
+      return rest.length ? path.join(real, ...rest.reverse()) : real;
+    } catch (error) {
+      if (errnoOf(error) !== "ENOENT" && errnoOf(error) !== "ENOTDIR") throw error;
+      const parent = path.dirname(current);
+      if (parent === current) return path.resolve(p);
+      rest.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+const NOTES_RE = /<Notes\s*>([\s\S]*?)<\/Notes\s*>|<Notes\s*\/>/;
+
+/** XML text escaping for a notes body. */
+export function escapeNotes(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**
- * Snapshots, exports and restore backups. Server state lives in the state dir (C-16, D-18), never in
- * the builds folder, which PoB2's build browser lists in full:
- * - `<stateDir>/snapshots/<build>/`: `snapshot_build` output;
- * - `<stateDir>/exports/`: `export_build`'s default output directory;
- * - `<stateDir>/backups/<build>/`: the copy `restore_snapshot` takes before overwriting a build.
+ * The build XML with its `<Notes>` body replaced by `escapedBody` (already XML-escaped). A build
+ * without a `<Notes>` element gets one before its closing root tag (`</PathOfBuilding2>`).
+ */
+export function replaceNotesXml(xml: string, escapedBody: string): string {
+  // Function replacers: a `$` in the notes must never be read as a replacement pattern.
+  if (NOTES_RE.test(xml)) return xml.replace(NOTES_RE, () => `<Notes>${escapedBody}</Notes>`);
+  const close = /<\/(PathOfBuilding2?)\s*>\s*$/;
+  if (!close.test(xml)) throw new Error("the build file has no <PathOfBuilding2> root to add notes to");
+  return xml.replace(close, (_m, root: string) => `\t<Notes>${escapedBody}</Notes>\n</${root}>\n`);
+}
+
+/**
+ * The build XML with `notes` appended to its existing notes (separated by a `---` rule), or as the
+ * notes when the build has none (whitespace-only notes count as none).
+ */
+export function appendNotesXml(xml: string, notes: string): string {
+  const m = NOTES_RE.exec(xml);
+  const existing = m && m[1] !== undefined ? m[1] : "";
+  const body = existing.trim() ? `${existing.replace(/\s+$/, "")}\n\n---\n\n${escapeNotes(notes)}` : escapeNotes(notes);
+  return replaceNotesXml(xml, body);
+}
+
+/**
+ * Snapshots, exports and restores. Server state lives in the state dir (C-16, D-18), never in the
+ * builds folder, which PoB2's build browser lists in full:
+ * - `<stateDir>/snapshots/<build relpath>/`: `snapshot_build` output (`<id>_<tag>.xml` byte copy +
+ *   `<id>_metadata.json`), keyed by the canonical build path (D-52);
+ * - `<stateDir>/exports/`: `export_build`'s default output folder;
+ * - `<stateDir>/backups/<build relpath>/`: the build-file writer's backups (C-17), including the
+ *   `<id>_before-restore.xml` copy `restore_snapshot` takes.
+ * Every write into the builds folder (a restore, an export there) goes through the build-file writer.
  */
 export class BuildExportService {
   private pobDirectory: string;
+  private stateDir: string;
   private snapshotDirectory: string;
   private exportDirectory: string;
-  private backupDirectory: string;
-  private xmlBuilder: XMLBuilder;
+  private writer: Pick<BuildFileWriter, "writeBuildFile">;
 
-  constructor(pobDirectory: string, stateDir: string) {
-    this.pobDirectory = pobDirectory;
-    this.snapshotDirectory = path.join(stateDir, 'snapshots');
-    this.exportDirectory = path.join(stateDir, 'exports');
-    this.backupDirectory = path.join(stateDir, 'backups');
+  constructor(pobDirectory: string, stateDir: string, writer: Pick<BuildFileWriter, "writeBuildFile">) {
+    this.pobDirectory = path.resolve(pobDirectory);
+    this.stateDir = path.resolve(stateDir);
+    this.snapshotDirectory = path.join(this.stateDir, "snapshots");
+    this.exportDirectory = path.join(this.stateDir, "exports");
+    this.writer = writer;
+  }
 
-    this.xmlBuilder = new XMLBuilder({
-      ignoreAttributes: false,
-      attributeNamePrefix: "",
-      format: true,
-      indentBy: "  ",
-      suppressEmptyNode: false,
-      suppressBooleanAttributes: false,
-    });
+  /** `export_build`'s default output folder (C-16). */
+  getExportDirectory(): string {
+    return this.exportDirectory;
   }
 
   /**
-   * Export a complete build to XML file
+   * D-42: `output_directory` must resolve inside the builds folder or the state dir (a relative path
+   * is taken inside the builds folder); symlinks are resolved before the check. Default:
+   * `<stateDir>/exports`.
    */
-  async exportBuild(buildData: PoBBuild, options: ExportOptions): Promise<{ filePath: string; message: string }> {
-    // Ensure export directory exists
-    const targetDir = options.outputDirectory || this.exportDirectory;
-    await fs.mkdir(targetDir, { recursive: true });
+  async resolveExportTarget(outputDirectory?: string): Promise<ExportTarget> {
+    if (outputDirectory === undefined || outputDirectory.trim() === "") {
+      return { area: "state", dir: this.exportDirectory };
+    }
+    if (outputDirectory.includes("\0")) throw new ExportError("output_directory contains a null byte");
+    const dir = path.resolve(this.pobDirectory, outputDirectory.trim());
+    const realDir = await realPathOf(dir);
+    const realBuilds = await realPathOf(this.pobDirectory);
+    const realState = await realPathOf(this.stateDir);
+    // The builds folder first: a write there must go through the build-file writer (C-17).
+    if (isInside(this.pobDirectory, dir) && isInside(realBuilds, realDir)) return { area: "builds", dir };
+    if (isInside(this.stateDir, dir) && isInside(realState, realDir)) return { area: "state", dir };
+    throw new ExportError(
+      `output_directory ${outputDirectory} is outside the builds folder (${this.pobDirectory}) and the server's ` +
+        `state folder (${this.stateDir}); exports may only be written inside one of them. Omit it to use ${this.exportDirectory}.`,
+    );
+  }
 
-    // Append notes if provided
-    if (options.notes) {
-      const existingNotes = buildData.Notes || "";
-      const separator = existingNotes ? "\n\n---\n\n" : "";
-      buildData.Notes = existingNotes + separator + options.notes;
+  /** The output file name: a plain name, `.xml` appended when missing. */
+  static outputFileName(outputName: string): string {
+    const name = (outputName ?? "").trim();
+    if (!name) throw new ExportError("output_name is required");
+    if (/[\\/\0]/.test(name) || name === "." || name === "..") {
+      throw new ExportError(`output_name must be a plain file name, not a path: ${outputName}`);
+    }
+    return /\.xml$/i.test(name) ? name : `${name}.xml`;
+  }
+
+  /**
+   * Write an export (D-42): into the builds folder through the build-file writer (C-17: overwrite,
+   * guard, backup, temp + rename), or into the state dir with the same overwrite rule.
+   */
+  async writeExport(options: WriteExportOptions): Promise<WriteExportResult> {
+    const fileName = BuildExportService.outputFileName(options.outputName);
+    const target = await this.resolveExportTarget(options.outputDirectory);
+    const filePath = path.join(target.dir, fileName);
+
+    if (target.area === "builds") {
+      const rel = path.relative(this.pobDirectory, filePath).split(path.sep).join("/");
+      const result = await this.writer.writeBuildFile({
+        name: rel,
+        bytes: options.bytes,
+        overwrite: options.overwrite === true,
+        kind: "bytes",
+      });
+      return { filePath: result.absPath, message: [...result.notices, result.message].join("\n") };
     }
 
-    // Validate build data before export
-    await this.validateBuildData(buildData);
+    let replaced = false;
+    try {
+      await fs.stat(filePath);
+      replaced = true;
+    } catch (error) {
+      if (errnoOf(error) !== "ENOENT") throw error;
+    }
+    if (replaced && options.overwrite !== true) {
+      throw new ExportError(`${filePath} already exists; pass overwrite: true to replace it.`);
+    }
+    await fs.mkdir(target.dir, { recursive: true });
+    const temp = `${filePath}.pob2mcp-tmp`;
+    let renamed = false;
+    try {
+      await fs.writeFile(temp, options.bytes);
+      await fs.rename(temp, filePath);
+      renamed = true;
+    } finally {
+      if (!renamed) await fs.unlink(temp).catch(() => undefined);
+    }
+    return { filePath, message: `Exported to ${filePath} (${options.bytes.length} bytes).` };
+  }
 
-    // Generate XML
-    const xmlContent = this.buildToXML(buildData);
-
-    // Determine output path
-    const fileName = options.outputName.endsWith('.xml')
-      ? options.outputName
-      : `${options.outputName}.xml`;
-    const filePath = path.join(targetDir, fileName);
-
-    // Check if file exists and handle overwrite
-    await this.safeWrite(filePath, xmlContent, options.overwrite || false);
-
-    return {
-      filePath,
-      message: `Build exported successfully to: ${filePath}`,
-    };
+  /** The snapshot folder of a build: `<stateDir>/snapshots/<canonical relpath>/` (C-16, D-52). */
+  private async snapshotDirFor(buildName: string): Promise<{ rel: string; dir: string }> {
+    const rel = await canonicalBuildPath(buildName, this.pobDirectory);
+    return { rel, dir: sanitizeBuildName(rel, this.snapshotDirectory) };
   }
 
   /**
-   * Create a versioned snapshot of a build
+   * Create a versioned snapshot of a build file: a byte copy plus metadata, in the state dir.
    */
   async snapshotBuild(
-    buildService: any,
-    options: SnapshotOptions
-  ): Promise<{ snapshotId: string; snapshotPath: string }> {
-    // Create snapshot directory for this build
-    const buildSnapshotDir = sanitizeBuildName(options.buildName, this.snapshotDirectory);
-    await fs.mkdir(buildSnapshotDir, { recursive: true });
+    buildService: Pick<BuildService, "readBuildFile" | "readBuild" | "parseAllocatedNodes">,
+    options: SnapshotOptions,
+  ): Promise<{ snapshotId: string; snapshotPath: string; buildPath: string }> {
+    const source = await buildService.readBuildFile(options.buildName);
+    const { dir } = await this.snapshotDirFor(source.rel);
+    await fs.mkdir(dir, { recursive: true });
 
-    // Generate snapshot ID (timestamp-based)
+    const tag = options.tag || "snapshot";
     const timestamp = new Date();
-    const snapshotId = timestamp.toISOString().replace(/[:.]/g, '-').split('.')[0];
+    // Snapshots are written once: a second snapshot within the same millisecond gets a suffix.
+    const base = timestampId(timestamp);
+    let snapshotId = base;
+    for (let n = 1; ; n += 1) {
+      try {
+        await fs.stat(path.join(dir, `${snapshotId}_metadata.json`));
+      } catch (error) {
+        if (errnoOf(error) === "ENOENT") break;
+        throw error;
+      }
+      snapshotId = `${base}-${n}`;
+    }
 
-    // Create tag-based filename
-    const tag = options.tag || 'snapshot';
-    const snapshotFileName = `${snapshotId}_${this.sanitizeFileName(tag)}.xml`;
-    const snapshotPath = path.join(buildSnapshotDir, snapshotFileName);
+    const snapshotPath = path.join(dir, `${snapshotId}_${this.sanitizeFileName(tag)}.xml`);
+    await fs.writeFile(snapshotPath, source.bytes, { flag: "wx" });
 
-    // Read and copy build
-    const buildPath = sanitizeBuildName(options.buildName, this.pobDirectory);
-    const buildContent = await fs.readFile(buildPath, 'utf-8');
-    await fs.writeFile(snapshotPath, buildContent, 'utf-8');
-
-    // Create metadata
-    const build = await buildService.readBuild(options.buildName);
+    const build = await buildService.readBuild(source.rel);
     const nodes = buildService.parseAllocatedNodes(build);
-
     const metadata: SnapshotMetadata = {
       timestamp: timestamp.toISOString(),
-      originalBuild: options.buildName,
-      description: options.description || '',
+      originalBuild: source.rel,
+      description: options.description || "",
       tag,
       statsSnapshot: {
-        life: this.extractStat(build, 'Life'),
-        dps: this.extractStat(build, 'TotalDPS'),
+        life: this.extractStat(build, "Life"),
+        dps: this.extractStat(build, "TotalDPS"),
         allocatedNodes: nodes.length,
       },
     };
+    await fs.writeFile(path.join(dir, `${snapshotId}_metadata.json`), JSON.stringify(metadata, null, 2), {
+      encoding: "utf-8",
+      flag: "wx",
+    });
 
-    // Write metadata
-    const metadataPath = path.join(buildSnapshotDir, `${snapshotId}_metadata.json`);
-    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
-
-    return {
-      snapshotId,
-      snapshotPath,
-    };
+    return { snapshotId, snapshotPath, buildPath: source.rel };
   }
 
   /**
@@ -147,179 +274,95 @@ export class BuildExportService {
     buildName: string,
     options: { limit?: number; tagFilter?: string } = {}
   ): Promise<{
+    build: string;
     snapshots: Array<{ id: string; metadata: SnapshotMetadata; filePath: string }>;
     total: number;
     diskSpace: number;
   }> {
-    const buildSnapshotDir = sanitizeBuildName(buildName, this.snapshotDirectory);
+    const { rel, dir } = await this.snapshotDirFor(buildName);
 
-    // Check if snapshot directory exists
+    let entries: string[];
     try {
-      await fs.access(buildSnapshotDir);
-    } catch {
-      return { snapshots: [], total: 0, diskSpace: 0 };
+      entries = await fs.readdir(dir);
+    } catch (error) {
+      if (errnoOf(error) === "ENOENT") return { build: rel, snapshots: [], total: 0, diskSpace: 0 };
+      throw error;
     }
-
-    // Read all metadata files
-    const entries = await fs.readdir(buildSnapshotDir, { withFileTypes: true });
-    const metadataFiles = entries.filter(e => e.isFile() && e.name.endsWith('_metadata.json'));
+    const metadataFiles = entries.filter((name) => name.endsWith("_metadata.json"));
 
     let snapshots: Array<{ id: string; metadata: SnapshotMetadata; filePath: string }> = [];
     let totalSize = 0;
 
     for (const file of metadataFiles) {
-      const metadataPath = path.join(buildSnapshotDir, file.name);
-      const metadataContent = await fs.readFile(metadataPath, 'utf-8');
-      const metadata: SnapshotMetadata = JSON.parse(metadataContent);
+      const metadata: SnapshotMetadata = JSON.parse(await fs.readFile(path.join(dir, file), "utf-8"));
 
       // Apply tag filter if provided
       if (options.tagFilter && metadata.tag !== options.tagFilter) {
         continue;
       }
 
-      // Extract snapshot ID from filename
-      const snapshotId = file.name.replace('_metadata.json', '');
-      const xmlFileName = `${snapshotId}_${this.sanitizeFileName(metadata.tag)}.xml`;
-      const xmlFilePath = path.join(buildSnapshotDir, xmlFileName);
-
-      // Get file size
+      const snapshotId = file.replace(/_metadata\.json$/, "");
+      const xmlFilePath = path.join(dir, `${snapshotId}_${this.sanitizeFileName(metadata.tag)}.xml`);
       try {
-        const stats = await fs.stat(xmlFilePath);
-        totalSize += stats.size;
+        totalSize += (await fs.stat(xmlFilePath)).size;
       } catch {
-        // File may not exist, skip
+        // The copy is gone: skip the entry.
         continue;
       }
-
-      snapshots.push({
-        id: snapshotId,
-        metadata,
-        filePath: xmlFilePath,
-      });
+      snapshots.push({ id: snapshotId, metadata, filePath: xmlFilePath });
     }
 
-    // Sort by timestamp (newest first)
-    snapshots.sort((a, b) =>
-      new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime()
+    // Newest first
+    snapshots.sort(
+      (a, b) =>
+        new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime() ||
+        b.id.localeCompare(a.id),
     );
 
-    // Apply limit
     const total = snapshots.length;
     if (options.limit && options.limit > 0) {
       snapshots = snapshots.slice(0, options.limit);
     }
 
-    return {
-      snapshots,
-      total,
-      diskSpace: totalSize,
-    };
+    return { build: rel, snapshots, total, diskSpace: totalSize };
   }
 
   /**
-   * Restore a build from a snapshot
+   * Restore a build file from a snapshot (by id, or by tag: the newest with that tag), through the
+   * build-file writer (C-17, `kind: 'restore'`): it always backs up the current file to
+   * `<stateDir>/backups/<relpath>/<id>_before-restore.xml` (D-51b) and refuses when the file changed on
+   * disk since the engine loaded or saved it.
    */
-  async restoreSnapshot(options: RestoreOptions): Promise<{ message: string; backupId?: string }> {
-    // Find snapshot by ID or tag (listSnapshots confines the name to the snapshots dir)
-    // List snapshots and find matching one
-    const { snapshots } = await this.listSnapshots(options.buildName);
-
-    const snapshot = snapshots.find(s =>
-      s.id === options.snapshotId ||
-      s.metadata.tag === options.snapshotId
-    );
-
+  async restoreSnapshot(options: RestoreOptions): Promise<{
+    build: string;
+    snapshotId: string;
+    tag: string;
+    bytes: number;
+    backupPath: string | null;
+    message: string;
+  }> {
+    const { build, snapshots } = await this.listSnapshots(options.buildName);
+    const snapshot =
+      snapshots.find((s) => s.id === options.snapshotId) ?? snapshots.find((s) => s.metadata.tag === options.snapshotId);
     if (!snapshot) {
       throw new Error(
-        `Snapshot not found: ${options.snapshotId}. ` +
-        `Available snapshots: ${snapshots.map(s => `${s.id} [${s.metadata.tag}]`).join(', ')}`
+        `Snapshot not found for ${build}: ${options.snapshotId}. ` +
+          (snapshots.length
+            ? `Available snapshots: ${snapshots.map((s) => `${s.id} [${s.metadata.tag}]`).join(", ")}`
+            : "This build has no snapshots."),
       );
     }
 
-    // Create backup of current build if requested
-    let backupId: string | undefined;
-    if (options.backupCurrent !== false) {
-      const timestamp = new Date();
-      backupId = timestamp.toISOString().replace(/[:.]/g, '-').split('.')[0];
-
-      const buildBackupDir = sanitizeBuildName(options.buildName, this.backupDirectory);
-      await fs.mkdir(buildBackupDir, { recursive: true });
-      const backupPath = path.join(buildBackupDir, `${backupId}_before-restore.xml`);
-      const buildPath = sanitizeBuildName(options.buildName, this.pobDirectory);
-      const currentContent = await fs.readFile(buildPath, 'utf-8');
-      await fs.writeFile(backupPath, currentContent, 'utf-8');
-    }
-
-    // Restore from snapshot
-    const buildPath = sanitizeBuildName(options.buildName, this.pobDirectory);
-    const snapshotContent = await fs.readFile(snapshot.filePath, 'utf-8');
-    await fs.writeFile(buildPath, snapshotContent, 'utf-8');
-
+    const bytes = await fs.readFile(snapshot.filePath);
+    const result = await this.writer.writeBuildFile({ name: build, bytes, overwrite: true, kind: "restore" });
     return {
-      message: `Build restored from snapshot: ${snapshot.metadata.tag} (${snapshot.id})`,
-      backupId,
+      build: result.path,
+      snapshotId: snapshot.id,
+      tag: snapshot.metadata.tag,
+      bytes: result.bytes,
+      backupPath: result.backupPath,
+      message: [...result.notices, result.message].join("\n"),
     };
-  }
-
-  /**
-   * Convert build data to XML string
-   */
-  private buildToXML(build: PoBBuild): string {
-    const xmlObj = { PathOfBuilding: build };
-    let xmlContent = this.xmlBuilder.build(xmlObj);
-
-    // Add XML declaration if not present
-    if (!xmlContent.startsWith('<?xml')) {
-      xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
-    }
-
-    return xmlContent;
-  }
-
-  /**
-   * Validate build data before export
-   */
-  private async validateBuildData(build: PoBBuild): Promise<void> {
-    if (!build.Build) {
-      throw new Error("Invalid build: Missing Build section");
-    }
-
-    if (!build.Tree) {
-      throw new Error("Invalid build: Missing Tree section");
-    }
-
-    // Validate that we can generate XML
-    try {
-      const xml = this.buildToXML(build);
-      if (!xml || xml.length === 0) {
-        throw new Error("Failed to generate XML");
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      throw new Error(`XML generation failed: ${errorMsg}`);
-    }
-  }
-
-  /**
-   * Safely write file with overwrite protection
-   */
-  private async safeWrite(filePath: string, content: string, overwrite: boolean): Promise<void> {
-    if (!overwrite) {
-      try {
-        await fs.access(filePath);
-        throw new Error(
-          `File already exists: ${filePath}\n` +
-          `Set overwrite=true to replace the existing file.`
-        );
-      } catch (error: any) {
-        // File doesn't exist, safe to write
-        if (error.code !== 'ENOENT') {
-          throw error;
-        }
-      }
-    }
-
-    await fs.writeFile(filePath, content, 'utf-8');
   }
 
   /**
@@ -335,7 +378,7 @@ export class BuildExportService {
   /**
    * Extract a stat value from build data
    */
-  private extractStat(build: PoBBuild, statName: string): number {
+  private extractStat(build: Awaited<ReturnType<BuildService["readBuild"]>>, statName: string): number {
     if (!build.Build?.PlayerStat) {
       return 0;
     }

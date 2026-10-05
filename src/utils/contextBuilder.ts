@@ -69,6 +69,13 @@ export interface HandlerContext extends BaseContext {
   validationService: ValidationService;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
+  /**
+   * The running engine call's context (C-3): `analyze_build`/`compare_builds` load files with
+   * `withTemporaryBuild` (D-9). Without it (a handler unit test) they analyze the file only.
+   */
+  engine?: () => EngineCallContext;
+  /** C-17: `set_build_notes` writes through it. */
+  buildFileWriter?: Pick<BuildFileWriter, 'writeBuildFile'>;
 }
 
 /**
@@ -128,6 +135,8 @@ export interface ExportContext extends BaseContext {
   buildService: BuildService;
   exportService: BuildExportService;
   luaClient?: PoBLuaApiClient;
+  /** The running engine call's context (C-3): `export_build` with notes uses `withTemporaryBuild`. */
+  engine: () => EngineCallContext;
 }
 
 /**
@@ -180,6 +189,8 @@ export class ContextBuilder {
       stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
       ensureLuaClient: this.deps.ensureLuaClient,
+      engine: this.deps.engine,
+      buildFileWriter: this.deps.buildFileWriter,
     };
   }
 
@@ -264,6 +275,7 @@ export class ContextBuilder {
       stateDir: this.deps.stateDir,
       buildService: this.deps.buildService,
       exportService: this.deps.exportService,
+      engine: this.deps.engine,
     };
     // Resolved on access, not when the context is built: outside an engine call it throws (C-3).
     Object.defineProperty(context, 'luaClient', {

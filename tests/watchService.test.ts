@@ -1,6 +1,8 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import chokidar from 'chokidar';
 import { WatchService } from '../src/services/watchService';
 import { BuildService } from '../src/services/buildService';
+import { getToolSchemas } from '../src/server/toolSchemas';
 
 // Mock BuildService
 jest.mock('../src/services/buildService');
@@ -159,7 +161,7 @@ describe('WatchService', () => {
 
   describe('handleFileChange (via private method access)', () => {
     it('should ignore non-XML files', () => {
-      (watchService as any).handleFileChange('/path/to/file.txt', 'modified');
+      (watchService as any).handleFileChange(`${testDirectory}/file.txt`, 'modified');
 
       // No changes should be tracked
       expect(watchService.getRecentChangesCount()).toBe(0);
@@ -167,7 +169,7 @@ describe('WatchService', () => {
     });
 
     it('should process XML files', (done) => {
-      (watchService as any).handleFileChange('/path/to/build.xml', 'modified');
+      (watchService as any).handleFileChange(`${testDirectory}/build.xml`, 'modified');
 
       // Due to debouncing, wait for setTimeout
       setTimeout(() => {
@@ -178,9 +180,9 @@ describe('WatchService', () => {
     });
 
     it('should debounce rapid changes to same file', (done) => {
-      (watchService as any).handleFileChange('/path/to/build.xml', 'modified');
-      (watchService as any).handleFileChange('/path/to/build.xml', 'modified');
-      (watchService as any).handleFileChange('/path/to/build.xml', 'modified');
+      (watchService as any).handleFileChange(`${testDirectory}/build.xml`, 'modified');
+      (watchService as any).handleFileChange(`${testDirectory}/build.xml`, 'modified');
+      (watchService as any).handleFileChange(`${testDirectory}/build.xml`, 'modified');
 
       setTimeout(() => {
         // Should only process once despite 3 calls
@@ -214,6 +216,97 @@ describe('WatchService', () => {
       await watchService.stopWatching();
       expect((watchService as any).watcher).toBeNull();
       expect(watchService.isWatchEnabled()).toBe(false);
+    });
+  });
+
+  describe('AC-E54 (WU-13, C-20): chokidar options, cache keys, ignores and descriptions', () => {
+    /** A chokidar spy: records the options, returns a watcher stub whose events the test fires. */
+    function spyChokidar() {
+      const handlers: Record<string, (p: string) => void> = {};
+      const stub = {
+        on(event: string, cb: (p: string) => void) {
+          handlers[event] = cb;
+          return stub;
+        },
+        close: async () => undefined,
+      };
+      const spy = jest.spyOn(chokidar, 'watch').mockImplementation((() => stub) as never);
+      return { spy, handlers };
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    it('AC-E54: a folder under /mnt/ is watched with usePolling: true, interval: 1000', async () => {
+      const { spy } = spyChokidar();
+      const w = new WatchService('/mnt/c/Users/u/Documents/Path of Building (PoE2)/Builds', mockBuildService);
+      w.startWatching();
+      expect(spy).toHaveBeenCalledTimes(1);
+      const opts = spy.mock.calls[0][1] as Record<string, unknown>;
+      expect(opts.usePolling).toBe(true);
+      expect(opts.interval).toBe(1000);
+      await w.stopWatching();
+    });
+
+    it('AC-E54: any other folder uses native events (no polling)', async () => {
+      const { spy } = spyChokidar();
+      const w = new WatchService('/home/u/builds', mockBuildService);
+      w.startWatching();
+      const opts = spy.mock.calls[0][1] as Record<string, unknown>;
+      expect(opts.usePolling).toBeFalsy();
+      expect(opts.interval).toBeUndefined();
+      await w.stopWatching();
+    });
+
+    it('AC-E54: a change event for sub/inner.xml invalidates the cache key sub/inner.xml, not inner.xml', async () => {
+      jest.useFakeTimers();
+      const { handlers } = spyChokidar();
+      const w = new WatchService('/home/u/builds', mockBuildService);
+      w.startWatching();
+      handlers.change('/home/u/builds/sub/inner.xml');
+      jest.advanceTimersByTime(600);
+      expect(mockBuildService.invalidateBuild).toHaveBeenCalledTimes(1);
+      expect(mockBuildService.invalidateBuild).toHaveBeenCalledWith('sub/inner.xml');
+      expect(mockBuildService.invalidateBuild).not.toHaveBeenCalledWith('inner.xml');
+      expect(w.getRecentChanges()[0].file).toBe('sub/inner.xml');
+      await w.stopWatching();
+    });
+
+    it('AC-E54: ~~temp~~.xml and dotfiles are ignored (chokidar ignored option and the event handler)', async () => {
+      jest.useFakeTimers();
+      const { spy, handlers } = spyChokidar();
+      const w = new WatchService('/home/u/.local/builds', mockBuildService);
+      w.startWatching();
+      const ignored = (spy.mock.calls[0][1] as { ignored: (p: string) => boolean }).ignored;
+      expect(ignored('/home/u/.local/builds/~~temp~~.xml')).toBe(true);
+      expect(ignored('/home/u/.local/builds/sub/~~temp~~.xml')).toBe(true);
+      expect(ignored('/home/u/.local/builds/.pob-mcp/x.xml')).toBe(true);
+      expect(ignored('/home/u/.local/builds/.hidden.xml')).toBe(true);
+      // A dot folder above the watched folder must not hide everything.
+      expect(ignored('/home/u/.local/builds')).toBe(false);
+      expect(ignored('/home/u/.local/builds/build.xml')).toBe(false);
+      expect(ignored('/home/u/.local/builds/sub/inner.xml')).toBe(false);
+
+      handlers.change('/home/u/.local/builds/~~temp~~.xml');
+      handlers.add('/home/u/.local/builds/.hidden.xml');
+      jest.advanceTimersByTime(600);
+      expect(mockBuildService.invalidateBuild).not.toHaveBeenCalled();
+      expect(w.getRecentChangesCount()).toBe(0);
+      await w.stopWatching();
+    });
+
+    it("AC-E54: the watch tools' descriptions don't claim they reload the engine", () => {
+      const names = ['start_watching', 'stop_watching', 'get_recent_changes', 'watch_status'];
+      const schemas = getToolSchemas().filter((t) => names.includes(t.name));
+      expect(schemas.map((t) => t.name).sort()).toEqual([...names].sort());
+      for (const t of schemas) {
+        expect(t.description).not.toMatch(/auto-?reload|automatically reload|will (now )?be (automatically )?reloaded/i);
+      }
+      const start = schemas.find((t) => t.name === 'start_watching')?.description ?? '';
+      expect(start).toMatch(/does not reload the engine/i);
+      expect(start).toMatch(/next engine call/i);
     });
   });
 });

@@ -1,15 +1,29 @@
 import type { BuildService } from "../services/buildService.js";
-import type { BuildExportService } from "../services/buildExportService.js";
+import { appendNotesXml, type BuildExportService } from "../services/buildExportService.js";
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
+import type { EngineCallContext } from "../engine/session.js";
 import type { ExportContext } from "../utils/contextBuilder.js";
+import { xmlRootName } from "../utils/buildCode.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
 export interface ExportHandlerContext {
   buildService: BuildService;
   exportService: BuildExportService;
   luaClient?: PoBLuaApiClient;
+  /** The running engine call's context (C-3): `export_build` with notes uses `withTemporaryBuild`. */
+  engine?: () => EngineCallContext;
 }
 
+/**
+ * `export_build` (D-9, D-42, C-17): a copy of a build file.
+ *
+ * - Without notes it is a **byte copy** of the source file: the engine is not touched.
+ * - With notes, the notes are appended to the source's, the result is loaded with
+ *   `withTemporaryBuild` (D-9), and the engine's `export_build_xml` (a `<PathOfBuilding2>` document) is
+ *   written; the engine's working build, `revision` and `loaded` are put back unchanged.
+ * - The output goes to `<stateDir>/exports/` by default; `output_directory` must resolve inside the
+ *   builds folder (written through the build-file writer, C-17) or the state dir (D-42).
+ */
 export async function handleExportBuild(
   context: ExportHandlerContext,
   args: {
@@ -22,19 +36,44 @@ export async function handleExportBuild(
 ) {
   return wrapHandler('export build', async () => {
   const { exportService, buildService } = context;
+  if (!args.build_name) throw new Error('build_name is required');
 
-  // Read the source build
-  const buildData = await buildService.readBuild(args.build_name);
+  // Refuse a bad target before any work (D-42).
+  await exportService.resolveExportTarget(args.output_directory);
+  const source = await buildService.readBuildFile(args.build_name);
 
-  // Export the build
-  const result = await exportService.exportBuild(buildData, {
+  // Every export is a PoE2 document (D-9): a byte copy of anything else would not be one.
+  const root = xmlRootName(source.bytes.toString('utf8'));
+  if (root !== 'PathOfBuilding2') {
+    throw new Error(`${source.rel} is not a PoE2 build (its XML root is <${root ?? 'none'}>, expected <PathOfBuilding2>), so it was not exported`);
+  }
+
+  let bytes: Buffer;
+  let how: string;
+  if (args.notes !== undefined && args.notes !== '') {
+    if (!context.engine) throw new Error('export_build with notes needs the engine');
+    const engine = context.engine();
+    const withNotes = appendNotesXml(source.bytes.toString('utf8'), args.notes);
+    const xml = await engine.withTemporaryBuild(withNotes, () => engine.client.exportBuildXml());
+    if (typeof xml !== 'string' || xmlRootName(xml) !== 'PathOfBuilding2') {
+      throw new Error('the engine did not export a PathOfBuilding2 build, so nothing was written');
+    }
+    bytes = Buffer.from(xml, 'utf8');
+    how = 'written by the PoB2 engine with the notes appended (the engine\'s working build is unchanged)';
+  } else {
+    bytes = source.bytes;
+    how = 'an exact byte copy';
+  }
+
+  const result = await exportService.writeExport({
     outputName: args.output_name,
     outputDirectory: args.output_directory,
     overwrite: args.overwrite,
-    notes: args.notes,
+    bytes,
   });
 
-  // Generate brief summary (not full build details to keep response small)
+  // A brief summary (not the full build, to keep the response small).
+  const buildData = await buildService.readBuild(source.rel);
   const className = buildData.Build?.className || "Unknown";
   const ascendancy = buildData.Build?.ascendClassName || "None";
   const level = buildData.Build?.level || "Unknown";
@@ -46,8 +85,8 @@ export async function handleExportBuild(
         text:
           `${result.message}\n\n` +
           `Exported: ${className} (${ascendancy}) - Level ${level}\n` +
-          `Source: ${args.build_name}\n` +
-          `Output: ${args.output_name}`,
+          `Source: ${source.rel}\n` +
+          `Output: ${result.filePath} (${how})`,
       },
     ],
   };
@@ -77,11 +116,12 @@ export async function handleSnapshotBuild(
         type: "text" as const,
         text:
           `Snapshot created successfully!\n\n` +
+          `Build: ${result.buildPath}\n` +
           `Snapshot ID: ${result.snapshotId}\n` +
           `Tag: ${args.tag || 'snapshot'}\n` +
           `Location: ${result.snapshotPath}\n\n` +
           `You can restore this snapshot later using:\n` +
-          `  restore_snapshot(build_name="${args.build_name}", snapshot_id="${result.snapshotId}")`,
+          `  restore_snapshot(build_name="${result.buildPath}", snapshot_id="${result.snapshotId}")`,
       },
     ],
   };
@@ -110,43 +150,45 @@ export async function handleListSnapshots(
     content: [
       {
         type: "text" as const,
-        text: `=== Snapshots for ${args.build_name} ===\n\n${formatted}`,
+        text: `=== Snapshots for ${result.build} ===\n\n${formatted}`,
       },
     ],
   };
   });
 }
 
+/**
+ * `restore_snapshot` (C-17, D-51b): the snapshot's bytes are written through the build-file writer,
+ * which always backs up the current file (`<id>_before-restore.xml`) and refuses when the file changed
+ * on disk since the engine loaded or saved it. `backup_current` is accepted and ignored.
+ */
 export async function handleRestoreSnapshot(
   context: ExportHandlerContext,
   args: {
     build_name: string;
     snapshot_id: string;
-    backup_current?: boolean;
   }
 ) {
   return wrapHandler('restore snapshot', async () => {
-  const { exportService, buildService } = context;
+  const { exportService } = context;
+  if (!args.snapshot_id) throw new Error('snapshot_id is required');
 
   const result = await exportService.restoreSnapshot({
     buildName: args.build_name,
     snapshotId: args.snapshot_id,
-    backupCurrent: args.backup_current,
   });
 
-  let message = result.message;
-  if (result.backupId) {
-    message += `\n\nCurrent build backed up with ID: ${result.backupId}`;
-  }
-
-  // Invalidate cache for this build
-  buildService.invalidateBuild(args.build_name);
+  const lines = [
+    `Build ${result.build} restored from snapshot: ${result.tag} (${result.snapshotId})`,
+    result.message,
+  ];
+  if (result.backupPath) lines.push(`The replaced file is backed up at: ${result.backupPath}`);
 
   return {
     content: [
       {
         type: "text" as const,
-        text: message,
+        text: lines.join('\n'),
       },
     ],
   };

@@ -1,16 +1,44 @@
 import { XMLParser } from "fast-xml-parser";
 import fs from "fs/promises";
 import path from "path";
-import type { PoBBuild, CachedBuild, ParsedConfiguration, ConfigInput, ConfigSet, Flask, FlaskAnalysis, Jewel, JewelAnalysis } from "../types.js";
-import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+import type { PoBBuild, ParsedConfiguration, ConfigInput, ConfigSet, Flask, FlaskAnalysis, Jewel, JewelAnalysis } from "../types.js";
+import { canonicalBuildPath } from "../utils/pathSanitizer.js";
 
-const CACHE_TTL_MS = 60_000;  // 60 seconds
+/** The build-parse cache holds at most this many builds, least recently used out first (D-58). */
 const CACHE_MAX_SIZE = 20;
+
+/**
+ * A build-parse cache entry (D-58): valid while the file's size and mtime are the ones it was read
+ * with. There is no TTL.
+ */
+interface ParsedBuildEntry {
+  data: PoBBuild;
+  size: number;
+  mtimeMs: number;
+}
+
+/** A build file resolved under the builds folder. */
+export interface BuildFileRef {
+  /** Canonical POSIX path relative to the builds folder (D-52), e.g. `sub/Grenadator.xml`. */
+  rel: string;
+  /** Absolute path. */
+  abs: string;
+}
+
+/**
+ * The cache key of a build path relative to the builds folder: POSIX separators, no leading `./`,
+ * `.xml` appended when missing (the form `canonicalBuildPath` returns).
+ */
+export function buildCacheKey(relPath: string): string {
+  const posix = relPath.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
+  return /\.xml$/i.test(posix) ? posix : `${posix}.xml`;
+}
 
 export class BuildService {
   private parser: XMLParser;
   private pobDirectory: string;
-  private buildCache: Map<string, CachedBuild> = new Map();
+  /** Keyed by canonical relative path (D-52, D-58); Map order is the LRU order (oldest first). */
+  private buildCache: Map<string, ParsedBuildEntry> = new Map();
 
   constructor(pobDirectory: string) {
     this.parser = new XMLParser({
@@ -20,6 +48,10 @@ export class BuildService {
     this.pobDirectory = pobDirectory;
   }
 
+  /**
+   * Every `.xml` build under the builds folder, as POSIX paths relative to it (`sub/inner.xml` for a
+   * subfolder). Dotfiles, dot-folders and PoB's `~~temp~~` files are skipped.
+   */
   async listBuilds(): Promise<string[]> {
     try {
       const builds: string[] = [];
@@ -35,48 +67,78 @@ export class BuildService {
           }
 
           const fullPath = path.join(dir, entry.name);
-          const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
+          const relPath = relativePath ? path.posix.join(relativePath, entry.name) : entry.name;
 
           if (entry.isDirectory()) {
             // Recursively search subdirectories
             await findXmlFiles(fullPath, relPath);
-          } else if (entry.isFile() && entry.name.endsWith('.xml')) {
+          } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.xml')) {
             builds.push(relPath);
           }
         }
       };
 
       await findXmlFiles(this.pobDirectory);
-      return builds;
+      return builds.sort((x, y) => x.localeCompare(y));
     } catch (error) {
       console.error("Could not read PoB directory:", error);
       return [];
     }
   }
 
+  /** Resolve a build name to its canonical path under the builds folder (D-52); `.xml` is optional. */
+  async resolveBuildFile(buildName: string): Promise<BuildFileRef> {
+    const rel = await canonicalBuildPath(buildName, this.pobDirectory);
+    return { rel, abs: path.join(path.resolve(this.pobDirectory), ...rel.split("/")) };
+  }
+
+  /** The raw bytes of a build file, with its canonical path. A missing file names the build. */
+  async readBuildFile(buildName: string): Promise<BuildFileRef & { bytes: Buffer }> {
+    const ref = await this.resolveBuildFile(buildName);
+    try {
+      return { ...ref, bytes: await fs.readFile(ref.abs) };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code === "ENOENT") throw new Error(`build file not found: ${ref.rel}`);
+      throw error;
+    }
+  }
+
+  /**
+   * The parsed build (D-58): cached by canonical relative path, and each hit is validated by the
+   * file's `{size, mtimeMs}`, so a file changed on disk (a PoB2 save, a server write) is read again.
+   */
   async readBuild(buildName: string): Promise<PoBBuild> {
-    // Check cache — evict if stale
-    const cached = this.buildCache.get(buildName);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    const { rel, abs } = await this.resolveBuildFile(buildName);
+    let st: { size: number; mtimeMs: number };
+    try {
+      // stat before read: a change between the two leaves an entry whose stamp no longer matches.
+      st = await fs.stat(abs);
+    } catch (error) {
+      this.buildCache.delete(rel);
+      if ((error as NodeJS.ErrnoException)?.code === "ENOENT") throw new Error(`build file not found: ${rel}`);
+      throw error;
+    }
+
+    const cached = this.buildCache.get(rel);
+    if (cached && cached.size === st.size && cached.mtimeMs === st.mtimeMs) {
+      // LRU: move to the newest end.
+      this.buildCache.delete(rel);
+      this.buildCache.set(rel, cached);
       return cached.data;
     }
 
-    // Cache miss or expired — read from file
-    const buildPath = sanitizeBuildName(buildName, this.pobDirectory);
-    const content = await fs.readFile(buildPath, "utf-8");
+    const content = await fs.readFile(abs, "utf-8");
     const parsed = this.parser.parse(content);
     // PoE2 PoB serializes the root element as <PathOfBuilding2>; PoE1 uses
     // <PathOfBuilding>. Normalize so all downstream code can read build.Build etc.
-    const buildData = parsed.PathOfBuilding ?? parsed.PathOfBuilding2;
+    const buildData = parsed.PathOfBuilding2 ?? parsed.PathOfBuilding;
 
-    // Evict oldest entry if at capacity
-    if (this.buildCache.size >= CACHE_MAX_SIZE) {
-      const oldest = Array.from(this.buildCache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
-      if (oldest) this.buildCache.delete(oldest[0]);
+    this.buildCache.delete(rel);
+    this.buildCache.set(rel, { data: buildData, size: st.size, mtimeMs: st.mtimeMs });
+    while (this.buildCache.size > CACHE_MAX_SIZE) {
+      const oldest = this.buildCache.keys().next().value as string;
+      this.buildCache.delete(oldest);
     }
-
-    this.buildCache.set(buildName, { data: buildData, timestamp: Date.now() });
     return buildData;
   }
 
@@ -231,8 +293,12 @@ export class BuildService {
     this.buildCache.clear();
   }
 
-  invalidateBuild(buildName: string): void {
-    this.buildCache.delete(buildName);
+  /**
+   * Drop the cache entry of a build path relative to the builds folder (D-58). Callers pass the
+   * canonical relative path (the build-file writer, the watcher); `.xml` is added when missing.
+   */
+  invalidateBuild(relPath: string): void {
+    this.buildCache.delete(buildCacheKey(relPath));
   }
 
   /**

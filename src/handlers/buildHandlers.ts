@@ -3,11 +3,11 @@ import type { TreeService } from "../services/treeService.js";
 import type { ValidationService } from "../services/validationService.js";
 import type { TreeAnalysisResult } from "../types.js";
 import type { HandlerContext } from "../utils/contextBuilder.js";
-import path from "path";
-import fs from "fs/promises";
+import type { EngineCallContext } from "../engine/session.js";
+import type { SpecSummary } from "../engine/schemas.js";
+import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
+import { escapeNotes, replaceNotesXml } from "../services/buildExportService.js";
 import { wrapHandler } from "../utils/errorHandling.js";
-import { sanitizeBuildName } from "../utils/pathSanitizer.js";
-import { EngineLoadGuardError } from "../engine/session.js";
 export type { HandlerContext } from "../utils/contextBuilder.js";
 
 export async function handleListBuilds(context: HandlerContext) {
@@ -26,125 +26,98 @@ export async function handleListBuilds(context: HandlerContext) {
   });
 }
 
+/** What the engine computes for one build file, loaded temporarily (D-9). */
+interface LiveBuildData {
+  info: Awaited<ReturnType<PoBLuaApiClient['getBuildInfo']>> | null;
+  stats: Record<string, any>;
+  specs: SpecSummary[];
+  itemSets: Array<{ id: number | string; title?: string; active?: boolean }>;
+}
+
+/**
+ * Load a build file into the engine temporarily (`withTemporaryBuild`, D-9) and read what PoB2
+ * computes for it. The engine's working build, `revision` and `loaded` are put back unchanged, also on
+ * failure. An engine refusal (`EngineActionError`: the file doesn't load, a stat read fails) returns the
+ * reason instead, so the caller can still report the file; anything else (the engine died, the
+ * working build could not be put back) propagates.
+ */
+async function readLive(engine: EngineCallContext, xml: string): Promise<LiveBuildData | { unavailable: string }> {
+  try {
+    return await engine.withTemporaryBuild(xml, async () => {
+      const client = engine.client;
+      const info = await client.getBuildInfo();
+      const stats = ((await client.getStats()) ?? {}) as Record<string, any>;
+      const specs = (await client.listSpecs())?.specs ?? [];
+      const itemSets = ((await client.listItemSets())?.itemSets ?? []) as LiveBuildData['itemSets'];
+      return { info, stats, specs, itemSets };
+    });
+  } catch (error) {
+    if (error instanceof EngineActionError) return { unavailable: error.message };
+    throw error;
+  }
+}
+
+function isLive(data: LiveBuildData | { unavailable: string } | null): data is LiveBuildData {
+  return data !== null && !('unavailable' in data);
+}
+
+/**
+ * `analyze_build` (D-9): the file's own analysis (summary, configuration, flasks, jewels, tree,
+ * validation) plus the stats PoB2 computes for that file, read with `withTemporaryBuild`, so the
+ * engine's working build is never replaced.
+ */
 export async function handleAnalyzeBuild(context: HandlerContext, buildName: string) {
   return wrapHandler('analyze build', async () => {
   const build = await context.buildService.readBuild(buildName);
 
-  // Try to get live Lua stats — only load from file if no build is loaded.
-  // If the same build is already loaded, preserve current spec/item set selection.
-  // Never replace a *different* in-memory build (data-loss risk).
-  let luaStats: any = null;
-  let luaSkipped = false;
-  let luaActiveSpecIndex: number | null = null;
-  let luaActiveItemSetId: string | null = null;
+  // Live stats for this file: loaded temporarily, the working build put back (D-9).
+  let live: LiveBuildData | { unavailable: string } | null = null;
+  if (context.engine) {
+    const engine = context.engine();
+    const file = await context.buildService.readBuildFile(buildName);
+    live = await readLive(engine, file.bytes.toString('utf8'));
+  }
+
   const specContextLines: string[] = [];
-  try {
-    await context.ensureLuaClient();
-    const luaClient = context.getLuaClient();
-
-    if (luaClient) {
-      const basename = (n: string) => n.split(/[/\\]/).pop() ?? n;
-      let shouldLoad = true;
-      try {
-        const info = await luaClient.getBuildInfo();
-        const loadedName: string = info?.name ?? '';
-        // Strip .xml suffix for comparison since PoB may omit it
-        const requested = buildName.replace(/\.xml$/i, '');
-        const loaded    = loadedName.replace(/\.xml$/i, '');
-        if (loaded) {
-          const sameExact = loaded === requested;
-          const sameBase  = basename(loaded) === basename(requested);
-          if (!sameExact && !sameBase) {
-            // A different build is in memory — skip loading to avoid destroying unsaved work
-            shouldLoad = false;
-            luaSkipped = true;
-          } else {
-            // Same build already loaded — preserve current spec/item set selection
-            shouldLoad = false;
-          }
-        }
-      } catch { /* no build loaded yet — safe to load */ }
-
-      if (shouldLoad) {
-        const buildPath = sanitizeBuildName(buildName, context.pobDirectory);
-        const buildXml = await fs.readFile(buildPath, 'utf-8');
-        await luaClient.loadBuildXml(buildXml);
-      }
-      try { luaStats = await luaClient.getStats(); } catch { /* best effort */ }
-
-      // Query active spec/item set for context and to guide tree analysis
-      try {
-        const specsResult = await luaClient.listSpecs();
-        const itemSetsResult = await luaClient.listItemSets();
-        const activeSpec = specsResult?.specs?.find((s: any) => s.active);
-        const activeItemSet = itemSetsResult?.itemSets?.find((s: any) => s.active);
-        if (activeSpec) luaActiveSpecIndex = activeSpec.index;
-        if (activeItemSet) luaActiveItemSetId = String(activeItemSet.id);
-        const numSpecs = specsResult?.specs?.length ?? 0;
-        const numSets = itemSetsResult?.itemSets?.length ?? 0;
-        if (numSpecs > 1 || numSets > 1) {
-          const parts: string[] = [];
-          if (activeSpec && numSpecs > 1) {
-            parts.push(`Spec ${activeSpec.index}/${numSpecs}: "${activeSpec.title}" (${activeSpec.pointsUsed} points)`);
-          }
-          if (activeItemSet && numSets > 1) {
-            parts.push(`Item Set ${activeItemSet.id}/${numSets}: "${activeItemSet.title}"`);
-          }
-          if (parts.length > 0) {
-            specContextLines.push(`[Analyzing: ${parts.join(' | ')}]`);
-            specContextLines.push('Use select_spec / select_item_set to switch before re-analyzing.');
-          }
-        }
-      } catch { /* advisory only */ }
+  if (isLive(live)) {
+    const activeSpec = live.specs.find((s) => s.active);
+    const activeItemSet = live.itemSets.find((s) => s.active);
+    const numSpecs = live.specs.length;
+    const numSets = live.itemSets.length;
+    const parts: string[] = [];
+    if (activeSpec && numSpecs > 1) {
+      parts.push(`Spec ${activeSpec.index}/${numSpecs}: "${activeSpec.title}" (${activeSpec.pointsUsed} points)`);
     }
-  } catch (error) {
-    // The load guard (C-3) refuses a raw load that would replace the engine's build: surface it
-    // (D-51f) until WU-13 moves this tool to withTemporaryBuild.
-    if (error instanceof EngineLoadGuardError) throw error;
-    // Otherwise continue with XML-only analysis
+    if (activeItemSet && numSets > 1) {
+      parts.push(`Item Set ${activeItemSet.id}/${numSets}: "${activeItemSet.title ?? ''}"`);
+    }
+    if (parts.length > 0) {
+      specContextLines.push(`[Analyzing the file's saved active sets: ${parts.join(' | ')}]`);
+    }
   }
 
-  // Build an override object that reflects the Lua-selected spec/item set/skill set,
-  // so generateBuildSummary and analyzePassiveTree read from the correct sets (not disk defaults).
-  const buildForAnalysis: typeof build = {
-    ...build,
-    ...(luaActiveSpecIndex !== null && build.Tree
-      ? { Tree: { ...build.Tree, activeSpec: String(luaActiveSpecIndex) } }
-      : {}),
-    ...(luaActiveItemSetId !== null && build.Items
-      ? { Items: { ...(build.Items as any), activeItemSet: luaActiveItemSetId } }
-      : {}),
-    ...(luaActiveItemSetId !== null && build.Skills
-      ? { Skills: { ...(build.Skills as any), activeSkillSet: luaActiveItemSetId } }
-      : {}),
-  };
-
-  const summaryParts: string[] = [context.buildService.generateBuildSummary(buildForAnalysis)];
-
-  if (luaSkipped) {
-    summaryParts.push(
-      "\n⚠️  Note: A different build is loaded in the Lua bridge. Stats shown are from that build.\n" +
-      "    Use lua_load_build to load this build for accurate live stats."
-    );
-  }
+  const summaryParts: string[] = [context.buildService.generateBuildSummary(build)];
 
   // Show active spec/item set context when multiple exist
   if (specContextLines.length > 0) {
     summaryParts.push('\n' + specContextLines.join('\n'));
   }
 
-  // If we have Lua stats, add them
+  const luaStats = isLive(live) ? live.stats : null;
   if (luaStats) {
+    const show = (v: unknown) => (v === undefined || v === null || v === '' ? 'N/A' : String(v));
     summaryParts.push([
-      '\n=== Live Calculated Stats (from Lua) ===',
+      '\n=== Live Calculated Stats (PoB2 engine, this file) ===',
       '',
-      `Total DPS: ${luaStats.TotalDPS || 'N/A'}`,
-      `Combined DPS: ${luaStats.CombinedDPS || 'N/A'}`,
-      `Life: ${luaStats.Life || 'N/A'}`,
-      `Energy Shield: ${luaStats.EnergyShield || 'N/A'}`,
-      `Effective Life Pool: ${luaStats.TotalEHP || 'N/A'}`,
+      `Total DPS: ${show(luaStats.TotalDPS)}`,
+      `Combined DPS: ${show(luaStats.CombinedDPS)}`,
+      `Life: ${show(luaStats.Life)}`,
+      `Energy Shield: ${show(luaStats.EnergyShield)}`,
+      `Effective Health Pool: ${show(luaStats.TotalEHP)}`,
       '',
     ].join('\n'));
+  } else if (live && 'unavailable' in live) {
+    summaryParts.push(`\n=== Live Calculated Stats ===\n\nThe PoB2 engine could not compute this file: ${live.unavailable}`);
   }
 
   // Add configuration analysis
@@ -180,9 +153,9 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
     summaryParts.push(`\n=== Jewel Setup ===\n\nJewel parsing error: ${errorMsg}`);
   }
 
-  // Add tree analysis — buildForAnalysis already has the Lua-selected spec overridden
+  // Add tree analysis (the file's saved active spec)
   try {
-    const treeAnalysis = await context.treeService.analyzePassiveTree(buildForAnalysis);
+    const treeAnalysis = await context.treeService.analyzePassiveTree(build);
     if (treeAnalysis) {
       summaryParts.push(formatTreeAnalysis(treeAnalysis));
     } else {
@@ -225,60 +198,33 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
   });
 }
 
+/**
+ * `compare_builds` (D-9): both files are loaded into the engine temporarily, one after the other
+ * (`withTemporaryBuild`), and compared on what PoB2 computes; the engine's working build is put back
+ * after each. If the engine can't compute a file, the comparison falls back to the files' saved stats.
+ */
 export async function handleCompareBuilds(context: HandlerContext, build1Name: string, build2Name: string) {
   return wrapHandler('compare builds', async () => {
 
-  // Load a build into Lua using its saved active spec and item set.
-  // We deliberately do NOT override spec/item set with heuristics — using the
-  // saved state matches what the user sees in PoB and avoids reporting wrong stats
-  // (e.g. resistances from a different gear set than the one the user expects).
-  const loadEndgame = async (luaClient: any, buildName: string) => {
-    const buildPath = path.join(context.pobDirectory, buildName);
-    const buildXml = await fs.readFile(buildPath, 'utf-8');
-    const displayName = buildName.replace(/\.xml$/i, '').split(/[/\\]/).pop() ?? buildName;
-    await luaClient.loadBuildXml(buildXml, displayName);
-
-    let selectedSpec: any = null;
-    let selectedItemSet: any = null;
-
-    // Report which spec/item set is active (informational only — no override)
-    try {
-      const specsResult = await luaClient.listSpecs();
-      if (specsResult?.specs?.length > 0) {
-        selectedSpec = specsResult.specs.find((s: any) => s.active) ?? specsResult.specs[0];
-      }
-    } catch { /* ignore */ }
-
-    try {
-      const itemSetsResult = await luaClient.listItemSets();
-      if (itemSetsResult?.itemSets?.length > 0) {
-        selectedItemSet = itemSetsResult.itemSets.find((s: any) => s.active) ?? itemSetsResult.itemSets[0];
-      }
-    } catch { /* ignore */ }
-
-    const stats = await luaClient.getStats();
-    return { stats, selectedSpec, selectedItemSet, displayName };
-  };
-
-  // Try Lua-based live comparison
-  let luaOk = false;
-  let r1: any = null;
-  let r2: any = null;
-  try {
-    await context.ensureLuaClient();
-    const luaClient = context.getLuaClient();
-    if (luaClient) {
-      r1 = await loadEndgame(luaClient, build1Name);
-      r2 = await loadEndgame(luaClient, build2Name);
-      luaOk = true;
+  let r1: (LiveBuildData & { name: string }) | null = null;
+  let r2: (LiveBuildData & { name: string }) | null = null;
+  let unavailable: string | null = null;
+  if (context.engine) {
+    const engine = context.engine();
+    const f1 = await context.buildService.readBuildFile(build1Name);
+    const f2 = await context.buildService.readBuildFile(build2Name);
+    const l1 = await readLive(engine, f1.bytes.toString('utf8'));
+    const l2 = isLive(l1) ? await readLive(engine, f2.bytes.toString('utf8')) : null;
+    if (isLive(l1) && isLive(l2)) {
+      r1 = { ...l1, name: f1.rel };
+      r2 = { ...l2, name: f2.rel };
+    } else {
+      const failed = !isLive(l1) ? { rel: f1.rel, why: (l1 as { unavailable: string }).unavailable } : { rel: f2.rel, why: (l2 as { unavailable: string }).unavailable };
+      unavailable = `the PoB2 engine could not compute ${failed.rel}: ${failed.why}`;
     }
-  } catch (error) {
-    // The load guard (C-3) refuses raw loads: surface it (D-51f) until WU-13 uses withTemporaryBuild.
-    if (error instanceof EngineLoadGuardError) throw error;
-    /* fall through to XML */
   }
 
-  if (luaOk && r1 && r2) {
+  if (r1 && r2) {
     const fmtNum = (n: any) =>
       n != null && !isNaN(Number(n)) && Number(n) !== 0
         ? Math.round(Number(n)).toLocaleString()
@@ -291,6 +237,17 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
         : (n1 > n2) === higherIsBetter ? '  ▲1' : '  ▲2';
       return `  ${label.padEnd(22)}${fmtNum(v1).padStart(12)}  vs  ${fmtNum(v2).padStart(12)}${winner}`;
     };
+    const describe = (r: LiveBuildData & { name: string }, n: number): string[] => {
+      const spec = r.specs.find((s) => s.active) ?? r.specs[0];
+      const itemSet = r.itemSets.find((s) => s.active) ?? r.itemSets[0];
+      const ascend = r.info?.ascendClassName && r.info.ascendClassName !== 'None' ? ` / ${r.info.ascendClassName}` : '';
+      return [
+        `Build ${n}: ${r.name}`,
+        `  Class:    ${r.info?.className ?? 'Unknown'}${ascend}, level ${r.info?.level ?? '?'}`,
+        spec ? `  Spec:     "${spec.title}" (${spec.pointsUsed} points, saved active)` : '  Spec:     none',
+        itemSet ? `  Item Set: "${itemSet.title ?? ''}" (saved active)` : '  Item Set: none',
+      ];
+    };
 
     const s1 = r1.stats;
     const s2 = r2.stats;
@@ -298,21 +255,11 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
     const lines: string[] = [
       '=== Build Comparison (Live Stats) ===',
       '',
-      `Build 1: ${r1.displayName}`,
-      r1.selectedSpec
-        ? `  Spec:     "${r1.selectedSpec.title}" (${r1.selectedSpec.pointsUsed} points, saved active)`
-        : '  Spec:     N/A',
-      r1.selectedItemSet
-        ? `  Item Set: "${r1.selectedItemSet.title}" (saved active)`
-        : '  Item Set: N/A',
+      ...describe(r1, 1),
       '',
-      `Build 2: ${r2.displayName}`,
-      r2.selectedSpec
-        ? `  Spec:     "${r2.selectedSpec.title}" (${r2.selectedSpec.pointsUsed} points, saved active)`
-        : '  Spec:     N/A',
-      r2.selectedItemSet
-        ? `  Item Set: "${r2.selectedItemSet.title}" (saved active)`
-        : '  Item Set: N/A',
+      ...describe(r2, 2),
+      '',
+      `Level: ${r1.info?.level ?? '?'} vs ${r2.info?.level ?? '?'}`,
       '',
       `${'Stat'.padEnd(24)}${'Build 1'.padStart(12)}       ${'Build 2'.padStart(12)}`,
       '-'.repeat(60),
@@ -339,24 +286,25 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
     lines.push(row('Lightning Res %', s1.LightningResist, s2.LightningResist));
     lines.push(row('Chaos Resist %', s1.ChaosResist, s2.ChaosResist));
     lines.push('');
-
-    lines.push(`Note: "${r2.displayName}" is now active in the Lua bridge.`);
+    lines.push("The engine's working build is unchanged.");
 
     return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
   }
 
-  // XML fallback (no Lua available)
+  // The files' saved stats (the engine could not compute one of them).
   const build1 = await context.buildService.readBuild(build1Name);
   const build2 = await context.buildService.readBuild(build2Name);
 
   const compLines: string[] = [
     '=== Build Comparison (XML / saved stats) ===',
     '',
+    ...(unavailable ? [`Live stats unavailable: ${unavailable}`, ''] : []),
     `Build 1: ${build1Name}`,
     `Build 2: ${build2Name}`,
     '',
     `Class: ${build1.Build?.className} vs ${build2.Build?.className}`,
     `Ascendancy: ${build1.Build?.ascendClassName} vs ${build2.Build?.ascendClassName}`,
+    `Level: ${build1.Build?.level ?? '?'} vs ${build2.Build?.level ?? '?'}`,
     '',
     '=== Key Stats Comparison ===',
   ];
@@ -421,32 +369,26 @@ export async function handleGetBuildNotes(context: HandlerContext, buildName: st
   });
 }
 
+/**
+ * `set_build_notes` (C-17, D-51c): the notes are replaced in the file's XML and written through the
+ * build-file writer (`kind: 'text'`): the previous file is backed up, and the write is refused when the
+ * file changed on disk since the engine loaded or saved it. The engine's record of the file is left
+ * alone, so the next engine call reloads it (clean engine) or warns (dirty engine), C-3 step 4.
+ */
 export async function handleSetBuildNotes(context: HandlerContext, buildName: string, notes: string) {
   return wrapHandler('set build notes', async () => {
-    const buildPath = sanitizeBuildName(buildName, context.pobDirectory);
-    let xml = await fs.readFile(buildPath, 'utf-8');
-
-    // XML-escape the notes content so special characters don't corrupt the build file
-    const escaped = notes
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    if (xml.includes('<Notes>')) {
-      xml = xml.replace(/<Notes>[\s\S]*?<\/Notes>/, `<Notes>${escaped}</Notes>`);
-    } else if (xml.includes('<Notes/>')) {
-      xml = xml.replace('<Notes/>', `<Notes>${escaped}</Notes>`);
-    } else {
-      xml = xml.replace('</PathOfBuilding>', `  <Notes>${escaped}</Notes>\n</PathOfBuilding>`);
-    }
-
-    await fs.writeFile(buildPath, xml, 'utf-8');
-    // Invalidate the build cache so a subsequent get_build_notes reads the updated file
-    context.buildService.invalidateBuild(buildName);
+    if (!context.buildFileWriter) throw new Error('internal error: no build-file writer');
+    const file = await context.buildService.readBuildFile(buildName);
+    const xml = replaceNotesXml(file.bytes.toString('utf8'), escapeNotes(notes));
+    const result = await context.buildFileWriter.writeBuildFile({ name: file.rel, bytes: xml, kind: 'text' });
     return {
       content: [{
         type: 'text' as const,
-        text: `✅ Notes updated in ${buildName} (${notes.length} characters).`,
+        text: [
+          ...result.notices,
+          `✅ Notes updated in ${result.path} (${notes.length} characters).`,
+          result.message,
+        ].join('\n'),
       }],
     };
   });

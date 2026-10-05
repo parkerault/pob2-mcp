@@ -163,7 +163,6 @@ export function createServer(deps: ServerDeps): {
   const treeService = new TreeService(buildService, env);
   const watchService = new WatchService(deps.pobDirectory, buildService);
   const validationService = new ValidationService();
-  const exportService = new BuildExportService(deps.pobDirectory, deps.stateDir);
   // C-12: poe.ninja rates, read lazily and cached per league.
   const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
@@ -187,11 +186,13 @@ export function createServer(deps: ServerDeps): {
     stateDir: deps.stateDir,
     loaded: () => session.loaded,
     onWritten: (rel) => {
-      // D-58: drop the build-parse cache entry for the written file, under the names it may be keyed by.
+      // D-58: drop the build-parse cache entry for the written file (keyed by canonical relative path).
       buildService.invalidateBuild(rel);
-      buildService.invalidateBuild(rel.replace(/\.xml$/i, ""));
     },
   });
+  // Snapshots and exports live in the state dir (C-16); restores and exports into the builds folder
+  // go through the writer (C-17).
+  const exportService = new BuildExportService(deps.pobDirectory, deps.stateDir, buildFileWriter);
 
   const contextBuilder = new ContextBuilder({
     buildService,

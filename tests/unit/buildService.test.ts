@@ -1236,4 +1236,64 @@ LevelReq: 68
       expect(build1).not.toBe(build2);
     });
   });
+
+  describe('D-58: the build-parse cache (WU-13)', () => {
+    const xmlWithLevel = (level: number) => `<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+  <Build className="Mercenary" level="${level}"/>
+</PathOfBuilding2>`;
+    const touch = async (file: string, ms: number) => {
+      const t = new Date(ms);
+      await fs.utimes(file, t, t);
+    };
+
+    it('D-58: a hit is validated by size and mtime: a same-size rewrite with a new mtime is read again', async () => {
+      const file = path.join(tempDir, 'b.xml');
+      await fs.writeFile(file, xmlWithLevel(10));
+      await touch(file, 1_700_000_000_000);
+      const first = await buildService.readBuild('b.xml');
+      expect(String(first.Build?.level)).toBe('10');
+      expect(await buildService.readBuild('b.xml')).toBe(first);
+
+      await fs.writeFile(file, xmlWithLevel(20)); // same size
+      await touch(file, 1_700_000_005_000);
+      const second = await buildService.readBuild('b.xml');
+      expect(String(second.Build?.level)).toBe('20');
+    });
+
+    it('D-58: entries are keyed by canonical relative path: "b", "b.xml" and "./b.xml" share one entry', async () => {
+      await fs.writeFile(path.join(tempDir, 'b.xml'), xmlWithLevel(10));
+      const a = await buildService.readBuild('b');
+      expect(await buildService.readBuild('b.xml')).toBe(a);
+      expect(await buildService.readBuild('./b.xml')).toBe(a);
+      buildService.invalidateBuild('b.xml');
+      expect(await buildService.readBuild('b')).not.toBe(a);
+    });
+
+    it('D-58: subfolder builds are keyed sub/x.xml, and invalidating sub/x.xml drops that entry only', async () => {
+      await fs.mkdir(path.join(tempDir, 'sub'));
+      await fs.writeFile(path.join(tempDir, 'sub', 'x.xml'), xmlWithLevel(1));
+      await fs.writeFile(path.join(tempDir, 'x.xml'), xmlWithLevel(2));
+      const inner = await buildService.readBuild('sub/x.xml');
+      const top = await buildService.readBuild('x.xml');
+      buildService.invalidateBuild('sub/x.xml');
+      expect(await buildService.readBuild('x.xml')).toBe(top);
+      expect(await buildService.readBuild('sub/x.xml')).not.toBe(inner);
+    });
+
+    it('D-58: an LRU of 20: the least recently used entry is dropped first', async () => {
+      for (let i = 0; i < 21; i += 1) await fs.writeFile(path.join(tempDir, `b${i}.xml`), xmlWithLevel(i + 1));
+      const first = await buildService.readBuild('b0.xml');
+      const second = await buildService.readBuild('b1.xml');
+      for (let i = 2; i < 20; i += 1) await buildService.readBuild(`b${i}.xml`);
+      expect(await buildService.readBuild('b0.xml')).toBe(first); // b0 is now the most recent
+      await buildService.readBuild('b20.xml'); // evicts b1, the least recently used
+      expect(await buildService.readBuild('b0.xml')).toBe(first);
+      expect(await buildService.readBuild('b1.xml')).not.toBe(second);
+    });
+
+    it('D-58: a missing build names its canonical path', async () => {
+      await expect(buildService.readBuild('missing')).rejects.toThrow('build file not found: missing.xml');
+    });
+  });
 });

@@ -3,6 +3,16 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
+/**
+ * What watching does and doesn't do (C-20): it tracks recent changes and invalidates the build-parse
+ * cache. Reloading the engine's build is the engine session's job, on the next engine call (C-3 step 4),
+ * whether or not watching is on.
+ */
+export const WATCH_SCOPE_NOTE =
+  "Watching only tracks recently changed build files and refreshes cached file reads. It does not reload " +
+  "the engine: the next engine call checks the loaded build on disk and reloads it (or warns, if the " +
+  "engine has unsaved changes), whether or not watching is on.";
+
 export interface WatchHandlerContext {
   watchService: WatchService;
   buildService: BuildService;
@@ -27,7 +37,7 @@ export function handleStartWatching(context: WatchHandlerContext) {
     content: [
       {
         type: "text" as const,
-        text: `File watching started for: ${context.watchService.getDirectory()}\n\nYour builds will now be automatically reloaded when saved in Path of Building.`,
+        text: `File watching started for: ${context.watchService.getDirectory()}\n\n${WATCH_SCOPE_NOTE}`,
       },
     ],
   };
@@ -87,9 +97,10 @@ export function handleWatchStatus(context: WatchHandlerContext) {
   text += `Status: ${context.watchService.isWatchEnabled() ? "ENABLED" : "DISABLED"}\n`;
   text += `Directory: ${context.watchService.getDirectory()}\n`;
   text += `Recent changes tracked: ${changeCount}\n`;
+  text += `\n${WATCH_SCOPE_NOTE}\n`;
 
   if (!context.watchService.isWatchEnabled()) {
-    text += `\nUse 'start_watching' to enable automatic build reloading.`;
+    text += `\nUse 'start_watching' to track recently changed builds.`;
   }
 
   return {

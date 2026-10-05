@@ -81,6 +81,7 @@ const CASES: Record<ActionName, Case> = {
   set_level: { params: { level: 80 } },
   set_flask_active: { params: { slot: 'Charm 1', active: true } },
   get_build_info: {},
+  get_warnings: {},
   update_tree_delta: { params: { addNodes: [], removeNodes: [] } },
   calc_with: {},
   get_config: {},

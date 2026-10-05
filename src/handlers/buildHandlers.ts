@@ -1,6 +1,5 @@
 import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
-import type { ValidationService } from "../services/validationService.js";
 import type { TreeAnalysisResult } from "../types.js";
 import type { HandlerContext } from "../utils/contextBuilder.js";
 import type { EngineCallContext } from "../engine/session.js";
@@ -8,6 +7,8 @@ import type { SpecSummary } from "../engine/schemas.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
 import { escapeNotes, replaceNotesXml } from "../services/buildExportService.js";
 import { wrapHandler } from "../utils/errorHandling.js";
+import { judge, type Issue } from "../advice/judge.js";
+import { ADVICE_STAT_FIELDS, JUDGMENT_BASIS, renderIssueSection } from "../advice/report.js";
 export type { HandlerContext } from "../utils/contextBuilder.js";
 
 export async function handleListBuilds(context: HandlerContext) {
@@ -26,12 +27,27 @@ export async function handleListBuilds(context: HandlerContext) {
   });
 }
 
+/**
+ * The stats `analyze_build` and `compare_builds` read from the engine, named explicitly (E7, AC-A6):
+ * the comparison rows plus the advice tools' stats (`judge()`, FR-A1).
+ */
+const LIVE_STAT_FIELDS: readonly string[] = [
+  ...new Set([
+    'TotalDPS', 'CombinedDPS', 'MinionTotalDPS', 'CritChance', 'CritMultiplier',
+    'Life', 'EnergyShield', 'Mana', 'TotalEHP',
+    'FireResist', 'ColdResist', 'LightningResist', 'ChaosResist',
+    ...ADVICE_STAT_FIELDS,
+  ]),
+];
+
 /** What the engine computes for one build file, loaded temporarily (D-9). */
 interface LiveBuildData {
   info: Awaited<ReturnType<PoBLuaApiClient['getBuildInfo']>> | null;
   stats: Record<string, any>;
   specs: SpecSummary[];
   itemSets: Array<{ id: number | string; title?: string; active?: boolean }>;
+  /** `judge()`'s issues for the file (FR-A1), when asked for. */
+  issues?: Issue[];
 }
 
 /**
@@ -41,15 +57,22 @@ interface LiveBuildData {
  * reason instead, so the caller can still report the file; anything else (the engine died, the
  * working build could not be put back) propagates.
  */
-async function readLive(engine: EngineCallContext, xml: string): Promise<LiveBuildData | { unavailable: string }> {
+async function readLive(
+  engine: EngineCallContext,
+  xml: string,
+  opts: { judge?: boolean } = {},
+): Promise<LiveBuildData | { unavailable: string }> {
   try {
     return await engine.withTemporaryBuild(xml, async () => {
       const client = engine.client;
       const info = await client.getBuildInfo();
-      const stats = ((await client.getStats()) ?? {}) as Record<string, any>;
+      // PoB's warnings first: get_warnings refreshes PoB's stat list (and puts the level back).
+      const warnings = opts.judge ? await client.getWarnings() : [];
+      const { _meta: _ignored, ...stats } = (await client.getStats([...LIVE_STAT_FIELDS])) ?? {};
       const specs = (await client.listSpecs())?.specs ?? [];
       const itemSets = ((await client.listItemSets())?.itemSets ?? []) as LiveBuildData['itemSets'];
-      return { info, stats, specs, itemSets };
+      const issues = opts.judge ? judge(stats, warnings, await client.getItems()) : undefined;
+      return { info, stats: stats as Record<string, any>, specs, itemSets, issues };
     });
   } catch (error) {
     if (error instanceof EngineActionError) return { unavailable: error.message };
@@ -75,7 +98,7 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
   if (context.engine) {
     const engine = context.engine();
     const file = await context.buildService.readBuildFile(buildName);
-    live = await readLive(engine, file.bytes.toString('utf8'));
+    live = await readLive(engine, file.bytes.toString('utf8'), { judge: true });
   }
 
   const specContextLines: string[] = [];
@@ -177,14 +200,12 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
     }
   }
 
-  // Add build validation (at the end, after all data sections)
-  try {
-    const flaskAnalysis = context.buildService.parseFlasks(build);
-    const validation = context.validationService.validateBuild(build, flaskAnalysis, luaStats ?? undefined);
-    summaryParts.push("\n" + context.validationService.formatValidation(validation));
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    summaryParts.push(`\n=== Build Validation ===\n\nValidation error: ${errorMsg}`);
+  // Build validation (at the end, after all data sections): judge() on what PoB2 computes for the
+  // file (FR-A1), the same judgments as validate_build.
+  if (isLive(live) && live.issues) {
+    summaryParts.push(['\n=== Build Validation (PoB2) ===', '', ...renderIssueSection(live.issues), '', JUDGMENT_BASIS].join('\n'));
+  } else {
+    summaryParts.push('\n=== Build Validation (PoB2) ===\n\nNot available: validation judges what the PoB2 engine computes for the file.');
   }
 
   return {
@@ -277,7 +298,9 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
     const dps2 = s2.CombinedDPS || s2.TotalDPS || s2.MinionTotalDPS;
     lines.push(row('DPS (combined)', dps1, dps2));
     lines.push(row('Crit Chance %', s1.CritChance, s2.CritChance));
-    lines.push(row('Crit Multi %', s1.CritMultiplier, s2.CritMultiplier));
+    // PoB's CritMultiplier is a factor (2.24 = 224 %).
+    const asPercent = (v: unknown) => (typeof v === 'number' ? v * 100 : v);
+    lines.push(row('Crit Multi %', asPercent(s1.CritMultiplier), asPercent(s2.CritMultiplier)));
     lines.push('');
 
     // Resists

@@ -262,6 +262,13 @@ handlers.get_build_info = function(params)
   return { ok = true, info = info }
 end
 
+-- PoB's warning lines (D-30), read without changing the level or its auto mode.
+handlers.get_warnings = function(params)
+  local res, err = BuildOps.get_warnings()
+  if not res then return { ok = false, error = err } end
+  return { ok = true, result = res }
+end
+
 handlers.update_tree_delta = function(params)
   local ok2, err = BuildOps.update_tree_delta(params or {})
   if not ok2 then return { ok = false, error = err } end

@@ -728,6 +728,12 @@ export class PoBLuaApiClient {
     return res.info;
   }
 
+  /** PoB's own warning lines (D-30); the level and its auto mode are left as they were. */
+  async getWarnings(): Promise<string[]> {
+    const res = await this.request("get_warnings");
+    return res.result.lines;
+  }
+
   async setLevel(level: number): Promise<void> {
     await this.request("set_level", { level });
   }

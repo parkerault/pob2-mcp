@@ -214,6 +214,40 @@ function M.get_build_info()
   return info
 end
 
+-- PoB's colour codes (^0-^9, ^xRRGGBB) are display markup, not text.
+local function strip_color_codes(s)
+  return (s:gsub('%^x%x%x%x%x%x%x', ''):gsub('%^%d', ''))
+end
+
+-- PoB's own warning lines (D-30, FR-A1): `build.controls.warnings.lines`, which only
+-- `build:RefreshStatList()` rebuilds (bridge mutations run BuildOutput only). RefreshStatList also runs
+-- EstimatePlayerProgress, which moves `characterLevel` to PoB's estimate when `characterLevelAutoMode`
+-- is on, so both are put back afterwards; when they had changed, the config mod list and the outputs
+-- are rebuilt for the restored level. A read: the build is left as it was.
+function M.get_warnings()
+  if not build or not build.calcsTab or not build.controls or not build.controls.warnings then
+    return nil, 'build not initialized'
+  end
+  local output, err = M.get_main_output()
+  if not output then return nil, err end
+  local level, autoMode = build.characterLevel, build.characterLevelAutoMode
+  local ok, refreshErr = pcall(function() build:RefreshStatList() end)
+  if build.characterLevel ~= level or build.characterLevelAutoMode ~= autoMode then
+    build.characterLevel = level
+    build.characterLevelAutoMode = autoMode
+    local ctrl = build.controls.characterLevel
+    if ctrl and ctrl.SetText then ctrl:SetText(level) end
+    if build.configTab and build.configTab.BuildModList then build.configTab:BuildModList() end
+    M.get_main_output()
+  end
+  if not ok then return nil, 'refreshing the stat list failed: ' .. tostring(refreshErr) end
+  local lines = {}
+  for _, line in ipairs(build.controls.warnings.lines or {}) do
+    if type(line) == 'string' then table.insert(lines, strip_color_codes(line)) end
+  end
+  return { lines = lines }
+end
+
 -- Update tree by delta lists
 function M.update_tree_delta(params)
   if not build or not build.spec then return nil, 'build/spec not initialized' end

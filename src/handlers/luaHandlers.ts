@@ -3,6 +3,7 @@ import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import type { BuildFileWriter } from "../services/buildFileWriter.js";
 import type { SpecSummary } from "../engine/schemas.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
+import { renderIssueLines } from "../advice/report.js";
 import path from "path";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { resolveBuildXml } from "../utils/buildCode.js";
@@ -202,18 +203,14 @@ export async function handleLuaLoadBuild(
 
       const issuesResult = await handleGetBuildIssues({ getLuaClient: context.getLuaClient, ensureLuaClient: async () => {} }).catch(() => null);
       if (issuesResult) {
+        // The same judge() list as get_build_issues (FR-A1): PoB's warnings and engine comparisons.
         const { issues } = issuesResult;
-        const topIssues = issues.filter((i: any) => i.severity === 'error' || i.severity === 'warning').slice(0, 3);
-        if (topIssues.length > 0) {
-          summaryLines.push('');
+        summaryLines.push('');
+        if (issues.length > 0) {
           summaryLines.push('**Top Issues:**');
-          for (const issue of topIssues) {
-            const icon = issue.severity === 'error' ? '🔴' : '🟡';
-            summaryLines.push(`  ${icon} ${issue.message}`);
-          }
+          summaryLines.push(...renderIssueLines(issues));
         } else {
-          summaryLines.push('');
-          summaryLines.push('✅ No critical issues detected.');
+          summaryLines.push("**Top Issues:** none (no PoB warning, no resistance gap, no max hit below the configured enemy's hit).");
         }
       }
     } catch { /* auto-context is best-effort */ }

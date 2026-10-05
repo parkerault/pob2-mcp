@@ -6,7 +6,6 @@ import type { ContextDependencies } from '../src/utils/contextBuilder';
 const mockBuildService = {} as any;
 const mockTreeService = {} as any;
 const mockWatchService = {} as any;
-const mockValidationService = {} as any;
 const mockExportService = {} as any;
 const mockLuaClient = {} as any;
 const mockFetch = (async () => { throw new Error('no fetch'); }) as unknown as typeof fetch;
@@ -15,7 +14,6 @@ const mockDeps: ContextDependencies = {
   buildService: mockBuildService,
   treeService: mockTreeService,
   watchService: mockWatchService,
-  validationService: mockValidationService,
   exportService: mockExportService,
   pobDirectory: '/test/pob',
   stateDir: '/test/state/pob2-mcp',
@@ -32,16 +30,15 @@ describe('ContextBuilder', () => {
   const builder = new ContextBuilder(mockDeps);
 
   describe('buildHandlerContext', () => {
-    it('should return context with buildService, treeService, and validationService', () => {
+    it('should return context with buildService and treeService', () => {
       const context = builder.buildHandlerContext();
 
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
-      expect(context.validationService).toBe(mockValidationService);
       // WU-13: analyze_build/compare_builds use the engine call's context, set_build_notes the writer.
       expect(context.engine).toBe(mockDeps.engine);
       expect(context.buildFileWriter).toBe(mockDeps.buildFileWriter);
-      expect(Object.keys(context)).toHaveLength(9);
+      expect(Object.keys(context)).toHaveLength(8);
     });
   });
 
@@ -57,14 +54,13 @@ describe('ContextBuilder', () => {
   });
 
   describe('buildTreeContext', () => {
-    it('should return context with buildService, treeService, validationService and the loaded build', () => {
+    it('should return context with buildService, treeService and the loaded build', () => {
       const context = builder.buildTreeContext();
 
       expect(context.buildService).toBe(mockBuildService);
       expect(context.treeService).toBe(mockTreeService);
-      expect(context.validationService).toBe(mockValidationService);
       expect(context.loadedBuild()).toBeNull();
-      expect(Object.keys(context)).toHaveLength(8);
+      expect(Object.keys(context)).toHaveLength(7);
     });
   });
 
@@ -92,15 +88,14 @@ describe('ContextBuilder', () => {
   });
 
   describe('buildOptimizationContext', () => {
-    it('should return context with services and Lua methods', () => {
+    it('should return the advice-tool context: buildService, the engine call and the loaded build (WU-18)', () => {
       const context = builder.buildOptimizationContext();
 
       expect(context.buildService).toBe(mockBuildService);
-      expect(context.treeService).toBe(mockTreeService);
       expect(context.pobDirectory).toBe('/test/pob');
-      expect(context.getLuaClient()).toBe(mockLuaClient);
-      expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(6);
+      expect(context.engine).toBe(mockDeps.engine);
+      expect(context.loadedBuild()).toBeNull();
+      expect(Object.keys(context)).toHaveLength(5);
     });
   });
 
@@ -118,14 +113,13 @@ describe('ContextBuilder', () => {
   });
 
   describe('buildValidationContext', () => {
-    it('should return context with buildService, validationService, and Lua methods', () => {
+    it('should return the advice-tool context: buildService, the engine call and the loaded build (WU-18)', () => {
       const context = builder.buildValidationContext();
 
       expect(context.buildService).toBe(mockBuildService);
-      expect(context.validationService).toBe(mockValidationService);
-      expect(context.getLuaClient()).toBe(mockLuaClient);
-      expect(typeof context.ensureLuaClient).toBe('function');
-      expect(Object.keys(context)).toHaveLength(6);
+      expect(context.engine).toBe(mockDeps.engine);
+      expect(context.loadedBuild()).toBeNull();
+      expect(Object.keys(context)).toHaveLength(5);
     });
   });
 

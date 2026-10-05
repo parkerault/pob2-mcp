@@ -401,8 +401,8 @@ export async function handleGetPassiveUpgrades(
 
   if (focus === 'defence' || focus === 'both') {
     keywords.push('life', 'energy shield');
-    // If there are resistance issues, add resistance keywords
-    const hasResistIssue = issues.some(i => i.category === 'resistance' && (i.severity === 'error' || i.severity === 'warning'));
+    // If a resistance is below its maximum (judge(), FR-A1), add resistance keywords
+    const hasResistIssue = issues.some(i => i.kind === 'missing_resist');
     if (hasResistIssue) {
       keywords.push('resistance');
     }

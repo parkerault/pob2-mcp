@@ -30,10 +30,6 @@ describe('BuildHandlers', () => {
     context = {
       buildService: mockBuildService,
       treeService: mockTreeService,
-      validationService: {
-        validateBuild: jest.fn(),
-        formatValidation: jest.fn(),
-      } as any,
       pobDirectory: '/test/pob',
       stateDir: '/test/state/pob2-mcp',
       getLuaClient: () => null,

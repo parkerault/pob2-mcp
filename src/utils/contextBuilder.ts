@@ -8,7 +8,6 @@
 import type { BuildService } from '../services/buildService.js';
 import type { TreeService } from '../services/treeService.js';
 import type { WatchService } from '../services/watchService.js';
-import type { ValidationService } from '../services/validationService.js';
 import type { BuildExportService } from '../services/buildExportService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
 import type { BuildFileWriter } from '../services/buildFileWriter.js';
@@ -66,7 +65,6 @@ export interface BaseContext {
 export interface HandlerContext extends BaseContext {
   buildService: BuildService;
   treeService: TreeService;
-  validationService: ValidationService;
   getLuaClient: () => PoBLuaApiClient | null;
   ensureLuaClient: () => Promise<void>;
   /**
@@ -119,14 +117,20 @@ export interface ItemSkillContext extends BaseContext {
 }
 
 /**
- * Context for optimization operations (combines build/tree services with Lua)
+ * Context for the advice tools on engine data (`analyze_defenses`, `validate_build`, FR-A1): the
+ * running engine call, the loaded build, and the build files (another build is read with
+ * `withTemporaryBuild`, D-9).
  */
-export interface OptimizationContext extends BaseContext {
+export interface AdviceToolContext extends BaseContext {
   buildService: BuildService;
-  treeService: TreeService;
-  getLuaClient: () => PoBLuaApiClient | null;
-  ensureLuaClient: () => Promise<void>;
+  /** The running engine call's context (C-3). */
+  engine: () => EngineCallContext;
+  /** The build the engine holds (C-3 `loaded`). */
+  loadedBuild: () => LoadedBuild | null;
 }
+
+/** Context for `analyze_defenses`. */
+export type OptimizationContext = AdviceToolContext;
 
 /**
  * Context for export and persistence operations
@@ -139,15 +143,8 @@ export interface ExportContext extends BaseContext {
   engine: () => EngineCallContext;
 }
 
-/**
- * Context for validation operations
- */
-export interface ValidationContext extends BaseContext {
-  buildService: BuildService;
-  validationService: ValidationService;
-  getLuaClient: () => PoBLuaApiClient | null;
-  ensureLuaClient: () => Promise<void>;
-}
+/** Context for `validate_build`. */
+export type ValidationContext = AdviceToolContext;
 
 /**
  * Dependencies needed to build all context types
@@ -156,7 +153,6 @@ export interface ContextDependencies {
   buildService: BuildService;
   treeService: TreeService;
   watchService: WatchService;
-  validationService: ValidationService;
   exportService: BuildExportService;
   pobDirectory: string;
   stateDir: string;
@@ -184,7 +180,6 @@ export class ContextBuilder {
     return {
       buildService: this.deps.buildService,
       treeService: this.deps.treeService,
-      validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
       stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
@@ -214,7 +209,6 @@ export class ContextBuilder {
     return {
       buildService: this.deps.buildService,
       treeService: this.deps.treeService,
-      validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
       stateDir: this.deps.stateDir,
       getLuaClient: this.deps.getLuaClient,
@@ -255,14 +249,7 @@ export class ContextBuilder {
    * Build context for optimization operations
    */
   buildOptimizationContext(): OptimizationContext {
-    return {
-      buildService: this.deps.buildService,
-      treeService: this.deps.treeService,
-      pobDirectory: this.deps.pobDirectory,
-      stateDir: this.deps.stateDir,
-      getLuaClient: this.deps.getLuaClient,
-      ensureLuaClient: this.deps.ensureLuaClient,
-    };
+    return this.buildAdviceToolContext();
   }
 
   /**
@@ -290,13 +277,19 @@ export class ContextBuilder {
    * Build context for validation operations
    */
   buildValidationContext(): ValidationContext {
+    return this.buildAdviceToolContext();
+  }
+
+  /**
+   * Build context for the advice tools on engine data (FR-A1)
+   */
+  buildAdviceToolContext(): AdviceToolContext {
     return {
       buildService: this.deps.buildService,
-      validationService: this.deps.validationService,
       pobDirectory: this.deps.pobDirectory,
       stateDir: this.deps.stateDir,
-      getLuaClient: this.deps.getLuaClient,
-      ensureLuaClient: this.deps.ensureLuaClient,
+      engine: this.deps.engine,
+      loadedBuild: this.deps.loadedBuild,
     };
   }
 

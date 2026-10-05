@@ -31,6 +31,7 @@ export const ACTION_NAMES = [
   'set_level',
   'set_flask_active',
   'get_build_info',
+  'get_warnings',
   'update_tree_delta',
   'calc_with',
   'get_config',
@@ -230,6 +231,14 @@ export const getBuildInfoReply = baseReply.extend({
     .passthrough(),
 });
 export type BuildInfoResult = z.infer<typeof getBuildInfoReply>['info'];
+
+/**
+ * `get_warnings` (D-30): PoB's own warning lines (`build.controls.warnings.lines`, colour codes
+ * stripped), rebuilt by `RefreshStatList` with the level and its auto mode restored (WU-18).
+ */
+export const getWarningsReply = baseReply.extend({
+  result: z.object({ lines: luaArray(z.string()) }).passthrough(),
+});
 
 export const calcWithReply = baseReply.extend({ output: luaMap(luaNumber) });
 
@@ -594,6 +603,7 @@ const definedSchemas = {
   set_level: emptyReply,
   set_flask_active: emptyReply,
   get_build_info: getBuildInfoReply,
+  get_warnings: getWarningsReply,
   update_tree_delta: treeReply,
   calc_with: calcWithReply,
   get_config: configReply,
@@ -660,6 +670,7 @@ export interface ActionParamsMap {
   /** `slot` is "Flask 1"–"Flask 2" or "Charm 1"–"Charm 3"; `index` alone means "Flask <index>". */
   set_flask_active: { slot?: string; index?: number; active: boolean };
   get_build_info: NoParams;
+  get_warnings: NoParams;
   update_tree_delta: {
     addNodes?: number[];
     removeNodes?: number[];

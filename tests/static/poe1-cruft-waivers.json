@@ -1,14 +1,1 @@
-[
-  {
-    "file": "src/server/toolSchemas.ts",
-    "phrase": "spell suppression",
-    "owner": "WU-18",
-    "justification": "analyze_defenses and get_build_issues descriptions mention spell suppression; WU-18 rewrites both descriptions on engine data"
-  },
-  {
-    "file": "src/services/validationService.ts",
-    "phrase": "spell suppression",
-    "owner": "WU-18",
-    "justification": "validate_build's XML-path avoidance advice; WU-18 removes the XML path and judges on engine data (D-30)"
-  }
-]
+[]

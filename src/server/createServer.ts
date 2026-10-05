@@ -18,7 +18,6 @@ import type { spawn as nodeSpawn } from "child_process";
 import { BuildService } from "../services/buildService.js";
 import { TreeService } from "../services/treeService.js";
 import { WatchService } from "../services/watchService.js";
-import { ValidationService } from "../services/validationService.js";
 import { BuildExportService } from "../services/buildExportService.js";
 import { BuildFileWriter } from "../services/buildFileWriter.js";
 import { TradeApiClient } from "../trade/tradeClient.js";
@@ -162,7 +161,6 @@ export function createServer(deps: ServerDeps): {
   const buildService = new BuildService(deps.pobDirectory);
   const treeService = new TreeService(buildService, env);
   const watchService = new WatchService(deps.pobDirectory, buildService);
-  const validationService = new ValidationService();
   // C-12: poe.ninja rates, read lazily and cached per league.
   const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
@@ -198,7 +196,6 @@ export function createServer(deps: ServerDeps): {
     buildService,
     treeService,
     watchService,
-    validationService,
     exportService,
     pobDirectory: deps.pobDirectory,
     stateDir: deps.stateDir,

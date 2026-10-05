@@ -116,7 +116,19 @@ local function root_element_name(dbXML)
   return '(none)'
 end
 
--- load_build_xml {xml, name} (C-2, D-29): validate first, so a bad document never reaches PoB and the
+-- The level and auto-level flag a <PathOfBuilding2> document records on its <Build>, read the way
+-- buildMode:Load reads them (Modules/Build.lua): the level clamped to 1..100, the flag "true" or not.
+local function recorded_level(root)
+  for _, child in ipairs(root) do
+    if type(child) == 'table' and child.elem == 'Build' then
+      local attrib = child.attrib or {}
+      return math.max(1, math.min(100, tonumber(attrib.level) or 1)), attrib.characterLevelAutoMode == 'true'
+    end
+  end
+  return nil
+end
+
+-- load_build_xml {xml, name, keepLevel?} (C-2, D-29): validate first, so a bad document never reaches PoB and the
 -- engine's current build is untouched; after the load, check that PoB really switched to it.
 handlers.load_build_xml = function(params)
   local xml = params.xml
@@ -180,6 +192,18 @@ handlers.load_build_xml = function(params)
   end
   if #problems > 0 then
     return load_failed('load failed: ' .. table.concat(problems, '; '))
+  end
+  -- keepLevel (the session's put-back after a temporary load, D-9): every load ends in PoB's
+  -- RefreshStatList, whose level estimate moves an auto-mode level to PoB's estimate. Reloading an
+  -- export must give back the build that was exported, so the recorded level and flag are put back.
+  if params.keepLevel == true then
+    local level, autoMode = recorded_level(first)
+    if level ~= nil then
+      local restored, restoreErr = pcall(BuildOps.restore_level, level, autoMode)
+      if not restored then
+        return load_failed('load failed: putting back the recorded level failed: ' .. plain(restoreErr))
+      end
+    end
   end
   return { ok = true, result = { name = name } }
 end

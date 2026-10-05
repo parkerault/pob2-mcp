@@ -6,10 +6,13 @@
  *   estimate differs from the level; the committed low-Strength fixture yields PoB's Strength warning.
  * - AC-A3, AC-A4, AC-A5 (in process): the real Client, router, handlers, session and engine over a
  *   private temp builds folder (`startSessionFixture`). These tools send no HTTP.
+ * - AC-A3 with an auto-level working build whose level is stale (FR-A1: another build_name never
+ *   replaces the engine's build): the temporary load's put-back reloads with `keepLevel`, so PoB's
+ *   level estimate does not move the level; the C-2 `keepLevel` option is checked Lua-direct.
  */
 import fs from 'fs';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startLuaLineClient, type Json, type LuaLineClient } from '../helpers/luaLineClient';
 import {
@@ -103,6 +106,29 @@ engineDescribe('AC-A1 (WU-18, D-30): get_warnings reads PoB\'s warnings without 
     const raw = (await call('__test_eval', { code: `build:RefreshStatList() ${LEVEL_STATE}` })).result;
     expect(raw.auto).toBe(true);
     expect(raw.level).not.toBe(before.level);
+  }, ENGINE_TIMEOUT);
+
+  it('AC-A3 (C-2 keepLevel): reloading the export of an auto-level build with a stale level moves the level, unless keepLevel puts it back', async () => {
+    await call('load_build_xml', { xml: AUTO_LEVEL_XML, name: 'Grenadator (auto level)' });
+    const leaves = (await call('__test_eval', { code: PICK_LEAVES(5) })).result as number[];
+    expect(leaves).toHaveLength(5);
+    await call('update_tree_delta', { removeNodes: leaves });
+    const before = await levelState();
+    expect(before.auto).toBe(true);
+    const stale = (await call('export_build_xml')).xml as string;
+
+    // A plain load is PoB's own load: its level estimate moves the auto-mode level.
+    await call('load_build_xml', { xml: GOLDEN_XML, name: 'Grenadator' });
+    await call('load_build_xml', { xml: stale, name: 'Grenadator (auto level)' });
+    const plain = await levelState();
+    expect(plain.auto).toBe(true);
+    expect(plain.level).not.toBe(before.level);
+
+    // keepLevel (the session's put-back after a temporary load) gives back the level that was exported.
+    await call('load_build_xml', { xml: GOLDEN_XML, name: 'Grenadator' });
+    await call('load_build_xml', { xml: stale, name: 'Grenadator (auto level)', keepLevel: true });
+    expect(await levelState()).toEqual(before);
+    expect((await call('get_build_info')).info.level).toBe(before.level);
   }, ENGINE_TIMEOUT);
 
   it('AC-A1: Str case: the low-Strength fixture yields PoB\'s "do not meet the Strength requirement" line', async () => {
@@ -267,4 +293,59 @@ engineDescribe('AC-A3, AC-A4, AC-A5 (WU-18): the advice tools on the golden buil
     const defenses = tools.find((t) => t.name === 'analyze_defenses')!;
     expect(defenses.inputSchema.required ?? []).not.toContain('build_name');
   }, T);
+});
+
+engineDescribe('AC-A3, AC-E51 (WU-18, FR-A1, D-30): another build_name never moves an auto-mode working build\'s level', () => {
+  let f: SessionFixture;
+
+  async function luaQuery<T>(code: string): Promise<T> {
+    const { value } = await f.session.run({ tool: 'test:advice', kind: 'read' }, async (ctx) => {
+      return (await ctx.client.request('__test_eval', { code })).result as T;
+    });
+    return value;
+  }
+  const exportXml = async (): Promise<string> =>
+    (await f.session.run({ tool: 'test:export', kind: 'read' }, (ctx) => ctx.client.exportBuildXml())).value;
+  const statsNow = async () =>
+    (await f.session.run({ tool: 'test:stats', kind: 'read' }, (ctx) => ctx.client.getStats(['Life', 'TotalEHP', 'FireResist']))).value;
+
+  beforeAll(async () => {
+    f = await startSessionFixture({
+      testActions: true,
+      files: { 'auto.xml': AUTO_LEVEL_XML, 'other.xml': goldenWithLevel(80) },
+    });
+  }, T);
+  afterAll(async () => f?.close(), 30_000);
+
+  // Each case starts from a fresh stale state, so one case's drift cannot hide the next one's.
+  beforeEach(async () => {
+    const load = await f.call('lua_load_build', { build_name: 'auto.xml' });
+    expect(load.isError).toBe(false);
+    // The state AC-A1 builds: auto level on, 5 leaves removed, the level left where PoB estimated it at load.
+    const leaves = await luaQuery<number[]>(PICK_LEAVES(5));
+    expect(leaves).toHaveLength(5);
+    const delta = await f.call('update_tree_delta', { remove_nodes: leaves.map(String) });
+    expect(delta.isError).toBe(false);
+  }, T);
+
+  for (const tool of ['analyze_defenses', 'validate_build'] as const) {
+    it(`AC-A3: ${tool} {build_name:"other.xml"} leaves the level, its auto flag, the outputs, loaded, revision and the canonical export unchanged`, async () => {
+      const level = await luaQuery<{ level: number; auto: boolean }>(LEVEL_STATE);
+      expect(level.auto).toBe(true);
+      const xml = await exportXml();
+      const stats = await statsNow();
+      const loaded = structuredClone(f.session.loaded);
+      const revision = f.session.revision;
+
+      const out = await f.call(tool, { build_name: 'other.xml' });
+      expect(out.isError).toBe(false);
+      expect(out.text).toContain('other.xml (level 80)');
+
+      expect(await luaQuery(LEVEL_STATE)).toEqual(level);
+      expect(await statsNow()).toEqual(stats);
+      expect(f.session.revision).toBe(revision);
+      expect(f.session.loaded).toEqual(loaded);
+      expect(canonicalizeAcrossReload(await exportXml())).toBe(canonicalizeAcrossReload(xml));
+    }, T);
+  }
 });

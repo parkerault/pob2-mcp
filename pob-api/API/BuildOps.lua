@@ -219,6 +219,20 @@ local function strip_color_codes(s)
   return (s:gsub('%^x%x%x%x%x%x%x', ''):gsub('%^%d', ''))
 end
 
+-- Put `characterLevel` and `characterLevelAutoMode` back to the given values after PoB's
+-- EstimatePlayerProgress (run by RefreshStatList, and by every build load) moved the level to its
+-- estimate. When either differs, the level control, the config mod list and the outputs are rebuilt
+-- for the restored level; otherwise nothing is touched.
+function M.restore_level(level, autoMode)
+  if build.characterLevel == level and build.characterLevelAutoMode == autoMode then return end
+  build.characterLevel = level
+  build.characterLevelAutoMode = autoMode
+  local ctrl = build.controls and build.controls.characterLevel
+  if ctrl and ctrl.SetText then ctrl:SetText(level) end
+  if build.configTab and build.configTab.BuildModList then build.configTab:BuildModList() end
+  M.get_main_output()
+end
+
 -- PoB's own warning lines (D-30, FR-A1): `build.controls.warnings.lines`, which only
 -- `build:RefreshStatList()` rebuilds (bridge mutations run BuildOutput only). RefreshStatList also runs
 -- EstimatePlayerProgress, which moves `characterLevel` to PoB's estimate when `characterLevelAutoMode`
@@ -232,14 +246,7 @@ function M.get_warnings()
   if not output then return nil, err end
   local level, autoMode = build.characterLevel, build.characterLevelAutoMode
   local ok, refreshErr = pcall(function() build:RefreshStatList() end)
-  if build.characterLevel ~= level or build.characterLevelAutoMode ~= autoMode then
-    build.characterLevel = level
-    build.characterLevelAutoMode = autoMode
-    local ctrl = build.controls.characterLevel
-    if ctrl and ctrl.SetText then ctrl:SetText(level) end
-    if build.configTab and build.configTab.BuildModList then build.configTab:BuildModList() end
-    M.get_main_output()
-  end
+  M.restore_level(level, autoMode)
   if not ok then return nil, 'refreshing the stat list failed: ' .. tostring(refreshErr) end
   local lines = {}
   for _, line in ipairs(build.controls.warnings.lines or {}) do

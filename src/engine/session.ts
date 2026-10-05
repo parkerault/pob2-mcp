@@ -599,8 +599,8 @@ class Session implements EngineSession {
   // -------------------------------------------------------------------------------------------------
   // Engine primitives (unguarded; the session's own use only)
 
-  private async rawLoad(xml: string, name: string): Promise<void> {
-    await this.client().request("load_build_xml", { xml, name });
+  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}): Promise<void> {
+    await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) });
   }
 
   private async exportXml(): Promise<string> {
@@ -721,7 +721,9 @@ class Session implements EngineSession {
             throw new Error("the engine exited during a temporary load");
           }
           try {
-            await session.rawLoad(saved, name);
+            // keepLevel: the reload must not let PoB's level estimate move an auto-mode level (FR-A1:
+            // the engine's build is never replaced, D-30's no-level-drift rule).
+            await session.rawLoad(saved, name, { keepLevel: true });
           } catch (error) {
             if (!session.sameEngine(pid)) throw original ? original.error : error;
             await session.killEngine(state);

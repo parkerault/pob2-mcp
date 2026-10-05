@@ -650,7 +650,8 @@ export interface ActionParamsMap {
   ping: NoParams;
   version: NoParams;
   new_build: { className?: string; ascendancy?: string };
-  load_build_xml: { xml: string; name?: string };
+  /** `keepLevel`: put back the `<Build>`'s recorded level and auto-level flag after PoB's level estimate (D-9 put-back). */
+  load_build_xml: { xml: string; name?: string; keepLevel?: boolean };
   get_stats: { fields?: string[] };
   get_items: NoParams;
   get_skills: NoParams;

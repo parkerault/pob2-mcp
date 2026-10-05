@@ -1099,3 +1099,20 @@ For running the WU-20 smoke after the final wave, the user approved:
 - registering the server in their Claude Code config.
 
 The two PoB2-on-Windows checks (items 6–7) and final acceptance (WU-21) stay with the user.
+
+## 2026-10-05: WU-20 live smoke, coordinator-run part
+
+The main checkout `stabilization/foundation` was fast-forwarded to `cc3a36e`. `mise trust && mise run setup`
+exited 0. The server is registered with the D-16 command, and `claude mcp list` reports
+`pob2 … ✔ Connected`. A stdio MCP client (SDK `Client`) drove `build/index.js` with
+`POB_DIRECTORY` set to the Windows builds folder. Outputs were masked for any 32-hex token.
+
+| # | Item | Result |
+|---|---|---|
+| 1 | Tool count | **PASS.** 76 tools |
+| 2 | Load Grenadator | **PASS.** Took 2.4 s. Output: "Build: Grenadator (Grenadator.xml)", Life 2,977, which equals the file's `PlayerStat` Life (2977) |
+| 3 | `find_upgrades`, Body Armour, `max_price` 100 exalted | **BLOCKED.** The cookie was rejected. Trade2 answered the weighted search with HTTP 400, code 2, and no Account rule, so it was classified `session_rejected`. The fallback text came with a `%20`-encoded Forbidden Rites search link. 3.1 s, ~4,000 chars. Waits on a refreshed `POESESSID` |
+| 5 | No-cookie fallback and re-read | **PASS.** With `.env` moved aside: "Trade search not run: no POESESSID set." (4 ms, no network). After it was restored, the next call sent the cookie again with no restart (C-9 re-read) |
+| 8 | `import_build` from a pobb.in URL | **PASS.** Took 2.5 s: Monk (Martial Artist), level 42 (A-15 holds) |
+| 4, 6, 7 | The exact-item link, PoB2 edit then reload, Claude save then re-open in PoB2 | **PENDING.** These need the user |
+| 9 | Live observations | The trade2 rate-limit rules are not logged by the server. The one observed response was 400 with code 2 and no Account rule, sent with a cookie |

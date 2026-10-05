@@ -95,6 +95,16 @@ function allToolSchemas(): Array<{ name: string; description?: string; [k: strin
   ];
 }
 
+/**
+ * The tools `tools/list` returns for this env, in listing order: every schema with TOOL_META whose
+ * group is enabled (C-1, C-8). `scripts/gen-tool-table.mjs` renders the README tool table from it.
+ */
+export function listedToolSchemas(
+  env: Readonly<Record<string, string | undefined>>,
+): Array<{ name: string; description?: string; [k: string]: unknown }> {
+  return allToolSchemas().filter((t) => isToolAvailable(t.name, env));
+}
+
 /** The MCP request `extra` fields the router's call context is built from (C-1). */
 export interface CallExtra {
   signal: AbortSignal;
@@ -260,7 +270,7 @@ export function createServer(deps: ServerDeps): {
 
   // Tools: every tool with TOOL_META whose group is enabled (C-1, C-8).
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = allToolSchemas().filter((t) => isToolAvailable(t.name, env));
+    const tools = listedToolSchemas(env);
     return { tools } as { tools: Array<{ name: string; inputSchema: { type: "object" } }> };
   });
 

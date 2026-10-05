@@ -1,513 +1,297 @@
-# Path of Building MCP Server — PoE2
+# pob2-mcp: Path of Building 2 for Claude
 
-An MCP (Model Context Protocol) server that enables Claude to analyze, modify, and optimize **Path of Exile 2** builds using Path of Building's actual calculation engine, via the [PathOfBuilding-PoE2](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2) fork.
+An MCP server that lets Claude read, change and analyse **Path of Exile 2** builds with Path of
+Building 2's own calculation engine, and search the PoE2 trade site for upgrades the way Path of
+Building's trade dialog does.
 
-It is a port of [`pob-mcp`](../pob-mcp) (PoE1) to PoE2. The high-fidelity calculation half is driven by a headless `luajit` process running an `api-stdio` JSON bridge, vendored in this repo at `pob-api/` and run against an unmodified PathOfBuilding-PoE2 checkout.
+- **The engine is PoB2 itself.** A headless `luajit` process runs an unmodified
+  [PathOfBuilding-PoE2](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2) checkout,
+  pinned to release `v0.23.1` (`pob-pin.json`), through the small Lua bridge in `pob-api/`. Stats,
+  warnings and trade scores are the numbers PoB2 computes.
+- **Advice is PoB's.** `validate_build`, `analyze_defenses` and `get_build_issues` report PoB's own
+  warning lines and comparisons of engine outputs (missing resistances, max hit taken against the
+  configured enemy). There are no thresholds of our own.
+- **Your builds folder is the system of record.** The server writes there through one writer only. It
+  backs the old file up first, refuses to overwrite a file that changed on disk since the engine loaded
+  or saved it, and needs `overwrite: true` to replace an existing file.
+- **`find_upgrades`** has PoB generate a weighted trade search for one item slot, runs it on the trade
+  site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
+  the upgrades within your budget.
 
-### PoE2 specifics
+76 tools are listed by default; the full table is [below](#tools).
 
-- **Engine-backed tools to prefer:** `analyze_skills`, `suggest_supports` (incl. `measure_dps`), `list_gems`, `get_classes` — all sourced from the PoB2 engine. `list_gems` queries Path of Building's own PoE2 gem database (skill + support gems, tags, gem family, requirements, max level). The defensive analyzer and `validate_build` are tuned for PoE2 mechanics (evade/block/deflect, Spirit, charms; no spell suppression).
-- **On by default:** poe.ninja currency tools on the PoE2 economy endpoint (`POE_NINJA_DISABLED=true` to hide).
-- **Opt-in:** legacy PoE1-shaped skill-gem tools (`analyze_skill_links`, `suggest_support_gems`, `find_optimal_links`, `validate_gem_quality`, `compare_gem_setups`, `gem_upgrade_path`) via `POB_LEGACY_GEM_TOOLS=true`; Trade API (PoE2 trade2 endpoints) via `POE_TRADE_ENABLED=true`.
+## Setup
 
----
-
-## Features
-
-### Build Analysis (Always Available)
-- **List & Analyze Builds**: Browse builds and extract stats, skills, items, passive trees, and notes from XML
-- **Compare Builds**: Side-by-side build comparison
-- **File Watching**: Real-time detection of builds saved from PoB with automatic cache invalidation
-- **Tree Analysis**: Compare passive trees, find paths to nodes, discover nearby notables, what-if allocation testing
-
-### High-Fidelity Calculations (Lua Bridge)
-- **Live Stats**: Accurate stat calculation using PoB's own engine — identical to what PoB GUI shows
-- **Build Loading & Creation**: Load existing builds or create new ones from scratch by class/ascendancy
-- **Passive Tree Editing**: Set full tree allocation and see immediate stat recalculation
-- **Node Search**: Search the passive tree for nodes by name or stat text
-- **Character Level**: Set level and watch all stats update accordingly
-
-### Item & Skill Management (Lua Bridge)
-- **Items**: Add items from PoE clipboard text, view all equipped gear
-- **Flasks**: Toggle flasks active/inactive with immediate stat feedback
-- **Skills**: Full gem management — create socket groups, add/remove/level/quality gems
-- **Batch Operations**: `setup_skill_with_gems` and `add_multiple_items` for efficient workflows
-
-### Build Optimization (Lua Bridge)
-- **Defensive Analysis**: 3-layer framework (avoidance / mitigation / recovery) — evaluates EHP, spell suppression, armour/PDR, evasion, block, life regen, and leech
-- **Node Suggestions**: Archetype-aware suggestions by goal (damage, life, ES, defense, resist)
-- **Tree Optimization**: Recommend nodes within reach of the current allocation
-- **Item Upgrade Analysis**: Slot-by-slot upgrade recommendations based on live stats
-- **Skill Link Optimization**: Detect missing "more" multipliers, penetration gaps, anti-synergies
-- **Budget Build Creation**: Generate starter build plans with skill links, gearing strategy, and passive priorities
-
-### Build Validation
-- **Comprehensive Checks**: Resistances, life pool, defensive layers, mana, flask immunities, accuracy, damage scaling
-- **Severity Classification**: Critical / Warning / Info with actionable suggestions
-- **Dual Source**: Uses Lua bridge stats when available, falls back to XML parsing
-- **Overall Score**: 0–10 build health score
-
-### Configuration & Scenario Testing (Lua Bridge)
-- **Config State**: View bandit, pantheon, enemy settings
-- **Toggle Conditions**: Charges, buffs (Onslaught, Fortify, Leeching), boss mode
-- **Enemy Tuning**: Set enemy level, resistances, armour, evasion for boss DPS testing
-
-### Skill Gem Analysis
-- **Archetype Detection**: Classify builds (Elemental Bow Attack, Summoner, Critical Spell, etc.)
-- **Support Gem Recommendations**: Ranked suggestions with DPS estimates and cost context
-- **Quality Validation**: Identify missing quality, awakened upgrade paths, corruption targets
-- **Optimal Links**: Auto-generate best support gem combinations for 4/5/6-link setups
-- **Budget Tiers**: League-start, mid-league, and endgame recommendations
-
-### Build Export & Persistence
-- **Export**: Copy builds to XML files with optional notes
-- **Save Tree**: Write optimized passive tree back to an existing build file
-- **Snapshots**: Versioned build history with tags, stat metadata, and one-click rollback
-
-### Currency & Market Data (poe.ninja)
-- **Exchange Rates**: Real-time currency prices in Chaos Orb equivalent
-- **Arbitrage Detection**: Find profitable currency trading loops
-- **Trade Profit Calculator**: Evaluate custom trading chains
-
-### Trade API (Optional, `POE_TRADE_ENABLED=true`)
-- **Item Search**: Search trade with stat filters, price range, link count
-- **Price Checking**: Min/max/median/average from recent listings
-- **Upgrade Finder**: Identify best item upgrade candidates for your build
-- **Resistance Gear**: Find affordable gear to cap resistances
-- **Cluster Jewels**: Search and analyze cluster jewel setups
-- **Shopping List**: Generate a prioritized shopping list from build analysis
-
----
-
-## Installation
+Requirements: Linux or WSL2, `git` and [mise](https://mise.jdx.dev). mise installs Node 24 (with pnpm
+through corepack) and LuaJIT with `luautf8`, as pinned in `mise.toml`.
 
 ```bash
-cd pob-mcp
-npm install
-npm run build
+git clone <this repository's URL> ~/projects/pob2-mcp
+cd ~/projects/pob2-mcp
+mise trust
+mise run setup
 ```
+
+- `mise trust` comes first: mise refuses to read an untrusted `mise.toml`, so every `mise` command
+  before it fails.
+- `mise run setup` installs the dependencies with pnpm from the lockfile, builds the server
+  (`pnpm build`) and fetches the pinned PoB2 checkout into `vendor/` (`mise run pob:fetch`, a sparse
+  clone of about 5 MiB from GitHub).
+
+The server refuses to start the engine on any other PoB2 version. If it reports a pin mismatch, run
+`mise run pob:fetch` again.
+
+## Register with Claude Code
+
+On this box (WSL2, builds in the Windows PoB2 folder), the registration command is:
+
+```bash
+claude mcp add pob2 -s user -e "POB_DIRECTORY=/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds" -- mise exec -C /home/parker/projects/pob2-mcp -- node build/index.js
+```
+
+On another machine, change the two paths: `POB_DIRECTORY` is your PoB2 builds folder, and `-C` is
+where you cloned this repository.
+
+```bash
+claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise exec -C <path to this repo> -- node build/index.js
+```
+
+`mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 76 tools.
 
 ## Configuration
 
-### Claude Desktop Configuration
+Settings are environment variables. Pass them with `-e NAME=value` on `claude mcp add`; the trade
+cookie can go in `.env` instead (below).
 
-**Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-#### XML-Only (No Lua Bridge)
-```json
-{
-  "mcpServers": {
-    "pob": {
-      "command": "node",
-      "args": ["/absolute/path/to/pob-mcp-server/build/index.js"],
-      "env": {
-        "POB_DIRECTORY": "/path/to/your/Path of Building/Builds"
-      }
-    }
-  }
-}
-```
-
-#### Full Configuration (With Lua Bridge)
-```json
-{
-  "mcpServers": {
-    "pob": {
-      "command": "node",
-      "args": ["/absolute/path/to/pob-mcp-server/build/index.js"],
-      "env": {
-        "POB_DIRECTORY": "/path/to/your/Path of Building/Builds",
-        "POB_LUA_ENABLED": "true",
-        "POB_FORK_PATH": "/path/to/PathOfBuilding/src",
-        "POB_CMD": "/usr/local/bin/luajit",
-        "POB_TIMEOUT_MS": "10000"
-      }
-    }
-  }
-}
-```
-
-### Environment Variables
-
-| Variable | Default | Description |
+| Variable | Default | What it does |
 |---|---|---|
-| `POB_DIRECTORY` | OS-default Builds dir | Path to your PoB builds directory |
-| `POB_LUA_ENABLED` | `false` | Set `"true"` to enable Lua bridge |
-| `POB_FORK_PATH` | `~/Projects/PathOfBuilding-PoE2/src` | Path to PathOfBuilding-PoE2/src |
-| `POB_CMD` | `luajit` | LuaJIT binary path |
-| `POB_TIMEOUT_MS` | `10000` | Lua request timeout (ms) |
-| `POE_TRADE_ENABLED` | `false` | Enable Trade API tools (PoE2 `trade2` endpoints — Cloudflare/session-gated, see below) |
-| `POE_SESSION_ID` | — | Your `POESESSID` cookie — required for most Trade API calls (Cloudflare/auth) |
-| `POE_TRADE_BASE` | `…/api/trade2` | Override the trade API base path if GGG changes it |
-| `POE_TRADE_USER_AGENT` | `pob2-mcp-server/0.1 …` | Descriptive contactable User-Agent for trade requests |
-| `POE_NINJA_DISABLED` | `false` | Set `"true"` to hide poe.ninja tools (ported to the PoE2 economy endpoint; on by default) |
-| `POB_LEGACY_GEM_TOOLS` | `false` | Expose the legacy PoE1 skill-gem tools (⚠️ PoE1 gem model; prefer the engine-backed gem tools) |
+| `POB_DIRECTORY` | `~/Documents/Path of Building (PoE2)/Builds` | Your PoB2 builds folder, subfolders included. On WSL2, point it at the Windows folder, e.g. `/mnt/c/Users/<you>/Documents/Path of Building (PoE2)/Builds`. |
+| `POESESSID` | unset | Your pathofexile.com session cookie, for weighted trade searches. See [Trade session](#trade-session-poesessid). `POE_SESSION_ID` is accepted as an alias. |
+| `POE_LEAGUE` | see [League](#league) | The trade league the trade tools use. |
+| `POE_TRADE_DISABLED` | unset | `true` hides the trade tools (`search_trade_items`, `get_item_price`, `get_leagues`, `search_stats`, `find_upgrades`, `trade_query_options`). The server then never contacts the trade site or reads `.env`. |
+| `POE_NINJA_DISABLED` | unset | `true` hides `get_currency_rates` and stops poe.ninja requests. Trade results then show native prices only. |
+| `XDG_STATE_HOME` | `~/.local/state` | The server's state folder is `$XDG_STATE_HOME/pob2-mcp`. |
+| `POB_TIMEOUT_MS` | `30000` | Timeout for one engine request, counted from when it is sent. Trade query generation gets 60 s. |
+| `POB_FORK_PATH` | `<repo>/vendor/PathOfBuilding-PoE2/src` | Another PoB2 `src/` checkout. It must still match the pin. |
+| `POB_ALLOW_UNPINNED` | unset | `true` turns the pin check's refusal into a warning. For PoB2 development only. |
+| `POB_CMD`, `POB_ARGS` | `luajit`, the bridge's `bootstrap.lua` | The engine command and its argument. |
+| `POB_DEBUG` | unset | `true` logs the engine's stdout to stderr. |
+| `POE_TRADE_BASE`, `POE_TRADE_REALM` | `https://www.pathofexile.com/api/trade2`, `poe2` | The trade API base URL and realm. |
 
-### Setting Up the Lua Bridge
+### League
 
-The Lua bridge uses PoB's actual calculation engine for accurate stats.
+`POE_LEAGUE` names the trade league, e.g. `POE_LEAGUE="Forbidden Rites"`. If it isn't set, the default
+league is the first league the trade site lists that isn't `Standard` or `Hardcore` and doesn't start
+with `HC `: the current softcore trade league. A tool's own `league` argument overrides both.
+`get_leagues` shows the list and marks the default.
 
-#### 1. Install LuaJIT
-```bash
-# macOS
-brew install luajit
+### Trade session (POESESSID)
 
-# Ubuntu/Debian
-sudo apt-get install luajit
+Weighted trade searches (`find_upgrades`) need a logged-in pathofexile.com session. The server reads
+the `POESESSID` cookie on every trade call, so a refreshed cookie works without a restart. It looks, in
+this order, at the server's environment `POESESSID`, then `POE_SESSION_ID`, then the same two names in
+the `.env` file at the repository root, next to `package.json` (`.env` is gitignored):
 
-# Windows: download from https://luajit.org/ and add to PATH
+```dotenv
+POESESSID=<the POESESSID cookie value from your browser on pathofexile.com>
 ```
 
-#### 2. Get a PathOfBuilding-PoE2 checkout (no patching required)
-The api-stdio bridge is now **vendored inside this repo** at `pob-api/`
-(`pob-api/bootstrap.lua`, `pob-api/API/{Server,Handlers,BuildOps}.lua`, `pob-api/utf8.lua`). The
-server launches `luajit pob-api/bootstrap.lua` with the working directory set to PoB's `src/`, so
-it drives an **unmodified** PathOfBuilding-PoE2 checkout — you no longer patch `HeadlessWrapper.lua`
-or copy files into the PoB tree.
-
-Point `POB_FORK_PATH` at the `src/` directory of any compatible PathOfBuilding-PoE2 checkout (the
-sibling `PathOfBuilding-PoE2/` works, as does a clean upstream clone). "Compatible" means a version
-whose internals `pob-api/API/BuildOps.lua` expects; a wildly newer/older PoB may drift.
-
-#### 3. Verify
-```bash
-luajit -v
-ls "$POB_FORK_PATH/Launch.lua"        # PoB src (must exist)
-ls pob-api/bootstrap.lua              # vendored bridge entry (must exist)
-```
-
-#### 4. Update Claude Desktop config and restart Claude Desktop
-
----
-
-## Available Tools
-
-The server registers **91 tools** across 10 categories.
-
-### XML-Based Tools (Always Available)
-
-| Tool | Description |
-|---|---|
-| `list_builds` | List all `.xml` build files |
-| `analyze_build` | Full build summary: class, stats, skills, items, tree |
-| `compare_builds` | Side-by-side build comparison |
-| `get_build_stats` | Extract raw stats from build XML |
-| `get_build_notes` | Get build notes from XML |
-| `set_build_notes` | Set build notes in XML |
-| `start_watching` | Monitor builds directory for changes |
-| `stop_watching` | Stop file monitoring |
-| `watch_status` | Show watching status and cache info |
-| `get_recent_changes` | List recently modified builds |
-| `refresh_tree_data` | Clear passive tree data cache |
-
-### Tree Analysis Tools (Always Available)
-
-| Tool | Description |
-|---|---|
-| `compare_trees` | Show node differences between two builds |
-| `get_nearby_nodes` | Find notables/keystones reachable from current allocation |
-| `find_path_to_node` | Shortest path to a target node ID |
-| `get_passive_upgrades` | Suggest passive tree upgrades |
-| `suggest_masteries` | Suggest mastery choices for allocated clusters |
-
-### Lua Bridge — Core (Require `POB_LUA_ENABLED=true`)
-
-| Tool | Description |
-|---|---|
-| `lua_start` | Start the PoB calculation engine (stdio or TCP) |
-| `lua_stop` | Stop the engine and free resources |
-| `lua_new_build` | Create a blank build for a given class/ascendancy |
-| `lua_load_build` | Load a build file into the engine |
-| `lua_save_build` | Save the current in-memory build to a `.xml` file |
-| `lua_reload_build` | Reload the current build from disk |
-| `lua_get_build_info` | Get current build metadata (class, level, etc.) |
-| `set_character_level` | Set level and recalculate all stats |
-| `lua_get_stats` | Get calculated stats (`category`: `offense`/`defense`/`all`) |
-| `lua_get_tree` | View passive tree: class, ascendancy, all allocated node IDs |
-| `lua_set_tree` | Replace passive tree allocation (preserves class if omitted) |
-| `update_tree_delta` | Add/remove individual nodes without replacing entire tree |
-| `search_tree_nodes` | Search passive tree by name or stat text |
-| `list_specs` | List all tree specs in the current build |
-| `select_spec` | Switch active tree spec |
-| `create_spec` | Create a new tree spec |
-| `delete_spec` | Delete a tree spec |
-| `rename_spec` | Rename a tree spec |
-| `list_item_sets` | List all item sets in the current build |
-| `select_item_set` | Switch active item set |
-| `plan_leveling` | Generate a leveling plan for a build |
-
-**`lua_set_tree` class IDs (PoE2)**: 1=Witch, 2=Ranger, 6=Warrior, 7=Sorceress, 8=Huntress, 9=Mercenary, 10=Monk, 11=Druid. Call `get_classes` for the live list (classes/ascendancies can change between PoE2 patches).
-
-**Ascendancy IDs (PoE2)** — per class, e.g. Witch: 1=Infernalist, 2=Blood Mage, 3=Lich, 4=Abyssal Lich; Monk: 1=Martial Artist, 2=Invoker, 3=Acolyte of Chayula. Use `get_classes` for the full, current mapping.
-
-**`lua_save_build` is required** before using file-based tools (`validate_build`, `analyze_build`, etc.) on an in-memory build.
-
-### Lua Bridge — Item & Skill Management
-
-| Tool | Description |
-|---|---|
-| `add_item` | Add item from PoE clipboard text to a slot |
-| `add_multiple_items` | Add multiple items in one operation |
-| `get_equipped_items` | List all equipped gear with name, base, and rarity |
-| `toggle_flask` | Activate/deactivate flask 1–5; returns updated stats |
-| `get_skill_setup` | Show all socket groups with gems, levels, and quality |
-| `set_main_skill` | Set which group/gem is used for DPS calculations |
-| `create_socket_group` | Create a new socket group (label, slot, enabled) |
-| `add_gem` | Add a gem to a socket group (name, level, quality) |
-| `set_gem_level` | Set gem level by group + gem index |
-| `set_gem_quality` | Set gem quality (Default/Anomalous/Divergent/Phantasmal) |
-| `remove_gem` | Remove a gem by group + gem index |
-| `remove_skill` | Remove an entire socket group |
-| `setup_skill_with_gems` | Create a socket group with active gem + supports in one call |
-
-**Slot names**: `Weapon 1`, `Weapon 2`, `Helmet`, `Body Armour`, `Gloves`, `Boots`, `Amulet`, `Ring 1`, `Ring 2`, `Belt`, `Flask 1`–`Flask 5`
-
-### Lua Bridge — Build Optimization
-
-| Tool | Description |
-|---|---|
-| `analyze_defenses` | 3-layer defensive audit: avoidance / mitigation / recovery |
-| `suggest_optimal_nodes` | Archetype-aware node suggestions by goal |
-| `optimize_tree` | Recommend nearby nodes to allocate for a goal |
-| `analyze_items` | Slot-by-slot item analysis with upgrade priorities |
-| `optimize_skill_links` | Audit supports: "more" multipliers, penetration, anti-synergies |
-| `create_budget_build` | Generate a starter build plan for a class/skill/budget |
-| `get_build_issues` | Get prioritized list of build problems and suggestions |
-| `check_boss_readiness` | Evaluate readiness for specific boss encounters |
-| `suggest_watchers_eye` | Suggest Watcher's Eye mods for the build's auras |
-
-**`suggest_optimal_nodes` goals**: `damage`, `defense`, `life`, `es`, `resist`, `speed`
-
-**Defensive layers**:
-- **Avoidance** — evasion, spell suppression, dodge, block
-- **Mitigation** — armour/PDR, endurance charges
-- **Recovery** — life regen (≥1%/s), leech, ES recharge
-
-A build with all 3 layers is considered exceptional.
-
-### Configuration & Enemy Settings
-
-| Tool | Description |
-|---|---|
-| `get_config` | View bandit, pantheon, and enemy settings |
-| `set_config` | Toggle charges, buffs, conditions (e.g. `usePowerCharges`, `enemyIsBoss`) |
-| `set_enemy_stats` | Set enemy level, resistances, armour, evasion for DPS scenarios |
-| `save_config_preset` | Save current config as a named preset |
-| `load_config_preset` | Load a saved config preset |
-| `list_config_presets` | List all saved config presets |
-
-### Build Validation
-
-| Tool | Description |
-|---|---|
-| `validate_build` | Check resistances, life, defensive layers, mana, immunities, accuracy, damage scaling |
-
-Returns critical issues, warnings, and info with actionable suggestions and an overall 0–10 health score. Uses Lua bridge stats when available; falls back to XML parsing. `build_name` is optional — omitting it validates the currently loaded Lua bridge build.
-
-### Skill Gem Analysis (PoE2, engine-backed — preferred)
-
-| Tool | Description |
-|---|---|
-| `analyze_skills` | Engine-truth breakdown of each socket group: active skill + supports, flags tag-mismatched supports, empty/disabled/unknown gems |
-| `suggest_supports` | Compatible supports for a group's active skill from PoB2's gem DB; ranked by tag relevance, or by **real measured DPS** with `measure_dps=true` |
-| `list_gems` | Query PoB2's authoritative gem database (active/support, tags, family, requirements, max level) |
-| `get_classes` | PoE2 classes + ascendancy IDs from the engine |
-
-#### Legacy PoE1 gem tools (not registered by default)
-
-`analyze_skill_links`, `suggest_support_gems`, `validate_gem_quality`, `compare_gem_setups`,
-`find_optimal_links`, `gem_upgrade_path` use a hand-coded PoE1 gem DB / archetype templates and a
-6-link + Awakened-gem model that does not match PoE2. They are **disabled by default**; set
-`POB_LEGACY_GEM_TOOLS=true` to expose them. Prefer the engine-backed tools above.
-
-### Build Export & Persistence
-
-| Tool | Description |
-|---|---|
-| `export_build` | Copy a build to a new XML file with optional notes |
-| `save_tree` | Write passive tree back to an existing build file |
-| `snapshot_build` | Create a versioned snapshot with description and tag |
-| `list_snapshots` | List all snapshots for a build |
-| `restore_snapshot` | Restore from a snapshot (auto-backs up current state) |
-| `export_build_summary` | Export a human-readable build summary |
-
-Snapshots are stored in `POB_DIRECTORY/.pob-mcp/snapshots/`.
-
-**Note**: `export_build` copies from the XML file, not from the Lua bridge. Use `lua_save_build` first if you want to export in-memory changes.
-
-### Currency & Market Data (poe.ninja)
-
-| Tool | Description |
-|---|---|
-| `get_currency_rates` | Live PoE2 currency exchange rates (Exalted Orb equivalent) |
-| `find_arbitrage` | Detect profitable currency trading loops (see note) |
-| `calculate_trading_profit` | Evaluate a specific trading chain |
-
-Sourced from the **PoE2** poe.ninja economy endpoint
-(`/poe2/api/economy/exchange/current/overview?league=<League>&type=Currency`), cached 5 min.
-**Live-verified.** Pass the **exact**, case-sensitive PoE2 league name (e.g., `Runes of Aldur`, `Standard`).
-Values are in **Exalted Orb** equivalent (PoE2's base currency), not Chaos.
-
-> **Note:** the PoE2 currency-exchange feed exposes a single value per currency (no separate buy/sell
-> spread), so `find_arbitrage` generally returns nothing — round-trips evaluate to ~0% profit.
-> `get_currency_rates` and `calculate_trading_profit` are the useful tools here.
-
-### Trade API Tools (Require `POE_TRADE_ENABLED=true`)
-
-Ported to the **PoE2 `trade2`** endpoints (`https://www.pathofexile.com/api/trade2`). Stat IDs and
-leagues are fetched from this base, so the stat mapper picks up PoE2 trade stats automatically.
-
-> **Heads up:** the official trade API is behind Cloudflare and most endpoints require a logged-in
-> session — set `POE_SESSION_ID` to your `POESESSID` cookie. It is also strictly rate-limited.
-> **Verified working server-side** (search→fetch through Cloudflare with only `POE_SESSION_ID` set).
-> Note POESESSID expires periodically; refresh it if you start getting 401/403s.
-
-| Tool | Description |
-|---|---|
-| `search_trade_items` | Search trade with stat filters, price range, link count |
-| `get_item_price` | Price statistics (min/max/median/average) for an item |
-| `get_leagues` | List available leagues |
-| `search_stats` | Look up Trade API stat IDs |
-| `find_item_upgrades` | Identify best upgrade candidates for your build |
-| `find_resistance_gear` | Find affordable gear to cap specific resistances |
-| `compare_trade_items` | Compare multiple trade listings side by side |
-| `search_cluster_jewels` | Search for cluster jewels by notable |
-| `analyze_build_cluster_jewels` | Evaluate cluster jewel setups for a build |
-| `generate_shopping_list` | Generate a prioritized shopping list from build analysis |
-
----
-
-## Typical Workflows
-
-### Analyze an existing build
-```
-1. lua_start
-2. lua_load_build (build_name: "MyBuild.xml")
-3. lua_get_stats (category: "defense")
-4. validate_build
-5. analyze_defenses (build_name: "MyBuild.xml")
-```
-
-### Build from scratch
-```
-1. lua_start
-2. lua_new_build (class_name: "Witch", ascendancy: "Necromancer")
-3. setup_skill_with_gems (active_gem: "Summon Skeletons", support_gems: [...])
-4. lua_set_tree (nodes: [...])
-5. lua_get_stats
-6. lua_save_build (build_name: "MySummoner.xml")
-```
-
-### Optimize passive tree
-```
-1. lua_load_build (build_name: "MyBuild.xml")
-2. suggest_optimal_nodes (goal: "life", points_available: 5)
-3. search_tree_nodes (query: "maximum life")
-4. lua_get_tree   ← copy current node list
-5. lua_set_tree   ← add new nodes to the list
-6. lua_get_stats  ← verify improvement
-7. lua_save_build ← persist
-```
-
-### Test DPS against Shaper
-```
-1. lua_load_build
-2. set_enemy_stats (level: 84, fire_resist: 40, cold_resist: 40, lightning_resist: 40)
-3. set_config (config_name: "enemyIsBoss", value: true)
-4. lua_get_stats (category: "offense")
-```
-
----
-
-## Troubleshooting
-
-### XML Features
-
-**No builds found**
-- Verify `POB_DIRECTORY` is correct and contains `.xml` files
-- Check file permissions
-
-**Parse errors**
-- Open the build in PoB GUI to verify it isn't corrupted
-- Ensure PoB is up to date
-
-### Lua Bridge
-
-**`luajit command not found`**
-```bash
-brew install luajit          # macOS
-sudo apt-get install luajit  # Ubuntu/Debian
-```
-Or set `POB_CMD` to the full path (e.g., `/opt/homebrew/bin/luajit`).
-
-**`Failed to find valid ready banner`**
-`POB_FORK_PATH` must point to a PathOfBuilding-PoE2 `src/` directory:
-```bash
-ls "$POB_FORK_PATH/Launch.lua"   # must exist (PoB src)
-ls "$POB_FORK_PATH/Modules/"     # must exist
-ls pob-api/bootstrap.lua         # vendored bridge entry (must exist)
-```
-
-**`Timed out waiting for response`**
-- Increase `POB_TIMEOUT_MS` (try `20000`)
-- Test manually: `cd "$POB_FORK_PATH" && luajit /abs/path/to/pob-api/bootstrap.lua`
-
-**Stats don't match PoB GUI**
-- Check bandit/pantheon/enemy settings with `get_config`
-- Ensure the correct tree spec is active in the XML
-- Make sure your PathOfBuilding fork is on the `api-stdio` branch and up to date
-
-**Bridge becomes unresponsive**
-```
-lua_stop → wait a moment → lua_start
-```
-If still unresponsive, restart Claude Desktop.
-
-**Nodes dropped after `lua_set_tree`**
-Nodes must form a valid connected path from the class starting node. Disconnected nodes are silently dropped by PoB. Ensure all intermediate nodes are included.
-
-**`lua_save_build` doesn't persist gem changes**
-Gem modifications made via `add_gem`, `set_gem_level`, `set_gem_quality` are currently held in Lua memory and are not serialized back to the XML on save. This is a known limitation.
-
----
+- The cookie is sent only on trade search and fetch requests. It is never logged or echoed.
+- 1Password `op://` references are not resolved: the value must be the cookie itself.
+- **Without a usable session** (no cookie, a malformed one, or one the trade site rejects),
+  `find_upgrades` doesn't search. It returns `Trade search not run: <reason>` with a trade-site link
+  that opens the same weighted search in your browser, where you are logged in. When the league is
+  known, no request is made before that decision.
+
+The trade tools use the trade site's own API. The server obeys every rate-limit rule the site sends,
+with a safety margin, and only makes requests when you call a tool.
+
+### State folder
+
+Snapshots, backups, exports and config presets live in `~/.local/state/pob2-mcp` (that is,
+`$XDG_STATE_HOME/pob2-mcp`), never in the builds folder, so PoB2's build list doesn't show them:
+
+- `snapshots/`: `snapshot_build` copies;
+- `backups/`: the copy of a build file taken before every server write to it;
+- `exports/`: `export_build` copies, unless you name another folder inside the builds or state folder;
+- `presets/`: config presets.
+
+### Working alongside PoB2
+
+- **The engine's build** is the one you loaded with `lua_load_build` (or `import_build`,
+  `lua_new_build`). Engine tools read and change that build in memory; `lua_save_build` writes it to a
+  file.
+- **Changes on disk.** At the start of each engine call, the server checks whether the loaded file
+  changed on disk, for example because you saved it in PoB2. If the engine has no unsaved changes, it
+  reloads the file and says so. If it has, it warns and leaves the engine alone: reload, or save under
+  a new name.
+- **Saving.** A save over an existing file needs `overwrite: true`, backs the old file up to the state
+  folder first, and is refused if the file changed on disk since the engine loaded or saved it. Re-open
+  the build in PoB2 to see a saved change there.
+- **Other builds.** Tools that analyse a build other than the loaded one (`analyze_build`,
+  `compare_builds`, `validate_build`, `analyze_defenses`) load it temporarily and put the engine's build
+  back afterwards, unsaved changes included.
+- **Build names** resolve to the file's on-disk spelling, so `grenadator` and `Grenadator.xml` name the
+  same file on the Windows drive.
+
+## Tools
+
+The table is generated from the server's tool registry by `pnpm docs:tools` (after `pnpm build`), and a
+test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISABLED=true`, and group
+`ninja` by `POE_NINJA_DISABLED=true`.
+
+<!-- tools:start -->
+| Tool | Group | Description |
+|---|---|---|
+| `analyze_build` | core | Analyze a Path of Building 2 build file: the file's stats, skills, gear, configuration, passive tree (keystones, notables, jewel sockets, archetype) and validation, plus live stats the PoB2 engine computes for that file. |
+| `compare_builds` | core | Compare two Path of Building 2 build files side by side on stats the PoB2 engine computes (level, life, energy shield, EHP, DPS, resistances). |
+| `list_builds` | core | List every Path of Building 2 build (.xml) in the builds folder, including subfolders, as paths relative to it (e.g. 'league/Starter.xml'). |
+| `get_build_stats` | core | Extract specific stats from a build (Life, DPS, resistances, etc.) |
+| `start_watching` | core | Start tracking changes to build files in the builds folder (including subfolders; polling on /mnt/ drives). |
+| `stop_watching` | core | Stop tracking changes to build files. |
+| `get_recent_changes` | core | List build files that changed while watching was on (paths relative to the builds folder), newest first. |
+| `watch_status` | core | Show whether change tracking (start_watching) is on, the watched folder and how many changes were recorded. |
+| `compare_trees` | core | Compare passive skill trees between two builds, showing differences in allocated nodes |
+| `get_nearby_nodes` | core | Find notable and keystone passives near your current tree allocation. |
+| `find_path_to_node` | core | Find the shortest path from your current tree to a specific passive node. |
+| `get_build_notes` | core | Read the notes/documentation from a PoB build file |
+| `set_build_notes` | core | Replace the notes in a build file in the builds folder. |
+| `lua_start` | core | Start the PoB headless API process. |
+| `lua_stop` | core | Stop the PoB headless API process and clean up resources. |
+| `lua_new_build` | core | Create a new blank build with specified class and ascendancy. |
+| `lua_save_build` | core | Save the engine's current build (everything loaded or changed in the PoB engine, including tree, item, gem and config changes) to a build file in your builds folder, as PoB2 XML. |
+| `lua_load_build` | core | Load a build file into the PoB calculation engine. |
+| `list_specs` | core | List all passive tree specs in the currently loaded build. |
+| `select_spec` | core | Switch the active passive tree spec in the currently loaded build. |
+| `create_spec` | core | Create a new passive tree spec in the current build. |
+| `delete_spec` | core | Delete a passive tree spec from the current build. |
+| `rename_spec` | core | Rename a passive tree spec in the current build. |
+| `list_item_sets` | core | List all item sets in the currently loaded build. |
+| `select_item_set` | core | Switch the active item set in the currently loaded build. |
+| `set_character_level` | core | Set the character level for the currently loaded build. |
+| `lua_get_stats` | core | Get comprehensive calculated stats from the currently loaded build (requires lua_load_build first). |
+| `lua_get_tree` | core | Get passive tree allocation from currently loaded build |
+| `lua_set_tree` | core | Set passive tree allocation (modifies currently loaded build). |
+| `update_tree_delta` | core | Incrementally add or remove specific passive nodes from the current tree allocation. |
+| `lua_get_build_info` | core | Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. |
+| `lua_reload_build` | core | Reload the current build from disk, picking up any changes made in PoB GUI or via direct XML editing. |
+| `search_tree_nodes` | core | Search passive tree for nodes matching specific criteria |
+| `list_gems` | core | List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). |
+| `get_classes` | core | List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). |
+| `import_build` | core | Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). |
+| `analyze_skills` | core | Analyze the loaded build's skill setup with the PoB2 engine. |
+| `suggest_supports` | core | Rank the support gems that could go in a socket group by their measured effect. |
+| `add_item` | core | Add an item to the build from item text (paste from game) |
+| `get_equipped_items` | core | Get all currently equipped items (empty slots are omitted). |
+| `toggle_flask` | core | Turn a flask or charm on or off in the loaded build, as PoB2's slot checkbox does: an active flask or charm applies its effect to the calculated stats. |
+| `get_skill_setup` | core | Get current skill gem setup. |
+| `set_main_skill` | core | Set which skill group is the main skill for DPS calculations |
+| `create_socket_group` | core | Create a new socket group for skill gems |
+| `add_gem` | core | Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). |
+| `set_gem_level` | core | Set the level of a gem |
+| `set_gem_quality` | core | Set the quality of a gem |
+| `remove_skill` | core | Remove an entire socket group |
+| `remove_gem` | core | Remove a specific gem from a socket group |
+| `toggle_socket_group` | core | Enable or disable an entire socket group (e.g. turn off a mana reservation aura to test its effect on stats) |
+| `toggle_gem` | core | Enable or disable a specific gem within a socket group |
+| `setup_skill_with_gems` | core | Setup a complete skill with multiple support gems in one operation. |
+| `add_multiple_items` | core | Add multiple items at once (efficient bulk operation). |
+| `plan_leveling` | core | Generate a PoE2 0.5 leveling guide for a build: act/interlude progression with bosses and level targets, Trials of Ascendancy timing, skill-tag-aware support direction, support-socket guidance, and passive tree priority order |
+| `get_config` | core | List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value, plus the enemy level in effect. |
+| `set_config` | core | Set one PoB2 config option on the loaded build and recalculate; reports the option's previous and new value. |
+| `set_enemy_stats` | core | Set the enemy's level, resistances, armour and evasion (PoB2's Enemy Stats config options) on the loaded build, recalculate, and report each previous and new value with the DPS change. |
+| `save_config_preset` | core | Save the loaded build's config options (every option it sets: charges, conditions, enemy stats, ...) as a named preset in the server's state directory, for reuse on any build |
+| `load_config_preset` | core | Apply a saved config preset to the loaded build: every option in the preset is set to its saved value, and options the build sets that the preset doesn't hold are cleared to PoB's default; then the build is recalculated |
+| `list_config_presets` | core | List the saved config presets (names to use with load_config_preset) |
+| `get_build_issues` | core | The loaded build's issues as PoB2 judges them: PoB's own warning lines, resistances below their maximum (Missing&lt;Elem&gt;Resist &gt; 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons), plus the empty gear slots PoB shows, stated as facts. |
+| `get_passive_upgrades` | core | Find the best unallocated notable passives to pick up next. |
+| `analyze_defenses` | core | The defence values PoB2 computes for a build: effective hit pool (TotalEHP), Life/Energy Shield/Mana/Spirit with their unreserved amounts, armour, evasion, physical damage reduction, evade, deflect and effective block chance, each resistance with the amount missing to its maximum, and each damage type's max hit taken against the configured enemy's hit of that type. |
+| `validate_build` | core | Validate a build on PoB2's own judgments only: PoB's own warning lines (unmet attribute requirements, unreserved Life below 1, negative unreserved Mana or Spirit, too many passive points or gem groups, and so on), resistances below their maximum (Missing&lt;Elem&gt;Resist &gt; 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons). |
+| `export_build` | core | Export a copy of a build file. |
+| `snapshot_build` | core | Create a versioned snapshot of a build file for easy rollback: a byte copy plus metadata (stats, tag, description), stored in the server's state folder, never in the builds folder. |
+| `list_snapshots` | core | List all snapshots for a build with metadata and stats |
+| `restore_snapshot` | core | Restore a build file from one of its snapshots. |
+| `export_build_summary` | core | Generate a clean markdown summary of the loaded build suitable for sharing on Reddit, Discord, or as build documentation |
+| `search_trade_items` | trade | Search the Path of Exile 2 trade site (trade2) for items with filters. |
+| `get_item_price` | trade | Quick price check for a specific item by name on the PoE2 trade site. |
+| `get_leagues` | trade | List the PoE2 trade leagues, in the trade site's order, and mark the default league (POE_LEAGUE if set, else the first current league that is not Standard or Hardcore). |
+| `search_stats` | trade | Search the trade site's live stat list for stat ids to use in trade searches (search_trade_items mods[].stat_id). |
+| `find_upgrades` | trade | Find upgrades on the Path of Exile 2 trade site for one item slot of the loaded build, the way Path of Building's trade dialog does it: PoB generates a weighted trade query from the build (sort_stats, default the build's saved trade weights, else Full DPS 1 + Effective Hit Pool 0.5), the server searches and fetches listings (at most 5 searches, 90 s budget), PoB scores every candidate against the build, prices are normalized with poe.ninja rates and filtered by max_price, and the results are ranked by rank_by. |
+| `trade_query_options` | trade | What Path of Building's trade dialog offers for one item slot of the loaded build, for planning an upgrade search: whether PoB can generate a weighted trade search for the slot (and why not), the engine stats an upgrade search can sort by (sort_stats), the build's saved trade weights or PoB's defaults, the required-mod choices with their trade stat ids (required_mods), the currencies and trade statuses, and which slot-specific options (rune sockets, rune and anoint behaviour, jewel type) apply. |
+| `get_currency_rates` | ninja | Get current PoE2 currency exchange rates from poe.ninja. |
+<!-- tools:end -->
 
 ## Development
 
 ```bash
-npm run build   # compile TypeScript
-npm run dev     # watch mode
+mise run test                  # the gate: fetches the pin if needed, builds, runs the full Jest suite
+pnpm build                     # compile TypeScript into build/
+pnpm docs:tools                # print the tool table; `pnpm docs:tools --write` updates this README
+scripts/fresh-clone-check.sh   # clone HEAD into a temp dir, set it up, and check it as a server
 ```
 
-## Path of Building XML Structure
+- `mise run test` and `pnpm build` must both exit 0 before a change lands.
+- The tests never touch the network or your builds folder. HTTP comes from the committed fixtures in
+  `tests/fixtures/`, and the builds and state folders are temp dirs.
+- Engine tests need `luajit` and the pinned checkout, and **fail** without them. Run them through
+  `mise run test`, which provides both. `POB_SKIP_ENGINE=1` skips them instead.
+- `scripts/fresh-clone-check.sh` sets up a clean clone with `mise run setup`, then starts the server
+  with trade requests pointed at a dead address. It checks the tool list, a build load and the
+  no-session `find_upgrades` result, and exits non-zero on any failure.
+- Notes for agents and contributors are in `CLAUDE.md`. The design and spec are in
+  `docs/stabilization/`.
 
-PoB builds are XML files with:
-- `<Build>`: Character info and stats
-- `<Tree>`: Passive skill tree node allocations
-- `<Skills>`: Socket groups and gem links
-- `<Items>`: Equipped items
-- `<Notes>`: Build notes
+## Migrating from earlier versions
 
-## Contributing
+<!-- migration:start -->
+This section is for anyone who ran an earlier version of this server, or the PoE1 `pob-mcp` it was
+ported from. Everything outside it describes the current server only.
 
-Issues and pull requests are welcome!
+**Removed tools.** These names now return an "Unknown tool" error.
 
-## Contributors
+- PoE1-only: `analyze_build_cluster_jewels`, `analyze_cluster_jewels`, `search_cluster_jewels`,
+  `suggest_watchers_eye`, `suggest_masteries`, `check_boss_readiness`, `optimize_skill_links`,
+  `create_budget_build`, `suggest_optimal_nodes`, `optimize_tree`, `analyze_items`.
+- Legacy gem tools: `analyze_skill_links`, `suggest_support_gems`, `find_optimal_links`,
+  `validate_gem_quality`, `compare_gem_setups`, `gem_upgrade_path`. Use `analyze_skills`,
+  `suggest_supports` and `list_gems`.
+- Trade and currency: `compare_trade_items`, `generate_shopping_list`, `find_resistance_gear`,
+  `find_arbitrage`, `calculate_trading_profit`, `suggest_crafting`.
+- `find_item_upgrades`: replaced by `find_upgrades` (and `trade_query_options` to plan a search).
+- `save_tree`: use `lua_save_build`.
+- `refresh_tree_data`: the tree data comes from the pinned PoB2 checkout.
 
-<table>
-	<tbody>
-		<tr>
-            <td align="center">
-                <a href="https://github.com/zgrummons">
-                    <img src="https://avatars.githubusercontent.com/u/22529961?v=4" width="100;" alt="zgrummons"/>
-                    <br />
-                    <sub><b>zgrummons</b></sub>
-                </a>
-            </td>
-		</tr>
-	</tbody>
-</table>
+**Environment variables.**
 
-## License
+| Status | Variables |
+|---|---|
+| Removed | `POB_LUA_ENABLED`, `POE_TRADE_ENABLED`, `POB_LEGACY_GEM_TOOLS`, `POE_TRADE_USER_AGENT`, `POE_RATE_LIMIT_PER_SECOND`, `POE_CACHE_TTL` |
+| Added | `POE_TRADE_DISABLED`, `POESESSID` (`POE_SESSION_ID` stays as an alias), `POE_LEAGUE`, `POB_ALLOW_UNPINNED`, `POB_SKIP_ENGINE` (tests), `POB_API_TEST_ACTIONS` (tests), `POB_TEST_ENGINE` (set by the test setup) |
+| Changed meaning | `POB_TIMEOUT_MS` is now per request, measured from when the request is written. `POB_FORK_PATH` still names a checkout's `src/`, but its default is now the pinned `vendor/` checkout, and the pin check applies to it. The default `POB_DIRECTORY` changed from `~/Documents/Path of Building/Builds` (and a macOS variant) to `~/Documents/Path of Building (PoE2)/Builds` |
+| Kept (unchanged) | `POB_DIRECTORY`, `POB_CMD`, `POB_ARGS`, `POB_DEBUG`, `POE_NINJA_DISABLED`, `POE_TRADE_BASE`, `POE_TRADE_REALM`, `XDG_STATE_HOME` |
 
-GPL-3.0
+The engine and the trade tools are now on by default: `POB_LUA_ENABLED=true` and
+`POE_TRADE_ENABLED=true` are no longer needed, and no longer read.
+
+**Install.** The old steps (`npm install`, `apt install luajit` or `brew install luajit`, and a
+PathOfBuilding fork on an `api-stdio` branch) are replaced by `mise trust` and `mise run setup`, which
+use pnpm, mise's pinned LuaJIT and the pinned upstream PoB2 release. Claude Desktop JSON configs are
+replaced by the `claude mcp add` registration above.
+
+**State folders.** Snapshots, backups, exports and presets used to live in `.pob-mcp/` and
+`.pob-mcp-presets/` inside the builds folder. They now live in the state folder. The old locations are
+ignored, and nothing is migrated.
+
+**Prices.** Normalized prices are in the league's primary currency as poe.ninja reports it, no longer
+labelled "Chaos equivalent".
+<!-- migration:end -->
+
+## License and notices
+
+GPL-3.0 (see `LICENSE`). The Path of Building 2 engine is
+[PathOfBuildingCommunity/PathOfBuilding-PoE2](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2),
+fetched at setup and never modified. Thanks to the Path of Building community, and to
+[zgrummons](https://github.com/zgrummons) for contributions to the original `pob-mcp`.
+
+This product isn't affiliated with or endorsed by Grinding Gear Games in any way.

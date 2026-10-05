@@ -13,33 +13,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import ts from 'typescript';
+import { BANNED_PHRASES, BANNED_WORDS, bannedIn } from '../helpers/cruftScan';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const SRC = path.join(REPO, 'src');
 const WAIVERS = path.join(__dirname, 'poe1-cruft-waivers.json');
-
-/** Banned phrases, matched case-insensitively anywhere in a literal. */
-export const BANNED_PHRASES = [
-  'spell suppression',
-  "watcher's eye",
-  'cluster jewel',
-  'bandit',
-  'pantheon',
-  'awakened',
-  '6-link',
-  'chaos orb equivalent',
-  'mastery effect',
-  'the shaper',
-  'the elder',
-  'uber elder',
-  'sirus',
-  'the maven',
-  'searing exarch',
-  'eater of worlds',
-] as const;
-
-/** Banned PoE1 class names, matched case-sensitively as whole words. */
-export const BANNED_WORDS = ['Scion', 'Marauder', 'Duelist', 'Templar', 'Shadow'] as const;
 
 export interface CruftHit {
   /** Repo-relative path with forward slashes, e.g. `src/server/toolSchemas.ts`. */
@@ -86,16 +64,6 @@ export function extractLiterals(fileName: string, text: string): Array<{ line: n
   };
   visit(sf);
   return out;
-}
-
-/** The banned phrases and words one literal contains. */
-export function bannedIn(text: string): string[] {
-  const lower = text.toLowerCase();
-  const found: string[] = BANNED_PHRASES.filter((p) => lower.includes(p));
-  for (const w of BANNED_WORDS) {
-    if (new RegExp(`\\b${w}\\b`).test(text)) found.push(w);
-  }
-  return found;
 }
 
 /** Scan every `.ts` file under `root`; `file` in each hit is relative to `relTo`. */

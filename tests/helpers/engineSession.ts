@@ -111,9 +111,9 @@ export async function engineLevel(session: EngineSession): Promise<number> {
 }
 
 export async function waitFor(cond: () => boolean, timeoutMs = 10000, what = 'condition'): Promise<void> {
-  const start = Date.now();
+  const start = performance.now();
   while (!cond()) {
-    if (Date.now() - start > timeoutMs) throw new Error(`timed out waiting for ${what}`);
+    if (performance.now() - start > timeoutMs) throw new Error(`timed out waiting for ${what}`);
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
 }

@@ -229,8 +229,10 @@ export interface UpgradeSearchContext {
   credentials: () => Credentials;
   env: Env;
   signal: AbortSignal;
-  /** Epoch ms (D-22: the call's arrival + 90 s). */
+  /** Epoch ms (D-22: the call's arrival + 90 s), on the `now` clock. */
   deadline: number;
+  /** The clock `deadline` is on (the server passes its monotonic clock); default `Date.now`. */
+  now?: () => number;
   progress: (message: string) => Promise<void>;
   /**
    * The engine session whose `revision` keys the generated-query cache (C-14 step 4). An amendment to
@@ -378,13 +380,13 @@ export class DeadlineReached extends Error {
  * the engine, unlike the bridge's timeout (C-4: a timeout SIGKILLs the engine, and the session then
  * reports a crash, C-3 step 7). `done()` clears the timer.
  */
-export function deadlineBound(ctx: { signal: AbortSignal; deadline: number }): {
+export function deadlineBound(ctx: { signal: AbortSignal; deadline: number; now?: () => number }): {
   signal: AbortSignal;
   reached(): boolean;
   done(): void;
 } {
   const deadline = new AbortController();
-  const timer = setTimeout(() => deadline.abort(new DeadlineReached()), Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now()));
+  const timer = setTimeout(() => deadline.abort(new DeadlineReached()), Math.max(0, ctx.deadline - FINISH_RESERVE_MS - (ctx.now ?? Date.now)()));
   return {
     signal: AbortSignal.any([ctx.signal, deadline.signal]),
     reached: () => deadline.signal.aborted,
@@ -512,7 +514,8 @@ function errorMessage(error: unknown): string {
 
 export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSearchContext): Promise<UpgradeSearchResult> {
   const notes: string[] = [];
-  const remaining = () => ctx.deadline - Date.now();
+  const now = ctx.now ?? Date.now;
+  const remaining = () => ctx.deadline - now();
   /** Between steps: the caller's abort stops the flow; a step never starts with < 1 s left. */
   const checkpoint = () => {
     if (ctx.signal.aborted) throw ctx.signal.reason;

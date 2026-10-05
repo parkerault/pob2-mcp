@@ -6,8 +6,10 @@
  *     case-insensitive drive. Subfolders are allowed; a missing parent folder is created.
  *  2. **Existing target.** Replacing a file needs `overwrite: true` (`restore` and `text` imply it).
  *  3. **Changed-on-disk guard.** When the target is the engine's loaded file, its current bytes must
- *     match `loaded.fingerprint`; otherwise they must match this writer's record of its own last write
- *     to that path in this process, if any. A mismatch refuses the write. **No flag overrides this, and
+ *     match `loaded.fingerprint`; otherwise they must match the last fingerprint this process knows for
+ *     that path, if any: this writer's own last write to it, or the engine's last load or save of it
+ *     while it was the loaded file (`noteEngineFingerprint`, the last `ENGINE_KNOWN_MAX` paths), whichever
+ *     came later (D-86). A mismatch refuses the write. **No flag overrides this, and
  *     there are no exemptions.** A recorded file that no longer exists is created again, with a notice.
  *     A byte copy, restore or text edit of the loaded file also accepts this writer's own last write to
  *     it: the server's own earlier edit (which leaves `loaded.fingerprint` alone, step 6) is not a PoB2
@@ -144,6 +146,8 @@ export interface BuildFileWriterOptions {
 }
 
 export const TEMP_SUFFIX = ".pob2mcp-tmp";
+/** How many files' engine fingerprints the writer remembers after the engine switched away (D-86). */
+export const ENGINE_KNOWN_MAX = 32;
 export const REOPEN_HINT = "If this build is open in PoB2, re-open it there to see the changes.";
 
 function sha1(bytes: Buffer): string {
@@ -169,8 +173,15 @@ export function timestampId(date: Date): string {
 export class BuildFileWriter {
   private readonly fs: WriterFs;
   private readonly now: () => Date;
-  /** The fingerprint of this writer's last write to each absolute path (C-17 step 3). */
-  private readonly written = new Map<string, Fingerprint>();
+  /** The fingerprint of this writer's last write to each absolute path (C-17 step 3), with its sequence. */
+  private readonly written = new Map<string, { fp: Fingerprint; seq: number }>();
+  /**
+   * The engine's last load or save fingerprint of each absolute path, least recently noted first,
+   * at most `ENGINE_KNOWN_MAX` entries (D-86).
+   */
+  private readonly engineKnown = new Map<string, { fp: Fingerprint; seq: number }>();
+  /** Orders `written` against `engineKnown`: the later record of a path is its last known state. */
+  private seq = 0;
   /** The tail of each target's write queue (keyed case-insensitively: drvfs targets may differ in case). */
   private readonly queues = new Map<string, Promise<void>>();
 
@@ -247,7 +258,7 @@ export class BuildFileWriter {
     // 6. After the write.
     const st = await this.fs.stat(target);
     const fingerprint: Fingerprint = { size: bytes.length, mtimeMs: st.mtimeMs, sha1: sha1(bytes) };
-    this.written.set(target, fingerprint);
+    this.written.set(target, { fp: fingerprint, seq: ++this.seq });
     try {
       this.opts.onWritten?.(rel);
     } catch (error) {
@@ -257,6 +268,20 @@ export class BuildFileWriter {
 
     const message = `Saved ${rel} (${bytes.length} bytes).` + (current ? ` ${REOPEN_HINT}` : "");
     return { path: rel, absPath: target, bytes: bytes.length, replaced: current !== null, backupPath, fingerprint, notices, message };
+  }
+
+  /**
+   * The engine loaded, reloaded or saved `relPath` (canonical, relative to `POB_DIRECTORY`) with these
+   * bytes (session `onFileFingerprint`). Kept after the engine switches to another build, so an overwrite
+   * of this path stays guarded against a PoB2 save made since (FR-E4, D-86).
+   */
+  noteEngineFingerprint(relPath: string, fp: Fingerprint): void {
+    const target = path.join(path.resolve(this.opts.pobDirectory), ...relPath.split("/"));
+    this.engineKnown.delete(target);
+    this.engineKnown.set(target, { fp, seq: ++this.seq });
+    while (this.engineKnown.size > ENGINE_KNOWN_MAX) {
+      this.engineKnown.delete(this.engineKnown.keys().next().value as string);
+    }
   }
 
   /** Step 1: the canonical relative path (D-52) and the absolute target. */
@@ -283,16 +308,19 @@ export class BuildFileWriter {
    *   edit or restore is not a PoB2 save, and it leaves `loaded.fingerprint` alone (step 6), so without
    *   this a second edit before the next engine call (or while the engine is dirty) would be refused.
    *   An engine save compares with `loaded.fingerprint` only: it must not overwrite that edit;
-   * - any other file: this writer's last write to it, if any.
+   * - any other file: its last known state, if any: this writer's last write to it or the engine's last
+   *   load or save of it (an earlier loaded file, D-86), whichever came later.
    */
   private references(rel: string, target: string, kind: BuildWriteKind): Fingerprint[] {
     const loaded = this.opts.loaded();
     const own = this.written.get(target) ?? null;
     if (loaded && loaded.path === rel) {
       if (!loaded.fingerprint) return [];
-      return kind !== "engine" && own ? [loaded.fingerprint, own] : [loaded.fingerprint];
+      return kind !== "engine" && own ? [loaded.fingerprint, own.fp] : [loaded.fingerprint];
     }
-    return own ? [own] : [];
+    const engine = this.engineKnown.get(target) ?? null;
+    const last = own && engine ? (own.seq > engine.seq ? own : engine) : (own ?? engine);
+    return last ? [last.fp] : [];
   }
 
   /** Step 3: refuse when the file matches none of `references`; returns the notices for the write. */

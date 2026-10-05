@@ -126,8 +126,10 @@ function describeEntry(entry: FetchEntry): Pick<ListingRow, 'name' | 'baseType' 
 export interface EvaluateContext {
   engine: EngineCallContext;
   signal: AbortSignal;
-  /** Epoch ms (D-22). */
+  /** Epoch ms (D-22), on the `now` clock. */
   deadline: number;
+  /** The clock `deadline` is on (the server passes its monotonic clock); default `Date.now`. */
+  now?: () => number;
   env: Env;
 }
 
@@ -163,7 +165,8 @@ export async function evaluateEntries(
   const rows: ListingRow[] = [];
   const rejected: Array<{ id: string; reason: string }> = [];
   const defaultTimeout = engineDefaultTimeout(ctx.env);
-  const remaining = () => ctx.deadline - Date.now();
+  const now = ctx.now ?? Date.now;
+  const remaining = () => ctx.deadline - now();
 
   for (let start = 0; start < entries.length; start += EVALUATE_BLOCK) {
     if (ctx.signal.aborted) throw ctx.signal.reason;
@@ -349,7 +352,7 @@ type Searched = Extract<UpgradeSearchResult, { kind: 'searched' }>;
 
 /** The slot's equipped item (`get_items`), `empty`, or `unknown` when it can't be read in time. */
 async function currentItem(slot: string, ctx: EvaluateContext): Promise<string> {
-  const remaining = ctx.deadline - Date.now();
+  const remaining = ctx.deadline - (ctx.now ?? Date.now)();
   if (remaining < MIN_STEP_MS) return 'unknown';
   const bound = deadlineBound(ctx);
   try {
@@ -383,8 +386,9 @@ async function currentItem(slot: string, ctx: EvaluateContext): Promise<string> 
  * the deadline ended it. A cut or failed lookup is "no rates" (D-11); the evaluated rows are kept.
  */
 async function boundedRates(league: string, ctx: CompleteContext): Promise<{ rates: Rates | null; budgetCut: boolean }> {
-  if (ctx.deadline - Date.now() < MIN_STEP_MS) return { rates: null, budgetCut: true };
-  const left = Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now());
+  const now = ctx.now ?? Date.now;
+  if (ctx.deadline - now() < MIN_STEP_MS) return { rates: null, budgetCut: true };
+  const left = Math.max(0, ctx.deadline - FINISH_RESERVE_MS - now());
   const clipped = left < 15_000;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let onAbort: (() => void) | undefined;

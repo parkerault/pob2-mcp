@@ -7,7 +7,7 @@
 import { describe, it, expect } from '@jest/globals';
 import crypto from 'crypto';
 import path from 'path';
-import { BuildFileWriter, TEMP_SUFFIX, type WriterFs } from '../../src/services/buildFileWriter';
+import { BuildFileWriter, ENGINE_KNOWN_MAX, TEMP_SUFFIX, type WriterFs } from '../../src/services/buildFileWriter';
 import { canonicalBuildPath } from '../../src/utils/pathSanitizer';
 import type { Fingerprint, LoadedBuild } from '../../src/engine/session';
 
@@ -334,6 +334,55 @@ describe('C-17 writer rules (WU-22)', () => {
     const t = setup();
     await expect(t.writer.writeBuildFile({ name: '../escape', bytes: ENGINE_XML, kind: 'bytes' })).rejects.toThrow(/traversal/);
     expect(t.fs.list().filter((p) => !p.startsWith(BASE))).toEqual([]);
+  });
+});
+
+describe('D-86 (C-17 step 3, FR-E4): engine fingerprints kept per path after the engine switches away', () => {
+  it('a file the engine loaded, no longer loaded, changed on disk since → refused for every kind; unchanged → written', async () => {
+    const t = setup();
+    t.fs.put(`${BASE}/a.xml`, ON_DISK_XML);
+    t.fs.put(`${BASE}/b.xml`, ON_DISK_XML);
+    t.writer.noteEngineFingerprint('a.xml', fingerprintOf(Buffer.from(ON_DISK_XML), 1));
+    t.writer.noteEngineFingerprint('b.xml', fingerprintOf(Buffer.from(ON_DISK_XML), 1));
+    t.setLoaded(null); // the engine switched to a build from no file
+    t.fs.put(`${BASE}/a.xml`, 'saved in PoB2');
+    for (const kind of ['engine', 'bytes', 'restore', 'text'] as const) {
+      await expect(
+        t.writer.writeBuildFile({ name: 'a', bytes: ENGINE_XML, overwrite: true, kind, ...(kind === 'engine' ? { ctx: t.ctx } : {}) }),
+      ).rejects.toThrow(/a\.xml changed on disk since the engine loaded or saved it/);
+    }
+    expect(t.fs.get(`${BASE}/a.xml`)?.toString()).toBe('saved in PoB2');
+    await expect(t.writer.checkBuildFile({ name: 'a', overwrite: true, kind: 'engine' })).rejects.toThrow(/changed on disk since/);
+    // b.xml is as the engine last knew it: the overwrite goes ahead.
+    const ok = await t.writer.writeBuildFile({ name: 'b', bytes: ENGINE_XML, overwrite: true, kind: 'engine', ctx: t.ctx });
+    expect(ok.replaced).toBe(true);
+  });
+
+  it('the later record wins: a writer write after the engine record, then the engine reloading a PoB2 save after that', async () => {
+    const t = setup();
+    t.fs.put(`${BASE}/a.xml`, ON_DISK_XML);
+    t.writer.noteEngineFingerprint('a.xml', fingerprintOf(Buffer.from(ON_DISK_XML), 1));
+    // The server's own text edit after the engine switched away: the edit is the last known state.
+    await t.writer.writeBuildFile({ name: 'a', bytes: 'server edit', kind: 'text' });
+    await t.writer.writeBuildFile({ name: 'a', bytes: 'second edit', kind: 'text' });
+    // PoB2 saves, and the engine loads that save: the engine's record is now the later one.
+    t.fs.put(`${BASE}/a.xml`, 'pob2 save');
+    t.writer.noteEngineFingerprint('a.xml', fingerprintOf(Buffer.from('pob2 save'), 2));
+    await t.writer.writeBuildFile({ name: 'a', bytes: 'third edit', kind: 'text' });
+    expect(t.fs.get(`${BASE}/a.xml`)?.toString()).toBe('third edit');
+  });
+
+  it(`at most ENGINE_KNOWN_MAX (${ENGINE_KNOWN_MAX}) paths are kept, least recently noted dropped first`, async () => {
+    const t = setup();
+    for (let i = 0; i <= ENGINE_KNOWN_MAX; i++) {
+      t.fs.put(`${BASE}/f${i}.xml`, ON_DISK_XML);
+      t.writer.noteEngineFingerprint(`f${i}.xml`, fingerprintOf(Buffer.from(ON_DISK_XML), 1));
+    }
+    t.fs.put(`${BASE}/f0.xml`, 'saved in PoB2');
+    t.fs.put(`${BASE}/f1.xml`, 'saved in PoB2');
+    // f0 was the oldest of 33 and is forgotten; f1 is still guarded.
+    await expect(t.writer.writeBuildFile({ name: 'f0', bytes: ENGINE_XML, overwrite: true, kind: 'bytes' })).resolves.toBeDefined();
+    await expect(t.writer.writeBuildFile({ name: 'f1', bytes: ENGINE_XML, overwrite: true, kind: 'bytes' })).rejects.toThrow(/changed on disk since/);
   });
 });
 

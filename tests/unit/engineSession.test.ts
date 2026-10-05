@@ -410,14 +410,15 @@ describe('D-22 (NFR-4): a call deadline bounds the session\'s own steps, not onl
     client.crash();
     client.startDelayMs = 1_500;
 
-    const t0 = Date.now();
+    const t0 = Date.now(); // the session's clock (its deadline is on it)
+    const m0 = performance.now(); // elapsed time: monotonic
     let ran = false;
     const cut = session.run({ tool: 'find_upgrades', kind: 'read', deadline: t0 + 1_200 }, async () => {
       ran = true;
     });
     await expect(cut).rejects.toBeInstanceOf(EngineDeadlineError);
     await expect(cut).rejects.toThrow('while the engine was starting');
-    expect(Date.now() - t0).toBeLessThan(1_200);
+    expect(performance.now() - m0).toBeLessThan(1_200);
     expect(ran).toBe(false);
     expect(client.starts).toBe(2);
 

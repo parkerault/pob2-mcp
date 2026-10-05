@@ -66,9 +66,9 @@ describe('AC-F16: harness guarantees (C-18)', () => {
     const reason = new Error('caller gave up');
     const pending = f('https://example.invalid/slow', { signal: controller.signal });
     setTimeout(() => controller.abort(reason), 20);
-    const t0 = Date.now();
+    const t0 = performance.now();
     await expect(pending).rejects.toBe(reason);
-    expect(Date.now() - t0).toBeLessThan(5000);
+    expect(performance.now() - t0).toBeLessThan(5000);
   });
 
   it('AC-F16(f): a child spawned without an explicit env sees neither cookie variable', () => {

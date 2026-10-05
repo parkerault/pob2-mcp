@@ -50,7 +50,7 @@ describe('server factory (C-7)', () => {
     const stateDir = path.join(tmp, 'state', 'pob2-mcp');
     const before = { builds: listing(pobDirectory), state: listing(stateDir) };
 
-    const t0 = Date.now();
+    const t0 = performance.now();
     server = await startTestServer({
       fetch: fetchMock as unknown as typeof fetch,
       spawn: spawnMock as unknown as typeof import('child_process').spawn,
@@ -58,7 +58,7 @@ describe('server factory (C-7)', () => {
       stateDir,
     });
     const { tools } = await server.client.listTools();
-    const elapsed = Date.now() - t0;
+    const elapsed = performance.now() - t0;
 
     expect(tools.length).toBeGreaterThan(0);
     expect(elapsed).toBeLessThanOrEqual(1000);

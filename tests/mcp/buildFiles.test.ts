@@ -82,10 +82,10 @@ describe('WU-13 file tools, in process', () => {
     expect(first.isError).not.toBe(true);
     expect(textOf(first)).toContain('first notes');
 
-    const t0 = Date.now();
+    const t0 = performance.now();
     writeBuild(file, goldenWithNotes('second notes, written by PoB2'));
     const second = await call('get_build_notes', { build_name: 'grenadator.xml' });
-    expect(Date.now() - t0).toBeLessThan(60000);
+    expect(performance.now() - t0).toBeLessThan(60000);
     expect(second.isError).not.toBe(true);
     expect(textOf(second)).toContain('second notes, written by PoB2');
     expect(textOf(second)).not.toContain('first notes');

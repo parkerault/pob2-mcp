@@ -39,8 +39,8 @@ function procState(pid: number): string | null {
 }
 
 async function waitUntil(cond: () => boolean, ms: number): Promise<boolean> {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
+  const end = performance.now() + ms;
+  while (performance.now() < end) {
     if (cond()) return true;
     await new Promise((r) => setTimeout(r, 20));
   }
@@ -66,17 +66,17 @@ engineDescribe('bridge client v2 against the real engine (C-4)', () => {
     clients.push(client);
 
     // 1. The readiness ping (the last step of start()) answers ≤ 5 s after start() was called.
-    const t0 = Date.now();
+    const t0 = performance.now();
     await client.start();
-    expect(Date.now() - t0).toBeLessThanOrEqual(5000);
+    expect(performance.now() - t0).toBeLessThanOrEqual(5000);
     expect(spawnSpy).toHaveBeenCalledTimes(1);
 
     // 2. A request that outlives its timeout rejects 400–900 ms after the write, and the engine is killed.
     const oldPid = client.pid();
     expect(oldPid).toEqual(expect.any(Number));
-    const tWrite = Date.now();
+    const tWrite = performance.now();
     const err = await client.request('__test_sleep', { ms: 3000 }, { timeoutMs: 500 }).catch((e) => e);
-    const elapsed = Date.now() - tWrite;
+    const elapsed = performance.now() - tWrite;
     expect(err).toBeInstanceOf(EngineTimeoutError);
     expect(elapsed).toBeGreaterThanOrEqual(400);
     expect(elapsed).toBeLessThanOrEqual(900);
@@ -97,7 +97,7 @@ engineDescribe('bridge client v2 against the real engine (C-4)', () => {
     const first = await client.request('ping');
     expect(first).toEqual({ id: expect.any(Number), ok: true, pong: true });
     // Past the moment the killed engine's sleep would have finished.
-    const wait = 3200 - (Date.now() - tWrite);
+    const wait = 3200 - (performance.now() - tWrite);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     const second = await client.request('ping');
     expect(second).toEqual({ id: first.id + 1, ok: true, pong: true });

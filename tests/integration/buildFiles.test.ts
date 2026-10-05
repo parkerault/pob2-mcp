@@ -245,6 +245,45 @@ engineDescribe('AC-E49 (WU-13, D-42): export_build output_directory is confined'
     expect(again.text).toContain('overwrite: true');
     expect((await f.call('export_build', { build_name: 'grenadator.xml', output_name: 'e7', overwrite: true })).isError).toBe(false);
   }, T);
+  it('D-88: output_directory inside <stateDir>/backups or <stateDir>/snapshots is isError, even with overwrite: true, and replaces nothing', async () => {
+    const stateDir = path.join(f.tmp, 'state');
+    // A writer backup and a snapshot copy exist under the reserved subtrees.
+    const backupDir = path.join(stateDir, 'backups', 'grenadator.xml');
+    const snapDir = path.join(stateDir, 'snapshots', 'grenadator.xml');
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.mkdirSync(snapDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, 'b1_backup.xml'), 'backup bytes');
+    fs.writeFileSync(path.join(snapDir, 's1_snapshot.xml'), 'snapshot bytes');
+
+    for (const [dir, name, sub] of [
+      [backupDir, 'b1_backup', 'backups'],
+      [snapDir, 's1_snapshot', 'snapshots'],
+      [path.join(stateDir, 'backups'), 'top', 'backups'],
+      [path.join(stateDir, 'exports', '..', 'snapshots'), 'dotdot', 'snapshots'],
+    ] as const) {
+      const out = await f.call('export_build', { build_name: 'grenadator.xml', output_name: name, output_directory: dir, overwrite: true });
+      expect(out.isError).toBe(true);
+      expect(out.text).toContain(`inside the server's ${sub} folder`);
+    }
+    expect(fs.readFileSync(path.join(backupDir, 'b1_backup.xml'), 'utf8')).toBe('backup bytes');
+    expect(fs.readFileSync(path.join(snapDir, 's1_snapshot.xml'), 'utf8')).toBe('snapshot bytes');
+    expect(fs.existsSync(path.join(stateDir, 'backups', 'top.xml'))).toBe(false);
+    expect(fs.existsSync(path.join(stateDir, 'snapshots', 'dotdot.xml'))).toBe(false);
+
+    // A symlink elsewhere in the state dir that resolves into backups is refused too.
+    fs.mkdirSync(path.join(stateDir, 'exports'), { recursive: true });
+    fs.symlinkSync(backupDir, path.join(stateDir, 'exports', 'to-backups'));
+    const viaLink = await f.call('export_build', {
+      build_name: 'grenadator.xml', output_name: 'b1_backup', output_directory: path.join(stateDir, 'exports', 'to-backups'), overwrite: true,
+    });
+    expect(viaLink.isError).toBe(true);
+    expect(fs.readFileSync(path.join(backupDir, 'b1_backup.xml'), 'utf8')).toBe('backup bytes');
+
+    // Elsewhere in the state dir is still allowed.
+    const ok = await f.call('export_build', { build_name: 'grenadator.xml', output_name: 'e8', output_directory: path.join(stateDir, 'mine') });
+    expect(ok.isError).toBe(false);
+    expect(sha1(fs.readFileSync(path.join(stateDir, 'mine', 'e8.xml')))).toBe(sha1(GOLDEN_XML));
+  }, T);
 });
 
 engineDescribe('AC-E50 (WU-13, C-16/C-17): snapshot, list and restore', () => {
@@ -479,6 +518,71 @@ engineDescribe('WU-13 (C-17 step 3): import_build save_as never writes over a fi
     expect(out.text).not.toContain('was not saved');
     expect(fs.readFileSync(other, 'utf8')).toBe(goldenWithLevel(81));
     await expectUnchanged(f, before);
+  }, T);
+});
+
+engineDescribe('D-86 (FR-E4, C-17 step 3): a file the engine loaded or saved stays guarded after the engine switches away', () => {
+  // One target per case, never written by the server before it: only the engine's record can guard it.
+  const targets = ['t-load', 't-new', 't-import', 't-saveas', 't-control'];
+  let f: SessionFixture;
+  beforeAll(async () => {
+    f = await startSessionFixture({
+      files: { ...Object.fromEntries(targets.map((t) => [`${t}.xml`, GOLDEN_XML])), 'other.xml': goldenWithLevel(80) },
+    });
+  }, T);
+  afterAll(async () => f?.close(), 30000);
+
+  /** Load `<name>.xml`, run `switchAway`, let PoB2 save `<name>.xml`; overwrites of it are refused. */
+  async function expectGuardedAfter(name: string, switchAway: () => Promise<void>): Promise<void> {
+    const file = path.join(f.builds, `${name}.xml`);
+    expect((await f.call('lua_load_build', { build_name: `${name}.xml` })).isError).toBe(false);
+    await switchAway();
+    expect(f.session.loaded?.path).not.toBe(`${name}.xml`);
+    const pob2 = goldenWithLevel(66);
+    writeBuild(file, pob2); // PoB2 saves the previously loaded file
+
+    const save = await f.call('lua_save_build', { build_name: name, overwrite: true });
+    expect(save.isError).toBe(true);
+    expect(save.text).toContain(`${name}.xml changed on disk since the engine loaded or saved it`);
+    const notes = await f.call('set_build_notes', { build_name: `${name}.xml`, notes: 'over PoB2' });
+    expect(notes.isError).toBe(true);
+    expect(notes.text).toContain('changed on disk since');
+    expect(fs.readFileSync(file, 'utf8')).toBe(pob2);
+  }
+
+  it('after loading another build', async () => {
+    await expectGuardedAfter('t-load', async () => {
+      expect((await f.call('lua_load_build', { build_name: 'other.xml' })).isError).toBe(false);
+    });
+  }, T);
+
+  it('after a new build', async () => {
+    await expectGuardedAfter('t-new', async () => {
+      expect((await f.call('lua_new_build')).isError).toBe(false);
+    });
+  }, T);
+
+  it('after an import', async () => {
+    await expectGuardedAfter('t-import', async () => {
+      expect((await f.call('import_build', { source: code(goldenWithLevel(55)) })).isError).toBe(false);
+    });
+  }, T);
+
+  it('after a Save As re-points the loaded build to another file', async () => {
+    await expectGuardedAfter('t-saveas', async () => {
+      expect((await f.call('lua_save_build', { build_name: 'copy', overwrite: true })).isError).toBe(false);
+      expect(f.session.loaded?.path).toBe('copy.xml');
+    });
+  }, T);
+
+  it('control: with no PoB2 save since, the previously loaded file can be overwritten', async () => {
+    const file = path.join(f.builds, 't-control.xml');
+    expect((await f.call('lua_load_build', { build_name: 't-control.xml' })).isError).toBe(false);
+    expect((await f.call('lua_load_build', { build_name: 'other.xml' })).isError).toBe(false);
+    const save = await f.call('lua_save_build', { build_name: 't-control', overwrite: true });
+    expect(save.isError).toBe(false);
+    expect(fs.readFileSync(file, 'utf8')).toMatch(/<Build [^>]*level="80"/);
+    expect(f.session.loaded?.path).toBe('t-control.xml');
   }, T);
 });
 

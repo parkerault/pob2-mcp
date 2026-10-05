@@ -47,6 +47,7 @@ import {
 } from "./toolRouter.js";
 import { isToolAvailable } from "./toolMeta.js";
 import { wrapWithTruncation, type ToolResponse } from "./responseUtils.js";
+import { monotonicNow } from "../utils/clock.js";
 
 export type { Credentials } from "../trade/credentials.js";
 
@@ -65,6 +66,7 @@ export interface ServerDeps {
   spawn: typeof nodeSpawn;
   /** C-9: the trade session cookie, re-read on every authenticated trade request. */
   credentials: () => Credentials;
+  /** The clock for deadlines and elapsed time (default: the monotonic `monotonicNow`; tests inject a fake one). */
   now?: () => number;
 }
 
@@ -122,6 +124,7 @@ export function buildCallContext(extra: CallExtra, now: () => number = Date.now)
     signal: extra.signal,
     progressToken,
     arrivedAt: now(),
+    now,
     async sendProgress(progress: number, message?: string): Promise<void> {
       if (progressToken === undefined) return;
       await extra.sendNotification({
@@ -160,7 +163,8 @@ export function createServer(deps: ServerDeps): {
   shutdown(): Promise<void>;
 } {
   const env = deps.env;
-  const now = deps.now ?? Date.now;
+  // Deadlines and elapsed time run on a clock that never steps (a WSL2 wall clock can step backwards).
+  const now = deps.now ?? monotonicNow;
 
   const server = new Server(
     { name: "pob2-mcp-server", version: deps.version },
@@ -172,7 +176,8 @@ export function createServer(deps: ServerDeps): {
   const treeService = new TreeService(buildService, env);
   const watchService = new WatchService(deps.pobDirectory, buildService);
   // C-12: poe.ninja rates, read lazily and cached per league.
-  const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now });
+  // Cache ages are wall-clock times.
+  const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now: deps.now ?? Date.now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
   const tradeLimiter = new RateLimiter({ now });
   const tradeClient = new TradeApiClient({
@@ -186,7 +191,14 @@ export function createServer(deps: ServerDeps): {
   });
   const statMapper = new StatMapper();
   // The engine session (C-3) is the only owner of the engine; nothing starts until an engine call.
-  const session = createEngineSession({ env, spawn: deps.spawn, pobDirectory: deps.pobDirectory, now });
+  const session = createEngineSession({
+    env,
+    spawn: deps.spawn,
+    pobDirectory: deps.pobDirectory,
+    now,
+    // C-17 step 3 (D-86): the writer remembers the engine's fingerprint of every file it loaded or saved.
+    onFileFingerprint: (rel, fp) => buildFileWriter.noteEngineFingerprint(rel, fp),
+  });
   const engineAccess = sessionScopedEngine(session);
   // C-17: the only path for server writes into the builds folder (backups go to the state dir, C-16).
   const buildFileWriter = new BuildFileWriter({

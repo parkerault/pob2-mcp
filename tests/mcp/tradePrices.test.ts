@@ -13,7 +13,7 @@ import path from 'path';
 import { describe, it, expect, afterEach } from '@jest/globals';
 import { startTestServer, type TestServer } from '../helpers/server';
 import { fixtureFetch, type FixtureRespond } from '../helpers/fixtureFetch';
-import { CurrencyService, convert, type Rates } from '../../src/trade/currency';
+import { CurrencyService, convert, formatCurrencyValue, type Rates } from '../../src/trade/currency';
 
 type ToolResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
 interface FetchFixture {
@@ -70,7 +70,7 @@ function listedNames(text: string): string[] {
 }
 
 describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
-  it('AC-T46: each listing shows "<amount> <currency> (≈ <x> <primary>)" with x = convert(amount, currency, primary) to 2 dp', async () => {
+  it('AC-T46: each listing shows "<amount> <currency> (≈ <x> <primary>)" with x = convert(amount, currency, primary) in the D-72 format', async () => {
     const rates = await fixtureRates();
     expect(rates.primary).toBe('divine');
     const { text, urls } = await searchText(FETCH_BODY, { fixture: 'poeninja/currency-overview' });
@@ -84,10 +84,29 @@ describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
       const p = r.listing.price!;
       const x = convert(p.amount, p.currency, rates.primary, rates);
       expect(x).not.toBeNull();
-      expect(prices[i]).toBe(`${p.amount} ${p.currency} (≈ ${(x as number).toFixed(2)} divine)`);
+      expect(prices[i]).toBe(`${p.amount} ${p.currency} (≈ ${formatCurrencyValue(x as number)} divine)`);
     });
+    // Sub-1 values keep 4 significant digits (D-72): no listing reads as worth nothing.
+    expect(text).not.toMatch(/≈ 0\.00 /);
     expect(new Set(FETCH_BODY.result.map((r) => r.listing.price!.currency))).toEqual(new Set(['chaos', 'exalted']));
     expect(text).not.toMatch(/could not be normalized/);
+  });
+
+  it('AC-T46 (D-72): a 1 exalted listing shows its small divine equivalent to 4 significant digits, not 0.00', async () => {
+    const rates = await fixtureRates();
+    const x = convert(1, 'exalted', 'divine', rates)!;
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(0.005); // would print "0.00" at 2 decimal places
+    const derived: FetchFixture = {
+      ...FETCH_BODY,
+      result: FETCH_BODY.result.map((r, i) =>
+        i === 0 ? { ...r, listing: { ...r.listing, price: { ...r.listing.price!, amount: 1, currency: 'exalted' } } } : r,
+      ),
+    };
+    const { text } = await searchText(derived, { fixture: 'poeninja/currency-overview' });
+    const shown = Number(Number(x.toPrecision(4)).toString());
+    expect(priceLines(text)[0]).toBe(`1 exalted (≈ ${shown} divine)`);
+    expect(priceLines(text)[0]).not.toContain('0.00 divine');
   });
 
   it('AC-T46: listings appear in the order the fetch fixture returned them', async () => {
@@ -124,7 +143,7 @@ describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
     derived.result.forEach((r, i) => {
       if (i === 2) return;
       const p = r.listing.price!;
-      expect(prices[i]).toBe(`${p.amount} ${p.currency} (≈ ${convert(p.amount, p.currency, 'divine', rates)!.toFixed(2)} divine)`);
+      expect(prices[i]).toBe(`${p.amount} ${p.currency} (≈ ${formatCurrencyValue(convert(p.amount, p.currency, 'divine', rates)!)} divine)`);
     });
     expect(text.match(/could not be normalized/g)).toHaveLength(1);
     expect(text).toContain(UNKNOWN);
@@ -152,7 +171,7 @@ describe('AC-T46 (WU-15, D-61): search_trade_items normalized prices', () => {
           const p = r.listing.price!;
           const native = `${p.amount} ${p.currency}`;
           if ('fixture' in ninja) {
-            expect(prices[i]).toBe(`${native} (≈ ${convert(p.amount, p.currency, 'divine', rates)!.toFixed(2)} divine)`);
+            expect(prices[i]).toBe(`${native} (≈ ${formatCurrencyValue(convert(p.amount, p.currency, 'divine', rates)!)} divine)`);
           } else {
             expect(prices[i]).toBe(native);
           }

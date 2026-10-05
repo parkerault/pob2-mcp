@@ -66,7 +66,7 @@ engineDescribe('stdio e2e: stdin EOF shuts the server down (C-7, D-28)', () => {
     expect(luajit).toHaveLength(1);
     const luajitPid = luajit[0];
 
-    const t0 = Date.now();
+    const t0 = performance.now();
     server.closeStdin();
     const exit = await Promise.race([
       server.exited,
@@ -74,7 +74,7 @@ engineDescribe('stdio e2e: stdin EOF shuts the server down (C-7, D-28)', () => {
     ]);
     expect(exit).not.toBeNull();
     expect(exit!.code).toBe(0);
-    expect(Date.now() - t0).toBeLessThanOrEqual(5000);
+    expect(performance.now() - t0).toBeLessThanOrEqual(5000);
 
     await sleep(1000);
     const state = procState(luajitPid);

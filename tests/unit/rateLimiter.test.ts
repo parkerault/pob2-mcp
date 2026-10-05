@@ -346,6 +346,76 @@ describe('AC-T6 (WU-14): lockouts and long waits', () => {
   });
 });
 
+describe('D-22 / R-1 (D-87): no send after a wait with less than 1 s before the deadline', () => {
+  const base = {
+    'x-rate-limit-policy': 'trade-search-request-limit',
+    'x-rate-limit-rules': 'Ip',
+    'x-rate-limit-ip': '2:10:60',
+  };
+
+  it('a wait that would end with 0.5 s left is refused at admission as would_wait, without sleeping or sending', async () => {
+    const clock = manualClock();
+    const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep });
+    await limiter.run('search', async () => response(base));
+    const send = jest.fn(async () => response(base));
+    // The next send may go at +11 s (10 s window + 1 s guard); the deadline is at +11.5 s.
+    const err = await rejection(limiter.run('search', send, { deadline: clock.now() + 11_500 }));
+    expect(err).toBeInstanceOf(TradeError);
+    expect(err.kind).toBe('would_wait');
+    expect(clock.sleep).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+    // With 1 s or more left after the wait, the send goes.
+    await limiter.run('search', send, { deadline: clock.now() + 12_000 });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('a sleep that overshoots into the last second refuses after the wait, without sending, and releases the reservation', async () => {
+    let t = 1_000_000;
+    const sleep = jest.fn(async (ms: number) => {
+      t += ms + 700; // the timer fired late
+    });
+    const limiter = new RateLimiter({ now: () => t, sleep });
+    await limiter.run('search', async () => response(base));
+    const send = jest.fn(async () => response(base));
+    // Admission sees 1.5 s left after the 11 s wait; the late timer leaves only 0.8 s.
+    const err = await rejection(limiter.run('search', send, { deadline: t + 12_500 }));
+    expect(err.kind).toBe('would_wait');
+    expect(err.message).toMatch(/too little time before the deadline/);
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(send).not.toHaveBeenCalled();
+    // The refused request's reservation was released: the next send goes at once (the window has passed).
+    sleep.mockClear();
+    await limiter.run('search', send, { deadline: t + 5_000 });
+    expect(sleep).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("waiting on a class's first request until under 1 s is left refuses without sending", async () => {
+    let t = 1_000_000;
+    const limiter = new RateLimiter({ now: () => t });
+    const first = deferred<Response>();
+    const p1 = limiter.run('search', () => first.promise);
+    const send2 = jest.fn(async () => response());
+    const p2 = limiter.run('search', send2, { deadline: t + 5_000 });
+    await flush();
+    t += 4_500; // the first request took 4.5 s to answer
+    first.resolve(response({ ...base, 'x-rate-limit-ip-state': '1:10:0' }));
+    await p1;
+    const err = await rejection(p2);
+    expect(err.kind).toBe('would_wait');
+    expect(send2).not.toHaveBeenCalled();
+  });
+
+  it('control: without a wait, a send with under 1 s left is not refused by the limiter (the caller checks between steps)', async () => {
+    const clock = manualClock();
+    const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep });
+    await limiter.run('search', async () => response({ ...base, 'x-rate-limit-ip': '8:10:60' }));
+    const send = jest.fn(async () => response(base));
+    await limiter.run('search', send, { deadline: clock.now() + 500 });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('AC-T7 (WU-14): the first request per endpoint class is serialized', () => {
   it('AC-T7: the second send starts only after the first settles', async () => {
     const limiter = new RateLimiter();

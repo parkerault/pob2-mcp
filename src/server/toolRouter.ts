@@ -62,8 +62,10 @@ export interface ToolCallContext {
   signal: AbortSignal;
   progressToken?: string | number;
   sendProgress(progress: number, message?: string): Promise<void>;
-  /** Epoch ms when the call arrived (deadlines run from here, D-22). */
+  /** Epoch ms when the call arrived (deadlines run from here, D-22), on the `now` clock. */
   arrivedAt: number;
+  /** The clock `arrivedAt` is on (the server's monotonic clock); default `Date.now`. */
+  now?: () => number;
 }
 
 /** `find_upgrades`' budget from the call's arrival, lock wait included (D-22). */
@@ -622,6 +624,7 @@ async function dispatch(
           call: {
             signal: call.signal,
             deadline: call.arrivedAt + FIND_UPGRADES_BUDGET_MS,
+            ...(call.now ? { now: call.now } : {}),
             sendProgress: (progress, message) => call.sendProgress(progress, message),
           },
         },

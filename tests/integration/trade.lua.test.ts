@@ -222,9 +222,9 @@ engineDescribe('Lua trade actions on the golden build (C-13)', () => {
     async () => {
       const elapsedMs: Record<string, number> = {};
       for (const slot of ['Body Armour', 'Weapon 1', 'Ring 1', 'Amulet', 'Boots']) {
-        const t0 = Date.now();
+        const t0 = performance.now();
         const result = await engine.tradeGenerateQuery({ slot });
-        elapsedMs[slot] = Date.now() - t0;
+        elapsedMs[slot] = performance.now() - t0;
         expect(result.meta.calcCount).toBeGreaterThanOrEqual(1);
       }
       // Reported as a whole, so a failure shows every slot's time.

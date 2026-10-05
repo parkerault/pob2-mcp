@@ -125,6 +125,13 @@ export interface EngineSessionOptions {
   /** Builds the bridge client on the first engine call (default: the real `PoBLuaApiClient`). */
   createClient?: () => SessionClient;
   now?: () => number;
+  /**
+   * Called whenever the engine's loaded file gets a fingerprint: a load from a file, the disk-change
+   * check (an mtime refresh or an auto-reload) and an engine save (`noteSaved`). The build-file writer
+   * keeps the last one per path, so a later overwrite of a file the engine has since switched away
+   * from is still guarded (C-17 step 3, FR-E4; D-86).
+   */
+  onFileFingerprint?: (relPath: string, fp: Fingerprint) => void;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -314,7 +321,7 @@ class Session implements EngineSession {
   // -------------------------------------------------------------------------------------------------
 
   private emit(call: EngineCall, phase: EnginePhase, ok?: boolean): void {
-    const event: EngineEvent = { tool: call.tool, kind: call.kind, phase, t: Date.now(), ...(ok !== undefined ? { ok } : {}) };
+    const event: EngineEvent = { tool: call.tool, kind: call.kind, phase, t: this.now(), ...(ok !== undefined ? { ok } : {}) };
     for (const cb of this.listeners) {
       try {
         cb(event);
@@ -608,6 +615,7 @@ class Session implements EngineSession {
     const hash = sha1(bytes);
     if (hash === loaded.fingerprint.sha1) {
       this.loadedValue = { ...loaded, fingerprint: { ...loaded.fingerprint, mtimeMs } };
+      this.noteFileFingerprint();
       return;
     }
     if (this.isDirty()) {
@@ -640,6 +648,7 @@ class Session implements EngineSession {
       loadedRevision: this.revisionValue,
       savedRevision: this.revisionValue,
     };
+    this.noteFileFingerprint();
     try {
       this.snapshot = { xml: await this.exportXml(), revision: this.revisionValue, afterTool: "auto-reload" };
     } catch (error) {
@@ -770,6 +779,18 @@ class Session implements EngineSession {
     this.snapshot = null;
     state.loaded = true;
     this.loadedValue = { ...record, loadedRevision: this.revisionValue, savedRevision: this.revisionValue };
+    this.noteFileFingerprint();
+  }
+
+  /** Report the loaded file's fingerprint to `onFileFingerprint` (no-op without a file). */
+  private noteFileFingerprint(): void {
+    const loaded = this.loadedValue;
+    if (!loaded || loaded.path === null || loaded.fingerprint === null) return;
+    try {
+      this.opts.onFileFingerprint?.(loaded.path, loaded.fingerprint);
+    } catch (error) {
+      console.error(`[Engine Session] onFileFingerprint for ${loaded.path} failed: ${errorMessage(error)}`);
+    }
   }
 
   private makeCtx(state: RunState): EngineCallContext {
@@ -867,6 +888,7 @@ class Session implements EngineSession {
           fingerprint: fp,
           savedRevision: session.revisionValue,
         };
+        session.noteFileFingerprint();
       },
       async fingerprint(relPath: string): Promise<Fingerprint | null> {
         check();

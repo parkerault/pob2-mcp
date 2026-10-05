@@ -75,6 +75,9 @@ async function realPathOf(p: string): Promise<string> {
   }
 }
 
+/** State-dir subtrees the server owns, which `export_build` may not write into (D-88). */
+const RESERVED_STATE_SUBDIRS = ["backups", "snapshots"] as const;
+
 const NOTES_RE = /<Notes\s*>([\s\S]*?)<\/Notes\s*>|<Notes\s*\/>/;
 
 /** XML text escaping for a notes body. */
@@ -138,7 +141,8 @@ export class BuildExportService {
   /**
    * D-42: `output_directory` must resolve inside the builds folder or the state dir (a relative path
    * is taken inside the builds folder); symlinks are resolved before the check. Default:
-   * `<stateDir>/exports`.
+   * `<stateDir>/exports`. The server's own `<stateDir>/backups/` and `<stateDir>/snapshots/` subtrees
+   * are refused (D-88): an export there could replace a writer backup or a snapshot copy.
    */
   async resolveExportTarget(outputDirectory?: string): Promise<ExportTarget> {
     if (outputDirectory === undefined || outputDirectory.trim() === "") {
@@ -149,6 +153,17 @@ export class BuildExportService {
     const realDir = await realPathOf(dir);
     const realBuilds = await realPathOf(this.pobDirectory);
     const realState = await realPathOf(this.stateDir);
+    for (const sub of RESERVED_STATE_SUBDIRS) {
+      const reserved = path.join(this.stateDir, sub);
+      const realReserved = path.join(realState, sub);
+      if (isInside(reserved, dir) || isInside(realReserved, realDir) || isInside(await realPathOf(reserved), realDir)) {
+        throw new ExportError(
+          `output_directory ${outputDirectory} is inside the server's ${sub} folder (${reserved}), which holds its own ` +
+            `${sub === "backups" ? "build-file backups" : "build snapshots"}; exports may not be written there. ` +
+            `Omit output_directory to use ${this.exportDirectory}.`,
+        );
+      }
+    }
     // The builds folder first: a write there must go through the build-file writer (C-17).
     if (isInside(this.pobDirectory, dir) && isInside(realBuilds, realDir)) return { area: "builds", dir };
     if (isInside(this.stateDir, dir) && isInside(realState, realDir)) return { area: "state", dir };

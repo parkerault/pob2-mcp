@@ -20,6 +20,10 @@
  *   and the others wait until it settles (a response with or without headers, or an error).
  * - **No long sleeps.** A wait past the deadline or past `maxWaitMs` (default 30 s) throws
  *   `would_wait` without sleeping.
+ * - **No send with under 1 s left** (D-22, risk R-1). A send that has to wait is refused as
+ *   `would_wait` when it would go out with less than `MIN_SEND_LEFT_MS` before the deadline, both at
+ *   admission and again after the wait (a sleep can overshoot, and waiting on a class's first request
+ *   has no known end): a request sure to be cut by the deadline must not spend an account slot.
  *
  * Admitted requests reserve their send time at admission (in FIFO order per policy), so concurrent
  * admissions see each other.
@@ -117,6 +121,8 @@ export const DEFAULT_MAX_WAIT_MS = 30_000;
  * `TradeQueryRateLimiter.lua:173,192`).
  */
 export const WINDOW_GUARD_MS = 1_000;
+/** After a wait, a send needs at least this long left before its deadline (D-22: no step starts with < 1 s left). */
+export const MIN_SEND_LEFT_MS = 1_000;
 
 interface PolicyState {
   /** Rule name → its windows (as last sent by the server). */
@@ -210,13 +216,20 @@ export class RateLimiter {
    */
   async run(endpoint: Endpoint, send: () => Promise<Response>, opts: RunOptions = {}): Promise<Response> {
     // Before the class has a policy, its first request goes alone.
+    const arrived = this.now();
+    let waited = false;
     for (;;) {
       if (opts.signal?.aborted) throw opts.signal.reason;
       if (this.classPolicy.has(endpoint)) break;
       const inFlight = this.firstInFlight.get(endpoint);
-      if (!inFlight) return this.runFirst(endpoint, send);
+      if (!inFlight) {
+        if (waited) this.refuseIfTooLate(opts, this.now() - arrived);
+        return this.runFirst(endpoint, send);
+      }
       await untilSettledOrAborted(inFlight, opts.signal);
+      waited = true;
     }
+    if (waited) this.refuseIfTooLate(opts, this.now() - arrived);
 
     const policyName = this.classPolicy.get(endpoint)!;
     const policy = this.policy(policyName);
@@ -229,6 +242,7 @@ export class RateLimiter {
       if (now < policy.lockedUntil) {
         throw lockedOut(policy.lockedUntil - now);
       }
+      if (wait > 0) this.refuseIfTooLate(opts, wait);
     } catch (error) {
       // Not sent: release the reservation.
       removeOne(policy.sent, sendAt);
@@ -237,6 +251,21 @@ export class RateLimiter {
     const response = await send();
     this.record(endpoint, response);
     return response;
+  }
+
+  /**
+   * After a wait of `waitedMs` (> 0), refuse as the deadline's `would_wait` when less than
+   * `MIN_SEND_LEFT_MS` remains: the request would be cut before it could finish (D-22, R-1).
+   */
+  private refuseIfTooLate(opts: RunOptions, waitedMs: number): void {
+    if (opts.deadline === undefined) return;
+    if (opts.deadline - this.now() >= MIN_SEND_LEFT_MS) return;
+    const waitS = Math.max(1, Math.ceil(waitedMs / 1000));
+    throw new TradeError(
+      'would_wait',
+      `the trade site's rate limit needed a wait of ${waitS} s, which left too little time before the deadline; try again later`,
+      { waitS },
+    );
   }
 
   /** The parsed state of one policy (test and diagnostics hook). */
@@ -291,7 +320,9 @@ export class RateLimiter {
     const sendAt = this.earliestSendTime(policy, now);
     const wait = sendAt - now;
     const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
-    if (!Number.isFinite(sendAt) || (opts.deadline !== undefined && sendAt > opts.deadline) || wait > maxWaitMs) {
+    const pastDeadline =
+      opts.deadline !== undefined && (sendAt > opts.deadline || (wait > 0 && opts.deadline - sendAt < MIN_SEND_LEFT_MS));
+    if (!Number.isFinite(sendAt) || pastDeadline || wait > maxWaitMs) {
       const waitS = Number.isFinite(wait) ? Math.ceil(wait / 1000) : Infinity;
       throw new TradeError(
         'would_wait',

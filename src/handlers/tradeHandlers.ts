@@ -38,7 +38,7 @@ export const STATS_UNAVAILABLE = 'trade stat data unavailable';
 // Price normalization (C-12)
 // ========================================
 
-/** A normalized search_trade_items price, to 2 decimal places (AC-T46). */
+/** A native-currency average (get_item_price's per-currency spread), to 2 decimal places. */
 function fmt2(n: number): string {
   return n.toFixed(2);
 }
@@ -187,7 +187,7 @@ function formatSearchResults(
     if (price) {
       const primary = prices.values[i];
       output += `   Price: ${nativePrice(price)}`;
-      if (primary !== null && prices.rates) output += ` (≈ ${fmt2(primary)} ${prices.rates.primary})`;
+      if (primary !== null && prices.rates) output += ` (≈ ${formatCurrencyValue(primary)} ${prices.rates.primary})`; // D-72 formatter (AC-T46)
       output += '\n';
     } else {
       output += `   Price: Not listed\n`;
@@ -501,7 +501,13 @@ export interface FindUpgradesContext {
   credentials: () => Credentials;
   env: Env;
   /** The MCP call: its abort signal, its deadline (arrival + 90 s, D-22) and progress (D-22). */
-  call: { signal: AbortSignal; deadline: number; sendProgress(progress: number, message?: string): Promise<void> };
+  call: {
+    signal: AbortSignal;
+    deadline: number;
+    /** The clock `deadline` is on (the server's monotonic clock); default `Date.now`. */
+    now?: () => number;
+    sendProgress(progress: number, message?: string): Promise<void>;
+  };
 }
 
 /**
@@ -527,6 +533,7 @@ export async function handleFindUpgrades(
       }
     };
     const { signal, deadline } = context.call;
+    const now = context.call.now ?? Date.now;
 
     const result = await runUpgradeSearch(input, {
       engine,
@@ -535,6 +542,7 @@ export async function handleFindUpgrades(
       env: context.env,
       signal,
       deadline,
+      now,
       progress,
       session: context.session,
     });
@@ -547,6 +555,7 @@ export async function handleFindUpgrades(
       engine,
       signal,
       deadline,
+      now,
       env: context.env,
       loaded: loaded ? { displayName: loaded.displayName, path: loaded.path } : null,
       currency: context.currency,

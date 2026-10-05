@@ -20,10 +20,10 @@ const STATS = 'https://www.pathofexile.com/api/trade2/data/stats';
 describe('AC-T11 (WU-14, D-14): lazy trade start-up', () => {
   it('AC-T11: with fetch never resolving, initialize and listTools complete within 1 s and fetch is not called', async () => {
     const hang = jest.fn(() => new Promise<Response>(() => undefined));
-    const t0 = Date.now();
+    const t0 = performance.now();
     server = await startTestServer({ fetch: hang as unknown as typeof fetch, env: TRADE_ENV });
     const { tools } = await server.client.listTools();
-    const elapsed = Date.now() - t0;
+    const elapsed = performance.now() - t0;
     expect(elapsed).toBeLessThanOrEqual(1000);
     expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['search_trade_items', 'search_stats', 'get_leagues']));
     expect(hang).not.toHaveBeenCalled();

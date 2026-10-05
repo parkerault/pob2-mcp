@@ -11,7 +11,9 @@ import { sanitizeBuildName } from "../utils/pathSanitizer.js";
  * The engine reports the active config set over PoB2's option keys: the values the build sets
  * (`input`), the value PoB uses for each option it doesn't set (`defaults`), the option list and the
  * enemy level in effect. Every write goes through the `set_config` action, which writes the active
- * config set's `input` the way PoB's config controls do and rebuilds; `""` clears a non-checkbox option.
+ * config set's `input` the way PoB's config controls do and rebuilds; `""` clears a non-checkbox option
+ * back to PoB's default (a list option to the entry a new config set holds, e.g. enemyIsBoss "Pinnacle",
+ * since PoB only applies a list option that holds a value; any other field is emptied).
  */
 
 export interface ConfigHandlerContext {

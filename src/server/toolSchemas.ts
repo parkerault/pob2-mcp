@@ -906,7 +906,7 @@ export function getConfigToolSchemas(): any[] {
             description: "PoB2 config option key (from get_config), e.g. 'usePowerCharges', 'enemyIsBoss', 'conditionLowLife'",
           },
           value: {
-            description: "New value: true/false for a checkbox, a number for a number field, one of the option's values for a list, text for a text field. \"\" clears a non-checkbox option back to PoB's default.",
+            description: "New value: true/false for a checkbox, a number for a number field, one of the option's values for a list, text for a text field. \"\" clears a non-checkbox option back to PoB's default: a list option goes back to the entry a new PoB config has (enemyIsBoss: Pinnacle), any other field is emptied.",
           },
         },
         required: ["config_name", "value"],

@@ -289,6 +289,13 @@ local function config_options()
       section = varData.section
     elseif varData.var and not byVar[varData.var] then
       local option = { var = varData.var, type = varData.type, section = section, list = varData.list }
+      if varData.type == 'list' then
+        -- The value a new config set holds for this list (ConfigTab:CreateConfigSet): the default entry
+        -- when the option names one, else its defaultState (nil for every list PoB2 ships). It is also
+        -- what PoB reloads for the option when a save leaves it out (ConfigTab:Load starts from it).
+        option.initial = varData.defaultIndex and varData.list and varData.list[varData.defaultIndex]
+          and varData.list[varData.defaultIndex].val or varData.defaultState
+      end
       list[#list + 1] = option
       byVar[varData.var] = option
     end
@@ -345,8 +352,14 @@ local function config_value(option, v)
     if v == 'false' then return true, false end
     return false, string.format("config option '%s' is a checkbox: the value must be true or false", key)
   end
-  -- An empty value clears the option, like emptying its field in PoB: PoB then uses its default.
-  if v == '' then return true, nil end
+  -- An empty value clears the option back to PoB's default. A list can't be emptied in PoB (its
+  -- dropdown always writes a value, and BuildModList only applies a list option that holds one), so a
+  -- list goes back to the value a new config set holds (enemyIsBoss: "Pinnacle"), which is also what it
+  -- reloads as after a save; any other field is emptied, like emptying it in PoB.
+  if v == '' then
+    if t == 'list' then return true, option.initial end
+    return true, nil
+  end
   if t == 'count' or t == 'countAllowZero' or t == 'integer' or t == 'float' then
     local n = tonumber(v)
     if type(v) == 'boolean' or not n or not is_scalar(n) then

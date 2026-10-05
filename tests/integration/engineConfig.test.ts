@@ -174,6 +174,102 @@ engineDescribe('engine ops: config and presets on the golden build (WU-12)', () 
     ENGINE_TIMEOUT,
   );
 
+  /** The engine's TotalDPS now, straight from PoB's main output. */
+  const engineDps = () => luaQuery<number>(`return build.calcsTab.mainOutput.TotalDPS`);
+
+  /**
+   * What PoB itself holds for each key in a brand-new config set (ConfigTab:CreateConfigSet, the state
+   * ConfigTab:Load starts from before a save's own values), read from a throwaway set PoB creates.
+   */
+  const freshConfigValues = (keys: string[]) =>
+    luaQuery<Record<string, string | number | boolean>>(`
+      local ct = build.configTab
+      local set = ct:CreateConfigSet(9999, 'probe')
+      ct.configSets[9999] = nil
+      local out = {}
+      for _, k in ipairs(${JSON.stringify(keys).replace('[', '{').replace(/\]$/, '}')}) do out[k] = set.input[k] end
+      return out`);
+
+  /** Save the build (build:SaveDB, what a C-3 snapshot and lua_save_build write) and load it back. */
+  const saveAndReload = () =>
+    server.session.run({ tool: 'test:engine-config-reload', kind: 'load' }, async (ctx) => {
+      const xml = await ctx.client.exportBuildXml();
+      await ctx.loadXml(xml, { displayName: 'grenadator' });
+    });
+
+  it(
+    'AC-E43: set_config "" on a list option sets PoB\'s default entry (enemyIsBoss: "Pinnacle"), which PoB applies and which survives a save and reload',
+    async () => {
+      const goldenDps = await engineDps();
+      expect((await engineInput()).enemyIsBoss).toBe('Pinnacle');
+      const fresh = await freshConfigValues(['enemyIsBoss']);
+      expect(fresh.enemyIsBoss).toBe('Pinnacle');
+
+      // Move it off the default first, so the clear has something to undo.
+      expect((await call('set_config', { config_name: 'enemyIsBoss', value: 'None' })).isError).toBe(false);
+      expect(await engineDps()).not.toBe(goldenDps);
+
+      const cleared = await call('set_config', { config_name: 'enemyIsBoss', value: '' });
+      expect(cleared.isError).toBe(false);
+      expect(cleared.text).toContain('enemyIsBoss:\n  Previous value: "None"\n  New value: "Pinnacle"\n');
+      // PoB's input holds the default entry (never nil: PoB applies a list option only when it holds a
+      // value), so the calc applies it and the DPS is the golden build's again.
+      expect((await engineInput()).enemyIsBoss).toBe(fresh.enemyIsBoss);
+      expect(optionLines((await call('get_config')).text).get('enemyIsBoss')).toBe('"Pinnacle"');
+      expect(await engineDps()).toBe(goldenDps);
+
+      // A save and reload changes nothing: the cleared state is the state PoB writes and reads back.
+      await saveAndReload();
+      expect((await engineInput()).enemyIsBoss).toBe('Pinnacle');
+      expect(await engineDps()).toBe(goldenDps);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E43: set_config "" on a list option with no default entry leaves it as a new PoB config set holds it, stable across a save and reload',
+    async () => {
+      // ailmentMode names no default entry: a new config set leaves it unset.
+      const fresh = await freshConfigValues(['ailmentMode']);
+      expect(fresh.ailmentMode).toBeUndefined();
+      expect((await call('set_config', { config_name: 'ailmentMode', value: 'CRIT' })).isError).toBe(false);
+      expect((await engineInput()).ailmentMode).toBe('CRIT');
+
+      expect((await call('set_config', { config_name: 'ailmentMode', value: '' })).isError).toBe(false);
+      expect((await engineInput()).ailmentMode).toBeUndefined();
+      const dps = await engineDps();
+      await saveAndReload();
+      expect((await engineInput()).ailmentMode).toBeUndefined();
+      expect(await engineDps()).toBe(dps);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-E45: load_config_preset clears a list option the preset doesn\'t hold to PoB\'s default entry, and the engine computes the golden numbers again',
+    async () => {
+      const goldenDps = await engineDps();
+      const goldenInput = await engineInput();
+      const { enemyIsBoss: _boss, ...withoutBoss } = goldenInput;
+      expect(_boss).toBe('Pinnacle');
+      const dir = path.join(xdg, 'pob2-mcp', 'presets');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'noboss.json'), JSON.stringify({ input: withoutBoss }), 'utf8');
+
+      expect((await call('set_config', { config_name: 'enemyIsBoss', value: 'Uber' })).isError).toBe(false);
+      const load = await call('load_config_preset', { name: 'noboss' });
+      expect(load.isError).toBe(false);
+      expect(load.text).toContain('1 options the preset doesn\'t hold cleared');
+
+      expect(await engineInput()).toEqual(goldenInput);
+      expect(await engineDps()).toBe(goldenDps);
+      await saveAndReload();
+      expect(await engineInput()).toEqual(goldenInput);
+      expect(await engineDps()).toBe(goldenDps);
+    },
+    ENGINE_TIMEOUT,
+  );
+
   it(
     'AC-E44: set_enemy_stats {level: 85} -> get_config shows enemy level 85, and build.configTab.input.enemyLevel == 85',
     async () => {

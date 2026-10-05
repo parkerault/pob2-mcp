@@ -659,9 +659,10 @@ spine (§12). A "Lua query" is a `__test_eval` call.
 **Bridge client, TS side (WU-07)**
 
 - **AC-E7 (WU-07).** Unit (mock process).
-  - Three `request()` calls produce ids 1, 2 and 3.
-  - Replies delivered out of order (3, 1, 2) resolve the matching promises.
+  - After `start()` (whose readiness `ping` takes id 1), three `request()` calls produce ids 2, 3 and 4.
+  - Replies delivered out of order (third, first, second) resolve the matching promises.
   - A reply with id 99 is dropped and logged (console.error spy), and nothing else resolves.
+    (amended during build, D-63)
 - **AC-E8 (WU-07, I-2a, NFR-1).** Engine-required, with a `spawn` spy.
   1. After `start()`, the first `ping` reply arrives ≤ 5 s after `start()` was called.
   2. `request('__test_sleep', {ms: 3000}, {timeoutMs: 500})` rejects with `EngineTimeoutError` 400–900 ms
@@ -709,11 +710,22 @@ spine (§12). A "Lua query" is a `__test_eval` call.
   sample in `tool-calls.json` whose tool has no allowlist entry for check (ii):
   1. Compute a **canonical export** (`export_build_xml` with every `<PlayerStat>`, `<MinionStat>` and
      `<FullDPSSkill>` element removed) before and after the sample, in the same engine process.
+     - **Across a reload.** A sample whose tool reloads the working build through `withTemporaryBuild`
+       (D-9: `analyze_build`, `compare_builds`, `export_build` with `notes`) compares both exports
+       **across-reload canonical** instead, because the pinned PoB2 re-serializes `pairs()`-ordered
+       tables after the reload (`PassiveSpec.lua:226-311`). On top of the canonical export: every tag's
+       attributes are sorted by name; the node-id sets (`nodes` on `<Spec>` and `<WeaponSetN>`,
+       `strNodes`/`dexNodes`/`intNodes` on `<AttributeOverride>`) are sorted numerically;
+       `masteryEffects` entries are sorted; the `<URL>` body is dropped; and each run of consecutive
+       `<Input>`/`<Placeholder>`, `<Socket>` and `<WeaponSetN>` elements is sorted. Everything else is
+       compared as exported.
+     - Every other sample keeps the strict comparison.
   2. Check the export against the kind: `read` ⇒ identical; `mutate`/`load` ⇒ different. Samples use
      state-changing args, or declare `stateChange:false` with a reason.
   3. Check the revision: `revision` grows by exactly 1 for `mutate`/`load`, and by 0 for `read` (no file
      change happened during the test).
   4. A failing `mutate` sample (`set_gem_level` with a bad index) leaves `revision` unchanged.
+  (amended during build, D-62)
 - **AC-E17 (WU-08, I-2c).** In-process, engine-required, test actions on.
   1. Load the golden build, then `set_character_level {level: 50}`.
   2. `process.kill(session.enginePid())`.
@@ -760,7 +772,9 @@ spine (§12). A "Lua query" is a `__test_eval` call.
   - `session.run(..., ctx => ctx.client.request("load_build_xml", …))` rejects with "engine load
     outside the session".
   - With `grenadator.xml` loaded and a second fixture build present, `compare_builds` returns `isError`
-    (until WU-13). The canonical export, `loaded` and `revision` are all unchanged afterwards.
+    until WU-13; from WU-13 on it succeeds through `withTemporaryBuild`. Either way, the canonical export
+    (compared across the reload, AC-E16), `loaded` and `revision` are all unchanged afterwards.
+    (amended during build, D-62)
 - **AC-E57 (WU-08, auto-reload bookkeeping).** In-process, engine-required.
   - **(a) Read call.** Load the build, change the file on disk (engine clean), and call `lua_get_stats`
     (`read`). `revision` +1. Then `process.kill(session.enginePid())` and call `lua_get_build_info`: the
@@ -937,7 +951,9 @@ spine (§12). A "Lua query" is a `__test_eval` call.
     `<stateDir>/exports/e1.xml` whose sha1 equals the source's. The engine's `revision`, `loaded` and
     canonical export are unchanged.
   - With `notes:"x"`, the output's root is `<PathOfBuilding2>` and its notes are `x`. Loading it yields
-    the same class, level and the 109 `PlayerStat` values. The engine state is unchanged afterwards.
+    the same class, level and the 109 `PlayerStat` values. The engine state is unchanged afterwards
+    (`revision`, `loaded`, and the canonical export compared across the reload, AC-E16).
+    (amended during build, D-62)
 - **AC-E49 (WU-13, D-42).** In-process. `export_build {output_directory:"/tmp/elsewhere"}` → `isError`.
   An `output_directory` inside `POB_DIRECTORY` succeeds.
 - **AC-E50 (WU-13, C-16/C-17).** In-process.
@@ -949,8 +965,9 @@ spine (§12). A "Lua query" is a `__test_eval` call.
 - **AC-E51 (WU-13, D-9).** In-process, engine-required, with a second fixture build in the temp folder (a
   copy of `grenadator.xml` with level 80).
   - With `grenadator.xml` loaded, `analyze_build {build_name:"other.xml"}` and `compare_builds` with it
-    leave `revision`, `loaded` and the canonical export identical to before.
-  - `compare_builds` reports both builds' levels (90 vs 80).
+    leave `revision`, `loaded` and the canonical export (compared across the reload, AC-E16) identical
+    to before.
+  - `compare_builds` reports both builds' levels (90 vs 80). (amended during build, D-62)
 - **AC-E52 (WU-13).** In-process.
   - `import_build` with a code whose XML root is `<PathOfBuilding>` → `isError` naming `PathOfBuilding2`.
   - A code that inflates beyond 16 MiB (synthetic: 20 MiB of zeros, deflated) → `isError` "build code

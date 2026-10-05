@@ -257,12 +257,13 @@ Citations are in [recon §4, §8](../recon.md) and [grounding/ctx-lua.md](../gro
      - `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`, a tripwire: any trade request fails;
      - `POE_NINJA_DISABLED=true`;
   4. through `scripts/fresh-clone-check.mjs` (the SDK client):
-     - asserts that `listTools` returns 76 tools;
+     - asserts that `listTools` returns 75 tools, without `get_currency_rates` (`POE_NINJA_DISABLED`
+       hides it, C-1), and that a listing-only server started without that flag returns 76;
      - asserts that `lua_load_build {build_name:"grenadator.xml"}` reports Life 2,977;
      - calls `find_upgrades {slot:"Ring 1"}` and asserts that the result starts with
        `Trade search not run:` (D-49: no request is made, so the tripwire isn't hit);
   5. exits non-zero on any failed step;
-  6. contains no pipes.
+  6. contains no pipes. (amended during build, D-64)
 - **AC-G5 (WU-19).** `CLAUDE.md` exists and contains:
   - the worktree bootstrap (`mise trust` first);
   - "no pipes in mise tasks";

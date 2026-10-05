@@ -1116,3 +1116,12 @@ exited 0. The server is registered with the D-16 command, and `claude mcp list` 
 | 8 | `import_build` from a pobb.in URL | **PASS.** Took 2.5 s: Monk (Martial Artist), level 42 (A-15 holds) |
 | 4, 6, 7 | The exact-item link, PoB2 edit then reload, Claude save then re-open in PoB2 | **PENDING.** These need the user |
 | 9 | Live observations | The trade2 rate-limit rules are not logged by the server. The one observed response was 400 with code 2 and no Account rule, sent with a cookie |
+
+**Item 3, rerun after the user refreshed `POESESSID` (2026-10-05): PASS.**
+- Call: `find_upgrades {slot: "Body Armour", max_price: 100, currency: "exalted"}` on Grenadator.
+- Returned in 5.0 s, not `isError`. The output is 6,025 chars, about 1.5k tokens.
+- Summary line: Matches 649, fetched 20, evaluated 20, rejected 0, over budget 0, 1 upgrade.
+- The listing has a score delta, per-stat deltas, an exact-item `Buy:` link (`%20` league,
+  `trade_filters.account`) and the PoB item text, followed by a short search-id link.
+- **Nit for later.** The normalized price is redundant when the listing's currency is the display
+  currency: "31 exalted (≈ 31.00 exalted)".

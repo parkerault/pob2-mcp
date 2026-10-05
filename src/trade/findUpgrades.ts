@@ -11,7 +11,9 @@
  * WU-23 then evaluates, prices, ranks and renders, inside the same `session.run`.
  *
  * Flow:
- *  1. input: validated by `parseFindUpgradesInput` (zod; an invalid field is named, D-27);
+ *  1. input: validated by `parseFindUpgradesInput` (zod; an invalid field is named, D-27); the
+ *     `report_stats` names, which only the engine can check, are checked by `trade_generate_query` at
+ *     step 4, before any request (`reportStatsError` names the field);
  *  2. league known? the `league` input, else `POE_LEAGUE`;
  *  3. options: the input mapped to `trade_generate_query` params (C-13);
  *  4. query: the generated-query cache (LRU 32, keyed by session revision, slot and the canonical
@@ -25,7 +27,8 @@
  *     entries are dropped and counted (D-56).
  *
  * Bounds (D-22): every step checks the caller's signal, no step starts with < 1 s left, every engine
- * request's timeout is `min(default, remaining)`, and every trade request carries the deadline (the
+ * request's timeout is `min(default, remaining)` and the deadline ends it by abort just before that
+ * (`deadlineBound`, D-75), and every trade request carries the deadline (the
  * client clips its timeout, the limiter refuses waits past it or past 30 s). The `/data/leagues` and
  * `/data/stats` loads take no deadline or signal (they are shared, cached loads), so the flow races them
  * against the caller's signal and a `min(15 s, remaining)` timer instead.
@@ -35,7 +38,7 @@
  */
 import { z } from 'zod';
 import type { EngineCallContext, EngineSession } from '../engine/session.js';
-import { EngineTimeoutError } from '../pobLuaBridge.js';
+import { EngineActionError, EngineTimeoutError } from '../pobLuaBridge.js';
 import type { TradeGenerateQueryParams, TradeGenerateQueryResult } from '../engine/schemas.js';
 import type { Credentials } from './credentials.js';
 import { TradeError } from './errors.js';
@@ -68,6 +71,12 @@ export const RESULT_CAP = 10_000;
 export const FETCH_BLOCK = 10;
 /** The generated-query cache size (D-50). */
 export const QUERY_CACHE_SIZE = 32;
+
+/**
+ * A deadline-bound engine step ends this long before the deadline (through its abort signal), so the
+ * work after it still finishes within the 90 s (AC-T44 (e), D-75).
+ */
+export const FINISH_RESERVE_MS = 250;
 
 /** The early-stop reasons (C-14 "Stopping early"); a renderer prints `Stopped early: <reason>.`. */
 export const STOP_BUDGET = 'the 90 s budget ran out';
@@ -171,7 +180,21 @@ export function toGenerateParams(input: FindUpgradesInput): TradeGenerateQueryPa
   params.runeBehaviour = input.rune_behaviour;
   if (input.jewel_type) params.jewelType = input.jewel_type === 'base' ? 'Base' : 'Radius';
   params.status = input.status;
+  // Checked by the engine at generation, before any request, so a bad name fails fast (C-14 step 1).
+  if (input.report_stats && input.report_stats.length > 0) params.reportStats = [...input.report_stats];
   return params;
+}
+
+/**
+ * The C-14 step-1 error for a `report_stats` name the engine rejected at generation: `trade_generate_query`
+ * fails with `reportStats[<i>]: <reason>` (1-based), which names the input field `report_stats.<i-1>`
+ * the way the zod check does (D-27). Null for any other error.
+ */
+export function reportStatsError(error: unknown): Error | null {
+  if (!(error instanceof EngineActionError) || error.action !== 'trade_generate_query') return null;
+  const m = /^reportStats\[(\d+)\]:?\s*(.*)$/s.exec(error.error);
+  if (!m) return null;
+  return new Error(`invalid find_upgrades argument report_stats.${Number(m[1]) - 1}: ${m[2]}`);
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -276,6 +299,18 @@ export function engineBusyStopText(slot?: unknown): string {
   );
 }
 
+/**
+ * The `find_upgrades` error text when its deadline arrived during the engine session's own steps
+ * (`EngineDeadlineError`: the engine start, the snapshot restore after a crash, or the disk-change
+ * reload), before PoB generated the query. `step` is what the engine was doing.
+ */
+export function engineDeadlineStopText(step: string): string {
+  return (
+    `Stopped early: ${STOP_BUDGET} before PoB generated the trade query (the engine was ${step}), so no trade ` +
+    'search was run. Try again: the next engine call finishes that work first.'
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------
 // The generated-query cache (C-14 step 4; data model: under the engine mutex)
 
@@ -328,6 +363,34 @@ function cacheFor(session: object): QueryCache {
 
 // ---------------------------------------------------------------------------------------------------
 // Helpers
+
+/** Raised by a deadline-bound step's signal when the deadline (less the finish reserve) arrives. */
+export class DeadlineReached extends Error {
+  constructor() {
+    super(STOP_BUDGET);
+    this.name = 'DeadlineReached';
+  }
+}
+
+/**
+ * The abort signal for one deadline-bound engine step (D-75): the caller's signal, plus one that fires
+ * `FINISH_RESERVE_MS` before the deadline. Ending the step this way rejects the request without killing
+ * the engine, unlike the bridge's timeout (C-4: a timeout SIGKILLs the engine, and the session then
+ * reports a crash, C-3 step 7). `done()` clears the timer.
+ */
+export function deadlineBound(ctx: { signal: AbortSignal; deadline: number }): {
+  signal: AbortSignal;
+  reached(): boolean;
+  done(): void;
+} {
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(new DeadlineReached()), Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now()));
+  return {
+    signal: AbortSignal.any([ctx.signal, deadline.signal]),
+    reached: () => deadline.signal.aborted,
+    done: () => clearTimeout(timer),
+  };
+}
 
 /** Thrown inside the flow when a step would start with < 1 s left. */
 class BudgetExhausted extends Error {
@@ -526,15 +589,20 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
   if (cached) {
     generated = cached;
   } else {
+    // The clipped timeout of C-14 is only a backstop: the deadline ends the step by abort a moment
+    // before it, so the engine is not killed (D-75).
     const timeoutMs = Math.max(1, Math.min(GENERATE_TIMEOUT_MS, remaining()));
+    const bound = deadlineBound(ctx);
     try {
-      generated = await ctx.engine.client.tradeGenerateQuery(params, { timeoutMs, signal: ctx.signal });
+      generated = await ctx.engine.client.tradeGenerateQuery(params, { timeoutMs, signal: bound.signal });
     } catch (error) {
       if (ctx.signal.aborted) throw ctx.signal.reason;
-      if (error instanceof EngineTimeoutError && timeoutMs < GENERATE_TIMEOUT_MS) {
+      if (bound.reached() || (error instanceof EngineTimeoutError && timeoutMs < GENERATE_TIMEOUT_MS)) {
         throw new UpgradeSearchError(`Stopped early: ${STOP_BUDGET} while PoB generated the trade query.`);
       }
-      throw error;
+      throw reportStatsError(error) ?? error;
+    } finally {
+      bound.done();
     }
     cache.set(cacheKey, generated);
   }

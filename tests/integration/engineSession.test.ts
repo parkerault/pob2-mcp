@@ -75,7 +75,61 @@ engineDescribe('AC-E17: a killed engine is restored from the snapshot (I-2c)', (
     expect(out.text).toContain('Level: 50');
     expect(f.session.enginePid()).not.toBe(pid);
   }, T);
+
+  it('FR-E3 (C-3 step 3): an auto-mode level is restored as it was after the last change, not re-estimated by PoB', async () => {
+    // The golden build with PoB's level estimate on; removing tree leaves leaves the recorded level
+    // stale against the estimate (a plain reload of the export would move it, AC-A3).
+    const auto = GOLDEN_XML.replace('characterLevelAutoMode="false"', 'characterLevelAutoMode="true"');
+    expect(auto).not.toBe(GOLDEN_XML);
+    writeBuild(path.join(f.builds, 'auto-level.xml'), auto);
+    expect((await f.call('lua_load_build', { build_name: 'auto-level.xml' })).isError).toBe(false);
+    const levelState = async () =>
+      (
+        await f.session.run({ tool: 'test:level-state', kind: 'read' }, async (ctx) =>
+          (await ctx.client.request('__test_eval', { code: 'return { level = build.characterLevel, auto = build.characterLevelAutoMode }' })).result,
+        )
+      ).value as { level: number; auto: boolean };
+    const removed = await f.session.run({ tool: 'test:remove-leaves', kind: 'mutate' }, async (ctx) => {
+      const leaves = (await ctx.client.request('__test_eval', { code: PICK_LEAVES(5) })).result as number[];
+      await ctx.client.request('update_tree_delta', { removeNodes: leaves });
+      return leaves;
+    });
+    expect(removed.value).toHaveLength(5);
+    const before = await levelState();
+    expect(before.auto).toBe(true);
+
+    await killEngine(f.session);
+    const after = await f.session.run({ tool: 'test:after-kill', kind: 'read' }, async (ctx) =>
+      (await ctx.client.request('__test_eval', { code: 'return { level = build.characterLevel, auto = build.characterLevelAutoMode }' })).result,
+    );
+    expect(after.notices.join('\n')).toContain('restored the build to its state after `test:remove-leaves`');
+    expect(after.value).toEqual(before);
+
+    // The case is real: PoB's own refresh would move the level.
+    const raw = await f.session.run({ tool: 'test:refresh', kind: 'read' }, async (ctx) =>
+      (await ctx.client.request('__test_eval', { code: 'build:RefreshStatList() return build.characterLevel' })).result,
+    );
+    expect(raw.value).not.toBe(before.level);
+  }, T);
 });
+
+/** Up to `n` allocated non-ascendancy leaf nodes (one allocated neighbour), lowest ids first. */
+const PICK_LEAVES = (n: number) => `
+local spec = build.spec
+local ids = {}
+for id, node in pairs(spec.allocNodes) do
+  if not node.ascendancyName and node.type ~= 'ClassStart' then
+    local linked = 0
+    for _, other in ipairs(node.linked or {}) do
+      if spec.allocNodes[other.id] then linked = linked + 1 end
+    end
+    if linked == 1 then ids[#ids + 1] = id end
+  end
+end
+table.sort(ids)
+local out = {}
+for i = 1, math.min(${n}, #ids) do out[i] = ids[i] end
+return out`;
 
 engineDescribe('AC-E18: an engine death during a call (through session.run)', () => {
   let f: SessionFixture;

@@ -26,6 +26,7 @@ import { RateLimiter } from '../../src/trade/rateLimiter';
 import { TradeApiClient } from '../../src/trade/tradeClient';
 import type { Credentials } from '../../src/trade/credentials';
 import {
+  FINISH_RESERVE_MS,
   parseFindUpgradesInput,
   runUpgradeSearch,
   stoppedEarlyNote,
@@ -464,13 +465,39 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     expect(Date.now() - start).toBeLessThanOrEqual(10_000);
   });
 
-  it('AC-T34: the generation request gets min(60 s, the time left) and the abort signal', async () => {
+  it('AC-T34: the generation request gets min(60 s, the time left) and a signal that follows the caller abort', async () => {
+    const caller = new AbortController();
     const { ctx, generate } = setup([searchSequence([searchResponse('s1', 2207)]), fetchRoute()], { deadlineInMs: 30_000 });
-    await drive(runUpgradeSearch(input(), ctx));
+    await drive(runUpgradeSearch(input(), { ...ctx, signal: caller.signal }));
     const opts = generate.mock.calls[0][1] as { timeoutMs: number; signal: AbortSignal };
     expect(opts.timeoutMs).toBeLessThanOrEqual(30_000);
     expect(opts.timeoutMs).toBeGreaterThan(29_000);
-    expect(opts.signal).toBe(ctx.signal);
+    expect(opts.signal.aborted).toBe(false);
+    caller.abort('caller gave up');
+    expect(opts.signal.aborted).toBe(true);
+    expect(opts.signal.reason).toBe('caller gave up');
+  });
+
+  it('D-75: a generation still running at the deadline is ended by its signal FINISH_RESERVE_MS before it (not by the clipped timeout) -> "while PoB generated the trade query", no request', async () => {
+    const { ctx, calls, generate, start } = setup([searchSequence([searchResponse('s1', 2207)]), fetchRoute()], { deadlineInMs: 5_000 });
+    let abortedAt: number | null = null;
+    // A generation that only the signal ends (a real engine's timeout would SIGKILL it, C-4).
+    generate.mockImplementationOnce(
+      (_params: unknown, opts?: unknown) =>
+        new Promise((_, reject) => {
+          const signal = (opts as { signal: AbortSignal }).signal;
+          signal.addEventListener('abort', () => {
+            abortedAt = Date.now();
+            reject(signal.reason);
+          });
+        }),
+    );
+    const outcome = await drive(runUpgradeSearch(input({ max_level: 61 }), ctx).then(() => null, (e: unknown) => e));
+    expect(outcome).toBeInstanceOf(UpgradeSearchError);
+    expect((outcome as Error).message).toBe('Stopped early: the 90 s budget ran out while PoB generated the trade query.');
+    expect(abortedAt).not.toBeNull();
+    expect(abortedAt! - start).toBeLessThanOrEqual(5_000 - FINISH_RESERVE_MS);
+    expect(calls).toEqual([]);
   });
 
   it('AC-T34: a caller abort between steps stops the flow with the caller reason', async () => {

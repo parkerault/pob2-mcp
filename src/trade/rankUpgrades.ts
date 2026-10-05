@@ -25,8 +25,10 @@ import type { EngineCallContext } from '../engine/session.js';
 import type { TradeEvaluateItemsResult } from '../engine/schemas.js';
 import { convert, type Rates } from './currency.js';
 import {
+  FINISH_RESERVE_MS,
   MIN_STEP_MS,
   STOP_BUDGET,
+  deadlineBound,
   stoppedEarlyNote,
   weightedSumOf,
   type Env,
@@ -45,11 +47,8 @@ export const EVALUATE_BLOCK = 10;
 /** The engine's default request timeout (`POB_TIMEOUT_MS`, else 30 s, D-47), clipped to the time left. */
 export const DEFAULT_ENGINE_TIMEOUT_MS = 30_000;
 
-/**
- * A deadline-bound step ends this long before the deadline (through its abort signal), so the
- * pricing and rendering after it still finish within the 90 s (AC-T44 (e)).
- */
-export const FINISH_RESERVE_MS = 250;
+/** Re-exported: deadline-bound steps share the reserve (D-75), defined with the search pipeline. */
+export { FINISH_RESERVE_MS };
 
 export const NO_RATES_NOTE =
   'Currency rates unavailable: showing native prices; the budget was enforced by the trade site only.';
@@ -143,29 +142,6 @@ export interface Evaluation {
 export function engineDefaultTimeout(env: Env): number {
   const configured = Number.parseInt(env.POB_TIMEOUT_MS ?? '', 10);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_ENGINE_TIMEOUT_MS;
-}
-
-/** Raised by a deadline-bound step's signal when the deadline (less the finish reserve) arrives. */
-class DeadlineReached extends Error {
-  constructor() {
-    super(STOP_BUDGET);
-    this.name = 'DeadlineReached';
-  }
-}
-
-/**
- * The abort signal for one engine step: the caller's signal, plus one that fires
- * `FINISH_RESERVE_MS` before the deadline. Ending the step this way rejects the request without
- * killing the engine, unlike the bridge's timeout (see the module comment). `done()` clears the timer.
- */
-function deadlineBound(ctx: EvaluateContext): { signal: AbortSignal; reached(): boolean; done(): void } {
-  const deadline = new AbortController();
-  const timer = setTimeout(() => deadline.abort(new DeadlineReached()), Math.max(0, ctx.deadline - FINISH_RESERVE_MS - Date.now()));
-  return {
-    signal: AbortSignal.any([ctx.signal, deadline.signal]),
-    reached: () => deadline.signal.aborted,
-    done: () => clearTimeout(timer),
-  };
 }
 
 /**

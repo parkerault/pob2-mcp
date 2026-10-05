@@ -9,6 +9,9 @@
  *     match `loaded.fingerprint`; otherwise they must match this writer's record of its own last write
  *     to that path in this process, if any. A mismatch refuses the write. **No flag overrides this, and
  *     there are no exemptions.** A recorded file that no longer exists is created again, with a notice.
+ *     A byte copy, restore or text edit of the loaded file also accepts this writer's own last write to
+ *     it: the server's own earlier edit (which leaves `loaded.fingerprint` alone, step 6) is not a PoB2
+ *     save. An engine save still compares with `loaded.fingerprint` only, so it never clobbers that edit.
  *  4. **Backup.** Before replacing a file, copy it to `<stateDir>/backups/<relpath>/<id>_backup.xml`
  *     (`<id>_before-restore.xml` for `restore`). A backup failure aborts the write; the target is
  *     untouched.
@@ -26,7 +29,7 @@
  *
  * A caller that must decide before an engine load whether a later write would be allowed
  * (`import_build save_as`) calls `checkBuildFile` first (steps 1–3, no write) and passes the returned
- * `guard` to `writeBuildFile`. The write then applies step 3 against the fingerprint taken at check time
+ * `guard` to `writeBuildFile`. The write then applies step 3 against the fingerprints taken at check time
  * (when the target was the loaded file, `loaded.fingerprint` before the load replaced it), so a PoB2 save
  * that lands between the check and the write is still refused.
  *
@@ -97,10 +100,10 @@ export interface WriteGuard {
   /** Canonical POSIX path relative to `POB_DIRECTORY`. */
   path: string;
   /**
-   * The fingerprint step 3 compares the file with: `loaded.fingerprint` when the target was the loaded
-   * file, else the writer's record of its last write to it, else null (no guard).
+   * The fingerprints step 3 accepts the file's bytes against (see `BuildFileWriter.references`); empty
+   * means no guard.
    */
-  reference: Fingerprint | null;
+  references: Fingerprint[];
 }
 
 export interface WriteBuildFileResult {
@@ -185,9 +188,9 @@ export class BuildFileWriter {
     return this.withTargetLock(target, async () => {
       const current = await this.read(target);
       this.checkExisting(rel, current, req);
-      const reference = this.reference(rel, target);
-      this.checkUnchanged(rel, current, reference);
-      return { path: rel, reference };
+      const references = this.references(rel, target, req.kind);
+      this.checkUnchanged(rel, current, references);
+      return { path: rel, references };
     });
   }
 
@@ -211,8 +214,8 @@ export class BuildFileWriter {
     this.checkExisting(rel, current, req);
 
     // 3. Changed-on-disk guard.
-    const reference = req.guard ? req.guard.reference : this.reference(rel, target);
-    const notices = this.checkUnchanged(rel, current, reference);
+    const references = req.guard ? req.guard.references : this.references(rel, target, req.kind);
+    const notices = this.checkUnchanged(rel, current, references);
 
     // 4. Backup.
     let backupPath: string | null = null;
@@ -273,19 +276,33 @@ export class BuildFileWriter {
     }
   }
 
-  /** Step 3's reference: `loaded.fingerprint` for the loaded file, else this writer's last write, if any. */
-  private reference(rel: string, target: string): Fingerprint | null {
+  /**
+   * Step 3's references, the fingerprints the file's current bytes may match (empty: no guard):
+   * - the loaded file: `loaded.fingerprint`, plus, for a write that is not the engine's build
+   *   (`bytes`, `restore`, `text`), this writer's own last write to it. The server's own earlier text
+   *   edit or restore is not a PoB2 save, and it leaves `loaded.fingerprint` alone (step 6), so without
+   *   this a second edit before the next engine call (or while the engine is dirty) would be refused.
+   *   An engine save compares with `loaded.fingerprint` only: it must not overwrite that edit;
+   * - any other file: this writer's last write to it, if any.
+   */
+  private references(rel: string, target: string, kind: BuildWriteKind): Fingerprint[] {
     const loaded = this.opts.loaded();
-    return loaded && loaded.path === rel ? loaded.fingerprint : (this.written.get(target) ?? null);
+    const own = this.written.get(target) ?? null;
+    if (loaded && loaded.path === rel) {
+      if (!loaded.fingerprint) return [];
+      return kind !== "engine" && own ? [loaded.fingerprint, own] : [loaded.fingerprint];
+    }
+    return own ? [own] : [];
   }
 
-  /** Step 3: refuse when the file changed since `reference`; returns the notices for the write. */
-  private checkUnchanged(rel: string, current: { bytes: Buffer } | null, reference: Fingerprint | null): string[] {
+  /** Step 3: refuse when the file matches none of `references`; returns the notices for the write. */
+  private checkUnchanged(rel: string, current: { bytes: Buffer } | null, references: Fingerprint[]): string[] {
     const notices: string[] = [];
-    if (reference) {
+    if (references.length > 0) {
+      const hash = current ? sha1(current.bytes) : null;
       if (!current) {
         notices.push(`${rel} no longer existed on disk; created it again.`);
-      } else if (current.bytes.length !== reference.size || sha1(current.bytes) !== reference.sha1) {
+      } else if (!references.some((r) => current.bytes.length === r.size && hash === r.sha1)) {
         throw new BuildFileWriteError(
           `${rel} changed on disk since the engine loaded or saved it (probably saved in PoB2). ` +
             `Reload it first (lua_reload_build) or save under a new name.`,

@@ -2,6 +2,7 @@
 -- Lua trade actions (C-13): PoB2's own weighted-query generator and result evaluator, driven headless.
 --
 --   trade_generate_query  slot + dialog options -> PoB's weighted trade query, the full ranked weights
+--                         (an optional reportStats list is checked as trade_evaluate_items would, first)
 --   trade_evaluate_items  slot + sanitized /fetch entries -> per-item score, stat deltas, item text
 --   trade_query_options   slot -> what PoB's trade dialog offers for that slot
 --
@@ -331,6 +332,39 @@ local function baselineScore(tq, weights, baseOutput)
   return tq.tradeQueryGenerator.WeightedRatioOutputs(baseOutput, tq:ReduceOutput(baseOutput), weights)
 end
 
+-- The report stats: the weighted stats, then each requested stat not already there. A requested stat is
+-- one of PoB's sort stats, or a numeric key of the build's output. A bad entry fails naming its index:
+-- `reportStats[<i>]: ...` (find_upgrades maps it to its report_stats input field).
+local function reportStatList(weights, requested, baseOutput)
+  local list, seen = {}, {}
+  for _, w in ipairs(weights) do
+    if not seen[w.stat] then
+      seen[w.stat] = true
+      list[#list + 1] = w
+    end
+  end
+  requested = optional(requested)
+  if requested == nil then return list end
+  if not isArray(requested) then fail('reportStats must be an array of stat names') end
+  local byStat = selectableStats().byStat
+  for i = 1, arrayLength(requested) do
+    local name = requested[i]
+    if type(name) ~= 'string' then fail('reportStats[' .. i .. ']: must be a string') end
+    if not seen[name] then
+      seen[name] = true
+      if byStat[name] then
+        list[#list + 1] = byStat[name]
+      elseif type(baseOutput[name]) == 'number' then
+        list[#list + 1] = { stat = name, label = name }
+      else
+        fail('reportStats[' .. i .. ']: unknown report stat ' .. name
+          .. ' (not one of PoB\'s sort stats or a numeric stat of the build\'s output)')
+      end
+    end
+  end
+  return list
+end
+
 -- ---------------------------------------------------------------------------------------------------
 -- trade_generate_query
 
@@ -389,6 +423,14 @@ function M.generate_query(params)
 
   local t0 = nowMs()
   build.calcsTab:BuildOutput()
+
+  -- Additive (C-13): the report stats a later trade_evaluate_items will be asked for, checked now with
+  -- the same rule, so a bad name fails before the caller sends any trade request.
+  if optional(params.reportStats) ~= nil then
+    local _, checkOutput = build.calcsTab:GetMiscCalculator()
+    reportStatList(weights, params.reportStats, checkOutput)
+  end
+
   local gen = getGenerator()
 
   -- The dialog's sticky "last*" values override the options in StartQuery (:770-778).
@@ -488,37 +530,6 @@ local function parseFetchEntry(entry)
   if perr then error(perr, 0) end
   if type(parsed) ~= 'table' or type(parsed[1]) ~= 'table' then error('the entry did not parse', 0) end
   return parsed[1]
-end
-
--- The report stats: the weighted stats, then each requested stat not already there. A requested stat is
--- one of PoB's sort stats, or a numeric key of the build's output.
-local function reportStatList(weights, requested, baseOutput)
-  local list, seen = {}, {}
-  for _, w in ipairs(weights) do
-    if not seen[w.stat] then
-      seen[w.stat] = true
-      list[#list + 1] = w
-    end
-  end
-  requested = optional(requested)
-  if requested == nil then return list end
-  if not isArray(requested) then fail('reportStats must be an array of stat names') end
-  local byStat = selectableStats().byStat
-  for i = 1, arrayLength(requested) do
-    local name = requested[i]
-    if type(name) ~= 'string' then fail('reportStats[' .. i .. '] must be a string') end
-    if not seen[name] then
-      seen[name] = true
-      if byStat[name] then
-        list[#list + 1] = byStat[name]
-      elseif type(baseOutput[name]) == 'number' then
-        list[#list + 1] = { stat = name, label = name }
-      else
-        fail('unknown report stat ' .. name)
-      end
-    end
-  end
-  return list
 end
 
 local function statDelta(baseOutput, newOutput, st)

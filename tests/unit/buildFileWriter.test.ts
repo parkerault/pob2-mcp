@@ -450,7 +450,7 @@ describe('C-17 step 3 checked before an engine load (checkBuildFile + guard, WU-
 
     expect(t.fs.get(`${BASE}/x.xml`)?.toString()).toBe('saved in PoB2');
     expect(backups(t.fs)).toEqual([]);
-    await expect(t.writer.checkBuildFile({ name: 'fresh', kind: 'engine' })).resolves.toEqual({ path: 'fresh.xml', reference: null });
+    await expect(t.writer.checkBuildFile({ name: 'fresh', kind: 'engine' })).resolves.toEqual({ path: 'fresh.xml', references: [] });
     expect(t.fs.list().some((p) => p.endsWith('fresh.xml'))).toBe(false);
   });
 });

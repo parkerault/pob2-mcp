@@ -571,6 +571,12 @@ export interface TradeGenerateQueryParams {
   runeBehaviour?: TradeItemBehaviour;
   jewelType?: 'Base' | 'Radius';
   status?: 'securable' | 'available' | 'onlineleague' | 'online' | 'any';
+  /**
+   * Additive: the report stats a later `trade_evaluate_items` will be asked for, checked here (each a
+   * sort stat or a numeric stat of the build's output) so a bad name fails before any trade request.
+   * A bad entry fails with `reportStats[<i>]: unknown report stat <name> (…)`.
+   */
+  reportStats?: string[];
 }
 
 /**

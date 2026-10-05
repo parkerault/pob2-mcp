@@ -6,6 +6,7 @@ import { describe, it, expect } from '@jest/globals';
 import {
   createEngineSession,
   EngineBusyError,
+  EngineDeadlineError,
   noticesOf,
   type EngineSession,
   type SessionClient,
@@ -178,11 +179,25 @@ function crashableClient() {
     /** Called on each request after it is logged; may crash the engine or throw. */
     onRequest: null as null | ((action: string) => void),
     xml: '<PathOfBuilding2><Build level="1"/></PathOfBuilding2>',
-    async start() {
-      client.starts++;
-      if (client.failStarts.has(client.starts)) throw new Error(`start ${client.starts} failed`);
-      alive = true;
-      pid = nextPid++;
+    /** How long a start takes. */
+    startDelayMs: 0,
+    starting: null as Promise<void> | null,
+    /** Single-flight while starting, as the bridge's start is. */
+    start(): Promise<void> {
+      if (client.starting) return client.starting;
+      const attempt = (async () => {
+        const n = ++client.starts;
+        if (client.startDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, client.startDelayMs));
+        if (client.failStarts.has(n)) throw new Error(`start ${n} failed`);
+        alive = true;
+        pid = nextPid++;
+      })();
+      client.starting = attempt;
+      const clear = () => {
+        if (client.starting === attempt) client.starting = null;
+      };
+      attempt.then(clear, clear);
+      return attempt;
     },
     async stop() {
       alive = false;
@@ -384,5 +399,49 @@ describe('C-3: a load that succeeded inside a call that then failed is still cou
     ).rejects.toThrow('load_build_xml failed');
     expect(session.revision).toBe(1);
     expect(session.loaded).toMatchObject({ displayName: 'old', loadedRevision: 1 });
+  });
+});
+
+describe('D-22 (NFR-4): a call deadline bounds the session\'s own steps, not only the lock wait (C-3 steps 2–3)', () => {
+  it('an engine start that outlasts the deadline rejects with EngineDeadlineError before it; the next call joins no second start and restores', async () => {
+    const { session, client } = makeCrashableSession();
+    await session.run({ tool: 'lua_load_build', kind: 'load' }, (ctx) => ctx.loadXml('<PathOfBuilding2 a="1"/>', { displayName: 'mine' }));
+    await session.run({ tool: 'set_character_level', kind: 'mutate' }, async () => undefined);
+    client.crash();
+    client.startDelayMs = 1_500;
+
+    const t0 = Date.now();
+    let ran = false;
+    const cut = session.run({ tool: 'find_upgrades', kind: 'read', deadline: t0 + 1_200 }, async () => {
+      ran = true;
+    });
+    await expect(cut).rejects.toBeInstanceOf(EngineDeadlineError);
+    await expect(cut).rejects.toThrow('while the engine was starting');
+    expect(Date.now() - t0).toBeLessThan(1_200);
+    expect(ran).toBe(false);
+    expect(client.starts).toBe(2);
+
+    // The abandoned start completes in the background; the next call accounts for it and restores.
+    await sleep(700);
+    expect(client.isAlive()).toBe(true);
+    const next = await session.run({ tool: 'lua_get_build_info', kind: 'read' }, async () => 'ok');
+    expect(next.value).toBe('ok');
+    expect(next.notices).toEqual(['Engine restarted; restored the build to its state after `set_character_level`.']);
+    expect(client.starts).toBe(2);
+    const restore = client.requests.filter((r) => r.action === 'load_build_xml').pop();
+    expect(restore?.params).toMatchObject({ xml: '<PathOfBuilding2 a="1"/>', name: 'mine', keepLevel: true });
+  });
+
+  it('with < 1 s left, no start is attempted; a call without a deadline then starts and restores', async () => {
+    const { session, client } = makeCrashableSession();
+    await session.run({ tool: 'set_character_level', kind: 'mutate' }, async () => undefined);
+    client.crash();
+    await expect(session.run({ tool: 'find_upgrades', kind: 'read', deadline: Date.now() + 500 }, async () => undefined)).rejects.toBeInstanceOf(
+      EngineDeadlineError,
+    );
+    expect(client.starts).toBe(1);
+    const next = await session.run({ tool: 'lua_get_build_info', kind: 'read' }, async () => 'ok');
+    expect(next.notices).toEqual(['Engine restarted; restored the build to its state after `set_character_level`.']);
+    expect(client.starts).toBe(2);
   });
 });

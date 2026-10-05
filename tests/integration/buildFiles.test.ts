@@ -518,6 +518,48 @@ engineDescribe('AC-E63 (WU-13, C-17 step 6): byte and text writes to the loaded 
     expect(save.text).toContain('changed on disk since');
     expect(fs.readFileSync(file, 'utf8')).toBe(GOLDEN_XML);
   }, T);
+
+  it('C-17 step 3: the server\'s own text and restore writes to the loaded file are not "changed on disk": back-to-back edits pass (clean and dirty engine); an engine save over them and a PoB2 save are still refused', async () => {
+    writeBuild(file, GOLDEN_XML);
+    expect((await f.call('snapshot_build', { build_name: 'grenadator.xml', tag: 'a' })).isError).toBe(false);
+    writeBuild(file, goldenWithLevel(70));
+    expect((await f.call('snapshot_build', { build_name: 'grenadator.xml', tag: 'b' })).isError).toBe(false);
+    expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
+
+    // Clean engine, no engine call in between: two notes edits in a row, then restores A then B.
+    for (const notes of ['first edit', 'second edit']) {
+      const out = await f.call('set_build_notes', { build_name: 'grenadator.xml', notes });
+      expect(out.isError).toBe(false);
+      expect(notesOf(fs.readFileSync(file, 'utf8'))).toBe(notes);
+    }
+    for (const [tag, xml] of [['a', GOLDEN_XML], ['b', goldenWithLevel(70)]] as const) {
+      const out = await f.call('restore_snapshot', { build_name: 'grenadator.xml', snapshot_id: tag });
+      expect(out.isError).toBe(false);
+      expect(fs.readFileSync(file, 'utf8')).toBe(xml);
+    }
+
+    // Dirty engine (the disk-change check warns instead of reloading): edits in a row still pass.
+    expect((await f.call('lua_reload_build')).isError).toBe(false);
+    expect((await f.call('set_character_level', { level: 61 })).isError).toBe(false);
+    for (const notes of ['dirty one', 'dirty two']) {
+      const out = await f.call('set_build_notes', { build_name: 'grenadator.xml', notes });
+      expect(out.isError).toBe(false);
+      expect(notesOf(fs.readFileSync(file, 'utf8'))).toBe(notes);
+    }
+    // An engine save still compares with what the engine loaded, so it does not overwrite the edit.
+    const save = await f.call('lua_save_build', { build_name: 'grenadator', overwrite: true });
+    expect(save.isError).toBe(true);
+    expect(save.text).toContain('changed on disk since');
+    expect(notesOf(fs.readFileSync(file, 'utf8'))).toBe('dirty two');
+
+    // A PoB2 save after the server's own edit is still refused.
+    const pob2 = goldenWithLevel(95);
+    writeBuild(file, pob2);
+    const refused = await f.call('set_build_notes', { build_name: 'grenadator.xml', notes: 'over PoB2' });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('changed on disk since');
+    expect(fs.readFileSync(file, 'utf8')).toBe(pob2);
+  }, T);
 });
 
 engineDescribe('AC-E64 (WU-13, D-58): get_build_stats reflects a lua_save_build', () => {

@@ -11,8 +11,8 @@ import type { CurrencyService } from "../trade/currency.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_META, isToolAvailable } from "./toolMeta.js";
 import { errorResponse, type ToolResponse } from "./responseUtils.js";
-import { noticesOf, EngineBusyError, type EngineSession, type EngineKind } from "../engine/session.js";
-import { engineBusyStopText } from "../trade/findUpgrades.js";
+import { noticesOf, EngineBusyError, EngineDeadlineError, type EngineSession, type EngineKind } from "../engine/session.js";
+import { engineBusyStopText, engineDeadlineStopText } from "../trade/findUpgrades.js";
 
 // Import handlers
 import { handleListBuilds, handleAnalyzeBuild, handleCompareBuilds, handleGetBuildStats, handleGetBuildNotes, handleSetBuildNotes } from "../handlers/buildHandlers.js";
@@ -137,7 +137,9 @@ function unknownTool(name: string): McpError {
  * - Every error a handler throws becomes an `isError: true` result with the message as text; the
  *   stack goes to stderr (D-27).
  * - `find_upgrades` alone has a deadline on its lock wait (D-22); when it passes there, the
- *   `EngineBusyError` is C-14's engine-busy early stop, a result rather than an error.
+ *   `EngineBusyError` is C-14's engine-busy early stop, a result rather than an error. When it passes
+ *   during the session's engine start, restore or disk-change reload (`EngineDeadlineError`), it is
+ *   C-14's budget stop before the query exists, an error (D-75).
  */
 export async function routeToolCall(
   name: string,
@@ -175,6 +177,12 @@ export async function routeToolCall(
     if (name === "find_upgrades" && error instanceof EngineBusyError) {
       console.error(`[Tool] tool=${name} stopped early: ${error.message}`);
       return withNotices({ content: [{ type: "text", text: engineBusyStopText(args?.slot) }] }, notices);
+    }
+    if (name === "find_upgrades" && error instanceof EngineDeadlineError) {
+      // The deadline arrived during the session's own steps 2–4, before the query existed: no link can
+      // be built, so it is an error (D-75), worded as C-14's budget stop.
+      console.error(`[Tool] tool=${name} stopped early: ${error.message}`);
+      return withNotices(errorResponse(`Error: ${engineDeadlineStopText(error.step)}`), notices);
     }
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Tool Error] tool=${name} error=${errorMsg}`);

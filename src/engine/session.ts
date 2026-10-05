@@ -13,6 +13,11 @@
  *  6. on success, `revision += 1` for `mutate`/`load` and takes a recovery snapshot (D-44);
  *  7. on failure (or an engine death during 5–6), leaves `revision` alone and marks a crash;
  *  8. returns the notices, which the router prepends to the tool's text (also on errors: `noticesOf`).
+ * A call with a `deadline` (D-22) has it bound steps 2–4 too, not only the lock wait: no engine step
+ * starts with < 1 s left, the engine start is raced against the deadline, and the snapshot restore and
+ * the auto-reload end by abort a moment before it (a timeout would SIGKILL the engine). A cut step
+ * rejects with `EngineDeadlineError` and leaves the session's books as they were, so the next call
+ * finishes the start, the restore or the reload.
  * `kind: 'lifecycle'` follows rule L: `lua_start` runs steps 2–3 only; `lua_stop` skips 2–6 and calls
  * `ctx.stopEngine()`.
  */
@@ -133,6 +138,20 @@ export class EngineBusyError extends Error {
   }
 }
 
+/**
+ * A call's `deadline` arrived during the session's own steps 2–4 (engine start, snapshot restore, the
+ * disk-change reload), before `fn` ran. `step` says what the engine was doing.
+ */
+export class EngineDeadlineError extends Error {
+  constructor(
+    readonly tool: string,
+    readonly step: string,
+  ) {
+    super(`\`${tool}\` ran out of time before it could run: its deadline passed while the engine was ${step}`);
+    this.name = "EngineDeadlineError";
+  }
+}
+
 /** `ctx.client` was asked to load or replace the build directly (the load guard). */
 export class EngineLoadGuardError extends Error {
   constructor(action: string) {
@@ -194,6 +213,13 @@ function sha1(bytes: Buffer): string {
 const GUARDED_ACTIONS = new Set(["load_build_xml", "new_build"]);
 
 export const NEW_BUILD_NAME = "New build";
+/** No deadline-bound session step starts with less than this left (D-22). */
+const MIN_STEP_MS = 1_000;
+/** A deadline-bound engine step ends by abort this long before the deadline (D-75). */
+const DEADLINE_RESERVE_MS = 250;
+/** The bridge's default request timeout (C-4, D-47): `POB_TIMEOUT_MS`, else 30 s. */
+const DEFAULT_ENGINE_TIMEOUT_MS = 30_000;
+
 const RESTORE_FAILED = "Engine restarted; the loaded build could not be restored. Load it again.";
 const SNAPSHOT_FAILED = "Warning: could not snapshot the engine state; a crash now would lose the last change.";
 
@@ -233,6 +259,12 @@ class Session implements EngineSession {
   /** The tool whose call was in flight when the engine died. */
   private interrupted: string | null = null;
   private lastMutatingTool: string | null = null;
+  /**
+   * The pid of the engine whose start the session has finished accounting for (step 2's books, step
+   * 3's restore). A start that a deadline cut leaves running in the background is accounted for by the
+   * next call.
+   */
+  private readyPid: number | null = null;
 
   // FIFO mutex
   private locked = false;
@@ -382,7 +414,7 @@ class Session implements EngineSession {
     }
 
     await this.ensureEngine(call, notices); // steps 2–3
-    if (call.kind !== "load") await this.checkDisk(state, notices); // step 4
+    if (call.kind !== "load") await this.checkDisk(call, state, notices); // step 4
 
     // Step 5.
     const client = this.client();
@@ -484,15 +516,21 @@ class Session implements EngineSession {
   /** Steps 2–3. */
   private async ensureEngine(call: EngineCall, notices: string[]): Promise<void> {
     const client = this.client();
-    if (client.isAlive()) return;
-    const crashed = this.crashed || this.engineRunning;
-    this.crashed = crashed;
-    this.engineRunning = false;
-    await client.start(); // start errors propagate (the pin check runs inside)
+    // Running, and its start (and any restore after a crash) already accounted for.
+    if (client.isAlive() && client.pid() === this.readyPid && !this.crashed) return;
+    if (!client.isAlive()) {
+      const crashed = this.crashed || this.engineRunning;
+      this.crashed = crashed;
+      this.engineRunning = false;
+      this.readyPid = null;
+      await this.raceDeadline(call, "starting", () => client.start()); // start errors propagate (the pin check runs inside)
+    }
     this.engineRunning = true;
+    this.readyPid = client.pid();
     // After a crash, `crashed` stays set until step 3 has resolved it (restored, or fell back to the
-    // no-snapshot path): if recovery fails part-way, the next call must still take step 3.
-    if (!crashed) {
+    // no-snapshot path): if recovery fails part-way, or a deadline cuts it, the next call must still
+    // take step 3.
+    if (!this.crashed) {
       this.loadedValue = this.newBuildRecord();
       this.snapshot = null;
       this.interrupted = null;
@@ -504,29 +542,40 @@ class Session implements EngineSession {
   /** Step 3: the engine exited outside `stop()` since the last call. */
   private async recover(call: EngineCall, notices: string[]): Promise<void> {
     const interrupted = this.interrupted;
-    this.interrupted = null;
     const snapshot = this.snapshot;
     if (snapshot && this.loadedValue) {
       try {
-        await this.rawLoad(snapshot.xml, this.loadedValue.displayName);
+        // keepLevel: the restore must give back the state after the last change, so PoB's level
+        // estimate must not move an auto-mode level (FR-E3; as the D-9 put-back does).
+        await this.withinDeadline(call, "restoring the last state after a restart", (opts) =>
+          this.rawLoad(snapshot.xml, (this.loadedValue as LoadedBuild).displayName, { keepLevel: true }, opts),
+        );
         this.crashed = false;
+        this.interrupted = null;
         notices.push(
           `Engine restarted; restored the build to its state after \`${snapshot.afterTool}\`.` +
             (interrupted ? ` The interrupted call \`${interrupted}\` was not applied.` : ""),
         );
         return;
       } catch (error) {
+        // A deadline cut is not a failed restore: the books (snapshot, `crashed`, the interrupted
+        // call) stay, and the next call restores again.
+        if (error instanceof EngineDeadlineError) throw error;
         // Never retried: kill the engine, discard the snapshot, take the no-snapshot path. `crashed`
         // is still set, so if this restart fails the next call takes the no-snapshot path instead
         // of mistaking it for a first start.
         console.error(`[Engine Session] restoring the snapshot failed: ${errorMessage(error)}`);
         this.snapshot = null;
+        this.interrupted = null;
         this.engineRunning = false;
+        this.readyPid = null;
         await this.client().stop();
-        await this.client().start();
+        await this.raceDeadline(call, "restarting after a failed restore", () => this.client().start());
         this.engineRunning = true;
+        this.readyPid = this.client().pid();
       }
     }
+    this.interrupted = null;
     this.snapshot = null;
     this.loadedValue = this.newBuildRecord();
     this.crashed = false;
@@ -535,7 +584,7 @@ class Session implements EngineSession {
   }
 
   /** Step 4 (D-19): the disk-change check. */
-  private async checkDisk(state: RunState, notices: string[]): Promise<void> {
+  private async checkDisk(call: EngineCall, state: RunState, notices: string[]): Promise<void> {
     const loaded = this.loadedValue;
     if (!loaded || loaded.path === null || loaded.fingerprint === null) return;
     const rel = loaded.path;
@@ -570,10 +619,14 @@ class Session implements EngineSession {
       return;
     }
 
-    // 4a: auto-reload the bytes just hashed.
+    // 4a: auto-reload the bytes just hashed. A deadline cut leaves `loaded` as it was, so the next
+    // call sees the change again and reloads it.
     try {
-      await this.rawLoad(bytes.toString("utf8"), loaded.displayName);
+      await this.withinDeadline(call, `reloading ${rel}, which changed on disk`, (opts) =>
+        this.rawLoad(bytes.toString("utf8"), loaded.displayName, {}, opts),
+      );
     } catch (error) {
+      if (error instanceof EngineDeadlineError) throw error;
       // The next step 3 restores the unchanged snapshot; `loaded` stays, so the next call retries.
       await this.killEngine(state);
       throw new EngineSessionError(
@@ -599,8 +652,66 @@ class Session implements EngineSession {
   // -------------------------------------------------------------------------------------------------
   // Engine primitives (unguarded; the session's own use only)
 
-  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}): Promise<void> {
-    await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) });
+  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}, request: RequestOptions = {}): Promise<void> {
+    await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) }, request);
+  }
+
+  /** The engine's default request timeout, as the bridge reads it (C-4). */
+  private defaultTimeout(): number {
+    const configured = Number.parseInt(this.opts.env.POB_TIMEOUT_MS ?? "", 10);
+    return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_ENGINE_TIMEOUT_MS;
+  }
+
+  /** D-22: a deadline-bound step does not start with < 1 s left. */
+  private checkDeadline(call: EngineCall, step: string): number | null {
+    if (call.deadline === undefined) return null;
+    const left = call.deadline - this.now();
+    if (left < MIN_STEP_MS) throw new EngineDeadlineError(call.tool, step);
+    return left;
+  }
+
+  /**
+   * One engine request of steps 3–4 under the call's deadline (D-22, D-75): its timeout is clipped
+   * to the time left, and an abort ends it `DEADLINE_RESERVE_MS` before the deadline, which rejects the
+   * request without killing the engine (the clipped timeout is only a backstop: a timeout SIGKILLs).
+   */
+  private async withinDeadline<T>(call: EngineCall, step: string, fn: (opts: RequestOptions) => Promise<T>): Promise<T> {
+    const left = this.checkDeadline(call, step);
+    if (left === null) return fn({});
+    const deadline = new AbortController();
+    const timer = setTimeout(() => deadline.abort(new EngineDeadlineError(call.tool, step)), Math.max(0, left - DEADLINE_RESERVE_MS));
+    try {
+      return await fn({ timeoutMs: Math.max(1, Math.min(this.defaultTimeout(), left)), signal: deadline.signal });
+    } catch (error) {
+      if (deadline.signal.aborted) throw deadline.signal.reason;
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * A step that takes no request options (the engine start: the pin check and the banner wait), raced
+   * against the deadline. A cut start keeps running in the background (the bridge's start is
+   * single-flight); the next call joins it or finds the engine running, and does the books.
+   */
+  private async raceDeadline(call: EngineCall, step: string, fn: () => Promise<void>): Promise<void> {
+    const left = this.checkDeadline(call, step);
+    if (left === null) return fn();
+    const work = fn();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const cut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new EngineDeadlineError(call.tool, step)), Math.max(0, left - DEADLINE_RESERVE_MS));
+    });
+    try {
+      await Promise.race([work, cut]);
+    } catch (error) {
+      // An abandoned start that fails later must not be an unhandled rejection.
+      if (error instanceof EngineDeadlineError) work.catch(() => undefined);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async exportXml(): Promise<string> {

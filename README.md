@@ -61,13 +61,16 @@ Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected
 
 ## Configuration
 
-Settings are environment variables. Pass them with `-e NAME=value` on `claude mcp add`; the trade
-cookie can go in `.env` instead (below).
+Settings are environment variables. Pass the non-secret ones with `-e NAME=value` on `claude mcp add`.
+The trade cookie `POESESSID` is the exception: put it only in `.env` (see
+[Trade session](#trade-session-poesessid)) and never pass it with `-e`. On the command line it would land
+in your shell history and in Claude Code's MCP config in plain text, and a registered value always
+wins over `.env`, so a refreshed cookie there would be ignored.
 
 | Variable | Default | What it does |
 |---|---|---|
 | `POB_DIRECTORY` | `~/Documents/Path of Building (PoE2)/Builds` | Your PoB2 builds folder, subfolders included. On WSL2, point it at the Windows folder, e.g. `/mnt/c/Users/<you>/Documents/Path of Building (PoE2)/Builds`. |
-| `POESESSID` | unset | Your pathofexile.com session cookie, for weighted trade searches. See [Trade session](#trade-session-poesessid). `POE_SESSION_ID` is accepted as an alias. |
+| `POESESSID` | unset | Your pathofexile.com session cookie, for weighted trade searches. Set it only in `.env`, never with `-e`: see [Trade session](#trade-session-poesessid). `POE_SESSION_ID` is accepted as an alias. |
 | `POE_LEAGUE` | see [League](#league) | The trade league the trade tools use. |
 | `POE_TRADE_DISABLED` | unset | `true` hides the trade tools (`search_trade_items`, `get_item_price`, `get_leagues`, `search_stats`, `find_upgrades`, `trade_query_options`). The server then never contacts the trade site or reads `.env`. |
 | `POE_NINJA_DISABLED` | unset | `true` hides `get_currency_rates` and stops poe.ninja requests. Trade results then show native prices only. |
@@ -89,9 +92,11 @@ with `HC `: the current softcore trade league. A tool's own `league` argument ov
 ### Trade session (POESESSID)
 
 Weighted trade searches (`find_upgrades`) need a logged-in pathofexile.com session. The server reads
-the `POESESSID` cookie on every trade call, so a refreshed cookie works without a restart. It looks, in
-this order, at the server's environment `POESESSID`, then `POE_SESSION_ID`, then the same two names in
-the `.env` file at the repository root, next to `package.json` (`.env` is gitignored):
+the `POESESSID` cookie on every trade call, so a refreshed cookie in `.env` works without a restart. It
+looks, in this order, at the server's environment `POESESSID`, then `POE_SESSION_ID`, then the same two
+names in the `.env` file at the repository root, next to `package.json` (`.env` is gitignored). Keep
+the cookie in `.env` only: a value in the server's environment (for example from `-e` on
+`claude mcp add`) would override `.env` and is stored in plain text outside the repository.
 
 ```dotenv
 POESESSID=<the POESESSID cookie value from your browser on pathofexile.com>

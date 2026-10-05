@@ -3,7 +3,8 @@
  *
  * - AC-G1: the README tool table equals `pnpm docs:tools` output byte for byte (76 rows).
  * - AC-G2: the stale docs are gone, and outside the migration block the README and CLAUDE.md carry
- *   no PoE1 cruft (the AC-F20 matcher) and none of the old install/flag strings.
+ *   no PoE1 cruft (the AC-F20 matcher) and none of the old install/flag strings. Both checks run on
+ *   whitespace-flattened text, so a phrase split by a hard wrap is still caught.
  * - AC-G3: the README documents setup, registration, configuration and GGG's notice; the migration
  *   block names every removed or changed env var and every removed tool.
  * - AC-G4 (static part): the fresh-clone check script exists, is executable and has no pipes. The
@@ -25,8 +26,10 @@ import { listedToolSchemas } from '../../src/server/createServer';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const README = fs.readFileSync(path.join(REPO, 'README.md'), 'utf8');
-/** The README with every whitespace run collapsed to one space, for phrase checks across line wraps. */
-const README_FLAT = README.replace(/\s+/g, ' ');
+/** The text with every whitespace run collapsed to one space, so phrase checks see across line wraps. */
+const flat = (text: string): string => text.replace(/\s+/g, ' ');
+/** The README, flattened. */
+const README_FLAT = flat(README);
 const CLAUDE_MD_PATH = path.join(REPO, 'CLAUDE.md');
 
 const TOOLS_START = '<!-- tools:start -->';
@@ -91,6 +94,28 @@ const D16_COMMAND =
   'claude mcp add pob2 -s user -e "POB_DIRECTORY=/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds" -- mise exec -C /home/parker/projects/pob2-mcp -- node build/index.js';
 const GGG_NOTICE = "This product isn't affiliated with or endorsed by Grinding Gear Games in any way.";
 
+/** AC-G2: the AC-F20 hits in one file's text, matched on the flattened text so line wraps can't hide one. */
+function cruftHits(file: string, text: string): string[] {
+  return bannedIn(flat(text)).map((phrase) => `${file}: "${phrase}"`);
+}
+
+/** AC-G2: the removed flags, old install steps and old labels the README must not name outside the block. */
+const OLD_STRINGS = [
+  'POB_LUA_ENABLED',
+  'POE_TRADE_ENABLED',
+  'npm install',
+  'apt install luajit',
+  'brew install luajit',
+  'Chaos equivalent',
+  'api-stdio',
+];
+
+/** The OLD_STRINGS the text names, case-insensitively, on the flattened text. */
+function oldStringHits(text: string): string[] {
+  const lower = flat(text).toLowerCase();
+  return OLD_STRINGS.filter((b) => lower.includes(b.toLowerCase()));
+}
+
 describe('WU-19: README tool table (AC-G1)', () => {
   it('AC-G1: `pnpm docs:tools` runs scripts/gen-tool-table.mjs', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')) as {
@@ -145,25 +170,31 @@ describe('WU-19: stale docs removed, README and CLAUDE.md clean (AC-G2)', () => 
   it('AC-G2: outside the migration block, the AC-F20 scanner finds no banned phrase in README.md or CLAUDE.md', () => {
     const readmeOutside = outside(README, MIGRATION_START, MIGRATION_END);
     const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
-    const hits = (file: string, text: string) =>
-      text.split('\n').flatMap((line, i) => bannedIn(line).map((phrase) => `${file}:${i + 1}: "${phrase}"`));
-    expect([...hits('README.md', readmeOutside), ...hits('CLAUDE.md', claudeMd)]).toEqual([]);
+    expect([...cruftHits('README.md', readmeOutside), ...cruftHits('CLAUDE.md', claudeMd)]).toEqual([]);
     // The matcher is the AC-F20 one: a planted phrase is caught.
     expect(bannedIn('a Cluster Jewel for the Templar')).toEqual(['cluster jewel', 'Templar']);
   });
 
+  it('AC-G2: the cruft check sees a banned phrase that a hard wrap splits across lines', () => {
+    // AC-F20 matches within a whole literal; the README and CLAUDE.md are hard-wrapped prose, so a
+    // phrase broken by a line break must still count.
+    expect(cruftHits('X.md', 'Socket a Large cluster\njewel next to the\nElder.')).toEqual([
+      'X.md: "cluster jewel"',
+      'X.md: "the elder"',
+    ]);
+    expect(cruftHits('X.md', 'no spell\n  suppression here')).toEqual(['X.md: "spell suppression"']);
+  });
+
   it('AC-G2: outside the migration block, the README names no removed flag, old install step or old label', () => {
-    const readmeOutside = outside(README, MIGRATION_START, MIGRATION_END).toLowerCase();
-    const banned = [
-      'POB_LUA_ENABLED',
-      'POE_TRADE_ENABLED',
+    expect(oldStringHits(outside(README, MIGRATION_START, MIGRATION_END))).toEqual([]);
+  });
+
+  it('AC-G2: the old-string check sees a string that a hard wrap splits across lines', () => {
+    expect(oldStringHits('run sudo apt install\nluajit, then npm\n  install; prices in Chaos\nequivalent')).toEqual([
       'npm install',
       'apt install luajit',
-      'brew install luajit',
       'Chaos equivalent',
-      'api-stdio',
-    ];
-    expect(banned.filter((b) => readmeOutside.includes(b.toLowerCase()))).toEqual([]);
+    ]);
   });
 });
 
@@ -181,6 +212,19 @@ describe('WU-19: README content (AC-G3)', () => {
     expect(README).toContain('POESESSID');
     expect(README_FLAT).toContain('`.env` file at the repository root, next to `package.json`');
     expect(README_FLAT).toContain('`Trade search not run: <reason>` with a trade-site link');
+  });
+
+  it('AC-G3/D-15: the cookie goes only in .env, never as `-e` on claude mcp add (spine §13: .env is its one place on disk)', () => {
+    expect(README_FLAT).toContain('The trade cookie `POESESSID` is the exception: put it only in `.env`');
+    expect(README_FLAT).toContain('never pass it with `-e`');
+    expect(README_FLAT).toContain('Set it only in `.env`, never with `-e`');
+    // No registration example passes a cookie on the command line, in the README or CLAUDE.md.
+    const claudeMdFlat = flat(fs.readFileSync(CLAUDE_MD_PATH, 'utf8'));
+    for (const text of [README_FLAT, claudeMdFlat]) {
+      expect(text).not.toMatch(/-e\s*["']?(POESESSID|POE_SESSION_ID)=/);
+    }
+    // Nothing tells the reader the cookie may go anywhere but .env.
+    expect(README_FLAT).not.toContain('can go in `.env` instead');
   });
 
   it('AC-G3: POE_LEAGUE, with the default-league rule (D-20)', () => {

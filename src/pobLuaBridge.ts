@@ -29,6 +29,7 @@ import {
   type TradeGenerateQueryResult,
   type TradeQueryOptionsResult,
   type BuildInfoResult,
+  type ConfigResult,
   type CreateSpecResult,
   type DeleteSpecResult,
   type ItemSlot,
@@ -731,12 +732,12 @@ export class PoBLuaApiClient {
     await this.request("set_level", { level });
   }
 
-  async getConfig(): Promise<any> {
+  async getConfig(): Promise<ConfigResult> {
     const res = await this.request("get_config");
     return res.config;
   }
 
-  async setConfig(params: ActionParams<"set_config">): Promise<any> {
+  async setConfig(params: ActionParams<"set_config">): Promise<ConfigResult> {
     const res = await this.request("set_config", params);
     return res.config;
   }

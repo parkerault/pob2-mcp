@@ -1,33 +1,9 @@
 [
   {
-    "file": "src/handlers/configHandlers.ts",
-    "phrase": "bandit",
-    "owner": "WU-12",
-    "justification": "get_config output and the config key list still show PoE1 bandit; WU-12 rebuilds config on PoE2 options via input"
-  },
-  {
-    "file": "src/handlers/configHandlers.ts",
-    "phrase": "pantheon",
-    "owner": "WU-12",
-    "justification": "get_config output and the config key list still show PoE1 pantheon gods; WU-12 rebuilds config on PoE2 options via input"
-  },
-  {
     "file": "src/server/toolSchemas.ts",
     "phrase": "spell suppression",
     "owner": "WU-18",
     "justification": "analyze_defenses and get_build_issues descriptions mention spell suppression; WU-18 rewrites both descriptions on engine data"
-  },
-  {
-    "file": "src/server/toolSchemas.ts",
-    "phrase": "bandit",
-    "owner": "WU-12",
-    "justification": "set_config description lists the PoE1 bandit key; WU-12 rewrites the config tool descriptions"
-  },
-  {
-    "file": "src/server/toolSchemas.ts",
-    "phrase": "pantheon",
-    "owner": "WU-12",
-    "justification": "set_config description lists the PoE1 pantheon keys; WU-12 rewrites the config tool descriptions"
   },
   {
     "file": "src/services/validationService.ts",

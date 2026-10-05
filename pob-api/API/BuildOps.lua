@@ -3,7 +3,7 @@
 -- Ported from the PoE1 api-stdio fork and adapted for Path of Building - PoE2.
 -- Key PoE2 differences handled here:
 --   * PassiveSpec:ImportFromNodeList has extra leading `className` and `weaponSets` params
---   * No bandit/pantheon config (config is treated as a generic passthrough)
+--   * Config is PoB2's own option list (Modules/ConfigOptions), read and written through the active config set
 --   * Flask slot count is validated against the actual item set rather than hardcoded
 
 local M = {}
@@ -274,46 +274,148 @@ function M.calc_with(params)
 end
 
 
--- Get basic config values.
--- PoE2 has no bandit/pantheon; expose the raw config input map plus enemy level.
-function M.get_config()
-  if not build or not build.configTab then return nil, 'build/config not initialized' end
-  local cfg = {
-    enemyLevel = build.configTab.enemyLevel,
-    input = {},
-  }
-  if type(build.configTab.input) == 'table' then
-    for k, v in pairs(build.configTab.input) do
-      local t = type(v)
-      if t == 'string' or t == 'number' or t == 'boolean' then
-        cfg.input[k] = v
-      end
+-- PoB2's config options: the list `Modules/ConfigOptions` returns, which ConfigTab builds its controls
+-- from. Loaded once per engine process. Each entry is {var, type, section, list?}, deduplicated by var
+-- (the first entry wins, as for ConfigTab's own varControls).
+local configOptionsCache
+
+local function config_options()
+  if configOptionsCache then return configOptionsCache end
+  local ok, varList = pcall(LoadModule, 'Modules/ConfigOptions')
+  if not ok or type(varList) ~= 'table' then return nil, 'could not load the config option list' end
+  local list, byVar, section = {}, {}, ''
+  for _, varData in ipairs(varList) do
+    if varData.section then
+      section = varData.section
+    elseif varData.var and not byVar[varData.var] then
+      local option = { var = varData.var, type = varData.type, section = section, list = varData.list }
+      list[#list + 1] = option
+      byVar[varData.var] = option
     end
   end
-  return cfg
+  configOptionsCache = { list = list, byVar = byVar }
+  return configOptionsCache
 end
 
--- Set selected config values and rebuild.
--- params: { enemyLevel?: number, <any configTab.input key>: string|number|boolean }
-function M.set_config(params)
-  if not build or not build.configTab then return nil, 'build/config not initialized' end
-  if type(params) ~= 'table' then return nil, 'invalid params' end
-  local input = build.configTab.input or {}
-  build.configTab.input = input
-  local changed = false
-  for k, v in pairs(params) do
-    if k == 'enemyLevel' then
-      build.configTab.enemyLevel = tonumber(v) or build.configTab.enemyLevel
-      changed = true
+local function is_scalar(v)
+  local t = type(v)
+  return t == 'string' or t == 'boolean' or (t == 'number' and v == v and v ~= math.huge and v ~= -math.huge)
+end
+
+-- The Lua type GetDefaultState falls back on for an option type.
+local CONFIG_VALUE_TYPE = {
+  check = 'boolean', count = 'number', countAllowZero = 'number', integer = 'number', float = 'number',
+  text = 'string',
+}
+
+-- The build's config (the active config set), over PoB2's config options only:
+--   enemyLevel: the enemy level in effect (ConfigTab:UpdateLevel);
+--   input:      every option the build sets, with its scalar value;
+--   defaults:   for every option it doesn't set, the value PoB uses instead (ConfigTab:GetDefaultState:
+--               the placeholder, else the option's default state);
+--   options:    every option key in PoB's order, with its type and section.
+function M.get_config()
+  local ct = build and build.configTab
+  if not ct or not ct.configSets then return nil, 'build/config not initialized' end
+  local configSet = ct.configSets[ct.activeConfigSetId]
+  if not configSet then return nil, 'no active config set' end
+  local opts, err = config_options()
+  if not opts then return nil, err end
+  local input, defaults, options = {}, {}, {}
+  for _, option in ipairs(opts.list) do
+    local v = configSet.input[option.var]
+    if is_scalar(v) then
+      input[option.var] = v
     else
-      local t = type(v)
-      if t == 'string' or t == 'number' or t == 'boolean' then
-        input[k] = v
-        changed = true
-      end
+      local d = ct:GetDefaultState(option.var, CONFIG_VALUE_TYPE[option.type])
+      if is_scalar(d) then defaults[option.var] = d end
     end
+    options[#options + 1] = { key = option.var, type = option.type, section = option.section }
   end
-  if changed and build.configTab.BuildModList then build.configTab:BuildModList() end
+  return { enemyLevel = ct.enemyLevel, input = input, defaults = defaults, options = options }
+end
+
+-- One set_config value, checked against its option the way PoB's config controls accept input.
+-- Returns true, value (nil clears the option) or false, error.
+local function config_value(option, v)
+  local key, t = option.var, option.type
+  if t == 'check' then
+    if type(v) == 'boolean' then return true, v end
+    if v == 'true' then return true, true end
+    if v == 'false' then return true, false end
+    return false, string.format("config option '%s' is a checkbox: the value must be true or false", key)
+  end
+  -- An empty value clears the option, like emptying its field in PoB: PoB then uses its default.
+  if v == '' then return true, nil end
+  if t == 'count' or t == 'countAllowZero' or t == 'integer' or t == 'float' then
+    local n = tonumber(v)
+    if type(v) == 'boolean' or not n or not is_scalar(n) then
+      return false, string.format("config option '%s' takes a number", key)
+    end
+    if t ~= 'float' and n ~= math.floor(n) then
+      return false, string.format("config option '%s' takes a whole number", key)
+    end
+    if t ~= 'integer' and t ~= 'float' and n < 0 then
+      return false, string.format("config option '%s' takes a number of 0 or more", key)
+    end
+    return true, n
+  elseif t == 'list' then
+    local s = tostring(v)
+    local vals = {}
+    for _, item in ipairs(option.list or {}) do
+      if tostring(item.val) == s then return true, item.val end
+      vals[#vals + 1] = tostring(item.val)
+    end
+    -- PoB's XML loader keeps a saved list value verbatim, line endings included (quest rewards saved
+    -- on Windows hold "\r\n"), so a value that differs from a list value only in carriage returns is
+    -- that value, kept as given.
+    local bare = (s:gsub('\r', ''))
+    for _, item in ipairs(option.list or {}) do
+      if type(v) == 'string' and (tostring(item.val):gsub('\r', '')) == bare then return true, v end
+    end
+    for _, item in ipairs(option.list or {}) do
+      if tostring(item.val):lower() == s:lower() then return true, item.val end
+    end
+    return false, string.format("config option '%s' must be one of: %s", key, table.concat(vals, ', '))
+  elseif t == 'text' then
+    if type(v) ~= 'string' then return false, string.format("config option '%s' takes text", key) end
+    return true, v
+  end
+  return false, string.format("config option '%s' has an unsupported type '%s'", key, tostring(t))
+end
+
+-- Set config options and rebuild. params: { <config option key> = value, ... } (see config_value).
+-- Every key is checked before anything changes: an unknown key or a bad value changes nothing. Values
+-- go into the active config set's input, as PoB's config controls write them, then ConfigTab's
+-- BuildModList recomputes the config mods (and the enemy level, from input.enemyLevel).
+function M.set_config(params)
+  local ct = build and build.configTab
+  if not ct or not ct.configSets then return nil, 'build/config not initialized' end
+  if type(params) ~= 'table' then return nil, 'invalid params' end
+  local configSet = ct.configSets[ct.activeConfigSetId]
+  if not configSet then return nil, 'no active config set' end
+  local opts, err = config_options()
+  if not opts then return nil, err end
+  local keys = {}
+  for k in pairs(params) do keys[#keys + 1] = tostring(k) end
+  table.sort(keys)
+  if #keys == 0 then return nil, 'no config options given' end
+  local values = {}
+  for _, k in ipairs(keys) do
+    local option = opts.byVar[k]
+    if not option then
+      local hint = ''
+      for _, o in ipairs(opts.list) do
+        if o.var:lower() == k:lower() then hint = string.format(" (did you mean '%s'?)", o.var) break end
+      end
+      return nil, string.format("unknown config option '%s'%s; get_config lists PoB2's option keys", k, hint)
+    end
+    local ok, value = config_value(option, params[k])
+    if not ok then return nil, value end
+    values[k] = { value = value }
+  end
+  for _, k in ipairs(keys) do configSet.input[k] = values[k].value end
+  ct:BuildModList()
   M.get_main_output()
   return true
 end

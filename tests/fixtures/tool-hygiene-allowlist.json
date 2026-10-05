@@ -1,8 +1,4 @@
 [
   { "tool": "compare_builds", "check": "ii", "owner": "WU-13",
-    "reason": "interim load guard (WU-08, D-51f): compare_builds loads both builds with a raw load_build_xml, which the engine session refuses (\"engine load outside the session\") so the engine's build is never replaced; WU-13 moves it to withTemporaryBuild" },
-  { "tool": "get_config", "check": "i", "owner": "WU-12",
-    "reason": "prints \"input: [object Object]\" instead of PoB2's ConfigOptions keys" },
-  { "tool": "set_config", "check": "i", "owner": "WU-12",
-    "reason": "prints \"Old Value: undefined\" instead of the real previous value" }
+    "reason": "interim load guard (WU-08, D-51f): compare_builds loads both builds with a raw load_build_xml, which the engine session refuses (\"engine load outside the session\") so the engine's build is never replaced; WU-13 moves it to withTemporaryBuild" }
 ]

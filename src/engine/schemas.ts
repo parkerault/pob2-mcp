@@ -234,11 +234,26 @@ export type BuildInfoResult = z.infer<typeof getBuildInfoReply>['info'];
 export const calcWithReply = baseReply.extend({ output: luaMap(luaNumber) });
 
 const configScalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+/** One of PoB2's config options (`Modules/ConfigOptions`): its key, control type and section. */
+export const configOptionSchema = z.object({ key: z.string(), type: z.string(), section: z.string() }).passthrough();
+/**
+ * The build's config over PoB2's config options (WU-12):
+ * - `enemyLevel`: the enemy level in effect (ConfigTab:UpdateLevel);
+ * - `input`: every option the build sets, with its value;
+ * - `defaults`: for options it doesn't set, the value PoB uses instead (ConfigTab:GetDefaultState);
+ * - `options`: every option key, in PoB's order.
+ */
 export const configSchema = z
-  .object({ enemyLevel: optNumber, input: luaMap(configScalar) })
+  .object({
+    enemyLevel: optNumber,
+    input: luaMap(configScalar),
+    defaults: luaMap(configScalar),
+    options: luaArray(configOptionSchema),
+  })
   .passthrough();
+export type ConfigResult = z.infer<typeof configSchema>;
 
-/** `get_config` and `set_config`. */
+/** `get_config` and `set_config` (the config after the change). */
 export const configReply = baseReply.extend({ config: configSchema });
 
 export const createSocketGroupReply = baseReply.extend({
@@ -655,7 +670,11 @@ export interface ActionParamsMap {
   };
   calc_with: { addNodes?: number[]; removeNodes?: number[]; useFullDPS?: boolean; fields?: string[] };
   get_config: NoParams;
-  /** `enemyLevel` and any `configTab.input` key with a scalar value. */
+  /**
+   * PoB2 config option keys (`get_config`'s `options`) → value: a boolean for a checkbox, a number for
+   * a number field, a list value or text otherwise; `""` clears a non-checkbox option back to PoB's
+   * default. An unknown key or a bad value fails the call and changes nothing.
+   */
   set_config: Record<string, string | number | boolean>;
   create_socket_group: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean };
   /** `validateOnly`: resolve `gemName` only, change nothing (the reply's `gemIndex` is 0). */

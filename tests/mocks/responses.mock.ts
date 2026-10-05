@@ -130,21 +130,27 @@ export const MOCK_RESPONSES = {
   get_config: {
     ok: true,
     config: {
-      bandit: 'None',
-      pantheonMajorGod: 'Soul of Lunaris',
-      pantheonMinorGod: 'Soul of Shakari',
       enemyLevel: 84,
-      input: {},
+      input: { enemyIsBoss: 'Pinnacle' },
+      defaults: { conditionLowLife: false, enemyFireResist: 50 },
+      options: [
+        { key: 'conditionLowLife', type: 'check', section: 'When In Combat' },
+        { key: 'enemyIsBoss', type: 'list', section: 'Enemy Stats' },
+        { key: 'enemyFireResist', type: 'integer', section: 'Enemy Stats' },
+      ],
     },
   },
   set_config: {
     ok: true,
     config: {
-      bandit: 'Alira',
-      pantheonMajorGod: 'Soul of Solaris',
-      pantheonMinorGod: 'Soul of Gruthkul',
-      enemyLevel: 85,
-      input: {},
+      enemyLevel: 84,
+      input: { enemyIsBoss: 'Pinnacle', conditionLowLife: true },
+      defaults: { enemyFireResist: 50 },
+      options: [
+        { key: 'conditionLowLife', type: 'check', section: 'When In Combat' },
+        { key: 'enemyIsBoss', type: 'list', section: 'Enemy Stats' },
+        { key: 'enemyFireResist', type: 'integer', section: 'Enemy Stats' },
+      ],
     },
   },
   export_build_xml: {

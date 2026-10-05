@@ -889,7 +889,7 @@ export function getConfigToolSchemas(): any[] {
   return [
     {
       name: "get_config",
-      description: "View current configuration state including charge usage, enemy settings, and active conditions. Requires Lua bridge with a loaded build.",
+      description: "List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value, plus the enemy level in effect. Options the build doesn't set show the value PoB uses for them, marked (default). Use the keys with set_config.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -897,16 +897,16 @@ export function getConfigToolSchemas(): any[] {
     },
     {
       name: "set_config",
-      description: "Modify configuration inputs. Common keys — Charges: usePowerCharges, useFrenzyCharges, useEnduranceCharges | Conditions: conditionFortify, conditionLeeching, conditionOnFullLife, conditionOnFullEnergyShield | Buffs: buffOnslaught | Enemy: enemyIsBoss ('Shaper'/'Pinnacle'/false), enemyLevel | Build: bandit ('None'/'Oak'/'Alira'/'Kraityn'), pantheonMajorGod, pantheonMinorGod. Call get_config to see all current values.",
+      description: "Set one PoB2 config option on the loaded build and recalculate; reports the option's previous and new value. Keys are PoB2's config option keys as get_config lists them, e.g. usePowerCharges, useFrenzyCharges, conditionLowLife, conditionFullLife, buffOnslaught, enemyIsBoss (None/Boss/Pinnacle/Uber), enemyLevel. An unknown key or a value of the wrong type is an error and changes nothing.",
       inputSchema: {
         type: "object",
         properties: {
           config_name: {
             type: "string",
-            description: "Name of configuration input to change (e.g., 'usePowerCharges', 'enemyIsBoss', 'conditionFortify')",
+            description: "PoB2 config option key (from get_config), e.g. 'usePowerCharges', 'enemyIsBoss', 'conditionLowLife'",
           },
           value: {
-            description: "New value (boolean for most flags, number for counts)",
+            description: "New value: true/false for a checkbox, a number for a number field, one of the option's values for a list, text for a text field. \"\" clears a non-checkbox option back to PoB's default.",
           },
         },
         required: ["config_name", "value"],
@@ -914,44 +914,44 @@ export function getConfigToolSchemas(): any[] {
     },
     {
       name: "set_enemy_stats",
-      description: "Configure enemy parameters for DPS calculations. Test against different enemy types (map boss, Shaper, Maven). Requires Lua bridge.",
+      description: "Set the enemy's level, resistances, armour and evasion (PoB2's Enemy Stats config options) on the loaded build, recalculate, and report each previous and new value with the DPS change. Fields you leave out keep their current values.",
       inputSchema: {
         type: "object",
         properties: {
           level: {
             type: "number",
-            description: "Enemy level (default: 84)",
+            description: "Enemy level (enemyLevel). Unset, PoB derives it from the boss type and your level; PoB caps it at the maximum enemy level.",
           },
           fire_resist: {
             type: "number",
-            description: "Fire resistance % (default: 40)",
+            description: "Enemy fire resistance % (enemyFireResist)",
           },
           cold_resist: {
             type: "number",
-            description: "Cold resistance % (default: 40)",
+            description: "Enemy cold resistance % (enemyColdResist)",
           },
           lightning_resist: {
             type: "number",
-            description: "Lightning resistance % (default: 40)",
+            description: "Enemy lightning resistance % (enemyLightningResist)",
           },
           chaos_resist: {
             type: "number",
-            description: "Chaos resistance % (default: 20)",
+            description: "Enemy chaos resistance % (enemyChaosResist)",
           },
           armor: {
             type: "number",
-            description: "Enemy armor value",
+            description: "Enemy base armour (enemyArmour)",
           },
           evasion: {
             type: "number",
-            description: "Enemy evasion value",
+            description: "Enemy base evasion (enemyEvasion)",
           },
         },
       },
     },
     {
       name: "save_config_preset",
-      description: "Save the current configuration (charges, conditions, enemy settings) as a named preset for quick reuse",
+      description: "Save the loaded build's config options (every option it sets: charges, conditions, enemy stats, ...) as a named preset in the server's state directory, for reuse on any build",
       inputSchema: {
         type: "object",
         properties: {
@@ -965,7 +965,7 @@ export function getConfigToolSchemas(): any[] {
     },
     {
       name: "load_config_preset",
-      description: "Load a previously saved configuration preset, restoring all charge, condition, and enemy settings at once",
+      description: "Apply a saved config preset to the loaded build: every option in the preset is set to its saved value, and options the build sets that the preset doesn't hold are cleared to PoB's default; then the build is recalculated",
       inputSchema: {
         type: "object",
         properties: {
@@ -979,7 +979,7 @@ export function getConfigToolSchemas(): any[] {
     },
     {
       name: "list_config_presets",
-      description: "List all saved configuration presets",
+      description: "List the saved config presets (names to use with load_config_preset)",
       inputSchema: {
         type: "object",
         properties: {},

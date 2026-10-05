@@ -1,8 +1,18 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
+import type { ConfigResult } from "../engine/schemas.js";
 import fs from 'fs/promises';
 import path from 'path';
 import { wrapHandler } from "../utils/errorHandling.js";
 import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+
+/**
+ * Config tools on PoB2's own config options (`Modules/ConfigOptions`, WU-12).
+ *
+ * The engine reports the active config set over PoB2's option keys: the values the build sets
+ * (`input`), the value PoB uses for each option it doesn't set (`defaults`), the option list and the
+ * enemy level in effect. Every write goes through the `set_config` action, which writes the active
+ * config set's `input` the way PoB's config controls do and rebuilds; `""` clears a non-checkbox option.
+ */
 
 export interface ConfigHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -16,6 +26,40 @@ export interface ConfigPresetContext {
   stateDir: string;
 }
 
+type ConfigScalar = string | number | boolean;
+
+async function engineClient(context: ConfigHandlerContext): Promise<PoBLuaApiClient> {
+  await context.ensureLuaClient();
+  const luaClient = context.getLuaClient();
+  if (!luaClient) throw new Error("Lua bridge not active. Use lua_load_build first.");
+  return luaClient;
+}
+
+/** A config value as the config tools print it: booleans and numbers bare, text as a JSON string. */
+export function renderConfigValue(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '(unset)';
+}
+
+const has = (map: Record<string, unknown>, key: string) =>
+  Object.prototype.hasOwnProperty.call(map, key) && map[key] !== null && map[key] !== undefined;
+
+/** The value `get_config` shows for `key`: the build's own, else PoB's default marked "(default)". */
+export function configValueText(config: ConfigResult, key: string): string {
+  if (has(config.input, key)) return renderConfigValue(config.input[key]);
+  if (has(config.defaults, key)) return `${renderConfigValue(config.defaults[key])} (default)`;
+  return '(unset)';
+}
+
+function enemyLevelText(config: ConfigResult): string {
+  return typeof config.enemyLevel === 'number' ? String(config.enemyLevel) : '(not computed)';
+}
+
+function isConfigScalar(value: unknown): value is ConfigScalar {
+  return typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value));
+}
+
 function presetDir(stateDir: string): string {
   return path.join(stateDir, 'presets');
 }
@@ -26,353 +70,232 @@ async function getPresetPath(stateDir: string, name: string): Promise<string> {
   return sanitizeBuildName(`${name}.json`, dir);
 }
 
+/** A preset file (C-16): the options the build sets (`input`), as `get_config` reports them. */
+interface ConfigPreset {
+  enemyLevel?: number | null;
+  input: Record<string, unknown>;
+}
+
 export async function handleSaveConfigPreset(context: ConfigPresetContext, name: string) {
   return wrapHandler('save config preset', async () => {
-  await context.ensureLuaClient();
-  const luaClient = context.getLuaClient();
-  if (!luaClient) throw new Error('Lua bridge not active. Use lua_load_build first.');
+    const luaClient = await engineClient(context);
+    const config = await luaClient.getConfig();
+    const preset: ConfigPreset = { enemyLevel: config.enemyLevel ?? null, input: config.input };
+    const filePath = await getPresetPath(context.stateDir, name);
+    await fs.writeFile(filePath, JSON.stringify(preset, null, 2), 'utf-8');
 
-  const config = await luaClient.getConfig();
-  const filePath = await getPresetPath(context.stateDir, name);
-  await fs.writeFile(filePath, JSON.stringify(config, null, 2), 'utf-8');
-
-  return {
-    content: [{
-      type: 'text' as const,
-      text: `✅ Config preset "${name}" saved with ${Object.keys(config).length} settings.\nPath: ${filePath}`,
-    }],
-  };
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `Config preset "${name}" saved (${Object.keys(config.input).length} options set on this build).\nPath: ${filePath}`,
+      }],
+    };
   });
 }
 
+/**
+ * Apply a preset: every option it holds is set to its saved value, and every option the build sets
+ * that the preset doesn't hold is cleared (a checkbox to false, anything else to PoB's default), so the
+ * config matches the preset. One `set_config` call carries every key, so an invalid value changes nothing.
+ */
 export async function handleLoadConfigPreset(context: ConfigPresetContext, name: string) {
   return wrapHandler('load config preset', async () => {
-  await context.ensureLuaClient();
-  const luaClient = context.getLuaClient();
-  if (!luaClient) throw new Error('Lua bridge not active. Use lua_load_build first.');
+    const luaClient = await engineClient(context);
 
-  const filePath = await getPresetPath(context.stateDir, name);
-  let config: Record<string, any>;
-  try {
-    const raw = await fs.readFile(filePath, 'utf-8');
-    config = JSON.parse(raw);
-  } catch {
-    throw new Error(`Preset "${name}" not found. Use save_config_preset to create it first.`);
-  }
+    const filePath = await getPresetPath(context.stateDir, name);
+    let raw: string;
+    try {
+      raw = await fs.readFile(filePath, 'utf-8');
+    } catch {
+      throw new Error(`Preset "${name}" not found. Use save_config_preset to create it first.`);
+    }
+    let preset: ConfigPreset;
+    try {
+      preset = JSON.parse(raw) as ConfigPreset;
+    } catch {
+      throw new Error(`Preset "${name}" is not valid JSON (${filePath}).`);
+    }
+    if (!preset || typeof preset !== 'object' || !preset.input || typeof preset.input !== 'object' || Array.isArray(preset.input)) {
+      throw new Error(`Preset "${name}" has no "input" map of config options (${filePath}).`);
+    }
 
-  await luaClient.setConfig(config);
+    const current = await luaClient.getConfig();
+    const types = new Map(current.options.map((o) => [o.key, o.type]));
+    const params: Record<string, ConfigScalar> = {};
+    const skipped: string[] = [];
+    for (const [key, value] of Object.entries(preset.input)) {
+      if (types.has(key) && isConfigScalar(value)) params[key] = value;
+      else skipped.push(key);
+    }
+    const cleared: string[] = [];
+    for (const key of Object.keys(current.input)) {
+      if (Object.prototype.hasOwnProperty.call(preset.input, key)) continue;
+      params[key] = types.get(key) === 'check' ? false : '';
+      cleared.push(key);
+    }
+    const applied = Object.keys(params).length - cleared.length;
+    if (Object.keys(params).length > 0) await luaClient.setConfig(params);
 
-  return {
-    content: [{
-      type: 'text' as const,
-      text: `✅ Config preset "${name}" loaded (${Object.keys(config).length} settings applied).`,
-    }],
-  };
+    let text = `Config preset "${name}" loaded: ${applied} options set to their saved values`;
+    text += cleared.length > 0 ? `; ${cleared.length} options the preset doesn't hold cleared to PoB's default.` : '.';
+    if (skipped.length > 0) {
+      text += `\nSkipped ${skipped.length} entries that aren't PoB2 config options with a scalar value: ${skipped.join(', ')}`;
+    }
+    return { content: [{ type: 'text' as const, text }] };
   });
 }
 
 export async function handleListConfigPresets(context: ConfigPresetContext) {
   return wrapHandler('list config presets', async () => {
-  const dir = presetDir(context.stateDir);
-  let files: string[] = [];
-  try {
-    files = await fs.readdir(dir);
-  } catch { /* dir doesn't exist yet */ }
-  const presets = files.filter(f => f.endsWith('.json')).map(f => f.replace('.json', ''));
+    const dir = presetDir(context.stateDir);
+    let files: string[] = [];
+    try {
+      files = await fs.readdir(dir);
+    } catch { /* dir doesn't exist yet */ }
+    const presets = files.filter(f => f.endsWith('.json')).map(f => f.slice(0, -'.json'.length));
 
-  return {
-    content: [{
-      type: 'text' as const,
-      text: presets.length > 0
-        ? `Available config presets:\n${presets.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
-        : 'No config presets saved yet. Use save_config_preset to create one.',
-    }],
-  };
+    return {
+      content: [{
+        type: 'text' as const,
+        text: presets.length > 0
+          ? `Available config presets:\n${presets.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
+          : 'No config presets saved yet. Use save_config_preset to create one.',
+      }],
+    };
   });
 }
 
 /**
- * Handle get_config tool call
+ * Handle get_config tool call: every PoB2 config option key with its value, by PoB's sections.
  */
 export async function handleGetConfig(context: ConfigHandlerContext) {
   return wrapHandler('get config', async () => {
-  await context.ensureLuaClient();
-  const luaClient = context.getLuaClient();
-  if (!luaClient) {
-    throw new Error("Lua bridge not active. Use lua_start and lua_load_build first.");
-  }
-
-  const config = await luaClient.getConfig();
-  const formatted = formatConfigOutput(config);
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: formatted,
-      },
-    ],
-  };
+    const luaClient = await engineClient(context);
+    const config = await luaClient.getConfig();
+    return { content: [{ type: "text" as const, text: formatConfigOutput(config) }] };
   });
 }
 
 /**
- * Handle set_config tool call
+ * Handle set_config tool call: set one option and report its real previous value.
  */
 export async function handleSetConfig(
   context: ConfigHandlerContext,
-  args: { config_name: string; value: boolean | number | string }
+  args: { config_name: string; value: unknown }
 ) {
   return wrapHandler('set config', async () => {
-  await context.ensureLuaClient();
-  const luaClient = context.getLuaClient();
-  if (!luaClient) {
-    throw new Error("Lua bridge not active. Use lua_start and lua_load_build first.");
-  }
+    if (typeof args.config_name !== 'string' || args.config_name.length === 0) throw new Error('Missing config_name');
+    if (!isConfigScalar(args.value)) throw new Error('value must be a boolean, a number or a string');
+    const luaClient = await engineClient(context);
 
-  // Get current config to show before/after
-  const currentConfig = await luaClient.getConfig();
-  const oldValue = currentConfig[args.config_name];
+    const before = await luaClient.getConfig();
+    const after = await luaClient.setConfig({ [args.config_name]: args.value });
+    const newStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
 
-  // Set new value - build params object dynamically
-  const params: Record<string, any> = {};
-  params[args.config_name] = args.value;
-  await luaClient.setConfig(params);
+    let output = `=== Configuration Updated ===\n\n`;
+    output += `${args.config_name}:\n`;
+    output += `  Previous value: ${configValueText(before, args.config_name)}\n`;
+    output += `  New value: ${configValueText(after, args.config_name)}\n`;
+    if (args.config_name === 'enemyLevel') output += `  Enemy level in effect: ${enemyLevelText(after)}\n`;
+    output += formatStats(newStats);
 
-  // Get updated stats
-  const newStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
-
-  let output = `=== Configuration Updated ===\n\n`;
-  output += `${args.config_name}:\n`;
-  output += `  Old Value: ${formatValue(oldValue)}\n`;
-  output += `  New Value: ${formatValue(args.value)}\n\n`;
-
-  if (newStats.TotalDPS) {
-    output += `=== Current Stats ===\n`;
-    output += `Total DPS: ${formatNumber(newStats.TotalDPS)}\n`;
-    if (newStats.Life) output += `Life: ${formatNumber(newStats.Life)}\n`;
-    if (newStats.EnergyShield) output += `Energy Shield: ${formatNumber(newStats.EnergyShield)}\n`;
-  }
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: output,
-      },
-    ],
-  };
+    return { content: [{ type: "text" as const, text: output }] };
   });
 }
 
+/** set_enemy_stats argument → PoB2 config option and label. */
+const ENEMY_FIELDS = [
+  { arg: 'level', key: 'enemyLevel', label: 'Enemy level' },
+  { arg: 'fire_resist', key: 'enemyFireResist', label: 'Fire resistance' },
+  { arg: 'cold_resist', key: 'enemyColdResist', label: 'Cold resistance' },
+  { arg: 'lightning_resist', key: 'enemyLightningResist', label: 'Lightning resistance' },
+  { arg: 'chaos_resist', key: 'enemyChaosResist', label: 'Chaos resistance' },
+  { arg: 'armor', key: 'enemyArmour', label: 'Armour' },
+  { arg: 'evasion', key: 'enemyEvasion', label: 'Evasion' },
+] as const;
+
+export type EnemyStatsArgs = Partial<Record<(typeof ENEMY_FIELDS)[number]['arg'], unknown>>;
+
 /**
- * Handle set_enemy_stats tool call
+ * Handle set_enemy_stats tool call: the enemy fields are PoB2 config options, written through the
+ * config set's input (so `enemyLevel` reaches ConfigTab:UpdateLevel), then the build is rebuilt.
  */
-export async function handleSetEnemyStats(
-  context: ConfigHandlerContext,
-  args: {
-    level?: number;
-    fire_resist?: number;
-    cold_resist?: number;
-    lightning_resist?: number;
-    chaos_resist?: number;
-    armor?: number;
-    evasion?: number;
-  }
-) {
+export async function handleSetEnemyStats(context: ConfigHandlerContext, args: EnemyStatsArgs) {
   return wrapHandler('set enemy stats', async () => {
-  await context.ensureLuaClient();
-  const luaClient = context.getLuaClient();
-  if (!luaClient) {
-    throw new Error("Lua bridge not active. Use lua_start and lua_load_build first.");
-  }
+    const fields = ENEMY_FIELDS.filter((f) => args[f.arg] !== undefined && args[f.arg] !== null);
+    if (fields.length === 0) {
+      throw new Error(`Give at least one enemy stat: ${ENEMY_FIELDS.map((f) => f.arg).join(', ')}`);
+    }
+    const params: Record<string, number> = {};
+    for (const f of fields) {
+      const value = args[f.arg];
+      if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${f.arg} must be a number`);
+      params[f.key] = value;
+    }
+    const luaClient = await engineClient(context);
 
-  // Get current DPS before changes
-  const oldStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
+    const before = await luaClient.getConfig();
+    const oldStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
+    const after = await luaClient.setConfig(params);
+    const newStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
 
-  // Build config update params
-  const params: Record<string, any> = {};
-  const changesSummary: Array<{key: string; old: any; new: any}> = [];
+    let output = `=== Enemy Configuration Updated ===\n\n`;
+    for (const f of fields) {
+      output += `${f.label} (${f.key}): ${configValueText(before, f.key)} → ${configValueText(after, f.key)}\n`;
+    }
+    output += `Enemy level in effect: ${enemyLevelText(after)}\n`;
 
-  if (args.level !== undefined) {
-    changesSummary.push({ key: "Enemy Level", old: 84, new: args.level });
-    params.enemyLevel = args.level;
-  }
-  if (args.fire_resist !== undefined) {
-    changesSummary.push({ key: "Fire Resist", old: 40, new: args.fire_resist });
-    params.enemyFireResist = args.fire_resist;
-  }
-  if (args.cold_resist !== undefined) {
-    changesSummary.push({ key: "Cold Resist", old: 40, new: args.cold_resist });
-    params.enemyColdResist = args.cold_resist;
-  }
-  if (args.lightning_resist !== undefined) {
-    changesSummary.push({ key: "Lightning Resist", old: 40, new: args.lightning_resist });
-    params.enemyLightningResist = args.lightning_resist;
-  }
-  if (args.chaos_resist !== undefined) {
-    changesSummary.push({ key: "Chaos Resist", old: 20, new: args.chaos_resist });
-    params.enemyChaosResist = args.chaos_resist;
-  }
-  if (args.armor !== undefined) {
-    changesSummary.push({ key: "Armor", old: 0, new: args.armor });
-    params.enemyArmour = args.armor;
-  }
-  if (args.evasion !== undefined) {
-    changesSummary.push({ key: "Evasion", old: 0, new: args.evasion });
-    params.enemyEvasion = args.evasion;
-  }
+    const oldDPS = finiteOr0(oldStats.TotalDPS);
+    const newDPS = finiteOr0(newStats.TotalDPS);
+    output += `\n=== DPS Update ===\n`;
+    output += `Previous DPS: ${formatNumber(oldDPS)}\n`;
+    output += `New DPS: ${formatNumber(newDPS)}`;
+    if (oldDPS > 0 && newDPS !== oldDPS) {
+      const percentChange = (newDPS - oldDPS) / oldDPS * 100;
+      output += ` (${percentChange > 0 ? '+' : ''}${percentChange.toFixed(1)}%)`;
+    }
+    output += '\n';
 
-  // Apply changes
-  await luaClient.setConfig(params);
-
-  // Get updated stats
-  const newStats = await luaClient.getStats(['TotalDPS', 'CombinedDPS', 'Life', 'EnergyShield']);
-
-  // Format output
-  let output = `=== Enemy Configuration Updated ===\n\n`;
-
-  for (const change of changesSummary) {
-    const suffix = change.key.includes("Resist") ? "%" : "";
-    output += `${change.key}: ${change.old}${suffix} → ${change.new}${suffix}\n`;
-  }
-
-  output += `\n=== DPS Update ===\n`;
-  const oldDPS = oldStats.TotalDPS || 0;
-  const newDPS = newStats.TotalDPS || 0;
-  const percentChange = oldDPS > 0 ? ((newDPS - oldDPS) / oldDPS * 100) : 0;
-
-  output += `Previous DPS: ${formatNumber(oldDPS)}\n`;
-  output += `New DPS: ${formatNumber(newDPS)}`;
-
-  if (percentChange !== 0) {
-    const sign = percentChange > 0 ? "+" : "";
-    output += ` (${sign}${percentChange.toFixed(1)}%)\n`;
-  } else {
-    output += "\n";
-  }
-
-  // Add interpretation
-  if (percentChange < -10) {
-    output += `\n💡 Enemy configuration significantly reduced DPS. Consider:\n`;
-    output += `   - Increasing penetration\n`;
-    output += `   - Using exposure/curse\n`;
-    output += `   - Checking resistance reduction effects\n`;
-  } else if (percentChange > 10) {
-    output += `\nDPS increased against this enemy configuration.\n`;
-  }
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: output,
-      },
-    ],
-  };
+    return { content: [{ type: "text" as const, text: output }] };
   });
 }
 
 /**
- * Format configuration output
+ * Format get_config: the enemy level in effect, then every option key by PoB's sections.
  */
-function formatConfigOutput(config: any): string {
-  if (!config || typeof config !== 'object') {
-    return "=== Configuration State ===\n\nNo configuration data available.\n";
-  }
+function formatConfigOutput(config: ConfigResult): string {
+  let output = "=== Configuration (PoB2 config options) ===\n\n";
+  output += `Enemy level in effect: ${enemyLevelText(config)}\n`;
+  output += `Options set on this build: ${Object.keys(config.input).length} of ${config.options.length}\n`;
+  output += "Each line is `key: value`. Options this build doesn't set show the value PoB uses, marked (default). ";
+  output += 'Change one with set_config (a "" value clears a non-checkbox option), enemy stats with set_enemy_stats.\n';
 
-  let output = "=== Configuration State ===\n\n";
-
-  // Build settings
-  output += "=== Build Settings ===\n";
-  output += `Bandit: ${config.bandit || 'None'}\n`;
-  output += `Pantheon Major God: ${config.pantheonMajorGod || 'None'}\n`;
-  output += `Pantheon Minor God: ${config.pantheonMinorGod || 'None'}\n`;
-
-  // Enemy settings
-  output += "\n=== Enemy Settings ===\n";
-  output += `Enemy Level: ${config.enemyLevel ?? 84}\n`;
-  if (config.enemyFireResist != null)      output += `Fire Resist: ${config.enemyFireResist}%\n`;
-  if (config.enemyColdResist != null)      output += `Cold Resist: ${config.enemyColdResist}%\n`;
-  if (config.enemyLightningResist != null) output += `Lightning Resist: ${config.enemyLightningResist}%\n`;
-  if (config.enemyChaosResist != null)     output += `Chaos Resist: ${config.enemyChaosResist}%\n`;
-  if (config.enemyArmour != null)          output += `Armour: ${config.enemyArmour}\n`;
-  if (config.enemyIsBoss != null)          output += `Is Boss: ${config.enemyIsBoss}\n`;
-
-  // Charges
-  const chargeFields = [
-    ['usePowerCharges', 'Power Charges'],
-    ['useFrenzyCharges', 'Frenzy Charges'],
-    ['useEnduranceCharges', 'Endurance Charges'],
-    ['useSiphoningCharges', 'Siphoning Charges'],
-  ] as const;
-  const activeCharges = chargeFields.filter(([key]) => config[key]);
-  if (activeCharges.length > 0) {
-    output += "\n=== Active Charges ===\n";
-    for (const [, label] of activeCharges) {
-      output += `${label}: enabled\n`;
+  let section: string | null = null;
+  for (const option of config.options) {
+    const name = option.section || 'Other';
+    if (name !== section) {
+      section = name;
+      output += `\n=== ${name} ===\n`;
     }
+    output += `${option.key}: ${configValueText(config, option.key)}\n`;
   }
-
-  // Active conditions
-  const conditionFields = Object.entries(config).filter(
-    ([key, val]) => key.startsWith('condition') && val === true
-  );
-  if (conditionFields.length > 0) {
-    output += "\n=== Active Conditions ===\n";
-    for (const [key] of conditionFields) {
-      output += `${key.replace('condition', '')}: true\n`;
-    }
-  }
-
-  // Active buffs
-  const buffFields = Object.entries(config).filter(
-    ([key, val]) => key.startsWith('buff') && val === true
-  );
-  if (buffFields.length > 0) {
-    output += "\n=== Active Buffs ===\n";
-    for (const [key] of buffFields) {
-      output += `${key.replace('buff', '')}: true\n`;
-    }
-  }
-
-  // Any remaining non-null, non-false keys not already shown
-  const knownKeys = new Set([
-    'bandit', 'pantheonMajorGod', 'pantheonMinorGod',
-    'enemyLevel', 'enemyFireResist', 'enemyColdResist', 'enemyLightningResist',
-    'enemyChaosResist', 'enemyArmour', 'enemyIsBoss',
-    'usePowerCharges', 'useFrenzyCharges', 'useEnduranceCharges', 'useSiphoningCharges',
-  ]);
-  const extra = Object.entries(config).filter(
-    ([key, val]) =>
-      !knownKeys.has(key) &&
-      !key.startsWith('condition') &&
-      !key.startsWith('buff') &&
-      val != null && val !== false
-  );
-  if (extra.length > 0) {
-    output += "\n=== Other Settings ===\n";
-    for (const [key, val] of extra) {
-      output += `${key}: ${val}\n`;
-    }
-  }
-
-  output += "\n💡 Use set_config to modify values  |  set_enemy_stats to adjust enemy parameters\n";
-
   return output;
 }
 
-/**
- * Format a value for display
- */
-function formatValue(value: any): string {
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
+function formatStats(stats: Record<string, unknown>): string {
+  const total = stats.TotalDPS;
+  if (typeof total !== 'number' || !Number.isFinite(total)) return '';
+  let output = `\n=== Current Stats ===\n`;
+  output += `Total DPS: ${formatNumber(total)}\n`;
+  if (typeof stats.Life === 'number' && Number.isFinite(stats.Life)) output += `Life: ${formatNumber(stats.Life)}\n`;
+  if (typeof stats.EnergyShield === 'number' && Number.isFinite(stats.EnergyShield)) {
+    output += `Energy Shield: ${formatNumber(stats.EnergyShield)}\n`;
   }
-  if (typeof value === 'number') {
-    return formatNumber(value);
-  }
-  return String(value);
+  return output;
+}
+
+function finiteOr0(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 /**

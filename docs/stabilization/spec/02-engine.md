@@ -626,6 +626,16 @@ Every server write into `POB_DIRECTORY` goes through one module, `src/services/b
   - The watcher follows C-20.
   - Remove the closed allowlist entries.
 
+### WU-25: `set_gem_corruption` tool (D-91)
+- kind: build
+- depends-on: [WU-11]
+- touches: [`pob-api/API/BuildOps.lua`, `pob-api/API/Handlers.lua`, `src/pobLuaBridge.ts`, `src/engine/schemas.ts`, `src/handlers/luaHandlers.ts` (or the gem handlers' file), `src/server/toolSchemas.ts`, `src/server/toolRouter.ts`, `src/server/toolMeta.ts`, the tool fixtures (disposition, tool-calls, hygiene), the README tool table (`pnpm docs:tools`), the tool-count tests and ACs (AC-T41, AC-G4: amend them, citing D-91)]
+- produces: [the `set_gem_corruption` tool]
+- consumes: [C-2, C-3]
+- acceptance: [AC-E65]
+- milestone: post-smoke
+- summary: Add `set_gem_corruption` as D-91 specifies. Mirror `set_gem_level`'s indexing conventions and output style.
+
 ## 5. Acceptance criteria
 
 "Lua-direct" means the test spawns luajit with `bootstrap.lua` (with `POB_API_TEST_ACTIONS=1`) and speaks
@@ -1002,6 +1012,17 @@ spine (§12). A "Lua query" is a `__test_eval` call.
   - Call `get_build_notes`, rewrite the notes on disk, and call `get_build_notes` again within 60 s: the
     second call shows the new notes.
   - After `lua_save_build` to a file, `get_build_stats` on it reflects the saved content.
+
+- **AC-E65 (WU-25, D-91).** Engine-required, on the golden build.
+  - **One gem.** `set_gem_corruption` with a group, an active gem and `state:"corrupted"` → the exported XML has
+    `corrupted="true"` and `corruptLevel="0"` on that gem only, and `revision` +1.
+  - **Whole build.** `state:"plus_one_level"` with no indices → every active skill gem in the user socket groups has `corrupted="true"`
+    and `corruptLevel="1"`, every support gem is unchanged, and the engine's effective level of at least one corrupted
+    active gem is 1 higher than before.
+  - **Explicit support gem.** Naming a support gem → `isError` saying support gems can't be corrupted, and both the export and `revision` are unchanged.
+  - **Revert.** `state:"not_corrupted"` on the build → no gem has `corrupted="true"`.
+  - **Persistence.** The state survives `lua_save_build` (to a temp builds dir) and a reload.
+  - **Tool counts.** `tools/list` has 77 tools, or 76 with `POE_NINJA_DISABLED`.
 
 ## 6. Test strategy (this slice)
 

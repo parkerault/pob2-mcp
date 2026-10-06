@@ -519,9 +519,10 @@ increasing `progress` (no `total`). Messages, in order:
 **Links (D-39).**
 - **League encoding:** `encodeURIComponent(league)`, so a space is `%20`.
 - **Fallback link:** `https://www.pathofexile.com/trade2/search/poe2/<league>?q=<encodeURIComponent(JSON.stringify(query))>`.
-- **Exact-item link:** the same form over the last query, with `stats[0].value = {min: floor(w,1)−1,
-  max: round(w,1)+1}` (w = that listing's Sum) and `filters.trade_filters.filters.account.input =
-  <seller account>`.
+- **Exact-item link (D-90, which replaces PoB's weighted recipe):** the same URL form over a minimal
+  pinning query: `{query: {status: {option: <the search's status>}, name: <item name, omitted when empty>,
+  type: <base type>, filters: {trade_filters: {filters: {account: {input: <seller account>}, price: {min:
+  <amount>, max: <amount>, option: <listing currency>}}}}}}`. It has no `stats` array.
 
 **Fallback result** (FR-T7, D-49: a result, `isError: false`):
 ```
@@ -534,7 +535,7 @@ Open this search in a browser where you are logged in to pathofexile.com:
 **Output (success).** Plain text. **Budget: ≤ 30,000 characters** (D-53). Listings render in rank order
 in full while the next full listing fits. The rest render as compact lines: `<n>. <name>, <base>: <price>
 · score <s> · <UPGRADE|not an upgrade> · seller <account>`, followed by a note saying they were
-compacted to fit. The tool is **not** on the 5000-character truncation list.
+compacted to fit. Each compact line ends with ` · Buy: <whisper or exact-item link>` (D-90). The tool is **not** on the 5000-character truncation list.
 ```
 === find_upgrades: <slot> ===
 Build: <loaded.displayName> (<loaded.path>)
@@ -671,6 +672,16 @@ Search on the trade site: <searchUrl>    ← always the last line
 
   Wire the `find_upgrades` tool. Its handler runs `runUpgradeSearch` and the evaluation inside one
   `session.run`, passing `call.signal`, the deadline and `sendProgress`.
+
+### WU-24: Short exact-item `Buy:` links (D-90)
+- kind: build
+- depends-on: [WU-23]
+- touches: [`src/trade/links.ts`, `src/trade/renderUpgrades.ts`, `src/server/toolSchemas.ts` (the `find_upgrades` description only), the tests asserting the old exact-item link, the spec ACs that quote the old recipe (amend them, citing D-90)]
+- produces: [the D-90 links]
+- consumes: [C-14]
+- acceptance: [AC-T47]
+- milestone: post-smoke
+- summary: Build the exact-item link from the D-90 pinning query instead of PoB's weighted recipe. Add the `Buy:` link to compact lines. Tell the client, in the `find_upgrades` description, to show `Buy:` lines verbatim.
 
 ## 5. Acceptance criteria
 
@@ -1002,6 +1013,16 @@ These are in-process and engine-required unless stated, with the same `fixtureFe
     price only, and the output carries exactly one note saying prices couldn't be normalized.
   - Listings appear in the order the fetch fixture returned them.
   - The output contains none of `Value Score`, `best value` or `per chaos` (case-insensitive).
+
+- **AC-T47 (WU-24, D-90).** In-process, fixtures, with `find_upgrades {slot:"Body Armour", limit: 20, include_non_upgrades: true}`
+  on the golden build.
+  - Every listing, full or compact, has a `Buy:` (a whisper or a link).
+  - Decoding each link's `q` parameter gives exactly the D-90 query for that listing: the search's status; its name (absent when empty)
+    and base type; `account.input` equal to the seller; and `price.min == price.max ==` the listing's amount, with `option` equal to its currency.
+    There is no `stats` key. The league is encoded as `%20`.
+  - Each link is ≤ 1,000 characters.
+  - The output stays ≤ 30,000 characters, and at least 10 listings render in full.
+  - The `find_upgrades` tool description tells the client to show each `Buy:` line verbatim.
 
 ## 6. Test strategy (this slice)
 

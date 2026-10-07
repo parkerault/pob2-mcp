@@ -1125,3 +1125,25 @@ exited 0. The server is registered with the D-16 command, and `claude mcp list` 
   `trade_filters.account`) and the PoB item text, followed by a short search-id link.
 - **Nit for later.** The normalized price is redundant when the listing's currency is the display
   currency: "31 exalted (≈ 31.00 exalted)".
+
+## 2026-10-06: post-smoke units WU-24 (D-90) and WU-25 (D-91)
+
+The user found two issues in their WU-20 session:
+1. **Missing links.** Claude's summary of `find_upgrades` dropped the ~4,000-char exact-item links. Only 6 of 10 listings fit in full, and the 4 compact ones had no link.
+2. **No corruption tool.** No tool could set a gem's corruption, which PoB2's UI supports.
+
+The user chose short exact links (D-90) and a flexible-scope `set_gem_corruption` that never touches support gems (D-91).
+
+**Process.** A lean build ran serially: implementer, one combined reviewer, fixer and independent gate per unit (8 agents).
+
+**WU-24.**
+- Done. Gate at `999021f`: 91 suites, 1028 tests, both rc 0. The AC-T47 mutation check passed.
+- Review: 1 material finding, declined. It was the unverifiable live risk, which the user's link check covers.
+
+**WU-25.**
+- Done. Gate at `f7a3664`: 92 suites, 1041 tests, both rc 0. The AC-E65 mutation checks passed.
+- Review: 1 material finding, fixed. Fiery Death has a support primary effect, and the group scope used to corrupt it.
+- The tool count is now 77, and the tool-count ACs are amended (D-91).
+
+**Build-time decisions:** D-92.
+**Still open:** the user opens a short link for a rare item and one for a Runeforged base, to confirm each opens exactly that listing (WU-20 item 4, D-90 risk).

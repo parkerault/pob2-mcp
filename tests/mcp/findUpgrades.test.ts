@@ -1,6 +1,6 @@
 /**
  * `find_upgrades` through the MCP tool (WU-23, C-14 steps 10–13): AC-T31, AC-T35, AC-T36, AC-T37,
- * AC-T39, AC-T40, AC-T44 and AC-T45, plus C-14's schema-agreement check.
+ * AC-T39, AC-T40, AC-T44, AC-T45 and AC-T47, plus C-14's schema-agreement check.
  *
  * In process and engine-required: the real SDK `Client`, router, handler and engine session (real
  * luajit, the pinned PoB, the golden build), with every trade2 and poe.ninja request served by a
@@ -109,6 +109,8 @@ interface Shown {
   score: number;
   upgrade: boolean;
   compact: boolean;
+  /** The listing's `Buy:` target (the whisper or the link), or null when it shows none. */
+  buy: string | null;
   /** The full listing's block (full listings only). */
   block?: string;
 }
@@ -126,9 +128,18 @@ function listings(text: string): Shown[] {
   const out: Shown[] = [];
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const compact = /^(\d+)\. (.+?): (.+?) · score (-?[\d.]+) · (UPGRADE|not an upgrade) · seller (.+)$/.exec(lines[i]);
+    const compact = /^(\d+)\. (.+?): (.+?) · score (-?[\d.]+) · (UPGRADE|not an upgrade) · seller (.+?)(?: · Buy: (.+))?$/.exec(lines[i]);
     if (compact) {
-      out.push({ n: Number(compact[1]), title: compact[2], price: compact[3], ...parsePrice(compact[3]), score: Number(compact[4]), upgrade: compact[5] === 'UPGRADE', compact: true });
+      out.push({
+        n: Number(compact[1]),
+        title: compact[2],
+        price: compact[3],
+        ...parsePrice(compact[3]),
+        score: Number(compact[4]),
+        upgrade: compact[5] === 'UPGRADE',
+        compact: true,
+        buy: compact[7] ?? null,
+      });
       continue;
     }
     const full = /^(\d+)\. (.+?): (.+?) · (UPGRADE|not an upgrade)$/.exec(lines[i]);
@@ -137,6 +148,7 @@ function listings(text: string): Shown[] {
       if (!score) throw new Error(`full listing without a Score line: ${lines[i]}`);
       let end = i + 1;
       while (end < lines.length && lines[end].startsWith('   ')) end += 1;
+      const block = lines.slice(i, end).join('\n');
       out.push({
         n: Number(full[1]),
         title: full[2],
@@ -145,7 +157,8 @@ function listings(text: string): Shown[] {
         score: Number(score[1]),
         upgrade: full[4] === 'UPGRADE',
         compact: false,
-        block: lines.slice(i, end).join('\n'),
+        buy: /^ {3}Buy: (.*)$/m.exec(block)?.[1] ?? null,
+        block,
       });
     }
   }
@@ -165,6 +178,39 @@ function countOf(text: string, label: string): number {
 }
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
+
+const LINK_PREFIX = 'https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=';
+
+/** The query a `Buy:` link carries (its `q` parameter, decoded). */
+function linkQuery(link: string): unknown {
+  return JSON.parse(new URL(link).searchParams.get('q') as string);
+}
+
+/** The D-90 pinning query for a fetched listing under the search's `status`. */
+function pinningQuery(entry: FetchListing, status: string): unknown {
+  const name = typeof entry.item.name === 'string' ? entry.item.name.trim() : '';
+  const price = entry.listing.price as { amount: number; currency: string };
+  return {
+    query: {
+      status: { option: status },
+      ...(name ? { name } : {}),
+      type: entry.item.baseType,
+      filters: {
+        trade_filters: {
+          filters: {
+            account: { input: (entry.listing.account as { name: string }).name },
+            price: { min: price.amount, max: price.amount, option: price.currency },
+          },
+        },
+      },
+    },
+  };
+}
+
+/** The status option of the (first) search request the server sent. */
+function searchedStatus(calls: RecordedCall[]): string {
+  return (JSON.parse(searchCalls(calls)[0].body as string) as { query: { status: { option: string } } }).query.status.option;
+}
 
 const searchCalls = (calls: RecordedCall[]) => calls.filter((c) => /\/api\/trade2\/search\//.test(c.url));
 const fetchCalls = (calls: RecordedCall[]) => calls.filter((c) => /\/api\/trade2\/fetch\//.test(c.url));
@@ -230,7 +276,7 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
   // AC-T40 runs first, so its default call generates PoB's query (no query-cache hit) end to end.
 
   it(
-    'AC-T40 (WU-23, NFR-3, NFR-10): defaults complete in <= 15 s; limit 20 + include_non_upgrades stays <= 30,000 characters with compact lines; last line is the search link',
+    'AC-T40 (WU-23, NFR-3, NFR-10): defaults complete in <= 15 s; limit 20 + include_non_upgrades stays <= 30,000 characters, listings past the budget compact; last line is the search link',
     async () => {
       serve([searchSequence([SESSION_SEARCH]), fetchRoute()]);
       const t0 = performance.now();
@@ -252,16 +298,92 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       const shown = listings(big.text);
       expect(shown).toHaveLength(20);
       expect(shown.some((s) => !s.compact)).toBe(true);
+      // With D-90's short exact-item links all 20 fixture listings fit in full; listings past the budget
+      // (if any) render compact after every full listing, with the compaction note. The notice case
+      // below and AC-T47 force compaction through the tool.
       const firstCompact = shown.findIndex((s) => s.compact);
-      expect(firstCompact).toBeGreaterThan(0);
-      // compact lines come after every full listing, followed by the compaction note
-      expect(shown.slice(firstCompact).every((s) => s.compact)).toBe(true);
-      expect(big.text).toMatch(/listings? (?:is|are) shown compactly to keep this output under 30,000 characters/);
+      if (firstCompact >= 0) {
+        expect(firstCompact).toBeGreaterThan(0);
+        expect(shown.slice(firstCompact).every((s) => s.compact)).toBe(true);
+        expect(big.text).toMatch(/listings? (?:is|are) shown compactly to keep this output under 30,000 characters/);
+      } else {
+        expect(big.text).not.toMatch(/shown compactly/);
+      }
       const lines = big.text.split('\n');
       expect(lines[lines.length - 1]).toMatch(/^Search on the trade site: https:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\//);
       // not truncated: not on the truncation list, and longer than its 5000 characters
       expect(TRUNCATED_TOOLS.has('find_upgrades')).toBe(false);
       expect(big.text.length).toBeGreaterThan(5000);
+    },
+    TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // AC-T47
+
+  it(
+    'AC-T47 (WU-24, D-90): every listing, full or compact, has a Buy; each link decodes to exactly the D-90 pinning query, is <= 1,000 characters; >= 10 full listings within 30,000; the description says to show Buy lines verbatim',
+    async () => {
+      const args = { slot: 'Body Armour', limit: 20, include_non_upgrades: true };
+      const keyOf = (title: string, amount: number, currency: string) => `${title} @ ${amount} ${currency}`;
+
+      /** Runs the call with these fetched entries; checks every listing's Buy; returns the listings shown. */
+      async function checkBuys(derive: (id: string, i: number) => FetchListing): Promise<{ text: string; shown: Shown[]; links: number; whispers: number }> {
+        serve([searchSequence([SESSION_SEARCH]), fetchRoute({ entryFor: derive })]);
+        const out = await call(args);
+        expect(out.isError).toBe(false);
+        expect(searchCalls(http.calls)).toHaveLength(1);
+        expect(fetchCalls(http.calls)).toHaveLength(2);
+        const status = searchedStatus(http.calls);
+
+        // What each fetched entry looks like in the output (its title and native price), and its query.
+        const served = fetchCalls(http.calls).flatMap((c) => parseFetchUrl(c.url).ids.map((id, i) => derive(id, i)));
+        const expected = new Map<string, unknown[]>();
+        for (const e of served) {
+          const name = String(e.item.name ?? '').trim() || String(e.item.typeLine ?? '').trim();
+          const base = String(e.item.baseType ?? '').trim() || String(e.item.typeLine ?? '').trim();
+          const title = base && base !== name ? `${name}, ${base}` : name;
+          const key = keyOf(title, e.listing.price!.amount, e.listing.price!.currency);
+          expected.set(key, [...(expected.get(key) ?? []), pinningQuery(e, status)]);
+        }
+
+        const shown = listings(out.text);
+        expect(shown).toHaveLength(20);
+        let links = 0;
+        let whispers = 0;
+        for (const s of shown) {
+          expect(s.buy).not.toBeNull();
+          if (served.some((e) => e.listing.whisper !== undefined && e.listing.whisper === s.buy)) {
+            whispers += 1;
+            continue;
+          }
+          links += 1;
+          expect(s.buy!.startsWith(LINK_PREFIX)).toBe(true);
+          expect(s.buy!.length).toBeLessThanOrEqual(1_000);
+          const q = linkQuery(s.buy!) as { query: Record<string, unknown> };
+          expect(q.query).not.toHaveProperty('stats');
+          expect(expected.get(keyOf(s.title, s.amount, s.currency))).toContainEqual(q);
+        }
+        expect(out.text.length).toBeLessThanOrEqual(30_000);
+        return { text: out.text, shown, links, whispers };
+      }
+
+      // The fixture fetch as captured: every Buy is an exact-item link, and at least 10 listings are full.
+      const plain = await checkBuys((id, i) => deriveListing(id, i));
+      expect(plain.links).toBe(20);
+      expect(plain.shown.filter((s) => !s.compact).length).toBeGreaterThanOrEqual(10);
+
+      // Long whispers on half the listings push some into compact lines: those carry their Buy too.
+      const mixed = await checkBuys((id, i) => deriveListing(id, i, i % 2 === 0 ? { whisper: `@seller-${i} hi ${'w'.repeat(1_000)}` } : {}));
+      const compact = mixed.shown.filter((s) => s.compact);
+      expect(compact.length).toBeGreaterThan(0);
+      expect(compact.some((s) => s.buy!.startsWith(LINK_PREFIX))).toBe(true);
+      expect(compact.some((s) => s.buy!.startsWith('@seller-'))).toBe(true);
+      expect(mixed.text).toMatch(/shown compactly/);
+
+      const tools = await fx.server.client.listTools();
+      const description = tools.tools.find((t) => t.name === 'find_upgrades')?.description ?? '';
+      expect(description).toMatch(/show each listing's Buy line verbatim/i);
     },
     TIMEOUT,
   );
@@ -336,14 +458,12 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
         for (const s of full) {
           const k = indexOfPrice.get(priceKey(s)) as number;
           expect(k).toBeDefined();
-          const buy = /^ {3}Buy: (.*)$/m.exec(s.block as string);
-          expect(buy).not.toBeNull();
-          if (whisperOf(k)) expect(buy![1]).toBe(whisperOf(k));
+          expect(s.buy).not.toBeNull();
+          if (whisperOf(k)) expect(s.buy).toBe(whisperOf(k));
           else {
-            expect(buy![1]).toMatch(/^https:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\?q=/);
-            const q = JSON.parse(decodeURIComponent(new URL(buy![1]).searchParams.get('q') as string));
-            expect(q.query.filters.trade_filters.filters.account.input).toMatch(/^seller-\d+#\d+$/);
-            expect(q.query.stats[0].value).toEqual({ min: expect.any(Number), max: expect.any(Number) });
+            // the D-90 exact-item link (amended from PoB's weighted recipe)
+            expect(s.buy!.startsWith(LINK_PREFIX)).toBe(true);
+            expect(linkQuery(s.buy!)).toEqual(pinningQuery(deriveListing(IDS[k], k, { price: priceOf(k) }), searchedStatus(http.calls)));
           }
           expect(s.block).toMatch(/\n {3}Item text:\n {3}\S/);
         }

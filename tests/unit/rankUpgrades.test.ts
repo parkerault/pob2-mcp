@@ -163,7 +163,8 @@ describe('D-53: the output budget', () => {
     const full = (text.match(/^ {3}Item text:$/gm) ?? []).length;
     expect(full).toBeGreaterThan(0);
     expect(full).toBeLessThan(20);
-    expect((text.match(/· seller seller-id\d+$/gm) ?? []).length).toBe(20 - full);
+    // each compact line ends with its Buy (D-90): here, the exact-item link
+    expect((text.match(/· seller seller-id\d+ · Buy: https:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\?q=\S+$/gm) ?? []).length).toBe(20 - full);
     expect(text).toContain(`${20 - full} listings are shown compactly`);
   });
 
@@ -176,6 +177,22 @@ describe('D-53: the output budget', () => {
     expect(fitted.length).toBeLessThanOrEqual(OUTPUT_BUDGET - reserved);
     const full = (t: string) => (t.match(/^ {3}Item text:$/gm) ?? []).length;
     expect(full(fitted)).toBe(full(plain) - 1);
+  });
+
+  it('drops the Buy from the last compact lines only when even the compact lines would not fit (D-90)', () => {
+    const r = report(20, 60);
+    // whispers far longer than the trade site's: 20 compact lines with them exceed the budget
+    r.listings = r.listings.map((l, i) => ({ ...l, whisper: `@seller-id${i} ${'w'.repeat(2_000)}` }));
+    const text = renderUpgradeReport(r);
+    expect(text.length).toBeLessThanOrEqual(OUTPUT_BUDGET);
+    const compact = text.split('\n').filter((l) => /^\d+\. .* · seller seller-id\d+/.test(l));
+    expect(compact).toHaveLength(20);
+    const withBuy = compact.filter((l) => / · Buy: @seller-id\d+ w+$/.test(l)).length;
+    expect(withBuy).toBeGreaterThan(0);
+    expect(withBuy).toBeLessThan(20);
+    // the ones that keep their Buy come first, in rank order
+    expect(compact.slice(0, withBuy).every((l) => / · Buy: /.test(l))).toBe(true);
+    expect(compact.slice(withBuy).every((l) => !/ · Buy: /.test(l))).toBe(true);
   });
 
   it('a fallback starts with "Trade search not run:" and ends with the link', () => {

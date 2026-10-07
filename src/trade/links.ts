@@ -6,9 +6,10 @@
  * - **Search link:** `https://www.pathofexile.com/trade2/search/poe2/<league>/<search id>`.
  * - **Query link** (the fallback link, FR-T7): the same path with `?q=<encodeURIComponent(JSON.stringify(query))>`,
  *   which the trade site runs as a fresh search when the browser is logged in.
- * - **Exact-item link:** the query link over the last query sent, with the weight group narrowed to the
- *   listing's weighted sum (`{min: floor(w, 1) - 1, max: round(w, 1) + 1}`) and the seller's account
- *   filter, PoB's recipe (`TradeQuery.lua:1250-1265`).
+ * - **Exact-item link** (D-90, which replaces PoB's weighted recipe): the query link over a minimal query
+ *   that pins one listing: the search's status, the item's name (omitted when empty) and base type, the
+ *   seller's account, and `price {min = max = amount, option = currency}`. It has no `stats`, so it stays
+ *   short (a few hundred characters, not PoB's ~4,000).
  */
 
 /** The trade site's search page for the PoE2 realm. */
@@ -24,43 +25,35 @@ export function tradeQueryUrl(league: string, query: object): string {
   return `${TRADE_SEARCH_BASE}/${encodeURIComponent(league)}?q=${encodeURIComponent(JSON.stringify(query))}`;
 }
 
-/** PoB's `floor(val, 1)` (`Common.lua:660`): round down to one decimal, with its 0.0001 guard. */
-function floor1(value: number): number {
-  return Math.floor(value * 10 + 0.0001) / 10;
+/** What pins one listing on the trade site (D-90). */
+export interface ExactItem {
+  /** The search's trade status option (e.g. `securable`). */
+  status: string;
+  /** The item's own name; empty for items without one (the `name` key is then omitted). */
+  name: string;
+  /** The item's base type. */
+  baseType: string;
+  /** The seller's account name. */
+  account: string;
+  /** The listing's price, or null when it has none (the `price` filter is then omitted). */
+  price: { amount: number; currency: string } | null;
 }
 
-/** PoB's `round(val, 1)` (`Common.lua:648`). */
-function round1(value: number): number {
-  return Math.floor(value * 10 + 0.5) / 10;
-}
-
-/** One decimal, without binary-float noise in the JSON (141.2, not 141.20000000000002). */
-function tidy(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-/**
- * The exact-item link for one listing: the last query sent, with `stats[0].value` replaced by
- * `{min: floor(w,1) - 1, max: round(w,1) + 1}` (w = the listing's weighted sum) and
- * `filters.trade_filters.filters.account.input` set to the seller's account. The query is not mutated.
- */
-export function exactItemUrl(league: string, query: object, weightedSum: number, account: string): string {
-  const exact = JSON.parse(JSON.stringify(query)) as {
-    query?: {
-      stats?: Array<{ value?: unknown }>;
-      filters?: { trade_filters?: { filters?: Record<string, unknown>; [k: string]: unknown }; [k: string]: unknown };
-      [k: string]: unknown;
-    };
-    [k: string]: unknown;
+/** The D-90 pinning query for one listing: status, name, base type, the seller and the exact price. No `stats`. */
+export function exactItemQuery(item: ExactItem): object {
+  const filters: Record<string, unknown> = { account: { input: item.account } };
+  if (item.price) filters.price = { min: item.price.amount, max: item.price.amount, option: item.price.currency };
+  return {
+    query: {
+      status: { option: item.status },
+      ...(item.name ? { name: item.name } : {}),
+      type: item.baseType,
+      filters: { trade_filters: { filters } },
+    },
   };
-  exact.query = exact.query ?? {};
-  const stats = exact.query.stats;
-  if (Array.isArray(stats) && stats.length > 0 && stats[0] && typeof stats[0] === 'object') {
-    stats[0].value = { min: tidy(floor1(weightedSum) - 1), max: tidy(round1(weightedSum) + 1) };
-  }
-  exact.query.filters = exact.query.filters ?? {};
-  exact.query.filters.trade_filters = exact.query.filters.trade_filters ?? { filters: {} };
-  exact.query.filters.trade_filters.filters = exact.query.filters.trade_filters.filters ?? {};
-  exact.query.filters.trade_filters.filters.account = { input: account };
-  return tradeQueryUrl(league, exact);
+}
+
+/** The exact-item link for one listing: the query link over its D-90 pinning query. */
+export function exactItemUrl(league: string, item: ExactItem): string {
+  return tradeQueryUrl(league, exactItemQuery(item));
 }

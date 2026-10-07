@@ -545,7 +545,7 @@ describe('AC-T38 (WU-17): the generated-query cache is keyed by the required ses
 
 // -------------------------------------------------------------------------------------------------
 
-describe('D-39 links (C-21 searchUrl, fallback and exact-item links)', () => {
+describe('D-39 and D-90 links (C-21 searchUrl, fallback and exact-item links)', () => {
   it('encodes the league with encodeURIComponent (a space is %20) and the query as URL-encoded JSON', () => {
     expect(tradeSearchUrl(LEAGUE, 'abc')).toBe('https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites/abc');
     const link = tradeQueryUrl(LEAGUE, GENERATED_BODY_ARMOUR_QUERY);
@@ -553,15 +553,34 @@ describe('D-39 links (C-21 searchUrl, fallback and exact-item links)', () => {
     expect(JSON.parse(decodeURIComponent(link.split('?q=')[1]))).toEqual(GENERATED_BODY_ARMOUR_QUERY);
   });
 
-  it("the exact-item link narrows the weight to [floor(w,1)-1, round(w,1)+1] and adds the seller's account", () => {
-    const link = exactItemUrl(LEAGUE, GENERATED_BODY_ARMOUR_QUERY, 142.26, 'seller-1#0001');
-    const q = JSON.parse(decodeURIComponent(link.split('?q=')[1])) as TradeQueryBody & {
-      query: { filters: { trade_filters: { filters: Record<string, unknown> } } };
-    };
-    expect(q.query.stats![0].value).toEqual({ min: 141.2, max: 143.3 });
-    expect(q.query.filters.trade_filters.filters.account).toEqual({ input: 'seller-1#0001' });
-    expect(q.query.filters.trade_filters.filters.price).toEqual({ max: 200 });
-    // The source query is untouched.
-    expect((GENERATED_BODY_ARMOUR_QUERY as unknown as TradeQueryBody).query.stats![0].value).toEqual({ min: FIRST_MIN });
+  it("the exact-item link (D-90) pins the listing by status, name, base type, seller and exact price, with no stats", () => {
+    const link = exactItemUrl(LEAGUE, {
+      status: 'securable',
+      name: 'Morbid Wrap',
+      baseType: 'Dastard Armour',
+      account: 'seller-1#0001',
+      price: { amount: 3.5, currency: 'exalted' },
+    });
+    expect(link.startsWith('https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=')).toBe(true);
+    expect(JSON.parse(decodeURIComponent(link.split('?q=')[1]))).toEqual({
+      query: {
+        status: { option: 'securable' },
+        name: 'Morbid Wrap',
+        type: 'Dastard Armour',
+        filters: {
+          trade_filters: {
+            filters: { account: { input: 'seller-1#0001' }, price: { min: 3.5, max: 3.5, option: 'exalted' } },
+          },
+        },
+      },
+    });
+    expect(link.length).toBeLessThan(1_000);
+  });
+
+  it('the exact-item link omits the name when the item has none, and the price filter when the listing has no price', () => {
+    const link = exactItemUrl(LEAGUE, { status: 'any', name: '', baseType: 'Dastard Armour', account: 'a#1', price: null });
+    expect(JSON.parse(decodeURIComponent(link.split('?q=')[1]))).toEqual({
+      query: { status: { option: 'any' }, type: 'Dastard Armour', filters: { trade_filters: { filters: { account: { input: 'a#1' } } } } },
+    });
   });
 });

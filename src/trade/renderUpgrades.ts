@@ -6,7 +6,7 @@
  * - **Success:** a header, this call's notices, the current item and baseline, the counts line, then
  *   the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
  *   the PoB item text) while the whole output stays ≤ 30,000 characters; the rest render as one
- *   compact line each, followed by a note. The last line is always `Search on the trade site: <url>`.
+ *   compact line each, ending with the listing's `Buy:` (D-90), followed by a note. The last line is always `Search on the trade site: <url>`.
  *   The session's notices go in front of this text (the router adds them, C-3 step 8), so the renderer
  *   is given their length and keeps the whole output, notices included, within the budget.
  */
@@ -70,7 +70,7 @@ export interface UpgradeReport {
   listings: ListingRow[];
   /** The display currency (C-14 step 11). */
   display: string;
-  /** The last query sent (for the exact-item links). */
+  /** The last query sent (kept for callers; the exact-item links no longer use it, D-90). */
   query: object;
   /** The closing statement before the search link (no upgrade, no matches, all rejected…), if any; may span lines. */
   closing: string | null;
@@ -101,11 +101,26 @@ function priceText(row: ListingRow, display: string): string {
 
 const flag = (row: ListingRow) => (row.isUpgrade ? 'UPGRADE' : 'not an upgrade');
 
+/** The item's own name from the fetched entry (`ListingRow.name` falls back to the type line). */
+function itemName(row: ListingRow): string {
+  const item = (row.entry as unknown as { item?: { name?: unknown } } | null)?.item;
+  return typeof item?.name === 'string' ? item.name.trim() : '';
+}
+
+/** `Buy: <whisper>`, else the D-90 exact-item link, else (no seller to pin it to) the search itself. */
 function buyLine(row: ListingRow, report: UpgradeReport): string {
   if (row.whisper) return `Buy: ${row.whisper}`;
-  if (row.weightedSum !== null && row.account) return `Buy: ${exactItemUrl(report.league, report.query, row.weightedSum, row.account)}`;
-  // No weighted sum to pin the listing down (A-9 says weighted fetches carry one): the search itself.
-  return `Buy: ${report.searchUrl}${row.account ? ` (seller ${row.account})` : ''}`;
+  if (row.account) {
+    const link = exactItemUrl(report.league, {
+      status: report.status,
+      name: itemName(row),
+      baseType: row.baseType,
+      account: row.account,
+      price: row.price,
+    });
+    return `Buy: ${link}`;
+  }
+  return `Buy: ${report.searchUrl}`;
 }
 
 /** One listing in full (C-14 output). */
@@ -131,9 +146,13 @@ export function fullListing(row: ListingRow, n: number, report: UpgradeReport): 
   return lines.join('\n');
 }
 
-/** One listing as a compact line (D-53). */
-export function compactListing(row: ListingRow, n: number, display: string): string {
-  return `${n}. ${title(row)}: ${priceText(row, display)} · score ${row.score.toFixed(4)} · ${flag(row)} · seller ${row.account ?? 'unknown'}`;
+/**
+ * One listing as a compact line (D-53), ending with ` · Buy: <whisper or link>` (D-90) unless `withBuy`
+ * is false (only when even the compact lines with their `Buy:` would not fit the budget).
+ */
+export function compactListing(row: ListingRow, n: number, report: UpgradeReport, withBuy = true): string {
+  const line = `${n}. ${title(row)}: ${priceText(row, report.display)} · score ${row.score.toFixed(4)} · ${flag(row)} · seller ${row.account ?? 'unknown'}`;
+  return withBuy ? `${line} · ${buyLine(row, report)}` : line;
 }
 
 function compactionNote(count: number): string {
@@ -162,7 +181,9 @@ function headLines(report: UpgradeReport): string[] {
 
 /**
  * The success output under the D-53 budget: listings in full while the next full listing still fits
- * (with every remaining listing compacted after it), the rest compact, with a note.
+ * (with every remaining listing compacted after it), the rest compact, with a note. Should the compact
+ * lines with their `Buy:` still not fit (whispers or links far longer than the trade site's), the last
+ * ones drop their `Buy:` until the output fits.
  *
  * `reservedChars` is the room the text placed in front of this output takes (the session's notices
  * and their blank line, which the router prepends), so that the whole output stays within the budget.
@@ -172,13 +193,20 @@ export function renderUpgradeReport(report: UpgradeReport, reservedChars = 0): s
   const head = headLines(report).join('\n');
   const tail = [...(report.closing ? [report.closing] : []), `Search on the trade site: ${report.searchUrl}`].join('\n');
   const full = report.listings.map((row, i) => fullListing(row, i + 1, report));
-  const compact = report.listings.map((row, i) => compactListing(row, i + 1, report.display));
+  const compact = report.listings.map((row, i) => compactListing(row, i + 1, report));
+  const bare = report.listings.map((row, i) => compactListing(row, i + 1, report, false));
+  /** How many of the last compact lines go without their `Buy:`. */
+  let buyless = 0;
 
   const assemble = (k: number): string => {
     const parts = [head];
     const body: string[] = [];
     if (k > 0) body.push(full.slice(0, k).join('\n\n'));
-    if (k < compact.length) body.push([...compact.slice(k), compactionNote(compact.length - k)].join('\n'));
+    if (k < compact.length) {
+      const cut = compact.length - buyless;
+      const lines = compact.map((line, i) => (i >= cut ? bare[i] : line)).slice(k);
+      body.push([...lines, compactionNote(compact.length - k)].join('\n'));
+    }
     if (body.length > 0) parts.push(body.join('\n\n'));
     parts.push(tail);
     return parts.join('\n\n');
@@ -186,5 +214,6 @@ export function renderUpgradeReport(report: UpgradeReport, reservedChars = 0): s
 
   let k = 0;
   while (k < full.length && assemble(k + 1).length <= budget) k += 1;
+  while (buyless < compact.length - k && assemble(k).length > budget) buyless += 1;
   return assemble(k);
 }

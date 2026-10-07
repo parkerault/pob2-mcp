@@ -936,7 +936,8 @@ The credential getter returns a sentinel cookie unless the AC says otherwise.
 - **AC-T41 (WU-17, C-15).** In-process.
   - `trade_query_options {slot:"Ring 1"}` renders every C-15 section, with no `undefined`.
   - `tool-disposition.json` has no `pending` on `trade_query_options`, and `listTools` count is 75 at
-    WU-17's merge, 76 once WU-23 adds `find_upgrades` (AC-T45). (amended during build, D-64)
+    WU-17's merge, 76 once WU-23 adds `find_upgrades` (AC-T45), 77 once WU-25 adds `set_gem_corruption`.
+    (amended during build, D-64) (amended, D-91)
 - **AC-T43 (WU-17, D-49).** With `env.POE_LEAGUE="Forbidden Rites"` and a credential getter returning
   `null`, `fixtureFetch.calls` is **empty** after the run: no `/data/*`, no search, no fetch. The
   `fixtureFetch` has no `data-*` routes, so any such request would throw.
@@ -1001,7 +1002,7 @@ These are in-process and engine-required unless stated, with the same `fixtureFe
     the `Reloaded grenadator.xml` notice (C-3).
   - **Fallback rendering.** A fallback result renders with `isError` false and starts with
     `Trade search not run:`.
-  - **Disposition.** `tool-disposition.json` has no `pending` left, and `listTools` count is 76 (AC-F25).
+  - **Disposition.** `tool-disposition.json` has no `pending` left, and `listTools` count is 77 (AC-F25). (amended, D-91)
 
 - **AC-T46 (WU-15, D-61).** In-process, `fixtureFetch` serving a trade2 search fixture, a fetch fixture and the poe.ninja
   fixture.

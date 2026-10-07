@@ -727,6 +727,29 @@ export function getLuaToolSchemas(): any[] {
       },
     },
     {
+      name: "set_gem_corruption",
+      description: "Set the corruption state of active skill gems, like PoB2's Corrupt dropdown: not_corrupted, corrupted, plus_one_level (+1 to gem level) or minus_one_level (-1 to gem level). With group_index and gem_index: that gem. With group_index only: every active skill gem in that socket group. With neither: every active skill gem in the build's socket groups (item- and passive-granted groups excluded). Support gems can't be corrupted in PoE2: they are never changed, and naming one is an error.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          state: {
+            type: "string",
+            enum: ["not_corrupted", "corrupted", "plus_one_level", "minus_one_level"],
+            description: "Corruption state to set",
+          },
+          group_index: {
+            type: "number",
+            description: "Socket group index (1-based); omit for every socket group",
+          },
+          gem_index: {
+            type: "number",
+            description: "Gem index within group (1-based); needs group_index; omit for every active skill gem in the group",
+          },
+        },
+        required: ["state"],
+      },
+    },
+    {
       name: "remove_skill",
       description: "Remove an entire socket group",
       inputSchema: {

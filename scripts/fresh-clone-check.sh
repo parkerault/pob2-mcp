@@ -9,7 +9,7 @@
 #    POB_DIRECTORY=<clone>/tests/fixtures/builds, XDG_STATE_HOME=<temp>, POE_LEAGUE="Forbidden Rites",
 #    POE_TRADE_BASE=http://127.0.0.1:9/api/trade2 (a tripwire: any trade request fails) and
 #    POE_NINJA_DISABLED=true;
-# 4. through scripts/fresh-clone-check.mjs (an MCP SDK client): 76 tools are listed,
+# 4. through scripts/fresh-clone-check.mjs (an MCP SDK client): 77 tools are listed (D-91),
 #    lua_load_build grenadator.xml reports Life 2,977, and find_upgrades {slot:"Ring 1"} starts with
 #    "Trade search not run:" (D-49: no request is made, so the tripwire is never hit).
 #

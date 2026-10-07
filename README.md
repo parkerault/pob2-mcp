@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-76 tools are listed by default; the full table is [below](#tools).
+77 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -57,7 +57,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 ```
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 76 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 77 tools.
 
 ## Configuration
 
@@ -196,6 +196,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `add_gem` | core | Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). |
 | `set_gem_level` | core | Set the level of a gem |
 | `set_gem_quality` | core | Set the quality of a gem |
+| `set_gem_corruption` | core | Set the corruption state of active skill gems, like PoB2's Corrupt dropdown: not_corrupted, corrupted, plus_one_level (+1 to gem level) or minus_one_level (-1 to gem level). |
 | `remove_skill` | core | Remove an entire socket group |
 | `remove_gem` | core | Remove a specific gem from a socket group |
 | `toggle_socket_group` | core | Enable or disable an entire socket group (e.g. turn off a mana reservation aura to test its effect on stats) |

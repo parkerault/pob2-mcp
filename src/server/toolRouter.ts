@@ -22,7 +22,7 @@ import { handleGetBuildIssues, formatIssuesResponse } from "../handlers/buildGoa
 import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, handleLuaLoadBuild, handleLuaGetStats, handleLuaGetTree, handleLuaSetTree, handleSearchTreeNodes, handleListGems, handleGetClasses, handleLuaGetBuildInfo, handleLuaReloadBuild, handleUpdateTreeDelta, handleCreateSpec, handleListSpecs, handleSelectSpec, handleDeleteSpec, handleRenameSpec, handleListItemSets, handleSelectItemSet } from "../handlers/luaHandlers.js";
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
-import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
+import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleSetGemCorruption, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
 import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
@@ -494,6 +494,10 @@ async function dispatch(
     case "set_gem_quality":
       if (!args) throw new Error("Missing arguments");
       return await handleSetGemQuality(itemSkillContext, args.group_index as number, args.gem_index as number, args.quality as number, (args.quality_type ?? args.quality_id) as string | undefined);
+
+    case "set_gem_corruption":
+      if (!args) throw new Error("Missing arguments");
+      return await handleSetGemCorruption(itemSkillContext, args.state as string, args.group_index as number | undefined, args.gem_index as number | undefined);
 
     case "remove_skill":
       if (!args) throw new Error("Missing arguments");

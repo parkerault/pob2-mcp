@@ -2,6 +2,7 @@ import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { visibleItemSlots } from "../utils/itemSlots.js";
 import { ACTIVATABLE_SLOTS } from "../server/toolSchemas.js";
+import { GEM_CORRUPTION_STATES, type GemCorruptionState } from "../engine/schemas.js";
 
 export interface ItemSkillHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -513,6 +514,72 @@ export async function handleSetGemQuality(
     await luaClient.setGemQuality({ groupIndex, gemIndex, quality, qualityId });
 
     let text = `✅ Set gem quality to ${quality}${qualityId && qualityId !== 'Default' ? ` (${qualityId})` : ''} (group ${groupIndex}, gem ${gemIndex}).`;
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text,
+        },
+      ],
+    };
+  });
+}
+
+/** PoB2's labels for the corruption states (`SkillsTab.lua` `corruptOption`). */
+const CORRUPTION_LABELS: Record<GemCorruptionState, string> = {
+  not_corrupted: 'Not Corrupted',
+  corrupted: 'Corrupted',
+  plus_one_level: '+1 to Gem Level',
+  minus_one_level: '-1 to Gem Level',
+};
+
+/**
+ * set_gem_corruption (D-91): one gem (both indices), a group's active skill gems (group_index only) or
+ * the build's (neither). The engine never changes support gems and refuses an explicit one.
+ */
+export async function handleSetGemCorruption(
+  context: ItemSkillHandlerContext,
+  state: string,
+  groupIndex?: number,
+  gemIndex?: number
+) {
+  return wrapHandler('set gem corruption', async () => {
+    await context.ensureLuaClient();
+
+    const luaClient = context.getLuaClient();
+    if (!luaClient) {
+      throw new Error('Lua client not initialized. Use lua_start first.');
+    }
+
+    if (!(GEM_CORRUPTION_STATES as readonly string[]).includes(state)) {
+      throw new Error(`state must be one of ${GEM_CORRUPTION_STATES.join(', ')}`);
+    }
+    const corruption = state as GemCorruptionState;
+
+    if (groupIndex !== undefined && groupIndex < 1) {
+      throw new Error('group_index must be >= 1');
+    }
+
+    if (gemIndex !== undefined) {
+      if (groupIndex === undefined) throw new Error('gem_index needs group_index');
+      if (gemIndex < 1) throw new Error('gem_index must be >= 1');
+    }
+
+    const result = await luaClient.setGemCorruption({ state: corruption, groupIndex, gemIndex });
+    const label = CORRUPTION_LABELS[corruption];
+
+    let text: string;
+    if (gemIndex !== undefined) {
+      text = `✅ Set gem corruption to ${label} (group ${groupIndex}, gem ${gemIndex}: ${result.gems[0]?.name ?? '?'}).`;
+    } else {
+      const scope = groupIndex !== undefined ? `group ${groupIndex}` : 'all socket groups';
+      const lines = result.gems.map((g) => `- Group ${g.groupIndex}, gem ${g.gemIndex}: ${g.name}`);
+      text = [
+        `✅ Set gem corruption to ${label} on ${result.gems.length} active skill gem${result.gems.length === 1 ? '' : 's'} (${scope}). Support gems are unchanged.`,
+        ...lines,
+      ].join('\n');
+    }
 
     return {
       content: [

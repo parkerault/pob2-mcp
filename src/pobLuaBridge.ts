@@ -766,6 +766,11 @@ export class PoBLuaApiClient {
     await this.request("set_gem_quality", params);
   }
 
+  async setGemCorruption(params: ActionParams<"set_gem_corruption">): Promise<ActionReply<"set_gem_corruption">["result"]> {
+    const res = await this.request("set_gem_corruption", params);
+    return res.result;
+  }
+
   async removeSkill(params: ActionParams<"remove_skill">): Promise<void> {
     await this.request("remove_skill", params);
   }

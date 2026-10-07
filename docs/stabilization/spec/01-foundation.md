@@ -633,7 +633,7 @@ work-log.
 - **AC-F21 (WU-04).** `tests/static/deadModules.test.ts` asserts that every `src/**/*.ts` file except
   `src/index.ts` is imported by at least one other `src/` file. It parses import specifiers.
 - **AC-F22 (WU-04).** The in-process `listTools` set equals the non-delete, non-pending names in
-  `tests/fixtures/tool-disposition.json`: 74 when WU-04 lands, 75 after WU-17, 76 after WU-23. Until
+  `tests/fixtures/tool-disposition.json`: 74 when WU-04 lands, 75 after WU-17, 76 after WU-23, 77 after WU-25 (amended, D-91). Until
   WU-05 creates that file, the test uses the literal vision §4 Keep + Fix + Rewrite list (74 names).
   Registered and routed sets are equal: routing every `TOOL_META` name reaches a handler, and no `case`
   exists without a `TOOL_META` entry (static check).
@@ -655,7 +655,7 @@ work-log.
 
   Both are identical before and after. There is no XML byte or structure comparison.
 - **AC-F25 (WU-05, I-4a).** `tests/fixtures/tool-disposition.json` lists all 100 routed names plus the 2
-  new ones. Each entry is `{name, bucket: keep|fix|rewrite|new|delete, lane, pending?}`.
+  new ones, and `set_gem_corruption` (bucket `new`, lane `B`; amended, D-91). Each entry is `{name, bucket: keep|fix|rewrite|new|delete, lane, pending?}`.
   - The in-process `listTools` set equals the non-delete, non-pending names.
   - `pending` is only allowed on `trade_query_options` (`"WU-17"`) and `find_upgrades` (`"WU-23"`). Each
     of those units removes its tool's flag.

@@ -40,6 +40,7 @@ export const ACTION_NAMES = [
   'add_gem',
   'set_gem_level',
   'set_gem_quality',
+  'set_gem_corruption',
   'remove_skill',
   'remove_gem',
   'search_nodes',
@@ -382,6 +383,23 @@ export const getClassesReply = baseReply.extend({
     .passthrough(),
 });
 
+/** The gem corruption states (D-91), PoB2's corruption dropdown (`SkillsTab.lua` `corruptOption`). */
+export const GEM_CORRUPTION_STATES = ['not_corrupted', 'corrupted', 'plus_one_level', 'minus_one_level'] as const;
+export type GemCorruptionState = (typeof GEM_CORRUPTION_STATES)[number];
+
+/** `set_gem_corruption` (D-91): the state set and every gem it was set on (support gems never are). */
+export const setGemCorruptionReply = baseReply.extend({
+  result: z
+    .object({
+      state: z.enum(GEM_CORRUPTION_STATES),
+      gems: luaArray(
+        z.object({ groupIndex: z.number().int(), gemIndex: z.number().int(), name: z.string() }).passthrough(),
+      ),
+    })
+    .passthrough(),
+});
+export type SetGemCorruptionResult = z.infer<typeof setGemCorruptionReply>['result'];
+
 export const setSocketGroupEnabledReply = baseReply.extend({
   result: z.object({ groupIndex: z.number().int(), label: z.string(), enabled: z.boolean() }).passthrough(),
 });
@@ -618,6 +636,7 @@ const definedSchemas = {
   add_gem: addGemReply,
   set_gem_level: emptyReply,
   set_gem_quality: emptyReply,
+  set_gem_corruption: setGemCorruptionReply,
   remove_skill: emptyReply,
   remove_gem: emptyReply,
   search_nodes: searchNodesReply,
@@ -710,6 +729,8 @@ export interface ActionParamsMap {
     | { gemName: string; validateOnly: true };
   set_gem_level: { groupIndex: number; gemIndex: number; level: number };
   set_gem_quality: { groupIndex: number; gemIndex: number; quality: number; qualityId?: string };
+  /** D-91 scope: both indices = that gem; `groupIndex` only = the group's active gems; neither = the build's. */
+  set_gem_corruption: { state: GemCorruptionState; groupIndex?: number; gemIndex?: number };
   remove_skill: { groupIndex: number };
   remove_gem: { groupIndex: number; gemIndex: number };
   search_nodes: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };

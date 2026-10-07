@@ -90,6 +90,7 @@ export const TOOL_META: Record<string, ToolMeta> = {
   add_gem: core('mutate'),
   set_gem_level: core('mutate'),
   set_gem_quality: core('mutate'),
+  set_gem_corruption: core('mutate'),
   remove_skill: core('mutate'),
   remove_gem: core('mutate'),
   toggle_socket_group: core('mutate'),

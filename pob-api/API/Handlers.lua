@@ -343,6 +343,13 @@ handlers.set_gem_quality = function(params)
   return { ok = true }
 end
 
+-- set_gem_corruption {state, groupIndex?, gemIndex?} (D-91): result {state, gems = [{groupIndex, gemIndex, name}]}
+handlers.set_gem_corruption = function(params)
+  local res, err = BuildOps.set_gem_corruption(params or {})
+  if not res then return { ok = false, error = err or 'failed to set gem corruption' } end
+  return { ok = true, result = res }
+end
+
 handlers.remove_skill = function(params)
   local ok2, err = BuildOps.remove_skill(params or {})
   if not ok2 then return { ok = false, error = err or 'failed to remove skill' } end

@@ -95,6 +95,7 @@ const CASES: Record<ActionName, Case> = {
   },
   set_gem_level: { setup: async (call) => ({ ...(await groupWithGem(call)), level: 10 }) },
   set_gem_quality: { setup: async (call) => ({ ...(await groupWithGem(call)), quality: 10 }) },
+  set_gem_corruption: { setup: async (call) => ({ ...(await groupWithGem(call)), state: 'plus_one_level' }) },
   remove_skill: {
     setup: async (call) => {
       const group = await call('create_socket_group', { label: 'contract' });

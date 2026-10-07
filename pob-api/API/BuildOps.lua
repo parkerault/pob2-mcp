@@ -995,6 +995,111 @@ function M.set_gem_quality(params)
   return true
 end
 
+-- Gem corruption states (D-91), as PoB2's corruption dropdown sets them (SkillsTab.lua corruptOption:
+-- gemInstance.corrupted is false only for "Not Corrupted"; corruptLevel is the option's level).
+local CORRUPT_STATES = {
+  not_corrupted = { corrupted = false, corruptLevel = 0 },
+  corrupted = { corrupted = true, corruptLevel = 0 },
+  plus_one_level = { corrupted = true, corruptLevel = 1 },
+  minus_one_level = { corrupted = true, corruptLevel = -1 },
+}
+
+local function isSupportGem(gemInstance)
+  local gemData = gemInstance.gemData
+  if gemData and gemData.grantedEffect then return gemData.grantedEffect.support == true end
+  return gemInstance.grantedEffect ~= nil and gemInstance.grantedEffect.support == true
+end
+
+-- An active skill gem: a known gem (gemData), not item/tree granted, with at least one granted effect that
+-- is not a support (CalcSetup's active-skill test, without the per-instance enable flags).
+local function isActiveSkillGem(gemInstance)
+  local gemData = gemInstance.gemData
+  if not gemData or gemInstance.fromItem or gemInstance.fromTree then return false end
+  for _, grantedEffect in ipairs(gemData.grantedEffectList or { gemData.grantedEffect }) do
+    if grantedEffect and not grantedEffect.support then return true end
+  end
+  return false
+end
+
+-- Set the corruption state of active skill gems (D-91). Scope: groupIndex + gemIndex is that gem;
+-- groupIndex alone is every active skill gem in that group; neither is every active skill gem in the
+-- user socket groups (no `source`: not granted by an item or a passive). Support gems are never changed,
+-- and naming one is an error. Every check runs before the first change, so a failure changes nothing.
+-- params: { state: 'not_corrupted'|'corrupted'|'plus_one_level'|'minus_one_level', groupIndex?: number, gemIndex?: number }
+function M.set_gem_corruption(params)
+  if not build or not build.skillsTab then return nil, 'skills not initialized' end
+  if type(params) ~= 'table' then return nil, 'invalid params' end
+  local target = CORRUPT_STATES[params.state]
+  if not target then
+    return nil, 'invalid state "' .. tostring(params.state) .. '" (must be not_corrupted, corrupted, plus_one_level or minus_one_level)'
+  end
+  if params.gemIndex ~= nil and params.groupIndex == nil then return nil, 'gemIndex needs groupIndex' end
+
+  local skillSetId = build.skillsTab.activeSkillSetId or 1
+  local skillSet = build.skillsTab.skillSets[skillSetId]
+  if not skillSet then return nil, 'active skill set not found' end
+
+  -- { socketGroup, groupIndex, gemIndex, gemInstance } for every gem to change
+  local targets = {}
+  local function add(socketGroup, groupIndex, gemIndex, gemInstance)
+    table.insert(targets, { socketGroup = socketGroup, groupIndex = groupIndex, gemIndex = gemIndex, gemInstance = gemInstance })
+  end
+  if params.groupIndex ~= nil then
+    local groupIndex = tonumber(params.groupIndex)
+    local socketGroup = groupIndex and skillSet.socketGroupList[groupIndex]
+    if not socketGroup then return nil, 'socket group not found' end
+    if socketGroup.source then
+      return nil, 'socket group ' .. groupIndex .. ' is granted by an item or a passive; its gems cannot be corrupted'
+    end
+    if params.gemIndex ~= nil then
+      local gemIndex = tonumber(params.gemIndex)
+      local gemInstance = gemIndex and socketGroup.gemList[gemIndex]
+      if not gemInstance then return nil, 'gem not found' end
+      local name = gemInstance.nameSpec or '?'
+      if isSupportGem(gemInstance) then
+        return nil, string.format("support gems can't be corrupted: gem %d in group %d (%s) is a support gem", gemIndex, groupIndex, name)
+      end
+      if not isActiveSkillGem(gemInstance) then
+        return nil, string.format('gem %d in group %d (%s) is not an active skill gem', gemIndex, groupIndex, name)
+      end
+      add(socketGroup, groupIndex, gemIndex, gemInstance)
+    else
+      for gemIndex, gemInstance in ipairs(socketGroup.gemList) do
+        if isActiveSkillGem(gemInstance) then add(socketGroup, groupIndex, gemIndex, gemInstance) end
+      end
+      if #targets == 0 then return nil, 'socket group ' .. groupIndex .. ' has no active skill gems' end
+    end
+  else
+    for groupIndex, socketGroup in ipairs(skillSet.socketGroupList) do
+      if not socketGroup.source then
+        for gemIndex, gemInstance in ipairs(socketGroup.gemList) do
+          if isActiveSkillGem(gemInstance) then add(socketGroup, groupIndex, gemIndex, gemInstance) end
+        end
+      end
+    end
+    if #targets == 0 then return nil, 'the build has no active skill gems in its socket groups' end
+  end
+
+  local gems = {}
+  local processed = {}
+  for _, t in ipairs(targets) do
+    t.gemInstance.corrupted = target.corrupted
+    t.gemInstance.corruptLevel = target.corruptLevel
+    table.insert(gems, { groupIndex = t.groupIndex, gemIndex = t.gemIndex, name = t.gemInstance.nameSpec or '?' })
+    if not processed[t.socketGroup] then
+      processed[t.socketGroup] = true
+      if build.skillsTab.ProcessSocketGroup then
+        build.skillsTab:ProcessSocketGroup(t.socketGroup)
+      end
+    end
+  end
+
+  build.buildFlag = true
+  M.get_main_output()
+
+  return { state = params.state, gems = gems }
+end
+
 -- Remove a socket group
 -- params: { groupIndex: number }
 function M.remove_skill(params)

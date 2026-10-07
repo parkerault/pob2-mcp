@@ -227,7 +227,7 @@ Citations are in [recon §4, §8](../recon.md) and [grounding/ctx-lua.md](../gro
 - **AC-G1 (WU-19, I-9a).** `pnpm docs:tools` (running `scripts/gen-tool-table.mjs`) prints a Markdown
   table of every listed tool: name, group, one-line description. `tests/static/readme.test.ts` asserts
   that the README section between `<!-- tools:start -->` and `<!-- tools:end -->` equals that output
-  byte for byte, and the table has 76 rows.
+  byte for byte, and the table has 77 rows. (amended, D-91)
 - **AC-G2 (WU-19, I-9b).** Stale docs are removed and the README is clean:
   - `HANDOFF.md` and the 8 listed `docs/*.md` files don't exist;
   - `docs/` contains only `stabilization/`;
@@ -257,8 +257,8 @@ Citations are in [recon §4, §8](../recon.md) and [grounding/ctx-lua.md](../gro
      - `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`, a tripwire: any trade request fails;
      - `POE_NINJA_DISABLED=true`;
   4. through `scripts/fresh-clone-check.mjs` (the SDK client):
-     - asserts that `listTools` returns 75 tools, without `get_currency_rates` (`POE_NINJA_DISABLED`
-       hides it, C-1), and that a listing-only server started without that flag returns 76;
+     - asserts that `listTools` returns 76 tools, without `get_currency_rates` (`POE_NINJA_DISABLED`
+       hides it, C-1), and that a listing-only server started without that flag returns 77 (amended, D-91);
      - asserts that `lua_load_build {build_name:"grenadator.xml"}` reports Life 2,977;
      - calls `find_upgrades {slot:"Ring 1"}` and asserts that the result starts with
        `Trade search not run:` (D-49: no request is made, so the tripwire isn't hit);

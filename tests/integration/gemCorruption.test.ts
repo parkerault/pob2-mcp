@@ -203,6 +203,60 @@ engineDescribe('AC-E65: set_gem_corruption on the golden build (WU-25, D-91)', (
   );
 
   it(
+    'AC-E65 (support gem that also grants a triggered skill): the group and whole-build scopes leave Fiery Death unchanged, as naming it explicitly is refused',
+    async () => {
+      // Fiery Death is a support gem (its primary granted effect is a support) that also grants a triggered
+      // non-support skill: the trap where "any non-support granted effect" would count it as active.
+      const fieryDeath = await luaQuery<{ found: boolean; nonSupportEffects: number }>(`
+        local gems = (build.data and build.data.gems) or data.gems
+        for _, gemData in pairs(gems) do
+          if gemData.name == 'Fiery Death' and gemData.grantedEffect and gemData.grantedEffect.support then
+            local n = 0
+            for _, ge in ipairs(gemData.grantedEffectList or {}) do if not ge.support then n = n + 1 end end
+            return { found = true, nonSupportEffects = n }
+          end
+        end
+        return { found = false, nonSupportEffects = 0 }`);
+      expect(fieryDeath.found).toBe(true);
+      expect(fieryDeath.nonSupportEffects).toBeGreaterThanOrEqual(1);
+
+      const created = await f.call('create_socket_group', { label: 'fiery death' });
+      expect(created.isError).toBe(false);
+      const group = Number(/Socket group (\d+) created/.exec(created.text)![1]);
+      expect((await f.call('add_gem', { group_index: group, gem_name: 'Fireball' })).isError).toBe(false);
+      expect((await f.call('add_gem', { group_index: group, gem_name: 'Fiery Death' })).isError).toBe(false);
+      const supports = await supportGems();
+      expect(supports.has(`${group}:1`)).toBe(false);
+      expect(supports.has(`${group}:2`)).toBe(true);
+      const initial = await exported();
+      const fd = initial.find((g) => g.group === group && g.gem === 2)!;
+      expect(fd.name).toBe('Fiery Death');
+      expect(fd.corrupted).not.toBe('true');
+      const supportsBefore = initial.filter((g) => supports.has(key(g)));
+
+      const explicit = await f.call('set_gem_corruption', { group_index: group, gem_index: 2, state: 'plus_one_level' });
+      expect(explicit.isError).toBe(true);
+      expect(explicit.text).toContain("support gems can't be corrupted");
+
+      const byGroup = await f.call('set_gem_corruption', { group_index: group, state: 'plus_one_level' });
+      expect(byGroup.isError).toBe(false);
+      expect(byGroup.text).toContain('on 1 active skill gem ');
+      expect(byGroup.text).not.toContain('Fiery Death');
+      let after = await exported();
+      expect(after.find((g) => g.group === group && g.gem === 1)).toMatchObject({ corrupted: 'true', corruptLevel: '1' });
+      expect(after.filter((g) => supports.has(key(g)))).toEqual(supportsBefore);
+
+      const whole = await f.call('set_gem_corruption', { state: 'minus_one_level' });
+      expect(whole.isError).toBe(false);
+      expect(whole.text).not.toContain('Fiery Death');
+      after = await exported();
+      expect(after.find((g) => g.group === group && g.gem === 1)).toMatchObject({ corrupted: 'true', corruptLevel: '-1' });
+      expect(after.filter((g) => supports.has(key(g)))).toEqual(supportsBefore);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'AC-E65 (revert): "not_corrupted" on the build -> no gem has corrupted="true"',
     async () => {
       // The golden build has a corrupted gem already (Explosive Grenade); corrupt the rest too first.

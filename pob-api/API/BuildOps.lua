@@ -1010,11 +1010,15 @@ local function isSupportGem(gemInstance)
   return gemInstance.grantedEffect ~= nil and gemInstance.grantedEffect.support == true
 end
 
--- An active skill gem: a known gem (gemData), not item/tree granted, with at least one granted effect that
--- is not a support (CalcSetup's active-skill test, without the per-instance enable flags).
+-- An active skill gem: a known gem (gemData), not item/tree granted, not a support gem, with at least one
+-- granted effect that is not a support (CalcSetup's active-skill test, without the per-instance enable flags).
+-- The support test comes first: some support gems (Fiery Death, Impending Doom, Mana Flare, ...) also grant a
+-- triggered non-support skill (Data.lua appends additionalGrantedEffectId to grantedEffectList), and D-91
+-- says a scope never changes a support gem, so the scopes and the explicit-gem path must agree on them.
 local function isActiveSkillGem(gemInstance)
   local gemData = gemInstance.gemData
   if not gemData or gemInstance.fromItem or gemInstance.fromTree then return false end
+  if isSupportGem(gemInstance) then return false end
   for _, grantedEffect in ipairs(gemData.grantedEffectList or { gemData.grantedEffect }) do
     if grantedEffect and not grantedEffect.support then return true end
   end

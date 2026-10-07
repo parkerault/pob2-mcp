@@ -1,8 +1,9 @@
 # Build-guide workflow: design (change-vision)
 
 Status: from the design-bootstrap conversation of 2026-10-07. The user approved the shape (staged pipeline
-around a build plan file) and adopted the recommended option on every open row. Next: Phase 1 grounding of the "to ground" items, then an adversarial
-vision review, then `spec-formalizer`.
+around a build plan file) and adopted the recommended option on every open row. Phase 1 grounding ran on 2026-10-07. Its three reports are in `docs/design/grounding/`, and their verdicts
+are folded in below. Rows 38 and 39 are new and await the user. Next: an adversarial vision review, then
+`spec-formalizer`.
 
 Marking used here:
 - **Observed 2026-10-07.** Seen in this session's probe or source reads. Recon must re-verify these.
@@ -57,8 +58,9 @@ To be verified by recon. The pob2-mcp server (77 tools, PoB2 pinned at v0.23.1) 
 - **Config.** `get_config`, `set_config`, `set_enemy_stats` and config presets.
 - **Checks.** `analyze_defenses`, `validate_build`, `get_build_issues`.
 - **Planning and output.**
-  - `plan_leveling`: a 0.5 act and interlude leveling outline. To ground: its data source and how
-    accurate it is.
+  - `plan_leveling`: a 0.5 act and interlude leveling outline. Grounding found it is a hand-written
+    table with no area levels and no quest points. Its levels run 6–9 too high, so it is not reused
+    (row 31).
   - `export_build_summary`.
 - **Trade.** `find_upgrades`, `search_trade_items`, `get_item_price`, `trade_query_options`, and
   currency rates from poe.ninja. These are rate-limited and share limits with the user's account.
@@ -70,15 +72,25 @@ Gaps observed 2026-10-07 in the Titan / Blood Hunt probe and in source reads:
 - **No skill-part selection.** `set_main_skill` cannot pick a skill's stat set (for example Blood
   Hunt's "Dash" or "Explosion"). PoB's UI can, through its stat-set dropdown (`Modules/Build.lua:375`).
 - **No ascendancy listing.** `search_tree_nodes` cannot list an ascendancy's nodes; a "Titan" query
-  matched names only.
+  matched names only. Grounding found two bugs in the same tool:
+  - `node_type: 'any'` matches nothing;
+  - results are cut off before they are sorted.
 - **No gem text.** `list_gems` returns no description and no stat text. I had to grep `Data/Skills/*.lua`.
 - **No PoE2 bosses.** PoB2's boss presets (`Data/BossSkills.lua`, `Data/Bosses.lua`) are PoE1 data
   (Shaper, Sirus, Maven, …).
 - **Blood Hunt's payoff isn't computed.** The skill reported 284 DPS from the dash hit alone. No engine
   code references Blood Hunt's explosion or Blood Loss stats.
 - **Lines PoB can't fully parse are dropped.** PoB never applies a mod line with an unparsed remainder
-  (`Classes/Item.lua:2138`). For example, "10% of Physical damage dealt by your Hits causes Blood Loss"
+  (`Classes/Item.lua:2158`; the earlier cite of `:2138` was off). For example, "10% of Physical damage dealt by your Hits causes Blood Loss"
   parses only partly, so it contributes nothing.
+- **The blind spots are pervasive.** Spike S-b's coverage census at the pin found:
+  - 12.9% of unique mod lines are never applied;
+  - about 30% of keystones and 32% of ascendancy notables have a line PoB ignores, including Titan's "Your
+    Hits are Crushing Blows";
+  - about 48.5% of supports describe a stat that PoB's stat map lacks. This is a heuristic and probably
+    an overcount.
+
+  Hand calculations are routine, not exceptions.
 
 ### Target state
 
@@ -95,11 +107,15 @@ Gaps observed 2026-10-07 in the Titan / Blood Hunt probe and in source reads:
    - A skill-stat flag for stats that are possibly not modelled. This one is a heuristic.
    - In the measured rankers (`suggest_supports`, `get_passive_upgrades`), candidates that PoB cannot
      measure go in their own list, instead of ranking last at +0%.
+   - The mod-line check re-parses each line on its own. ModCache's stored remainder can include the
+     next line's text.
 3. **Measurement tools.** An offense breakdown per skill and per skill part (hit, speed, crit, ailment
-   DPS), and skill-part selection.
+   DPS), and skill-part selection. Selecting the part is a one-line engine change
+   (`srcInstance.statSet[id] = i`). The existing `skill_part` path only drives PoE1-style parts.
 4. **Loadout tools.**
    - Create, copy, rename and select item sets, skill sets and config sets.
-   - Loadout naming that follows PoB2's linking scheme (below).
+   - Loadout naming that follows PoB2's linking scheme (row 3). The compiler creates each set directly;
+     it never calls PoB's `CopyLoadout`, which crashes on `{id}` names.
 5. **Plan compiler.** A build plan file is compiled into one PoB2 file with a loadout per stage. The
    compiler also records PoB's numbers for every stage.
 6. **Stage checks.**
@@ -138,7 +154,7 @@ New tools follow the same conventions.
 | P1 | Build plan format | Stages and their tree, items, gems and config; a source per claim; the hand-calculation ledger |
 | P2 | Plan compiler | Plan → PoB2 file with loadouts, plus PoB's numbers per stage |
 | C1 | Campaign reference data | Acts and interludes, area levels, quest passive points, gem availability by level |
-| E1 | Enemy reference profiles | Externally sourced boss and map-monster life and hits, as config values |
+| E1 | Enemy reference profiles | Externally sourced boss and map-monster life and hits. The hits go into config; the life stays in the dossier for hand calculations, because PoB has no enemy-life input |
 | T1 | Dated pricing | Price checks for key uniques and affix-target rares, within a per-guide search budget |
 | V1 | Stage validity check | Points vs. level plus quest points, gem and item level requirements, attributes, PoB warnings |
 | V2 | Config-earned check | Each non-default config value names its producing source in that stage's loadout |
@@ -217,7 +233,7 @@ Candidate spikes, each de-risking an assumption the shape rides on:
 |---|---|---|---|
 | 1 | Output is a written guide plus a PoB2 build that someone who has never seen the build can follow | settled | North star |
 | 2 | Shape: a staged pipeline around a build plan file | settled (user approved) | Context stays small per stage, verification is independent, any stage can be regenerated. Rejected: one conversation guided by a skill (one context, no independent check of claims); stages editing the PoB file directly (forced sequencing, sources kept apart from the build, redoing a stage means undoing edits); a rule-based server-side generator (rules can't supply creativity) |
-| 3 | Each guide stage is a PoB2 loadout. Shared sets use `{id}` lists, e.g. `Early Game {1,2}` | settled; mechanism to ground at the pin | Loadouts link tree, item, skill and config sets by identical name or by a `{id}` suffix (PoB2 `help.txt`, read in the dev checkout) |
+| 3 | Each guide stage is a PoB2 loadout. Shared sets use `{id}` lists, e.g. `Early Game {1,2}` | settled; confirmed at the pin (spike S-a) | All four set types and `{1,2}` names survive a headless save and reload, and the loadouts list and switch. Constraints: braces hold only letters, digits and commas, with no spaces; the loadout's name comes from its tree set; the compiler never uses PoB's `CopyLoadout` on `{id}` names (it crashes); character level is build-wide (row 38) |
 | 4 | Endgame is designed first; the campaign is planned backward from it | settled | Leveling choices serve the endgame target |
 | 5 | Every claim shows its source: PoB-computed, PoB game data, external (linked), or judgment | settled (constraint 1) | The reader can't fact-check |
 | 6 | PoB numbers are used only where PoB models the mechanic. Otherwise: a hand calculation with stated assumptions | settled (constraint 2) | Probe evidence (Blood Hunt) |
@@ -226,14 +242,14 @@ Candidate spikes, each de-risking an assumption the shape rides on:
 | 9 | The player is in a trade league. Buyable uniques are allowed in campaign presets; hard-to-get drops (boss-only, league-locked) are not. Availability is judged from dated trade listings. Rares are affix targets | settled (constraint 5, amended by the user) | Well-rolled rares usually cost far more than uniques |
 | 10 | The leveling skill may differ from the main skill. A conventional leveling build carries until the main skill's level requirement | settled (constraint 6) | User |
 | 11 | Budget ceilings are real prices, checked on the trade site at generation and dated | settled (constraint 7) | Prices go stale fast |
-| 12 | Trade and poe.ninja requests go through the server only, from one coordinator, within a per-guide search budget. Web research on wiki and poe2db is allowed | settled (constraint 8) | Rate limits are shared with the user's account |
+| 12 | Trade and poe.ninja requests go through the server only, from one coordinator, within a per-guide search budget. Web research is allowed | settled (constraint 8) | Rate limits are shared with the user's account. On 2026-10-07, poe2wiki.net and mobalytics refused agent fetches; poe2db.tw, maxroll.gg and game8 worked |
 | 13 | The PoB file is the source of truth for numbers. The guide is generated from it plus the hand-calculation ledger. The PoB file is written as a new file, never over an existing one | settled (constraint 9) | The guide and the build can't disagree |
 | 14 | Every non-default config value is earned: it names the item, gem, passive or skill producing it, and the guide explains its uptime | settled (constraint 10) | Inflated config is how PoB builds overstate themselves |
 | 15 | No encounter input; the goal is "as strong as possible" within each variant's budget | settled | User |
-| 16 | Budget variant: about 20 divines or less (less is better). Target: T15 maps without dying often. Uber Arbiter of Divinity is a sanity check, not a goal | settled | User: such builds usually manage Uber Arbiter |
-| 17 | Non-budget variant: about 200 divines as the reference point (a practical ceiling, not a hard cap). Target: high-difficulty scaled maps | settled | User: richer players are pros who don't need guides |
-| 18 | "As strong as possible" means meeting a survival floor first (capped resistances, max hit taken above the reference hits), then spending everything else on damage, within budget | settled (the user didn't object) | — |
-| 19 | Endgame checks: estimated time-to-kill, max hit taken vs. the profile's big hits, capped resistances, and a stated confidence | settled | User approved |
+| 16 | Budget variant: about 20 divines or less (less is better). Target: T15 maps (area 79) without dying often. The repeatable (non-quest) Arbiter of Divinity is a sanity check, not a goal | settled; renamed by grounding | User: such builds usually manage it. 0.5 has no "Uber" versions; the repeatable non-quest fight replaced them. Several sources call it the hardest fight in the game, so failing it is not by itself a defect. The guide reports the result. Its fight life is unpublished, so E1 states an assumption |
+| 17 | Non-budget variant: about 200 divines as the reference point (a practical ceiling, not a hard cap). Target: high-difficulty scaled maps: T16 (area 80, where base monster life jumps 25%) up to area 82, with heavily modded waystones and tablets | settled; made concrete by grounding | User: richer players are pros who don't need guides |
+| 18 | "As strong as possible" means meeting a survival floor first (capped resistances, max hit taken above the reference hits), then spending everything else on damage, within budget | settled (the user didn't object) | Resistances are checked at PoB's Endgame penalty setting (−60%) |
+| 19 | Endgame checks: estimated time-to-kill, max hit taken vs. the profile's big hits, capped resistances, and a stated confidence | settled | User approved. Time-to-kill is a hand calculation: the externally sourced life divided by PoB's DPS against the configured enemy, because PoB has no enemy-life input. Every config set states `enemyIsBoss` explicitly, because PoB's default enemy is a Pinnacle boss |
 | 20 | Guides are mapping builds that can kill uber bosses with some extra effort. One loadout has a one-click clear skill for normal and magic packs, plus a single-target build/spend/debuff setup. When forced to choose, favor mapping | settled | User |
 | 21 | Clear-speed signals: movement speed first, then clicks per pack (damage and AoE). These are judgment signals; PoB doesn't score clear speed | settled | User |
 | 22 | The rolled skill is the main source of damage: it kills the enemies. Other skills may complement it. In the endgame it is the clear skill or the single-target payoff (research decides which), never a token role | settled | User |
@@ -244,14 +260,16 @@ Candidate spikes, each de-risking an assumption the shape rides on:
 | 27 | Cost envelope per guide (agents and tokens) | settled (the user adopted the recommendation, 2026-10-07) | The user is cost-sensitive about agent counts. Adopted: cap the first run (Titan / Blood Hunt) at ≤3 concepts and ≤3 verify lenses, measure it, then set the envelope |
 | 28 | Plan file format and schema | settled (the user adopted the recommendation, 2026-10-07) | A formalizer decide-and-record. Adopted: YAML or JSON with a JSON Schema, validated by P2 |
 | 29 | Where the pipeline runs: a skill plus a saved workflow (`.claude/workflows/`), or a skill that dispatches subagents itself | settled (the user adopted the recommendation, 2026-10-07) | Adopted: skill plus saved workflow. To ground: a skill can launch a saved workflow (the Workflow tool's opt-in rules allow a skill whose instructions call it) |
-| 30 | Engine concurrency | settled (the user adopted the recommendation, 2026-10-07) | Spike S-c can overturn this. Adopted: everything that touches the engine runs serially through one coordinator; research agents use only lookup tools, which still pass through the engine lock |
-| 31 | Campaign data source | settled (the user adopted the recommendation, 2026-10-07) | Adopted: PoB data (`Data/WorldAreas.lua`, `Data/QuestRewards.lua`), with `plan_leveling`'s data reused if grounding finds it accurate |
-| 32 | Mapping-strength estimate | settled (the user adopted the recommendation, 2026-10-07) | Adopted: whether the clear skill's hit kills normal and magic monsters at T15 area level, using PoB's monster life tables (to ground), plus movement speed and AoE as judgment signals |
-| 33 | Pricing method and per-guide search budget | settled (the user adopted the recommendation, 2026-10-07) | Adopted: price only uniques and key affix-target rares, with a fixed search cap per guide, recorded with dates |
+| 30 | Engine concurrency | settled; confirmed by grounding | Agents using the session's server share one engine and one loaded build (platform report §1). Adopted: every step that touches the engine runs one at a time through one coordinator; research agents use only lookup tools. Giving each agent its own inline MCP server is a later option for running compiles in parallel; it is not yet probed |
+| 31 | Campaign data source | settled; revised by grounding | PoB's `Data/QuestRewards.lua` matches the live campaign (24 passive points, 24 weapon-set points, 100 Spirit). `Data/WorldAreas.lua` supplies area levels, plus external sources for the interludes, whose levels are dynamic (+8 by play order). Gem availability: an uncut skill gem of level N cuts any skill of tier N or below. `plan_leveling`'s data is not reused |
+| 32 | Mapping-strength estimate | settled; revised by grounding | A hand calculation: the clear skill's hit against PoB's monster life table at area 79 (base 24,852), times the waystone "more life" modifiers and the magic and rare multipliers (the multipliers are still to ground). PoB never computes enemy life. Movement speed and AoE are judgment signals |
+| 33 | Pricing method and per-guide search budget | settled; sized by grounding | Adopted: price only uniques and key affix-target rares, at most 12 priced searches per guide (derived from the server's rate limiter), each with a date. The guide states the league its prices come from |
 | 34 | A checkpoint after endgame design, before campaign planning | settled (the user adopted the recommendation, 2026-10-07) | Adopted: no. Add it if the first run shows endgame mistakes leaking into the campaign plan |
 | 35 | Guides folder default location and its setting | settled (the user adopted the recommendation, 2026-10-07) | Adopted: an environment variable with a default outside the builds folder |
 | 36 | Marketplace plugin packaging (server plus skill, hosted in the GitHub repo) | deferred | Unblocked when the tooling is feature-complete and stable |
 | 37 | Unique-jewel trade rows (deferred in the stabilization epic) | deferred | Unchanged; relevant to the non-budget variant later |
+| 38 | Character level is build-wide in PoB2, not per loadout | open: needs the user | Recommendation: the file's level is the highest stage's level. Compile measures each stage at its own level. Loadout names carry the level, e.g. `Act 2 (L25) {2}`. The guide tells readers to set that level when inspecting an early loadout. The validity check (V1) takes each stage's level from the plan |
+| 39 | Game 1.0 ships 2026-12-11 and ends both current leagues, so a 0.5 guide lives about nine weeks. Supporting 1.0 needs a PoB2 pin upgrade, which is a user decision | open: needs the user | Recommendation: build the tooling now, since it doesn't depend on the game version. Treat 0.5 guides (Titan / Blood Hunt first) as test runs. Upgrade the pin and regenerate once PoB2 supports 1.0. The pin (0.5.4) vs. live (0.5.5e) gap is small: Soul Cores and boss resistances |
 
 ## References to ground
 
@@ -271,6 +289,13 @@ Candidate spikes, each de-risking an assumption the shape rides on:
 | Skill → saved workflow | A skill's instructions can launch a saved workflow | Workflow tool docs and `claude-code-guide` |
 | Public build guides (prior art) | The expected sections and depth of a guide "close to a public build guide" | Short research pass on two or three well-regarded PoE2 guides; feeds W1's template |
 | Server rate limiter | The per-guide search budget fits the trade limits | Read `src/trade/rateLimiter.ts` and the stabilization spec's trade contracts |
+
+Grounded on 2026-10-07. The verdicts are in `docs/design/grounding/`: `2026-10-07-pob-pin-and-spikes.md`,
+`2026-10-07-claude-code-platform.md` and `2026-10-07-external-game-data.md`. They are folded into the rows
+above. Still open:
+- the magic and rare monster life multipliers;
+- whether `mise` is on PATH for a plugin's server process;
+- an inline per-agent MCP server, which is not yet probed.
 
 ## Quality bar (vision level)
 

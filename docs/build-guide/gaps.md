@@ -6,6 +6,9 @@ Inputs:
 - the review record;
 - the recon `docs/build-guide/recon.md`.
 
+Status: the user accepted every PROPOSED item on 2026-10-07 and settled item 4. Item 32 is a human
+gate at M-4.
+
 Legend:
 - **PROPOSED:** the formalizer's decide-and-record. It lands in the spec unless the user objects.
 - **DECIDE:** needs the user.
@@ -35,7 +38,7 @@ Legend:
    - Overridable with the new `POB_GUIDES_DIRECTORY`.
    - Jest redirects it to a temp folder, like the builds folder.
 
-   **DECIDE.**
+   **Settled by the user, 2026-10-07:** the recommendation.
 5. **How the plan reaches the server.**
    - Agents write `plan.json` with their file tools.
    - `compile_plan` reads it only from inside the guides folder: no path traversal, no symlinks out.
@@ -184,7 +187,8 @@ Legend:
     - web research on the allowed hosts;
     - the guide written to the guides folder and the PoB file to the builds folder.
 
-    This needs the user's approval, as the stabilization smoke test did. **DECIDE.**
+    This needs the user's approval, as the stabilization smoke test did. **DEFER:** the user hasn't
+    approved it yet. It is a human gate at the start of M-4, and the coordinator asks then.
 33. **Human gates for the build:**
     - any dependency change;
     - a PoB2 pin change (row 40, deferred);

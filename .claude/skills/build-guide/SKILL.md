@@ -111,18 +111,20 @@ pick (step 4); in offline test mode, `pick:<id>` naming one of them is answered 
 
 Run `Workflow({name: "build-guide-design", args: {runFolder, runFolderRel, conceptId, mode, buildName,
 faults?, resume?, accepted?}})`, where `buildName` is `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments
-joined with `-`. When resuming, add to `resume` the attempts each stage of this concept already made
-(`attempts: {"D1": 3, "D1-gate": 3, …}`, counted from `stages[]`), so attempt numbers and report files
-continue; `accepted` lists every finding the user accepted earlier for this concept, as `escalations[]`
-records them, so later gates keep them accepted. It returns `{status: "ready" | "infeasible" | "escalated", stage?, evidence?, accepted?,
+joined with `-`. **Every `resume` carries `attempts`**, the attempts each stage of this concept already
+made, counted from `stages[]` (`{"D1": 3, "D1-gate": 5, "W1": 1, "V3": 1, "V4": 1}`; for V3 and V4 the
+highest `pass`), so attempt numbers and report files continue; the workflow refuses a resume without it.
+`accepted` lists every finding the user accepted earlier for this concept, as `escalations[]` records
+them, so later gates keep them accepted. It returns `{status: "ready" | "infeasible" | "escalated", stage?, evidence?, accepted?,
 gateVerdicts, v3Reports, v4Reports, stats}`. Write every verdict and report to `reports/` unchanged
 (FR-W6), update the log, then:
 
 - **`ready`** → checkpoint 2.
 - **`infeasible`** → checkpoint 1, showing that concept's evidence (D-141).
 - **`escalated`** → the escalation question (`references/checkpoints.md`): **accept** (resume with
-  `{reason: "accepted", stage, findings}`; not offered for a compile error), **guidance and one more
-  retry** (resume with `{reason: "guided-retry", stage, findings, guidance}`), **back to checkpoint 1**,
+  `{reason: "accepted", stage, findings, attempts}`; not offered for a compile error; after a V3/V4
+  escalation W1 re-runs to state the accepted findings, then V3 and V4, D-253), **guidance and one more
+  retry** (resume with `{reason: "guided-retry", stage, findings, guidance, attempts}`), **back to checkpoint 1**,
   or **stop** (the run ends `escalated`).
 
 The gates the design workflow applies are in `references/gates.md`: the survival floor gates fire, cold,

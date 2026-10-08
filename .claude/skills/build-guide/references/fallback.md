@@ -79,4 +79,5 @@ the user accepted at an escalation, aren't routed. With no `unresolved` finding 
   user's guidance in `findings`, outside the cap; a failure escalates again.
 - **`accepted`** (escalation choice 1): the failed gate step runs again with the findings in `accepted`;
   equal findings fail no gate from then on, and W1's header carries them so the guide lists them. After a
-  V3/V4 escalation the result is `ready`, with the findings accepted.
+  V3/V4 escalation W1 re-runs, so the guide states the accepted findings, then V3 and V4, with those
+  findings covered by id (D-253).

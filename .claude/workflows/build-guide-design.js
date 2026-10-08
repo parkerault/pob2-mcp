@@ -19,9 +19,9 @@ export const meta = {
 // - faults: the accepted test config's directives; this workflow applies FI-2 and FI-3 (both the D1 gate's).
 // - resume (D-236): {reason: "guided-retry", stage, findings, guidance} or {reason: "accepted", stage,
 //   findings}, from the escalation question; {reason: "revision", round, requests} from checkpoint 2 (the
-//   revision resume arrives with WU-46). A resume may carry `attempts`, the attempts each stage of this
-//   concept already made ({"D1": 3, "D1-gate": 3}), so attempt numbers, and with them the gate files,
-//   continue; without it the escalated stage and its gate count as having used their cap.
+//   revision resume arrives with WU-46). Every resume carries `attempts`, the attempts each stage of this
+//   concept already made ({"D1": 3, "D1-gate": 5}; for V3 and V4 the highest pass), so attempt numbers, and
+//   with them the gate and report files, continue: a null gate re-run can take a gate past attempt 3.
 // - accepted: findings the user accepted at earlier escalations of this concept, as the run log records them
 //   (each with its gate), so a later gate keeps them accepted.
 //
@@ -53,6 +53,8 @@ const GATE_PARTS = {
 // A failure of one of these parts re-runs the producer and escalates once the retries run out; a failure of
 // only the others (floor, budget, rolledSkill) ends "infeasible" (section 5.3's table).
 const HARD_PARTS = ['compiled', 'v1', 'v2']
+// Findings that report on a passing part (references/gates.md): never failures.
+const INFO_CODES = ['chaos-exception', 'near-ceiling']
 const GATE_OF = { D1: 'D1-gate', D2: 'D2-gate' }
 const PRODUCER_OF = { 'D1-gate': 'D1', 'D2-gate': 'D2' }
 const RESUME_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V3', 'V4']
@@ -86,6 +88,10 @@ if (resume) {
   need(resume.reason !== 'revision', 'args.resume {reason: "revision"} (the checkpoint-2 revision) arrives with WU-46; it isn\'t wired yet')
   need(RESUME_STAGES.includes(resume.stage), `args.resume.stage is one of ${RESUME_STAGES.join(', ')}`)
   need(Array.isArray(resume.findings), 'args.resume.findings is the escalation\'s findings')
+  need(
+    isObj(resume.attempts) && Object.values(resume.attempts).every((v) => Number.isInteger(v) && v >= 0),
+    'args.resume.attempts is required: the attempts each stage of this concept already made, {"<stage>": <count>} (for V3 and V4 the highest pass), counted from the run log\'s stages[], so attempt numbers and report files continue',
+  )
   if (resume.reason === 'guided-retry') need(isText(resume.guidance), 'args.resume.guidance (the user\'s guidance) is required for a guided retry')
 }
 
@@ -116,16 +122,17 @@ const ACCEPTED = [
 const coveredGate = (f) =>
   ACCEPTED.some((a) => isText(a.code) && a.code === f.code && a.part === f.part && (isText(a.stage) ? a.stage : null) === (isText(f.stage) ? f.stage : null))
 const coveredReport = (f, report) => ACCEPTED.some((a) => isText(a.id) && a.id === f.id && a.gate === report)
+// What a V3 or V4 header carries of them: ids and places, never a finding's text, which quotes the artifacts
+// the plan and guide steps wrote (R-5, D-142).
+const ACCEPTED_REPORT_IDS = ACCEPTED.filter((a) => isText(a.id) && (a.gate === 'V3' || a.gate === 'V4')).map((a) => ({
+  gate: a.gate,
+  id: a.id,
+  ...(isText(a.artifact) ? { artifact: a.artifact } : {}),
+  ...(isText(a.location) ? { location: a.location } : {}),
+}))
 
-// Attempt numbers continue across a resume, so a resumed gate never reuses an earlier attempt's file.
-const made = {}
-if (resume && isObj(resume.attempts)) {
-  for (const [k, v] of Object.entries(resume.attempts)) if (Number.isInteger(v) && v >= 0) made[k] = v
-}
-if (resume) {
-  const gate = gateFor(resume.stage)
-  for (const s of [gate, PRODUCER_OF[gate]].filter(Boolean)) if (made[s] === undefined) made[s] = 1 + RETRIES
-}
+// Attempt numbers continue across a resume, so a resumed step never reuses an earlier attempt's file.
+const made = resume ? { ...resume.attempts } : {}
 const attempts = { ...made }
 const nextAttempt = (stage) => {
   attempts[stage] = (attempts[stage] || 0) + 1
@@ -408,7 +415,9 @@ function openFailures(gate, verdict, findings) {
     if (v === 'pass' || (part === 'budget' && v === 'unverified')) continue
     // Nothing compiled, so nothing could be checked: the compile failure says why.
     if (part !== 'compiled' && v === 'unverified' && verdict.compiled !== 'pass') continue
-    const mine = findings.filter((f) => f.part === part)
+    // A finding on a passing part's terms (the chaos exception, a budget near the ceiling) is information,
+    // never a failure (references/gates.md).
+    const mine = findings.filter((f) => f.part === part && !INFO_CODES.includes(f.code))
     const open = mine.filter((f) => part === 'compiled' || !coveredGate(f))
     if (mine.length > 0 && open.length === 0 && v === 'fail') continue
     out.push(...(open.length > 0 ? open : [{ part, code: `${part}-${v}`, message: `the gate returned ${part}: ${v} with no finding saying why` }]))
@@ -514,7 +523,11 @@ function w1Prompt(attempt, findings, guided) {
     '',
     '- Write only guide.md (the header\'s writes). Copy the import code from compile-record.json\'s importCode exactly.',
   ]
-  if (leagueUnverified) lines.push('- The league couldn\'t be verified (trade was unreachable when D1 ran): say so in "Versions, prices and import code".')
+  lines.push(
+    leagueUnverified
+      ? '- The league couldn\'t be verified (trade was unreachable when D1 ran; plan.json\'s league is "unverified"): say so in "Versions, prices and import code".'
+      : '- Take the league from plan.json: "unverified" there means trade was unreachable when the endgame was priced, and the guide says so in "Versions, prices and import code".',
+  )
   if (ACCEPTED.length > 0) lines.push('- The header\'s accepted lists findings the user accepted: the guide states each under "Accepted failures", as the stage reference says.')
   const retry = retryLine(attempt, 'the earlier attempts\' findings')
   if (retry) lines.push(retry)
@@ -549,9 +562,12 @@ function verifyPrompt(job, pass, attempt, findings) {
     '- You write nothing: your report is your return.',
   )
   if (attempt > 1) lines.push(`- Attempt ${attempt}: an earlier attempt returned no report.`)
+  if (ACCEPTED_REPORT_IDS.length > 0) {
+    lines.push("- The header's accepted lists V3 and V4 findings the user accepted, by id and location: report the same issue at the same location under the same id.")
+  }
   lines.push('', "Follow your stage reference (the header's \"reference\") and end with the report it names.")
   return (
-    header({ stage: job.stage, attempt, lens: job.lens, pass, compile: 'none', findings, accepted: [], writes: [] }) + '\n' + lines.join('\n') + '\n'
+    header({ stage: job.stage, attempt, lens: job.lens, pass, compile: 'none', findings, accepted: ACCEPTED_REPORT_IDS, writes: [] }) + '\n' + lines.join('\n') + '\n'
   )
 }
 
@@ -924,14 +940,12 @@ const guidance = resume && resume.reason === 'guided-retry'
   ? [...withGate(resume.findings, gateFor(resume.stage)), { code: 'user-guidance', message: resume.guidance.trim() }]
   : []
 const from = !resume ? 'D1' : gateFor(resume.stage)
-const startAt = { D1: 0, 'D1-gate': 0, 'D2-gate': 1, W1: 2, V3: 3, V4: 3 }[from]
+// Accepting a V3/V4 escalation regenerates the guide, so W1 states the accepted findings under "Accepted
+// failures", then V3 and V4 check it with those findings covered by id (D-253).
+const startAt = { D1: 0, 'D1-gate': 0, 'D2-gate': 1, W1: 2, V3: 2, V4: 2 }[from]
 const howAt = (step) => (resume && step === startAt ? (resume.reason === 'guided-retry' ? 'guided' : 'accepted') : 'normal')
 const firstFindingsAt = (step) => (resume && step === startAt && resume.reason === 'guided-retry' ? guidance : [])
 
-if (resume && resume.reason === 'accepted' && (from === 'V3' || from === 'V4')) {
-  // After a V3/V4 escalation, accepting it returns ready with the findings accepted (section 5.3).
-  return finish('ready')
-}
 need(!(resume && resume.reason === 'accepted' && from === 'W1'), 'args.resume {reason: "accepted", stage: "W1"}: W1 escalates only when it returns nothing, so there is no guide to accept')
 need(!(resume && resume.reason === 'guided-retry' && (from === 'V3' || from === 'V4')), 'args.resume {reason: "guided-retry"} for V3 or V4 re-routes the findings, which arrives with WU-46')
 
@@ -951,7 +965,7 @@ if (startAt <= 2) {
   if (w1.status !== 'pass') return ended(w1)
 }
 phase('V3 and V4')
-const firstPass = 1 + (Number.isInteger(made.V3) ? made.V3 : 0)
+const firstPass = 1 + Math.max(made.V3 ?? 0, made.V4 ?? 0)
 const v = await verify(firstPass)
 if (v.status !== 'ready') return ended(v)
 return finish('ready')

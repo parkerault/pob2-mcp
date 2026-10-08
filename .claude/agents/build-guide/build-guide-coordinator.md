@@ -78,7 +78,8 @@ The rules every design step keeps:
   never fixes a failure: the workflow sends the failure back to D1 or D2 as findings (§5.4).
 - **The survival floor** (D-234): fire, cold, lightning **and chaos** resistance capped on every endgame
   stage. Chaos stays uncapped only through the stage's `chaosResistException {reason, tag}`, and only when
-  capping it is infeasible.
+  capping it is infeasible. Max hit taken beats five waystone-scaled reference hits (physical, fire,
+  cold, lightning, chaos), each derived by a ledger entry `hit_<stage id>_<type>` (D-254).
 - **The budget** (D-219, D-249): every filled slot and tree jewel of the budget variant priced, each with
   its own entry unless the item text is identical. At most 20 divines passes; above 20 and at most 22
   passes "near the ceiling"; above 22 fails, rounded to 2 decimals; an unavailable price makes it

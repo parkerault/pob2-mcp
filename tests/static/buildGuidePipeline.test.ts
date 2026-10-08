@@ -580,6 +580,42 @@ describe('WU-45: the design stage references', () => {
     expect(d2Gate).toMatch(/Never retry it, never pick another `build_name`, and never work around it/);
   });
 
+  it('D1 sets five waystone-scaled reference hits, each derived by a ledger entry hit_<stage id>_<type> (D-119, D-254)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toContain('waystone-scaled at the conservative top of each modifier\'s range');
+    expect(text).toContain('`enemyPhysicalDamage` = `base × (1 + increased / 100)`');
+    expect(text).toMatch(/`enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and `enemyChaosDamage`, each `base × \(1 \+ increased \/ 100\) × extra \/ 100`/);
+    expect(text).toMatch(/A ledger entry per hit, id `hit_<stage id>_<type>`/);
+    expect(text).not.toMatch(/a scenario value is its fact's own/);
+  });
+
+  it('the D1 gate and gates.md check every hit is present and equals its ledger entry, and name the codes', () => {
+    const gate = folded(readStage('D1-gate'));
+    const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
+    for (const text of [gate, gates]) {
+      expect(text).toContain('`reference-hit-missing-<type>`');
+      expect(text).toContain('`reference-hit-ledger-<type>`');
+      expect(text).toContain('hit_<stage id>_<type>');
+      expect(text).toMatch(/rounded to 2 decimals/);
+    }
+    for (const text of [gate, gates]) expect(text).toMatch(/`chaos-exception` and `near-ceiling` .*never a failure|never failures/);
+    // The run checker recomputes the same rules (FR-W7).
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    for (const code of ['reference-hit-missing-', 'reference-hit-ledger-', 'hit_${s.id}_${t}']) expect(checker).toContain(code);
+  });
+
+  it('D2 keeps an unverified league and prices only under it', () => {
+    expect(folded(readStage('D2'))).toMatch(/when it is `unverified`, D2 keeps it so, and records every campaign price under it/);
+  });
+
+  it("W1 takes the league from plan.json, lists an endgame respec, and names the hits as waystone-scaled with their ledger markers", () => {
+    const text = folded(readStage('W1'));
+    expect(text).toMatch(/\*\*The league\*\* is `plan\.json`'s `league`: `unverified` there means/);
+    expect(text).toContain('a "Respec from the campaign" line lists the dropped nodes and the gold cost');
+    expect(text).toMatch(/the waystone-scaled hit .* each with the marker of its ledger entry \(`ledger \| hit_<stage id>_<type>`\)/);
+    expect(text).toMatch(/say "capped" of chaos only when it is/);
+  });
+
   it('the D1 gate applies FI-2 and FI-3 as §11.3 says', () => {
     const text = folded(readStage('D1-gate'));
     expect(text).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's .* `level` to `1`/);
@@ -665,16 +701,43 @@ describe('AC-W11: the guide template (§8)', () => {
     expect(section).toMatch(/offline: prices are unavailable and no external source was consulted/);
   });
 
-  it("carries the D-234 chaos line, the D-219 near-the-ceiling line and the D-164 unavailable line in the budget Checks", () => {
+  const checksOf = (variant: string) => {
     const lines = text.split(/\r?\n/);
-    const h2 = hs.find((h) => h.title === 'Endgame: budget variant')!;
+    const h2 = hs.find((h) => h.title === variant)!;
     const checks = hs.find((h) => h.level === 3 && h.title === 'Checks' && h.line > h2.line)!;
     const next = hs.find((h) => h.line > checks.line && h.level <= 3)!;
-    const section = lines.slice(checks.line, next.line);
-    expect(section.some((l) => /Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>\./.test(l))).toBe(true);
+    return lines.slice(checks.line, next.line);
+  };
+
+  it('carries the D-234 chaos line, the D-219 near-the-ceiling line and the D-164 unavailable line in the budget Checks', () => {
+    const section = checksOf('Endgame: budget variant');
     expect(section.some((l) => l.includes('near the ceiling'))).toBe(true);
     expect(section.some((l) => /can't be claimed to be under 20 divines/.test(l))).toBe(true);
-    expect(section.join('\n')).toContain('lightning <n>% and chaos <n>% resistance, each capped');
+  });
+
+  it.each(['Endgame: budget variant', 'Endgame: non-budget variant'])(
+    '%s Checks: chaos "capped" only without an exception, the exception line otherwise, and the waystone-scaled hits with ledger markers',
+    (variant) => {
+      const section = checksOf(variant);
+      const floor = section.find((l) => l.includes('**Survival floor**'))!;
+      expect(floor).not.toMatch(/chaos/i);
+      expect(section.some((l) => /\[only when the stage has no chaosResistException\] Chaos resistance <n>%, capped\./.test(l))).toBe(true);
+      expect(section.some((l) => /\[only when the stage has a chaosResistException; one line, the reason in full\] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>\./.test(l))).toBe(true);
+      const hits = section.find((l) => l.includes('**Max hit taken**'))!;
+      expect(hits).toMatch(/waystone-scaled reference hits .*top of each waystone damage modifier's range/);
+      const ids = [...hits.matchAll(/\[\^([^\]]+)\]/g)].map((m) => m[1]);
+      expect(ids.length).toBe(2);
+      for (const id of ids) expect(text).toMatch(new RegExp(`^\\[\\^${id}\\]: ledger \\| hit_[bn]_(physical|fire)$`, 'm'));
+    },
+  );
+
+  it('gives both endgame variants a "Respec from the campaign" line (D-144)', () => {
+    for (const variant of ['Endgame: budget variant', 'Endgame: non-budget variant']) {
+      const lines = text.split(/\r?\n/);
+      const h2 = hs.find((h) => h.title === variant)!;
+      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
+      expect(lines.slice(h2.line, next.line).some((l) => /\[only when the stage has a respec\] \*\*Respec from the campaign:\*\* drop <the dropped nodes> \(about <gold cost> gold\)/.test(l))).toBe(true);
+    }
   });
 
   it('defines every marker once, under Sources, the last heading', () => {

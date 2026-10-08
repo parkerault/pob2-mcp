@@ -38,6 +38,7 @@ Gear by slot and a tree jewel, gems at level 20, 8 ascendancy points.[^g8]
 
 - Fire, cold, lightning and chaos resistances are capped at the Endgame −60% penalty.[^g5]
 - Budget total: 21.5 divines against 20, near the ceiling: within the 22-divine tolerance.[^g6]
+- Max hit taken against the waystone-scaled T15 hits (the top of each waystone damage modifier's range): physical 5100 against 402.[^g11]
 - The Arbiter of Divinity takes about 160 seconds to kill.[^g7]
 
 ## Endgame: non-budget variant
@@ -47,6 +48,7 @@ The same, with more damage.[^g9]
 ### Checks
 
 - All four resistances are capped.[^g5]
+- Max hit taken against the waystone-scaled area-82 hits: physical 7400 against 438.55.[^g12]
 - Total against the ~200-divine reference: 128 divines.
 
 ## Rotation
@@ -81,3 +83,5 @@ Blood Loss uptime is a hand calculation.[^g10]
 [^g8]: pob-data | lookup_game_data gem "Bloodlust" | patch: 0.5.4
 [^g9]: external | https://maxroll.gg/poe2/build-guides/blood-hunt-titan | accessed: 2026-10-08 | patch: 0.5.5 | confidence: M
 [^g10]: judgment | PoB has no Blood Loss stack option | confidence: L
+[^g11]: ledger | hit_b_physical
+[^g12]: ledger | hit_n_physical

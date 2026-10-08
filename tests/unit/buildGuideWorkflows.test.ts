@@ -964,6 +964,8 @@ describe('AC-W8: the design happy path', () => {
     expect(callsOf(r, 'W1')[0].prompt).toContain("The league couldn't be verified");
     const plain = await design(happy(), { mode: 'online' });
     expect(callsOf(plain, 'W1')[0].prompt).not.toContain("The league couldn't be verified");
+    // Without D1's word (a resume past D1), W1 still reads plan.json's league.
+    expect(callsOf(plain, 'W1')[0].prompt).toContain('Take the league from plan.json: "unverified" there means');
   });
 
   it('writes plan.json anew on D1 attempt 1, and edits it on a retry', async () => {
@@ -1055,6 +1057,16 @@ describe('AC-W9: the D1 gate table (§5.3)', () => {
       [1, 'fail'],
       [2, 'pass'],
     ]);
+  });
+
+  it('never counts a chaos-exception or near-ceiling finding as a failure, so an accepted failure beside one proceeds', async () => {
+    const accepted = { gate: 'D1-gate', part: 'floor', code: 'missing-cold-resist', stage: 'b', message: 'm' };
+    const r = await design(
+      happy({ 'D1-gate': () => d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist'), finding('floor', 'chaos-exception'), finding('budget', 'near-ceiling')]) }),
+      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: { D1: 3, 'D1-gate': 3 } } },
+    );
+    expect(r.out.status).toBe('ready');
+    expect(callsOf(r, 'D2')).toHaveLength(1);
   });
 
   it('a floor that is unverified, or failing with no finding, still fails; only the budget may be unverified', async () => {
@@ -1205,9 +1217,12 @@ describe('AC-W10: the D2 gate, W1, FI-2 and FI-3', () => {
 
 describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   const v1Finding = { gate: 'D1-gate', part: 'v1', code: 'passive-points', stage: 'b', message: 'stage b spends 130 points at level 90' };
+  /** What the skill passes: each stage's attempts so far, from the run log (SKILL.md §6). */
+  const D1_USED = { D1: 3, 'D1-gate': 3 };
+  const D2_USED = { D1: 1, 'D1-gate': 1, D2: 3, 'D2-gate': 3 };
 
   it('guided-retry of D1 runs D1 once with the findings and the guidance, then the D1 gate, outside the cap', async () => {
-    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'drop the second jewel' } });
+    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'drop the second jewel', attempts: D1_USED } });
     expect(r.calls.slice(0, 2).map((c) => [stageOf(c), header(c).attempt])).toEqual([
       ['D1', 4],
       ['D1-gate', 4],
@@ -1235,7 +1250,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
 
   it('a scripted gate failure on a guided retry returns escalated again, with no retry', async () => {
     const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points')]) }), {
-      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g' },
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED },
     });
     expect(r.calls.map((c) => stageOf(c))).toEqual(['D1', 'D1-gate']);
     expect(r.out.status).toBe('escalated');
@@ -1243,17 +1258,17 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     expect(r.out.stats.retries).toEqual([]);
     // A floor failure after a guided retry escalates again too, rather than ending infeasible.
     const floor = await design(happy({ 'D1-gate': () => d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist')]) }), {
-      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g' },
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED },
     });
     expect([floor.out.status, callsOf(floor, 'D1').length]).toEqual(['escalated', 1]);
   });
 
   it('guided-retry of D2 or W1 starts there, with the guidance', async () => {
-    const d2r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D2-gate', findings: [], guidance: 'level the trees evenly' } });
+    const d2r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D2-gate', findings: [], guidance: 'level the trees evenly', attempts: D2_USED } });
     expect(d2r.calls.map((c) => stageOf(c)).slice(0, 3)).toEqual(['D2', 'D2-gate', 'D2-gate']);
     expect(findingsOf(callsOf(d2r, 'D2')[0])).toEqual([{ code: 'user-guidance', message: 'level the trees evenly' }]);
     expect(d2r.out.status).toBe('ready');
-    const w1r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'W1', findings: [], guidance: 'shorter' } });
+    const w1r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'W1', findings: [], guidance: 'shorter', attempts: { ...D2_USED, W1: 3 } } });
     expect(w1r.calls.map((c) => stageOf(c))[0]).toBe('W1');
     expect(header(callsOf(w1r, 'W1')[0]).attempt).toBe(4);
   });
@@ -1261,7 +1276,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   it('accepted at the D1 gate re-runs the gate with the finding in accepted; a verdict failing only on it proceeds to D2', async () => {
     const accepted = { ...v1Finding };
     const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]) }), {
-      resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted] },
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: D1_USED },
     });
     // No D1: the failed gate step runs again, its attempt continuing the escalated ones.
     expect(r.calls[0].header).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 4, accepted: [accepted] }));
@@ -1283,7 +1298,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
         'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]),
         'D2-gate': d2Gate(() => d2Check({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')])),
       }),
-      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding] } },
+      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED } },
     );
     expect(same.out.status).toBe('ready');
     expect(same.calls.filter((c) => header(c).compile === 'final')).toHaveLength(1);
@@ -1292,7 +1307,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     // escalates again.
     for (const other of [finding('v1', 'passive-points', 'n'), finding('v1', 'attributes', 'b')]) {
       const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b'), other]) }), {
-        resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding] },
+        resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED },
       });
       expect([r.out.status, r.out.stage, callsOf(r, 'D2').length]).toEqual(['escalated', 'D1-gate', 0]);
       expect(r.out.evidence!.map((e) => [e.stage, e.code])).toEqual([[other.stage, other.code]]);
@@ -1302,14 +1317,14 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   it('never accepts a compile failure, and keeps earlier accepted findings from args.accepted', async () => {
     const compileFinding = { gate: 'D1-gate', part: 'compiled', code: 'compile-error', stage: 'b', message: 'unknown gem' };
     const r = await design(happy({ 'D1-gate': () => d1Gate({ compiled: 'fail' }, [finding('compiled', 'compile-error', 'b')]) }), {
-      resume: { reason: 'accepted', stage: 'D1-gate', findings: [compileFinding] },
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [compileFinding], attempts: D1_USED },
     });
     expect(r.out.status).toBe('escalated');
 
     const earlier = { gate: 'D1-gate', part: 'v2', code: 'default-unlisted', stage: '2', message: 'accepted earlier' };
     const later = await design(happy({ 'D2-gate': d2Gate(() => d2Check({ v2: 'fail' }, [finding('v2', 'default-unlisted', '2')])) }), {
       accepted: [earlier],
-      resume: { reason: 'accepted', stage: 'D2-gate', findings: [{ gate: 'D2-gate', part: 'v1', code: 'tree-continuity', stage: '2', message: 'm' }] },
+      resume: { reason: 'accepted', stage: 'D2-gate', findings: [{ gate: 'D2-gate', part: 'v1', code: 'tree-continuity', stage: '2', message: 'm' }], attempts: D2_USED },
     });
     expect(later.calls.map((c) => [stageOf(c), header(c).compile])).toEqual([
       ['D2-gate', 'measure-only'],
@@ -1324,18 +1339,51 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     expect((header(callsOf(later, 'W1')[0]).accepted as { code: string }[]).map((a) => a.code)).toEqual(['default-unlisted', 'tree-continuity']);
   });
 
-  it('accepted after a V3 or V4 escalation returns ready with the findings accepted, running no agent', async () => {
-    const vf = { gate: 'V4', id: 'f-src-2', artifact: 'guide.md', location: 'Summary', claim: 'c', issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' };
-    const r = await design(happy(), { resume: { reason: 'accepted', stage: 'V4', findings: [vf] } });
-    expect(r.calls).toHaveLength(0);
+  it('accepted after a V3 or V4 escalation re-runs W1 to state the findings, then V3 and V4 with them covered by id (D-253)', async () => {
+    const SENTINEL = 'SENTINEL-guide-text';
+    const vf = { gate: 'V4', id: 'f-src-2', artifact: 'guide.md', location: 'Summary', claim: SENTINEL, issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' };
+    const used = { ...D2_USED, 'D2-gate': 1, D2: 1, W1: 1, V3: 1, V4: 1 };
+    const sources = (id: string) => (call: AgentCall) => ({ ...report(call), findings: [{ ...vf, id }], verdict: 'fail' });
+    const r = await design(happy({ 'V4@sources': sources('f-src-2') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used } });
+    expect(r.calls.map((c) => [stageOf(c), header(c).attempt, header(c).pass ?? null])).toEqual([
+      ['W1', 2, null],
+      ['V3', 1, 2],
+      ['V4', 1, 2],
+      ['V4', 1, 2],
+      ['V4', 1, 2],
+    ]);
+    // W1 carries the accepted finding, so the guide lists it under Accepted failures (check-run.mjs).
+    expect(header(callsOf(r, 'W1')[0]).accepted).toEqual([vf]);
+    expect(callsOf(r, 'W1')[0].prompt).toContain('Accepted failures');
+    // V3 and V4 learn the accepted ids and places, never the finding's text (R-5, D-142).
+    for (const c of r.calls.filter((c) => ['V3', 'V4'].includes(stageOf(c)))) {
+      expect(header(c).accepted).toEqual([{ gate: 'V4', id: 'f-src-2', artifact: 'guide.md', location: 'Summary' }]);
+      expect(c.prompt).not.toContain(SENTINEL);
+    }
+    // The same finding again is covered by its id: ready, with the findings accepted.
     expect(r.out.status).toBe('ready');
     expect(r.out.accepted).toEqual([vf]);
+
+    // A new unresolved finding isn't covered.
+    const other = await design(happy({ 'V4@sources': sources('f-src-9') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used } });
+    expect(other.out.status).not.toBe('ready');
   });
 
   it('refuses the resumes this unit has no path for, naming why', async () => {
-    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'later', stage: 'D1', findings: [] } }), respond: () => null })).rejects.toThrow(/resume\.reason/);
-    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'D1', findings: [] } }), respond: () => null })).rejects.toThrow(/guidance/);
-    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'W1', findings: [] } }), respond: () => null })).rejects.toThrow(/no guide to accept/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'later', stage: 'D1', findings: [], attempts: {} } }), respond: () => null })).rejects.toThrow(/resume\.reason/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'D1', findings: [], attempts: D1_USED } }), respond: () => null })).rejects.toThrow(/guidance/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'W1', findings: [], attempts: { W1: 3 } } }), respond: () => null })).rejects.toThrow(/no guide to accept/);
+  });
+
+  it('refuses a resume without attempts, which a null gate re-run can push past 3', async () => {
+    for (const attempts of [undefined, { 'D1-gate': -1 }, { D1: '3' }]) {
+      await expect(
+        run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts } }), respond: () => null }),
+      ).rejects.toThrow(/args\.resume\.attempts is required/);
+    }
+    // With a gate that reached attempt 5 (two null re-runs), the resumed gate is attempt 6.
+    const r = await design(happy(), { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: { D1: 3, 'D1-gate': 5 } } });
+    expect(header(r.calls[0])).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 6 }));
   });
 });
 

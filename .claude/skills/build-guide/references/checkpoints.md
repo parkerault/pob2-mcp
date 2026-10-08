@@ -58,7 +58,7 @@ findings. After **2 retries per (stage, concept)** the workflow returns `escalat
 findings. The skill records it in `escalations[]`, shows the stage, the attempts, the findings and the
 artifact paths, and asks:
 
-1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings}`. A gate finding
+1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings, attempts}` (`attempts`: SKILL.md §6). A gate finding
    equal to an accepted one, **same plan stage, part and `code`**, fails no gate afterwards, whichever gate
    reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding is equal by its
    `id`. The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
@@ -66,7 +66,7 @@ artifact paths, and asks:
    with its plan stage; the run checker looks for them there. **Not offered when the failure is a
    compile error**: nothing compiled to continue from.
 2. **guidance and one more retry**: the user's guidance goes in; the design workflow resumes with
-   `{reason: "guided-retry", stage, findings, guidance}`. That attempt counts against no cap, and if it
+   `{reason: "guided-retry", stage, findings, guidance, attempts}`. That attempt counts against no cap, and if it
    fails, the run escalates again.
 3. **back to checkpoint 1**, with the findings as that concept's evidence.
 4. **stop**: the run ends `escalated`.

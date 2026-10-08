@@ -78,6 +78,10 @@ const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
 const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
 const HIT_OPTION = /^enemy(Physical|Fire|Cold|Lightning|Chaos)Damage$/;
+/** D-254: every endgame stage holds a waystone-scaled reference hit of each type, each derived by a ledger entry. */
+const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
+/** Findings that report on a passing part (../references/gates.md): never failures. */
+const INFO_CODES = ['chaos-exception', 'near-ceiling'];
 
 /** D-219: at most 20 divines passes; above 20 up to 22 passes with a "near the ceiling" note; above 22 fails. */
 const BUDGET_CEILING = 20;
@@ -689,7 +693,7 @@ export function checkRun(runFolder, { partial = false } = {}) {
       if (!isObj(rep) || !isObj(rep.verdict)) continue;
       for (const part of GATE_PARTS[stage]) {
         if (rep.verdict[part] !== 'fail') continue;
-        const findings = (Array.isArray(rep.findings) ? rep.findings.filter(isObj) : []).filter((f) => f.part === part);
+        const findings = (Array.isArray(rep.findings) ? rep.findings.filter(isObj) : []).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
         const open = findings.filter((f) => !covered(f));
         if (part === 'compiled' || findings.length === 0 || open.length > 0) {
           fail(ruleOf(part), `${g.file} says ${part}: "fail"${open.length > 0 ? ` (${open.map((f) => f.code).join(', ')})` : ''}, and no accepted finding covers it; a completed run's guide passed this gate (§5.3, §5.4)`);
@@ -1029,7 +1033,10 @@ function statesPercent(line, value) {
   return [...forms].some((s) => new RegExp(`(?<![\\d.])${s.replace(/[.-]/g, '\\$&')}\\s?%`).test(text));
 }
 
-/** Survival floor (D-118, D-119, D-234): all four resistances capped (chaos only by the exception), max hits above the hits. */
+/**
+ * Survival floor (D-118, D-119, D-234, D-254): all four resistances capped (chaos only by the exception); the
+ * five waystone-scaled reference hits present, each equal to its ledger entry; max hits above the hits.
+ */
 function recomputeFloor(endgame, record, rep, guide, fail) {
   const failures = [];
   const basis = Array.isArray(rep.basis?.floor) ? rep.basis.floor.filter(isObj) : [];
@@ -1071,7 +1078,23 @@ function recomputeFloor(endgame, record, rep, guide, fail) {
         }
       }
     }
-    for (const opt of Array.isArray(s.config?.scenario) ? s.config.scenario.filter(isObj) : []) {
+    // D-254: the five waystone-scaled reference hits, each equal (rounded to 2 decimals) to its ledger entry.
+    const round2 = (x) => Math.round(x * 100) / 100;
+    const scenario = Array.isArray(s.config?.scenario) ? s.config.scenario.filter(isObj) : [];
+    for (const type of HIT_TYPES) {
+      const t = type.toLowerCase();
+      const opt = scenario.find((o) => o.option === `enemy${type}Damage` && isNum(o.value) && o.value > 0);
+      if (!opt) {
+        failures.push(failure('floor', s.id, `reference-hit-missing-${t}`, `stage ${s.id} has no waystone-scaled ${type} reference hit (enemy${type}Damage) (D-119, D-254)`));
+        continue;
+      }
+      const entry = `hit_${s.id}_${t}`;
+      const derived = record.ledger?.[entry]?.value;
+      if (!isNum(derived) || round2(derived) !== round2(opt.value)) {
+        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} isn't its ledger entry ${entry}'s value ${show(derived ?? null)} (D-254)`));
+      }
+    }
+    for (const opt of scenario) {
       const m = HIT_OPTION.exec(opt.option ?? '');
       if (!m || !isNum(opt.value) || opt.value <= 0) continue;
       const code = `max-hit-${m[1].toLowerCase()}`;

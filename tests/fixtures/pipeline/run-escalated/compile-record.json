@@ -153,6 +153,46 @@
     "ttk_arbiter": {
       "value": 160,
       "error": null
+    },
+    "hit_b_physical": {
+      "value": 401.9956030273484,
+      "error": null
+    },
+    "hit_b_fire": {
+      "value": 96.47894472656363,
+      "error": null
+    },
+    "hit_b_cold": {
+      "value": 96.47894472656363,
+      "error": null
+    },
+    "hit_b_lightning": {
+      "value": 96.47894472656363,
+      "error": null
+    },
+    "hit_b_chaos": {
+      "value": 96.47894472656363,
+      "error": null
+    },
+    "hit_n_physical": {
+      "value": 438.5508166503852,
+      "error": null
+    },
+    "hit_n_fire": {
+      "value": 105.25219599609245,
+      "error": null
+    },
+    "hit_n_cold": {
+      "value": 105.25219599609245,
+      "error": null
+    },
+    "hit_n_lightning": {
+      "value": 105.25219599609245,
+      "error": null
+    },
+    "hit_n_chaos": {
+      "value": 105.25219599609245,
+      "error": null
     }
   },
   "unresolvedRefs": [],

@@ -37,13 +37,28 @@
         "hits": [
           {
             "type": "Physical",
-            "hit": 324.19000244141,
+            "hit": 402,
             "maxHitTaken": 5100
           },
           {
             "type": "Fire",
-            "hit": 324.19000244141,
+            "hit": 96.48,
             "maxHitTaken": 9800
+          },
+          {
+            "type": "Cold",
+            "hit": 96.48,
+            "maxHitTaken": 9700
+          },
+          {
+            "type": "Lightning",
+            "hit": 96.48,
+            "maxHitTaken": 9600
+          },
+          {
+            "type": "Chaos",
+            "hit": 96.48,
+            "maxHitTaken": 3000
           }
         ]
       },
@@ -58,13 +73,28 @@
         "hits": [
           {
             "type": "Physical",
-            "hit": 324.19000244141,
+            "hit": 438.55,
             "maxHitTaken": 7400
           },
           {
             "type": "Fire",
-            "hit": 324.19000244141,
+            "hit": 105.25,
             "maxHitTaken": 14800
+          },
+          {
+            "type": "Cold",
+            "hit": 105.25,
+            "maxHitTaken": 14700
+          },
+          {
+            "type": "Lightning",
+            "hit": 105.25,
+            "maxHitTaken": 14600
+          },
+          {
+            "type": "Chaos",
+            "hit": 105.25,
+            "maxHitTaken": 7000
           }
         ]
       }

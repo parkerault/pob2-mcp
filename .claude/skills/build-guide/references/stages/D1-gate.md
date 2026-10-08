@@ -36,9 +36,14 @@ don't design. Fix nothing in the plan: a failure goes back to D1 as findings.
    - **floor**: per endgame stage, `MissingFireResist`, `MissingColdResist` and `MissingLightningResist`
      are 0, and `MissingChaosResist` is 0 or the stage has a `chaosResistException` (then a
      `chaos-exception` finding on a passing floor names the stage's `ChaosResist` value and the reason);
-     and each scenario `enemy<Type>Damage` hit is below the record's `<Type>MaximumHitTaken`. Codes:
-     `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`, `missing-chaos-resist`,
-     `max-hit-<type>`.
+     and the **reference hits** (D-119, D-254): every endgame stage has a waystone-scaled hit for each of
+     `enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and
+     `enemyChaosDamage` in its scenario (else `reference-hit-missing-<type>`); each equals, rounded to 2
+     decimals, the record's value of its ledger entry `hit_<stage id>_<type>` (else
+     `reference-hit-ledger-<type>`); and each is below the record's `<Type>MaximumHitTaken` (else
+     `max-hit-<type>`). `<type>` is lower case (`physical`, `chaos`). The other codes:
+     `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`, `missing-chaos-resist`.
+     `chaos-exception` and `near-ceiling` are information on a passing part, never a failure.
    - **budget** (D-219, D-249): the budget variant's filled slots **and tree jewels**, each mapped to its
      `prices[].id`. Online, convert with `get_currency_rates` (a divine counts 1) and total, rounded to 2
      decimals: at most 20 divines `pass`; above 20 and at most 22 `pass` with a `near-ceiling` finding (the
@@ -71,7 +76,8 @@ Your last message is this JSON and nothing after it (the field names are a contr
   ],
   "basis": {
     "floor": [ { "stage": "b", "missing": { "Fire": 0, "Cold": 0, "Lightning": 0 }, "chaos": 47,
-                 "hits": [ { "type": "Physical", "hit": 324.19, "maxHitTaken": 5100 } ] } ],
+                 "hits": [ { "type": "Physical", "hit": 402.0, "maxHitTaken": 5100 },
+                           { "type": "Chaos", "hit": 96.48, "maxHitTaken": 3000 } ] } ],
     "budget": { "rates": [], "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
                                         { "stage": "b", "jewel": 1001, "priceId": "b-jewel-1001" } ],
                 "totals": [ { "stage": "b", "divines": null } ], "nonBudget": [ { "stage": "n", "divines": null, "reference": 200 } ] },
@@ -89,8 +95,8 @@ Your last message is this JSON and nothing after it (the field names are a contr
   (`b.MissingColdResist 12`, `enemies/map-monsters.json#damage.by-level[79]`). A check that rests on an M
   or L fact says so (A-29).
 - `basis`: the numbers the run checker recomputes the verdict from, exactly as `gates.md` gives it: one
-  `floor` entry per endgame stage (the three gated values, the chaos value `MissingChaosResist`, each
-  reference hit with its `<Type>MaximumHitTaken`); every budget slot and tree jewel with its `priceId`, the
+  `floor` entry per endgame stage (the three gated values, the chaos value `MissingChaosResist`, all five
+  reference hits with their `<Type>MaximumHitTaken`); every budget slot and tree jewel with its `priceId`, the
   rates, each budget total (`null` when unverified) and the non-budget totals; per endgame stage the rolled
   group, its role and a figure for every group of that role.
 - `priceCalls`: the re-price pass's calls; `[]` offline.

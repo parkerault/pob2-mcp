@@ -195,7 +195,7 @@ const broken: BrokenCase[] = [
     says: /finding "f-x" .*is unresolved in the final pass/,
   },
   // (m)
-  { name: "(m) a V3 report's coverage differs from the checker's count", fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v3-c1-p1.json', (r) => (r.coverage.guide += 1)), rule: 'claim-counts', says: /coverage\.guide is 11, but the checker counts 10/ },
+  { name: "(m) a V3 report's coverage differs from the checker's count", fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v3-c1-p1.json', (r) => (r.coverage.guide += 1)), rule: 'claim-counts', says: /coverage\.guide is 13, but the checker counts 12/ },
   { name: '(m) an endgame pob-data claim is not re-checked (D-179)', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.recheckedEndgame -= 1)), rule: 'claim-counts', says: /re-checked 2 of 3 endgame pob-data claims; D-179 wants all/ },
   { name: '(m) fewer than 1 in 5 pob-data claims elsewhere are re-checked (D-179)', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.recheckedOther = 0)), rule: 'claim-counts', says: /re-checked 0 of 6 pob-data claims elsewhere; D-179 wants at least 1 in 5 \(2\)/ },
   // (n)
@@ -207,6 +207,9 @@ const broken: BrokenCase[] = [
   { name: '(o) MissingChaosResist above 0 and the chaosResistException removed (D-234)', fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => delete stageB(p).chaosResistException), rule: 'floor', says: /MissingChaosResist is 47 and it has no chaosResistException/ },
   { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /no line of the guide's "Endgame: budget variant" Checks states its full reason .* with the uncapped value 28% \(D-234\)/ },
   { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% (47% under its cap) because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
+  // (o) with D-254's waystone-scaled reference hits (WU-45 review)
+  { name: '(o) an endgame stage lacks its waystone-scaled chaos reference hit (D-254)', fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => (stageB(p).config.scenario = stageB(p).config.scenario.filter((o: Json) => o.option !== 'enemyChaosDamage'))), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b has no waystone-scaled Chaos reference hit \(enemyChaosDamage\)/ },
+  { name: "(o) a reference hit isn't its ledger entry's value (D-254)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 324.19000244141)), rule: 'floor', says: /stage b's enemyPhysicalDamage 402 isn't its ledger entry hit_b_physical's value 324\.19000244141 \(D-254\)/ },
   // (p)
   { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editJson(d, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.5 divines, above 22/ },
   { name: '(p) a filled budget slot maps to no prices[] entry', fixture: 'run-ok-online', edit: (d) => editJson(d, 'reports/gates/D1-gate-c1-a1.json', (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Helmet'))), rule: 'budget', says: /filled slot "Helmet" maps to no prices\[\] entry/ },

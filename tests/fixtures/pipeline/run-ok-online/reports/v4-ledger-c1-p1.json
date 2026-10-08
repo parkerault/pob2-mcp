@@ -5,8 +5,8 @@
   "pass": 1,
   "mode": "online",
   "coverage": {
-    "entries": 1,
-    "rederived": 1
+    "entries": 11,
+    "rederived": 11
   },
   "findings": [],
   "verdict": "pass"

@@ -71,6 +71,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 <What this variant is for: T15 maps (area 79) without dying often, as cheaply as possible, at most about 20 divines.>
 
 - **Level and ascendancy:** character level <n>, <n> ascendancy points: <the nodes>.[^e1]
+- [only when the stage has a respec] **Respec from the campaign:** drop <the dropped nodes> (about <gold cost> gold).[^r2]
 - **Gear by slot** (each price dated, or unavailable with why):
 
 | Slot | Item | Price |
@@ -88,9 +89,10 @@ Hand calculations (the ledger), for what PoB doesn't model:
 
 ### Checks
 
-- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>%, lightning <n>% and chaos <n>% resistance, each capped.[^f1]
-- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- **Max hit taken** against the mapping reference hits: <type> <MaximumHitTaken> against a <hit> hit.[^f2]
+- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f1]
+  [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
+  [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
+- **Max hit taken** against the waystone-scaled reference hits (T15 monster damage at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <hit>[^h1]; fire <FireMaximumHitTaken> against <hit>[^h2], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
 - **Budget:** <total> divines against the 20-divine ceiling: the slot and tree-jewel prices above, converted at the rates the D1 gate recorded.
   [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
@@ -102,6 +104,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 <What this variant is for: as strong as possible around the ~200-divine reference, T16 up to area 82 with heavily modded waystones.>
 
 - **Level and ascendancy:** character level <n>, <n> ascendancy points: <the nodes>.[^e2]
+- [only when the stage has a respec] **Respec from the campaign:** drop <the dropped nodes> (about <gold cost> gold).[^r3]
 - **Gear by slot:**
 
 | Slot | Item | Price |
@@ -113,8 +116,10 @@ Hand calculations (the ledger), for what PoB doesn't model:
 
 ### Checks
 
-- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>%, lightning <n>% and chaos <n>% resistance, each capped.[^f3]
-- **Max hit taken** against the mapping reference hits: <type> <MaximumHitTaken> against a <hit> hit.[^f4]
+- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f3]
+  [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
+  [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
+- **Max hit taken** against the waystone-scaled reference hits (monster damage at the variant's top area level, at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <hit>[^h3]; fire <FireMaximumHitTaken> against <hit>[^h4], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
 - **Total:** <total> divines against the ~200-divine reference (a reference, not a cap).
   [only when any price is unavailable] Prices are unavailable (<why>), so this total isn't known.
 - **The Arbiter of Divinity:** <as for the budget variant>.[^a2]
@@ -168,11 +173,15 @@ Hand calculations (the ledger), for what PoB doesn't model:
 [^e1]: pob-computed | b.Life
 [^p2]: price | <priceId>
 [^f1]: pob-computed | b.MissingColdResist
-[^f2]: pob-computed | b.PhysicalMaximumHitTaken
+[^r2]: judgment | <why the respec costs about that much> | confidence: L
+[^h1]: ledger | hit_b_physical
+[^h2]: ledger | hit_b_fire
 [^a1]: ledger | <the Arbiter time-to-kill ledger id>
 [^k1]: data | enemies/map-monsters.json#life.by-level[79]
 [^e2]: pob-computed | n.Life
 [^p3]: price | <priceId>
 [^f3]: pob-computed | n.MissingColdResist
-[^f4]: pob-computed | n.PhysicalMaximumHitTaken
+[^r3]: judgment | <why the respec costs about that much> | confidence: L
+[^h3]: ledger | hit_n_physical
+[^h4]: ledger | hit_n_fire
 [^a2]: ledger | <the Arbiter time-to-kill ledger id>

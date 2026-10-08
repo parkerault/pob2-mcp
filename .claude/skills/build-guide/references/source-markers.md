@@ -1,8 +1,9 @@
-# Source markers, claims and verifier reports
+# Source markers, claims and the V4 report
 
 Every claim shows its source (D-105, C-30). This page is how a claim is tagged in the plan and in
-markdown (slice 03 §7.3), how claims are counted, and the V3/V4 report shape (§7.4). The run checker
-counts claims the same way and fails a report whose coverage doesn't match.
+markdown (slice 03 §7.3), the three rules every claim keeps, and the V4 report shape (§7.4, as amendment 1
+changes it). The run checker checks that every marker resolves and parses as a tag; the V4 verifiers check
+that every claim is true.
 
 ## Source tags (C-30)
 
@@ -61,31 +62,38 @@ Every marker needs a definition; every `ledger`, `price` and `data` definition m
 entry or fact. In `guide.md` they resolve against `plan.json`; in the dossier and research files, against
 any plan of the run (concept skeletons included).
 
-## Counting claims (§7.4)
+## The claim rules
 
-- A claim is **one definition line** in a markdown artifact, or **one `stages[].claims[]` entry** in the
-  plan.
-- Its section is the H2 of its first marker; in the plan, its stage.
-- **Endgame** means the guide's two `Endgame:` H2s and the plan's `variant` stages. Everything else, the
-  whole dossier included, is **elsewhere**.
-- The counted artifacts are `plan.json`, `dossier.md` and `guide.md` (not the research files).
+Every step that writes a claim keeps these three rules, and the V4 lenses check every claim against them
+(amendment 1 S7):
 
-## Verifier reports
+1. **Supported in every part.** The source supports all of the claim: each number, each mechanic and each
+   qualifier ("always", "on hit", "against bosses"). A part its source doesn't support gets its own source,
+   or goes.
+2. **It cites each fact it rests on.** A claim resting on two facts (a gem's base damage and a support's
+   multiplier; a quest reward and the act it is in) carries a marker, or a ledger entry, for each.
+3. **It carries its source's caveats.** A source of confidence M or L, a fact whose `note` records a dispute,
+   a `judgment`, or a mechanic no lookup confirmed is stated with that caveat wherever the claim appears
+   (Summary, Rotation, the FAQ), never as settled.
 
-V3 and V4 agents can't write; their report is their structured return, and the skill writes it to
-`reports/v3-<concept>-p<pass>.json` or `reports/v4-<lens>-<concept>-p<pass>.json` unchanged.
+A number or a mechanic stated without a marker is a claim without a source: the V4 `sources` lens reports
+it.
+
+## The V4 report
+
+The verifiers can't write (R-5): a report is the verifier's return, and the runner writes it unchanged to
+`reports/v4-<lens>.json` (the full pass, `check: "full"`) or `reports/v4-<lens>-recheck.json` (the re-check,
+`check: "recheck"`).
 
 ```json
 {
   "stage": "V4",
   "lens": "sources",
+  "check": "full",
   "concept": "c1",
-  "pass": 1,
   "mode": "offline",
-  "coverage": { "external": 0, "opened": 0, "data": 4, "dataChecked": 4, "pobDataEndgame": 3,
-                "recheckedEndgame": 3, "pobDataOther": 6, "recheckedOther": 2, "prices": 3, "matched": 3 },
   "findings": [
-    { "id": "f-eu-1", "artifact": "plan.json", "location": "stages[2].claims[5]",
+    { "id": "v4-sources-1", "artifact": "plan.json", "location": "stages[2].claims[5]",
       "claim": "…", "issue": "tagged external-unavailable", "evidence": "the run log's mode is offline",
       "owner": "D1", "status": "accepted-offline" }
   ],
@@ -93,21 +101,17 @@ V3 and V4 agents can't write; their report is their structured return, and the s
 }
 ```
 
-- `stage` is `V3` or `V4`; `lens` (V4 only) is `ledger`, `sources` or `prose`; `mode` is the run log's.
-- Each finding has `id`, `artifact`, `location`, `claim`, `issue`, `evidence`, `owner` (`W1`, `D1`,
-  `D2` or `dossier-fix`: the step that wrote the claim) and `status` (`unresolved` or
-  `accepted-offline`).
+- `stage` is `V4`; `lens` is `ledger`, `sources` or `prose`; `check` is `full` or `recheck`, as the header
+  says; `mode` is the run log's. The dossier isn't verified: it serves the checkpoint-1 pick, and the guide
+  can't cite it (amendment 1 S3).
+- Each finding has `id`, `artifact` (`plan.json` or `guide.md`), `location`, `claim`, `issue`, `evidence`,
+  `owner` (`W1`, `D1` or `D2`: the step that wrote the claim) and `status`: `unresolved`, `accepted-offline`,
+  or in a re-check `fixed` (a finding of the header's `findings` that now holds).
 - `verdict` is `pass` exactly when no finding is `unresolved`.
 - `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), and only in the
   V4 `sources` report, its `location` naming that claim (`stages[<i>].claims[<k>]` or `<file> [^<id>]`).
   In an online run such a claim is `unresolved`. The run checker resolves the location and fails any other
   `accepted-offline`.
-
-**Coverage**, by report:
-
-| Report | `coverage` | Must hold |
-|---|---|---|
-| V3 (provenance: every claim has a well-formed tag) | `{plan, dossier, guide}`: the claims counted in each artifact | each equals the checker's count |
-| V4 `ledger` (re-derives every ledger entry from the final record and its tagged inputs, and compares the record's value and every guide number citing it) | `{entries, rederived}` | `entries` = the plan's ledger entries; `rederived` = `entries` |
-| V4 `sources` (opens every `external` source; checks every `data` claim against its fact and stored citation, without fetching offline; re-checks `pob-data` claims with the lookup tools; checks every `price` claim's amount, currency, date and league against its entry) | `{external, opened, data, dataChecked, pobDataEndgame, recheckedEndgame, pobDataOther, recheckedOther, prices, matched}` | the five totals equal the checker's counts; `opened` = `external`; `dataChecked` = `data`; `recheckedEndgame` = `pobDataEndgame` (all of them, D-179); `recheckedOther` ≥ 1 in 5 of `pobDataOther`, rounded up |
-| V4 `prose` (mechanics claims the sources don't support; the rolled skill shown as the main damage source, D-122; budget statements per D-164 and D-219) | an object of the lens's own counts | — |
+- **Open findings.** A finding is open after the re-check when its lens's re-check reports it
+  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. Every open
+  finding goes into the guide's `Known issues`, by id (SKILL.md step 14); the run checker looks for each.

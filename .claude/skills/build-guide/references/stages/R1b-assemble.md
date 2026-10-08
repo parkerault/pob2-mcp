@@ -7,22 +7,25 @@ every concept with its skeleton's result.
 ## Inputs
 
 - **Header:** `stage: "R1b-assemble"`, `attempt`, `mode`, `runFolder`, `compile: "none"`, `findings`
-  (only a dead earlier attempt's note: `dossier.md` may then hold its partial work, so make it whole),
-  `writes: ["dossier.md"]`.
+  (only an earlier attempt's note that it returned without its file: `dossier.md` may then hold its partial
+  work, so make it whole), `writes: ["dossier.md"]`.
 - **Prompt:** a `json` block for the round: `round`, `firstId`, the user's `note`; `researchFiles`
-  (`{file, returned}`: `returned: false` means that researcher returned nothing, so its file may be
-  missing or partial); and `concepts`, each `{id, title, proposedIn, status, evidence}`, with
-  `attempts`, `skeleton`, `recordPath`, `numbers`, `prices` and `leagueUnverified` for a carried
-  concept.
+  (`{file, returned}`: `returned: false` means that researcher returned without its file, so its file may
+  be missing or partial); and `concepts`, each `{id, title, proposedIn, status, attempts, verdict}`:
+  `status` `viable`, `failed` or `not-carried`, and for a carried concept the R1b attempts it made and its
+  last verdict file.
 - **Read:** the template `.claude/skills/build-guide/templates/dossier-template.md`; the round's
-  research files; each carried concept's `concepts/<id>/plan.json` and, where it compiled,
-  `concepts/<id>/compile-record.json`; `dossier.md` when an earlier round wrote it.
+  research files; each carried concept's last verdict file (its errors, `recordPath` and
+  `leagueUnverified`), its `concepts/<id>/plan.json` (the key-item prices) and, where it compiled,
+  `concepts/<id>/compile-record.json` (the key numbers: the rolled skill's damage figures, its
+  `g<group>s<skill>p<statSet>` fields, `Life`, `EnergyShield`, the four `Missing<Elem>Resist` values and
+  each `<Type>MaximumHitTaken`); `dossier.md` when an earlier round wrote it.
 
 ## Work
 
 1. **Confirm each record** (§5.2 step 4). For every concept the input calls `viable`, check that
    `concepts/<id>/compile-record.json` exists beside its skeleton. If it doesn't, the concept is `failed`:
-   say so in its entry, and list its id in `missingRecords`.
+   say so in its entry and in its comparison line.
 2. **Write the dossier from the template**, keeping its H2s exactly, in order: `Roll and mode`,
    `Mechanics`, `Synergy search`, `Config gaps`, `Concepts`, `Not carried`. Nothing else is an H2.
    - **Roll and mode:** the roll (class, ascendancy, rolled skill), the mode (offline: no web source and
@@ -30,8 +33,8 @@ every concept with its skeleton's result.
      concept has `leagueUnverified`, that it is **unverified** because trade couldn't be reached, so D1
      must not take it from here), and one line per research round with its note.
    - **Mechanics, Synergy search, Config gaps:** the research files' sections, merged and shortened
-     where they repeat, every claim keeping its marker. A researcher that returned nothing leaves a
-     line saying which part is missing (`research/p<k>-r1a-<n>.md returned no result`).
+     where they repeat, every claim keeping its marker. A researcher that returned without its file leaves
+     a line saying which part is missing (`research/p<k>-r1a-<n>.md returned no result`).
    - **Concepts:** one H3 `<id>: <title>` per carried concept (viable or failed), in id order, with the
      template's labelled fields: the seven from its proposal (copied from the research file), then
      `Proposed in`, `Skeleton`, `Compile` (compiled, or failed after N attempts with the last errors),
@@ -45,7 +48,7 @@ every concept with its skeleton's result.
    Roll and mode, its new material to Mechanics, Synergy search and Config gaps (start each addition
    with `Round <k>:`), its concepts' H3s after the existing ones, its not-carried lines, and its
    definitions after the existing ones. If `dossier.md` is missing (an earlier round's assembly never
-   returned), write it from the template for this round, and say under Roll and mode which earlier
+   returned its file), write it from the template for this round, and say under Roll and mode which earlier
    rounds have no dossier entry.
 4. **Markers** (`.claude/skills/build-guide/references/source-markers.md`). A claim copied from a
    research file keeps its marker and its definition line exactly: research ids (`p<k>r<n>-<m>`) are
@@ -61,14 +64,16 @@ every concept with its skeleton's result.
 
 ## Returns
 
-Your last message is this JSON and nothing after it:
+At most 8 lines: `dossier.md`, then the checkpoint-1 comparison, one line per concept of this round in id
+order: its id, its status, its synergy in a few words, its key numbers from the record, its key prices
+(dated, or `unavailable`), and its main risk; a failed concept's line names its last verdict file.
 
-```json
-{ "file": "dossier.md", "missingRecords": [] }
 ```
-
-`missingRecords` lists the ids of the concepts the input called viable whose compile record isn't beside
-their skeleton; the workflow marks them `failed`.
+dossier.md
+c1 viable: bleed burst on rares; Blood Hunt 50,000 DPS (c1e.g1s1p1.TotalDPS), Life 4,210; prices unavailable (offline); risk: chaos resistance
+c2 failed after 3 attempts: FI-1 Unknown Gem (reports/gates/R1b-c2-a3.json)
+c4 not carried: the round already carried 3
+```
 
 ## Fault directives
 

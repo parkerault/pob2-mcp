@@ -13,11 +13,11 @@ D-219). Only coordinator steps price; no other agent type has a price tool (D-17
 
 ## The tools (server `pob2`)
 
-- `get_item_price`: one item by name or base, priced from live listings.
-- `search_trade_items`: a search with `mods`, for a rare as an affix target.
-- `search_stats`, `trade_query_options`: building a query.
-- `get_leagues`: the leagues the trade site lists.
-- `get_currency_rates` (poe.ninja): currency values in divines, for totals.
+- `mcp__pob2__get_item_price`: one item by name or base, priced from live listings.
+- `mcp__pob2__search_trade_items`: a search with `mods`, for a rare as an affix target.
+- `mcp__pob2__search_stats`, `mcp__pob2__trade_query_options`: building a query.
+- `mcp__pob2__get_leagues`: the leagues the trade site lists.
+- `mcp__pob2__get_currency_rates` (poe.ninja): currency values in divines, for totals.
 
 Each call prices one item; there is no batch mode (D-224). Every price result carries two lines (C-49):
 
@@ -33,7 +33,7 @@ is the price's `date`.
 
 1. R1b prices each concept's key items.
 2. D1 prices every filled slot **and every tree jewel** (D-249) of both endgame variants, with rares as
-   affix-target searches (`search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
+   affix-target searches (`mcp__pob2__search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
    slots holding identical item text, which may share one.
 3. D2 prices the campaign uniques.
 
@@ -85,7 +85,7 @@ has stopped, and in offline mode.
 
 ## Divines and the budget (D-116, D-117, D-219)
 
-Totals convert with `get_currency_rates`. The D1 gate records the rates it used (`gates.md`). If the
+Totals convert with `mcp__pob2__get_currency_rates`. The D1 gate records the rates it used (`gates.md`). If the
 rates are unavailable, totals are `unverified`.
 
 - Budget variant, slots and tree jewels together (D-249), the total rounded to 2 decimals: **at most 20
@@ -97,9 +97,11 @@ rates are unavailable, totals are `unverified`.
 
 ## Reporting the calls
 
-A coordinator step returns every price-tool call it made as `priceCalls`:
-`[{at, stage, tool, item, outcome}]`, with `at` the `Checked:` time or `null` for an error. The skill
-appends them to the run log's `pricing.calls` (`run-log.md`).
+A coordinator step counts its price-tool calls by outcome and returns the counts in one line,
+`prices: ok 12, would_wait 1` (or `prices: none`). The runner records them as that step's `priceOutcomes`
+in the run log's `stages[]` (`run-log.md`): each key `ok`, `error` or a `[trade:<kind>]` kind. Once any
+step's counts hold a `locked_out` or `rate_limited` call, pricing has stopped for the rest of the run, and
+the runner tells every later coordinator step so.
 
 ## Offline mode (D-201, D-233)
 
@@ -110,4 +112,4 @@ No step calls a trade or poe.ninja tool, even if one is available. Every price i
   "date": "<the run folder's date>", "league": null, "status": "unavailable", "note": "offline run" }
 ```
 
-and the plan's `league` is null, which the plan schema allows only then. `priceCalls` is empty.
+and the plan's `league` is null, which the plan schema allows only then. No step has `priceOutcomes`.

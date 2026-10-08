@@ -153,9 +153,10 @@ Hand calculations (the ledger), for what PoB doesn't model:
 - **Medium and low-confidence inputs:** <each M or L input and the check that rests on it>.
 - [only in an offline run] **Claims that need an external source** (external source unavailable in this offline run): <each>.
 
-### Accepted failures
+### Known issues
 
-[only after the user accepted findings at an escalation; else delete this H3] - `<code, or the V3/V4 finding id>` (<gate: D1-gate, D2-gate, V3 or V4>, stage <plan stage>): <the finding's message>.
+[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks the runner adds one line per finding they left open.] - `<code>` (<gate: D1-gate or D2-gate>, stage <plan stage>): <the finding's message>.
+[added by the runner] - `<V4 finding id>` (V4 <lens>, <artifact> <location>): <the issue>.
 
 ## Changelog
 

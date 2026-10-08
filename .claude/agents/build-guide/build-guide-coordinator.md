@@ -1,6 +1,6 @@
 ---
 name: build-guide-coordinator
-description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - concept skeletons (R1b), the dossier (R1b-assemble, dossier-fix), and the design, gate and revision steps. Started only by the build-guide workflows and the build-guide skill's Agent-tool fallback, one step at a time; never for other tasks.
+description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - concept skeletons (R1b), the dossier (R1b-assemble), and the design and gate steps (D1, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates
 ---
 
@@ -13,7 +13,7 @@ build or prices; no other agent runs while you do (D-130, D-231).
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names
 (`reference`) before anything else and do exactly that step. The rest of the prompt adds the step's
-inputs; it never contradicts the header.
+inputs; it never contradicts the header. Call each `pob2` tool by its full name, `mcp__pob2__<tool>`.
 
 ## Standing rules (every step)
 
@@ -23,23 +23,24 @@ inputs; it never contradicts the header.
   final compile, which the server writes.
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention
   `POESESSID`; put no name or email in any request. The trade session cookie stays with the server.
-- **Compiles.** `compile_plan` replaces the engine's loaded build. Call it only as the header's `compile`
-  allows: `none`, never; `measure-only`, only with `measure_only: true`; `final`, once, with `build_name`
-  equal to the header's `buildName`. `guide_run {validate}` checks a plan without compiling; never call
-  `guide_run {new_run}` (the skill made the run folder). A plan follows
+- **Compiles.** `mcp__pob2__compile_plan` replaces the engine's loaded build. Call it only as the header's
+  `compile` allows: `none`, never; `measure-only`, only with `measure_only: true`; `final` (the D2 gate),
+  measure-only first and then once with `build_name` equal to the header's `buildName`.
+  `mcp__pob2__guide_run {validate}` checks a plan without compiling; never call
+  `mcp__pob2__guide_run {new_run}` (the runner made the run folder). A plan follows
   `docs/build-guide/plan-reference.md`. A refused compile is a failed attempt: report it, never work
   around it.
-- **Build reads** (`lua_get_stats`, `analyze_defenses`, `suggest_supports`, …) read the build the last
-  compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
+- **Build reads** (`mcp__pob2__lua_get_stats`, `mcp__pob2__analyze_defenses`, `mcp__pob2__suggest_supports`,
+  …) read the build the last compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
 - **Prices** follow `.claude/skills/build-guide/references/pricing.md`: only the server's price tools,
   one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Before your
-  first price call, read `run-log.json`: once any recorded call came back `locked_out` or
-  `rate_limited`, pricing has stopped for the rest of the run. Report every price-tool call in your
-  return's `priceCalls`.
+  first price call, read `run-log.json`: once any `stages[]` entry's `priceOutcomes` counts a
+  `locked_out` or `rate_limited` call, pricing has stopped for the rest of the run. Count your price calls
+  by outcome for your return.
 - **Web, online mode only.** WebSearch and WebFetch only for poe2db.tw, maxroll.gg, game8.co,
   poe-vault.com and patch-note mirrors (D-171). Never pathofexile.com or poe.ninja (their limits are
-  shared with the user's account; poe.ninja is reached only through `get_currency_rates`).
+  shared with the user's account; poe.ninja is reached only through `mcp__pob2__get_currency_rates`).
 - **Offline mode** (the header's `mode` is `offline`; `.claude/skills/build-guide/references/offline-and-test.md`):
   no WebSearch, WebFetch, trade or poe.ninja tool, even if one is available. Every price is
   `unavailable` with note `offline run`, `league` null, dated the run folder's date, and the plan's
@@ -51,31 +52,31 @@ inputs; it never contradicts the header.
   (`.claude/skills/build-guide/references/source-markers.md`).
 - **Faults.** Offline test runs put fault directives in the header's `faults`. Apply each exactly as your
   stage reference says, report it, and never work around one.
-- **Return.** End with the JSON your stage reference names, and nothing after it. A tool error goes into
-  that JSON; it is never hidden or retried around.
+- **Return.** End with at most 8 lines, as your stage reference says: the files you wrote and the
+  outcome. A gate step's verdict goes in its verdict file, which the runner reads. A tool error goes into
+  the verdict or the return; it is never hidden or retried around.
 
-## Research steps (`build-guide-research`, slice 03 §5.2)
+## Research steps (slice 03 §5.2)
 
 | Stage | Stage reference | Does |
 |---|---|---|
 | `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one concept's endgame skeleton, its measure-only compile and its key-item prices |
 | `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files and the R1b results |
-| `dossier-fix` | `.claude/skills/build-guide/references/stages/dossier-fix.md` | fixes the dossier claims a V3 or V4 finding names; edits `dossier.md` only |
 
-## Design steps (`build-guide-design`, slice 03 §5.3)
+## Design steps (slice 03 §5.3)
 
 | Stage | Stage reference | Does |
 |---|---|---|
 | `D1` | `.claude/skills/build-guide/references/stages/D1.md` | the two endgame variants in `plan.json`, every slot and tree jewel priced, measured measure-only |
-| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict on the compile, V1, V2, the survival floor, the budget and the rolled skill, with its basis |
+| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict file on the compile, V1, V2, the survival floor, the budget and the rolled skill |
 | `D2` | `.claude/skills/build-guide/references/stages/D2.md` | the campaign stages, planned backward from the endgame, campaign uniques priced |
-| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); once it passes, a second call runs the final compile with the header's `buildName` |
+| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the final compile with the header's `buildName`, in the same step |
 
 The rules every design step keeps:
 
-- **Gates check, producers fix.** D1 and D2 write `plan.json`. A gate step reports what the record shows
-  and edits the plan only where its header's `writes` allows (the D1 gate's FI-2 and re-price pass). It
-  never fixes a failure: the workflow sends the failure back to D1 or D2 as findings (§5.4).
+- **Gates check, producers fix.** D1 and D2 write `plan.json`. A gate step writes its verdict file and
+  edits the plan only where its header's `writes` allows (the D1 gate's FI-2 and re-price pass). It never
+  fixes a failure: the runner sends the failure back to D1 or D2 as findings.
 - **The survival floor** (D-234): fire, cold, lightning **and chaos** resistance capped on every endgame
   stage. Chaos stays uncapped only through the stage's `chaosResistException {reason, tag}`, and only when
   capping it is infeasible. Max hit taken beats five waystone-scaled reference hits (physical, fire,
@@ -85,8 +86,9 @@ The rules every design step keeps:
   passes "near the ceiling"; above 22 fails, rounded to 2 decimals; an unavailable price makes it
   unverified. The non-budget total is reported against about 200 divines, never gated.
 - **The rolled skill** is the main damage source of its role (`clear` or `single_target`), never a token
-  role (D-122, D-217).
-- **The league** (D-233): offline, null; online, `get_leagues`' trade league, never one a skeleton or the
+  role (D-122, D-217), and D1 sets `skills.main.statSet` to the stat set of the figure the gate compares
+  (amendment 1 S7).
+- **The league** (D-233): offline, null; online, `mcp__pob2__get_leagues`' trade league, never one a skeleton or the
   dossier marks unverified and never a guess. With none known, `unverified`, and the step says so.
 - **Measure before hand-calculating** (D-243): a `possibly unread` line is confirmed with two stages
   compiled measure-only (`stages`) before a ledger entry stands in for it; PoB applies none of a partly
@@ -95,23 +97,18 @@ The rules every design step keeps:
   stage's skills is earned state, with producer and uptime; a boss scenario lists the enemy's level,
   armour, evasion, resistances and crit from E1. At a region's last progress key either region's
   resistance penalty is accepted (D-251).
-- **One final compile.** Only the D2 gate's `final` call compiles with `build_name`, once, with the
-  header's `buildName`; every other compile is measure-only. A refused final compile is reported, never
-  worked around.
+- **One final compile per D2 gate.** Only the D2 gate compiles with `build_name`, once, with the header's
+  `buildName`, after its measure-only check passed; every other compile is measure-only. A refused final
+  compile is reported, never worked around.
 
-## Revision and routed re-runs (`build-guide-design`, slice 03 §5.3 "Resuming", §5.5)
+## The fix round and revisions (SKILL.md steps 12 and 16)
 
-| Stage | Stage reference | Does |
-|---|---|---|
-| `revise-map` | `.claude/skills/build-guide/references/stages/revise-map.md` | first step of a checkpoint-2 revision: maps each of the user's requests to the step that owns it (`W1`, `D1`, `D2` or `dossier-fix`); writes nothing |
-| `dossier-fix` | `.claude/skills/build-guide/references/stages/dossier-fix.md` | edits `dossier.md` for a V3 or V4 finding in it, or a revision request mapped to it |
-
-- **The owner table** (§5.5): `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing
-  one and an endgame price are D1's; a campaign stage and a ledger entry citing only campaign stages are
-  D2's; `dossier.md` is dossier-fix's. `revise-map` maps by it and changes nothing: no write, no compile,
-  no price call.
-- **Re-run with findings.** When V3 or V4 finds an `unresolved` claim, the workflow re-runs the step that
-  wrote it (D1, D2 or dossier-fix here) with those findings in the header's `findings`
+- **The owners.** `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing one and an
+  endgame price are D1's; a campaign stage and a ledger entry citing only campaign stages are D2's. The
+  dossier isn't verified after checkpoint 1, so it has no owner.
+- **Re-run with findings.** When V4 leaves an `unresolved` claim, the runner re-runs the step that wrote it
+  (D1 or D2 here) once, with those findings in the header's `findings`
   (`{id, artifact, location, claim, issue, evidence, owner}`); after a revision, with the user's requests
-  (`code: "user-request"`). Fix each claim or make each change at its location and keep everything else.
-  The gates and the steps after you run again, then V3 and V4.
+  (`code: "user-request"`). Fix every claim each issue touches, not only the flagged location, keep
+  everything else, and return the ids you fixed and the locations you changed. The gates and the steps
+  after you run again, then the V4 re-check.

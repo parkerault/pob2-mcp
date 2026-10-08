@@ -1,9 +1,10 @@
 # Gates and their verdict files
 
-A gate is the check a step must pass before the run moves on. A gate step returns a verdict; the skill
-writes it unchanged to `reports/gates/<stage>-<concept>-a<attempt>.json` (`run-folder.md`). The run
-checker re-reads the last D1 gate's file and recomputes it from the records, so the shapes below are a
-contract: keep the field names exactly.
+A gate is the check a step must pass before the run moves on. A gate step (R1b, the D1 gate, the D2 gate)
+writes its verdict itself, to `reports/gates/<stage>-<concept>-a<attempt>.json` (`run-folder.md`), and
+returns one verdict line; the runner reads the file to route. The run checker re-reads the last D1 gate's
+file and recomputes it from the plan and the record, so the shapes below are a contract: keep the field
+names exactly.
 
 ## Every verdict file
 
@@ -19,22 +20,23 @@ contract: keep the field names exactly.
 }
 ```
 
-- `stage`, `concept` and `attempt` match the file name.
+- `stage`, `concept` and `attempt` match the file name and the step's header.
 - Each `verdict` part is `pass`, `fail` or `unverified`.
 - Each finding names the `part` it belongs to, a stable `code`, the plan `stage` it concerns (a plan
   stage id such as `b`; omitted only for a finding about no one stage), and a `message` citing record
   fields and C1/E1 keys. A V1 or V2 finding keeps the `code` the compile record gives it; floor, budget
-  and rolledSkill findings use the codes below.
+  and rolledSkill findings use the codes below. Read the V1 and V2 findings from
+  `mcp__pob2__compile_plan`'s text, which prints every one, or from the record.
 - **Two findings are equal when their plan `stage`, `part` and `code` are**, whichever gate reports them:
   a V1 finding the user accepted at the D1 gate is the same finding when the D2 gate or the final record
-  reports it again, and it covers that plan stage only (§5.4).
+  reports it again, and it covers that plan stage only.
 - Extra fields are allowed (for example R1b's `errors`, the D2 gate's `finalCompile`, FI-3's `forced`).
 
 | Gate | Parts | Passes when |
 |---|---|---|
 | `R1b` | `compiled` | the skeleton compiled with no compile error (C-36) |
 | `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill` | see below |
-| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192) |
+| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192); the final compile then succeeded |
 
 ## The D1 gate's parts (slice 03 §5.3)
 
@@ -66,9 +68,9 @@ stages with a `variant`.
   no slot can carry chaos resistance without dropping a core item or breaking the budget".
 - **budget** (D-116, D-147, D-164, D-219, D-249), for the budget variant: every filled slot **and every
   tree jewel** (`items.treeJewels`) has a `prices[]` entry, converted to divines with
-  `get_currency_rates`' rates. Each filled slot or jewel has its own entry, except slots holding identical
-  item text (two identical rings may share one, and each counts). Totals are compared **rounded to 2
-  decimals**.
+  `mcp__pob2__get_currency_rates`' rates. Each filled slot or jewel has its own entry, except slots holding
+  identical item text (two identical rings may share one, and each counts). Totals are compared **rounded
+  to 2 decimals**.
   - total **≤ 20 divines: pass**;
   - total **> 20 and ≤ 22: pass, with a "near the ceiling" note** the guide's budget `Checks` must carry
     in those words;
@@ -80,20 +82,18 @@ stages with a `variant`.
   (`skills.rolledGroup`) has role `clear` or `single_target`, never `utility` or `leveling`, and its
   figure is the largest among the stage's groups with that role. A figure is a record `skillOutputs`
   field (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared, or a ledger
-  entry's value (`ledger:<id>`).
+  entry's value (`ledger:<id>`). **The rolled figure's stat set is the stage's `skills.main.statSet`**
+  (amendment 1 S7): the PoB file opens on that stat set, so the guide's headline figure is the one the user
+  sees. D1 sets it; a stage without it, or a rolled `skillOutputs` figure of another stat set, fails.
 
-### The basis: what the run checker recomputes from
+### The basis: what the run checker reads from the D1 gate's file
 
-The D1 gate's file also carries `basis`. The checker re-reads every number from the record and the plan
-and fails where the basis or the verdict differs.
+The D1 gate's file also carries `basis`: only what the plan and the record don't say. The run checker
+recomputes the floor from the plan and the record alone, and reads the budget's slot→price map with its
+rates, and each endgame stage's figures, from here; it fills every number from the record itself.
 
 ```json
 "basis": {
-  "floor": [
-    { "stage": "b", "missing": { "Fire": 0, "Cold": 0, "Lightning": 0 }, "chaos": 47,
-      "hits": [ { "type": "Physical", "hit": 402, "maxHitTaken": 5100 },
-                { "type": "Fire", "hit": 97, "maxHitTaken": 9800 } ] }
-  ],
   "budget": {
     "rates": [ { "currency": "exalted", "divines": 0.01 } ],
     "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
@@ -102,25 +102,21 @@ and fails where the basis or the verdict differs.
     "nonBudget": [ { "stage": "n", "divines": 168.0, "reference": 200 } ]
   },
   "rolledSkill": [
-    { "stage": "b", "group": 1, "role": "clear",
-      "figures": [ { "group": 1, "figure": "g1s1p1.TotalDPS", "value": 50000 },
-                   { "group": 2, "figure": "g2s1p1.TotalDPS", "value": 21000 } ] }
+    { "stage": "b", "figures": [ { "group": 1, "figure": "g1s1p1.TotalDPS" },
+                                 { "group": 2, "figure": "g2s1p1.TotalDPS" } ] }
   ]
 }
 ```
 
-- `floor`: one entry per endgame stage: the three gated values, the chaos value
-  (`MissingChaosResist`), and each of the five reference hits with its `<Type>MaximumHitTaken`.
+- `budget.slots`: one entry for every filled slot (`{stage, slot, priceId}`) and every tree jewel
+  (`{stage, jewel: <node id>, priceId}`) of every budget-variant stage, naming a `prices[].id`; `rates`, the
+  rates used (`divines` is what one unit of the currency is worth; a divine counts 1).
+- `budget.totals` (each budget stage's total, `null` when unverified) and `budget.nonBudget` are what W1
+  quotes in the guide; the run checker computes its own total from the prices and rates.
+- `rolledSkill`: per endgame stage, one figure for **every** group of the rolled group's role: the record
+  field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record.
 - Findings with codes `chaos-exception` and `near-ceiling` report on a passing part: they are never
   failures, and need no acceptance.
-- `budget`: one `slots` entry for every filled slot (`{stage, slot, priceId}`) and every tree jewel
-  (`{stage, jewel: <node id>, priceId}`) of every budget-variant stage, naming a `prices[].id`; the
-  `rates` used (`divines` is what one unit of the currency is worth; a divine counts 1); each budget
-  stage's total, `null` when unverified.
-- `rolledSkill`: per endgame stage, the rolled group, its role, and one figure for **every** group of
-  that role.
-- Every number is copied from the record as it stands, or rounded to 2 decimals: the checker compares each
-  copy with the record to 2 decimals, whatever its size.
 
 ### Finding codes for floor, budget and rolledSkill
 
@@ -140,19 +136,30 @@ The run checker recomputes these parts and names each failure by these codes, so
 | budget | `unverified` | an unavailable price or a missing rate |
 | rolledSkill | `rolled-role` | the rolled group's role isn't `clear` or `single_target` |
 | rolledSkill | `rolled-not-largest` | another group of that role has the larger figure |
+| rolledSkill | `rolled-stat-set` | the stage sets no `skills.main.statSet`, or the rolled figure is another stat set's |
 | rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
 
 ## The D1 gate's outcome
 
+The runner routes by the verdict file and D1's claim (slice 03 §5.3's table, unchanged):
+
 | Gate verdict | D1's claim | Outcome |
 |---|---|---|
 | compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | D2 |
-| compile, V1 or V2 fails | any | D1 re-runs with the findings; after 2 retries, `escalated` |
+| compile, V1 or V2 fails | any | D1 re-runs with the findings; after 2 counted retries, `escalated` |
 | only floor, budget or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
-| only floor, budget or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 retries, `infeasible` |
+| only floor, budget or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 counted retries, `infeasible` |
+| `"forced": "infeasible"` (FI-3) | any | `infeasible`, evidence `FI-3 (injected)` |
+
+## The D2 gate's outcome
+
+The D2 gate compiles measure-only and, when the compile, V1 and V2 pass for every stage, runs the final
+compile in the same step (`stages/D2-gate.md`). A pass goes to W1. A failure, a failed or refused final
+compile included (part `compiled`, code `final-compile`), re-runs D2 with the findings; after 2 counted
+retries, `escalated`.
 
 A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
-nor a later one (`checkpoints.md`). A completed run's guide passed every gate: the run checker fails a
-completed run whose recomputed floor, budget or rolled skill fails, or whose last D1 or D2 gate has a
+nor a later one (`checkpoints.md`). Once a guide exists it passed every gate: the run checker fails a run
+with a guide whose recomputed floor, budget or rolled skill fails, or whose last D1 or D2 gate has a
 failing part, unless accepted findings cover every failure. Only a pass, or an `unverified` budget,
 proceeds to D2.

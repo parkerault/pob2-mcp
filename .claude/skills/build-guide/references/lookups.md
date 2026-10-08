@@ -6,7 +6,7 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 
 ## The lookup set L (server `pob2`; all kind `read`, they never change the build)
 
-- `lookup_game_data` (C-37):
+- `mcp__pob2__lookup_game_data` (C-37):
   - `{mode: "gem", query}`: each gem's kind (`active` or `support`), description, weapon, every stat set
     ("skill part") with its **base attack damage and base critical hit chance** (D-241) and PoB's tooltip
     lines at `gem_level` and `gem_quality`, the quality lines, the requirements at every gem level
@@ -19,11 +19,11 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
     and item mods. **`kind` (`gem`, `unique`, `passive` or `mod`) lists one kind only**; the header still
     counts every kind's hits (D-240). Use it when a broad query fills every slot with one kind.
   - `max_results` defaults to 20 and is capped at 30 (D-225).
-- `check_model_coverage` (C-38): per line of an item, a node or a gem, whether PoB applies it.
-- `search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`.
-- `list_gems`, `get_classes`.
+- `mcp__pob2__check_model_coverage` (C-38): per line of an item, a node or a gem, whether PoB applies it.
+- `mcp__pob2__search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`.
+- `mcp__pob2__list_gems`, `mcp__pob2__get_classes`.
 
-## Reading `check_model_coverage`
+## Reading `mcp__pob2__check_model_coverage`
 
 | Status | Means | Do |
 |---|---|---|

@@ -2,7 +2,7 @@
 
 <!--
 Template for dossier.md (slice 03 section 7.2), written by the R1b-assemble step
-(.claude/skills/build-guide/references/stages/R1b-assemble.md) and fixed only by the dossier-fix step.
+(.claude/skills/build-guide/references/stages/R1b-assemble.md), its only writer.
 Keep the six H2 headings below exactly, in this order, and add no other H2. Under Concepts, one H3
 "<id>: <title>" per carried concept. Every claim carries a footnote marker; every marker has exactly one
 definition line, and all definitions go at the very end of the file, below Not carried, with no heading

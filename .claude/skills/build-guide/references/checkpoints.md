@@ -1,85 +1,82 @@
 # Checkpoints, questions and escalations
 
-The skill stops for the user at two checkpoints and at two kinds of question (slice 03 §10, §5.4;
-D-125, D-157, D-210, D-235, D-236). Each is asked with AskUserQuestion; if the choices exceed one
-question's option limit, split them across two questions. In offline test mode the test config answers
-instead (`offline-and-test.md`), and only there (A-28). Every presentation and answer is recorded in the
-run log's `checkpoints[]` (`shown`, `answer`, `answeredBy`, `at`), plus `timeline[]`.
+The runner stops for the user at two checkpoints and at two kinds of question (slice 03 §10, §5.4, as
+amendment 1 changes them; D-125, D-157, D-210, D-235, D-236). Each is asked with AskUserQuestion; if the
+choices exceed one question's option limit, split them across two questions. In offline test mode the
+test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
+the run log's `checkpoints[]` (`answer`, `answeredBy`, and `rule` for a pre-supplied or default answer).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
-Asked once, right after the run log's first write, when `guide_run {new_run}` replied
+Asked once, right after the run log's first write, when `mcp__pob2__guide_run {new_run}` replied
 `loadedBuildUnsaved: true`. The run's first compile replaces the engine's loaded build, so:
 
 - **proceed**: the run continues, and the loaded build's unsaved changes will be discarded;
 - **stop**: the run ends `stopped`. Nothing has been compiled, and no research has started.
 
 Say which build it is when the reply names it, and that the user can save it first (with
-`lua_save_build`, outside this run) and start again. Recorded as checkpoint `unsaved-build`. With a test
-config, `answers.unsavedBuild` answers it; with none there, the answer is `stop`
+`mcp__pob2__lua_save_build`, outside this run) and start again. Recorded as checkpoint `unsaved-build`.
+With a test config, `answers.unsavedBuild` answers it; with none there, the answer is `stop`
 (`answeredBy: "default"`).
 
 ## Checkpoint 1: pick a concept
 
-Shown after every research round, and after a design result sends the run back here.
+Shown after every research round, and after a design that was `infeasible` or an escalation sent the run
+back here.
 
-- **Show**, per concept of the run (every round, not only the last): its synergy in a line, numbers from
-  its skeleton's record, key prices (dated, or `unavailable`), risks, what PoB can't verify, and its
-  status (`viable`, `failed`, `not-carried`). Give the dossier's path. After an `infeasible` design
-  result or an escalation sent back here, show that concept's evidence. With no viable concept, show the
-  best attempts and why each fails (D-141).
+- **Show** R1b-assemble's comparison, one line per concept of the run (every round, not only the last): its
+  synergy, numbers from its skeleton's record, key prices (dated, or `unavailable`), risks, what PoB can't
+  verify, and its status (`viable`, `failed`, `not-carried`). Give the dossier's path. After an
+  `infeasible` design or an escalation, show that concept's evidence: its last verdict file. With no viable
+  concept, show each concept's last verdict and why it fails (D-141).
 - **Ask**: pick a concept (a failed one may be picked anyway), ask for more, or stop.
-  - **pick**: the design workflow runs for that concept.
+  - **pick**: the design (steps 6 to 9) runs for that concept.
   - **ask for more** (D-235): a new research round of up to 3 concepts, with the user's note. Its
-    `firstId` is one more than the highest concept id so far. Only this answer starts a round; the skill
+    `firstId` is one more than the highest concept id so far. Only this answer starts a round; the runner
     never starts one on its own.
   - **stop**: the run ends `stopped`.
 
 ## Checkpoint 2: the guide
 
-Shown when the design workflow returns `ready`.
+Shown after the run checker (step 15).
 
-- **Show** the guide's path; the V3 and V4 verdicts with finding counts by status; the gate verdicts; a
-  run-log summary (times as the log has them, agents, retries, revisions, price calls); when any price is
-  `unavailable`, that the variant can't be claimed to be under budget (D-164); and in offline mode, that
-  the guide is from an offline run.
+- **Show** the guide's path; the PoB file (the D2 gate verdict's `finalCompile.pobFile`); the gate
+  verdicts; the known issues (the open V4 findings and the accepted gate findings); the run checker's
+  result; when any price is `unavailable`, that the variant can't be claimed to be under budget (D-164);
+  and in offline mode, that the guide is from an offline run.
 - **Ask**: accept, ask for changes, or anything else.
   - **accept**: the run ends `completed`.
-  - **changes** (D-236): a revision. The design workflow resumes with
-    `{reason: "revision", round, requests, attempts}`; its `revise-map` step maps each request to the step that
-    owns it, which re-runs with every later step and the checks. Revisions count against no retry cap.
-    Record `{round, requests: [{text, owner}]}` in `revisions[]`, then come back to checkpoint 2.
+  - **changes** (D-236): a revision. The runner maps each request to the step that owns it, by the fix
+    round's owners: the guide's text is W1's; an endgame stage of `plan.json`, its ledger entries and
+    prices D1's; a campaign stage D2's. It runs that owner's chain (D1 → D1 gate → D2 gate → W1; D2 → D2
+    gate → W1; W1 alone) with the requests as `findings` (`code: "user-request"`), then the full V4 pass,
+    the fix round, the re-check and the known issues again, and comes back here. A revision counts against
+    no retry cap. The answer is recorded as `revise:<text>`.
   - **any other answer**: the run ends `not-accepted`, with the user's note recorded as the answer.
 
-## Escalations (§5.4; D-127, D-141, D-236)
+## Escalations (D-127, D-141, D-236)
 
-A step that fails its gate, errors or returns nothing has failed that attempt and re-runs with the
-findings. After **2 retries per (stage, concept)** the workflow returns `escalated` with every attempt's
-findings. The skill records it in `escalations[]`, shows the stage, the attempts, the findings and the
-artifact paths, and asks:
+Only the D1 and D2 gates escalate: on the third counted failure of a compile, V1 or V2 (the D2 gate's
+final compile included), and on a guided retry that fails again. Verification never escalates: what it
+leaves open becomes a known issue. Record the escalation in `escalations[]` as `{stage, concept, verdict,
+choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the question as checkpoint
+`escalation`. Show the stage, the attempts and the verdict file, and ask:
 
-1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings, attempts, retries}` (`attempts`, `retries`: SKILL.md §6). A gate finding
-   equal to an accepted one, **same plan stage, part and `code`**, fails no gate afterwards, whichever gate
-   reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding only when it is
-   the same finding: the same report, `id` and `artifact`, and the same `location` (a `<H2 title>, line
-   <n>` location by its section, since a regenerated guide moves its lines). The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
-   PoB can't model", one line per finding naming its `code` (or `id`) and its gate (`D1-gate`, `V3`, …),
-   with its plan stage; the run checker looks for them there. **Not offered when the failure is a
-   compile error**: nothing compiled to continue from, nor at `W1` or `dossier-fix`, which escalate
-   only when they return nothing, nor at `revise-map`, which mapped nothing.
-2. **guidance and one more retry**: the user's guidance goes in; the design workflow resumes with
-   `{reason: "guided-retry", stage, findings, guidance, attempts, retries}` (at `revise-map` also the
-   revision's `round` and `requests`). That attempt counts against no cap, and if it
-   fails, the run escalates again.
-3. **back to checkpoint 1**, with the findings as that concept's evidence.
+1. **accept**: the verdict's failing findings are accepted. A gate finding equal to an accepted one, **same
+   plan stage, part and `code`**, fails no gate afterwards, whichever gate reports it: every later header's
+   `accepted` carries them. The guide lists each under its H3 `Known issues` in "Confidence and what PoB
+   can't model", one line per finding naming its `code` and its gate (`D1-gate` or `D2-gate`), with its
+   plan stage; the run checker looks for them there. After the D1 gate the run goes on as if it passed;
+   after the D2 gate, the D2 gate runs once more, uncounted, with them in `accepted`, so it runs the final
+   compile. **Not offered when the failure is a compile error**: nothing compiled to continue from.
+2. **guidance and one more retry**: the producer (D1 or D2) runs once more with the verdict and the
+   user's guidance in `findings`. That attempt counts against no cap, and if its gate fails, the run
+   escalates again.
+3. **back to checkpoint 1**, with the verdict file as that concept's evidence.
 4. **stop**: the run ends `escalated`.
 
-Record the escalation with every finding **verbatim**, as its verdict or report has it (a gate finding's
-`stage` stays the plan stage), plus a `gate` field naming the gate or report it failed (`D1-gate`,
-`D2-gate`, `V3`, `V4`). Record the choice (and any guidance) on the escalation entry, and the question as
-checkpoint
-`escalation`. With a test config, `answers.escalation[]` answers each escalation in turn; with none left,
-the answer is `stop` (`answeredBy: "default"`), so the run ends `escalated`.
+With a test config, `answers.escalation[]` answers each escalation in turn; with none left, the answer is
+`stop` (`answeredBy: "default"`), so the run ends `escalated`.
 
 ## Pre-supplied answers (offline test mode only)
 
@@ -91,8 +88,8 @@ the answer is `stop` (`answeredBy: "default"`), so the run ends `escalated`.
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `checkpoint-1` or `stop` | none left: `stop`, `default` |
 
 When `checkpoint1` or `checkpoint2` answers run out, the run ends `stopped` (recorded as answer `stop`,
-`answeredBy: "default"`). Record a used answer with
-`answeredBy: "pre-supplied"` and the answer it resolved to (`first-viable` → `pick:c3`). Either way the
-entry's `rule` keeps how the answer was reached: the test config's answer exactly as written
-(`"rule": "first-viable"`), or the default that applied (`"rule": "no checkpoint1 answer left: stop"`).
-The guide quotes the rule that picked its concept (`run-log.md`).
+`answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it resolved
+to (`first-viable` → `pick:c3`). Either way the entry's `rule` keeps how the answer was reached: the test
+config's answer exactly as written (`"rule": "first-viable"`), or the default that applied
+(`"rule": "no checkpoint1 answer left: stop"`). The guide quotes the rule that picked its concept
+(`run-log.md`).

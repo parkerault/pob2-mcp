@@ -6,7 +6,7 @@
 
 Started only explicitly, with `--offline`; the run log records `mode: "offline"`. In offline mode:
 
-- **No web and no prices.** No step calls a trade tool, `get_currency_rates`, WebSearch or WebFetch, even
+- **No web and no prices.** No step calls a trade tool, `mcp__pob2__get_currency_rates`, WebSearch or WebFetch, even
   if one is available. In the M-12 environment those tools are removed, so the rule is enforced, not just
   followed.
 - **Research uses only the server's lookup tools and the committed C1/E1 files** (`data/campaign/`,
@@ -34,7 +34,6 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
     "escalation": ["retry:keep the budget variant's helmet"],
     "unsavedBuild": "proceed"
   },
-  "orchestration": "agent-tool",
   "faults": [
     { "id": "FI-1", "concepts": ["c1"], "persistent": true },
     { "id": "FI-2", "concepts": "all", "persistent": false }
@@ -44,23 +43,27 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at
   checkpoints and questions (`checkpoints.md` lists what each answer means and the defaults when they run
-  out), its `orchestration: "agent-tool"` forces the fallback (`fallback.md`), and its faults are
-  applied.
-- **Without `--offline`** the skill records `testConfig: "refused"`, ignores the file (no answer, no
-  fault, no forced orchestration) and asks the user at every checkpoint (D-157). Say so in the reply.
+  out), and its faults are applied.
+- **Without `--offline`** the runner records `testConfig: "refused"`, ignores the file (no answer, no
+  fault) and asks the user at every checkpoint (D-157). Say so in the reply.
 - A file that can't be read or isn't this shape, given with `--offline`, is refused too
-  (`testConfig: "refused"`), and the run stops before research: status `stopped`, with a `timeline[]`
-  entry such as `stopped: malformed test config <path>: <what is wrong>`, and the same reason in the
-  reply.
+  (`testConfig: "refused"`), and the run stops before research: status `stopped`, and the reason in the
+  reply (`stopped: malformed test config <path>: <what is wrong>`).
 - Without `--test`, `testConfig: "none"`.
 
 ## Fault directives (test config only)
 
 Each directive names its target concepts (a list of ids, or `"all"`) and whether it is `persistent`
-(every attempt) or applies to attempt 1 only. The workflows put a directive only into the task headers
-of the steps it targets, in the header's `faults` (`task-header.md`). The step that applies one reports
-it, and the skill logs each application in `faults[]` as `{id, target, applied, observed}` (`applied`
-counts the applications; `observed` says what failed as a result).
+(every attempt) or applies to attempt 1 only (`persistent` missing or `false`). The runner puts a
+directive only into the task headers of the steps it targets, in the header's `faults` (`task-header.md`).
+The step that applies one reports it, and the runner logs each directive in `faults[]` as
+`{id, target, applied, observed}` (`target` as the test config wrote it; `applied` counts the headers that
+carried it; `observed` says what failed as a result).
+
+**Retries** (amendment 1 S6). An attempt failed by a directive that applies to attempt 1 only re-runs
+free: it counts against no retry cap. A persistent directive's failed attempts count, so the cap still
+ends the flow: run A's persistent FI-1 fails `c1` after 3 attempts, and run B's persistent FI-2 escalates
+`c2`'s D1 gate on its third failure. The run checker counts the same way.
 
 | Id | Applied by, when | Edit | Must then fail |
 |---|---|---|---|

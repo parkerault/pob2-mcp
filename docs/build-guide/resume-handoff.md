@@ -4,38 +4,34 @@ Written 2026-10-08, after the waves 2–3 gate. Read this, then `build-handoff.m
 the tail of `worklog.md` (every verdict, decision and friction note so far). Don't re-read the whole
 spec; pull each unit's block and ACs at dispatch time.
 
-## State
+## State (updated after the wave-4 gate)
 
-- **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`.
-  `fc200ba` is the head at the time of writing (`git log --oneline -1` for the current one).
-- **Merged and gated:** WU-30, WU-31, WU-32, WU-33, WU-34, WU-35, WU-36, WU-37, WU-38, WU-39, WU-40,
-  WU-49. Waves 1 and 2–3 passed their independent gates. Tools: 82 (81 without poe.ninja).
-- **In flight when this was written** (check `git worktree list`; a lane that exists is unmerged):
-  - WU-41 (the compiler, `compile_plan`, `guide_run`), lane `bg-41` off `413bec7`. It must rebase
-    onto the integration head before merging.
-  - A WU-34 follow-up, lane `bg-34b` off `ec2c822`: `get_passive_upgrades` returns `refit` so prepended
-    session notices can't push can't-measure lines past C-1's cut (D-53, D-246).
+- **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`
+  (`git log --oneline -1` for the head).
+- **Merged and gated:** every unit through WU-44, plus WU-49 (17 of 18 non-human units minus WU-45…47).
+  M-10 and M-11 exits pass (wave-4 gate at `1d6f260`). Tools: 84 (83 without poe.ninja).
+- **In flight when last updated:** WU-45 (design-and-write workflow), lane `bg-45` off `bbad209`.
+  It rebases onto the integration head before merging. `git worktree list` shows unmerged lanes.
 - **Main checkout** `/home/parker/projects/pob2-mcp` (branch `stabilization/foundation`, spec at
   `b34db2a`) is untouched by the fleet. The stabilization worktree `pob2-mcp-wt/build` is not ours.
 
 ## What's left (spine §8)
 
-1. WU-41 → review → merge. Its brief carried the reviewers' pitfalls (work-log "Notes for WU-41 and
-   WU-42").
-2. Then in parallel: **WU-42** (V1 and V2 inside compile; `data/config-baseline.json`) and **WU-43**
-   (the skill, run log, checkpoints, offline mode, run checker, workflow harness). They are
-   filesystem-disjoint.
-   - WU-42 gets the notes on the interlude resistance bucket and on attribute nodes without a choice.
-   - WU-43 must carry D-243: `possibly unread` is advisory, confirmed by measurement before
-     hand-calculating.
-3. Then WU-44 → WU-45 → WU-46, in series: they share `tests/unit/buildGuideWorkflows.test.ts` and the
-   coordinator agent file.
-4. Then **WU-47**, the recorded offline pipeline run. It needs:
-   - a headless Claude Code session with its own MCP config registering this server as `pob2`;
-   - temp builds, state and guides dirs, trade and poe.ninja disabled, WebSearch and WebFetch denied;
-   - the procedure in slice 03's WU-47 block.
-5. A gate after each wave; then the M-12 exit check.
-6. **WU-48** (the live Titan / Blood Hunt run) waits for the user's approval (HG-14).
+1. WU-45 → review → merge.
+2. **WU-46** (V3 provenance and V4 claim-verification agents wired into the design workflow; V4 accepts
+   `external-unavailable` only offline). It shares `tests/unit/buildGuideWorkflows.test.ts` and the
+   coordinator agent file with WU-44/45, so it runs after WU-45.
+3. **WU-47**, the recorded offline pipeline run. Follow slice 03's WU-47 block. It needs a headless
+   Claude Code session per the handoff's exception: strict MCP config, its own `pob2` server with temp
+   dirs, trade and poe.ninja disabled, web tools denied, and its cost reported. WU-43's report recorded
+   how: a wrapper puts mise's luajit and node on PATH, and the journal is at
+   `~/.claude/projects/<cwd-slug>/<session>/subagents/workflows/<runId>/journal.jsonl`. An independent
+   verifier checks the record. The user was told the cost will be noticeably more than WU-43's $0.16
+   probe.
+4. A wave gate after WU-45/46, then the M-12 exit check after WU-47.
+5. **WU-48** (the live Titan / Blood Hunt run) waits for the user's approval (HG-14).
+6. Finalization with the user: fold the work-log's coordinator decisions (D-239…D-252 and the rest)
+   into the spine; sign-rebase; the push decision.
 
 ## Orchestration conventions used so far
 
@@ -56,7 +52,7 @@ spec; pull each unit's block and ACs at dispatch time.
 
 ## To fold into the spine at the end (all recorded in the work-log)
 
-D-239…D-247; the C-48 counting wording; spine §1.3's two missing count sites; the slice 01 §2.1
+D-239…D-252 (the work-log lists each); the C-48 counting wording; spine §1.3's two missing count sites; the slice 01 §2.1
 `statSet` reply field; §2.4's 106 files / 18,805 names; the WU-30 rulings (HG-13 not fired; Full DPS off
 in the compiler); the accepted deviations; the pre-existing `buildExportService.ts` dangling-symlink
 gap (stab D-42) for the user.

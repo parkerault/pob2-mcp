@@ -32,6 +32,7 @@ import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSea
 import type { Credentials } from "../trade/credentials.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
+import { handleEncodeBuildCode } from "../handlers/buildCodeHandlers.js";
 
 export interface ToolRouterDependencies {
   contextBuilder: ContextBuilder;
@@ -707,6 +708,9 @@ async function dispatch(
       if (!args?.build_name) throw new Error("Missing build_name");
       if (args?.notes == null) throw new Error("Missing notes");
       return await handleSetBuildNotes(deps.contextBuilder.buildHandlerContext(), args.build_name as string, args.notes as string);
+
+    case "encode_build_code":
+      return await handleEncodeBuildCode(handlerContext, args?.build_name);
 
     default:
       // A TOOL_META entry without a case: still a protocol error, never an isError result.

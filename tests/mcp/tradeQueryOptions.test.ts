@@ -81,13 +81,13 @@ engineDescribe('AC-T41 (WU-17, C-15): trade_query_options through the MCP tool',
   });
 
   // AC-T41 counted 75 tools when WU-17 landed; WU-23 lists find_upgrades too (76), WU-25 set_gem_corruption (77, D-91),
-  // and WU-31 lookup_game_data (78).
-  it('AC-T41: tool-disposition.json has no pending on trade_query_options, and listTools has 78 tools (75 + find_upgrades + set_gem_corruption + lookup_game_data, AC-T45, D-91)', async () => {
+  // WU-31 lookup_game_data (78) and WU-40 encode_build_code (79, C-42).
+  it('AC-T41: tool-disposition.json has no pending on trade_query_options, and listTools has 79 tools (75 + find_upgrades + set_gem_corruption + lookup_game_data + encode_build_code, AC-T45, D-91)', async () => {
     const entry = DISPOSITION.find((e) => e.name === 'trade_query_options');
     expect(entry).toBeDefined();
     expect(entry!.pending).toBeUndefined();
     const listed = (await fx.server.client.listTools()).tools.map((t) => t.name);
-    expect(listed).toHaveLength(78);
+    expect(listed).toHaveLength(79);
     expect(listed).toContain('trade_query_options');
     expect(TOOL_META.trade_query_options).toEqual({ engine: 'read', group: 'trade' });
   });

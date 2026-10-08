@@ -3,6 +3,7 @@
  *
  * A PoB export code is base64(zlib-deflate(buildXml)), using URL-safe base64
  * (`-`/`_`). Share sites (pobb.in, pastebin) host that code at a raw endpoint.
+ * `encodePobCode` produces it; `decodePobCode` reads it back.
  */
 import zlib from "node:zlib";
 import { shareSiteUserAgent } from "./userAgent.js";
@@ -59,6 +60,15 @@ export function assertPoe2BuildXml(xml: string): void {
 function isTooLarge(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException | null)?.code;
   return code === "ERR_BUFFER_TOO_LARGE" || (error instanceof RangeError && /too large|maxOutputLength/i.test(error.message));
+}
+
+/**
+ * Encode build XML as a PoB import code (C-42): `zlib.deflateSync` of the UTF-8 bytes, base64, then
+ * `+`→`-` and `/`→`_`, keeping the `=` padding. That is PoB's own form (`ImportTab.lua:133`), and
+ * `decodePobCode(encodePobCode(xml)) === xml` for any PoE2 build XML.
+ */
+export function encodePobCode(xml: string): string {
+  return zlib.deflateSync(Buffer.from(xml, "utf8")).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 /**

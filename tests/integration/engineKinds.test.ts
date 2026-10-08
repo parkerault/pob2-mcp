@@ -19,12 +19,12 @@
  */
 import fs from 'fs';
 import path from 'path';
-import zlib from 'zlib';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { GOLDEN_XML, canonicalExport, startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { canonicalExportAcrossReload } from '../helpers/reloadCanonical';
 import { TOOL_META } from '../../src/server/toolMeta';
+import { encodePobCode } from '../../src/utils/buildCode';
 
 interface Step {
   tool: string;
@@ -46,7 +46,7 @@ const ALLOWLIST = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-hygiene-a
 }>;
 const PLACEHOLDERS: Record<string, unknown> = {
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
-  $GOLDEN_BUILD_CODE: zlib.deflateSync(Buffer.from(GOLDEN_XML, 'utf8')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
+  $GOLDEN_BUILD_CODE: encodePobCode(GOLDEN_XML),
   $ALLOCATED_NODES: (/<Spec\b[^>]*\snodes="([^"]*)"/.exec(GOLDEN_XML) as RegExpExecArray)[1].split(',').map(Number),
 };
 function resolve(value: unknown): unknown {

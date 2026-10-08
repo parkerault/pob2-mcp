@@ -208,6 +208,20 @@ export function getToolSchemas(): ToolSchema[] {
         required: ["build_name", "notes"],
       },
     },
+    {
+      name: "encode_build_code",
+      description: "Encode a build file from the builds folder as a Path of Building 2 import code, in the form PoB2's Build Sharing section generates and import_build accepts. Returns the file's path relative to the builds folder, its size in bytes and the code, on one line. The code is made from the file's exact bytes, so decoding it gives the file back unchanged, with its skill, item, tree and config sets, loadouts, level and level mode. Only PoE2 builds (a <PathOfBuilding2> document) are accepted. It reads the file only, and never starts or changes the engine.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          build_name: {
+            type: "string",
+            description: "Build file, relative to the builds folder (e.g. 'MyBuild.xml' or 'league/MyBuild'; .xml is optional)",
+          },
+        },
+        required: ["build_name"],
+      },
+    },
   ];
 }
 

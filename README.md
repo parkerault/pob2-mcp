@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-78 tools are listed by default; the full table is [below](#tools).
+79 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -57,7 +57,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 ```
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 78 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 79 tools.
 
 ## Configuration
 
@@ -163,6 +163,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `find_path_to_node` | core | Find the shortest path from your current tree to a specific passive node. |
 | `get_build_notes` | core | Read the notes/documentation from a PoB build file |
 | `set_build_notes` | core | Replace the notes in a build file in the builds folder. |
+| `encode_build_code` | core | Encode a build file from the builds folder as a Path of Building 2 import code, in the form PoB2's Build Sharing section generates and import_build accepts. |
 | `lua_start` | core | Start the PoB headless API process. |
 | `lua_stop` | core | Stop the PoB headless API process and clean up resources. |
 | `lua_new_build` | core | Create a new blank build with specified class and ascendancy. |

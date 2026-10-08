@@ -1083,10 +1083,10 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       expect(http.calls).toEqual([]);
     }, TIMEOUT);
 
-    it('AC-T45: tool-disposition.json has no pending left, and listTools has 78 tools (AC-F25; 76 + set_gem_corruption, D-91, + lookup_game_data, WU-31)', async () => {
+    it('AC-T45: tool-disposition.json has no pending left, and listTools has 79 tools (AC-F25; 76 + set_gem_corruption (D-91) + lookup_game_data (C-37) + encode_build_code (C-42))', async () => {
       expect(DISPOSITION.filter((e) => e.pending !== undefined)).toEqual([]);
       const listed = (await fx.server.client.listTools()).tools.map((t) => t.name);
-      expect(listed).toHaveLength(78);
+      expect(listed).toHaveLength(79);
       expect(listed).toContain('find_upgrades');
       expect(TOOL_META.find_upgrades).toEqual({ engine: 'read', group: 'trade' });
     });

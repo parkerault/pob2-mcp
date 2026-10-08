@@ -29,6 +29,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   get_build_stats: core('none'),
   get_build_notes: core('none'),
   set_build_notes: core('none'),
+  // A build file as a PoB2 import code (C-42): reads the file's bytes only
+  encode_build_code: core('none'),
   compare_trees: core('none'),
   start_watching: core('none'),
   stop_watching: core('none'),

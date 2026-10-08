@@ -28,17 +28,17 @@
  *
  * Sample args may use these placeholders, resolved from committed fixtures:
  * - `"$RUBY_RING_TEXT"`: `tests/fixtures/items/ruby-ring.txt`;
- * - `"$GOLDEN_BUILD_CODE"`: the golden build as a PoB export code (base64url of zlib-deflated XML);
+ * - `"$GOLDEN_BUILD_CODE"`: the golden build as a PoB export code (`encodePobCode`, C-42);
  * - `"$ALLOCATED_NODES"`: the golden build's allocated node ids (its `<Spec nodes>`), as numbers.
  */
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import zlib from 'zlib';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { startTestServer, type TestServer } from '../helpers/server';
 import { fixtureFetch, type RecordedCall } from '../helpers/fixtureFetch';
 import { engineDescribe } from '../helpers/engine';
+import { encodePobCode } from '../../src/utils/buildCode';
 
 type Check = 'i' | 'ii' | 'iii';
 
@@ -92,7 +92,7 @@ const CALL_TIMEOUT_MS = 150000;
 const goldenXml = fs.readFileSync(GOLDEN, 'utf8');
 const PLACEHOLDERS: Record<string, unknown> = {
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
-  $GOLDEN_BUILD_CODE: zlib.deflateSync(Buffer.from(goldenXml, 'utf8')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
+  $GOLDEN_BUILD_CODE: encodePobCode(goldenXml),
   $ALLOCATED_NODES: (/<Spec\b[^>]*\snodes="([^"]*)"/.exec(goldenXml) as RegExpExecArray)[1].split(',').map(Number),
 };
 

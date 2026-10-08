@@ -57,3 +57,36 @@ name each lookup tool in the list.
 
 **Verdict: confirmed, with one open point.** When packaging is picked up, test the `mise exec` launch, or
 ship a wrapper script that sets up the environment.
+
+## 5. The saved-workflow script format (added during the spec review, 2026-10-07)
+
+Source: the Workflow tool's own description, as loaded in the coordinator's Claude Code session on
+2026-10-07. The public docs don't cover this level of detail. These facts are binding for WU-43's test
+harness and for every saved workflow:
+
+- **What a script is.** Plain JavaScript, not TypeScript. It must begin with `export const meta = {…}`, a
+  **pure literal** (no variables, calls, spreads or interpolation):
+  - required: `name` and `description`;
+  - optional: `whenToUse` and `phases: [{title, detail?, model?}]`.
+- **Where scripts live, and inputs.** Saved workflows live in `.claude/workflows/` (project) or
+  `~/.claude/workflows/` (user). They are invoked as `Workflow({name, args})`, and `args` arrives
+  verbatim as the global `args`.
+- **The script body.** It runs in an async context with top-level `await`. Its globals:
+  - `agent(prompt, {label, phase, schema, model, effort, isolation, agentType})`. With `schema`, this
+    returns the validated object; it returns `null` if the agent died or was skipped.
+  - `parallel(thunks)`, a barrier where a failed thunk gives `null`;
+  - `pipeline(items, ...stages)`;
+  - `phase(title)` and `log(msg)`;
+  - `budget`;
+  - `workflow(nameOrRef, args)`, nesting one level only;
+  - `args`.
+- **What scripts can't use.** `Date.now()`, `Math.random()` and an argless `new Date()` throw, because
+  they would break resume. There is also no filesystem and no Node API.
+- **Concurrency.** Workflow agents reach every session-connected MCP tool through ToolSearch. At most
+  min(16, CPUs − 2) agents run at once, with a lifetime cap of 1000.
+- **The run journal.** Each run's journal (`journal.jsonl` in the transcript directory) records every
+  agent's return value. It is the source for post-run inspection.
+
+Implication for testing: ts-jest here compiles to CommonJS (`jest.config.cjs`), so a test can't `import`
+a workflow script. The harness reads the script as text, takes the `meta` literal out, and runs the body
+inside an `async function` with injected fakes for the globals.

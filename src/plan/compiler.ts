@@ -51,7 +51,7 @@ import {
   type StageRecord,
 } from './record.js';
 import { validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
-import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger, type WriteLedger } from './writeLedger.js';
+import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
 export class CompileError extends Error {
@@ -360,7 +360,6 @@ interface TargetCheck {
   overwrite: boolean;
   /** The existing file's sha1 at check time, null for a new file. */
   existingSha1: string | null;
-  ledger: WriteLedger;
 }
 
 async function readIfExists(file: string): Promise<Buffer | null> {
@@ -384,27 +383,22 @@ async function checkTarget(env: CompilerEnv, buildName: string, runFolder: strin
   const current = await readIfExists(path.join(path.resolve(env.pobDirectory), ...rel.split('/')));
   if (current === null) {
     const guard = await env.writer.checkBuildFile({ name: buildName, kind: 'engine' });
-    return { rel, guard, overwrite: false, existingSha1: null, ledger };
+    return { rel, guard, overwrite: false, existingSha1: null };
   }
   const entry = ledgerEntryFor(ledger, rel);
   if (entry === undefined || entry.runFolder !== runFolder) {
-    try {
-      await env.writer.checkBuildFile({ name: buildName, kind: 'engine' });
-    } catch (error) {
-      if (error instanceof BuildFileWriteError) {
-        throw new BuildFileWriteError(
-          `${error.message} compile_plan replaces a builds-folder file only when this run (${runFolder}) wrote it ` +
-            `and nobody changed it since (the write ledger, D-211)` +
-            (entry === undefined ? '; no compile wrote it.' : `; it was written by run ${entry.runFolder}.`),
-        );
-      }
-      throw error;
-    }
+    // C-17 step 2's refusal; compile_plan has no overwrite argument: the ledger decides.
+    throw new BuildFileWriteError(
+      `${rel} already exists. compile_plan replaces a builds-folder file only when this run (${runFolder}) wrote it ` +
+        `and nobody changed it since (the write ledger, D-211)` +
+        (entry === undefined ? '; no compile wrote it.' : `; it was written by run ${entry.runFolder}.`) +
+        ' Choose another build_name, or save the existing build under a new name first.',
+    );
   }
   const currentSha1 = sha1(current);
-  if (entry !== undefined && currentSha1 !== entry.sha1) throw changedOnDisk(rel);
+  if (currentSha1 !== entry.sha1) throw changedOnDisk(rel);
   const guard = await env.writer.checkBuildFile({ name: buildName, kind: 'engine', overwrite: true });
-  return { rel, guard, overwrite: true, existingSha1: currentSha1, ledger };
+  return { rel, guard, overwrite: true, existingSha1: currentSha1 };
 }
 
 // ---------------------------------------------------------------------------------------------------

@@ -8,6 +8,8 @@
  *   `<base> {<ids>}`; the highest-level stage (the last among ties, A-P9) is the saved one.
  * - The text: plan errors name the stage after a `stages[n]` path; the compile modes refuse every other
  *   argument combination (C-41, C-50).
+ * - The record (C-33): `versionNotes` names every version the engine doesn't run; `unresolvedRefs` lists the
+ *   `pob-computed` tags that name no record field.
  */
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +17,7 @@ import { describe, expect, it } from '@jest/globals';
 import { compareAllocation, groupSets, loadoutBase, renderPlanErrors, savedStage, type StageAllocation } from '../../src/plan/compiler';
 import { validatePlan, type Stage } from '../../src/plan/schema';
 import { compileRequestOf, guideRunRequestOf } from '../../src/handlers/planHandlers';
+import { unresolvedRefs, versionNotes } from '../../src/plan/record';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'two-stage', 'plan.json');
 
@@ -153,5 +156,36 @@ describe('C-41, C-50: argument combinations and error lines', () => {
         raw,
       ),
     ).toEqual(['stages[1].level (stage b): too small', 'stages[2].id: Required', 'ledger: Required']);
+  });
+});
+
+describe('C-33: the record\'s version notes and unresolved refs', () => {
+  it('C-33: versionNotes names each of pobTag, pobCommit and treeVersion that differs from the running engine', () => {
+    const versions = { pobTag: 'v0.23.1', pobCommit: 'abc', treeVersion: '0_5', enginePatch: '0.5.4', externalPatch: '0.5.5' };
+    expect(versionNotes(versions, { pobTag: 'v0.23.1', pobCommit: 'abc', treeVersion: '0_5' })).toEqual([]);
+    expect(versionNotes(versions, { pobTag: 'v0.24.0', pobCommit: 'def', treeVersion: '0_5' })).toEqual([
+      'versions.pobTag is "v0.23.1", but the engine runs "v0.24.0"',
+      'versions.pobCommit is "abc", but the engine runs "def"',
+    ]);
+  });
+
+  it('C-33: a pob-computed tag naming no output of a compiled stage, or a stage not compiled, is unresolved; others are not', () => {
+    const v = validatePlan(fs.readFileSync(FIXTURE, 'utf8'));
+    if (!v.ok) throw new Error('fixture');
+    const plan = v.plan;
+    plan.stages[0].claims.push(
+      { id: 'x1', text: 'x', source: { kind: 'pob-computed', ref: '1.NoSuchOutput' } },
+      { id: 'x2', text: 'x', source: { kind: 'pob-computed', ref: '2.Life' } },
+      { id: 'x3', text: 'x', source: { kind: 'pob-computed', ref: '1.g1s1p1.TotalDPS' } },
+      { id: 'x4', text: 'x', source: { kind: 'pob-computed', ref: '1.g9s1p1.TotalDPS' } },
+    );
+    plan.ledger[0].inputs.push({ name: 'life', value: 1, tag: { kind: 'pob-computed', ref: '1.Mana' } });
+    const stages = { '1': { outputs: { Life: 155 }, skillOutputs: { g1s1p1: { fields: { TotalDPS: 10 } } } } };
+    expect(unresolvedRefs(plan, stages)).toEqual([
+      { where: 'stages[0].claims[5].source', ref: '1.NoSuchOutput' },
+      { where: 'stages[0].claims[6].source', ref: '2.Life' },
+      { where: 'stages[0].claims[8].source', ref: '1.g9s1p1.TotalDPS' },
+      { where: 'ledger[0].inputs[1].tag', ref: '1.Mana' },
+    ]);
   });
 });

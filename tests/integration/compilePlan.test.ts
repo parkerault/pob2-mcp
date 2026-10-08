@@ -283,7 +283,10 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(loadouts).toEqual(fileLoadouts);
     expect(loadouts).toHaveLength(2);
     expect(loadouts).not.toContain('Default');
-    for (const kind of ['tree', 'item', 'skill', 'config'] as const) expect(titles[kind]).toEqual(fromFile[kind]);
+    for (const kind of ['tree', 'item', 'skill', 'config'] as const) {
+      expect(titles[kind]).toEqual(fromFile[kind]);
+      expect(titles[kind].map((t) => t.title)).not.toContain('Default');
+    }
     expect(titles.autoMode).toBe(true);
   }, ENGINE_TIMEOUT);
 

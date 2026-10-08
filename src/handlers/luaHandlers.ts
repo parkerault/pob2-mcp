@@ -1,7 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import type { BuildFileWriter } from "../services/buildFileWriter.js";
-import type { SpecSummary } from "../engine/schemas.js";
+import type { SpecSummary, StatsBreakdown } from "../engine/schemas.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import { renderIssueLines } from "../advice/report.js";
 import path from "path";
@@ -275,8 +275,78 @@ export function groupDefaultStats(entries: Array<[string, unknown]>): {
   return { offense, defense, other };
 }
 
-export async function handleLuaGetStats(context: LuaHandlerContext, category?: string) {
+/**
+ * `lua_get_stats {category:'offense'}`'s 38 fields, in its order. C-45's breakdown measures the same
+ * list per skill and stat set, and lists each block's non-zero fields in this order.
+ */
+export const OFFENSE_STAT_FIELDS: readonly string[] = [
+  'TotalDPS', 'CombinedDPS', 'TotalDot', 'TotalDotDPS', 'WithBleedDPS', 'WithIgniteDPS',
+  'WithPoisonDPS', 'IgniteDPS', 'BleedDPS', 'PoisonDPS', 'AverageDamage', 'AverageBurstDamage',
+  'Speed', 'HitChance', 'CritChance', 'CritMultiplier', 'PreEffectiveCritChance',
+  'EffectiveCritChance', 'MainHandAccuracy', 'OffHandAccuracy', 'ManaCost', 'ManaPerSecondCost',
+  'LifeCost', 'LifePerSecondCost', 'ESCost', 'ESPerSecondCost', 'RageCost',
+  // Minion stats (populated for summoner builds)
+  'MinionTotalDPS', 'MinionCombinedDPS', 'MinionAverageDamage', 'MinionSpeed',
+  'MinionLife', 'MinionArmour', 'MinionEnergyShield',
+  'MinionFireResist', 'MinionColdResist', 'MinionLightningResist', 'MinionChaosResist',
+];
+
+/** A stat `lua_get_stats` lists: not null, and not 0. */
+const nonZeroStat = (v: unknown) => v != null && v !== 0 && v !== '0';
+
+/**
+ * C-45's view: one block per active skill and stat set, headed `## <skill> / <stat set label>
+ * [skill_part <i>]`, listing its non-zero offense fields as `<Field>: <value>` in the offense order.
+ */
+export function renderStatsBreakdown(breakdown: StatsBreakdown): string {
+  const group = `socket group ${breakdown.groupIndex}${breakdown.label ? ` (${breakdown.label})` : ''}`;
+  if (breakdown.skills.length === 0) {
+    return `The ${group} has no active skill, so there is nothing to break down.`;
+  }
+  const lines: string[] = [
+    `=== PoB Offense Breakdown: ${group} ===`,
+    'Each block is measured with that skill and stat set as the main selection; the build is left as it was. ' +
+      'Skills are in active_skill_index order; select one with set_main_skill {group_index, active_skill_index, skill_part}.',
+  ];
+  for (const skill of breakdown.skills) {
+    for (const set of skill.statSets) {
+      lines.push('', `## ${skill.name} / ${set.label} [skill_part ${set.index}]`);
+      const shown = OFFENSE_STAT_FIELDS.filter((k) => nonZeroStat(set.output[k]));
+      if (shown.length === 0) lines.push('(no non-zero offense fields)');
+      for (const key of shown) lines.push(`${key}: ${set.output[key]}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * `lua_get_stats`. Without `breakdown`, the default, `offense`, `defense` and `all` views. With
+ * `breakdown: true` (C-45), the offense fields per active skill and per stat set of one socket group
+ * (`groupIndex`, default: the main group), measured by the engine, which then restores the build
+ * exactly (D-176).
+ */
+export async function handleLuaGetStats(
+  context: LuaHandlerContext,
+  category?: string,
+  options: { breakdown?: unknown; groupIndex?: unknown } = {},
+) {
   return wrapHandler('get stats', async () => {
+    const { breakdown, groupIndex } = options;
+    if (breakdown !== undefined && typeof breakdown !== 'boolean') {
+      throw new Error('breakdown must be true or false');
+    }
+    if (breakdown !== true && groupIndex !== undefined) {
+      throw new Error('group_index applies only with breakdown: true');
+    }
+    if (breakdown === true) {
+      if (category !== undefined && category !== 'offense') {
+        throw new Error(`breakdown measures the offense fields only: use category 'offense' or leave category out (got '${category}')`);
+      }
+      if (groupIndex !== undefined && !(typeof groupIndex === 'number' && Number.isInteger(groupIndex) && groupIndex >= 1)) {
+        throw new Error('group_index must be a socket group index (1-based)');
+      }
+    }
+
     await context.ensureLuaClient();
 
     const luaClient = context.getLuaClient();
@@ -284,20 +354,18 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
       throw new Error('Lua client not initialized');
     }
 
+    if (breakdown === true) {
+      const result = await luaClient.getStatsBreakdown({
+        groupIndex: groupIndex as number | undefined,
+        fields: [...OFFENSE_STAT_FIELDS],
+      });
+      return { content: [{ type: "text" as const, text: renderStatsBreakdown(result) }] };
+    }
+
     // Map category to specific fields
     let fields: string[] | undefined;
     if (category === 'offense') {
-      fields = [
-        'TotalDPS', 'CombinedDPS', 'TotalDot', 'TotalDotDPS', 'WithBleedDPS', 'WithIgniteDPS',
-        'WithPoisonDPS', 'IgniteDPS', 'BleedDPS', 'PoisonDPS', 'AverageDamage', 'AverageBurstDamage',
-        'Speed', 'HitChance', 'CritChance', 'CritMultiplier', 'PreEffectiveCritChance',
-        'EffectiveCritChance', 'MainHandAccuracy', 'OffHandAccuracy', 'ManaCost', 'ManaPerSecondCost',
-        'LifeCost', 'LifePerSecondCost', 'ESCost', 'ESPerSecondCost', 'RageCost',
-        // Minion stats (populated for summoner builds)
-        'MinionTotalDPS', 'MinionCombinedDPS', 'MinionAverageDamage', 'MinionSpeed',
-        'MinionLife', 'MinionArmour', 'MinionEnergyShield',
-        'MinionFireResist', 'MinionColdResist', 'MinionLightningResist', 'MinionChaosResist',
-      ];
+      fields = [...OFFENSE_STAT_FIELDS];
     } else if (category === 'defense') {
       fields = [
         'Life', 'LifeRegen', 'LifeRegenRecovery', 'LifeLeechGainRate', 'LifeUnreserved',
@@ -322,8 +390,7 @@ export async function handleLuaGetStats(context: LuaHandlerContext, category?: s
     if (stats && typeof stats === 'object') {
       // Filter out zero/null/undefined values to reduce noise, except PoE2's avoidance layers: a 0%
       // evade or deflect chance is itself the information.
-      const nonZero = (v: unknown) => v != null && v !== 0 && v !== '0';
-      const entries = Object.entries(stats).filter(([k, v]) => nonZero(v) || (v != null && ALWAYS_SHOWN_STATS.has(k)));
+      const entries = Object.entries(stats).filter(([k, v]) => nonZeroStat(v) || (v != null && ALWAYS_SHOWN_STATS.has(k)));
 
       // Group by offense/defense if showing all. The default export is a bounded list (Lua
       // DEFAULT_STAT_FIELDS, E7), so every non-zero stat is shown, each in exactly one section.

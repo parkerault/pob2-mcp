@@ -359,13 +359,21 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lua_get_stats",
-      description: "Get comprehensive calculated stats from the currently loaded build (requires lua_load_build first). Use category='offense' for DPS details, category='defense' for survivability, category='all' only when you need everything at once. Avoid calling multiple times with different categories — pick the right one.",
+      description: "Get comprehensive calculated stats from the currently loaded build (requires lua_load_build first). Use category='offense' for DPS details, category='defense' for survivability, category='all' only when you need everything at once. Avoid calling multiple times with different categories — pick the right one. The offense view measures only the main skill and its selected stat set; breakdown=true measures the offense fields for every active skill of one socket group and every stat set of each (PoB2's skill parts, e.g. a grenade's impact and its explosion), one block per skill and stat set, then leaves the build exactly as it was.",
       inputSchema: {
         type: "object",
         properties: {
           category: {
             type: "string",
-            description: "Stat category: 'offense', 'defense', 'all' (default: all)",
+            description: "Stat category: 'offense', 'defense', 'all' (default: all). With breakdown, only 'offense' (or leave it out).",
+          },
+          breakdown: {
+            type: "boolean",
+            description: "Measure the offense fields per active skill and per stat set of one socket group, each as the main selection; the build is restored afterwards (default: false).",
+          },
+          group_index: {
+            type: "number",
+            description: "With breakdown: the socket group to measure (1-based; default: the main socket group).",
           },
         },
       },
@@ -609,7 +617,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "set_main_skill",
-      description: "Set which skill group is the main skill for DPS calculations",
+      description: "Set which skill group is the main skill for DPS calculations, and optionally which stat set of its active skill is measured (skill_part).",
       inputSchema: {
         type: "object",
         properties: {
@@ -620,6 +628,10 @@ export function getLuaToolSchemas(): any[] {
           active_skill_index: {
             type: "number",
             description: "Active skill index within group (1-based, optional). Selects which active skill in the group to use for DPS calculation — relevant when a group has multiple active skills.",
+          },
+          skill_part: {
+            type: "number",
+            description: "The stat set of the main active skill to measure (1-based, optional): PoB2's stat-set choice, such as a grenade's impact or its explosion. It is saved with the build. A number outside the skill's stat sets is an error that lists them. lua_get_stats with breakdown=true shows every stat set's numbers without changing the build.",
           },
         },
         required: ["group_index"],

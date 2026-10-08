@@ -319,7 +319,10 @@ async function dispatch(
     }
 
     case "lua_get_stats":
-      return await handleLuaGetStats(luaContext, args?.category as string | undefined);
+      return await handleLuaGetStats(luaContext, args?.category as string | undefined, {
+        breakdown: args?.breakdown,
+        groupIndex: args?.group_index,
+      });
 
     case "lua_get_tree":
       return await handleLuaGetTree(luaContext, args?.include_node_ids as boolean | undefined);

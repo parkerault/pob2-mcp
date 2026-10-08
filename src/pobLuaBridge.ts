@@ -38,7 +38,9 @@ import {
   type RenameSpecResult,
   type SelectItemSetResult,
   type SelectSpecResult,
+  type SelectedStatSet,
   type SkillsResult,
+  type StatsBreakdown,
   type StatsResult,
   type TreeResult,
   type Loose,
@@ -684,6 +686,17 @@ export class PoBLuaApiClient {
     return res.stats;
   }
 
+  /**
+   * `get_stats` with `breakdown` (C-45): `fields` measured per active skill and per stat set of one
+   * socket group (default: the main one), each as the main selection; the engine then restores the
+   * prior selection exactly (D-176). Only the breakdown is read, so no other stats are requested.
+   */
+  async getStatsBreakdown(params: { groupIndex?: number; fields: string[] }): Promise<StatsBreakdown> {
+    const res = await this.request("get_stats", { fields: [], breakdown: params });
+    if (!res.breakdown) throw new Error("the engine sent no breakdown");
+    return res.breakdown;
+  }
+
   async getTree(): Promise<Loose<TreeResult>> {
     const res = await this.request("get_tree");
     return res.tree;
@@ -709,8 +722,10 @@ export class PoBLuaApiClient {
     return res.skills;
   }
 
-  async setMainSelection(params: ActionParams<"set_main_selection">): Promise<void> {
-    await this.request("set_main_selection", params);
+  /** With `statSet`, returns the stat set the engine selected (C-44); otherwise `undefined`. */
+  async setMainSelection(params: ActionParams<"set_main_selection">): Promise<SelectedStatSet | undefined> {
+    const res = await this.request("set_main_selection", params);
+    return res.statSet;
   }
 
   async setTree(params: ActionParams<"set_tree">): Promise<Loose<TreeResult>> {

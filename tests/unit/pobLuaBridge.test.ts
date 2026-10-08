@@ -563,8 +563,8 @@ describe('typed wrappers over request()', () => {
     expect(proc.getLastRequest()).toMatchObject({ action: 'set_flask_active', params: { index: 3, active: false } });
     const skills = await client.getSkills();
     expect(skills.groups[0].label).toBe('Main 6L');
-    await client.setMainSelection({ mainSocketGroup: 1, mainActiveSkill: 2, skillPart: 3 });
-    expect(proc.getLastRequest()?.params).toEqual({ mainSocketGroup: 1, mainActiveSkill: 2, skillPart: 3 });
+    await client.setMainSelection({ mainSocketGroup: 1, mainActiveSkill: 2, statSet: 3 });
+    expect(proc.getLastRequest()?.params).toEqual({ mainSocketGroup: 1, mainActiveSkill: 2, statSet: 3 });
   });
 });
 

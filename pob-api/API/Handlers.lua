@@ -208,13 +208,21 @@ handlers.load_build_xml = function(params)
   return { ok = true, result = { name = name } }
 end
 
+-- With `breakdown` ({groupIndex?, fields}), the reply adds the per-skill, per-stat-set breakdown
+-- (C-45); `stats` is read first, from the build as it is.
 handlers.get_stats = function(params)
   local fields = params and params.fields or nil
   local stats, err = BuildOps.export_stats(fields)
   if not stats then
     return { ok = false, error = err }
   end
-  return { ok = true, stats = stats }
+  local reply = { ok = true, stats = stats }
+  if params and type(params.breakdown) == 'table' then
+    local breakdown, berr = BuildOps.stats_breakdown(params.breakdown)
+    if not breakdown then return { ok = false, error = berr } end
+    reply.breakdown = breakdown
+  end
+  return reply
 end
 
 handlers.get_items = function(params)
@@ -241,7 +249,8 @@ handlers.set_main_selection = function(params)
   local ok2, err = BuildOps.set_main_selection(params or {})
   if not ok2 then return { ok = false, error = err } end
   local skills = BuildOps.get_skills()
-  return { ok = true, skills = skills }
+  -- With `statSet`, the selected stat set ({index, label, count, skill, grantedEffectId}; C-44).
+  return { ok = true, skills = skills, statSet = type(ok2) == 'table' and ok2 or nil }
 end
 
 handlers.set_tree = function(params)

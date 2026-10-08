@@ -128,8 +128,31 @@ export const statsMetaSchema = z
 /** A scalar stat value; NaN/inf numbers arrive as null (R-8). */
 const statValue = z.union([z.number(), z.string(), z.boolean(), z.null()]);
 
+/** C-45: one stat set of a breakdown skill, with the requested fields measured as the main selection. */
+export const breakdownStatSetSchema = z
+  .object({ index: z.number().int(), label: z.string(), output: luaMap(statValue) })
+  .passthrough();
+
+/** C-45: one active skill of the broken-down group (`index` is its place in the group's skill list). */
+export const breakdownSkillSchema = z
+  .object({
+    index: z.number().int(),
+    name: z.string(),
+    grantedEffectId: z.string(),
+    statSets: luaArray(breakdownStatSetSchema),
+  })
+  .passthrough();
+
+/** C-45: `get_stats` with `breakdown`: per active skill and per stat set of one socket group. */
+export const statsBreakdownSchema = z
+  .object({ groupIndex: z.number().int(), label: z.string(), skills: luaArray(breakdownSkillSchema) })
+  .passthrough();
+export type StatsBreakdown = z.infer<typeof statsBreakdownSchema>;
+
 export const getStatsReply = baseReply.extend({
   stats: z.object({ _meta: statsMetaSchema }).catchall(statValue),
+  /** Only when the request has `breakdown` (C-45). */
+  breakdown: statsBreakdownSchema.optional(),
 });
 export type StatsResult = z.infer<typeof getStatsReply>['stats'];
 
@@ -193,6 +216,20 @@ export const skillsSchema = z
 export type SkillsResult = z.infer<typeof skillsSchema>;
 
 export const getSkillsReply = baseReply.extend({ skills: skillsSchema });
+
+/** C-44: the stat set `set_main_selection` selected; only when the request has `statSet`. */
+export const selectedStatSetSchema = z
+  .object({
+    index: z.number().int(),
+    label: z.string(),
+    count: z.number().int(),
+    skill: z.string(),
+    grantedEffectId: z.string(),
+  })
+  .passthrough();
+export type SelectedStatSet = z.infer<typeof selectedStatSetSchema>;
+
+export const setMainSelectionReply = getSkillsReply.extend({ statSet: selectedStatSetSchema.optional() });
 
 export const treeSchema = z
   .object({
@@ -620,7 +657,7 @@ const definedSchemas = {
   get_items: getItemsReply,
   get_skills: getSkillsReply,
   get_tree: treeReply,
-  set_main_selection: getSkillsReply,
+  set_main_selection: setMainSelectionReply,
   set_tree: treeReply,
   add_item_text: addItemTextReply,
   export_build_xml: exportBuildXmlReply,
@@ -677,11 +714,13 @@ export interface ActionParamsMap {
   new_build: { className?: string; ascendancy?: string };
   /** `keepLevel`: put back the `<Build>`'s recorded level and auto-level flag after PoB's level estimate (D-9 put-back). */
   load_build_xml: { xml: string; name?: string; keepLevel?: boolean };
-  get_stats: { fields?: string[] };
+  /** `breakdown`: also measure one socket group per active skill and stat set (C-45; default group: the main one). */
+  get_stats: { fields?: string[]; breakdown?: { groupIndex?: number; fields: string[] } };
   get_items: NoParams;
   get_skills: NoParams;
   get_tree: NoParams;
-  set_main_selection: { mainSocketGroup?: number; mainActiveSkill?: number; skillPart?: number };
+  /** `statSet`: the 1-based stat set of the group's main active skill, PoB2's `srcInstance.statSet` (C-44). */
+  set_main_selection: { mainSocketGroup?: number; mainActiveSkill?: number; statSet?: number };
   set_tree: {
     classId: number;
     ascendClassId: number;

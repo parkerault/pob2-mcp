@@ -313,6 +313,11 @@ export async function handleGetSkillSetup(context: ItemSkillHandlerContext, main
   });
 }
 
+/**
+ * `set_main_skill`. `skillPart` is the 1-based stat set of the group's main active skill, which the
+ * engine selects as PoB2 does (`srcInstance.statSet[grantedEffectId]`, C-44); one outside 1..n is
+ * refused with n and the labels, and nothing changes.
+ */
 export async function handleSetMainSkill(
   context: ItemSkillHandlerContext,
   socketGroup: number,
@@ -330,19 +335,22 @@ export async function handleSetMainSkill(
     if (socketGroup < 1) {
       throw new Error('socket_group must be >= 1');
     }
+    if (skillPart !== undefined && typeof skillPart !== 'number') {
+      throw new Error('skill_part must be a stat set number (1-based)');
+    }
 
-    await luaClient.setMainSelection({
+    const statSet = await luaClient.setMainSelection({
       mainSocketGroup: socketGroup,
       mainActiveSkill: activeSkillIndex,
-      skillPart,
+      statSet: skillPart,
     });
 
     let text = `✅ Main skill set to group ${socketGroup}`;
     if (activeSkillIndex !== undefined) {
       text += `, skill ${activeSkillIndex}`;
     }
-    if (skillPart !== undefined) {
-      text += `, part ${skillPart}`;
+    if (statSet) {
+      text += `: ${statSet.skill} stat set ${statSet.index} of ${statSet.count}, ${statSet.label}`;
     }
     text += `.`;
 

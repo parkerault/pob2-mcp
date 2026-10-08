@@ -539,26 +539,217 @@ function M.get_skills()
   return result
 end
 
+-- Rebuild the outputs the way PoB's own Build:OnFrame does after a selection change: wipe the global
+-- skill cache first, so no skill is measured from a cache entry of the previous selection.
+local function rebuild_outputs()
+  if GlobalCache and GlobalCache.cachedData and wipeGlobalCache then wipeGlobalCache() end
+  return M.get_main_output()
+end
+
+-- The state a main-selection change can touch (C-44, C-45, D-176): the main group, the calcs tab's
+-- group (`skill_number`), every group's main active skill (main and calcs), and, for each gem of the
+-- groups named, its scalar fields (the calculation writes `skillPart`, `skillMinion`, … on the main
+-- group's gems) and its stat-set choices (`statSet`; nil stays nil).
+local function snapshot_selection(groupIndexes)
+  local list = build.skillsTab.socketGroupList or {}
+  local snap = {
+    mainSocketGroup = build.mainSocketGroup,
+    skillNumber = build.calcsTab.input.skill_number,
+    groups = {},
+    gems = {},
+  }
+  for i, g in ipairs(list) do
+    snap.groups[i] = { group = g, mainActiveSkill = g.mainActiveSkill, mainActiveSkillCalcs = g.mainActiveSkillCalcs }
+  end
+  for _, gi in ipairs(groupIndexes) do
+    for _, gem in ipairs(list[gi] and list[gi].gemList or {}) do
+      if not snap.gems[gem] then
+        local fields = {}
+        for k, v in pairs(gem) do
+          if SCALAR_TYPES[type(v)] then fields[k] = v end
+        end
+        local statSet = nil
+        if type(gem.statSet) == 'table' then
+          statSet = {}
+          for k, v in pairs(gem.statSet) do statSet[k] = v end
+        end
+        snap.gems[gem] = { fields = fields, statSetTable = gem.statSet, statSet = statSet }
+      end
+    end
+  end
+  return snap
+end
+
+-- Put back exactly what `snapshot_selection` recorded. The caller rebuilds afterwards.
+local function restore_selection(snap)
+  build.mainSocketGroup = snap.mainSocketGroup
+  build.calcsTab.input.skill_number = snap.skillNumber
+  for _, s in ipairs(snap.groups) do
+    s.group.mainActiveSkill = s.mainActiveSkill
+    s.group.mainActiveSkillCalcs = s.mainActiveSkillCalcs
+  end
+  for gem, s in pairs(snap.gems) do
+    for k, v in pairs(gem) do
+      if SCALAR_TYPES[type(v)] and s.fields[k] == nil then gem[k] = nil end
+    end
+    for k, v in pairs(s.fields) do gem[k] = v end
+    if s.statSet == nil then
+      gem.statSet = s.statSetTable
+    else
+      local t = s.statSetTable
+      for k in pairs(t) do t[k] = nil end
+      for k, v in pairs(s.statSet) do t[k] = v end
+      gem.statSet = t
+    end
+  end
+end
+
+-- "1 Impact, 2 Poison Cloud, 3 Explosion": a granted effect's stat sets, as PoB's stat-set dropdown
+-- lists them (vendor Modules/Build.lua RefreshSkillSelectControls).
+local function stat_set_label(grantedEffect, index)
+  local set = grantedEffect.statSets and grantedEffect.statSets[index]
+  return tostring(set and set.label or grantedEffect.name)
+end
+
+local function stat_set_list(grantedEffect)
+  local parts = {}
+  for i = 1, #(grantedEffect.statSets or {}) do
+    table.insert(parts, i .. ' ' .. stat_set_label(grantedEffect, i))
+  end
+  return table.concat(parts, ', ')
+end
+
+local function socket_group_label(g)
+  if g.label and tostring(g.label):match('%S') then return tostring(g.label) end
+  return tostring(g.displayLabel or '')
+end
+
+-- Set the main socket group, its main active skill and, with `statSet`, that skill's stat set (C-44).
+-- The stat set is PoB2's `srcInstance.statSet[grantedEffectId]`, written as PoB's stat-set dropdown
+-- does (vendor Modules/Build.lua:375-381); the build XML keeps it as `<StatSetIndex>`. Nothing is
+-- changed when the group doesn't exist, or the stat set is outside 1..n (the error names n and the
+-- labels). With `statSet`, the reply says which stat set was selected.
+-- params: { mainSocketGroup?: number, mainActiveSkill?: number, statSet?: number }
 function M.set_main_selection(params)
   if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
   if type(params) ~= 'table' then return nil, 'invalid params' end
+  local list = build.skillsTab.socketGroupList or {}
+  local groupIndex = build.mainSocketGroup
   if params.mainSocketGroup ~= nil then
-    build.mainSocketGroup = tonumber(params.mainSocketGroup) or build.mainSocketGroup
+    groupIndex = tonumber(params.mainSocketGroup) or groupIndex
   end
-  local g = build.skillsTab.socketGroupList[build.mainSocketGroup]
-  if not g then return nil, 'invalid mainSocketGroup' end
+  local g = list[groupIndex]
+  if not g then
+    return nil, ('socket group %s does not exist: the build has %d socket groups'):format(tostring(groupIndex), #list)
+  end
+  local snap = params.statSet ~= nil and snapshot_selection({ groupIndex }) or nil
+  build.mainSocketGroup = groupIndex
   if params.mainActiveSkill ~= nil then
     g.mainActiveSkill = tonumber(params.mainActiveSkill) or g.mainActiveSkill
   end
-  if params.skillPart ~= nil then
-    local idx = g.mainActiveSkill or 1
-    local src = g.displaySkillList and g.displaySkillList[idx] and g.displaySkillList[idx].activeEffect and g.displaySkillList[idx].activeEffect.srcInstance
-    if src then src.skillPart = tonumber(params.skillPart) end
-  end
   -- Keep calcsTab in sync: use active group index
   build.calcsTab.input.skill_number = build.mainSocketGroup
-  M.get_main_output()
-  return true
+  rebuild_outputs()
+  if params.statSet == nil then return true end
+
+  -- The group's main active skill, as the rebuild settled it (CalcSetup clamps mainActiveSkill).
+  local active = g.displaySkillList and g.displaySkillList[g.mainActiveSkill or 1]
+  local effect = active and active.activeEffect
+  local ge = effect and effect.grantedEffect
+  local refuse = nil
+  if not (ge and effect.srcInstance) then
+    refuse = ('socket group %d has no active skill, so it has no stat set to select'):format(groupIndex)
+  else
+    local count = #(ge.statSets or {})
+    local index = tonumber(params.statSet)
+    if not index or index ~= math.floor(index) or index < 1 or index > count then
+      refuse = ('stat set %s is out of range: %s has %d stat set%s (%s)'):format(
+        tostring(params.statSet), tostring(ge.name), count, count == 1 and '' or 's', stat_set_list(ge))
+    end
+  end
+  if refuse then
+    restore_selection(snap)
+    rebuild_outputs()
+    return nil, refuse
+  end
+  local index = math.floor(tonumber(params.statSet))
+  local src = effect.srcInstance
+  src.statSet = src.statSet or {}
+  src.statSet[ge.id] = index
+  rebuild_outputs()
+  return {
+    index = index,
+    label = stat_set_label(ge, index),
+    count = #ge.statSets,
+    skill = tostring(ge.name),
+    grantedEffectId = tostring(ge.id),
+  }
+end
+
+-- C-45: for each active skill of one socket group (default: the main group), and each stat set of
+-- each, the requested output fields, measured with that skill and stat set as the main selection.
+-- Then the exact prior selection is restored and the build rebuilt, so the build, its export and its
+-- outputs are as they were (D-176). Only number, string and boolean values are reported.
+-- params: { groupIndex?: number, fields: string[] }
+function M.stats_breakdown(params)
+  if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
+  if type(params) ~= 'table' then return nil, 'invalid breakdown params' end
+  if type(params.fields) ~= 'table' then return nil, 'breakdown.fields must be a list of output names' end
+  local list = build.skillsTab.socketGroupList or {}
+  local groupIndex = build.mainSocketGroup
+  if params.groupIndex ~= nil then groupIndex = tonumber(params.groupIndex) end
+  local g = groupIndex and list[groupIndex]
+  if not g then
+    return nil, ('socket group %s does not exist: the build has %d socket groups'):format(tostring(params.groupIndex), #list)
+  end
+
+  local snap = snapshot_selection({ groupIndex })
+  local ok, measured = pcall(function()
+    -- Make the group main first, so its skill list is built even when the group is disabled.
+    build.mainSocketGroup = groupIndex
+    build.calcsTab.input.skill_number = groupIndex
+    rebuild_outputs()
+    local skills = {}
+    for i, active in ipairs(g.displaySkillList or {}) do
+      local effect = active.activeEffect
+      local ge = effect and effect.grantedEffect
+      if ge and effect.srcInstance then
+        table.insert(skills, { index = i, ge = ge, src = effect.srcInstance })
+      end
+    end
+    local out = {}
+    for _, s in ipairs(skills) do
+      local src, id = s.src, s.ge.id
+      local priorTable = src.statSet
+      local prior = priorTable and priorTable[id]
+      local entry = { index = s.index, name = tostring(s.ge.name), grantedEffectId = tostring(id), statSets = {} }
+      for j = 1, math.max(#(s.ge.statSets or {}), 1) do
+        g.mainActiveSkill = s.index
+        src.statSet = src.statSet or {}
+        src.statSet[id] = j
+        local output = rebuild_outputs() or {}
+        local values = {}
+        for _, k in ipairs(params.fields) do
+          local v = output[k]
+          if SCALAR_TYPES[type(v)] then values[k] = v end
+        end
+        table.insert(entry.statSets, { index = j, label = stat_set_label(s.ge, j), output = values })
+      end
+      -- This skill's own choice goes back before the next skill is measured.
+      if priorTable then
+        priorTable[id] = prior
+        src.statSet = priorTable
+      else
+        src.statSet = nil
+      end
+      table.insert(out, entry)
+    end
+    return out
+  end)
+  restore_selection(snap)
+  rebuild_outputs()
+  if not ok then return nil, 'breakdown failed: ' .. tostring(measured) end
+  return { groupIndex = groupIndex, label = socket_group_label(g), skills = measured }
 end
 
 -- Items API

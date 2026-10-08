@@ -132,6 +132,45 @@ const CASES: Record<ActionName, Case> = {
   trade_query_options: { params: { slot: 'Body Armour' } },
 };
 
+/** The golden socket group whose active skill is Gas Grenade (stat sets Impact, Poison Cloud, Explosion). */
+async function gasGrenadeGroup(call: Call): Promise<number> {
+  const { skills } = await call('get_skills');
+  const group = (skills.groups as Array<{ index: number; skills: string[] }>).find((g) => g.skills.includes('Gas Grenade'));
+  if (!group) throw new Error('the golden build has no Gas Grenade group');
+  return group.index;
+}
+
+/**
+ * The new request params of changed actions (AC-B4, slice 01 §2.1): each variant's reply must match the
+ * action's schema and carry the reply field that param adds.
+ */
+interface Variant extends Case {
+  name: string;
+  action: ActionName;
+  /** The reply field the new param adds. */
+  adds: string;
+}
+const VARIANTS: Variant[] = [
+  {
+    name: 'get_stats with breakdown of the Gas Grenade group (C-45)',
+    action: 'get_stats',
+    adds: 'breakdown',
+    setup: async (call) => ({ fields: [], breakdown: { groupIndex: await gasGrenadeGroup(call), fields: ['TotalDPS', 'CombinedDPS', 'Speed'] } }),
+  },
+  {
+    name: 'get_stats with breakdown of the main group, and the default stats (C-45)',
+    action: 'get_stats',
+    adds: 'breakdown',
+    params: { breakdown: { fields: ['TotalDPS'] } },
+  },
+  {
+    name: 'set_main_selection with statSet (C-44)',
+    action: 'set_main_selection',
+    adds: 'statSet',
+    setup: async (call) => ({ mainSocketGroup: await gasGrenadeGroup(call), statSet: 3 }),
+  },
+];
+
 describe('AC-E24: every Lua action has a reply schema (static)', () => {
   it('AC-E24: the non-test Lua actions of Handlers.lua and Trade.lua equal Object.keys(replySchemas) and ACTION_NAMES', () => {
     const lua = luaActionNames();
@@ -177,6 +216,24 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
         expect(schema).toBeDefined();
         const parsed = schema!.safeParse(reply);
         // The issues, when there are any, say which field broke the contract.
+        expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+        expect(parsed.success).toBe(true);
+      },
+      ENGINE_TIMEOUT,
+    );
+  }
+
+  for (const variant of VARIANTS) {
+    it(
+      `AC-B4: ${variant.name}`,
+      async () => {
+        await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+        const params = variant.setup ? await variant.setup(call) : (variant.params ?? {});
+
+        const reply = await engine.request(variant.action, params, { timeoutMs: 120_000 });
+        expect(reply).toMatchObject({ ok: true });
+        expect(reply[variant.adds]).toBeDefined();
+        const parsed = replySchemas[variant.action]!.safeParse(reply);
         expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
         expect(parsed.success).toBe(true);
       },

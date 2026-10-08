@@ -122,11 +122,12 @@ end
 -- (`{[id]=node.allocMode}` for allocMode ~= 0) and the attribute choices (`hashOverrides`).
 -- Both are read before the import, which resets the nodes.
 -- `state` (optional, C-40) overrides what is kept: `state.weaponSets` replaces the tags and
--- `state.hashOverrides` the choices; the import takes the tables as given.
+-- `state.hashOverrides` the choices; the import takes the tables as given. `target` is the spec to
+-- re-import (default: the active one; a throwaway spec for a dry run).
 -- PassiveSpec:ImportFromNodeList(className, classId, ascendClassId, secondaryAscendClassId,
 --   hashList, weaponSets, hashOverrides, masteryEffects, treeVersion)
-local function reimport_nodes(classId, ascendId, secondaryId, nodes, treeVersion, state)
-  local spec = build.spec
+local function reimport_nodes(classId, ascendId, secondaryId, nodes, treeVersion, state, target)
+  local spec = target or build.spec
   state = state or {}
   local weaponSets = state.weaponSets
   if not weaponSets then
@@ -477,14 +478,119 @@ local function id_list(list)
   return out
 end
 
+-- `<id> (<name>), …` for a list of node ids.
+local function node_labels(ids)
+  local out = {}
+  for _, id in ipairs(ids) do out[#out + 1] = node_label(id) end
+  return table.concat(out, ', ')
+end
+
+-- Apply a delta to `spec` (the active spec, or a throwaway copy for a dry run):
+--  1. one re-import of (current - remove + add), as before, keeping the tags and choices; the adds that
+--     cost ascendancy points are left to step 2, so the cap applies to every add;
+--  2. each add PoB left unallocated, in the order given, along PoB's own path (PassiveSpec:AllocNode,
+--     untagged); skipped when the path would take the ascendancy points over 8, or when it runs through
+--     allocated weapon-set nodes, which AllocNode would untag (GetEffectiveAllocationPath,
+--     vendor/Classes/PassiveSpec.lua:900-909): those adds are listed in `retagged`, not allocated;
+--  3. every node allocated before the call keeps its attribute choice (AllocNode sets path attribute
+--     nodes to PoB's default, PassiveSpec.lua:939).
+-- Returns the result ({autoPathedNodes, skippedAscendancyNodes, retagged}) and whether `spec` changed.
+local function apply_delta(spec, params, current, removeNodes, addNodes)
+  local result = { autoPathedNodes = {}, skippedAscendancyNodes = {}, retagged = {} }
+  local changed = false
+  local priorChoices = {}
+  for id in pairs(spec.allocNodes) do priorChoices[id] = spec.hashOverrides[id] or false end
+
+  local set, alters = {}, false
+  for _, id in ipairs(current.nodes) do set[id] = true end
+  for _, id in ipairs(removeNodes) do
+    if set[id] then set[id] = nil; alters = true end
+  end
+  for _, id in ipairs(addNodes) do
+    local node = spec.nodes[id]
+    if node and not set[id] and not is_ascendancy_point(spec, node) then set[id] = true; alters = true end
+  end
+  local reclass = params.classId ~= nil or params.ascendClassId ~= nil
+    or params.secondaryAscendClassId ~= nil or params.treeVersion ~= nil
+  if alters or reclass then
+    local nodes = {}
+    for id in pairs(set) do nodes[#nodes + 1] = id end
+    table.sort(nodes)
+    local classId = params.classId or current.classId or 0
+    local ascendId = params.ascendClassId or current.ascendClassId or 0
+    local secId = params.secondaryAscendClassId or current.secondaryAscendClassId or 0
+    reimport_nodes(tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes,
+      params.treeVersion or current.treeVersion, nil, spec)
+    changed = true
+  end
+
+  local requested = {}
+  for _, id in ipairs(addNodes) do requested[id] = true end
+  -- Normal (untagged) allocation, whatever mode the spec was left in.
+  local allocMode = spec.allocMode
+  spec.allocMode = 0
+  for _, id in ipairs(addNodes) do
+    local node = spec.nodes[id]
+    local path = node and not node.alloc and node.path and spec:GetEffectiveAllocationPath(node)
+    if path then
+      local cost, branch = 0, {}
+      for _, pathNode in ipairs(path) do
+        if not pathNode.alloc and is_ascendancy_point(spec, pathNode) then cost = cost + 1 end
+        if pathNode.alloc and (pathNode.allocMode or 0) ~= 0 then branch[#branch + 1] = pathNode.id end
+      end
+      if #branch > 0 then
+        table.sort(branch)
+        table.insert(result.retagged, { id = id, branch = branch })
+      elseif cost > 0 and ascendancy_points_used(spec) + cost > MAX_ASCENDANCY_POINTS then
+        table.insert(result.skippedAscendancyNodes, id)
+      else
+        local before = {}
+        for allocId in pairs(spec.allocNodes) do before[allocId] = true end
+        spec:AllocNode(node)
+        changed = true
+        local pathed = {}
+        for allocId in pairs(spec.allocNodes) do
+          if not before[allocId] and not requested[allocId] then pathed[#pathed + 1] = allocId end
+        end
+        table.sort(pathed)
+        for _, allocId in ipairs(pathed) do table.insert(result.autoPathedNodes, allocId) end
+      end
+    end
+  end
+  spec.allocMode = allocMode
+
+  local restored = false
+  for id, prior in pairs(priorChoices) do
+    if spec.allocNodes[id] and (spec.hashOverrides[id] or false) ~= prior then
+      spec.hashOverrides[id] = prior or nil
+      restored = true
+    end
+  end
+  if restored then spec:BuildAllDependsAndPaths() end
+  return result, changed
+end
+
+-- The refusal for adds whose path runs through allocated weapon-set nodes (C-48: tags change only
+-- through set_tree_state).
+local function retag_refusal(retagged)
+  local problems = {}
+  for _, r in ipairs(retagged) do
+    problems[#problems + 1] = string.format('node %s: its path runs through weapon-set node(s) %s, which allocating it would untag',
+      node_label(r.id), node_labels(r.branch))
+  end
+  return table.concat(problems, '; ') .. ' (PoB connects an untagged node only through untagged nodes). '
+    .. 'Nothing was changed; weapon-set tags change only through set_tree_state.'
+end
+
 -- Update tree by delta lists (C-48, D-194).
 -- params: { addNodes?, removeNodes?, classId?, ascendClassId?, secondaryAscendClassId?, treeVersion? }
--- Removal (and a class or tree-version change) re-imports the remaining nodes as before, keeping the
--- weapon-set tags and attribute choices; PoB drops what no longer connects. Added nodes are then
--- allocated in the order given, each along PoB's own path (PassiveSpec:AllocNode: `node.path`, the path
--- `search_nodes` shows), untagged; the path nodes beyond the requested ones are `autoPathedNodes`. A node
--- whose path would take the ascendancy points over 8 is skipped and listed in `skippedAscendancyNodes`.
--- An unknown, unreachable or already allocated node adds nothing, and an empty delta changes nothing.
+-- See apply_delta: one re-import of (current - remove + add) keeping the tags and choices, then each add
+-- PoB left unallocated along PoB's own path, in the order given; the path nodes beyond the requested ones
+-- are `autoPathedNodes`, and an add whose path would take the ascendancy points (as
+-- PassiveSpec:CountAllocNodes counts them) over 8 is in `skippedAscendancyNodes`. Already allocated
+-- nodes keep their tags and choices: an add whose path would untag a weapon-set branch fails the whole
+-- call, decided by a dry run on a throwaway spec, so the build is left as it was. An unknown,
+-- unreachable or already allocated node adds nothing, and an empty delta changes nothing.
 -- Returns { autoPathedNodes, skippedAscendancyNodes, ascendancyPointsUsed } (the points after the call).
 function M.update_tree_delta(params)
   if not build or not build.spec then return nil, 'build/spec not initialized' end
@@ -492,65 +598,39 @@ function M.update_tree_delta(params)
   local current, err = M.get_tree()
   if not current then return nil, err end
   local removeNodes, addNodes = id_list(params.removeNodes), id_list(params.addNodes)
-  local reclass = params.classId ~= nil or params.ascendClassId ~= nil
-    or params.secondaryAscendClassId ~= nil or params.treeVersion ~= nil
-  local changed = false
+  local spec = build.spec
 
-  if #removeNodes > 0 or reclass then
-    local set = {}
-    for _, id in ipairs(current.nodes) do set[id] = true end
-    for _, id in ipairs(removeNodes) do set[id] = nil end
-    local nodes = {}
-    for id in pairs(set) do table.insert(nodes, id) end
-    table.sort(nodes)
-    local classId = params.classId or current.classId or 0
-    local ascendId = params.ascendClassId or current.ascendClassId or 0
-    local secId = params.secondaryAscendClassId or current.secondaryAscendClassId or 0
-    local tv = params.treeVersion or current.treeVersion
-    reimport_nodes(tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes, tv)
-    changed = true
+  -- What the spec holds now: its tags and choices, also what puts it back.
+  local tags = {}
+  for id, node in pairs(spec.allocNodes) do
+    if node.allocMode and node.allocMode ~= 0 then tags[id] = node.allocMode end
+  end
+  if next(tags) ~= nil and #addNodes > 0 then
+    -- Only a tree with weapon-set nodes can have a branch untagged: try the delta on a throwaway spec
+    -- (made as create_spec makes one, never added to the tree tab) first.
+    local scratch = construct('PassiveSpec', build, spec.treeVersion)
+    scratch.jewels = copyTable(spec.jewels or {})
+    scratch:ImportFromNodeList(nil, current.classId, current.ascendClassId, current.secondaryAscendClassId,
+      current.nodes, tags, copyTable(spec.hashOverrides or {}, true), copyTable(spec.masterySelections or {}, true))
+    local dry = apply_delta(scratch, params, current, removeNodes, addNodes)
+    if #dry.retagged > 0 then return nil, retag_refusal(dry.retagged) end
   end
 
-  local result = { autoPathedNodes = {}, skippedAscendancyNodes = {} }
-  if #addNodes > 0 then
-    local spec = build.spec
-    local requested = {}
-    for _, id in ipairs(addNodes) do requested[id] = true end
-    -- Normal (untagged) allocation, whatever mode the spec was left in.
-    local allocMode = spec.allocMode
-    spec.allocMode = 0
-    for _, id in ipairs(addNodes) do
-      local node = spec.nodes[id]
-      local path = node and not node.alloc and node.path and spec:GetEffectiveAllocationPath(node)
-      if path then
-        local cost = 0
-        for _, pathNode in ipairs(path) do
-          if not pathNode.alloc and is_ascendancy_point(spec, pathNode) then cost = cost + 1 end
-        end
-        if cost > 0 and ascendancy_points_used(spec) + cost > MAX_ASCENDANCY_POINTS then
-          table.insert(result.skippedAscendancyNodes, id)
-        else
-          local before = {}
-          for allocId in pairs(spec.allocNodes) do before[allocId] = true end
-          spec:AllocNode(node)
-          changed = true
-          local pathed = {}
-          for allocId in pairs(spec.allocNodes) do
-            if not before[allocId] and not requested[allocId] then pathed[#pathed + 1] = allocId end
-          end
-          table.sort(pathed)
-          for _, allocId in ipairs(pathed) do table.insert(result.autoPathedNodes, allocId) end
-        end
-      end
-    end
-    spec.allocMode = allocMode
+  local priorChoices = copyTable(spec.hashOverrides or {}, true)
+  local result, changed = apply_delta(spec, params, current, removeNodes, addNodes)
+  if #result.retagged > 0 then
+    -- Never expected after the dry run (it can differ only on a tie between equal paths); the
+    -- allocation, tags and choices are put back all the same.
+    reimport_nodes(current.classId, current.ascendClassId, current.secondaryAscendClassId, current.nodes,
+      current.treeVersion, { weaponSets = tags, hashOverrides = priorChoices })
+    M.get_main_output()
+    return nil, retag_refusal(result.retagged)
   end
-
   if changed then M.get_main_output() end
+  result.retagged = nil
   result.ascendancyPointsUsed = ascendancy_points_used(build.spec)
   return result
 end
-
 
 -- Calculate what-if scenario without persisting changes.
 -- params: { addNodes?: number[], removeNodes?: number[], useFullDPS?: boolean, fields?: string[] }

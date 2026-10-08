@@ -390,7 +390,8 @@ engineDescribe('AC-K38 (contract part): update_tree_delta carries its reply fiel
         end
         return n`);
       expect(reply.tree.ascendancyPointsUsed).toBe(count);
-      expect(count).toBeLessThanOrEqual(8);
+      // The notables cost more than 8 points together, so the budget is filled exactly.
+      expect(count).toBe(8);
     },
     ENGINE_TIMEOUT,
   );

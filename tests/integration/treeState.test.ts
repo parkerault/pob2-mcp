@@ -268,7 +268,7 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
   );
 
   it(
-    'AC-K33: each bad entry is isError naming the node, with the export and revision unchanged (unallocated, keystone, ascendancy node, socket, both lists, non-attribute, "wisdom", no argument, mixed valid and invalid, a tag that disconnects)',
+    'AC-K33: each bad entry is isError naming the node, with the export and revision unchanged (unallocated in either argument, keystone, ascendancy node, socket, both lists, non-attribute, "wisdom", no argument, mixed valid and invalid, a tag that disconnects)',
     async () => {
       const [a] = await luaQuery<number[]>(TAGGABLE_LEAVES);
       const { id: n } = await luaQuery<{ id: number }>(NON_INT_ATTRIBUTE);
@@ -279,6 +279,13 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
         end
         table.sort(ids)
         return ids[1]`);
+      const unallocatedAttribute = await luaQuery<number>(`
+        local ids = {}
+        for id, node in pairs(build.spec.nodes) do
+          if not node.alloc and node.isAttribute and not node.ascendancyName then ids[#ids + 1] = id end
+        end
+        table.sort(ids)
+        return ids[1]`);
       const keystone = await luaQuery<number>(firstAllocated(`node.type == 'Keystone'`));
       const ascendancy = await luaQuery<number>(firstAllocated(`node.ascendancyName and node.type ~= 'AscendClassStart'`));
       const socket = await luaQuery<number>(firstAllocated(`node.type == 'Socket'`));
@@ -286,9 +293,14 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
       const travel = await luaQuery<number>(firstAllocated(
         `node.type == 'Normal' and not node.ascendancyName and not node.containJewelSocket and #node.depends > 2`,
       ));
-      for (const id of [a, n, unallocated, keystone, ascendancy, socket, travel]) expect(typeof id).toBe('number');
+      for (const id of [a, n, unallocated, unallocatedAttribute, keystone, ascendancy, socket, travel]) expect(typeof id).toBe('number');
 
       await expectRefused('set_tree_state', { weapon_set_nodes: { '1': [String(unallocated)] } }, [`node ${unallocated}`, 'not allocated']);
+      await expectRefused(
+        'set_tree_state',
+        { attribute_choices: { [String(unallocatedAttribute)]: 'dexterity' } },
+        [`node ${unallocatedAttribute}`, 'not allocated'],
+      );
       await expectRefused('set_tree_state', { weapon_set_nodes: { '1': [String(keystone)] } }, [`node ${keystone}`, 'a keystone']);
       await expectRefused('set_tree_state', { weapon_set_nodes: { '2': [String(ascendancy)] } }, [`node ${ascendancy}`, 'an ascendancy node']);
       await expectRefused('set_tree_state', { weapon_set_nodes: { '1': [String(socket)] } }, [`node ${socket}`, 'a jewel socket']);
@@ -446,7 +458,7 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
   );
 
   it(
-    'AC-K38: on a new Warrior/Titan build, update_tree_delta with the 8 Titan notables in name order allocates the first, leaves ≤ 8 Titan nodes (start excluded) and lists every notable left out after BLOCKED:',
+    'AC-K38: on a new Warrior/Titan build, update_tree_delta with the 8 Titan notables in name order allocates the first, fills the budget to exactly 8 Titan nodes (start excluded) and lists every notable left out after BLOCKED:',
     async () => {
       const created = await f.call('lua_new_build', { class_name: 'Warrior', ascendancy: 'Titan' });
       expect(created.isError).toBe(false);
@@ -468,7 +480,8 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
         end
         table.sort(ids)
         return ids`);
-      expect(titan.length).toBeLessThanOrEqual(8);
+      // The notables cost more than 8 points together, so the budget is filled: exactly 8, never more.
+      expect(titan).toHaveLength(8);
       expect(titan).toContain(notables[0].id);
 
       const leftOut = notables.filter((n) => !titan.includes(n.id)).map((n) => n.id);
@@ -476,6 +489,123 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
       const blocked = /BLOCKED:[^\n]*\(IDs: ([\d, ]+)\)/.exec(out.text);
       expect(blocked).not.toBeNull();
       expect(sorted(blocked![1].split(',').map((s) => Number(s.trim())))).toEqual(sorted(leftOut));
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // WU-36 review fixes (C-48): existing tags and choices survive an add; one re-import; the cap's count.
+
+  it(
+    'C-48: an add whose path runs through a weapon-set branch fails naming the node and the branch, with the export and revision unchanged; an add elsewhere keeps every tag and attribute choice',
+    async () => {
+      // The reviewer's case: the 8-node path to notable 55, tagged weapon set 1, its 4 attribute nodes
+      // set to Intelligence; node 40918 hangs off that branch only.
+      const pre = await luaQuery<{ pathDist: number; path: number[]; attributes: number[] }>(`
+        local n = build.spec.nodes[55]
+        local path, attributes = {}, {}
+        for _, p in ipairs(n.path) do
+          path[#path + 1] = p.id
+          if p.isAttribute then attributes[#attributes + 1] = p.id end
+        end
+        return { pathDist = n.pathDist, path = path, attributes = attributes }`);
+      expect(pre.pathDist).toBe(8);
+      expect(pre.attributes).toHaveLength(4);
+      const branch = sorted(pre.path);
+      expect((await f.call('update_tree_delta', { add_nodes: ['55'] })).isError).toBe(false);
+      const tagged = await f.call('set_tree_state', {
+        weapon_set_nodes: { '1': branch.map(String) },
+        attribute_choices: Object.fromEntries(pre.attributes.map((id) => [String(id), 'intelligence'])),
+      });
+      expect({ isError: tagged.isError, text: tagged.isError ? tagged.text : '' }).toEqual({ isError: false, text: '' });
+      const root = await luaQuery<{ alloc: boolean; pathDist: number; rootMode: number }>(`
+        local n = build.spec.nodes[40918]
+        return { alloc = n.alloc, pathDist = n.pathDist, rootMode = n.pathRoot and n.pathRoot.allocMode or 0 }`);
+      expect(root).toEqual({ alloc: false, pathDist: 1, rootMode: 1 });
+      const xml = await exportXml();
+      expect(weaponSets(xml)).toEqual({ '1': branch });
+      const choices = attributeOverride(xml);
+      for (const id of pre.attributes) expect(choices.int).toContain(id);
+      const intBefore = (await stats()).Int;
+
+      const text = await expectRefused('update_tree_delta', { add_nodes: ['40918'] }, ['node 40918', 'set_tree_state']);
+      // The refusal names the branch nodes the add would untag.
+      const named = branch.filter((id) => text.includes(`${id} (`));
+      expect(named.length).toBeGreaterThan(0);
+      expect((await stats()).Int).toBe(intBefore);
+
+      // An add whose path doesn't touch the branch goes ahead, and every node allocated before it keeps
+      // its tag and its attribute choice.
+      const before = await allocated();
+      const elsewhere = await luaQuery<number>(`
+        local ids = {}
+        for id, node in pairs(build.spec.nodes) do
+          if not node.alloc and not node.ascendancyName and node.type == 'Notable' and node.path and node.pathDist >= 2
+              and node.pathDist < 1000 and (node.pathRoot.allocMode or 0) == 0 then
+            ids[#ids + 1] = id
+          end
+        end
+        table.sort(ids)
+        return ids[1]`);
+      const added = await f.call('update_tree_delta', { add_nodes: [String(elsewhere)] });
+      expect(added.isError).toBe(false);
+      const after = await exportXml();
+      expect(weaponSets(after)).toEqual({ '1': branch });
+      const kept = attributeOverride(after);
+      const wasAllocated = (id: number) => before.includes(id);
+      expect({
+        str: kept.str.filter(wasAllocated),
+        dex: kept.dex.filter(wasAllocated),
+        int: kept.int.filter(wasAllocated),
+      }).toEqual({
+        str: choices.str.filter(wasAllocated),
+        dex: choices.dex.filter(wasAllocated),
+        int: choices.int.filter(wasAllocated),
+      });
+      expect((await allocated()).length).toBeGreaterThan(before.length);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'C-48: removing 38570 and adding 17303 on golden equals one re-import of (current − remove + add), 122 nodes',
+    async () => {
+      // The expectation: PoB's own import of that node list (tags and choices kept) on a throwaway spec.
+      const expected = await luaQuery<number[]>(`
+        local spec = build.spec
+        local nodes, tags = {}, {}
+        for id, node in pairs(spec.allocNodes) do
+          if id ~= 38570 then nodes[#nodes + 1] = id end
+          if node.allocMode and node.allocMode ~= 0 then tags[id] = node.allocMode end
+        end
+        nodes[#nodes + 1] = 17303
+        local s = require('API.Util').construct('PassiveSpec', build, spec.treeVersion)
+        s.jewels = copyTable(spec.jewels)
+        s:ImportFromNodeList(nil, spec.curClassId, spec.curAscendClassId, spec.curSecondaryAscendClassId or 0, nodes,
+          tags, copyTable(spec.hashOverrides, true), {})
+        local ids = {}
+        for id in pairs(s.allocNodes) do ids[#ids + 1] = id end
+        table.sort(ids)
+        return ids`);
+      expect(expected).toHaveLength(122);
+      expect(expected).toContain(17303);
+      expect(expected).not.toContain(38570);
+
+      const out = await f.call('update_tree_delta', { remove_nodes: ['38570'], add_nodes: ['17303'] });
+      expect(out.isError).toBe(false);
+      expect(await allocated()).toEqual(expected);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "C-48: a no-op delta's tree.ascendancyPointsUsed equals PassiveSpec:CountAllocNodes() on golden (6)",
+    async () => {
+      const counted = await luaQuery<number>(`local _, asc = build.spec:CountAllocNodes() return asc`);
+      expect(counted).toBe(6);
+      const reply = await run('mutate', (client) => client.updateTreeDelta({ addNodes: [], removeNodes: [] }));
+      expect(reply.tree.ascendancyPointsUsed).toBe(counted);
+      expect(reply.autoPathedNodes).toEqual([]);
+      expect(reply.skippedAscendancyNodes).toEqual([]);
     },
     ENGINE_TIMEOUT,
   );

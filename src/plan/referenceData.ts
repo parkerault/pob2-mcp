@@ -120,7 +120,8 @@ export interface ResolvedFact {
   member?: string;
   fact: Fact;
   value: FactValue | number | string;
-  /** The fact's own C-30 tag (its source entry without `id`), the tag a plan copies with the value (D-168). */
+  /** The fact's own C-30 tag: its source's kind, ref and accessed, with the fact's patch and confidence.
+   * A plan copies it with the value (D-168). */
   tag: SourceTag;
 }
 
@@ -215,12 +216,16 @@ function memberOf(value: FactValue, member: string): FactValue | number | string
   return undefined;
 }
 
-/** A source entry without its `id`: the C-30 tag itself. */
-function tagOf(source: DataSource): SourceTag {
+/**
+ * A fact's own C-30 tag (D-168): its source's `kind`, `ref` and `accessed`, with the fact's own `patch`
+ * and `confidence`, which may differ from the source's (an L fact from an H page, a 0.5.4 fact from a
+ * judgment).
+ */
+function tagOf(source: DataSource, fact: Fact): SourceTag {
   const tag: SourceTag = { kind: source.kind, ref: source.ref };
   if (source.accessed !== undefined) tag.accessed = source.accessed;
-  if (source.patch !== undefined) tag.patch = source.patch;
-  if (source.confidence !== undefined) tag.confidence = source.confidence;
+  tag.patch = fact.patch;
+  tag.confidence = fact.confidence;
   return tag;
 }
 
@@ -235,7 +240,7 @@ function makeReferenceData(dataDir: string, files: ReadonlyMap<string, DataFile>
     const [, factId, member] = m;
     const fact = Object.prototype.hasOwnProperty.call(data.facts, factId) ? data.facts[factId] : undefined;
     if (fact === undefined) return { ok: false, reason: `${file} has no fact "${factId}"` };
-    const tag = tagOf(data.sources.find((s) => s.id === fact.source)!);
+    const tag = tagOf(data.sources.find((s) => s.id === fact.source)!, fact);
     if (member === undefined) return { ok: true, fact: { file, factId, fact, value: fact.value, tag } };
     const picked = memberOf(fact.value, member);
     if (picked === undefined) return { ok: false, reason: `${file}#${factId} has no member [${member}]` };

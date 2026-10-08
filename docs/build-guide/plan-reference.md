@@ -359,13 +359,13 @@ Titan who rolled Boneshatter.
             "option": "enemyIsBoss",
             "value": "None",
             "source": { "file": "enemies/map-monsters.json", "key": "pob-enemy-is-boss" },
-            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4" }
+            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4", "confidence": "H" }
           },
           {
             "option": "resistancePenalty",
             "value": 0,
             "source": { "file": "campaign/limits.json", "key": "resistance-penalty.act1" },
-            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4" }
+            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4", "confidence": "H" }
           }
         ]
       },
@@ -468,13 +468,13 @@ Titan who rolled Boneshatter.
             "option": "enemyIsBoss",
             "value": "None",
             "source": { "file": "enemies/map-monsters.json", "key": "pob-enemy-is-boss" },
-            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4" }
+            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4", "confidence": "H" }
           },
           {
             "option": "resistancePenalty",
             "value": 0,
             "source": { "file": "campaign/limits.json", "key": "resistance-penalty.act1" },
-            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4" }
+            "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4", "confidence": "H" }
           }
         ]
       },

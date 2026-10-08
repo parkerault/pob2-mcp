@@ -6,7 +6,7 @@
       "kind": "external",
       "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
       "accessed": "2026-10-07",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     },
     {
@@ -14,7 +14,7 @@
       "kind": "external",
       "ref": "https://www.switchbladegaming.com/path-of-exile-2/all-ascendancy-points/",
       "accessed": "2026-10-07",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L"
     },
     {
@@ -28,13 +28,19 @@
       "kind": "pob-data",
       "ref": "Data/WorldAreas.lua:2524-2541",
       "patch": "0.5.4"
+    },
+    {
+      "id": "trial-3-earliest-route",
+      "kind": "judgment",
+      "ref": "A level 60+ Barya first drops in the interludes: no Act 1 to 4 area reaches level 60 in PoB's WorldAreas, and its quest-reward file puts the interlude rows at 61 to 64",
+      "confidence": "L"
     }
   ],
   "facts": {
     "trial.1.points": {
       "value": 2,
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "eight ascendancy points in four pairs"
     },
@@ -48,13 +54,13 @@
     "trial.1.requirement": {
       "value": "Trial of the Sekhemas in Act 2 (Balbala's Barya)",
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     },
     "trial.2.points": {
       "value": 2,
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "eight ascendancy points in four pairs"
     },
@@ -68,48 +74,48 @@
     "trial.2.requirement": {
       "value": "Trial of Chaos in Act 3 (Chimeral Inscribed Ultimatum)",
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     },
     "trial.3.points": {
       "value": 2,
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "eight ascendancy points in four pairs"
     },
     "trial.3.available-from": {
-      "value": "endgame",
-      "source": "ext-s15",
-      "patch": "0.5.5",
-      "confidence": "M",
-      "note": "the required level is disputed, 65+ (S15) or 75+ (S16); either is past the campaign, whose waystone maps start at area level 65"
+      "value": "q.act-4-abandoned-prison-goddess-of-justice",
+      "source": "trial-3-earliest-route",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "two routes: a Barya of level 60+ with 3 trials, which drops in the interludes (base 54 to 56 in PoB's WorldAreas, about 62 to 64 with the dynamic +8; PoB's quest-reward rows put them at 61 to 64), so q.act-4-abandoned-prison-goddess-of-justice, the progress key before the first quest row above area level 60, may have done it; or the disputed 65+ (S15) / 75+ (S16) requirement, which is endgame. Recorded at the earlier route"
     },
     "trial.3.requirement": {
       "value": "A Barya of level 60+ with 3 trials, or an Ultimatum with 10 trials. Its required level is disputed: 65+ (S15) or 75+ (S16)",
       "source": "ext-s16",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "the 65+/75+ dispute is recorded as M (A-29); the Act 4 third trial is not implemented"
     },
     "trial.4.points": {
       "value": 2,
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "eight ascendancy points in four pairs"
     },
     "trial.4.available-from": {
       "value": "endgame",
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "level 65+ or 75+ content, past the campaign"
     },
     "trial.4.requirement": {
       "value": "A Barya of level 75+ with 4 trials plus Zarokh, or an Ultimatum of level 75+ with 10 trials plus the Trialmaster (maxroll, S15: 65+ and three fragments)",
       "source": "ext-s15",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "the 65+/75+ dispute is recorded as M (A-29)"
     }

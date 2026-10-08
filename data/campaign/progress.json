@@ -188,14 +188,6 @@
       "patch": "0.5.4"
     },
     {
-      "id": "ext-s11",
-      "kind": "external",
-      "ref": "https://game8.co/games/Path-of-Exile-2/archives/513735",
-      "accessed": "2026-10-07",
-      "patch": "0.5.5",
-      "confidence": "H"
-    },
-    {
       "id": "progress-ends",
       "kind": "judgment",
       "ref": "A-P10 puts start at the beginning of Act 1 and endgame after the last quest row",
@@ -316,10 +308,10 @@
     },
     "q.act-1-hunting-grounds-crowbell.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-2",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-1-freythorn-king-in-the-mists.region": {
       "value": "act1",
@@ -379,10 +371,10 @@
     },
     "q.act-1-ogham-farmlands-una-s-lute.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-4",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-1-ogham-manor-candlemass.region": {
       "value": "act1",
@@ -445,10 +437,10 @@
     },
     "q.act-2-keth-kabala.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-6",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-2-valley-of-the-titans-medallion.region": {
       "value": "act2",
@@ -467,7 +459,7 @@
       "source": "pob-quest-row-7",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10) calls it the charm-medallion choice"
     },
     "q.act-2-valley-of-the-titans-medallion.options": {
       "value": [
@@ -513,10 +505,10 @@
     },
     "q.act-2-deshar-the-final-letter.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-8",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.region": {
       "value": "act2",
@@ -579,10 +571,10 @@
     },
     "q.act-3-jungle-ruins-mighty-silverfist.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-10",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-3-azak-bog-ignagduk.region": {
       "value": "act3",
@@ -632,7 +624,7 @@
       "source": "pob-quest-row-12",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10): a permanent choice"
     },
     "q.act-3-venom-crypts-venom-draught.options": {
       "value": [
@@ -713,10 +705,10 @@
     },
     "q.act-3-aggorat-blood-sacrifice.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-14",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-4-isle-of-kin-blind-beast.region": {
       "value": "act4",
@@ -745,10 +737,10 @@
     },
     "q.act-4-isle-of-kin-blind-beast.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-15",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-4-eye-of-hinekora-silent-hall.region": {
       "value": "act4",
@@ -801,7 +793,7 @@
       "source": "pob-quest-row-17",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values"
     },
     "q.act-4-eye-of-hinekora-tribal-medicine.options": {
       "value": [
@@ -837,7 +829,7 @@
       "source": "pob-quest-row-18",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10): a permanent choice"
     },
     "q.act-4-halls-of-the-dead-tawhoa-s-test.options": {
       "value": [
@@ -873,7 +865,7 @@
       "source": "pob-quest-row-19",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10): a permanent choice"
     },
     "q.act-4-halls-of-the-dead-tasalio-s-test.options": {
       "value": [
@@ -909,7 +901,7 @@
       "source": "pob-quest-row-20",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10): a permanent choice"
     },
     "q.act-4-halls-of-the-dead-ngamahu-s-test.options": {
       "value": [
@@ -955,10 +947,10 @@
     },
     "q.act-4-trial-of-the-ancestors-hinekora.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-21",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.act-4-abandoned-prison-goddess-of-justice.region": {
       "value": "act4",
@@ -977,7 +969,7 @@
       "source": "pob-quest-row-22",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10) calls it the flask-recovery choice"
     },
     "q.act-4-abandoned-prison-goddess-of-justice.options": {
       "value": [
@@ -1024,10 +1016,10 @@
     },
     "q.interlude-1-wolvenhold-oswin.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-23",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.interlude-2-khari-bazaar-clearing-the-way.region": {
       "value": "interlude",
@@ -1057,10 +1049,10 @@
     },
     "q.interlude-2-khari-bazaar-clearing-the-way.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-24",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.interlude-2-khari-crossing-molten-shrine.region": {
       "value": "interlude",
@@ -1115,7 +1107,7 @@
       "source": "pob-quest-row-26",
       "patch": "0.5.4",
       "confidence": "H",
-      "note": "a permanent choice; the options are PoB's config list values"
+      "note": "one of the listed options, PoB's config list values; maxroll (S10): a swappable choice"
     },
     "q.interlude-2-qimah-seven-pillars.options": {
       "value": [
@@ -1199,10 +1191,10 @@
     },
     "q.interlude-3-howling-caves-abominable-yeti.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-28",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     },
     "q.epilog-kingsmarch-siege-of-oriath.region": {
       "value": "interlude",
@@ -1233,10 +1225,10 @@
     },
     "q.epilog-kingsmarch-siege-of-oriath.passive-points": {
       "value": 2,
-      "source": "ext-s11",
-      "patch": "0.5.5",
+      "source": "pob-quest-row-29",
+      "patch": "0.5.4",
       "confidence": "H",
-      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+      "note": "questPoints = 2: PoB counts each book's questPoints toward the regular passive cap, 99 + 24 = 123 (Modules/Build.lua:79-98, :1006); S11 and S12 agree"
     }
   }
 }

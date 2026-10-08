@@ -6,7 +6,7 @@
       "kind": "external",
       "ref": "https://game8.co/games/Path-of-Exile-2/archives/488760",
       "accessed": "2026-10-07",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     },
     {
@@ -14,7 +14,7 @@
       "kind": "external",
       "ref": "https://outof.games/realms/poe2/items/uncut-support-gem-level-2/",
       "accessed": "2026-10-07",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     },
     {
@@ -30,175 +30,175 @@
     "uncut-skill.1.available-from": {
       "value": "start",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from the Bloated Miller (S17), in The Riverbank, area level 1 in PoB's WorldAreas (Data/WorldAreas.lua:1212-1228): the progress key before the first quest row above area level 1"
     },
     "uncut-skill.2.available-from": {
       "value": "q.act-1-clearfell-beira",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from Areagne or the Brambleghast (S17); the Brambleghast is in The Grelwood, area level 4 in PoB's WorldAreas (Data/WorldAreas.lua:1269-1290): the progress key before the first quest row above area level 4. PoB has no Areagne"
     },
     "uncut-skill.3.available-from": {
       "value": "q.act-1-freythorn-king-in-the-mists",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "the grounding names no level-3 source; recorded at level 4's point, the first where a gem of level 3 or more is sourced"
     },
     "uncut-skill.4.available-from": {
       "value": "q.act-1-freythorn-king-in-the-mists",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from the Freythorn ritual or Vargir (S17); Freythorn is Freythorn, area level 11 in PoB's WorldAreas (Data/WorldAreas.lua:1438-1458): the progress key before the first quest row above area level 11. PoB has no Vargir"
     },
     "uncut-skill.5.available-from": {
       "value": "q.act-1-ogham-farmlands-una-s-lute",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from the Executioner or \"Earning Passage\" at the start of Act 2 (S17); the Executioner is in Ogham Village, area level 13 in PoB's WorldAreas (Data/WorldAreas.lua:1483-1503): the progress key before the first quest row above area level 13"
     },
     "uncut-skill.6.available-from": {
       "value": "q.act-1-ogham-manor-candlemass",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "the grounding names no level-6 source; recorded at level 7's point, the first where a gem of level 6 or more is sourced"
     },
     "uncut-skill.7.available-from": {
       "value": "q.act-1-ogham-manor-candlemass",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "a random drop in Act 2 from drop level 23 (S17, S18): the progress key before the first quest row above area level 23"
     },
     "uncut-skill.8.available-from": {
       "value": "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "the grounding names no level-8 source; recorded at level 9's point, the first where a gem of level 8 or more is sourced"
     },
     "uncut-skill.9.available-from": {
       "value": "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from Rootdredge at the start of Act 3 (S17), in Sandswept Marsh, area level 33 in PoB's WorldAreas (Data/WorldAreas.lua:2262-2285): the progress key before the first quest row above area level 33"
     },
     "uncut-skill.10.available-from": {
       "value": "q.act-3-aggorat-blood-sacrifice",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "the grounding names no level-10 source; recorded at level 11's point, the first where a gem of level 10 or more is sourced"
     },
     "uncut-skill.11.available-from": {
       "value": "q.act-3-aggorat-blood-sacrifice",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "late Act 3 (S17): the last Act 3 progress key"
     },
     "uncut-skill.12.available-from": {
       "value": "q.act-4-abandoned-prison-goddess-of-justice",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "the grounding names no level-12 source; recorded at level 13's point, the first where a gem of level 12 or more is sourced"
     },
     "uncut-skill.13.available-from": {
       "value": "q.act-4-abandoned-prison-goddess-of-justice",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "from monster level 52 (S17, levels 13 to 15 at monster level 52 to 64): the progress key before the first quest row above area level 52"
     },
     "uncut-skill.14.available-from": {
       "value": "q.epilog-kingsmarch-siege-of-oriath",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "L",
       "note": "between levels 13 and 15 (monster level 52 to 64, S17); recorded at level 15's point"
     },
     "uncut-skill.15.available-from": {
       "value": "q.epilog-kingsmarch-siege-of-oriath",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "by monster level 64 (S17, levels 13 to 15 at monster level 52 to 64): the progress key before the first quest row above area level 64, the last quest row"
     },
     "uncut-skill.16.available-from": {
       "value": "endgame",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "levels 16 to 20 drop in maps (S17); gem level 20 needs character level 90 (S37)"
     },
     "uncut-skill.17.available-from": {
       "value": "endgame",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "levels 16 to 20 drop in maps (S17); gem level 20 needs character level 90 (S37)"
     },
     "uncut-skill.18.available-from": {
       "value": "endgame",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "levels 16 to 20 drop in maps (S17); gem level 20 needs character level 90 (S37)"
     },
     "uncut-skill.19.available-from": {
       "value": "endgame",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "levels 16 to 20 drop in maps (S17); gem level 20 needs character level 90 (S37)"
     },
     "uncut-skill.20.available-from": {
       "value": "endgame",
       "source": "ext-s17",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "levels 16 to 20 drop in maps (S17); gem level 20 needs character level 90 (S37)"
     },
     "uncut-support.1.available-from": {
       "value": "q.act-1-clearfell-beira",
       "source": "ext-s18",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "drop level 4 (S18): the progress key before the first quest row above area level 4"
     },
     "uncut-support.2.available-from": {
       "value": "q.act-1-ogham-manor-candlemass",
       "source": "ext-s18",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "drop level 16 (S18): the progress key before the first quest row above area level 16"
     },
     "uncut-support.3.available-from": {
       "value": "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine",
       "source": "ext-s18",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "drop level 33 (S18): the progress key before the first quest row above area level 33"
     },
     "uncut-support.4.available-from": {
       "value": "q.act-3-aggorat-blood-sacrifice",
       "source": "ext-s18",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "drop level 45 (S18): the progress key before the first quest row above area level 45"
     },
     "uncut-support.5.available-from": {
       "value": "q.act-4-abandoned-prison-goddess-of-justice",
       "source": "ext-s18",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "drop level 55 (S18): the progress key before the first quest row above area level 55"
     },

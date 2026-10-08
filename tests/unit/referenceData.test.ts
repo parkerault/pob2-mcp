@@ -175,6 +175,12 @@ describe('AC-P13 (WU-39): the committed C1/E1 data', () => {
       expect(order).toContain(fact(T, `trial.${n}.available-from`).value);
       expect(typeof fact(T, `trial.${n}.requirement`).value).toBe('string');
     }
+    // Trial 3's earliest route, a level 60+ Barya, opens in the interludes: the key before them, at L.
+    const firstInterlude = order.findIndex((k) => k.startsWith('q.interlude-'));
+    expect(fact(T, 'trial.3.available-from')).toMatchObject({ value: order[firstInterlude - 1], confidence: 'L' });
+    expect(fact(T, 'trial.3.available-from').note).toEqual(expect.stringContaining('60+'));
+    expect(fact(T, 'trial.3.available-from').note).toEqual(expect.stringContaining('75+'));
+    expect(fact(T, 'trial.4.available-from').value).toBe('endgame');
     // The third and fourth trials' 65+/75+ dispute is recorded as M.
     for (const n of [3, 4]) {
       expect(fact(T, `trial.${n}.requirement`).value).toEqual(expect.stringContaining('65+'));
@@ -243,13 +249,34 @@ describe('AC-P13 (WU-39): the committed C1/E1 data', () => {
     for (const id of mods) expect({ id, confidence: fact(W, id).confidence }).toEqual({ id, confidence: 'M' });
   });
 
-  it('AC-P13 (origin, D-204): pin facts have patch 0.5.4; every external source was accessed 2026-10-07', () => {
+  it("AC-P13 (origin, D-204): pin facts have patch 0.5.4; an external fact has its page's patch (the grounding's 0.5.x for its section 2 pages, 0.5.5 for poe2db); every external source was accessed 2026-10-07", () => {
     for (const [name, f] of ref.files) {
       const sources = new Map(f.sources.map((s) => [s.id, s]));
       for (const [id, x] of Object.entries(f.facts)) {
-        if (sources.get(x.source)!.kind === 'pob-data') expect({ name, id, patch: x.patch }).toEqual({ name, id, patch: '0.5.4' });
+        const s = sources.get(x.source)!;
+        if (s.kind === 'pob-data') expect({ name, id, patch: x.patch }).toEqual({ name, id, patch: '0.5.4' });
+        if (s.kind === 'external') expect({ name, id, patch: x.patch }).toEqual({ name, id, patch: s.patch });
       }
-      for (const s of f.sources.filter((s) => s.kind === 'external')) expect({ name, id: s.id, accessed: s.accessed }).toEqual({ name, id: s.id, accessed: '2026-10-07' });
+      for (const s of f.sources.filter((s) => s.kind === 'external')) {
+        expect({ name, id: s.id, accessed: s.accessed }).toEqual({ name, id: s.id, accessed: '2026-10-07' });
+        const n = Number(/^ext-s(\d+)/.exec(s.id)![1]);
+        if ([14, 16, 17, 18].includes(n)) expect({ name, id: s.id, patch: s.patch }).toEqual({ name, id: s.id, patch: '0.5.x' });
+        if (s.ref.startsWith('https://poe2db.tw/')) expect({ name, id: s.id, patch: s.patch }).toEqual({ name, id: s.id, patch: '0.5.5' });
+      }
+    }
+  });
+
+  it("AC-P13: the books' passive points are the pin's questPoints (H, 0.5.4); choice notes claim only what their source says", () => {
+    const P = 'campaign/progress.json';
+    const sources = new Map(file(P).sources.map((s) => [s.id, s]));
+    for (const id of ids(P).filter((x) => x.endsWith('.passive-points'))) {
+      const f = fact(P, id);
+      expect({ id, kind: sources.get(f.source)!.kind, patch: f.patch, confidence: f.confidence }).toEqual({ id, kind: 'pob-data', patch: '0.5.4', confidence: 'H' });
+      expect(f.note).toEqual(expect.stringContaining('Modules/Build.lua'));
+    }
+    expect(fact(P, 'q.interlude-2-qimah-seven-pillars.reward').note).toEqual(expect.stringContaining('swappable'));
+    for (const k of ['q.interlude-2-qimah-seven-pillars', 'q.act-4-eye-of-hinekora-tribal-medicine']) {
+      for (const id of [`${k}.reward`, `${k}.options`]) expect({ id, note: /permanent/i.test(fact(P, id).note ?? '') }).toEqual({ id, note: false });
     }
   });
 });
@@ -412,12 +439,36 @@ describe('AC-P17 (WU-39, D-214, D-232): validatePlan checks progress keys and da
     expect(r.ok ? [] : r.errors).toEqual([]);
   });
 
+  it("AC-P17, D-168: a resolved fact's tag is its own: the source's kind, ref and accessed with the fact's patch and confidence", () => {
+    const tagOf = (f: string, key: string) => {
+      const r = ref.resolveFact(f, key);
+      if (!r.ok) throw new Error(r.reason);
+      return r.fact.tag;
+    };
+    // An L fact from an H page stays L.
+    expect(tagOf('enemies/arbiter-of-divinity.json', 'fight-life.datamined-base')).toEqual({
+      kind: 'external', ref: 'https://poe2db.tw/us/The_Arbiter_of_Divinity', accessed: '2026-10-07', patch: '0.5.5', confidence: 'L',
+    });
+    for (const n of [3, 6, 8, 10, 12, 14]) {
+      expect({ n, confidence: tagOf('campaign/gems.json', `uncut-skill.${n}.available-from`).confidence }).toEqual({ n, confidence: 'L' });
+    }
+    // A judgment-sourced fact gets the fact's patch; a member keeps its fact's tag.
+    expect(tagOf('campaign/progress.json', 'start.region')).toMatchObject({ kind: 'judgment', patch: '0.5.4', confidence: 'H' });
+    expect(tagOf('enemies/map-monsters.json', 'life.by-level[79]')).toEqual({ kind: 'pob-data', ref: 'Data/Misc.lua:7', patch: '0.5.4', confidence: 'H' });
+    for (const [name, f] of ref.files) {
+      for (const [id, x] of Object.entries(f.facts)) {
+        expect({ name, id, tag: tagOf(name, id) }).toMatchObject({ name, id, tag: { patch: x.patch, confidence: x.confidence } });
+      }
+    }
+  });
+
   it("AC-P17: the fixture's scenario entries carry their cited fact's value and the fact's own tag (D-168)", () => {
     for (const stage of fixture().stages) {
       for (const entry of stage.config.scenario) {
         const found = ref.resolveFact(entry.source.file, entry.source.key);
         expect(found.ok).toBe(true);
         if (found.ok) expect({ option: entry.option, value: entry.value, tag: entry.tag }).toEqual({ option: entry.option, value: found.fact.value, tag: found.fact.tag });
+        expect(entry.tag.confidence).toBe(found.ok ? found.fact.fact.confidence : undefined);
       }
     }
   });

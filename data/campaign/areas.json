@@ -46,7 +46,7 @@
       "kind": "external",
       "ref": "https://maxroll.gg/poe2/getting-started/comprehensive-league-start-leveling-guide",
       "accessed": "2026-10-07",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M"
     }
   ],
@@ -104,7 +104,7 @@
     "interlude.dynamic-increase": {
       "value": 8,
       "source": "ext-s47",
-      "patch": "0.5.5",
+      "patch": "0.5.x",
       "confidence": "M",
       "note": "area level rises with bosses killed in the other interludes, about +8 by the end (about 62 to 64); the grounding cites S9, S47 and S48 together"
     }

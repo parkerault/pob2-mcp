@@ -14,6 +14,11 @@
  *
  * WU-45: the design stage references (D1, D1-gate, D2, D2-gate, W1), the writer definition and the
  * coordinator's design steps (AC-W5 extended), and the guide template (AC-W11, §8).
+ *
+ * WU-46: the provenance and verifier definitions (AC-W5 extended, AC-W14's static half), the V3, V4 and
+ * revise-map stage references, the coordinator's revision section and the fallback's routing. AC-W14's
+ * comparison of the fallback's step tables with the harness's record is in
+ * `tests/unit/buildGuideWorkflows.test.ts`, beside the harness runs it compares against.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -750,5 +755,157 @@ describe('AC-W11: the guide template (§8)', () => {
     const ids = defs.map((i) => /^\[\^([^\]\s]+)\]:/.exec(lines[i])![1]);
     expect(new Set(ids).size).toBe(ids.length);
     for (const m of text.matchAll(/\[\^([^\]\s]+)\](?!:)/g)) expect({ marker: m[1], defined: ids.includes(m[1]) }).toEqual({ marker: m[1], defined: true });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-46: the provenance and verifier definitions (AC-W5 extended, AC-W14), the V3, V4 and revise-map stage
+// references, the coordinator's revision section and the fallback's routing (§4, §5.3, §5.5, §7.4)
+// ---------------------------------------------------------------------------------------------------
+
+const VERIFY_STAGES = ['V3', 'V4', 'revise-map'];
+const FALLBACK_MD = path.join(SKILL_DIR, 'references', 'fallback.md');
+
+describe('AC-W14: the provenance and verifier definitions (§4, R-3…R-5, D-178)', () => {
+  const def = (stem: string) => readDefinition(fs.readFileSync(path.join(AGENTS_DIR, `${stem}.md`), 'utf8'))!;
+
+  it('all five agent types of §4 now have a definition', () => {
+    expect(definitionFiles.map((f) => f.replace(/\.md$/, '')).sort()).toEqual([...AGENT_TYPES].sort());
+  });
+
+  it('provenance has only Read, Glob and Grep: no write, edit, Bash, pob2, trade or web tool', () => {
+    expect(def('build-guide-provenance').tools).toEqual(['Read', 'Glob', 'Grep']);
+  });
+
+  it('the verifier has Read, Glob, Grep, WebFetch and the lookups L only: no Write, Edit or Bash, no C or P tool', () => {
+    const { tools } = def('build-guide-verifier');
+    expect(tools).toEqual(['Read', 'Glob', 'Grep', 'WebFetch', ...L.map((t) => POB2 + t)]);
+    for (const t of tools) {
+      expect(['Write', 'Edit', 'NotebookEdit', 'Bash', 'WebSearch']).not.toContain(t);
+      expect([...B, ...C, ...P].map((n) => POB2 + n)).not.toContain(t);
+    }
+  });
+
+  it('both state that their report is their return and that they write nothing (R-5), and the verifier the C-30 offline rule', () => {
+    for (const stem of ['build-guide-provenance', 'build-guide-verifier']) {
+      const body = folded(def(stem).body);
+      expect(body).toMatch(/Your report is your return/);
+      expect(body).toMatch(/Fresh and independent\*\* \(D-142\)/);
+    }
+    const verifier = folded(def('build-guide-verifier').body);
+    expect(verifier).toMatch(/`external-unavailable` is `accepted-offline` only in an offline run; in an online run it is `unresolved` \(C-30\)/);
+    expect(verifier).toMatch(/without fetching that citation's URL \(D-232\)/);
+  });
+});
+
+describe('WU-46: the V3, V4 and revise-map stage references', () => {
+  it.each(VERIFY_STAGES)('%s.md exists, with the parts the stages README names', (stage) => {
+    const titles = headings(readStage(stage)).filter((h) => h.level === 2).map((h) => h.title);
+    for (const part of ['Inputs', 'Work', 'Writes', 'Returns', 'Fault directives']) {
+      expect({ stage, part, present: titles.some((t) => t.startsWith(part)) }).toEqual({ stage, part, present: true });
+    }
+  });
+
+  it('every repository path they, the new definitions and fallback.md mention exists', () => {
+    let checked = 0;
+    const files = [
+      ...VERIFY_STAGES.map((s) => path.join(STAGES_DIR, `${s}.md`)),
+      path.join(AGENTS_DIR, 'build-guide-provenance.md'),
+      path.join(AGENTS_DIR, 'build-guide-verifier.md'),
+      FALLBACK_MD,
+    ];
+    for (const file of files) {
+      for (const p of repoPaths(fs.readFileSync(file, 'utf8'))) {
+        const cut = p.search(/[<*]/);
+        const fixed = cut < 0 ? p : p.slice(0, p.lastIndexOf('/', cut) + 1);
+        expect({ file: path.relative(REPO, file), path: p, exists: fs.existsSync(path.join(REPO, fixed)) }).toEqual({ file: path.relative(REPO, file), path: p, exists: true });
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(10);
+  });
+
+  it('V3 counts claims the way the run checker does, and returns coverage {plan, dossier, guide}', () => {
+    const text = folded(readStage('V3'));
+    expect(text).toContain('`plan`: one per `stages[].claims[]` entry of `plan.json`');
+    expect(text).toContain('`dossier` and `guide`: one per definition line');
+    expect(text).toContain('"coverage": { "plan": 12, "dossier": 4, "guide": 12 }');
+    expect(text).toMatch(/In an online run .* an `external-unavailable` tag anywhere is a finding/);
+  });
+
+  it("V4's ledger lens re-derives every entry, and the five waystone-scaled hits from their facts (D-179, D-254, A-P11)", () => {
+    const text = folded(readStage('V4'));
+    expect(text).toMatch(/For \*\*every\*\* entry of `plan\.json`'s `ledger\[\]`, evaluate its `formula` yourself/);
+    expect(text).toMatch(/re-derive the five waystone-scaled hits from the facts themselves/);
+    expect(text).toContain('`enemies/map-monsters.json#damage.by-level[<area level>]`');
+    expect(text).toContain('`enemies/waystones.json#mods.increased-monster-damage`');
+    expect(text).toContain('`enemies/waystones.json#mods.extra-damage-as-element`');
+    expect(text).toContain('physical = `base × (1 + increased / 100)`');
+    expect(text).toContain('`base × (1 + increased / 100) × extra / 100`');
+    expect(text).toContain('the ledger entry `hit_<stage id>_<type>`');
+    expect(text).toMatch(/`rederived` how many you re-derived, which must equal `entries` \(D-179\)/);
+  });
+
+  it("V4's sources lens: every external source opened (none offline), every data claim checked without a fetch offline, all endgame pob-data and 1 in 5 elsewhere, prices against their entries", () => {
+    const text = folded(readStage('V4'));
+    expect(text).toMatch(/open \*\*every\*\* source with WebFetch, only on D-171's hosts/);
+    expect(text).toMatch(/Offline, open nothing/);
+    expect(text).toMatch(/\*\*offline you don't fetch it\*\* \(D-232\)/);
+    expect(text).toMatch(/\*\*all\*\* of them in endgame sections, and \*\*at least 1 in 5 elsewhere\*\* \(rounded up\)/);
+    expect(text).toMatch(/check the claim's amount, currency, date and league against it/);
+    expect(text).toMatch(/`accepted-offline` when the run log's mode is `offline`, `unresolved` otherwise \(C-30\)/);
+  });
+
+  it('V4 follows the lookup rules: D-239…D-241, partly parsed applies none, possibly unread is advisory and confirmed by measurement (D-243)', () => {
+    const text = folded(readStage('V4'));
+    for (const d of ['D-239', 'D-240', 'D-241']) expect(text).toContain(d);
+    expect(text).toMatch(/A \*\*partly parsed\*\* line means PoB applies \*\*none\*\* of it/);
+    expect(text).toMatch(/\*\*`possibly unread` is advisory\*\* \(D-243\): the coordinator confirms it by a measurement/);
+    expect(text).toMatch(/never guess the number yourself/);
+  });
+
+  it("V4's coverage keys and the owners are the workflow's and the run checker's", () => {
+    const script = fs.readFileSync(path.join(REPO, '.claude', 'workflows', 'build-guide-design.js'), 'utf8');
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    const list = (text: string, re: RegExp) => [...re.exec(text)![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    const sources = list(checker, /const SOURCES_COVERAGE = \[([^\]]*)\]/);
+    expect(list(script, /sources: \[([^\]]*)\]/)).toEqual(sources);
+    expect(folded(readStage('V4'))).toContain(`Coverage** \`{${sources.join(', ')}}\``);
+    expect(list(script, /const OWNERS = \[([^\]]*)\]/).sort()).toEqual(list(checker, /const OWNERS = \[([^\]]*)\]/).sort());
+  });
+
+  it('revise-map maps by §5.5\'s owner table, writes nothing and returns {mapping: [{id, owner, why}]}', () => {
+    const text = folded(readStage('revise-map'));
+    for (const owner of ['W1', 'D1', 'D2', 'dossier-fix']) expect(text).toContain(`| \`${owner}\` |`);
+    expect(text).toContain('Nothing (the header\'s `writes` is empty)');
+    expect(text).toContain('"mapping": [');
+    expect(text).toMatch(/Every request `id` of the header appears at least once/);
+  });
+});
+
+describe('WU-46: the coordinator\'s revision section and the fallback\'s routing', () => {
+  it('the coordinator lists revise-map after its design steps, with an existing stage reference', () => {
+    const { body } = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
+    const designAt = body.indexOf('## Design steps');
+    const revisionAt = body.indexOf('## Revision and routed re-runs');
+    expect(designAt).toBeGreaterThan(0);
+    expect(revisionAt).toBeGreaterThan(designAt);
+    expect(body.slice(revisionAt)).toContain('| `revise-map` | `.claude/skills/build-guide/references/stages/revise-map.md` |');
+  });
+
+  it('fallback.md routes by §5.5\'s table and says how a routed re-run counts, and both resume paths WU-46 owns', () => {
+    const text = folded(fs.readFileSync(FALLBACK_MD, 'utf8'));
+    expect(text).toContain('| `dossier.md` | `dossier-fix` | V3, V4 |');
+    expect(text).toContain('| an endgame stage of `plan.json`, a ledger entry citing one, an endgame price | `D1` | D1 gate, D2 gate and final compile, W1, V3, V4 |');
+    expect(text).toMatch(/A re-run spends one of that owner's 2 retries/);
+    expect(text).toMatch(/An owner with no retry left \(a third round\) ends the flow `escalated`/);
+    expect(text).toMatch(/\*\*`revision`\*\* \(checkpoint 2\), `\{reason: "revision", round, requests, attempts\}`/);
+    expect(text).toMatch(/At `V3` or `V4`, the findings' owners re-run once with their findings and the guidance/);
+  });
+
+  it('the design workflow takes every resume WU-45 left for WU-46 (revision, guided V3/V4, dossier-fix, revise-map)', () => {
+    const script = fs.readFileSync(path.join(REPO, '.claude', 'workflows', 'build-guide-design.js'), 'utf8');
+    expect(script).not.toMatch(/arrives with WU-46/);
+    expect(script).toContain("const RESUME_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V3', 'V4', 'dossier-fix', 'revise-map']");
   });
 });

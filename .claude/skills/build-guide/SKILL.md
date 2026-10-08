@@ -114,6 +114,10 @@ faults?, resume?, accepted?}})`, where `buildName` is `<slug>-<YYYY-MM-DD>-<n>`,
 joined with `-`. **Every `resume` carries `attempts`**, the attempts each stage of this concept already
 made, counted from `stages[]` (`{"D1": 3, "D1-gate": 5, "W1": 1, "V3": 1, "V4": 1}`; for V3 and V4 the
 highest `pass`), so attempt numbers and report files continue; the workflow refuses a resume without it.
+A guided retry and an accepted resume also carry **`retries`**, the cap-counted retries each stage of this
+concept already used, from `retries[]` (`{"D1": 2, "W1": 1}`; only the entries of the revision round the
+escalation came from, passed back as `round`, when it came from one): a routed V3/V4 finding re-runs its
+owner as one of that owner's 2 retries, across workflow calls too (slice 03 §5.5).
 `accepted` lists every finding the user accepted earlier for this concept, as `escalations[]` records
 them, so later gates keep them accepted. It returns `{status: "ready" | "infeasible" | "escalated", stage?, evidence?, accepted?,
 gateVerdicts, v3Reports, v4Reports, stats}`. Write every verdict and report to `reports/` unchanged
@@ -122,10 +126,13 @@ gateVerdicts, v3Reports, v4Reports, stats}`. Write every verdict and report to `
 - **`ready`** → checkpoint 2.
 - **`infeasible`** → checkpoint 1, showing that concept's evidence (D-141).
 - **`escalated`** → the escalation question (`references/checkpoints.md`): **accept** (resume with
-  `{reason: "accepted", stage, findings, attempts}`; not offered for a compile error; after a V3/V4
+  `{reason: "accepted", stage, findings, attempts, retries}`; not offered for a compile error, nor at
+  `W1` or `dossier-fix`, which escalate only when they return nothing, nor at `revise-map`, which mapped
+  nothing; after a V3/V4
   escalation W1 re-runs to state the accepted findings, then V3 and V4, D-253), **guidance and one more
-  retry** (resume with `{reason: "guided-retry", stage, findings, guidance, attempts}`), **back to checkpoint 1**,
-  or **stop** (the run ends `escalated`).
+  retry** (resume with `{reason: "guided-retry", stage, findings, guidance, attempts, retries}`; at
+  `revise-map` also the revision's `round` and `requests`), **back to checkpoint 1**, or **stop** (the run
+  ends `escalated`).
 
 The gates the design workflow applies are in `references/gates.md`: the survival floor gates fire, cold,
 lightning **and chaos** resistance at their caps, chaos staying uncapped only through a stage's recorded
@@ -138,9 +145,10 @@ an accepted one (same plan stage, part and code) fails no later gate.
 ## 7. Checkpoint 2 (`references/checkpoints.md`)
 
 Show the guide and its checks, and ask: **accept** (the run ends `completed`), **ask for changes** (resume
-the design workflow with `{reason: "revision", round, requests}`, record it in `revisions[]`, then return
-here; revisions count against no cap, D-236), or anything else (the run ends `not-accepted`, with the
-user's note).
+the design workflow with `{reason: "revision", round, requests, attempts}`, where `round` counts this
+concept's revisions from 1 and `requests` lists the user's requests as texts; record it in `revisions[]`
+from the result's `stats.revision`, then return here; revisions count against no cap, D-236), or anything
+else (the run ends `not-accepted`, with the user's note).
 
 ## 8. Finish
 

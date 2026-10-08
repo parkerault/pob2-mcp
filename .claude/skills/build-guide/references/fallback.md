@@ -46,12 +46,25 @@ The design-and-write workflow `build-guide-design` (slice 03 §5.3), once per ch
 | 6 | `V3` | `build-guide-provenance` | with the three V4 lenses, at most 3 in flight | `none` |
 | 7 | `V4` (`ledger`, `sources`, `prose`) | `build-guide-verifier` | one fresh agent per lens | `none` |
 
-Steps off the happy path:
+Steps off the happy path (slice 03 §5.3, §5.5):
 
-| Step (`stage`) | Agent type | When |
-|---|---|---|
-| `dossier-fix` | `build-guide-coordinator` | a V3/V4 finding in `dossier.md` (it edits `dossier.md` only; counts as R1b) |
-| `revise-map` | `build-guide-coordinator` | first, when the design resumes for a checkpoint-2 revision |
+| Step (`stage`) | Agent type | When | Compile |
+|---|---|---|---|
+| `dossier-fix` | `build-guide-coordinator` | a V3/V4 finding in `dossier.md`, or a revision request mapped to it (it edits `dossier.md` only) | `none` |
+| `revise-map` | `build-guide-coordinator` | first, when the design resumes for a checkpoint-2 revision; it writes nothing | `none` |
+
+## V3 and V4 (slice 03 §5.3 step 6, §7.4)
+
+Each pass runs `V3` and the three `V4` lenses as fresh agents, at most 3 in flight. Their headers carry the
+§5.1 fields only: no `findings` but why an earlier attempt of the same pass couldn't be used, and in
+`accepted` only the `gate`, `id`, `artifact` and `location` of findings the user accepted (R-5, D-142). A
+verifier that returns nothing, or a report that can't be used, re-runs within its pass, as a retry of its
+stage (`V3`, or `V4` for the lenses). A report can't be used when its `stage`, `lens`, `concept`, `pass` or
+`mode` differ from its header, a finding lacks a §7.4 field or names another owner, `verdict` disagrees
+with its `unresolved` findings, an online report says `accepted-offline` (C-30), or its coverage falls short
+of D-179 (`rederived` = `entries`; `dataChecked` = `data`; `recheckedEndgame` ≥ `pobDataEndgame`;
+`recheckedOther` ≥ `pobDataOther` / 5, rounded up; `opened` = `external` online, 0 offline). Every report
+returned goes to `reports/`; a later attempt of the same pass replaces its file.
 
 ## Routing V3 and V4 findings (slice 03 §5.5)
 
@@ -64,20 +77,40 @@ Each `unresolved` finding names its `owner`, the step that wrote the claim:
 | a campaign stage, or a ledger entry citing only campaign stages | `D2` | D2 gate and final compile, W1, V3, V4 |
 | `dossier.md` | `dossier-fix` | V3, V4 |
 
-One round re-runs each owner once with all its findings (earliest owner first), then the steps after it.
-A re-run counts as that owner's retry; the regenerations after it don't. Each round re-runs V3 and all
-three lenses. A third round for the same owner escalates. Findings marked `accepted-offline`, and findings
-the user accepted at an escalation, aren't routed. With no `unresolved` finding left, the result is
-`ready`.
+- One round re-runs each owner once with all its findings in its header's `findings`, earliest first
+  (`dossier-fix`, `D1`, `D2`, `W1`), then the steps after it; a step two owners share runs once. The D2
+  gate after a D1 re-run is a fresh gate; W1 after a D1 or D2 re-run writes the guide anew.
+- A re-run spends one of that owner's 2 retries (D-127; `dossier-fix` counts as its own stage in
+  `retries[]`); the regenerations after it don't. A gate failure after it re-runs its producer as usual,
+  from the retries left. An owner with no retry left (a third round) ends the flow `escalated`, at the
+  first finding's report (`V3` or `V4`), with that pass's findings as evidence.
+- Each round re-runs V3 and all three lenses, as the next pass. Findings marked `accepted-offline`, and
+  findings the user accepted at an escalation (equal by `id` and report), aren't routed. With no
+  `unresolved` finding left, the result is `ready`.
 
 ## Resuming (slice 03 §5.3; D-236)
 
-- **`revision`** (checkpoint 2): `revise-map` maps each request to its owner by the table above; each
-  owner re-runs once with only its own requests as `findings`, earliest first, then the steps after it.
-  The revision counts against no cap; a gate failure after it gets the usual 2 retries.
+Every resume carries `attempts` (each stage's attempts so far; for V3 and V4 the highest pass). A guided
+retry and an accepted resume also carry `retries`, the cap-counted retries each stage of the concept already
+used (the run log's `retries[]`), so a routed re-run never takes a stage past 2 across calls.
+
+- **`revision`** (checkpoint 2), `{reason: "revision", round, requests, attempts}`: `revise-map` maps each
+  request to its owner by the table above and returns `{mapping: [{id, owner, why}]}` (requests are
+  `r1`, `r2`, … in order). A mapping that leaves a request out or names another id or owner re-runs it,
+  up to 2 retries; then `escalated` at `revise-map`. Each owner re-runs once with only its own requests as
+  `findings` (`code: "user-request"`), earliest first, then the steps after it, then V3 and V4, routed as
+  above. The revision counts against no cap: a gate failure after it gets the usual 2 retries, and every
+  `retries[]` entry of the call carries the revision `round`.
 - **`guided-retry`** (escalation choice 2): the escalated stage runs once more with its findings and the
   user's guidance in `findings`, outside the cap; a failure escalates again.
+  - At `V3` or `V4`, the findings' owners re-run once with their findings and the guidance, then the steps
+    after them, then one pass of V3 and V4 whose failure escalates again; at `revise-map`, it maps once
+    more (the resume carries the revision's `round` and `requests`); at `dossier-fix`, it re-runs once,
+    then V3 and V4.
 - **`accepted`** (escalation choice 1): the failed gate step runs again with the findings in `accepted`;
   equal findings fail no gate from then on, and W1's header carries them so the guide lists them. After a
   V3/V4 escalation W1 re-runs, so the guide states the accepted findings, then V3 and V4, with those
-  findings covered by id (D-253).
+  findings covered by id (D-253). Not offered at `W1` or `dossier-fix`, which escalate only when they
+  return nothing, nor at `revise-map`, which mapped nothing.
+- A resume after an escalation that came from a revision passes that revision's `round` back, and its
+  `retries` are that round's.

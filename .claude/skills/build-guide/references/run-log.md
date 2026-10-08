@@ -51,6 +51,10 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
   once. The research workflow's entries carry their `round` (the research round), and R1a's also the
   `researcher` (`n` of `research/p<round>-r1a-<n>.md`), so two rounds' retries of the same step, or two
   researchers' retries, are never merged into one count; `concept` is `null` for R1a and R1b-assemble.
+  The design workflow's entries are per (stage, concept): a V3/V4 finding routed to its owner spends one
+  of that owner's retries (slice 03 §5.5; `dossier-fix` is its own stage). A checkpoint-2 revision counts
+  against no cap, so the gates after it get fresh retries: every entry from a revision's workflow call
+  (and from a resume after an escalation in it) carries `round`, the revision round, and stays apart.
 - **`rounds[]`**: the first round is `startedBy: "user"` (the invocation); a later round is `user` when
   the user answered "ask for more" at checkpoint 1, `pre-supplied` when the test config did. `concepts`
   lists the ids the round carried; `conceptsCompiled` how many of them R1b ran (the research workflow's

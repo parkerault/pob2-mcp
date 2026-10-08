@@ -98,3 +98,20 @@ The rules every design step keeps:
 - **One final compile.** Only the D2 gate's `final` call compiles with `build_name`, once, with the
   header's `buildName`; every other compile is measure-only. A refused final compile is reported, never
   worked around.
+
+## Revision and routed re-runs (`build-guide-design`, slice 03 §5.3 "Resuming", §5.5)
+
+| Stage | Stage reference | Does |
+|---|---|---|
+| `revise-map` | `.claude/skills/build-guide/references/stages/revise-map.md` | first step of a checkpoint-2 revision: maps each of the user's requests to the step that owns it (`W1`, `D1`, `D2` or `dossier-fix`); writes nothing |
+| `dossier-fix` | `.claude/skills/build-guide/references/stages/dossier-fix.md` | edits `dossier.md` for a V3 or V4 finding in it, or a revision request mapped to it |
+
+- **The owner table** (§5.5): `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing
+  one and an endgame price are D1's; a campaign stage and a ledger entry citing only campaign stages are
+  D2's; `dossier.md` is dossier-fix's. `revise-map` maps by it and changes nothing: no write, no compile,
+  no price call.
+- **Re-run with findings.** When V3 or V4 finds an `unresolved` claim, the workflow re-runs the step that
+  wrote it (D1, D2 or dossier-fix here) with those findings in the header's `findings`
+  (`{id, artifact, location, claim, issue, evidence, owner}`); after a revision, with the user's requests
+  (`code: "user-request"`). Fix each claim or make each change at its location and keep everything else.
+  The gates and the steps after you run again, then V3 and V4.

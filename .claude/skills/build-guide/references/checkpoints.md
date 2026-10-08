@@ -46,7 +46,7 @@ Shown when the design workflow returns `ready`.
 - **Ask**: accept, ask for changes, or anything else.
   - **accept**: the run ends `completed`.
   - **changes** (D-236): a revision. The design workflow resumes with
-    `{reason: "revision", round, requests}`; its `revise-map` step maps each request to the step that
+    `{reason: "revision", round, requests, attempts}`; its `revise-map` step maps each request to the step that
     owns it, which re-runs with every later step and the checks. Revisions count against no retry cap.
     Record `{round, requests: [{text, owner}]}` in `revisions[]`, then come back to checkpoint 2.
   - **any other answer**: the run ends `not-accepted`, with the user's note recorded as the answer.
@@ -58,15 +58,17 @@ findings. After **2 retries per (stage, concept)** the workflow returns `escalat
 findings. The skill records it in `escalations[]`, shows the stage, the attempts, the findings and the
 artifact paths, and asks:
 
-1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings, attempts}` (`attempts`: SKILL.md §6). A gate finding
+1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings, attempts, retries}` (`attempts`, `retries`: SKILL.md §6). A gate finding
    equal to an accepted one, **same plan stage, part and `code`**, fails no gate afterwards, whichever gate
    reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding is equal by its
    `id`. The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
    PoB can't model", one line per finding naming its `code` (or `id`) and its gate (`D1-gate`, `V3`, …),
    with its plan stage; the run checker looks for them there. **Not offered when the failure is a
-   compile error**: nothing compiled to continue from.
+   compile error**: nothing compiled to continue from, nor at `W1` or `dossier-fix`, which escalate
+   only when they return nothing, nor at `revise-map`, which mapped nothing.
 2. **guidance and one more retry**: the user's guidance goes in; the design workflow resumes with
-   `{reason: "guided-retry", stage, findings, guidance, attempts}`. That attempt counts against no cap, and if it
+   `{reason: "guided-retry", stage, findings, guidance, attempts, retries}` (at `revise-map` also the
+   revision's `round` and `requests`). That attempt counts against no cap, and if it
    fails, the run escalates again.
 3. **back to checkpoint 1**, with the findings as that concept's evidence.
 4. **stop**: the run ends `escalated`.

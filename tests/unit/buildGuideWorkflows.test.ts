@@ -717,6 +717,13 @@ const d2Gate =
   (call: AgentCall, nth: number) =>
     header(call).compile === 'final' ? final(call) : check(call, nth);
 const w1 = () => ({ file: 'guide.md', importCode: 'eNrt-fixture-code', gaps: [] });
+/** §7.4: the coverage counts each report carries (those of the passing fixture run `run-ok`). */
+const COVERAGE_OK: Record<string, Record<string, number>> = {
+  V3: { plan: 12, dossier: 4, guide: 12 },
+  ledger: { entries: 11, rederived: 11 },
+  sources: { external: 0, opened: 0, data: 4, dataChecked: 4, pobDataEndgame: 3, recheckedEndgame: 3, pobDataOther: 6, recheckedOther: 2, prices: 3, matched: 3 },
+  prose: { sections: 13, mechanicsClaims: 4 },
+};
 /** A V3 or V4 report (§7.4) with no finding. */
 const report = (call: AgentCall) => {
   const h = header(call);
@@ -726,7 +733,7 @@ const report = (call: AgentCall) => {
     concept: h.concept,
     pass: h.pass,
     mode: h.mode,
-    coverage: {},
+    coverage: { ...COVERAGE_OK[(h.lens as string | undefined) ?? (h.stage as string)] },
     findings: [],
     verdict: 'pass',
   };
@@ -1063,7 +1070,7 @@ describe('AC-W9: the D1 gate table (§5.3)', () => {
     const accepted = { gate: 'D1-gate', part: 'floor', code: 'missing-cold-resist', stage: 'b', message: 'm' };
     const r = await design(
       happy({ 'D1-gate': () => d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist'), finding('floor', 'chaos-exception'), finding('budget', 'near-ceiling')]) }),
-      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: { D1: 3, 'D1-gate': 3 } } },
+      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: { D1: 3, 'D1-gate': 3 }, retries: { D1: 2 } } },
     );
     expect(r.out.status).toBe('ready');
     expect(callsOf(r, 'D2')).toHaveLength(1);
@@ -1220,9 +1227,12 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   /** What the skill passes: each stage's attempts so far, from the run log (SKILL.md §6). */
   const D1_USED = { D1: 3, 'D1-gate': 3 };
   const D2_USED = { D1: 1, 'D1-gate': 1, D2: 3, 'D2-gate': 3 };
+  /** The cap-counted retries the escalated stage used, from the run log's retries[] (SKILL.md §6). */
+  const D1_RETRIES = { D1: 2 };
+  const D2_RETRIES = { D2: 2 };
 
   it('guided-retry of D1 runs D1 once with the findings and the guidance, then the D1 gate, outside the cap', async () => {
-    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'drop the second jewel', attempts: D1_USED } });
+    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'drop the second jewel', attempts: D1_USED, retries: D1_RETRIES } });
     expect(r.calls.slice(0, 2).map((c) => [stageOf(c), header(c).attempt])).toEqual([
       ['D1', 4],
       ['D1-gate', 4],
@@ -1241,7 +1251,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   });
 
   it('continues the attempt numbers the resume gives', async () => {
-    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1-gate', findings: [v1Finding], guidance: 'g', attempts: { D1: 3, 'D1-gate': 5 } } });
+    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1-gate', findings: [v1Finding], guidance: 'g', attempts: { D1: 3, 'D1-gate': 5 }, retries: { D1: 2, 'D1-gate': 2 } } });
     expect(r.calls.slice(0, 2).map((c) => [stageOf(c), header(c).attempt])).toEqual([
       ['D1', 4],
       ['D1-gate', 6],
@@ -1250,7 +1260,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
 
   it('a scripted gate failure on a guided retry returns escalated again, with no retry', async () => {
     const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points')]) }), {
-      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED },
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED, retries: D1_RETRIES },
     });
     expect(r.calls.map((c) => stageOf(c))).toEqual(['D1', 'D1-gate']);
     expect(r.out.status).toBe('escalated');
@@ -1258,17 +1268,17 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     expect(r.out.stats.retries).toEqual([]);
     // A floor failure after a guided retry escalates again too, rather than ending infeasible.
     const floor = await design(happy({ 'D1-gate': () => d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist')]) }), {
-      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED },
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g', attempts: D1_USED, retries: D1_RETRIES },
     });
     expect([floor.out.status, callsOf(floor, 'D1').length]).toEqual(['escalated', 1]);
   });
 
   it('guided-retry of D2 or W1 starts there, with the guidance', async () => {
-    const d2r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D2-gate', findings: [], guidance: 'level the trees evenly', attempts: D2_USED } });
+    const d2r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D2-gate', findings: [], guidance: 'level the trees evenly', attempts: D2_USED, retries: D2_RETRIES } });
     expect(d2r.calls.map((c) => stageOf(c)).slice(0, 3)).toEqual(['D2', 'D2-gate', 'D2-gate']);
     expect(findingsOf(callsOf(d2r, 'D2')[0])).toEqual([{ code: 'user-guidance', message: 'level the trees evenly' }]);
     expect(d2r.out.status).toBe('ready');
-    const w1r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'W1', findings: [], guidance: 'shorter', attempts: { ...D2_USED, W1: 3 } } });
+    const w1r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'W1', findings: [], guidance: 'shorter', attempts: { ...D2_USED, W1: 3 }, retries: { W1: 2 } } });
     expect(w1r.calls.map((c) => stageOf(c))[0]).toBe('W1');
     expect(header(callsOf(w1r, 'W1')[0]).attempt).toBe(4);
   });
@@ -1276,7 +1286,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   it('accepted at the D1 gate re-runs the gate with the finding in accepted; a verdict failing only on it proceeds to D2', async () => {
     const accepted = { ...v1Finding };
     const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]) }), {
-      resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: D1_USED },
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted], attempts: D1_USED, retries: D1_RETRIES },
     });
     // No D1: the failed gate step runs again, its attempt continuing the escalated ones.
     expect(r.calls[0].header).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 4, accepted: [accepted] }));
@@ -1298,7 +1308,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
         'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]),
         'D2-gate': d2Gate(() => d2Check({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')])),
       }),
-      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED } },
+      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED, retries: D1_RETRIES } },
     );
     expect(same.out.status).toBe('ready');
     expect(same.calls.filter((c) => header(c).compile === 'final')).toHaveLength(1);
@@ -1307,7 +1317,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     // escalates again.
     for (const other of [finding('v1', 'passive-points', 'n'), finding('v1', 'attributes', 'b')]) {
       const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b'), other]) }), {
-        resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED },
+        resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: D1_USED, retries: D1_RETRIES },
       });
       expect([r.out.status, r.out.stage, callsOf(r, 'D2').length]).toEqual(['escalated', 'D1-gate', 0]);
       expect(r.out.evidence!.map((e) => [e.stage, e.code])).toEqual([[other.stage, other.code]]);
@@ -1317,14 +1327,14 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
   it('never accepts a compile failure, and keeps earlier accepted findings from args.accepted', async () => {
     const compileFinding = { gate: 'D1-gate', part: 'compiled', code: 'compile-error', stage: 'b', message: 'unknown gem' };
     const r = await design(happy({ 'D1-gate': () => d1Gate({ compiled: 'fail' }, [finding('compiled', 'compile-error', 'b')]) }), {
-      resume: { reason: 'accepted', stage: 'D1-gate', findings: [compileFinding], attempts: D1_USED },
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [compileFinding], attempts: D1_USED, retries: D1_RETRIES },
     });
     expect(r.out.status).toBe('escalated');
 
     const earlier = { gate: 'D1-gate', part: 'v2', code: 'default-unlisted', stage: '2', message: 'accepted earlier' };
     const later = await design(happy({ 'D2-gate': d2Gate(() => d2Check({ v2: 'fail' }, [finding('v2', 'default-unlisted', '2')])) }), {
       accepted: [earlier],
-      resume: { reason: 'accepted', stage: 'D2-gate', findings: [{ gate: 'D2-gate', part: 'v1', code: 'tree-continuity', stage: '2', message: 'm' }], attempts: D2_USED },
+      resume: { reason: 'accepted', stage: 'D2-gate', findings: [{ gate: 'D2-gate', part: 'v1', code: 'tree-continuity', stage: '2', message: 'm' }], attempts: D2_USED, retries: D2_RETRIES },
     });
     expect(later.calls.map((c) => [stageOf(c), header(c).compile])).toEqual([
       ['D2-gate', 'measure-only'],
@@ -1344,7 +1354,7 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     const vf = { gate: 'V4', id: 'f-src-2', artifact: 'guide.md', location: 'Summary', claim: SENTINEL, issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' };
     const used = { ...D2_USED, 'D2-gate': 1, D2: 1, W1: 1, V3: 1, V4: 1 };
     const sources = (id: string) => (call: AgentCall) => ({ ...report(call), findings: [{ ...vf, id }], verdict: 'fail' });
-    const r = await design(happy({ 'V4@sources': sources('f-src-2') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used } });
+    const r = await design(happy({ 'V4@sources': sources('f-src-2') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used, retries: { W1: 2 } } });
     expect(r.calls.map((c) => [stageOf(c), header(c).attempt, header(c).pass ?? null])).toEqual([
       ['W1', 2, null],
       ['V3', 1, 2],
@@ -1365,14 +1375,14 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
     expect(r.out.accepted).toEqual([vf]);
 
     // A new unresolved finding isn't covered.
-    const other = await design(happy({ 'V4@sources': sources('f-src-9') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used } });
+    const other = await design(happy({ 'V4@sources': sources('f-src-9') }), { resume: { reason: 'accepted', stage: 'V4', findings: [vf], attempts: used, retries: { W1: 2 } } });
     expect(other.out.status).not.toBe('ready');
   });
 
   it('refuses the resumes this unit has no path for, naming why', async () => {
     await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'later', stage: 'D1', findings: [], attempts: {} } }), respond: () => null })).rejects.toThrow(/resume\.reason/);
-    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'D1', findings: [], attempts: D1_USED } }), respond: () => null })).rejects.toThrow(/guidance/);
-    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'W1', findings: [], attempts: { W1: 3 } } }), respond: () => null })).rejects.toThrow(/no guide to accept/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'D1', findings: [], attempts: D1_USED, retries: D1_RETRIES } }), respond: () => null })).rejects.toThrow(/guidance/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'W1', findings: [], attempts: { W1: 3 }, retries: { W1: 2 } } }), respond: () => null })).rejects.toThrow(/no guide to accept/);
   });
 
   it('refuses a resume without attempts, which a null gate re-run can push past 3', async () => {
@@ -1382,12 +1392,12 @@ describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
       ).rejects.toThrow(/args\.resume\.attempts is required/);
     }
     // With a gate that reached attempt 5 (two null re-runs), the resumed gate is attempt 6.
-    const r = await design(happy(), { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: { D1: 3, 'D1-gate': 5 } } });
+    const r = await design(happy(), { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding], attempts: { D1: 3, 'D1-gate': 5 }, retries: { D1: 2, 'D1-gate': 2 } } });
     expect(header(r.calls[0])).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 6 }));
   });
 });
 
-describe('build-guide-design: V3 and V4 after W1 (steps 6 and 7; routing is WU-46\'s)', () => {
+describe('build-guide-design: V3 and V4 after W1 (steps 6 and 7)', () => {
   it("doesn't return ready while a report holds an unresolved finding", async () => {
     const unresolved = (call: AgentCall) => ({
       ...report(call),
@@ -1452,5 +1462,568 @@ describe('build-guide-design: its gate verdicts hold up in the run checker (FR-W
     // caught: a basis with no floor entry for an endgame stage fails the checker.
     const lying = r.out.gateVerdicts.map((g) => (g.stage === 'D1-gate' ? { ...g, basis: { ...(g.basis as object), floor: [] } } : g));
     expect(checkRunCopy((dir) => write(dir, lying)).stderr).toMatch(/check-run: \[gate-report\] the D1 gate's basis\.floor has no entry for endgame stage b/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// V3 and V4, wired into the design workflow (WU-46): AC-W12, AC-W13, AC-W14 (the fallback's step order),
+// AC-W25
+// ---------------------------------------------------------------------------------------------------
+
+/** A V3 or V4 finding (§7.4), owned by the step that wrote its claim (§5.5). */
+interface VFinding {
+  id: string;
+  artifact: string;
+  location: string;
+  claim: string;
+  issue: string;
+  evidence: string;
+  owner: string;
+  status: string;
+}
+const ARTIFACT_OF: Record<string, string> = { W1: 'guide.md', D1: 'plan.json', D2: 'plan.json', 'dossier-fix': 'dossier.md' };
+const vFinding = (id: string, owner: string, over: Partial<VFinding> = {}): VFinding => ({
+  id,
+  artifact: ARTIFACT_OF[owner],
+  location: owner === 'W1' ? 'Summary, line 12' : owner === 'dossier-fix' ? 'dossier.md [^d3]' : 'stages[2].claims[0]',
+  claim: `the claim of ${id}`,
+  issue: 'its source says otherwise',
+  evidence: 'lookup_game_data gem "Blood Hunt"',
+  owner,
+  status: 'unresolved',
+  ...over,
+});
+/** A report holding these findings, its verdict following them (§7.4). */
+const reportWith = (findings: VFinding[]) => (call: AgentCall) => ({
+  ...report(call),
+  findings,
+  verdict: findings.some((f) => f.status === 'unresolved') ? 'fail' : 'pass',
+});
+/** A report holding `findings` on the listed passes only, clean on every other pass. */
+const onPasses = (findings: VFinding[], passes: number[] = [1]) => (call: AgentCall) =>
+  passes.includes(header(call).pass as number) ? reportWith(findings)(call) : report(call);
+const dossierFixOk = (call: AgentCall) => ({ file: 'dossier.md', fixed: (header(call).findings as { id?: string }[]).map((f) => f.id ?? ''), notFixed: [] });
+/** The steps a run made, in call order: the final compile as `D2-gate:final`, a lens as `V4:<lens>`. */
+const stepsOf = (r: { calls: AgentCall[] }) =>
+  r.calls.map((c) => {
+    const h = header(c);
+    if (h.compile === 'final') return 'D2-gate:final';
+    return h.lens !== undefined ? `V4:${String(h.lens)}` : (h.stage as string);
+  });
+const PASS = (n: number) => ['V3', 'V4:ledger', 'V4:sources', 'V4:prose'].map((s) => `${s}@p${n}`);
+const stepsWithPass = (r: { calls: AgentCall[] }) =>
+  stepsOf(r).map((s, i) => (['V3', 'V4'].includes(stageOf(r.calls[i])) ? `${s}@p${String(header(r.calls[i]).pass)}` : s));
+const HAPPY_STEPS = ['D1', 'D1-gate', 'D2', 'D2-gate', 'D2-gate:final', 'W1'];
+const verifierCalls = (r: { calls: AgentCall[] }) => r.calls.filter((c) => ['V3', 'V4'].includes(stageOf(c)));
+
+describe('AC-W12: one provenance agent and three verifier lenses after W1, blind to the writers (D-142, R-5)', () => {
+  it('runs V3 as build-guide-provenance and V4 ledger, sources and prose as build-guide-verifier, after W1, at most 3 in flight', async () => {
+    const r = await design(happy(), {}, { delay: (c) => (['V3', 'V4'].includes(stageOf(c)) ? 1 + c.index : 1) });
+    const w1 = callsOf(r, 'W1')[0];
+    const verifiers = verifierCalls(r);
+    expect(verifiers.map((c) => [stageOf(c), c.opts.agentType, header(c).lens ?? null])).toEqual([
+      ['V3', 'build-guide-provenance', null],
+      ['V4', 'build-guide-verifier', 'ledger'],
+      ['V4', 'build-guide-verifier', 'sources'],
+      ['V4', 'build-guide-verifier', 'prose'],
+    ]);
+    // Every one starts after W1 has returned; three of them overlap, never four.
+    for (const c of verifiers) expect(c.startTick).toBeGreaterThan(w1.endTick!);
+    expect(r.maxInFlight).toBe(3);
+    const overlapping = verifiers.filter((c) => verifiers.filter((o) => o !== c && overlaps(c, o)).length >= 2);
+    expect(overlapping.length).toBeGreaterThanOrEqual(3);
+    expect(r.out.stats.agents.maxConcurrent).toBe(3);
+  });
+
+  it('gives V3 and V4 no text a D1, D2 or W1 step returned, nor a routed finding, on any pass', async () => {
+    const SENTINEL = 'SENTINEL-written-by-a-producer';
+    const QUOTED = 'SENTINEL-quoted-from-the-guide';
+    const r = await design(
+      happy({
+        D1: () => ({ ...d1(), reason: SENTINEL }),
+        'D1-gate': () => d1Gate({}, [{ ...finding('budget', 'near-ceiling'), message: SENTINEL }]),
+        D2: () => ({ ...d2(), stages: [SENTINEL] }),
+        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), recordPath: SENTINEL, pobFile: `${SENTINEL}.xml`, importCode: SENTINEL })),
+        W1: () => ({ ...w1(), importCode: SENTINEL, gaps: [SENTINEL] }),
+        // Pass 1 finds a guide claim, quoting it; W1 re-runs with it, and pass 2 is clean.
+        'V4@sources': onPasses([vFinding('v4-sources-1', 'W1', { claim: QUOTED, evidence: QUOTED })]),
+      }),
+    );
+    expect(r.out.status).toBe('ready');
+    expect(verifierCalls(r).map((c) => header(c).pass)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
+    for (const c of verifierCalls(r)) {
+      expect({ call: c.index, sentinel: c.prompt.includes(SENTINEL), quoted: c.prompt.includes(QUOTED) }).toEqual({ call: c.index, sentinel: false, quoted: false });
+    }
+    // The routed finding did reach its owner, so the check above isn't vacuous.
+    expect(callsOf(r, 'W1')[1].prompt).toContain(QUOTED);
+  });
+
+  it('holds only the §5.1 fields in each V3 and V4 header: no findings, accepted or faults on a first attempt, no writes, no compile', async () => {
+    for (const mode of ['offline', 'online']) {
+      const r = await design(happy({ 'V4@sources': onPasses([vFinding('v4-sources-1', 'W1')]) }), { mode });
+      for (const c of verifierCalls(r)) {
+        const h = header(c);
+        const want = ['stage', 'attempt', 'concept', ...(h.stage === 'V4' ? ['lens'] : []), 'pass', 'mode', 'runFolder', 'runFolderRel', 'compile', 'findings', 'accepted', 'faults', 'writes', 'reference'];
+        expect(Object.keys(h)).toEqual(want);
+        for (const k of Object.keys(h)) expect(HEADER_FIELDS).toContain(k);
+        expect(h).toEqual(
+          expect.objectContaining({ attempt: 1, concept: 'c1', mode, runFolder: RUN_FOLDER, runFolderRel: RUN_FOLDER_REL, compile: 'none', findings: [], accepted: [], faults: [], writes: [] }),
+        );
+        expect(h.reference).toBe(`.claude/skills/build-guide/references/stages/${String(h.stage)}.md`);
+        expect(fs.existsSync(path.join(REPO_ROOT, h.reference as string))).toBe(true);
+      }
+    }
+  });
+
+  it("tells a re-run verifier only why its pass's earlier attempt couldn't be used, never the artifacts' text", async () => {
+    const QUOTED = 'SENTINEL-quoted-claim';
+    // The ledger lens first re-derives too few entries, quoting a claim in its findings; its re-run hears why.
+    const short = (call: AgentCall) => ({ ...reportWith([vFinding('l1', 'D1', { claim: QUOTED })])(call), coverage: { entries: 11, rederived: 9 } });
+    const r = await design(happy({ 'V4@ledger': (c, nth) => (nth === 0 ? short(c) : report(c)) }));
+    const ledger = r.calls.filter((c) => header(c).lens === 'ledger');
+    expect(ledger.map((c) => [header(c).attempt, header(c).pass])).toEqual([
+      [1, 1],
+      [2, 1],
+    ]);
+    expect(findingsOf(ledger[1])).toEqual([
+      expect.objectContaining({ attempt: 1, code: 'unusable-report', message: 'coverage.rederived is 9 of 11 ledger entries; re-derive every one (D-179)' }),
+    ]);
+    expect(ledger[1].prompt).not.toContain(QUOTED);
+    expect(r.out.status).toBe('ready');
+  });
+});
+
+describe('AC-W13: routing V3 and V4 findings to their owners (§5.5)', () => {
+  it('an unresolved W1-owned finding re-runs W1 with it, then V3 and V4, as one retry of W1', async () => {
+    const f = vFinding('v4-prose-1', 'W1');
+    const r = await design(happy({ 'V4@prose': onPasses([f]) }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'W1', ...PASS(2)]);
+    const rerun = callsOf(r, 'W1')[1];
+    expect(header(rerun).attempt).toBe(2);
+    expect(findingsOf(rerun)).toEqual([{ gate: 'V4', lens: 'prose', pass: 1, ...f }]);
+    expect(rerun.prompt).toContain('A routed re-run');
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'W1', concept: 'c1', count: 1 }]);
+    // Both passes' reports are returned, for reports/v3-c1-p1.json … v4-prose-c1-p2.json (FR-W6).
+    expect(r.out.v3Reports.map((x) => x.pass)).toEqual([1, 2]);
+    expect(r.out.v4Reports.map((x) => [x.lens, x.pass])).toEqual([
+      ['ledger', 1],
+      ['sources', 1],
+      ['prose', 1],
+      ['ledger', 2],
+      ['sources', 2],
+      ['prose', 2],
+    ]);
+  });
+
+  it('a D1-owned finding re-runs D1, then the D1 gate, the D2 gate, the final compile, W1, V3 and V4', async () => {
+    const f = vFinding('v4-ledger-1', 'D1', { location: 'ledger[3] (hit_b_fire)' });
+    const r = await design(happy({ 'V4@ledger': onPasses([f]) }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'D1', 'D1-gate', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    const [, rerun] = callsOf(r, 'D1');
+    expect(findingsOf(rerun)).toEqual([{ gate: 'V4', lens: 'ledger', pass: 1, ...f }]);
+    // An edit of the plan, not a new design; D2 doesn't re-run, its gate re-checks the whole plan.
+    expect(rerun.prompt).toContain('Edit plan.json');
+    expect(rerun.prompt).toContain('A routed re-run');
+    expect(callsOf(r, 'D2')).toHaveLength(1);
+    // W1 writes the guide anew from the new record; it re-runs as a regeneration, with nothing to fix.
+    expect(findingsOf(callsOf(r, 'W1')[1])).toEqual([]);
+    expect(callsOf(r, 'W1')[1].prompt).toContain('D1 re-ran, so plan.json and compile-record.json changed');
+    // The second final compile rewrites the same PoB file, with the same build name.
+    expect(r.calls.filter((c) => header(c).compile === 'final').map((c) => [header(c).attempt, header(c).buildName])).toEqual([
+      [1, BUILD_NAME],
+      [2, BUILD_NAME],
+    ]);
+    expect(r.out.status).toBe('ready');
+    // The routed re-run is D1's retry; the regenerations after it are none.
+    expect(r.out.stats.retries).toEqual([{ stage: 'D1', concept: 'c1', count: 1 }]);
+  });
+
+  it('a D2-owned finding re-runs D2, the D2 gate and the final compile, W1, V3 and V4', async () => {
+    const r = await design(happy({ V3: onPasses([vFinding('v3-1', 'D2')]) }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'D2', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    expect(findingsOf(callsOf(r, 'D2')[1]).map((f) => { const v = f as unknown as VFinding & { gate: string }; return [v.gate, v.id]; })).toEqual([['V3', 'v3-1']]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'D2', concept: 'c1', count: 1 }]);
+  });
+
+  it('a dossier finding runs the dossier fix step, a coordinator editing dossier.md only, then V3 and V4', async () => {
+    const f = vFinding('v4-sources-1', 'dossier-fix');
+    const r = await design(happy({ 'V4@sources': onPasses([f]), 'dossier-fix': dossierFixOk }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'dossier-fix', ...PASS(2)]);
+    const fix = callsOf(r, 'dossier-fix')[0];
+    expect(fix.opts.agentType).toBe('build-guide-coordinator');
+    expect(header(fix)).toEqual(expect.objectContaining({ attempt: 1, compile: 'none', writes: ['dossier.md'], reference: '.claude/skills/build-guide/references/stages/dossier-fix.md' }));
+    expect(findingsOf(fix)).toEqual([{ gate: 'V4', lens: 'sources', pass: 1, ...f }]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'dossier-fix', concept: 'c1', count: 1 }]);
+  });
+
+  it('one round re-runs each owner once with all its findings, earliest first, and the steps they share once', async () => {
+    const fDossier = vFinding('v3-1', 'dossier-fix');
+    const fD2 = vFinding('v4-ledger-1', 'D2');
+    const fW1a = vFinding('v4-prose-1', 'W1');
+    const fW1b = vFinding('v4-prose-2', 'W1', { location: 'Rotation, line 140' });
+    const r = await design(
+      happy({
+        V3: onPasses([fDossier]),
+        'V4@ledger': onPasses([fD2]),
+        'V4@prose': onPasses([fW1a, fW1b]),
+        'dossier-fix': dossierFixOk,
+      }),
+    );
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'dossier-fix', 'D2', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    const ids = (c: AgentCall) => (header(c).findings as { id?: string }[]).map((f) => f.id);
+    expect(ids(callsOf(r, 'dossier-fix')[0])).toEqual(['v3-1']);
+    expect(ids(callsOf(r, 'D2')[1])).toEqual(['v4-ledger-1']);
+    expect(ids(callsOf(r, 'W1')[1])).toEqual(['v4-prose-1', 'v4-prose-2']);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([
+      { stage: 'dossier-fix', concept: 'c1', count: 1 },
+      { stage: 'D2', concept: 'c1', count: 1 },
+      { stage: 'W1', concept: 'c1', count: 1 },
+    ]);
+  });
+
+  it('a third round for the same owner returns escalated, with that pass\'s findings as evidence', async () => {
+    const f = vFinding('v4-sources-1', 'W1');
+    const r = await design(happy({ 'V4@sources': reportWith([f]) }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'W1', ...PASS(2), 'W1', ...PASS(3)]);
+    expect(r.out.status).toBe('escalated');
+    expect(r.out.stage).toBe('V4');
+    expect(r.out.evidence).toEqual([{ gate: 'V4', lens: 'sources', pass: 3, ...f }]);
+    expect(r.out.stats.retries).toEqual([{ stage: 'W1', concept: 'c1', count: 2 }]);
+    // Each W1 re-run carried the findings of the pass before it.
+    expect(callsOf(r, 'W1').map((c) => findingsOf(c).map((x) => (x as unknown as { pass: number }).pass))).toEqual([[], [1], [2]]);
+  });
+
+  it('a routed re-run spends its owner\'s retries: a gate failure after it re-runs the owner from what is left', async () => {
+    const f = vFinding('v4-ledger-1', 'D1');
+    // After the routed D1, the D1 gate fails twice: one retry is left, so the second failure escalates.
+    const v1 = finding('v1', 'passive-points');
+    const r = await design(happy({ 'V4@ledger': onPasses([f]), 'D1-gate': (_c, nth) => (nth === 0 ? d1Gate() : d1Gate({ v1: 'fail' }, [v1])) }));
+    expect(stepsOf(r).slice(HAPPY_STEPS.length + 4)).toEqual(['D1', 'D1-gate', 'D1', 'D1-gate']);
+    expect(r.out.status).toBe('escalated');
+    expect(r.out.stage).toBe('D1-gate');
+    expect(r.out.stats.retries).toEqual([{ stage: 'D1', concept: 'c1', count: 2 }]);
+    // The D1 retry carries the routed finding, then the gate's.
+    expect(findingsOf(callsOf(r, 'D1')[2]).map((x) => (x as unknown as { id?: string; code?: string }).id ?? x.code)).toEqual(['v4-ledger-1', 'passive-points']);
+  });
+
+  it('runs every routed re-run as one coordinator or writer step at a time, overlapping no other agent (FR-W3)', async () => {
+    const r = await design(
+      happy({ V3: onPasses([vFinding('v3-1', 'dossier-fix')]), 'V4@ledger': onPasses([vFinding('v4-ledger-1', 'D1')]), 'dossier-fix': dossierFixOk }),
+      {},
+      { delay: (c) => (['V3', 'V4'].includes(stageOf(c)) ? 1 + c.index : 1) },
+    );
+    expect(r.out.status).toBe('ready');
+    for (const c of r.calls.filter((x) => !['V3', 'V4'].includes(stageOf(x)))) {
+      for (const other of r.calls) if (other !== c) expect({ call: c.index, other: other.index, overlap: overlaps(c, other) }).toEqual({ call: c.index, other: other.index, overlap: false });
+    }
+    expect(r.maxInFlight).toBe(3);
+  });
+
+  it('reports holding only accepted-offline findings return ready, with nothing routed', async () => {
+    const eu = vFinding('v4-sources-1', 'W1', { issue: 'tagged external-unavailable', evidence: 'offline run', status: 'accepted-offline' });
+    const r = await design(happy({ 'V4@sources': reportWith([eu]) }));
+    expect(stepsOf(r)).toEqual([...HAPPY_STEPS, 'V3', 'V4:ledger', 'V4:sources', 'V4:prose']);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([]);
+  });
+
+  it('V4 accepts external-unavailable only offline (C-30): online, an accepted-offline finding sends the lens back, and the claim is routed', async () => {
+    const eu = vFinding('v4-sources-1', 'W1', { issue: 'tagged external-unavailable', evidence: 'run log mode', status: 'accepted-offline' });
+    const sources = (call: AgentCall, nth: number) =>
+      nth === 0 ? reportWith([eu])(call) : header(call).pass === 1 ? reportWith([{ ...eu, status: 'unresolved' }])(call) : report(call);
+    const r = await design(happy({ 'V4@sources': sources }), { mode: 'online' });
+    const lens = r.calls.filter((c) => header(c).lens === 'sources');
+    expect(lens.map((c) => [header(c).pass, header(c).attempt])).toEqual([
+      [1, 1],
+      [1, 2],
+      [2, 1],
+    ]);
+    expect(findingsOf(lens[1])).toEqual([expect.objectContaining({ code: 'unusable-report', message: expect.stringMatching(/accepted-offline in an online run.*\(C-30\)/) })]);
+    expect(callsOf(r, 'W1')).toHaveLength(2);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([
+      { stage: 'V4', concept: 'c1', count: 1 },
+      { stage: 'W1', concept: 'c1', count: 1 },
+    ]);
+  });
+
+  it("never routes a finding the user accepted, and counts an owner's retries from earlier workflow calls", async () => {
+    const accepted = { gate: 'V4', ...vFinding('v4-prose-1', 'W1') };
+    const fresh = vFinding('v4-prose-2', 'W1');
+    const used = { D1: 1, 'D1-gate': 1, D2: 1, 'D2-gate': 1, W1: 3, V3: 3, V4: 3 };
+    // W1 has a retry left: the new finding is routed; the accepted one is not.
+    const one = await design(happy({ 'V4@prose': onPasses([accepted, fresh], [4]) }), {
+      resume: { reason: 'accepted', stage: 'V4', findings: [accepted], attempts: used, retries: { W1: 1 } },
+    });
+    expect(stepsWithPass(one)).toEqual(['W1', ...PASS(4), 'W1', ...PASS(5)]);
+    expect(findingsOf(callsOf(one, 'W1')[1]).map((x) => (x as unknown as VFinding).id)).toEqual(['v4-prose-2']);
+    expect(one.out.status).toBe('ready');
+    // W1 spent both its retries in earlier calls: the new finding escalates at once.
+    const two = await design(happy({ 'V4@prose': onPasses([accepted, fresh], [4]) }), {
+      resume: { reason: 'accepted', stage: 'V4', findings: [accepted], attempts: used, retries: { W1: 2 } },
+    });
+    expect(stepsWithPass(two)).toEqual(['W1', ...PASS(4)]);
+    expect([two.out.status, two.out.stage]).toEqual(['escalated', 'V4']);
+    expect(two.out.evidence!.map((e) => (e as unknown as VFinding).id)).toEqual(['v4-prose-2']);
+  });
+
+  it('a guided retry of an escalated V4 re-runs the owners with their findings and the guidance, outside the cap, then one pass that escalates again on a failure', async () => {
+    const f = { gate: 'V4', lens: 'sources', pass: 3, ...vFinding('v4-sources-1', 'D1') };
+    const used = { D1: 1, 'D1-gate': 1, D2: 1, 'D2-gate': 1, W1: 3, V3: 3, V4: 3 };
+    const resume = { reason: 'guided-retry', stage: 'V4', findings: [f], guidance: 'cite the ledger entry instead', attempts: used, retries: { D1: 2 } };
+    const ok = await design(happy(), { resume });
+    expect(stepsWithPass(ok)).toEqual(['D1', 'D1-gate', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(4)]);
+    expect(findingsOf(callsOf(ok, 'D1')[0])).toEqual([f, { code: 'user-guidance', message: 'cite the ledger entry instead' }]);
+    expect(callsOf(ok, 'D1')[0].prompt).toContain('A guided retry');
+    expect(ok.out.status).toBe('ready');
+    expect(ok.out.stats.retries).toEqual([]);
+    // V3 and V4 never see the guidance (R-5): it goes to the owners.
+    for (const c of verifierCalls(ok)) expect(c.prompt).not.toContain('cite the ledger entry instead');
+    // A finding on the guided pass escalates again, routing nothing.
+    const again = await design(happy({ 'V4@sources': reportWith([vFinding('v4-sources-1', 'D1')]) }), { resume });
+    expect(stepsWithPass(again)).toEqual(['D1', 'D1-gate', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(4)]);
+    expect([again.out.status, again.out.stage]).toEqual(['escalated', 'V4']);
+  });
+
+  it('a guided retry of an escalated dossier fix re-runs it once with its findings and the guidance, then V3 and V4', async () => {
+    const f = { gate: 'V3', pass: 2, ...vFinding('v3-4', 'dossier-fix') };
+    const r = await design(happy({ 'dossier-fix': dossierFixOk }), {
+      resume: { reason: 'guided-retry', stage: 'dossier-fix', findings: [f], guidance: 'drop the claim', attempts: { 'dossier-fix': 3, V3: 2, V4: 2 }, retries: { 'dossier-fix': 2 } },
+    });
+    expect(stepsWithPass(r)).toEqual(['dossier-fix', ...PASS(3)]);
+    expect(findingsOf(callsOf(r, 'dossier-fix')[0])).toEqual([f, { code: 'user-guidance', message: 'drop the claim' }]);
+    expect(header(callsOf(r, 'dossier-fix')[0]).attempt).toBe(4);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('escalates when a verifier never returns a usable report, with why as evidence', async () => {
+    const r = await design(happy({ 'V4@prose': () => null }));
+    expect(r.calls.filter((c) => header(c).lens === 'prose').map((c) => header(c).attempt)).toEqual([1, 2, 3]);
+    expect([r.out.status, r.out.stage]).toEqual(['escalated', 'V4']);
+    expect(r.out.evidence!.map((e) => [e.gate, (e as { lens?: string }).lens, e.attempt, e.code])).toEqual([1, 2, 3].map((n) => ['V4', 'prose', n, 'null-result']));
+  });
+});
+
+/** A revision resume (§5.3): the requests, round 1, after a design that passed on its first attempts. */
+const REVISED_FROM = { D1: 1, 'D1-gate': 1, D2: 1, 'D2-gate': 1, W1: 1, V3: 1, V4: 1 };
+const revisionOf = (requests: string[], over: Record<string, unknown> = {}) => ({ resume: { reason: 'revision', round: 1, requests, attempts: REVISED_FROM, ...over } });
+/** A revise-map result mapping request ids to owners. */
+const mapTo = (owners: Record<string, string | string[]>) => () => ({
+  mapping: Object.entries(owners).flatMap(([id, o]) => (Array.isArray(o) ? o : [o]).map((owner) => ({ id, owner, why: `${id} changes ${owner}'s artifact` }))),
+});
+
+describe('AC-W25: the checkpoint-2 revision (§5.3, D-236)', () => {
+  const R1 = 'explain the rotation step by step';
+  const R2 = 'level with Rolling Slam until level 12';
+
+  it('runs one revise-map coordinator step first, with the requests in its header', async () => {
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }) }), revisionOf([R1]));
+    const first = r.calls[0];
+    expect(stageOf(first)).toBe('revise-map');
+    expect(first.opts.agentType).toBe('build-guide-coordinator');
+    expect(header(first)).toEqual(
+      expect.objectContaining({ attempt: 1, compile: 'none', writes: [], findings: [{ id: 'r1', code: 'user-request', message: R1 }], reference: '.claude/skills/build-guide/references/stages/revise-map.md' }),
+    );
+    expect(fs.existsSync(path.join(REPO_ROOT, header(first).reference as string))).toBe(true);
+    expect(callsOf(r, 'revise-map')).toHaveLength(1);
+  });
+
+  it('mapped to W1, re-runs W1 with that request in its findings, then V3 and V4, outside the cap', async () => {
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }) }), revisionOf([R1]));
+    expect(stepsWithPass(r)).toEqual(['revise-map', 'W1', ...PASS(2)]);
+    const w1Call = callsOf(r, 'W1')[0];
+    expect(header(w1Call).attempt).toBe(2);
+    expect(findingsOf(w1Call)).toEqual([{ id: 'r1', code: 'user-request', message: R1 }]);
+    expect(w1Call.prompt).toContain('A checkpoint-2 revision');
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.revision).toEqual([{ request: R1, owner: 'W1' }]);
+    expect(r.out.stats.retries).toEqual([]);
+  });
+
+  it('mapped to D2 and W1, re-runs D2, the D2 gate and the final compile, W1, V3 and V4, each owner with only its own requests', async () => {
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'W1', r2: 'D2' }) }), revisionOf([R1, R2]));
+    expect(stepsWithPass(r)).toEqual(['revise-map', 'D2', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    expect(findingsOf(callsOf(r, 'D2')[0])).toEqual([{ id: 'r2', code: 'user-request', message: R2 }]);
+    expect(findingsOf(callsOf(r, 'W1')[0])).toEqual([{ id: 'r1', code: 'user-request', message: R1 }]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.revision).toEqual([
+      { request: R1, owner: 'W1' },
+      { request: R2, owner: 'D2' },
+    ]);
+  });
+
+  it('a D2 gate failure after the revision still gets 2 retries before escalated, its retries keyed by the revision round', async () => {
+    const v1 = finding('v1', 'tree-continuity', '2');
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'D2' }), 'D2-gate': d2Gate(() => d2Check({ v1: 'fail' }, [v1])) }), revisionOf([R2]));
+    expect(stepsOf(r)).toEqual(['revise-map', 'D2', 'D2-gate', 'D2', 'D2-gate', 'D2', 'D2-gate']);
+    expect(attemptsOf(r, 'D2')).toEqual([2, 3, 4]);
+    expect([r.out.status, r.out.stage]).toEqual(['escalated', 'D2-gate']);
+    // The revision's run is no retry; the two after it are, apart from the first design's (D-236).
+    expect(r.out.stats.retries).toEqual([{ stage: 'D2', concept: 'c1', round: 1, count: 2 }]);
+    expect(findingsOf(callsOf(r, 'D2')[2]).map((x) => (x as unknown as { id?: string; code?: string }).id ?? x.code)).toEqual(['r1', 'tree-continuity', 'tree-continuity']);
+  });
+
+  it('mapped to D1, re-runs D1, the D1 gate, the D2 gate and the final compile, W1, V3 and V4; mapped to the dossier, the dossier fix', async () => {
+    const d = await design(happy({ 'revise-map': mapTo({ r1: 'D1' }) }), revisionOf([R2]));
+    expect(stepsWithPass(d)).toEqual(['revise-map', 'D1', 'D1-gate', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    expect(d.out.status).toBe('ready');
+    const x = await design(happy({ 'revise-map': mapTo({ r1: ['dossier-fix', 'W1'] }), 'dossier-fix': dossierFixOk }), revisionOf([R1]));
+    expect(stepsWithPass(x)).toEqual(['revise-map', 'dossier-fix', 'W1', ...PASS(2)]);
+    expect(x.out.stats.revision).toEqual([
+      { request: R1, owner: 'dossier-fix' },
+      { request: R1, owner: 'W1' },
+    ]);
+  });
+
+  it('routes V3 and V4 findings after a revision as usual, under the revision round', async () => {
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }), 'V4@prose': onPasses([vFinding('v4-prose-1', 'W1')], [2]) }), revisionOf([R1]));
+    expect(stepsWithPass(r)).toEqual(['revise-map', 'W1', ...PASS(2), 'W1', ...PASS(3)]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'W1', concept: 'c1', round: 1, count: 1 }]);
+  });
+
+  it('re-runs a revise-map whose mapping leaves a request out or names another owner, and escalates after 2 retries', async () => {
+    const bad = () => ({ mapping: [{ id: 'r1', owner: 'W1', why: 'w' }, { id: 'r9', owner: 'D2', why: 'w' }] });
+    const r = await design(happy({ 'revise-map': (_c, nth) => (nth === 0 ? bad() : mapTo({ r1: 'W1', r2: 'D2' })()) }), revisionOf([R1, R2]));
+    expect(attemptsOf(r, 'revise-map')).toEqual([1, 2]);
+    expect(findingsOf(callsOf(r, 'revise-map')[1]).filter((f) => f.code === 'unusable-mapping').map((f) => f.message)).toEqual([
+      'mapping[1] names no request id (r1, r2)',
+      'request r2 has no owner',
+    ]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'revise-map', concept: 'c1', round: 1, count: 1 }]);
+
+    const dead = await design(happy({ 'revise-map': () => null }), revisionOf([R1]));
+    expect([attemptsOf(dead, 'revise-map'), dead.out.status, dead.out.stage]).toEqual([[1, 2, 3], 'escalated', 'revise-map']);
+    // A guided retry maps once more, with the guidance, then the revision goes on.
+    const guided = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }) }), {
+      resume: { reason: 'guided-retry', stage: 'revise-map', round: 1, requests: [R1], findings: dead.out.evidence, guidance: 'it is about the guide', attempts: { ...REVISED_FROM, 'revise-map': 3 }, retries: { 'revise-map': 2 } },
+    });
+    expect(stepsWithPass(guided)).toEqual(['revise-map', 'W1', ...PASS(2)]);
+    expect(findingsOf(callsOf(guided, 'revise-map')[0]).at(-1)).toEqual({ code: 'user-guidance', message: 'it is about the guide' });
+    expect(guided.out.status).toBe('ready');
+  });
+
+  it('refuses a revision without its round or its requests, and accepting an escalated revise-map', async () => {
+    const respond = () => null;
+    await expect(run('build-guide-design', { args: designArgs(revisionOf([R1], { round: undefined })), respond })).rejects.toThrow(/args\.resume\.round is the revision round/);
+    await expect(run('build-guide-design', { args: designArgs(revisionOf([])), respond })).rejects.toThrow(/args\.resume\.requests is the user's checkpoint-2 requests/);
+    await expect(run('build-guide-design', { args: designArgs(revisionOf([R1], { attempts: undefined })), respond })).rejects.toThrow(/args\.resume\.attempts is required/);
+    await expect(
+      run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'revise-map', round: 1, requests: [R1], findings: [], attempts: {}, retries: {} } }), respond }),
+    ).rejects.toThrow(/nothing to accept/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'V4', findings: [], guidance: 'g', attempts: {} } }), respond })).rejects.toThrow(
+      /args\.resume\.retries is required/,
+    );
+  });
+});
+
+describe('build-guide-design: a report the workflow takes is one the run checker takes (§7.4, FR-W7)', () => {
+  const CHECKER = path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+  /** The run checker on a copy of a passing fixture run, one report of which is replaced. */
+  function checkWith(fixture: string, file: string, body: unknown): { code: number | null; stderr: string } {
+    const dir = path.join(TMP, `${fixture}-report-${++copies}`);
+    fs.cpSync(path.join(REPO_ROOT, 'tests', 'fixtures', 'pipeline', fixture), dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'reports', file), JSON.stringify(body, null, 2));
+    const r = spawnSync(process.execPath, [CHECKER, dir], { env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+    return { code: r.status, stderr: r.stderr };
+  }
+  const fixtureReport = (fixture: string, file: string) => JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'tests', 'fixtures', 'pipeline', fixture, 'reports', file), 'utf8'));
+  const fileOf = (lens: string | undefined) => (lens ? `v4-${lens}-c1-p1.json` : 'v3-c1-p1.json');
+
+  it("passes the fixture runs' own reports through, and the checker accepts them", async () => {
+    for (const [fixture, mode] of [
+      ['run-ok', 'offline'],
+      ['run-ok-online', 'online'],
+    ]) {
+      const r = await design(happy({ V3: () => fixtureReport(fixture, fileOf(undefined)), V4: (c) => fixtureReport(fixture, fileOf(header(c).lens as string)) }), { mode });
+      expect({ fixture, status: r.out.status, attempts: r.out.stats.attempts.filter((a) => ['V3', 'V4'].includes(a.stage)).map((a) => a.outcome) }).toEqual({
+        fixture,
+        status: 'ready',
+        attempts: ['pass', 'pass', 'pass', 'pass'],
+      });
+      for (const rep of [...r.out.v3Reports, ...r.out.v4Reports] as { lens?: string }[]) expect(checkWith(fixture, fileOf(rep.lens), rep)).toEqual({ code: 0, stderr: '' });
+    }
+  });
+
+  it.each([
+    ['run-ok', undefined, 'says pass beside an unresolved finding', (x: Record<string, unknown>) => ({ ...x, findings: [vFinding('v3-1', 'W1')], verdict: 'pass' }), /verdict/],
+    ['run-ok', 'sources', 'has a finding without its owner', (x: Record<string, unknown>) => {
+      const { owner: _owner, ...f } = vFinding('v4-sources-1', 'W1', { status: 'accepted-offline' });
+      return { ...x, findings: [f] };
+    }, /owner/],
+    ['run-ok-online', 'sources', 'accepts external-unavailable in an online run', (x: Record<string, unknown>) => ({ ...x, findings: [vFinding('v4-sources-1', 'W1', { status: 'accepted-offline' })] }), /accepted-offline/],
+    ['run-ok', 'sources', 're-checks fewer than 1 in 5 pob-data claims elsewhere', (x: Record<string, unknown>) => ({ ...x, coverage: { ...(x.coverage as object), recheckedOther: 1 } }), /1 in 5/],
+    ['run-ok', 'sources', 're-checks fewer endgame pob-data claims than there are', (x: Record<string, unknown>) => ({ ...x, coverage: { ...(x.coverage as object), recheckedEndgame: 2 } }), /endgame pob-data/],
+    ['run-ok', 'ledger', 're-derives fewer ledger entries than there are', (x: Record<string, unknown>) => ({ ...x, coverage: { entries: 11, rederived: 10 } }), /re-derive/],
+  ])('%s: a %s report that %s is refused by both', async (fixture, lens, _what, broken, why) => {
+    const mode = fixture === 'run-ok' ? 'offline' : 'online';
+    const bad = broken(fixtureReport(fixture, fileOf(lens)));
+    const job = lens ?? 'V3';
+    const r = await design(
+      happy({ V3: (c, nth) => (lens === undefined && nth === 0 ? bad : fixtureReport(fixture, fileOf(undefined))), V4: (c) => fixtureReport(fixture, fileOf(header(c).lens as string)), ...(lens ? { [`V4@${lens}`]: (_c: AgentCall, nth: number) => (nth === 0 ? bad : fixtureReport(fixture, fileOf(lens))) } : {}) }),
+      { mode },
+    );
+    const calls = r.calls.filter((c) => (lens ? header(c).lens === lens : stageOf(c) === 'V3'));
+    expect({ job, attempts: calls.map((c) => [header(c).pass, header(c).attempt]) }).toEqual({ job, attempts: [[1, 1], [1, 2]] });
+    expect(findingsOf(calls[1])).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'unusable-report', message: expect.stringMatching(why) })]));
+    expect(r.out.status).toBe('ready');
+    const checked = checkWith(fixture, fileOf(lens), bad);
+    expect(checked.code).not.toBe(0);
+    expect(checked.stderr).toMatch(/check-run: \[(report-shape|claim-counts)\]/);
+  });
+});
+
+describe('AC-W14: references/fallback.md lists the steps the workflows run, in order, with their agent types', () => {
+  const FALLBACK = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'references', 'fallback.md'), 'utf8');
+  /** The `(stage, agent type)` rows of the first table after `marker` in fallback.md. */
+  function tableAfter(marker: string): [string, string][] {
+    const at = FALLBACK.indexOf(marker);
+    expect(at).toBeGreaterThanOrEqual(0);
+    const lines = FALLBACK.slice(at).split('\n');
+    const start = lines.findIndex((l) => l.startsWith('|'));
+    const rows: [string, string][] = [];
+    for (const line of lines.slice(start + 2)) {
+      if (!line.startsWith('|')) break;
+      const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+      const stageCell = /^\d+$/.test(cells[0]) ? cells[1] : cells[0];
+      const typeCell = /^\d+$/.test(cells[0]) ? cells[2] : cells[1];
+      rows.push([/`([^`]+)`/.exec(stageCell)![1], /`([^`]+)`/.exec(typeCell)![1]]);
+    }
+    return rows;
+  }
+  /** The harness's record of a run as (stage, agent type), each run of equal neighbours folded into one step. */
+  const stepTypes = (r: { calls: AgentCall[] }): [string, string][] => {
+    const out: [string, string][] = [];
+    for (const c of r.calls) {
+      const step: [string, string] = [stageOf(c), c.opts.agentType as string];
+      const last = out[out.length - 1];
+      if (!last || last[0] !== step[0] || last[1] !== step[1]) out.push(step);
+    }
+    return out;
+  };
+
+  it('the research table is the research workflow\'s happy path (AC-W6)', async () => {
+    const r = await research({ R1a: r1a(THREE), R1b: r1bPass, 'R1b-assemble': [assembleOk()] });
+    expect(r.out.status).toBe('ok');
+    expect(tableAfter('The research workflow `build-guide-research`')).toEqual(stepTypes(r));
+  });
+
+  it("the design table is the design workflow's happy path (AC-W8)", async () => {
+    const r = await design(happy());
+    expect(r.out.status).toBe('ready');
+    expect(tableAfter('The design-and-write workflow `build-guide-design`')).toEqual(stepTypes(r));
+  });
+
+  it('the steps off the happy path run as the types the table gives them', async () => {
+    const off = Object.fromEntries(tableAfter('Steps off the happy path'));
+    expect(Object.keys(off).sort()).toEqual(['dossier-fix', 'revise-map']);
+    const fixed = await design(happy({ 'V4@sources': onPasses([vFinding('v4-sources-1', 'dossier-fix')]), 'dossier-fix': dossierFixOk }));
+    const revised = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }) }), revisionOf(['shorter']));
+    for (const c of [...callsOf(fixed, 'dossier-fix'), ...callsOf(revised, 'revise-map')]) expect(c.opts.agentType).toBe(off[stageOf(c)]);
   });
 });

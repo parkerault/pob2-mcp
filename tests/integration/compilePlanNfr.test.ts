@@ -11,13 +11,20 @@
  * This file runs alone: `jest.config.cjs` leaves it out of the parallel run, and `mise run test` runs it in
  * its own `--runInBand` step after `pnpm test` (C-19), so other suites don't compete with its 100 s threshold.
  * The static checks of that wiring are in `compilePlan.test.ts`.
+ *
+ * WU-30's lever, on the same plan: the compile defers PoB's per-call output rebuilds while a stage's tree,
+ * items, toggles, gems and config go in. The second test compiles the plan again with the deferral off
+ * (`__noDeferForTest`, test actions only, rebuilding after every mutation as BuildOps does on its own) and
+ * requires every stage's outputs and breakdown to be exactly equal. It runs after the timed test, so its
+ * slower compile never counts against the threshold.
  */
 import fs from 'fs';
 import path from 'path';
-import { afterAll, beforeAll, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, expect, it, jest } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import type { CompileRecord } from '../../src/plan/record';
+import { PoBLuaApiClient } from '../../src/pobLuaBridge';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'fifteen-stage', 'plan.json');
 const WHOLE_CALL_MS = 100_000;
@@ -25,9 +32,11 @@ const STAGE_MS = 20_000;
 
 engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
   let f: SessionFixture;
+  /** The timed compile's record, for the deferral check. */
+  let timed: CompileRecord | null = null;
 
   beforeAll(async () => {
-    f = await startSessionFixture();
+    f = await startSessionFixture({ testActions: true });
     // The engine is already running, as on a server that has served calls (WU-30's method).
     const info = await f.call('lua_get_build_info');
     if (info.isError) throw new Error(info.text);
@@ -59,6 +68,7 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
       `[NFR] fifteen-stage compile: wall ${(wallMs / 1000).toFixed(2)} s, record ${(record.timing.totalMs / 1000).toFixed(2)} s, ` +
         `slowest stage ${(Math.max(...Object.values(stageMs)) / 1000).toFixed(2)} s; per stage (ms) ${JSON.stringify(stageMs)}`,
     );
+    timed = record;
     expect(record.stagesCompiled).toHaveLength(15);
     expect(wallMs).toBeLessThanOrEqual(WHOLE_CALL_MS);
     expect(record.timing.totalMs).toBeLessThanOrEqual(WHOLE_CALL_MS);
@@ -70,4 +80,38 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
     expect((xml.match(/<Spec\b/g) ?? []).length).toBe(15);
     expect(xml).not.toContain('includeInFullDPS="true"');
   }, 150_000);
+
+  it('WU-30 lever: with the rebuilds not deferred, every stage measures exactly the same outputs and breakdown', async () => {
+    expect(timed).not.toBeNull();
+    const run = await f.call('guide_run', { new_run: 'nfr-eager' });
+    const planPath = /^plan_path for this run: (\S+)$/m.exec(run.text)![1];
+    fs.copyFileSync(FIXTURE, path.join(f.guides, planPath));
+    const original = PoBLuaApiClient.prototype.request;
+    let stageCalls = 0;
+    jest.spyOn(PoBLuaApiClient.prototype, 'request').mockImplementation(async function (this: PoBLuaApiClient, ...args: any[]) {
+      if (args[0] === 'compile_stage') {
+        args[1] = { ...args[1], __noDeferForTest: true };
+        stageCalls += 1;
+      }
+      return (original as any).apply(this, args);
+    } as any);
+    try {
+      const out = await f.server.client.callTool(
+        { name: 'compile_plan', arguments: { plan_path: planPath, measure_only: true } },
+        undefined,
+        { timeout: 280_000 },
+      );
+      expect(out.isError).toBeFalsy();
+    } finally {
+      jest.restoreAllMocks();
+    }
+    expect(stageCalls).toBe(15);
+    const eager = JSON.parse(
+      fs.readFileSync(path.join(f.guides, path.posix.dirname(planPath), 'compile-record.json'), 'utf8'),
+    ) as CompileRecord;
+    for (const id of timed!.stagesCompiled) {
+      expect({ id, outputs: timed!.stages[id].outputs }).toEqual({ id, outputs: eager.stages[id].outputs });
+      expect({ id, skillOutputs: timed!.stages[id].skillOutputs }).toEqual({ id, skillOutputs: eager.stages[id].skillOutputs });
+    }
+  }, 300_000);
 });

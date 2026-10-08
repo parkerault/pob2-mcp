@@ -1,0 +1,1242 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "pob-quest-rewards",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:1-305",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-1",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:2-10",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-2",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:11-20",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-3",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:21-29",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-4",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:30-39",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-5",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:40-48",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-6",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:49-58",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-7",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:59-70",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-8",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:71-80",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-9",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:81-89",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-10",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:90-99",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-11",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:100-108",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-12",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:109-121",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-13",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:122-130",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-14",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:131-140",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-15",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:141-150",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-16",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:151-159",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-17",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:160-171",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-18",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:172-183",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-19",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:184-195",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-20",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:196-207",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-21",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:208-217",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-22",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:218-229",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-23",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:230-239",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-24",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:240-249",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-25",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:250-258",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-26",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:259-275",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-27",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:276-284",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-28",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:285-294",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-row-29",
+      "kind": "pob-data",
+      "ref": "Data/QuestRewards.lua:295-304",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-quest-config-key",
+      "kind": "pob-data",
+      "ref": "Modules/ConfigOptions.lua:72",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "ext-s11",
+      "kind": "external",
+      "ref": "https://game8.co/games/Path-of-Exile-2/archives/513735",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "progress-ends",
+      "kind": "judgment",
+      "ref": "A-P10 puts start at the beginning of Act 1 and endgame after the last quest row",
+      "confidence": "H"
+    }
+  ],
+  "facts": {
+    "order": {
+      "value": [
+        "start",
+        "q.act-1-clearfell-beira",
+        "q.act-1-hunting-grounds-crowbell",
+        "q.act-1-freythorn-king-in-the-mists",
+        "q.act-1-ogham-farmlands-una-s-lute",
+        "q.act-1-ogham-manor-candlemass",
+        "q.act-2-keth-kabala",
+        "q.act-2-valley-of-the-titans-medallion",
+        "q.act-2-deshar-the-final-letter",
+        "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine",
+        "q.act-3-jungle-ruins-mighty-silverfist",
+        "q.act-3-azak-bog-ignagduk",
+        "q.act-3-venom-crypts-venom-draught",
+        "q.act-3-jiquani-s-machinarium-blackjaw",
+        "q.act-3-aggorat-blood-sacrifice",
+        "q.act-4-isle-of-kin-blind-beast",
+        "q.act-4-eye-of-hinekora-silent-hall",
+        "q.act-4-eye-of-hinekora-tribal-medicine",
+        "q.act-4-halls-of-the-dead-tawhoa-s-test",
+        "q.act-4-halls-of-the-dead-tasalio-s-test",
+        "q.act-4-halls-of-the-dead-ngamahu-s-test",
+        "q.act-4-trial-of-the-ancestors-hinekora",
+        "q.act-4-abandoned-prison-goddess-of-justice",
+        "q.interlude-1-wolvenhold-oswin",
+        "q.interlude-2-khari-bazaar-clearing-the-way",
+        "q.interlude-2-khari-crossing-molten-shrine",
+        "q.interlude-2-qimah-seven-pillars",
+        "q.interlude-3-kriar-village-lythara",
+        "q.interlude-3-howling-caves-abominable-yeti",
+        "q.epilog-kingsmarch-siege-of-oriath",
+        "endgame"
+      ],
+      "source": "pob-quest-rewards",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "A-P10: start, one key per quest-reward row in file order, then endgame. Each q. key is the row's Description, Area and Info, lowercased, with every run outside a-z0-9 replaced by one \"-\" (A-P13)"
+    },
+    "start.region": {
+      "value": "act1",
+      "source": "progress-ends",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "endgame.region": {
+      "value": "endgame",
+      "source": "progress-ends",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "after the campaign: waystone maps, area level 65 and up"
+    },
+    "q.act-1-clearfell-beira.region": {
+      "value": "act1",
+      "source": "pob-quest-row-1",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-clearfell-beira.area-level": {
+      "value": 2,
+      "source": "pob-quest-row-1",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-clearfell-beira.reward": {
+      "value": "+10% to Cold Resistance",
+      "source": "pob-quest-row-1",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-clearfell-beira.pob-config-key": {
+      "value": "questAct 1ClearfellBeira",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-1-clearfell-beira.resistance": {
+      "value": {
+        "cold": 10
+      },
+      "source": "pob-quest-row-1",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "percent, by element"
+    },
+    "q.act-1-hunting-grounds-crowbell.region": {
+      "value": "act1",
+      "source": "pob-quest-row-2",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-hunting-grounds-crowbell.area-level": {
+      "value": 10,
+      "source": "pob-quest-row-2",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-hunting-grounds-crowbell.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-2",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-hunting-grounds-crowbell.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-2",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-1-hunting-grounds-crowbell.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-1-freythorn-king-in-the-mists.region": {
+      "value": "act1",
+      "source": "pob-quest-row-3",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-freythorn-king-in-the-mists.area-level": {
+      "value": 11,
+      "source": "pob-quest-row-3",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-freythorn-king-in-the-mists.reward": {
+      "value": "+30 to Spirit",
+      "source": "pob-quest-row-3",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-freythorn-king-in-the-mists.pob-config-key": {
+      "value": "questAct 1FreythornKing In The Mists",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-1-freythorn-king-in-the-mists.spirit": {
+      "value": 30,
+      "source": "pob-quest-row-3",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-farmlands-una-s-lute.region": {
+      "value": "act1",
+      "source": "pob-quest-row-4",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-farmlands-una-s-lute.area-level": {
+      "value": 12,
+      "source": "pob-quest-row-4",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-farmlands-una-s-lute.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-4",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-farmlands-una-s-lute.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-4",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-1-ogham-farmlands-una-s-lute.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-1-ogham-manor-candlemass.region": {
+      "value": "act1",
+      "source": "pob-quest-row-5",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-manor-candlemass.area-level": {
+      "value": 15,
+      "source": "pob-quest-row-5",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-manor-candlemass.reward": {
+      "value": "+20 to maximum Life",
+      "source": "pob-quest-row-5",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-1-ogham-manor-candlemass.pob-config-key": {
+      "value": "questAct 1Ogham ManorCandlemass",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-1-ogham-manor-candlemass.life": {
+      "value": {
+        "flat": 20
+      },
+      "source": "pob-quest-row-5",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "flat: added to maximum life"
+    },
+    "q.act-2-keth-kabala.region": {
+      "value": "act2",
+      "source": "pob-quest-row-6",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-keth-kabala.area-level": {
+      "value": 25,
+      "source": "pob-quest-row-6",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-keth-kabala.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-6",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-keth-kabala.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-6",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-2-keth-kabala.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-2-valley-of-the-titans-medallion.region": {
+      "value": "act2",
+      "source": "pob-quest-row-7",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-valley-of-the-titans-medallion.area-level": {
+      "value": 26,
+      "source": "pob-quest-row-7",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-valley-of-the-titans-medallion.reward": {
+      "value": "One of: 30% increased Charm Charges Gained, +1 Charm Slot; 30% increased Charm Effect Duration, +1 Charm Slot",
+      "source": "pob-quest-row-7",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-2-valley-of-the-titans-medallion.options": {
+      "value": [
+        "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+        "30% increased Charm Effect Duration\n\t+1 Charm Slot"
+      ],
+      "source": "pob-quest-row-7",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-2-valley-of-the-titans-medallion.pob-config-key": {
+      "value": "questAct 2Valley of the TitansMedallion",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-2-deshar-the-final-letter.region": {
+      "value": "act2",
+      "source": "pob-quest-row-8",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-deshar-the-final-letter.area-level": {
+      "value": 28,
+      "source": "pob-quest-row-8",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-deshar-the-final-letter.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-8",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-deshar-the-final-letter.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-8",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-2-deshar-the-final-letter.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.region": {
+      "value": "act2",
+      "source": "pob-quest-row-9",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.area-level": {
+      "value": 30,
+      "source": "pob-quest-row-9",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.reward": {
+      "value": "+10% to Lightning Resistance",
+      "source": "pob-quest-row-9",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.pob-config-key": {
+      "value": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine.resistance": {
+      "value": {
+        "lightning": 10
+      },
+      "source": "pob-quest-row-9",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "percent, by element"
+    },
+    "q.act-3-jungle-ruins-mighty-silverfist.region": {
+      "value": "act3",
+      "source": "pob-quest-row-10",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jungle-ruins-mighty-silverfist.area-level": {
+      "value": 34,
+      "source": "pob-quest-row-10",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jungle-ruins-mighty-silverfist.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-10",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jungle-ruins-mighty-silverfist.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-10",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-3-jungle-ruins-mighty-silverfist.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-3-azak-bog-ignagduk.region": {
+      "value": "act3",
+      "source": "pob-quest-row-11",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-azak-bog-ignagduk.area-level": {
+      "value": 36,
+      "source": "pob-quest-row-11",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-azak-bog-ignagduk.reward": {
+      "value": "+30 to Spirit",
+      "source": "pob-quest-row-11",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-azak-bog-ignagduk.pob-config-key": {
+      "value": "questAct 3Azak BogIgnagduk",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-3-azak-bog-ignagduk.spirit": {
+      "value": 30,
+      "source": "pob-quest-row-11",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-venom-crypts-venom-draught.region": {
+      "value": "act3",
+      "source": "pob-quest-row-12",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-venom-crypts-venom-draught.area-level": {
+      "value": 35,
+      "source": "pob-quest-row-12",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-venom-crypts-venom-draught.reward": {
+      "value": "One of: 25% increased Stun Threshold; 30% increased Elemental Ailment Threshold; 25% increased Mana Regeneration Rate",
+      "source": "pob-quest-row-12",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-3-venom-crypts-venom-draught.options": {
+      "value": [
+        "25% increased Stun Threshold",
+        "30% increased Elemental Ailment Threshold",
+        "25% increased Mana Regeneration Rate"
+      ],
+      "source": "pob-quest-row-12",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-3-venom-crypts-venom-draught.pob-config-key": {
+      "value": "questAct 3Venom CryptsVenom Draught",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-3-jiquani-s-machinarium-blackjaw.region": {
+      "value": "act3",
+      "source": "pob-quest-row-13",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jiquani-s-machinarium-blackjaw.area-level": {
+      "value": 37,
+      "source": "pob-quest-row-13",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jiquani-s-machinarium-blackjaw.reward": {
+      "value": "+10% to Fire Resistance",
+      "source": "pob-quest-row-13",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-jiquani-s-machinarium-blackjaw.pob-config-key": {
+      "value": "questAct 3Jiquani's MachinariumBlackjaw",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-3-jiquani-s-machinarium-blackjaw.resistance": {
+      "value": {
+        "fire": 10
+      },
+      "source": "pob-quest-row-13",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "percent, by element"
+    },
+    "q.act-3-aggorat-blood-sacrifice.region": {
+      "value": "act3",
+      "source": "pob-quest-row-14",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-aggorat-blood-sacrifice.area-level": {
+      "value": 44,
+      "source": "pob-quest-row-14",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-aggorat-blood-sacrifice.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-14",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-3-aggorat-blood-sacrifice.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-14",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-3-aggorat-blood-sacrifice.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-4-isle-of-kin-blind-beast.region": {
+      "value": "act4",
+      "source": "pob-quest-row-15",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-isle-of-kin-blind-beast.area-level": {
+      "value": 51,
+      "source": "pob-quest-row-15",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-isle-of-kin-blind-beast.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-15",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-isle-of-kin-blind-beast.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-15",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-4-isle-of-kin-blind-beast.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-4-eye-of-hinekora-silent-hall.region": {
+      "value": "act4",
+      "source": "pob-quest-row-16",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-eye-of-hinekora-silent-hall.area-level": {
+      "value": 51,
+      "source": "pob-quest-row-16",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-eye-of-hinekora-silent-hall.reward": {
+      "value": "5% increased Maximum Mana",
+      "source": "pob-quest-row-16",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-eye-of-hinekora-silent-hall.pob-config-key": {
+      "value": "questAct 4Eye of HinekoraSilent Hall",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-4-eye-of-hinekora-silent-hall.mana": {
+      "value": {
+        "increased-pct": 5
+      },
+      "source": "pob-quest-row-16",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "increased-pct: percent increased maximum mana"
+    },
+    "q.act-4-eye-of-hinekora-tribal-medicine.region": {
+      "value": "act4",
+      "source": "pob-quest-row-17",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-eye-of-hinekora-tribal-medicine.area-level": {
+      "value": 51,
+      "source": "pob-quest-row-17",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-eye-of-hinekora-tribal-medicine.reward": {
+      "value": "One of: 30% increased Global Armour, Evasion and Energy Shield; +15% of Armour also applies to Elemental Damage, Gain Deflection Rating equal to 12% of Evasion Rating, 12% faster start of Energy Shield Recharge",
+      "source": "pob-quest-row-17",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-4-eye-of-hinekora-tribal-medicine.options": {
+      "value": [
+        "30% increased Global Armour, Evasion and Energy Shield",
+        "+15% of Armour also applies to Elemental Damage\n\tGain Deflection Rating equal to 12% of Evasion Rating\n\t12% faster start of Energy Shield Recharge"
+      ],
+      "source": "pob-quest-row-17",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-4-eye-of-hinekora-tribal-medicine.pob-config-key": {
+      "value": "questAct 4Eye of HinekoraTribal Medicine",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-4-halls-of-the-dead-tawhoa-s-test.region": {
+      "value": "act4",
+      "source": "pob-quest-row-18",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-tawhoa-s-test.area-level": {
+      "value": 52,
+      "source": "pob-quest-row-18",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-tawhoa-s-test.reward": {
+      "value": "One of: +5 to Dexterity; +5% to Lightning Resistance",
+      "source": "pob-quest-row-18",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-4-halls-of-the-dead-tawhoa-s-test.options": {
+      "value": [
+        "+5 to Dexterity",
+        "+5% to Lightning Resistance"
+      ],
+      "source": "pob-quest-row-18",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-4-halls-of-the-dead-tawhoa-s-test.pob-config-key": {
+      "value": "questAct 4Halls Of The DeadTawhoa's Test",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-4-halls-of-the-dead-tasalio-s-test.region": {
+      "value": "act4",
+      "source": "pob-quest-row-19",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-tasalio-s-test.area-level": {
+      "value": 52,
+      "source": "pob-quest-row-19",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-tasalio-s-test.reward": {
+      "value": "One of: +5 to Intelligence; +5% to Cold Resistance",
+      "source": "pob-quest-row-19",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-4-halls-of-the-dead-tasalio-s-test.options": {
+      "value": [
+        "+5 to Intelligence",
+        "+5% to Cold Resistance"
+      ],
+      "source": "pob-quest-row-19",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-4-halls-of-the-dead-tasalio-s-test.pob-config-key": {
+      "value": "questAct 4Halls Of The DeadTasalio's Test",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-4-halls-of-the-dead-ngamahu-s-test.region": {
+      "value": "act4",
+      "source": "pob-quest-row-20",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-ngamahu-s-test.area-level": {
+      "value": 52,
+      "source": "pob-quest-row-20",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-halls-of-the-dead-ngamahu-s-test.reward": {
+      "value": "One of: +5 to Strength; +5% to Fire Resistance",
+      "source": "pob-quest-row-20",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-4-halls-of-the-dead-ngamahu-s-test.options": {
+      "value": [
+        "+5 to Strength",
+        "+5% to Fire Resistance"
+      ],
+      "source": "pob-quest-row-20",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-4-halls-of-the-dead-ngamahu-s-test.pob-config-key": {
+      "value": "questAct 4Halls Of The DeadNgamahu's Test",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.act-4-trial-of-the-ancestors-hinekora.region": {
+      "value": "act4",
+      "source": "pob-quest-row-21",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-trial-of-the-ancestors-hinekora.area-level": {
+      "value": 51,
+      "source": "pob-quest-row-21",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-trial-of-the-ancestors-hinekora.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-21",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-trial-of-the-ancestors-hinekora.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-21",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.act-4-trial-of-the-ancestors-hinekora.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.act-4-abandoned-prison-goddess-of-justice.region": {
+      "value": "act4",
+      "source": "pob-quest-row-22",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-abandoned-prison-goddess-of-justice.area-level": {
+      "value": 51,
+      "source": "pob-quest-row-22",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.act-4-abandoned-prison-goddess-of-justice.reward": {
+      "value": "One of: 30% increased Life Recovery from Flasks; 30% increased Mana Recovery from Flasks",
+      "source": "pob-quest-row-22",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.act-4-abandoned-prison-goddess-of-justice.options": {
+      "value": [
+        "30% increased Life Recovery from Flasks",
+        "30% increased Mana Recovery from Flasks"
+      ],
+      "source": "pob-quest-row-22",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.act-4-abandoned-prison-goddess-of-justice.pob-config-key": {
+      "value": "questAct 4Abandoned PrisonGoddess of Justice",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.interlude-1-wolvenhold-oswin.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-23",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-1-wolvenhold-oswin.area-level": {
+      "value": 64,
+      "source": "pob-quest-row-23",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-1-wolvenhold-oswin.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-23",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-1-wolvenhold-oswin.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-23",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.interlude-1-wolvenhold-oswin.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.interlude-2-khari-bazaar-clearing-the-way.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-24",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-2-khari-bazaar-clearing-the-way.area-level": {
+      "value": 61,
+      "source": "pob-quest-row-24",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-2-khari-bazaar-clearing-the-way.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-24",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-2-khari-bazaar-clearing-the-way.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-24",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.interlude-2-khari-bazaar-clearing-the-way.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.interlude-2-khari-crossing-molten-shrine.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-25",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-2-khari-crossing-molten-shrine.area-level": {
+      "value": 61,
+      "source": "pob-quest-row-25",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-2-khari-crossing-molten-shrine.reward": {
+      "value": "5% increased maximum Life",
+      "source": "pob-quest-row-25",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-2-khari-crossing-molten-shrine.pob-config-key": {
+      "value": "questInterlude 2Khari CrossingMolten Shrine",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.interlude-2-khari-crossing-molten-shrine.life": {
+      "value": {
+        "increased-pct": 5
+      },
+      "source": "pob-quest-row-25",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "increased-pct: percent increased maximum life"
+    },
+    "q.interlude-2-qimah-seven-pillars.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-26",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-2-qimah-seven-pillars.area-level": {
+      "value": 63,
+      "source": "pob-quest-row-26",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-2-qimah-seven-pillars.reward": {
+      "value": "One of: +5% to all Elemental Resistances; 3% increased Movement Speed; 15% increased Global Armour, Evasion and Energy Shield; 20% increased Presence Area Of Effect; 12% increased Cooldown Recovery Rate; +5 to all Attributes; 5% increased Experience Gain, -5% to all Elemental Resistances, 3% reduced Movement Speed, 15% reduced Global Armour, Evasion and Energy Shield, 20% reduced Presence Area Of Effect, 12% reduced Cooldown Recovery Rate, 5% reduced Attributes",
+      "source": "pob-quest-row-26",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a permanent choice; the options are PoB's config list values"
+    },
+    "q.interlude-2-qimah-seven-pillars.options": {
+      "value": [
+        "+5% to all Elemental Resistances",
+        "3% increased Movement Speed",
+        "15% increased Global Armour, Evasion and Energy Shield",
+        "20% increased Presence Area Of Effect",
+        "12% increased Cooldown Recovery Rate",
+        "+5 to all Attributes",
+        "5% increased Experience Gain\n\t-5% to all Elemental Resistances\n\t3% reduced Movement Speed\n\t15% reduced Global Armour, Evasion and Energy Shield\n\t20% reduced Presence Area Of Effect\n\t12% reduced Cooldown Recovery Rate\n\t5% reduced Attributes"
+      ],
+      "source": "pob-quest-row-26",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "exact PoB config list values for this quest's option"
+    },
+    "q.interlude-2-qimah-seven-pillars.pob-config-key": {
+      "value": "questInterlude 2QimahSeven Pillars",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.interlude-3-kriar-village-lythara.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-27",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-3-kriar-village-lythara.area-level": {
+      "value": 61,
+      "source": "pob-quest-row-27",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-3-kriar-village-lythara.reward": {
+      "value": "+40 to Spirit",
+      "source": "pob-quest-row-27",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-3-kriar-village-lythara.pob-config-key": {
+      "value": "questInterlude 3Kriar VillageLythara",
+      "source": "pob-quest-config-key",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's config option for this reward: \"quest\" .. Description .. Area .. Info"
+    },
+    "q.interlude-3-kriar-village-lythara.spirit": {
+      "value": 40,
+      "source": "pob-quest-row-27",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-3-howling-caves-abominable-yeti.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-28",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-3-howling-caves-abominable-yeti.area-level": {
+      "value": 62,
+      "source": "pob-quest-row-28",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.interlude-3-howling-caves-abominable-yeti.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-28",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.interlude-3-howling-caves-abominable-yeti.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-28",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.interlude-3-howling-caves-abominable-yeti.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    },
+    "q.epilog-kingsmarch-siege-of-oriath.region": {
+      "value": "interlude",
+      "source": "pob-quest-row-29",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "PoB files Siege of Oriath as Act 6, \"Epilog\"; the external-data grounding lists it with the interludes"
+    },
+    "q.epilog-kingsmarch-siege-of-oriath.area-level": {
+      "value": 62,
+      "source": "pob-quest-row-29",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "interlude area levels are dynamic: base 54 to 56 in PoB's WorldAreas, rising about 8 with bosses killed (campaign/areas.json)"
+    },
+    "q.epilog-kingsmarch-siege-of-oriath.reward": {
+      "value": "+2 Weapon Set Passive Skill Points",
+      "source": "pob-quest-row-29",
+      "patch": "0.5.4",
+      "confidence": "H"
+    },
+    "q.epilog-kingsmarch-siege-of-oriath.weapon-set-points": {
+      "value": 2,
+      "source": "pob-quest-row-29",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "a Book of Specialisation: PoB writes +2 Weapon Set Passive Skill Points with questPoints = 2"
+    },
+    "q.epilog-kingsmarch-siege-of-oriath.passive-points": {
+      "value": 2,
+      "source": "ext-s11",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "a Book of Specialisation also gives 2 passive points: 12 books give 24 (S11, S12); PoB's row records only the weapon-set points"
+    }
+  }
+}

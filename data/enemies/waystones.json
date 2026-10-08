@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "ext-s21",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Waystones",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    {
+      "id": "ext-s50",
+      "kind": "external",
+      "ref": "https://odealo.com/articles/path-of-exile-2-precursor-towers-and-tablets-guide",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    }
+  ],
+  "facts": {
+    "area-level.offset": {
+      "value": 64,
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "area level = 64 + tier: T15 = 79, T16 = 80. T16 drops only by Vaal-corrupting a T15 (S21, S22)"
+    },
+    "area-level.max": {
+      "value": 82,
+      "source": "ext-s50",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "above 80, Irradiated gives +1 and a corrupted node +1; one source says an Overseer tablet also gives +1 (L)"
+    },
+    "mods.more-monster-life": {
+      "value": {
+        "min": 26,
+        "max": 30
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent more monster life; highest tier, poe2db's current values"
+    },
+    "mods.increased-monster-damage": {
+      "value": {
+        "min": 20,
+        "max": 24
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent increased monster damage; highest tier, poe2db's current values"
+    },
+    "mods.extra-damage-as-element": {
+      "value": {
+        "min": 20,
+        "max": 24
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent of damage as extra fire, cold, lightning or chaos; highest tier, poe2db's current values"
+    },
+    "mods.monster-elemental-resistance": {
+      "value": {
+        "min": 35,
+        "max": 40
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "added monster elemental resistance, percent; highest tier, poe2db's current values"
+    },
+    "mods.increased-speed": {
+      "value": {
+        "min": 10,
+        "max": 15
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent increased attack, cast and movement speed; highest tier, poe2db's current values"
+    },
+    "mods.increased-crit-chance": {
+      "value": {
+        "min": 80,
+        "max": 300
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent increased critical hit chance; highest tier, poe2db's current values"
+    },
+    "mods.crit-damage-bonus": {
+      "value": {
+        "min": 11,
+        "max": 30
+      },
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "added critical damage bonus, percent, with the crit chance mod; highest tier, poe2db's current values"
+    },
+    "mods.more-magic-and-rare-monsters": {
+      "value": 25,
+      "source": "ext-s21",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "percent more magic and rare monsters; highest tier, poe2db's current values"
+    }
+  }
+}

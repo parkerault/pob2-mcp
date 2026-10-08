@@ -9,7 +9,7 @@
  *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
- * loaded fact) come with WU-39 through `validatePlan`'s `refData`.
+ * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
  *
  * `docs/build-guide/plan-reference.md` documents every field path; `tests/static/planReference.test.ts`
  * keeps it equal to this schema.
@@ -17,7 +17,10 @@
 import { z } from 'zod';
 import { ACTIVATABLE_SLOTS, ITEM_SLOTS } from '../server/toolSchemas.js';
 import { checkLedgerEntry, ledgerErrorText } from './ledger.js';
+import { PROGRESS_KEY_RE, type PlanReferenceData } from './referenceData.js';
 import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from './sourceTag.js';
+
+export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts (C-31). */
 export const PLAN_SCHEMA_VERSIONS: readonly number[] = [1];
@@ -26,7 +29,6 @@ export const PLAN_SCHEMA_VERSIONS: readonly number[] = [1];
 export const OFFLINE_PRICE_NOTE = 'offline run';
 
 const STAGE_ID_RE = /^[A-Za-z0-9]+$/;
-const PROGRESS_RE = /^(start|endgame|q\.[a-z0-9]+(-[a-z0-9]+)*)$/;
 const LEDGER_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PRICE_ID_RE = /^[A-Za-z0-9_-]+$/;
 const ENEMY_IS_BOSS = 'enemyIsBoss';
@@ -209,8 +211,8 @@ const stageSchema = z
     id: z.string().regex(STAGE_ID_RE, { message: 'a stage id is letters and digits only ([A-Za-z0-9]+, A-P1)' }),
     loadoutName: text('loadoutName'),
     level: z.number().int().min(1).max(100),
-    progress: z.string().regex(PROGRESS_RE, {
-      message: 'progress is start, endgame or q.<QuestRewards key>, e.g. q.act-1-clearfell-beira (D-214)',
+    progress: z.string().regex(PROGRESS_KEY_RE, {
+      message: 'progress is start, endgame or q.<QuestRewards key>, the key in lowercase letters and digits joined by - (D-214, A-P13)',
     }),
     variant: z.enum(['budget', 'non-budget']).optional(),
     ascendancyPoints: z.number().int().min(0).max(8).optional(),
@@ -419,18 +421,6 @@ export interface PlanError {
 
 export type ValidatePlanResult = { ok: true; plan: Plan } | { ok: false; errors: PlanError[] };
 
-/**
- * The C1/E1 lookups a plan is checked against (C-35). WU-39's loader supplies them and adds the checks
- * they drive: each stage's `progress` is a key of C1's `order` (D-214, path `stages[n].progress`), and each
- * `data:<file>#<key>` claim names a loaded file and fact (D-232, path `stages[n].claims[m].source`).
- */
-export interface PlanReferenceData {
-  /** C1's progress keys in order: `start`, one key per quest-reward row, `endgame`. */
-  readonly progressKeys: readonly string[];
-  /** Whether `<file>` (relative to `data/`) is loaded and holds the fact `<key>`. */
-  hasFact(file: string, key: string): boolean;
-}
-
 /** Render a zod issue path: `.` between keys, `[n]` for indices, `$` for the root. */
 export function renderPath(path: readonly (string | number)[]): string {
   let out = '';
@@ -479,9 +469,45 @@ function dedupe(errors: PlanError[]): PlanError[] {
   });
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * The checks against the loaded C1/E1 data (C-35): each stage's `progress` is a key of C1's `order`
+ * (D-214, at `stages[n].progress`), and each `data:<file>#<key>` claim names a loaded file and a fact
+ * that resolves (D-232, at `stages[n].claims[m].source`). It reads the raw value, so its errors join the
+ * schema's in one report; a value the schema rejects by type or form is left to the schema.
+ */
+function referenceErrors(value: Record<string, unknown>, ref: PlanReferenceData): PlanError[] {
+  const errors: PlanError[] = [];
+  const keys = new Set(ref.progressKeys);
+  const stages = Array.isArray(value.stages) ? value.stages : [];
+  stages.forEach((stage: unknown, i) => {
+    if (!isRecord(stage)) return;
+    const progress = stage.progress;
+    if (typeof progress === 'string' && PROGRESS_KEY_RE.test(progress) && !keys.has(progress)) {
+      errors.push({
+        path: renderPath(['stages', i, 'progress']),
+        message: `progress "${progress}" isn't a C1 progress key (D-214); the keys, in order: ${ref.progressKeys.join(', ')}`,
+      });
+    }
+    const claims = Array.isArray(stage.claims) ? stage.claims : [];
+    claims.forEach((claim: unknown, k) => {
+      if (!isRecord(claim) || typeof claim.source !== 'string') return;
+      const cite = parseCitation(claim.source);
+      if (cite?.kind !== 'data') return;
+      const found = ref.resolveFact(cite.file, cite.key);
+      if (!found.ok) {
+        errors.push({ path: renderPath(['stages', i, 'claims', k, 'source']), message: `"${claim.source}" cites no C1/E1 fact (D-232): ${found.reason}` });
+      }
+    });
+  });
+  return errors;
+}
+
 /**
  * Validate a plan in full (FR-P1). `input` is the plan's JSON text, or the value it parses to. Returns
- * the typed plan, or every error with its JSON path. `refData` (WU-39) adds the C1/E1 checks.
+ * the typed plan, or every error with its JSON path. With `refData`, the loaded C1/E1 data
+ * (`loadReferenceData`), it also checks progress keys and `data:` claims against it.
  */
 export function validatePlan(input: unknown, refData?: PlanReferenceData): ValidatePlanResult {
   let value: unknown = input;
@@ -504,7 +530,8 @@ export function validatePlan(input: unknown, refData?: PlanReferenceData): Valid
     };
   }
   const parsed = planSchema.safeParse(value);
-  if (!parsed.success) return { ok: false, errors: dedupe(flattenIssues(parsed.error.issues)) };
-  // WU-39 adds the checks against refData here: progress keys (D-214) and data: claims (D-232).
+  const refErrors = refData === undefined ? [] : referenceErrors(value as Record<string, unknown>, refData);
+  if (!parsed.success) return { ok: false, errors: dedupe([...flattenIssues(parsed.error.issues), ...refErrors]) };
+  if (refErrors.length > 0) return { ok: false, errors: refErrors };
   return { ok: true, plan: parsed.data };
 }

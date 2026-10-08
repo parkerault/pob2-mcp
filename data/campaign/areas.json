@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "ext-s9-act-1",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Act_1",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s9-act-2",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Act_2",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s9-act-3",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Act_3",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s9-act-4",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Act_4",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s9-interlude",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/Interlude",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s47",
+      "kind": "external",
+      "ref": "https://maxroll.gg/poe2/getting-started/comprehensive-league-start-leveling-guide",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    }
+  ],
+  "facts": {
+    "act1.area-levels": {
+      "value": {
+        "min": 1,
+        "max": 15
+      },
+      "source": "ext-s9-act-1",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "poe2db's act page, checked against PoB's WorldAreas; ends with Count Geonor, Ogham Manor (15)"
+    },
+    "act2.area-levels": {
+      "value": {
+        "min": 16,
+        "max": 31
+      },
+      "source": "ext-s9-act-2",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "poe2db's act page, checked against PoB's WorldAreas; ends with Jamanra, The Dreadnought (31)"
+    },
+    "act3.area-levels": {
+      "value": {
+        "min": 33,
+        "max": 45
+      },
+      "source": "ext-s9-act-3",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "poe2db's act page, checked against PoB's WorldAreas; ends with Doryani, Black Chambers (45)"
+    },
+    "act4.area-levels": {
+      "value": {
+        "min": 46,
+        "max": 53
+      },
+      "source": "ext-s9-act-4",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "poe2db's act page, checked against PoB's WorldAreas; ends with Tavakai, Heart of the Tribe (53)"
+    },
+    "interlude.base-levels": {
+      "value": {
+        "min": 54,
+        "max": 56
+      },
+      "source": "ext-s9-interlude",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the three interludes (Curse of Holten, Stolen Barya, Doryani's Contingency) at their base area levels; the hubs are 64; playable in any order"
+    },
+    "interlude.dynamic-increase": {
+      "value": 8,
+      "source": "ext-s47",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "area level rises with bosses killed in the other interludes, about +8 by the end (about 62 to 64); the grounding cites S9, S47 and S48 together"
+    }
+  }
+}

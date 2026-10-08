@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "ext-s15",
+      "kind": "external",
+      "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    {
+      "id": "ext-s16",
+      "kind": "external",
+      "ref": "https://www.switchbladegaming.com/path-of-exile-2/all-ascendancy-points/",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "L"
+    },
+    {
+      "id": "pob-area-trial-of-the-sekhemas",
+      "kind": "pob-data",
+      "ref": "Data/WorldAreas.lua:1991-2002",
+      "patch": "0.5.4"
+    },
+    {
+      "id": "pob-area-trial-of-chaos",
+      "kind": "pob-data",
+      "ref": "Data/WorldAreas.lua:2524-2541",
+      "patch": "0.5.4"
+    }
+  ],
+  "facts": {
+    "trial.1.points": {
+      "value": 2,
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "eight ascendancy points in four pairs"
+    },
+    "trial.1.available-from": {
+      "value": "q.act-1-ogham-manor-candlemass",
+      "source": "pob-area-trial-of-the-sekhemas",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "Trial of the Sekhemas is at area level 22 in PoB's WorldAreas; q.act-1-ogham-manor-candlemass is the progress key before the first quest row above that level, so a stage at it may have done the trial"
+    },
+    "trial.1.requirement": {
+      "value": "Trial of the Sekhemas in Act 2 (Balbala's Barya)",
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    "trial.2.points": {
+      "value": 2,
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "eight ascendancy points in four pairs"
+    },
+    "trial.2.available-from": {
+      "value": "q.act-3-jiquani-s-machinarium-blackjaw",
+      "source": "pob-area-trial-of-chaos",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "The Trial of Chaos is at area level 38 in PoB's WorldAreas; q.act-3-jiquani-s-machinarium-blackjaw is the progress key before the first quest row above that level, so a stage at it may have done the trial"
+    },
+    "trial.2.requirement": {
+      "value": "Trial of Chaos in Act 3 (Chimeral Inscribed Ultimatum)",
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    "trial.3.points": {
+      "value": 2,
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "eight ascendancy points in four pairs"
+    },
+    "trial.3.available-from": {
+      "value": "endgame",
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "the required level is disputed, 65+ (S15) or 75+ (S16); either is past the campaign, whose waystone maps start at area level 65"
+    },
+    "trial.3.requirement": {
+      "value": "A Barya of level 60+ with 3 trials, or an Ultimatum with 10 trials. Its required level is disputed: 65+ (S15) or 75+ (S16)",
+      "source": "ext-s16",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "the 65+/75+ dispute is recorded as M (A-29); the Act 4 third trial is not implemented"
+    },
+    "trial.4.points": {
+      "value": 2,
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "eight ascendancy points in four pairs"
+    },
+    "trial.4.available-from": {
+      "value": "endgame",
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "level 65+ or 75+ content, past the campaign"
+    },
+    "trial.4.requirement": {
+      "value": "A Barya of level 75+ with 4 trials plus Zarokh, or an Ultimatum of level 75+ with 10 trials plus the Trialmaster (maxroll, S15: 65+ and three fragments)",
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "the 65+/75+ dispute is recorded as M (A-29)"
+    }
+  }
+}

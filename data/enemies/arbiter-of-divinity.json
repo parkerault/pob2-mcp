@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "ext-s26",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/The_Arbiter_of_Divinity",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s28",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/The_Origin_Tower",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "fight-life-extrapolation",
+      "kind": "judgment",
+      "ref": "The Arbiter of Ash's in-fight to base life ratio (about 34x) applied to the Arbiter of Divinity's base life",
+      "confidence": "L"
+    },
+    {
+      "id": "fight-life-community",
+      "kind": "judgment",
+      "ref": "Community reports relayed by the user (design doc row 16): about twice the quest version's life",
+      "confidence": "L"
+    },
+    {
+      "id": "pob-boss-level",
+      "kind": "judgment",
+      "ref": "A pinnacle boss (external-data grounding section 4), while PoB's Pinnacle level uses PoE1-derived means (pin section B5)",
+      "confidence": "M"
+    }
+  ],
+  "facts": {
+    "area-level": {
+      "value": 79,
+      "source": "ext-s28",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the Origin Tower arena; PoB's WorldAreas also lists it at 79 (Data/WorldAreas.lua:6090-6104)"
+    },
+    "base.life": {
+      "value": 246035,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79, 990% life multiplier; not the in-fight value (A-30)"
+    },
+    "base.energy-shield": {
+      "value": 24603,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79, 10% of life"
+    },
+    "base.armour": {
+      "value": 6356,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79"
+    },
+    "base.evasion": {
+      "value": 887,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79"
+    },
+    "base.accuracy": {
+      "value": 3786,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79"
+    },
+    "base.crit-chance": {
+      "value": 5,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79; percent"
+    },
+    "base.crit-bonus": {
+      "value": 30,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "datamined, monster level 79; percent, so a crit multiplies a hit by 1.3"
+    },
+    "res.fire": {
+      "value": -15,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the 0.5.5 value; before 0.5.5 it had all elemental resistances (S2), and the pin predates the change"
+    },
+    "res.cold": {
+      "value": 0,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the 0.5.5 value; before 0.5.5 it had all elemental resistances (S2), and the pin predates the change"
+    },
+    "res.lightning": {
+      "value": 45,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the 0.5.5 value; before 0.5.5 it had all elemental resistances (S2), and the pin predates the change"
+    },
+    "res.chaos": {
+      "value": 0,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "the 0.5.5 value; before 0.5.5 it had all elemental resistances (S2), and the pin predates the change"
+    },
+    "hits.extendo-spear-combo-slam-1": {
+      "value": {
+        "min": 2324,
+        "max": 3486
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Extendo Spear Combo Slam 1, 180% more; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.extendo-spear-combo-slam-1.type": {
+      "value": "physical",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.slam-2": {
+      "value": {
+        "min": 2241,
+        "max": 3362
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Slam 2, 170% more; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.slam-2.type": {
+      "value": "physical",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.spear-toss-sweep": {
+      "value": {
+        "min": 1536,
+        "max": 2303
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Spear Toss Sweep, 85% more; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.spear-toss-sweep.type": {
+      "value": "physical",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.phase-2-triangulate-split": {
+      "value": {
+        "min": 2324,
+        "max": 3486
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Phase 2 Triangulate Split, 180% more, 50% converted to lightning; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.phase-2-triangulate-split.type": {
+      "value": "physical-lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "physical, half converted to lightning"
+    },
+    "hits.volatile-explode": {
+      "value": {
+        "min": 1323,
+        "max": 3969
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Volatile Explode; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.volatile-explode.type": {
+      "value": "lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.storm-blink-bolt": {
+      "value": {
+        "min": 860,
+        "max": 2580
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Storm Blink Bolt; chains, shocks as though dealing 200% more; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.storm-blink-bolt.type": {
+      "value": "lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.triangulate-sideways": {
+      "value": {
+        "min": 430,
+        "max": 1290
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Triangulate sideways; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.triangulate-sideways.type": {
+      "value": "lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "hits.zap-beams": {
+      "value": {
+        "min": 99,
+        "max": 298
+      },
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "Zap Beams; 500% more shock chance; level-79 base, before mitigation, non-crit, no map mods"
+    },
+    "hits.zap-beams.type": {
+      "value": "lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "degen.ground": {
+      "value": 77179,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "lightning ground degen, per minute (about 1,286 per second)"
+    },
+    "degen.ground.type": {
+      "value": "lightning",
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    "fight-life.datamined-base": {
+      "value": 246035,
+      "source": "ext-s26",
+      "patch": "0.5.5",
+      "confidence": "L",
+      "note": "poe2db's base life at level 79, which is not the in-fight value (A-30)"
+    },
+    "fight-life.extrapolated": {
+      "value": 8000000,
+      "source": "fight-life-extrapolation",
+      "patch": "0.5.5",
+      "confidence": "L",
+      "note": "about 8M. Method: the Arbiter of Ash's in-fight life (5.04M normal, poe-vault before 0.5, S34) over its base (147,381 at level 74, S27) is about 34x; applied to 246,035. An extrapolation, not a fact (A-30)"
+    },
+    "fight-life.community-report": {
+      "value": {
+        "multiple-of-quest-version": 2
+      },
+      "source": "fight-life-community",
+      "patch": "0.5.5",
+      "confidence": "L",
+      "note": "about twice the quest version's in-fight life, which is itself unpublished (A-30)"
+    },
+    "pob-enemy-is-boss": {
+      "value": "Pinnacle",
+      "source": "pob-boss-level",
+      "patch": "0.5.4",
+      "confidence": "M",
+      "note": "the enemyIsBoss value for this fight: a pinnacle boss, though PoB's Pinnacle stats use PoE1-derived means"
+    }
+  }
+}

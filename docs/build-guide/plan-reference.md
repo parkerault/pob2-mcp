@@ -27,8 +27,8 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   those of the type the value has: a source tag object missing `accessed` errs at `source.accessed`.
 - **Reference data.** Two checks need the committed C1/E1 data files under `data/`: that each `progress`
   is a C1 progress key, and that each `data:<file>#<key>` claim names a loaded fact (D-214, D-232). They
-  run where the server loads that data, with errors at `stages[n].progress` and
-  `stages[n].claims[m].source`.
+  run where the server loads that data (`src/plan/referenceData.ts`, C-35), with errors at
+  `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors.
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
 node ids and tree connectivity, config option names and values, and the main skill's index (C-41 step 5).
@@ -59,7 +59,9 @@ Instead of a tag, a claim's `source` may be a citation string:
 - `ledger:<id>` cites a `ledger[]` entry (C-33), whose inputs carry their own tags. The id must exist.
 - `price:<id>` cites a `prices[]` entry, with its date, league and query (D-237). The id must exist.
 - `data:<file>#<key>` cites a C1/E1 fact, `<file>` relative to `data/`
-  (`data:campaign/limits.json#passive-points.max`). The fact carries its own citation (D-232).
+  (`data:campaign/limits.json#passive-points.max`). The fact carries its own citation (D-232). As in a
+  scenario `source.key`, `<key>` may end in `[<member>]` to cite one member of the fact's value: a key of
+  an object (`data:enemies/map-monsters.json#life.by-level[79]`) or a 0-based index of a list.
 
 ### "On" (A-P5)
 

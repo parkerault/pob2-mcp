@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "ext-s43",
+      "kind": "external",
+      "ref": "https://www.poe-vault.com/poe2/warrior/titan/stampede-leveling-build",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "H"
+    },
+    {
+      "id": "ext-s13",
+      "kind": "external",
+      "ref": "https://maxroll.gg/poe2/getting-started/how-to-get-the-martyr-passive-point",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    {
+      "id": "ext-s15",
+      "kind": "external",
+      "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    {
+      "id": "ext-s14",
+      "kind": "external",
+      "ref": "https://novatus9.github.io/poe2-cheatsheets/resistances/",
+      "accessed": "2026-10-07",
+      "patch": "0.5.5",
+      "confidence": "M"
+    },
+    {
+      "id": "pob-resistance-penalty",
+      "kind": "pob-data",
+      "ref": "Modules/ConfigOptions.lua:113",
+      "patch": "0.5.4"
+    }
+  ],
+  "facts": {
+    "passive-points.from-levels": {
+      "value": 99,
+      "source": "ext-s43",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "one point per level from 2 to 100"
+    },
+    "passive-points.max": {
+      "value": 123,
+      "source": "ext-s43",
+      "patch": "0.5.5",
+      "confidence": "H",
+      "note": "99 from levels plus 24 from the 12 books; poe-vault's planner shows 0 / 123"
+    },
+    "passive-points.martyr": {
+      "value": 1,
+      "source": "ext-s13",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "a possible 124th point: once a level-100 player in the league sacrifices their character, everyone can claim +1 passive point at the Site of the Chosen in the Fortress"
+    },
+    "ascendancy.max": {
+      "value": 8,
+      "source": "ext-s15",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "eight points in four pairs"
+    },
+    "resistance-penalty.act1": {
+      "value": 0,
+      "source": "pob-resistance-penalty",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's resistancePenalty list value \"Act 1 (0%)\"; S14 agrees"
+    },
+    "resistance-penalty.act2": {
+      "value": -10,
+      "source": "pob-resistance-penalty",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's resistancePenalty list value \"Act 2 (-10%)\"; S14 agrees"
+    },
+    "resistance-penalty.act3": {
+      "value": -20,
+      "source": "pob-resistance-penalty",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's resistancePenalty list value \"Act 3 (-20%)\"; S14 agrees"
+    },
+    "resistance-penalty.act4": {
+      "value": -30,
+      "source": "pob-resistance-penalty",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's resistancePenalty list value \"Act 4 (-30%)\"; S14 agrees"
+    },
+    "resistance-penalty.interlude": {
+      "value": {
+        "54-59": -40,
+        "60-64": -50
+      },
+      "source": "ext-s14",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "keyed by area level: -40 at 54 to 59, -50 at 60 to 64; PoB lists the two values as \"Act 5 (-40%)\" and \"Act 6 (-50%)\""
+    },
+    "resistance-penalty.endgame": {
+      "value": -60,
+      "source": "pob-resistance-penalty",
+      "patch": "0.5.4",
+      "confidence": "H",
+      "note": "PoB's resistancePenalty list value \"Endgame (-60%)\"; S14 agrees"
+    },
+    "resistance-penalty.chaos-exempt": {
+      "value": true,
+      "source": "ext-s14",
+      "patch": "0.5.5",
+      "confidence": "M",
+      "note": "the penalty is elemental; chaos resistance has none"
+    }
+  }
+}

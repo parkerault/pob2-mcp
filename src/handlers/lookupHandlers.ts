@@ -2,10 +2,13 @@
  * `lookup_game_data` (C-37): the pinned PoB2's loaded game data, read through the engine's
  * `lookup_game_data` action (`pob-api/API/Lookup.lua`). A `read` tool: it never changes the build (D-176).
  *
- * - gem: gems whose name contains `query`, with description, weapon, stat-set tooltip lines at a gem
- *   level and quality, the "At +20% Quality" lines, support rules and per-level requirements (D-228);
- * - unique: uniques by name, mod line or item type (`slot`), each as `BuildRaw()` text for `add_item`;
- * - mechanic: one hit per matching gem, unique, passive or mod line.
+ * - gem: gems whose name contains `query`, with description, weapon, per stat set its base attack damage
+ *   and crit chance (D-241) and tooltip lines at a gem level and quality, the "At +20% Quality" lines,
+ *   support rules and per-level requirements (D-228);
+ * - unique: uniques by name, mod line (any non-legacy variant's) or item type (`slot`): name, base, type
+ *   and the matched lines; the `BuildRaw()` text for `add_item` only when one unique is returned (D-239);
+ * - mechanic: one hit per matching gem, unique, passive or mod line, optionally of one `kind`, with every
+ *   kind's hit total in the header (D-240).
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225).
  */
@@ -21,11 +24,15 @@ export interface LookupGameDataArgs {
   gemLevel?: unknown;
   gemQuality?: unknown;
   slot?: unknown;
+  kind?: unknown;
   maxResults?: unknown;
 }
 
 const MODES = ["gem", "unique", "mechanic"] as const;
 type Mode = (typeof MODES)[number];
+/** Mechanic mode's `kind` filter (D-240). */
+const HIT_KINDS = ["gem", "unique", "passive", "mod"] as const;
+type HitKind = (typeof HIT_KINDS)[number];
 
 export const LOOKUP_DEFAULT_RESULTS = 20;
 export const LOOKUP_MAX_RESULTS = 30;
@@ -53,7 +60,8 @@ function resultLimit(value: unknown): number {
   return Math.min(Math.floor(n), LOOKUP_MAX_RESULTS);
 }
 
-const levelsLabel = (n: number) => (n === 1 ? "gem level 1" : `gem levels 1–${n}`);
+/** §2.2's span wording, `gem levels 1–<n>`, also for a single-level gem. */
+const levelsLabel = (n: number) => `gem levels 1–${n}`;
 
 function renderGem(gem: LookupGem): string[] {
   const lines: string[] = [`## ${gem.name}`];
@@ -63,9 +71,12 @@ function renderGem(gem: LookupGem): string[] {
   if (gem.weapon) lines.push(`Weapon: ${gem.weapon}`);
   if (gem.description) lines.push(`Description: ${gem.description}`);
   lines.push(`Stat sets at gem level ${gem.level}, quality ${gem.quality}%:`);
+  if (gem.levelNote) lines.push(`Note: ${gem.levelNote}.`);
   const renderSets = (sets: LookupGem["statSets"]) => {
     for (const set of sets) {
       lines.push(`Stat set ${set.index}: ${set.label}`);
+      // D-241: the stat set's base attack damage and crit chance, as PoB's gem tooltip words them.
+      for (const base of set.baseLines) lines.push(`  ${base}`);
       if (set.lines.length === 0) lines.push("  (no described stats)");
       for (const line of set.lines) lines.push(`  - ${line}`);
     }
@@ -96,8 +107,41 @@ function renderGem(gem: LookupGem): string[] {
   return lines;
 }
 
+type Variants = NonNullable<LookupUnique["matchedLines"][number]["variants"]>;
+
+/** "variant 22: Blood Hunt" / "variants 3: A, 7: B and 2 more" (unique mode). */
+export function variantText(variants: Variants): string {
+  const named = variants.slice(0, 3).map((v) => (v.name ? `${v.index}: ${v.name}` : `${v.index}`));
+  const more = variants.length > 3 ? ` and ${variants.length - 3} more` : "";
+  return `${variants.length === 1 ? "variant" : "variants"} ${named.join(", ")}${more}`;
+}
+
+/**
+ * A unique (D-239): name, type, base and the matched lines (each line from a variant other than the
+ * selected one names its variants); the full item text only when it is the one unique returned.
+ */
 function renderUnique(unique: LookupUnique): string[] {
-  return [`## ${unique.name} (${unique.type})`, "```", unique.raw, "```"];
+  const lines: string[] = [`## ${unique.name} (${unique.type})`];
+  if (unique.baseName) lines.push(`Base: ${unique.baseName}`);
+  if (unique.byName && unique.matchedLines.length === 0) lines.push("Matched: its name");
+  for (const m of unique.matchedLines) {
+    lines.push(`Matched: ${m.line}${m.variants ? ` (${variantText(m.variants)})` : ""}`);
+  }
+  if (unique.matchedCount > unique.matchedLines.length) {
+    lines.push(`(and ${unique.matchedCount - unique.matchedLines.length} more matching lines)`);
+  }
+  if (unique.raw !== undefined) {
+    if (unique.selectedVariant) {
+      const sel = unique.selectedVariant;
+      const other = unique.matchedLines.some((m) => m.variants);
+      lines.push(
+        `Selected variant: ${sel.index}${sel.name ? ` (${sel.name})` : ""}` +
+          (other ? "; for a matched line of another variant, change the text's `Selected Variant:` line to that variant's number before add_item." : ""),
+      );
+    }
+    lines.push("```", unique.raw, "```");
+  }
+  return lines;
 }
 
 /** One mechanic hit: `[<kind>] <source>: <line>`. */
@@ -105,37 +149,67 @@ export function renderHit(hit: LookupHit): string {
   return `[${hit.kind}] ${hit.source}: ${hit.line}`;
 }
 
-function criteria(mode: Mode, query: string | undefined, slot: string | undefined): string {
+interface Request {
+  mode: Mode;
+  query?: string;
+  slot?: string;
+  kind?: HitKind;
+  maxResults: number;
+}
+
+function criteria(req: Request): string {
   const bits: string[] = [];
-  if (query) bits.push(`"${query}"`);
-  if (mode === "unique" && slot) bits.push(`item type ${slot}`);
+  if (req.query) bits.push(`"${req.query}"`);
+  if (req.mode === "unique" && req.slot) bits.push(`item type ${req.slot}`);
+  if (req.mode === "mechanic" && req.kind) bits.push(`kind ${req.kind}`);
   return bits.join(", ");
 }
 
-function render(mode: Mode, query: string | undefined, slot: string | undefined, result: LookupGameDataResult): string {
-  const lines: string[] = [`=== Game Data Lookup (${mode}: ${criteria(mode, query, slot)}) ===`, ""];
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function render(req: Request, result: LookupGameDataResult): string {
+  const lines: string[] = [`=== Game Data Lookup (${req.mode}: ${criteria(req)}) ===`, ""];
   const shown = result.results.length;
+  const kinds = result.kinds;
+  if (req.mode === "mechanic" && kinds) {
+    // D-240: every kind's hit total, whatever `kind` lists.
+    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod;
+    if (all > 0) {
+      lines.push(`${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod.`);
+    }
+  }
   if (shown === 0) {
-    lines.push(`Nothing matched ${criteria(mode, query, slot)}.`);
+    lines.push(`Nothing matched ${criteria(req)}.`);
     lines.push("Tips: try a shorter or more general query, or another mode.");
     return lines.join("\n");
   }
-  const noun = mode === "mechanic" ? (result.total === 1 ? "hit" : "hits") : result.total === 1 ? "match" : "matches";
+  const noun = req.mode === "mechanic" ? ["hit", "hits"] : ["match", "matches"];
   const order =
-    mode === "mechanic"
+    req.mode === "mechanic"
       ? "sorted by kind (gem, unique, passive, mod), then by name"
       : "exact name matches first, then by name";
-  lines.push(
-    shown < result.total
-      ? `Showing the first ${shown} of ${result.total} ${noun} (${order}); raise max_results (up to ${LOOKUP_MAX_RESULTS}) or narrow the query for more.`
-      : `Found ${result.total} ${noun} (${order}).`,
-  );
+  if (shown < result.total) {
+    const more = [
+      req.maxResults < LOOKUP_MAX_RESULTS ? `raise max_results (up to ${LOOKUP_MAX_RESULTS})` : "",
+      req.mode === "mechanic" && !req.kind ? "pass kind to list one kind" : "",
+      "narrow the query",
+    ].filter(Boolean);
+    const kindNote = req.mode === "mechanic" && req.kind ? ` ${req.kind}` : "";
+    const advice = more.length > 1 ? `${more.slice(0, -1).join(", ")} or ${more[more.length - 1]}` : more[0];
+    lines.push(`Showing the first ${shown} of ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}); ${advice} for more.`);
+  } else {
+    const kindNote = req.mode === "mechanic" && req.kind ? ` ${req.kind}` : "";
+    lines.push(`Found ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}).`);
+  }
+  if (req.mode === "unique" && shown > 1) {
+    lines.push("Several uniques are returned, so each is shown in brief; look one up by its exact name (or with max_results 1) for its full item text, ready for add_item.");
+  }
   lines.push("");
-  if (mode === "mechanic") {
+  if (req.mode === "mechanic") {
     for (const r of result.results) lines.push(renderHit(r as LookupHit));
   } else {
     for (const r of result.results) {
-      lines.push(...(mode === "gem" ? renderGem(r as LookupGem) : renderUnique(r as LookupUnique)), "");
+      lines.push(...(req.mode === "gem" ? renderGem(r as LookupGem) : renderUnique(r as LookupUnique)), "");
     }
   }
   return lines.join("\n").trimEnd();
@@ -154,6 +228,11 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
     if (m === "unique" && !query && !slot) throw new Error("unique mode needs a query, a slot or both");
     const level = m === "gem" ? wholeNumber(args.gemLevel, "gem_level", 1) : undefined;
     const quality = m === "gem" ? wholeNumber(args.gemQuality, "gem_quality", 0, 20) : undefined;
+    const kindText = m === "mechanic" ? text(args.kind)?.toLowerCase() : undefined;
+    if (kindText !== undefined && !(HIT_KINDS as readonly string[]).includes(kindText)) {
+      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive or mod`);
+    }
+    const kind = kindText as HitKind | undefined;
     const maxResults = resultLimit(args.maxResults);
 
     await context.ensureLuaClient();
@@ -166,8 +245,9 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
       ...(level !== undefined ? { level } : {}),
       ...(quality !== undefined ? { quality } : {}),
       ...(slot ? { slot } : {}),
+      ...(kind ? { kind } : {}),
       maxResults,
     });
-    return { content: [{ type: "text" as const, text: render(m, query, slot, result) }] };
+    return { content: [{ type: "text" as const, text: render({ mode: m, query, slot, kind, maxResults }, result) }] };
   });
 }

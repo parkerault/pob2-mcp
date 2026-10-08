@@ -1,13 +1,17 @@
 -- API/Lookup.lua
 -- PoB2's loaded game data, read without touching the build (C-37, WU-31):
 --
---   lookup_game_data  {mode, query?, level?, quality?, slot?, maxResults?}
---     gem       data.gems names -> description, weapon, stat-set lines from PoB's stat describer
---               (at `level`, default the gem's natural max level; see defaultLevel),
+--   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxResults?}
+--     gem       data.gems names -> description, weapon, per stat set its base attack damage and crit
+--               chance and its lines from PoB's stat describer (at `level`, default the gem's natural
+--               max level; see defaultLevel; a returned gem without `level` is shown at its default),
 --               the +20% quality lines, support rules, and the requirements at every gem level
---     unique    main.uniqueDB names, mod lines or type -> BuildRaw() text, ready for add_item
---     mechanic  gem descriptions and stat-set lines, unique mod lines, passive `sd` lines and
---               data.itemMods text -> one hit per matching line
+--     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
+--               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
+--               only when exactly one unique is returned (D-239)
+--     mechanic  gem descriptions and stat-set lines, unique mod lines (every variant's), passive `sd`
+--               lines and data.itemMods text -> one hit per matching line; `kind` keeps one kind, and
+--               `kinds` counts every kind's hits (D-240)
 --
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
@@ -184,11 +188,41 @@ local function weaponText(gem)
   return nil
 end
 
+-- A stat set's level data as PoB's calculation reads it: the granted effect's level, overlaid by the
+-- stat set's own level (CalcActiveSkill.lua's grantedEffectLevel).
+function M.statSetLevel(grantedEffect, statSet, level)
+  local merged = {}
+  for k, v in pairs(grantedEffect.levels[level] or {}) do merged[k] = v end
+  for k, v in pairs(statSet.levels and statSet.levels[level] or {}) do merged[k] = v end
+  return merged
+end
+
+-- The stat set's base attack damage and critical hit chance, in the gem tooltip's formats
+-- (GemTooltip.lua: "Attack Damage: %g%% of base" and "Critical Hit Chance: %.2f%%").
+local function baseLines(levelData)
+  local out = {}
+  if tonumber(levelData.baseMultiplier) then
+    table.insert(out, string.format('Attack Damage: %g%% of base', levelData.baseMultiplier * 100))
+  end
+  if tonumber(levelData.critChance) then
+    table.insert(out, string.format('Critical Hit Chance: %.2f%%', levelData.critChance))
+  end
+  return out
+end
+
 local function effectBlock(grantedEffect, level, quality)
   local sets = {}
   for i, statSet in ipairs(grantedEffect.statSets or {}) do
     local lines = M.describeStatSet(grantedEffect, statSet, level, quality)
-    table.insert(sets, { index = i, label = statSetLabel(grantedEffect, statSet, i), lines = lines })
+    local levelData = M.statSetLevel(grantedEffect, statSet, level)
+    table.insert(sets, {
+      index = i,
+      label = statSetLabel(grantedEffect, statSet, i),
+      lines = lines,
+      baseMultiplier = tonumber(levelData.baseMultiplier),
+      critChance = tonumber(levelData.critChance),
+      baseLines = baseLines(levelData),
+    })
   end
   return sets
 end
@@ -216,13 +250,21 @@ function M.defaultLevel(gem)
   return best
 end
 
+local function levelSpan(ge)
+  local levels = sortedLevels(ge)
+  return levels[1] or 1, levels[#levels] or 1
+end
+
+-- A requested gem level the gem lacks shows the gem at its default level, with a note saying so.
 local function gemResult(id, gem, levelParam, quality)
   local ge = gem.grantedEffect
   local level = levelParam or M.defaultLevel(gem)
+  local levelNote
   if not ge.levels[level] then
-    local levels = sortedLevels(ge)
-    fail(string.format('gem_level %s is outside %s\'s levels (%d-%d)', tostring(level), gem.name,
-      levels[1] or 1, levels[#levels] or 1))
+    local lo, hi = levelSpan(ge)
+    level = M.defaultLevel(gem)
+    levelNote = string.format('gem_level %s is outside this gem\'s levels (%d-%d), so it is shown at gem level %d',
+      tostring(levelParam), lo, hi, level)
   end
   local support = ge.support == true
   local result = {
@@ -235,6 +277,7 @@ local function gemResult(id, gem, levelParam, quality)
     description = ge.description and oneLine(ge.description) or nil,
     weapon = weaponText(gem),
     level = level,
+    levelNote = levelNote,
     quality = quality,
     statSets = effectBlock(ge, level, quality),
     additional = {},
@@ -267,8 +310,21 @@ local function lookupGems(query, level, quality, maxResults)
     end
   end
   sortByName(matches, query)
+  local shown = cut(matches, maxResults)
+  -- A gem_level is an error only when no returned gem has it (C-37).
+  if level and #shown > 0 then
+    local anyHas = false
+    for _, m in ipairs(shown) do
+      if m.gem.grantedEffect.levels[level] then anyHas = true break end
+    end
+    if not anyHas then
+      local lo, hi = levelSpan(shown[1].gem.grantedEffect)
+      fail(string.format('gem_level %s is outside the levels of every matched gem (%s: %d-%d)', tostring(level),
+        shown[1].gem.name, lo, hi))
+    end
+  end
   local results = {}
-  for i, m in ipairs(cut(matches, maxResults)) do
+  for i, m in ipairs(shown) do
     results[i] = gemResult(m.id, m.gem, level, quality)
   end
   return results, #matches
@@ -300,19 +356,56 @@ local MOD_LINE_LISTS = {
   'enchantModLines', 'runeModLines', 'implicitModLines', 'explicitModLines', 'classRequirementModLines',
 }
 
--- The item's mod lines for its current variant, made one line each.
+-- A legacy variant: one named for the patch it predates ("Pre 0.4.0", "Fire (Pre 0.2.1 )").
+local function isLegacyVariant(name)
+  return type(name) == 'string' and (name:find('^Pre %d') ~= nil or name:find('%(Pre %d') ~= nil)
+end
+
+-- Whether the item's selected variants have the line (PoB's ItemClass:CheckModLineVariant).
+local function lineIsSelected(item, modLine)
+  if not modLine.variantList then return true end
+  if type(item.CheckModLineVariant) == 'function' then return item:CheckModLineVariant(modLine) and true or false end
+  return modLine.variantList[item.variant] ~= nil
+end
+
+-- The item's mod lines across every variant, made one line each. `variants` is absent for a line the
+-- selected variant(s) have; otherwise it lists the non-legacy variants that have it ({index, name}).
+-- A line only legacy variants have is skipped.
 local function uniqueModLines(item)
   local out = {}
   for _, key in ipairs(MOD_LINE_LISTS) do
     for _, modLine in ipairs(item[key] or {}) do
-      if type(modLine.line) == 'string'
-        and (not modLine.variantList or not item.variant or modLine.variantList[item.variant]) then
-        table.insert(out, oneLine(modLine.line))
+      if type(modLine.line) == 'string' then
+        local entry = { line = oneLine(modLine.line) }
+        if not lineIsSelected(item, modLine) then
+          local variants = {}
+          for index in pairs(modLine.variantList) do
+            local name = type(item.variantList) == 'table' and item.variantList[index] or nil
+            if not isLegacyVariant(name) then table.insert(variants, { index = index, name = name }) end
+          end
+          table.sort(variants, function(a, b) return a.index < b.index end)
+          entry.variants = variants
+        end
+        if not entry.variants or #entry.variants > 0 then table.insert(out, entry) end
       end
     end
   end
   return out
 end
+
+-- "variant Blood Hunt" / "variants A, B, C and 4 more", for a hit's source.
+local function variantNote(variants)
+  local names = {}
+  for i, v in ipairs(variants) do
+    if i > 3 then break end
+    table.insert(names, v.name or ('#' .. v.index))
+  end
+  local note = (#variants == 1 and 'variant ' or 'variants ') .. table.concat(names, ', ')
+  if #variants > 3 then note = note .. ' and ' .. (#variants - 3) .. ' more' end
+  return note
+end
+
+local MAX_MATCHED_LINES = 5
 
 local function resolveSlot(slot)
   if slot == nil then return nil end
@@ -324,25 +417,47 @@ local function resolveSlot(slot)
   fail('unknown slot "' .. tostring(slot) .. '"; valid item types: ' .. table.concat(types, ', '))
 end
 
+-- Uniques by name, mod line (any variant) or type. Each result names its base, type and the matched
+-- lines (at most MAX_MATCHED_LINES, `matchedCount` counts them all); the BuildRaw() text comes only
+-- when exactly one unique is returned (D-239), with the selected variant.
 local function lookupUniques(query, slot, maxResults)
   local itemType = resolveSlot(slot)
   local matches = {}
   for key, item in pairs(uniqueList()) do
     if (not itemType or item.type == itemType) then
       local name = item.title or item.name or key
-      local hit = query == nil or contains(name, query)
-      if not hit then
-        for _, line in ipairs(uniqueModLines(item)) do
-          if contains(line, query) then hit = true break end
+      local byName = query ~= nil and contains(name, query)
+      local lines = {}
+      if query then
+        for _, entry in ipairs(uniqueModLines(item)) do
+          if contains(entry.line, query) then table.insert(lines, entry) end
         end
       end
-      if hit then table.insert(matches, { id = key, name = name, item = item }) end
+      if query == nil or byName or #lines > 0 then
+        table.insert(matches, { id = key, name = name, item = item, byName = byName, lines = lines })
+      end
     end
   end
   sortByName(matches, query)
+  local shown = cut(matches, maxResults)
   local results = {}
-  for i, m in ipairs(cut(matches, maxResults)) do
-    results[i] = { kind = 'unique', id = m.id, name = m.name, type = m.item.type, raw = m.item:BuildRaw() }
+  for i, m in ipairs(shown) do
+    local matched = {}
+    for n, entry in ipairs(m.lines) do
+      if n > MAX_MATCHED_LINES then break end
+      table.insert(matched, entry)
+    end
+    local result = {
+      kind = 'unique', id = m.id, name = m.name, type = m.item.type, baseName = m.item.baseName,
+      byName = m.byName, matchedLines = matched, matchedCount = #m.lines,
+    }
+    if #shown == 1 then
+      result.raw = m.item:BuildRaw()
+      if type(m.item.variantList) == 'table' and m.item.variant then
+        result.selectedVariant = { index = m.item.variant, name = m.item.variantList[m.item.variant] }
+      end
+    end
+    results[i] = result
   end
   return results, #matches
 end
@@ -386,7 +501,9 @@ local function collectModHits(hits, tableName, entryId, entry, query)
   end
 end
 
-local function lookupMechanics(query, maxResults)
+local KINDS_TEXT = 'gem, unique, passive or mod'
+
+local function lookupMechanics(query, kind, maxResults)
   local d = gameData()
   local hits = {}
 
@@ -413,14 +530,16 @@ local function lookupMechanics(query, maxResults)
     end
   end
 
-  -- Uniques: their current-variant mod lines.
+  -- Uniques: every variant's mod lines; a line the selected variant lacks names its variants.
   for key, item in pairs(uniqueList()) do
     local name = item.title or item.name or key
-    for n, line in ipairs(uniqueModLines(item)) do
-      if contains(line, query) then
+    for n, entry in ipairs(uniqueModLines(item)) do
+      if contains(entry.line, query) then
+        local where = tostring(item.type)
+        if entry.variants then where = where .. '; ' .. variantNote(entry.variants) end
         table.insert(hits, {
           kind = 'unique', id = key, name = name, order = n,
-          source = name .. ' (' .. tostring(item.type) .. ')', line = line,
+          source = name .. ' (' .. where .. ')', line = entry.line, variants = entry.variants,
         })
       end
     end
@@ -462,12 +581,19 @@ local function lookupMechanics(query, maxResults)
     if a.id ~= b.id then return a.id < b.id end
     return a.order < b.order
   end)
-  local results = cut(hits, maxResults)
+  -- Every kind's hit count, then (with `kind`) only that kind's hits are listed and cut.
+  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0 }
+  local listed = {}
+  for _, hit in ipairs(hits) do
+    kinds[hit.kind] = kinds[hit.kind] + 1
+    if not kind or hit.kind == kind then table.insert(listed, hit) end
+  end
+  local results = cut(listed, maxResults)
   for _, hit in ipairs(results) do
     hit.order = nil
     if hit.kind == 'passive' then hit.id = tostring(hit.nodeId) end
   end
-  return results, #hits
+  return results, #listed, kinds
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -491,7 +617,7 @@ function M.lookup_game_data(params)
   local maxResults = math.floor(tonumber(params.maxResults) or DEFAULT_MAX_RESULTS)
   if maxResults < 1 then maxResults = 1 end
 
-  local results, total
+  local results, total, kinds
   if mode == 'gem' then
     if not needle then fail('gem mode needs a query') end
     local level = params.level ~= nil and math.floor(tonumber(params.level) or -1) or nil
@@ -504,9 +630,14 @@ function M.lookup_game_data(params)
     results, total = lookupUniques(needle, slot, maxResults)
   else
     if not needle then fail('mechanic mode needs a query') end
-    results, total = lookupMechanics(needle, maxResults)
+    local kind = trimmed(params.kind)
+    if kind then
+      kind = kind:lower()
+      if not KIND_RANK[kind] then fail('unknown kind "' .. tostring(params.kind) .. '"; use ' .. KINDS_TEXT) end
+    end
+    results, total, kinds = lookupMechanics(needle, kind, maxResults)
   end
-  return { mode = mode, total = total, results = results }
+  return { mode = mode, total = total, results = results, kinds = kinds }
 end
 
 -- ---------------------------------------------------------------------------------------------------

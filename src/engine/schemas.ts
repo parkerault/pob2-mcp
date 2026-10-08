@@ -613,9 +613,24 @@ export type TradeQueryOptionsResult = z.infer<typeof tradeQueryOptionsReply>['re
 // ---------------------------------------------------------------------------------------------------
 // Lookup actions (`pob-api/API/Lookup.lua`, C-37)
 
+/**
+ * One stat set: its describer lines, and (D-241) the base attack damage multiplier and critical hit
+ * chance of its level data (the granted effect's level overlaid by the stat set's), with `baseLines`
+ * in the gem tooltip's wording.
+ */
 const lookupStatSetSchema = z
-  .object({ index: z.number().int(), label: z.string(), lines: luaArray(z.string()) })
+  .object({
+    index: z.number().int(),
+    label: z.string(),
+    lines: luaArray(z.string()),
+    baseMultiplier: z.number().optional(),
+    critChance: z.number().optional(),
+    baseLines: luaArray(z.string()),
+  })
   .passthrough();
+
+/** The variants of a unique that have a line the selected variant lacks (legacy variants left out). */
+const lookupVariantsSchema = luaArray(z.object({ index: z.number().int(), name: optString }).passthrough());
 
 /** A gem: its stat sets' tooltip lines at one level and quality, quality lines, rules, requirements. */
 export const lookupGemSchema = z
@@ -629,6 +644,8 @@ export const lookupGemSchema = z
     description: optString,
     weapon: optString,
     level: z.number().int(),
+    /** Set when the requested gem_level isn't one of this gem's levels, so it is shown at its default. */
+    levelNote: optString,
     quality: z.number().int(),
     statSets: luaArray(lookupStatSetSchema),
     /** The gem's additional granted effects, in PoB's tooltip order. */
@@ -653,9 +670,24 @@ export const lookupGemSchema = z
   })
   .passthrough();
 
-/** A unique: its uniqueDB key, name, item type and `BuildRaw()` text. */
+/**
+ * A unique: its uniqueDB key, name, item type, base and the lines that matched (any variant's; at most 5,
+ * `matchedCount` counts them all). `raw` (`BuildRaw()`, for add_item) and `selectedVariant` come only
+ * when exactly one unique is returned (D-239).
+ */
 export const lookupUniqueSchema = z
-  .object({ kind: z.literal('unique'), id: z.string(), name: z.string(), type: z.string(), raw: z.string() })
+  .object({
+    kind: z.literal('unique'),
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    baseName: optString,
+    byName: z.boolean(),
+    matchedLines: luaArray(z.object({ line: z.string(), variants: lookupVariantsSchema.optional() }).passthrough()),
+    matchedCount: z.number().int(),
+    raw: optString,
+    selectedVariant: z.object({ index: z.number().int(), name: optString }).passthrough().optional(),
+  })
   .passthrough();
 
 /** A mechanic hit: one matching line and where it came from. */
@@ -669,6 +701,8 @@ export const lookupHitSchema = z
     nodeId: z.number().int().optional(),
     ascendancy: optString,
     table: optString,
+    /** A unique hit from a variant other than the selected one. */
+    variants: lookupVariantsSchema.optional(),
   })
   .passthrough();
 
@@ -676,8 +710,10 @@ export const lookupGameDataReply = baseReply.extend({
   result: z
     .object({
       mode: z.enum(['gem', 'unique', 'mechanic']),
-      /** Every match before the cut. */
+      /** Every match before the cut (in mechanic mode, of the requested `kind`). */
       total: z.number().int(),
+      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240). */
+      kinds: z.object({ gem: z.number().int(), unique: z.number().int(), passive: z.number().int(), mod: z.number().int() }).optional(),
       results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
     })
     .passthrough(),
@@ -871,13 +907,17 @@ export interface ActionParamsMap {
   trade_generate_query: TradeGenerateQueryParams;
   trade_evaluate_items: TradeEvaluateItemsParams;
   trade_query_options: { slot: string };
-  /** C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both. */
+  /**
+   * C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both;
+   * `kind` (mechanic mode, D-240) keeps one kind of hit.
+   */
   lookup_game_data: {
     mode: 'gem' | 'unique' | 'mechanic';
     query?: string;
     level?: number;
     quality?: number;
     slot?: string;
+    kind?: 'gem' | 'unique' | 'passive' | 'mod';
     maxResults?: number;
   };
 }

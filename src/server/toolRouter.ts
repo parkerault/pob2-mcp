@@ -479,6 +479,7 @@ async function dispatch(
         gemLevel: args?.gem_level,
         gemQuality: args?.gem_quality,
         slot: args?.slot,
+        kind: args?.kind,
         maxResults: args?.max_results,
       });
 

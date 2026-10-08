@@ -11,8 +11,11 @@
  * - the order and bounds compare the tool's text with the Lua action's full list (`maxResults:10000`),
  *   read through `session.run`.
  *
- * AC-K1…AC-K5 and AC-K45 run here. AC-K6 (the read kind) is the generic engine-kind check over the three
- * `lookup_game_data` samples in `engineKinds.test.ts`; the static part below checks those samples exist.
+ * AC-K1…AC-K5 and AC-K45 run here, with the coordinator's amendments to C-37: unique lines from every
+ * non-legacy variant, the per-gem gem_level fallback, compact uniques (D-239), the mechanic `kind` filter
+ * and per-kind totals (D-240) and the stat sets' base attack damage and crit chance (D-241). AC-K6 (the
+ * read kind) is the generic engine-kind check over the `lookup_game_data` samples in
+ * `engineKinds.test.ts`; the static part below checks those samples exist.
  */
 import fs from 'fs';
 import path from 'path';
@@ -28,6 +31,8 @@ const FIXTURES = path.resolve(__dirname, '..', 'fixtures');
 
 interface StatSet {
   label: string;
+  /** The base attack damage and crit chance lines (D-241). */
+  base: string[];
   lines: string[];
 }
 
@@ -36,6 +41,9 @@ interface GemBlock {
   name: string;
   weapon?: string;
   description?: string;
+  /** `Stat sets at gem level <n>, quality <q>%:` */
+  shownLevel?: number;
+  note?: string;
   statSets: StatSet[];
   quality: string[];
   supports?: string[];
@@ -56,25 +64,36 @@ function parseGem(block: string): GemBlock {
   const lines = block.split('\n');
   const gem: GemBlock = { name: lines[0].replace(/^## /, ''), statSets: [], quality: [], attributes: {} };
   let target: string[] | null = null;
+  let baseTarget: string[] | null = null;
   let inMain = true;
   for (const line of lines.slice(1)) {
     let m: RegExpExecArray | null;
     if (line.startsWith('  - ')) {
       if (target) target.push(line.slice(4));
+    } else if (line.startsWith('  ') && line !== '  (no described stats)' && line !== '  (no quality effects)') {
+      if (baseTarget) baseTarget.push(line.slice(2));
+    } else if ((m = /^Stat sets at gem level (\d+), quality \d+%:$/.exec(line))) {
+      gem.shownLevel = Number(m[1]);
+    } else if ((m = /^Note: (.*)$/.exec(line))) {
+      gem.note = m[1];
     } else if ((m = /^Stat set \d+: (.*)$/.exec(line))) {
       if (inMain) {
-        const set = { label: m[1], lines: [] as string[] };
+        const set = { label: m[1], base: [] as string[], lines: [] as string[] };
         gem.statSets.push(set);
         target = set.lines;
+        baseTarget = set.base;
       } else {
         target = null;
+        baseTarget = null;
       }
     } else if (line.startsWith('Also grants: ')) {
       inMain = false;
       target = null;
+      baseTarget = null;
     } else if (line === 'At +20% Quality:') {
       inMain = false;
       target = gem.quality;
+      baseTarget = null;
     } else if ((m = /^Weapon: (.*)$/.exec(line))) {
       gem.weapon = m[1];
     } else if ((m = /^Description: (.*)$/.exec(line))) {
@@ -83,22 +102,47 @@ function parseGem(block: string): GemBlock {
       gem.supports = listOf(m[1]);
     } else if ((m = /^Can't support: (.*)$/.exec(line))) {
       gem.cannotSupport = listOf(m[1]);
-    } else if ((m = /^Requires level \((gem levels? [^)]*)\): (.*)$/.exec(line))) {
+    } else if ((m = /^Requires level \((gem levels 1–\d+)\): (.*)$/.exec(line))) {
       gem.requiresLevel = { span: m[1], values: numbersOf(m[2]) };
-    } else if ((m = /^(Str|Dex|Int) \((gem levels? [^)]*)\): (.*)$/.exec(line))) {
+    } else if ((m = /^(Str|Dex|Int) \((gem levels 1–\d+)\): (.*)$/.exec(line))) {
       gem.attributes[m[1]] = numbersOf(m[3]);
     } else {
       target = null;
+      baseTarget = null;
     }
   }
   return gem;
 }
 
-/** A unique block: `## <name> (<type>)`, then its text in a fenced block. */
-function parseUnique(block: string): { name: string; type: string; raw: string } {
-  const m = /^## (.*) \(([^()]*)\)\n```\n([\s\S]*)\n```$/.exec(block);
-  if (!m) throw new Error(`not a unique block: ${block.slice(0, 200)}`);
-  return { name: m[1], type: m[2], raw: m[3] };
+interface UniqueBlock {
+  name: string;
+  type: string;
+  base?: string;
+  /** The `Matched:` lines, as printed (a line from another variant ends with its variants). */
+  matched: string[];
+  selected?: string;
+  /** The fenced item text: only when exactly one unique is returned (D-239). */
+  raw?: string;
+}
+
+/** A unique block: `## <name> (<type>)`, `Base:`, `Matched:` lines, and the fenced text when it is the one. */
+function parseUnique(block: string): UniqueBlock {
+  const head = /^## (.*) \(([^()]*)\)$/.exec(block.split('\n')[0]);
+  if (!head) throw new Error(`not a unique block: ${block.slice(0, 200)}`);
+  const fence = block.indexOf('\n```\n');
+  const body = fence >= 0 ? block.slice(0, fence) : block;
+  const out: UniqueBlock = { name: head[1], type: head[2], matched: [] };
+  for (const line of body.split('\n').slice(1)) {
+    if (line.startsWith('Base: ')) out.base = line.slice(6);
+    else if (line.startsWith('Matched: ')) out.matched.push(line.slice(9));
+    else if (line.startsWith('Selected variant: ')) out.selected = line.slice(18);
+  }
+  if (fence >= 0) {
+    const m = /\n```\n([\s\S]*)\n```$/.exec(block);
+    if (!m) throw new Error(`unterminated item text: ${block.slice(0, 200)}`);
+    out.raw = m[1];
+  }
+  return out;
 }
 
 /** The mechanic hit lines of the tool's text. */
@@ -226,7 +270,9 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(gem.description).toBe(pob.description);
 
       expect(gem.statSets.map((s) => s.label)).toEqual(['Dash', 'Explosion']);
-      expect(gem.statSets).toEqual(pob.sets.map((s) => ({ label: s.label, lines: arr(s.lines) })));
+      expect(gem.statSets.map(({ label, lines }) => ({ label, lines }))).toEqual(
+        pob.sets.map((s) => ({ label: s.label, lines: arr(s.lines) })),
+      );
       expect(gem.statSets[1].lines).toContain('Enemies lose Life equal to 25% of Consumed Blood Loss');
 
       expect(arr(pob.quality).length).toBeGreaterThan(0);
@@ -297,6 +343,8 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         return { name = best.name, levels = levels, maxLevel = best.g.naturalMaxLevel }`);
       const supportGem = parseGem(blocks(await okTool({ mode: 'gem', query: support.name }))[0]);
       expect(supportGem.name).toBe(support.name);
+      // §2.2's format, `gem levels 1–<n>`, also when n is 1.
+      expect(supportGem.requiresLevel?.span).toBe(`gem levels 1–${support.maxLevel}`);
       expect(supportGem.requiresLevel?.values).toEqual(support.levels);
       expect(supportGem.attributes).toEqual({});
     },
@@ -349,6 +397,202 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         return out`);
       expect(types).toEqual(expect.arrayContaining(['Gloves', 'Spear', 'Jewel']));
       expect(bad.text).toContain(types.join(', '));
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'C-37 unique lines (review fix): unique "Blood Hunt" finds Prism of Belief through its non-selected Blood Hunt variant and names it; mechanic "Level of all Blood" names the variant; a line only legacy "Pre x.y" variants have is not matched',
+    async () => {
+      const prism = await luaQuery<{ index: number; selected: number; line: string; raw: string; type: string }>(`
+        for _, item in pairs(main.uniqueDB.list) do
+          if item.title == "Prism of Belief" then
+            local index
+            for i, name in ipairs(item.variantList) do if name == "Blood Hunt" then index = i end end
+            for _, key in ipairs({ "implicitModLines", "explicitModLines" }) do
+              for _, ml in ipairs(item[key]) do
+                if ml.variantList and ml.variantList[index] then
+                  return { index = index, selected = item.variant, line = ml.line, raw = item:BuildRaw(), type = item.type }
+                end
+              end
+            end
+          end
+        end`);
+      expect(prism.selected).not.toBe(prism.index);
+      expect(prism.line).toContain('Blood Hunt');
+
+      const found = blocks(await okTool({ mode: 'unique', query: 'Blood Hunt' })).map(parseUnique);
+      const block = found.find((u) => u.name === 'Prism of Belief');
+      expect(block).toBeDefined();
+      expect(block!.type).toBe(prism.type);
+      expect(block!.matched).toContain(`${prism.line} (variant ${prism.index}: Blood Hunt)`);
+      if (found.length === 1) expect(block!.raw).toBe(prism.raw);
+
+      const hits = hitLines(await okTool({ mode: 'mechanic', query: 'Level of all Blood' }));
+      expect(hits).toContain(`[unique] Prism of Belief (${prism.type}; variant Blood Hunt): ${prism.line}`);
+
+      // Atziri's Acuity keeps "Leech from Critical Hits is instant" only in its "Pre x.y" variants.
+      const legacy = await luaQuery<{ names: string[]; selected: boolean }>(`
+        for _, item in pairs(main.uniqueDB.list) do
+          if item.title == "Atziri's Acuity" then
+            for _, ml in ipairs(item.explicitModLines) do
+              if ml.line == "Leech from Critical Hits is instant" then
+                local names = {}
+                for index in pairs(ml.variantList) do table.insert(names, item.variantList[index]) end
+                table.sort(names)
+                return { names = names, selected = item:CheckModLineVariant(ml) and true or false }
+              end
+            end
+          end
+        end`);
+      expect(legacy.selected).toBe(false);
+      expect(legacy.names.length).toBeGreaterThan(0);
+      expect(legacy.names.every((n) => /^Pre \d/.test(n))).toBe(true);
+      const query = 'Leech from Critical Hits is instant';
+      const uniques = blocks(await okTool({ mode: 'unique', query })).map(parseUnique);
+      expect(uniques.map((u) => u.name)).not.toContain("Atziri's Acuity");
+      const legacyHits = hitLines(await okTool({ mode: 'mechanic', query, kind: 'unique', max_results: 30 }));
+      expect(legacyHits.filter((l) => l.startsWith("[unique] Atziri's Acuity"))).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-239: several uniques are each shown in brief (name, type, base, no item text); a single returned unique carries its full BuildRaw() text',
+    async () => {
+      const text = await okTool({ mode: 'unique', slot: 'Jewel', max_results: 30 });
+      const jewels = blocks(text).map(parseUnique);
+      const pob = await luaQuery<Array<{ name: string; base: string; raw: string }>>(`
+        local out = {}
+        for key, item in pairs(main.uniqueDB.list) do
+          if item.type == "Jewel" then table.insert(out, { id = key, name = item.title, base = item.baseName, raw = item:BuildRaw() }) end
+        end
+        -- By name, then by id (uniques share a name across bases, such as Grand Spectrum).
+        table.sort(out, function(a, b) if a.name ~= b.name then return a.name < b.name end return a.id < b.id end)
+        return out`);
+      expect(jewels.length).toBe(Math.min(pob.length, 30));
+      expect(jewels.length).toBeGreaterThan(1);
+      expect(jewels.map((u) => ({ name: u.name, type: u.type, base: u.base, raw: u.raw }))).toEqual(
+        pob.slice(0, 30).map((u) => ({ name: u.name, type: 'Jewel', base: u.base, raw: undefined })),
+      );
+      expect(text).not.toContain('```');
+      expect(text.length).toBeLessThan(10_000);
+
+      const one = blocks(await okTool({ mode: 'unique', slot: 'Jewel', max_results: 1 })).map(parseUnique);
+      expect(one).toHaveLength(1);
+      expect(one[0].name).toBe(pob[0].name);
+      expect(one[0].raw).toBe(pob[0].raw);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'C-37 gem_level (review fix): a returned gem without that level is shown at its default level with a note; it is an error only when no returned gem has it',
+    async () => {
+      const text = await okTool({ mode: 'gem', query: 'Blood', gem_level: 20, max_results: 30 });
+      const gems = blocks(text).map(parseGem);
+      const pob = await luaQuery<Record<string, { has: boolean; default: number }>>(`
+        local out = {}
+        for _, g in pairs(data.gems) do
+          if g.name:lower():find("blood", 1, true) then
+            local ge = g.grantedEffect
+            local natural = g.naturalMaxLevel or 1
+            local default = natural
+            if not ge.levels[natural] then
+              local levels = {}
+              for l in pairs(ge.levels) do table.insert(levels, l) end
+              table.sort(levels)
+              default = levels[1]
+              for _, l in ipairs(levels) do if l <= natural then default = l end end
+            end
+            out[g.name] = { has = ge.levels[20] ~= nil, default = default }
+          end
+        end
+        return out`);
+      expect(gems.length).toBe(Object.keys(pob).length);
+      const without = gems.filter((g) => !pob[g.name].has);
+      expect(without.length).toBeGreaterThan(0);
+      expect(gems.some((g) => pob[g.name].has)).toBe(true);
+      for (const g of gems) {
+        if (pob[g.name].has) {
+          expect({ name: g.name, level: g.shownLevel, note: g.note }).toEqual({ name: g.name, level: 20, note: undefined });
+        } else {
+          expect({ name: g.name, level: g.shownLevel }).toEqual({ name: g.name, level: pob[g.name].default });
+          expect(g.note).toMatch(/^gem_level 20 is outside this gem's levels/);
+        }
+      }
+
+      const none = await tool({ mode: 'gem', query: without[0].name, gem_level: 20 });
+      expect({ isError: none.isError, text: none.text }).toEqual({ isError: true, text: expect.stringContaining('gem_level 20') });
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "D-241: each stat set shows its base attack damage and crit chance from the level PoB's calculation reads (the granted effect's level overlaid by the stat set's), in the gem tooltip's wording",
+    async () => {
+      const gems = ['Blood Hunt', 'Herald of Blood', 'Ball Lightning'];
+      let critLines = 0;
+      for (const name of gems) {
+        const gem = parseGem(blocks(await okTool({ mode: 'gem', query: name }))[0]);
+        expect(gem.name).toBe(name);
+        const expected = await luaQuery<Array<string[] | Record<string, never>>>(`
+          local gem, gemId
+          for id, g in pairs(data.gems) do
+            if g.name == ${JSON.stringify(name)} and (not gemId or id < gemId) then gem, gemId = g, id end
+          end
+          local ge = gem.grantedEffect
+          local level = ${gem.shownLevel}
+          local out = {}
+          for i, ss in ipairs(ge.statSets) do
+            local merged = {}
+            for k, v in pairs(ge.levels[level] or {}) do merged[k] = v end
+            for k, v in pairs(ss.levels and ss.levels[level] or {}) do merged[k] = v end
+            local lines = {}
+            if merged.baseMultiplier then table.insert(lines, string.format("Attack Damage: %g%% of base", merged.baseMultiplier * 100)) end
+            if merged.critChance then table.insert(lines, string.format("Critical Hit Chance: %.2f%%", merged.critChance)) end
+            out[i] = lines
+          end
+          return out`);
+        const want = expected.map((l) => (Array.isArray(l) ? l : []));
+        expect({ name, base: gem.statSets.map((st) => st.base) }).toEqual({ name, base: want });
+        critLines += want.flat().filter((l) => l.startsWith('Critical Hit Chance')).length;
+        if (name === 'Blood Hunt') {
+          expect(gem.statSets[0]).toMatchObject({ label: 'Dash', base: ['Attack Damage: 243% of base'] });
+        }
+      }
+      expect(critLines).toBeGreaterThan(0);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-240: mechanic kind keeps one kind of hit, and the header counts every kind; an unknown kind is an error',
+    async () => {
+      const query = 'Bleeding';
+      const full = await lookupAction({ mode: 'mechanic', query, maxResults: 10000 });
+      const all = full.results as LookupHit[];
+      const count = (k: string) => all.filter((h) => h.kind === k).length;
+      expect(full.total).toBe(all.length);
+      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod') });
+      expect(count('unique')).toBeGreaterThan(0);
+      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod.`;
+
+      const plain = await okTool({ mode: 'mechanic', query });
+      expect(plain.split('\n')).toContain(header);
+
+      const text = await okTool({ mode: 'mechanic', query, kind: 'unique', max_results: 30 });
+      expect(text.split('\n')).toContain(header);
+      const lines = hitLines(text);
+      const uniques = all.filter((h) => h.kind === 'unique');
+      expect(lines.length).toBe(Math.min(30, uniques.length));
+      expect(lines).toEqual(uniques.slice(0, lines.length).map(renderHit));
+      const filtered = await lookupAction({ mode: 'mechanic', query, kind: 'unique', maxResults: 10000 });
+      expect(filtered.total).toBe(uniques.length);
+      expect(filtered.kinds).toEqual(full.kinds);
+
+      const bad = await tool({ mode: 'mechanic', query, kind: 'nonsense' });
+      expect(bad.isError).toBe(true);
     },
     ENGINE_TIMEOUT,
   );
@@ -432,6 +676,21 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       ENGINE_TIMEOUT,
     );
   }
+
+  it(
+    'AC-K5: exact name matches come first: gem "Spark" lists Spark before names that sort ahead of it, and the tool shows the Lua order',
+    async () => {
+      const full = await lookupAction({ mode: 'gem', query: 'Spark', maxResults: 10000 });
+      const names = full.results.map((r) => (r as { name: string }).name);
+      expect(names[0]).toBe('Spark');
+      // The exact match isn't first by name alone, so this exercises the exact-first rule.
+      expect(names.slice(1).some((n) => n < 'Spark')).toBe(true);
+      expectOrdered('gem', 'Spark', full.results);
+      const shown = blocks(await okTool({ mode: 'gem', query: 'Spark' })).map((b) => parseGem(b).name);
+      expect(shown).toEqual(names.slice(0, 20));
+    },
+    ENGINE_TIMEOUT,
+  );
 
   it(
     'AC-K5: an unknown mode, gem mode without query, unique mode with neither query nor slot, and gem_level 999 are errors; query "zzzz" is not, and says nothing matched',

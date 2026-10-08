@@ -511,7 +511,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lookup_game_data",
-      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives and item mods. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, description, weapon requirement, every stat set (\"skill part\") with PoB's tooltip lines at `gem_level` (default: the gem's natural max level) and `gem_quality` (default 0), the \"At +20% Quality\" lines, the requirements at every gem level (character level, and each attribute the gem needs), and for a support the skill types it supports and can't support (PoB's type expressions, in which AND, OR and NOT combine the types before them). mode 'unique': uniques whose name or a mod line contains `query`, optionally only of item type `slot` (such as Gloves, Spear or Jewel; at least one of the two is needed), each as item text ready for add_item. mode 'mechanic': every gem description and stat-set line, unique mod line, passive node line (ascendancy nodes included) and item mod line containing `query`, one hit per line as `[kind] source: line`. Results are sorted, then cut to max_results (default 20, max 30): exact name matches first, then by name; mechanic hits by kind (gem, unique, passive, mod), then by name.",
+      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives and item mods. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` (default: the gem's natural max level; a gem without that level is shown at its default, with a note) and `gem_quality` (default 0), the \"At +20% Quality\" lines, the requirements at every gem level (character level, and each attribute the gem needs), and for a support the skill types it supports and can't support (PoB's type expressions, in which AND, OR and NOT combine the types before them). mode 'unique': uniques whose name or any variant's mod line contains `query` (legacy \"Pre x.y\" variants are skipped), optionally only of item type `slot` (such as Gloves, Spear or Jewel; at least one of the two is needed). Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description and stat-set line, unique mod line (any variant), passive node line (ascendancy nodes included) and item mod line containing `query`, one hit per line as `[kind] source: line`; `kind` lists only gem, unique, passive or mod hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30): exact name matches first, then by name; mechanic hits by kind (gem, unique, passive, mod), then by name.",
       inputSchema: {
         type: "object",
         properties: {
@@ -527,7 +527,7 @@ export function getLuaToolSchemas(): any[] {
           gem_level: {
             type: "integer",
             minimum: 1,
-            description: "Gem mode: the gem level whose stat lines are shown (default: each gem's natural max level); a level the gem doesn't have fails",
+            description: "Gem mode: the gem level whose stat lines are shown (default: each gem's natural max level); a returned gem without that level is shown at its default with a note, and it fails only when no returned gem has it",
           },
           gem_quality: {
             type: "integer",
@@ -538,6 +538,11 @@ export function getLuaToolSchemas(): any[] {
           slot: {
             type: "string",
             description: "Unique mode: PoB's item type, such as 'Gloves', 'Spear' or 'Jewel'; an unknown type fails and lists the valid ones",
+          },
+          kind: {
+            type: "string",
+            enum: ["gem", "unique", "passive", "mod"],
+            description: "Mechanic mode: list only this kind of hit (the header still counts every kind)",
           },
           max_results: {
             type: "integer",

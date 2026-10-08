@@ -76,6 +76,7 @@
   {"name": "find_upgrades", "bucket": "new", "lane": "T2"},
   {"name": "trade_query_options", "bucket": "new", "lane": "T2"},
   {"name": "set_gem_corruption", "bucket": "new", "lane": "B"},
+  {"name": "lookup_game_data", "bucket": "new", "lane": "K1"},
   {"name": "analyze_build_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "analyze_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "search_cluster_jewels", "bucket": "delete", "lane": "D4"},

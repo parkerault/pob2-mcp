@@ -1,7 +1,7 @@
 /**
  * WU-19: the README, the project CLAUDE.md, the stale-doc removal and the empty hygiene files.
  *
- * - AC-G1: the README tool table equals `pnpm docs:tools` output byte for byte (77 rows, D-91).
+ * - AC-G1: the README tool table equals `pnpm docs:tools` output byte for byte (78 rows, D-91, WU-31).
  * - AC-G2: the stale docs are gone, and outside the migration block the README and CLAUDE.md carry
  *   no PoE1 cruft (the AC-F20 matcher) and none of the old install/flag strings. Both checks run on
  *   whitespace-flattened text, so a phrase split by a hard wrap is still caught.
@@ -125,7 +125,7 @@ describe('WU-19: README tool table (AC-G1)', () => {
     expect(pkg.scripts['docs:tools']).toBe('node scripts/gen-tool-table.mjs');
   });
 
-  it('AC-G1: the README section between the tools markers equals the generator output byte for byte, with 77 rows (D-91)', () => {
+  it('AC-G1: the README section between the tools markers equals the generator output byte for byte, with 78 rows (D-91, WU-31)', () => {
     const table = generatedTable();
     expect(between(README, TOOLS_START, TOOLS_END)).toBe(table);
 
@@ -134,7 +134,7 @@ describe('WU-19: README tool table (AC-G1)', () => {
     expect(lines[1]).toBe('|---|---|---|');
     expect(lines[lines.length - 1]).toBe('');
     const rows = lines.slice(2, -1);
-    expect(rows).toHaveLength(77);
+    expect(rows).toHaveLength(78);
 
     // Every row is one listed tool, in listing order, with its TOOL_META group and a description.
     const parsed = rows.map((r) => {

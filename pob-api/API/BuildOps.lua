@@ -1536,21 +1536,45 @@ function M.list_support_candidates(params)
 end
 
 
--- Search for passive tree nodes by keyword
--- params: { keyword: string, nodeType?: string ('normal'|'notable'|'keystone'), maxResults?: number, includeAllocated?: boolean }
+-- Search for passive tree nodes by keyword and/or ascendancy (C-43)
+-- params: { keyword?: string, ascendancy?: string, nodeType?: string ('keystone'|'notable'|'jewel'|'mastery'|
+--   'ascendancy'|'normal'; 'any' or none filters nothing), maxResults?: number, includeAllocated?: boolean }
+-- `keyword` is required unless `ascendancy` (a case-insensitive ascendancy name) is given. Every match is
+-- sorted (type rank keystone, notable, jewel, mastery, ascendancy, normal; then name; then id) before the
+-- cut to `maxResults`; `count` is the number returned and `total` the number matched.
 function M.search_nodes(params)
   if not build or not build.spec then return nil, 'build/spec not initialized' end
-  if type(params) ~= 'table' or type(params.keyword) ~= 'string' then
-    return nil, 'missing or invalid keyword'
+  if type(params) ~= 'table' then params = {} end
+
+  local keyword = type(params.keyword) == 'string' and params.keyword:match('^%s*(.-)%s*$'):lower() or nil
+  if keyword == '' then keyword = nil end
+  local ascendancy
+  if type(params.ascendancy) == 'string' and params.ascendancy:match('%S') then
+    local wanted = params.ascendancy:match('^%s*(.-)%s*$'):lower()
+    local names, seen = {}, {}
+    for _, node in pairs(build.spec.nodes) do
+      local name = node.ascendancyName
+      if name and not seen[name] then
+        seen[name] = true
+        table.insert(names, name)
+        if name:lower() == wanted then ascendancy = name end
+      end
+    end
+    if not ascendancy then
+      table.sort(names)
+      return nil, 'unknown ascendancy "' .. params.ascendancy .. '"; valid ascendancies: ' .. table.concat(names, ', ')
+    end
+  end
+  if not keyword and not ascendancy then
+    return nil, 'missing or invalid keyword (a keyword is required unless an ascendancy is given)'
   end
 
-  local keyword = params.keyword:lower()
-  local nodeType = params.nodeType and params.nodeType:lower() or nil
+  local nodeType = type(params.nodeType) == 'string' and params.nodeType:lower() or nil
+  if nodeType == 'any' or nodeType == '' then nodeType = nil end
   local maxResults = tonumber(params.maxResults) or 50
   local includeAllocated = params.includeAllocated ~= false
 
   local results = {}
-  local count = 0
 
   -- Get allocated nodes set for quick lookup
   local allocatedSet = {}
@@ -1560,12 +1584,15 @@ function M.search_nodes(params)
     end
   end
 
-  -- Search through all nodes
+  -- Search through all nodes; every match is collected, then sorted, then cut.
   for id, node in pairs(build.spec.nodes) do
-    if count >= maxResults then break end
-
     -- Skip if already allocated and we don't want allocated nodes
     if not includeAllocated and allocatedSet[id] then
+      goto continue
+    end
+
+    -- Filter by ascendancy if specified
+    if ascendancy and node.ascendancyName ~= ascendancy then
       goto continue
     end
 
@@ -1581,9 +1608,11 @@ function M.search_nodes(params)
       if nType ~= nodeType then goto continue end
     end
 
+    -- Without a keyword (an ascendancy listing), every node left matches.
+    local matches = keyword == nil
+
     -- Check if keyword matches name
-    local matches = false
-    if node.name and node.name:lower():find(keyword, 1, true) then
+    if not matches and node.name and node.name:lower():find(keyword, 1, true) then
       matches = true
     end
 
@@ -1651,24 +1680,30 @@ function M.search_nodes(params)
         pathDist = pathDist,
         path = path,
       })
-      count = count + 1
     end
 
     ::continue::
   end
 
-  -- Sort results: keystones first, then notables, then normal
+  -- Sort every match: type rank, then name, then id; then cut.
+  local typeOrder = { keystone = 1, notable = 2, jewel = 3, mastery = 4, ascendancy = 5, normal = 6 }
   table.sort(results, function(a, b)
-    local typeOrder = { keystone = 1, notable = 2, jewel = 3, mastery = 4, ascendancy = 5, normal = 6 }
     local aOrder = typeOrder[a.type] or 99
     local bOrder = typeOrder[b.type] or 99
     if aOrder ~= bOrder then
       return aOrder < bOrder
     end
-    return (a.name or '') < (b.name or '')
+    if a.name ~= b.name then
+      return a.name < b.name
+    end
+    return a.id < b.id
   end)
 
-  return { nodes = results, count = #results }
+  local total = #results
+  local shown = {}
+  for i = 1, math.min(total, maxResults) do shown[i] = results[i] end
+
+  return { nodes = shown, count = #shown, total = total }
 end
 
 

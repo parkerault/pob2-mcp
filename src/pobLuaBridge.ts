@@ -808,6 +808,12 @@ export class PoBLuaApiClient {
     return res.results;
   }
 
+  /** C-37: PoB2's loaded gem, unique, passive and mod data (`API/Lookup.lua`); reads only. */
+  async lookupGameData(params: ActionParams<"lookup_game_data">): Promise<ActionReply<"lookup_game_data">["result"]> {
+    const res = await this.request("lookup_game_data", params);
+    return res.result;
+  }
+
   /** List gems from PoB2's authoritative gem database (PoE2). */
   async listGems(params: ActionParams<"list_gems"> = {}): Promise<ActionReply<"list_gems">["result"]> {
     const res = await this.request("list_gems", params);

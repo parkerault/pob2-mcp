@@ -456,24 +456,27 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "search_tree_nodes",
-      description: "Search passive tree for nodes matching specific criteria",
+      description: "Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. `query` is required unless `ascendancy` is given. Matches are sorted by type (keystone, notable, jewel, mastery, ascendancy, normal), then name, then node id, and then cut to `limit` (default 20, max 30). Ascendancy notables are typed notable.",
       inputSchema: {
         type: "object",
         properties: {
           query: {
             type: "string",
-            description: "Search query for node names or stats",
+            description: "Search query for node names or stats (optional when ascendancy is given)",
+          },
+          ascendancy: {
+            type: "string",
+            description: "Keep only this ascendancy's nodes, notables included (a name such as 'Titan', case-insensitive); an unknown name fails and lists the valid ones",
           },
           node_type: {
             type: "string",
-            description: "Filter by type: 'keystone', 'notable', 'jewel', or 'any' (default)",
+            description: "Filter by type: 'keystone', 'notable', 'jewel', 'mastery', 'ascendancy', 'normal', or 'any' (default: no filter)",
           },
           limit: {
             type: "number",
-            description: "Maximum results to return (default: 20)",
+            description: "Maximum results to return (default: 20, max 30)",
           },
         },
-        required: ["query"],
       },
     },
     {
@@ -504,6 +507,45 @@ export function getLuaToolSchemas(): any[] {
             description: "Collapse tier/variant duplicates that share a display name (default false).",
           },
         },
+      },
+    },
+    {
+      name: "lookup_game_data",
+      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives and item mods. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, description, weapon requirement, every stat set (\"skill part\") with PoB's tooltip lines at `gem_level` (default: the gem's natural max level) and `gem_quality` (default 0), the \"At +20% Quality\" lines, the requirements at every gem level (character level, and each attribute the gem needs), and for a support the skill types it supports and can't support (PoB's type expressions, in which AND, OR and NOT combine the types before them). mode 'unique': uniques whose name or a mod line contains `query`, optionally only of item type `slot` (such as Gloves, Spear or Jewel; at least one of the two is needed), each as item text ready for add_item. mode 'mechanic': every gem description and stat-set line, unique mod line, passive node line (ascendancy nodes included) and item mod line containing `query`, one hit per line as `[kind] source: line`. Results are sorted, then cut to max_results (default 20, max 30): exact name matches first, then by name; mechanic hits by kind (gem, unique, passive, mod), then by name.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mode: {
+            type: "string",
+            enum: ["gem", "unique", "mechanic"],
+            description: "What to look up: 'gem', 'unique' or 'mechanic'",
+          },
+          query: {
+            type: "string",
+            description: "Case-insensitive text to find (required for gem and mechanic modes)",
+          },
+          gem_level: {
+            type: "integer",
+            minimum: 1,
+            description: "Gem mode: the gem level whose stat lines are shown (default: each gem's natural max level); a level the gem doesn't have fails",
+          },
+          gem_quality: {
+            type: "integer",
+            minimum: 0,
+            maximum: 20,
+            description: "Gem mode: the quality the stat lines include (0-20, default 0)",
+          },
+          slot: {
+            type: "string",
+            description: "Unique mode: PoB's item type, such as 'Gloves', 'Spear' or 'Jewel'; an unknown type fails and lists the valid ones",
+          },
+          max_results: {
+            type: "integer",
+            minimum: 1,
+            description: "Maximum results to return (default 20, max 30)",
+          },
+        },
+        required: ["mode"],
       },
     },
     {

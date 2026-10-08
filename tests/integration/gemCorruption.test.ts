@@ -303,11 +303,11 @@ engineDescribe('AC-E65: set_gem_corruption on the golden build (WU-25, D-91)', (
 });
 
 describe('AC-E65 (tool counts): tools/list after D-91', () => {
-  it('AC-E65: tools/list has 77 tools with set_gem_corruption (engine kind mutate), or 76 with POE_NINJA_DISABLED', async () => {
+  it('AC-E65: tools/list has 78 tools with set_gem_corruption (engine kind mutate), or 77 with POE_NINJA_DISABLED (WU-31 adds lookup_game_data)', async () => {
     const all = await startTestServer({ env: { POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: undefined } });
     try {
       const listed = (await all.client.listTools()).tools;
-      expect(listed).toHaveLength(77);
+      expect(listed).toHaveLength(78);
       const tool = listed.find((t) => t.name === 'set_gem_corruption');
       expect(tool).toBeDefined();
       expect(TOOL_META.set_gem_corruption).toEqual({ engine: 'mutate', group: 'core' });
@@ -323,7 +323,7 @@ describe('AC-E65 (tool counts): tools/list after D-91', () => {
     const noNinja = await startTestServer({ env: { POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: 'true' } });
     try {
       const listed = (await noNinja.client.listTools()).tools.map((t) => t.name);
-      expect(listed).toHaveLength(76);
+      expect(listed).toHaveLength(77);
       expect(listed).toContain('set_gem_corruption');
       expect(listed).not.toContain('get_currency_rates');
     } finally {

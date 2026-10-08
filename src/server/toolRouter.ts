@@ -21,6 +21,7 @@ import { handleCompareTrees, handleGetNearbyNodes, handleFindPath, handleGetPass
 import { handleGetBuildIssues, formatIssuesResponse } from "../handlers/buildGoalsHandlers.js";
 import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, handleLuaLoadBuild, handleLuaGetStats, handleLuaGetTree, handleLuaSetTree, handleSearchTreeNodes, handleListGems, handleGetClasses, handleLuaGetBuildInfo, handleLuaReloadBuild, handleUpdateTreeDelta, handleCreateSpec, handleListSpecs, handleSelectSpec, handleDeleteSpec, handleRenameSpec, handleListItemSets, handleSelectItemSet } from "../handlers/luaHandlers.js";
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
+import { handleLookupGameData } from "../handlers/lookupHandlers.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
 import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleSetGemCorruption, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
 import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
@@ -422,17 +423,21 @@ async function dispatch(
 
     case "search_tree_nodes": {
       if (!args) throw new Error("Missing arguments");
-      // Support both 'query' (schema name) and 'keyword' (legacy name)
+      // Support both 'query' (schema name) and 'keyword' (legacy name). C-43: 'query' is optional when
+      // 'ascendancy' is given; with neither, the call fails.
       const searchQuery = (args.query ?? args.keyword ?? args.q) as string | undefined;
-      if (!searchQuery || String(searchQuery).trim().length === 0) {
-        throw new Error(`search_tree_nodes requires a 'query' parameter (received args: ${JSON.stringify(Object.keys(args))})`);
+      const hasQuery = searchQuery != null && String(searchQuery).trim().length > 0;
+      const ascendancy = args.ascendancy == null ? undefined : String(args.ascendancy).trim();
+      if (!hasQuery && !ascendancy) {
+        throw new Error(`search_tree_nodes requires a 'query' or an 'ascendancy' parameter (received args: ${JSON.stringify(Object.keys(args))})`);
       }
       return await handleSearchTreeNodes(
         luaContext,
-        String(searchQuery).trim(),
+        hasQuery ? String(searchQuery).trim() : undefined,
         args.node_type as string | undefined,
         (args.limit || args.max_results) as number | undefined,
-        args.include_allocated as boolean | undefined
+        args.include_allocated as boolean | undefined,
+        ascendancy || undefined,
       );
     }
 
@@ -465,6 +470,16 @@ async function dispatch(
         tag: args?.tag as string | undefined,
         maxResults: (args?.max_results ?? args?.maxResults) as number | undefined,
         dedupeByName: (args?.dedupe_by_name ?? args?.dedupeByName) as boolean | undefined,
+      });
+
+    case "lookup_game_data":
+      return await handleLookupGameData(luaContext, {
+        mode: args?.mode,
+        query: args?.query,
+        gemLevel: args?.gem_level,
+        gemQuality: args?.gem_quality,
+        slot: args?.slot,
+        maxResults: args?.max_results,
       });
 
     // Phase 4: Item & Skill tools

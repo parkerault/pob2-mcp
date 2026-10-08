@@ -58,6 +58,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   list_item_sets: core('read'),
   search_tree_nodes: core('read'),
   list_gems: core('read'),
+  // C-37: PoB2's loaded gem, unique, passive and mod data (D-176: a read never changes the build)
+  lookup_game_data: core('read'),
   get_classes: core('read'),
   analyze_skills: core('read'),
   suggest_supports: core('read'),

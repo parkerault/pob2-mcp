@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-77 tools are listed by default; the full table is [below](#tools).
+78 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -57,7 +57,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 ```
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 77 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 78 tools.
 
 ## Configuration
 
@@ -182,8 +182,9 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `update_tree_delta` | core | Incrementally add or remove specific passive nodes from the current tree allocation. |
 | `lua_get_build_info` | core | Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. |
 | `lua_reload_build` | core | Reload the current build from disk, picking up any changes made in PoB GUI or via direct XML editing. |
-| `search_tree_nodes` | core | Search passive tree for nodes matching specific criteria |
+| `search_tree_nodes` | core | Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. |
 | `list_gems` | core | List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). |
+| `lookup_game_data` | core | Look up the pinned Path of Building's own game data: gems, uniques, passives and item mods. |
 | `get_classes` | core | List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). |
 | `import_build` | core | Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). |
 | `analyze_skills` | core | Analyze the loaded build's skill setup with the PoB2 engine. |

@@ -500,6 +500,7 @@ if TEST_ACTIONS then
 end
 
 for name, fn in pairs(require('API.Trade').handlers) do handlers[name] = fn end
+for name, fn in pairs(require('API.Lookup').handlers) do handlers[name] = fn end
 
 return {
   handlers = handlers,

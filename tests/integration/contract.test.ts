@@ -1,8 +1,9 @@
 /**
  * TS↔Lua reply contract (C-5): AC-E24, engine-required.
  *
- * - **Static check:** the non-test action names registered in `pob-api/API/Handlers.lua` and
- *   `pob-api/API/Trade.lua` (parsed from the source) equal `Object.keys(replySchemas)` and `ACTION_NAMES`.
+ * - **Static check:** the non-test action names registered in `pob-api/API/Handlers.lua` and in every
+ *   module it merges by `require('API.<Module>').handlers` (`Trade.lua`, `Lookup.lua`, …; parsed from
+ *   the source) equal `Object.keys(replySchemas)` and `ACTION_NAMES`.
  * - **Coverage:** every parsed action has a case below.
  * - **Each case** loads the golden build, establishes its precondition (a second spec before
  *   `delete_spec`, a socket group before `add_gem`, …), calls the action, and asserts that
@@ -32,15 +33,25 @@ const FETCHED = (
 
 const ENGINE_TIMEOUT = 240_000;
 
-/** Non-test action names from `Handlers.lua` (`handlers.<name> = …`) and `Trade.lua` (`M.handlers = {…}`). */
+/** The modules `Handlers.lua` merges, one line each: `for name, fn in pairs(require('API.<M>').handlers) …`. */
+function mergedModules(handlers: string): string[] {
+  return [...handlers.matchAll(/^\s*for\s+name,\s*fn\s+in\s+pairs\(require\('API\.([A-Za-z]+)'\)\.handlers\)/gm)].map((m) => m[1]);
+}
+
+/**
+ * Non-test action names from `Handlers.lua` (`handlers.<name> = …`) and from each module it merges
+ * (`M.handlers = {…}`).
+ */
 function luaActionNames(): string[] {
   const handlers = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Handlers.lua'), 'utf8');
-  const trade = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Trade.lua'), 'utf8');
   const names = new Set<string>();
   for (const m of handlers.matchAll(/^\s*handlers\.([A-Za-z_][A-Za-z0-9_]*)\s*=/gm)) names.add(m[1]);
-  const table = /M\.handlers\s*=\s*\{([\s\S]*?)\n\}/.exec(trade);
-  if (!table) throw new Error('Trade.lua: no M.handlers table');
-  for (const m of table[1].matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/gm)) names.add(m[1]);
+  for (const mod of mergedModules(handlers)) {
+    const source = fs.readFileSync(path.join(REPO, 'pob-api', 'API', `${mod}.lua`), 'utf8');
+    const table = /M\.handlers\s*=\s*\{([\s\S]*?)\n\}/.exec(source);
+    if (!table) throw new Error(`${mod}.lua: no M.handlers table`);
+    for (const m of table[1].matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/gm)) names.add(m[1]);
+  }
   return [...names].filter((n) => !n.startsWith('__test_')).sort();
 }
 
@@ -130,6 +141,8 @@ const CASES: Record<ActionName, Case> = {
   trade_generate_query: { params: { slot: 'Body Armour' } },
   trade_evaluate_items: { params: { slot: 'Body Armour', items: FETCHED } },
   trade_query_options: { params: { slot: 'Body Armour' } },
+  // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).
+  lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
 };
 
 /** The golden socket group whose active skill is Gas Grenade (stat sets Impact, Poison Cloud, Explosion). */
@@ -172,7 +185,12 @@ const VARIANTS: Variant[] = [
 ];
 
 describe('AC-E24: every Lua action has a reply schema (static)', () => {
-  it('AC-E24: the non-test Lua actions of Handlers.lua and Trade.lua equal Object.keys(replySchemas) and ACTION_NAMES', () => {
+  it('AC-E24: Handlers.lua merges the Trade and Lookup modules (AC-B4)', () => {
+    const handlers = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Handlers.lua'), 'utf8');
+    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup']));
+  });
+
+  it('AC-E24: the non-test Lua actions of Handlers.lua and its merged modules equal Object.keys(replySchemas) and ACTION_NAMES', () => {
     const lua = luaActionNames();
     expect(lua.length).toBeGreaterThan(30);
     expect(Object.keys(replySchemas).sort()).toEqual(lua);

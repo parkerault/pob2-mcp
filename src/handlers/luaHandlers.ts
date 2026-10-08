@@ -648,12 +648,18 @@ export async function handleUpdateTreeDelta(context: LuaHandlerContext, addNodes
   });
 }
 
+/**
+ * `search_tree_nodes` (C-43): nodes whose name or stats contain `keyword`, or every node of
+ * `ascendancy` (a case-insensitive name; with it, `keyword` is optional). Lua sorts every match (type
+ * rank, then name, then id) before the cut, so the shown nodes are the first `limit` of the full list.
+ */
 export async function handleSearchTreeNodes(
   context: LuaHandlerContext,
-  keyword: string,
+  keyword?: string,
   nodeType?: string,
   maxResults?: number,
-  includeAllocated?: boolean
+  includeAllocated?: boolean,
+  ascendancy?: string,
 ) {
   return wrapHandler('search tree nodes', async () => {
     await context.ensureLuaClient();
@@ -663,22 +669,26 @@ export async function handleSearchTreeNodes(
       throw new Error('Lua client not initialized. Use lua_start first.');
     }
 
-    if (!keyword || String(keyword).trim().length === 0) {
-      throw new Error(`keyword/query cannot be empty (received: ${JSON.stringify(keyword)})`);
+    const query = keyword == null ? '' : String(keyword).trim();
+    const ascendancyName = ascendancy == null ? '' : String(ascendancy).trim();
+    if (query.length === 0 && ascendancyName.length === 0) {
+      throw new Error(`keyword/query cannot be empty without an ascendancy (received: ${JSON.stringify(keyword)})`);
     }
 
     // Limit results to prevent large responses
     const effectiveMaxResults = Math.min(maxResults || 20, 30); // Default 20, max 30
 
     const results = await luaClient.searchNodes({
-      keyword: keyword.trim(),
+      ...(query ? { keyword: query } : {}),
+      ...(ascendancyName ? { ascendancy: ascendancyName } : {}),
       nodeType,
       maxResults: effectiveMaxResults,
       includeAllocated,
     });
 
     const textLines: string[] = ['=== Passive Tree Node Search ===', ''];
-    textLines.push(`Searching for: "${keyword}"`);
+    if (query) textLines.push(`Searching for: "${query}"`);
+    if (ascendancyName) textLines.push(`Ascendancy: ${ascendancyName}`);
     if (nodeType) {
       textLines.push(`Node type filter: ${nodeType}`);
     }
@@ -691,9 +701,10 @@ export async function handleSearchTreeNodes(
       textLines.push('- Check spelling');
       textLines.push('- Remove the node type filter to see more results');
     } else {
-      let countLine = `Found ${results.count} matching node${results.count === 1 ? '' : 's'}`;
-      if (results.count >= effectiveMaxResults) {
-        countLine += ` (showing top ${effectiveMaxResults})`;
+      const total = results.total ?? results.count;
+      let countLine = `Found ${total} matching node${total === 1 ? '' : 's'}`;
+      if (total > results.nodes.length) {
+        countLine += ` (showing the first ${results.nodes.length}, sorted by type, then name)`;
       }
       countLine += ':';
       textLines.push(countLine, '');

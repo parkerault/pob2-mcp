@@ -2,9 +2,9 @@
  * Lua action reply schemas (C-5): one zod schema per Lua action.
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
- * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and
- * `API/Trade.lua` has a schema here (checked statically and on the golden build by
- * `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
+ * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and the
+ * modules it merges (`API/Trade.lua`, `API/Lookup.lua`) has a schema here (checked statically and on
+ * the golden build by `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
  * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
  * get a schema.
  *
@@ -14,7 +14,7 @@
  */
 import { z } from 'zod';
 
-/** Every non-test action the Lua side registers (`pob-api/API/Handlers.lua`, plus `API/Trade.lua`'s). */
+/** Every non-test action the Lua side registers (`pob-api/API/Handlers.lua`, plus its merged modules'). */
 export const ACTION_NAMES = [
   'ping',
   'version',
@@ -59,6 +59,7 @@ export const ACTION_NAMES = [
   'trade_generate_query',
   'trade_evaluate_items',
   'trade_query_options',
+  'lookup_game_data',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -336,7 +337,10 @@ export const searchNodesReply = baseReply.extend({
           })
           .passthrough(),
       ),
+      /** The nodes returned (≤ `maxResults`). */
       count: z.number().int(),
+      /** Every match before the cut (C-43: sorted before the cap). */
+      total: z.number().int().optional(),
     })
     .passthrough(),
 });
@@ -606,6 +610,83 @@ export const tradeQueryOptionsReply = baseReply.extend({
 });
 export type TradeQueryOptionsResult = z.infer<typeof tradeQueryOptionsReply>['result'];
 
+// ---------------------------------------------------------------------------------------------------
+// Lookup actions (`pob-api/API/Lookup.lua`, C-37)
+
+const lookupStatSetSchema = z
+  .object({ index: z.number().int(), label: z.string(), lines: luaArray(z.string()) })
+  .passthrough();
+
+/** A gem: its stat sets' tooltip lines at one level and quality, quality lines, rules, requirements. */
+export const lookupGemSchema = z
+  .object({
+    kind: z.literal('gem'),
+    id: z.string(),
+    name: z.string(),
+    gemKind: z.enum(['active', 'support']),
+    gemType: optString,
+    tags: optString,
+    description: optString,
+    weapon: optString,
+    level: z.number().int(),
+    quality: z.number().int(),
+    statSets: luaArray(lookupStatSetSchema),
+    /** The gem's additional granted effects, in PoB's tooltip order. */
+    additional: luaArray(
+      z.object({ name: z.string(), support: z.boolean(), statSets: luaArray(lookupStatSetSchema) }).passthrough(),
+    ),
+    /** "At +20% Quality" lines. */
+    qualityLines: luaArray(z.string()),
+    /** Supports only: PoB's `requireSkillTypes` / `excludeSkillTypes`, as SkillType names. */
+    supports: luaArray(z.string()).optional(),
+    cannotSupport: luaArray(z.string()).optional(),
+    /** Per gem level 1..maxLevel: the level requirement, and the attribute requirements with a weight. */
+    requirements: z
+      .object({
+        maxLevel: z.number().int(),
+        levels: luaArray(z.number()),
+        str: luaArray(z.number()).optional(),
+        dex: luaArray(z.number()).optional(),
+        int: luaArray(z.number()).optional(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+/** A unique: its uniqueDB key, name, item type and `BuildRaw()` text. */
+export const lookupUniqueSchema = z
+  .object({ kind: z.literal('unique'), id: z.string(), name: z.string(), type: z.string(), raw: z.string() })
+  .passthrough();
+
+/** A mechanic hit: one matching line and where it came from. */
+export const lookupHitSchema = z
+  .object({
+    kind: z.enum(['gem', 'unique', 'passive', 'mod']),
+    id: z.string(),
+    name: z.string(),
+    source: z.string(),
+    line: z.string(),
+    nodeId: z.number().int().optional(),
+    ascendancy: optString,
+    table: optString,
+  })
+  .passthrough();
+
+export const lookupGameDataReply = baseReply.extend({
+  result: z
+    .object({
+      mode: z.enum(['gem', 'unique', 'mechanic']),
+      /** Every match before the cut. */
+      total: z.number().int(),
+      results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
+    })
+    .passthrough(),
+});
+export type LookupGameDataResult = z.infer<typeof lookupGameDataReply>['result'];
+export type LookupGem = z.infer<typeof lookupGemSchema>;
+export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
+export type LookupHit = z.infer<typeof lookupHitSchema>;
+
 /** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */
 export type TradeItemBehaviour = 'copy' | 'keep' | 'remove';
 /** A sort weight (C-13 param): a `data.powerStatList` stat, never a `*TakenHit` one (D-57). */
@@ -692,6 +773,7 @@ const definedSchemas = {
   trade_generate_query: tradeGenerateQueryReply,
   trade_evaluate_items: tradeEvaluateItemsReply,
   trade_query_options: tradeQueryOptionsReply,
+  lookup_game_data: lookupGameDataReply,
 } satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
@@ -772,7 +854,8 @@ export interface ActionParamsMap {
   set_gem_corruption: { state: GemCorruptionState; groupIndex?: number; gemIndex?: number };
   remove_skill: { groupIndex: number };
   remove_gem: { groupIndex: number; gemIndex: number };
-  search_nodes: { keyword: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };
+  /** C-43: `keyword` is optional when `ascendancy` (a name) is given; `nodeType` 'any' filters nothing. */
+  search_nodes: { keyword?: string; ascendancy?: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };
   list_gems: { type?: 'active' | 'support'; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean };
   get_classes: NoParams;
   list_support_candidates: { groupIndex: number; measure?: boolean };
@@ -788,6 +871,15 @@ export interface ActionParamsMap {
   trade_generate_query: TradeGenerateQueryParams;
   trade_evaluate_items: TradeEvaluateItemsParams;
   trade_query_options: { slot: string };
+  /** C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both. */
+  lookup_game_data: {
+    mode: 'gem' | 'unique' | 'mechanic';
+    query?: string;
+    level?: number;
+    quality?: number;
+    slot?: string;
+    maxResults?: number;
+  };
 }
 
 /** Request params (camelCase, C-2) for an action. */

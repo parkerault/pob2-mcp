@@ -722,30 +722,62 @@ describe('D-261: pricing.totals.unavailable counts the unavailable prices[] entr
 });
 
 describe('D-262: under --partial, stale V3/V4 counts are skipped when a claim-writing step ran after the last V3/V4 pass', () => {
-  /** A stopped copy of run-ok whose V3 and V4 counts no longer match the artifacts, and `after` logged after the last V4 lens. */
-  const staleRun = (after: string | null, status = 'stopped') => {
+  /**
+   * A stopped copy of run-ok whose V3 and V4 counts no longer match the artifacts, with `after` logged after
+   * the last V4 lens (concept c1, outcome done, unless `entry` says otherwise).
+   */
+  const staleRun = (after: string | null, status = 'stopped', entry: Json = {}) => {
     const dir = copyOf('run-ok');
     editJson(dir, 'reports/v3-c1-p1.json', (r) => (r.coverage.guide += 1));
     editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.data += 1));
     editJson(dir, 'run-log.json', (l) => {
       l.status = status;
-      if (after !== null) l.stages.push({ stage: after, concept: 'c1', attempt: 2, startedAt: null, endedAt: null, agents: 1, outcome: 'done', findings: 0 });
+      if (after !== null) l.stages.push({ stage: after, concept: 'c1', attempt: 2, startedAt: null, endedAt: null, agents: 1, outcome: 'done', findings: 0, ...entry });
     });
     return dir;
   };
+  const countsCompared = (stderr: string) => {
+    expect(stderr).toMatch(/\[claim-counts\] reports\/v3-c1-p1\.json: coverage\.guide is 13, but the checker counts 12/);
+    expect(stderr).toMatch(/\[claim-counts\] reports\/v4-sources-c1-p1\.json: coverage\.data is 5, but the checker counts 4/);
+  };
 
-  it.each(['D1', 'D2', 'W1', 'dossier-fix'])('passes a stopped run with %s after the last V4 pass', (step) => {
+  it.each(['D1', 'D2', 'W1', 'dossier-fix'])('passes a stopped run with %s of the guide\'s concept after the last V4 pass', (step) => {
     const r = runChecker(staleRun(step), '--partial');
     expect(r.stderr).toBe('');
     expect(r.code).toBe(0);
+  });
+
+  it("passes a stopped run whose later research round's R1b-assemble rewrote dossier.md after the last V4 pass (the reviewer's r1bAsm probe)", () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'reports/v3-c1-p1.json', (r) => (r.coverage.dossier += 1));
+    editJson(dir, 'run-log.json', (l) => {
+      l.status = 'stopped';
+      l.stages.push({ stage: 'R1b-assemble', concept: null, attempt: 1, startedAt: null, endedAt: null, agents: 1, outcome: 'done', findings: 0 });
+    });
+    const r = runChecker(dir, '--partial');
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it("still compares the counts after a claim-writing step that wrote nothing: a null-result D1 (the reviewer's nullD1 probe)", () => {
+    const r = runChecker(staleRun('D1', 'stopped', { outcome: 'null-result', findings: 1 }), '--partial');
+    expect(r.code).toBe(1);
+    countsCompared(r.stderr);
+  });
+
+  it("still compares the counts after another concept's D1 or W1: only the guide's concept's steps rewrite what its pass counted", () => {
+    for (const step of ['D1', 'W1']) {
+      const r = runChecker(staleRun(step, 'stopped', { concept: 'c2' }), '--partial');
+      expect(r.code).toBe(1);
+      countsCompared(r.stderr);
+    }
   });
 
   it('still compares the counts with no claim-writing step after the last pass (none, or revise-map, which writes nothing)', () => {
     for (const after of [null, 'revise-map']) {
       const r = runChecker(staleRun(after), '--partial');
       expect(r.code).toBe(1);
-      expect(r.stderr).toMatch(/\[claim-counts\] reports\/v3-c1-p1\.json: coverage\.guide is 13, but the checker counts 12/);
-      expect(r.stderr).toMatch(/\[claim-counts\] reports\/v4-sources-c1-p1\.json: coverage\.data is 5, but the checker counts 4/);
+      countsCompared(r.stderr);
     }
   });
 
@@ -761,5 +793,31 @@ describe('D-262: under --partial, stale V3/V4 counts are skipped when a claim-wr
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/\[claim-counts\] .*opened 1 sources in an offline run; offline V4 opens none/);
     expect(r.stderr).not.toMatch(/coverage\.data is 5/);
+  });
+});
+
+describe("checkpoints[]: a pre-supplied or default answer records its rule, which the guide's pick reason quotes", () => {
+  const withCheckpoint = (fixture: 'run-ok' | 'run-ok-online', edit: (c: Json) => void) => {
+    const dir = copyOf(fixture);
+    editJson(dir, 'run-log.json', (l) => edit(l.checkpoints[0]));
+    return dir;
+  };
+
+  it("run-ok's pre-supplied pick records first-viable, the test config's answer as written", () => {
+    const log = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'run-log.json'), 'utf8'));
+    expect(log.checkpoints[0]).toEqual(expect.objectContaining({ checkpoint: 1, answer: 'pick:c1', answeredBy: 'pre-supplied', rule: 'first-viable' }));
+  });
+
+  it.each(['pre-supplied', 'default'])('fails a %s answer with no rule', (by) => {
+    const dir = withCheckpoint('run-ok', (c) => {
+      c.answeredBy = by;
+      delete c.rule;
+    });
+    expect(failing(dir)).toMatch(new RegExp(`check-run: \\[run-log\\] run-log\\.json checkpoints\\[0\\]: is answered "${by}" with no rule`));
+  });
+
+  it("fails a user's answer that carries a rule", () => {
+    const dir = withCheckpoint('run-ok-online', (c) => (c.rule = 'first-viable'));
+    expect(failing(dir)).toMatch(/\[run-log\] run-log\.json checkpoints\[0\]: has a rule, but the user answered/);
   });
 });

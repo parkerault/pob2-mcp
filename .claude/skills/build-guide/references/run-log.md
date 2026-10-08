@@ -26,7 +26,7 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
 | `concepts[]` | `{id, title, round, status, attempts}`; `status` is `viable`, `failed` or `not-carried` |
 | `conceptsCompiled` | how many skeletons R1b compiled in the whole run: the sum over `rounds[]` |
 | `v4Passes[]` | `{concept, pass, lenses}`: `lenses` counts the **distinct** lenses that reported in that pass, so a lens re-run within its pass (an unusable report, or none) counts once |
-| `checkpoints[]` | `{checkpoint, visit, shown, answer, answeredBy, at}` |
+| `checkpoints[]` | `{checkpoint, visit, shown, answer, answeredBy, rule?, at}` |
 | `escalations[]` | `{stage, concept, attempts, findings, choice, guidance?}` |
 | `revisions[]` | `{round, requests: [{text, owner}]}` |
 | `pricing` | `{calls: [{at, stage, tool, item, outcome}], totals: {calls, ok, unavailable, wouldWait, lockedOut, rateLimited}}` |
@@ -64,7 +64,11 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
   checkpoint's visits from 1; `shown` is what was presented, in short; `answer` the effective answer
   (`pick:c2`, `more`, `stop`, `accept`, `revise:<text>`, `proceed`, `retry:<guidance>`, …);
   `answeredBy` is `user`, `pre-supplied` (the test config) or `default` (the test config had no answer
-  left, `offline-and-test.md`). Only an accepted test config gives `pre-supplied` or `default`.
+  left, `offline-and-test.md`). Only an accepted test config gives `pre-supplied` or `default`, and then
+  `rule` records how the answer was reached: the test config's answer exactly as written (`first-viable`,
+  `pick:c2`) for `pre-supplied`, or the default that applied (`no checkpoint1 answer left: stop`) for
+  `default`. A user's answer has no `rule`. W1 quotes the rule of the entry that picked the guide's
+  concept (`stages/W1.md`), and the run checker requires it.
 - **`escalations[]`**: `stage` is the gate step that escalated; `findings` lists the findings it showed,
   each **verbatim** from its verdict or report (a gate finding keeps `part`, `code` and its plan `stage`;
   a V3/V4 finding keeps its `id`), plus `gate`, the gate or report it failed:

@@ -92,4 +92,7 @@ the answer is `stop` (`answeredBy: "default"`), so the run ends `escalated`.
 
 When `checkpoint1` or `checkpoint2` answers run out, the run ends `stopped` (recorded as answer `stop`,
 `answeredBy: "default"`). Record a used answer with
-`answeredBy: "pre-supplied"` and the answer it resolved to (`first-viable` → `pick:c3`).
+`answeredBy: "pre-supplied"` and the answer it resolved to (`first-viable` → `pick:c3`). Either way the
+entry's `rule` keeps how the answer was reached: the test config's answer exactly as written
+(`"rule": "first-viable"`), or the default that applied (`"rule": "no checkpoint1 answer left: stop"`).
+The guide quotes the rule that picked its concept (`run-log.md`).

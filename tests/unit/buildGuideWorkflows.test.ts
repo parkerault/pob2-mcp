@@ -715,7 +715,7 @@ const d2Gate =
   (check: (call: AgentCall, nth: number) => unknown = () => d2Check(), final: (call: AgentCall) => unknown = finalOk) =>
   (call: AgentCall, nth: number) =>
     header(call).compile === 'final' ? final(call) : check(call, nth);
-const w1 = () => ({ file: 'guide.md', importCode: 'eNrt-fixture-code', gaps: [] });
+const w1 = () => ({ file: 'guide.md', gaps: [] });
 /** §7.4: the coverage counts each report carries (those of the passing fixture run `run-ok`). */
 const COVERAGE_OK: Record<string, Record<string, number>> = {
   V3: { plan: 12, dossier: 4, guide: 12 },
@@ -1158,14 +1158,21 @@ describe('AC-W10: the D2 gate, W1, FI-2 and FI-3', () => {
     expect(r.out.status).toBe('ready');
   });
 
-  it("D-260: the final compile's verdict carries no import code, even when the agent returns one; the record is its one home", async () => {
+  it("D-260: neither the final compile nor W1 returns the import code, and none reaches the result even when an agent returns one", async () => {
     const code = `eNrt${'A'.repeat(10000)}`;
-    const r = await design(happy({ 'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), importCode: code })) }));
+    const r = await design(
+      happy({
+        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), importCode: code })),
+        W1: () => ({ ...w1(), importCode: code }),
+      }),
+    );
     expect(r.out.status).toBe('ready');
     const final = r.calls.find((c) => header(c).compile === 'final')!;
-    // The schema asks for no import code, and the prompt says to return none.
-    expect(Object.keys((final.opts.schema as { properties: Record<string, unknown> }).properties)).not.toContain('importCode');
+    const writer = callsOf(r, 'W1')[0];
+    // Neither schema asks for an import code, and both prompts say to return none.
+    for (const c of [final, writer]) expect(Object.keys((c.opts.schema as { properties: Record<string, unknown> }).properties)).not.toContain('importCode');
     expect(final.prompt).toMatch(/Don't return the import code: compile-record\.json is its one home \(D-260\)/);
+    expect(writer.prompt).toMatch(/Copy the import code from compile-record\.json's importCode into the guide exactly, and don't return it \(D-260\)/);
     const d2 = r.out.gateVerdicts.find((g) => g.stage === 'D2-gate')!;
     expect(d2.finalCompile).toEqual({ compiled: true, errors: [], recordPath: 'compile-record.json', pobFile: `${BUILD_NAME}.xml` });
     // So the result the skill copies into reports/ holds no 10K-character code.
@@ -1558,7 +1565,7 @@ describe('AC-W12: one provenance agent and three verifier lenses after W1, blind
         'D1-gate': () => d1Gate({}, [{ ...finding('budget', 'near-ceiling'), message: SENTINEL }]),
         D2: () => ({ ...d2(), stages: [SENTINEL] }),
         'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), recordPath: SENTINEL, pobFile: `${SENTINEL}.xml` })),
-        W1: () => ({ ...w1(), importCode: SENTINEL, gaps: [SENTINEL] }),
+        W1: () => ({ ...w1(), gaps: [SENTINEL] }),
         // Pass 1 finds a guide claim, quoting it; W1 re-runs with it, and pass 2 is clean.
         'V4@sources': onPasses([vFinding('v4-sources-1', 'W1', { claim: QUOTED, evidence: QUOTED })]),
       }),

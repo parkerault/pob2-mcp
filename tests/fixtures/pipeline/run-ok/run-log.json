@@ -247,6 +247,7 @@
       "shown": "c1 Blood Hunt bleed burst (viable, TotalDPS 50,000); c2 Blood Hunt with Rolling Slam clear (viable, TotalDPS 50,000)",
       "answer": "pick:c1",
       "answeredBy": "pre-supplied",
+      "rule": "first-viable",
       "at": "2026-10-08T10:15:00Z"
     },
     {
@@ -255,6 +256,7 @@
       "shown": "guide.md; V3 pass, V4 pass (0 unresolved); gates pass",
       "answer": "accept",
       "answeredBy": "pre-supplied",
+      "rule": "accept",
       "at": "2026-10-08T11:06:00Z"
     }
   ],

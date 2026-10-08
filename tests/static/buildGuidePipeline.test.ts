@@ -1033,15 +1033,30 @@ describe('WU-47 fixes: what the skill runner does', () => {
 });
 
 describe('WU-47 fixes: the stage references\' general rules', () => {
-  it('v4-prose-8: W1 and the template take why the concept was picked from the run log, never the dossier, and invent none', () => {
+  it('v4-prose-8: W1 and the template say only what the run log\'s picking checkpoint records, quoting a pre-supplied rule; V4 checks it', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).not.toMatch(/the mechanics, why it won\)/);
     expect(w1).toMatch(/`checkpoints\[\]`: checkpoint 1's entry that picked this concept, which is the only record of why it was picked/);
-    expect(w1).toMatch(/\*\*Why this concept\*\*, in Summary, comes from `run-log\.json`'s checkpoint 1 entry .* A `pre-supplied` or `default` answer \(a test config\) picked it by rule: say so and give no reason\. Never invent one\./);
+    expect(w1).toMatch(/\*\*Why this concept\*\*, in Summary, says only what `run-log\.json`'s checkpoint 1 entry whose `answer` picked the concept .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     const why = template.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("from run-log.json's checkpoints[]");
+    expect(why).toContain("run-log.json's checkpoints[] entry that picked it");
+    expect(why).toContain("the test config picked it by the rule `<the entry's rule, exactly>`");
     expect(why).not.toMatch(/why it won|why each lost/);
+    // The run log records the rule, and V4's prose lens checks the sentence against it.
+    const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
+    expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, shown, answer, answeredBy, rule?, at}` |');
+    expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:c2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
+    const v4 = folded(readStage('V4'));
+    expect(v4).toMatch(/\*\*Why this concept\*\* \(Summary\): check it against `run-log\.json`'s last checkpoint 1 entry whose `answer` is `pick:<the guide's concept>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(owner `W1`\)/);
+  });
+
+  it('D-260: W1 returns no import code', () => {
+    const w1 = readStage('W1');
+    const returns = w1.slice(w1.indexOf('## Returns'), w1.indexOf('## Fault directives'));
+    expect(returns).toContain('{ "file": "guide.md", "gaps": [] }');
+    expect(returns).not.toMatch(/"importCode"/);
   });
 
   it('W1 keeps a hedge wherever it repeats a claim, and calls a mechanic reliable only with a source in the build', () => {

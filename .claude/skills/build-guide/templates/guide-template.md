@@ -35,7 +35,7 @@ a line marked [only when ...] only when it applies (and drop the marker), and de
 - **Pros:** <what it does well>.
 - **Cons:** <what it struggles with>.
 - **Difficulty:** <easy | medium | hard>, because <why>.
-- **Why this concept:** <how it was picked at checkpoint 1, from run-log.json's checkpoints[]: the user's answer, in their words when they gave any; for a pre-supplied or default answer, the rule that picked it, and no reason>. The dossier (`dossier.md`) keeps the other concepts and their results.
+- **Why this concept:** <only what run-log.json's checkpoints[] entry that picked it records: "the user picked it at checkpoint 1"; or, for a pre-supplied or default answer, "the test config picked it by the rule `<the entry's rule, exactly>`". No other reason>. The dossier (`dossier.md`) keeps the other concepts and their results.
 
 ## How it works
 

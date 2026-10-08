@@ -252,6 +252,7 @@
       "shown": "c1 Blood Hunt bleed burst (viable, TotalDPS 50,000, prices unavailable); c2 Blood Hunt with Rolling Slam clear (viable)",
       "answer": "pick:c1",
       "answeredBy": "pre-supplied",
+      "rule": "pick:c1",
       "at": "2026-10-08T10:15:00Z"
     },
     {
@@ -260,6 +261,7 @@
       "shown": "D1-gate for c1 failed V1 on 3 attempts: stage b spends 108 points at level 1",
       "answer": "stop",
       "answeredBy": "default",
+      "rule": "no escalation answer left: stop",
       "at": "2026-10-08T10:42:00Z"
     }
   ],

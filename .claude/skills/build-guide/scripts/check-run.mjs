@@ -8,8 +8,8 @@
 // recomputes the survival floor, the budget and the rolled-skill gate from the records, and counts claims
 // itself, and wherever its result differs from the agents' verdict it fails, naming the part and both
 // values. `--partial` accepts a run that ended before `completed` and checks what the run produced; it
-// skips the V3/V4 claim-count comparisons when a step that writes claims ran after the last V3/V4 pass,
-// since those reports describe earlier artifacts (D-262).
+// skips the V3/V4 claim-count comparisons when a step that wrote claims ran after the guide concept's last
+// V3/V4 pass, since those reports describe earlier artifacts (D-262).
 //
 // Exit 0: every check passed (one line on stdout). Exit 1: each violation on stderr as
 // `check-run: [<rule>] <message>`. Exit 2: usage error.
@@ -86,8 +86,14 @@ const HIT_OPTION = /^enemy(Physical|Fire|Cold|Lightning|Chaos)Damage$/;
  * to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
  */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
-/** Steps that write the claims V3 and V4 count (plan.json, dossier.md, guide.md): D-262's stale-report test. */
-const CLAIM_WRITERS = ['D1', 'D2', 'W1', 'dossier-fix'];
+/**
+ * D-262's stale-report test: the steps that write the claims V3 and V4 count, in plan.json and guide.md (for
+ * one concept) or in dossier.md (for every concept: a later research round's assembly appends to it), and
+ * the outcomes of an attempt that wrote its artifact (a `null-result` wrote nothing).
+ */
+const CONCEPT_CLAIM_WRITERS = ['D1', 'D2', 'W1'];
+const DOSSIER_CLAIM_WRITERS = ['dossier-fix', 'R1b-assemble'];
+const WROTE = ['done', 'infeasible'];
 /** Findings that report on a passing part (../references/gates.md): never failures. */
 const INFO_CODES = ['chaos-exception', 'near-ceiling'];
 
@@ -685,11 +691,15 @@ export function checkRun(runFolder, { partial = false } = {}) {
         fail('unresolved', `${r.file}: finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is unresolved in the final pass, and the user accepted no such finding (D-179)`);
       }
     }
-    // D-262: in a run that ended early, a step that writes claims (a routed D1, D2, W1 or dossier-fix) may
-    // have run after the last V3/V4 pass. Those reports counted the earlier artifacts, so under --partial
-    // their counts aren't compared with the current ones; the reports' own consistency still is.
-    const lastVerify = stages.reduce((at, s, i) => (['V3', 'V4'].includes(s.stage) ? i : at), -1);
-    const stale = partial && !completed && lastVerify >= 0 && stages.slice(lastVerify + 1).some((s) => CLAIM_WRITERS.includes(s.stage));
+    // D-262: in a run that ended early, a step that writes claims may have run after the last V3/V4 pass of
+    // the guide's concept: a routed D1, D2 or W1 of that concept, or a dossier-fix or a later round's
+    // R1b-assemble, which rewrite dossier.md for every concept. Those reports counted the earlier
+    // artifacts, so under --partial their counts aren't compared with the current ones; the reports' own
+    // consistency still is. Only an attempt that wrote its artifact counts: a null-result wrote nothing.
+    const lastVerify = stages.reduce((at, s, i) => (['V3', 'V4'].includes(s.stage) && s.concept === guideConcept ? i : at), -1);
+    const rewrote = (s) =>
+      WROTE.includes(s.outcome) && (DOSSIER_CLAIM_WRITERS.includes(s.stage) || (CONCEPT_CLAIM_WRITERS.includes(s.stage) && s.concept === guideConcept));
+    const stale = partial && !completed && lastVerify >= 0 && stages.slice(lastVerify + 1).some(rewrote);
     const counts = stale ? null : countClaims(claims, isObj(plan) ? plan : {});
     if (final3 && counts) checkV3Counts(final3, counts, fail);
     for (const r of final4.filter(Boolean)) checkV4Counts(r, counts, mode, fail);
@@ -876,6 +886,12 @@ function checkRunLog(log, fail) {
       bad(at, `answeredBy is ${show(c.answeredBy)} without an accepted test config; outside offline test mode the user answers (A-28, D-157)`);
     }
     if (typeof c.shown !== 'string' || typeof c.answer !== 'string' || !isTime(c.at)) bad(at, 'has shown, answer and an ISO time at');
+    // A pre-supplied or default answer records the rule behind it (the test config's answer as written, or
+    // the default that applied), so the guide can say how its concept was picked; a user's answer has none.
+    if (['pre-supplied', 'default'].includes(c.answeredBy) && !(typeof c.rule === 'string' && c.rule.trim() !== '')) {
+      bad(at, `is answered ${show(c.answeredBy)} with no rule; it records the test config's answer as written (first-viable) or the default that applied`);
+    }
+    if (c.answeredBy === 'user' && c.rule !== undefined && c.rule !== null) bad(at, "has a rule, but the user answered; only a pre-supplied or default answer has one");
   });
   list('escalations').forEach((e, i) => {
     if (!isObj(e) || typeof e.stage !== 'string' || !Array.isArray(e.findings) || !CHOICES.includes(e.choice)) {

@@ -404,7 +404,6 @@ const W1_SCHEMA = {
   type: 'object',
   properties: {
     file: { type: 'string' },
-    importCode: { type: 'string' },
     gaps: { type: 'array', items: { type: 'string' } },
   },
   required: ['file', 'gaps'],
@@ -652,7 +651,7 @@ function w1Prompt(attempt, findings, ctx) {
   const lines = [
     `W1 for concept ${conceptId}: write guide.md from plan.json, the final compile-record.json (its ledger values included), dossier.md and the guide template (${TEMPLATE}).`,
     '',
-    '- Write only guide.md (the header\'s writes), and no other file; fix it in place with Edit (D-257). Copy the import code from compile-record.json\'s importCode exactly.',
+    '- Write only guide.md (the header\'s writes), and no other file; fix it in place with Edit (D-257). Copy the import code from compile-record.json\'s importCode into the guide exactly, and don\'t return it (D-260).',
   ]
   lines.push(
     leagueUnverified

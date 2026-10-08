@@ -124,9 +124,11 @@ Hunt → `titan-blood-hunt`).
   `reports/` unchanged, then the run log.
 - **FR-W7 (run checker).** `scripts/check-run.mjs <runFolder> [--partial]` uses Node built-ins only
   (AC-B7). It validates the run folder against §2, §6, §7 and §8; `--partial` accepts a run that ended
-  before `completed`. Under `--partial`, when a step that writes claims (D1, D2, W1 or `dossier-fix`) ran
-  after the last V3/V4 pass, the claim-count comparisons below are skipped for that pass's reports, which
-  counted the earlier artifacts (D-262).
+  before `completed`. Under `--partial`, the claim-count comparisons below are skipped for the reports of
+  the guide concept's last V3/V4 pass when, after that pass, a step that writes claims wrote its artifact
+  (outcome `done` or `infeasible`, not `null-result`): D1, D2 or W1 of that concept, or `dossier-fix` or
+  a later round's `R1b-assemble`, which rewrite `dossier.md` for every concept. Those reports counted the
+  earlier artifacts (D-262).
   - **It recomputes, and doesn't trust self-reports.** The checker recomputes the following from the
     records. Wherever its result differs from the agents' verdict, it exits non-zero, naming the part
     and both values. The agents' verdict means the last D1 gate report of the concept the guide is for,

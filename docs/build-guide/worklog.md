@@ -509,3 +509,16 @@ mechanics, not guide quality; the live run (WU-48) uses the user's default model
 - **Lane P (pipeline):** the triage's L1 (checker), L2 (stage references and SKILL.md) and L3 (compact
   design result) together, in `bg-47p`.
 - **Lane S (server):** L4 (the lookup tool) and L5 (the V1 tier floor), in `bg-47s`.
+
+### D-263 (the user's ruling, 2026-10-08): no headless sessions
+
+The tool is meant for interactive use, so a headless `claude -p` run is not a real-world test, and we
+don't fix headless-only issues.
+
+- **Withdrawn:** F2, the env var for the 10-minute background kill. The handoff's headless exception is
+  replaced by "never start one".
+- **WU-47's runs:** interactive sessions the user starts in the isolated environment, with the strict
+  MCP config and temp dirs. The kept evidence is the same: transcripts and journals.
+- **Kept, because they happen interactively too:** F3 (`cd` breaks workflow lookup), F4 (truncated
+  workflow results) and F5 (fallback stamping).
+- **Lane P** was told to amend WU-47 step 3 in `03-pipeline.md`.

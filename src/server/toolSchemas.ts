@@ -699,7 +699,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "suggest_supports",
-      description: "Rank the support gems that could go in a socket group by their measured effect. The candidates are every non-legacy support gem PoB2 says can support the group's active skills (PoB's own compatibility check) that isn't already in the group. Each one is measured on the requested group (made the main skill for the measurement) the way PoB2's gem selector sorts gems: added at the default gem level and quality, recalculated, and removed again. Results are ordered by the change in the build's gem-sort stat (CombinedDPS unless the build sorts gems by another stat), largest first. The loaded build is left as it was.",
+      description: "Rank the support gems that could go in a socket group by their measured effect. The candidates are every non-legacy support gem PoB2 says can support the group's active skills (PoB's own compatibility check) that isn't already in the group. Each one is measured on the requested group (made the main skill for the measurement) the way PoB2's gem selector sorts gems: added at the default gem level and quality, recalculated, and removed again. Results are ordered by the change in the build's gem-sort stat (CombinedDPS unless the build sorts gems by another stat), largest first. After the ranking, it lists what PoB can't fully measure among the whole pool: a candidate whose measurement failed (with the error), or one with a skill line PoB's own gem tooltip marks unsupported (check_model_coverage's 'possibly unmodelled'). The loaded build is left as it was.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1530,7 +1530,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_passive_upgrades",
-      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points.",
+      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every notable it measured: a notable with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1542,6 +1542,10 @@ export function getBuildGoalsToolSchemas(): any[] {
           max_results: {
             type: "number",
             description: "Maximum number of upgrade suggestions to return (default: 10)",
+          },
+          include_ascendancy: {
+            type: "boolean",
+            description: "Also measure every unallocated, reachable notable of the build's own ascendancy, priced in ascendancy points, and rank them in their own section. A notable that needs more ascendancy points than the build has left is marked over budget, not hidden (default: false).",
           },
         },
       },

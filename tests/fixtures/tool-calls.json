@@ -72,6 +72,9 @@
   { "tool": "export_build_summary", "args": {}, "expect": "ok" },
   { "tool": "get_build_issues", "args": {}, "expect": "ok" },
   { "tool": "get_passive_upgrades", "args": { "focus": "both", "max_results": 3 }, "expect": "ok" },
+  { "tool": "get_passive_upgrades", "args": { "include_ascendancy": true }, "expect": "ok" },
+  { "tool": "get_passive_upgrades", "args": { "include_ascendancy": "yes" }, "expect": "error",
+    "reason": "include_ascendancy is a boolean (C-47)" },
 
   { "tool": "select_spec", "args": { "index": 2 }, "expect": "ok",
     "setup": [{ "tool": "create_spec", "args": { "title": "Hygiene spec", "copyFrom": 1, "activate": false } }] },

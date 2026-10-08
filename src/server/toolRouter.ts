@@ -495,7 +495,12 @@ async function dispatch(
 
     case "suggest_supports":
       return await handleSuggestSupportsPoe2(
-        luaContext,
+        {
+          getLuaClient: luaContext.getLuaClient,
+          ensureLuaClient: luaContext.ensureLuaClient,
+          // C-47: C-38's gem rule needs the server's scan of the PoB source the engine runs.
+          sourceScan: () => pobSourceScan(resolvePobSrc(deps.env)),
+        },
         (args?.group_index ?? args?.groupIndex) as number,
         (args?.count) as number | undefined
       );
@@ -735,10 +740,16 @@ async function dispatch(
       const upgradesContext = {
         getLuaClient: deps.getLuaClient,
         ensureLuaClient: deps.ensureLuaClient,
+        // C-47: C-38's line statuses need the server's scan of the PoB source the engine runs.
+        sourceScan: () => pobSourceScan(resolvePobSrc(deps.env)),
       };
       const focus = (args?.focus as 'dps' | 'defence' | 'both') || 'both';
       const maxResults = (args?.max_results as number) || 10;
-      return await handleGetPassiveUpgrades(upgradesContext, focus, maxResults);
+      const includeAscendancy = args?.include_ascendancy;
+      if (includeAscendancy != null && typeof includeAscendancy !== 'boolean') {
+        throw new Error("include_ascendancy must be true or false");
+      }
+      return await handleGetPassiveUpgrades(upgradesContext, focus, maxResults, includeAscendancy === true);
     }
 
     case "plan_leveling":

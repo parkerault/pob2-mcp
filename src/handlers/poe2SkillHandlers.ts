@@ -1,6 +1,12 @@
 import type { LuaHandlerContext } from "./luaHandlers.js";
 import { wrapHandler } from "../utils/errorHandling.js";
-import { Poe2SkillService } from "../services/poe2SkillService.js";
+import {
+  POSSIBLY_UNMODELLED,
+  Poe2SkillService,
+  possiblyUnmodelledGems,
+  type CoverageScan,
+  type MeasuredSupport,
+} from "../services/poe2SkillService.js";
 
 const service = new Poe2SkillService();
 
@@ -70,7 +76,44 @@ export async function handleAnalyzeSkillsPoe2(context: LuaHandlerContext) {
   });
 }
 
-export async function handleSuggestSupportsPoe2(context: LuaHandlerContext, groupIndex: number, count?: number) {
+/** `suggest_supports`' context: the engine, and the server's scan of PoB's source for C-38's gem rule. */
+export interface SuggestSupportsContext extends Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient"> {
+  /** The server's scan of PoB's source (D-226, D-243): memoized once per server process. */
+  sourceScan: () => Promise<CoverageScan>;
+}
+
+/**
+ * C-47's "What PoB can't fully measure" for `suggest_supports`: every pool candidate whose measurement
+ * returned no value (with its error), and every pool candidate with a skill line C-38's gem rule marks
+ * possibly unmodelled (PoB's own gem tooltip marks it unsupported), each named once, in name order.
+ */
+function cantMeasureSection(unmeasured: MeasuredSupport[], unmodelled: Map<string, string[]>, poolNames: string[]): string[] {
+  const failed = new Map(unmeasured.map((m) => [m.name, m.error]));
+  const lines: string[] = ["", "## What PoB can't fully measure", ""];
+  const named = poolNames.filter((name, i) => poolNames.indexOf(name) === i && (failed.has(name) || unmodelled.has(name)));
+  if (named.length === 0) {
+    lines.push("Nothing: every candidate was measured, and PoB models every skill line of each one.");
+    return lines;
+  }
+  lines.push(
+    "These candidates may be worth more or less than their measured change: PoB couldn't measure them, or PoB's " +
+      `own gem tooltip marks a skill line of theirs unsupported (${POSSIBLY_UNMODELLED}), so PoB may model that ` +
+      "line only through a config option, or not at all:",
+  );
+  for (const name of named) {
+    const reasons: string[] = [];
+    if (failed.has(name)) {
+      const error = failed.get(name);
+      reasons.push(`could not be measured${error ? ` (${error})` : ""}`);
+    }
+    const unsupported = unmodelled.get(name);
+    if (unsupported) reasons.push(`${POSSIBLY_UNMODELLED}: ${unsupported.map((l) => `"${l}"`).join("; ")}`);
+    lines.push(`- **${name}**: ${reasons.join("; ")}`);
+  }
+  return lines;
+}
+
+export async function handleSuggestSupportsPoe2(context: SuggestSupportsContext, groupIndex: number, count?: number) {
   return wrapHandler("suggest supports (PoE2)", async () => {
     await context.ensureLuaClient();
     const luaClient = context.getLuaClient();
@@ -119,6 +162,12 @@ export async function handleSuggestSupportsPoe2(context: LuaHandlerContext, grou
       lines.push(`${i + 1}. **${m.name}** — ${signed(m.delta)} ${res.stat}${pct} → ${fmt(m.value)}`);
       if (m.tags) lines.push(`    tags: ${m.tags}`);
     });
+
+    // C-47: the pool's unmeasurable candidates, in the same tool call (one session lock).
+    const scan = await context.sourceScan();
+    const unmodelled = await possiblyUnmodelledGems(luaClient, res.poolNames, scan);
+    lines.push(...cantMeasureSection(res.unmeasured, unmodelled, res.poolNames));
+
     lines.push("", "The loaded build is unchanged: each candidate was added for the measurement only.");
     return { content: [{ type: "text" as const, text: lines.join("\n") }] };
   });

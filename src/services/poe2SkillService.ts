@@ -9,7 +9,7 @@
  * The tag helpers below (`effectiveTagSet`, `rankSupportsForSkillTags`, `resolveActiveSkillTags`) serve
  * the leveling planner, which works from a skill *name* that need not be socketed in the build.
  */
-import type { SkillsResult, SupportCandidate, SupportCandidatesResult } from "../engine/schemas.js";
+import type { ActionParams, CheckCoverageResult, SkillsResult, SupportCandidate, SupportCandidatesResult } from "../engine/schemas.js";
 
 /** The slice of the Lua bridge the skill analysis needs. */
 export interface SkillEngine {
@@ -214,6 +214,57 @@ export interface SupportSuggestions {
   poolSize: number;
   /** The best `count` candidates, by delta descending, ties by name. */
   ranked: MeasuredSupport[];
+  /** Every candidate in the pool, by name (the engine's order). */
+  poolNames: string[];
+  /** Every candidate in the pool whose measurement returned no value (C-47), by name. */
+  unmeasured: MeasuredSupport[];
+}
+
+/** C-38's gem status for a skill line PoB's own gem tooltip marks unsupported (pin §B4). */
+export const POSSIBLY_UNMODELLED = "possibly unmodelled; check config";
+
+/** The slice of the Lua bridge C-38's coverage check needs (`check_coverage`, `API/Coverage.lua`). */
+export interface CoverageEngine {
+  checkCoverage(params: ActionParams<"check_coverage">): Promise<CheckCoverageResult>;
+}
+
+/** The server's scan of PoB's source (D-226, D-243) that every `check_coverage` request carries. */
+export interface CoverageScan {
+  names: Set<string>;
+  templates: string[];
+}
+
+/**
+ * C-38's gem rule over a list of gems, in one `check_coverage` request: each gem's described lines that
+ * PoB's own gem tooltip marks unsupported (`possibly unmodelled; check config`), by gem name. Gems with
+ * no such line are absent. Each gem is checked as `check_model_coverage {gems:[name]}` checks it: at its
+ * level and quality in the build, else at the default level.
+ */
+export async function possiblyUnmodelledGems(
+  engine: CoverageEngine,
+  names: readonly string[],
+  scan: CoverageScan,
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (names.length === 0) return out;
+  const result = await engine.checkCoverage({
+    gems: [...names],
+    sourceNames: [...scan.names],
+    sourceTemplates: scan.templates,
+  });
+  // A gem line's source is "Gem <name> / <stat set label>"; the longest matching name wins.
+  const byPrefix = names
+    .map((name) => ({ name, prefix: `Gem ${name} / ` }))
+    .sort((a, b) => b.prefix.length - a.prefix.length);
+  for (const entry of result.entries) {
+    if (entry.kind !== "gem" || entry.status !== POSSIBLY_UNMODELLED) continue;
+    const gem = byPrefix.find((g) => entry.source.startsWith(g.prefix));
+    if (!gem) continue;
+    const lines = out.get(gem.name) ?? [];
+    if (!lines.includes(entry.line)) lines.push(entry.line);
+    out.set(gem.name, lines);
+  }
+  return out;
 }
 
 /** Delta descending (a failed measurement last), ties by name. */
@@ -306,6 +357,8 @@ export class Poe2SkillService {
       delta: c.delta ?? null,
       ...(c.error ? { error: c.error } : {}),
     }));
+    const poolNames = measured.map((m) => m.name);
+    const unmeasured = measured.filter((m) => m.delta === null || m.value === null);
     measured.sort(compareMeasured);
     return {
       groupIndex: pool.groupIndex,
@@ -315,6 +368,8 @@ export class Poe2SkillService {
       baseline: pool.measured?.baseline ?? null,
       poolSize: measured.length,
       ranked: measured.slice(0, count),
+      poolNames,
+      unmeasured,
     };
   }
 }

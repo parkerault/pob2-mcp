@@ -1,17 +1,19 @@
 /**
  * `manage_sets` (C-39): the loaded build's item, skill and config sets, and its loadouts, through the
- * engine's `manage_sets` action (`pob-api/API/Sets.lua`). A `mutate` tool.
+ * engine's `manage_sets` action (`pob-api/API/Sets.lua`).
  *
  * - item, skill and config sets: `list`, `create` (the next id, `title`), `copy` (set `id` as a new set,
- *   titled `title` or PoB's "<title> (Copy)"), `rename` (set `id` to `title`) and `select` (set `id`);
- *   create and copy don't activate the new set;
+ *   titled `title`, or the source's title without its {id} tag plus " (Copy)", D-245), `rename` (set `id`
+ *   to `title`) and `select` (set `id`); create and copy don't activate the new set;
  * - loadouts: `list` (PoB's synced loadout menu) and `select` (the loadout named `title`), nothing else;
  * - `use_second_weapon_set` (item sets only) is written on the set the action targets: the new set, or `id`.
  *
+ * `list` runs as a `read` (D-244: the router's per-call kind rule); every other action as a `mutate`.
  * There is no delete (R-29). Every call shows the type's list: ids, titles and the active one; item sets
  * also their weapon set, skill sets also their group at the build-wide main socket group index, or none.
  * Argument shapes and combinations are checked here; the set ids, the loadout names and PoB's {id} title
- * rule are checked by Lua, which changes nothing when a check fails.
+ * rule (at most one tag, at the end, of non-empty ids; D-245) are checked by Lua, which changes nothing when a
+ * check fails.
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
 import {

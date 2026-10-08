@@ -7,8 +7,8 @@
 --               There is no delete: a new set's id is #sets+1 (PoB's own New...Set and Copy...Set), which
 --               could collide with a set after a delete (R-29).
 --     id        the source set for 'copy'; the target for 'rename' and 'select'
---     title     the new set's title ('create'; 'copy', where it defaults to PoB's "<title> (Copy)"), the
---               new title ('rename'), or the loadout's name (a loadout 'select')
+--     title     the new set's title ('create'; 'copy', where it defaults to the source's title without its
+--               {...} tag plus " (Copy)"), the new title ('rename'), or the loadout's name (a loadout 'select')
 --     useSecondWeaponSet  item sets only: written on the set the action targets (the new set, or `id`)
 --   -> {setType, activeId?, sets[], targetId?, mainSocketGroup?, loadouts?, targetName?}
 --      sets[]     {id, title, active}; an item set adds `useSecondWeaponSet`; a skill set adds `mainGroup`
@@ -16,9 +16,11 @@
 --      loadouts[] {name, active, specId?, itemSetId?, skillSetId?, configSetId?} (loadout type only)
 --
 -- create runs New...Set(#sets+1, title) and copy runs Copy...Set(id, title); neither activates the set.
+-- A skill set copy also unshares each gem's stat-set choice tables, which PoB's copy leaves shared.
 -- rename runs Rename...Set; select runs SetActive...Set. Every action except list rebuilds the outputs.
--- Each {...} group in a title must match PoB's loadout link pattern, [A-Za-z0-9,]+ with no spaces
--- (vendor Modules/Build.lua:641,669); otherwise the call fails and nothing changes.
+-- A title holds at most one {...} tag, at its end, of comma-separated non-empty ids of [A-Za-z0-9]
+-- ({1}, {1,2}): PoB links a set by its title's first tag only (vendor Modules/Build.lua:641,669; D-245).
+-- Any other title fails the call and nothing changes.
 --
 -- Loadouts: build:SyncLoadouts() runs first; the list is build.controls.buildLoadouts.list without its
 -- ^7^7 menu rows. A select looks the name up in that list first (PoB's GetLoadoutByName indexes its link
@@ -79,14 +81,46 @@ local function rebuild()
   BuildOps.get_main_output()
 end
 
--- PoB links a set to a loadout through the {...} in its title, read with %{([%w,]+)%} (vendor
--- Modules/Build.lua:641,669): only letters, digits and commas, no spaces. A group that breaks the rule
--- would silently link nothing, so it is refused.
+-- PoB links a set to loadouts through the first {...} in its title, read with %{([%w,]+)%} (vendor
+-- Modules/Build.lua:641,669) and split at its commas. D-245: a title holds at most one tag, at its end, of
+-- comma-separated non-empty ids of letters and digits. Anything else would link nothing, or not what it
+-- says ({1, 2}, {,}, {1,}, "X {1} Y {2}"), so it is refused.
+local TITLE_RULE = 'a title may end with one {...} tag of comma-separated loadout ids of letters and digits '
+  .. '(the tag holds only [A-Za-z0-9,]: no spaces, no empty id, as in {1} or {1,2}), the tag PoB links sets '
+  .. 'to loadouts by'
+
 function M.checkTitle(title)
-  for group in title:gmatch('{([^{}]*)}') do
-    if not group:match('^[A-Za-z0-9,]+$') then
-      fail(('title "%s": each {...} group may hold only [A-Za-z0-9,] (letters, digits and commas, no spaces), '
-        .. 'the pattern PoB links sets to loadouts by; "{%s}" breaks it'):format(title, group))
+  if not title:find('[{}]') then return end
+  local tag = title:match('^[^{}]*{([^{}]*)}%s*$')
+  local problem
+  if not tag then
+    problem = 'its braces are not one {...} tag at the end'
+  elseif not tag:match('^[A-Za-z0-9,]*$') or (',' .. tag .. ','):find(',,', 1, true) then
+    problem = '"{' .. tag .. '}" breaks it'
+  end
+  if problem then fail(('title "%s": %s; %s'):format(title, TITLE_RULE, problem)) end
+end
+
+-- An untitled copy's title: the source's title without its {...} tag, plus " (Copy)" (D-245). A copy that
+-- kept the tag would be a later set with the same link, which PoB lets take over the source's loadouts.
+local function copyTitle(set)
+  local base = titleOf(set):gsub('{[^{}]*}', ''):gsub('[{}]', ''):match('^%s*(.-)%s*$')
+  if base == '' then base = 'Default' end
+  return base .. ' (Copy)'
+end
+
+-- PoB's CopySkillSet copies each gem shallowly (vendor Classes/SkillsTab.lua:1503-1520), so a gem's
+-- per-instance choice tables (its stat set per granted effect, PoB2's skill part, and the minion ones)
+-- would stay shared with the source set's gem. Each is copied, so a choice in one set never changes the
+-- other.
+local GEM_TABLES = { 'statSet', 'statSetCalcs', 'skillMinionSkillStatSetIndexLookup', 'skillMinionSkillStatSetIndexLookupCalcs' }
+
+local function unshareGems(skillSet)
+  for _, group in ipairs(skillSet.socketGroupList or {}) do
+    for _, gem in ipairs(group.gemList or {}) do
+      for _, field in ipairs(GEM_TABLES) do
+        if type(gem[field]) == 'table' then gem[field] = copyTable(gem[field]) end
+      end
     end
   end
 end
@@ -259,12 +293,12 @@ function M.manage_sets(params)
     local sourceId = needId(params, tab, kind, 'copy')
     local title
     if params.title == nil then
-      title = titleOf(tab[kind.sets][sourceId]) .. ' (Copy)'
-      M.checkTitle(title)
+      title = copyTitle(tab[kind.sets][sourceId])
     else
       title = needTitle(params, 'copy')
     end
     local newSet = tab[kind.copy](tab, sourceId, title)
+    if setType == 'skill' then unshareGems(newSet) end
     targetId = newSet.id
   elseif action == 'rename' then
     targetId = needId(params, tab, kind, 'rename')

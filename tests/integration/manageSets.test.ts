@@ -9,8 +9,11 @@
  *
  * - AC-K23 (basics), AC-K24 (per-set authoring), AC-K25 (titles), AC-K26 (second weapon set), AC-K27
  *   (loadouts), AC-K28 (main-skill index), AC-K29 (persistence) and AC-K30 (auto-level) run here.
- * - AC-K30's contract case is in `contract.test.ts`; the mutate kind (AC-B3) is the generic engine-kind
- *   check over the `manage_sets` samples in `engineKinds.test.ts`.
+ * - D-244 (list is a read: no revision bump, no unsaved state) and D-245 (one {id} tag at the end of a
+ *   title; an untitled copy drops the source's tag) run here too; AC-K24 includes the per-set stat-set
+ *   choice (`set_main_skill`'s `skill_part`) that PoB's shallow skill-set copy would share.
+ * - AC-K30's contract case is in `contract.test.ts`; the engine kinds (AC-B3: list samples are reads, the
+ *   rest mutates) are the generic engine-kind check over the `manage_sets` samples in `engineKinds.test.ts`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -19,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { canonicalize, killEngine, startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { TOOL_META } from '../../src/server/toolMeta';
+import { engineKindFor } from '../../src/server/toolRouter';
 
 const ENGINE_TIMEOUT = 240_000;
 const REPO = path.resolve(__dirname, '..', '..');
@@ -232,6 +236,8 @@ engineDescribe('L1 sets: manage_sets and the auto-level flag on the golden build
       for (const type of SET_TYPES) {
         const listed = listedSets(await sets({ set_type: type, action: 'copy', id: 1 }));
         expect(listed.map((s) => s.id)).toEqual([1, 2]);
+        // Untitled, the copy is "<source title> (Copy)"; the golden sets have no {id} tag.
+        expect(listed[1].title).toBe('Default (Copy)');
       }
       let d = await doc();
       // Set 2 is not empty: item set 2 holds item 5 in Charm 1, not active; skill set 2 the golden groups.
@@ -273,6 +279,68 @@ engineDescribe('L1 sets: manage_sets and the auto-level flag on the golden build
       expect(set2Groups).toHaveLength(groups);
       expect((set2Groups[0].Gem as Attrs[]).length).toBe(gemsBefore + 1);
       expect((set2Groups[0].Gem as Attrs[]).map((g) => g.nameSpec)).toContain('Fireball');
+
+      // set_main_skill's skill_part (PoB2's per-gem stat set, saved as <StatSetIndex>) on set 2 leaves set 1's
+      // StatSetIndex unchanged: the copy doesn't share the gem's stat-set table with set 1.
+      const gasIndex = (setById(d, 'skill', 2).Skill as XmlSet[]).findIndex((g) =>
+        ((g.Gem ?? []) as Attrs[]).some((gem) => gem.nameSpec === 'Gas Grenade'),
+      ) + 1;
+      expect(gasIndex).toBeGreaterThan(0);
+      const statSets = (set: XmlSet) =>
+        (((set.Skill as XmlSet[])[gasIndex - 1].Gem as XmlSet[]).find((gem) => gem.nameSpec === 'Gas Grenade')!.StatSetIndex ?? []) as Attrs[];
+      const set1StatSets = statSets(setById(d, 'skill', 1));
+      expect(set1StatSets.map((x) => x.index)).not.toContain('2');
+      const part = await f.call('set_main_skill', { group_index: gasIndex, skill_part: 2 });
+      expect(part.isError).toBe(false);
+      d = await doc();
+      expect(statSets(setById(d, 'skill', 2)).map((x) => x.index)).toEqual(['2']);
+      expect(statSets(setById(d, 'skill', 1))).toEqual(set1StatSets);
+      expect(content('skill', setById(d, 'skill', 1))).toEqual(set1.skill);
+      // And PoB's own tables: set 2's gem has its own stat-set table.
+      expect(
+        await luaQuery<boolean>(
+          `local function gem(set) for _, g in ipairs(build.skillsTab.skillSets[set].socketGroupList[${gasIndex}].gemList) do if g.nameSpec == 'Gas Grenade' then return g end end end; return gem(1).statSet ~= gem(2).statSet`,
+        ),
+      ).toBe(true);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-245: an untitled copy of "S {1}" is "S (Copy)", so loadout 1 keeps the source set',
+    async () => {
+      await freshGolden();
+      expect((await f.call('create_spec', { title: 'Act 1 {1}', activate: false })).isError).toBe(false);
+      await sets({ set_type: 'item', action: 'create', title: 'S {1}' });
+      const before = listedLoadouts(await sets({ set_type: 'loadout', action: 'list' })).find((l) => l.name === 'Act 1 {1}');
+      expect(before?.detail).toBe('tree spec 2, item set 2, skill set 1, config set 1');
+
+      const copied = listedSets(await sets({ set_type: 'item', action: 'copy', id: 2 }));
+      expect(copied.find((s) => s.id === 3)?.title).toBe('S (Copy)');
+      expect(setById(await doc(), 'item', 3).title).toBe('S (Copy)');
+      const after = listedLoadouts(await sets({ set_type: 'loadout', action: 'list' })).find((l) => l.name === 'Act 1 {1}');
+      expect(after?.detail).toBe('tree spec 2, item set 2, skill set 1, config set 1');
+      // PoB's own lookup agrees.
+      expect(await luaQuery<number>("build:SyncLoadouts(); return build:GetLoadoutByName('Act 1 {1}').itemSetId")).toBe(2);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-244: list runs as a read: revision and the unsaved state are unchanged; a create is a mutate',
+    async () => {
+      await freshGolden();
+      const revision = f.session.revision;
+      expect(f.session.isDirty()).toBe(false);
+      const before = canonicalize(await exportXml());
+      for (const type of [...SET_TYPES, 'loadout']) {
+        await sets({ set_type: type, action: 'list' });
+        expect({ type, revision: f.session.revision, dirty: f.session.isDirty() }).toEqual({ type, revision, dirty: false });
+      }
+      expect(canonicalize(await exportXml())).toBe(before);
+      await sets({ set_type: 'item', action: 'create', title: 'New' });
+      expect(f.session.revision).toBe(revision + 1);
+      expect(f.session.isDirty()).toBe(true);
     },
     ENGINE_TIMEOUT,
   );
@@ -296,6 +364,16 @@ engineDescribe('L1 sets: manage_sets and the auto-level flag on the golden build
         }
         const ok = listedSets(await sets({ set_type: type, action: 'create', title: 'Early {1,2}' }));
         expect(ok.find((s) => s.title === 'Early {1,2}')).toBeDefined();
+      }
+      // D-245: at most one tag, at the end, of comma-separated non-empty ids.
+      for (const title of ['Early {,}', 'Early {1,}', 'Early {,1}', 'Early {1,,2}', 'Early {1} Late {2}', 'Early {1} late', 'Early {1']) {
+        const before = canonicalize(await exportXml());
+        const revision = f.session.revision;
+        const out = await f.call('manage_sets', { set_type: 'item', action: 'create', title });
+        expect({ title, isError: out.isError }).toEqual({ title, isError: true });
+        expect(out.text).toContain('[A-Za-z0-9,]');
+        expect(f.session.revision).toBe(revision);
+        expect(canonicalize(await exportXml())).toBe(before);
       }
       // rename and copy titles follow the same rule.
       const revision = f.session.revision;
@@ -571,8 +649,8 @@ engineDescribe('L1 sets: manage_sets and the auto-level flag on the golden build
   });
 });
 
-describe('L1 sets: manage_sets samples (static, AC-B2, AC-B3)', () => {
-  it('AC-B2: tool-calls.json has state-changing ok samples for manage_sets, including the slice sample, and error samples', () => {
+describe('L1 sets: manage_sets samples (static, AC-B2, AC-B3, D-244)', () => {
+  it('AC-B2: tool-calls.json has ok samples for manage_sets (lists as reads, the rest state-changing mutates), the slice sample, and error samples', () => {
     const samples = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-calls.json'), 'utf8')) as Array<{
       tool: string;
       args: Record<string, unknown>;
@@ -581,9 +659,15 @@ describe('L1 sets: manage_sets samples (static, AC-B2, AC-B3)', () => {
     }>;
     const mine = samples.filter((s) => s.tool === 'manage_sets');
     expect(mine.filter((s) => s.expect === 'ok').length).toBeGreaterThan(0);
-    // Every ok sample changes the build (a mutate tool's samples must, AC-B3): none is a list.
+    // D-244: a list is a read (the engine-kind check then wants the export and revision unchanged); every
+    // other ok sample is a mutate that changes the build (AC-B3), so none declares stateChange:false.
+    const lists = mine.filter((s) => s.expect === 'ok' && s.args.action === 'list');
+    expect(lists.map((s) => s.args.set_type).sort()).toEqual(['config', 'item', 'loadout', 'skill']);
     for (const s of mine.filter((x) => x.expect === 'ok')) {
-      expect(s.args.action).not.toBe('list');
+      expect({ args: s.args, kind: engineKindFor('manage_sets', s.args) }).toEqual({
+        args: s.args,
+        kind: s.args.action === 'list' ? 'read' : 'mutate',
+      });
       expect(s.stateChange).toBeUndefined();
     }
     expect(mine).toContainEqual(

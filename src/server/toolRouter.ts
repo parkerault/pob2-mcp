@@ -9,7 +9,7 @@ import type { TradeApiClient } from "../trade/tradeClient.js";
 import type { StatMapper } from "../services/statMapper.js";
 import type { CurrencyService } from "../trade/currency.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { TOOL_META, isToolAvailable } from "./toolMeta.js";
+import { TOOL_META, isToolAvailable, type EngineKindMeta } from "./toolMeta.js";
 import { errorResponse, type ToolResponse } from "./responseUtils.js";
 import { noticesOf, EngineBusyError, EngineDeadlineError, type EngineSession, type EngineKind } from "../engine/session.js";
 import { engineBusyStopText, engineDeadlineStopText } from "../trade/findUpgrades.js";
@@ -127,6 +127,21 @@ function withNotices(response: ToolResponse, notices: string[]): ToolResponse {
 const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options", "find_upgrades"]);
 
 /**
+ * Per-call engine kinds (C-8): a tool whose kind depends on its arguments has a rule here, which returns
+ * the call's kind, or undefined for the tool's `TOOL_META` kind.
+ * - D-244: `manage_sets {action: "list"}` is a `read`, so a listing neither bumps `revision` nor marks
+ *   the build unsaved; its other actions are `mutate`.
+ */
+const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
+  manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
+};
+
+/** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */
+export function engineKindFor(name: string, args: Record<string, unknown> | undefined): EngineKindMeta {
+  return KIND_RULES[name]?.(args) ?? TOOL_META[name].engine;
+}
+
+/**
  * What handlers return: text content, possibly typed loosely by older handlers. `refit` (a budgeted
  * output) renders the text again with `reservedChars` of room left for the session's notices.
  */
@@ -159,7 +174,7 @@ export async function routeToolCall(
   call: ToolCallContext,
 ): Promise<ToolResponse> {
   if (!isToolAvailable(name, deps.env)) throw unknownTool(name);
-  const kind = TOOL_META[name].engine;
+  const kind = engineKindFor(name, args);
   try {
     if (TOOL_META[name].group === "trade" && !TRADE_TOOLS_WITHOUT_STATS.has(name)) {
       await deps.ensureTradeStats();

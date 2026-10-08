@@ -1,8 +1,10 @@
 /**
  * AC-E16 (C-8 kinds, verified through the engine session): in process, engine-required.
  *
- * For every `expect:"ok"` sample in `tests/fixtures/tool-calls.json` whose tool's `TOOL_META.engine` is
- * `read`, `mutate` or `load` and that has no allowlist entry for check (ii):
+ * For every `expect:"ok"` sample in `tests/fixtures/tool-calls.json` whose call's engine kind is `read`,
+ * `mutate` or `load` and that has no allowlist entry for check (ii) (the kind is the router's
+ * `engineKindFor`: the tool's `TOOL_META.engine`, unless a per-call rule decides it from the arguments, as
+ * D-244 does for `manage_sets {action:"list"}`, a read):
  *  1. a fresh golden file is loaded, the sample's setup steps run, then the canonical export
  *     (`export_build_xml` minus `<PlayerStat>`, `<MinionStat>`, `<FullDPSSkill>`) is taken before and
  *     after the sample, in the same engine process;
@@ -24,6 +26,7 @@ import { engineDescribe } from '../helpers/engine';
 import { GOLDEN_XML, canonicalExport, startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { canonicalExportAcrossReload } from '../helpers/reloadCanonical';
 import { TOOL_META } from '../../src/server/toolMeta';
+import { engineKindFor } from '../../src/server/toolRouter';
 import { encodePobCode } from '../../src/utils/buildCode';
 
 interface Step {
@@ -65,14 +68,15 @@ const allowedII = (tool: string) => ALLOWLIST.some((e) => e.tool === tool && e.c
 const CHECKED = SAMPLES.map((s, n) => ({ sample: s, n })).filter(
   ({ sample }) =>
     sample.expect === 'ok' &&
-    ENGINE_KINDS.has(TOOL_META[sample.tool]?.engine) &&
+    TOOL_META[sample.tool] !== undefined &&
+    ENGINE_KINDS.has(engineKindFor(sample.tool, sample.args)) &&
     !ALLOWLIST.some((e) => e.tool === sample.tool && e.check === 'ii'),
 );
 
 describe('AC-E16: tool-calls.json declares state changes well-formed', () => {
   it('AC-E16: every stateChange:false sample is a mutate/load sample with a stateChangeReason', () => {
     for (const s of SAMPLES.filter((x) => x.stateChange === false)) {
-      expect(['mutate', 'load']).toContain(TOOL_META[s.tool].engine);
+      expect(['mutate', 'load']).toContain(engineKindFor(s.tool, s.args));
       expect(typeof s.stateChangeReason === 'string' && s.stateChangeReason.trim().length > 0).toBe(true);
     }
   });
@@ -109,7 +113,7 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
     s.tool === 'analyze_build' || s.tool === 'compare_builds' || (s.tool === 'export_build' && s.args.notes !== undefined);
 
   CHECKED.forEach(({ sample, n }) => {
-    const kind = TOOL_META[sample.tool].engine;
+    const kind = engineKindFor(sample.tool, sample.args);
     const exportOf = reloadsWorkingBuild(sample) ? canonicalExportAcrossReload : canonicalExport;
     it(`AC-E16: ${sample.tool} #${n} (${kind})`, async () => {
       await freshGolden();

@@ -9,6 +9,8 @@
  *  - mutate:    changes the engine's build;
  *  - load:      replaces the engine's build;
  *  - lifecycle: starts or stops the engine.
+ * A tool whose kind depends on its arguments also has a per-call rule in the router (`engineKindFor` in
+ * `toolRouter.ts`); its entry here is the default kind.
  */
 
 export type EngineKindMeta = 'none' | 'read' | 'mutate' | 'load' | 'lifecycle';
@@ -85,7 +87,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   delete_spec: core('mutate'),
   rename_spec: core('mutate'),
   select_item_set: core('mutate'),
-  // C-39: item, skill and config sets, and loadouts (list and select); every action but list rebuilds
+  // C-39: item, skill and config sets, and loadouts (list and select). Its list action runs as a read
+  // (D-244, the router's per-call kind rule, `engineKindFor`).
   manage_sets: core('mutate'),
   set_character_level: core('mutate'),
   lua_set_tree: core('mutate'),

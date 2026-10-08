@@ -13,9 +13,9 @@
   "findings": [
     {
       "part": "budget",
-      "code": "budget-near-ceiling",
+      "code": "near-ceiling",
       "stage": "b",
-      "message": "stage b totals 21 divines: over 20, within 22; the guide says near the ceiling"
+      "message": "stage b totals 21.5 divines: over 20, within 22; the guide says near the ceiling"
     }
   ],
   "basis": {
@@ -108,18 +108,23 @@
           "stage": "b",
           "slot": "Ring 2",
           "priceId": "b-ring2"
+        },
+        {
+          "stage": "b",
+          "jewel": 1001,
+          "priceId": "b-jewel"
         }
       ],
       "totals": [
         {
           "stage": "b",
-          "divines": 21
+          "divines": 21.5
         }
       ],
       "nonBudget": [
         {
           "stage": "n",
-          "divines": 168,
+          "divines": 172,
           "reference": 200
         }
       ]

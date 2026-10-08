@@ -58,18 +58,23 @@ findings. After **2 retries per (stage, concept)** the workflow returns `escalat
 findings. The skill records it in `escalations[]`, shows the stage, the attempts, the findings and the
 artifact paths, and asks:
 
-1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings}`. Findings equal
-   to these (same gate stage and `code`, or the same V3/V4 finding `id`) fail no gate afterwards, and the
-   guide lists each under an H3 `Accepted failures` in "Confidence and what PoB can't model", by its
-   `code` or `id` and its stage (the run checker looks for them there). **Not
-   offered when the failure is a compile error**: nothing compiled to continue from.
+1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings}`. A gate finding
+   equal to an accepted one, **same plan stage, part and `code`**, fails no gate afterwards, whichever gate
+   reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding is equal by its
+   `id`. The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
+   PoB can't model", one line per finding naming its `code` (or `id`) and its gate (`D1-gate`, `V3`, …),
+   with its plan stage; the run checker looks for them there. **Not offered when the failure is a
+   compile error**: nothing compiled to continue from.
 2. **guidance and one more retry**: the user's guidance goes in; the design workflow resumes with
    `{reason: "guided-retry", stage, findings, guidance}`. That attempt counts against no cap, and if it
    fails, the run escalates again.
 3. **back to checkpoint 1**, with the findings as that concept's evidence.
 4. **stop**: the run ends `escalated`.
 
-Record the choice (and any guidance) on the escalation entry, and the question as checkpoint
+Record the escalation with every finding **verbatim**, as its verdict or report has it (a gate finding's
+`stage` stays the plan stage), plus a `gate` field naming the gate or report it failed (`D1-gate`,
+`D2-gate`, `V3`, `V4`). Record the choice (and any guidance) on the escalation entry, and the question as
+checkpoint
 `escalation`. With a test config, `answers.escalation[]` answers each escalation in turn; with none left,
 the answer is `stop` (`answeredBy: "default"`), so the run ends `escalated`.
 

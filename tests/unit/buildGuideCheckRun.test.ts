@@ -205,10 +205,14 @@ const broken: BrokenCase[] = [
   // (o)
   { name: '(o) floor: pass, but the record has MissingColdResist above 0', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*MissingColdResist is 5/ },
   { name: '(o) MissingChaosResist above 0 and the chaosResistException removed (D-234)', fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => delete stageB(p).chaosResistException), rule: 'floor', says: /MissingChaosResist is 47 and it has no chaosResistException/ },
-  { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /Checks don't state the reason/ },
+  { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /no line of the guide's "Endgame: budget variant" Checks states its full reason .* with the uncapped value 28% \(D-234\)/ },
+  { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% (47% under its cap) because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
   // (p)
-  { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editJson(d, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23 divines, above 22/ },
+  { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editJson(d, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.5 divines, above 22/ },
   { name: '(p) a filled budget slot maps to no prices[] entry', fixture: 'run-ok-online', edit: (d) => editJson(d, 'reports/gates/D1-gate-c1-a1.json', (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Helmet'))), rule: 'budget', says: /filled slot "Helmet" maps to no prices\[\] entry/ },
+  { name: '(p) a filled tree jewel maps to no prices[] entry (D-249)', fixture: 'run-ok-online', edit: (d) => editJson(d, 'reports/gates/D1-gate-c1-a1.json', (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.jewel === undefined))), rule: 'budget', says: /filled tree jewel in node 1001 maps to no prices\[\] entry/ },
+  { name: '(p) an expensive tree jewel tips the budget over 22 divines (D-249)', fixture: 'run-ok-online', edit: (d) => editJson(d, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 200)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23 divines, above 22/ },
+  { name: '(p) two slots holding different items share a price entry', fixture: 'run-ok-online', edit: (d) => editJson(d, 'reports/gates/D1-gate-c1-a1.json', (r) => (r.basis.budget.slots.find((s: Json) => s.slot === 'Ring 2').priceId = 'b-ring1')), rule: 'budget', says: /share price entry "b-ring1" but hold different items/ },
   { name: '(p) over 20 divines and the guide lacks "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editText(d, 'guide.md', replace('against 20, near the ceiling:', 'against 20:')), rule: 'budget', says: /lack "near the ceiling"/ },
   // (q)
   { name: '(q) rolledSkill: pass, but a same-role group has a larger figure', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.skillOutputs.g2s1p1.fields.TotalDPS = 60000)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's group 2 \(clear\) has 60000, more than the rolled group 1's 50000/ },
@@ -233,7 +237,7 @@ describe("AC-W2 (l): a finding the user accepted at an escalation, listed under 
       r.verdict = 'fail';
     });
     editJson(dir, 'run-log.json', (l) => {
-      l.escalations.push({ stage: 'V3', concept: 'c1', attempts: 3, findings: [{ id: 'f-x', stage: 'V3', message: 'untagged claim' }], choice: 'accept' });
+      l.escalations.push({ stage: 'V3', concept: 'c1', attempts: 3, findings: [{ id: 'f-x', issue: 'untagged claim', gate: 'V3' }], choice: 'accept' });
     });
     if (listInGuide) {
       editText(dir, 'guide.md', replace('Blood Loss uptime is a hand calculation.[^g10]\n', 'Blood Loss uptime is a hand calculation.[^g10]\n\n### Accepted failures\n\n- f-x (V3): an untagged claim in the Summary, accepted at an escalation.\n'));
@@ -254,6 +258,157 @@ describe("AC-W2 (l): a finding the user accepted at an escalation, listed under 
     const r = runChecker(dir);
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/check-run: \[unresolved\] the user accepted 1 finding\(s\) at an escalation, but guide\.md has no "Accepted failures" H3/);
+  });
+});
+
+const failing = (dir: string) => {
+  const r = runChecker(dir);
+  expect(r.code).toBe(1);
+  return r.stderr;
+};
+const gateFile = 'reports/gates/D1-gate-c1-a1.json';
+const acceptAtEscalation = (dir: string, finding: Json, listing: string) => {
+  editJson(dir, 'run-log.json', (l) => {
+    l.escalations.push({ stage: finding.gate, concept: 'c1', attempts: 3, findings: [finding], choice: 'accept' });
+  });
+  editText(dir, 'guide.md', replace('Blood Loss uptime is a hand calculation.[^g10]\n', `Blood Loss uptime is a hand calculation.[^g10]\n\n### Accepted failures\n\n- ${listing}\n`));
+};
+
+describe('FR-W7: the checker trusts the report files, not the run log', () => {
+  it("fails the reviewer's probe: an empty stages[], no chaos exception, a utility rolled group, an unresolved V3 finding", () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => (l.stages = []));
+    editJson(dir, 'plan.json', (p) => {
+      delete stageB(p).chaosResistException;
+      stageB(p).skills.groups[0].role = 'utility';
+    });
+    editJson(dir, 'reports/v3-c1-p1.json', (r) => {
+      r.findings.push({ id: 'f-x', artifact: 'guide.md', location: 'Summary', claim: 'c', issue: 'untagged claim', evidence: 'e', owner: 'W1', status: 'unresolved' });
+      r.verdict = 'fail';
+    });
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[reports\] reports\/gates\/D1-gate-c1-a1\.json has no run-log stages\[\] entry/);
+    expect(stderr).toMatch(/\[floor\] .*MissingChaosResist is 47 and it has no chaosResistException/);
+    expect(stderr).toMatch(/\[rolled-skill\] .*rolled group 1 has role "utility"/);
+    expect(stderr).toMatch(/\[unresolved\] reports\/v3-c1-p1\.json: finding "f-x"/);
+  });
+
+  it('requires a completed run to have its D1 gate report, whatever stages[] says', () => {
+    const dir = copyOf('run-ok');
+    fs.rmSync(path.join(dir, gateFile));
+    editJson(dir, 'run-log.json', (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'D1-gate')));
+    expect(failing(dir)).toMatch(/\[reports\] no reports\/gates\/D1-gate-<concept>-a<n>\.json; a completed run passed the D1 gate/);
+  });
+
+  it('requires the final V3 and V4 reports of a completed run, whatever stages[] says', () => {
+    const dir = copyOf('run-ok');
+    fs.rmSync(path.join(dir, 'reports/v4-ledger-c1-p1.json'));
+    editJson(dir, 'run-log.json', (l) => (l.stages = l.stages.filter((s: Json) => !(s.stage === 'V4' && s.lens === 'ledger'))));
+    expect(failing(dir)).toMatch(/\[reports\] no V4 ledger report for c1/);
+  });
+
+  it('cross-checks report files against stages[] both ways', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => l.stages.push({ stage: 'D1-gate', concept: 'c1', attempt: 2, startedAt: null, endedAt: null, agents: 1, outcome: 'pass', findings: 0 }));
+    expect(failing(dir)).toMatch(/\[reports\] run-log stages\[\] has D1-gate c1 attempt 2, but reports\/gates\/D1-gate-c1-a2\.json is missing/);
+    const dir2 = copyOf('run-ok');
+    editJson(dir2, 'run-log.json', (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V3')));
+    expect(failing(dir2)).toMatch(/\[reports\] reports\/v3-c1-p1\.json has no run-log stages\[\] entry V3 c1 pass 1/);
+  });
+});
+
+describe('§5.3: a completed run fails on any failing gate part an accepted finding does not cover', () => {
+  it('fails when the last D1 gate honestly says floor: fail (chaos uncapped, no exception)', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'plan.json', (p) => delete stageB(p).chaosResistException);
+    editJson(dir, gateFile, (r) => {
+      r.verdict.floor = 'fail';
+      r.findings = [{ part: 'floor', code: 'missing-chaos-resist', stage: 'b', message: 'MissingChaosResist 47, no exception' }];
+    });
+    const stderr = failing(dir);
+    expect(stderr).not.toMatch(/says floor: "fail", but the records/);
+    expect(stderr).toMatch(/\[floor\] the guide's concept fails the D1 gate's floor \(missing-chaos-resist, stage b\)/);
+    expect(stderr).toMatch(/\[floor\] reports\/gates\/D1-gate-c1-a1\.json says floor: "fail" \(missing-chaos-resist\), and no accepted finding covers it/);
+  });
+
+  it('fails when the last D1 gate honestly says budget: fail (over 22 divines)', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 30));
+    editJson(dir, gateFile, (r) => {
+      r.verdict.budget = 'fail';
+      r.basis.budget.totals[0].divines = 43.5;
+      r.findings = [{ part: 'budget', code: 'over-budget', stage: 'b', message: 'stage b totals 43.5 divines' }];
+    });
+    const stderr = failing(dir);
+    expect(stderr).not.toMatch(/says budget: "fail", but/);
+    expect(stderr).toMatch(/\[budget\] the guide's concept fails the D1 gate's budget \(over-budget, stage b\): stage b totals 43\.5 divines, above 22/);
+  });
+
+  it('passes the same run when the user accepted that failure and the guide lists it', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 30));
+    const finding = { part: 'budget', code: 'over-budget', stage: 'b', message: 'stage b totals 43.5 divines' };
+    editJson(dir, gateFile, (r) => {
+      r.verdict.budget = 'fail';
+      r.basis.budget.totals[0].divines = 43.5;
+      r.findings = [finding];
+    });
+    acceptAtEscalation(dir, { ...finding, gate: 'D1-gate' }, 'over-budget (D1-gate, stage b): the budget variant costs 43.5 divines.');
+    const r = runChecker(dir);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('fails a completed run whose last D2 gate failed V1 with no accepted finding', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'reports/gates/D2-gate-c1-a1.json', (r) => {
+      r.verdict.v1 = 'fail';
+      r.findings = [{ part: 'v1', code: 'tree-continuity', stage: '2', message: 'stage 2 drops a node without a respec' }];
+    });
+    expect(failing(dir)).toMatch(/\[gates\] reports\/gates\/D2-gate-c1-a1\.json says v1: "fail" \(tree-continuity\), and no accepted finding covers it/);
+  });
+});
+
+describe('§5.4: an accepted finding equals another with the same plan stage, part and code, whichever gate reports it', () => {
+  const v1Fail = (code: string) => ({ pass: false, findings: [{ code, message: `${code} (FI-2)` }], notes: [] });
+
+  it('covers the final record V1 finding of the same plan stage, accepted at the D1 gate', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.v1 = v1Fail('level-points')));
+    acceptAtEscalation(dir, { gate: 'D1-gate', part: 'v1', code: 'level-points', stage: 'b', message: 'stage b spends too many points' }, 'level-points (D1-gate, stage b): accepted.');
+    const r = runChecker(dir);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('does not cover the same code on another plan stage', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.b.v1 = v1Fail('level-points');
+      r.stages.n.v1 = v1Fail('level-points');
+    });
+    acceptAtEscalation(dir, { gate: 'D1-gate', part: 'v1', code: 'level-points', stage: 'b', message: 'stage b spends too many points' }, 'level-points (D1-gate, stage b): accepted.');
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[record-verdicts\] the final record's stage n fails V1: level-points/);
+    expect(stderr).not.toMatch(/stage b fails V1/);
+  });
+
+  it('requires the guide to list the accepted finding with its gate on one line', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.v1 = v1Fail('level-points')));
+    acceptAtEscalation(dir, { gate: 'D1-gate', part: 'v1', code: 'level-points', stage: 'b', message: 'm' }, 'level-points: accepted.');
+    expect(failing(dir)).toMatch(/\[unresolved\] guide\.md's Accepted failures has no line naming accepted finding level-points with its gate D1-gate/);
+  });
+});
+
+describe('D-219 and D-249: budget totals and tree jewels', () => {
+  it('rounds the total to 2 decimals before comparing it with 22', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 100.4));
+    editJson(dir, gateFile, (r) => (r.basis.budget.totals[0].divines = 22));
+    const r = runChecker(dir);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
   });
 });
 

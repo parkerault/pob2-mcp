@@ -32,12 +32,12 @@ Take the cold resistance at Beira.[^g3]
 
 ## Endgame: budget variant
 
-Gear by slot, gems at level 20, 8 ascendancy points.[^g8]
+Gear by slot and a tree jewel, gems at level 20, 8 ascendancy points.[^g8]
 
 ### Checks
 
 - Fire, cold, lightning and chaos resistances are capped at the Endgame −60% penalty.[^g5]
-- Budget total: 21.0 divines against 20, near the ceiling: within the 22-divine tolerance.[^g6]
+- Budget total: 21.5 divines against 20, near the ceiling: within the 22-divine tolerance.[^g6]
 - The Arbiter of Divinity takes about 160 seconds to kill.[^g7]
 
 ## Endgame: non-budget variant

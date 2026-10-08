@@ -57,8 +57,10 @@ checkpoint 1 → design workflow for the chosen concept → checkpoint 2.
 2. **Run folder.** Call `guide_run {new_run: <slug>}` (`references/run-folder.md` gives the slug rule).
    Keep its absolute path (`runFolder`), its root-relative path (`runFolderRel`) and
    `loadedBuildUnsaved`.
-3. **Run log.** Read the test config if one was given and accepted (a file that can't be read or isn't
-   the documented shape stops the run, `references/offline-and-test.md`). Write `run-log.json` with
+3. **Run log.** Read the test config if one was given with `--offline`. A file that can't be read or
+   isn't the documented shape is refused (`testConfig: "refused"`) and stops the run (`stopped`, the
+   reason naming the malformed config in `timeline[]` and in your reply; `references/offline-and-test.md`).
+   Write `run-log.json` with
    `status: "running"`, the mode, `orchestration` and `testConfig` (`references/run-log.md` has a first
    write). Read the time with `date -u +%Y-%m-%dT%H:%M:%SZ`.
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
@@ -113,9 +115,11 @@ gateVerdicts, v3Reports, v4Reports, stats}`. Write every verdict and report to `
 
 The gates the design workflow applies are in `references/gates.md`: the survival floor gates fire, cold,
 lightning **and chaos** resistance at their caps, chaos staying uncapped only through a stage's recorded
-`chaosResistException` (D-234); the budget variant passes at ≤ 20 divines, passes with a "near the
-ceiling" note above 20 up to 22, and fails above 22 (D-219); the rolled skill is the main damage source
-of its role (D-217).
+`chaosResistException` (D-234); the budget variant, its filled slots and tree jewels together (D-249),
+passes at ≤ 20 divines, passes with a "near the ceiling" note above 20 up to 22, and fails above 22
+(D-219); the rolled skill is the main damage source of its role (D-217). When the user accepts findings
+at an escalation, log them verbatim with their `gate` (`references/run-log.md`): a gate finding equal to
+an accepted one (same plan stage, part and code) fails no later gate.
 
 ## 7. Checkpoint 2 (`references/checkpoints.md`)
 

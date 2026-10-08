@@ -68,6 +68,10 @@ this run (D-211). A refusal is a failed attempt like any other: report it, never
 Without `--partial`, only a `completed` run passes; `--partial` accepts a run that ended earlier and
 checks what it produced. It checks this layout, the run log (`run-log.md`), the dossier's and the
 guide's headings, every source marker (`source-markers.md`), the import code, the caps, offline pricing,
-and the V3/V4 reports. It recomputes the last D1 gate's floor, budget and rolled-skill verdicts from the
-records (`gates.md`) and its own claim counts, and fails wherever they differ from what the agents
-reported. Each violation is one stderr line `check-run: [<rule>] <message>`.
+and the V3/V4 reports. It trusts the report files, not the run log: it finds the guide's concept from
+the `reports/gates/D1-gate-*` files (the log only orders them), requires a completed run's D1 and D2
+gate reports and final V3/V4 reports, and checks the report files against the log's `stages[]` both
+ways. It recomputes the last D1 gate's floor, budget and rolled-skill verdicts from the records
+(`gates.md`) and its own claim counts, and fails wherever they differ from what the agents reported; in
+a completed run it also fails any gate failure that no accepted finding covers. Each violation is one
+stderr line `check-run: [<rule>] <message>`.

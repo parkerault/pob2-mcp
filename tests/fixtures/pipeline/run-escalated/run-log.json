@@ -270,9 +270,10 @@
       "attempts": 3,
       "findings": [
         {
-          "stage": "D1-gate",
+          "gate": "D1-gate",
           "part": "v1",
           "code": "level-points",
+          "stage": "b",
           "message": "stage b spends 108 passive points, but level 1 grants 0 (FI-2)"
         }
       ],
@@ -285,7 +286,7 @@
     "totals": {
       "calls": 0,
       "ok": 0,
-      "unavailable": 14,
+      "unavailable": 15,
       "wouldWait": 0,
       "lockedOut": 0,
       "rateLimited": 0

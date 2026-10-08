@@ -99,6 +99,9 @@ const isTime = (v) => typeof v === 'string' && ISO_TIME.test(v) && !Number.isNaN
 const ms = (v) => Date.parse(v);
 const show = (v) => JSON.stringify(v);
 const near = (a, b) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(a), Math.abs(b));
+/** Whether `word` occurs in `text` as a whole token (not inside a longer word), case-insensitively. */
+const hasWord = (text, word) =>
+  typeof word === 'string' && word !== '' && new RegExp(`(?<![A-Za-z0-9_-])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_-])`, 'i').test(text);
 const norm = (s) => String(s).replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /** §2's slug: `<ascendancy>-<skill>` in lower case, each run outside [a-z0-9] one `-`, trimmed of `-`. */
@@ -523,13 +526,21 @@ export function checkRun(runFolder, { partial = false } = {}) {
       }
     }
 
-    // Accepted failures (§5.4, §8): each accepted finding is listed under that H3, with its stage.
+    // Accepted failures (§5.4, §8): each accepted finding is listed under that H3, on one line with the
+    // gate or report it failed (its code or id, and e.g. "D1-gate" or "V3").
     if (accepted.length > 0) {
       const conf = h2Named(guide, CONFIDENCE_H2);
       const h3 = conf ? h3sUnder(guide, conf).find((h) => h.title === 'Accepted failures') : null;
-      const text = h3 ? sectionText(guide, h3) : '';
+      const lines = h3 ? sectionText(guide, h3).split('\n') : [];
       if (!h3) fail('unresolved', `the user accepted ${accepted.length} finding(s) at an escalation, but guide.md has no "Accepted failures" H3 under "${CONFIDENCE_H2}" (§8)`);
-      else for (const a of accepted) if (!text.includes(a.key)) fail('unresolved', `guide.md's Accepted failures doesn't list accepted finding ${a.key} (${a.stage})`);
+      else {
+        for (const a of accepted) {
+          const key = a.id ?? a.code;
+          if (!lines.some((l) => hasWord(l, key) && hasWord(l, a.gate))) {
+            fail('unresolved', `guide.md's Accepted failures has no line naming accepted finding ${key} with its gate ${a.gate}${a.stage ? ` (stage ${a.stage})` : ''}`);
+          }
+        }
+      }
     }
 
     claims.guide = markdownClaims(guide, 'guide.md', planScope(plan), true);
@@ -553,9 +564,10 @@ export function checkRun(runFolder, { partial = false } = {}) {
     if (!m) fail('layout', `reports/gates/${f} isn't named <stage>-<concept>-a<attempt>.json (§2)`);
     else gates.push({ file: `reports/gates/${f}`, stage: m[1], concept: m[2], attempt: Number(m[3]) });
   }
-  // FR-W6: every gate verdict and V3/V4 report a step returned is persisted.
-  for (const s of stages) {
-    if (s.outcome === 'null-result') continue;
+  // FR-W6, both ways: every gate verdict and V3/V4 report a step returned is persisted, and every file in
+  // reports/ is one a logged step returned. The files are the evidence; the log only orders them.
+  const logged = stages.filter((s) => s.outcome !== 'null-result');
+  for (const s of logged) {
     if (GATE_STAGES.includes(s.stage) && !gates.some((g) => g.stage === s.stage && g.concept === s.concept && g.attempt === s.attempt)) {
       fail('reports', `run-log stages[] has ${s.stage} ${s.concept} attempt ${s.attempt}, but reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json is missing (FR-W6)`);
     }
@@ -564,6 +576,21 @@ export function checkRun(runFolder, { partial = false } = {}) {
     }
     if (s.stage === 'V4' && !v4.some((r) => r.concept === s.concept && r.pass === s.pass && r.lens === s.lens)) {
       fail('reports', `run-log stages[] has V4 ${s.lens} ${s.concept} pass ${s.pass}, but reports/v4-${s.lens}-${s.concept}-p${s.pass}.json is missing (FR-W6)`);
+    }
+  }
+  for (const g of gates) {
+    if (!logged.some((s) => s.stage === g.stage && s.concept === g.concept && s.attempt === g.attempt)) {
+      fail('reports', `${g.file} has no run-log stages[] entry ${g.stage} ${g.concept} attempt ${g.attempt}; the log records every attempt (§6)`);
+    }
+  }
+  for (const r of v3) {
+    if (!logged.some((s) => s.stage === 'V3' && s.concept === r.concept && s.pass === r.pass)) {
+      fail('reports', `${r.file} has no run-log stages[] entry V3 ${r.concept} pass ${r.pass}; the log records every attempt (§6)`);
+    }
+  }
+  for (const r of v4) {
+    if (!logged.some((s) => s.stage === 'V4' && s.lens === r.lens && s.concept === r.concept && s.pass === r.pass)) {
+      fail('reports', `${r.file} has no run-log stages[] entry V4 ${r.lens} ${r.concept} pass ${r.pass}; the log records every attempt (§6)`);
     }
   }
   const gateReports = new Map();
@@ -577,10 +604,28 @@ export function checkRun(runFolder, { partial = false } = {}) {
     r.report = readJson(r.file, 'report-shape');
     if (isObj(r.report)) checkReportShape(r.report, r, mode, fail);
   }
+  const lastGate = (stage, concept) => gates.filter((g) => g.stage === stage && g.concept === concept).sort((a, b) => b.attempt - a.attempt)[0];
 
-  // The concept the guide is for: the last D1 gate in run order (§6 stages[]).
-  const d1Runs = stages.filter((s) => s.stage === 'D1-gate' && typeof s.concept === 'string');
-  const guideConcept = d1Runs.length > 0 ? d1Runs[d1Runs.length - 1].concept : null;
+  // The concept the guide is for, from the report files: the only concept with D1 gate reports, or, when
+  // several have them, the one whose D1 gate ran last (the log orders the files, which it must match).
+  const d1Concepts = [...new Set(gates.filter((g) => g.stage === 'D1-gate').map((g) => g.concept))];
+  let guideConcept = null;
+  if (d1Concepts.length === 1) guideConcept = d1Concepts[0];
+  else if (d1Concepts.length > 1) {
+    const ordered = logged.filter((s) => s.stage === 'D1-gate' && d1Concepts.includes(s.concept));
+    if (ordered.length > 0) guideConcept = ordered[ordered.length - 1].concept;
+    else fail('reports', `D1 gate reports exist for ${d1Concepts.join(', ')}, and the run log doesn't say which ran last`);
+  }
+  const reported = [...new Set([...v3, ...v4].map((r) => r.concept))];
+  if (completed) {
+    if (guideConcept === null) fail('reports', 'no reports/gates/D1-gate-<concept>-a<n>.json; a completed run passed the D1 gate (§5.3)');
+    else {
+      if (!lastGate('D2-gate', guideConcept)) fail('reports', `no reports/gates/D2-gate-${guideConcept}-a<n>.json; a completed run passed the D2 gate (§5.3)`);
+      for (const c of reported) {
+        if (c !== guideConcept && !d1Concepts.includes(c)) fail('reports', `V3/V4 reports exist for ${c}, which has no D1 gate report`);
+      }
+    }
+  }
 
   // Final-pass reports of that concept: (l) no unresolved finding, (m) the counts hold up.
   if (guideConcept !== null && (guideText !== null || completed)) {
@@ -600,7 +645,7 @@ export function checkRun(runFolder, { partial = false } = {}) {
     for (const r of finals) {
       for (const f of Array.isArray(r.report.findings) ? r.report.findings.filter(isObj) : []) {
         if (f.status !== 'unresolved') continue;
-        if (accepted.some((a) => a.key === f.id && (a.stage === r.report.stage || a.stage === `${r.report.stage}-${r.report.lens}`))) continue;
+        if (accepted.some((a) => a.id !== null && a.id === f.id && a.gate === r.report.stage)) continue;
         fail('unresolved', `${r.file}: finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is unresolved in the final pass, and the user accepted no such finding (D-179)`);
       }
     }
@@ -610,33 +655,51 @@ export function checkRun(runFolder, { partial = false } = {}) {
   }
 
   // ---- The D1 gate, recomputed (FR-W7; §5.3; AC-W2 o, p, q) ---------------------------------------
-  if (guideConcept !== null) {
-    const mine = gates.filter((g) => g.stage === 'D1-gate' && g.concept === guideConcept).sort((a, b) => b.attempt - a.attempt)[0];
-    const rep = mine ? gateReports.get(mine.file) : null;
-    if (mine && isObj(rep) && isObj(rep.verdict)) {
-      if (!isObj(plan)) fail('layout', `${mine.file} exists, but plan.json doesn't; the gate can't be recomputed`);
-      else if (!isObj(record) || !isObj(record.stages)) fail('layout', `${mine.file} exists, but compile-record.json doesn't; the gate can't be recomputed`);
-      else {
-        const acceptedParts = new Set(accepted.filter((a) => (a.stage === 'D1-gate' || a.stage === 'D1') && a.part).map((a) => a.part));
-        const compare = (part, got, detail) => {
-          const said = rep.verdict[part];
-          if (said !== got && !acceptedParts.has(part)) {
-            fail(part === 'rolledSkill' ? 'rolled-skill' : part, `${mine.file} says ${part}: ${show(said)}, but the records give ${show(got)}${detail ? `: ${detail}` : ''}`);
-          }
-        };
-        const floor = recomputeFloor(endgame, record, rep, guide, fail);
-        compare('floor', floor.verdict, floor.why.join('; '));
-        const budget = recomputeBudget(endgame, plan, rep, guide, fail);
-        compare('budget', budget.verdict, budget.why.join('; '));
-        const rolled = recomputeRolledSkill(endgame, plan, record, rep, fail);
-        compare('rolledSkill', rolled.verdict, rolled.why.join('; '));
+  // A failure the user accepted at an escalation (same plan stage, part and code) fails nothing (§5.4).
+  const covered = (f) => accepted.some((a) => a.code !== null && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  const ruleOf = (part) => (part === 'rolledSkill' ? 'rolled-skill' : ['floor', 'budget'].includes(part) ? part : 'gates');
+  const d1 = guideConcept !== null ? lastGate('D1-gate', guideConcept) : undefined;
+  const d1rep = d1 ? gateReports.get(d1.file) : null;
+  if (d1 && isObj(d1rep) && isObj(d1rep.verdict)) {
+    if (!isObj(plan)) fail('layout', `${d1.file} exists, but plan.json doesn't; the gate can't be recomputed`);
+    else if (!isObj(record) || !isObj(record.stages)) fail('layout', `${d1.file} exists, but compile-record.json doesn't; the gate can't be recomputed`);
+    else {
+      const parts = {
+        floor: recomputeFloor(endgame, record, d1rep, guide, fail),
+        budget: recomputeBudget(endgame, plan, d1rep, guide, fail),
+        rolledSkill: recomputeRolledSkill(endgame, plan, record, d1rep, fail),
+      };
+      for (const [part, got] of Object.entries(parts)) {
+        const said = d1rep.verdict[part];
+        const open = got.failures.filter((f) => !covered(f));
+        const effective = open.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
+        const why = got.failures.map((f) => f.why).join('; ');
+        // The agents' verdict must agree with the records (accepted failures may be counted either way).
+        if (said !== got.verdict && said !== effective) fail(ruleOf(part), `${d1.file} says ${part}: ${show(said)}, but the records give ${show(got.verdict)}${why ? `: ${why}` : ''}`);
+        // A completed run's guide passed the gate: no recomputed failure stands unless accepted.
+        if (completed) for (const f of open) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to D2 (§5.3)`);
+      }
+    }
+  }
+  // A completed run's last D1 and D2 gates passed: a failing part stands only where accepted findings cover it.
+  if (completed && guideConcept !== null) {
+    for (const stage of ['D1-gate', 'D2-gate']) {
+      const g = lastGate(stage, guideConcept);
+      const rep = g ? gateReports.get(g.file) : null;
+      if (!isObj(rep) || !isObj(rep.verdict)) continue;
+      for (const part of GATE_PARTS[stage]) {
+        if (rep.verdict[part] !== 'fail') continue;
+        const findings = (Array.isArray(rep.findings) ? rep.findings.filter(isObj) : []).filter((f) => f.part === part);
+        const open = findings.filter((f) => !covered(f));
+        if (part === 'compiled' || findings.length === 0 || open.length > 0) {
+          fail(ruleOf(part), `${g.file} says ${part}: "fail"${open.length > 0 ? ` (${open.map((f) => f.code).join(', ')})` : ''}, and no accepted finding covers it; a completed run's guide passed this gate (§5.3, §5.4)`);
+        }
       }
     }
   }
 
   // ---- The final record's checks (§5.3 D2 gate; C-33) ----------------------------------------------
   if (completed && isObj(record) && isObj(record.stages)) {
-    const acceptedCodes = new Set(accepted.map((a) => a.code).filter(Boolean));
     for (const [id, st] of Object.entries(record.stages)) {
       for (const check of ['v1', 'v2']) {
         const verdict = st?.[check];
@@ -644,7 +707,7 @@ export function checkRun(runFolder, { partial = false } = {}) {
           fail('record-verdicts', `the final record's stage ${id} has no ${check.toUpperCase()} verdict (D-192)`);
           continue;
         }
-        const open = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !acceptedCodes.has(f?.code));
+        const open = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !covered({ stage: id, part: check, code: f?.code }));
         if (open.length > 0) fail('record-verdicts', `the final record's stage ${id} fails ${check.toUpperCase()}: ${open.map((f) => f?.code).join(', ')}`);
       }
     }
@@ -765,8 +828,13 @@ function checkRunLog(log, fail) {
   });
   list('escalations').forEach((e, i) => {
     if (!isObj(e) || typeof e.stage !== 'string' || !Array.isArray(e.findings) || !CHOICES.includes(e.choice)) {
-      bad(`escalations[${i}]`, `is {stage, concept, attempts, findings: [...], choice: ${CHOICES.join(' | ')}, guidance?}`);
+      return bad(`escalations[${i}]`, `is {stage, concept, attempts, findings: [...], choice: ${CHOICES.join(' | ')}, guidance?}`);
     }
+    e.findings.forEach((f, k) => {
+      if (!isObj(f) || typeof f.gate !== 'string' || (typeof f.code !== 'string' && typeof f.id !== 'string')) {
+        bad(`escalations[${i}].findings[${k}]`, 'is the finding as its verdict or report has it (a gate finding with part, code and plan stage; a V3/V4 finding with id), plus gate');
+      }
+    });
   });
   list('revisions').forEach((r, i) => {
     if (!isObj(r) || !isInt(r.round, 1) || !Array.isArray(r.requests)) bad(`revisions[${i}]`, 'is {round, requests: [{text, owner}]}');
@@ -805,14 +873,25 @@ function checkRunLog(log, fail) {
   }
 }
 
-/** Findings the user accepted at an escalation (§5.4): `key` is a V3/V4 finding id or a gate finding's code. */
+/**
+ * Findings the user accepted at an escalation (§5.4), as the run log records them: each verbatim from its
+ * verdict or report, plus `gate`, the gate or report it failed (`D1-gate`, `D2-gate`, `V3`, `V4`, …).
+ * A gate finding is equal to another with the same plan `stage`, `part` and `code`, whichever gate
+ * reports it; a V3/V4 finding by its `id` and report stage.
+ */
 function acceptedFindings(escalations) {
   const out = [];
   for (const e of escalations) {
     if (e.choice !== 'accept' || !Array.isArray(e.findings)) continue;
     for (const f of e.findings.filter(isObj)) {
-      const key = typeof f.id === 'string' ? f.id : typeof f.code === 'string' ? f.code : null;
-      if (key) out.push({ key, code: f.code ?? null, part: f.part ?? null, stage: f.stage ?? e.stage });
+      const a = {
+        gate: typeof f.gate === 'string' ? f.gate : typeof e.stage === 'string' ? e.stage : null,
+        stage: typeof f.stage === 'string' ? f.stage : null,
+        part: typeof f.part === 'string' ? f.part : null,
+        code: typeof f.code === 'string' ? f.code : null,
+        id: typeof f.id === 'string' ? f.id : null,
+      };
+      if (a.code !== null || a.id !== null) out.push(a);
     }
   }
   return out;
@@ -930,41 +1009,54 @@ function checksText(guide, variant) {
   return h3 ? sectionText(guide, h3) : null;
 }
 
+/** A failure of a D1 gate part, with its plan stage and its canonical code (../references/gates.md). */
+const failure = (part, stage, code, why) => ({ part, stage, code, why });
+
+/** Whether a line states `value` as a number followed by `%` (rounded, truncated, to one decimal, or exact). */
+function statesPercent(line, value) {
+  const text = line.replace(/[−–]/g, '-');
+  const forms = new Set([Math.round(value), Math.trunc(value), Number(value.toFixed(1)), value].map((x) => String(x)));
+  return [...forms].some((s) => new RegExp(`(?<![\\d.])${s.replace(/[.-]/g, '\\$&')}\\s?%`).test(text));
+}
+
 /** Survival floor (D-118, D-119, D-234): all four resistances capped (chaos only by the exception), max hits above the hits. */
 function recomputeFloor(endgame, record, rep, guide, fail) {
-  const why = [];
+  const failures = [];
   const basis = Array.isArray(rep.basis?.floor) ? rep.basis.floor.filter(isObj) : [];
   for (const s of endgame) {
     const out = record.stages[s.id]?.outputs;
     if (!isObj(out)) {
-      why.push(`stage ${s.id} isn't in the record`);
+      failures.push(failure('floor', s.id, 'stage-not-compiled', `stage ${s.id} isn't in the record`));
       continue;
     }
     const b = basis.find((x) => x.stage === s.id);
     if (!b) fail('gate-report', `the D1 gate's basis.floor has no entry for endgame stage ${s.id} (§5.3)`);
     for (const e of ELEMENTS) {
       const v = out[`Missing${e}Resist`];
-      if (!isNum(v)) why.push(`stage ${s.id} has no Missing${e}Resist in the record`);
-      else if (v > 0) why.push(`stage ${s.id} Missing${e}Resist is ${v}`);
+      const code = `missing-${e.toLowerCase()}-resist`;
+      if (!isNum(v)) failures.push(failure('floor', s.id, code, `stage ${s.id} has no Missing${e}Resist in the record`));
+      else if (v > 0) failures.push(failure('floor', s.id, code, `stage ${s.id} Missing${e}Resist is ${v}`));
       const said = b?.missing?.[e];
       if (b && isNum(v) && !(isNum(said) && near(said, v))) fail('floor', `the D1 gate's basis gives stage ${s.id} Missing${e}Resist ${show(said)}; the record has ${v}`);
     }
     const chaos = out.MissingChaosResist;
-    if (!isNum(chaos)) why.push(`stage ${s.id} has no MissingChaosResist in the record`);
+    if (!isNum(chaos)) failures.push(failure('floor', s.id, 'missing-chaos-resist', `stage ${s.id} has no MissingChaosResist in the record`));
     else {
       if (b && !(isNum(b.chaos) && near(b.chaos, chaos))) fail('floor', `the D1 gate's basis gives stage ${s.id} MissingChaosResist ${show(b.chaos)}; the record has ${chaos}`);
       if (chaos > 0) {
         const ex = s.chaosResistException;
         if (!isObj(ex) || typeof ex.reason !== 'string' || ex.reason.trim() === '') {
-          why.push(`stage ${s.id} MissingChaosResist is ${chaos} and it has no chaosResistException (D-234)`);
+          failures.push(failure('floor', s.id, 'missing-chaos-resist', `stage ${s.id} MissingChaosResist is ${chaos} and it has no chaosResistException (D-234)`));
         } else if (guide) {
-          // D-234: with the exception the floor passes, and the guide's Checks state the value and the reason.
+          // D-234: with the exception the floor passes, and one line of the guide's Checks states the
+          // stage's uncapped chaos resistance (its number with %) and the exception's full reason.
           const text = checksText(guide, s.variant);
-          const values = [out.ChaosResist, chaos].filter(isNum).map((x) => String(Math.round(Math.abs(x))));
-          if (text === null || !norm(text).includes(norm(ex.reason))) {
-            fail('floor', `stage ${s.id} keeps chaos resistance uncapped by its exception, but the guide's "${VARIANT_H2[s.variant]}" Checks don't state the reason "${ex.reason}" (D-234)`);
-          } else if (!values.some((x) => norm(text).includes(x))) {
-            fail('floor', `stage ${s.id}'s guide Checks don't state the uncapped chaos value (${values.join(' or ')}) (D-234)`);
+          const value = out.ChaosResist;
+          const where = `the guide's "${VARIANT_H2[s.variant]}" Checks`;
+          if (text === null) fail('floor', `stage ${s.id} keeps chaos resistance uncapped by its exception, but guide.md has no ${where} (D-234)`);
+          else if (!isNum(value)) fail('floor', `stage ${s.id} keeps chaos resistance uncapped, but the record has no ChaosResist to state`);
+          else if (!text.split('\n').some((l) => hasWord(norm(l), norm(ex.reason)) && statesPercent(l, value))) {
+            fail('floor', `stage ${s.id} keeps chaos resistance uncapped by its exception, but no line of ${where} states its full reason "${ex.reason}" with the uncapped value ${value}% (D-234)`);
           }
         }
       }
@@ -972,9 +1064,10 @@ function recomputeFloor(endgame, record, rep, guide, fail) {
     for (const opt of Array.isArray(s.config?.scenario) ? s.config.scenario.filter(isObj) : []) {
       const m = HIT_OPTION.exec(opt.option ?? '');
       if (!m || !isNum(opt.value) || opt.value <= 0) continue;
+      const code = `max-hit-${m[1].toLowerCase()}`;
       const max = out[`${m[1]}MaximumHitTaken`];
-      if (!isNum(max)) why.push(`stage ${s.id} has no ${m[1]}MaximumHitTaken in the record`);
-      else if (!(max > opt.value)) why.push(`stage ${s.id} ${m[1]}MaximumHitTaken ${max} isn't above the ${opt.option} hit ${opt.value}`);
+      if (!isNum(max)) failures.push(failure('floor', s.id, code, `stage ${s.id} has no ${m[1]}MaximumHitTaken in the record`));
+      else if (!(max > opt.value)) failures.push(failure('floor', s.id, code, `stage ${s.id} ${m[1]}MaximumHitTaken ${max} isn't above the ${opt.option} hit ${opt.value}`));
       const said = Array.isArray(b?.hits) ? b.hits.find((h) => h?.type === m[1]) : undefined;
       if (b && !said) fail('gate-report', `the D1 gate's basis.floor for stage ${s.id} has no ${m[1]} hit; the plan's scenario sets ${opt.option} (§5.3)`);
       else if (said && isNum(max) && !(near(said.hit, opt.value) && near(said.maxHitTaken, max))) {
@@ -982,81 +1075,88 @@ function recomputeFloor(endgame, record, rep, guide, fail) {
       }
     }
   }
-  return { verdict: why.length > 0 ? 'fail' : 'pass', why };
+  return { verdict: failures.length > 0 ? 'fail' : 'pass', failures };
 }
 
-/** Budget (D-116, D-164, D-219) from the plan's prices, the gate's slot map and its recorded rates. */
+/**
+ * Budget (D-116, D-164, D-219, D-249) from the plan's prices, the gate's map from filled slots and tree
+ * jewels to price entries, and its recorded rates. Totals are compared rounded to 2 decimals.
+ */
 function recomputeBudget(endgame, plan, rep, guide, fail) {
-  const why = [];
+  const failures = [];
   const b = isObj(rep.basis?.budget) ? rep.basis.budget : {};
-  const slots = Array.isArray(b.slots) ? b.slots.filter(isObj) : [];
+  const maps = Array.isArray(b.slots) ? b.slots.filter(isObj) : [];
   const rates = new Map((Array.isArray(b.rates) ? b.rates.filter(isObj) : []).map((r) => [String(r.currency).toLowerCase(), r.divines]));
   const totals = Array.isArray(b.totals) ? b.totals.filter(isObj) : [];
   const prices = new Map((Array.isArray(plan.prices) ? plan.prices.filter(isObj) : []).map((p) => [p.id, p]));
-  let verdict = 'pass';
+  const round2 = (x) => Math.round(x * 100) / 100;
+  let unverified = false;
   for (const s of endgame.filter((x) => x.variant === 'budget')) {
+    const filled = [
+      ...(Array.isArray(s.items?.slots) ? s.items.slots.filter(isObj) : []).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
+      ...(Array.isArray(s.items?.treeJewels) ? s.items.treeJewels.filter(isObj) : []).map((j) => ({ what: `tree jewel in node ${j.node}`, jewel: j.node, text: j.text })),
+    ];
     let total = 0;
-    let unverified = false;
-    for (const item of Array.isArray(s.items?.slots) ? s.items.slots.filter(isObj) : []) {
-      const map = slots.find((x) => x.stage === s.id && x.slot === item.slot);
+    let stageUnverified = false;
+    const used = new Map();
+    for (const it of filled) {
+      const map = maps.find((x) => x.stage === s.id && (it.slot !== undefined ? x.slot === it.slot : x.jewel === it.jewel));
       const price = map ? prices.get(map.priceId) : undefined;
       if (!price) {
-        fail('budget', `budget stage ${s.id}'s filled slot "${item.slot}" maps to no prices[] entry${map ? ` (the gate names ${show(map.priceId)})` : ''}; every filled slot is priced (§5.3)`);
-        unverified = true;
+        fail('budget', `budget stage ${s.id}'s filled ${it.what} maps to no prices[] entry${map ? ` (the gate names ${show(map.priceId)})` : ''}; every filled slot and tree jewel is priced (§5.3, D-249)`);
+        stageUnverified = true;
         continue;
       }
+      if (used.has(map.priceId) && used.get(map.priceId).text !== it.text) {
+        fail('budget', `budget stage ${s.id}'s ${it.what} and ${used.get(map.priceId).what} share price entry ${show(map.priceId)} but hold different items; each has its own entry unless the item text is identical`);
+      }
+      if (!used.has(map.priceId)) used.set(map.priceId, it);
       if (price.status !== 'ok' || !isNum(price.amount)) {
-        unverified = true;
+        stageUnverified = true;
         continue;
       }
       const currency = String(price.currency).toLowerCase();
       const rate = rates.has(currency) ? rates.get(currency) : /^divine/.test(currency) ? 1 : undefined;
       if (!isNum(rate)) {
-        unverified = true;
-        why.push(`no rate for ${price.currency}`);
+        stageUnverified = true;
         continue;
       }
       total += price.amount * rate;
     }
+    const mine = stageUnverified ? null : round2(total);
     const said = totals.find((t) => t.stage === s.id);
-    const mine = unverified ? null : total;
     if (!said) fail('gate-report', `the D1 gate's basis.budget has no total for budget stage ${s.id} (§5.3)`);
-    else if (!(mine === null ? said.divines === null : isNum(said.divines) && Math.abs(said.divines - mine) <= 0.005)) {
+    else if (!(mine === null ? said.divines === null : isNum(said.divines) && round2(said.divines) === mine)) {
       fail('budget', `the D1 gate's total for budget stage ${s.id} is ${show(said.divines)} divines; the plan's prices and its rates give ${mine === null ? 'null (unverified)' : mine}`);
     }
-    if (unverified) {
-      if (verdict === 'pass') verdict = 'unverified';
-      why.push(`stage ${s.id} has an unavailable price or a currency without a rate`);
-    } else if (total > BUDGET_TOLERANCE) {
-      verdict = 'fail';
-      why.push(`stage ${s.id} totals ${total} divines, above ${BUDGET_TOLERANCE} (D-219)`);
-    } else if (total > BUDGET_CEILING) {
-      why.push(`stage ${s.id} totals ${total} divines, within ${BUDGET_TOLERANCE} with a note`);
+    if (mine === null) unverified = true;
+    else if (mine > BUDGET_TOLERANCE) failures.push(failure('budget', s.id, 'over-budget', `stage ${s.id} totals ${mine} divines, above ${BUDGET_TOLERANCE} (D-219)`));
+    else if (mine > BUDGET_CEILING) {
       const text = checksText(guide, 'budget');
       if (guide && !(text !== null && norm(text).includes(NEAR_CEILING))) {
-        fail('budget', `budget stage ${s.id} totals ${total} divines, over ${BUDGET_CEILING}, but the guide's budget Checks lack "${NEAR_CEILING}" (D-219)`);
+        fail('budget', `budget stage ${s.id} totals ${mine} divines, over ${BUDGET_CEILING}, but the guide's budget Checks lack "${NEAR_CEILING}" (D-219)`);
       }
     }
   }
-  return { verdict, why };
+  return { verdict: failures.length > 0 ? 'fail' : unverified ? 'unverified' : 'pass', failures, unverified };
 }
 
 /** Rolled-skill gate (D-122, D-148, D-217): the rolled group's role is clear or single_target, and its figure is the largest of that role. */
 function recomputeRolledSkill(endgame, plan, record, rep, fail) {
-  const why = [];
+  const failures = [];
   const basis = Array.isArray(rep.basis?.rolledSkill) ? rep.basis.rolledSkill.filter(isObj) : [];
   for (const s of endgame) {
     const groups = Array.isArray(s.skills?.groups) ? s.skills.groups : [];
     const rolled = s.skills?.rolledGroup;
     const role = groups[rolled - 1]?.role;
     if (!['clear', 'single_target'].includes(role)) {
-      why.push(`stage ${s.id}'s rolled group ${show(rolled)} has role ${show(role)}; the rolled skill is clear or single_target, never a token role (D-122)`);
+      failures.push(failure('rolledSkill', s.id, 'rolled-role', `stage ${s.id}'s rolled group ${show(rolled)} has role ${show(role)}; the rolled skill is clear or single_target, never a token role (D-122)`));
       continue;
     }
     const b = basis.find((x) => x.stage === s.id);
     if (!b) {
       fail('gate-report', `the D1 gate's basis.rolledSkill has no entry for endgame stage ${s.id} (§5.3)`);
-      why.push(`stage ${s.id} has no figures to compare`);
+      failures.push(failure('rolledSkill', s.id, 'rolled-not-compared', `stage ${s.id} has no figures to compare`));
       continue;
     }
     if (b.group !== rolled || b.role !== role) fail('rolled-skill', `the D1 gate names stage ${s.id}'s rolled group ${show(b.group)} (${show(b.role)}); the plan has ${rolled} (${role})`);
@@ -1068,7 +1168,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
       const f = figures.find((x) => x.group === n);
       if (!f) {
         fail('rolled-skill', `the D1 gate compares no figure for stage ${s.id}'s group ${n}, which has the rolled group's role ${role} (§5.3)`);
-        why.push(`group ${n} not compared`);
+        failures.push(failure('rolledSkill', s.id, 'rolled-not-compared', `group ${n} not compared`));
         continue;
       }
       let value;
@@ -1077,8 +1177,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
       if (sk) {
         if (Number(sk[1]) !== n) fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id} is another group's, not group ${n}'s`);
         fields.add(sk[2]);
-        const key = String(f.figure).split('.')[0];
-        value = record.stages[s.id]?.skillOutputs?.[key]?.fields?.[sk[2]];
+        value = record.stages[s.id]?.skillOutputs?.[String(f.figure).split('.')[0]]?.fields?.[sk[2]];
       } else if (lg) {
         value = record.ledger?.[lg[1]]?.value;
       } else {
@@ -1086,7 +1185,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
         continue;
       }
       if (!isNum(value)) {
-        why.push(`stage ${s.id} group ${n}'s figure ${f.figure} isn't in the record`);
+        failures.push(failure('rolledSkill', s.id, 'rolled-no-figure', `stage ${s.id} group ${n}'s figure ${f.figure} isn't in the record`));
         continue;
       }
       if (!(isNum(f.value) && near(f.value, value))) fail('rolled-skill', `the D1 gate gives stage ${s.id} group ${n}'s ${f.figure} as ${show(f.value)}; the record has ${value}`);
@@ -1095,10 +1194,12 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
     if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...fields])}; it uses one field for every group (§5.3)`);
     const mine = values.get(rolled);
     for (const [n, v] of values) {
-      if (n !== rolled && isNum(mine) && v > mine) why.push(`stage ${s.id}'s group ${n} (${role}) has ${v}, more than the rolled group ${rolled}'s ${mine}`);
+      if (n !== rolled && isNum(mine) && v > mine) {
+        failures.push(failure('rolledSkill', s.id, 'rolled-not-largest', `stage ${s.id}'s group ${n} (${role}) has ${v}, more than the rolled group ${rolled}'s ${mine}`));
+      }
     }
   }
-  return { verdict: why.length > 0 ? 'fail' : 'pass', why };
+  return { verdict: failures.length > 0 ? 'fail' : 'pass', failures };
 }
 
 // ---------------------------------------------------------------------------------------------------

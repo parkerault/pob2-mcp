@@ -111,7 +111,12 @@
             "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
           }
         ],
-        "treeJewels": [],
+        "treeJewels": [
+          {
+            "node": 1001,
+            "text": "Rarity: Rare\nGrim Eye\nRuby\n+8% to Fire Resistance\n+12 to maximum Life"
+          }
+        ],
         "toggles": [],
         "useSecondWeaponSet": false
       },
@@ -649,6 +654,27 @@
             "option": "online"
           },
           "type": "budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-jewel",
+      "item": "budget tree jewel",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget tree jewel"
         },
         "sort": {
           "price": "asc"

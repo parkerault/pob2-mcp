@@ -103,7 +103,12 @@
             "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
           }
         ],
-        "treeJewels": [],
+        "treeJewels": [
+          {
+            "node": 1001,
+            "text": "Rarity: Rare\nGrim Eye\nRuby\n+8% to Fire Resistance\n+12 to maximum Life"
+          }
+        ],
         "toggles": [],
         "useSecondWeaponSet": false
       },

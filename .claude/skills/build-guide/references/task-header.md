@@ -36,7 +36,7 @@ the stage reference it names; the rest of the prompt adds nothing the header con
 | `compile` | `none`, `measure-only` or `final`: what this step may ask `compile_plan` for |
 | `buildName` | final compile only: `<slug>-<YYYY-MM-DD>-<n>` (`run-folder.md`) |
 | `findings` | earlier attempts' findings, routed V3/V4 findings, or the user's revision requests and guidance |
-| `accepted` | findings the user accepted at an escalation; equal findings fail no gate |
+| `accepted` | findings the user accepted at an escalation, as the run log records them; an equal finding (same plan stage, part and code, or a V3/V4 `id`) fails no gate |
 | `faults` | offline test mode only: this step's fault directives (`offline-and-test.md`) |
 | `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else |
 | `reference` | the step's stage reference, under `references/stages/` |

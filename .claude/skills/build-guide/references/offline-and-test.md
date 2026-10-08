@@ -48,8 +48,10 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
   applied.
 - **Without `--offline`** the skill records `testConfig: "refused"`, ignores the file (no answer, no
   fault, no forced orchestration) and asks the user at every checkpoint (D-157). Say so in the reply.
-- A file that can't be read or isn't this shape, given with `--offline`, stops the run before research:
-  status `stopped`, with the reason in `timeline[]` and in the reply.
+- A file that can't be read or isn't this shape, given with `--offline`, is refused too
+  (`testConfig: "refused"`), and the run stops before research: status `stopped`, with a `timeline[]`
+  entry such as `stopped: malformed test config <path>: <what is wrong>`, and the same reason in the
+  reply.
 - Without `--test`, `testConfig: "none"`.
 
 ## Fault directives (test config only)

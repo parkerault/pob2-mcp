@@ -32,7 +32,7 @@ Take the cold resistance at Beira.[^g3]
 
 ## Endgame: budget variant
 
-Gear by slot, gems at level 20, 8 ascendancy points.[^g8]
+Gear by slot and a tree jewel, gems at level 20, 8 ascendancy points.[^g8]
 
 ### Checks
 

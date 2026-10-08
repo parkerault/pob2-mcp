@@ -354,6 +354,13 @@
         "outcome": "ok"
       },
       {
+        "at": "2026-10-08T10:27:00Z",
+        "stage": "D1",
+        "tool": "search_trade_items",
+        "item": "budget tree jewel",
+        "outcome": "ok"
+      },
+      {
         "at": "2026-10-08T10:40:00Z",
         "stage": "D1-gate",
         "tool": "get_currency_rates",
@@ -376,8 +383,8 @@
       }
     ],
     "totals": {
-      "calls": 16,
-      "ok": 15,
+      "calls": 17,
+      "ok": 16,
       "unavailable": 0,
       "wouldWait": 1,
       "lockedOut": 0,

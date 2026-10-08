@@ -13,7 +13,7 @@
   "findings": [
     {
       "part": "floor",
-      "code": "floor-chaos-exception",
+      "code": "chaos-exception",
       "stage": "b",
       "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
     }
@@ -95,6 +95,11 @@
           "stage": "b",
           "slot": "Ring 2",
           "priceId": "b-ring2"
+        },
+        {
+          "stage": "b",
+          "jewel": 1001,
+          "priceId": "b-jewel"
         }
       ],
       "totals": [

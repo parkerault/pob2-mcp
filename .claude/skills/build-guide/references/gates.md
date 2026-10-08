@@ -21,9 +21,13 @@ contract: keep the field names exactly.
 
 - `stage`, `concept` and `attempt` match the file name.
 - Each `verdict` part is `pass`, `fail` or `unverified`.
-- Each finding names the `part` it belongs to, a stable `code`, the plan `stage` it concerns when there
-  is one, and a `message` citing record fields and C1/E1 keys. A V1 or V2 finding keeps the `code` the
-  compile record gives it. Two findings are "equal" when their gate stage and `code` are (§5.4).
+- Each finding names the `part` it belongs to, a stable `code`, the plan `stage` it concerns (a plan
+  stage id such as `b`; omitted only for a finding about no one stage), and a `message` citing record
+  fields and C1/E1 keys. A V1 or V2 finding keeps the `code` the compile record gives it; floor, budget
+  and rolledSkill findings use the codes below.
+- **Two findings are equal when their plan `stage`, `part` and `code` are**, whichever gate reports them:
+  a V1 finding the user accepted at the D1 gate is the same finding when the D2 gate or the final record
+  reports it again, and it covers that plan stage only (§5.4).
 - Extra fields are allowed (for example R1b's `errors`, the D2 gate's `finalCompile`, FI-3's `forced`).
 
 | Gate | Parts | Passes when |
@@ -50,8 +54,16 @@ stages with a `variant`.
   - for every reference hit in the stage's scenario inputs (the `enemyPhysicalDamage`,
     `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and `enemyChaosDamage` options),
     `<Type>MaximumHitTaken` is greater than the hit.
-- **budget** (D-116, D-147, D-164, D-219), for the budget variant: every filled slot has a `prices[]`
-  entry, converted to divines with `get_currency_rates`' rates.
+
+  The guide's statement of the exception (checked by the run checker): **one line** of the variant's
+  `Checks` holds both the exception's full `reason` text and the stage's uncapped chaos resistance
+  (the record's `ChaosResist`) as a number with `%`, for example "Chaos resistance stays at 28% because
+  no slot can carry chaos resistance without dropping a core item or breaking the budget".
+- **budget** (D-116, D-147, D-164, D-219, D-249), for the budget variant: every filled slot **and every
+  tree jewel** (`items.treeJewels`) has a `prices[]` entry, converted to divines with
+  `get_currency_rates`' rates. Each filled slot or jewel has its own entry, except slots holding identical
+  item text (two identical rings may share one, and each counts). Totals are compared **rounded to 2
+  decimals**.
   - total **≤ 20 divines: pass**;
   - total **> 20 and ≤ 22: pass, with a "near the ceiling" note** the guide's budget `Checks` must carry
     in those words;
@@ -78,8 +90,9 @@ and fails where the basis or the verdict differs.
   ],
   "budget": {
     "rates": [ { "currency": "exalted", "divines": 0.01 } ],
-    "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" } ],
-    "totals": [ { "stage": "b", "divines": 21.0 } ],
+    "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
+               { "stage": "b", "jewel": 1001, "priceId": "b-jewel" } ],
+    "totals": [ { "stage": "b", "divines": 21.5 } ],
     "nonBudget": [ { "stage": "n", "divines": 168.0, "reference": 200 } ]
   },
   "rolledSkill": [
@@ -92,11 +105,30 @@ and fails where the basis or the verdict differs.
 
 - `floor`: one entry per endgame stage: the three gated values, the chaos value
   (`MissingChaosResist`), and each reference hit with its `<Type>MaximumHitTaken`.
-- `budget`: one `slots` entry for every filled slot of every budget-variant stage, naming a `prices[].id`;
-  the `rates` used (`divines` is what one unit of the currency is worth; a divine counts 1); each
-  budget stage's total, `null` when unverified.
+- `budget`: one `slots` entry for every filled slot (`{stage, slot, priceId}`) and every tree jewel
+  (`{stage, jewel: <node id>, priceId}`) of every budget-variant stage, naming a `prices[].id`; the
+  `rates` used (`divines` is what one unit of the currency is worth; a divine counts 1); each budget
+  stage's total, `null` when unverified.
 - `rolledSkill`: per endgame stage, the rolled group, its role, and one figure for **every** group of
   that role.
+
+### Finding codes for floor, budget and rolledSkill
+
+The run checker recomputes these parts and names each failure by these codes, so an accepted finding
+(same plan stage, part and code) covers the matching failure:
+
+| Part | Code | Means |
+|---|---|---|
+| floor | `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist` | that resistance is below its cap (or the record lacks it) |
+| floor | `missing-chaos-resist` | chaos resistance below its cap with no `chaosResistException` |
+| floor | `chaos-exception` | chaos below its cap, kept by the exception: a finding on a passing floor |
+| floor | `max-hit-<type>` (`max-hit-physical`, …) | `<Type>MaximumHitTaken` isn't above that reference hit |
+| budget | `over-budget` | the total is above 22 divines |
+| budget | `near-ceiling` | above 20, at most 22: a finding on a passing budget |
+| budget | `unverified` | an unavailable price or a missing rate |
+| rolledSkill | `rolled-role` | the rolled group's role isn't `clear` or `single_target` |
+| rolledSkill | `rolled-not-largest` | another group of that role has the larger figure |
+| rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
 
 ## The D1 gate's outcome
 
@@ -107,5 +139,8 @@ and fails where the basis or the verdict differs.
 | only floor, budget or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
 | only floor, budget or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 retries, `infeasible` |
 
-A finding the user accepted at an escalation (same gate stage and `code`) fails neither that gate nor a
-later one (`checkpoints.md`).
+A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
+nor a later one (`checkpoints.md`). A completed run's guide passed every gate: the run checker fails a
+completed run whose recomputed floor, budget or rolled skill fails, or whose last D1 or D2 gate has a
+failing part, unless accepted findings cover every failure. Only a pass, or an `unverified` budget,
+proceeds to D2.

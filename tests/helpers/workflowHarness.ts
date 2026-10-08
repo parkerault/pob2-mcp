@@ -25,6 +25,13 @@
  *
  * Results cross back as JSON (the platform journals them as JSON), and errors as `WorkflowRunError`, which
  * keeps the calls made so far.
+ *
+ * Known gaps against the platform (accepted in review):
+ * - A responder that throws makes `agent()` throw. On the platform an agent that dies returns `null`; to
+ *   script that, return `null` from the responder instead of throwing.
+ * - With `opts.schema`, the schema's shape is checked as the platform checks it (root type `object`,
+ *   `required` ⊆ `properties`), but the scripted result is not validated against it: a test's scripted
+ *   results must already have the shape the schema describes.
  */
 import fs from 'fs';
 import path from 'path';

@@ -55,9 +55,12 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
   (`pick:c2`, `more`, `stop`, `accept`, `revise:<text>`, `proceed`, `retry:<guidance>`, …);
   `answeredBy` is `user`, `pre-supplied` (the test config) or `default` (the test config had no answer
   left, `offline-and-test.md`). Only an accepted test config gives `pre-supplied` or `default`.
-- **`escalations[]`**: `findings` is the list of findings the escalation showed (each with `stage`,
-  `code` or `id`, and `part` for a gate finding); `choice` is `accept`, `retry`, `checkpoint-1` or `stop`
-  (D-236).
+- **`escalations[]`**: `stage` is the gate step that escalated; `findings` lists the findings it showed,
+  each **verbatim** from its verdict or report (a gate finding keeps `part`, `code` and its plan `stage`;
+  a V3/V4 finding keeps its `id`), plus `gate`, the gate or report it failed:
+  `{"gate": "D1-gate", "part": "v1", "code": "level-points", "stage": "b", "message": "…"}`. `choice` is
+  `accept`, `retry`, `checkpoint-1` or `stop` (D-236). Two gate findings are equal when their plan
+  `stage`, `part` and `code` are (`gates.md`).
 - **`pricing.calls`**: every price-tool call any coordinator step made, as the step reported it
   (`pricing.md`). `outcome` is `ok`, the `<kind>` of an error's `[trade:<kind>]` prefix (`would_wait`,
   `locked_out`, `rate_limited`, `http`, …), or `error` for an error without the prefix. `at` is the

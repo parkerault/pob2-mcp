@@ -34,9 +34,10 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 | **possibly unread** | parsed, but a mod it makes is named nowhere in PoB's calculation code | **advisory** (D-243, D-226): confirm before hand-calculating (below) |
 | possibly unmodelled; check config | a gem line PoB's own tooltip marks unsupported | the effect may live in a config option (D-123); look for it before hand-calculating |
 
-**Confirm a `possibly unread` line by measurement** (D-243). Compile measure-only with the line and
-without it (two plans or two stages differing only in that line) and compare the record's outputs. If the
-numbers move, PoB reads the line: use its numbers. If they don't, the line is unmodelled: hand-calculate
+**Confirm a `possibly unread` line by measurement** (D-243). Add a temporary stage to `plan.json` (or to
+the concept's skeleton) that copies the stage under test without that line, compile measure-only with
+`stages` naming the two stages, and compare their outputs in the record. Remove the temporary stage before
+the step ends; no second plan file goes in the run folder. If the numbers move, PoB reads the line: use its numbers. If they don't, the line is unmodelled: hand-calculate
 it in the ledger and say so in the guide's "Confidence and what PoB can't model". Only a coordinator step
 compiles, so a researcher or verifier that meets such a line reports it for the coordinator instead of
 guessing.

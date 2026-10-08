@@ -32,8 +32,9 @@ is the price's `date`.
 ## Order (D-133)
 
 1. R1b prices each concept's key items.
-2. D1 prices every slot of both endgame variants, with rares as affix-target searches
-   (`search_trade_items` with `mods`).
+2. D1 prices every filled slot **and every tree jewel** (D-249) of both endgame variants, with rares as
+   affix-target searches (`search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
+   slots holding identical item text, which may share one.
 3. D2 prices the campaign uniques.
 
 Before any search, reuse an entry with the same item, query and league from any plan in this run
@@ -87,8 +88,9 @@ has stopped, and in offline mode.
 Totals convert with `get_currency_rates`. The D1 gate records the rates it used (`gates.md`). If the
 rates are unavailable, totals are `unverified`.
 
-- Budget variant: **at most 20 divines passes; above 20 and at most 22 passes, and the guide says "near
-  the ceiling"; above 22 fails.**
+- Budget variant, slots and tree jewels together (D-249), the total rounded to 2 decimals: **at most 20
+  divines passes; above 20 and at most 22 passes, and the guide says "near the ceiling"; above 22
+  fails.**
 - Non-budget variant: reported against the ~200-divine reference, never gated.
 - A variant with any `unavailable` slot price can't be claimed to be under budget; the guide and
   checkpoint 2 say so (D-164).

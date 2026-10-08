@@ -636,3 +636,773 @@ describe('build-guide-research: R1b compiles and prices (R1b.md)', () => {
     ]);
   });
 });
+
+// ---------------------------------------------------------------------------------------------------
+// Design-and-write workflow `build-guide-design` (WU-45): AC-W8, AC-W9, AC-W10, AC-W24
+// ---------------------------------------------------------------------------------------------------
+
+/** The final compile's file: the run folder's last two segments joined with "-" (§2). */
+const BUILD_NAME = 'titan-blood-hunt-2026-10-08-1';
+
+interface GateFinding {
+  part: string;
+  code: string;
+  stage?: string;
+  message: string;
+}
+interface DesignResult {
+  status: 'ready' | 'infeasible' | 'escalated';
+  stage?: string;
+  evidence?: (Partial<GateFinding> & { gate: string; attempt?: number })[];
+  accepted?: (Partial<GateFinding> & { gate: string })[];
+  gateVerdicts: {
+    stage: string;
+    concept: string;
+    attempt: number;
+    verdict: Record<string, string>;
+    findings: GateFinding[];
+    basis?: unknown;
+    forced?: string;
+    finalCompile?: { compiled: boolean; errors: string[]; pobFile: string | null; importCode: string | null } | null;
+  }[];
+  v3Reports: { stage: string; pass: number }[];
+  v4Reports: { stage: string; lens: string; pass: number }[];
+  stats: ResearchResult['stats'];
+}
+
+const designArgs = (over: Record<string, unknown> = {}) => ({
+  runFolder: RUN_FOLDER,
+  runFolderRel: RUN_FOLDER_REL,
+  conceptId: 'c1',
+  mode: 'offline',
+  buildName: BUILD_NAME,
+  ...over,
+});
+
+const D1_PARTS = { compiled: 'pass', v1: 'pass', v2: 'pass', floor: 'pass', budget: 'pass', rolledSkill: 'pass' };
+const BASIS = {
+  floor: [{ stage: 'b', missing: { Fire: 0, Cold: 0, Lightning: 0 }, chaos: 0, hits: [] }],
+  budget: { rates: [], slots: [], totals: [{ stage: 'b', divines: null }], nonBudget: [] },
+  rolledSkill: [{ stage: 'b', group: 1, role: 'clear', figures: [] }],
+};
+/** A D1 step's return (D1.md). */
+const d1 = (claim: 'done' | 'infeasible' = 'done', reason = '') => ({ claim, reason, compiles: 2, leagueUnverified: false, priceCalls: [] });
+/** A D1 gate verdict (D1-gate.md): every part passing unless overridden. */
+const d1Gate = (verdict: Record<string, string> = {}, findings: GateFinding[] = []) => ({
+  verdict: { ...D1_PARTS, ...verdict },
+  findings,
+  basis: BASIS,
+  recordPath: 'compile-record.json',
+  priceCalls: [],
+  faultsApplied: [],
+});
+const d2 = () => ({ claim: 'done', stages: ['1', '2'], compiles: 2, priceCalls: [] });
+const d2Check = (verdict: Record<string, string> = {}, findings: GateFinding[] = []) => ({
+  verdict: { compiled: 'pass', v1: 'pass', v2: 'pass', ...verdict },
+  findings,
+  recordPath: 'compile-record.json',
+});
+const finalOk = () => ({
+  compiled: true,
+  errors: [],
+  recordPath: 'compile-record.json',
+  pobFile: `${BUILD_NAME}.xml`,
+  importCode: 'eNrt-fixture-code',
+  verdict: { v1: 'pass', v2: 'pass' },
+  findings: [],
+});
+/** The D2 gate: the measure-only check, then, in the same attempt, the final compile (D2-gate.md). */
+const d2Gate =
+  (check: (call: AgentCall, nth: number) => unknown = () => d2Check(), final: (call: AgentCall) => unknown = finalOk) =>
+  (call: AgentCall, nth: number) =>
+    header(call).compile === 'final' ? final(call) : check(call, nth);
+const w1 = () => ({ file: 'guide.md', importCode: 'eNrt-fixture-code', gaps: [] });
+/** A V3 or V4 report (§7.4) with no finding. */
+const report = (call: AgentCall) => {
+  const h = header(call);
+  return {
+    stage: h.stage,
+    ...(h.lens !== undefined ? { lens: h.lens } : {}),
+    concept: h.concept,
+    pass: h.pass,
+    mode: h.mode,
+    coverage: {},
+    findings: [],
+    verdict: 'pass',
+  };
+};
+
+type Table = Parameters<typeof byStage>[0];
+/** Every step scripted to pass; `over` replaces some. */
+const happy = (over: Table = {}): Table => ({
+  D1: () => d1(),
+  'D1-gate': () => d1Gate(),
+  D2: () => d2(),
+  'D2-gate': d2Gate(),
+  W1: () => w1(),
+  V3: report,
+  V4: report,
+  ...over,
+});
+const finding = (part: string, code: string, stage = 'b'): GateFinding => ({ part, code, stage, message: `${part} ${code} on stage ${stage}` });
+/** The design stages WU-45 owns; V3 and V4 (and their references) are WU-46's. */
+const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1'];
+
+async function design(table: Table, args: Record<string, unknown> = {}, options: Partial<RunOptions> = {}) {
+  const r = await run('build-guide-design', { args: designArgs(args), respond: byStage(table), ...options });
+  return { ...r, out: r.result as DesignResult };
+}
+const attemptsOf = (r: { calls: AgentCall[] }, stage: string) => callsOf(r, stage).map((c) => header(c).attempt);
+const findingsOf = (call: AgentCall) => header(call).findings as (GateFinding & { attempt: number })[];
+
+describe('build-guide-design: the saved script', () => {
+  it('is .claude/workflows/build-guide-design.js, with a pure-literal meta naming it', () => {
+    const wf = loadSavedWorkflow('build-guide-design');
+    expect(wf.meta.name).toBe('build-guide-design');
+    expect(wf.meta.description.length).toBeGreaterThan(40);
+    expect(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'SKILL.md'), 'utf8')).toContain('build-guide-design');
+  });
+
+  it('refuses args without the run folder, the concept, the mode or the build name', async () => {
+    for (const drop of ['runFolder', 'runFolderRel', 'conceptId', 'mode', 'buildName']) {
+      const args: Record<string, unknown> = designArgs();
+      delete args[drop];
+      await expect(run('build-guide-design', { args, respond: () => null })).rejects.toThrow(new RegExp(`args\\.${drop}`));
+    }
+  });
+
+  it("refuses a build name that isn't the run folder's last two segments joined (§2)", async () => {
+    await expect(run('build-guide-design', { args: designArgs({ buildName: 'my-build' }), respond: () => null })).rejects.toThrow(
+      /args\.buildName is the run folder's last two segments joined with "-" \("titan-blood-hunt-2026-10-08-1"\)/,
+    );
+  });
+});
+
+describe('AC-W8: the design happy path', () => {
+  it('runs D1, the D1 gate, D2, the D2 gate and its final compile, W1, then V3 and the three V4 lenses, and returns ready', async () => {
+    const r = await design(happy());
+    expect(r.calls.map((c) => [stageOf(c), header(c).compile, header(c).lens ?? null])).toEqual([
+      ['D1', 'measure-only', null],
+      ['D1-gate', 'measure-only', null],
+      ['D2', 'measure-only', null],
+      ['D2-gate', 'measure-only', null],
+      ['D2-gate', 'final', null],
+      ['W1', 'none', null],
+      ['V3', 'none', null],
+      ['V4', 'none', 'ledger'],
+      ['V4', 'none', 'sources'],
+      ['V4', 'none', 'prose'],
+    ]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stage).toBeUndefined();
+  });
+
+  it('says measure-only in every compile header before the D2 gate passes; one step carries final with buildName, the passing D2 gate', async () => {
+    // Twice failing, the D2 gate passes on its third attempt: the rule holds across retries too.
+    const v1Fail = d2Check({ v1: 'fail' }, [finding('v1', 'tree-continuity', '2')]);
+    for (const table of [happy(), happy({ 'D2-gate': d2Gate((_c, nth) => (nth < 2 ? v1Fail : d2Check())) })]) {
+      const r = await design(table);
+      const finals = r.calls.filter((c) => header(c).compile === 'final');
+      expect(finals).toHaveLength(1);
+      const final = finals[0];
+      // Before it, every compiling header is measure-only; only it names the build.
+      for (const c of r.calls.slice(0, final.index)) expect([stageOf(c), header(c).compile]).toEqual([stageOf(c), stageOf(c) === 'W1' ? 'none' : 'measure-only']);
+      for (const c of r.calls) expect({ i: c.index, buildName: header(c).buildName }).toEqual({ i: c.index, buildName: c === final ? BUILD_NAME : undefined });
+      // It is the D2 gate attempt whose measure-only check passed, and that attempt's verdict passes.
+      expect(stageOf(final)).toBe('D2-gate');
+      const passing = r.out.gateVerdicts.filter((g) => g.stage === 'D2-gate' && Object.values(g.verdict).every((v) => v === 'pass'));
+      expect(passing.map((g) => g.attempt)).toEqual([header(final).attempt]);
+      expect(passing[0].finalCompile).toEqual(expect.objectContaining({ compiled: true, importCode: 'eNrt-fixture-code', pobFile: `${BUILD_NAME}.xml` }));
+      const check = r.calls[final.index - 1];
+      expect([stageOf(check), header(check).compile, header(check).attempt]).toEqual(['D2-gate', 'measure-only', header(final).attempt]);
+      expect(r.out.status).toBe('ready');
+    }
+  });
+
+  it('names an allowed agentType on every agent() (R-6): the coordinator, the writer, provenance and the verifier', async () => {
+    const r = await design(happy());
+    const want: Record<string, string> = {
+      D1: 'build-guide-coordinator',
+      'D1-gate': 'build-guide-coordinator',
+      D2: 'build-guide-coordinator',
+      'D2-gate': 'build-guide-coordinator',
+      W1: 'build-guide-writer',
+      V3: 'build-guide-provenance',
+      V4: 'build-guide-verifier',
+    };
+    for (const c of r.calls) {
+      expect(AGENT_TYPES).toContain(c.opts.agentType);
+      expect({ stage: stageOf(c), type: c.opts.agentType }).toEqual({ stage: stageOf(c), type: want[stageOf(c)] });
+    }
+  });
+
+  it("carries the args' mode and run folder and only §5.1's fields in every header, each writing only its own files", async () => {
+    for (const mode of ['offline', 'online']) {
+      const r = await design(happy(), { mode });
+      for (const c of r.calls) {
+        const h = header(c);
+        expect({ mode: h.mode, runFolder: h.runFolder, runFolderRel: h.runFolderRel, concept: h.concept }).toEqual({
+          mode,
+          runFolder: RUN_FOLDER,
+          runFolderRel: RUN_FOLDER_REL,
+          concept: 'c1',
+        });
+        for (const k of Object.keys(h)) expect(HEADER_FIELDS).toContain(k);
+        expect(h.reference).toBe(`.claude/skills/build-guide/references/stages/${h.stage}.md`);
+        if (DESIGN_STAGES.includes(h.stage as string)) expect(fs.existsSync(path.join(REPO_ROOT, h.reference as string))).toBe(true);
+        for (const w of h.writes as string[]) expect(w).not.toMatch(/^\/|\.\./);
+      }
+      const writes = Object.fromEntries(r.calls.map((c) => [`${stageOf(c)}:${header(c).compile}`, header(c).writes]));
+      expect(writes).toEqual({
+        'D1:measure-only': ['plan.json'],
+        // The D1 gate edits the plan only for the online re-price pass (or FI-2, below).
+        'D1-gate:measure-only': mode === 'online' ? ['plan.json'] : [],
+        'D2:measure-only': ['plan.json'],
+        'D2-gate:measure-only': [],
+        'D2-gate:final': [],
+        'W1:none': ['guide.md'],
+        'V3:none': [],
+        'V4:none': [],
+      });
+      // V3 and V4 read the pass; the gates count their attempts.
+      for (const c of r.calls.filter((c) => ['V3', 'V4'].includes(stageOf(c)))) expect(header(c).pass).toBe(1);
+    }
+  });
+
+  it('runs one coordinator step at a time, overlapping no other agent, and at most 3 verifiers in flight', async () => {
+    const r = await design(happy(), {}, { delay: (c) => (['V3', 'V4'].includes(stageOf(c)) ? 1 + c.index : 1) });
+    const coordinators = r.calls.filter((c) => c.opts.agentType === 'build-guide-coordinator');
+    expect(coordinators).toHaveLength(5);
+    for (const c of [...coordinators, ...callsOf(r, 'W1')]) {
+      for (const other of r.calls) if (other !== c) expect({ call: c.index, other: other.index, overlap: overlaps(c, other) }).toEqual({ call: c.index, other: other.index, overlap: false });
+    }
+    const verifiers = r.calls.filter((c) => ['V3', 'V4'].includes(stageOf(c)));
+    expect(verifiers).toHaveLength(4);
+    expect(r.maxInFlight).toBe(3);
+    expect(r.out.stats.agents).toEqual({
+      total: 10,
+      byType: { 'build-guide-coordinator': 5, 'build-guide-writer': 1, 'build-guide-provenance': 1, 'build-guide-verifier': 3 },
+      maxConcurrent: 3,
+    });
+  });
+
+  it('returns the gate verdicts, the reports and the stats the skill logs (references/run-log.md, gates.md)', async () => {
+    const r = await design(happy());
+    expect(r.out.gateVerdicts.map((g) => [g.stage, g.concept, g.attempt, g.verdict])).toEqual([
+      ['D1-gate', 'c1', 1, D1_PARTS],
+      ['D2-gate', 'c1', 1, { compiled: 'pass', v1: 'pass', v2: 'pass' }],
+    ]);
+    // The D1 gate's file carries the basis the run checker recomputes it from.
+    expect(r.out.gateVerdicts[0].basis).toEqual(BASIS);
+    expect(r.out.v3Reports.map((x) => [x.stage, x.pass])).toEqual([['V3', 1]]);
+    expect(r.out.v4Reports.map((x) => [x.stage, x.lens, x.pass])).toEqual([
+      ['V4', 'ledger', 1],
+      ['V4', 'sources', 1],
+      ['V4', 'prose', 1],
+    ]);
+    expect(r.out.stats.attempts).toEqual([
+      { stage: 'D1', concept: 'c1', attempt: 1, agents: 1, outcome: 'done', findings: 0 },
+      { stage: 'D1-gate', concept: 'c1', attempt: 1, agents: 1, outcome: 'pass', findings: 0 },
+      { stage: 'D2', concept: 'c1', attempt: 1, agents: 1, outcome: 'done', findings: 0 },
+      // The D2 gate's attempt holds its check and its final compile: two agents.
+      { stage: 'D2-gate', concept: 'c1', attempt: 1, agents: 2, outcome: 'pass', findings: 0 },
+      { stage: 'W1', concept: 'c1', attempt: 1, agents: 1, outcome: 'done', findings: 0 },
+      { stage: 'V3', concept: 'c1', pass: 1, attempt: 1, agents: 1, outcome: 'pass', findings: 0 },
+      { stage: 'V4', concept: 'c1', lens: 'ledger', pass: 1, attempt: 1, agents: 1, outcome: 'pass', findings: 0 },
+      { stage: 'V4', concept: 'c1', lens: 'sources', pass: 1, attempt: 1, agents: 1, outcome: 'pass', findings: 0 },
+      { stage: 'V4', concept: 'c1', lens: 'prose', pass: 1, attempt: 1, agents: 1, outcome: 'pass', findings: 0 },
+    ]);
+    expect(r.out.stats.retries).toEqual([]);
+    expect(r.out.stats.priceCalls).toEqual([]);
+    expect(r.out.stats.faults).toEqual([]);
+    expect(r.out.accepted).toBeUndefined();
+  });
+
+  it("gives W1 the D1 gate's budget totals and findings, and V3 and V4 nothing a D1, D2 or W1 step returned", async () => {
+    const SENTINEL = 'SENTINEL-d1-d2-w1-text';
+    const nearCeiling = finding('budget', 'near-ceiling');
+    const r = await design(
+      happy({
+        D1: () => ({ ...d1(), reason: SENTINEL }),
+        'D1-gate': () => d1Gate({}, [nearCeiling]),
+        D2: () => ({ ...d2(), stages: [SENTINEL] }),
+        W1: () => ({ ...w1(), gaps: [SENTINEL] }),
+      }),
+    );
+    const w1Prompt = callsOf(r, 'W1')[0].prompt;
+    expect(w1Prompt).toContain('near-ceiling');
+    expect(w1Prompt).toContain('"totals"');
+    expect(w1Prompt).toContain('.claude/skills/build-guide/templates/guide-template.md');
+    for (const c of r.calls.filter((c) => ['V3', 'V4'].includes(stageOf(c)))) {
+      expect(c.prompt).not.toContain(SENTINEL);
+      expect(header(c).findings).toEqual([]);
+      expect(header(c).accepted).toEqual([]);
+    }
+  });
+
+  it('prices online in D1 and D2 at the pace pricing.md sets, never offline, and stops once a call comes back rate_limited', async () => {
+    const offline = await design(happy());
+    for (const c of [...callsOf(offline, 'D1'), ...callsOf(offline, 'D2')]) expect(c.prompt).toContain('Offline run: make no price call');
+    expect(callsOf(offline, 'D1-gate')[0].prompt).toContain('Offline run: no re-price pass and no price call');
+
+    const limited = await design(
+      happy({ D1: () => ({ ...d1(), priceCalls: [{ at: null, tool: 'search_trade_items', item: 'Ring 1', outcome: 'rate_limited' }] }) }),
+      { mode: 'online' },
+    );
+    expect(callsOf(limited, 'D1')[0].prompt).toMatch(/Price every filled slot and tree jewel of both variants/);
+    expect(callsOf(limited, 'D1-gate')[0].prompt).toMatch(/Pricing has stopped for this run \(a price call came back rate_limited\): no re-price pass/);
+    expect(callsOf(limited, 'D2')[0].prompt).toMatch(/Pricing has stopped for this run/);
+    expect(limited.out.stats.priceCalls).toEqual([{ at: null, stage: 'D1', tool: 'search_trade_items', item: 'Ring 1', outcome: 'rate_limited' }]);
+
+    const online = await design(happy(), { mode: 'online' });
+    expect(callsOf(online, 'D1-gate')[0].prompt).toContain('First the final re-price pass');
+  });
+
+  it('tells W1 when D1 found no league to verify, and D1 never to take an unverified league', async () => {
+    const r = await design(happy({ D1: () => ({ ...d1(), leagueUnverified: true }) }), { mode: 'online' });
+    expect(callsOf(r, 'D1')[0].prompt).toMatch(/never from a skeleton or dossier line that marks it unverified, and never a guess such as Standard/);
+    expect(callsOf(r, 'W1')[0].prompt).toContain("The league couldn't be verified");
+    const plain = await design(happy(), { mode: 'online' });
+    expect(callsOf(plain, 'W1')[0].prompt).not.toContain("The league couldn't be verified");
+  });
+
+  it('writes plan.json anew on D1 attempt 1, and edits it on a retry', async () => {
+    const r = await design(happy({ 'D1-gate': [d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points')]), d1Gate()] }));
+    const [first, second] = callsOf(r, 'D1');
+    expect(first.prompt).toContain('Write plan.json whole, from this concept\'s skeleton');
+    expect(second.prompt).toContain('Edit plan.json');
+  });
+});
+
+describe('AC-W9: the D1 gate table (§5.3)', () => {
+  it('row 1: compiled, V1, V2, floor and rolled skill passing, budget pass or unverified, goes on to D2 whatever D1 claims', async () => {
+    for (const budget of ['pass', 'unverified']) {
+      for (const claim of ['done', 'infeasible'] as const) {
+        const r = await design(happy({ D1: () => d1(claim, claim === 'infeasible' ? 'no shield slot' : ''), 'D1-gate': () => d1Gate({ budget }, budget === 'unverified' ? [finding('budget', 'unverified')] : []) }));
+        expect({ budget, claim, d1: attemptsOf(r, 'D1'), d2: callsOf(r, 'D2').length, status: r.out.status }).toEqual({ budget, claim, d1: [1], d2: 1, status: 'ready' });
+      }
+    }
+  });
+
+  it('row 2: a compile, V1 or V2 failure re-runs D1 with the findings, and escalates after 2 retries, whatever D1 claims', async () => {
+    for (const part of ['compiled', 'v1', 'v2']) {
+      for (const claim of ['done', 'infeasible'] as const) {
+        const r = await design(
+          happy({
+            D1: () => d1(claim, claim === 'infeasible' ? 'claimed' : ''),
+            'D1-gate': (c) => d1Gate({ [part]: 'fail' }, [{ part, code: `${part}-code`, stage: 'b', message: `attempt ${header(c).attempt}` }]),
+          }),
+        );
+        expect({ part, claim, d1: attemptsOf(r, 'D1'), gate: attemptsOf(r, 'D1-gate') }).toEqual({ part, claim, d1: [1, 2, 3], gate: [1, 2, 3] });
+        // Each retry carries every earlier attempt's findings.
+        const d1Calls = callsOf(r, 'D1');
+        expect(findingsOf(d1Calls[0])).toEqual([]);
+        expect(findingsOf(d1Calls[1]).map((f) => [f.attempt, f.part, f.code, f.message])).toEqual([[1, part, `${part}-code`, 'attempt 1']]);
+        expect(findingsOf(d1Calls[2]).map((f) => [f.attempt, f.message])).toEqual([
+          [1, 'attempt 1'],
+          [2, 'attempt 2'],
+        ]);
+        expect(r.out.status).toBe('escalated');
+        expect(r.out.stage).toBe('D1-gate');
+        expect(r.out.evidence!.map((e) => [e.gate, e.attempt, e.part, e.code])).toEqual([1, 2, 3].map((n) => ['D1-gate', n, part, `${part}-code`]));
+        // After escalated, no D2 step runs.
+        expect(callsOf(r, 'D2')).toHaveLength(0);
+        expect(r.out.stats.retries).toEqual([{ stage: 'D1', concept: 'c1', count: 2 }]);
+        expect(r.out.stats.attempts.filter((a) => a.stage === 'D1-gate').map((a) => a.outcome)).toEqual(['fail', 'fail', 'escalated']);
+      }
+    }
+  });
+
+  it('row 3: only floor, budget or rolled skill failing, with D1 claiming infeasible, is infeasible at once, the verdict as evidence', async () => {
+    for (const part of ['floor', 'budget', 'rolledSkill']) {
+      const code = { floor: 'missing-chaos-resist', budget: 'over-budget', rolledSkill: 'rolled-not-largest' }[part]!;
+      const r = await design(happy({ D1: () => d1('infeasible', 'no slot can carry chaos resistance'), 'D1-gate': () => d1Gate({ [part]: 'fail' }, [finding(part, code)]) }));
+      expect({ part, d1: attemptsOf(r, 'D1'), status: r.out.status, stage: r.out.stage }).toEqual({ part, d1: [1], status: 'infeasible', stage: 'D1-gate' });
+      expect(r.out.evidence).toEqual([
+        expect.objectContaining({ gate: 'D1-gate', attempt: 1, part, code }),
+        expect.objectContaining({ gate: 'D1', attempt: 1, code: 'claimed-infeasible', message: 'no slot can carry chaos resistance' }),
+      ]);
+      expect(callsOf(r, 'D2')).toHaveLength(0);
+      expect(r.out.stats.attempts.find((a) => a.stage === 'D1-gate')!.outcome).toBe('infeasible');
+      expect(r.out.stats.retries).toEqual([]);
+    }
+  });
+
+  it('row 4: only floor, budget or rolled skill failing, with D1 claiming done, re-runs D1 with the findings, and is infeasible after 2 retries', async () => {
+    for (const part of ['floor', 'budget', 'rolledSkill']) {
+      const r = await design(happy({ 'D1-gate': (c) => d1Gate({ [part]: 'fail' }, [{ ...finding(part, 'some-code'), message: `attempt ${header(c).attempt}` }]) }));
+      expect({ part, d1: attemptsOf(r, 'D1'), status: r.out.status, stage: r.out.stage }).toEqual({ part, d1: [1, 2, 3], status: 'infeasible', stage: 'D1-gate' });
+      expect(findingsOf(callsOf(r, 'D1')[2]).map((f) => f.message)).toEqual(['attempt 1', 'attempt 2']);
+      expect(r.out.evidence!.map((e) => [e.attempt, e.part])).toEqual([[3, part]]);
+      expect(callsOf(r, 'D2')).toHaveLength(0);
+      expect(r.out.stats.retries).toEqual([{ stage: 'D1', concept: 'c1', count: 2 }]);
+    }
+  });
+
+  it('a hard failure beside a floor failure is row 2, even when D1 claims infeasible', async () => {
+    const r = await design(happy({ D1: () => d1('infeasible', 'claimed'), 'D1-gate': () => d1Gate({ v1: 'fail', floor: 'fail' }, [finding('v1', 'passive-points'), finding('floor', 'missing-cold-resist')]) }));
+    expect(attemptsOf(r, 'D1')).toEqual([1, 2, 3]);
+    expect(r.out.status).toBe('escalated');
+  });
+
+  it('a failure cleared within the cap goes on to D2, the retry carrying its findings', async () => {
+    const r = await design(happy({ 'D1-gate': [d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist')]), d1Gate()] }));
+    expect(attemptsOf(r, 'D1')).toEqual([1, 2]);
+    expect(findingsOf(callsOf(r, 'D1')[1]).map((f) => [f.attempt, f.code])).toEqual([[1, 'missing-cold-resist']]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'D1', concept: 'c1', count: 1 }]);
+    expect(r.out.gateVerdicts.filter((g) => g.stage === 'D1-gate').map((g) => [g.attempt, g.verdict.floor])).toEqual([
+      [1, 'fail'],
+      [2, 'pass'],
+    ]);
+  });
+
+  it('a floor that is unverified, or failing with no finding, still fails; only the budget may be unverified', async () => {
+    const r = await design(happy({ 'D1-gate': [d1Gate({ floor: 'unverified' }), d1Gate({ rolledSkill: 'fail' }), d1Gate()] }));
+    expect(attemptsOf(r, 'D1')).toEqual([1, 2, 3]);
+    expect(findingsOf(callsOf(r, 'D1')[2]).map((f) => [f.attempt, f.part, f.code])).toEqual([
+      [1, 'floor', 'floor-unverified'],
+      [2, 'rolledSkill', 'rolledSkill-fail'],
+    ]);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('a compile failure leaves the other parts unverified, and D1 gets the compile error alone', async () => {
+    const unverified = { v1: 'unverified', v2: 'unverified', floor: 'unverified', budget: 'unverified', rolledSkill: 'unverified' };
+    const r = await design(happy({ 'D1-gate': [d1Gate({ compiled: 'fail', ...unverified }, [finding('compiled', 'compile-error')]), d1Gate()] }));
+    expect(findingsOf(callsOf(r, 'D1')[1]).map((f) => [f.part, f.code])).toEqual([['compiled', 'compile-error']]);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('counts a null D1 result as a failed attempt, which re-runs; a null D1 gate re-runs the gate alone', async () => {
+    const r = await design(happy({ D1: [null, d1()], 'D1-gate': [null, d1Gate()] }));
+    expect(r.calls.slice(0, 4).map((c) => [stageOf(c), header(c).attempt])).toEqual([
+      ['D1', 1],
+      ['D1', 2],
+      ['D1-gate', 1],
+      ['D1-gate', 2],
+    ]);
+    expect(findingsOf(callsOf(r, 'D1')[1]).map((f) => [f.attempt, f.code])).toEqual([[1, 'null-result']]);
+    // A dead attempt 1 may have left a partial plan: attempt 2 still writes it anew.
+    expect(callsOf(r, 'D1')[1].prompt).toContain('Write plan.json whole');
+    expect(r.out.stats.retries).toEqual([
+      { stage: 'D1', concept: 'c1', count: 1 },
+      { stage: 'D1-gate', concept: 'c1', count: 1 },
+    ]);
+    // A null gate attempt has no verdict, so no gate file (FR-W6).
+    expect(r.out.gateVerdicts.filter((g) => g.stage === 'D1-gate').map((g) => g.attempt)).toEqual([2]);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('escalates when D1 or its gate returns nothing three times', async () => {
+    const deadD1 = await design(happy({ D1: () => null }));
+    expect([attemptsOf(deadD1, 'D1'), deadD1.out.status, deadD1.out.stage]).toEqual([[1, 2, 3], 'escalated', 'D1']);
+    const deadGate = await design(happy({ 'D1-gate': () => null }));
+    expect([attemptsOf(deadGate, 'D1'), attemptsOf(deadGate, 'D1-gate'), deadGate.out.status, deadGate.out.stage]).toEqual([[1], [1, 2, 3], 'escalated', 'D1-gate']);
+    for (const r of [deadD1, deadGate]) expect(callsOf(r, 'D2')).toHaveLength(0);
+  });
+});
+
+describe('AC-W10: the D2 gate, W1, FI-2 and FI-3', () => {
+  it('a D2 gate failing 3 times escalates with 3 attempts\' findings; no final compile and no W1 run', async () => {
+    const r = await design(happy({ 'D2-gate': d2Gate((c) => d2Check({ v2: 'fail' }, [{ part: 'v2', code: 'default-unlisted', stage: '2', message: `attempt ${header(c).attempt}` }])) }));
+    expect(attemptsOf(r, 'D2')).toEqual([1, 2, 3]);
+    expect(attemptsOf(r, 'D2-gate')).toEqual([1, 2, 3]);
+    expect(findingsOf(callsOf(r, 'D2')[2]).map((f) => [f.attempt, f.code, f.message])).toEqual([
+      [1, 'default-unlisted', 'attempt 1'],
+      [2, 'default-unlisted', 'attempt 2'],
+    ]);
+    expect(r.out.status).toBe('escalated');
+    expect(r.out.stage).toBe('D2-gate');
+    expect(r.out.evidence!.map((e) => [e.gate, e.attempt, e.code])).toEqual([1, 2, 3].map((n) => ['D2-gate', n, 'default-unlisted']));
+    expect(r.calls.filter((c) => header(c).compile === 'final')).toHaveLength(0);
+    expect(callsOf(r, 'W1')).toHaveLength(0);
+    expect(r.out.stats.retries).toEqual([{ stage: 'D2', concept: 'c1', count: 2 }]);
+  });
+
+  it('a failed final compile fails its D2 gate attempt, and D2 re-runs with the error', async () => {
+    const refused = () => ({ ...finalOk(), compiled: false, errors: ['titan-blood-hunt-2026-10-08-1.xml already exists'], importCode: null, pobFile: null });
+    const r = await design(happy({ 'D2-gate': d2Gate(() => d2Check(), (c) => (header(c).attempt === 1 ? refused() : finalOk())) }));
+    expect(r.calls.filter((c) => stageOf(c).startsWith('D2')).map((c) => [stageOf(c), header(c).attempt, header(c).compile])).toEqual([
+      ['D2', 1, 'measure-only'],
+      ['D2-gate', 1, 'measure-only'],
+      ['D2-gate', 1, 'final'],
+      ['D2', 2, 'measure-only'],
+      ['D2-gate', 2, 'measure-only'],
+      ['D2-gate', 2, 'final'],
+    ]);
+    expect(findingsOf(callsOf(r, 'D2')[1]).map((f) => [f.part, f.code, f.message])).toEqual([['compiled', 'final-compile', 'titan-blood-hunt-2026-10-08-1.xml already exists']]);
+    const files = r.out.gateVerdicts.filter((g) => g.stage === 'D2-gate');
+    expect(files.map((g) => [g.attempt, g.verdict.compiled, g.finalCompile?.compiled])).toEqual([
+      [1, 'fail', false],
+      [2, 'pass', true],
+    ]);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('a null W1 result re-runs W1, with a finding saying so; three escalate', async () => {
+    const r = await design(happy({ W1: [null, w1()] }));
+    expect(attemptsOf(r, 'W1')).toEqual([1, 2]);
+    expect(findingsOf(callsOf(r, 'W1')[1]).map((f) => [f.attempt, f.code])).toEqual([[1, 'null-result']]);
+    expect(r.out.stats.attempts.filter((a) => a.stage === 'W1').map((a) => a.outcome)).toEqual(['null-result', 'done']);
+    expect(r.out.stats.retries).toEqual([{ stage: 'W1', concept: 'c1', count: 1 }]);
+    expect(r.out.status).toBe('ready');
+    const dead = await design(happy({ W1: () => null }));
+    expect([attemptsOf(dead, 'W1'), dead.out.status, dead.out.stage]).toEqual([[1, 2, 3], 'escalated', 'W1']);
+    expect(callsOf(dead, 'V3')).toHaveLength(0);
+  });
+
+  it('puts FI-2 only in the D1 gate header for the targeted concept, on attempt 1 unless persistent', async () => {
+    const fi2 = (concepts: string[] | 'all', persistent: boolean) => ({ id: 'FI-2', concepts, persistent });
+    // FI-2 makes V1 fail for the stage it edited; the retry passes.
+    const v1OnFault = (c: AgentCall) =>
+      (header(c).faults as unknown[]).length > 0
+        ? { ...d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points')]), faultsApplied: [{ id: 'FI-2', observed: 'stage b: passive-points at level 1' }] }
+        : d1Gate();
+    const faultsByCall = (r: RunResult) => r.calls.map((c) => [stageOf(c), header(c).attempt, (header(c).faults as { id: string }[]).map((f) => f.id)]).filter(([, , ids]) => (ids as string[]).length > 0);
+
+    const once = await design(happy({ 'D1-gate': v1OnFault }), { conceptId: 'c2', faults: [fi2(['c2'], false), { id: 'FI-1', concepts: 'all', persistent: true }] });
+    expect(faultsByCall(once)).toEqual([['D1-gate', 1, ['FI-2']]]);
+    expect(header(callsOf(once, 'D1-gate')[0]).faults).toEqual([fi2(['c2'], false)]);
+    // FI-2 edits the plan, so the gate may write it.
+    expect(header(callsOf(once, 'D1-gate')[0]).writes).toEqual(['plan.json']);
+    expect(header(callsOf(once, 'D1-gate')[1]).writes).toEqual([]);
+    expect(attemptsOf(once, 'D1')).toEqual([1, 2]);
+    expect(once.out.status).toBe('ready');
+    expect(once.out.stats.faults).toEqual([{ id: 'FI-2', target: { concepts: ['c2'], persistent: false }, applied: 1, observed: 'stage b: passive-points at level 1' }]);
+
+    // Another concept's directive reaches no header; online, none at all.
+    const other = await design(happy({ 'D1-gate': v1OnFault }), { conceptId: 'c1', faults: [fi2(['c2'], true)] });
+    expect(faultsByCall(other)).toEqual([]);
+    expect(other.out.stats.faults).toEqual([]);
+    const online = await design(happy({ 'D1-gate': v1OnFault }), { mode: 'online', faults: [fi2('all', true)] });
+    expect(faultsByCall(online)).toEqual([]);
+
+    // Persistent: every D1 gate attempt carries it, so V1 fails three times and the design escalates.
+    const always = await design(happy({ 'D1-gate': v1OnFault }), { faults: [fi2('all', true)] });
+    expect(faultsByCall(always)).toEqual([1, 2, 3].map((n) => ['D1-gate', n, ['FI-2']]));
+    expect(always.out.status).toBe('escalated');
+    expect(always.out.stats.faults).toEqual([expect.objectContaining({ id: 'FI-2', applied: 3 })]);
+  });
+
+  it('FI-3 makes the D1 gate return infeasible, with evidence FI-3 (injected), and no D2 step runs', async () => {
+    const r = await design(happy(), { faults: [{ id: 'FI-3', concepts: ['c1'], persistent: false }] });
+    expect(r.calls.map((c) => stageOf(c))).toEqual(['D1', 'D1-gate']);
+    expect((header(callsOf(r, 'D1-gate')[0]).faults as { id: string }[]).map((f) => f.id)).toEqual(['FI-3']);
+    expect(r.out.status).toBe('infeasible');
+    expect(r.out.stage).toBe('D1-gate');
+    expect(r.out.evidence).toEqual([{ gate: 'D1-gate', attempt: 1, code: 'FI-3', message: 'FI-3 (injected)' }]);
+    expect(r.out.gateVerdicts).toEqual([expect.objectContaining({ stage: 'D1-gate', attempt: 1, forced: 'FI-3' })]);
+    expect(r.out.stats.attempts.find((a) => a.stage === 'D1-gate')!.outcome).toBe('infeasible');
+    expect(r.out.stats.faults).toEqual([
+      { id: 'FI-3', target: { concepts: ['c1'], persistent: false }, applied: 1, observed: "the D1 gate's outcome was forced to infeasible: FI-3 (injected)" },
+    ]);
+    // FI-3 for another concept changes nothing.
+    const other = await design(happy(), { conceptId: 'c2', faults: [{ id: 'FI-3', concepts: ['c1'], persistent: false }] });
+    expect(other.out.status).toBe('ready');
+  });
+});
+
+describe('AC-W24: resuming after an escalation (§5.3, §5.4; D-236)', () => {
+  const v1Finding = { gate: 'D1-gate', part: 'v1', code: 'passive-points', stage: 'b', message: 'stage b spends 130 points at level 90' };
+
+  it('guided-retry of D1 runs D1 once with the findings and the guidance, then the D1 gate, outside the cap', async () => {
+    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'drop the second jewel' } });
+    expect(r.calls.slice(0, 2).map((c) => [stageOf(c), header(c).attempt])).toEqual([
+      ['D1', 4],
+      ['D1-gate', 4],
+    ]);
+    expect(callsOf(r, 'D1')).toHaveLength(1);
+    expect(findingsOf(callsOf(r, 'D1')[0])).toEqual([v1Finding, { code: 'user-guidance', message: 'drop the second jewel' }]);
+    expect(callsOf(r, 'D1')[0].prompt).toContain('A guided retry');
+    expect(callsOf(r, 'D1')[0].prompt).toContain('Edit plan.json');
+    // The flow then continues as after any attempt.
+    expect(r.out.status).toBe('ready');
+    expect(callsOf(r, 'D2')).toHaveLength(1);
+    // The guided attempt is no cap-counted retry; D2's attempts start afresh.
+    expect(r.out.stats.retries).toEqual([]);
+    expect(attemptsOf(r, 'D2')).toEqual([1]);
+    expect(r.out.stats.attempts.filter((a) => a.stage === 'D1')).toEqual([{ stage: 'D1', concept: 'c1', attempt: 4, agents: 1, outcome: 'done', findings: 0 }]);
+  });
+
+  it('continues the attempt numbers the resume gives', async () => {
+    const r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D1-gate', findings: [v1Finding], guidance: 'g', attempts: { D1: 3, 'D1-gate': 5 } } });
+    expect(r.calls.slice(0, 2).map((c) => [stageOf(c), header(c).attempt])).toEqual([
+      ['D1', 4],
+      ['D1-gate', 6],
+    ]);
+  });
+
+  it('a scripted gate failure on a guided retry returns escalated again, with no retry', async () => {
+    const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points')]) }), {
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g' },
+    });
+    expect(r.calls.map((c) => stageOf(c))).toEqual(['D1', 'D1-gate']);
+    expect(r.out.status).toBe('escalated');
+    expect(r.out.stage).toBe('D1-gate');
+    expect(r.out.stats.retries).toEqual([]);
+    // A floor failure after a guided retry escalates again too, rather than ending infeasible.
+    const floor = await design(happy({ 'D1-gate': () => d1Gate({ floor: 'fail' }, [finding('floor', 'missing-cold-resist')]) }), {
+      resume: { reason: 'guided-retry', stage: 'D1', findings: [v1Finding], guidance: 'g' },
+    });
+    expect([floor.out.status, callsOf(floor, 'D1').length]).toEqual(['escalated', 1]);
+  });
+
+  it('guided-retry of D2 or W1 starts there, with the guidance', async () => {
+    const d2r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'D2-gate', findings: [], guidance: 'level the trees evenly' } });
+    expect(d2r.calls.map((c) => stageOf(c)).slice(0, 3)).toEqual(['D2', 'D2-gate', 'D2-gate']);
+    expect(findingsOf(callsOf(d2r, 'D2')[0])).toEqual([{ code: 'user-guidance', message: 'level the trees evenly' }]);
+    expect(d2r.out.status).toBe('ready');
+    const w1r = await design(happy(), { resume: { reason: 'guided-retry', stage: 'W1', findings: [], guidance: 'shorter' } });
+    expect(w1r.calls.map((c) => stageOf(c))[0]).toBe('W1');
+    expect(header(callsOf(w1r, 'W1')[0]).attempt).toBe(4);
+  });
+
+  it('accepted at the D1 gate re-runs the gate with the finding in accepted; a verdict failing only on it proceeds to D2', async () => {
+    const accepted = { ...v1Finding };
+    const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]) }), {
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [accepted] },
+    });
+    // No D1: the failed gate step runs again, its attempt continuing the escalated ones.
+    expect(r.calls[0].header).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 4, accepted: [accepted] }));
+    expect(callsOf(r, 'D1')).toHaveLength(0);
+    expect(callsOf(r, 'D2')).toHaveLength(1);
+    expect(r.out.status).toBe('ready');
+    // The D2 gate's and W1's headers carry the accepted finding; the result returns it.
+    for (const c of [...callsOf(r, 'D2-gate'), ...callsOf(r, 'W1')]) expect(header(c).accepted).toEqual([accepted]);
+    expect(callsOf(r, 'W1')[0].prompt).toContain('Accepted failures');
+    expect(r.out.accepted).toEqual([accepted]);
+    // The gate's file keeps the failure as reported: the run checker counts accepted findings itself.
+    expect(r.out.gateVerdicts[0]).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 4, verdict: expect.objectContaining({ v1: 'fail' }) }));
+    expect(r.out.stats.attempts[0]).toEqual(expect.objectContaining({ stage: 'D1-gate', attempt: 4, outcome: 'pass' }));
+  });
+
+  it('a finding equal to the accepted one (same plan stage, part and code) fails no later gate; another one still fails', async () => {
+    const same = await design(
+      happy({
+        'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')]),
+        'D2-gate': d2Gate(() => d2Check({ v1: 'fail' }, [finding('v1', 'passive-points', 'b')])),
+      }),
+      { resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding] } },
+    );
+    expect(same.out.status).toBe('ready');
+    expect(same.calls.filter((c) => header(c).compile === 'final')).toHaveLength(1);
+
+    // The same code on another plan stage, or another code, is a new failure: no retries are left, so it
+    // escalates again.
+    for (const other of [finding('v1', 'passive-points', 'n'), finding('v1', 'attributes', 'b')]) {
+      const r = await design(happy({ 'D1-gate': () => d1Gate({ v1: 'fail' }, [finding('v1', 'passive-points', 'b'), other]) }), {
+        resume: { reason: 'accepted', stage: 'D1-gate', findings: [v1Finding] },
+      });
+      expect([r.out.status, r.out.stage, callsOf(r, 'D2').length]).toEqual(['escalated', 'D1-gate', 0]);
+      expect(r.out.evidence!.map((e) => [e.stage, e.code])).toEqual([[other.stage, other.code]]);
+    }
+  });
+
+  it('never accepts a compile failure, and keeps earlier accepted findings from args.accepted', async () => {
+    const compileFinding = { gate: 'D1-gate', part: 'compiled', code: 'compile-error', stage: 'b', message: 'unknown gem' };
+    const r = await design(happy({ 'D1-gate': () => d1Gate({ compiled: 'fail' }, [finding('compiled', 'compile-error', 'b')]) }), {
+      resume: { reason: 'accepted', stage: 'D1-gate', findings: [compileFinding] },
+    });
+    expect(r.out.status).toBe('escalated');
+
+    const earlier = { gate: 'D1-gate', part: 'v2', code: 'default-unlisted', stage: '2', message: 'accepted earlier' };
+    const later = await design(happy({ 'D2-gate': d2Gate(() => d2Check({ v2: 'fail' }, [finding('v2', 'default-unlisted', '2')])) }), {
+      accepted: [earlier],
+      resume: { reason: 'accepted', stage: 'D2-gate', findings: [{ gate: 'D2-gate', part: 'v1', code: 'tree-continuity', stage: '2', message: 'm' }] },
+    });
+    expect(later.calls.map((c) => [stageOf(c), header(c).compile])).toEqual([
+      ['D2-gate', 'measure-only'],
+      ['D2-gate', 'final'],
+      ['W1', 'none'],
+      ['V3', 'none'],
+      ['V4', 'none'],
+      ['V4', 'none'],
+      ['V4', 'none'],
+    ]);
+    expect(later.out.status).toBe('ready');
+    expect((header(callsOf(later, 'W1')[0]).accepted as { code: string }[]).map((a) => a.code)).toEqual(['default-unlisted', 'tree-continuity']);
+  });
+
+  it('accepted after a V3 or V4 escalation returns ready with the findings accepted, running no agent', async () => {
+    const vf = { gate: 'V4', id: 'f-src-2', artifact: 'guide.md', location: 'Summary', claim: 'c', issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' };
+    const r = await design(happy(), { resume: { reason: 'accepted', stage: 'V4', findings: [vf] } });
+    expect(r.calls).toHaveLength(0);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.accepted).toEqual([vf]);
+  });
+
+  it('refuses the resumes this unit has no path for, naming why', async () => {
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'later', stage: 'D1', findings: [] } }), respond: () => null })).rejects.toThrow(/resume\.reason/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'guided-retry', stage: 'D1', findings: [] } }), respond: () => null })).rejects.toThrow(/guidance/);
+    await expect(run('build-guide-design', { args: designArgs({ resume: { reason: 'accepted', stage: 'W1', findings: [] } }), respond: () => null })).rejects.toThrow(/no guide to accept/);
+  });
+});
+
+describe('build-guide-design: V3 and V4 after W1 (steps 6 and 7; routing is WU-46\'s)', () => {
+  it("doesn't return ready while a report holds an unresolved finding", async () => {
+    const unresolved = (call: AgentCall) => ({
+      ...report(call),
+      findings: [{ id: 'f1', artifact: 'guide.md', location: 'Summary', claim: 'c', issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' }],
+      verdict: 'fail',
+    });
+    const r = await design(happy({ V3: unresolved }));
+    expect(r.out.status).not.toBe('ready');
+  });
+
+  it('returns ready when the reports hold only accepted-offline findings', async () => {
+    const offline = (call: AgentCall) => ({
+      ...report(call),
+      findings: [{ id: 'f1', artifact: 'guide.md', location: 'Sources', claim: 'c', issue: 'external-unavailable', evidence: 'offline run', owner: 'W1', status: 'accepted-offline' }],
+    });
+    const r = await design(happy({ V4: offline }));
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('re-runs a verifier that returns nothing, keeping its lens and pass', async () => {
+    const r = await design(happy({ 'V4@sources': (c, nth) => (nth < 2 ? null : report(c)), V4: report }));
+    const sources = r.calls.filter((c) => header(c).lens === 'sources');
+    expect(sources.map((c) => [header(c).attempt, header(c).pass])).toEqual([
+      [1, 1],
+      [2, 1],
+      [3, 1],
+    ]);
+    expect(r.out.status).toBe('ready');
+    expect(r.out.stats.retries).toEqual([{ stage: 'V4', concept: 'c1', count: 2 }]);
+  });
+});
+
+describe('build-guide-design: its gate verdicts hold up in the run checker (FR-W6, FR-W7)', () => {
+  /** The run checker on a copy of the passing fixture run, after `edit` changes the copy. */
+  function checkRunCopy(edit: (dir: string) => void): { code: number | null; stderr: string } {
+    const dir = path.join(TMP, `run-ok-design-${++copies}`);
+    fs.cpSync(path.join(REPO_ROOT, 'tests', 'fixtures', 'pipeline', 'run-ok'), dir, { recursive: true });
+    edit(dir);
+    const checker = path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+    const r = spawnSync(process.execPath, [checker, dir], { env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+    return { code: r.status, stderr: r.stderr };
+  }
+  const fixtureGate = (name: string) =>
+    JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'tests', 'fixtures', 'pipeline', 'run-ok', 'reports', 'gates', name), 'utf8'));
+
+  it('writes D1 and D2 gate files, as the skill stores them unchanged, that the checker recomputes and accepts', async () => {
+    const d1File = fixtureGate('D1-gate-c1-a1.json');
+    const r = await design(
+      happy({
+        'D1-gate': () => ({ verdict: d1File.verdict, findings: d1File.findings, basis: d1File.basis, recordPath: 'compile-record.json', priceCalls: [], faultsApplied: [] }),
+        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), importCode: 'eNrtWV1v2zYU-FixtureImportCode-0001' })),
+      }),
+    );
+    expect(r.out.status).toBe('ready');
+    const write = (dir: string, files: DesignResult['gateVerdicts']) => {
+      for (const g of files) fs.writeFileSync(path.join(dir, 'reports', 'gates', `${g.stage}-${g.concept}-a${g.attempt}.json`), JSON.stringify(g, null, 2));
+    };
+    expect(r.out.gateVerdicts.map((g) => `${g.stage}-${g.concept}-a${g.attempt}`)).toEqual(['D1-gate-c1-a1', 'D2-gate-c1-a1']);
+    expect(checkRunCopy((dir) => write(dir, r.out.gateVerdicts))).toEqual({ code: 0, stderr: '' });
+
+    // The workflow passes the gate's verdict and basis through unchanged, so what a gate leaves out is
+    // caught: a basis with no floor entry for an endgame stage fails the checker.
+    const lying = r.out.gateVerdicts.map((g) => (g.stage === 'D1-gate' ? { ...g, basis: { ...(g.basis as object), floor: [] } } : g));
+    expect(checkRunCopy((dir) => write(dir, lying)).stderr).toMatch(/check-run: \[gate-report\] the D1 gate's basis\.floor has no entry for endgame stage b/);
+  });
+});

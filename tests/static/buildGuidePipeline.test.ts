@@ -11,6 +11,9 @@
  * `TOOL_META`; each set's members exist there, and L and B hold only group-`core`, kind-`read` tools that
  * write nothing. With it, WU-44's stage references (R1a, R1b, R1b-assemble, dossier-fix) and the dossier
  * template (§7.2).
+ *
+ * WU-45: the design stage references (D1, D1-gate, D2, D2-gate, W1), the writer definition and the
+ * coordinator's design steps (AC-W5 extended), and the guide template (AC-W11, §8).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -457,5 +460,232 @@ describe('WU-44: the dossier template (§7.2)', () => {
     for (const m of text.matchAll(/\[\^([^\]\s]+)\](?!:)/g)) {
       expect({ marker: m[1], defined: lines.some((l) => l.startsWith(`[^${m[1]}]:`)) }).toEqual({ marker: m[1], defined: true });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-45: the design stage references, the writer, the coordinator's design steps and the guide template
+// (§5.3, §8; AC-W5 extended, AC-W11)
+// ---------------------------------------------------------------------------------------------------
+
+const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1'];
+const GUIDE_TEMPLATE = path.join(SKILL_DIR, 'templates', 'guide-template.md');
+/** §8: the guide's H2s, in order. */
+const GUIDE_H2 = [
+  'Versions, prices and import code',
+  'Summary',
+  'How it works',
+  'Leveling',
+  'Campaign rewards',
+  'Endgame: budget variant',
+  'Endgame: non-budget variant',
+  'Rotation',
+  'Defences and resistances',
+  'FAQ and common mistakes',
+  "Confidence and what PoB can't model",
+  'Changelog',
+  'Sources',
+];
+const readStage = (stage: string) => fs.readFileSync(path.join(STAGES_DIR, `${stage}.md`), 'utf8');
+/** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
+const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
+
+describe('WU-45: the design stage references', () => {
+  it.each(DESIGN_STAGES)('%s.md exists, with the parts the stages README names', (stage) => {
+    const titles = headings(readStage(stage)).filter((h) => h.level === 2).map((h) => h.title);
+    for (const part of ['Inputs', 'Work', 'Writes', 'Returns', 'Fault directives']) {
+      expect({ stage, part, present: titles.some((t) => t.startsWith(part)) }).toEqual({ stage, part, present: true });
+    }
+  });
+
+  it('every repository path they and the guide template mention exists', () => {
+    let checked = 0;
+    for (const file of [...DESIGN_STAGES.map((s) => path.join(STAGES_DIR, `${s}.md`)), GUIDE_TEMPLATE]) {
+      for (const p of repoPaths(fs.readFileSync(file, 'utf8'))) {
+        const cut = p.search(/[<*]/);
+        const fixed = cut < 0 ? p : p.slice(0, p.lastIndexOf('/', cut) + 1);
+        expect({ file: path.relative(REPO, file), path: p, exists: fs.existsSync(path.join(REPO, fixed)) }).toEqual({ file: path.relative(REPO, file), path: p, exists: true });
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(10);
+  });
+
+  it('D1 holds the survival floor with chaos, the exception only when capping is infeasible (D-234)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/fire, cold, lightning \*\*and chaos\*\* resistance are capped/);
+    expect(text).toContain('chaosResistException {reason, tag}');
+    expect(text).toMatch(/Only when capping it is \*\*infeasible\*\*/);
+  });
+
+  it('D1 prices every slot and tree jewel of both variants, with its own entry unless the text is identical (D-249)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/One `prices\[\]` entry per filled slot and tree jewel of \*\*both\*\* variants \(D-249\)/);
+    expect(text).toContain('Two slots share an entry only when their item text is identical');
+    expect(text).toContain('Rares are affix-target searches (`search_trade_items` with `mods`)');
+  });
+
+  it("D1 never inherits R1b's fallback league, and records an unknown one as unverified", () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*never\*\* a league the dossier or a skeleton marks unverified \(R1b's fallback, `leagueUnverified`\), and never a guess such as Standard/);
+    expect(text).toContain('"league": "unverified"');
+    expect(text).toContain('`leagueUnverified: true`');
+  });
+
+  it('D1 measures a possibly unread line with two stages before hand-calculating, and treats partly parsed as unapplied (D-243)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*A `possibly unread` line\*\* .* is confirmed by measurement before any hand calculation \(D-243\)/);
+    expect(text).toContain('compile measure-only with `stages` naming the two');
+    expect(text).toMatch(/\*\*partly parsed\*\* line means PoB applies none of it/);
+  });
+
+  it('D1 makes the rolled skill the main damage source, never a token role (D-122, D-217)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toContain('**The rolled skill is the main damage source, never a token role** (D-122)');
+    expect(text).toContain('Never give a damage skill the `utility` role to keep it out of the comparison');
+  });
+
+  it("D1 and D2 list the V2 rules WU-42 added: shown conditional options are earned (D-250), boss stats from E1 (D-252), the boundary penalty (D-251)", () => {
+    const d1 = folded(readStage('D1'));
+    const d2 = folded(readStage('D2'));
+    for (const text of [d1, d2]) expect(text).toMatch(/every skill-conditional option PoB shows for the stage's skills .*(D-250)/i);
+    expect(d1).toMatch(/the enemy's level, armour, evasion, resistances and crit are scenario entries citing E1 \(D-252\)/);
+    expect(d2).toMatch(/At a region's last progress key either region's value is accepted \(D-251\)/);
+  });
+
+  it("D1-gate's codes and budget thresholds are gates.md's", () => {
+    const gate = folded(readStage('D1-gate'));
+    const gates = fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8');
+    const codes = [...gates.matchAll(/^\| (?:floor|budget|rolledSkill) \| (.*?) \|/gm)].flatMap((m) => [...m[1].matchAll(/`([a-z-]+)`/g)].map((c) => c[1]));
+    expect(codes).toEqual(expect.arrayContaining(['missing-chaos-resist', 'chaos-exception', 'over-budget', 'near-ceiling', 'unverified', 'rolled-role', 'rolled-not-largest']));
+    for (const code of codes.filter((c) => !['rolled-not-compared', 'rolled-no-figure'].includes(c))) {
+      const named = code.startsWith('max-hit') ? gate.includes('`max-hit-<type>`') : gate.includes(`\`${code}\``);
+      expect({ code, named }).toEqual({ code, named: true });
+    }
+    expect(gate).toMatch(/at most 20 divines `pass`; above 20 and at most 22 `pass` with a `near-ceiling` finding .* above 22 `fail` \(`over-budget`\)/);
+    expect(gate).toMatch(/rounded to 2 decimals/);
+    expect(gate).toMatch(/filled slots \*\*and tree jewels\*\*/);
+    expect(gate).toContain('The non-budget variant\'s total is reported against the ~200-divine reference, never gated');
+  });
+
+  it('only the D2 gate names a final compile; D1, D2 and the D1 gate compile measure-only', () => {
+    for (const stage of ['D1', 'D2', 'D1-gate']) {
+      const text = readStage(stage);
+      expect(text).toContain('measure_only: true');
+      expect(text).not.toMatch(/build_name: "/);
+    }
+    const d2Gate = folded(readStage('D2-gate'));
+    expect(d2Gate).toContain('build_name: "<the header\'s buildName>"');
+    expect(d2Gate).toMatch(/exactly once/);
+    expect(d2Gate).toMatch(/Never retry it, never pick another `build_name`, and never work around it/);
+  });
+
+  it('the D1 gate applies FI-2 and FI-3 as §11.3 says', () => {
+    const text = folded(readStage('D1-gate'));
+    expect(text).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's .* `level` to `1`/);
+    expect(text).toContain('`(L1)`');
+    expect(text).toContain('FI-3 (injected)');
+  });
+
+  it('W1 surfaces the record\'s loadout, save and version notes, and states the D-234 and D-219 lines the checker reads', () => {
+    const text = folded(readStage('W1'));
+    for (const field of ['versionNotes', 'loadoutWarnings', 'saveWarnings']) expect(text).toContain(`\`${field}\``);
+    expect(text).toContain('Giant\'s Blood, Instruments of Power or Lord of the Wilds');
+    expect(text).toContain('check Weapon 2 and Weapon 2 Swap');
+    expect(text).toMatch(/\*\*one line\*\* holds both the record's `ChaosResist` .* as a number with `%`, and the exception's `reason` copied in full/);
+    expect(text).toMatch(/budget `Checks` say \*\*near the ceiling\*\*, in those words/);
+    expect(text).toContain('copied character for character from the record\'s `importCode`');
+    expect(text).toMatch(/H3 per campaign stage .* titled with its loadout name \*\*exactly\*\* as the record's/);
+  });
+});
+
+describe('WU-45: the writer and the coordinator (AC-W5 extended)', () => {
+  const def = (stem: string) => readDefinition(fs.readFileSync(path.join(AGENTS_DIR, `${stem}.md`), 'utf8'))!;
+
+  it('the writer exists and has only file tools: no pob2, trade, web, Edit or Bash tool (§4 row, R-3, R-4)', () => {
+    expect(definitionFiles).toContain('build-guide-writer.md');
+    expect(def('build-guide-writer').tools).toEqual(['Read', 'Glob', 'Grep', 'Write']);
+  });
+
+  it('the coordinator lists its design steps after its research steps, each with an existing stage reference', () => {
+    const { body } = def('build-guide-coordinator');
+    const research = body.indexOf('## Research steps');
+    const designAt = body.indexOf('## Design steps');
+    expect(research).toBeGreaterThan(0);
+    expect(designAt).toBeGreaterThan(research);
+    const section = body.slice(designAt);
+    for (const stage of ['D1', 'D1-gate', 'D2', 'D2-gate']) {
+      expect(section).toContain(`| \`${stage}\` | \`.claude/skills/build-guide/references/stages/${stage}.md\` |`);
+    }
+    expect(folded(section)).toContain('fire, cold, lightning **and chaos** resistance capped');
+  });
+});
+
+describe('AC-W11: the guide template (§8)', () => {
+  const text = fs.existsSync(GUIDE_TEMPLATE) ? fs.readFileSync(GUIDE_TEMPLATE, 'utf8') : '';
+  const hs = headings(text);
+
+  it("has §8's H2s in order, the same list the run checker holds, under one H1 naming the roll", () => {
+    expect(hs.filter((h) => h.level === 1).map((h) => h.title)).toEqual(['<Ascendancy> / <Skill>: <concept title>']);
+    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(GUIDE_H2);
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    const listed = /export const GUIDE_H2 = (\[[\s\S]*?\]);/.exec(checker);
+    expect(listed).not.toBeNull();
+    // The checker's list is a JS literal of single- and double-quoted strings.
+    const items = [...listed![1].matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2]);
+    expect(items).toEqual(GUIDE_H2);
+  });
+
+  it('has the H3 Checks under both endgame H2s, and only Checks there', () => {
+    for (const title of ['Endgame: budget variant', 'Endgame: non-budget variant']) {
+      const h2 = hs.find((h) => h.level === 2 && h.title === title)!;
+      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
+      expect(hs.filter((h) => h.level === 3 && h.line > h2.line && h.line < next.line).map((h) => h.title)).toEqual(['Checks']);
+    }
+  });
+
+  it('gives Leveling one H3 per campaign stage, titled with the record\'s loadout name, and an Accepted failures H3 under Confidence', () => {
+    const under = (title: string) => {
+      const h2 = hs.find((h) => h.level === 2 && h.title === title)!;
+      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
+      return hs.filter((h) => h.level === 3 && h.line > h2.line && h.line < next.line).map((h) => h.title);
+    };
+    expect(under('Leveling')).toEqual(['<loadoutName of the first campaign stage, exactly as compile-record.json has it>']);
+    expect(under("Confidence and what PoB can't model")).toEqual(['Accepted failures']);
+  });
+
+  it('puts the import code in a fenced block in the first section, and the record\'s PoB-file notes there', () => {
+    const lines = text.split(/\r?\n/);
+    const first = hs.find((h) => h.title === GUIDE_H2[0])!;
+    const second = hs.find((h) => h.title === GUIDE_H2[1])!;
+    const section = lines.slice(first.line, second.line).join('\n');
+    expect(section).toMatch(/```\n<importCode, copied exactly from compile-record\.json>\n```/);
+    for (const note of ['versionNotes', 'loadoutWarnings', 'saveWarnings']) expect(section).toContain(note);
+    expect(section).toContain('check Weapon 2 and Weapon 2 Swap');
+    expect(section).toMatch(/offline: prices are unavailable and no external source was consulted/);
+  });
+
+  it("carries the D-234 chaos line, the D-219 near-the-ceiling line and the D-164 unavailable line in the budget Checks", () => {
+    const lines = text.split(/\r?\n/);
+    const h2 = hs.find((h) => h.title === 'Endgame: budget variant')!;
+    const checks = hs.find((h) => h.level === 3 && h.title === 'Checks' && h.line > h2.line)!;
+    const next = hs.find((h) => h.line > checks.line && h.level <= 3)!;
+    const section = lines.slice(checks.line, next.line);
+    expect(section.some((l) => /Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>\./.test(l))).toBe(true);
+    expect(section.some((l) => l.includes('near the ceiling'))).toBe(true);
+    expect(section.some((l) => /can't be claimed to be under 20 divines/.test(l))).toBe(true);
+    expect(section.join('\n')).toContain('lightning <n>% and chaos <n>% resistance, each capped');
+  });
+
+  it('defines every marker once, under Sources, the last heading', () => {
+    const lines = text.split(/\r?\n/);
+    const defs = lines.map((l, i) => (/^\[\^[^\]\s]+\]:/.test(l) ? i : -1)).filter((i) => i >= 0);
+    expect(defs.length).toBeGreaterThan(5);
+    const last = hs[hs.length - 1];
+    expect(last.title).toBe('Sources');
+    for (const i of defs) expect(i).toBeGreaterThan(last.line);
+    const ids = defs.map((i) => /^\[\^([^\]\s]+)\]:/.exec(lines[i])![1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const m of text.matchAll(/\[\^([^\]\s]+)\](?!:)/g)) expect({ marker: m[1], defined: ids.includes(m[1]) }).toEqual({ marker: m[1], defined: true });
   });
 });

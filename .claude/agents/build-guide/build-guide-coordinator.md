@@ -61,3 +61,39 @@ inputs; it never contradicts the header.
 | `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one concept's endgame skeleton, its measure-only compile and its key-item prices |
 | `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files and the R1b results |
 | `dossier-fix` | `.claude/skills/build-guide/references/stages/dossier-fix.md` | fixes the dossier claims a V3 or V4 finding names; edits `dossier.md` only |
+
+## Design steps (`build-guide-design`, slice 03 §5.3)
+
+| Stage | Stage reference | Does |
+|---|---|---|
+| `D1` | `.claude/skills/build-guide/references/stages/D1.md` | the two endgame variants in `plan.json`, every slot and tree jewel priced, measured measure-only |
+| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict on the compile, V1, V2, the survival floor, the budget and the rolled skill, with its basis |
+| `D2` | `.claude/skills/build-guide/references/stages/D2.md` | the campaign stages, planned backward from the endgame, campaign uniques priced |
+| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); once it passes, a second call runs the final compile with the header's `buildName` |
+
+The rules every design step keeps:
+
+- **Gates check, producers fix.** D1 and D2 write `plan.json`. A gate step reports what the record shows
+  and edits the plan only where its header's `writes` allows (the D1 gate's FI-2 and re-price pass). It
+  never fixes a failure: the workflow sends the failure back to D1 or D2 as findings (§5.4).
+- **The survival floor** (D-234): fire, cold, lightning **and chaos** resistance capped on every endgame
+  stage. Chaos stays uncapped only through the stage's `chaosResistException {reason, tag}`, and only when
+  capping it is infeasible.
+- **The budget** (D-219, D-249): every filled slot and tree jewel of the budget variant priced, each with
+  its own entry unless the item text is identical. At most 20 divines passes; above 20 and at most 22
+  passes "near the ceiling"; above 22 fails, rounded to 2 decimals; an unavailable price makes it
+  unverified. The non-budget total is reported against about 200 divines, never gated.
+- **The rolled skill** is the main damage source of its role (`clear` or `single_target`), never a token
+  role (D-122, D-217).
+- **The league** (D-233): offline, null; online, `get_leagues`' trade league, never one a skeleton or the
+  dossier marks unverified and never a guess. With none known, `unverified`, and the step says so.
+- **Measure before hand-calculating** (D-243): a `possibly unread` line is confirmed with two stages
+  compiled measure-only (`stages`) before a ledger entry stands in for it; PoB applies none of a partly
+  parsed line.
+- **Earned and scenario config** (D-114, D-250, D-252): every skill-conditional option PoB shows for a
+  stage's skills is earned state, with producer and uptime; a boss scenario lists the enemy's level,
+  armour, evasion, resistances and crit from E1. At a region's last progress key either region's
+  resistance penalty is accepted (D-251).
+- **One final compile.** Only the D2 gate's `final` call compiles with `build_name`, once, with the
+  header's `buildName`; every other compile is measure-only. A refused final compile is reported, never
+  worked around.

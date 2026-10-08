@@ -110,8 +110,11 @@ pick (step 4); in offline test mode, `pick:<id>` naming one of them is answered 
 ## 6. Design and write (slice 03 §5.3)
 
 Run `Workflow({name: "build-guide-design", args: {runFolder, runFolderRel, conceptId, mode, buildName,
-faults?, resume?}})`, where `buildName` is `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments
-joined with `-`. It returns `{status: "ready" | "infeasible" | "escalated", stage?, evidence?, accepted?,
+faults?, resume?, accepted?}})`, where `buildName` is `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments
+joined with `-`. When resuming, add to `resume` the attempts each stage of this concept already made
+(`attempts: {"D1": 3, "D1-gate": 3, …}`, counted from `stages[]`), so attempt numbers and report files
+continue; `accepted` lists every finding the user accepted earlier for this concept, as `escalations[]`
+records them, so later gates keep them accepted. It returns `{status: "ready" | "infeasible" | "escalated", stage?, evidence?, accepted?,
 gateVerdicts, v3Reports, v4Reports, stats}`. Write every verdict and report to `reports/` unchanged
 (FR-W6), update the log, then:
 

@@ -418,3 +418,10 @@ mechanics, not guide quality; the live run (WU-48) uses the user's default model
    evidence.
 4. FI-3 in run B forces `infeasible` only if c1's D1 gate returns at all; that depends on agent
    behaviour.
+
+## WU-47 (2026-10-08)
+
+- Dispatched one runner agent at integration head `fcd6af9`: worktree `bg-47`, Sonnet headless sessions,
+  strict MCP config, temp dirs, web tools denied, cost caps as a runaway backstop ($3 per probe, $80 run A,
+  $50 run B). It probes structured output and the Workflow tool first, then does runs A and B, the seeded V4
+  check and the probes. Record: scratchpad `wu47/record.md`.

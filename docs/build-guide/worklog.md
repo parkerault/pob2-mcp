@@ -570,3 +570,46 @@ don't fix headless-only issues.
   - run B;
   - P2, with its own builds folder holding the fixture: AC-W21, AC-W15 on a seeded copy of run A
     outside the guides root, and AC-W26's unsaved build.
+
+### WU-47 attempt 2 (interactive, D-263): analysis, before fixing (2026-10-08)
+
+**Sessions** (worktree `m12` at `d134fb9`, env `/tmp/m12.DbTF`):
+- P1 probes: invalid rolls and AC-W4.
+- Run A (`-2`): $19.86, 38.2M cache read, 417K output.
+- Run B (`-3`): about 27.9M cache read, 146K output.
+- P2 (AC-W15, W21, W26 unsaved) not run yet.
+
+**Passed:**
+- AC-W4, AC-W19 (run B: all clauses; F5 stamping works), AC-W26 (both invalid-roll refusals; the skill
+  refusal quotes D-258a's active names).
+- AC-W16 and AC-W20 for these sessions.
+- Run A's checker has 7 violations, down from 41. Every earlier fix held: D-256, D-257, D-258, D-260,
+  F3, F7. D-259 and D-262 weren't triggered.
+
+**Run A escalated in the V3/V4 revision loop after pass 3**, not at a gate. Root causes:
+- **RC-1: the loop doesn't converge.** All 9 findings raised in passes 2 and 3 were in text pass 1 read
+  and passed (findings per pass: 12, 3, 6). Why:
+  - V4 samples 1 in 5 non-endgame claims;
+  - check depth is undefined;
+  - no rule says what a marker covers;
+  - owners fix by location;
+  - FI-2 spends a D1 retry (RC-6).
+- **RC-2…RC-5: agent misses with prompt gaps.**
+  - An unmarked dossier sentence, copied by R1b-assemble.
+  - A claim resting on two facts cites one.
+  - A low-confidence note stated as settled; the rule exists only in D2.md.
+  - **The guide calls the explosion figure PoB's headline.** D1 never sets `main.statSet`, so the PoB
+    file opens on the Dash set.
+- **RC-6: FI-2 burns D1's routing budget.** The spec's own AC-W18 clauses conflict.
+
+**Run B and P1 findings outside the ACs:**
+- B1: the escalation findings in the run log aren't verbatim.
+- B2: a D1 coordinator wrote `gen.py` to the session scratchpad.
+- B3: `compile_plan` shows at most 10 findings per stage, and the record (268 KB) is over Read's cap,
+  so gate findings were incomplete.
+- B4: the fallback runner read both workflow scripts.
+- B5: the run log went stale in fallback mode.
+- B6: bare `guide_run` calls.
+- P1-a: with neither Workflow nor Agent, the log says `orchestration: workflow`.
+- Run A: D-261's count was taken with 2 `grep` calls outside the Bash rule.
+- Run A: the FI-1 timing wording disagrees between `R1b.md` and `offline-and-test.md`.

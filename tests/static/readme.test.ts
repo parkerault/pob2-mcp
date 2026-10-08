@@ -151,7 +151,7 @@ describe('WU-19: README tool table (AC-G1)', () => {
 });
 
 describe('WU-19: stale docs removed, README and CLAUDE.md clean (AC-G2)', () => {
-  it('AC-G2: HANDOFF.md and the 8 stale docs/*.md files are gone, and docs/ holds only stabilization/', () => {
+  it('AC-G2: HANDOFF.md and the 8 stale docs/*.md files are gone, and docs/ holds only epic folders', () => {
     const stale = [
       'HANDOFF.md',
       'docs/OPTIMIZE_TREE_GUIDE.md',
@@ -164,7 +164,8 @@ describe('WU-19: stale docs removed, README and CLAUDE.md clean (AC-G2)', () => 
       'docs/TRADE_API_QUICKSTART.md',
     ];
     expect(stale.filter((f) => fs.existsSync(path.join(REPO, f)))).toEqual([]);
-    expect(fs.readdirSync(path.join(REPO, 'docs')).sort()).toEqual(['stabilization']);
+    // Each epic keeps its docs in its own folder (build-guide worklog, 2026-10-08); no loose files.
+    expect(fs.readdirSync(path.join(REPO, 'docs')).sort()).toEqual(['build-guide', 'design', 'stabilization']);
   });
 
   it('AC-G2: outside the migration block, the AC-F20 scanner finds no banned phrase in README.md or CLAUDE.md', () => {

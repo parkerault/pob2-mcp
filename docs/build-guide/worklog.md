@@ -17,3 +17,11 @@ only in the integration worktree (`/home/parker/projects/pob2-mcp-wt/guide`, bra
 - **Scope of this run:** WU-30…WU-47. WU-48 (the live alpha) waits for HG-14.
 - **Orchestration:** individual background agents (no Workflow), one doer per unit, a read-only
   reviewer per unit (small units may share one), and an independent verifier per wave gate.
+
+### Baseline gate at `eaf2075`
+
+- Bootstrap rc=0; `mise run test` rc=1 (1 failed of 1041, 116 s); `pnpm build` rc=0.
+- The one failure: stab AC-G2 (`tests/static/readme.test.ts`) asserted `docs/` holds only
+  `stabilization/`, which this epic's `docs/design/` and `docs/build-guide/` broke. **Coordinator
+  decision:** the assertion now lists the epic folders (`build-guide`, `design`, `stabilization`); the
+  stale-file list it exists for is unchanged. The test passes after the change.

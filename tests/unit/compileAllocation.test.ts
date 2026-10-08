@@ -24,6 +24,7 @@ import {
   loadoutBase,
   renderPlanErrors,
   savedStage,
+  savedConfigWarnings,
   weaponFlagWarnings,
   type StageAllocation,
 } from '../../src/plan/compiler';
@@ -211,7 +212,7 @@ describe('WU-41 review: items, weapon-fit flags and the saved config', () => {
     const planned = { 'Weapon 1': staff, 'Weapon 2': focus };
     expect(compareItems('2', planned, { 'Weapon 1': staff, 'Weapon 2': focus })).toEqual([]);
     expect(compareItems('2', planned, { 'Weapon 1': staff, 'Weapon 2': { id: 0, name: '' } })).toEqual([
-      'stage 2: Weapon 2 is empty in PoB, but the plan equips "Twig Focus" there: PoB unequipped it (an off-hand that fits only with a passive this stage lacks, such as Instruments of Power or Giant\'s Blood)',
+      'stage 2: Weapon 2 is empty in PoB, but the plan equips "Twig Focus" there: PoB unequipped it (an off-hand that fits only with a passive or item this stage lacks, such as Instruments of Power or Giant\'s Blood)',
     ]);
     expect(compareItems('2', { 'Weapon 1': staff }, { 'Weapon 1': staff, 'Ring 1': { id: 9, name: 'Ring' } })).toEqual([
       'stage 2: Ring 1 holds "Ring" in PoB, but the plan leaves it empty',
@@ -296,5 +297,30 @@ describe('WU-41 review: items, weapon-fit flags and the saved config', () => {
       'config set 1: option "resistancePenalty" is saved as 0, not -10',
     ]);
     expect(savedConfigProblems(SAVED, [{ id: 3, inputs: { enemyLevel: 1 } }])).toEqual(['config set 3 is missing from the saved build']);
+  });
+
+  it('D-248: savedConfigWarnings names each config set\'s put-back options a reload would not give back, with its stages', () => {
+    const restored = [
+      { set: 1, option: 'enemyLevel' },
+      { set: 1, option: 'enemyIsBoss' },
+      { set: 2, option: 'enemyFireResist' },
+      { set: 3, option: 'enemyIsBoss' },
+    ];
+    const inputs = new Map<number, Record<string, string | number | boolean>>([
+      [1, { enemyLevel: 14, enemyIsBoss: 'Pinnacle' }],
+      [2, { enemyFireResist: 50 }],
+      [3, { enemyIsBoss: 'Pinnacle' }],
+    ]);
+    const survives = new Map<number, Record<string, boolean>>([
+      [1, { enemyLevel: false, enemyIsBoss: true }],
+      [2, { enemyFireResist: false }],
+      [3, { enemyIsBoss: true }],
+    ]);
+    const stagesOf = (set: number) => ({ 1: ['1'], 2: ['2', '4'], 3: ['3'] } as Record<number, string[]>)[set];
+    expect(savedConfigWarnings(restored, inputs, survives, stagesOf)).toEqual([
+      'Saving this file in PoB2 drops these options from stage 1: enemyLevel = 14. PoB2\'s save leaves out a value equal to the active configuration\'s default or placeholder; this file keeps them, so after saving it in PoB2, set them again in that stage\'s configuration.',
+      'Saving this file in PoB2 drops these options from stages 2, 4: enemyFireResist = 50. PoB2\'s save leaves out a value equal to the active configuration\'s default or placeholder; this file keeps them, so after saving it in PoB2, set them again in those stages\' configuration.',
+    ]);
+    expect(savedConfigWarnings([], inputs, survives, stagesOf)).toEqual([]);
   });
 });

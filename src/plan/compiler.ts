@@ -234,7 +234,7 @@ export function compareItems(stageId: string, planned: SetItems, actual: SetItem
     if (got.id === 0) {
       defects.push(
         `stage ${stageId}: ${slot} is empty in PoB, but the plan equips "${want.name}" there: PoB unequipped it ` +
-          `(an off-hand that fits only with a passive this stage lacks, such as Instruments of Power or Giant's Blood)`,
+          `(an off-hand that fits only with a passive or item this stage lacks, such as Instruments of Power or Giant's Blood)`,
       );
     } else if (want.id === 0) {
       defects.push(`stage ${stageId}: ${slot} holds "${got.name}" in PoB, but the plan leaves it empty`);
@@ -272,6 +272,34 @@ export function weaponFlagWarnings(stages: readonly { id: string; flags: WeaponF
     );
   }
   return out;
+}
+
+/**
+ * The save warnings (WU-41 review, D-248): the compiled file keeps every listed option, but saving it again
+ * in PoB2 leaves out each value equal to the active config set's default or placeholder. One line per
+ * config set that needed a value put back that a reload would not give back (`survives` false: the value
+ * isn't a new set's default, or a placeholder takes its place), naming its stages and the options.
+ */
+export function savedConfigWarnings(
+  restored: readonly { set: number; option: string }[],
+  inputs: ReadonlyMap<number, Readonly<Record<string, ConfigValue>>>,
+  survives: ReadonlyMap<number, Readonly<Record<string, boolean>>>,
+  stagesOf: (configSet: number) => readonly string[],
+): string[] {
+  const bySet = new Map<number, string[]>();
+  for (const r of restored) {
+    if (survives.get(r.set)?.[r.option] === true) continue;
+    bySet.set(r.set, [...(bySet.get(r.set) ?? []), r.option]);
+  }
+  return [...bySet].map(([set, options]) => {
+    const stages = stagesOf(set);
+    const listed = options.map((o) => `${o} = ${JSON.stringify(inputs.get(set)?.[o])}`).join(', ');
+    return (
+      `Saving this file in PoB2 drops these options from stage${stages.length === 1 ? '' : 's'} ${stages.join(', ')}: ${listed}. ` +
+      `PoB2's save leaves out a value equal to the active configuration's default or placeholder; this file keeps them, ` +
+      `so after saving it in PoB2, set them again in ${stages.length === 1 ? "that stage's" : "those stages'"} configuration.`
+    );
+  });
 }
 
 /** Every option a stage lists, earned then scenario: option → value (C-32). */
@@ -602,8 +630,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const created: Record<ContentKind, Map<number, number>> = { item: new Map(), skill: new Map(), config: new Map() };
   /** Per item set id: what its creating stage equipped (the plan's items for every stage sharing it). */
   const plannedItems = new Map<number, SetItems>();
-  /** Per config set id: the stored values of the options its stages list (D-248). */
+  /** Per config set id: the stored values of the options its stages list (D-248), and whether a reload keeps each. */
   const configInputs = new Map<number, ConfigSetInputs['inputs']>();
+  const configSurvives = new Map<number, Readonly<Record<string, boolean>>>();
   const results: { stage: Stage; reply: CompileStageResult; elapsedMs: number }[] = [];
   for (const [i, stage] of compiled.entries()) {
     const refs = {} as Record<ContentKind, StageSetRef>;
@@ -623,7 +652,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       throw new CompileError(`PoB changed stage ${stage.id}'s allocation on import (D-213); nothing was written:\n${defects.join('\n')}`);
     }
     if (!plannedItems.has(reply.ids.itemSet)) plannedItems.set(reply.ids.itemSet, reply.addedItems);
-    if (!configInputs.has(reply.ids.configSet)) configInputs.set(reply.ids.configSet, reply.configInputs);
+    if (!configInputs.has(reply.ids.configSet)) {
+      configInputs.set(reply.ids.configSet, reply.configInputs);
+      configSurvives.set(reply.ids.configSet, reply.configSurvivesDrop);
+    }
     const itemDefects = compareItems(stage.id, plannedItems.get(reply.ids.itemSet)!, reply.items);
     if (itemDefects.length > 0) {
       throw new CompileError(`PoB doesn't hold stage ${stage.id}'s planned items; nothing was written:\n${itemDefects.join('\n')}`);
@@ -652,7 +684,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const exportMs = env.clock() - tExport;
   // D-248: PoB's save drops an input equal to the active set's placeholder from every set; put them back.
   const savedSets: ConfigSetInputs[] = [...configInputs].map(([id, inputs]) => ({ id, inputs }));
-  const { xml } = restoreConfigInputs(exported, savedSets);
+  const { xml, restored } = restoreConfigInputs(exported, savedSets);
   const configProblems = savedConfigProblems(xml, savedSets);
   if (configProblems.length > 0) {
     throw new CompileError(`the saved build would not keep every stage's config (D-248); nothing was written:\n${configProblems.join('\n')}`);
@@ -745,6 +777,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     engine,
     versionNotes: versionNotes(plan.versions, engine),
     loadoutWarnings: weaponFlagWarnings(results.map((r) => ({ id: r.stage.id, flags: r.reply.weaponFlags }))),
+    saveWarnings: savedConfigWarnings(restored, configInputs, configSurvives, (set) =>
+      results.filter((r) => r.reply.ids.configSet === set).map((r) => r.stage.id),
+    ),
     pobFile,
     importCode,
     savedLevel: { level: top.level, autoMode: true },

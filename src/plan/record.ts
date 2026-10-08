@@ -71,6 +71,11 @@ export interface CompileRecord {
    * review): switching loadouts in PoB2 can unequip a planned off-hand.
    */
   loadoutWarnings: string[];
+  /**
+   * Config values the file keeps that a save in PoB2 would drop again (D-248, WU-41 review): one line per
+   * config set, naming its stages and the options.
+   */
+  saveWarnings: string[];
   /** Informational (D-211): the builds-folder file of a final compile, or the measure-only XML in the run. */
   pobFile: { location: 'builds' | 'run'; path: string; sha1: string; bytes: number };
   importCode: string;

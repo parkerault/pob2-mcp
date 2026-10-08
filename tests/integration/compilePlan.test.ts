@@ -202,6 +202,9 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(record.activeLoadout).toBe('Act 1 Ogham Manor (L14) {2}');
     expect(record.engine).toEqual({ pobTag: 'v0.23.1', pobCommit: '7d6f530cbdab20389ff8bc6ba97a37ac27f74e41', treeVersion: '0_5' });
     expect(record.versionNotes).toEqual([]);
+    // Every stage holds the same weapon-fit flags and keeps its config through a PoB2 save: no warnings.
+    expect(record.loadoutWarnings).toEqual([]);
+    expect(record.saveWarnings).toEqual([]);
     // Every socket group goes in with Full DPS off (WU-30: Full DPS is the axis that eats the time margin).
     expect(xml).not.toContain('includeInFullDPS="true"');
     // The engine now holds the compiled build, saved: nothing unsaved.
@@ -840,7 +843,20 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     }
   }
 
-  for (const fixture of ['off-hand-fresh', 'off-hand-shared']) {
+  /** Each off-hand fixture and the weapon-fit flag its stages differ in. */
+  const OFF_HAND_FIXTURES: Record<string, string> = {
+    'off-hand-fresh': 'Instruments of Power',
+    'off-hand-shared': 'Instruments of Power',
+    // Treefingers' Giant's Blood: an item-granted flag, the gloves listed after the clubs.
+    'off-hand-item': "Giant's Blood",
+  };
+  /** The Weapon 2 item a stage plans (a Normal item's name is its base, the text's second line), or ''. */
+  const plannedWeapon2 = (stage: Json): string => {
+    const w2 = stage.items.slots.find((x: Json) => x.slot === 'Weapon 2');
+    return w2 ? String(w2.text).split('\n')[1] : '';
+  };
+
+  for (const [fixture, flagName] of Object.entries(OFF_HAND_FIXTURES)) {
     for (const eager of [false, true]) {
       const pathName = eager ? 'eager' : 'deferred';
       it(`WU-41 review (D-213 for items): ${fixture}, ${pathName}: every stage keeps its planned off-hand, is measured with it and reloads as recorded`, async () => {
@@ -851,28 +867,35 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
         const record = recordOf(r);
 
         // The saved item sets hold exactly the planned off-hands.
-        const sets = await luaQuery<Array<{ title: string; weapon2: string }>>(String.raw`
+        const sets = await luaQuery<Array<{ id: number; weapon2: string }>>(String.raw`
           local o = {}
           for _, id in ipairs(build.itemsTab.itemSetOrderList) do
             local s = build.itemsTab.itemSets[id]
             local it = build.itemsTab.items[s['Weapon 2'].selItemId]
-            o[#o + 1] = { title = s.title, weapon2 = it and it.name or '' }
+            o[#o + 1] = { id = id, weapon2 = it and it.name or '' }
           end
           return o`);
-        for (const s of sets) expect({ set: s.title, weapon2: s.weapon2 }).toEqual({ set: s.title, weapon2: s.title.startsWith('Staff and focus') ? 'Twig Focus' : '' });
+        for (const s of sets) {
+          const owner = record.sets.find((x) => x.kind === 'item' && x.id === s.id)!.stages[0];
+          const want = plannedWeapon2(plan.stages.find((x: Json) => x.id === owner));
+          expect({ set: s.id, weapon2: s.weapon2 }).toEqual({ set: s.id, weapon2: want });
+        }
 
-        // Each stage was measured with its own items: a Focus adds energy shield, a staff alone gives none.
+        // Each stage was measured with its own items (a Focus adds energy shield, a staff alone gives none),
+        // and reloads as recorded.
         const reloaded = await reloadedStages(buildName, record);
         for (const stage of plan.stages) {
-          const hasFocus = stage.items.slots.some((x: Json) => x.slot === 'Weapon 2');
-          expect({ stage: stage.id, weapon2: reloaded[stage.id].weapon2 }).toEqual({ stage: stage.id, weapon2: hasFocus ? 'Twig Focus' : '' });
-          expect({ stage: stage.id, es: record.stages[stage.id].outputs.EnergyShield > 0 }).toEqual({ stage: stage.id, es: hasFocus });
+          const want = plannedWeapon2(stage);
+          expect({ stage: stage.id, weapon2: reloaded[stage.id].weapon2 }).toEqual({ stage: stage.id, weapon2: want });
+          if (flagName === 'Instruments of Power') {
+            expect({ stage: stage.id, es: record.stages[stage.id].outputs.EnergyShield > 0 }).toEqual({ stage: stage.id, es: want !== '' });
+          }
           expect({ stage: stage.id, diffs: outputDiffs(record.stages[stage.id].outputs, reloaded[stage.id].outputs) }).toEqual({ stage: stage.id, diffs: [] });
         }
 
-        // The stages differ in Instruments of Power: the record and the text warn about PoB2's loadout switch.
+        // The stages differ in the flag: the record and the text warn about PoB2's loadout switch.
         expect(record.loadoutWarnings).toHaveLength(1);
-        expect(record.loadoutWarnings[0]).toMatch(/^Stages differ in Instruments of Power \(/);
+        expect(record.loadoutWarnings[0]).toMatch(new RegExp(`^Stages differ in ${flagName} \\(`));
         expect(record.loadoutWarnings[0]).toContain('re-equip the planned off-hand');
         expect(out.text).toContain(`Loadout warning: ${record.loadoutWarnings[0]}`);
       }, ENGINE_TIMEOUT);
@@ -943,6 +966,10 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
       expect(setXml).not.toBeNull();
       expect(setXml![1]).toMatch(new RegExp(`<Input\\b(?=[^>]*\\bname="${c.option}")(?=[^>]*\\bnumber="${plan.stages[0].config.scenario.at(-1).value}")[^>]*/>`));
       expect(decodePobCode(record.importCode)).toBe(xml);
+      // The file keeps the value; a save in PoB2 would drop it again, which the record and the text say.
+      const value = plan.stages[0].config.scenario.at(-1).value;
+      expect(record.saveWarnings).toEqual([expect.stringMatching(new RegExp(`^Saving this file in PoB2 drops these options from stage 1: .*\\b${c.option} = ${value}\\b`))]);
+      expect(out.text).toContain(`Save warning: ${record.saveWarnings[0]}`);
       const reloaded = await reloadedStages(buildName, record);
       for (const id of record.stagesCompiled) {
         expect({ stage: id, diffs: outputDiffs(record.stages[id].outputs, reloaded[id].outputs) }).toEqual({ stage: id, diffs: [] });

@@ -905,8 +905,9 @@ export const stageSkillOutputSchema = z
  * node, the class and ascendancy start nodes included and named in `startNodes`); every finite number of
  * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots;
  * what the stage's item set holds in each requested slot after the measurement (`items`) and what this
- * stage equipped when it created the set (`addedItems`); the stage's weapon-fit flags; and the stored
- * values of its listed config options (`configInputs`).
+ * stage equipped when it created the set (`addedItems`); the stage's weapon-fit flags; the stored
+ * values of its listed config options (`configInputs`), and whether each keeps its value on a reload when
+ * PoB's save leaves it out (`configSurvivesDrop`, D-248).
  */
 export const compileStageReply = baseReply.extend({
   result: z
@@ -930,6 +931,7 @@ export const compileStageReply = baseReply.extend({
       addedItems: luaMap(slotItemSchema),
       weaponFlags: weaponFlagsSchema,
       configInputs: luaMap(z.union([z.boolean(), z.number(), z.string()])),
+      configSurvivesDrop: luaMap(z.boolean()),
     })
     .passthrough(),
 });

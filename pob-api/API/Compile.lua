@@ -34,19 +34,25 @@
 --     and PoB's allocation after the import, with each node's weapon-set tag.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
---         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value}}
+--         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
+--         configSurvivesDrop{option: boolean}}
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
---     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options.
+--     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options, and
+--     `configSurvivesDrop` says, per option, whether a reload gives it the same value when PoB's save
+--     leaves it out (D-248: the new set's default is that value, or no default or placeholder replaces it).
 --     Weapon-fit flags (WU-41 review): whether an off-hand fits (a Focus with a Staff, a second weapon with
---     a two-handed one) depends on Giant's Blood, Instruments of Power and Lord of the Wilds, which PoB
---     reads from its last calculation (ItemsTab:IsItemValidForSlot) and checks on every slot refresh
---     (ItemSlotControl:Populate) and, when a calculation loses one, on the active item set
---     (CalcSetup's ValidateWeaponSlots), unequipping what no longer fits. So the stage's tree goes in
---     first, with the remembered flags cleared (no other stage's item set is checked against this tree),
---     and one calculation of the new tree runs before the stage's item set is selected or filled, which
---     PoB then checks against this stage's own passives. Any other item set PoB changed meanwhile is put
---     back as it was. `weaponFlags` are the stage's own flags.
+--     a two-handed one) depends on Giant's Blood, Instruments of Power and Lord of the Wilds, from the tree
+--     or from an item (Treefingers), which PoB reads from its last calculation (ItemsTab:IsItemValidForSlot
+--     reads mainEnv.modDB) and checks on every slot refresh (ItemSlotControl:Populate) and, when a
+--     calculation loses one, on the active item set (CalcSetup's ValidateWeaponSlots), unequipping what no
+--     longer fits. So the stage's tree goes in first, with the remembered flags cleared (no other stage's
+--     item set is checked against this tree); then a new item set gets every item but the off-hands
+--     (Weapon 2, Weapon 2 Swap), the stage is calculated, and the off-hands go in, checked against this
+--     stage's own tree and items. A reused set gets back the off-hands its selection may have lost, is
+--     calculated, and PoB's own slot check then runs against this stage's tree and items. Any other item
+--     set PoB changed meanwhile is put back as it was. `weaponFlags` are the measured stage's flags, from
+--     its tree and items.
 --     Every BuildOps mutation ends in a full output rebuild, about 85% of a stage's time (WU-30). They are
 --     deferred while the tree, jewels, items, toggles and gems go in, and again while the config and
 --     level are written: the stage rebuilds once before its main selection (which needs PoB's skill
@@ -260,8 +266,8 @@ local function active_skill_count(gemData)
   return n
 end
 
--- The off-hand slots: whether an item fits them depends on the stage's main hand, so the stage build
--- checks them.
+-- The off-hand slots: whether an item fits them depends on the stage's main hand and its weapon-fit flags,
+-- so the stage build checks them.
 local OFF_HAND = { ['Weapon 2'] = true, ['Weapon 2 Swap'] = true }
 
 local function check_stage(tree, roll, st, defect)
@@ -384,12 +390,18 @@ local function set_items(set, slotNames)
   return out
 end
 
--- The weapon-fit flags of the last calculation (CalcSetup's lastWeaponFlagState).
+-- The weapon-fit flags of the last calculation, from its tree and items (mainEnv.modDB, as the slot check
+-- reads them), not only the tree's (CalcSetup's lastWeaponFlagState).
 local function weapon_flags()
-  local f = build.itemsTab.lastWeaponFlagState or {}
-  return { giantsBlood = f.giantsBlood == true, instrumentsOfPower = f.instrumentsOfPower == true,
-    lordOfTheWilds = f.lordOfTheWilds == true }
+  local env = build.calcsTab.mainEnv
+  local db = env and env.modDB
+  local function flag(name) return db ~= nil and db:Flag(nil, name) == true end
+  return { giantsBlood = flag('GiantsBlood'), instrumentsOfPower = flag('InstrumentsOfPower'),
+    lordOfTheWilds = flag('LordOfTheWilds') }
 end
+
+-- The off-hand slots, in order (OFF_HAND above is the same set as a lookup).
+local OFF_HAND_SLOTS = { 'Weapon 2', 'Weapon 2 Swap' }
 
 -- Select or create the stage's set of one type: `ref.reuse` (an id an earlier stage created) is selected;
 -- otherwise the first stage retitles the build's first set and every other stage creates one. Returns
@@ -453,14 +465,22 @@ local function build_tree(st)
   return specId
 end
 
+-- Equip the stage's items whose slot `pick` accepts, recording each one's id and name in `added`.
+local function equip(st, added, pick)
+  for _, it in ipairs(list(st.items)) do
+    if pick(tostring(it.slot)) then
+      local res = must('equipping the item in ' .. tostring(it.slot), BuildOps.add_item_text({ text = it.text, slotName = it.slot }))
+      added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
+    end
+  end
+end
+
+-- Select or create the stage's item set; a new one gets every item but the off-hands, and the toggles.
 local function build_items(st)
   local id, fresh = stage_set('item', st.itemSet, st.first, { useSecondWeaponSet = st.useSecondWeaponSet == true })
   local skipped, added = {}, {}
   if fresh then
-    for _, it in ipairs(list(st.items)) do
-      local res = must('equipping the item in ' .. tostring(it.slot), BuildOps.add_item_text({ text = it.text, slotName = it.slot }))
-      added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
-    end
+    equip(st, added, function(slot) return not OFF_HAND[slot] end)
     local itemsTab = build.itemsTab
     for _, t in ipairs(list(st.toggles)) do
       local slot = itemsTab.slots[t.slot]
@@ -471,7 +491,15 @@ local function build_items(st)
       end
     end
   end
-  return id, skipped, added
+  return id, fresh, skipped, added
+end
+
+-- Whether the stage equips an off-hand.
+local function plans_off_hand(st)
+  for _, it in ipairs(list(st.items)) do
+    if OFF_HAND[tostring(it.slot)] then return true end
+  end
+  return false
 end
 
 local function build_skills(st)
@@ -568,6 +596,56 @@ local function deferring(defer, fn)
   return a, b
 end
 
+-- The active item set's off-hands, checked against the tree and items it is used with: they are put back
+-- as `before` recorded them (selecting the set checked them against the previous calculation, which may
+-- have lacked a flag), the build is calculated with every item in place, and PoB's own slot check runs.
+local function settle_off_hands(setId, before)
+  local itemsTab = build.itemsTab
+  local saved = before[setId] or {}
+  local any = false
+  for _, slotName in ipairs(OFF_HAND_SLOTS) do
+    local sel = saved[slotName]
+    if sel ~= nil and sel ~= 0 then
+      any = true
+      local slot = itemsTab.slots[slotName]
+      if slot and slot.selItemId ~= sel then slot:SetSelItemId(sel) end
+    end
+  end
+  if not any then return end
+  itemsTab.lastWeaponFlagState = nil
+  rebuild()
+  itemsTab:PopulateSlots()
+end
+
+-- Each config option's value in a new config set, as PoB fills one (ConfigTab:CreateConfigSet: the list's
+-- default entry, else defaultState), which is also what a reload gives an option the save left out.
+local freshDefaultsCache
+local function fresh_defaults()
+  if freshDefaultsCache then return freshDefaultsCache end
+  local ok, varList = pcall(LoadModule, 'Modules/ConfigOptions')
+  if not ok or type(varList) ~= 'table' then fail('could not load the config option list') end
+  local out = {}
+  for _, v in ipairs(varList) do
+    if v.var and out[v.var] == nil then
+      local d = v.defaultState
+      if v.defaultIndex and v.list and v.list[v.defaultIndex] then d = v.list[v.defaultIndex].val end
+      out[v.var] = { value = d }
+    end
+  end
+  freshDefaultsCache = out
+  return out
+end
+
+-- Whether a reload gives `option` the same value if PoB's save leaves it out of config set `cs` (D-248):
+-- the new set's default is that value, or there is no default and no placeholder takes its place.
+local function survives_drop(cs, option, value)
+  local entry = fresh_defaults()[option]
+  local def = entry and entry.value
+  if def ~= nil then return def == value end
+  if cs.placeholder[option] ~= nil then return false end
+  return value == false or value == 0 or value == ''
+end
+
 function M.compile_stage(st)
   if TEST_ACTIONS and st.__crashForTest then os.exit(3) end
   if not build or not build.treeTab or not build.itemsTab or not build.skillsTab or not build.configTab
@@ -577,17 +655,26 @@ function M.compile_stage(st)
   local defer = not (TEST_ACTIONS and st.__noDeferForTest)
   local itemsTab = build.itemsTab
   local ok, res = pcall(function()
-    local specId, itemSetId, skipped, added, skillSetId
+    local specId, itemSetId, fresh, skipped, added, skillSetId
     local before = item_selections()
     -- No calculation checks another stage's item set against this stage's tree (ValidateWeaponSlots
     -- runs only when a calculation loses a flag the previous one had).
     itemsTab.lastWeaponFlagState = nil
-    deferring(defer, function() specId = build_tree(st) end)
-    -- This stage's own weapon-fit flags, before its item set is selected or filled and checked.
-    itemsTab.lastWeaponFlagState = nil
-    rebuild()
     deferring(defer, function()
-      itemSetId, skipped, added = build_items(st)
+      specId = build_tree(st)
+      itemSetId, fresh, skipped, added = build_items(st)
+    end)
+    -- The off-hands, checked against this stage's own tree and items (an item can grant a flag).
+    if fresh then
+      if plans_off_hand(st) then
+        itemsTab.lastWeaponFlagState = nil
+        rebuild()
+        deferring(defer, function() equip(st, added, function(slot) return OFF_HAND[slot] == true end) end)
+      end
+    else
+      settle_off_hands(itemSetId, before)
+    end
+    deferring(defer, function()
       restore_item_sets(before, itemSetId)
       skillSetId = build_skills(st)
     end)
@@ -603,11 +690,14 @@ function M.compile_stage(st)
     for k, v in pairs(output) do
       if type(k) == 'string' and finite(v) then outputs[k] = v end
     end
-    local configInputs = {}
+    local configInputs, configSurvivesDrop = {}, {}
     local cs = build.configTab.configSets[configSetId]
     for option in pairs(type(st.config) == 'table' and st.config or {}) do
       local v = cs and cs.input[option]
-      if type(v) == 'boolean' or type(v) == 'string' or finite(v) then configInputs[option] = v end
+      if type(v) == 'boolean' or type(v) == 'string' or finite(v) then
+        configInputs[option] = v
+        configSurvivesDrop[option] = survives_drop(cs, option, v)
+      end
     end
     return {
       id = tostring(st.id),
@@ -620,6 +710,7 @@ function M.compile_stage(st)
       addedItems = added,
       weaponFlags = weapon_flags(),
       configInputs = configInputs,
+      configSurvivesDrop = configSurvivesDrop,
     }
   end)
   if not ok then fail('stage ' .. tostring(st.id) .. ': ' .. message_of(res)) end
@@ -680,13 +771,12 @@ function M.compile_finish(params)
   end
   local ok, active = pcall(build.GetLoadoutByName, build, params.active)
   if not ok or type(active) ~= 'table' then fail(('no loadout named "%s" to select'):format(tostring(params.active))) end
-  -- The saved loadout's tree first, calculated with the remembered weapon-fit flags cleared, so its item set
-  -- is checked against its own passives when it is selected; any other item set PoB changed is put back.
+  -- Selecting the saved loadout checks its off-hands against the last stage's calculation, so they are put
+  -- back and checked against the saved loadout's own tree and items; any other item set PoB changed is put back.
   local before = item_selections()
-  if active.specId ~= build.treeTab.activeSpec then build.treeTab:SetActiveSpec(active.specId) end
   build.itemsTab.lastWeaponFlagState = nil
-  rebuild()
   build:SetActiveLoadout(active)
+  settle_off_hands(active.itemSetId, before)
   restore_item_sets(before, active.itemSetId)
   must('setting the saved level', BuildOps.set_level(params.level, true))
   local itemSets = {}

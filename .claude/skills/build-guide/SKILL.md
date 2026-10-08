@@ -57,11 +57,11 @@ checkpoint 1 → design workflow for the chosen concept → checkpoint 2.
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
    - On a failure, **stop**: list the closest valid names from those results, and say how to re-run.
      Ascendancies come from `get_classes`. For the skill, quote the names the lookup gave: when nothing
-     matched, `lookup_game_data` says "Nothing matched …" and then lists the closest names under a
-     `Closest gem names (…):` header, up to 5 lines `- <name> (active|support)` (D-258); quote those
-     names in its order, marking which are active (only an active gem is a valid roll). When it matched
-     only other gems, quote those gems' names; for a support gem, say it is a support. Create no run
-     folder and write nothing.
+     matched, `lookup_game_data` says "Nothing matched …", then lists up to 5 names under
+     `Closest active gem names (…):` and up to 3 under `Closest support gem names (…):`, each line
+     `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem
+     is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say it
+     is a support. Create no run folder and write nothing.
    - Use the names exactly as the tools gave them from here on: `roll = {className, ascendancy, skill}`.
 2. **Run folder.** Call `guide_run {new_run: <slug>}` (`references/run-folder.md` gives the slug rule).
    Keep its absolute path (`runFolder`), its root-relative path (`runFolderRel`) and

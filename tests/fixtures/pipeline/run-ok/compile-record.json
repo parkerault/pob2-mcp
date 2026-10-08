@@ -48,8 +48,8 @@
       },
       "skillOutputs": {
         "g1s1p1": {
-          "skill": "Blood Hunt",
-          "statSetLabel": "Lunge",
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
           "fields": {
             "TotalDPS": 140
           }

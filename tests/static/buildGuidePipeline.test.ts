@@ -1028,7 +1028,12 @@ describe('WU-47 fixes: what the skill runner does', () => {
   });
 
   it('D-258: the invalid-roll refusal quotes the closest names lookup_game_data lists on no match', () => {
-    expect(skill()).toMatch(/when nothing matched, `lookup_game_data` says "Nothing matched …" and then lists the closest names under a `Closest gem names \(…\):` header, up to 5 lines `- <name> \(active\|support\)` \(D-258\); quote those names in its order/);
+    const text = skill();
+    expect(text).toMatch(/when nothing matched, `lookup_game_data` says "Nothing matched …", then lists up to 5 names under `Closest active gem names \(…\):` and up to 3 under `Closest support gem names \(…\):`, each line `- <name> \(active\|support\)` \(D-258, D-258a\)\. Quote the active names, in its order: only an active gem is a valid roll/);
+    // The headers are the tool's own (src/handlers/lookupHandlers.ts).
+    const handler = fs.readFileSync(path.join(REPO, 'src', 'handlers', 'lookupHandlers.ts'), 'utf8');
+    expect(handler).toContain('`Closest ${kind} gem names ${SUGGESTION_ORDER}:`');
+    expect(handler).toMatch(/for \(const kind of \["active", "support"\]\)/);
   });
 });
 

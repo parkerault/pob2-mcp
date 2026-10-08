@@ -90,7 +90,8 @@ describe('AC-W2: the passing fixtures', () => {
     expect(guide).toContain('near the ceiling');
   });
 
-  it('every fixture plan is a valid plan under the real schema and C1/E1 data (C-31)', () => {
+  // validatePlan only: V1 and V2 need a compile's engine-side stage checks, so they run in the engine tests.
+  it('every fixture plan passes validatePlan with the C1/E1 data (C-31), and sets every enemy<Type>Damage to a whole number (D-256)', () => {
     const ref = loadReferenceData();
     const plans: string[] = [];
     for (const run of ['run-ok', 'run-ok-online', 'run-escalated']) {
@@ -98,8 +99,21 @@ describe('AC-W2: the passing fixtures', () => {
       for (const c of fs.readdirSync(path.join(FIXTURES, run, 'concepts'))) plans.push(path.join(FIXTURES, run, 'concepts', c, 'plan.json'));
     }
     for (const p of plans) {
-      const result = validatePlan(fs.readFileSync(p, 'utf8'), ref);
+      const text = fs.readFileSync(p, 'utf8');
+      const result = validatePlan(text, ref);
       expect({ plan: path.relative(FIXTURES, p), errors: result.ok ? [] : result.errors }).toEqual({ plan: path.relative(FIXTURES, p), errors: [] });
+      // PoB types these options countAllowZero, and the bridge refuses a fraction.
+      const hits = (JSON.parse(text).stages as Json[]).flatMap((s) => (s.config.scenario as Json[]).filter((o) => /^enemy\w+Damage$/.test(o.option)));
+      for (const o of hits) expect({ plan: path.relative(FIXTURES, p), option: o.option, whole: Number.isInteger(o.value) }).toEqual({ plan: path.relative(FIXTURES, p), option: o.option, whole: true });
+    }
+  });
+
+  it("run-ok's campaign stage 1 holds the leveling skill, not Blood Hunt below its tier 7 (D-259); Blood Hunt joins at gem level 10", () => {
+    for (const fixture of ['run-ok', 'run-ok-online']) {
+      const plan = JSON.parse(fs.readFileSync(path.join(FIXTURES, fixture, 'plan.json'), 'utf8'));
+      const gems = (id: string) => (plan.stages.find((s: Json) => s.id === id).skills.groups as Json[]).flatMap((g) => g.gems as Json[]);
+      expect(gems('1').map((g) => g.name)).toEqual(['Rolling Slam']);
+      expect(gems('2').find((g) => g.name === 'Blood Hunt')!.level).toBeGreaterThanOrEqual(7);
     }
   });
 });

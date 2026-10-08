@@ -205,7 +205,7 @@
           },
           {
             "option": "enemyPhysicalDamage",
-            "value": 324.19000244141,
+            "value": 325,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"
@@ -219,7 +219,7 @@
           },
           {
             "option": "enemyFireDamage",
-            "value": 324.19000244141,
+            "value": 325,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"

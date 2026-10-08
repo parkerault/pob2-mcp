@@ -57,19 +57,6 @@
       "skills": {
         "groups": [
           {
-            "label": "Blood Hunt",
-            "enabled": true,
-            "role": "clear",
-            "gems": [
-              {
-                "name": "Blood Hunt",
-                "level": 2,
-                "quality": 0,
-                "enabled": true
-              }
-            ]
-          },
-          {
             "label": "Rolling Slam",
             "enabled": true,
             "role": "clear",
@@ -86,8 +73,7 @@
         "main": {
           "group": 1,
           "activeSkill": 1
-        },
-        "rolledGroup": 1
+        }
       },
       "config": {
         "earned": [],

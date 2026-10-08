@@ -20,11 +20,11 @@ Blood Hunt consumes Blood Loss.[^g2] Ledger: ttk_arbiter, about 160 s, the Arbit
 
 ### Act 1 (L8) {1}
 
-Levels 1 to 8. Blood Hunt as soon as it drops.[^g3]
+Levels 1 to 8. Rolling Slam carries you until Blood Hunt's level requirement.[^g3]
 
 ### Act 2 (L30) {2}
 
-Levels 9 to 30. Rolling Slam joins for packs.[^g4]
+Levels 9 to 30. Blood Hunt takes the main group; Rolling Slam stays for packs.[^g4]
 
 ## Campaign rewards
 

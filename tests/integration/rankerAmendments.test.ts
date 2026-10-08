@@ -26,6 +26,16 @@ const CANT_MEASURE = "## What PoB can't fully measure";
 const ASCENDANCY_SECTION = '## Ascendancy notables (cost in ascendancy points)';
 const UNMODELLED = 'possibly unmodelled; check config';
 
+/** A measured candidate, as a test derives it from PoB. */
+interface PoolNode {
+  id: number;
+  name: string;
+  path: number[];
+  /** Its stat lines (`node.sd`). */
+  lines: number;
+  ascendancy: boolean;
+}
+
 /** A Lua table that may come back as `{}` for an empty list. */
 const arr = <T>(v: T[] | Record<string, never> | undefined | null): T[] => (Array.isArray(v) ? v : []);
 
@@ -120,6 +130,114 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
       return out`);
   }
 
+  /**
+   * The main-tree pool, rebuilt as the handler builds it: for each keyword, search_nodes' matches (name,
+   * stat lines or mods containing the keyword) that are unallocated, non-ascendancy notables with a path;
+   * the 8 nearest by pathDist, then name, then id, skipping ids already taken.
+   */
+  async function mainPool(keywords: string[]): Promise<PoolNode[]> {
+    const matches = await luaQuery<Record<string, Array<{ id: number; name: string; dist: number; path: number[]; lines: number }>>>(`
+      local out = {}
+      for _, keyword in ipairs({ ${keywords.map((k) => `'${k}'`).join(', ')} }) do
+        local list = {}
+        for id, node in pairs(build.spec.nodes) do
+          if node.isNotable and not node.isKeystone and not node.ascendancyName and not build.spec.allocNodes[id]
+              and type(node.path) == 'table' and #node.path > 0 and (node.pathDist or 1000) < 1000 then
+            local hit = node.name and node.name:lower():find(keyword, 1, true)
+            for _, stat in ipairs(node.sd or {}) do
+              if not hit and type(stat) == 'string' and stat:lower():find(keyword, 1, true) then hit = true end
+            end
+            for _, mod in ipairs(node.modList or {}) do
+              if not hit and tostring(mod):lower():find(keyword, 1, true) then hit = true end
+            end
+            if hit then
+              local path = {}
+              for _, p in ipairs(node.path) do path[#path + 1] = p.id end
+              list[#list + 1] = { id = id, name = node.name, dist = node.pathDist, path = path, lines = #(node.sd or {}) }
+            end
+          end
+        end
+        out[keyword] = list
+      end
+      return out`);
+    const pool: PoolNode[] = [];
+    const taken = new Set<number>();
+    for (const keyword of keywords) {
+      const sorted = arr(matches[keyword]).sort(
+        (a, b) => a.dist - b.dist || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) || a.id - b.id,
+      );
+      let n = 0;
+      for (const m of sorted) {
+        if (n >= 8) break;
+        if (taken.has(m.id)) continue;
+        taken.add(m.id);
+        pool.push({ id: m.id, name: m.name, path: arr(m.path), lines: m.lines, ascendancy: false });
+        n++;
+      }
+    }
+    return pool;
+  }
+
+  /** The build's own ascendancy pool: every unallocated notable of its ascendancy that PoB has a path to. */
+  async function ascendancyPool(): Promise<PoolNode[]> {
+    const nodes = await luaQuery<Array<{ id: number; name: string; path: number[]; lines: number }>>(`
+      local out = {}
+      local asc = build.spec.curAscendClassName
+      for id, node in pairs(build.spec.nodes) do
+        if node.ascendancyName == asc and node.isNotable and not build.spec.allocNodes[id]
+            and type(node.path) == 'table' and #node.path > 0 and (node.pathDist or 1000) < 1000 then
+          local path = {}
+          for _, p in ipairs(node.path) do path[#path + 1] = p.id end
+          out[#out + 1] = { id = id, name = node.name, path = path, lines = #(node.sd or {}) }
+        end
+      end
+      return out`);
+    return arr(nodes).map((n) => ({ ...n, path: arr(n.path), ascendancy: true }));
+  }
+
+  /** The pool nodes whose path PoB's calculator gives no value for the focus's stat(s) (or fails on). */
+  async function nullMeasured(pool: PoolNode[], focus: 'dps' | 'defence' | 'both'): Promise<Set<number>> {
+    if (pool.length === 0) return new Set();
+    const values = await luaQuery<Array<{ id: number; ok: boolean; dps: boolean; ehp: boolean }>>(`
+      local calcFunc = build.calcsTab:GetMiscCalculator()
+      local out = {}
+      for _, c in ipairs({ ${pool.map((c) => `{ id = ${c.id}, path = { ${c.path.join(', ')} } }`).join(', ')} }) do
+        local add = {}
+        for _, id in ipairs(c.path) do add[build.spec.nodes[id]] = true end
+        local ok, res = pcall(calcFunc, { addNodes = add })
+        local num = function(k) return ok and type(res) == 'table' and type(res[k]) == 'number' end
+        out[#out + 1] = { id = c.id, ok = ok and type(res) == 'table',
+          dps = num('CombinedDPS') or num('TotalDPS'), ehp = num('TotalEHP') or num('Life') }
+      end
+      return out`);
+    return new Set(
+      arr(values)
+        .filter((v) => !v.ok || (focus !== 'defence' && !v.dps) || (focus !== 'dps' && !v.ehp))
+        .map((v) => v.id),
+    );
+  }
+
+  /** Per pool node, the `[<status>] <line>` lines `check_model_coverage {nodes:[id]}` doesn't rate fully parsed. */
+  async function notFullyParsed(pool: PoolNode[]): Promise<Map<number, string[]>> {
+    const out = new Map<number, string[]>();
+    for (const c of pool) {
+      const lines = (await coverageLines({ nodes: [c.id] })).filter((l) => !l.startsWith('[fully parsed] '));
+      if (lines.length > 0) out.set(c.id, lines);
+    }
+    return out;
+  }
+
+  /** Checks each listed reason's kind label (C-47, D-243): `advisory` for possibly unread lines, `not applied` for the rest. */
+  function expectKinds(entry: { line: string }, lines: string[]): void {
+    const groups = entry.line.replace(/^- \*\*.+?\*\* \[\d+\][^:]*: /, '').split(' | ');
+    for (const line of lines) {
+      const group = groups.find((g) => g.includes(line));
+      expect({ line, group: group ?? null }).toEqual({ line, group: expect.any(String) });
+      const kind = line.startsWith('[possibly unread] ') ? 'advisory: ' : 'not applied: ';
+      expect({ line, kind: group!.startsWith(kind) }).toEqual({ line, kind: true });
+    }
+  }
+
   beforeAll(async () => {
     f = await startSessionFixture({ testActions: true });
   }, ENGINE_TIMEOUT);
@@ -199,76 +317,17 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
       async () => {
         const out = await okTool('get_passive_upgrades', { focus: 'both', max_results: 3 });
 
-        // The measured pool, rebuilt as the handler builds it: for each of focus "both"'s first four
-        // keywords, search_nodes' matches (name, stat lines or mods containing the keyword) that are
-        // unallocated, non-ascendancy notables with a path; the 8 nearest by pathDist, then name, then id,
-        // skipping ids already taken.
-        const keywords = ['damage', 'critical', 'life', 'energy shield'];
-        const matches = await luaQuery<Record<string, Array<{ id: number; name: string; dist: number; path: number[] }>>>(`
-          local out = {}
-          for _, keyword in ipairs({ ${keywords.map((k) => `'${k}'`).join(', ')} }) do
-            local list = {}
-            for id, node in pairs(build.spec.nodes) do
-              if node.isNotable and not node.isKeystone and not node.ascendancyName and not build.spec.allocNodes[id]
-                  and type(node.path) == 'table' and #node.path > 0 and (node.pathDist or 1000) < 1000 then
-                local hit = node.name and node.name:lower():find(keyword, 1, true)
-                for _, stat in ipairs(node.sd or {}) do
-                  if not hit and type(stat) == 'string' and stat:lower():find(keyword, 1, true) then hit = true end
-                end
-                for _, mod in ipairs(node.modList or {}) do
-                  if not hit and tostring(mod):lower():find(keyword, 1, true) then hit = true end
-                end
-                if hit then
-                  local path = {}
-                  for _, p in ipairs(node.path) do path[#path + 1] = p.id end
-                  list[#list + 1] = { id = id, name = node.name, dist = node.pathDist, path = path }
-                end
-              end
-            end
-            out[keyword] = list
-          end
-          return out`);
-        const pool: Array<{ id: number; name: string; path: number[] }> = [];
-        const taken = new Set<number>();
-        for (const keyword of keywords) {
-          const sorted = arr(matches[keyword]).sort(
-            (a, b) => a.dist - b.dist || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) || a.id - b.id,
-          );
-          let n = 0;
-          for (const m of sorted) {
-            if (n >= 8) break;
-            if (taken.has(m.id)) continue;
-            taken.add(m.id);
-            pool.push({ id: m.id, name: m.name, path: arr(m.path) });
-            n++;
-          }
-        }
+        // The measured pool, rebuilt as the handler builds it from focus "both"'s first four keywords.
+        const pool = await mainPool(['damage', 'critical', 'life', 'energy shield']);
         expect(pool.length).toBeGreaterThan(8);
         const measuredLine = /^Measured (\d+) nearby notables/m.exec(out);
         expect(measuredLine).not.toBeNull();
         expect(Number(measuredLine![1])).toBe(pool.length);
 
-        // Null measurements: PoB's calculator over each path gives no DPS or no EHP number.
-        const values = await luaQuery<Array<{ id: number; ok: boolean; dps: boolean; ehp: boolean }>>(`
-          local calcFunc = build.calcsTab:GetMiscCalculator()
-          local out = {}
-          for _, c in ipairs({ ${pool.map((c) => `{ id = ${c.id}, path = { ${c.path.join(', ')} } }`).join(', ')} }) do
-            local add = {}
-            for _, id in ipairs(c.path) do add[build.spec.nodes[id]] = true end
-            local ok, res = pcall(calcFunc, { addNodes = add })
-            local num = function(k) return ok and type(res) == 'table' and type(res[k]) == 'number' end
-            out[#out + 1] = { id = c.id, ok = ok and type(res) == 'table',
-              dps = num('CombinedDPS') or num('TotalDPS'), ehp = num('TotalEHP') or num('Life') }
-          end
-          return out`);
-        const nullIds = new Set(arr(values).filter((v) => !v.ok || !v.dps || !v.ehp).map((v) => v.id));
-
-        // Lines check_model_coverage doesn't rate fully parsed, per pool node.
-        const notFull = new Map<number, string[]>();
-        for (const c of pool) {
-          const lines = (await coverageLines({ nodes: [c.id] })).filter((l) => !l.startsWith('[fully parsed] '));
-          if (lines.length > 0) notFull.set(c.id, lines);
-        }
+        // Null measurements (PoB's calculator over each path gives no DPS or no EHP number), and the lines
+        // check_model_coverage doesn't rate fully parsed.
+        const nullIds = await nullMeasured(pool, 'both');
+        const notFull = await notFullyParsed(pool);
 
         const expected = pool.filter((c) => notFull.has(c.id) || nullIds.has(c.id)).map((c) => c.id).sort((a, b) => a - b);
         const cant = section(out, CANT_MEASURE);
@@ -276,13 +335,20 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         const entries = passiveEntries(cant!);
         expect(entries.map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
         expect(new Set(entries.map((e) => e.id)).size).toBe(entries.length);
-        // Each entry has such a line (shown with its status) or a null measurement.
+        // Each entry has such a line (shown with its status, under its kind) or a null measurement.
         for (const e of entries) {
           const lines = notFull.get(e.id) ?? [];
           expect(lines.length > 0 || nullIds.has(e.id)).toBe(true);
           for (const line of lines) expect(e.line).toContain(line);
+          expectKinds(e, lines);
           if (nullIds.has(e.id)) expect(e.line).toContain('no value');
         }
+        // D-243: a possibly unread line is advisory, never "not applied". On the golden build Battle-hardened's
+        // "+5 to Strength and Dexterity" is one: PoB applies Str and Dex, it only never reads the StrDex name.
+        const hardened = entries.find((e) => e.name === 'Battle-hardened');
+        expect(hardened?.line).toContain('advisory: [possibly unread] +5 to Strength and Dexterity');
+        expect(hardened?.line).not.toContain('not applied');
+        expect(cant).toContain('the measured change may already include it');
 
         // D-77 kept: no id in the output is an ascendancy node.
         const facts = await nodeFacts(idsIn(out));
@@ -296,6 +362,7 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         expect(defaults.length).toBeLessThanOrEqual(5000);
         expect(defaults).not.toContain('[Response truncated');
         expect(defaults).toContain(CANT_MEASURE);
+        expect(defaults).not.toContain('Shortened to stay within');
       },
       ENGINE_TIMEOUT,
     );
@@ -368,7 +435,8 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         const out = await okTool('get_passive_upgrades', { focus: 'dps', include_ascendancy: true });
         expect(out).toContain(`Gemling Legionnaire: ${pob.used} of 8 ascendancy points used, ${left} left.`);
         // The passive-point ranking is the same with and without the option.
-        expect(ranking(out)).toBe(ranking(plain));
+        const ids = (text: string) => rankedEntries(ranking(text)).map((e) => [e.id, e.cost]);
+        expect(ids(out)).toEqual(ids(plain));
 
         const asc = section(out, ASCENDANCY_SECTION);
         expect(asc).not.toBeNull();
@@ -391,6 +459,87 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
           const dist = facts[String(e.id)].dist as number;
           expect({ id: e.id, marked: e.line.endsWith(` (over budget: needs ${dist}, ${left} left)`) }).toEqual({ id: e.id, marked: dist > left });
         }
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it.each([{ include_ascendancy: true }, { include_ascendancy: true, max_results: 20 }])(
+      'D-246: get_passive_upgrades %j keeps within 5000 chars with no truncation notice, and its can\'t-measure section lists exactly the main and ascendancy pools\' candidates with a line not fully parsed, a null measurement, or (D-247) no stat lines of their own',
+      async (args) => {
+        const out = await okTool('get_passive_upgrades', args);
+        expect(out.length).toBeLessThanOrEqual(5000);
+        expect(out).not.toContain('[Response truncated');
+
+        // Both pools, derived independently: the main tree's (focus "both") and the build's own ascendancy's.
+        const main = await mainPool(['damage', 'critical', 'life', 'energy shield']);
+        const ascendancy = await ascendancyPool();
+        expect(ascendancy.length).toBeGreaterThanOrEqual(1);
+        const pool = [...main, ...ascendancy];
+        const nullIds = await nullMeasured(pool, 'both');
+        const notFull = await notFullyParsed(pool);
+        const expected = pool
+          .filter((c) => notFull.has(c.id) || nullIds.has(c.id) || (c.ascendancy && c.lines === 0))
+          .map((c) => c.id)
+          .sort((a, b) => a - b);
+        expect(expected.some((id) => ascendancy.some((c) => c.id === id))).toBe(true);
+
+        const cant = section(out, CANT_MEASURE);
+        expect(cant).not.toBeNull();
+        const entries = passiveEntries(cant!);
+        expect(entries.map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
+        for (const e of entries) {
+          const lines = notFull.get(e.id) ?? [];
+          for (const line of lines) expect(e.line).toContain(line);
+          expectKinds(e, lines);
+        }
+
+        // When the text had to be shortened, one line says what was left out, and the ranked entries
+        // left are each ranking's first ones, in order.
+        const note = /^Shortened to stay within 5000 characters; left out: (.*)\.$/m.exec(out);
+        if (note) expect(out).not.toMatch(/^ {3}- /m);
+        for (const part of [ranking(out), section(out, ASCENDANCY_SECTION) ?? '']) {
+          const ranks = [...part.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
+          expect(ranks).toEqual(ranks.map((_, i) => i + 1));
+        }
+      },
+      ENGINE_TIMEOUT,
+    );
+  });
+
+  describe('on a new Mercenary / Gemling Legionnaire build', () => {
+    it(
+      'D-247: an unallocated multiple-choice ascendancy notable (Implanted Gems, no stat lines of its own) is in the can\'t-measure section as "its effect is the option chosen", naming the option nodes PoB links to it',
+      async () => {
+        await okTool('lua_new_build', { class_name: 'Mercenary', ascendancy: 'Gemling Legionnaire' });
+        const choices = await luaQuery<Array<{ id: number; name: string; lines: number; options: Array<{ id: number; name: string }> }>>(`
+          local out = {}
+          local asc = build.spec.curAscendClassName
+          for id, node in pairs(build.spec.nodes) do
+            if node.ascendancyName == asc and node.isNotable and node.isMultipleChoice and not build.spec.allocNodes[id] then
+              local options = {}
+              for _, other in ipairs(node.linked or {}) do
+                if other.isMultipleChoiceOption then options[#options + 1] = { id = other.id, name = other.name } end
+              end
+              out[#out + 1] = { id = id, name = node.name, lines = #(node.sd or {}), options = options }
+            end
+          end
+          return out`);
+        const implanted = arr(choices).find((c) => c.name === 'Implanted Gems');
+        expect(implanted).toBeDefined();
+        expect(implanted!.lines).toBe(0);
+        const options = arr(implanted!.options).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+        expect(options.length).toBe(3);
+
+        const out = await okTool('get_passive_upgrades', { focus: 'defence', include_ascendancy: true });
+        const entry = passiveEntries(section(out, CANT_MEASURE) ?? '').find((e) => e.id === implanted!.id);
+        expect(entry).toBeDefined();
+        expect(entry!.line).toContain(
+          `choice: its effect is the option chosen; options: ${options.map((o) => `${o.name} [${o.id}]`).join(', ')}`,
+        );
+        // It is not in the ascendancy ranking: PoB measures it as nothing.
+        expect(rankedEntries(section(out, ASCENDANCY_SECTION) ?? '').map((e) => e.id)).not.toContain(implanted!.id);
+        // No option node is offered as a notable of its own.
+        for (const o of options) expect(idsIn(ranking(out) + (section(out, ASCENDANCY_SECTION) ?? ''))).not.toContain(o.id);
       },
       ENGINE_TIMEOUT,
     );

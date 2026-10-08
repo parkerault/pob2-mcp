@@ -402,7 +402,12 @@ interface AscendancyPool {
   /** The points left: 8 minus `used`. */
   remaining: number;
   candidates: UpgradeCandidate[];
+  /** The ascendancy's unallocated multiple-choice options (`search_nodes` types them `mastery`), with PoB's path to each. */
+  options: Array<{ id: number; name: string; path: number[] }>;
 }
+
+/** C-1: the server cuts this tool's text at 5000 characters, so the handler keeps within it (D-246). */
+const OUTPUT_LIMIT = 5000;
 
 const dpsOf = (out: Record<string, unknown>): number =>
   Number(out.CombinedDPS ?? 0) || Number(out.TotalDPS ?? 0);
@@ -439,7 +444,11 @@ async function ascendancyPool(luaClient: PoBLuaApiClient): Promise<AscendancyPoo
     .filter((n) => n.type === 'notable' && reachable(n))
     .sort((a, b) => a.pathDist! - b.pathDist! || a.name.localeCompare(b.name) || a.id - b.id)
     .map((n) => ({ id: n.id, name: n.name, stats: n.stats, path: n.path!, pathCost: n.pathDist!, ascendancy: true }));
-  return { name, used, remaining: Math.max(0, ASCENDANCY_POINTS - used), candidates };
+  const options = own
+    .filter((n) => n.type === 'mastery' && !n.allocated && Array.isArray(n.path))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
+    .map((n) => ({ id: n.id, name: n.name, path: n.path! }));
+  return { name, used, remaining: Math.max(0, ASCENDANCY_POINTS - used), candidates, options };
 }
 
 /**
@@ -451,16 +460,18 @@ function overBudgetMark(c: { ascendancy: boolean; pathCost: number }, asc: Ascen
   return ` (over budget: needs ${c.pathCost}, ${asc.remaining} left)`;
 }
 
-/** One ranked entry: name and id, path cost and score, the stat changes, the first two stat lines. */
-function renderUpgrade(lines: string[], u: PassiveUpgrade, rank: number, unit: string, mark: string): void {
+/** One ranked entry: name and id, path cost and score, the stat changes, the first two stat lines (unless left out, D-246). */
+function renderUpgrade(lines: string[], u: PassiveUpgrade, rank: number, unit: string, mark: string, stats = true): void {
   lines.push(`${rank}. **${u.name}** [${u.id}]${mark}`);
   lines.push(`   Path cost: ${u.pathCost} ${unit}${u.pathCost === 1 ? '' : 's'}  |  Score per point: ${u.score.toFixed(4)}`);
   const deltas: string[] = [];
   if (u.dpsDelta !== 0) deltas.push(`DPS Δ: ${u.dpsDelta > 0 ? '+' : ''}${Math.round(u.dpsDelta).toLocaleString()}`);
   if (u.ehpDelta !== 0) deltas.push(`EHP Δ: ${u.ehpDelta > 0 ? '+' : ''}${Math.round(u.ehpDelta).toLocaleString()}`);
   if (deltas.length) lines.push(`   ${deltas.join('  |  ')}`);
-  for (const stat of u.stats.slice(0, 2)) {
-    lines.push(`   - ${stat}`);
+  if (stats) {
+    for (const stat of u.stats.slice(0, 2)) {
+      lines.push(`   - ${stat}`);
+    }
   }
   lines.push('');
 }
@@ -585,9 +596,12 @@ export async function handleGetPassiveUpgrades(
   const improving = scored.filter((u) => u.score > 0).sort(byScore);
   const top = improving.slice(0, maxResults);
 
-  // Step 6 (C-47): every measured candidate's lines, as check_model_coverage rates them (C-38).
+  // Step 6 (C-47): every measured candidate's lines, as check_model_coverage rates them (C-38). Lines PoB
+  // applies nothing from (unparsed, partly parsed, parsed to nothing) and possibly unread lines, which are
+  // advisory (D-243: PoB parses them, but may never read a mod they make), are kept apart.
   const pool = [...candidates, ...ascCandidates];
-  const unapplied = new Map<number, string[]>();
+  const notApplied = new Map<number, string[]>();
+  const advisory = new Map<number, string[]>();
   if (pool.length > 0) {
     const scan = await context.sourceScan();
     const coverage = await luaClient.checkCoverage({
@@ -597,80 +611,146 @@ export async function handleGetPassiveUpgrades(
     });
     for (const entry of coverage.entries) {
       if (entry.kind !== 'node' || entry.nodeId === undefined || entry.status === 'fully parsed') continue;
-      const line = [entry.line, ...(entry.joinedWith ?? [])].join(' ');
-      const list = unapplied.get(entry.nodeId) ?? [];
-      list.push(`[${entry.status}] ${line}`);
-      unapplied.set(entry.nodeId, list);
+      const into = entry.status === 'possibly unread' ? advisory : notApplied;
+      const list = into.get(entry.nodeId) ?? [];
+      list.push(`[${entry.status}] ${[entry.line, ...(entry.joinedWith ?? [])].join(' ')}`);
+      into.set(entry.nodeId, list);
     }
+  }
+
+  // D-247: a multiple-choice ascendancy notable has no stat lines of its own; its effect is the option
+  // chosen, so PoB measures it as nothing. Its options are the option nodes whose path runs through it.
+  const choices = new Map<number, string[]>();
+  for (const c of ascCandidates) {
+    if (c.stats.length > 0) continue;
+    choices.set(c.id, (asc?.options ?? []).filter((o) => o.path.includes(c.id)).map((o) => `${o.name} [${o.id}]`));
+  }
+
+  // The can't-measure entries, one line each, every reason labelled with its kind (explained once, below).
+  const KINDS = {
+    'not applied': 'PoB applies nothing from the line (unparsed, partly parsed, parsed to nothing)',
+    advisory: 'PoB parses a possibly unread line but may never read a mod it makes; the measured change may already include it',
+    choice: 'a multiple-choice notable, measured with no option chosen',
+    'no value': "PoB's calculator returned nothing for it",
+  } as const;
+  const kindsShown = new Set<keyof typeof KINDS>();
+  const cantMeasure: string[] = [];
+  for (const c of pool) {
+    const reasons: string[] = [];
+    const reason = (kind: keyof typeof KINDS, text: string) => {
+      kindsShown.add(kind);
+      reasons.push(`${kind}: ${text}`);
+    };
+    const lost = notApplied.get(c.id);
+    if (lost) reason('not applied', lost.join('; '));
+    const unsure = advisory.get(c.id);
+    if (unsure) reason('advisory', unsure.join('; '));
+    const options = choices.get(c.id);
+    if (options) {
+      reason('choice', `its effect is the option chosen; options: ${options.length > 0 ? options.join(', ') : 'none reachable'}`);
+    }
+    const failure = unmeasured.get(c.id);
+    if (failure) reason('no value', failure);
+    if (reasons.length === 0) continue;
+    const cost = c.ascendancy ? `, ${c.pathCost} ascendancy point${c.pathCost === 1 ? '' : 's'}` : '';
+    cantMeasure.push(`- **${c.name}** [${c.id}]${cost}: ${reasons.join(' | ')}${overBudgetMark(c, asc)}`);
   }
 
   const measured = focus === 'dps' ? 'DPS' : focus === 'defence' ? 'EHP' : 'DPS + EHP';
-  const textLines: string[] = [`=== Passive Upgrades (focus: ${focus}) ===`, ''];
-  if (candidates.length === 0) {
-    textLines.push('No reachable unallocated notable candidates found. Make sure a build is loaded.', '');
-  } else {
-    textLines.push(
-      `Base DPS: ${Math.round(baseDPS).toLocaleString()}  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
-      `Measured ${candidates.length} nearby notables with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
-      '',
-    );
-    for (let i = 0; i < top.length; i++) renderUpgrade(textLines, top[i], i + 1, 'point', '');
-    if (top.length === 0) {
-      textLines.push(`None of the measured notables improves ${measured}. Try a different focus.`);
-    }
-  }
+  const ascImproving = ascScored.filter((u) => u.score > 0).sort(byScore);
+  const ascTop = ascImproving.slice(0, maxResults);
+  const ascById = new Map(ascCandidates.map((c) => [c.id, c]));
 
-  // The build's own ascendancy notables, priced in ascendancy points (include_ascendancy).
-  if (includeAscendancy) {
-    textLines.push('', '## Ascendancy notables (cost in ascendancy points)', '');
-    if (!asc) {
-      textLines.push('The build has no ascendancy, so it has no ascendancy notables to measure.');
-    } else {
-      const ascImproving = ascScored.filter((u) => u.score > 0).sort(byScore);
-      const ascTop = ascImproving.slice(0, maxResults);
-      const budget = `${asc.name}: ${asc.used} of ${ASCENDANCY_POINTS} ascendancy points used, ${asc.remaining} left.`;
-      if (ascCandidates.length === 0) {
-        textLines.push(`${budget} No unallocated ${asc.name} notable is reachable.`);
-      } else {
-        textLines.push(
-          `${budget} Measured ${ascCandidates.length} unallocated ${asc.name} notables with PoB's calculator, allocating each one's full path; ${ascImproving.length} improve ${measured}. Ranked by relative ${measured} gain per ascendancy point; a notable that needs more points than are left is marked over budget:`,
-          '',
-        );
-        const byId = new Map(ascCandidates.map((c) => [c.id, c]));
-        for (let i = 0; i < ascTop.length; i++) {
-          renderUpgrade(textLines, ascTop[i], i + 1, 'ascendancy point', overBudgetMark(byId.get(ascTop[i].id)!, asc));
-        }
-        if (ascTop.length === 0) textLines.push(`None of them improves ${measured}.`);
-      }
-    }
-  }
-
-  // C-47: what PoB can't fully measure, over the whole measured pool, not only the ranked candidates.
-  if (pool.length > 0) {
-    textLines.push('', "## What PoB can't fully measure", '');
-    const listed = pool.filter((c) => unapplied.has(c.id) || unmeasured.has(c.id));
-    if (listed.length === 0) {
-      textLines.push("Nothing: every measured notable's lines are fully parsed, and every measurement returned a value.");
+  /** The whole text, with `mainShown` and `ascShown` ranked entries, their stat lines or not, and a note. */
+  const render = (plan: { stats: boolean; mainShown: number; ascShown: number; tip: boolean }, note: string | null): string => {
+    const textLines: string[] = [`=== Passive Upgrades (focus: ${focus}) ===`, ''];
+    if (note) textLines.push(note, '');
+    if (candidates.length === 0) {
+      textLines.push('No reachable unallocated notable candidates found. Make sure a build is loaded.', '');
     } else {
       textLines.push(
-        "PoB doesn't fully apply a line of these notables (its check_model_coverage status is shown), or its calculator returned no value for them, so their gain may be missing or wrong:",
+        `Base DPS: ${Math.round(baseDPS).toLocaleString()}  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
+        `Measured ${candidates.length} nearby notables with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
+        '',
       );
-      for (const c of listed) {
-        const reasons = [...(unapplied.get(c.id) ?? [])];
-        const failure = unmeasured.get(c.id);
-        if (failure) reasons.push(`no value: ${failure}`);
-        const cost = c.ascendancy ? `, ${c.pathCost} ascendancy point${c.pathCost === 1 ? '' : 's'}` : '';
-        textLines.push(`- **${c.name}** [${c.id}]${cost}: ${reasons.join('; ')}${overBudgetMark(c, asc)}`);
+      for (let i = 0; i < plan.mainShown; i++) renderUpgrade(textLines, top[i], i + 1, 'point', '', plan.stats);
+      if (top.length === 0) {
+        textLines.push(`None of the measured notables improves ${measured}. Try a different focus.`);
       }
     }
-  }
 
-  if (top.length > 0) {
-    textLines.push('', '💡 Use update_tree_delta to allocate a node; find_path_to_node shows the travel nodes.');
+    // The build's own ascendancy notables, priced in ascendancy points (include_ascendancy).
+    if (includeAscendancy) {
+      textLines.push('', '## Ascendancy notables (cost in ascendancy points)', '');
+      if (!asc) {
+        textLines.push('The build has no ascendancy, so it has no ascendancy notables to measure.');
+      } else {
+        const budget = `${asc.name}: ${asc.used} of ${ASCENDANCY_POINTS} ascendancy points used, ${asc.remaining} left.`;
+        if (ascCandidates.length === 0) {
+          textLines.push(`${budget} No unallocated ${asc.name} notable is reachable.`);
+        } else {
+          textLines.push(
+            `${budget} Measured ${ascCandidates.length} unallocated ${asc.name} notables with PoB's calculator, allocating each one's full path; ${ascImproving.length} improve ${measured}. Ranked by relative ${measured} gain per ascendancy point; a notable that needs more points than are left is marked over budget:`,
+            '',
+          );
+          for (let i = 0; i < plan.ascShown; i++) {
+            renderUpgrade(textLines, ascTop[i], i + 1, 'ascendancy point', overBudgetMark(ascById.get(ascTop[i].id)!, asc), plan.stats);
+          }
+          if (ascTop.length === 0) textLines.push(`None of them improves ${measured}.`);
+        }
+      }
+    }
+
+    // C-47: what PoB can't fully measure, over the whole measured pool, not only the ranked candidates.
+    if (pool.length > 0) {
+      textLines.push('', "## What PoB can't fully measure", '');
+      if (cantMeasure.length === 0) {
+        textLines.push("Nothing: every measured notable's lines are fully parsed, and every measurement returned a value.");
+      } else {
+        const kinds = (Object.keys(KINDS) as Array<keyof typeof KINDS>).filter((k) => kindsShown.has(k));
+        textLines.push(
+          "PoB may not apply some of these notables' lines, or measure them at all, so their gain may be missing or wrong " +
+            `(check_model_coverage gives each line's status). ${kinds.map((k) => `${k}: ${KINDS[k]}`).join('. ')}.`,
+          ...cantMeasure,
+        );
+      }
+    }
+
+    if (plan.tip && top.length > 0) {
+      textLines.push('', '💡 Use update_tree_delta to allocate a node; find_path_to_node shows the travel nodes.');
+    }
+    return textLines.join('\n');
+  };
+
+  // D-246: keep within C-1's limit so no can't-measure line is ever cut. Leave out the ranked entries' stat
+  // lines first (search_tree_nodes gives them back), then ranked entries from the bottom of the longer
+  // ranking, then the tip, and say what was left out in one line.
+  const plan = { stats: true, mainShown: top.length, ascShown: includeAscendancy && asc ? ascTop.length : 0, tip: true };
+  const noteFor = (): string | null => {
+    const parts: string[] = [];
+    if (!plan.stats) parts.push("the ranked entries' stat lines (search_tree_nodes shows them)");
+    if (plan.mainShown < top.length) {
+      parts.push(`passive-point ranks ${plan.mainShown + 1}-${top.length}`);
+    }
+    if (includeAscendancy && asc && plan.ascShown < ascTop.length) {
+      parts.push(`ascendancy ranks ${plan.ascShown + 1}-${ascTop.length}`);
+    }
+    if (!plan.tip && top.length > 0) parts.push('the closing tip');
+    return parts.length > 0 ? `Shortened to stay within ${OUTPUT_LIMIT} characters; left out: ${parts.join('; ')}.` : null;
+  };
+  let text = render(plan, noteFor());
+  while (text.length > OUTPUT_LIMIT) {
+    if (plan.stats) plan.stats = false;
+    else if (plan.mainShown > 0 || plan.ascShown > 0) {
+      if (plan.mainShown >= plan.ascShown) plan.mainShown--;
+      else plan.ascShown--;
+    } else if (plan.tip) plan.tip = false;
+    else break;
+    text = render(plan, noteFor());
   }
 
   return {
-    content: [{ type: 'text' as const, text: textLines.join('\n') }],
+    content: [{ type: 'text' as const, text }],
   };
 }
 

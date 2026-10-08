@@ -75,6 +75,8 @@ const OWNERS = ['dossier-fix', 'D1', 'D2', 'W1']
 // Section 7.4: every V3 and V4 finding has these fields, and each report the coverage counts of its kind.
 const FINDING_FIELDS = ['id', 'artifact', 'location', 'claim', 'issue', 'evidence', 'owner', 'status']
 const FINDING_STATUSES = ['unresolved', 'accepted-offline']
+// Where a claim is (section 7.4): a plan claim, or a markdown definition.
+const CLAIM_LOCATION = /stages\[\d+\]\.claims\[\d+\]|\[\^[^\]\s]+\]/
 const COVERAGE = {
   V3: ['plan', 'dossier', 'guide'],
   ledger: ['entries', 'rederived'],
@@ -161,7 +163,15 @@ const ACCEPTED = [
 ]
 const coveredGate = (f) =>
   ACCEPTED.some((a) => isText(a.code) && a.code === f.code && a.part === f.part && (isText(a.stage) ? a.stage : null) === (isText(f.stage) ? f.stage : null))
-const coveredReport = (f, report) => ACCEPTED.some((a) => isText(a.id) && a.id === f.id && a.gate === report)
+// A V3/V4 finding equals an accepted one only when it is the same finding (section 5.4): the same report, id
+// and artifact, and the same location. A location "<H2 title>, line <n>" is compared by its section alone,
+// since a regenerated guide moves its lines; every other form (a plan or record path, "<file> [^<id>]") whole.
+// So a verifier that gives an accepted id to another issue doesn't get it excused.
+const locationKey = (loc) => (typeof loc === 'string' ? loc.trim().replace(/,\s*line\s+\d+$/i, '') : null)
+const coveredReport = (f, report) =>
+  ACCEPTED.some(
+    (a) => isText(a.id) && a.id === f.id && a.gate === report && isText(a.artifact) && a.artifact === f.artifact && locationKey(a.location) === locationKey(f.location),
+  )
 // What a V3 or V4 header carries of them: ids and places, never a finding's text, which quotes the artifacts
 // the plan and guide steps wrote (R-5, D-142).
 const ACCEPTED_REPORT_IDS = ACCEPTED.filter((a) => isText(a.id) && (a.gate === 'V3' || a.gate === 'V4')).map((a) => ({
@@ -517,29 +527,47 @@ const GUIDED_LINE = '- A guided retry: the header\'s findings end with the user\
 
 /**
  * Why a step re-runs, when it isn't a first run or a plain retry (sections 5.3, 5.5): `ctx.why` is "routed"
- * (V3/V4 findings on claims it wrote), "revision" (the user's checkpoint-2 requests) or "regen" (an earlier
- * owner re-ran, so its inputs changed); `ctx.upstream` names the owners that re-ran before it.
+ * (V3/V4 findings on claims it wrote) or "revision" (the user's checkpoint-2 requests).
  */
-function reasonLine(ctx, artifact) {
+function whyLine(ctx, artifact) {
   if (ctx.why === 'routed') {
     return `- A routed re-run (slice 03 section 5.5): the header's findings are V3 and V4 findings on claims this step wrote in ${artifact} ({id, artifact, location, claim, issue, evidence}). Fix each claim at its location (its text, its number or its source, or remove it when nothing supports it), and keep what no finding names.`
   }
   if (ctx.why === 'revision') {
     return `- A checkpoint-2 revision (D-236): the header's findings are the user's requests for ${artifact} (code "user-request"). Make each change, and keep what no request names.`
   }
-  if (ctx.why === 'regen') {
-    return `- ${ctx.upstream.join(' and ')} re-ran, so plan.json and compile-record.json changed: write ${artifact} anew from them, every number, loadout name and the import code from the current record.`
-  }
   return null
+}
+
+/**
+ * When an earlier owner re-ran in this round (`ctx.upstream`), the step's inputs changed under it (section
+ * 5.5): W1 writes the guide anew from the current plan and record, D2 re-plans the campaign against D1's new
+ * endgame, and only then applies its own findings or requests (D-236).
+ */
+function upstreamLine(ctx, artifact) {
+  const upstream = Array.isArray(ctx.upstream) ? ctx.upstream : []
+  if (upstream.length === 0) return null
+  if (artifact === 'guide.md') {
+    return `- ${upstream.join(' and ')} re-ran in this round, so plan.json and compile-record.json changed: write guide.md anew from them, every section, number, loadout name and the import code from the current plan and record; then make the changes the header's findings ask for, if any.`
+  }
+  return `- ${upstream.join(' and ')} re-ran in this round, so the endgame stages changed: re-plan the campaign stages backward from them (the last campaign stage leads into the new endgame trees, gems and gear); then make the changes the header's findings ask for.`
+}
+
+/** The lines on why a step runs and what its header's findings are (sections 5.4, 5.5). */
+function reasonLines(attempt, ctx, artifact, what) {
+  const out = [upstreamLine(ctx, artifact), whyLine(ctx, artifact)].filter(Boolean)
+  if (!ctx.why) {
+    const retry = retryLine(attempt, what)
+    if (retry) out.push(retry)
+  }
+  if (ctx.guided) out.push(GUIDED_LINE)
+  return out
 }
 
 /** D1's and D2's lines on what their header's findings are, by why the step runs (section 5.4, 5.5). */
 function producerLines(attempt, ctx, artifact) {
-  const reason = reasonLine(ctx, artifact)
   const what = ctx.rerun ? 'what this step must fix: the findings it re-ran with, then the earlier attempts\' gate findings' : 'the earlier attempts\' gate findings'
-  const out = reason ? [reason] : [retryLine(attempt, what)].filter(Boolean)
-  if (ctx.guided) out.push(GUIDED_LINE)
-  return out
+  return reasonLines(attempt, ctx, artifact, what)
 }
 
 function d1Prompt(attempt, findings, ctx) {
@@ -633,13 +661,7 @@ function w1Prompt(attempt, findings, ctx) {
       : '- Take the league from plan.json: "unverified" there means trade was unreachable when the endgame was priced, and the guide says so in "Versions, prices and import code".',
   )
   if (ACCEPTED.length > 0) lines.push('- The header\'s accepted lists findings the user accepted: the guide states each under "Accepted failures", as the stage reference says.')
-  const reason = reasonLine(ctx, 'guide.md')
-  if (reason) lines.push(reason)
-  else {
-    const retry = retryLine(attempt, ctx.rerun ? 'what this step must fix: the findings it re-ran with, then the earlier attempts\' findings' : 'the earlier attempts\' findings')
-    if (retry) lines.push(retry)
-  }
-  if (ctx.guided) lines.push(GUIDED_LINE)
+  lines.push(...reasonLines(attempt, ctx, 'guide.md', ctx.rerun ? 'what this step must fix: the findings it re-ran with, then the earlier attempts\' findings' : 'the earlier attempts\' findings'))
   // The budget totals and the floor, budget and rolled-skill findings come from the D1 gate (section 8).
   const d1 = [...gateVerdicts].reverse().find((g) => g.stage === 'D1-gate')
   if (d1) {
@@ -685,13 +707,7 @@ function dossierFixPrompt(attempt, findings, ctx) {
     '',
     '- Edit only dossier.md (the header\'s writes): no plan, no guide, no compile and no price call.',
   ]
-  const reason = reasonLine(ctx, 'dossier.md')
-  if (reason) lines.push(reason)
-  else {
-    const retry = retryLine(attempt, 'what this step must fix: the findings it re-ran with, then why the earlier attempts failed')
-    if (retry) lines.push(retry)
-  }
-  if (ctx.guided) lines.push(GUIDED_LINE)
+  lines.push(...reasonLines(attempt, ctx, 'dossier.md', 'what this step must fix: the findings it re-ran with, then why the earlier attempts failed'))
   lines.push('', closing)
   return header({ stage: 'dossier-fix', attempt, compile: 'none', findings, accepted: ACCEPTED, writes: ['dossier.md'] }) + '\n' + lines.join('\n') + '\n'
 }
@@ -833,10 +849,11 @@ async function runD2Gate(attempt) {
  *   retry), then retries as usual;
  * - "guided": one producer run outside the cap with the user's guidance, and no retry (D-236);
  * - "accepted": the gate alone, once more, outside the cap, with the findings the user accepted.
+ * `upstream` names the owners that re-ran earlier in the same round (D1, for D2): their changes come first.
  * A producer that returns nothing re-runs; a gate that returns nothing re-runs on its own; a failing verdict
  * re-runs the producer with its findings, and the fresh gate after it is no retry of the gate.
  */
-async function designPhase(producer, how, firstFindings) {
+async function designPhase(producer, how, firstFindings, upstream = []) {
   const gate = GATE_OF[producer]
   const runProducer = producer === 'D1' ? runD1 : runD2
   const runGate = producer === 'D1' ? runD1Gate : runD2Gate
@@ -861,6 +878,7 @@ async function designPhase(producer, how, firstFindings) {
         guided: first && how === 'guided',
         why: first && (how === 'routed' || how === 'revision') ? how : null,
         rerun: how === 'routed' || how === 'revision',
+        upstream,
       }
       first = false
       const res = await runProducer(attempt, findings.slice(), ctx)
@@ -1000,7 +1018,8 @@ async function writeStep(stage, how, firstFindings, upstream) {
 
 /**
  * What keeps a returned report from being used (section 7.4): it answers another job, misses a field, says
- * `verdict` against its findings, accepts an external-unavailable claim in an online run (C-30), or counts
+ * `verdict` against its findings, marks a finding accepted-offline that isn't the sources lens's on a claim
+ * tagged external-unavailable in an offline run (C-30), or counts
  * less than D-179 asks (every ledger entry re-derived, every data claim checked, every endgame pob-data claim
  * and at least 1 in 5 elsewhere re-checked, every external source opened, and none opened offline). Each
  * problem names fields and counts only, never a claim's text (R-5).
@@ -1022,6 +1041,12 @@ function reportProblems(job, pass, r) {
     if (typeof f.status === 'string' && !FINDING_STATUSES.includes(f.status)) out.push(`findings[${i}].status is "${f.status}"; "unresolved" or "accepted-offline"`)
     if (f.status === 'accepted-offline' && mode !== 'offline') {
       out.push(`findings[${i}] is accepted-offline in an online run: only an offline run accepts an external-unavailable claim; report it unresolved (C-30)`)
+    } else if (f.status === 'accepted-offline') {
+      // C-30, section 7.4: accepted-offline is only the sources lens's word on a claim tagged external-unavailable.
+      if (job.lens !== 'sources') out.push(`findings[${i}] is accepted-offline in a ${job.lens ? `${job.lens} lens` : 'V3'} report: only the sources lens marks a finding accepted-offline (C-30); report it unresolved`)
+      else if (typeof f.issue !== 'string' || !f.issue.includes('external-unavailable') || typeof f.location !== 'string' || !CLAIM_LOCATION.test(f.location)) {
+        out.push(`findings[${i}] is accepted-offline, but only a claim tagged external-unavailable is (C-30): its issue is "tagged external-unavailable" and its location the claim's (stages[<i>].claims[<k>] or <file> [^<id>]); report anything else unresolved`)
+      }
     }
     if (typeof f.id === 'string') {
       if (ids.has(f.id)) out.push(`findings[${i}].id "${f.id}" is used twice; each finding has its own id`)
@@ -1158,7 +1183,7 @@ async function regenerate(owners, groups, how) {
   }
   if (has('D1') || has('D2')) {
     phase('D2 campaign')
-    const r = await designPhase('D2', has('D2') ? how : 'regate', has('D2') ? groups.D2 : [])
+    const r = await designPhase('D2', has('D2') ? how : 'regate', has('D2') ? groups.D2 : [], has('D1') ? ['D1'] : [])
     if (r.status !== 'pass') return r
   }
   if (has('D1') || has('D2') || has('W1')) {
@@ -1254,7 +1279,11 @@ async function revision(guided) {
       notes.push({ attempt, ...p })
       evidence.push({ gate: 'revise-map', attempt, ...p })
     }
-    if (guided || retriesLeft('revise-map') === 0) return { status: 'escalated', stage: 'revise-map', evidence }
+    if (guided || retriesLeft('revise-map') === 0) {
+      // The revision's requests, none mapped: the skill still records the revision in revisions[] (D-236).
+      stats.revision = REQUESTS.map((q) => ({ request: q.text, owner: null }))
+      return { status: 'escalated', stage: 'revise-map', evidence }
+    }
     spendRetry('revise-map')
   }
 

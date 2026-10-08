@@ -98,8 +98,10 @@ V3 and V4 agents can't write; their report is their structured return, and the s
   `D2` or `dossier-fix`: the step that wrote the claim) and `status` (`unresolved` or
   `accepted-offline`).
 - `verdict` is `pass` exactly when no finding is `unresolved`.
-- `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30). In an online
-  run such a claim is `unresolved`.
+- `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), and only in the
+  V4 `sources` report, its `location` naming that claim (`stages[<i>].claims[<k>]` or `<file> [^<id>]`).
+  In an online run such a claim is `unresolved`. The run checker resolves the location and fails any other
+  `accepted-offline`.
 
 **Coverage**, by report:
 

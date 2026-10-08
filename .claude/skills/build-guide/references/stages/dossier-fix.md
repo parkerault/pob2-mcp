@@ -2,7 +2,8 @@
 
 Slice 03 §5.5. Runs when a V3 or V4 report has an `unresolved` finding in `dossier.md` (owner
 `dossier-fix`), or when a checkpoint-2 revision request maps to the dossier. It edits `dossier.md` only
-and counts as R1b for the retry cap; V3 and V4 run again after it.
+and has its own retry cap of 2, logged under stage `dossier-fix` in `retries[]` (`../run-log.md`); V3 and V4
+run again after it.
 
 ## Inputs
 

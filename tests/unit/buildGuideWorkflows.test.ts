@@ -1411,9 +1411,10 @@ describe('build-guide-design: V3 and V4 after W1 (steps 6 and 7)', () => {
   it('returns ready when the reports hold only accepted-offline findings', async () => {
     const offline = (call: AgentCall) => ({
       ...report(call),
-      findings: [{ id: 'f1', artifact: 'guide.md', location: 'Sources', claim: 'c', issue: 'external-unavailable', evidence: 'offline run', owner: 'W1', status: 'accepted-offline' }],
+      findings: [{ id: 'f1', artifact: 'guide.md', location: 'guide.md [^g9]', claim: 'c', issue: 'tagged external-unavailable', evidence: 'offline run', owner: 'W1', status: 'accepted-offline' }],
     });
-    const r = await design(happy({ V4: offline }));
+    // C-30: only the sources lens marks a claim tagged external-unavailable accepted-offline.
+    const r = await design(happy({ 'V4@sources': offline }));
     expect(r.out.status).toBe('ready');
   });
 
@@ -1628,7 +1629,7 @@ describe('AC-W13: routing V3 and V4 findings to their owners (§5.5)', () => {
     expect(callsOf(r, 'D2')).toHaveLength(1);
     // W1 writes the guide anew from the new record; it re-runs as a regeneration, with nothing to fix.
     expect(findingsOf(callsOf(r, 'W1')[1])).toEqual([]);
-    expect(callsOf(r, 'W1')[1].prompt).toContain('D1 re-ran, so plan.json and compile-record.json changed');
+    expect(callsOf(r, 'W1')[1].prompt).toContain('D1 re-ran in this round, so plan.json and compile-record.json changed: write guide.md anew from them');
     // The second final compile rewrites the same PoB file, with the same build name.
     expect(r.calls.filter((c) => header(c).compile === 'final').map((c) => [header(c).attempt, header(c).buildName])).toEqual([
       [1, BUILD_NAME],
@@ -1724,7 +1725,7 @@ describe('AC-W13: routing V3 and V4 findings to their owners (§5.5)', () => {
   });
 
   it('reports holding only accepted-offline findings return ready, with nothing routed', async () => {
-    const eu = vFinding('v4-sources-1', 'W1', { issue: 'tagged external-unavailable', evidence: 'offline run', status: 'accepted-offline' });
+    const eu = vFinding('v4-sources-1', 'W1', { location: 'guide.md [^g9]', issue: 'tagged external-unavailable', evidence: 'offline run', status: 'accepted-offline' });
     const r = await design(happy({ 'V4@sources': reportWith([eu]) }));
     expect(stepsOf(r)).toEqual([...HAPPY_STEPS, 'V3', 'V4:ledger', 'V4:sources', 'V4:prose']);
     expect(r.out.status).toBe('ready');
@@ -2025,5 +2026,112 @@ describe('AC-W14: references/fallback.md lists the steps the workflows run, in o
     const fixed = await design(happy({ 'V4@sources': onPasses([vFinding('v4-sources-1', 'dossier-fix')]), 'dossier-fix': dossierFixOk }));
     const revised = await design(happy({ 'revise-map': mapTo({ r1: 'W1' }) }), revisionOf(['shorter']));
     for (const c of [...callsOf(fixed, 'dossier-fix'), ...callsOf(revised, 'revise-map')]) expect(c.opts.agentType).toBe(off[stageOf(c)]);
+  });
+});
+
+describe('WU-46 review fixes: finding equality, the regenerated guide, accepted-offline, revision text', () => {
+  const used = { D1: 1, 'D1-gate': 1, D2: 1, 'D2-gate': 1, W1: 1, V3: 1, V4: 1 };
+
+  it("§5.4: an accepted V3/V4 finding doesn't excuse another issue a verifier reports under its id (the reviewer's probe)", async () => {
+    const accepted = { gate: 'V4', ...vFinding('v4-ledger-1', 'D1', { location: 'ledger[3] (hit_b_fire)' }) };
+    const reused = vFinding('v4-ledger-1', 'W1', { location: 'Summary, line 4', claim: 'the guide says 5,000 DPS', issue: 'differs from the record' });
+    const r = await design(happy({ 'V4@ledger': onPasses([reused], [2]) }), {
+      accepted: [accepted],
+      resume: { reason: 'accepted', stage: 'V4', findings: [], attempts: used, retries: {} },
+    });
+    // Not excused: it is routed to its owner, then the next pass is clean.
+    expect(stepsWithPass(r)).toEqual(['W1', ...PASS(2), 'W1', ...PASS(3)]);
+    expect(findingsOf(callsOf(r, 'W1')[1]).map((f) => (f as unknown as VFinding).location)).toEqual(['Summary, line 4']);
+    expect(r.out.status).toBe('ready');
+    // The accepted finding itself, at its place, stays covered; a guide line moved by the regeneration too.
+    const same = await design(happy({ 'V4@ledger': onPasses([{ ...accepted }], [2]) }), {
+      accepted: [accepted],
+      resume: { reason: 'accepted', stage: 'V4', findings: [], attempts: used, retries: {} },
+    });
+    expect(stepsWithPass(same)).toEqual(['W1', ...PASS(2)]);
+    const g = { gate: 'V4', ...vFinding('v4-prose-1', 'W1', { location: 'Rotation, line 140' }) };
+    const moved = await design(happy({ 'V4@prose': onPasses([{ ...g, location: 'Rotation, line 152' }], [2]) }), {
+      accepted: [g],
+      resume: { reason: 'accepted', stage: 'V4', findings: [], attempts: used, retries: {} },
+    });
+    expect([moved.out.status, callsOf(moved, 'W1').length]).toEqual(['ready', 1]);
+  });
+
+  it('a W1 that owns findings in a round where D2 re-ran writes the guide anew first (revision r1 to W1, r2 to D2)', async () => {
+    const r = await design(happy({ 'revise-map': mapTo({ r1: 'W1', r2: 'D2' }) }), revisionOf(['explain rotation', 'level with Rolling Slam to 12']));
+    expect(stepsWithPass(r)).toEqual(['revise-map', 'D2', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    const prompt = callsOf(r, 'W1')[0].prompt;
+    expect(prompt).toContain('D2 re-ran in this round, so plan.json and compile-record.json changed: write guide.md anew from them');
+    expect(prompt).toContain('then make the changes the header\'s findings ask for');
+    expect(prompt).toContain('A checkpoint-2 revision');
+    // D2 itself re-ran with nothing upstream of it in that round.
+    expect(callsOf(r, 'D2')[0].prompt).not.toContain('re-ran in this round');
+  });
+
+  it('a routed W1 or D2 after D1 in the same round starts from the changed plan; a guided round too', async () => {
+    const r = await design(happy({ 'V4@ledger': onPasses([vFinding('v4-ledger-1', 'D1'), vFinding('v4-ledger-2', 'D2'), vFinding('v4-ledger-3', 'W1')]) }));
+    expect(stepsWithPass(r)).toEqual([...HAPPY_STEPS, ...PASS(1), 'D1', 'D1-gate', 'D2', 'D2-gate', 'D2-gate:final', 'W1', ...PASS(2)]);
+    expect(callsOf(r, 'D2')[1].prompt).toContain('D1 re-ran in this round, so the endgame stages changed: re-plan the campaign stages backward from them');
+    expect(callsOf(r, 'D2')[1].prompt).toContain('A routed re-run');
+    const w1Prompt = callsOf(r, 'W1')[1].prompt;
+    expect(w1Prompt).toContain('D1 and D2 re-ran in this round');
+    expect(w1Prompt).toContain('A routed re-run');
+    const f = { gate: 'V4', lens: 'ledger', pass: 3, ...vFinding('v4-ledger-1', 'D1') };
+    const w = { gate: 'V4', lens: 'prose', pass: 3, ...vFinding('v4-prose-1', 'W1') };
+    const guided = await design(happy(), {
+      resume: { reason: 'guided-retry', stage: 'V4', findings: [f, w], guidance: 'keep it short', attempts: { ...used, V3: 3, V4: 3 }, retries: { D1: 2, W1: 2 } },
+    });
+    const gw = callsOf(guided, 'W1')[0];
+    expect(gw.prompt).toContain('D1 re-ran in this round');
+    expect(gw.prompt).toContain('A guided retry');
+    expect(guided.out.status).toBe('ready');
+  });
+
+  it.each([
+    ['V3', undefined],
+    ['V4', 'ledger'],
+    ['V4', 'prose'],
+  ])('C-30: a %s %s report marking a finding accepted-offline is refused and re-run', async (stage, lens) => {
+    const eu = vFinding('x-1', 'W1', { location: 'guide.md [^g9]', issue: 'tagged external-unavailable', status: 'accepted-offline' });
+    const key = lens ? `V4@${lens}` : 'V3';
+    const r = await design(happy({ [key]: (c: AgentCall, nth: number) => (nth === 0 ? reportWith([eu])(c) : report(c)) }));
+    const calls = r.calls.filter((c) => stageOf(c) === stage && header(c).lens === lens);
+    expect(calls.map((c) => header(c).attempt)).toEqual([1, 2]);
+    expect(findingsOf(calls[1])).toEqual([expect.objectContaining({ code: 'unusable-report', message: expect.stringMatching(/only the sources lens marks a finding accepted-offline \(C-30\)/) })]);
+    expect(r.out.status).toBe('ready');
+  });
+
+  it('C-30: the sources lens may mark accepted-offline only a claim tagged external-unavailable, at the claim', async () => {
+    for (const over of [{ issue: 'its source says otherwise', location: 'guide.md [^g9]' }, { issue: 'tagged external-unavailable', location: 'Summary, line 3' }]) {
+      const bad = vFinding('v4-sources-1', 'W1', { ...over, status: 'accepted-offline' });
+      const r = await design(happy({ 'V4@sources': (c, nth) => (nth === 0 ? reportWith([bad])(c) : report(c)) }));
+      const calls = r.calls.filter((c) => header(c).lens === 'sources');
+      expect(calls.map((c) => header(c).attempt)).toEqual([1, 2]);
+      expect(findingsOf(calls[1])).toEqual([expect.objectContaining({ code: 'unusable-report', message: expect.stringMatching(/only a claim tagged external-unavailable is \(C-30\)/) })]);
+    }
+  });
+
+  it("never puts the user's revision requests in a V3 or V4 prompt (R-5)", async () => {
+    const REQUEST = 'SENTINEL-the-users-request-text';
+    for (const owner of ['W1', 'D1', 'D2', 'dossier-fix']) {
+      const r = await design(
+        happy({ 'revise-map': mapTo({ r1: owner }), 'dossier-fix': dossierFixOk, 'V4@prose': onPasses([vFinding('v4-prose-1', 'W1')], [2]) }),
+        revisionOf([REQUEST]),
+      );
+      expect(r.out.status).toBe('ready');
+      expect(verifierCalls(r).length).toBe(8);
+      for (const c of verifierCalls(r)) expect({ owner, call: c.index, leaked: c.prompt.includes(REQUEST) }).toEqual({ owner, call: c.index, leaked: false });
+      // The request did reach its owner.
+      expect(r.calls.find((c) => stageOf(c) === owner)!.prompt).toContain(REQUEST);
+    }
+  });
+
+  it('an escalated revise-map still returns the revision, its requests unmapped, for revisions[]', async () => {
+    const r = await design(happy({ 'revise-map': () => null }), revisionOf(['explain rotation', 'shorter']));
+    expect([r.out.status, r.out.stage]).toEqual(['escalated', 'revise-map']);
+    expect(r.out.stats.revision).toEqual([
+      { request: 'explain rotation', owner: null },
+      { request: 'shorter', owner: null },
+    ]);
   });
 });

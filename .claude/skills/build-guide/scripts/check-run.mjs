@@ -420,10 +420,10 @@ export function checkRun(runFolder, { partial = false } = {}) {
           if (!m) return fail('source-tags', `${where}: source ${show(c.source)} is neither a tag nor ledger:, price: or data:`);
           const cite = m[1] ? { kind: m[1], id: m[2] } : { kind: 'data', file: m[3], key: m[4] };
           checkCitation(where, cite, scope);
-          out.push({ kind: cite.kind, endgame: s.variant !== undefined });
+          out.push({ kind: cite.kind, endgame: s.variant !== undefined, at: `stages[${i}].claims[${k}]` });
         } else {
           checkTag(where, c.source);
-          out.push({ kind: c.source?.kind, endgame: s.variant !== undefined });
+          out.push({ kind: c.source?.kind, endgame: s.variant !== undefined, at: `stages[${i}].claims[${k}]` });
         }
       });
     });
@@ -449,7 +449,7 @@ export function checkRun(runFolder, { partial = false } = {}) {
       else checkCitation(where, parsed, scope);
       const first = md.markers.find((m) => m.id === d.id);
       const section = first ? md.h2Of(first.line) : null;
-      out.push({ kind: parsed.kind, endgame: isGuide && typeof section === 'string' && section.startsWith('Endgame:') });
+      out.push({ kind: parsed.kind, endgame: isGuide && typeof section === 'string' && section.startsWith('Endgame:'), id: d.id });
     }
     for (const m of md.markers) {
       if (!seen.has(m.id)) fail('markers', `${label}:${m.line + 1}: marker [^${m.id}] has no definition`);
@@ -646,16 +646,28 @@ export function checkRun(runFolder, { partial = false } = {}) {
     const finals = [final3, ...final4].filter(Boolean);
     const passes = [...new Set(finals.map((r) => r.pass))];
     if (passes.length > 1) fail('reports', `the final V3 and V4 reports of ${guideConcept} are from different passes ${show(passes)}; each round re-runs V3 and every lens (§5.5)`);
+    // D-255: a run that ended escalated or stopped may hold unresolved findings its escalation recorded.
+    const recorded = escalations.flatMap((e) => (Array.isArray(e.findings) ? e.findings.filter(isObj) : []).map((f) => ({ ...f, gate: typeof f.gate === 'string' ? f.gate : e.stage })));
+    const endedEarly = partial && ['escalated', 'stopped'].includes(log.status);
     for (const r of finals) {
-      for (const f of Array.isArray(r.report.findings) ? r.report.findings.filter(isObj) : []) {
+      for (const [i, f] of (Array.isArray(r.report.findings) ? r.report.findings.filter(isObj) : []).entries()) {
+        if (f.status === 'accepted-offline') {
+          // C-30, §7.4: accepted-offline only for a claim tagged external-unavailable, which the location names.
+          const claim = claimAt(claims, f.artifact, f.location);
+          if (!claim || claim.kind !== 'external-unavailable') {
+            fail('report-shape', `${r.file}: findings[${i}] is accepted-offline, but ${show(f.artifact)} ${show(f.location)} names ${claim ? `a ${claim.kind} claim` : 'no claim'}; only a claim tagged external-unavailable is accepted offline (C-30)`);
+          }
+          continue;
+        }
         if (f.status !== 'unresolved') continue;
-        if (accepted.some((a) => a.id !== null && a.id === f.id && a.gate === r.report.stage)) continue;
+        if (accepted.some((a) => sameReportFinding(a, f, r.report.stage))) continue;
+        if (endedEarly && recorded.some((a) => sameReportFinding(a, f, r.report.stage))) continue;
         fail('unresolved', `${r.file}: finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is unresolved in the final pass, and the user accepted no such finding (D-179)`);
       }
     }
     const counts = countClaims(claims, isObj(plan) ? plan : {});
     if (final3) checkV3Counts(final3, counts, fail);
-    for (const r of final4.filter(Boolean)) checkV4Counts(r, counts, fail);
+    for (const r of final4.filter(Boolean)) checkV4Counts(r, counts, mode, fail);
   }
 
   // ---- The D1 gate, recomputed (FR-W7; §5.3; AC-W2 o, p, q) ---------------------------------------
@@ -845,6 +857,9 @@ function checkRunLog(log, fail) {
       return bad(`escalations[${i}]`, `is {stage, concept, attempts, findings: [...], choice: ${CHOICES.join(' | ')}, guidance?}`);
     }
     e.findings.forEach((f, k) => {
+      if (isObj(f) && typeof f.id === 'string' && (typeof f.artifact !== 'string' || typeof f.location !== 'string')) {
+        bad(`escalations[${i}].findings[${k}]`, 'is a V3/V4 finding without its artifact and location; it is recorded verbatim, and only an equal finding (same id, artifact and location) is the same (§5.4)');
+      }
       if (!isObj(f) || typeof f.gate !== 'string' || (typeof f.code !== 'string' && typeof f.id !== 'string')) {
         bad(`escalations[${i}].findings[${k}]`, 'is the finding as its verdict or report has it (a gate finding with part, code and plan stage; a V3/V4 finding with id), plus gate');
       }
@@ -893,6 +908,31 @@ function checkRunLog(log, fail) {
  * A gate finding is equal to another with the same plan `stage`, `part` and `code`, whichever gate
  * reports it; a V3/V4 finding by its `id` and report stage.
  */
+/**
+ * A V3/V4 finding equals an accepted (or recorded) one only when it is the same finding (§5.4): the same report,
+ * id and artifact, and the same location, a "<H2 title>, line <n>" location compared by its section alone (a
+ * regenerated guide moves its lines). A reused id on another issue is a new finding.
+ */
+const locationKey = (loc) => (typeof loc === 'string' ? loc.trim().replace(/,\s*line\s+\d+$/i, '') : null);
+function sameReportFinding(a, f, stage) {
+  return (
+    typeof a.id === 'string' && a.id === f.id && a.gate === stage &&
+    typeof a.artifact === 'string' && a.artifact === f.artifact && locationKey(a.location) === locationKey(f.location)
+  );
+}
+
+/** The claim a V3/V4 finding's location names: a plan claim `stages[i].claims[k]`, or a markdown `[^id]`. */
+function claimAt(claims, artifact, location) {
+  if (typeof location !== 'string') return null;
+  if (artifact === 'plan.json') {
+    const m = /stages\[\d+\]\.claims\[\d+\]/.exec(location);
+    return m ? (claims.plan.find((c) => c.at === m[0]) ?? null) : null;
+  }
+  const list = artifact === 'guide.md' ? claims.guide : artifact === 'dossier.md' ? claims.dossier : null;
+  const m = /\[\^([^\]\s]+)\]/.exec(location);
+  return list && m ? (list.find((c) => c.id === m[1]) ?? null) : null;
+}
+
 function acceptedFindings(escalations) {
   const out = [];
   for (const e of escalations) {
@@ -904,6 +944,8 @@ function acceptedFindings(escalations) {
         part: typeof f.part === 'string' ? f.part : null,
         code: typeof f.code === 'string' ? f.code : null,
         id: typeof f.id === 'string' ? f.id : null,
+        artifact: typeof f.artifact === 'string' ? f.artifact : null,
+        location: typeof f.location === 'string' ? f.location : null,
       };
       if (a.code !== null || a.id !== null) out.push(a);
     }
@@ -953,6 +995,7 @@ function checkReportShape(rep, r, mode, fail) {
     }
     if (!['unresolved', 'accepted-offline'].includes(f.status)) bad(`findings[${i}].status is ${show(f.status)}; "unresolved" or "accepted-offline"`);
     if (f.status === 'accepted-offline' && mode !== 'offline') bad(`findings[${i}] is accepted-offline in an online run; only offline mode accepts external-unavailable (C-30)`);
+    if (f.status === 'accepted-offline' && r.lens !== 'sources') bad(`findings[${i}] is accepted-offline in a ${r.lens ? `${r.lens} lens` : 'V3'} report; only the V4 sources lens marks an external-unavailable claim accepted-offline (C-30, §7.4)`);
     if ('owner' in f && !OWNERS.includes(f.owner)) bad(`findings[${i}].owner is ${show(f.owner)}; one of ${OWNERS.join(', ')} (§5.5)`);
     if (f.status === 'unresolved') unresolved += 1;
   });
@@ -987,7 +1030,7 @@ function checkV3Counts(r, counts, fail) {
   }
 }
 
-function checkV4Counts(r, counts, fail) {
+function checkV4Counts(r, counts, mode, fail) {
   const cov = r.report.coverage;
   if (!isObj(cov)) return;
   const said = (k, n) => {
@@ -999,7 +1042,9 @@ function checkV4Counts(r, counts, fail) {
   }
   if (r.lens === 'sources') {
     for (const k of ['external', 'data', 'pobDataEndgame', 'pobDataOther', 'prices']) said(k, counts[k]);
-    if (cov.opened !== counts.external) fail('claim-counts', `${r.file}: opened ${show(cov.opened)} of ${counts.external} external claims; V4 opens every external source (D-179)`);
+    // Online V4 opens every external source (D-179); offline it opens none (D-201, D-255).
+    if (mode === 'offline' && cov.opened !== 0) fail('claim-counts', `${r.file}: opened ${show(cov.opened)} sources in an offline run; offline V4 opens none (D-201)`);
+    if (mode !== 'offline' && cov.opened !== counts.external) fail('claim-counts', `${r.file}: opened ${show(cov.opened)} of ${counts.external} external claims; V4 opens every external source (D-179)`);
     if (cov.dataChecked !== counts.data) fail('claim-counts', `${r.file}: checked ${show(cov.dataChecked)} of ${counts.data} data claims; V4 checks every one (§7.4)`);
     if (!(isInt(cov.recheckedEndgame) && cov.recheckedEndgame >= counts.pobDataEndgame)) {
       fail('claim-counts', `${r.file}: re-checked ${show(cov.recheckedEndgame)} of ${counts.pobDataEndgame} endgame pob-data claims; D-179 wants all of them`);

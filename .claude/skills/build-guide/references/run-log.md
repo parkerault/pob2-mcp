@@ -25,7 +25,7 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
 | `rounds[]` | `{round, note, firstId, concepts, conceptsCompiled, startedBy}`, one per research round |
 | `concepts[]` | `{id, title, round, status, attempts}`; `status` is `viable`, `failed` or `not-carried` |
 | `conceptsCompiled` | how many skeletons R1b compiled in the whole run: the sum over `rounds[]` |
-| `v4Passes[]` | `{concept, pass, lenses}` |
+| `v4Passes[]` | `{concept, pass, lenses}`: `lenses` counts the **distinct** lenses that reported in that pass, so a lens re-run within its pass (an unusable report, or none) counts once |
 | `checkpoints[]` | `{checkpoint, visit, shown, answer, answeredBy, at}` |
 | `escalations[]` | `{stage, concept, attempts, findings, choice, guidance?}` |
 | `revisions[]` | `{round, requests: [{text, owner}]}` |
@@ -97,6 +97,7 @@ Each workflow returns `stats` beside its result (slice 03 §5.2, §5.3), and the
   (`maxConcurrent` is the largest seen); `retries` merge by their key (stage, concept, round,
   researcher), adding the counts of equal keys; `priceCalls` append to `pricing.calls`; `faults` append
   to `faults[]`; `revision`, after a checkpoint-2 revision, becomes that revision's `requests`
+  (`owner` is `null` for every request when `revise-map` escalated before mapping them)
   (`{text, owner}`).
 - The research workflow also returns `round` (`{round, firstId, note, concepts, conceptsCompiled}`, the
   round's `rounds[]` entry without `startedBy`) and `dossier` (`"dossier.md"`, or `null` when the

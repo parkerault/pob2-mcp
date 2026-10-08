@@ -909,3 +909,27 @@ describe('WU-46: the coordinator\'s revision section and the fallback\'s routing
     expect(script).toContain("const RESUME_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V3', 'V4', 'dossier-fix', 'revise-map']");
   });
 });
+
+describe('WU-46 review fixes: the references say what the workflow and the checker now hold', () => {
+  it('V3 and V4 never give an accepted id to another issue, and number new findings after the highest accepted one (§5.4)', () => {
+    for (const stage of ['V3', 'V4']) {
+      const text = folded(readStage(stage));
+      expect(text).toContain('**Never give an accepted `id` to another issue**');
+      expect(text).toMatch(/number your new findings after the highest accepted id of yours/);
+    }
+  });
+
+  it('V4 and source-markers.md keep accepted-offline to the sources lens on a claim tagged external-unavailable (C-30)', () => {
+    expect(folded(readStage('V4'))).toMatch(/`issue` exactly `tagged external-unavailable` and `location` the claim's/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'))).toMatch(/only in the V4 `sources` report, its `location` naming that claim/);
+  });
+
+  it("dossier-fix has its own retry cap, as run-log.md logs it, and v4Passes counts distinct lenses", () => {
+    const fix = folded(readStage('dossier-fix'));
+    expect(fix).not.toMatch(/counts as R1b/);
+    expect(fix).toContain('its own retry cap of 2, logged under stage `dossier-fix`');
+    const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
+    expect(log).toMatch(/`lenses` counts the \*\*distinct\*\* lenses that reported in that pass/);
+    expect(log).toContain('`dossier-fix` is its own stage');
+  });
+});

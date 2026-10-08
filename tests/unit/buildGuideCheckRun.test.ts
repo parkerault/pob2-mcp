@@ -240,7 +240,8 @@ describe("AC-W2 (l): a finding the user accepted at an escalation, listed under 
       r.verdict = 'fail';
     });
     editJson(dir, 'run-log.json', (l) => {
-      l.escalations.push({ stage: 'V3', concept: 'c1', attempts: 3, findings: [{ id: 'f-x', issue: 'untagged claim', gate: 'V3' }], choice: 'accept' });
+      // Recorded verbatim, as the report has it, plus its gate (references/run-log.md).
+      l.escalations.push({ stage: 'V3', concept: 'c1', attempts: 3, findings: [{ id: 'f-x', artifact: 'guide.md', location: 'Summary', issue: 'untagged claim', gate: 'V3' }], choice: 'accept' });
     });
     if (listInGuide) {
       editText(dir, 'guide.md', replace('Blood Loss uptime is a hand calculation.[^g10]\n', 'Blood Loss uptime is a hand calculation.[^g10]\n\n### Accepted failures\n\n- f-x (V3): an untagged claim in the Summary, accepted at an escalation.\n'));
@@ -480,5 +481,122 @@ describe('§6: retries are keyed by (stage, concept, round, researcher) (WU-44)'
     expect(r.stderr).toMatch(/retries\[0\]: round is 0; an integer from 1/);
     expect(r.stderr).toMatch(/retries\[0\]: researcher is "two"; an integer from 1/);
     expect(r.stderr).toMatch(/check-run: \[caps\] retries\[0\]: R1a round 0 researcher two has 3 retries/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-46 review fixes: V3/V4 finding equality (§5.4), accepted-offline (C-30, §7.4), opened offline and
+// D-255 (rule (l) under --partial for a run that ended escalated or stopped)
+// ---------------------------------------------------------------------------------------------------
+
+describe('§5.4: an accepted V3/V4 finding covers only the same finding (same report, id, artifact and location)', () => {
+  const accepted = { gate: 'V4', id: 'v4-ledger-1', artifact: 'plan.json', location: 'ledger[3] (hit_b_fire)', claim: 'x', issue: 'i', evidence: 'e', owner: 'D1', status: 'unresolved' };
+  const withLedgerFinding = (dir: string, finding: Json) => {
+    editJson(dir, 'reports/v4-ledger-c1-p1.json', (r) => {
+      r.findings.push(finding);
+      r.verdict = 'fail';
+    });
+    acceptAtEscalation(dir, accepted, 'v4-ledger-1 (V4): the fire hit, accepted at an escalation.');
+  };
+
+  it('covers the accepted finding itself', () => {
+    const dir = copyOf('run-ok');
+    withLedgerFinding(dir, { ...accepted, gate: undefined });
+    const r = runChecker(dir);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it("doesn't cover another issue reported under the accepted id (the reviewer's probe)", () => {
+    const dir = copyOf('run-ok');
+    withLedgerFinding(dir, { id: 'v4-ledger-1', artifact: 'guide.md', location: 'Summary, line 4', claim: 'the guide says 5,000 DPS', issue: 'differs from the record', evidence: 'e', owner: 'W1', status: 'unresolved' });
+    expect(failing(dir)).toMatch(/\[unresolved\] reports\/v4-ledger-c1-p1\.json: finding "v4-ledger-1"/);
+  });
+
+  it('compares a line location by its section, so a regenerated guide keeps an accepted guide finding covered', () => {
+    const dir = copyOf('run-ok');
+    const guideFinding = { gate: 'V4', id: 'v4-ledger-2', artifact: 'guide.md', location: 'How it works, line 30', claim: 'x', issue: 'i', evidence: 'e', owner: 'W1', status: 'unresolved' };
+    editJson(dir, 'reports/v4-ledger-c1-p1.json', (r) => {
+      r.findings.push({ ...guideFinding, gate: undefined, location: 'How it works, line 34' });
+      r.verdict = 'fail';
+    });
+    acceptAtEscalation(dir, guideFinding, 'v4-ledger-2 (V4): a guide number, accepted at an escalation.');
+    expect(runChecker(dir).code).toBe(0);
+    editJson(dir, 'reports/v4-ledger-c1-p1.json', (r) => (r.findings[0].location = 'Rotation, line 34'));
+    expect(failing(dir)).toMatch(/\[unresolved\] .*"v4-ledger-2"/);
+  });
+
+  it('requires an escalation to record a V3/V4 finding with its artifact and location', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => l.escalations.push({ stage: 'V4', concept: 'c1', attempts: 3, findings: [{ id: 'v4-ledger-1', gate: 'V4' }], choice: 'accept' }));
+    expect(failing(dir)).toMatch(/\[run-log\] .*escalations\[0\]\.findings\[0\]: is a V3\/V4 finding without its artifact and location/);
+  });
+});
+
+describe('C-30, §7.4: accepted-offline is only the sources lens\'s word on a claim tagged external-unavailable', () => {
+  it('fails a V3 report or another lens marking a finding accepted-offline', () => {
+    for (const file of ['reports/v3-c1-p1.json', 'reports/v4-prose-c1-p1.json']) {
+      const dir = copyOf('run-ok');
+      editJson(dir, file, (r) => r.findings.push({ id: 'x-1', artifact: 'guide.md', location: 'guide.md [^g9]', claim: 'c', issue: 'tagged external-unavailable', evidence: 'offline', owner: 'W1', status: 'accepted-offline' }));
+      expect(failing(dir)).toMatch(/\[report-shape\] .*accepted-offline in a (V3|prose lens) report; only the V4 sources lens/);
+    }
+  });
+
+  it('fails a sources finding accepted-offline whose location names no external-unavailable claim', () => {
+    for (const [location, why] of [
+      ['guide.md [^g1]', /names a [a-z-]+ claim/],
+      ['Summary, line 3', /names no claim/],
+    ] as const) {
+      const dir = copyOf('run-ok');
+      editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.findings[1].location = location));
+      const stderr = failing(dir);
+      expect(stderr).toMatch(/\[report-shape\] reports\/v4-sources-c1-p1\.json: findings\[1\] is accepted-offline/);
+      expect(stderr).toMatch(why);
+    }
+  });
+});
+
+describe('V4 opens no source offline, every one online (D-179, D-201)', () => {
+  it('fails an offline sources report that says it opened a source', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.opened = 1));
+    expect(failing(dir)).toMatch(/\[claim-counts\] .*opened 1 sources in an offline run; offline V4 opens none/);
+  });
+
+  it('fails an online sources report that opened fewer sources than there are external claims', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.opened = 1));
+    expect(failing(dir)).toMatch(/\[claim-counts\] .*opened 1 of 2 external claims/);
+  });
+});
+
+describe('D-255: rule (l) under --partial, for a run that ended escalated or stopped', () => {
+  const unresolved = { id: 'v3-7', artifact: 'guide.md', location: 'Summary, line 9', claim: 'c', issue: 'untagged claim', evidence: 'no marker', owner: 'W1', status: 'unresolved' };
+  const ended = (dir: string, status: string, record: boolean) => {
+    editJson(dir, 'reports/v3-c1-p1.json', (r) => {
+      r.findings.push(unresolved);
+      r.verdict = 'fail';
+    });
+    editJson(dir, 'run-log.json', (l) => {
+      l.status = status;
+      if (record) l.escalations.push({ stage: 'V3', concept: 'c1', attempts: 3, findings: [{ ...unresolved, gate: 'V3' }], choice: status === 'stopped' ? 'checkpoint-1' : 'stop' });
+    });
+  };
+
+  it.each(['escalated', 'stopped'])('passes a %s run whose escalation recorded the unresolved finding', (status) => {
+    const dir = copyOf('run-ok');
+    ended(dir, status, true);
+    const r = runChecker(dir, '--partial');
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('still fails it when no escalation recorded the finding, or when the run is completed', () => {
+    const unrecorded = copyOf('run-ok');
+    ended(unrecorded, 'escalated', false);
+    expect(runChecker(unrecorded, '--partial').stderr).toMatch(/\[unresolved\] reports\/v3-c1-p1\.json: finding "v3-7"/);
+    const done = copyOf('run-ok');
+    ended(done, 'completed', true);
+    expect(failing(done)).toMatch(/\[unresolved\] reports\/v3-c1-p1\.json: finding "v3-7"/);
   });
 });

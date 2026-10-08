@@ -60,8 +60,9 @@ artifact paths, and asks:
 
 1. **accept**: the design workflow resumes with `{reason: "accepted", stage, findings, attempts, retries}` (`attempts`, `retries`: SKILL.md §6). A gate finding
    equal to an accepted one, **same plan stage, part and `code`**, fails no gate afterwards, whichever gate
-   reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding is equal by its
-   `id`. The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
+   reports it (the D2 gate's header carries the accepted findings too); a V3/V4 finding only when it is
+   the same finding: the same report, `id` and `artifact`, and the same `location` (a `<H2 title>, line
+   <n>` location by its section, since a regenerated guide moves its lines). The guide lists each accepted finding under an H3 `Accepted failures` in "Confidence and what
    PoB can't model", one line per finding naming its `code` (or `id`) and its gate (`D1-gate`, `V3`, …),
    with its plan stage; the run checker looks for them there. **Not offered when the failure is a
    compile error**: nothing compiled to continue from, nor at `W1` or `dossier-fix`, which escalate

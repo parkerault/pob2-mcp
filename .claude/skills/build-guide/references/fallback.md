@@ -79,13 +79,16 @@ Each `unresolved` finding names its `owner`, the step that wrote the claim:
 
 - One round re-runs each owner once with all its findings in its header's `findings`, earliest first
   (`dossier-fix`, `D1`, `D2`, `W1`), then the steps after it; a step two owners share runs once. The D2
-  gate after a D1 re-run is a fresh gate; W1 after a D1 or D2 re-run writes the guide anew.
+  gate after a D1 re-run is a fresh gate. W1 after a D1 or D2 re-run in the round writes the guide anew
+  from the current plan and record, and only then applies its own findings or requests, if it has any; D2
+  after D1 likewise re-plans the campaign against the new endgame first.
 - A re-run spends one of that owner's 2 retries (D-127; `dossier-fix` counts as its own stage in
   `retries[]`); the regenerations after it don't. A gate failure after it re-runs its producer as usual,
   from the retries left. An owner with no retry left (a third round) ends the flow `escalated`, at the
   first finding's report (`V3` or `V4`), with that pass's findings as evidence.
 - Each round re-runs V3 and all three lenses, as the next pass. Findings marked `accepted-offline`, and
-  findings the user accepted at an escalation (equal by `id` and report), aren't routed. With no
+  findings the user accepted at an escalation (the same report, `id`, `artifact` and `location`; a
+  `<H2 title>, line <n>` location by its section), aren't routed. With no
   `unresolved` finding left, the result is `ready`.
 
 ## Resuming (slice 03 §5.3; D-236)

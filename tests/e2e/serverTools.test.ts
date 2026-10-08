@@ -21,8 +21,8 @@ const RUBY_RING = fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'),
 const CALL_TIMEOUT = 120_000;
 const TEST_TIMEOUT = 150_000;
 
-/** The `core` tools the epic adds, as each lands (WU-31, WU-32; WU-35 manage_sets, WU-36 set_tree_state). */
-const CORE_TOOLS = ['lookup_game_data', 'check_model_coverage'];
+/** The `core` tools the epic adds, as each lands (WU-31, WU-32, WU-36; WU-35 manage_sets). */
+const CORE_TOOLS = ['lookup_game_data', 'check_model_coverage', 'set_tree_state'];
 
 interface Call {
   tool: string;
@@ -40,6 +40,13 @@ const CALLS: Call[] = [
     tool: 'check_model_coverage',
     args: { item_text: RUBY_RING },
     expect: [/^Counts over \d+ lines/m, /^\[(fully parsed|partly parsed|unparsed|parsed to nothing|possibly unread)\] \+62 to maximum Life$/m],
+  },
+  // WU-36 (C-40): on the server's new build, untag every node; the output lists both weapon sets and the
+  // attributes.
+  {
+    tool: 'set_tree_state',
+    args: { weapon_set_nodes: {} },
+    expect: [/^Weapon set 1 \(0 nodes\): none$/m, /^Weapon set 2 \(0 nodes\): none$/m, /^Attributes: Str \d+, Dex \d+, Int \d+$/m],
   },
 ];
 

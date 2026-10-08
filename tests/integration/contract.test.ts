@@ -15,6 +15,11 @@
  *
  * AC-K46 (WU-32, contract part): `check_coverage` without `sourceNames` replies `ok:false`, and with
  * `sourceNames: []` it rates `+30 to maximum Life` `possibly unread`, so Lua uses the names it is passed.
+ *
+ * AC-K38 (WU-36, contract part): on a new Warrior/Titan build, `update_tree_delta` with the 8 Titan notables
+ * replies with `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (C-48), the last
+ * equal to a Lua count of the allocated Titan nodes (the start node excluded). That case runs on its own
+ * engine with test actions on, for the Lua query.
  */
 import fs from 'fs';
 import path from 'path';
@@ -165,6 +170,9 @@ const CASES: Record<ActionName, Case> = {
   },
 };
 
+/** A golden attribute node set to Strength (the first of its `<AttributeOverride strNodes>`). */
+const GOLDEN_STR_NODE = (/<AttributeOverride\b[^>]*\sstrNodes="(\d+)/.exec(GOLDEN) as RegExpExecArray)[1];
+
 /** The golden socket group whose active skill is Gas Grenade (stat sets Impact, Poison Cloud, Explosion). */
 async function gasGrenadeGroup(call: Call): Promise<number> {
   const { skills } = await call('get_skills');
@@ -201,6 +209,23 @@ const VARIANTS: Variant[] = [
     action: 'set_main_selection',
     adds: 'statSet',
     setup: async (call) => ({ mainSocketGroup: await gasGrenadeGroup(call), statSet: 3 }),
+  },
+  {
+    // The reply is unchanged (C-40): the params replace the tags and set one attribute choice.
+    name: 'set_tree with weaponSets and attributeChoices (C-40)',
+    action: 'set_tree',
+    adds: 'tree',
+    setup: async (call) => {
+      const { tree } = await call('get_tree');
+      return {
+        classId: tree.classId,
+        ascendClassId: tree.ascendClassId,
+        nodes: tree.nodes,
+        treeVersion: tree.treeVersion,
+        weaponSets: {},
+        attributeChoices: { [GOLDEN_STR_NODE]: 'intelligence' },
+      };
+    },
   },
 ];
 
@@ -312,6 +337,60 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
         (e) => e.line === '+30 to maximum Life',
       );
       expect(lifeScanned?.status).toBe('fully parsed');
+    },
+    ENGINE_TIMEOUT,
+  );
+});
+
+engineDescribe('AC-K38 (contract part): update_tree_delta carries its reply fields (C-48, D-194)', () => {
+  let engine: LuaLineClient;
+
+  beforeAll(async () => {
+    engine = await startLuaLineClient({ testActions: true });
+  }, ENGINE_TIMEOUT);
+
+  afterAll(async () => {
+    await engine?.close();
+  });
+
+  const lua = async <T>(code: string): Promise<T> => {
+    const reply = await engine.request('__test_eval', { code }, { timeoutMs: 120_000 });
+    expect(reply.ok).toBe(true);
+    return reply.result as T;
+  };
+
+  it(
+    'AC-K38: on a new Warrior/Titan build, update_tree_delta with the 8 Titan notables replies with autoPathedNodes, skippedAscendancyNodes and tree.ascendancyPointsUsed equal to the Lua count',
+    async () => {
+      expect(await engine.request('new_build', { className: 'Warrior', ascendancy: 'Titan' }, { timeoutMs: 120_000 })).toMatchObject({ ok: true });
+      const notables = await lua<number[]>(`
+        local rows = {}
+        for id, node in pairs(build.spec.nodes) do
+          if node.ascendancyName == 'Titan' and node.type == 'Notable' then rows[#rows + 1] = { id = id, name = node.dn } end
+        end
+        table.sort(rows, function(a, b) return a.name < b.name end)
+        local ids = {}
+        for _, row in ipairs(rows) do ids[#ids + 1] = row.id end
+        return ids`);
+      expect(notables).toHaveLength(8);
+
+      const reply = await engine.request('update_tree_delta', { addNodes: notables }, { timeoutMs: 120_000 });
+      expect(reply).toMatchObject({ ok: true });
+      const parsed = replySchemas.update_tree_delta!.safeParse(reply);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(Array.isArray(reply.autoPathedNodes)).toBe(true);
+      expect(reply.autoPathedNodes.length).toBeGreaterThan(0);
+      expect(Array.isArray(reply.skippedAscendancyNodes)).toBe(true);
+      expect(reply.skippedAscendancyNodes.length).toBeGreaterThan(0);
+
+      const count = await lua<number>(`
+        local n = 0
+        for _, node in pairs(build.spec.allocNodes) do
+          if node.ascendancyName == 'Titan' and node.type ~= 'AscendClassStart' then n = n + 1 end
+        end
+        return n`);
+      expect(reply.tree.ascendancyPointsUsed).toBe(count);
+      expect(count).toBeLessThanOrEqual(8);
     },
     ENGINE_TIMEOUT,
   );

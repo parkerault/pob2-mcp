@@ -1,0 +1,7 @@
+Rarity: RARE
+Rune Glimmer
+Ruby
+Item Level: 80
+Implicits: 0
+12% increased Melee Damage
+15% increased Armour

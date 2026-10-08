@@ -121,24 +121,160 @@ end
 -- (E2), as PoB's own PassiveSpec:Load does: each allocated node's weapon-set assignment
 -- (`{[id]=node.allocMode}` for allocMode ~= 0) and the attribute choices (`hashOverrides`).
 -- Both are read before the import, which resets the nodes.
+-- `state` (optional, C-40) overrides what is kept: `state.weaponSets` replaces the tags and
+-- `state.hashOverrides` the choices; the import takes the tables as given.
 -- PassiveSpec:ImportFromNodeList(className, classId, ascendClassId, secondaryAscendClassId,
 --   hashList, weaponSets, hashOverrides, masteryEffects, treeVersion)
-local function reimport_nodes(classId, ascendId, secondaryId, nodes, treeVersion)
+local function reimport_nodes(classId, ascendId, secondaryId, nodes, treeVersion, state)
   local spec = build.spec
-  local weaponSets = {}
-  for id, node in pairs(spec.allocNodes or {}) do
-    if node.allocMode and node.allocMode ~= 0 then
-      weaponSets[id] = node.allocMode
+  state = state or {}
+  local weaponSets = state.weaponSets
+  if not weaponSets then
+    weaponSets = {}
+    for id, node in pairs(spec.allocNodes or {}) do
+      if node.allocMode and node.allocMode ~= 0 then
+        weaponSets[id] = node.allocMode
+      end
     end
   end
-  local hashOverrides = copyTable(spec.hashOverrides or {}, true)
+  local hashOverrides = state.hashOverrides or copyTable(spec.hashOverrides or {}, true)
   -- PoE2 trees have no mastery selections; pass a copy (the import wipes the spec's own table).
   local masterySelections = copyTable(spec.masterySelections or {}, true)
   spec:ImportFromNodeList(nil, classId, ascendId, secondaryId, nodes, weaponSets, hashOverrides, masterySelections, treeVersion)
 end
 
+-- `<id> (<name>)` for a tree node, or the id as given when the tree has no such node.
+local function node_label(key)
+  local id = tonumber(key)
+  local node = id and build.spec.nodes[id]
+  if node then return string.format('%d (%s)', id, tostring(node.dn or node.name or '?')) end
+  return tostring(key)
+end
+
+-- Why PoB never gives a node a weapon-set tag, or nil when it can. PassiveSpec:AllocNode allocates an
+-- ascendancy node, a keystone, a jewel socket and a node containing one untagged
+-- (vendor/Classes/PassiveSpec.lua:931); class and ascendancy start nodes PoB allocates itself.
+local function untaggable_reason(node)
+  if node.type == 'ClassStart' or node.type == 'AscendClassStart' then return 'a class start node' end
+  if node.ascendancyName then return 'an ascendancy node' end
+  if node.type == 'Keystone' then return 'a keystone' end
+  if node.type == 'Socket' or node.containJewelSocket then return 'a jewel socket' end
+  return nil
+end
+
+-- C-40 attribute names → PoB's option names (the attribute node's `options`, TreeTab:ModifyAttributePopup).
+local ATTRIBUTE_OPTIONS = { strength = 'Strength', dexterity = 'Dexterity', intelligence = 'Intelligence' }
+
+-- The index of the attribute node's option named `optionName` (SwitchAttributeNode's `attributeIndex`).
+local function attribute_option_index(treeNode, optionName)
+  for index, option in pairs(treeNode.options or {}) do
+    if (option.dn or option.name) == optionName then return index end
+  end
+  return nil
+end
+
+-- Table keys (JSON object keys arrive as strings) sorted by node id, so messages are deterministic.
+local function sorted_keys(map)
+  local keys = {}
+  for key in pairs(map) do keys[#keys + 1] = key end
+  table.sort(keys, function(a, b)
+    local na, nb = tonumber(a), tonumber(b)
+    if na and nb then return na < nb end
+    if na or nb then return na ~= nil end
+    return tostring(a) < tostring(b)
+  end)
+  return keys
+end
+
+-- C-40: check `weaponSets` and `attributeChoices` against the nodes the call allocates (`nodes`),
+-- and build what the import takes. Every problem is reported, naming the node and the reason, and
+-- nothing is changed. Returns `{weaponSets?, hashOverrides?}`, or nil and the error.
+local function tree_state_params(params, nodes)
+  local spec = build.spec
+  local allocated = {}
+  for _, id in ipairs(nodes) do allocated[id] = true end
+  local problems = {}
+  local function bad(key, reason)
+    problems[#problems + 1] = string.format('node %s: %s', node_label(key), reason)
+  end
+  -- The node a key names, when it is one the call allocates; otherwise the problem is recorded.
+  local function allocated_node(key)
+    local id = tonumber(key)
+    local node = id and spec.nodes[id]
+    if not node then bad(key, 'not a passive tree node'); return nil end
+    if not allocated[id] then bad(key, 'not allocated'); return nil end
+    return id, node
+  end
+
+  local state = {}
+  if params.weaponSets ~= nil then
+    if type(params.weaponSets) ~= 'table' then return nil, 'weaponSets must map node ids to weapon set 1 or 2' end
+    state.weaponSets = {}
+    for _, key in ipairs(sorted_keys(params.weaponSets)) do
+      local set = params.weaponSets[key]
+      local id, node = allocated_node(key)
+      if id then
+        local why = untaggable_reason(node)
+        if why then
+          bad(key, why .. ', which PoB never tags with a weapon set')
+        elseif set ~= 1 and set ~= 2 then
+          bad(key, 'the weapon set must be 1 or 2, not ' .. tostring(set))
+        else
+          state.weaponSets[id] = set
+        end
+      end
+    end
+  end
+
+  local choices = {}
+  if params.attributeChoices ~= nil then
+    if type(params.attributeChoices) ~= 'table' then
+      return nil, 'attributeChoices must map node ids to strength, dexterity or intelligence'
+    end
+    for _, key in ipairs(sorted_keys(params.attributeChoices)) do
+      local choice = params.attributeChoices[key]
+      local id = allocated_node(key)
+      if id then
+        local treeNode = spec.tree.nodes[id]
+        local optionName = type(choice) == 'string' and ATTRIBUTE_OPTIONS[choice] or nil
+        if not (treeNode and treeNode.isAttribute) then
+          bad(key, 'not an attribute node')
+        elseif not optionName then
+          bad(key, 'the attribute must be strength, dexterity or intelligence, not ' .. tostring(choice))
+        else
+          local index = attribute_option_index(treeNode, optionName)
+          if not index then bad(key, 'PoB has no ' .. optionName .. ' option for it')
+          else choices[#choices + 1] = { id = id, index = index } end
+        end
+      end
+    end
+  end
+  if #problems > 0 then return nil, table.concat(problems, '; ') end
+
+  if params.attributeChoices ~= nil then
+    -- The kept choices, with each new one made by PoB's own switch (PassiveSpec:SwitchAttributeNode),
+    -- written into the copy the import takes rather than into the spec.
+    local hashOverrides = copyTable(spec.hashOverrides or {}, true)
+    local own = spec.hashOverrides
+    spec.hashOverrides = hashOverrides
+    local ok, switchErr = pcall(function()
+      for _, c in ipairs(choices) do spec:SwitchAttributeNode(c.id, c.index) end
+    end)
+    spec.hashOverrides = own
+    if not ok then return nil, 'switching an attribute node failed: ' .. tostring(switchErr) end
+    state.hashOverrides = hashOverrides
+  end
+  return state
+end
+
 -- Set tree allocation from parameters
--- params: { classId, ascendClassId, secondaryAscendClassId?, nodes:[int], treeVersion? }
+-- params: { classId, ascendClassId, secondaryAscendClassId?, nodes:[int], treeVersion?,
+--   weaponSets?: {[nodeId]: 1|2}, attributeChoices?: {[nodeId]: "strength"|"dexterity"|"intelligence"} }
+-- Without `weaponSets` and `attributeChoices`, the weapon-set tags and attribute choices are kept and
+-- PoB drops any node that doesn't connect (AC-E29). With either (C-40), `weaponSets` replaces every tag,
+-- `attributeChoices` is applied over the kept choices, and the call is all-or-nothing: a listed node
+-- that isn't in `nodes`, can't take the tag or choice, or would leave the allocation (PoB connects an
+-- untagged node only through untagged nodes) fails it, with the spec as it was.
 function M.set_tree(params)
   if not build or not build.spec then
     return nil, "build/spec not initialized"
@@ -155,8 +291,64 @@ function M.set_tree(params)
       table.insert(nodes, tonumber(v))
     end
   end
-  reimport_nodes(classId, ascendId, secondaryId, nodes, params.treeVersion)
-  -- Rebuild calcs to reflect changes
+  if params.weaponSets == nil and params.attributeChoices == nil then
+    reimport_nodes(classId, ascendId, secondaryId, nodes, params.treeVersion)
+    -- Rebuild calcs to reflect changes
+    M.get_main_output()
+    return true
+  end
+
+  local state, err = tree_state_params(params, nodes)
+  if not state then return nil, err end
+  local spec = build.spec
+  -- What the spec keeps when a param doesn't replace it: its tags, and a copy of its choices. With its
+  -- class, tree version and allocation, also what puts it back.
+  local kept = {
+    weaponSets = {}, hashOverrides = spec.hashOverrides, nodes = {}, classId = spec.curClassId,
+    ascendId = spec.curAscendClassId, secondaryId = spec.curSecondaryAscendClassId or 0, treeVersion = spec.treeVersion,
+  }
+  for id, node in pairs(spec.allocNodes or {}) do
+    kept.nodes[#kept.nodes + 1] = id
+    if node.allocMode and node.allocMode ~= 0 then kept.weaponSets[id] = node.allocMode end
+  end
+  state.weaponSets = state.weaponSets or kept.weaponSets
+  state.hashOverrides = state.hashOverrides or copyTable(spec.hashOverrides or {}, true)
+
+  -- The tags must leave every node allocated. PoB decides that on a throwaway spec (made as create_spec
+  -- makes one, never added to the tree tab), so a refused call never touches the build's spec, whose
+  -- re-import would also reorder its export.
+  local scratch = construct('PassiveSpec', build, params.treeVersion or spec.treeVersion)
+  scratch.jewels = copyTable(spec.jewels or {})
+  scratch:ImportFromNodeList(nil, classId, ascendId, secondaryId, nodes, state.weaponSets,
+    copyTable(state.hashOverrides, true), copyTable(spec.masterySelections or {}, true))
+  local function lost_in(s)
+    local lost = {}
+    for _, id in ipairs(nodes) do
+      if s.nodes[id] and not s.allocNodes[id] then lost[#lost + 1] = id end
+    end
+    table.sort(lost)
+    return lost
+  end
+  local function refusal(lost)
+    local problems = {}
+    for _, id in ipairs(lost) do
+      problems[#problems + 1] = string.format('node %s: would no longer be allocated', node_label(id))
+    end
+    return table.concat(problems, '; ') .. ' (PoB connects an untagged node only through untagged nodes, '
+      .. 'and a node tagged with weapon set n through untagged nodes and nodes tagged n)'
+  end
+  local lost = lost_in(scratch)
+  if #lost > 0 then return nil, refusal(lost) end
+
+  reimport_nodes(classId, ascendId, secondaryId, nodes, params.treeVersion, state)
+  lost = lost_in(spec)
+  if #lost > 0 then
+    -- Never expected after the dry run; the allocation, tags and choices are put back all the same.
+    reimport_nodes(kept.classId, kept.ascendId, kept.secondaryId, kept.nodes, kept.treeVersion,
+      { weaponSets = kept.weaponSets, hashOverrides = kept.hashOverrides })
+    M.get_main_output()
+    return nil, refusal(lost)
+  end
   M.get_main_output()
   return true
 end
@@ -255,29 +447,108 @@ function M.get_warnings()
   return { lines = lines }
 end
 
--- Update tree by delta lists
+-- The ascendancy points `update_tree_delta` allows (stated in its tool description).
+local MAX_ASCENDANCY_POINTS = 8
+
+-- Whether allocating `node` uses an ascendancy point, as PassiveSpec:CountAllocNodes counts them: a node
+-- of the primary ascendancy that isn't its start node, a free allocation or a multiple-choice option.
+local function is_ascendancy_point(spec, node)
+  if not node.ascendancyName or node.isMultipleChoiceOption or node.isFreeAllocate ~= nil then return false end
+  if node.type == 'ClassStart' or node.type == 'AscendClassStart' then return false end
+  local secondary = spec.tree.secondaryAscendNameMap
+  return not (secondary and secondary[node.ascendancyName])
+end
+
+-- The ascendancy points the active spec uses (PassiveSpec:CountAllocNodes; the start node excluded).
+local function ascendancy_points_used(spec)
+  local _, ascUsed = spec:CountAllocNodes()
+  return ascUsed
+end
+
+-- The whole-number ids of a list param, in order.
+local function id_list(list)
+  local out = {}
+  if type(list) == 'table' then
+    for _, v in ipairs(list) do
+      local id = tonumber(v)
+      if id then out[#out + 1] = id end
+    end
+  end
+  return out
+end
+
+-- Update tree by delta lists (C-48, D-194).
+-- params: { addNodes?, removeNodes?, classId?, ascendClassId?, secondaryAscendClassId?, treeVersion? }
+-- Removal (and a class or tree-version change) re-imports the remaining nodes as before, keeping the
+-- weapon-set tags and attribute choices; PoB drops what no longer connects. Added nodes are then
+-- allocated in the order given, each along PoB's own path (PassiveSpec:AllocNode: `node.path`, the path
+-- `search_nodes` shows), untagged; the path nodes beyond the requested ones are `autoPathedNodes`. A node
+-- whose path would take the ascendancy points over 8 is skipped and listed in `skippedAscendancyNodes`.
+-- An unknown, unreachable or already allocated node adds nothing, and an empty delta changes nothing.
+-- Returns { autoPathedNodes, skippedAscendancyNodes, ascendancyPointsUsed } (the points after the call).
 function M.update_tree_delta(params)
   if not build or not build.spec then return nil, 'build/spec not initialized' end
+  params = type(params) == 'table' and params or {}
   local current, err = M.get_tree()
   if not current then return nil, err end
-  local set = {}
-  for _, id in ipairs(current.nodes) do set[id] = true end
-  if params and type(params.removeNodes) == 'table' then
-    for _, id in ipairs(params.removeNodes) do set[tonumber(id)] = nil end
+  local removeNodes, addNodes = id_list(params.removeNodes), id_list(params.addNodes)
+  local reclass = params.classId ~= nil or params.ascendClassId ~= nil
+    or params.secondaryAscendClassId ~= nil or params.treeVersion ~= nil
+  local changed = false
+
+  if #removeNodes > 0 or reclass then
+    local set = {}
+    for _, id in ipairs(current.nodes) do set[id] = true end
+    for _, id in ipairs(removeNodes) do set[id] = nil end
+    local nodes = {}
+    for id in pairs(set) do table.insert(nodes, id) end
+    table.sort(nodes)
+    local classId = params.classId or current.classId or 0
+    local ascendId = params.ascendClassId or current.ascendClassId or 0
+    local secId = params.secondaryAscendClassId or current.secondaryAscendClassId or 0
+    local tv = params.treeVersion or current.treeVersion
+    reimport_nodes(tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes, tv)
+    changed = true
   end
-  if params and type(params.addNodes) == 'table' then
-    for _, id in ipairs(params.addNodes) do set[tonumber(id)] = true end
+
+  local result = { autoPathedNodes = {}, skippedAscendancyNodes = {} }
+  if #addNodes > 0 then
+    local spec = build.spec
+    local requested = {}
+    for _, id in ipairs(addNodes) do requested[id] = true end
+    -- Normal (untagged) allocation, whatever mode the spec was left in.
+    local allocMode = spec.allocMode
+    spec.allocMode = 0
+    for _, id in ipairs(addNodes) do
+      local node = spec.nodes[id]
+      local path = node and not node.alloc and node.path and spec:GetEffectiveAllocationPath(node)
+      if path then
+        local cost = 0
+        for _, pathNode in ipairs(path) do
+          if not pathNode.alloc and is_ascendancy_point(spec, pathNode) then cost = cost + 1 end
+        end
+        if cost > 0 and ascendancy_points_used(spec) + cost > MAX_ASCENDANCY_POINTS then
+          table.insert(result.skippedAscendancyNodes, id)
+        else
+          local before = {}
+          for allocId in pairs(spec.allocNodes) do before[allocId] = true end
+          spec:AllocNode(node)
+          changed = true
+          local pathed = {}
+          for allocId in pairs(spec.allocNodes) do
+            if not before[allocId] and not requested[allocId] then pathed[#pathed + 1] = allocId end
+          end
+          table.sort(pathed)
+          for _, allocId in ipairs(pathed) do table.insert(result.autoPathedNodes, allocId) end
+        end
+      end
+    end
+    spec.allocMode = allocMode
   end
-  local nodes = {}
-  for id,_ in pairs(set) do table.insert(nodes, id) end
-  table.sort(nodes)
-  local classId = params.classId or current.classId or 0
-  local ascendId = params.ascendClassId or current.ascendClassId or 0
-  local secId = params.secondaryAscendClassId or current.secondaryAscendClassId or 0
-  local tv = params.treeVersion or current.treeVersion
-  reimport_nodes(tonumber(classId) or 0, tonumber(ascendId) or 0, tonumber(secId) or 0, nodes, tv)
-  M.get_main_output()
-  return true
+
+  if changed then M.get_main_output() end
+  result.ascendancyPointsUsed = ascendancy_points_used(build.spec)
+  return result
 end
 
 

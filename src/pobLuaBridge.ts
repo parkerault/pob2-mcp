@@ -43,6 +43,7 @@ import {
   type StatsBreakdown,
   type StatsResult,
   type TreeResult,
+  type UpdateTreeDeltaResult,
   type Loose,
 } from "./engine/schemas.js";
 
@@ -728,6 +729,10 @@ export class PoBLuaApiClient {
     return res.statSet;
   }
 
+  /**
+   * With `weaponSets` or `attributeChoices` (C-40), all-or-nothing: an engine error names each node and
+   * the reason, and the spec is left as it was. Without both, the tags and choices are kept (AC-E29).
+   */
   async setTree(params: ActionParams<"set_tree">): Promise<Loose<TreeResult>> {
     const res = await this.request("set_tree", params);
     return res.tree;
@@ -835,9 +840,14 @@ export class PoBLuaApiClient {
     return res.result;
   }
 
-  async updateTreeDelta(params: ActionParams<"update_tree_delta">): Promise<{ tree: Loose<TreeResult>; autoPathedNodes?: number[]; skippedAscendancyNodes?: number[] }> {
+  /**
+   * C-48 (D-194): added nodes take PoB's own path, in the order given; `autoPathedNodes` are the path nodes
+   * beyond the requested ones, `skippedAscendancyNodes` the requested nodes whose path would take the
+   * ascendancy points over 8, and `tree.ascendancyPointsUsed` the points after the call.
+   */
+  async updateTreeDelta(params: ActionParams<"update_tree_delta">): Promise<UpdateTreeDeltaResult> {
     const res = await this.request("update_tree_delta", params);
-    return { tree: res.tree, autoPathedNodes: res.autoPathedNodes as number[] | undefined, skippedAscendancyNodes: res.skippedAscendancyNodes as number[] | undefined };
+    return { tree: res.tree, autoPathedNodes: res.autoPathedNodes, skippedAscendancyNodes: res.skippedAscendancyNodes };
   }
 
   async calcWith(params: ActionParams<"calc_with">): Promise<Record<string, any>> {

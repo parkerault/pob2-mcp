@@ -23,6 +23,7 @@ import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, h
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
 import { handleLookupGameData } from "../handlers/lookupHandlers.js";
 import { handleCheckModelCoverage } from "../handlers/coverageHandlers.js";
+import { handleSetTreeState } from "../handlers/treeStateHandlers.js";
 import { pobSourceScan } from "../engine/pobSourceNames.js";
 import { resolvePobSrc } from "../engine/pobPath.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
@@ -345,6 +346,13 @@ async function dispatch(
         args.add_nodes as string[] | undefined,
         args.remove_nodes as string[] | undefined
       );
+
+    // C-40: weapon-set tags and attribute choices on the active spec
+    case "set_tree_state":
+      return await handleSetTreeState(luaContext, {
+        weaponSetNodes: args?.weapon_set_nodes,
+        attributeChoices: args?.attribute_choices,
+      });
 
     case "create_spec":
       return await handleCreateSpec(

@@ -25,6 +25,21 @@ export const ITEM_SLOTS = [
   "Charm 1", "Charm 2", "Charm 3", "Flask 1", "Flask 2",
 ] as const;
 
+/**
+ * The pinned passive tree's jewel sockets (C-46): every node with `type == "Socket"` or `containJewelSocket`
+ * in `build.latestTree.nodes`, ascending, as PoB's ItemsTab orders their `Jewel <id>` slots (19 at the pin).
+ */
+export const TREE_JEWEL_SOCKETS = [
+  2491, 3367, 7960, 11184, 17788, 21984, 23960, 26178, 26196, 26725,
+  32763, 39087, 46882, 54127, 55190, 60735, 61419, 61834, 62152,
+] as const;
+
+/**
+ * `add_item`'s slots (C-46, D-223): `ITEM_SLOTS`, then a `Jewel <id>` slot per tree jewel socket. Only
+ * `add_item` takes them; the shared `ITEM_SLOTS` is unchanged.
+ */
+export const ADD_ITEM_SLOTS = [...ITEM_SLOTS, ...TREE_JEWEL_SOCKETS.map((id) => `Jewel ${id}`)];
+
 /** The slots with an activation toggle in PoB2: flasks and charms (`toggle_flask`). */
 export const ACTIVATABLE_SLOTS = ["Flask 1", "Flask 2", "Charm 1", "Charm 2", "Charm 3"] as const;
 
@@ -448,6 +463,29 @@ export function getLuaToolSchemas(): any[] {
       },
     },
     {
+      name: "set_tree_state",
+      description: "Set the active passive tree spec's weapon-set passives and attribute choices, without changing which nodes are allocated. weapon_set_nodes replaces the weapon-set tags: the allocated nodes listed under \"1\" or \"2\" are tagged with that weapon set (PoB applies their stats only while that weapon set is in use), and every other allocated node is untagged. attribute_choices sets attribute nodes (\"+5 to any Attribute\") to strength, dexterity or intelligence; every other node keeps its choice. Give at least one of the two. All or nothing: a node that isn't allocated, a weapon-set node PoB never tags (a keystone, an ascendancy node, a jewel socket, a class start node), a node in both weapon sets, a choice on a node that isn't an attribute node, a value other than those listed, or tags that would disconnect a node (PoB connects an untagged node only through untagged nodes, and a tagged node through untagged nodes and nodes of its own set) fails the call, naming each node and the reason, and nothing changes. Returns the tagged nodes per weapon set, the allocated nodes' attribute choices, and the resulting Str, Dex and Int.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          weapon_set_nodes: {
+            type: "object",
+            description: "Allocated node IDs to tag, by weapon set: {\"1\": [ids], \"2\": [ids]}. Replaces every tag; {} untags every node.",
+            properties: {
+              "1": { type: "array", items: { type: "string" }, description: "Node IDs tagged with weapon set 1" },
+              "2": { type: "array", items: { type: "string" }, description: "Node IDs tagged with weapon set 2" },
+            },
+            additionalProperties: false,
+          },
+          attribute_choices: {
+            type: "object",
+            description: "Allocated attribute node ID → \"strength\", \"dexterity\" or \"intelligence\", applied over the current choices",
+            additionalProperties: { type: "string", enum: ["strength", "dexterity", "intelligence"] },
+          },
+        },
+      },
+    },
+    {
       name: "lua_get_build_info",
       description: "Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. Useful to confirm which build is active after lua_load_build or lua_new_build. Class and ascendancy are the engine's PoE2 names for the active passive tree spec.",
       inputSchema: {
@@ -656,8 +694,8 @@ export function getLuaToolSchemas(): any[] {
           },
           slot_name: {
             type: "string",
-            description: "PoE2 slot to equip the item in (it replaces what is there). Ring 3 exists only with an extra ring slot; the Swap slots are the second weapon set.",
-            enum: [...ITEM_SLOTS],
+            description: "PoE2 slot to equip the item in (it replaces what is there). Ring 3 exists only with an extra ring slot; the Swap slots are the second weapon set. 'Jewel <node id>' sockets a jewel into that passive tree jewel socket of the active tree spec (only a jewel fits; the socket applies it once allocated).",
+            enum: [...ADD_ITEM_SLOTS],
           },
         },
         required: ["item_text", "slot_name"],

@@ -88,6 +88,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   set_character_level: core('mutate'),
   lua_set_tree: core('mutate'),
   update_tree_delta: core('mutate'),
+  // C-40: the active spec's weapon-set tags and attribute choices
+  set_tree_state: core('mutate'),
   add_item: core('mutate'),
   add_multiple_items: core('mutate'),
   toggle_flask: core('mutate'),

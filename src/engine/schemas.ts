@@ -247,8 +247,29 @@ export const treeSchema = z
   .passthrough();
 export type TreeResult = z.infer<typeof treeSchema>;
 
-/** `get_tree`, `set_tree` and `update_tree_delta`. */
+/** `get_tree` and `set_tree`. */
 export const treeReply = baseReply.extend({ tree: treeSchema });
+
+/**
+ * `update_tree_delta` (C-48, D-194): the tree with the ascendancy points it uses after the call (the start
+ * node excluded), the path nodes allocated beyond the requested ones, and the requested nodes skipped
+ * because their path would take the ascendancy points over 8.
+ */
+const deltaTreeSchema = treeSchema.extend({ ascendancyPointsUsed: z.number().int() });
+export const updateTreeDeltaReply = baseReply.extend({
+  tree: deltaTreeSchema,
+  autoPathedNodes: luaArray(z.number().int()),
+  skippedAscendancyNodes: luaArray(z.number().int()),
+});
+export interface UpdateTreeDeltaResult {
+  tree: z.infer<typeof deltaTreeSchema>;
+  autoPathedNodes: number[];
+  skippedAscendancyNodes: number[];
+}
+
+/** C-40's attribute choices, as `set_tree`'s `attributeChoices` takes them. */
+export const ATTRIBUTE_CHOICES = ['strength', 'dexterity', 'intelligence'] as const;
+export type AttributeChoice = (typeof ATTRIBUTE_CHOICES)[number];
 
 export const addItemTextReply = baseReply.extend({
   item: z.object({ id: z.number().int(), name: z.string(), slot: optString }).passthrough(),
@@ -835,7 +856,7 @@ const definedSchemas = {
   set_flask_active: emptyReply,
   get_build_info: getBuildInfoReply,
   get_warnings: getWarningsReply,
-  update_tree_delta: treeReply,
+  update_tree_delta: updateTreeDeltaReply,
   calc_with: calcWithReply,
   get_config: configReply,
   set_config: configReply,
@@ -893,12 +914,20 @@ export interface ActionParamsMap {
   get_tree: NoParams;
   /** `statSet`: the 1-based stat set of the group's main active skill, PoB2's `srcInstance.statSet` (C-44). */
   set_main_selection: { mainSocketGroup?: number; mainActiveSkill?: number; statSet?: number };
+  /**
+   * C-40: `weaponSets` (node id → weapon set) replaces every weapon-set tag, and `attributeChoices` (node
+   * id → attribute) is applied over the kept choices; every node they name must be in `nodes`. With
+   * either, the call is all-or-nothing and fails, changing nothing, if the allocation would change.
+   * Without both, the tags and choices are kept (AC-E29).
+   */
   set_tree: {
     classId: number;
     ascendClassId: number;
     secondaryAscendClassId?: number;
     nodes: number[];
     treeVersion?: string;
+    weaponSets?: Record<string, 1 | 2>;
+    attributeChoices?: Record<string, AttributeChoice>;
   };
   /** `validateOnly`: parse the text and check the slot, change nothing (the reply's `id` is 0). */
   add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean; validateOnly?: boolean };

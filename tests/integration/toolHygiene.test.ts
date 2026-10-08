@@ -28,6 +28,7 @@
  *
  * Sample args may use these placeholders, resolved from committed fixtures:
  * - `"$RUBY_RING_TEXT"`: `tests/fixtures/items/ruby-ring.txt`;
+ * - `"$JEWEL_TEXT"`: `tests/fixtures/items/jewel.txt`, a rare Ruby jewel (C-46's tree sockets);
  * - `"$GOLDEN_BUILD_CODE"`: the golden build as a PoB export code (`encodePobCode`, C-42);
  * - `"$ALLOCATED_NODES"`: the golden build's allocated node ids (its `<Spec nodes>`), as numbers.
  */
@@ -92,6 +93,7 @@ const CALL_TIMEOUT_MS = 150000;
 const goldenXml = fs.readFileSync(GOLDEN, 'utf8');
 const PLACEHOLDERS: Record<string, unknown> = {
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
+  $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(goldenXml),
   $ALLOCATED_NODES: (/<Spec\b[^>]*\snodes="([^"]*)"/.exec(goldenXml) as RegExpExecArray)[1].split(',').map(Number),
 };

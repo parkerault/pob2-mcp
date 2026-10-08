@@ -302,11 +302,18 @@ handlers.get_warnings = function(params)
   return { ok = true, result = res }
 end
 
+-- C-48 (D-194): the tree carries the ascendancy points used after the call.
 handlers.update_tree_delta = function(params)
-  local ok2, err = BuildOps.update_tree_delta(params or {})
-  if not ok2 then return { ok = false, error = err } end
+  local res, err = BuildOps.update_tree_delta(params or {})
+  if not res then return { ok = false, error = err } end
   local tree = BuildOps.get_tree()
-  return { ok = true, tree = tree }
+  tree.ascendancyPointsUsed = res.ascendancyPointsUsed
+  return {
+    ok = true,
+    tree = tree,
+    autoPathedNodes = res.autoPathedNodes,
+    skippedAscendancyNodes = res.skippedAscendancyNodes,
+  }
 end
 
 handlers.calc_with = function(params)

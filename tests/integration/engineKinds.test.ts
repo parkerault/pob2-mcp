@@ -46,6 +46,7 @@ const ALLOWLIST = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-hygiene-a
 }>;
 const PLACEHOLDERS: Record<string, unknown> = {
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
+  $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(GOLDEN_XML),
   $ALLOCATED_NODES: (/<Spec\b[^>]*\snodes="([^"]*)"/.exec(GOLDEN_XML) as RegExpExecArray)[1].split(',').map(Number),
 };

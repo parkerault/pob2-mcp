@@ -285,6 +285,15 @@ describe('createRunFolder (C-34, D-153, A-P7)', () => {
     expect(fs.readdirSync(tmp)).toEqual([]);
   });
 
+  it.each([
+    ['an invalid date', new Date(NaN), 'Invalid Date'],
+    ['a five-digit year', new Date(10000, 0, 1, 12), '10000'],
+  ])('AC-P6: %s is refused, naming the date and the root, creating nothing', async (_why, date, shownDate) => {
+    await expectRefusal(createRunFolder(root, 'titan-blood-hunt', date), ['date', shownDate, root]);
+    expect(fs.existsSync(root)).toBe(false);
+    expect(fs.readdirSync(tmp)).toEqual([]);
+  });
+
   it('AC-P6: a 64-character slug is accepted', async () => {
     const slug = 'a'.repeat(64);
     await expect(createRunFolder(root, slug, DATE)).resolves.toEqual({

@@ -144,7 +144,8 @@ export function localDateStamp(date: Date): string {
  * - `<n>` is 1 plus the largest `n` among the slug folder's `<YYYY-MM-DD>-<n>` entries for this date, or
  *   1. The run folder is made with a non-recursive `mkdir`; on `EEXIST` the next `n` is tried, so two
  *   concurrent callers never share a folder.
- * - `date` is the server's local date (`localDateStamp`).
+ * - `date` is the server's local date (`localDateStamp`). An invalid date, or one whose year doesn't fit
+ *   `YYYY`, is refused before anything is created, so every run folder keeps the `<YYYY-MM-DD>-<n>` name.
  */
 export async function createRunFolder(root: string, slug: string, date: Date): Promise<RunFolder> {
   const refused = (why: string) => new GuidesPathError(`slug ${shown(slug)} ${why}; guides root: ${root}`);
@@ -155,6 +156,12 @@ export async function createRunFolder(root: string, slug: string, date: Date): P
     );
   }
   const stamp = localDateStamp(date);
+  if (Number.isNaN(date.getTime()) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(stamp)) {
+    throw new GuidesPathError(
+      `date ${shown(String(date))} is not a valid date with a four-digit year (the run folder is named ` +
+        `<YYYY-MM-DD>-<n>); slug ${shown(slug)}; guides root: ${root}`,
+    );
+  }
   const absRoot = path.resolve(root);
 
   let slugDir: string;

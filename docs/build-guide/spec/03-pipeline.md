@@ -5,9 +5,9 @@ AC-W1…AC-W26, plus the WU-48 checklist. Requirements trace to the spine's cont
 (C-30…C-50, D-100…D-238, A-20…A-32), the design rows they lift, the platform grounding ("platform §") and
 ext §5 (the prior-art guide outline). §15 lists the open items the first draft found and the decisions
 that resolved them (D-231…D-238); the adversarial review's fixes are folded in under their spine IDs
-(D-210…D-221). D-210 (ask before discarding unsaved work), D-219 (the budget tolerance) and D-234 (which
-resistances the survival floor gates) are PROPOSED, pending the user. Prompt wording is tuned on real
-runs; this slice fixes the contracts and required behaviours, not the prose of prompts.
+(D-210…D-221). The user settled D-210 (ask before discarding unsaved work), D-219 (the budget tolerance)
+and D-234 (the survival floor gates chaos too, bar a recorded exception) on 2026-10-08. Prompt wording
+is tuned on real runs; this slice fixes the contracts and required behaviours, not the prose of prompts.
 
 ## 1. Existing system context (this slice)
 
@@ -102,7 +102,7 @@ Hunt → `titan-blood-hunt`).
      root-relative path and `loadedBuildUnsaved` (C-50).
   3. The skill writes `run-log.json` with `status: "running"`, the mode, the orchestration and the
      test-config state.
-  4. **Unsaved build** (D-210, PROPOSED, pending the user). If the `new_run` reply has
+  4. **Unsaved build** (D-210). If the `new_run` reply has
      `loadedBuildUnsaved: true`, the skill asks the user before the first compile: proceed, which
      discards the loaded build's unsaved changes, or stop (the run ends `stopped`). In offline test mode, `answers.unsavedBuild` answers it
      (§11.2).
@@ -130,7 +130,8 @@ Hunt → `titan-blood-hunt`).
     and both values. The agents' verdict means the last D1 gate report of the concept the guide is for,
     or a V3 or V4 report.
   - **The survival floor**, by §5.3's rule, from the final compile record's endgame stages and the
-    plan's scenario inputs. Fire, cold and lightning are gated; chaos is only reported (D-234).
+    plan's scenario inputs. All four resistances are gated; chaos passes uncapped only with the stage's
+    `chaosResistException`, whose reason the guide's `Checks` must state (D-234).
   - **The budget**, from the plan's `prices[]` entries, with D-219's thresholds. It uses the gate
     report's map from slots to price entries and the conversion rates the report recorded. Every filled
     slot of each budget-variant stage must map to an entry. A total over 20 divines must come with the
@@ -244,16 +245,18 @@ round, then one more than the highest id already in the run.
 2. **D1 gate** (a fresh coordinator step). Runs the final re-price pass (§9), compiles `plan.json`
    measure-only, reads the record and returns a verdict `{compiled, v1, v2, floor, budget, rolledSkill}`.
    Each part is `pass`, `fail` or `unverified`, with findings that cite record fields and E1 keys:
-   - **floor** (D-118, D-119, D-234): per endgame stage, Fire, Cold and Lightning `Missing<Elem>Resist`
-     = 0 at the Endgame resistance penalty (pin `Modules/CalcDefence.lua:941`); Chaos resistance is
-     reported, not gated (D-234, PROPOSED, pending the user). And for every damage type in the stage's
-     mapping reference hits (its scenario inputs, C-32: the `enemy<Type>Damage` options, pin
-     `Modules/ConfigOptions.lua:2267-2275`), `<Type>MaximumHitTaken` greater than that hit;
+   - **floor** (D-118, D-119, D-234): per endgame stage, Fire, Cold, Lightning and Chaos
+     `Missing<Elem>Resist` = 0 at the Endgame resistance penalty (pin `Modules/CalcDefence.lua:941`). A
+     stage with `MissingChaosResist` above 0 passes only when it carries `chaosResistException` (C-31),
+     and the gate adds a finding naming the value and the reason; without one the floor fails. The D1
+     agent uses the exception only when capping chaos is infeasible (D-234). And for every damage type
+     in the stage's mapping reference hits (its scenario inputs, C-32: the `enemy<Type>Damage` options,
+     pin `Modules/ConfigOptions.lua:2267-2275`), `<Type>MaximumHitTaken` greater than that hit;
    - **budget** (D-116, D-147, D-164, D-219): the budget variant passes when every slot price is `ok` and
      the total is ≤ 20 divines; it also passes above 20 up to 22, with a "near the ceiling" note in the
      guide (§8); it fails above 22; and it is `unverified` when any price is `unavailable` or a currency
-     has no rate (`unverified` doesn't fail the gate). D-219's tolerance is PROPOSED, pending the user,
-     who may change it. The non-budget total is reported against 200 (D-117), never gated;
+     has no rate (`unverified` doesn't fail the gate). The non-budget total is reported against 200
+     (D-117), never gated;
    - **rolledSkill** (D-122, D-148, D-217): in each endgame stage, the rolled skill's group
      (`skills.rolledGroup`) has role `clear` or `single_target` (never `utility` or `leveling`: the
      rolled skill is never a token role, D-122), and its damage figure is the largest among the stage's
@@ -451,7 +454,7 @@ stages; everything else, the dossier included, is "elsewhere".
 | `How it works` | the mechanics with sources; the ledger summary: each entry's claim, its value from the record, its formula in words (D-106) |
 | `Leveling` | one H3 per campaign stage in plan order, titled with its loadout name exactly as the record has it. Each gives the level range, skills and supports with socket counts, tree points to add and any respec with its gold cost (D-144), the ascendancy pick, gear to equip or buy with a dated price or `unavailable`, swap triggers, and the stage's PoB numbers |
 | `Campaign rewards` | the reward choices to pick (C1) |
-| `Endgame: budget variant` | gear by slot with dated prices (`price` markers, D-237); stat priorities; gem links with gem levels; the tree; the character level and ascendancy points (D-193); earned config with its producer and uptime (D-114); an H3 `Checks`: the survival-floor numbers (fire, cold and lightning gated, chaos reported; D-234), the budget total against 20 divines with the words `near the ceiling` when it is over 20 and at most 22 (D-219), or the D-164 statement, the Arbiter's hits against max hit taken and the time-to-kill range (D-116, A-30), the mapping signals with confidence (D-121, D-132) |
+| `Endgame: budget variant` | gear by slot with dated prices (`price` markers, D-237); stat priorities; gem links with gem levels; the tree; the character level and ascendancy points (D-193); earned config with its producer and uptime (D-114); an H3 `Checks`: the survival-floor numbers (all four resistances gated; an uncapped chaos value with its exception's reason, D-234), the budget total against 20 divines with the words `near the ceiling` when it is over 20 and at most 22 (D-219), or the D-164 statement, the Arbiter's hits against max hit taken and the time-to-kill range (D-116, A-30), the mapping signals with confidence (D-121, D-132) |
 | `Endgame: non-budget variant` | the same, with the total against the ~200-divine reference (D-117), plus the upgrade order from the budget variant |
 | `Rotation` | clear and single target (D-120); if the rolled skill isn't the clear skill, why (D-148) |
 | `Defences and resistances` | the resistance plan through the campaign penalties to −60% (D-118) |
@@ -717,7 +720,7 @@ and its file is shown to the user with item 1's approval.
   .claude/skills/build-guide/scripts/check-run.mjs <dir>` with an explicit env.
   - It exits 0 on the passing fixtures in `tests/fixtures/pipeline/`:
     - `run-ok/`, an offline run, which includes an endgame stage whose chaos resistance is below its
-      cap (chaos is reported, not gated; D-234);
+      cap, with a `chaosResistException` whose reason the guide's `Checks` states (D-234);
     - `run-ok-online/`, an online run with `ok` prices, whose budget total is over 20 and at most 22
       divines and whose guide carries the `near the ceiling` note (D-219).
   - On each broken copy it exits non-zero, and its stderr names the broken rule:
@@ -742,7 +745,8 @@ and its file is shown to the user with item 1's approval.
     - (n) a V3 or V4 report misses a §7.4 field, or says `verdict: "pass"` alongside an `unresolved`
       finding;
     - (o) the D1 gate report says `floor: pass`, but the final record has an endgame stage with
-      `MissingColdResist` above 0;
+      `MissingColdResist` above 0; and a second copy where an endgame stage has `MissingChaosResist`
+      above 0 and its `chaosResistException` is removed (D-234);
     - (p) the budget doesn't hold up against the gate report. This covers three copies:
       - the report says `budget: pass`, but the plan's prices and the recorded rates give a total over
         22 divines;
@@ -948,8 +952,8 @@ pathofexile.com, poe.ninja or D-171's hosts before M-13 (D-34, D-181).
 ## 15. Open items and their resolutions
 
 The first draft left these holes in the inputs open. The coordinator resolved each on 2026-10-07, and
-the spine records the resolutions as binding decisions (D-231…D-238). D-234 is PROPOSED, pending the
-user, because it is a game-knowledge choice. D-231 also corrects C-36's wording on who may call lookups
+the spine records the resolutions as binding decisions (D-231…D-238). The user settled D-234, a
+game-knowledge choice, on 2026-10-08. D-231 also corrects C-36's wording on who may call lookups
 (§4, FR-W3).
 
 | Id | Hole | Resolved by | Applied in |
@@ -959,6 +963,6 @@ user, because it is a game-knowledge choice. D-231 also corrects C-36's wording 
 | O-3 | What the user can choose after an escalation (D-141 says only "escalates") | **D-236:** accept, with the failure stated in the guide; give guidance and retry once more; go back to checkpoint 1; stop | §5.3 resuming, §5.4, §8, §11.2, AC-W24 |
 | O-4 | Offline, V4 can't open the URL of a claim copied from C1/E1 | **D-232:** such a claim cites its fact as `data:<file>#<key>`; V4 checks it against the data-file fact and its stored citation, without fetching the URL offline | §7.3, §7.4, §11.1 |
 | O-5 | The tag of a price claim | **D-237:** `price:<id>`, citing the plan's `prices[]` entry by its `id`; the entry holds the date, league and query | §7.3, §7.4, §8, §9 |
-| O-6 | Whether the survival floor's "capped resistances" (D-118) includes chaos | **D-234 (PROPOSED, pending the user):** fire, cold and lightning resistance are gated at their caps; chaos resistance is reported, not gated | §5.3 floor, §8, FR-W7, AC-W2 |
+| O-6 | Whether the survival floor's "capped resistances" (D-118) includes chaos | **D-234 (user, 2026-10-08):** all four resistances are gated at their caps; chaos may stay uncapped only through a stage's recorded `chaosResistException` | §5.3 floor, §8, FR-W7, AC-W2 |
 | O-7 | An invalid roll (an unknown ascendancy or skill) had no defined behaviour | **D-238:** before any agent runs, the skill checks the ascendancy (`get_classes`) and that the skill is an active skill gem (a gem lookup); a failure stops with the closest valid names and no run folder | FR-W2, AC-W26 |
 | O-8 | `league` is required in every plan (C-31), but offline no tool reports it | **D-233:** `league` may be null only when every price is `unavailable` with `note: "offline run"`; the schema enforces it | §11.1 |

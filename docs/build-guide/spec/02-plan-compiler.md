@@ -185,6 +185,7 @@ type Stage = {
   ascendancyPoints?: number;              // integer 0–8
   variantBasis?: { level: SourceTag; gemLevels: SourceTag; ascendancyPoints: SourceTag };
                                           // variant, ascendancyPoints, variantBasis: all or none † (D-193)
+  chaosResistException?: { reason: string; tag: SourceTag };   // reason non-empty; variant stages only † (D-234)
   tree: {
     nodes: number[];                      // allocated non-ascendancy nodes, complete and connected
     ascendancyNodes: number[];
@@ -240,6 +241,9 @@ type Price = { id: string;              // ^[A-Za-z0-9_-]+$, unique †; what a 
 - **Endgame variants.** Every gem has a `level`. A variant stage's `variantBasis` cites the source of its
   level, gem levels and ascendancy points (D-193), and its `rolledGroup` names the group holding the
   rolled skill (D-217).
+- **Chaos exception** (D-234). A variant stage may carry `chaosResistException` when capping chaos
+  resistance is infeasible; the survival floor (slice 3) then accepts `MissingChaosResist` above 0 with a
+  finding. The schema checks only its shape and that the stage is a variant.
 - **Skill roles** (D-217). Every group has a `role`; the rolled-skill gate (slice 3) compares the rolled
   skill against the stage's other skills of its group's role.
 
@@ -573,7 +577,7 @@ emits no session event and never starts the engine.
 1. `checkGuidesRoot(guidesDirectory, pobDirectory)` (D-220); an overlap → `isError` naming both, nothing
    created.
 2. `createRunFolder(root, slug, today)` (§3.1).
-3. `loadedBuildUnsaved` (D-210, PROPOSED, pending the user) is `session.isDirty()`, read without the
+3. `loadedBuildUnsaved` (D-210) is `session.isDirty()`, read without the
    lock; when true, the loaded build's name is `session.loaded.displayName`.
 
 Text output: `Created run folder <absPath>`, `plan_path for this run: <relPath>/plan.json`, and
@@ -802,6 +806,7 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   | `stages[0].id: "a b"`; stage 1 given stage 0's id | `stages[0].id`; `stages[1].id` |
   | a `loadoutName` without `(L<level>)` | `stages[0].loadoutName` |
   | `variant` without `ascendancyPoints` | `stages[1].ascendancyPoints` |
+  | `chaosResistException` on a stage without `variant` | `stages[0].chaosResistException` |
   | an `external` tag without `accessed` | `stages[0].claims[0].source.accessed` |
   | `external-unavailable` with another `ref` | `stages[0].claims[0].source.ref` |
   | a `judgment` tag without `confidence` | `stages[0].claims[0].source.confidence` |

@@ -522,3 +522,21 @@ don't fix headless-only issues.
 - **Kept, because they happen interactively too:** F3 (`cd` breaks workflow lookup), F4 (truncated
   workflow results) and F5 (fallback stamping).
 - **Lane P** was told to amend WU-47 step 3 in `03-pipeline.md`.
+
+### WU-47 fix lanes: results so far
+
+- **Lane S** (`bg/wu-47s`, db07bb4).
+  - **Doer gate:** test rc 0 (1852), build rc 0.
+  - **Review:** no high findings. The tier rule, the exemptions, a deterministic ranking and the test
+    fidelity all checked clean.
+  - **Fixes sent back to the doer:**
+    - **(med) D-258a:** gem-mode suggestions with supports mixed in can hold no valid roll ("Ruthlss"
+      gives 5 supports). Gem mode now lists up to 5 closest active gems, then up to 3 closest supports
+      under their own header.
+    - **(low)** Suggestions are computed only for queries of at most 100 characters. A 6K-character
+      mechanic query would pass the 30 s engine timeout.
+    - **(low)** Revert the fifteen-stage fixture edit: it didn't make that fixture valid.
+- **Lane P** (`bg/wu-47p`, 1d5ded9).
+  - **Doer gate:** test rc 0 (1885), build rc 0. AC-F3, T22 and T40 false-failed under load and passed
+    alone.
+  - The reviewer is running.

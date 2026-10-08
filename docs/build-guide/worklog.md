@@ -425,3 +425,30 @@ mechanics, not guide quality; the live run (WU-48) uses the user's default model
   strict MCP config, temp dirs, web tools denied, cost caps as a runaway backstop ($3 per probe, $80 run A,
   $50 run B). It probes structured output and the Workflow tool first, then does runs A and B, the seeded V4
   check and the probes. Record: scratchpad `wu47/record.md`.
+
+### WU-47 attempt 1: M-12 not met (runner record `wu47/record.md`, head `83f1b95`)
+
+- **Cost:** $34.25 on Sonnet. Run A $14.50, plus $5.18 for its first attempt, which the platform killed;
+  run B $11.31; probes $0.09–0.27 each; the seeded check $2.10.
+- **PASS:** AC-W4, W15, W16, W20, W21.
+- **AC-W22:** every H2 is present and complete; followability is a quality miss.
+- **FAIL:**
+  - AC-W17: check-run rc 1, 41 violations; 36 unresolved V4 findings (quality).
+  - AC-W18: run A ended `stopped`.
+  - AC-W19: one clause; `--partial` rc 1, no attempt times stamped in agent-tool mode.
+  - AC-W26: one clause; the invalid-skill reply lists no closest names, because the lookup is
+    substring-only.
+- **Blocker F1, a code/spec conflict.** D-254 has each reference hit equal its ledger entry at 2
+  decimals, but PoB types `enemy*Damage` as `countAllowZero` (whole numbers; the vendor's
+  `ConfigOptions.lua:2267-2275`, mirrored by `BuildOps.lua:764`). Every D1 floor fails.
+  - **D-256 (coordinator):** reference hits are whole numbers. The scenario value is the ledger
+    entry's value rounded **up** (conservative for the survival floor). The D1 gate, check-run and V4's
+    ledger lens compare against that ceiling. `<Type>MaximumHitTaken` must exceed it. This amends
+    D-254.
+- **Platform friction:**
+  - F2: `claude -p` kills background workflows 10 min after the last turn; set
+    `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`.
+  - F3: Workflow lookup depends on cwd (the runner `cd`'d into the run folder).
+  - F4: Workflow results reach the main loop truncated.
+- **Other findings (F6–F11) go to triage:** a stray W1 file, checker tolerance, claim count, pricing
+  totals, D1 re-run overwriting the final compile record.

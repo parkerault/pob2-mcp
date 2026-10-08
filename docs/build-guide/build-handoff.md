@@ -96,6 +96,15 @@ fails on time alone, re-run it in isolation; record "tooling false-failure" only
 - **Dependencies.** No unit changes `package.json` dependency sections or `pnpm-lock.yaml` (HG-10,
   AC-B7). `zod` and `zod-to-json-schema` are already direct dependencies.
 - **Agents.** Don't spawn subagents and don't call the Workflow tool; you are a leaf worker.
+  - **Exception (coordinator ruling, 2026-10-08):** a headless Claude Code session (`claude -p`) may
+    be started only where the spec requires a recorded probe or run (AC-W23's allowlist probe, WU-47's
+    pipeline run).
+  - That session runs from a temp cwd with `--strict-mcp-config`, registering this worktree's server
+    as `pob2` with temp `POB_DIRECTORY`, `XDG_STATE_HOME` and `POB_GUIDES_DIRECTORY`,
+    `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true` and `POE_TRADE_BASE` at a dead address.
+  - WebSearch and WebFetch are denied.
+  - Report the session's cost.
+  - The user's own `pob2` registration (user scope, pointing at `/mnt/c`) must never load.
 - **Serena.** Don't use the Serena MCP tools: one shared instance points at the wrong checkout. Use
   Read, Grep and Bash.
 

@@ -522,6 +522,7 @@ usage comes from PoB's own counts.
 | `weapon-set-points` | `ws1` or `ws2` exceeds the weapon-set points of all quests up to `progress` + `PassivePointsToWeaponSetPoints` |
 | `ascendancy-points` | `AscUsed` exceeds the points of the trials whose `available-from` ≤ `progress` (trial gates from C1). On a variant stage, also when `AscUsed` > `ascendancyPoints` or `ascendancyPoints` exceeds that sum (D-193) |
 | `gem-availability` | a skill gem's tier or level exceeds the highest uncut skill-gem level available at `progress`, or a support gem's tier exceeds the highest uncut support level. Spirit gems get a note instead (C1 has no table for them, A-31) |
+| `gem-below-tier` | a skill gem's level is below its tier (D-259). C1's `tier-rule` (H): an uncut gem of level N engraves a skill of tier N or lower, at gem level N, so a tier-T skill gem is at gem level T or higher. The finding cites `tier-rule` (`data`: gem, tier, level, `fact: "tier-rule"`). Skill gems only, as `gem-availability` checks them: a support's level isn't cut, a Spirit gem at a C1 Spirit tier is noted instead (A-31), and a tier-0 gem isn't cut (C1 `skill-tiers`) |
 | `gem-level-requirement` | a gem's `levelRequirement` at its level exceeds the stage level |
 | `item-level-requirement` | an equipped item's `requirements.level` exceeds the stage level |
 | `attributes` | PoB's `Str < ReqStr`, `Dex < ReqDex` or `Int < ReqInt`, with the attribute choices applied; the finding names the source item or gem |
@@ -966,6 +967,7 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   | stage 1 has 4 ascendancy nodes before trial 2 | `ascendancy-points` |
   | a variant stage with `ascendancyPoints: 6` and 8 nodes allocated | `ascendancy-points` |
   | an Act 1 stage holds a tier-7 skill gem | `gem-availability` (gem, tier, max) |
+  | stage 2 (where uncut level 7 is available) holds Blood Hunt, tier 7, at gem level 5; then at gem level 7 | `gem-below-tier` (gem, tier 7, level 5, `fact: "tier-rule"`) and no `gem-availability`; at gem level 7, neither (D-259) |
   | Blood Hunt at gem level 15 in a level-40 stage | `gem-level-requirement` (64, pin `Data/Skills/act_dex.lua:318-338`) |
   | an item requiring a level above the stage's | `item-level-requirement` |
   | a gem whose Str requirement exceeds the stage's Str | `attributes`, plus a `pob-warning` with PoB's "You do not meet the Strength requirement" line |

@@ -9,6 +9,7 @@
  *
  * - AC-P39: the fixture's final compile passes V1 and V2 in both stages.
  * - AC-P40, AC-P41: each row is a measure-only compile of a variant; the stage's findings hold the code.
+ *   D-259 adds V1's tier floor (`gem-below-tier`).
  * - AC-P42: the default audit's `default-unlisted` set, with an empty baseline list injected, equals the
  *   default-on options (a Lua query of PoB's option list) plus the stage's placeholder-driven options (a Lua
  *   query of its config set); listing them, or the committed baseline list, clears them. Static: the
@@ -496,6 +497,26 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
     const noted = await measure(p2, ['1']);
     expect(findingsOf(noted.record, '1', 'v1', 'gem-availability')).toEqual([]);
     expect(noted.record.stages['1'].v1?.notes.filter((n) => n.data?.gem === 'Herald of Ice').map((n) => n.code)).toEqual(['gem-availability']);
+  }, ENGINE_TIMEOUT);
+
+  it('AC-P40 gem-below-tier (D-259): stage 2 holds Blood Hunt (tier 7) at gem level 5, where uncut level 7 is available: a finding citing C1\'s tier-rule; at gem level 7, none', async () => {
+    const tier = await luaQuery<number>(`for _, g in pairs(data.gems) do if g.name == 'Blood Hunt' then return g.Tier end end`);
+    expect(tier).toBe(7);
+    expect(fact(GEMS, 'tier-rule')).toMatchObject({ value: 'An uncut gem of level N engraves a skill of tier N or lower, at gem level N', confidence: 'H' });
+    const at = async (level: number) => {
+      const plan = fixturePlan();
+      plan.stages[1].skills.groups.push({ label: 'Blood Hunt', enabled: true, role: 'clear', gems: [{ name: 'Blood Hunt', level, quality: 0, enabled: true }] });
+      expect(uncutMax('uncut-skill', plan.stages[1].progress)).toBeGreaterThanOrEqual(tier);
+      return (await measure(plan, ['2'])).record;
+    };
+    const low = await at(5);
+    expect(findingsOf(low, '2', 'v1', 'gem-below-tier').map((x) => x.data)).toEqual([{ gem: 'Blood Hunt', tier, level: 5, fact: 'tier-rule' }]);
+    expect(findingsOf(low, '2', 'v1', 'gem-below-tier')[0].message).toContain(fact(GEMS, 'tier-rule').value);
+    // Before D-259 V1 passed this stage on availability alone.
+    expect(findingsOf(low, '2', 'v1', 'gem-availability')).toEqual([]);
+    const ok = await at(7);
+    expect(findingsOf(ok, '2', 'v1', 'gem-below-tier')).toEqual([]);
+    expect(findingsOf(ok, '2', 'v1', 'gem-availability')).toEqual([]);
   }, ENGINE_TIMEOUT);
 
   it('AC-P40 gem-level-requirement: Blood Hunt at gem level 15 in a level-40 stage', async () => {

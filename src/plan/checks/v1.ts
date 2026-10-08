@@ -12,6 +12,7 @@
  * | `weapon-set-points` | `ws1` or `ws2` exceeds the quests' weapon-set points up to `progress` + `PassivePointsToWeaponSetPoints` |
  * | `ascendancy-points` | `AscUsed` exceeds the points of the trials available at `progress`; on a variant stage also `AscUsed` > `ascendancyPoints`, or `ascendancyPoints` > those points (D-193) |
  * | `gem-availability` | a skill gem's tier or level exceeds the highest uncut skill-gem level available at `progress`, or a support gem's tier the highest uncut support level; a Spirit gem (at one of C1's Spirit tiers) gets a note (A-31) |
+ * | `gem-below-tier` | a skill gem's level is below its tier: by C1's `tier-rule`, an uncut gem of level N engraves a skill of tier N or lower at gem level N, so a tier-T skill gem starts at gem level T (D-259) |
  * | `gem-level-requirement` | a gem's level requirement exceeds the stage level |
  * | `item-level-requirement` | an equipped item's level requirement exceeds the stage level |
  * | `attributes` | Str < ReqStr, Dex < ReqDex or Int < ReqInt, naming the item or gem |
@@ -25,7 +26,9 @@
  * region's entry value is accepted too, with a note naming the boundary (D-251).
  *
  * **Spirit gems** (A-31): a gem that reserves Spirit is noted, not checked, only when its tier is one of C1's
- * `spirit-tiers`; any other non-support gem is checked against the uncut skill gems.
+ * `spirit-tiers`; any other non-support gem is checked against the uncut skill gems, and against the tier
+ * floor (D-259). A tier-0 gem isn't cut (C1's `skill-tiers` note), so it has no floor; a support gem's level
+ * isn't cut either, so neither has one.
  */
 import type { StageChecks } from '../../engine/schemas.js';
 import type { Finding, Verdict } from '../record.js';
@@ -215,6 +218,8 @@ function checkGems(stage: Stage, checks: StageChecks, facts: FactReader, finding
   const spiritTiers = new Set(
     Array.isArray(spiritTiersFact?.value) ? (spiritTiersFact!.value as string[]).map(Number).filter(Number.isFinite) : [],
   );
+  // D-259: C1's cut rule. An uncut gem of level N engraves a skill of tier N or lower, at gem level N.
+  const tierRule = facts.fact(C1.gems, 'tier-rule');
   for (const gem of checks.gems) {
     const where = `skill group ${gem.group} gem ${gem.index}`;
     const tier = gem.tier ?? 0;
@@ -240,6 +245,19 @@ function checkGems(stage: Stage, checks: StageChecks, facts: FactReader, finding
             `${kind} gem of level ${needed}, but ${stage.progress} reaches uncut ${kind} gems of level ${series.max} at most`,
           data: { gem: gem.name, tier, ...(isSkill ? { level: gem.level } : {}), max: series.max },
         });
+      }
+      // The tier floor (D-259): a tier-T skill gem is cut from an uncut gem of level N >= T, at gem level N.
+      if (isSkill && tierRule !== null && tier > 0) {
+        facts.rely('gem-below-tier', tierRule);
+        if (gem.level < tier) {
+          findings.push({
+            code: 'gem-below-tier',
+            message:
+              `${gem.name} (${where}) is at gem level ${gem.level}, below its tier ${tier}: C1's tier-rule ` +
+              `("${String(tierRule.value)}") cuts a tier-${tier} skill gem at gem level ${tier} or higher`,
+            data: { gem: gem.name, tier, level: gem.level, fact: 'tier-rule' },
+          });
+        }
       }
     }
     if (gem.levelRequirement > stage.level) {

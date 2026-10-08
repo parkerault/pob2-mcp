@@ -219,6 +219,36 @@ describe('V1 over hand-made stage inputs', () => {
     expect(v1.verdict.notes.filter((n) => n.data?.gem === 'A Minion')).toEqual([]);
   });
 
+  it('D-259: a tier-7 skill gem at gem level 5 is gem-below-tier citing C1\'s tier-rule, though its uncut level is available; at gem level 7 it passes; tier 0, supports and Spirit-tier gems have no floor', () => {
+    const gemsFile = readJson('campaign/gems.json');
+    const rule = gemsFile.facts['tier-rule'];
+    expect(rule).toMatchObject({ value: 'An uncut gem of level N engraves a skill of tier N or lower, at gem level N', confidence: 'H' });
+    // Stage 2 is at Candlemass, where uncut skill gems reach level 7 (uncut-skill.7.available-from).
+    const [, two] = stagesOf(fixture());
+    expect(ORDER.indexOf(gemsFile.facts['uncut-skill.7.available-from'].value)).toBeLessThanOrEqual(ORDER.indexOf(two.progress));
+    const run = (gems: StageChecks['gems']) => checkV1({ stage: two, predecessor: null, checks: checksFor(two, { gems }), ref }).verdict;
+    const gem = (name: string, level: number, tier: number, kind: 'skill' | 'support' | 'spirit') =>
+      ({ group: 1, index: 1, name, level, tier, kind, levelRequirement: 0 });
+
+    const low = run([gem('Blood Hunt', 5, 7, 'skill')]);
+    expect(low.findings.filter((f) => f.code === 'gem-below-tier').map((f) => f.data)).toEqual([
+      { gem: 'Blood Hunt', tier: 7, level: 5, fact: 'tier-rule' },
+    ]);
+    expect(low.findings.find((f) => f.code === 'gem-below-tier')?.message).toContain(rule.value);
+    // The availability check alone passes it: uncut level 7 is available at Candlemass.
+    expect(low.findings.filter((f) => f.code === 'gem-availability')).toEqual([]);
+    expect(low.pass).toBe(false);
+
+    const at = run([gem('Blood Hunt', 7, 7, 'skill')]);
+    expect(at.findings).toEqual([]);
+    expect(at.pass).toBe(true);
+    // A persistent minion at a skill tier is a skill gem, so it has the floor too.
+    expect(run([gem('A Minion', 3, 5, 'spirit')]).findings.map((f) => f.code)).toEqual(['gem-below-tier']);
+
+    // No floor: a tier-0 gem (not cut), a support (its level isn't cut) and a Spirit gem at a Spirit tier (A-31).
+    expect(run([gem('Uncut', 1, 0, 'skill'), gem('Some Support', 1, 2, 'support'), gem('Herald of Ice', 1, 4, 'spirit')]).findings).toEqual([]);
+  });
+
   it('PoB\'s "too many passive points" line is a finding unless the stage spends the Martyr point', () => {
     const plan = fixture();
     const [one] = stagesOf(plan);

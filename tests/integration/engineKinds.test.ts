@@ -47,7 +47,10 @@ const ALLOWLIST = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-hygiene-a
   tool: string;
   check: string;
 }>;
+/** `$TWO_STAGE_PLAN` (WU-41): the two-stage fixture plan, copied into the fixture's guides folder at this path. */
+const TWO_STAGE_PLAN = 'two-stage/fixture-1/plan.json';
 const PLACEHOLDERS: Record<string, unknown> = {
+  $TWO_STAGE_PLAN: TWO_STAGE_PLAN,
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
   $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(GOLDEN_XML),
@@ -99,6 +102,9 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
   beforeAll(async () => {
     f = await startSessionFixture();
     golden = path.join(f.builds, 'grenadator.xml');
+    // $TWO_STAGE_PLAN: the compile_plan and guide_run samples read the fixture from the guides folder.
+    fs.mkdirSync(path.dirname(path.join(f.guides, TWO_STAGE_PLAN)), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), path.join(f.guides, TWO_STAGE_PLAN));
   }, 180000);
   afterAll(async () => f?.close(), 30000);
 
@@ -149,6 +155,27 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
       }
     }, 180000);
   });
+
+  // AC-P38, AC-B3 (D-216): a guide_run call carrying new_run is routed as kind none, so the checked set
+  // above leaves it out; it must still leave the export and revision unchanged and take no session lock.
+  it('AC-P38/AC-B3: guide_run new_run samples (kind none) leave the export and revision unchanged and emit no session event', async () => {
+    const samples = SAMPLES.filter((s) => s.tool === 'guide_run' && s.expect === 'ok' && s.args.new_run !== undefined);
+    expect(samples.length).toBeGreaterThan(0);
+    for (const sample of samples) {
+      expect(engineKindFor(sample.tool, sample.args)).toBe('none');
+      await freshGolden();
+      const before = await canonicalExport(f.session);
+      const revision = f.session.revision;
+      const events: string[] = [];
+      const off = f.session.onEvent((e) => events.push(`${e.tool}:${e.phase}`));
+      const out = await f.call(sample.tool, resolve(sample.args) as Record<string, unknown>);
+      off();
+      expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+      expect(events).toEqual([]);
+      expect(f.session.revision).toBe(revision);
+      expect(await canonicalExport(f.session)).toBe(before);
+    }
+  }, 180000);
 
   it('AC-E16: a failing mutate sample (set_gem_level with a bad gem index) leaves revision unchanged', async () => {
     const bad = SAMPLES.find((s) => s.tool === 'set_gem_level' && s.expect === 'error');

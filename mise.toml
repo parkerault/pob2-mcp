@@ -26,6 +26,12 @@ description = "First-time setup: dependencies, build, pinned PoB"
 run = ["pnpm install --frozen-lockfile", "pnpm build", { task = "pob:fetch" }]
 
 [tasks.test]
-description = "The gate: pinned PoB present, fresh build, full test suite"
+description = "The gate: pinned PoB present, fresh build, full test suite, then the compile-time NFR test alone"
 depends = ["pob:fetch"]
-run = ["pnpm build", "pnpm test"]
+# The last step is the compile-time NFR test (AC-P37), which the parallel run excludes (jest.config.cjs):
+# its 100 s threshold must not compete with the other suites (C-19). Its own entry, so its exit code fails the task.
+run = [
+  "pnpm build",
+  "pnpm test",
+  "pnpm exec jest --runInBand --testPathIgnorePatterns /node_modules/ -- tests/integration/compilePlanNfr.test.ts",
+]

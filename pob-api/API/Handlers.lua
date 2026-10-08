@@ -512,6 +512,7 @@ for name, fn in pairs(require('API.Trade').handlers) do handlers[name] = fn end
 for name, fn in pairs(require('API.Lookup').handlers) do handlers[name] = fn end
 for name, fn in pairs(require('API.Coverage').handlers) do handlers[name] = fn end
 for name, fn in pairs(require('API.Sets').handlers) do handlers[name] = fn end
+for name, fn in pairs(require('API.Compile').handlers) do handlers[name] = fn end
 
 return {
   handlers = handlers,

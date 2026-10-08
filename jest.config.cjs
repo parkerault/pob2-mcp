@@ -20,6 +20,9 @@ module.exports = {
   testMatch: [
     '**/tests/**/*.test.ts',
   ],
+  // C-19, review S17: the compile-time NFR test (AC-P37, fixed 100 s threshold) runs alone, in the
+  // `mise run test` task's own --runInBand step after the parallel run, never inside it.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/integration/compilePlanNfr.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

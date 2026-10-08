@@ -24,6 +24,7 @@ const mockDeps: ContextDependencies = {
   engine: () => { throw new Error('no engine call'); },
   loadedBuild: () => null,
   buildFileWriter: {} as any,
+  guidesDirectory: '/test/guides',
 };
 
 describe('ContextBuilder', () => {

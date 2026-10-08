@@ -24,6 +24,10 @@
  * WU-35 (C-39, AC-B4): `manage_sets` replies match their schema for every set type, a list and a changing
  * action of each; AC-K30's contract case: `set_level {level, autoMode:true}` matches its schema and the
  * export says `characterLevelAutoMode="true"`, without the flag `"false"`, and a non-boolean flag fails.
+ *
+ * WU-41 (C-41, AC-B4, AC-P38): the compiler's three actions (`API/Compile.lua`). `compile_check` checks the
+ * two-stage fixture's stage 1 on the golden build; `compile_stage` builds that stage on a new Warrior/Titan
+ * build; `compile_finish` runs after it. A failing stage is `ok:false` naming the stage, never an exception.
  */
 import fs from 'fs';
 import path from 'path';
@@ -33,6 +37,9 @@ import { startLuaLineClient, type Json, type LuaLineClient } from '../helpers/lu
 import { ACTION_NAMES, replySchemas, type ActionName } from '../../src/engine/schemas';
 import { pobSourceNames, pobSourceScan } from '../../src/engine/pobSourceNames';
 import { resolvePobSrc } from '../../src/engine/pobPath';
+import { validatePlan } from '../../src/plan/schema';
+import { checkStageOf, groupSets, stageParams } from '../../src/plan/compiler';
+import { OFFENSE_STAT_FIELDS } from '../../src/handlers/luaHandlers';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures');
@@ -47,6 +54,27 @@ const FETCHED = (
 ).result.slice(0, 2);
 
 const ENGINE_TIMEOUT = 240_000;
+
+/** The two-stage fixture plan (WU-41's compile actions are checked on its stage 1). */
+const TWO_STAGE = (() => {
+  const v = validatePlan(fs.readFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), 'utf8'));
+  if (!v.ok) throw new Error(`the two-stage fixture is invalid: ${JSON.stringify(v.errors)}`);
+  return v.plan;
+})();
+
+/** `compile_stage`'s params for the fixture's stage 1, built as the compiler builds them. */
+function stageOneParams(): Json {
+  const grouped = groupSets(TWO_STAGE.stages);
+  const stage = TWO_STAGE.stages[0];
+  const title = (kind: 'item' | 'skill' | 'config') => grouped[kind].groups[grouped[kind].groupOf.get(stage.id)!].title;
+  return stageParams(stage, true, { item: { title: title('item') }, skill: { title: title('skill') }, config: { title: title('config') } }, OFFENSE_STAT_FIELDS) as unknown as Json;
+}
+
+/** A new Warrior/Titan build with the fixture's stage 1 compiled into it; returns the stage's reply. */
+async function compiledStageOne(call: Call): Promise<Json> {
+  await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+  return (await call('compile_stage', stageOneParams())).result;
+}
 
 /** The modules `Handlers.lua` merges, one line each: `for name, fn in pairs(require('API.<M>').handlers) …`. */
 function mergedModules(handlers: string): string[] {
@@ -158,6 +186,25 @@ const CASES: Record<ActionName, Case> = {
   trade_query_options: { params: { slot: 'Body Armour' } },
   // C-39 (WU-35): the slice sample, a skill set create (its reply carries `mainGroup` and `mainSocketGroup`).
   manage_sets: { params: { setType: 'skill', action: 'create', title: 'Contract {2}' } },
+  // C-41 (WU-41): the preflight of the fixture's stage 1 on the golden build (it changes nothing).
+  compile_check: {
+    params: { className: 'Warrior', ascendancy: 'Titan', stages: [checkStageOf(TWO_STAGE.stages[0]) as unknown as Json] },
+  },
+  // C-41 (WU-41): the fixture's stage 1 on a new Warrior/Titan build (the golden build is another class).
+  compile_stage: {
+    setup: async (call) => {
+      await call('new_build', { className: 'Warrior', ascendancy: 'Titan' });
+      return stageOneParams();
+    },
+  },
+  // C-41 (WU-41): after stage 1 is compiled, its one loadout is checked and selected at its level.
+  compile_finish: {
+    setup: async (call) => {
+      const stage = await compiledStageOne(call);
+      const { id, loadoutName, level } = TWO_STAGE.stages[0];
+      return { stages: [{ id, title: loadoutName, ids: stage.ids }], active: loadoutName, level };
+    },
+  },
   // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).
   lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
   // C-38 (WU-32): an item with every line status, a joined node line and a gem with unmodelled lines, so
@@ -236,9 +283,9 @@ const VARIANTS: Variant[] = [
 ];
 
 describe('AC-E24: every Lua action has a reply schema (static)', () => {
-  it('AC-E24: Handlers.lua merges the Trade, Lookup, Coverage and Sets modules (AC-B4)', () => {
+  it('AC-E24: Handlers.lua merges the Trade, Lookup, Coverage, Sets and Compile modules (AC-B4)', () => {
     const handlers = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Handlers.lua'), 'utf8');
-    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup', 'Coverage', 'Sets']));
+    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup', 'Coverage', 'Sets', 'Compile']));
   });
 
   it('AC-E24: the non-test Lua actions of Handlers.lua and its merged modules equal Object.keys(replySchemas) and ACTION_NAMES', () => {
@@ -380,6 +427,32 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       const unknown = await engine.request('manage_sets', { setType: 'loadout', action: 'select', title: 'Nowhere {9}' }, { timeoutMs: 120_000 });
       expect(unknown.ok).toBe(false);
       expect(String(unknown.error)).toContain('no loadout named');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (C-41): the compile actions report a defect or a failing stage as data or ok:false, never an exception',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const stage = checkStageOf(TWO_STAGE.stages[0]) as unknown as Json;
+      const checked = await engine.request(
+        'compile_check',
+        { className: 'Warrior', ascendancy: 'Titan', stages: [{ ...stage, groups: [{ gems: [{ name: 'Not A Gem At All' }] }] }] },
+        { timeoutMs: 120_000 },
+      );
+      expect(checked.ok).toBe(true);
+      expect(replySchemas.compile_check!.safeParse(checked).success).toBe(true);
+      expect(checked.result.defects.join('\n')).toMatch(/^stage 1: skills\.groups\[0\]\.gems\[0\]: unknown gem "Not A Gem At All"/m);
+
+      await call('new_build', { className: 'Warrior', ascendancy: 'Titan' });
+      const failed = await engine.request('compile_stage', { ...stageOneParams(), main: { group: 9, activeSkill: 1 } }, { timeoutMs: 120_000 });
+      expect(failed.ok).toBe(false);
+      expect(String(failed.error)).toMatch(/^stage 1: /);
+
+      const finish = await engine.request('compile_finish', { stages: [], active: 'Nowhere {9}', level: 5 }, { timeoutMs: 120_000 });
+      expect(finish.ok).toBe(false);
+      expect(String(finish.error)).toMatch(/untitled|loadouts/);
     },
     ENGINE_TIMEOUT,
   );

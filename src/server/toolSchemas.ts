@@ -1055,6 +1055,55 @@ export function getLuaToolSchemas(): any[] {
         },
       },
     },
+    {
+      name: "compile_plan",
+      description: "Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, and stages with identical gear, gems or configuration share one item, skill or config set. Each stage is measured at its own level, and the build is saved in auto-level mode at the highest stage's level, with that stage's loadout active. The plan is checked first: schema errors are listed by JSON path, and unknown gems, item bases, passive nodes and config options, disconnected passives (a node tagged weapon set n connects only through untagged nodes and nodes tagged n), misplaced weapon-set tags and attribute choices are listed per stage; then nothing is compiled. The call replaces the engine's loaded build, unsaved changes included. Two modes: measure_only: true writes compile-record.json and compiled-build.xml beside the plan and nothing to the builds folder (stages may name a subset to compile); build_name (the final compile, always the whole plan) also saves the build into the builds folder, overwriting an existing file only when an earlier final compile of the same run folder wrote it and nobody changed it since. compile-record.json holds each stage's PoB numbers (every main output, and the offense fields per active skill and stat set, keyed g<group>s<skill>p<statSet>), the plan's ledger formulas evaluated on them, the sets and loadouts made, and the build's import code. Returns a line per stage, the ledger values and the paths written.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          plan_path: {
+            type: "string",
+            description: "The plan, relative to the guides folder, as guide_run {new_run} gives it: '<slug>/<YYYY-MM-DD>-<n>/plan.json'",
+          },
+          build_name: {
+            type: "string",
+            description: "Final compile: the build file to write in the builds folder (e.g. 'Titan Blood Hunt'; .xml is optional). Not with measure_only",
+          },
+          measure_only: {
+            type: "boolean",
+            description: "true: compile and measure, writing only the record and compiled-build.xml beside the plan",
+          },
+          stages: {
+            type: "array",
+            items: { type: "string" },
+            description: "measure_only only: the stage ids to compile, in plan order; default every stage",
+          },
+        },
+        required: ["plan_path"],
+      },
+    },
+    {
+      name: "guide_run",
+      description: "Start a build-guide run, or check a plan without compiling it. new_run (a slug of lowercase letters and digits joined by single hyphens, at most 64 characters) creates the next run folder '<slug>/<YYYY-MM-DD>-<n>' in the guides folder and returns its absolute path, the plan_path to use for the run's plan.json, and loadedBuildUnsaved: whether the engine's loaded build has unsaved changes, which the run's first compile_plan would discard (save it first). new_run never starts or touches the engine. validate (a plan_path relative to the guides folder) checks the plan's schema, reporting each error by JSON path, then checks every stage against the game data as compile_plan does before it compiles (unknown gems with suggestions, item text, passive nodes and their connection, weapon-set tags, attribute choices, tree jewels, config options and values, the main skill index), without changing the engine's build; stages limits the check to those stage ids. Give exactly one of new_run and validate.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          new_run: {
+            type: "string",
+            description: "Create a run folder for this slug, e.g. 'titan-blood-hunt'",
+          },
+          validate: {
+            type: "string",
+            description: "Check this plan, relative to the guides folder, e.g. 'titan-blood-hunt/2026-10-08-1/plan.json'",
+          },
+          stages: {
+            type: "array",
+            items: { type: "string" },
+            description: "validate only: the stage ids to check; default every stage",
+          },
+        },
+      },
+    },
   ];
 }
 

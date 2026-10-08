@@ -36,6 +36,9 @@ import {
   type ListItemSetsResult,
   type ListSpecsResult,
   type ManageSetsResult,
+  type CompileCheckResult,
+  type CompileStageResult,
+  type CompileFinishResult,
   type RenameSpecResult,
   type SelectItemSetResult,
   type SelectSpecResult,
@@ -902,6 +905,27 @@ export class PoBLuaApiClient {
    */
   async manageSets(params: ActionParams<"manage_sets">): Promise<ManageSetsResult> {
     const res = await this.request("manage_sets", params);
+    return res.result;
+  }
+
+  // The plan compiler (C-41, `API/Compile.lua`). Each request runs under the default timeout (C-4), which
+  // bounds every stage of a compile (NFR-21).
+
+  /** The read-only preflight of every stage: the defects, and the tree the compile builds against. */
+  async compileCheck(params: ActionParams<"compile_check">, opts?: RequestOptions): Promise<CompileCheckResult> {
+    const res = await this.request("compile_check", params, opts);
+    return res.result;
+  }
+
+  /** Build and measure one stage: its set ids, PoB's allocation, its outputs and its breakdown. */
+  async compileStage(params: ActionParams<"compile_stage">, opts?: RequestOptions): Promise<CompileStageResult> {
+    const res = await this.request("compile_stage", params, opts);
+    return res.result;
+  }
+
+  /** Check the loadouts, select the highest stage's loadout and save its level in auto mode. */
+  async compileFinish(params: ActionParams<"compile_finish">, opts?: RequestOptions): Promise<CompileFinishResult> {
+    const res = await this.request("compile_finish", params, opts);
     return res.result;
   }
 

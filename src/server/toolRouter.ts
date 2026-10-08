@@ -38,6 +38,7 @@ import type { Credentials } from "../trade/credentials.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleEncodeBuildCode } from "../handlers/buildCodeHandlers.js";
+import { handleCompilePlan, handleGuideRun } from "../handlers/planHandlers.js";
 
 export interface ToolRouterDependencies {
   contextBuilder: ContextBuilder;
@@ -131,9 +132,13 @@ const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options",
  * the call's kind, or undefined for the tool's `TOOL_META` kind.
  * - D-244: `manage_sets {action: "list"}` is a `read`, so a listing neither bumps `revision` nor marks
  *   the build unsaved; its other actions are `mutate`.
+ * - D-216: `guide_run` carrying `new_run` is `none`; `guide_run {validate}` is its `read`.
  */
 const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
   manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
+  // D-216: guide_run's run-folder mode never enters the session: no lock, no event, no engine start. Only a
+  // validate call (without new_run) runs as a read; any other argument mix is refused without the engine.
+  guide_run: (args) => (args?.validate === undefined || args?.new_run !== undefined ? "none" : undefined),
 };
 
 /** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */
@@ -769,6 +774,13 @@ async function dispatch(
 
     case "encode_build_code":
       return await handleEncodeBuildCode(handlerContext, args?.build_name);
+
+    // C-41, C-50: the plan compiler and the guide run folders
+    case "compile_plan":
+      return await handleCompilePlan({ ...deps.contextBuilder.buildPlanContext(), isDirty: () => deps.session.isDirty() }, args);
+
+    case "guide_run":
+      return await handleGuideRun({ ...deps.contextBuilder.buildPlanContext(), isDirty: () => deps.session.isDirty() }, args);
 
     default:
       // A TOOL_META entry without a case: still a protocol error, never an isError result.

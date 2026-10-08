@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-82 tools are listed by default; the full table is [below](#tools).
+84 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -57,7 +57,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 ```
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 82 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 84 tools.
 
 ## Configuration
 
@@ -210,6 +210,8 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `setup_skill_with_gems` | core | Setup a complete skill with multiple support gems in one operation. |
 | `add_multiple_items` | core | Add multiple items at once (efficient bulk operation). |
 | `plan_leveling` | core | Generate a PoE2 0.5 leveling guide for a build: act/interlude progression with bosses and level targets, Trials of Ascendancy timing, skill-tag-aware support direction, support-socket guidance, and passive tree priority order |
+| `compile_plan` | core | Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, and stages with identical gear, gems or configuration share one item, skill or config set. |
+| `guide_run` | core | Start a build-guide run, or check a plan without compiling it. |
 | `get_config` | core | List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value, plus the enemy level in effect. |
 | `set_config` | core | Set one PoB2 config option on the loaded build and recalculate; reports the option's previous and new value. |
 | `set_enemy_stats` | core | Set the enemy's level, resistances, armour and evasion (PoB2's Enemy Stats config options) on the loaded build, recalculate, and report each previous and new value with the DPS change. |

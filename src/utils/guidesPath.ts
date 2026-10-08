@@ -119,6 +119,57 @@ export async function resolveInGuidesRoot(root: string, rel: string, argName = "
   return real;
 }
 
+/**
+ * D-220: refuse a guides root that overlaps the builds folder. Both real paths are resolved (symlinks on
+ * the deepest existing ancestor, the rest appended, as `resolveInGuidesRoot` does), and the call throws
+ * when they are equal or either is inside the other, naming both paths and the variables that set them.
+ * Neither folder needs to exist.
+ */
+export async function checkGuidesRoot(root: string, buildsDir: string): Promise<void> {
+  let realRoot: string;
+  let realBuilds: string;
+  try {
+    realRoot = await realPathOf(root);
+    realBuilds = await realPathOf(buildsDir);
+  } catch (error) {
+    throw new GuidesPathError(
+      `the guides root ${root} (POB_GUIDES_DIRECTORY) or the builds folder ${buildsDir} (POB_DIRECTORY) could not ` +
+        `be resolved: ${messageOf(error)}`,
+    );
+  }
+  const how =
+    realRoot === realBuilds
+      ? "is the builds folder itself"
+      : isInside(realBuilds, realRoot)
+        ? "is inside the builds folder"
+        : isInside(realRoot, realBuilds)
+          ? "contains the builds folder"
+          : null;
+  if (how === null) return;
+  const shownPath = (given: string, real: string) => (given === real ? given : `${given} (real path ${real})`);
+  throw new GuidesPathError(
+    `the guides root ${shownPath(root, realRoot)} (POB_GUIDES_DIRECTORY) ${how}, ` +
+      `${shownPath(buildsDir, realBuilds)} (POB_DIRECTORY). The two folders must be separate (D-220): set ` +
+      `POB_GUIDES_DIRECTORY to a folder outside the builds folder, such as the default Guides folder beside it.`,
+  );
+}
+
+/**
+ * The run folder a plan belongs to (D-211, the write ledger's key): the first two segments
+ * `<slug>/<YYYY-MM-DD>-<n>` of its path relative to the guides root, with `/` between them. Null when the
+ * path has fewer than three segments, so the plan is not inside a run folder.
+ */
+export function runFolderOf(relPlanPath: string): string | null {
+  const segments = relPlanPath.split(/[\\/]/).filter((s) => s !== "" && s !== ".");
+  if (segments.length < 3) return null;
+  return `${segments[0]}/${segments[1]}`;
+}
+
+/** The real path of `p` (symlinks on its deepest existing ancestor resolved), for paths the server writes. */
+export async function realPathInGuides(p: string): Promise<string> {
+  return realPathOf(p);
+}
+
 /** A run folder (C-34): its absolute path, and its path relative to the guides root. */
 export interface RunFolder {
   absPath: string;

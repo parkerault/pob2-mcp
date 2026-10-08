@@ -7,6 +7,8 @@
  *   variable.
  * - AC-P5 (R-30): `resolveInGuidesRoot` keeps a path inside the root, symlinks resolved.
  * - AC-P6: `createRunFolder` numbers run folders per slug and date, and refuses unsafe slugs.
+ * - AC-P48 (unit part, WU-41, D-220): `checkGuidesRoot` refuses a root that equals, is inside, contains or links
+ *   into the builds folder, naming both paths and their variables; `runFolderOf` (D-211) is a plan's run folder.
  */
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import fs from 'fs';
@@ -14,7 +16,7 @@ import fsPromises from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
-import { createRunFolder, GuidesPathError, resolveInGuidesRoot } from '../../src/utils/guidesPath';
+import { checkGuidesRoot, createRunFolder, GuidesPathError, resolveInGuidesRoot, runFolderOf } from '../../src/utils/guidesPath';
 import { spawnServerEnv } from '../helpers/spawnServer';
 import { startTestServer } from '../helpers/server';
 import { startSessionFixture } from '../helpers/engineSession';
@@ -319,5 +321,60 @@ describe('createRunFolder (C-34, D-153, A-P7)', () => {
     fs.symlinkSync(path.join(outside, 'later'), path.join(root, 'titan-blood-hunt'));
     await expectRefusal(createRunFolder(root, 'titan-blood-hunt', DATE), ['"titan-blood-hunt"', root]);
     expect(fs.readdirSync(outside)).toEqual([]);
+  });
+});
+
+describe('checkGuidesRoot (D-220) and runFolderOf (D-211)', () => {
+  let tmp: string;
+  let builds: string;
+
+  beforeEach(() => {
+    tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-guides-root-')));
+    builds = path.join(tmp, 'PoB', 'Builds');
+    fs.mkdirSync(builds, { recursive: true });
+  });
+  afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+  async function refusal(root: string): Promise<string> {
+    try {
+      await checkGuidesRoot(root, builds);
+    } catch (error) {
+      expect(error).toBeInstanceOf(GuidesPathError);
+      return (error as Error).message;
+    }
+    throw new Error(`checkGuidesRoot accepted ${root}`);
+  }
+
+  it('AC-P48: the builds folder itself, a folder inside it, its parent and a symlink into it are refused, naming both paths and variables', async () => {
+    fs.mkdirSync(path.join(builds, 'inner'));
+    fs.symlinkSync(path.join(builds, 'inner'), path.join(tmp, 'link'));
+    const cases: Array<[string, string]> = [
+      [builds, 'is the builds folder itself'],
+      [path.join(builds, 'Guides'), 'is inside the builds folder'],
+      [path.dirname(builds), 'contains the builds folder'],
+      [path.join(tmp, 'link'), 'is inside the builds folder'],
+      [path.join(tmp, 'link', 'not-yet'), 'is inside the builds folder'],
+    ];
+    for (const [root, how] of cases) {
+      const message = await refusal(root);
+      expect({ root, message }).toEqual({ root, message: expect.stringContaining(how) });
+      for (const part of [root, builds, 'POB_GUIDES_DIRECTORY', 'POB_DIRECTORY']) expect(message).toContain(part);
+    }
+  });
+
+  it('AC-P48: a sibling root and a root elsewhere are accepted, existing or not', async () => {
+    await expect(checkGuidesRoot(path.join(tmp, 'PoB', 'Guides'), builds)).resolves.toBeUndefined();
+    await expect(checkGuidesRoot(path.join(tmp, 'elsewhere', 'guides'), builds)).resolves.toBeUndefined();
+    // A name that only shares a prefix with the builds folder is not inside it.
+    await expect(checkGuidesRoot(`${builds}-guides`, builds)).resolves.toBeUndefined();
+  });
+
+  it('D-211: runFolderOf is the first two segments of a plan path, or null outside a run folder', () => {
+    expect(runFolderOf('titan-blood-hunt/2026-10-07-1/plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
+    expect(runFolderOf('titan-blood-hunt/2026-10-07-1/concepts/a/plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
+    expect(runFolderOf('titan-blood-hunt\\2026-10-07-1\\plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
+    expect(runFolderOf('./titan/run/plan.json')).toBe('titan/run');
+    expect(runFolderOf('titan/plan.json')).toBeNull();
+    expect(runFolderOf('plan.json')).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
  * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and the
- * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`, `API/Sets.lua`) has a schema here (checked statically and on
+ * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`, `API/Sets.lua`, `API/Compile.lua`) has a schema here (checked statically and on
  * the golden build by `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
  * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
  * get a schema.
@@ -62,6 +62,9 @@ export const ACTION_NAMES = [
   'lookup_game_data',
   'check_coverage',
   'manage_sets',
+  'compile_check',
+  'compile_stage',
+  'compile_finish',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -860,6 +863,138 @@ export const manageSetsReply = baseReply.extend({
 });
 export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
 
+// ---------------------------------------------------------------------------------------------------
+// The plan compiler (C-41, `pob-api/API/Compile.lua`)
+
+/**
+ * `compile_check`: the read-only preflight. `defects` are `stage <id>: <defect>` lines (and `roll: …` for
+ * the class or ascendancy), empty when every stage can be built; `treeVersion` is the tree the compile
+ * builds against. WU-42 adds `producers` and the config baseline.
+ */
+export const compileCheckReply = baseReply.extend({
+  result: z
+    .object({
+      defects: luaArray(z.string()),
+      treeVersion: z.string(),
+      stageCount: z.number().int(),
+    })
+    .passthrough(),
+});
+export type CompileCheckResult = z.infer<typeof compileCheckReply>['result'];
+
+/** One allocated node after a stage's import, with its weapon-set tag (0, 1 or 2). */
+export const allocatedNodeSchema = z.object({ id: z.number().int(), mode: z.number().int() }).passthrough();
+
+/** One C-45 breakdown entry: the skill, its stat set's label and its finite offense fields. */
+export const stageSkillOutputSchema = z
+  .object({ skill: z.string(), statSetLabel: z.string(), fields: luaMap(z.number()) })
+  .passthrough();
+
+/**
+ * `compile_stage`: the stage's tree spec and set ids; PoB's allocation after the import (every allocated
+ * node, the class and ascendancy start nodes included and named in `startNodes`); every finite number of
+ * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots.
+ */
+export const compileStageReply = baseReply.extend({
+  result: z
+    .object({
+      id: z.string(),
+      ids: z
+        .object({
+          spec: z.number().int(),
+          itemSet: z.number().int(),
+          skillSet: z.number().int(),
+          configSet: z.number().int(),
+        })
+        .passthrough(),
+      allocation: z
+        .object({ nodes: luaArray(allocatedNodeSchema), startNodes: luaArray(z.number().int()) })
+        .passthrough(),
+      outputs: luaMap(z.number()),
+      skillOutputs: luaMap(stageSkillOutputSchema),
+      skippedToggles: luaArray(z.string()),
+    })
+    .passthrough(),
+});
+export type CompileStageResult = z.infer<typeof compileStageReply>['result'];
+
+/** `compile_finish`: the loadouts after `SyncLoadouts`, the one selected, and the saved level and mode. */
+export const compileFinishReply = baseReply.extend({
+  result: z
+    .object({
+      loadouts: luaArray(z.string()),
+      active: z.string(),
+      level: z.number(),
+      autoMode: z.boolean(),
+    })
+    .passthrough(),
+});
+export type CompileFinishResult = z.infer<typeof compileFinishReply>['result'];
+
+/** What `compile_check` reads of one stage (the plan's own shapes, C-31). */
+export interface CompileCheckStage {
+  id: string;
+  /** Allocated non-ascendancy nodes (the class start excluded). */
+  nodes: number[];
+  /** Allocated ascendancy nodes (the ascendancy start excluded). */
+  ascendancyNodes: number[];
+  weaponSets: { set1: number[]; set2: number[] };
+  attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
+  jewels: Array<{ node: number; text: string }>;
+  items: Array<{ slot: string; text: string }>;
+  groups: Array<{ gems: Array<{ name: string }> }>;
+  main: { group: number; activeSkill: number; statSet?: number };
+  config: Array<{ option: string; value: boolean | number | string }>;
+}
+
+/** A stage's item, skill or config set: `reuse` selects the set an earlier stage created. */
+export interface StageSetRef {
+  title: string;
+  reuse?: number;
+}
+
+/** What `compile_stage` builds (C-41 step 7). */
+export interface CompileStageParams {
+  id: string;
+  /** Stage 1: retitle tree spec 1 and set 1 of each type instead of creating them (D-215). */
+  first: boolean;
+  /** The loadout name: the tree spec's title. */
+  title: string;
+  level: number;
+  nodes: number[];
+  ascendancyNodes: number[];
+  weaponSets: { set1: number[]; set2: number[] };
+  attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
+  jewels: Array<{ node: number; text: string }>;
+  itemSet: StageSetRef;
+  items: Array<{ slot: string; text: string }>;
+  toggles: Array<{ slot: string; active: boolean }>;
+  useSecondWeaponSet: boolean;
+  skillSet: StageSetRef;
+  groups: Array<{
+    label?: string;
+    enabled: boolean;
+    gems: Array<{ name: string; level: number; quality: number; enabled: boolean }>;
+  }>;
+  main: { group: number; activeSkill: number; statSet?: number };
+  configSet: StageSetRef;
+  /** Every listed option, earned and scenario: option → value. */
+  config: Record<string, boolean | number | string>;
+  /** The C-45 fields measured per active skill and stat set. */
+  offenseFields: string[];
+  /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
+  __crashForTest?: boolean;
+}
+
+/** What `compile_finish` checks and selects. */
+export interface CompileFinishParams {
+  stages: Array<{ id: string; title: string; ids: CompileStageResult['ids'] }>;
+  /** The loadout to select: the highest-level stage's (the last among ties, A-P9). */
+  active: string;
+  /** The saved level, in auto-level mode (D-138, D-149). */
+  level: number;
+}
+
 /** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */
 export type TradeItemBehaviour = 'copy' | 'keep' | 'remove';
 /** A sort weight (C-13 param): a `data.powerStatList` stat, never a `*TakenHit` one (D-57). */
@@ -949,6 +1084,9 @@ const definedSchemas = {
   lookup_game_data: lookupGameDataReply,
   check_coverage: checkCoverageReply,
   manage_sets: manageSetsReply,
+  compile_check: compileCheckReply,
+  compile_stage: compileStageReply,
+  compile_finish: compileFinishReply,
 } satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
@@ -1092,6 +1230,12 @@ export interface ActionParamsMap {
     title?: string;
     useSecondWeaponSet?: boolean;
   };
+  /** C-41 step 5: the read-only preflight of every stage; changes nothing. */
+  compile_check: { className: string; ascendancy: string; stages: CompileCheckStage[] };
+  /** C-41 step 7: build and measure one stage. */
+  compile_stage: CompileStageParams;
+  /** C-41 step 8: the loadout check, the highest stage's loadout and the auto-mode level. */
+  compile_finish: CompileFinishParams;
 }
 
 /** Request params (camelCase, C-2) for an action. */

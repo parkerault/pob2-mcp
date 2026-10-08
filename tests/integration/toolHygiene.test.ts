@@ -30,7 +30,9 @@
  * - `"$RUBY_RING_TEXT"`: `tests/fixtures/items/ruby-ring.txt`;
  * - `"$JEWEL_TEXT"`: `tests/fixtures/items/jewel.txt`, a rare Ruby jewel (C-46's tree sockets);
  * - `"$GOLDEN_BUILD_CODE"`: the golden build as a PoB export code (`encodePobCode`, C-42);
- * - `"$ALLOCATED_NODES"`: the golden build's allocated node ids (its `<Spec nodes>`), as numbers.
+ * - `"$ALLOCATED_NODES"`: the golden build's allocated node ids (its `<Spec nodes>`), as numbers;
+ * - `"$TWO_STAGE_PLAN"`: `tests/fixtures/plans/two-stage/plan.json`, copied into the server's guides folder
+ *   at that path (relative to the guides root), for `compile_plan` and `guide_run` (WU-41).
  */
 import fs from 'fs';
 import os from 'os';
@@ -91,7 +93,10 @@ const OWNERS = ['WU-09', 'WU-10', 'WU-11', 'WU-12', 'WU-13', 'WU-15', 'WU-18'];
 const CALL_TIMEOUT_MS = 150000;
 
 const goldenXml = fs.readFileSync(GOLDEN, 'utf8');
+/** Where `$TWO_STAGE_PLAN` puts the two-stage fixture plan, relative to the guides root. */
+const TWO_STAGE_PLAN = 'two-stage/fixture-1/plan.json';
 const PLACEHOLDERS: Record<string, unknown> = {
+  $TWO_STAGE_PLAN: TWO_STAGE_PLAN,
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
   $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(goldenXml),
@@ -267,6 +272,9 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-hygiene-'));
     builds = path.join(tmp, 'builds');
     fs.mkdirSync(builds);
+    const guides = path.join(tmp, 'guides');
+    fs.mkdirSync(path.dirname(path.join(guides, TWO_STAGE_PLAN)), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), path.join(guides, TWO_STAGE_PLAN));
     http = fixtureFetch([
       { match: /\/api\/trade2\/data\/leagues/, respond: { fixture: 'trade2/data-leagues' } },
       { match: /\/api\/trade2\/data\/stats/, respond: { fixture: 'trade2/data-stats' } },
@@ -286,7 +294,14 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
       fetch: recordingFetch,
       pobDirectory: builds,
       stateDir: path.join(tmp, 'state'),
-      env: { POB_DIRECTORY: builds, XDG_STATE_HOME: tmp, POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: undefined },
+      guidesDirectory: path.join(tmp, 'guides'),
+      env: {
+        POB_DIRECTORY: builds,
+        XDG_STATE_HOME: tmp,
+        POB_GUIDES_DIRECTORY: path.join(tmp, 'guides'),
+        POE_TRADE_DISABLED: undefined,
+        POE_NINJA_DISABLED: undefined,
+      },
     });
   }, 120000);
 

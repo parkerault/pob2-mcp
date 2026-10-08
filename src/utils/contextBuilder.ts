@@ -11,6 +11,7 @@ import type { WatchService } from '../services/watchService.js';
 import type { BuildExportService } from '../services/buildExportService.js';
 import type { PoBLuaApiClient } from '../pobLuaBridge.js';
 import type { BuildFileWriter } from '../services/buildFileWriter.js';
+import type { PlanContext } from '../handlers/planHandlers.js';
 import {
   EngineAccessError,
   type EngineCallContext,
@@ -165,6 +166,8 @@ export interface ContextDependencies {
   loadedBuild: () => LoadedBuild | null;
   /** C-17: the one build-file writer (it keeps the record of its own writes). */
   buildFileWriter: BuildFileWriter;
+  /** C-34: the guides root (deps.guidesDirectory). */
+  guidesDirectory: string;
 }
 
 /**
@@ -289,6 +292,22 @@ export class ContextBuilder {
       pobDirectory: this.deps.pobDirectory,
       stateDir: this.deps.stateDir,
       engine: this.deps.engine,
+      loadedBuild: this.deps.loadedBuild,
+    };
+  }
+
+  /**
+   * Build context for the plan tools (`compile_plan`, `guide_run`): the builds folder, the state dir, the
+   * guides root, the running engine call, the loaded build and the build-file writer. The router adds
+   * `isDirty` from the session.
+   */
+  buildPlanContext(): Omit<PlanContext, 'isDirty'> {
+    return {
+      pobDirectory: this.deps.pobDirectory,
+      stateDir: this.deps.stateDir,
+      guidesDirectory: this.deps.guidesDirectory,
+      engine: this.deps.engine,
+      buildFileWriter: this.deps.buildFileWriter,
       loadedBuild: this.deps.loadedBuild,
     };
   }

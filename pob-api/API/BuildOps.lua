@@ -829,6 +829,11 @@ function M.set_config(params)
   return true
 end
 
+-- The option list and the per-value check set_config uses, for the compiler's read-only preflight
+-- (API/Compile.lua's compile_check, C-41), so the two never disagree on what a valid option is.
+M.config_options = config_options
+M.config_value = config_value
+
 
 -- Skills API
 function M.get_skills()

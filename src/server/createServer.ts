@@ -233,6 +233,7 @@ export function createServer(deps: ServerDeps): {
     engine: engineAccess.engine,
     loadedBuild: engineAccess.loadedBuild,
     buildFileWriter,
+    guidesDirectory: deps.guidesDirectory,
   });
 
   const routerDeps: ToolRouterDependencies = {

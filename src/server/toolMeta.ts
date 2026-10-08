@@ -52,6 +52,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   lua_reload_build: core('load'),
   lua_new_build: core('load'),
   import_build: core('load'),
+  // C-41: a plan.json compiled into one build with a loadout per stage; it replaces the engine's build (D-191)
+  compile_plan: core('load'),
 
   // Engine reads
   lua_save_build: core('read'),
@@ -80,6 +82,9 @@ export const TOOL_META: Record<string, ToolMeta> = {
   export_build_summary: core('read'),
   get_build_issues: core('read'),
   get_passive_upgrades: core('read'),
+  // C-50: run folders and plan validation. A call carrying new_run never touches the engine: the router runs
+  // it as `none` (D-216, `engineKindFor`); validate is a read.
+  guide_run: core('read'),
 
   // Engine mutations
   select_spec: core('mutate'),

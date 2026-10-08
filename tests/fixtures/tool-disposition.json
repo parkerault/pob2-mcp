@@ -81,6 +81,8 @@
   {"name": "check_model_coverage", "bucket": "new", "lane": "build-guide"},
   {"name": "set_tree_state", "bucket": "new", "lane": "build-guide"},
   {"name": "manage_sets", "bucket": "new", "lane": "build-guide"},
+  {"name": "compile_plan", "bucket": "new", "lane": "build-guide"},
+  {"name": "guide_run", "bucket": "new", "lane": "build-guide"},
   {"name": "analyze_build_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "analyze_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "search_cluster_jewels", "bucket": "delete", "lane": "D4"},

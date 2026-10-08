@@ -339,3 +339,82 @@ AC-B2…B5 and AC-B7 hold. No touches violations. Low notes:
   is an edge case.
 - The pipeline fixtures' compile records are hand-written, but match the real record's shape for every
   field the checker reads.
+
+## 2026-10-08: wave 5 (WU-45, WU-46)
+
+### Verdicts
+
+- **WU-45** (design-and-write workflow, writer, D1/D2/W1 references, guide template): done `9380637`.
+  - **Review:** two medium findings.
+    - An accepted V3/V4 escalation returned `ready` without re-running W1, so the guide hid the
+      failure and the checker failed the run.
+    - The floor compared max hit taken against UNMODDED T15 hits, about 19% low, and never gated the
+      waystone's extra elemental damage.
+  - **Fixed** `f008db8` with D-253 and D-254, plus:
+    - a respec line in the endgame sections;
+    - "each capped" conditional on there being no chaos exception;
+    - informational findings no longer counted as failures;
+    - `resume.attempts` required;
+    - an unverified league kept and stated.
+  - The run checker's floor recompute now applies D-254's rules, and the pipeline fixtures were
+    regenerated.
+- **WU-46** (V3 provenance, V4 verifiers, §5.5 routing, checkpoint-2 revision): done `37079a1`.
+  - **Review:** independence (R-5) holds on every path. Two medium findings:
+    - an accepted finding matched by id only, so a reused id excused a different issue;
+    - W1 wasn't told to write anew after a D1/D2 re-run in the same round.
+  - **Fixed** `185f716` with D-255, plus:
+    - equality by report, id, artifact and location section;
+    - `accepted-offline` only from the sources lens for `external-unavailable` claims;
+    - offline reports open no sources;
+    - a test that revision text never reaches V3/V4.
+
+### Merges
+
+`f008db8` (WU-45) → `185f716` (WU-46).
+
+### Wave gate: PASS at `185f716`
+
+An independent verifier ran from a clean tree:
+- `mise run test` rc=0, 121 suites and 1846 tests, plus the NFR step (24.57 s, slowest stage 2.25 s);
+- `pnpm build` rc=0;
+- the fresh-clone check rc=0 (84/83 tools, Life 2,977).
+
+AC-B1, B2, B5 and B7 hold; allowlists name no trade or mutating tool; 138 backticked repo paths and
+17 data facts exist. AC-W8…W14, W24 and W25 are faithful. The run checker passes its own fixtures,
+and the regenerated fixtures are consistent (hits equal their ledger values; the online budget is
+21.5 divines with "near the ceiling"; D-234 holds). The verifier's own harness run validated every
+scripted result against its schema, and showed resume is deterministic.
+
+### Coordinator decisions (to fold into the spine)
+
+- **D-253** (amends §5.3, §5.4): on resuming after the user accepts a V3/V4 escalation, W1 re-runs once
+  with the accepted findings (outside the cap). V3 and V4 then run with them covered by id. Their
+  headers carry only gate, id, artifact and location.
+- **D-254** (amends D-119, D1, the D1 gate, FR-W7): each endgame stage has five reference hits
+  (physical, fire, cold, lightning, chaos). Each is waystone-scaled at the top of its modifier ranges,
+  at area 79 for the budget variant and 82 for the non-budget variant, and equals a ledger entry
+  `hit_<stage>_<type>`. The D1 gate and the checker require all five and their equality.
+- **D-255** (amends FR-W7): under `--partial`, rule (l) (unresolved findings) is skipped for an
+  `escalated` or `stopped` run whose escalation recorded the finding. Offline reports open no sources.
+- **Finding equality** (amends §5.4): accepted V3/V4 findings cover only findings with the same
+  report, id, artifact and location (a guide location compared by its section). Verifiers never reuse
+  an accepted id. `accepted-offline` is allowed only from the sources lens, for a claim tagged
+  `external-unavailable`.
+- **Run-log rules:** dossier-fix logs its retries as its own stage (spec §5.5 says it counts as R1b);
+  revision retries are keyed by round; resumes carry `retries` and `attempts`.
+
+### The user's decision for WU-47 (2026-10-08)
+
+The offline end-to-end run uses **Sonnet** in its headless session. M-12 tests the pipeline's
+mechanics, not guide quality; the live run (WU-48) uses the user's default model.
+
+### Risks the gate flagged for WU-47
+
+1. The run folder sits under the temp guides root, outside the worktree, so the headless session needs
+   `--add-dir <guides root>` (or matching allow rules), or agents can't read and write it.
+2. Structured output through a custom agent type with a `tools:` allowlist is unproven live. So are
+   the nullable type arrays and an empty-properties schema. If they fail, every agent returns null.
+3. Run B ends with a default `stop`, so the accepted, guided-retry and revision resumes get no live
+   evidence.
+4. FI-3 in run B forces `infeasible` only if c1's D1 gate returns at all; that depends on agent
+   behaviour.

@@ -103,14 +103,23 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
   return { mode: 'final', planPath, buildName };
 }
 
+/** Where the record holds what the text leaves out. */
+const RECORD_FINDINGS_HINT = 'compile-record.json: stages.<id>.v1.findings and stages.<id>.v2.findings';
+
 function verdictText(name: string, v: Verdict | null): string {
   return v === null ? `${name} not checked` : `${name} ${v.pass ? 'pass' : 'fail'}`;
 }
 
 /**
- * C-41's text: the summary line, a line per stage with its verdicts and every V1/V2 finding (amendment 1 S7:
- * a gate reads its findings here, since a large record is beyond a single Read), the ledger values, the paths
- * written.
+ * The most V1/V2 findings the text prints, over all stages: every finding up to here (amendment 1 S7: a gate
+ * reads its findings in this text), and a bound that keeps the reply well under 25K tokens. Past it, one line
+ * sends the reader to the record.
+ */
+export const MAX_FINDINGS_PRINTED = 200;
+
+/**
+ * C-41's text: the summary line, a line per stage with its verdicts and its V1/V2 findings (every one, up to
+ * MAX_FINDINGS_PRINTED over all stages), the ledger values, the paths written.
  */
 export function renderCompileText(result: CompileResult): string {
   const r = result.record;
@@ -118,12 +127,19 @@ export function renderCompileText(result: CompileResult): string {
   const lines: string[] = [
     `Compiled ${result.planPath}: ${n} stage${n === 1 ? '' : 's'} (${r.mode}) in ${(r.timing.totalMs / 1000).toFixed(1)} s.`,
   ];
+  let printed = 0;
+  let unprinted = 0;
   for (const id of r.stagesCompiled) {
     const s = r.stages[id];
     lines.push(`Stage ${id} "${s.loadoutName}" level ${s.level}: ${verdictText('V1', s.v1)}, ${verdictText('V2', s.v2)}`);
-    const findings = [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])];
-    for (const f of findings) lines.push(`  - ${f.code}: ${f.message}`);
+    for (const f of [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])]) {
+      if (printed < MAX_FINDINGS_PRINTED) {
+        lines.push(`  - ${f.code}: ${f.message}`);
+        printed += 1;
+      } else unprinted += 1;
+    }
   }
+  if (unprinted > 0) lines.push(`${unprinted} more findings; Grep the record's findings (${RECORD_FINDINGS_HINT}).`);
   for (const [id, entry] of Object.entries(r.ledger)) {
     lines.push(entry.value !== null ? `${id} = ${entry.value}` : `${id}: ${entry.error ?? 'no value'}`);
   }

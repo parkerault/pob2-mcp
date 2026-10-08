@@ -7,7 +7,8 @@
  * - A-P2 (§3.6 step 4): `groupSets` shares a set between stages whose content is deep-equal, titled
  *   `<base> {<ids>}`; the highest-level stage (the last among ties, A-P9) is the saved one.
  * - The text: plan errors name the stage after a `stages[n]` path; the compile modes refuse every other
- *   argument combination (C-41, C-50); `compile_plan`'s text prints every V1/V2 finding (amendment 1 S7).
+ *   argument combination (C-41, C-50); `compile_plan`'s text prints every V1/V2 finding up to 200, then points at
+ *   the record (amendment 1 S7; review item 9).
  * - The record (C-33): `versionNotes` names every version the engine doesn't run; `unresolvedRefs` lists the
  *   `pob-computed` tags that name no record field.
  * - WU-41 review: `compareItems` reports every slot PoB holds differently from the plan; `weaponFlagWarnings`
@@ -30,7 +31,7 @@ import {
 } from '../../src/plan/compiler';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from '../../src/plan/savedConfig';
 import { validatePlan, type Stage } from '../../src/plan/schema';
-import { compileRequestOf, guideRunRequestOf, renderCompileText } from '../../src/handlers/planHandlers';
+import { compileRequestOf, guideRunRequestOf, MAX_FINDINGS_PRINTED, renderCompileText } from '../../src/handlers/planHandlers';
 import { unresolvedRefs, versionNotes } from '../../src/plan/record';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'two-stage', 'plan.json');
@@ -218,7 +219,56 @@ describe('C-41, C-50: argument combinations and error lines', () => {
     // 14 findings on stage b and 11 on stage n, each printed in full, V1 first; nothing points at the record instead.
     expect(after('b')).toEqual([...v1, ...v2].map((f) => `  - ${f.code}: ${f.message}`));
     expect(after('n')).toHaveLength(11);
-    expect(text).not.toMatch(/more in the record/);
+    expect(text).not.toMatch(/more in the record|more findings/);
+  });
+
+  it(`review item 9: compile_plan's text prints every finding up to ${MAX_FINDINGS_PRINTED} over all stages, then one line sending the reader to the record`, () => {
+    /** The text of a compile whose stages hold these many V1 findings each. */
+    const textWith = (counts: number[]) => {
+      const ids = counts.map((_, i) => `s${i}`);
+      const stages = Object.fromEntries(
+        counts.map((n, i) => [
+          `s${i}`,
+          {
+            loadoutName: `Stage ${i} (L10) {s${i}}`,
+            level: 10,
+            elapsedMs: 1,
+            outputs: {},
+            skillOutputs: {},
+            configWritten: {},
+            configEffective: {},
+            pobWarnings: { kept: [], filtered: [] },
+            v1: { pass: n === 0, findings: Array.from({ length: n }, (_, k) => ({ code: 'gem-below-tier', message: `stage s${i} finding ${k + 1}` })), notes: [] },
+            v2: { pass: true, findings: [], notes: [] },
+          },
+        ]),
+      );
+      const record = {
+        recordVersion: 1 as const, planSchemaVersion: 1, planSha1: 'x', compiledAt: '2026-10-08T00:00:00.000Z', mode: 'measure-only' as const,
+        stagesCompiled: ids, engine: { pobTag: 'v0.23.1', pobCommit: 'abc', treeVersion: '0_5' }, versionNotes: [], loadoutWarnings: [], saveWarnings: [],
+        pobFile: { location: 'run' as const, path: 'r/compiled-build.xml', sha1: 'y', bytes: 1 }, importCode: 'code',
+        savedLevel: { level: 10, autoMode: true as const }, activeLoadout: 'Stage 0 (L10) {s0}', sets: [], stages, ledger: {}, unresolvedRefs: [],
+        timing: { totalMs: 1000, checkMs: 0, finishMs: 0, exportMs: 0 },
+      };
+      return renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false });
+    };
+    const findingLines = (text: string) => text.split('\n').filter((l) => l.startsWith('  - '));
+    // At the bound: every finding, across stages, and no pointer.
+    const at = textWith([150, 0, 50]);
+    expect(findingLines(at)).toHaveLength(MAX_FINDINGS_PRINTED);
+    expect(at).toContain('  - gem-below-tier: stage s2 finding 50');
+    expect(at).not.toMatch(/more findings/);
+    // One past it: the first 200 in stage order, then one line naming how many the record holds beyond them.
+    const past = textWith([150, 0, 51]);
+    expect(findingLines(past)).toHaveLength(MAX_FINDINGS_PRINTED);
+    expect(past).not.toContain('stage s2 finding 51');
+    expect(past.split('\n').filter((l) => /more findings/.test(l))).toEqual([
+      "1 more findings; Grep the record's findings (compile-record.json: stages.<id>.v1.findings and stages.<id>.v2.findings).",
+    ]);
+    // The reviewer's size probe: 20 stages of 91 findings stay well under 25K tokens (about 4 characters each).
+    const big = textWith(Array.from({ length: 20 }, () => 91));
+    expect(big).toContain('1620 more findings; Grep');
+    expect(big.length / 4).toBeLessThan(25000 / 2);
   });
 });
 

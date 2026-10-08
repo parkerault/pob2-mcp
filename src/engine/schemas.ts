@@ -885,6 +885,16 @@ export type CompileCheckResult = z.infer<typeof compileCheckReply>['result'];
 /** One allocated node after a stage's import, with its weapon-set tag (0, 1 or 2). */
 export const allocatedNodeSchema = z.object({ id: z.number().int(), mode: z.number().int() }).passthrough();
 
+/** One item slot's content: the item's id and name (id 0 and an empty name when the slot is empty). */
+export const slotItemSchema = z.object({ id: z.number().int(), name: z.string() }).passthrough();
+export type SlotItem = z.infer<typeof slotItemSchema>;
+
+/** The weapon-fit flags of a calculation: what decides whether an off-hand fits (WU-41 review). */
+export const weaponFlagsSchema = z
+  .object({ giantsBlood: z.boolean(), instrumentsOfPower: z.boolean(), lordOfTheWilds: z.boolean() })
+  .passthrough();
+export type WeaponFlags = z.infer<typeof weaponFlagsSchema>;
+
 /** One C-45 breakdown entry: the skill, its stat set's label and its finite offense fields. */
 export const stageSkillOutputSchema = z
   .object({ skill: z.string(), statSetLabel: z.string(), fields: luaMap(z.number()) })
@@ -893,7 +903,10 @@ export const stageSkillOutputSchema = z
 /**
  * `compile_stage`: the stage's tree spec and set ids; PoB's allocation after the import (every allocated
  * node, the class and ascendancy start nodes included and named in `startNodes`); every finite number of
- * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots.
+ * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots;
+ * what the stage's item set holds in each requested slot after the measurement (`items`) and what this
+ * stage equipped when it created the set (`addedItems`); the stage's weapon-fit flags; and the stored
+ * values of its listed config options (`configInputs`).
  */
 export const compileStageReply = baseReply.extend({
   result: z
@@ -913,12 +926,19 @@ export const compileStageReply = baseReply.extend({
       outputs: luaMap(z.number()),
       skillOutputs: luaMap(stageSkillOutputSchema),
       skippedToggles: luaArray(z.string()),
+      items: luaMap(slotItemSchema),
+      addedItems: luaMap(slotItemSchema),
+      weaponFlags: weaponFlagsSchema,
+      configInputs: luaMap(z.union([z.boolean(), z.number(), z.string()])),
     })
     .passthrough(),
 });
 export type CompileStageResult = z.infer<typeof compileStageReply>['result'];
 
-/** `compile_finish`: the loadouts after `SyncLoadouts`, the one selected, and the saved level and mode. */
+/**
+ * `compile_finish`: the loadouts after `SyncLoadouts`, the one selected, the saved level and mode, and what
+ * every item set holds in each requested slot.
+ */
 export const compileFinishReply = baseReply.extend({
   result: z
     .object({
@@ -926,6 +946,9 @@ export const compileFinishReply = baseReply.extend({
       active: z.string(),
       level: z.number(),
       autoMode: z.boolean(),
+      itemSets: luaArray(
+        z.object({ id: z.number().int(), title: z.string(), slots: luaMap(slotItemSchema) }).passthrough(),
+      ),
     })
     .passthrough(),
 });
@@ -982,6 +1005,8 @@ export interface CompileStageParams {
   config: Record<string, boolean | number | string>;
   /** The C-45 fields measured per active skill and stat set. */
   offenseFields: string[];
+  /** The slots whose content the reply reports (`ITEM_SLOTS`). */
+  itemSlots: string[];
   /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
   __crashForTest?: boolean;
 }
@@ -993,6 +1018,8 @@ export interface CompileFinishParams {
   active: string;
   /** The saved level, in auto-level mode (D-138, D-149). */
   level: number;
+  /** The slots whose content the reply reports for every item set (`ITEM_SLOTS`). */
+  itemSlots: string[];
 }
 
 /** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */

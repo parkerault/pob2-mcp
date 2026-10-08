@@ -4,7 +4,9 @@
  * A final compile of the fifteen-stage fixture (`tests/fixtures/plans/fifteen-stage/plan.json`, WU-30's
  * synthetic worst case in P1 form: 15 stages at levels 2 to 90 with no set sharing, trees growing to 123
  * regular points with 24 weapon-set tags and 8 ascendancy nodes, all 18 item slots and up to 4 tree jewels,
- * 6 socket groups of 6 gems per stage) takes at most 100 s of wall time (NFR-20), and every stage's
+ * 6 socket groups of 6 gems per stage; unlike WU-30's 36 config writes per stage it writes 11, the options
+ * with a C1/E1 source, which costs the same single config write per stage) takes at most 100 s of wall time
+ * (NFR-20), and every stage's
  * `compile_stage` request under 20 s (NFR-21). The compiled file has 15 loadouts and no socket group in
  * Full DPS (WU-30: with every group in Full DPS a contended stage took 25.5 s).
  *

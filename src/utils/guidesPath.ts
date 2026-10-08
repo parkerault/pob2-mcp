@@ -50,10 +50,26 @@ function isInside(base: string, target: string): boolean {
   return rel === "" || (rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel));
 }
 
+/**
+ * The filesystem calls the path rules make; injectable so a test can stand in a case-insensitive drive
+ * (drvfs keeps the caller's casing in `realpath`, so two spellings of one folder look different).
+ */
+export interface GuidesFs {
+  realpath(p: string): Promise<string>;
+  readlink(p: string): Promise<string>;
+  stat(p: string): Promise<{ dev: number; ino: number }>;
+}
+
+const nodeGuidesFs: GuidesFs = {
+  realpath: (p) => fs.realpath(p),
+  readlink: (p) => fs.readlink(p),
+  stat: (p) => fs.stat(p),
+};
+
 /** The symlink's target, or null when `p` isn't a symlink (or doesn't exist). */
-async function readlinkOrNull(p: string): Promise<string | null> {
+async function readlinkOrNull(p: string, fsi: GuidesFs = nodeGuidesFs): Promise<string | null> {
   try {
-    return await fs.readlink(p);
+    return await fsi.readlink(p);
   } catch {
     return null;
   }
@@ -64,21 +80,21 @@ async function readlinkOrNull(p: string): Promise<string | null> {
  * `buildExportService`'s `realPathOf`). A dangling symlink on the way is followed too, so the result is
  * where a write through `p` would land, not the link's own location.
  */
-async function realPathOf(p: string, depth = 0): Promise<string> {
+async function realPathOf(p: string, depth = 0, fsi: GuidesFs = nodeGuidesFs): Promise<string> {
   const rest: string[] = [];
   const withRest = (base: string) => (rest.length ? path.join(base, ...[...rest].reverse()) : base);
   let current = path.resolve(p);
   for (;;) {
     try {
-      return withRest(await fs.realpath(current));
+      return withRest(await fsi.realpath(current));
     } catch (error) {
       const code = errnoOf(error);
       if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
-      const target = await readlinkOrNull(current);
+      const target = await readlinkOrNull(current, fsi);
       if (target !== null) {
         if (depth >= MAX_SYMLINKS) throw new Error(`too many levels of symbolic links at ${current}`);
-        const linkDir = await fs.realpath(path.dirname(current));
-        return realPathOf(withRest(path.resolve(linkDir, target)), depth + 1);
+        const linkDir = await fsi.realpath(path.dirname(current));
+        return realPathOf(withRest(path.resolve(linkDir, target)), depth + 1, fsi);
       }
       const parent = path.dirname(current);
       if (parent === current) return withRest(current);
@@ -119,32 +135,62 @@ export async function resolveInGuidesRoot(root: string, rel: string, argName = "
   return real;
 }
 
+/** A folder's identity (`dev:ino`), or null when nothing is there. */
+async function identityOf(p: string, fsi: GuidesFs): Promise<string | null> {
+  try {
+    const st = await fsi.stat(p);
+    return `${st.dev}:${st.ino}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether `inner`, or one of its existing ancestors, is the folder `outer` (by identity, not by spelling). */
+async function insideByIdentity(outer: string, inner: string, fsi: GuidesFs): Promise<boolean> {
+  const target = await identityOf(outer, fsi);
+  if (target === null) return false;
+  for (let current = path.resolve(inner); ; current = path.dirname(current)) {
+    if ((await identityOf(current, fsi)) === target) return true;
+    if (path.dirname(current) === current) return false;
+  }
+}
+
+/** A path under `/mnt/` (a Windows drive, case-insensitive) in lower case; any other path as it is. */
+function foldDrive(p: string): string {
+  return p.startsWith("/mnt/") ? p.toLowerCase() : p;
+}
+
 /**
  * D-220: refuse a guides root that overlaps the builds folder. Both real paths are resolved (symlinks on
  * the deepest existing ancestor, the rest appended, as `resolveInGuidesRoot` does), and the call throws
  * when they are equal or either is inside the other, naming both paths and the variables that set them.
- * Neither folder needs to exist.
+ * Neither folder needs to exist. Because drvfs's `realpath` keeps the caller's casing, the paths are also
+ * compared by folder identity up their existing ancestors (`dev`/`ino`), and case-insensitively under
+ * `/mnt/` (WU-41 review: `…/builds/Guides` is inside `…/Builds` on a Windows drive). `fsi` is for tests.
  */
-export async function checkGuidesRoot(root: string, buildsDir: string): Promise<void> {
+export async function checkGuidesRoot(root: string, buildsDir: string, fsi: GuidesFs = nodeGuidesFs): Promise<void> {
   let realRoot: string;
   let realBuilds: string;
   try {
-    realRoot = await realPathOf(root);
-    realBuilds = await realPathOf(buildsDir);
+    realRoot = await realPathOf(root, 0, fsi);
+    realBuilds = await realPathOf(buildsDir, 0, fsi);
   } catch (error) {
     throw new GuidesPathError(
       `the guides root ${root} (POB_GUIDES_DIRECTORY) or the builds folder ${buildsDir} (POB_DIRECTORY) could not ` +
         `be resolved: ${messageOf(error)}`,
     );
   }
-  const how =
-    realRoot === realBuilds
-      ? "is the builds folder itself"
-      : isInside(realBuilds, realRoot)
-        ? "is inside the builds folder"
-        : isInside(realRoot, realBuilds)
-          ? "contains the builds folder"
-          : null;
+  const r = foldDrive(realRoot);
+  const b = foldDrive(realBuilds);
+  const rootId = await identityOf(realRoot, fsi);
+  const same = r === b || (rootId !== null && rootId === (await identityOf(realBuilds, fsi)));
+  const how = same
+    ? "is the builds folder itself"
+    : isInside(b, r) || (await insideByIdentity(realBuilds, realRoot, fsi))
+      ? "is inside the builds folder"
+      : isInside(r, b) || (await insideByIdentity(realRoot, realBuilds, fsi))
+        ? "contains the builds folder"
+        : null;
   if (how === null) return;
   const shownPath = (given: string, real: string) => (given === real ? given : `${given} (real path ${real})`);
   throw new GuidesPathError(
@@ -156,11 +202,13 @@ export async function checkGuidesRoot(root: string, buildsDir: string): Promise<
 
 /**
  * The run folder a plan belongs to (D-211, the write ledger's key): the first two segments
- * `<slug>/<YYYY-MM-DD>-<n>` of its path relative to the guides root, with `/` between them. Null when the
- * path has fewer than three segments, so the plan is not inside a run folder.
+ * `<slug>/<YYYY-MM-DD>-<n>` of its real path relative to the guides root, `/`-separated. Only `/` separates
+ * segments: a backslash is part of a folder's name on Linux (WU-41 review), and the compiler refuses such a
+ * path before it gets here. Null when the path has fewer than three segments, so the plan is not inside a
+ * run folder.
  */
 export function runFolderOf(relPlanPath: string): string | null {
-  const segments = relPlanPath.split(/[\\/]/).filter((s) => s !== "" && s !== ".");
+  const segments = relPlanPath.split("/").filter((s) => s !== "" && s !== ".");
   if (segments.length < 3) return null;
   return `${segments[0]}/${segments[1]}`;
 }

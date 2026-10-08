@@ -13,13 +13,20 @@
  *  5. `compile_check` reports every defect of every compiled stage and changes nothing (A-P12);
  *  6. `new_build` replaces the engine's build (D-210);
  *  7. one `compile_stage` per stage builds and measures it; PoB's allocation is compared with the plan's
- *     (`compareAllocation`, D-213);
+ *     (`compareAllocation`, D-213), and so are the items its item set holds (`compareItems`): PoB
+ *     unequips an off-hand that doesn't fit without a word, so any difference is an error;
  *  8. `compile_finish` checks the loadouts, selects the highest stage's and saves its level in auto mode;
- *  9. the build is exported and encoded as an import code (C-42);
+ *     every item set is compared with the plan again;
+ *  9. the build is exported, every listed config option PoB's save left out is put back into its set and
+ *     checked (D-248), and the XML is encoded as an import code (C-42);
  * 10. final: the builds-folder file through C-17, then its write-ledger entry; measure-only: the XML
  *     beside the plan;
  * 11. the ledger formulas are evaluated and the record is written beside the plan.
  * Any failure up to step 9 writes nothing. Steps 1–5 leave the engine's build as it was.
+ *
+ * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
+ * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
+ * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
  *
  * V1 and V2 (WU-42) are not run here yet: the record's verdicts are null and `configEffective` is empty.
  */
@@ -29,10 +36,14 @@ import path from 'path';
 import type { EngineCallContext } from '../engine/session.js';
 import type {
   CompileCheckStage,
+  CompileFinishResult,
   CompileStageParams,
   CompileStageResult,
+  SlotItem,
   StageSetRef,
+  WeaponFlags,
 } from '../engine/schemas.js';
+import { ITEM_SLOTS } from '../server/toolSchemas.js';
 import { BuildFileWriteError, type BuildFileWriter, type WriteGuard } from '../services/buildFileWriter.js';
 import { encodePobCode } from '../utils/buildCode.js';
 import { checkGuidesRoot, realPathInGuides, resolveInGuidesRoot, runFolderOf } from '../utils/guidesPath.js';
@@ -51,6 +62,7 @@ import {
   type StageRecord,
 } from './record.js';
 import { validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
+import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
@@ -204,6 +216,64 @@ export function compareAllocation(stage: Pick<Stage, 'id' | 'tree'>, allocation:
   return defects;
 }
 
+/** What an item set holds, or should hold, per slot. */
+export type SetItems = Readonly<Record<string, SlotItem>>;
+
+/**
+ * The items an item set holds against the plan's (WU-41 review, D-213's rule for items): every slot of
+ * `ITEM_SLOTS` must hold exactly the item the plan equips there, or nothing when the plan leaves it empty.
+ * PoB unequips an off-hand that doesn't fit without an error, so each difference is a defect,
+ * `stage <id>: …`, naming the slot and the item.
+ */
+export function compareItems(stageId: string, planned: SetItems, actual: SetItems, slots: readonly string[] = ITEM_SLOTS): string[] {
+  const defects: string[] = [];
+  for (const slot of slots) {
+    const want = planned[slot] ?? { id: 0, name: '' };
+    const got = actual[slot] ?? { id: 0, name: '' };
+    if (want.id === got.id) continue;
+    if (got.id === 0) {
+      defects.push(
+        `stage ${stageId}: ${slot} is empty in PoB, but the plan equips "${want.name}" there: PoB unequipped it ` +
+          `(an off-hand that fits only with a passive this stage lacks, such as Instruments of Power or Giant's Blood)`,
+      );
+    } else if (want.id === 0) {
+      defects.push(`stage ${stageId}: ${slot} holds "${got.name}" in PoB, but the plan leaves it empty`);
+    } else {
+      defects.push(`stage ${stageId}: ${slot} holds "${got.name}" in PoB, but the plan equips "${want.name}" there`);
+    }
+  }
+  return defects;
+}
+
+const WEAPON_FLAGS: { key: keyof Pick<WeaponFlags, 'giantsBlood' | 'instrumentsOfPower' | 'lordOfTheWilds'>; name: string }[] = [
+  { key: 'giantsBlood', name: "Giant's Blood" },
+  { key: 'instrumentsOfPower', name: 'Instruments of Power' },
+  { key: 'lordOfTheWilds', name: 'Lord of the Wilds' },
+];
+
+/**
+ * The loadout warnings (WU-41 review): one per weapon-fit flag the compiled stages differ in. PoB2 checks
+ * a loadout's off-hand against the passives of the loadout it switches from (ItemsTab's slot check runs on
+ * the last calculation), so selecting a stage whose off-hand needs the flag, from a stage without it, can
+ * unequip that off-hand in PoB2. The compile itself measures and saves every stage with its items.
+ */
+export function weaponFlagWarnings(stages: readonly { id: string; flags: WeaponFlags }[]): string[] {
+  const out: string[] = [];
+  for (const { key, name } of WEAPON_FLAGS) {
+    const on = stages.filter((s) => s.flags[key]).map((s) => s.id);
+    if (on.length === 0 || on.length === stages.length) continue;
+    const off = stages.filter((s) => !s.flags[key]).map((s) => s.id);
+    out.push(
+      `Stages differ in ${name} (stage${on.length === 1 ? '' : 's'} ${on.join(', ')} ${on.length === 1 ? 'has' : 'have'} it; ` +
+        `stage${off.length === 1 ? '' : 's'} ` +
+        `${off.join(', ')} ${off.length === 1 ? "doesn't" : "don't"}). PoB2 checks an off-hand against the passives of the ` +
+        `loadout it switches from, so after selecting another stage's loadout in PoB2, check Weapon 2 and Weapon 2 Swap ` +
+        `and re-equip the planned off-hand if PoB2 removed it.`,
+    );
+  }
+  return out;
+}
+
 /** Every option a stage lists, earned then scenario: option → value (C-32). */
 export function stageConfig(stage: Pick<Stage, 'config'>): Record<string, ConfigValue> {
   const out: Record<string, ConfigValue> = {};
@@ -297,6 +367,12 @@ export async function loadPlan(
     const lines = renderPlanErrors(result.errors, raw);
     throw new CompileError(`Plan ${planPath} is invalid (${lines.length} error${lines.length === 1 ? '' : 's'}):\n${lines.join('\n')}`);
   }
+  const relPath = path.relative(realRoot, realPath).split(path.sep).join('/');
+  if (relPath.includes('\\')) {
+    // A folder named with a backslash would read as two path segments on Windows (and in the write
+    // ledger's run-folder key), so it is never compiled.
+    throw new CompileError(`plan_path "${planPath}" resolves to ${relPath} in the guides root, whose folder names hold a backslash`);
+  }
   const plan = result.plan;
   let compiled = plan.stages;
   if (subset !== undefined) {
@@ -315,7 +391,7 @@ export async function loadPlan(
     plan,
     realPath,
     realDir: path.dirname(realPath),
-    relPath: path.relative(realRoot, realPath).split(path.sep).join('/'),
+    relPath,
     sha1: sha1(bytes),
     compiled,
   };
@@ -349,8 +425,8 @@ async function writeBesidePlan(guidesDirectory: string, planPath: string, loaded
 /** C-17's changed-on-disk refusal, for a target this run wrote but someone changed since. */
 function changedOnDisk(rel: string): BuildFileWriteError {
   return new BuildFileWriteError(
-    `${rel} changed on disk since the engine loaded or saved it (probably saved in PoB2). ` +
-      `Reload it first (lua_reload_build) or save under a new name.`,
+    `${rel} changed on disk since the engine loaded or saved it (probably saved in PoB2), so compile_plan won't ` +
+      `replace it (D-211). Choose another build_name, or rename or move the existing file.`,
   );
 }
 
@@ -392,7 +468,7 @@ async function checkTarget(env: CompilerEnv, buildName: string, runFolder: strin
       `${rel} already exists. compile_plan replaces a builds-folder file only when this run (${runFolder}) wrote it ` +
         `and nobody changed it since (the write ledger, D-211)` +
         (entry === undefined ? '; no compile wrote it.' : `; it was written by run ${entry.runFolder}.`) +
-        ' Choose another build_name, or save the existing build under a new name first.',
+        ' Choose another build_name, or rename or move the existing file.',
     );
   }
   const currentSha1 = sha1(current);
@@ -427,7 +503,8 @@ export function stageParams(
     attributeChoices: stage.tree.attributeChoices,
     jewels: stage.items.treeJewels,
     itemSet: refs.item,
-    items: stage.items.slots,
+    // In PoB's slot order, so a main hand is in place before the off-hand is checked against it.
+    items: [...stage.items.slots].sort((a, b) => ITEM_SLOTS.indexOf(a.slot) - ITEM_SLOTS.indexOf(b.slot)),
     toggles: stage.items.toggles.map((t) => ({ slot: t.slot, active: t.active })),
     useSecondWeaponSet: stage.items.useSecondWeaponSet,
     skillSet: refs.skill,
@@ -440,6 +517,7 @@ export function stageParams(
     configSet: refs.config,
     config: stageConfig(stage),
     offenseFields: [...offenseFields],
+    itemSlots: [...ITEM_SLOTS],
   };
 }
 
@@ -448,6 +526,25 @@ const SET_ID_KEY: Record<ContentKind, 'itemSet' | 'skillSet' | 'configSet'> = {
   skill: 'skillSet',
   config: 'configSet',
 };
+
+/** Every item set after `compile_finish` against the plan, named by the stages that use it. */
+function finishItemDefects(
+  finish: CompileFinishResult,
+  planned: ReadonlyMap<number, SetItems>,
+  results: readonly { stage: Stage; reply: CompileStageResult }[],
+): string[] {
+  const defects: string[] = [];
+  for (const set of finish.itemSets) {
+    const want = planned.get(set.id);
+    const users = results.filter((r) => r.reply.ids.itemSet === set.id).map((r) => r.stage.id);
+    if (want === undefined || users.length === 0) {
+      defects.push(`item set ${set.id} "${set.title}" belongs to no compiled stage`);
+      continue;
+    }
+    for (const line of compareItems(users.join(', '), want, set.slots)) defects.push(`${line} (item set "${set.title}")`);
+  }
+  return defects;
+}
 
 /** Compile a plan (§3.6 steps 1–11). Throws on any failure; `CompileError` texts are shown as they are. */
 export async function compilePlan(env: CompilerEnv, request: CompileRequest): Promise<CompileResult> {
@@ -503,6 +600,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
 
   // 7. Build and measure each stage.
   const created: Record<ContentKind, Map<number, number>> = { item: new Map(), skill: new Map(), config: new Map() };
+  /** Per item set id: what its creating stage equipped (the plan's items for every stage sharing it). */
+  const plannedItems = new Map<number, SetItems>();
+  /** Per config set id: the stored values of the options its stages list (D-248). */
+  const configInputs = new Map<number, ConfigSetInputs['inputs']>();
   const results: { stage: Stage; reply: CompileStageResult; elapsedMs: number }[] = [];
   for (const [i, stage] of compiled.entries()) {
     const refs = {} as Record<ContentKind, StageSetRef>;
@@ -521,6 +622,12 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     if (defects.length > 0) {
       throw new CompileError(`PoB changed stage ${stage.id}'s allocation on import (D-213); nothing was written:\n${defects.join('\n')}`);
     }
+    if (!plannedItems.has(reply.ids.itemSet)) plannedItems.set(reply.ids.itemSet, reply.addedItems);
+    if (!configInputs.has(reply.ids.configSet)) configInputs.set(reply.ids.configSet, reply.configInputs);
+    const itemDefects = compareItems(stage.id, plannedItems.get(reply.ids.itemSet)!, reply.items);
+    if (itemDefects.length > 0) {
+      throw new CompileError(`PoB doesn't hold stage ${stage.id}'s planned items; nothing was written:\n${itemDefects.join('\n')}`);
+    }
     results.push({ stage, reply, elapsedMs });
   }
 
@@ -531,13 +638,25 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     stages: results.map((r) => ({ id: r.stage.id, title: r.stage.loadoutName, ids: r.reply.ids })),
     active: top.loadoutName,
     level: top.level,
+    itemSlots: [...ITEM_SLOTS],
   });
   const finishMs = env.clock() - tFinish;
+  const finishDefects = finishItemDefects(finish, plannedItems, results);
+  if (finishDefects.length > 0) {
+    throw new CompileError(`PoB doesn't hold the planned items after the last stage; nothing was written:\n${finishDefects.join('\n')}`);
+  }
 
   // 9. Export and import code.
   const tExport = env.clock();
-  const xml = await ctx.client.exportBuildXml();
+  const exported = await ctx.client.exportBuildXml();
   const exportMs = env.clock() - tExport;
+  // D-248: PoB's save drops an input equal to the active set's placeholder from every set; put them back.
+  const savedSets: ConfigSetInputs[] = [...configInputs].map(([id, inputs]) => ({ id, inputs }));
+  const { xml } = restoreConfigInputs(exported, savedSets);
+  const configProblems = savedConfigProblems(xml, savedSets);
+  if (configProblems.length > 0) {
+    throw new CompileError(`the saved build would not keep every stage's config (D-248); nothing was written:\n${configProblems.join('\n')}`);
+  }
   const importCode = encodePobCode(xml);
   const xmlBytes = Buffer.from(xml, 'utf8');
 
@@ -625,6 +744,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     stagesCompiled: compiled.map((s) => s.id),
     engine,
     versionNotes: versionNotes(plan.versions, engine),
+    loadoutWarnings: weaponFlagWarnings(results.map((r) => ({ id: r.stage.id, flags: r.reply.weaponFlags }))),
     pobFile,
     importCode,
     savedLevel: { level: top.level, autoMode: true },

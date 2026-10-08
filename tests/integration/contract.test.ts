@@ -40,6 +40,7 @@ import { resolvePobSrc } from '../../src/engine/pobPath';
 import { validatePlan } from '../../src/plan/schema';
 import { checkStageOf, groupSets, stageParams } from '../../src/plan/compiler';
 import { OFFENSE_STAT_FIELDS } from '../../src/handlers/luaHandlers';
+import { ITEM_SLOTS } from '../../src/server/toolSchemas';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures');
@@ -202,7 +203,7 @@ const CASES: Record<ActionName, Case> = {
     setup: async (call) => {
       const stage = await compiledStageOne(call);
       const { id, loadoutName, level } = TWO_STAGE.stages[0];
-      return { stages: [{ id, title: loadoutName, ids: stage.ids }], active: loadoutName, level };
+      return { stages: [{ id, title: loadoutName, ids: stage.ids }], active: loadoutName, level, itemSlots: [...ITEM_SLOTS] };
     },
   },
   // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).

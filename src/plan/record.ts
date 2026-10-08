@@ -66,6 +66,11 @@ export interface CompileRecord {
   engine: { pobTag: string; pobCommit: string; treeVersion: string };
   /** Every place the plan's `versions` differ from `engine`. */
   versionNotes: string[];
+  /**
+   * PoB2 behaviours the guide must warn about, today one per weapon-fit flag the stages differ in (WU-41
+   * review): switching loadouts in PoB2 can unequip a planned off-hand.
+   */
+  loadoutWarnings: string[];
   /** Informational (D-211): the builds-folder file of a final compile, or the measure-only XML in the run. */
   pobFile: { location: 'builds' | 'run'; path: string; sha1: string; bytes: number };
   importCode: string;

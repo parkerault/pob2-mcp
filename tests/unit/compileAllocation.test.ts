@@ -10,11 +10,24 @@
  *   argument combination (C-41, C-50).
  * - The record (C-33): `versionNotes` names every version the engine doesn't run; `unresolvedRefs` lists the
  *   `pob-computed` tags that name no record field.
+ * - WU-41 review: `compareItems` reports every slot PoB holds differently from the plan; `weaponFlagWarnings`
+ *   warns when stages differ in a weapon-fit flag; `restoreConfigInputs` puts the config values PoB's save
+ *   dropped back into their sets and `savedConfigProblems` checks they are all there (D-248).
  */
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
-import { compareAllocation, groupSets, loadoutBase, renderPlanErrors, savedStage, type StageAllocation } from '../../src/plan/compiler';
+import {
+  compareAllocation,
+  compareItems,
+  groupSets,
+  loadoutBase,
+  renderPlanErrors,
+  savedStage,
+  weaponFlagWarnings,
+  type StageAllocation,
+} from '../../src/plan/compiler';
+import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from '../../src/plan/savedConfig';
 import { validatePlan, type Stage } from '../../src/plan/schema';
 import { compileRequestOf, guideRunRequestOf } from '../../src/handlers/planHandlers';
 import { unresolvedRefs, versionNotes } from '../../src/plan/record';
@@ -187,5 +200,101 @@ describe('C-33: the record\'s version notes and unresolved refs', () => {
       { where: 'stages[0].claims[8].source', ref: '1.g9s1p1.TotalDPS' },
       { where: 'ledger[0].inputs[1].tag', ref: '1.Mana' },
     ]);
+  });
+});
+
+describe('WU-41 review: items, weapon-fit flags and the saved config', () => {
+  const staff = { id: 3, name: 'Ashen Staff' };
+  const focus = { id: 4, name: 'Twig Focus' };
+
+  it('D-213 for items: compareItems names each slot PoB unequipped, filled or changed; equal sets give none', () => {
+    const planned = { 'Weapon 1': staff, 'Weapon 2': focus };
+    expect(compareItems('2', planned, { 'Weapon 1': staff, 'Weapon 2': focus })).toEqual([]);
+    expect(compareItems('2', planned, { 'Weapon 1': staff, 'Weapon 2': { id: 0, name: '' } })).toEqual([
+      'stage 2: Weapon 2 is empty in PoB, but the plan equips "Twig Focus" there: PoB unequipped it (an off-hand that fits only with a passive this stage lacks, such as Instruments of Power or Giant\'s Blood)',
+    ]);
+    expect(compareItems('2', { 'Weapon 1': staff }, { 'Weapon 1': staff, 'Ring 1': { id: 9, name: 'Ring' } })).toEqual([
+      'stage 2: Ring 1 holds "Ring" in PoB, but the plan leaves it empty',
+    ]);
+    expect(compareItems('2', planned, { 'Weapon 1': { id: 5, name: 'Other Staff' }, 'Weapon 2': focus })).toEqual([
+      'stage 2: Weapon 1 holds "Other Staff" in PoB, but the plan equips "Ashen Staff" there',
+    ]);
+  });
+
+  it('weaponFlagWarnings warns once per flag the stages differ in, naming the stages; equal flags give none', () => {
+    const flags = (iop: boolean, gb = false) => ({ giantsBlood: gb, instrumentsOfPower: iop, lordOfTheWilds: false });
+    expect(weaponFlagWarnings([{ id: '1', flags: flags(true) }, { id: '2', flags: flags(true) }])).toEqual([]);
+    const warnings = weaponFlagWarnings([
+      { id: '1', flags: flags(true, true) },
+      { id: '2', flags: flags(true) },
+      { id: '3', flags: flags(false) },
+    ]);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toMatch(/^Stages differ in Giant's Blood \(stage 1 has it; stages 2, 3 don't\)\. PoB2 checks an off-hand/);
+    expect(warnings[1]).toMatch(/^Stages differ in Instruments of Power \(stages 1, 2 have it; stage 3 doesn't\)\./);
+  });
+
+  const SAVED = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<PathOfBuilding2>',
+    '\t<Config activeConfigSet="2">',
+    '\t\t<ConfigSet title="Stage 1 {1}" id="1">',
+    '\t\t\t<Input name="resistancePenalty" number="0"/>',
+    '\t\t\t<Placeholder number="14" name="enemyLevel"/>',
+    '\t\t</ConfigSet>',
+    '\t\t<ConfigSet id="2" title="Stage 2 {2}"/>',
+    '\t</Config>',
+    '</PathOfBuilding2>',
+    '',
+  ].join('\n');
+
+  it('D-248: the values the save dropped go back into their own sets (an empty set too), escaped; nothing else changes', () => {
+    const sets: ConfigSetInputs[] = [
+      { id: 1, inputs: { resistancePenalty: 0, enemyLevel: 14, "questAct 4Halls Of The DeadTawhoa's Test": '+5% to Lightning Resistance' } },
+      { id: 2, inputs: { enemyIsBoss: 'Pinnacle', conditionOnline: true } },
+    ];
+    expect(savedConfigProblems(SAVED, sets)).toEqual([
+      'config set 1: option "enemyLevel" is missing from the saved build',
+      'config set 1: option "questAct 4Halls Of The DeadTawhoa\'s Test" is missing from the saved build',
+      'config set 2: option "conditionOnline" is missing from the saved build',
+      'config set 2: option "enemyIsBoss" is missing from the saved build',
+    ]);
+    const { xml, restored } = restoreConfigInputs(SAVED, sets);
+    expect(restored).toEqual([
+      { set: 1, option: 'enemyLevel' },
+      { set: 1, option: "questAct 4Halls Of The DeadTawhoa's Test" },
+      { set: 2, option: 'conditionOnline' },
+      { set: 2, option: 'enemyIsBoss' },
+    ]);
+    expect(savedConfigProblems(xml, sets)).toEqual([]);
+    expect(xml).toBe(
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<PathOfBuilding2>',
+        '\t<Config activeConfigSet="2">',
+        '\t\t<ConfigSet title="Stage 1 {1}" id="1">',
+        '\t\t\t<Input name="resistancePenalty" number="0"/>',
+        '\t\t\t<Placeholder number="14" name="enemyLevel"/>',
+        '\t\t\t<Input name="enemyLevel" number="14"/>',
+        '\t\t\t<Input name="questAct 4Halls Of The DeadTawhoa&apos;s Test" string="+5% to Lightning Resistance"/>',
+        '\t\t</ConfigSet>',
+        '\t\t<ConfigSet id="2" title="Stage 2 {2}">',
+        '\t\t\t<Input name="conditionOnline" boolean="true"/>',
+        '\t\t\t<Input name="enemyIsBoss" string="Pinnacle"/>',
+        '\t\t</ConfigSet>',
+        '\t</Config>',
+        '</PathOfBuilding2>',
+        '',
+      ].join('\n'),
+    );
+    // Restoring again changes nothing.
+    expect(restoreConfigInputs(xml, sets)).toEqual({ xml, restored: [] });
+  });
+
+  it('D-248: a value saved differently from the stage\'s is a problem; a missing set is one too', () => {
+    expect(savedConfigProblems(SAVED, [{ id: 1, inputs: { resistancePenalty: -10 } }])).toEqual([
+      'config set 1: option "resistancePenalty" is saved as 0, not -10',
+    ]);
+    expect(savedConfigProblems(SAVED, [{ id: 3, inputs: { enemyLevel: 1 } }])).toEqual(['config set 3 is missing from the saved build']);
   });
 });

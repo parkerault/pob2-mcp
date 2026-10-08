@@ -128,6 +128,7 @@ export function renderCompileText(result: CompileResult): string {
     lines.push(entry.value !== null ? `${id} = ${entry.value}` : `${id}: ${entry.error ?? 'no value'}`);
   }
   for (const note of r.versionNotes) lines.push(`Version note: ${note}`);
+  for (const warning of r.loadoutWarnings) lines.push(`Loadout warning: ${warning}`);
   lines.push(`Saved in auto-level mode at level ${r.savedLevel.level}, with loadout "${r.activeLoadout}" active; the engine now holds this build.`);
   for (const p of result.written.builds) {
     lines.push(`Wrote ${p} in the builds folder${result.replacedFile ? ' (replaced; the previous file is backed up in the state folder)' : ''}.`);

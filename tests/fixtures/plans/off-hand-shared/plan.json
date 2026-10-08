@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "roll": {
+    "className": "Sorceress",
+    "ascendancy": "Disciple of Varashta",
+    "skill": "Spark"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": null,
+  "ledger": [],
+  "prices": [],
+  "stages": [
+    {
+      "id": "1",
+      "loadoutName": "Act 1 Clearfell (L5) {1}",
+      "level": 5,
+      "progress": "q.act-1-clearfell-beira",
+      "tree": {
+        "nodes": [],
+        "ascendancyNodes": [
+          35880,
+          20701
+        ],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": []
+      },
+      "items": {
+        "setTitle": "Staff alone",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nAshen Staff"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Spark",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Spark",
+                "level": 2,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s1-es",
+          "text": "Stage 1's energy shield, as PoB computes it.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "1.EnergyShield"
+          }
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "loadoutName": "Act 1 Ogham Manor (L10) {2}",
+      "level": 10,
+      "progress": "q.act-1-ogham-manor-candlemass",
+      "tree": {
+        "nodes": [],
+        "ascendancyNodes": [
+          35880,
+          20701
+        ],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": []
+      },
+      "items": {
+        "setTitle": "Staff and focus",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nAshen Staff"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nTwig Focus"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Spark",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Spark",
+                "level": 4,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s2-es",
+          "text": "Stage 2's energy shield, as PoB computes it.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "2.EnergyShield"
+          }
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "loadoutName": "Act 2 Keth (L15) {3}",
+      "level": 15,
+      "progress": "q.act-2-keth-kabala",
+      "tree": {
+        "nodes": [],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": []
+      },
+      "items": {
+        "setTitle": "Staff alone",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nAshen Staff"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Spark",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Spark",
+                "level": 5,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s3-es",
+          "text": "Stage 3's energy shield, as PoB computes it.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "3.EnergyShield"
+          }
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "loadoutName": "Act 2 Spires of Deshar (L20) {4}",
+      "level": 20,
+      "progress": "q.act-2-spires-of-deshar-sisters-of-garukhan-shrine",
+      "tree": {
+        "nodes": [],
+        "ascendancyNodes": [
+          35880,
+          20701
+        ],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": []
+      },
+      "items": {
+        "setTitle": "Staff and focus",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nAshen Staff"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nTwig Focus"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Spark",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Spark",
+                "level": 7,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s4-es",
+          "text": "Stage 4's energy shield, as PoB computes it.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "4.EnergyShield"
+          }
+        }
+      ]
+    }
+  ]
+}

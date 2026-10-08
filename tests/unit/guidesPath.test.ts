@@ -16,7 +16,7 @@ import fsPromises from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
-import { checkGuidesRoot, createRunFolder, GuidesPathError, resolveInGuidesRoot, runFolderOf } from '../../src/utils/guidesPath';
+import { checkGuidesRoot, createRunFolder, GuidesPathError, resolveInGuidesRoot, runFolderOf, type GuidesFs } from '../../src/utils/guidesPath';
 import { spawnServerEnv } from '../helpers/spawnServer';
 import { startTestServer } from '../helpers/server';
 import { startSessionFixture } from '../helpers/engineSession';
@@ -369,10 +369,69 @@ describe('checkGuidesRoot (D-220) and runFolderOf (D-211)', () => {
     await expect(checkGuidesRoot(`${builds}-guides`, builds)).resolves.toBeUndefined();
   });
 
+  /**
+   * A case-insensitive drive, as drvfs is: the real folders are under `base` in lower case, any spelling
+   * reaches them, and `realpath` keeps the caller's spelling (drvfs does; ext4 has no such folders).
+   */
+  function caseInsensitiveFs(base: string): GuidesFs {
+    const real = (p: string) => (p.startsWith(base) ? base + p.slice(base.length).toLowerCase() : p);
+    return {
+      realpath: async (p) => {
+        await fsPromises.stat(real(p));
+        return p;
+      },
+      readlink: (p) => fsPromises.readlink(real(p)),
+      stat: (p) => fsPromises.stat(real(p)),
+    };
+  }
+
+  it('AC-P48 (WU-41 review): on a case-insensitive drive, a guides root spelled into the builds folder in another case is refused', async () => {
+    fs.mkdirSync(path.join(tmp, 'pob', 'builds'), { recursive: true });
+    const fsi = caseInsensitiveFs(tmp);
+    const spelledBuilds = path.join(tmp, 'PoB', 'Builds');
+    const cases: Array<[string, string]> = [
+      [path.join(tmp, 'PoB', 'builds', 'Guides'), 'is inside the builds folder'],
+      [path.join(tmp, 'pob', 'BUILDS'), 'is the builds folder itself'],
+      [path.join(tmp, 'POB'), 'contains the builds folder'],
+    ];
+    for (const [root, how] of cases) {
+      let message = '';
+      try {
+        await checkGuidesRoot(root, spelledBuilds, fsi);
+      } catch (error) {
+        expect(error).toBeInstanceOf(GuidesPathError);
+        message = (error as Error).message;
+      }
+      expect({ root, message }).toEqual({ root, message: expect.stringContaining(how) });
+    }
+    await expect(checkGuidesRoot(path.join(tmp, 'PoB', 'Guides'), spelledBuilds, fsi)).resolves.toBeUndefined();
+  });
+
+  it('AC-P48 (WU-41 review): under the Windows-drive mount, folders that exist nowhere yet still compare without case', async () => {
+    const nothing: GuidesFs = {
+      realpath: async () => {
+        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      },
+      readlink: async () => {
+        throw Object.assign(new Error('EINVAL'), { code: 'EINVAL' });
+      },
+      stat: async () => {
+        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      },
+    };
+    const drive = ['', 'mnt', 'c', 'Users', 'someone', 'Documents', 'PoB'].join('/');
+    await expect(checkGuidesRoot(path.join(drive, 'builds', 'Guides'), path.join(drive, 'Builds'), nothing)).rejects.toThrow(
+      /is inside the builds folder/,
+    );
+    await expect(checkGuidesRoot(path.join(drive, 'Guides'), path.join(drive, 'Builds'), nothing)).resolves.toBeUndefined();
+  });
+
   it('D-211: runFolderOf is the first two segments of a plan path, or null outside a run folder', () => {
     expect(runFolderOf('titan-blood-hunt/2026-10-07-1/plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
     expect(runFolderOf('titan-blood-hunt/2026-10-07-1/concepts/a/plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
-    expect(runFolderOf('titan-blood-hunt\\2026-10-07-1\\plan.json')).toBe('titan-blood-hunt/2026-10-07-1');
+    // Only "/" separates: on Linux a backslash is part of a folder's name (WU-41 review).
+    expect(runFolderOf('titan-blood-hunt\\2026-10-07-1\\plan.json')).toBeNull();
+    expect(runFolderOf('probe\\2026-10-08-1/plan.json')).toBeNull();
     expect(runFolderOf('./titan/run/plan.json')).toBe('titan/run');
     expect(runFolderOf('titan/plan.json')).toBeNull();
     expect(runFolderOf('plan.json')).toBeNull();

@@ -13,6 +13,10 @@
  * - The deferred rebuilds (WU-30's lever): each stage's outputs and breakdown equal the non-deferred path's.
  * - AC-P37 (static part) and AC-P38 (static part) are the plain describes at the end; AC-P37's timing runs in
  *   `compilePlanNfr.test.ts`, alone.
+ * - WU-41 review: off-hands that fit only with a passive (the `off-hand-fresh` and `off-hand-shared` fixtures,
+ *   Instruments of Power) compile, measure and reload as planned on the deferred and eager paths, a plan that
+ *   can't hold its off-hand is refused, and the record warns about PoB2's loadout switch; config values PoB's
+ *   save drops are put back (D-248), so every stage reloads as recorded.
  */
 import crypto from 'crypto';
 import fs from 'fs';
@@ -590,6 +594,7 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(refused.isError).toBe(true);
     expect(refused.text).toContain('m11-two-stage.xml already exists');
     expect(refused.text).toContain(`written by run ${run.rel}`);
+    expect(refused.text).toContain('Choose another build_name, or rename or move the existing file.');
     expect(fs.readFileSync(path.join(f.builds, 'm11-two-stage.xml')).equals(bytes)).toBe(true);
     expect(fs.readFileSync(ledgerPath()).equals(ledgerBefore)).toBe(true);
   }, ENGINE_TIMEOUT);
@@ -609,6 +614,7 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     const a = await compile({ plan_path: run.plan, build_name: 'm11-two-stage' });
     expect(a.isError).toBe(true);
     expect(a.text).toContain('m11-two-stage.xml changed on disk since the engine loaded or saved it');
+    expect(a.text).toContain('Choose another build_name, or rename or move the existing file.');
     unchanged();
 
     // (b) after a read auto-reloaded the edited file (the in-memory guard now matches it)
@@ -667,6 +673,19 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(measured.isError).toBe(false);
     expect(fs.existsSync(path.join(f.guides, 'compile-record.json'))).toBe(true);
     expect(fs.existsSync(path.join(f.builds, 'loose.xml'))).toBe(false);
+  }, ENGINE_TIMEOUT);
+
+  it('D-211 (WU-41 review): a plan in a folder whose name holds a backslash is refused, never keyed to another run', async () => {
+    const dir = path.join(f.guides, 'probe\\2026-10-08-1');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.copyFileSync(FIXTURE, path.join(dir, 'plan.json'));
+    const before = treeOf(f.tmp);
+    for (const extra of [{ build_name: 'backslash' }, { measure_only: true }]) {
+      const out = await compile({ plan_path: 'probe\\2026-10-08-1/plan.json', ...extra });
+      expect(out.isError).toBe(true);
+      expect(out.text).toContain('whose folder names hold a backslash');
+    }
+    expect(changed(before, treeOf(f.tmp))).toEqual([]);
   }, ENGINE_TIMEOUT);
 
   it('AC-B8 (D-211): a final compile writes only the target file, its ledger entry and the record (plus the backup when it replaces)', async () => {
@@ -764,6 +783,172 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
       off();
     }
   }, ENGINE_TIMEOUT);
+  // ---------------------------------------------------------------------------------------------------
+  // WU-41 review: off-hands that need a passive, and config values PoB's save drops (D-248)
+
+  const PLANS = path.join(REPO, 'tests', 'fixtures', 'plans');
+  const planOf = (name: string): Json => JSON.parse(fs.readFileSync(path.join(PLANS, name, 'plan.json'), 'utf8'));
+
+  /** Every finite number of the main output, Weapon 2's item and the active loadout's sets, by Lua query. */
+  const STATE_QUERY = String.raw`
+    local o = {}
+    for k, v in pairs(build.calcsTab.mainOutput) do
+      if type(k) == 'string' and type(v) == 'number' and v == v and v ~= math.huge and v ~= -math.huge then o[k] = v end
+    end
+    local set = build.itemsTab.activeItemSet
+    local w2 = build.itemsTab.items[set['Weapon 2'].selItemId]
+    return { outputs = o, weapon2 = w2 and w2.name or '' }`;
+
+  /** Each stage of a saved build, from a fresh load: its loadout selected at its level, its outputs and Weapon 2. */
+  async function reloadedStages(buildName: string, record: CompileRecord): Promise<Record<string, { outputs: Record<string, number>; weapon2: string }>> {
+    const out: Record<string, { outputs: Record<string, number>; weapon2: string }> = {};
+    for (const id of record.stagesCompiled) {
+      // From the file as saved each time: PoB2's own loadout switch is the known limitation (loadoutWarnings).
+      expect((await f.call('lua_load_build', { build_name: buildName })).isError).toBe(false);
+      const sel = await f.call('manage_sets', { set_type: 'loadout', action: 'select', title: record.stages[id].loadoutName });
+      expect(sel.isError).toBe(false);
+      expect((await f.call('set_character_level', { level: record.stages[id].level })).isError).toBe(false);
+      out[id] = await luaQuery(STATE_QUERY);
+    }
+    return out;
+  }
+
+  /** The outputs that differ from the record by more than relative 1e-9 (or exist in only one). */
+  function outputDiffs(recorded: Record<string, number>, got: Record<string, number>): string[] {
+    return [...new Set([...Object.keys(recorded), ...Object.keys(got)])].filter((k) => {
+      const a = recorded[k];
+      const b = got[k];
+      if (a === undefined || b === undefined) return true;
+      return Math.abs(a - b) > 1e-9 * Math.max(Math.abs(a), Math.abs(b), 1e-12);
+    });
+  }
+
+  /** Compile `plan` in a new run, deferred or eager (`__noDeferForTest` on every stage). */
+  async function compileWith(slug: string, plan: Json, args: Json, eager: boolean) {
+    const r = await newRun(slug, plan);
+    const original = PoBLuaApiClient.prototype.request;
+    if (eager) {
+      jest.spyOn(PoBLuaApiClient.prototype, 'request').mockImplementation(async function (this: PoBLuaApiClient, ...a: any[]) {
+        if (a[0] === 'compile_stage') a[1] = { ...a[1], __noDeferForTest: true };
+        return (original as any).apply(this, a);
+      } as any);
+    }
+    try {
+      return { run: r, out: await compile({ plan_path: r.plan, ...args }) };
+    } finally {
+      jest.restoreAllMocks();
+    }
+  }
+
+  for (const fixture of ['off-hand-fresh', 'off-hand-shared']) {
+    for (const eager of [false, true]) {
+      const pathName = eager ? 'eager' : 'deferred';
+      it(`WU-41 review (D-213 for items): ${fixture}, ${pathName}: every stage keeps its planned off-hand, is measured with it and reloads as recorded`, async () => {
+        const plan = planOf(fixture);
+        const buildName = `${fixture}-${pathName}`;
+        const { run: r, out } = await compileWith(`${fixture}-${pathName}`, plan, { build_name: buildName }, eager);
+        expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+        const record = recordOf(r);
+
+        // The saved item sets hold exactly the planned off-hands.
+        const sets = await luaQuery<Array<{ title: string; weapon2: string }>>(String.raw`
+          local o = {}
+          for _, id in ipairs(build.itemsTab.itemSetOrderList) do
+            local s = build.itemsTab.itemSets[id]
+            local it = build.itemsTab.items[s['Weapon 2'].selItemId]
+            o[#o + 1] = { title = s.title, weapon2 = it and it.name or '' }
+          end
+          return o`);
+        for (const s of sets) expect({ set: s.title, weapon2: s.weapon2 }).toEqual({ set: s.title, weapon2: s.title.startsWith('Staff and focus') ? 'Twig Focus' : '' });
+
+        // Each stage was measured with its own items: a Focus adds energy shield, a staff alone gives none.
+        const reloaded = await reloadedStages(buildName, record);
+        for (const stage of plan.stages) {
+          const hasFocus = stage.items.slots.some((x: Json) => x.slot === 'Weapon 2');
+          expect({ stage: stage.id, weapon2: reloaded[stage.id].weapon2 }).toEqual({ stage: stage.id, weapon2: hasFocus ? 'Twig Focus' : '' });
+          expect({ stage: stage.id, es: record.stages[stage.id].outputs.EnergyShield > 0 }).toEqual({ stage: stage.id, es: hasFocus });
+          expect({ stage: stage.id, diffs: outputDiffs(record.stages[stage.id].outputs, reloaded[stage.id].outputs) }).toEqual({ stage: stage.id, diffs: [] });
+        }
+
+        // The stages differ in Instruments of Power: the record and the text warn about PoB2's loadout switch.
+        expect(record.loadoutWarnings).toHaveLength(1);
+        expect(record.loadoutWarnings[0]).toMatch(/^Stages differ in Instruments of Power \(/);
+        expect(record.loadoutWarnings[0]).toContain('re-equip the planned off-hand');
+        expect(out.text).toContain(`Loadout warning: ${record.loadoutWarnings[0]}`);
+      }, ENGINE_TIMEOUT);
+    }
+  }
+
+  it('WU-41 review: the deferred and eager paths measure the off-hand stages identically', async () => {
+    const plan = planOf('off-hand-shared');
+    const a = await compileWith('off-hand-equal-deferred', plan, { measure_only: true }, false);
+    const b = await compileWith('off-hand-equal-eager', plan, { measure_only: true }, true);
+    expect(a.out.isError).toBe(false);
+    expect(b.out.isError).toBe(false);
+    const ra = recordOf(a.run);
+    const rb = recordOf(b.run);
+    for (const id of ra.stagesCompiled) {
+      expect({ id, outputs: ra.stages[id].outputs, skills: ra.stages[id].skillOutputs }).toEqual({
+        id,
+        outputs: rb.stages[id].outputs,
+        skills: rb.stages[id].skillOutputs,
+      });
+    }
+  }, ENGINE_TIMEOUT);
+
+  it('WU-41 review: a stage whose shared item set holds an off-hand it can\'t use is refused, naming the stage and the item; nothing is written', async () => {
+    const plan = planOf('off-hand-shared');
+    // Stage 3 has no Instruments of Power but now shares stages 2 and 4's staff-and-focus set.
+    plan.stages[2].items = JSON.parse(JSON.stringify(plan.stages[1].items));
+    for (const eager of [false, true]) {
+      const before = treeOf(f.tmp);
+      const { out } = await compileWith(`off-hand-invalid-${eager ? 'eager' : 'deferred'}`, plan, { build_name: 'off-hand-invalid' }, eager);
+      expect({ eager, isError: out.isError }).toEqual({ eager, isError: true });
+      expect(out.text).toMatch(/^stage 3: Weapon 2 is empty in PoB, but the plan equips "Twig Focus" there: PoB unequipped it/m);
+      const after = treeOf(f.tmp);
+      expect(changed(before, after).filter((p) => !p.endsWith('/plan.json'))).toEqual([]);
+    }
+  }, ENGINE_TIMEOUT);
+
+  const PROBE_TAG = { kind: 'judgment', ref: 'a test value, to exercise the saved config', confidence: 'H' };
+  const CONFIG_CASES: { name: string; option: string; edit: (p: Json) => void }[] = [
+    {
+      // Stage 2 (the saved, active stage) has the placeholder enemyLevel 14, stage 1 sets 14 explicitly.
+      name: 'enemyLevel equal to the saved stage\'s placeholder',
+      option: 'enemyLevel',
+      edit: (p) => p.stages[0].config.scenario.push({ option: 'enemyLevel', value: 14, source: { file: 'campaign/areas.json', key: 'act1' }, tag: PROBE_TAG }),
+    },
+    {
+      // Stage 2 fights a Pinnacle boss (placeholder enemyFireResist 50); stage 1 sets 50 explicitly.
+      name: 'enemyFireResist equal to a Pinnacle stage\'s placeholder',
+      option: 'enemyFireResist',
+      edit: (p) => {
+        p.stages[1].config.scenario.find((e: Json) => e.option === 'enemyIsBoss').value = 'Pinnacle';
+        p.stages[0].config.scenario.push({ option: 'enemyFireResist', value: 50, source: { file: 'enemies/arbiter-of-divinity.json', key: 'res.fire' }, tag: PROBE_TAG });
+      },
+    },
+  ];
+
+  for (const [i, c] of CONFIG_CASES.entries()) {
+    it(`D-248: ${c.name}: the saved file keeps stage 1's explicit value, and every stage reloads as recorded`, async () => {
+      const plan = variant(c.edit);
+      const buildName = `saved-config-${i + 1}`;
+      const r = await newRun(`saved-config-${i + 1}`, plan);
+      const out = await compile({ plan_path: r.plan, build_name: buildName });
+      expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+      const record = recordOf(r);
+      const xml = fs.readFileSync(path.join(f.builds, `${buildName}.xml`), 'utf8');
+      const stageOneSet = record.sets.find((s) => s.kind === 'config' && s.stages.includes('1'))!;
+      const setXml = new RegExp(`<ConfigSet\\b[^>]*\\bid="${stageOneSet.id}"[^>]*>([\\s\\S]*?)</ConfigSet>`).exec(xml);
+      expect(setXml).not.toBeNull();
+      expect(setXml![1]).toMatch(new RegExp(`<Input\\b(?=[^>]*\\bname="${c.option}")(?=[^>]*\\bnumber="${plan.stages[0].config.scenario.at(-1).value}")[^>]*/>`));
+      expect(decodePobCode(record.importCode)).toBe(xml);
+      const reloaded = await reloadedStages(buildName, record);
+      for (const id of record.stagesCompiled) {
+        expect({ stage: id, diffs: outputDiffs(record.stages[id].outputs, reloaded[id].outputs) }).toEqual({ stage: id, diffs: [] });
+      }
+    }, ENGINE_TIMEOUT);
+  }
 });
 
 // -----------------------------------------------------------------------------------------------------

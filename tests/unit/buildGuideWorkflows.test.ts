@@ -663,7 +663,7 @@ interface DesignResult {
     findings: GateFinding[];
     basis?: unknown;
     forced?: string;
-    finalCompile?: { compiled: boolean; errors: string[]; pobFile: string | null; importCode: string | null } | null;
+    finalCompile?: { compiled: boolean; errors: string[]; recordPath?: string | null; pobFile: string | null } | null;
   }[];
   v3Reports: { stage: string; pass: number }[];
   v4Reports: { stage: string; lens: string; pass: number }[];
@@ -707,7 +707,6 @@ const finalOk = () => ({
   errors: [],
   recordPath: 'compile-record.json',
   pobFile: `${BUILD_NAME}.xml`,
-  importCode: 'eNrt-fixture-code',
   verdict: { v1: 'pass', v2: 'pass' },
   findings: [],
 });
@@ -819,7 +818,7 @@ describe('AC-W8: the design happy path', () => {
       expect(stageOf(final)).toBe('D2-gate');
       const passing = r.out.gateVerdicts.filter((g) => g.stage === 'D2-gate' && Object.values(g.verdict).every((v) => v === 'pass'));
       expect(passing.map((g) => g.attempt)).toEqual([header(final).attempt]);
-      expect(passing[0].finalCompile).toEqual(expect.objectContaining({ compiled: true, importCode: 'eNrt-fixture-code', pobFile: `${BUILD_NAME}.xml` }));
+      expect(passing[0].finalCompile).toEqual({ compiled: true, errors: [], recordPath: 'compile-record.json', pobFile: `${BUILD_NAME}.xml` });
       const check = r.calls[final.index - 1];
       expect([stageOf(check), header(check).compile, header(check).attempt]).toEqual(['D2-gate', 'measure-only', header(final).attempt]);
       expect(r.out.status).toBe('ready');
@@ -1140,7 +1139,7 @@ describe('AC-W10: the D2 gate, W1, FI-2 and FI-3', () => {
   });
 
   it('a failed final compile fails its D2 gate attempt, and D2 re-runs with the error', async () => {
-    const refused = () => ({ ...finalOk(), compiled: false, errors: ['titan-blood-hunt-2026-10-08-1.xml already exists'], importCode: null, pobFile: null });
+    const refused = () => ({ ...finalOk(), compiled: false, errors: ['titan-blood-hunt-2026-10-08-1.xml already exists'], pobFile: null });
     const r = await design(happy({ 'D2-gate': d2Gate(() => d2Check(), (c) => (header(c).attempt === 1 ? refused() : finalOk())) }));
     expect(r.calls.filter((c) => stageOf(c).startsWith('D2')).map((c) => [stageOf(c), header(c).attempt, header(c).compile])).toEqual([
       ['D2', 1, 'measure-only'],
@@ -1157,6 +1156,20 @@ describe('AC-W10: the D2 gate, W1, FI-2 and FI-3', () => {
       [2, 'pass', true],
     ]);
     expect(r.out.status).toBe('ready');
+  });
+
+  it("D-260: the final compile's verdict carries no import code, even when the agent returns one; the record is its one home", async () => {
+    const code = `eNrt${'A'.repeat(10000)}`;
+    const r = await design(happy({ 'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), importCode: code })) }));
+    expect(r.out.status).toBe('ready');
+    const final = r.calls.find((c) => header(c).compile === 'final')!;
+    // The schema asks for no import code, and the prompt says to return none.
+    expect(Object.keys((final.opts.schema as { properties: Record<string, unknown> }).properties)).not.toContain('importCode');
+    expect(final.prompt).toMatch(/Don't return the import code: compile-record\.json is its one home \(D-260\)/);
+    const d2 = r.out.gateVerdicts.find((g) => g.stage === 'D2-gate')!;
+    expect(d2.finalCompile).toEqual({ compiled: true, errors: [], recordPath: 'compile-record.json', pobFile: `${BUILD_NAME}.xml` });
+    // So the result the skill copies into reports/ holds no 10K-character code.
+    expect(JSON.stringify(r.out)).not.toContain(code);
   });
 
   it('a null W1 result re-runs W1, with a finding saying so; three escalate', async () => {
@@ -1449,7 +1462,7 @@ describe('build-guide-design: its gate verdicts hold up in the run checker (FR-W
     const r = await design(
       happy({
         'D1-gate': () => ({ verdict: d1File.verdict, findings: d1File.findings, basis: d1File.basis, recordPath: 'compile-record.json', priceCalls: [], faultsApplied: [] }),
-        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), importCode: 'eNrtWV1v2zYU-FixtureImportCode-0001' })),
+        'D2-gate': d2Gate(() => d2Check(), () => finalOk()),
       }),
     );
     expect(r.out.status).toBe('ready');
@@ -1544,7 +1557,7 @@ describe('AC-W12: one provenance agent and three verifier lenses after W1, blind
         D1: () => ({ ...d1(), reason: SENTINEL }),
         'D1-gate': () => d1Gate({}, [{ ...finding('budget', 'near-ceiling'), message: SENTINEL }]),
         D2: () => ({ ...d2(), stages: [SENTINEL] }),
-        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), recordPath: SENTINEL, pobFile: `${SENTINEL}.xml`, importCode: SENTINEL })),
+        'D2-gate': d2Gate(() => d2Check(), () => ({ ...finalOk(), recordPath: SENTINEL, pobFile: `${SENTINEL}.xml` })),
         W1: () => ({ ...w1(), importCode: SENTINEL, gaps: [SENTINEL] }),
         // Pass 1 finds a guide claim, quoting it; W1 re-runs with it, and pass 2 is clean.
         'V4@sources': onPasses([vFinding('v4-sources-1', 'W1', { claim: QUOTED, evidence: QUOTED })]),

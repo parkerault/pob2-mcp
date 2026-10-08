@@ -395,7 +395,6 @@ const FINAL_SCHEMA = {
     errors: { type: 'array', items: { type: 'string' } },
     recordPath: { type: ['string', 'null'] },
     pobFile: { type: ['string', 'null'] },
-    importCode: { type: ['string', 'null'] },
     verdict: partsSchema(['v1', 'v2']),
     findings: FINDINGS,
   },
@@ -642,7 +641,7 @@ function finalPrompt(attempt) {
     `D2 gate for concept ${conceptId}, the final compile: this attempt's measure-only check passed.`,
     '',
     `- Run compile_plan {plan_path: "${planPath}", build_name: "${buildName}"} once, the whole plan and not measure-only. It writes the PoB file into the builds folder, and compile-record.json with importCode.`,
-    '- Read the new record and return its V1 and V2 verdicts, its PoB file and its import code. If the compile is refused or fails, report its error lines; never retry it or work around it.',
+    '- Read the new record and return its V1 and V2 verdicts and its PoB file. Don\'t return the import code: compile-record.json is its one home (D-260). If the compile is refused or fails, report its error lines; never retry it or work around it.',
     '',
     closing,
   ]
@@ -653,7 +652,7 @@ function w1Prompt(attempt, findings, ctx) {
   const lines = [
     `W1 for concept ${conceptId}: write guide.md from plan.json, the final compile-record.json (its ledger values included), dossier.md and the guide template (${TEMPLATE}).`,
     '',
-    '- Write only guide.md (the header\'s writes). Copy the import code from compile-record.json\'s importCode exactly.',
+    '- Write only guide.md (the header\'s writes), and no other file; fix it in place with Edit (D-257). Copy the import code from compile-record.json\'s importCode exactly.',
   ]
   lines.push(
     leagueUnverified
@@ -794,7 +793,9 @@ async function runD2Gate(attempt) {
 
   // The final compile (section 5.3 step 4) runs only once this attempt's measure-only verdict passes, so no
   // header before that pass carries compile "final" (AC-W8). It belongs to this gate attempt: its result goes
-  // into this attempt's verdict as finalCompile, and its failure is this attempt's failure.
+  // into this attempt's verdict as finalCompile, and its failure is this attempt's failure. finalCompile carries
+  // no import code: compile-record.json is its one home, and a 10K-character code would swell the result the
+  // skill copies into reports/ (D-260).
   if (openFailures('D2-gate', verdict, findings).length === 0) {
     agents = 2
     const fin = await run(COORDINATOR, finalPrompt(attempt), {
@@ -813,7 +814,6 @@ async function runD2Gate(attempt) {
         errors,
         recordPath: isText(fin.recordPath) ? fin.recordPath : null,
         pobFile: isText(fin.pobFile) ? fin.pobFile : null,
-        importCode: isText(fin.importCode) ? fin.importCode : null,
       }
       if (!file.finalCompile.compiled) {
         verdict.compiled = 'fail'

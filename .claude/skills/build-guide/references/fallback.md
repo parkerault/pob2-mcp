@@ -21,8 +21,23 @@ gates, retries and caps, routing, resume paths and artifacts. At most **3 Agent 
 time (D-161). The skill takes each step's gate verdict or report from the agent's final JSON and writes
 it to `reports/` as the workflow would have (`run-folder.md`).
 
-What changes: the skill stamps every agent call's `startedAt` and `endedAt` (in `stages[]` and
-`timeline[]`), since it can read the clock, and it builds each header itself from the run state.
+What changes: the skill builds each header itself from the run state, and it stamps every agent call's
+`startedAt` and `endedAt` (in `stages[]` and `timeline[]`), since it can read the clock. The run checker
+fails a fallback run with any `null` stamp, so stamp mechanically:
+
+1. **Before each Agent call**, run `date -u +%Y-%m-%dT%H:%M:%SZ` as its own Bash call and keep the reading
+   as that call's `startedAt`.
+2. **After each Agent call returns**, run the same `date` command again and keep the reading as its
+   `endedAt`.
+3. **Sequential calls** (R1b's concepts one at a time, D1 then the D1 gate): one reading serves twice, as
+   the returned call's `endedAt` and the next call's `startedAt`, so a `date` call sits between every two
+   Agent calls.
+4. **Calls in flight together** (R1a's researchers, V3 with the V4 lenses): one reading before you start
+   them is each one's `startedAt`; a call that runs in the background gets its `endedAt` from a `date` run
+   when its notification arrives, a foreground call from the `date` run right after it returns.
+5. **Write the readings into the attempt**: its `stages[]` entry's `startedAt` and `endedAt`, and a
+   `timeline[]` entry `{what, startedAt, endedAt}` naming the step, the concept and the attempt, in the next
+   run-log write. Never leave a stamp to fill in later: a later reading isn't that call's time.
 
 ## The steps, in order
 

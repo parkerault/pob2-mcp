@@ -36,7 +36,9 @@ every concept with its skeleton's result.
      template's labelled fields: the seven from its proposal (copied from the research file), then
      `Proposed in`, `Skeleton`, `Compile` (compiled, or failed after N attempts with the last errors),
      `Record`, `Key numbers` (from the record, with markers), `Key-item prices` (each dated, or
-     `unavailable` with its note) and `Status` (`viable`, or `failed` with its evidence).
+     `unavailable` with its note) and `Status` (`viable`, or `failed` with its evidence). When the
+     concept's payoff rests on a mechanic no lookup confirmed, or that has no source in the concept (no
+     item, node or gem that grants it), its `Risks` says so.
    - **Not carried:** one line per `not-carried` concept: its id, title, research file and why (the round
      already carried 3, D-235); or `None.`
 3. **A later round** (`round` ≥ 2) keeps everything already in `dossier.md`: add this round's line under

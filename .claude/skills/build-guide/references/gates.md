@@ -54,9 +54,11 @@ stages with a `variant`.
   - **the reference hits** (D-119, D-254): the stage's scenario holds a waystone-scaled hit for each of
     the `enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and
     `enemyChaosDamage` options: physical, and each element the waystone's extra-damage modifier may add.
-    Each equals, rounded to 2 decimals, the record's value of the ledger entry `hit_<stage id>_<type>`
-    that derives it from the area-level damage table and the top of each waystone damage modifier's
-    range (`stages/D1.md`), and `<Type>MaximumHitTaken` is greater than the hit.
+    Each equals the ceiling of the record's value of the ledger entry `hit_<stage id>_<type>` that
+    derives it from the area-level damage table and the top of each waystone damage modifier's range
+    (`stages/D1.md`): PoB takes these options as whole numbers, so the hit is that value rounded to 2
+    decimals, then rounded up (D-256; 96.4789 gives 97, and 402.000003 gives 402). `<Type>MaximumHitTaken`
+    is greater than the hit.
 
   The guide's statement of the exception (checked by the run checker): **one line** of the variant's
   `Checks` holds both the exception's full `reason` text and the stage's uncapped chaos resistance
@@ -89,8 +91,8 @@ and fails where the basis or the verdict differs.
 "basis": {
   "floor": [
     { "stage": "b", "missing": { "Fire": 0, "Cold": 0, "Lightning": 0 }, "chaos": 47,
-      "hits": [ { "type": "Physical", "hit": 402.0, "maxHitTaken": 5100 },
-                { "type": "Fire", "hit": 96.48, "maxHitTaken": 9800 } ] }
+      "hits": [ { "type": "Physical", "hit": 402, "maxHitTaken": 5100 },
+                { "type": "Fire", "hit": 97, "maxHitTaken": 9800 } ] }
   ],
   "budget": {
     "rates": [ { "currency": "exalted", "divines": 0.01 } ],
@@ -117,6 +119,8 @@ and fails where the basis or the verdict differs.
   stage's total, `null` when unverified.
 - `rolledSkill`: per endgame stage, the rolled group, its role, and one figure for **every** group of
   that role.
+- Every number is copied from the record as it stands, or rounded to 2 decimals: the checker compares each
+  copy with the record to 2 decimals, whatever its size.
 
 ### Finding codes for floor, budget and rolledSkill
 
@@ -130,7 +134,7 @@ The run checker recomputes these parts and names each failure by these codes, so
 | floor | `chaos-exception` | chaos below its cap, kept by the exception: a finding on a passing floor |
 | floor | `max-hit-<type>` (`max-hit-physical`, …) | `<Type>MaximumHitTaken` isn't above that reference hit |
 | floor | `reference-hit-missing-<type>` | the stage has no positive `enemy<Type>Damage` hit of that type |
-| floor | `reference-hit-ledger-<type>` | the hit differs from its ledger entry `hit_<stage id>_<type>`, or the record has no value for it |
+| floor | `reference-hit-ledger-<type>` | the hit isn't the ceiling of its ledger entry `hit_<stage id>_<type>` (D-256), or the record has no value for it |
 | budget | `over-budget` | the total is above 22 divines |
 | budget | `near-ceiling` | above 20, at most 22: a finding on a passing budget |
 | budget | `unverified` | an unavailable price or a missing rate |

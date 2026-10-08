@@ -147,7 +147,7 @@ const WRITING_READS = ['lua_save_build', 'export_build', 'save_config_preset'];
 const ROWS: Record<string, { file: string[]; pob2: string[]; web: string[] }> = {
   'build-guide-researcher': { file: ['Read', 'Glob', 'Grep', 'Write'], pob2: L, web: ['WebSearch', 'WebFetch'] },
   'build-guide-coordinator': { file: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], pob2: [...L, ...B, ...C, ...P], web: ['WebSearch', 'WebFetch'] },
-  'build-guide-writer': { file: ['Read', 'Glob', 'Grep', 'Write'], pob2: [], web: [] },
+  'build-guide-writer': { file: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], pob2: [], web: [] },
   'build-guide-provenance': { file: ['Read', 'Glob', 'Grep'], pob2: [], web: [] },
   'build-guide-verifier': { file: ['Read', 'Glob', 'Grep'], pob2: L, web: ['WebFetch'] },
 };
@@ -594,15 +594,29 @@ describe('WU-45: the design stage references', () => {
     expect(text).not.toMatch(/a scenario value is its fact's own/);
   });
 
-  it('the D1 gate and gates.md check every hit is present and equals its ledger entry, and name the codes', () => {
+  it('D1 sets each hit to the whole-number ceiling of its ledger value, and the ledger formula has no rounding input (D-256)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/each with its fact's tag .*, and no other input \(no rounding input\)/);
+    expect(text).toMatch(/its value is a \*\*whole number\*\*: PoB's `enemy<Type>Damage` options take whole numbers, so the value is the ledger entry's value rounded to 2 decimals, then rounded \*\*up\*\* \(D-256\): 96\.4789 gives 97, and 402\.000003 gives 402/);
+    expect(text).not.toMatch(/its value is the hit rounded to 2 decimals/);
+  });
+
+  it('the D1 gate and gates.md check every hit is present and is the ceiling of its ledger entry, and name the codes (D-254, D-256)', () => {
     const gate = folded(readStage('D1-gate'));
     const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
     for (const text of [gate, gates]) {
       expect(text).toContain('`reference-hit-missing-<type>`');
       expect(text).toContain('`reference-hit-ledger-<type>`');
       expect(text).toContain('hit_<stage id>_<type>');
-      expect(text).toMatch(/rounded to 2 decimals/);
+      // D-256: whole numbers, the ledger value rounded to 2 decimals and then up; no longer the 2-decimal value.
+      expect(text).toMatch(/[Ee]ach equals the ceiling of the record's value of (its|the) ledger entry `hit_<stage id>_<type>`/);
+      expect(text).toMatch(/rounded to 2 decimals,? (and )?then (rounded )?up/);
+      expect(text).toMatch(/D-256(;|:) 96\.4789 gives 97,? (and )?402\.000003 gives 402/);
+      expect(text).not.toMatch(/each equals, rounded to 2 decimals, the record's value/i);
+      // The basis examples hold whole-number hits.
+      expect(text).not.toMatch(/"hit": (96\.48|402\.0)\b/);
     }
+    expect(gates).toContain("the hit isn't the ceiling of its ledger entry `hit_<stage id>_<type>` (D-256)");
     for (const text of [gate, gates]) expect(text).toMatch(/`chaos-exception` and `near-ceiling` .*never a failure|never failures/);
     // The run checker recomputes the same rules (FR-W7).
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
@@ -619,6 +633,23 @@ describe('WU-45: the design stage references', () => {
     expect(text).toContain('a "Respec from the campaign" line lists the dropped nodes and the gold cost');
     expect(text).toMatch(/the waystone-scaled hit .* each with the marker of its ledger entry \(`ledger \| hit_<stage id>_<type>`\)/);
     expect(text).toMatch(/say "capped" of chaos only when it is/);
+  });
+
+  it("W1 and the template quote a reference hit as its ledger value, not the scenario's whole number (D-256)", () => {
+    expect(folded(readStage('W1'))).toMatch(/Quote the hit as that entry's value in the record's `ledger` \(438\.55\), not the scenario's whole number \(439\), which is that value rounded up for PoB \(D-256\)/);
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    const hitLines = template.split(/\r?\n/).filter((l) => l.includes('**Max hit taken**'));
+    expect(hitLines).toHaveLength(2);
+    for (const l of hitLines) expect(l).toContain("against <the hit's value in compile-record.json's ledger, not the scenario's whole number>");
+  });
+
+  it("V4's ledger lens wants the scenario hit at its ledger value's ceiling, and the guide's hit at the ledger value (D-256)", () => {
+    const text = folded(readStage('V4'));
+    expect(text).toMatch(/with those inputs and that formula and no other input/);
+    expect(text).toMatch(/equal to its \*\*ceiling\*\*: the record value rounded to 2 decimals, then up to a whole number, because PoB takes these options as whole numbers \(D-256; 96\.4789 gives 97, and 402\.000003 gives 402\)/);
+    expect(text).toContain('A whole-number scenario value is right, not a mismatch.');
+    expect(text).toContain("A reference hit's number in the guide is its ledger value, not the scenario's ceiling (D-256).");
+    expect(text).not.toMatch(/equal to it rounded to 2 decimals/);
   });
 
   it('the D1 gate applies FI-2 and FI-3 as §11.3 says', () => {
@@ -643,9 +674,20 @@ describe('WU-45: the design stage references', () => {
 describe('WU-45: the writer and the coordinator (AC-W5 extended)', () => {
   const def = (stem: string) => readDefinition(fs.readFileSync(path.join(AGENTS_DIR, `${stem}.md`), 'utf8'))!;
 
-  it('the writer exists and has only file tools: no pob2, trade, web, Edit or Bash tool (§4 row, R-3, R-4)', () => {
+  it('the writer exists and has only file tools, Edit among them: no pob2, trade, web or Bash tool (§4 row, R-3, R-4, D-257)', () => {
     expect(definitionFiles).toContain('build-guide-writer.md');
-    expect(def('build-guide-writer').tools).toEqual(['Read', 'Glob', 'Grep', 'Write']);
+    expect(def('build-guide-writer').tools).toEqual(['Read', 'Glob', 'Grep', 'Write', 'Edit']);
+    // The spec's §4 table says the same.
+    const spec = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8');
+    expect(spec).toContain('| `build-guide-writer` | W1 | Read, Glob, Grep, Write, Edit (D-257) | none | none |');
+  });
+
+  it('the writer fixes the guide in place and writes no other file (D-257)', () => {
+    const body = folded(def('build-guide-writer').body);
+    expect(body).toMatch(/no note, draft or scratch file of your own\. Write the guide with Write and correct it in place with Edit \(D-257\)/);
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/`guide\.md` only, and no other file: no notes, drafts or scratch files, in the run folder or anywhere else/);
+    expect(w1).toMatch(/to correct it afterwards, fix it in place with Edit rather than writing it again \(D-257\)/);
   });
 
   it('the coordinator lists its design steps after its research steps, each with an existing stage reference', () => {
@@ -931,5 +973,108 @@ describe('WU-46 review fixes: the references say what the workflow and the check
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toMatch(/`lenses` counts the \*\*distinct\*\* lenses that reported in that pass/);
     expect(log).toContain('`dossier-fix` is its own stage');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-47 fixes (lane P): the skill runner's Bash (F3), truncated workflow results and the import code's one
+// home (D-260), fallback stamping (F5), the unavailable total (D-261), the invalid-roll names (D-258), the
+// pick reason (v4-prose-8) and the general prompt rules from the WU-47 triage
+// ---------------------------------------------------------------------------------------------------
+
+describe('WU-47 fixes: what the skill runner does', () => {
+  const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+
+  it('F3: the runner\'s Bash is only date and the run checker, as written, one per call, never cd and never compound', () => {
+    const text = skill();
+    expect(text).toMatch(/\*\*Your Bash is two commands, each run exactly as written, one per Bash call:\*\* `date -u \+%Y-%m-%dT%H:%M:%SZ` and the run checker \(§8\)\. Never `cd`/);
+    expect(text).toMatch(/no compound command: no `;`, `&&`, `\|\|` or pipe/);
+    expect(text).toMatch(/Write every file \(`run-log\.json`, `reports\/`\) with Write, never with Bash or a script/);
+    // The checker is run by the path the rule names, from the session's directory.
+    expect(text).toContain('`node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`');
+  });
+
+  it('D-260: a cut workflow result is read whole from the notification\'s output file, never from the cut text or the journal', () => {
+    const text = skill();
+    expect(text).toMatch(/the notification's `<result>` is cut at about 10,000 characters when the result is longer\. When it is cut, Read the output file the notification names/);
+    expect(text).toMatch(/Take every verdict, report and `stats` field from the whole result, never from the cut text, and never from a workflow's `journal\.jsonl`/);
+  });
+
+  it('D-260: the import code lives only in the record; the D2 gate returns none and the run log\'s outputs hold none', () => {
+    const d2Gate = readStage('D2-gate');
+    expect(d2Gate).not.toMatch(/"importCode"/);
+    expect(folded(d2Gate)).toMatch(/Don't return the import code: `compile-record\.json` is its one home, and W1 copies it from there \(D-260\)/);
+    expect(folded(d2Gate)).toContain('`finalCompile {compiled, errors, recordPath, pobFile}`, with no import code (D-260)');
+    const log = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
+    expect(log).toContain('| `outputs` | `{plan, record, dossier, guide, pobFile}`');
+    expect(log).toContain('"outputs": { "plan": null, "record": null, "dossier": null, "guide": null, "pobFile": null }');
+    expect(skill()).toMatch(/`outputs` \(`plan`, `record`, `dossier`, `guide` and the record's PoB file; not the import code, whose one home is the record, D-260\)/);
+    const spec = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8');
+    expect(spec).toContain('| `outputs` | `{plan, record, dossier, guide, pobFile}`; the import code stays in the record (D-260) |');
+  });
+
+  it('F5: fallback.md stamps every Agent call with a date reading before and after it, written into the attempt', () => {
+    const text = folded(fs.readFileSync(FALLBACK_MD, 'utf8'));
+    expect(text).toMatch(/\*\*Before each Agent call\*\*, run `date -u \+%Y-%m-%dT%H:%M:%SZ` as its own Bash call and keep the reading as that call's `startedAt`/);
+    expect(text).toMatch(/\*\*After each Agent call returns\*\*, run the same `date` command again and keep the reading as its `endedAt`/);
+    expect(text).toMatch(/one reading serves twice, as the returned call's `endedAt` and the next call's `startedAt`/);
+    expect(text).toMatch(/\*\*Write the readings into the attempt\*\*: its `stages\[\]` entry's `startedAt` and `endedAt`, and a `timeline\[\]` entry/);
+    expect(skill()).toMatch(/\*\*In the fallback\*\*, stamp every Agent call: a `date` call right before it and right after it returns/);
+  });
+
+  it('D-261: run-log.md counts unavailable over plan.json and every concept plan', () => {
+    const text = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
+    expect(text).toMatch(/`unavailable` counts every `prices\[\]` entry with status `unavailable` across every plan the run wrote: `plan\.json` and every `concepts\/<id>\/plan\.json` \(D-261\)/);
+  });
+
+  it('D-258: the invalid-roll refusal quotes the closest names lookup_game_data lists on no match', () => {
+    expect(skill()).toMatch(/when nothing matched, `lookup_game_data` lists up to 5 closest names of the queried kind \(D-258\), and you quote those, in its order/);
+  });
+});
+
+describe('WU-47 fixes: the stage references\' general rules', () => {
+  it('v4-prose-8: W1 and the template take why the concept was picked from the run log, never the dossier, and invent none', () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).not.toMatch(/the mechanics, why it won\)/);
+    expect(w1).toMatch(/`checkpoints\[\]`: checkpoint 1's entry that picked this concept, which is the only record of why it was picked/);
+    expect(w1).toMatch(/\*\*Why this concept\*\*, in Summary, comes from `run-log\.json`'s checkpoint 1 entry .* A `pre-supplied` or `default` answer \(a test config\) picked it by rule: say so and give no reason\. Never invent one\./);
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    const why = template.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
+    expect(why).toContain("from run-log.json's checkpoints[]");
+    expect(why).not.toMatch(/why it won|why each lost/);
+  });
+
+  it('W1 keeps a hedge wherever it repeats a claim, and calls a mechanic reliable only with a source in the build', () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/State a mechanic as reliable only when the build has a source for it/);
+    expect(w1).toMatch(/keeps its hedge everywhere the guide repeats it/);
+  });
+
+  it('D1 quotes no suggest_supports gain as a number', () => {
+    expect(folded(readStage('D1'))).toMatch(/Never quote a `suggest_supports` gain as a number in a claim/);
+  });
+
+  it('D2 keeps a skill gem at or above its tier (D-259), names nodes by their names, and carries a recorded dispute', () => {
+    const d2 = folded(readStage('D2'));
+    expect(d2).toMatch(/A skill gem's level is at least its tier .* \(`campaign\/gems\.json#tier-rule`; V1 enforces it, D-259\)/);
+    expect(d2).toMatch(/Name a passive node by the name the tool gives it, never by one of its stat lines/);
+    expect(d2).toMatch(/A claim citing a fact whose `note` records a dispute carries the dispute/);
+  });
+
+  it('R1a calls a node a notable only when the tool tags it so; R1b-assemble flags a payoff resting on an unconfirmed mechanic', () => {
+    expect(folded(readStage('R1a'))).toMatch(/Call a node a notable or a keystone only when the tool tags it so \(`\[NOTABLE\]`, `\[KEYSTONE\]`\)/);
+    expect(folded(readStage('R1b-assemble'))).toMatch(/When the concept's payoff rests on a mechanic no lookup confirmed, or that has no source in the concept .* its `Risks` says so/);
+  });
+});
+
+describe('D-263: the M-12 run is an interactive session the user starts', () => {
+  it("slice 03's WU-47 procedure and AC-W4 name no headless session, and nothing sets the headless wait ceiling", () => {
+    const spec = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8');
+    const wu47 = spec.slice(spec.indexOf('### WU-47'), spec.indexOf('### WU-48'));
+    expect(folded(wu47)).toMatch(/\*\*Session\.\*\* An interactive Claude Code session that the user starts in the worktree, with step 2's MCP config \(D-263/);
+    expect(wu47).not.toMatch(/headless session|claude -p/);
+    const ac4 = spec.slice(spec.indexOf('- **AC-W4 '), spec.indexOf('- **AC-W15 '));
+    expect(ac4).not.toMatch(/headless/);
+    expect(spec).not.toContain('CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS');
   });
 });

@@ -1,7 +1,7 @@
 ---
 name: build-guide-writer
 description: Build-guide writer (stage W1). Writes guide.md for a build-guide run, the Path of Exile 2 guide a newcomer follows from level 1 to an endgame variant, from the run's plan, final compile record, ledger and dossier and the guide template. Writes only in the run folder and has no game, trade or web tool. Started only by the build-guide workflows and the build-guide skill's Agent-tool fallback; never for other tasks.
-tools: Read, Glob, Grep, Write
+tools: Read, Glob, Grep, Write, Edit
 ---
 
 # build-guide writer (W1)
@@ -23,7 +23,9 @@ the D1 gate's verdict and anything else the step needs.
   committed C1/E1 data under `data/`. You never compile, price, look up or change a build.
 - **Write only the header's `writes`**, inside the run folder (`runFolder`): `guide.md`. Never write
   anywhere else: not the plan, the record or the dossier, not the repository, not the builds folder
-  (D-177). If an artifact looks wrong, write what it says and report the problem in your return's `gaps`.
+  (D-177), and no note, draft or scratch file of your own. Write the guide with Write and correct it in
+  place with Edit (D-257). If an artifact looks wrong, write what it says and report the problem in your
+  return's `gaps`.
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention
   `POESESSID`; put no name or email in the guide.
 - **No web.** You never fetch anything, from pathofexile.com, poe.ninja or any other host. A source the

@@ -71,7 +71,8 @@ By focus:
 - **`tree`**: section `Synergy search`; 1 concept led by tree notables, keystones or ascendancy nodes.
   - Ascendancy notables, keystones and notable clusters that fit the skill, with `check_model_coverage
     {nodes}` on each one the concept relies on. Name each node with its id, so the coordinator can path
-    to it.
+    to it, and by the name the tool gives it. Call a node a notable or a keystone only when the tool tags
+    it so (`[NOTABLE]`, `[KEYSTONE]`).
 
 ## Writes: the research file
 

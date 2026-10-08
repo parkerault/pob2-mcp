@@ -310,7 +310,6 @@
     "record": "compile-record.json",
     "dossier": "dossier.md",
     "guide": null,
-    "pobFile": null,
-    "importCode": null
+    "pobFile": null
   }
 }

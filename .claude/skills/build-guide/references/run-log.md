@@ -31,7 +31,7 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
 | `revisions[]` | `{round, requests: [{text, owner}]}` |
 | `pricing` | `{calls: [{at, stage, tool, item, outcome}], totals: {calls, ok, unavailable, wouldWait, lockedOut, rateLimited}}` |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}`; empty otherwise |
-| `outputs` | `{plan, record, dossier, guide, pobFile, importCode}`: run-folder paths, the record's PoB path and import code; `null` until produced |
+| `outputs` | `{plan, record, dossier, guide, pobFile}`: run-folder paths and the record's PoB path; `null` until produced. No import code: the record holds it (D-260) |
 
 ### Entry rules
 
@@ -43,7 +43,8 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
 - **Times.** Timestamps are ISO 8601 UTC from a real clock: the skill runner reads it with
   `date -u +%Y-%m-%dT%H:%M:%SZ`. Workflow scripts can't read a clock, so in workflow mode an attempt's
   `startedAt` and `endedAt` are `null` unless a record supplies them (a compile record's `compiledAt`, a
-  price's `Checked:` line). In fallback mode the skill stamps every attempt. `startedAt` ≤ `endedAt`
+  price's `Checked:` line). In fallback mode the skill stamps every attempt, by the procedure in
+  `fallback.md`. `startedAt` ≤ `endedAt`
   wherever both are set, and `timeline[]` is in order. No agent gains Bash or a network tool for timing.
 - **`retries[]`** counts only cap-counted retries: a user's revision and a guided retry count against no
   cap (D-236), so they don't appear here; their attempts still appear in `stages[]`. An entry's key is
@@ -74,9 +75,12 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
   (`pricing.md`). `outcome` is `ok`, the `<kind>` of an error's `[trade:<kind>]` prefix (`would_wait`,
   `locked_out`, `rate_limited`, `http`, …), or `error` for an error without the prefix. `at` is the
   result's `Checked:` time, `null` for an error. `totals.calls`, `ok`, `wouldWait`, `lockedOut` and
-  `rateLimited` count `calls` by outcome; `unavailable` counts the price entries that ended `unavailable`.
+  `rateLimited` count `calls` by outcome; `unavailable` counts every `prices[]` entry with status
+  `unavailable` across every plan the run wrote: `plan.json` and every `concepts/<id>/plan.json` (D-261).
+  Count it from the plans when you write the log; the run checker recounts it.
 - **`outputs`**: `plan`, `record`, `dossier` and `guide` are paths relative to the run folder;
-  `pobFile` is the final record's `pobFile.path`; `importCode` is its `importCode`.
+  `pobFile` is the final record's `pobFile.path`. Don't copy the import code into the log: its one home
+  is `compile-record.json`, which `record` names, and the guide holds a copy (D-260).
 
 ## What the workflows return for the log
 
@@ -131,6 +135,6 @@ Each workflow returns `stats` beside its result (slice 03 §5.2, §5.3), and the
   "concepts": [], "conceptsCompiled": 0, "v4Passes": [], "checkpoints": [], "escalations": [], "revisions": [],
   "pricing": { "calls": [], "totals": { "calls": 0, "ok": 0, "unavailable": 0, "wouldWait": 0, "lockedOut": 0, "rateLimited": 0 } },
   "faults": [],
-  "outputs": { "plan": null, "record": null, "dossier": null, "guide": null, "pobFile": null, "importCode": null }
+  "outputs": { "plan": null, "record": null, "dossier": null, "guide": null, "pobFile": null }
 }
 ```

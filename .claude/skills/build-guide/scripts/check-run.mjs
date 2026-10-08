@@ -7,7 +7,9 @@
 // artifact formats and source markers (§7) and the guide template (§8). It doesn't trust self-reports: it
 // recomputes the survival floor, the budget and the rolled-skill gate from the records, and counts claims
 // itself, and wherever its result differs from the agents' verdict it fails, naming the part and both
-// values. `--partial` accepts a run that ended before `completed` and checks what the run produced.
+// values. `--partial` accepts a run that ended before `completed` and checks what the run produced; it
+// skips the V3/V4 claim-count comparisons when a step that writes claims ran after the last V3/V4 pass,
+// since those reports describe earlier artifacts (D-262).
 //
 // Exit 0: every check passed (one line on stdout). Exit 1: each violation on stderr as
 // `check-run: [<rule>] <message>`. Exit 2: usage error.
@@ -78,8 +80,14 @@ const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
 const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
 const HIT_OPTION = /^enemy(Physical|Fire|Cold|Lightning|Chaos)Damage$/;
-/** D-254: every endgame stage holds a waystone-scaled reference hit of each type, each derived by a ledger entry. */
+/**
+ * D-254: every endgame stage holds a waystone-scaled reference hit of each type, each derived by a ledger
+ * entry. D-256: PoB takes these options as whole numbers, so the scenario value is the ledger value rounded
+ * to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
+ */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
+/** Steps that write the claims V3 and V4 count (plan.json, dossier.md, guide.md): D-262's stale-report test. */
+const CLAIM_WRITERS = ['D1', 'D2', 'W1', 'dossier-fix'];
 /** Findings that report on a passing part (../references/gates.md): never failures. */
 const INFO_CODES = ['chaos-exception', 'near-ceiling'];
 
@@ -102,7 +110,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const isTime = (v) => typeof v === 'string' && ISO_TIME.test(v) && !Number.isNaN(Date.parse(v));
 const ms = (v) => Date.parse(v);
 const show = (v) => JSON.stringify(v);
-const near = (a, b) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(a), Math.abs(b));
+const round2 = (x) => Math.round(x * 100) / 100;
+/**
+ * Whether a gate's basis copy `a` equals the record's value `b` to 2 decimals (|a − b| ≤ 0.005, plus a float
+ * epsilon), as V4 compares: the same copy precision passes whatever the value's magnitude (WU-47 F7).
+ */
+const near = (a, b) => Math.abs(a - b) <= 0.005 + 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+/** D-256: the scenario value of a reference hit whose ledger entry has `value`. */
+export const hitCeiling = (value) => Math.ceil(round2(value));
 /** Whether `word` occurs in `text` as a whole token (not inside a longer word), case-insensitively. */
 const hasWord = (text, word) =>
   typeof word === 'string' && word !== '' && new RegExp(`(?<![A-Za-z0-9_-])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_-])`, 'i').test(text);
@@ -323,6 +338,12 @@ export function checkRun(runFolder, { partial = false } = {}) {
     }
   }
   const allPlans = [...(isObj(plan) ? [plan] : []), ...[...conceptPlans.values()].filter(isObj)];
+  // D-261: pricing.totals.unavailable counts every unavailable prices[] entry of every plan the run wrote.
+  const unavailable = allPlans.reduce((n, p) => n + (Array.isArray(p.prices) ? p.prices.filter((e) => isObj(e) && e.status === 'unavailable').length : 0), 0);
+  const loggedUnavailable = isObj(log.pricing) && isObj(log.pricing.totals) ? log.pricing.totals.unavailable : undefined;
+  if (isInt(loggedUnavailable) && loggedUnavailable !== unavailable) {
+    fail('run-log', `run-log.json pricing.totals.unavailable: is ${loggedUnavailable}; plan.json and the concepts' plans hold ${unavailable} unavailable prices[] entries (D-261)`);
+  }
   const ledgerIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.ledger) ? p.ledger.map((e) => e?.id) : [])));
   const priceIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.prices) ? p.prices.map((e) => e?.id) : [])));
   const record = readJson('compile-record.json');
@@ -340,7 +361,6 @@ export function checkRun(runFolder, { partial = false } = {}) {
     for (const k of ['plan', 'record', 'dossier', 'guide']) {
       if (typeof o[k] !== 'string' || !exists(o[k])) fail('run-log', `outputs.${k} is ${show(o[k])}, which names no file in the run folder`);
     }
-    if (o.importCode !== record.importCode) fail('run-log', `outputs.importCode differs from the record's importCode`);
     const pob = isObj(record.pobFile) ? record.pobFile : {};
     if (o.pobFile !== pob.path) fail('run-log', `outputs.pobFile is ${show(o.pobFile)}; the record's PoB file is ${show(pob.path)}`);
     const base = path.posix.basename(String(pob.path ?? '')).replace(/\.xml$/i, '');
@@ -665,8 +685,13 @@ export function checkRun(runFolder, { partial = false } = {}) {
         fail('unresolved', `${r.file}: finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is unresolved in the final pass, and the user accepted no such finding (D-179)`);
       }
     }
-    const counts = countClaims(claims, isObj(plan) ? plan : {});
-    if (final3) checkV3Counts(final3, counts, fail);
+    // D-262: in a run that ended early, a step that writes claims (a routed D1, D2, W1 or dossier-fix) may
+    // have run after the last V3/V4 pass. Those reports counted the earlier artifacts, so under --partial
+    // their counts aren't compared with the current ones; the reports' own consistency still is.
+    const lastVerify = stages.reduce((at, s, i) => (['V3', 'V4'].includes(s.stage) ? i : at), -1);
+    const stale = partial && !completed && lastVerify >= 0 && stages.slice(lastVerify + 1).some((s) => CLAIM_WRITERS.includes(s.stage));
+    const counts = stale ? null : countClaims(claims, isObj(plan) ? plan : {});
+    if (final3 && counts) checkV3Counts(final3, counts, fail);
     for (const r of final4.filter(Boolean)) checkV4Counts(r, counts, mode, fail);
   }
 
@@ -896,9 +921,11 @@ function checkRunLog(log, fail) {
   if (Array.isArray(log.faults) && log.faults.length > 0 && log.testConfig !== 'accepted') bad('faults', 'fault directives apply only in offline test mode (§11.3)');
   if ('outputs' in log) {
     const o = log.outputs;
-    if (!isObj(o) || !['plan', 'record', 'dossier', 'guide', 'pobFile', 'importCode'].every((k) => k in o)) {
-      bad('outputs', 'is {plan, record, dossier, guide, pobFile, importCode}');
+    if (!isObj(o) || !['plan', 'record', 'dossier', 'guide', 'pobFile'].every((k) => k in o)) {
+      bad('outputs', 'is {plan, record, dossier, guide, pobFile}');
     }
+    // D-260: the import code's one home is compile-record.json (and the guide W1 copies it into).
+    if (isObj(o) && 'importCode' in o) bad('outputs', "has importCode; the import code's one home is compile-record.json, which outputs.record names (D-260)");
   }
 }
 
@@ -1030,6 +1057,10 @@ function checkV3Counts(r, counts, fail) {
   }
 }
 
+/**
+ * A V4 report's coverage against the checker's own counts. With `counts` null (D-262: the report counted
+ * artifacts a later step rewrote), only the checks within the report itself apply.
+ */
 function checkV4Counts(r, counts, mode, fail) {
   const cov = r.report.coverage;
   if (!isObj(cov)) return;
@@ -1037,13 +1068,14 @@ function checkV4Counts(r, counts, mode, fail) {
     if (cov[k] !== n) fail('claim-counts', `${r.file}: coverage.${k} is ${show(cov[k])}, but the checker counts ${n} (§7.4)`);
   };
   if (r.lens === 'ledger') {
-    said('entries', counts.entries);
+    if (counts) said('entries', counts.entries);
     if (cov.rederived !== cov.entries) fail('claim-counts', `${r.file}: rederived ${show(cov.rederived)} of ${show(cov.entries)} ledger entries; V4 re-derives every entry (D-179)`);
   }
   if (r.lens === 'sources') {
-    for (const k of ['external', 'data', 'pobDataEndgame', 'pobDataOther', 'prices']) said(k, counts[k]);
     // Online V4 opens every external source (D-179); offline it opens none (D-201, D-255).
     if (mode === 'offline' && cov.opened !== 0) fail('claim-counts', `${r.file}: opened ${show(cov.opened)} sources in an offline run; offline V4 opens none (D-201)`);
+    if (!counts) return;
+    for (const k of ['external', 'data', 'pobDataEndgame', 'pobDataOther', 'prices']) said(k, counts[k]);
     if (mode !== 'offline' && cov.opened !== counts.external) fail('claim-counts', `${r.file}: opened ${show(cov.opened)} of ${counts.external} external claims; V4 opens every external source (D-179)`);
     if (cov.dataChecked !== counts.data) fail('claim-counts', `${r.file}: checked ${show(cov.dataChecked)} of ${counts.data} data claims; V4 checks every one (§7.4)`);
     if (!(isInt(cov.recheckedEndgame) && cov.recheckedEndgame >= counts.pobDataEndgame)) {
@@ -1079,8 +1111,9 @@ function statesPercent(line, value) {
 }
 
 /**
- * Survival floor (D-118, D-119, D-234, D-254): all four resistances capped (chaos only by the exception); the
- * five waystone-scaled reference hits present, each equal to its ledger entry; max hits above the hits.
+ * Survival floor (D-118, D-119, D-234, D-254, D-256): all four resistances capped (chaos only by the
+ * exception); the five waystone-scaled reference hits present, each the whole-number ceiling of its ledger
+ * entry; max hits above the hits. The gate's basis copies are compared with the record to 2 decimals.
  */
 function recomputeFloor(endgame, record, rep, guide, fail) {
   const failures = [];
@@ -1123,8 +1156,8 @@ function recomputeFloor(endgame, record, rep, guide, fail) {
         }
       }
     }
-    // D-254: the five waystone-scaled reference hits, each equal (rounded to 2 decimals) to its ledger entry.
-    const round2 = (x) => Math.round(x * 100) / 100;
+    // D-254, D-256: the five waystone-scaled reference hits, each the ceiling of its ledger entry's value
+    // rounded to 2 decimals (PoB's enemy<Type>Damage options take whole numbers).
     const scenario = Array.isArray(s.config?.scenario) ? s.config.scenario.filter(isObj) : [];
     for (const type of HIT_TYPES) {
       const t = type.toLowerCase();
@@ -1135,8 +1168,10 @@ function recomputeFloor(endgame, record, rep, guide, fail) {
       }
       const entry = `hit_${s.id}_${t}`;
       const derived = record.ledger?.[entry]?.value;
-      if (!isNum(derived) || round2(derived) !== round2(opt.value)) {
-        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} isn't its ledger entry ${entry}'s value ${show(derived ?? null)} (D-254)`));
+      if (!isNum(derived)) {
+        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} has no ledger entry ${entry} value in the record (D-254)`));
+      } else if (opt.value !== hitCeiling(derived)) {
+        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} isn't ${hitCeiling(derived)}, the ceiling of its ledger entry ${entry}'s value ${derived} rounded to 2 decimals (D-256)`));
       }
     }
     for (const opt of scenario) {
@@ -1167,7 +1202,6 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
   const rates = new Map((Array.isArray(b.rates) ? b.rates.filter(isObj) : []).map((r) => [String(r.currency).toLowerCase(), r.divines]));
   const totals = Array.isArray(b.totals) ? b.totals.filter(isObj) : [];
   const prices = new Map((Array.isArray(plan.prices) ? plan.prices.filter(isObj) : []).map((p) => [p.id, p]));
-  const round2 = (x) => Math.round(x * 100) / 100;
   let unverified = false;
   for (const s of endgame.filter((x) => x.variant === 'budget')) {
     const filled = [
@@ -1266,7 +1300,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
         failures.push(failure('rolledSkill', s.id, 'rolled-no-figure', `stage ${s.id} group ${n}'s figure ${f.figure} isn't in the record`));
         continue;
       }
-      if (!(isNum(f.value) && near(f.value, value))) fail('rolled-skill', `the D1 gate gives stage ${s.id} group ${n}'s ${f.figure} as ${show(f.value)}; the record has ${value}`);
+      if (!(isNum(f.value) && near(f.value, value))) fail('rolled-skill', `the D1 gate gives stage ${s.id} group ${n}'s ${f.figure} as ${show(f.value)}; the record has ${value} (compared to 2 decimals)`);
       values.set(n, value);
     }
     if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...fields])}; it uses one field for every group (§5.3)`);

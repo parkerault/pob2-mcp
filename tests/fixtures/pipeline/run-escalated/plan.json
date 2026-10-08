@@ -227,7 +227,7 @@
           },
           {
             "option": "enemyFireDamage",
-            "value": 96.48,
+            "value": 97,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"
@@ -241,7 +241,7 @@
           },
           {
             "option": "enemyColdDamage",
-            "value": 96.48,
+            "value": 97,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"
@@ -255,7 +255,7 @@
           },
           {
             "option": "enemyLightningDamage",
-            "value": 96.48,
+            "value": 97,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"
@@ -269,7 +269,7 @@
           },
           {
             "option": "enemyChaosDamage",
-            "value": 96.48,
+            "value": 97,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[79]"
@@ -513,7 +513,7 @@
           },
           {
             "option": "enemyPhysicalDamage",
-            "value": 438.55,
+            "value": 439,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[82]"
@@ -527,7 +527,7 @@
           },
           {
             "option": "enemyFireDamage",
-            "value": 105.25,
+            "value": 106,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[82]"
@@ -541,7 +541,7 @@
           },
           {
             "option": "enemyColdDamage",
-            "value": 105.25,
+            "value": 106,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[82]"
@@ -555,7 +555,7 @@
           },
           {
             "option": "enemyLightningDamage",
-            "value": 105.25,
+            "value": 106,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[82]"
@@ -569,7 +569,7 @@
           },
           {
             "option": "enemyChaosDamage",
-            "value": 105.25,
+            "value": 106,
             "source": {
               "file": "enemies/map-monsters.json",
               "key": "damage.by-level[82]"

@@ -209,7 +209,7 @@ const broken: BrokenCase[] = [
   { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% (47% under its cap) because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
   // (o) with D-254's waystone-scaled reference hits (WU-45 review)
   { name: '(o) an endgame stage lacks its waystone-scaled chaos reference hit (D-254)', fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => (stageB(p).config.scenario = stageB(p).config.scenario.filter((o: Json) => o.option !== 'enemyChaosDamage'))), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b has no waystone-scaled Chaos reference hit \(enemyChaosDamage\)/ },
-  { name: "(o) a reference hit isn't its ledger entry's value (D-254)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 324.19000244141)), rule: 'floor', says: /stage b's enemyPhysicalDamage 402 isn't its ledger entry hit_b_physical's value 324\.19000244141 \(D-254\)/ },
+  { name: "(o) a reference hit isn't the ceiling of its ledger entry's value (D-254, D-256)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 324.19000244141)), rule: 'floor', says: /stage b's enemyPhysicalDamage 402 isn't 325, the ceiling of its ledger entry hit_b_physical's value 324\.19000244141 rounded to 2 decimals \(D-256\)/ },
   // (p)
   { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editJson(d, 'plan.json', (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.5 divines, above 22/ },
   { name: '(p) a filled budget slot maps to no prices[] entry', fixture: 'run-ok-online', edit: (d) => editJson(d, 'reports/gates/D1-gate-c1-a1.json', (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Helmet'))), rule: 'budget', says: /filled slot "Helmet" maps to no prices\[\] entry/ },
@@ -598,5 +598,168 @@ describe('D-255: rule (l) under --partial, for a run that ended escalated or sto
     const done = copyOf('run-ok');
     ended(done, 'completed', true);
     expect(failing(done)).toMatch(/\[unresolved\] reports\/v3-c1-p1\.json: finding "v3-7"/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-47 fixes: D-256 (whole-number reference hits), F7 (basis copies at 2 decimals), D-260 (no import code
+// in the run log's outputs), D-261 (pricing.totals.unavailable over every plan), D-262 (stale counts under
+// --partial)
+// ---------------------------------------------------------------------------------------------------
+
+describe('D-256: a reference hit is the ledger value rounded to 2 decimals, then up to a whole number', () => {
+  /** Sets stage b's enemy<type>Damage in the plan and the D1 gate's basis copy of it to `value`. */
+  const setHit = (dir: string, type: string, value: number) => {
+    editJson(dir, 'plan.json', (p) => (stageB(p).config.scenario.find((o: Json) => o.option === `enemy${type}Damage`).value = value));
+    editJson(dir, gateFile, (r) => (r.basis.floor.find((f: Json) => f.stage === 'b').hits.find((h: Json) => h.type === type).hit = value));
+  };
+
+  it('passes the fixture, whose fire hit is 97 against its ledger value 96.4789…', () => {
+    const plan = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'plan.json'), 'utf8'));
+    const record = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'compile-record.json'), 'utf8'));
+    expect(stageB(plan).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value).toBe(97);
+    expect(record.ledger.hit_b_fire.value).toBeCloseTo(96.4789, 4);
+    expect(runChecker(path.join(FIXTURES, 'run-ok')).code).toBe(0);
+  });
+
+  it("fails the 2-decimal value D-254 asked for (96.48): PoB's enemy<Type>Damage options take whole numbers", () => {
+    const dir = copyOf('run-ok');
+    setHit(dir, 'Fire', 96.48);
+    expect(failing(dir)).toMatch(/check-run: \[floor\] .*says floor: "pass", but the records give "fail": .*stage b's enemyFireDamage 96\.48 isn't 97, the ceiling of its ledger entry hit_b_fire's value 96\.4789\d* rounded to 2 decimals \(D-256\)/);
+  });
+
+  it('fails a hit rounded down (96): the scenario value is the ceiling, the conservative side of the floor', () => {
+    const dir = copyOf('run-ok');
+    setHit(dir, 'Fire', 96);
+    expect(failing(dir)).toMatch(/\[floor\] .*enemyFireDamage 96 isn't 97, the ceiling/);
+  });
+
+  it('passes a ledger value with float noise (402.000003) at 402, and fails 403 for it', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 402.000003));
+    const r = runChecker(dir);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+    setHit(dir, 'Physical', 403);
+    expect(failing(dir)).toMatch(/\[floor\] .*enemyPhysicalDamage 403 isn't 402, the ceiling of its ledger entry hit_b_physical's value 402\.000003/);
+  });
+});
+
+describe("WU-47 F7: the D1 gate's basis copies are compared with the record to 2 decimals, whatever their size", () => {
+  const withFigure = (record: number | null, copy: number, stage = 'b', group = 2) => {
+    const dir = copyOf('run-ok');
+    const field = `g${group}s1p1`;
+    if (record !== null) editJson(dir, 'compile-record.json', (r) => (r.stages[stage].skillOutputs[field].fields.TotalDPS = record));
+    editJson(dir, gateFile, (r) => (r.basis.rolledSkill.find((x: Json) => x.stage === stage).figures.find((f: Json) => f.group === group).value = copy));
+    return dir;
+  };
+
+  it('passes a small figure copied to 2 decimals (1234.56 for 1234.5637)', () => {
+    const r = runChecker(withFigure(1234.5637, 1234.56));
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('fails a copy off by 0.01 (1234.57 for 1234.5637)', () => {
+    expect(failing(withFigure(1234.5637, 1234.57))).toMatch(/\[rolled-skill\] the D1 gate gives stage b group 2's g2s1p1\.TotalDPS as 1234\.57; the record has 1234\.5637 \(compared to 2 decimals\)/);
+  });
+
+  it('fails a large figure off by 0.1 (140000.1 for 140000), which a relative tolerance let through', () => {
+    expect(failing(withFigure(null, 140000.1, 'n', 1))).toMatch(/\[rolled-skill\] the D1 gate gives stage n group 1's g1s1p1\.TotalDPS as 140000\.1; the record has 140000/);
+  });
+
+  it('compares the floor basis the same way: a max hit taken copied to 2 decimals passes, one off by 0.01 fails', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.outputs.ChaosMaximumHitTaken = 3000.1234));
+    editJson(dir, gateFile, (r) => (r.basis.floor[0].hits.find((h: Json) => h.type === 'Chaos').maxHitTaken = 3000.12));
+    expect(runChecker(dir).code).toBe(0);
+    editJson(dir, gateFile, (r) => (r.basis.floor[0].hits.find((h: Json) => h.type === 'Chaos').maxHitTaken = 3000.13));
+    expect(failing(dir)).toMatch(/\[floor\] the D1 gate's basis gives stage b's Chaos hit 97 against 3000\.13; the records give 97 against 3000\.1234/);
+  });
+});
+
+describe("D-260: the run log's outputs carry no import code; compile-record.json is its one home", () => {
+  it('the passing fixtures name the record and the PoB file, without an import code', () => {
+    for (const fixture of ['run-ok', 'run-ok-online', 'run-escalated']) {
+      const log = JSON.parse(fs.readFileSync(path.join(FIXTURES, fixture, 'run-log.json'), 'utf8'));
+      expect(Object.keys(log.outputs)).toEqual(['plan', 'record', 'dossier', 'guide', 'pobFile']);
+    }
+  });
+
+  it('fails a run log whose outputs copy the import code', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => (l.outputs.importCode = 'eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001'));
+    expect(failing(dir)).toMatch(/check-run: \[run-log\] run-log\.json outputs: has importCode; the import code's one home is compile-record\.json, which outputs\.record names \(D-260\)/);
+  });
+});
+
+describe('D-261: pricing.totals.unavailable counts the unavailable prices[] entries of plan.json and every concept plan', () => {
+  it("run-ok's 15 are plan.json's 13 and the two concept skeletons' one each", () => {
+    const count = (rel: string) => (JSON.parse(fs.readFileSync(path.join(FIXTURES, 'run-ok', rel), 'utf8')).prices as Json[]).filter((p) => p.status === 'unavailable').length;
+    expect([count('plan.json'), count('concepts/c1/plan.json'), count('concepts/c2/plan.json')]).toEqual([13, 1, 1]);
+    const log = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'run-log.json'), 'utf8'));
+    expect(log.pricing.totals.unavailable).toBe(15);
+  });
+
+  it.each([
+    [13, "plan.json's entries only"],
+    [2, "the concept plans' only"],
+    [0, 'none'],
+  ])('fails %s (%s)', (n) => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => (l.pricing.totals.unavailable = n));
+    expect(failing(dir)).toMatch(new RegExp(`check-run: \\[run-log\\] run-log\\.json pricing\\.totals\\.unavailable: is ${n}; plan\\.json and the concepts' plans hold 15 unavailable prices\\[\\] entries \\(D-261\\)`));
+  });
+
+  it('counts an unavailable entry of a concept plan in an online run', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'concepts/c1/plan.json', (p) => {
+      Object.assign(p.prices[0], { status: 'unavailable', note: 'rate-limited' });
+      delete p.prices[0].amount;
+    });
+    expect(failing(dir)).toMatch(/pricing\.totals\.unavailable: is 0; plan\.json and the concepts' plans hold 1 unavailable/);
+  });
+});
+
+describe('D-262: under --partial, stale V3/V4 counts are skipped when a claim-writing step ran after the last V3/V4 pass', () => {
+  /** A stopped copy of run-ok whose V3 and V4 counts no longer match the artifacts, and `after` logged after the last V4 lens. */
+  const staleRun = (after: string | null, status = 'stopped') => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'reports/v3-c1-p1.json', (r) => (r.coverage.guide += 1));
+    editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.data += 1));
+    editJson(dir, 'run-log.json', (l) => {
+      l.status = status;
+      if (after !== null) l.stages.push({ stage: after, concept: 'c1', attempt: 2, startedAt: null, endedAt: null, agents: 1, outcome: 'done', findings: 0 });
+    });
+    return dir;
+  };
+
+  it.each(['D1', 'D2', 'W1', 'dossier-fix'])('passes a stopped run with %s after the last V4 pass', (step) => {
+    const r = runChecker(staleRun(step), '--partial');
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('still compares the counts with no claim-writing step after the last pass (none, or revise-map, which writes nothing)', () => {
+    for (const after of [null, 'revise-map']) {
+      const r = runChecker(staleRun(after), '--partial');
+      expect(r.code).toBe(1);
+      expect(r.stderr).toMatch(/\[claim-counts\] reports\/v3-c1-p1\.json: coverage\.guide is 13, but the checker counts 12/);
+      expect(r.stderr).toMatch(/\[claim-counts\] reports\/v4-sources-c1-p1\.json: coverage\.data is 5, but the checker counts 4/);
+    }
+  });
+
+  it('still compares them in a completed run, and without --partial', () => {
+    expect(failing(staleRun('W1', 'completed'))).toMatch(/\[claim-counts\] reports\/v3-c1-p1\.json: coverage\.guide is 13/);
+    expect(runChecker(staleRun('W1', 'completed'), '--partial').stderr).toMatch(/\[claim-counts\] reports\/v3-c1-p1\.json: coverage\.guide is 13/);
+  });
+
+  it("keeps a stale report's own consistency checks: an offline sources report that opened a source still fails", () => {
+    const dir = staleRun('D1');
+    editJson(dir, 'reports/v4-sources-c1-p1.json', (r) => (r.coverage.opened = 1));
+    const r = runChecker(dir, '--partial');
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/\[claim-counts\] .*opened 1 sources in an offline run; offline V4 opens none/);
+    expect(r.stderr).not.toMatch(/coverage\.data is 5/);
   });
 });

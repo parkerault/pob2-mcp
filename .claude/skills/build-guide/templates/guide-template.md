@@ -35,7 +35,7 @@ a line marked [only when ...] only when it applies (and drop the marker), and de
 - **Pros:** <what it does well>.
 - **Cons:** <what it struggles with>.
 - **Difficulty:** <easy | medium | hard>, because <why>.
-- **Why this concept:** <why it won at checkpoint 1>. The dossier (`dossier.md`) keeps the alternatives and why each lost.
+- **Why this concept:** <how it was picked at checkpoint 1, from run-log.json's checkpoints[]: the user's answer, in their words when they gave any; for a pre-supplied or default answer, the rule that picked it, and no reason>. The dossier (`dossier.md`) keeps the other concepts and their results.
 
 ## How it works
 
@@ -92,7 +92,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 - **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f1]
   [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
   [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- **Max hit taken** against the waystone-scaled reference hits (T15 monster damage at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <hit>[^h1]; fire <FireMaximumHitTaken> against <hit>[^h2], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
+- **Max hit taken** against the waystone-scaled reference hits (T15 monster damage at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <the hit's value in compile-record.json's ledger, not the scenario's whole number>[^h1]; fire <FireMaximumHitTaken> against <its ledger value>[^h2], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
 - **Budget:** <total> divines against the 20-divine ceiling: the slot and tree-jewel prices above, converted at the rates the D1 gate recorded.
   [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
@@ -119,7 +119,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 - **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f3]
   [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
   [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- **Max hit taken** against the waystone-scaled reference hits (monster damage at the variant's top area level, at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <hit>[^h3]; fire <FireMaximumHitTaken> against <hit>[^h4], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
+- **Max hit taken** against the waystone-scaled reference hits (monster damage at the variant's top area level, at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <the hit's value in compile-record.json's ledger, not the scenario's whole number>[^h3]; fire <FireMaximumHitTaken> against <its ledger value>[^h4], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
 - **Total:** <total> divines against the ~200-divine reference (a reference, not a cap).
   [only when any price is unavailable] Prices are unavailable (<why>), so this total isn't known.
 - **The Arbiter of Divinity:** <as for the budget variant>.[^a2]

@@ -124,14 +124,17 @@ Hunt → `titan-blood-hunt`).
   `reports/` unchanged, then the run log.
 - **FR-W7 (run checker).** `scripts/check-run.mjs <runFolder> [--partial]` uses Node built-ins only
   (AC-B7). It validates the run folder against §2, §6, §7 and §8; `--partial` accepts a run that ended
-  before `completed`.
+  before `completed`. Under `--partial`, when a step that writes claims (D1, D2, W1 or `dossier-fix`) ran
+  after the last V3/V4 pass, the claim-count comparisons below are skipped for that pass's reports, which
+  counted the earlier artifacts (D-262).
   - **It recomputes, and doesn't trust self-reports.** The checker recomputes the following from the
     records. Wherever its result differs from the agents' verdict, it exits non-zero, naming the part
     and both values. The agents' verdict means the last D1 gate report of the concept the guide is for,
     or a V3 or V4 report.
   - **The survival floor**, by §5.3's rule, from the final compile record's endgame stages and the
     plan's scenario inputs. All four resistances are gated; chaos passes uncapped only with the stage's
-    `chaosResistException`, whose reason the guide's `Checks` must state (D-234).
+    `chaosResistException`, whose reason the guide's `Checks` must state (D-234). Each of the five
+    reference hits is the ceiling of its ledger entry's value (D-254, D-256).
   - **The budget**, from the plan's `prices[]` entries, with D-219's thresholds. It uses the gate
     report's map from slots to price entries and the conversion rates the report recorded. Every filled
     slot of each budget-variant stage must map to an entry. A total over 20 divines must come with the
@@ -167,7 +170,7 @@ only by the coordinator.
 |---|---|---|---|---|
 | `build-guide-researcher` | R1a | Read, Glob, Grep, Write | ⊆ L | WebSearch, WebFetch |
 | `build-guide-coordinator` | R1b, R1b assembly, dossier fix, D1, D2, gates, final compile, revision mapping | Read, Glob, Grep, Write, Edit | ⊆ L ∪ B ∪ C ∪ P | WebSearch, WebFetch |
-| `build-guide-writer` | W1 | Read, Glob, Grep, Write | none | none |
+| `build-guide-writer` | W1 | Read, Glob, Grep, Write, Edit (D-257) | none | none |
 | `build-guide-provenance` | V3 | Read, Glob, Grep | none | none |
 | `build-guide-verifier` | V4 lenses | Read, Glob, Grep | ⊆ L | WebFetch |
 
@@ -251,7 +254,12 @@ round, then one more than the highest id already in the run.
      and the gate adds a finding naming the value and the reason; without one the floor fails. The D1
      agent uses the exception only when capping chaos is infeasible (D-234). And for every damage type
      in the stage's mapping reference hits (its scenario inputs, C-32: the `enemy<Type>Damage` options,
-     pin `Modules/ConfigOptions.lua:2267-2275`), `<Type>MaximumHitTaken` greater than that hit;
+     pin `Modules/ConfigOptions.lua:2267-2275`), `<Type>MaximumHitTaken` greater than that hit. Every
+     endgame stage holds five waystone-scaled hits (physical, fire, cold, lightning, chaos), each derived
+     by a ledger entry `hit_<stage id>_<type>` (D-254). PoB types these options `countAllowZero` (whole
+     numbers), so each scenario value is the ceiling of its entry's value rounded to 2 decimals,
+     `ceil(round2(value))`: 96.4789 gives 97, and 402.000003 gives 402. The guide quotes the ledger value
+     (D-256, amending D-254);
    - **budget** (D-116, D-147, D-164, D-219): the budget variant passes when every slot price is `ok` and
      the total is ≤ 20 divines; it also passes above 20 up to 22, with a "near the ceiling" note in the
      guide (§8); it fails above 22; and it is `unverified` when any price is `unavailable` or a currency
@@ -283,7 +291,9 @@ round, then one more than the highest id already in the run.
 4. **D2 gate** (a fresh coordinator step). Compiles the whole plan measure-only; V1 and V2 must pass for
    every stage (V1 includes tree continuity, D-192). On a pass, the same step runs the **final compile**
    (`compile: final`, `build_name` = `buildName`), which writes the PoB file through C-17 and the record
-   with `importCode`. A failure re-runs D2 with the findings; after 2 retries, `escalated`.
+   with `importCode`. The verdict records it as `finalCompile {compiled, errors, recordPath, pobFile}`,
+   without the import code, whose one home is the record (D-260). A failure re-runs D2 with the findings;
+   after 2 retries, `escalated`.
 5. **W1** (writer). Writes `guide.md` from the plan, the final record, the ledger, the dossier and the
    template (§8). It copies `importCode` from the record (D-205).
 6. **V3 and V4.** One provenance agent and three verifier lenses (§7.4), at most 3 in flight (D-161).
@@ -371,14 +381,15 @@ with its agent type.
 | `revisions[]` | `{round, requests: [{text, owner}]}`, one per checkpoint-2 request for changes (D-236) |
 | `pricing` | `calls[]` of `{at, stage, tool, item, outcome}` (§9); `totals`, see below |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}` |
-| `outputs` | `{plan, record, dossier, guide, pobFile, importCode}` |
+| `outputs` | `{plan, record, dossier, guide, pobFile}`; the import code stays in the record (D-260) |
 
 - **Pricing outcomes** (D-218). `outcome` is `ok`; or the `<kind>` of the error's `[trade:<kind>]`
   prefix, a `TradeErrorKind` (`src/trade/errors.ts`) such as `would_wait`, `locked_out` or
   `rate_limited` (a 429 from the trade site); or `error`, for an error without the prefix. `at` is the
   result's `Checked:` time (C-49), or `null` for an error. `totals` is `{calls, ok, unavailable,
-  wouldWait, lockedOut, rateLimited}`: `unavailable` counts the price entries that ended `unavailable`,
-  and the others count calls by outcome.
+  wouldWait, lockedOut, rateLimited}`: `unavailable` counts every `prices[]` entry with status
+  `unavailable` across every plan the run wrote (`plan.json` and every `concepts/<id>/plan.json`), which
+  the run checker recounts (D-261); the others count calls by outcome.
 - Timestamps are ISO 8601 UTC from a real clock. Workflow scripts can't read one (§1), so in workflow
   mode the per-attempt times may be `null`. The times come from the skill runner, which stamps
   `timeline[]` (and, in fallback mode, every attempt), from the compile records' `compiledAt`, and from
@@ -641,11 +652,13 @@ WU-44 → WU-45 → WU-46 run one after another, not in parallel. They share
      `POB_DIRECTORY`, `XDG_STATE_HOME` and `POB_GUIDES_DIRECTORY` at the temp dirs,
      `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true`,
      `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2` and no `POESESSID`.
-  3. **Session.** A headless Claude Code session in the worktree: WebSearch and WebFetch denied; writes
-     allowed under the temp guides root. **The kept evidence** is the session's own transcript and each
-     workflow run's `journal.jsonl`, which records every agent's return value (platform §5). The journal
-     holds no per-agent tool calls, so for workflow agents the enforcement is step 2's disabled groups
-     and this step's denials, and the scans in AC-W16 and AC-W20 check what the evidence holds.
+  3. **Session.** An interactive Claude Code session that the user starts in the worktree, with step 2's
+     MCP config (D-263: a headless run isn't a real-world test of the skill): WebSearch and WebFetch
+     denied; writes allowed under the temp guides root. **The kept evidence** is the session's own
+     transcript and each workflow run's `journal.jsonl`, which records every agent's return value
+     (platform §5). The journal holds no per-agent tool calls, so for workflow agents the enforcement is
+     step 2's disabled groups and this step's denials, and the scans in AC-W16 and AC-W20 check what the
+     evidence holds.
   4. **Run A** (workflow path): `/build-guide Titan "Blood Hunt" --offline --test A.json`, with answers
      checkpoint 1 `["first-viable"]` and checkpoint 2 `["accept"]`, and faults FI-1 `{concepts:["c1"],
      persistent:true}` and FI-2 `{concepts:"all", persistent:false}` (only the chosen concept reaches D1).
@@ -656,7 +669,7 @@ WU-44 → WU-45 → WU-46 run one after another, not in parallel. They share
   6. **Seeded V4 check** (AC-W15), the probes (AC-W4, AC-W21, AC-W26), and the coordinator's guide review
      (AC-W22).
 
-  If the headless session has no Workflow tool, run A records `agent-tool`, and WU-47 stops with
+  If the session has no Workflow tool, run A records `agent-tool`, and WU-47 stops with
   `blocked: A-23` for the coordinator to decide (D-172).
 
   **Quality clauses.** A clause marked *(quality)* depends on how well the agents perform, not only on
@@ -855,9 +868,9 @@ and its file is shown to the user with item 1's approval.
 **Offline end-to-end run (WU-47).** Recorded coordinator checks, re-checked by an independent verifier.
 *(quality)* marks a quality clause (WU-47).
 
-- **AC-W4 (WU-47; WU-43's test-config refusal).** A recorded probe in the M-12 environment: a headless
-  `/build-guide Titan "Blood Hunt" --test A.json`, without `--offline`, bounded to end before R1a
-  starts.
+- **AC-W4 (WU-47; WU-43's test-config refusal).** A recorded probe in the M-12 environment: in the
+  interactive session of step 3 (D-263), `/build-guide Titan "Blood Hunt" --test A.json`, without
+  `--offline`, bounded to end before R1a starts.
   - The run folder's `run-log.json` exists, with `mode: "online"` and `testConfig: "refused"`.
   - No checkpoint is `pre-supplied`, and no `research/` file exists.
 - **AC-W15 (WU-47; WU-46's `ledger` lens).** A recorded seeded check.

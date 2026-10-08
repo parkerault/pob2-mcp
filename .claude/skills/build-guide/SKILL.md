@@ -25,6 +25,11 @@ checkpoint 1 → design workflow for the chosen concept → checkpoint 2.
   coordinator step's, and no coordinator step overlaps any other agent.
 - **Agents run only as the five build-guide types** (`.claude/agents/build-guide/`), named as
   `agentType` in the workflows and `subagent_type` in the fallback. A default agent would see every tool.
+- **Your Bash is two commands, each run exactly as written, one per Bash call:**
+  `date -u +%Y-%m-%dT%H:%M:%SZ` and the run checker (§8). Never `cd` (the Workflow tool finds a workflow
+  by the session's working directory, so after a `cd` the workflows aren't found), and no compound command:
+  no `;`, `&&`, `||` or pipe. Write every file (`run-log.json`, `reports/`) with Write, never with Bash
+  or a script.
 
 | Agent type | Runs |
 |---|---|
@@ -50,9 +55,11 @@ checkpoint 1 → design workflow for the chosen concept → checkpoint 2.
    - Call `get_classes`. The ascendancy must be listed (case-insensitive). Note its class.
    - Call `lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
-   - On a failure, **stop**: list the closest valid names from those results (ascendancies from
-     `get_classes`; gem names from the lookup, or from a lookup on a shorter query), and say how to
-     re-run. Create no run folder and write nothing.
+   - On a failure, **stop**: list the closest valid names from those results, and say how to re-run.
+     Ascendancies come from `get_classes`. For the skill, quote the names the lookup gave: when nothing
+     matched, `lookup_game_data` lists up to 5 closest names of the queried kind (D-258), and you quote
+     those, in its order; when it matched only other gems, those gems' names; for a support gem, say it is a
+     support. Create no run folder and write nothing.
    - Use the names exactly as the tools gave them from here on: `roll = {className, ascendancy, skill}`.
 2. **Run folder.** Call `guide_run {new_run: <slug>}` (`references/run-folder.md` gives the slug rule).
    Keep its absolute path (`runFolder`), its root-relative path (`runFolderRel`) and
@@ -79,6 +86,16 @@ in the session, a call fails before any agent starts, or the accepted test confi
 
 Every agent prompt starts with the task header (`references/task-header.md`) and names its stage
 reference under `references/stages/`.
+
+- **A workflow's result** reaches you in its task notification, and the notification's `<result>` is cut
+  at about 10,000 characters when the result is longer. When it is cut, Read the output file the
+  notification names (with an offset and a limit when it is long): it holds the whole result. Take every
+  verdict, report and `stats` field from the whole result, never from the cut text, and never from a
+  workflow's `journal.jsonl`, which holds the agents' raw returns, not the reports the workflow composed
+  (D-260).
+- **In the fallback**, stamp every Agent call: a `date` call right before it and right after it returns,
+  the readings written into that attempt's `stages[]` and `timeline[]` entries (`references/fallback.md`
+  gives the procedure).
 
 ## 4. Research (slice 03 §5.2)
 
@@ -152,13 +169,14 @@ else (the run ends `not-accepted`, with the user's note).
 
 ## 8. Finish
 
-1. Set `status` and `endedAt`, and `outputs` (`plan`, `record`, `dossier`, `guide`, the record's PoB file
-   and `importCode`); write the run log a last time.
+1. Set `status` and `endedAt`, and `outputs` (`plan`, `record`, `dossier`, `guide` and the record's PoB
+   file; not the import code, whose one home is the record, D-260); write the run log a last time.
 2. Run the run checker: `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, adding
    `--partial` unless the run is `completed`. It recomputes the gates and the claim counts from the
    records and fails where they differ from the agents' verdicts.
-3. Tell the user: the run folder, the guide, the PoB file and its import code, the final status, and the
-   checker's result (each violation it printed, if any).
+3. Tell the user: the run folder, the guide, the PoB file, where its import code is (the guide's first
+   section, and `compile-record.json`), the final status, and the checker's result (each violation it
+   printed, if any).
 
 ## References
 

@@ -38,10 +38,11 @@ don't design. Fix nothing in the plan: a failure goes back to D1 as findings.
      `chaos-exception` finding on a passing floor names the stage's `ChaosResist` value and the reason);
      and the **reference hits** (D-119, D-254): every endgame stage has a waystone-scaled hit for each of
      `enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and
-     `enemyChaosDamage` in its scenario (else `reference-hit-missing-<type>`); each equals, rounded to 2
-     decimals, the record's value of its ledger entry `hit_<stage id>_<type>` (else
-     `reference-hit-ledger-<type>`); and each is below the record's `<Type>MaximumHitTaken` (else
-     `max-hit-<type>`). `<type>` is lower case (`physical`, `chaos`). The other codes:
+     `enemyChaosDamage` in its scenario (else `reference-hit-missing-<type>`); each equals the ceiling of
+     the record's value of its ledger entry `hit_<stage id>_<type>`, that value rounded to 2 decimals and
+     then up to a whole number, since PoB takes these options as whole numbers (D-256: 96.4789 gives 97,
+     402.000003 gives 402; else `reference-hit-ledger-<type>`); and each is below the record's
+     `<Type>MaximumHitTaken` (else `max-hit-<type>`). `<type>` is lower case (`physical`, `chaos`). The other codes:
      `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`, `missing-chaos-resist`.
      `chaos-exception` and `near-ceiling` are information on a passing part, never a failure.
    - **budget** (D-219, D-249): the budget variant's filled slots **and tree jewels**, each mapped to its
@@ -76,8 +77,8 @@ Your last message is this JSON and nothing after it (the field names are a contr
   ],
   "basis": {
     "floor": [ { "stage": "b", "missing": { "Fire": 0, "Cold": 0, "Lightning": 0 }, "chaos": 47,
-                 "hits": [ { "type": "Physical", "hit": 402.0, "maxHitTaken": 5100 },
-                           { "type": "Chaos", "hit": 96.48, "maxHitTaken": 3000 } ] } ],
+                 "hits": [ { "type": "Physical", "hit": 402, "maxHitTaken": 5100 },
+                           { "type": "Chaos", "hit": 97, "maxHitTaken": 3000 } ] } ],
     "budget": { "rates": [], "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
                                         { "stage": "b", "jewel": 1001, "priceId": "b-jewel-1001" } ],
                 "totals": [ { "stage": "b", "divines": null } ], "nonBudget": [ { "stage": "n", "divines": null, "reference": 200 } ] },
@@ -98,7 +99,8 @@ Your last message is this JSON and nothing after it (the field names are a contr
   `floor` entry per endgame stage (the three gated values, the chaos value `MissingChaosResist`, all five
   reference hits with their `<Type>MaximumHitTaken`); every budget slot and tree jewel with its `priceId`, the
   rates, each budget total (`null` when unverified) and the non-budget totals; per endgame stage the rolled
-  group, its role and a figure for every group of that role.
+  group, its role and a figure for every group of that role. Copy each value as the record gives it, or
+  rounded to 2 decimals: the run checker compares the copies with the record to 2 decimals.
 - `priceCalls`: the re-price pass's calls; `[]` offline.
 - `faultsApplied`: `[{"id": "FI-2", "observed": "<the V1 finding it caused>"}]`, and `{"id": "FI-3",
   "observed": "gate run as usual; outcome forced by the workflow"}`, for each directive the header held.

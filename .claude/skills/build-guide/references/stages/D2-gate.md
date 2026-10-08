@@ -40,7 +40,8 @@ design. Fix nothing in the plan: a failure goes back to D2 as findings.
    compile error is a failed final compile: report the error lines in `errors`. Never retry it, never pick
    another `build_name`, and never work around it.
 3. On success, read the new record and return its `v1` and `v2` verdicts over every stage, as in the check,
-   its `pobFile.path` and its `importCode`.
+   and its `pobFile.path`. Don't return the import code: `compile-record.json` is its one home, and W1 copies
+   it from there (D-260).
 
 ## Writes
 
@@ -70,7 +71,6 @@ The final compile (`final`):
   "errors": [],
   "recordPath": "compile-record.json",
   "pobFile": "titan-blood-hunt-2026-10-08-1.xml",
-  "importCode": "eNrtWV1v2zYU…",
   "verdict": { "v1": "pass", "v2": "pass" },
   "findings": []
 }
@@ -78,7 +78,9 @@ The final compile (`final`):
 
 - `verdict`: each part `pass`, `fail` or `unverified`; `findings`: `{part, code, stage, message}`.
 - `compiled`: whether the final compile succeeded; `errors`: its error lines verbatim.
-- `pobFile`, `importCode`: the new record's `pobFile.path` and `importCode`, or `null` when it failed.
+- `pobFile`: the new record's `pobFile.path`, or `null` when it failed. The workflow records the final
+  compile in this attempt's verdict as `finalCompile {compiled, errors, recordPath, pobFile}`, with no import
+  code (D-260).
 
 ## Fault directives
 

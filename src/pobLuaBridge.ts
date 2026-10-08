@@ -816,7 +816,7 @@ export class PoBLuaApiClient {
 
   /**
    * C-38: per line, whether PoB applies an item's, a passive node's or a gem's lines (`API/Coverage.lua`);
-   * reads only. `sourceNames` is the server's name scan of PoB's source (D-226).
+   * reads only. `sourceNames` and `sourceTemplates` are the server's scan of PoB's source (D-226, D-243).
    */
   async checkCoverage(params: ActionParams<"check_coverage">): Promise<ActionReply<"check_coverage">["result"]> {
     const res = await this.request("check_coverage", params);

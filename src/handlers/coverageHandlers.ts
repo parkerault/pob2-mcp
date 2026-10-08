@@ -6,17 +6,20 @@
  * Inputs: one or more of `item_text`, `nodes` (ids or exact names) and `gems` (names), or `build: true`
  * alone (the active item set's equipped items, the active spec's nodes, the active skill set's gems).
  * Every line gets one status: fully parsed, partly parsed (with the remainder), unparsed, parsed to
- * nothing, possibly unread (a mod named nowhere in PoB's calculation code, by the server's name scan,
- * D-226), or, for a gem line, possibly unmodelled; check config (PoB's red-tooltip rule, D-123). Build mode
- * lists only lines that aren't fully parsed; its counts cover every line.
+ * nothing, possibly unread (a mod PoB's calculation code names nowhere, even as a concatenated name, by
+ * the server's scan, D-226 and D-243; advisory), or, for a gem line, possibly unmodelled; check config
+ * (PoB's red-tooltip rule, D-123). A partly parsed line applies nothing: PoB drops a line with a
+ * remainder. Build mode also checks the jewels in allocated tree sockets (D-242) and lists only lines
+ * that aren't fully parsed; its counts cover every line.
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
 import { COVERAGE_STATUSES, type CheckCoverageResult, type CoverageEntry, type CoverageStatus } from "../engine/schemas.js";
+import type { PobSourceScan } from "../engine/pobSourceNames.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
 export interface CoverageContext extends Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient"> {
-  /** The server's name scan of PoB's source (D-226): memoized once per server process. */
-  sourceNames: () => Promise<Set<string>>;
+  /** The server's scan of PoB's source (D-226, D-243): memoized once per server process. */
+  sourceScan: () => Promise<PobSourceScan>;
 }
 
 export interface CheckModelCoverageArgs {
@@ -29,11 +32,12 @@ export interface CheckModelCoverageArgs {
 /** What each status means, for the statuses a listing shows. */
 const STATUS_NOTES: Record<CoverageStatus, string> = {
   "fully parsed": "PoB applies the whole line.",
-  "partly parsed": "PoB applies part of the line and ignores the remainder shown.",
+  "partly parsed":
+    "PoB applies none of the line: it understood only part of it, and the remainder shows what it didn't understand (PoB drops any line with a remainder).",
   unparsed: "PoB ignores the line.",
   "parsed to nothing": "PoB reads the line, but it changes no stat.",
   "possibly unread":
-    "PoB parses the line, but a mod it makes is named nowhere in PoB's calculation code (Modules/ and Classes/, except the parser), so PoB probably never reads it.",
+    "PoB parses the line, but a mod it makes is named nowhere in PoB's calculation code (Modules/ and Classes/, except the parser), not even as a name it builds by concatenation, so PoB may never read it. This is advisory: PoB may still read the name through a name it computes another way, so confirm it by measurement (calc_with or lua_get_stats with and without the line) before working the effect out by hand.",
   "possibly unmodelled; check config":
     "PoB's own gem tooltip marks this skill line unsupported (its stat has no stat map); the effect may be modelled only through a config option or skill-specific code, so check the config.",
 };
@@ -147,7 +151,7 @@ function render(req: Request, result: CheckCoverageResult): string {
 export async function handleCheckModelCoverage(context: CoverageContext, args: CheckModelCoverageArgs) {
   return wrapHandler("check model coverage", async () => {
     const req = parseArgs(args);
-    const names = await context.sourceNames();
+    const scan = await context.sourceScan();
 
     await context.ensureLuaClient();
     const luaClient = context.getLuaClient();
@@ -158,7 +162,8 @@ export async function handleCheckModelCoverage(context: CoverageContext, args: C
       ...(req.nodes ? { nodes: req.nodes } : {}),
       ...(req.gems ? { gems: req.gems } : {}),
       ...(req.build ? { build: true } : {}),
-      sourceNames: [...names],
+      sourceNames: [...scan.names],
+      sourceTemplates: scan.templates,
     });
     return { content: [{ type: "text" as const, text: render(req, result) }] };
   });

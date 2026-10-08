@@ -12,7 +12,10 @@
  *   gems, which a Lua query enumerates.
  *
  * AC-K10…AC-K14 and AC-K46 (the name scan: `pobSourceNames` and the once-per-process `fs` spy) run here;
- * AC-K46's contract part is in `contract.test.ts`. The read kind (AC-K14's last clause, AC-B3) is the
+ * AC-K46's contract part is in `contract.test.ts`. The review fixes run here too: a partly parsed line
+ * applies nothing, statuses follow PoB's own BuildModList and ProcessStats over every unique and node,
+ * ranged item lines follow getRangedModList, build mode checks jewels in allocated tree sockets (D-242),
+ * and names PoB builds by concatenation count as read (D-243). The read kind (AC-K14's last clause, AC-B3) is the
  * generic engine-kind check over the `check_model_coverage` samples in `engineKinds.test.ts`; the static
  * part below checks those samples exist.
  */
@@ -23,7 +26,7 @@ import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { TOOL_META } from '../../src/server/toolMeta';
 import { resolvePobSrc } from '../../src/engine/pobPath';
-import { forgetPobSourceNames, pobSourceNames } from '../../src/engine/pobSourceNames';
+import { concatTemplates, forgetPobSourceNames, pobSourceNames, pobSourceScan, type PobSourceScan } from '../../src/engine/pobSourceNames';
 import { remainderText } from '../../src/handlers/coverageHandlers';
 
 const ENGINE_TIMEOUT = 240_000;
@@ -100,16 +103,49 @@ interface Parse {
   names: string[];
 }
 
-/** A mod name the scan has; a compound "Condition:X" name when each ':'-separated part is in it. */
-const named = (scan: Set<string>, name: string) => scan.has(name) || (name.includes(':') && name.split(':').every((p) => scan.has(p)));
+/** Whether `name` from `pos` fits the template parts from `k`; a `*` part is empty or a scanned name. */
+function fits(scan: PobSourceScan, name: string, parts: string[], k = 0, pos = 0): boolean {
+  if (k === parts.length) return pos === name.length;
+  if (parts[k] === '*') {
+    for (let end = pos; end <= name.length; end++) {
+      const run = name.slice(pos, end);
+      if ((run === '' || scan.names.has(run)) && fits(scan, name, parts, k + 1, end)) return true;
+    }
+    return false;
+  }
+  return name.startsWith(parts[k], pos) && fits(scan, name, parts, k + 1, pos + parts[k].length);
+}
+
+/**
+ * Whether a mod name is read by name (§2.4 and D-243): in the scan; a compound "Condition:X" whose parts
+ * are; equal to, or ending with, a template literal of 6+ characters that starts with a capital; or fitting
+ * a template.
+ */
+function readByName(scan: PobSourceScan, name: string): boolean {
+  if (scan.names.has(name)) return true;
+  if (name.includes(':')) return name.split(':').filter(Boolean).every((p) => readByName(scan, p));
+  const literals = scan.templates.flatMap((t) => t.split('*')).filter((l) => l.length >= 6 && /^[A-Z]/.test(l));
+  if (literals.some((l) => name.endsWith(l))) return true;
+  return scan.templates.some((t) => fits(scan, name, t.split(/(\*)/).filter((x) => x !== '')));
+}
 
 /** §2.4's status rules, applied to PoB's parse (an empty list with a remainder applies nothing: unparsed). */
-function deriveStatus(p: Parse, scan: Set<string>): string {
+function deriveStatus(p: Parse, scan: PobSourceScan): string {
   if (!p.hasList) return 'unparsed';
   if (p.n === 0) return p.extra !== undefined ? 'unparsed' : 'parsed to nothing';
   if (p.extra !== undefined) return 'partly parsed';
-  return p.names.every((name) => named(scan, name)) ? 'fully parsed' : 'possibly unread';
+  return p.names.every((name) => readByName(scan, name)) ? 'fully parsed' : 'possibly unread';
 }
+
+/** What PoB does with a line: applies a non-empty mod list, applies an empty one, or drops it. */
+type Applied = 'applied' | 'nothing' | 'dropped';
+const STATUS_APPLIED: Record<string, Applied> = {
+  'fully parsed': 'applied',
+  'possibly unread': 'applied',
+  'parsed to nothing': 'nothing',
+  'partly parsed': 'dropped',
+  unparsed: 'dropped',
+};
 
 /** A Lua chunk returning `modLib.parseMod(<line>)` as a `Parse`, for each line given. */
 const parseQuery = (lines: string[]) => `
@@ -149,9 +185,30 @@ describe('K2: check_model_coverage is a read tool with ok samples (static, AC-K1
   });
 });
 
+describe('D-243: concatenation templates of the name scan (static)', () => {
+  it('D-243: concatTemplates keeps each `..` chain as its literals and `*` for other operands, skipping comments and literals no mod name could hold', () => {
+    const lua = [
+      'local a = source.name .. "ConvertTo" .. target.name',
+      'local b = calc(skillModList, cfg, val.type.."CostEfficiency", "CostEfficiency")',
+      'if flag(cfg, damageType.."Can"..ailmentType) or flag(cfg, "Can"..ailmentType) then end',
+      'local c = ("Multiplier:") .. name',
+      'local d = f "Called" .. x',
+      'local e = prefix .. " text with spaces"',
+      '-- local commented = x .. "InAComment"',
+      '--[[ local block = y .. "InABlock" ]]',
+      'local s = [[NotCode ' + '..' + ' "Quoted"]]',
+      'local t = x .. [[LongName]]',
+      'local v = select("#", ...) .. "Varargs"',
+    ].join('\n');
+    expect(concatTemplates(lua).sort()).toEqual(
+      ['*ConvertTo*', '*CostEfficiency', '*Can*', 'Can*', 'Multiplier:*', '*LongName', '*Varargs'].sort(),
+    );
+  });
+});
+
 engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () => {
   let f: SessionFixture;
-  let scan: Set<string>;
+  let scan: PobSourceScan;
 
   async function luaQuery<T>(code: string): Promise<T> {
     const { value } = await f.session.run({ tool: 'test:coverage-query', kind: 'read' }, async (ctx) => {
@@ -176,7 +233,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
     f = await startSessionFixture({ testActions: true });
     const load = await f.call('lua_load_build', { build_name: 'grenadator.xml' });
     expect(load.isError).toBe(false);
-    scan = await pobSourceNames(POB_SRC);
+    scan = await pobSourceScan(POB_SRC);
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => {
@@ -214,7 +271,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       } finally {
         readdir.mockRestore();
       }
-      scan = await pobSourceNames(POB_SRC);
+      scan = await pobSourceScan(POB_SRC);
     },
     ENGINE_TIMEOUT,
   );
@@ -427,22 +484,28 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
   // AC-K14: build mode, errors
 
   it(
-    'AC-K14: {build:true} lists no fully parsed entry; each listed entry has the status a single-source call gives; the counts sum to the lines checked',
+    'AC-K14: {build:true} lists no fully parsed entry; each listed entry has the status a single-source call gives; the counts sum to the lines checked; jewels in allocated tree sockets are checked (D-242)',
     async () => {
       const build = parseCoverage(await okTool({ build: true }));
       expect(build.entries.length).toBeGreaterThan(0);
       expect(build.entries.filter((e) => e.status === 'fully parsed')).toEqual([]);
 
-      // What build mode covers, enumerated by a Lua query: equipped items (BuildRaw text), allocated nodes, gems.
+      // What build mode covers, enumerated by a Lua query from the build's own records: the active item set's
+      // slots (BuildRaw text), the jewels the active spec puts in allocated tree sockets (spec.jewels), the
+      // allocated nodes and the gems.
       const what = await luaQuery<{
         items: Array<{ source: string; raw: string }> | Record<string, never>;
         nodes: number[] | Record<string, never>;
         gems: string[] | Record<string, never>;
       }>(`
         local items, nodes, gems, seen = {}, {}, {}, {}
-        for _, slot in ipairs(build.itemsTab.orderedSlots) do
-          local item = (slot.selItemId or 0) > 0 and not slot.nodeId and build.itemsTab.items[slot.selItemId]
-          if item then table.insert(items, { source = 'Item ' .. slot.slotName .. ': ' .. item.name, raw = item:BuildRaw() }) end
+        for slotName, slot in pairs(build.itemsTab.activeItemSet) do
+          local item = type(slot) == 'table' and (slot.selItemId or 0) > 0 and build.itemsTab.items[slot.selItemId]
+          if item then table.insert(items, { source = 'Item ' .. slotName .. ': ' .. item.name, raw = item:BuildRaw() }) end
+        end
+        for nodeId, itemId in pairs(build.spec.jewels) do
+          local item = itemId > 0 and build.spec.allocNodes[nodeId] and build.itemsTab.items[itemId]
+          if item then table.insert(items, { source = 'Jewel socket ' .. nodeId .. ': ' .. item.name, raw = item:BuildRaw() }) end
         end
         for id in pairs(build.spec.allocNodes) do table.insert(nodes, id) end
         table.sort(nodes)
@@ -459,6 +522,13 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const nodes = arr(what.nodes);
       const gems = arr(what.gems);
       expect(items.length).toBeGreaterThan(0);
+      // The golden build has two jewels in allocated tree sockets (Heart of the Well and Against the
+      // Darkness); the single-source calls below include them, so the counts only match if build mode
+      // checks them too (D-242).
+      expect(items.filter((i) => i.source.startsWith('Jewel socket ')).map((i) => i.source.replace(/^Jewel socket \d+: /, '')).sort()).toEqual([
+        'Against the Darkness, Time-Lost Diamond',
+        'Heart of the Well, Diamond',
+      ]);
 
       // Single-source calls over everything build mode checks.
       const single: Entry[] = [];
@@ -504,6 +574,241 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const both = await f.call('check_model_coverage', { build: true, gems: ['Heft'] });
       expect(both.isError).toBe(true);
       expect(both.text).toMatch(/on its own/);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // Review fixes: what PoB applies, ranged lines, concatenated names
+
+  /** The check_coverage action itself, through the bridge (C-5 validated), with an empty name scan. */
+  async function coverageAction(params: Record<string, unknown>) {
+    const { value } = await f.session.run({ tool: 'test:coverage-action', kind: 'read' }, async (ctx) =>
+      ctx.client.checkCoverage({ sourceNames: [], ...params } as never),
+    );
+    return value;
+  }
+
+  it(
+    'review fix: a partly parsed line applies none of itself; the note says so, and PoB\'s item mod list holds nothing from it',
+    async () => {
+      const text = await okTool({ item_text: AMULET });
+      expect(text).toMatch(/^- partly parsed: PoB applies none of the line: it understood only part of it, and the remainder shows what it didn't understand/m);
+      const partial = '10% of Physical damage dealt by your Hits causes Blood Loss';
+      const pob = await luaQuery<{ applied: string[]; partial: string[] }>(`
+        local item = require('API.Util').construct('Item', ${JSON.stringify(AMULET)})
+        local applied = {}
+        for _, mod in ipairs(item.baseModList) do table.insert(applied, mod.name .. ' ' .. mod.type .. ' ' .. tostring(mod.value)) end
+        local partial = {}
+        for _, mod in ipairs((modLib.parseMod(${JSON.stringify(partial)}))) do table.insert(partial, mod.name) end
+        return { applied = applied, partial = partial }`);
+      const applied = arr(pob.applied);
+      expect(applied).toContain('Life BASE 30');
+      // The line's partial parse names a mod (PhysicalDamage), and PoB applies no mod of that name.
+      expect(arr(pob.partial).length).toBeGreaterThan(0);
+      for (const name of arr(pob.partial)) expect(applied.filter((a) => a.startsWith(`${name} `))).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'review fix: over every unique (selected variant), each item line\'s status agrees with what PoB\'s BuildModList applies (a mod list, an empty one, or nothing: the line dropped)',
+    async () => {
+      const uniques = arr(
+        await luaQuery<Array<{ name: string; raw: string; applied: Applied[] | Record<string, never> }>>(`
+          local construct = require('API.Util').construct
+          local out = {}
+          for key, u in pairs(main.uniqueDB.list) do
+            local raw = u:BuildRaw()
+            local item = construct('Item', raw)
+            local applied = {}
+            for _, list in ipairs({ 'enchantModLines', 'runeModLines', 'implicitModLines', 'explicitModLines' }) do
+              for _, ml in ipairs(item[list] or {}) do
+                if item:CheckModLineVariant(ml) then
+                  table.insert(applied, ml.extra and 'dropped' or (#ml.modList > 0 and 'applied' or 'nothing'))
+                end
+              end
+            end
+            table.insert(out, { name = tostring(u.title or key), raw = raw, applied = applied })
+          end
+          table.sort(out, function(a, b) return a.name < b.name end)
+          return out`),
+      );
+      expect(uniques.length).toBeGreaterThan(400);
+      // The few uniques whose text passes add_item's 10 KB limit (thousands of variant lines) are refused by
+      // the action, as add_item refuses them; the rest are compared.
+      const tooLong = uniques.filter((u) => Buffer.byteLength(u.raw, 'utf8') > 10240);
+      expect(tooLong.length).toBeLessThan(10);
+      const mismatches: string[] = [];
+      let lines = 0;
+      for (const u of uniques.filter((x) => !tooLong.includes(x))) {
+        const result = await coverageAction({ itemText: u.raw });
+        const tool = result.entries.map((e) => STATUS_APPLIED[e.status]);
+        const pob = arr(u.applied);
+        lines += pob.length;
+        if (JSON.stringify(tool) !== JSON.stringify(pob)) mismatches.push(`${u.name}: tool ${tool.join(',')} / PoB ${pob.join(',')}`);
+      }
+      expect(lines).toBeGreaterThan(2000);
+      expect(mismatches).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'review fix: over every passive node, each line\'s status agrees with what PoB\'s ProcessStats applies, and lines absorbed by a join get PoB\'s empty dummy list',
+    async () => {
+      const pob = await luaQuery<Record<string, Array<{ applied: Applied; dummy: boolean }>>>(`
+        local out = {}
+        for id, node in pairs(build.spec.nodes) do
+          if node.mods and #node.mods > 0 then
+            local lines = {}
+            for i, m in ipairs(node.mods) do
+              lines[i] = {
+                applied = (not m.list or m.extra) and 'dropped' or (#m.list > 0 and 'applied' or 'nothing'),
+                dummy = m.list ~= nil and #m.list == 0 and m.extra == nil,
+              }
+            end
+            out[tostring(id)] = lines
+          end
+        end
+        return out`);
+      const ids = Object.keys(pob);
+      expect(ids.length).toBeGreaterThan(1000);
+      const result = await coverageAction({ nodes: ids });
+      const byNode = new Map<string, typeof result.entries>();
+      for (const e of result.entries) {
+        const key = String(e.nodeId);
+        byNode.set(key, [...(byNode.get(key) ?? []), e]);
+      }
+      const mismatches: string[] = [];
+      for (const id of ids) {
+        const lines = pob[id];
+        let i = 0;
+        for (const e of byNode.get(id) ?? []) {
+          if (lines[i]?.applied !== STATUS_APPLIED[e.status]) mismatches.push(`${id}#${i + 1}: tool ${e.status} / PoB ${lines[i]?.applied}`);
+          for (let j = 1; j <= (e.joinedWith?.length ?? 0); j++) {
+            if (!lines[i + j]?.dummy) mismatches.push(`${id}#${i + j + 1}: absorbed, but PoB's list isn't the empty dummy`);
+          }
+          i += 1 + (e.joinedWith?.length ?? 0);
+        }
+        if (i !== lines.length) mismatches.push(`${id}: tool covers ${i} lines, PoB has ${lines.length}`);
+      }
+      expect(mismatches).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /**
+   * A unique's BuildRaw() text, with the range of the line containing `needle` set to `range`, and that
+   * line's variant (when it has one) selected.
+   */
+  async function uniqueTextWithRange(title: string, needle: string, range: number): Promise<string> {
+    const raw = await luaQuery<string>(`
+      for _, item in pairs(main.uniqueDB.list) do
+        if item.title == ${JSON.stringify(title)} then return item:BuildRaw() end
+      end`);
+    const lines = raw.split('\n');
+    const hit = lines.filter((l) => l.includes(needle));
+    expect({ title, needle, found: hit.length }).toEqual({ title, needle, found: 1 });
+    const variant = /\{variant:(\d+)\}/.exec(hit[0])?.[1];
+    return lines
+      .map((l) => {
+        if (variant && /^Selected Variant: \d+$/.test(l)) return `Selected Variant: ${variant}`;
+        if (!l.includes(needle)) return l;
+        return /\{range:[\d.]+\}/.test(l) ? l.replace(/\{range:[\d.]+\}/, `{range:${range}}`) : `{range:${range}}${l}`;
+      })
+      .join('\n');
+  }
+
+  /** PoB's own processing of an item text: per selected line containing `needle`, its line, extra and mod count. */
+  const processedQuery = (text: string, needle: string) => `
+    local item = require('API.Util').construct('Item', ${JSON.stringify(text)})
+    local out = {}
+    for _, list in ipairs({ 'implicitModLines', 'explicitModLines' }) do
+      for _, ml in ipairs(item[list]) do
+        if item:CheckModLineVariant(ml) and ml.line:find(${JSON.stringify(needle)}, 1, true) then
+          local ranged = itemLib.applyRange(ml.line, ml.range, 1)
+          local _, rangedExtra = modLib.parseMod(ranged)
+          table.insert(out, { extra = ml.extra ~= nil, mods = #ml.modList, rangedFails = rangedExtra ~= nil, zero = itemLib.isZeroValueLine(ranged) and true or false })
+        end
+      end
+    end
+    return out`;
+
+  it(
+    'review fix: a range crossing zero rolled at 0 ("+(-40-40)% to Fire Resistance" at 0.5 on Ventor\'s Gamble) is parsed to nothing, as getRangedModList makes it',
+    async () => {
+      const text = await uniqueTextWithRange("Ventor's Gamble", '(-40-40)% to Fire Resistance', 0.5);
+      const cov = parseCoverage(await okTool({ item_text: text }));
+      const fire = cov.entries.filter((e) => /to Fire Resistance$/.test(e.line));
+      expect(fire.map((e) => e.status)).toEqual(['parsed to nothing']);
+      const pob = arr(await luaQuery<Array<{ extra: boolean; mods: number; rangedFails: boolean; zero: boolean }>>(processedQuery(text, 'to Fire Resistance')));
+      // PoB applies an empty list for it: the zero-value rule, not a failed parse.
+      expect(pob).toEqual([{ extra: false, mods: 0, rangedFails: true, zero: true }]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'review fix: a ranged line whose ranged parse fails keeps its range-1 parse (Heart of the Well\'s Physical Thorns line at range 0.25), as getRangedModList does',
+    async () => {
+      const needle = 'Physical Thorns damage equal to (4-6)%';
+      const text = await uniqueTextWithRange('Heart of the Well', needle, 0.25);
+      const cov = parseCoverage(await okTool({ item_text: text }));
+      const thorns = cov.entries.filter((e) => e.line.includes('Physical Thorns damage equal to'));
+      expect(thorns).toHaveLength(1);
+      expect(STATUS_APPLIED[thorns[0].status]).toBe('applied');
+      const pob = arr(await luaQuery<Array<{ extra: boolean; mods: number; rangedFails: boolean; zero: boolean }>>(processedQuery(text, needle)));
+      expect(pob).toEqual([{ extra: false, mods: expect.any(Number), rangedFails: true, zero: false }]);
+      expect(pob[0].mods).toBeGreaterThan(0);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-243: names PoB builds by concatenation are read (EvasionConvertToArmour, ManaCostEfficiency, PhysicalCanPin, Fire/Cold/LightningExposureEffect); a made-up name is still flagged',
+    async () => {
+      const lines = [
+        'Converts all Evasion Rating to Armour',
+        '15% increased Mana Cost Efficiency',
+        'Physical Damage is Pinning',
+        '10% increased Exposure Effect',
+      ];
+      const pob = await parses(lines);
+      // Each line parses whole (no remainder), into these computed names.
+      expect(pob.map((p) => ({ list: p.n > 0, extra: p.extra }))).toEqual(lines.map(() => ({ list: true, extra: undefined })));
+      const produced = pob.flatMap((p) => p.names);
+      const computed = ['EvasionConvertToArmour', 'ManaCostEfficiency', 'PhysicalCanPin', 'FireExposureEffect', 'ColdExposureEffect', 'LightningExposureEffect'];
+      expect(produced).toEqual(expect.arrayContaining(computed));
+      // None is a scanned identifier: only the concatenation rule reads them.
+      expect(computed.filter((n) => scan.names.has(n))).toEqual([]);
+      for (const n of computed) expect({ n, read: readByName(scan, n) }).toEqual({ n, read: true });
+      expect(scan.templates).toEqual(expect.arrayContaining(['*ConvertTo*', '*CostEfficiency', '*Can*', '*ExposureEffect']));
+
+      // Through the tool: an amulet with the four lines rates each fully parsed, none possibly unread.
+      const amulet = ['Rarity: RARE', 'Computed Names', 'Gold Amulet', 'Item Level: 80', 'Implicits: 0', ...lines].join('\n');
+      const cov = parseCoverage(await okTool({ item_text: amulet }));
+      expect(cov.entries.map((e) => ({ line: e.line, status: e.status }))).toEqual(lines.map((line) => ({ line, status: 'fully parsed' })));
+      // And Iron Reflexes (node 28492), the keystone, is fully parsed too.
+      const iron = parseCoverage(await okTool({ nodes: ['28492'] })).entries.find((e) => e.line === lines[0]);
+      expect(iron?.status).toBe('fully parsed');
+
+      // A made-up name is still flagged by the action's own classifier, with the real scan.
+      const madeUp = await luaQuery<{ status: string; unread: string[] | Record<string, never> }>(`
+        local C = require('API.Coverage')
+        local scan = require('dkjson').decode(${JSON.stringify(JSON.stringify({ names: [...scan.names], templates: scan.templates }))})
+        return C.classify({ { name = 'ZzqxNonexistentMod', type = 'BASE', value = 1 } }, nil, C.reader(scan.names, scan.templates))`);
+      expect({ status: madeUp.status, unread: arr(madeUp.unread) }).toEqual({ status: 'possibly unread', unread: ['ZzqxNonexistentMod'] });
+      expect(readByName(scan, 'ZzqxNonexistentMod')).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-243: the possibly unread note says it is advisory and to confirm by measurement',
+    async () => {
+      const text = await okTool({ item_text: AMULET });
+      expect(text).toMatch(/^- possibly unread: .*This is advisory: PoB may still read the name through a name it computes another way, so confirm it by measurement/m);
     },
     ENGINE_TIMEOUT,
   );

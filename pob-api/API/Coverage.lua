@@ -1,28 +1,35 @@
 -- API/Coverage.lua
 -- Whether PoB applies each line of an item, a passive node or a gem (C-38, WU-32):
 --
---   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames}
+--   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames, sourceTemplates?}
 --     itemText   one item, as add_item takes it: its enchant, rune, implicit and explicit lines of the
---                selected variant (the lines Item.lua's BuildModList applies or drops), ranged as PoB ranges
---                them
+--                selected variant (the lines Item.lua's BuildModList applies or drops), rated as PoB applies
+--                them: parsed at range 1 as ParseRaw does, then re-parsed at the line's range as
+--                getRangedModList does (a zero-value line applies nothing; a failed ranged parse keeps the
+--                range-1 parse)
 --     nodes      passive node ids or exact names (a name selects every node bearing it): their `sd` lines
 --     gems       gem names: every described line of every stat set, at the build's gem level and quality
 --                (its first instance in the active skill set), else at lookup_game_data's defaults
---     build      true, alone: the active item set's equipped items, the active spec's nodes and the active
---                skill set's gems
+--     build      true, alone: the active item set's equipped items, the jewels in the active spec's
+--                allocated tree sockets (D-242), the active spec's nodes and the active skill set's gems
 --     sourceNames  required: every identifier in PoB's Modules/ and Classes/ .lua files except
 --                Modules/ModParser.lua (the server's name scan, D-226)
+--     sourceTemplates  the same files' concatenation templates (D-243): each a `..` chain's string literals,
+--                with `*` for each run of other operands, such as "*ConvertTo*" or "*CostEfficiency"
 --   -> {counts, entries[], gems[], checked}, each entry {kind, source, line, status, remainder?,
 --      joinedWith?, unread?, stat?, nodeId?}
 --
 -- Statuses (exactly one per line or joined line):
 --   fully parsed       a non-empty mod list, no remainder (for a gem line: its stat has a stat map)
---   partly parsed      a non-empty mod list plus a remainder (`remainder`, verbatim from the parser)
+--   partly parsed      a non-empty mod list plus a remainder (`remainder`, verbatim from the parser); PoB
+--                      applies none of such a line (Item.lua:2158, PassiveTree.lua:490)
 --   unparsed           no mod list; also an empty mod list with a remainder, which PoB applies nothing from
 --   parsed to nothing  an empty mod list, no remainder
---   possibly unread    fully parsed, but some mod's name (a nested `value.mod` one included) is not in
---                      sourceNames (`unread` lists them); a compound "Condition:X" name is in them when each
---                      ':'-separated part is
+--   possibly unread    fully parsed, but some mod's name (a nested `value.mod` one included) is not read
+--                      by name (`unread` lists them). A name is read when it is in sourceNames; when it is
+--                      a compound "Condition:X" whose ':'-separated parts are read; when it is, or ends
+--                      with, a template literal of 6 or more characters starting with a capital (D-243);
+--                      or when it matches a template whose `*` parts are each empty or in sourceNames
 --   possibly unmodelled; check config
 --                      a gem line whose stat is in neither statSet.statMap nor data.skillStatMap (PoB's
 --                      red-tooltip rule, GemTooltip.lua:17-37)
@@ -92,20 +99,89 @@ local function modNames(list, out)
   return out
 end
 
--- Whether the scan has a mod name. A compound name ("Condition:X", "Multiplier:X") can't be one identifier,
--- so it counts as named when each of its ':'-separated parts is (PoB reads it as {type = "Condition",
--- var = "X"}).
-local function named(names, name)
-  if names[name] then return true end
-  if not name:find(':', 1, true) then return false end
-  for part in name:gmatch('[^:]+') do
-    if not names[part] then return false end
+-- A template's wildcard part.
+local WILD = {}
+
+-- The scan as Lua reads it: the name set, the compiled templates, and the template literals of 6 or more
+-- characters that start with a capital (the D-243 fragments a computed name may end with).
+function M.reader(sourceNames, sourceTemplates)
+  local names = {}
+  for _, name in ipairs(sourceNames or {}) do
+    if type(name) == 'string' then names[name] = true end
   end
-  return true
+  local templates, fragments, seen = {}, {}, {}
+  for _, text in ipairs(type(sourceTemplates) == 'table' and sourceTemplates or {}) do
+    if type(text) == 'string' and text:find('[^%*]') then
+      local parts, i = {}, 1
+      while i <= #text do
+        if text:sub(i, i) == '*' then
+          if parts[#parts] ~= WILD then table.insert(parts, WILD) end
+          i = i + 1
+        else
+          local j = text:find('*', i, true) or (#text + 1)
+          local literal = text:sub(i, j - 1)
+          table.insert(parts, literal)
+          if #literal >= 6 and literal:match('^%u') and not seen[literal] then
+            seen[literal] = true
+            table.insert(fragments, literal)
+          end
+          i = j
+        end
+      end
+      table.insert(templates, parts)
+    end
+  end
+  return { names = names, templates = templates, fragments = fragments }
 end
 
--- One parse's status (C-38): `list, extra` are modLib.parseMod's results; `names` the scan's name set.
-function M.classify(list, extra, names)
+-- Whether `name` from `pos` matches the template parts from `k`: a literal exactly, a wildcard by an empty
+-- run or a run in the name set.
+local function matchFrom(name, pos, parts, k, names)
+  if k > #parts then return pos == #name + 1 end
+  local part = parts[k]
+  if part == WILD then
+    for e = pos - 1, #name do
+      local run = name:sub(pos, e)
+      if (run == '' or names[run]) and matchFrom(name, e + 1, parts, k + 1, names) then return true end
+    end
+    return false
+  end
+  if name:sub(pos, pos + #part - 1) ~= part then return false end
+  return matchFrom(name, pos + #part, parts, k + 1, names)
+end
+
+local function matchesTemplate(reader, name)
+  for _, parts in ipairs(reader.templates) do
+    local plausible = true
+    for _, part in ipairs(parts) do
+      if part ~= WILD and not name:find(part, 1, true) then
+        plausible = false
+        break
+      end
+    end
+    if plausible and matchFrom(name, 1, parts, 1, reader.names) then return true end
+  end
+  return false
+end
+
+-- Whether PoB reads a mod name by name (see the header): in the name set; a compound "Condition:X" whose
+-- parts are read (PoB reads it as {type = "Condition", var = "X"}); or a name PoB computes by concatenation.
+local function named(reader, name)
+  if reader.names[name] then return true end
+  if name:find(':', 1, true) then
+    for part in name:gmatch('[^:]+') do
+      if not named(reader, part) then return false end
+    end
+    return true
+  end
+  for _, fragment in ipairs(reader.fragments) do
+    if #name >= #fragment and name:sub(-#fragment) == fragment then return true end
+  end
+  return matchesTemplate(reader, name)
+end
+
+-- One parse's status (C-38): `list, extra` are modLib.parseMod's results; `reader` the scan (M.reader).
+function M.classify(list, extra, reader)
   if list == nil then return { status = UNPARSED } end
   if #list == 0 then
     if extra then return { status = UNPARSED } end
@@ -114,7 +190,7 @@ function M.classify(list, extra, names)
   if extra then return { status = PARTLY, remainder = extra } end
   local unread, seen = {}, {}
   for _, name in ipairs(modNames(list, {})) do
-    if not named(names, name) and not seen[name] then
+    if not named(reader, name) and not seen[name] then
       seen[name] = true
       table.insert(unread, name)
     end
@@ -133,26 +209,41 @@ end
 -- The mod line lists BuildModList applies or drops (Item.lua's processModLine), in its order.
 local ITEM_LINE_LISTS = { 'enchantModLines', 'runeModLines', 'implicitModLines', 'explicitModLines' }
 
--- An item's lines of the selected variant. A mod line holding "\n" is PoB's clean join of a failed line
--- with the next one (Item.lua:946-959), checked as one entry.
-function M.checkItem(item, source, names, add)
+-- A "(min-max)" range in an item line (Item.lua's getRangedModList test).
+local RANGE_PATTERN = '%((%-?%d+%.?%d*)%-(%-?%d+%.?%d*)%)'
+
+-- An item line's status as PoB applies it. ParseRaw parses the line at range 1, and BuildModList drops a
+-- line that kept a remainder (Item.lua:2158). getRangedModList (Item.lua:59-69) re-parses a ranged line at
+-- its range: a zero-value line applies nothing, and a failed ranged parse keeps the range-1 mod list.
+local function itemLineStatus(modLine, text, reader)
+  local scalar = modLine.valueScalar or 1
+  local list, extra = modLib.parseMod(itemLib.applyRange(text, 1, scalar, modLine.corruptedRange))
+  if failed(list, extra) then return M.classify(list, extra, reader) end
+  if modLine.range and text:find(RANGE_PATTERN) then
+    local ranged = itemLib.applyRange(text, modLine.range, scalar, modLine.corruptedRange)
+    if itemLib.isZeroValueLine(ranged) then return { status = NOTHING } end
+    local rList, rExtra = modLib.parseMod(ranged)
+    if rList and not rExtra then return M.classify(rList, nil, reader) end
+  end
+  return M.classify(list, extra, reader)
+end
+
+-- An item's lines of the selected variant, shown at their range. A mod line holding "\n" is PoB's clean
+-- join of a failed line with the next one (Item.lua:946-959), checked as one entry.
+function M.checkItem(item, source, reader, add)
   for _, key in ipairs(ITEM_LINE_LISTS) do
     for _, modLine in ipairs(item[key] or {}) do
       if type(modLine.line) == 'string' and Lookup.lineIsSelected(item, modLine) then
         local parts = splitLines(modLine.line)
         if #parts > 0 then
-          -- Ranged as BuildModList ranges a line (getRangedModList): the line's range and catalyst scalar.
-          local function ranged(text)
+          local function shown(text)
             return itemLib.applyRange(text, modLine.range or 1, modLine.valueScalar or 1, modLine.corruptedRange)
           end
-          local first = ranged(parts[1])
-          local list, extra = modLib.parseMod(first)
-          local entry = M.classify(list, extra, names)
+          local first = shown(parts[1])
+          local entry = itemLineStatus(modLine, table.concat(parts, ' '), reader)
           if #parts > 1 then
             local joined = {}
-            for i = 2, #parts do table.insert(joined, ranged(parts[i])) end
-            local jList, jExtra = modLib.parseMod(ranged(table.concat(parts, ' ')), true)
-            entry = M.classify(jList, jExtra, names)
+            for i = 2, #parts do table.insert(joined, shown(parts[i])) end
             entry.joinedWith = joined
           end
           entry.kind = 'item'
@@ -190,7 +281,7 @@ end
 
 -- A node's `sd` lines (each "\n" in one splits it, as ProcessStats does). A failed line is joined with one
 -- or more following lines until a join parses cleanly (PassiveTree.lua:448-466).
-function M.checkNode(id, node, names, add)
+function M.checkNode(id, node, reader, add)
   local sd = {}
   for _, stat in ipairs(node.sd or {}) do
     if type(stat) == 'string' then
@@ -202,7 +293,7 @@ function M.checkNode(id, node, names, add)
   while sd[i] do
     local line = sd[i]
     local list, extra = modLib.parseMod(line)
-    local entry = M.classify(list, extra, names)
+    local entry = M.classify(list, extra, reader)
     local nextI = i + 1
     if failed(list, extra) then
       local endI = i + 1
@@ -211,7 +302,7 @@ function M.checkNode(id, node, names, add)
         for ci = i + 1, endI do table.insert(parts, sd[ci]) end
         local jList, jExtra = modLib.parseMod(table.concat(parts, ' '), true)
         if not failed(jList, jExtra) then
-          entry = M.classify(jList, jExtra, names)
+          entry = M.classify(jList, jExtra, reader)
           entry.joinedWith = { unpack(parts, 2) }
           nextI = endI + 1
           break
@@ -337,15 +428,11 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- The action
 
-local function nameSet(sourceNames)
-  if type(sourceNames) ~= 'table' then
+local function scanReader(params)
+  if type(params.sourceNames) ~= 'table' then
     fail('check_coverage needs sourceNames (the server\'s name scan of PoB\'s Modules/ and Classes/)')
   end
-  local set = {}
-  for _, name in ipairs(sourceNames) do
-    if type(name) == 'string' then set[name] = true end
-  end
-  return set
+  return M.reader(params.sourceNames, params.sourceTemplates)
 end
 
 local function nonEmptyList(v)
@@ -353,7 +440,7 @@ local function nonEmptyList(v)
 end
 
 function M.check_coverage(params)
-  local names = nameSet(params.sourceNames)
+  local reader = scanReader(params)
   local itemText = type(params.itemText) == 'string' and params.itemText or nil
   if itemText and not itemText:match('%S') then itemText = nil end
   local nodeList = nonEmptyList(params.nodes) and params.nodes or nil
@@ -385,12 +472,18 @@ function M.check_coverage(params)
   if buildMode then
     local itemsTab = build.itemsTab
     if not itemsTab then fail('items not initialized') end
+    local alloc = build.spec and build.spec.allocNodes or {}
     for _, slot in ipairs(itemsTab.orderedSlots or {}) do
       local id = slot.selItemId or 0
-      local equipped = id > 0 and not slot.nodeId and itemsTab.items[id] or nil
-      if equipped then
+      local equipped = id > 0 and itemsTab.items[id] or nil
+      if equipped and not slot.nodeId then
         checked.items = checked.items + 1
-        M.checkItem(equipped, 'Item ' .. slot.slotName .. ': ' .. tostring(equipped.name), names, add)
+        M.checkItem(equipped, 'Item ' .. slot.slotName .. ': ' .. tostring(equipped.name), reader, add)
+      elseif equipped and alloc[slot.nodeId] and (type(itemsTab.IsItemValidForSlot) ~= 'function'
+          or itemsTab:IsItemValidForSlot(equipped, slot.slotName)) then
+        -- D-242: a jewel in an allocated tree socket applies, as CalcSetup.lua:933-936 applies it.
+        checked.items = checked.items + 1
+        M.checkItem(equipped, 'Jewel socket ' .. tostring(slot.nodeId) .. ': ' .. tostring(equipped.name), reader, add)
       end
     end
     nodeIds = {}
@@ -407,7 +500,7 @@ function M.check_coverage(params)
     end
   elseif item then
     checked.items = 1
-    M.checkItem(item, 'Item', names, add)
+    M.checkItem(item, 'Item', reader, add)
   end
 
   if nodeIds and #nodeIds > 0 then
@@ -416,7 +509,7 @@ function M.check_coverage(params)
       local node = nodes[id]
       if node then
         checked.nodes = checked.nodes + 1
-        M.checkNode(id, node, names, add)
+        M.checkNode(id, node, reader, add)
       end
     end
   end

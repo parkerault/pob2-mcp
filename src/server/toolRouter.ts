@@ -23,7 +23,7 @@ import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, h
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
 import { handleLookupGameData } from "../handlers/lookupHandlers.js";
 import { handleCheckModelCoverage } from "../handlers/coverageHandlers.js";
-import { pobSourceNames } from "../engine/pobSourceNames.js";
+import { pobSourceScan } from "../engine/pobSourceNames.js";
 import { resolvePobSrc } from "../engine/pobPath.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
 import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleSetGemCorruption, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
@@ -492,8 +492,8 @@ async function dispatch(
         {
           getLuaClient: luaContext.getLuaClient,
           ensureLuaClient: luaContext.ensureLuaClient,
-          // D-226: the name scan of the PoB source the engine runs, once per server process.
-          sourceNames: () => pobSourceNames(resolvePobSrc(deps.env)),
+          // D-226, D-243: the scan of the PoB source the engine runs, once per server process.
+          sourceScan: () => pobSourceScan(resolvePobSrc(deps.env)),
         },
         { itemText: args?.item_text, nodes: args?.nodes, gems: args?.gems, build: args?.build },
       );

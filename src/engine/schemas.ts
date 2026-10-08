@@ -976,7 +976,8 @@ export interface ActionParamsMap {
   };
   /**
    * C-38: one or more of `itemText`, `nodes` (ids or exact names) and `gems` (names), or `build: true`
-   * alone; `sourceNames` (required) is the server's name scan of PoB's source (D-226).
+   * alone; `sourceNames` (required) is the server's name scan of PoB's source (D-226), `sourceTemplates`
+   * its concatenation templates (D-243).
    */
   check_coverage: {
     itemText?: string;
@@ -984,6 +985,7 @@ export interface ActionParamsMap {
     gems?: string[];
     build?: boolean;
     sourceNames: string[];
+    sourceTemplates?: string[];
   };
 }
 

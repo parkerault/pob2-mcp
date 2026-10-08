@@ -22,7 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startLuaLineClient, type Json, type LuaLineClient } from '../helpers/luaLineClient';
 import { ACTION_NAMES, replySchemas, type ActionName } from '../../src/engine/schemas';
-import { pobSourceNames } from '../../src/engine/pobSourceNames';
+import { pobSourceNames, pobSourceScan } from '../../src/engine/pobSourceNames';
 import { resolvePobSrc } from '../../src/engine/pobPath';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -150,14 +150,18 @@ const CASES: Record<ActionName, Case> = {
   // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).
   lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
   // C-38 (WU-32): an item with every line status, a joined node line and a gem with unmodelled lines, so
-  // `remainder`, `unread`, `joinedWith`, `nodeId` and `stat` are all in the reply; the real name scan.
+  // `remainder`, `unread`, `joinedWith`, `nodeId` and `stat` are all in the reply; the real scan (D-243).
   check_coverage: {
-    setup: async () => ({
-      itemText: COVERAGE_AMULET,
-      nodes: ['38570'],
-      gems: ['Blood Hunt'],
-      sourceNames: [...(await pobSourceNames(resolvePobSrc(process.env)))],
-    }),
+    setup: async () => {
+      const scan = await pobSourceScan(resolvePobSrc(process.env));
+      return {
+        itemText: COVERAGE_AMULET,
+        nodes: ['38570'],
+        gems: ['Blood Hunt'],
+        sourceNames: [...scan.names],
+        sourceTemplates: scan.templates,
+      };
+    },
   },
 };
 

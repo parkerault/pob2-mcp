@@ -182,8 +182,9 @@ self-reports.**
 - Refuted: "nothing can wait". Waits of 30 s or less are slept inside the call, and a refusal sends
   nothing.
 - Fixes:
-  - (B) **D-218:** WU-49 prefixes trade-tool errors with a stable `[trade:<kind>]` (`would_wait`,
-    `locked_out`, `http_429`, ...).
+  - (B) **D-218:** WU-49 prefixes trade-tool errors with a stable `[trade:<kind>]`, using the real kinds in
+    `src/trade/errors.ts` (`would_wait`, `locked_out`, `rate_limited`, ...). Corrected by the consistency
+    pass: a 429 is `rate_limited`, and `find_upgrades` keeps its own wording.
   - (C) §9: on `would_wait`, the coordinator moves on to other work and re-calls the item later.
   - (C) After **3** refusals the item is `unavailable`.
   - (C) A final re-price pass for `unavailable` items runs before the D1 budget verdict becomes final.
@@ -251,6 +252,13 @@ unstated.**
 - Refuted: the cite slip. `toolSchemas.ts:388` is correct.
 - Fix (B): the server scans PoB's `Modules/` and `Classes/` once per process with Node `fs`, and passes
   the identifier names to Lua.
+
+## Afterwards
+
+- The three fixers applied the plan.
+- A consistency pass reconciled the four files. The result: 20 WUs, no dependency cycles; ACs AC-K1…46,
+  AC-P1…50, AC-W1…26 and AC-B1…8; contracts C-30…C-50; decisions D-100…D-238.
+- The resolutions file was folded in as D-222…D-238 plus A-31 and A-32, then deleted.
 
 ## Questions for the user
 

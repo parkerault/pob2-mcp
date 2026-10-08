@@ -197,7 +197,10 @@ The four variants were measured back to back on a quiet machine (1-minute load 1
 - **Full DPS is the axis that eats the margin.** With all six groups in Full DPS, every rebuild also
   calculates six skills in each of its two passes. The whole call then runs at 81–89 s, still inside
   100 s but with only an 11–19% margin. The plan schema can't put a group in Full DPS, so this is a bound,
-  not the measured case. [V]
+  not the measured case. [V] Every run labelled "every group in Full DPS" put all six groups in Full DPS.
+  The only other setting tried was the first trial's group 1, listed below. `create_socket_group` sets the
+  flag only when asked (`includeInFullDPS = params.includeInFullDPS == true`, `pob-api/API/BuildOps.lua:736`),
+  so the measured case holds only if the compiler creates every group with `includeInFullDPS=false`.
 - **Load from the other build lanes inflates the times by up to about 2×.** These runs were made earlier
   in the session while other lanes ran engine suites. The probe was the same except for the compiled
   XML's file name and how it imports the line client.
@@ -210,13 +213,17 @@ The four variants were measured back to back on a quiet machine (1-minute load 1
 
   That one contended run would miss D-229. It is the Full DPS bound under contention, not the specified
   plan. Every run of the specified plan, contended or not, passed with at least a 2× margin. [V]
-- **Deferring the per-call rebuilds cuts a compile about 3×, and the compiled build is unchanged.** The
+- **Deferring the per-call rebuilds cuts a compile about 3×, and the saved file is canonically identical.** The
   deferred variant makes the same calls, but `BuildOps`' rebuild is a no-op while the stage's jewels,
   items, toggles, groups and gems go in. One rebuild then runs before the main selection, which needs
   `displaySkillList`. That leaves 22 rebuilds per stage. In all six run pairs (three with Full DPS off,
-  three with it on), the deferred and the as-written compiles gave a canonically identical XML. The
-  comparison sorts attributes, child elements and node lists, because PoB's `SaveDB` order varies between
-  processes (S-2). The comparison covers all 102 `PlayerStat` values. [V]
+  three with it on), the deferred and the as-written compiles saved a canonically identical file. The
+  comparison script, `xmlcmp.py` in the appendix, sorts attributes, child elements and node lists, because
+  PoB's `SaveDB` order varies between processes (S-2). [V] The comparison has limits:
+  - It covers the saved file only: every stage's inputs, plus the 102 `PlayerStat` values of the active
+    level-90 loadout.
+  - It does not compare each stage's `outputs` or `skillOutputs` replies.
+  - It is evidence for the lever, not proof that per-stage measurements are unchanged.
 
 ## Decision
 
@@ -233,9 +240,14 @@ session, including those under load, stayed at or under 48.30 s whole and 7.13 s
 
 - **Consider deferring the rebuilds in `compile_stage`.** If `compile_stage` calls `BuildOps` as S-a does,
   it makes 87–91 rebuilds per stage. Skipping them while inserting items, jewels, toggles, groups and gems,
-  with one rebuild before the main selection, gave the same compiled build here at a third of the time. It
-  would also keep NFR-20 (15 stages ≤ 100 s) and NFR-21 (each stage < 20 s) robust if Full DPS ever enters
-  the plan, for example by mapping the group `role` to Full DPS.
+  with one rebuild before the main selection, saved a canonically identical file here at a third of the
+  time. If WU-41 defers the rebuilds, it must show on the fixture that each stage's `outputs` and
+  `skillOutputs` equal those of the non-deferred path. This spike compared only the saved file. Deferring
+  would also keep NFR-20 (15 stages ≤ 100 s) and NFR-21 (each stage < 20 s) robust if Full DPS ever
+  entered the plan, for example by mapping the group `role` to Full DPS.
+- **Create every group with `includeInFullDPS=false`.** The plan schema (C-31) has no Full DPS field, and
+  `create_socket_group` sets the flag only when asked (`pob-api/API/BuildOps.lua:736`). The pass mark was
+  measured with Full DPS off; with every group in Full DPS the margin shrinks to 11–19%.
 - **Run the NFR-20/21 tests alone,** as the spine places them, in `mise run test`'s `--runInBand` step.
   Contention from parallel suites inflated timings by up to about 2× in this session.
 - **Empty Lua tables encode as `[]`.** dkjson writes an empty Lua table that way, for example a stage's
@@ -245,7 +257,7 @@ session, including those under load, stayed at or under 48.30 s whole and 7.13 s
 
 ## Appendix: probe source
 
-Three files in a `mktemp -d` directory. Run `./run.sh` there; `WU30_REPO` names the checkout, which needs
+Three files in a `mktemp -d` directory, plus the XML comparison script `xmlcmp.py`. Run `./run.sh` there; `WU30_REPO` names the checkout, which needs
 `mise trust`, `pnpm install` and `mise run pob:fetch` first. Defaults: `WU30_RUNS=3`, `WU30_MODE=recipe`,
 `WU30_FULLDPS=none`. The measured set is the defaults.
 
@@ -885,4 +897,24 @@ test('WU-30 compile-time spike', async () => {
   }
   fs.writeFileSync(OUT, JSON.stringify({ when: new Date().toISOString(), mode: MODE, fullDps: FULLDPS, levels: LEVELS, runs }, null, 2));
 });
+```
+
+### `xmlcmp.py`
+
+Compares two saved builds canonically: `python3 xmlcmp.py a.xml b.xml`.
+
+```python
+import re, sys, xml.etree.ElementTree as ET
+def norm(v):
+    return ','.join(sorted(v.split(','), key=int)) if re.fullmatch(r'\d+(,\d+)+', v) else v
+def canon(e):
+    return (e.tag, tuple(sorted((k, norm(v)) for k, v in e.attrib.items())), (e.text or '').strip(), tuple(sorted(canon(c) for c in e)))
+a, b = (ET.parse(p).getroot() for p in sys.argv[1:3])
+print('canonically equal:', canon(a) == canon(b))
+for ca, cb in zip(sorted(a, key=lambda e: e.tag), sorted(b, key=lambda e: e.tag)):
+    if canon(ca) != canon(cb):
+        sa = {canon(x) for x in ca}; sb = {canon(x) for x in cb}
+        print('differs in', ca.tag, len(sa - sb), len(sb - sa))
+        for x in list(sa - sb)[:3]: print('  A only:', str(x)[:400])
+        for x in list(sb - sa)[:3]: print('  B only:', str(x)[:400])
 ```

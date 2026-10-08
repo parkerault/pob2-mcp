@@ -2,10 +2,10 @@
 -- PoB2's loaded game data, read without touching the build (C-37, WU-31):
 --
 --   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxResults?}
---     gem       data.gems names -> description, weapon, per stat set its base attack damage and crit
---               chance and its lines from PoB's stat describer (at `level`, default the gem's natural
---               max level; see defaultLevel; a returned gem without `level` is shown at its default),
---               the +20% quality lines, support rules, and the requirements at every gem level
+--     gem       data.gems names -> PoB's Tier (D-258), description, weapon, per stat set its base attack
+--               damage and crit chance and its lines from PoB's stat describer (at `level`, default the
+--               gem's natural max level; see defaultLevel; a returned gem without `level` is shown at its
+--               default), the +20% quality lines, support rules, and the requirements at every gem level
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
@@ -16,6 +16,11 @@
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
 -- unique, passive, mod), then by name, then by id, then by line. `total` counts every match.
+--
+-- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258), at
+-- most MAX_SUGGESTIONS: gem names (gem mode), unique names, of `slot` when given (unique mode), and the
+-- names of the gems, uniques, passives and mods searched, of `kind` when given (mechanic mode). They are
+-- ranked by edit distance to the query (see editDistance), then by name, then by kind and detail.
 --
 -- The gem helpers (findGem, gemEffects, defaultLevel, describeStatSet, statSetLabel) and lineIsSelected (a
 -- unique's or item's selected-variant test) are shared with other modules (API/Coverage.lua, WU-32).
@@ -274,6 +279,8 @@ local function gemResult(id, gem, levelParam, quality)
     id = id,
     name = gem.name,
     gemKind = isSupportGem(gem) and 'support' or 'active',
+    -- PoB's own `Tier` (Data/Gems.lua; D-258).
+    tier = tonumber(gem.Tier),
     gemType = gem.gemType,
     tags = gem.tagString,
     description = ge.description and oneLine(ge.description) or nil,
@@ -600,6 +607,116 @@ local function lookupMechanics(query, kind, maxResults)
 end
 
 -- ---------------------------------------------------------------------------------------------------
+-- Closest names, when nothing matched (D-258)
+
+local MAX_SUGGESTIONS = 5
+
+-- A name's characters (UTF-8 sequences), ASCII letters lowercased.
+local function chars(s)
+  local out = {}
+  for ch in s:lower():gmatch('[%z\1-\127\194-\244][\128-\191]*') do out[#out + 1] = ch end
+  return out
+end
+
+-- The optimal string alignment distance between two character lists: the fewest insertions, deletions,
+-- substitutions and swaps of two adjacent characters, each costing 1, that turn one into the other.
+local function editDistance(a, b)
+  local la, lb = #a, #b
+  if la == 0 then return lb end
+  if lb == 0 then return la end
+  local before, prev = nil, {}
+  for j = 0, lb do prev[j] = j end
+  for i = 1, la do
+    local cur = { [0] = i }
+    for j = 1, lb do
+      local d = math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i] == b[j] and 0 or 1))
+      if before and j > 1 and a[i] == b[j - 1] and a[i - 1] == b[j] then
+        d = math.min(d, before[j - 2] + 1)
+      end
+      cur[j] = d
+    end
+    before, prev = prev, cur
+  end
+  return prev[lb]
+end
+
+-- A candidate list that keeps one entry per (name, kind, detail).
+local function candidates()
+  local list, seen = {}, {}
+  return list, function(name, kind, detail)
+    if type(name) ~= 'string' or name == '' then return end
+    local key = name .. '\0' .. kind .. '\0' .. (detail or '')
+    if seen[key] then return end
+    seen[key] = true
+    table.insert(list, { name = name, kind = kind, detail = detail })
+  end
+end
+
+local function addGemNames(add, asKind)
+  for _, gem in pairs(gameData().gems) do
+    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+      add(gem.name, asKind or (isSupportGem(gem) and 'support' or 'active'))
+    end
+  end
+end
+
+local function addUniqueNames(add, itemType)
+  for key, item in pairs(uniqueList()) do
+    if not itemType or item.type == itemType then
+      add(item.title or item.name or tostring(key), 'unique', item.type)
+    end
+  end
+end
+
+local function addPassiveNames(add)
+  for _, node in pairs(treeNodes()) do
+    if type(node) == 'table' and type(node.sd) == 'table' then add(node.name, 'passive', node.ascendancyName) end
+  end
+end
+
+local function addModNames(add)
+  local mods = gameData().itemMods or {}
+  for _, tableName in ipairs(sortedKeys(mods)) do
+    if type(mods[tableName]) == 'table' then
+      for _, entryId in ipairs(sortedKeys(mods[tableName])) do
+        if type(mods[tableName][entryId]) == 'table' then add(tostring(entryId), 'mod', tableName) end
+      end
+    end
+  end
+end
+
+-- The candidates of a mode: the names it searches (mechanic mode: its hits' sources). `filter` is unique
+-- mode's item type or mechanic mode's kind, when given.
+local function suggestionCandidates(mode, filter)
+  local list, add = candidates()
+  local kind = mode == 'mechanic' and filter or nil
+  if mode == 'gem' then
+    addGemNames(add)
+  elseif mode == 'unique' then
+    addUniqueNames(add, filter)
+  else
+    if not kind or kind == 'gem' then addGemNames(add, 'gem') end
+    if not kind or kind == 'unique' then addUniqueNames(add) end
+    if not kind or kind == 'passive' then addPassiveNames(add) end
+    if not kind or kind == 'mod' then addModNames(add) end
+  end
+  return list
+end
+
+-- The MAX_SUGGESTIONS candidates closest to `query`: by edit distance, then name, then kind, then detail.
+local function closestNames(query, list)
+  local q = chars(query)
+  for _, c in ipairs(list) do c.distance = editDistance(q, chars(c.name)) end
+  table.sort(list, function(a, b)
+    if a.distance ~= b.distance then return a.distance < b.distance end
+    if a.name ~= b.name then return a.name < b.name end
+    if a.kind ~= b.kind then return a.kind < b.kind end
+    return (a.detail or '') < (b.detail or '')
+  end)
+  return cut(list, MAX_SUGGESTIONS)
+end
+
+-- ---------------------------------------------------------------------------------------------------
 -- The action
 
 local MODES = { gem = true, unique = true, mechanic = true }
@@ -620,7 +737,7 @@ function M.lookup_game_data(params)
   local maxResults = math.floor(tonumber(params.maxResults) or DEFAULT_MAX_RESULTS)
   if maxResults < 1 then maxResults = 1 end
 
-  local results, total, kinds
+  local results, total, kinds, filter
   if mode == 'gem' then
     if not needle then fail('gem mode needs a query') end
     local level = params.level ~= nil and math.floor(tonumber(params.level) or -1) or nil
@@ -631,6 +748,7 @@ function M.lookup_game_data(params)
     local slot = trimmed(params.slot)
     if not needle and not slot then fail('unique mode needs a query, a slot or both') end
     results, total = lookupUniques(needle, slot, maxResults)
+    filter = slot and resolveSlot(slot) or nil
   else
     if not needle then fail('mechanic mode needs a query') end
     local kind = trimmed(params.kind)
@@ -639,8 +757,12 @@ function M.lookup_game_data(params)
       if not KIND_RANK[kind] then fail('unknown kind "' .. tostring(params.kind) .. '"; use ' .. KINDS_TEXT) end
     end
     results, total, kinds = lookupMechanics(needle, kind, maxResults)
+    filter = kind
   end
-  return { mode = mode, total = total, results = results, kinds = kinds }
+  -- D-258: a query that matched nothing gets the closest names of the kind searched.
+  local suggestions
+  if total == 0 and needle then suggestions = closestNames(needle, suggestionCandidates(mode, filter)) end
+  return { mode = mode, total = total, results = results, kinds = kinds, suggestions = suggestions }
 end
 
 -- ---------------------------------------------------------------------------------------------------

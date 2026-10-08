@@ -2,18 +2,19 @@
  * `lookup_game_data` (C-37): the pinned PoB2's loaded game data, read through the engine's
  * `lookup_game_data` action (`pob-api/API/Lookup.lua`). A `read` tool: it never changes the build (D-176).
  *
- * - gem: gems whose name contains `query`, with description, weapon, per stat set its base attack damage
- *   and crit chance (D-241) and tooltip lines at a gem level and quality, the "At +20% Quality" lines,
- *   support rules and per-level requirements (D-228);
+ * - gem: gems whose name contains `query`, with PoB's tier (D-258), description, weapon, per stat set its
+ *   base attack damage and crit chance (D-241) and tooltip lines at a gem level and quality, the "At +20%
+ *   Quality" lines, support rules and per-level requirements (D-228);
  * - unique: uniques by name, mod line (any non-legacy variant's) or item type (`slot`): name, base, type
  *   and the matched lines; the `BuildRaw()` text for `add_item` only when one unique is returned (D-239);
  * - mechanic: one hit per matching gem, unique, passive or mod line, optionally of one `kind`, with every
  *   kind's hit total in the header (D-240).
  *
- * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225).
+ * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
+ * the reply lists Lua's closest names of the kind searched, at most 5, closest first (D-258).
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
-import type { LookupGameDataResult, LookupGem, LookupHit, LookupUnique } from "../engine/schemas.js";
+import type { LookupGameDataResult, LookupGem, LookupHit, LookupSuggestion, LookupUnique } from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
 export type LookupContext = Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient">;
@@ -68,6 +69,7 @@ function renderGem(gem: LookupGem): string[] {
   const showType = gem.gemType && gem.gemType.toLowerCase() !== gem.gemKind;
   const kindBits = [gem.gemKind, showType ? `(${gem.gemType})` : ""].filter(Boolean).join(" ");
   lines.push(`Kind: ${kindBits}${gem.tags ? `; tags: ${gem.tags}` : ""}`);
+  if (gem.tier !== undefined) lines.push(`Tier: ${gem.tier}`);
   if (gem.weapon) lines.push(`Weapon: ${gem.weapon}`);
   if (gem.description) lines.push(`Description: ${gem.description}`);
   lines.push(`Stat sets at gem level ${gem.level}, quality ${gem.quality}%:`);
@@ -167,6 +169,20 @@ function criteria(req: Request): string {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** What the closest names are names of (D-258): the kind the request searched. */
+function suggestionNoun(req: Request): string {
+  if (req.mode === "gem") return "gem names";
+  if (req.mode === "unique") return req.slot ? `unique names of item type ${req.slot}` : "unique names";
+  return req.kind ? `${req.kind} names` : "gem, unique, passive and mod names";
+}
+
+/** One closest name: `- <name> (<kind>[, <detail>])`; gem mode's kind is `active` or `support`. */
+function renderSuggestion(mode: Mode, s: LookupSuggestion): string {
+  const bits = mode === "unique" ? [s.detail] : [s.kind, s.detail];
+  const label = bits.filter(Boolean).join(", ");
+  return `- ${s.name}${label ? ` (${label})` : ""}`;
+}
+
 function render(req: Request, result: LookupGameDataResult): string {
   const lines: string[] = [`=== Game Data Lookup (${req.mode}: ${criteria(req)}) ===`, ""];
   const shown = result.results.length;
@@ -180,6 +196,11 @@ function render(req: Request, result: LookupGameDataResult): string {
   }
   if (shown === 0) {
     lines.push(`Nothing matched ${criteria(req)}.`);
+    const suggestions = result.suggestions ?? [];
+    if (suggestions.length > 0) {
+      lines.push(`Closest ${suggestionNoun(req)} (fewest edits from the query, then by name):`);
+      for (const s of suggestions) lines.push(renderSuggestion(req.mode, s));
+    }
     lines.push("Tips: try a shorter or more general query, or another mode.");
     return lines.join("\n");
   }

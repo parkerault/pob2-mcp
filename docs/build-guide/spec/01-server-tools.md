@@ -100,8 +100,9 @@ unique mode needs `query`, `slot` or both); `max_results` (**[slice, accepted]**
 **Order [slice].** Results are sorted, then cut: exact name matches first, then by name, then by id.
 Mechanic hits sort by kind (gem, unique, passive, mod), then by name.
 
-**gem mode** matches `data.gems` names. Each gem shows its name, kind, `data.skills[id].description` and
-weapon requirement (`weaponRequirements`, else `weaponTypes`). Then come its stat sets in PoB's order,
+**gem mode** matches `data.gems` names. Each gem shows its name, kind, tier (PoB's own `Tier`,
+`vendor/Data/Gems.lua`, as one line `Tier: <n>`; D-258), `data.skills[id].description` and weapon
+requirement (`weaponRequirements`, else `weaponTypes`). Then come its stat sets in PoB's order,
 each with its label and the lines `data.describeStats(calcLib.buildSkillInstanceStats({level, quality},
 grantedEffect, statSet), statSet.statDescriptionScope)` (pin §B2). Then its quality effects as PoB's
 tooltip shows them: under "At +20% Quality", each `qualityStats` entry is described at value × 20
@@ -130,7 +131,22 @@ ascendancy; mod hits name their table.
 
 **Errors:** an unknown `mode`; a missing required `query`; unique mode with neither `query` nor `slot`; an
 unknown `slot`, answered with the valid types; a `gem_level` outside the gem's levels. No match is not an
-error: the text says nothing matched.
+error: the text says nothing matched, then lists the closest names (D-258).
+
+**Closest names (D-258; amends C-37).** When a `query` matches nothing, the reply keeps "Nothing matched …"
+and lists up to 5 names of the kind searched, closest first:
+- gem mode: every `data.gems` name with a granted effect, each labelled `active` or `support`;
+- unique mode: every unique's name, only of `slot`'s type when it is given, each labelled with its type;
+- mechanic mode: the names of the sources it searches (gems, uniques, passives and `data.itemMods`
+  entries), only of `kind` when it is given, each labelled with its kind and, where there is one, a
+  unique's type, a passive's ascendancy or a mod's table.
+
+Each name appears once per label. They are ranked by the optimal string alignment distance from the query:
+the fewest insertions, deletions, substitutions and swaps of two adjacent characters (each costing 1),
+over characters, with ASCII letters lowercased. Ties go by name (byte order), then by label. **[slice]**
+Format: a line `Closest <kind> names (fewest edits from the query, then by name):`, then one line
+`- <name> (<label>)` per name. A misspelt or unknown skill gets 5 names this way ("Blod Hunt" lists Blood Hunt
+first), so the build-guide skill's invalid-roll refusal can quote them (D-238, AC-W26).
 
 ### 2.3 C-43 `search_tree_nodes` (modified, `read`)
 

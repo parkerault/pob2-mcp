@@ -16,6 +16,11 @@
  * and per-kind totals (D-240) and the stat sets' base attack damage and crit chance (D-241). AC-K6 (the
  * read kind) is the generic engine-kind check over the `lookup_game_data` samples in
  * `engineKinds.test.ts`; the static part below checks those samples exist.
+ *
+ * D-258 (amends C-37, WU-47): gem blocks show PoB's `Tier` (a Lua query of `data.gems`), and a query that
+ * matches nothing lists the 5 closest names of the kind searched. The expected names are recomputed here
+ * from PoB's own name lists (Lua queries of `data.gems`, `main.uniqueDB`, the build's tree and
+ * `data.itemMods`) with this file's own edit distance (`osa`), never from the tool's output.
  */
 import fs from 'fs';
 import path from 'path';
@@ -25,6 +30,63 @@ import { startSessionFixture, type SessionFixture } from '../helpers/engineSessi
 import { TOOL_META } from '../../src/server/toolMeta';
 import type { LookupGameDataResult, LookupHit } from '../../src/engine/schemas';
 import { renderHit } from '../../src/handlers/lookupHandlers';
+
+/**
+ * D-258's similarity measure, recomputed: the optimal string alignment distance (insertions, deletions,
+ * substitutions and swaps of two adjacent characters, each costing 1) over code points, with ASCII letters
+ * lowercased.
+ */
+function osa(x: string, y: string): number {
+  const chars = (s: string) => [...s.replace(/[A-Z]/g, (c) => c.toLowerCase())];
+  const a = chars(x);
+  const b = chars(y);
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+/** A candidate name of D-258's ranking: its name, kind and detail (a unique's type, a passive's ascendancy, a mod's table). */
+interface Candidate {
+  name: string;
+  kind: string;
+  detail?: string;
+}
+
+/** Byte order, as Lua compares strings. */
+const byteCmp = (a: string, b: string) => Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+
+/** The 5 closest candidates (one per name, kind and detail): by distance, then name, kind and detail. */
+function closest(query: string, list: Candidate[]): Array<Candidate & { distance: number }> {
+  const seen = new Set<string>();
+  const unique = list.filter((c) => {
+    const key = `${c.name}\0${c.kind}\0${c.detail ?? ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return unique
+    .map((c) => ({ ...c, distance: osa(query, c.name) }))
+    .sort((a, b) => a.distance - b.distance || byteCmp(a.name, b.name) || byteCmp(a.kind, b.kind) || byteCmp(a.detail ?? '', b.detail ?? ''))
+    .slice(0, 5);
+}
+
+/** The `- <name> (<label>)` lines under the tool's "Closest … names" header. */
+function suggestionLines(text: string): string[] {
+  const lines = text.split('\n');
+  const at = lines.findIndex((l) => /^Closest .+ \(fewest edits from the query, then by name\):$/.test(l));
+  if (at < 0) return [];
+  const out: string[] = [];
+  for (const line of lines.slice(at + 1)) {
+    if (!line.startsWith('- ')) break;
+    out.push(line);
+  }
+  return out;
+}
 
 const ENGINE_TIMEOUT = 240_000;
 const FIXTURES = path.resolve(__dirname, '..', 'fixtures');
@@ -39,6 +101,8 @@ interface StatSet {
 /** One `## <name>` gem block of the tool's text, parsed. */
 interface GemBlock {
   name: string;
+  /** `Tier: <n>` (D-258). */
+  tier?: number;
   weapon?: string;
   description?: string;
   /** `Stat sets at gem level <n>, quality <q>%:` */
@@ -93,6 +157,10 @@ function parseGem(block: string): GemBlock {
     } else if (line === 'At +20% Quality:') {
       inMain = false;
       target = gem.quality;
+      baseTarget = null;
+    } else if ((m = /^Tier: (\d+)$/.exec(line))) {
+      gem.tier = Number(m[1]);
+      target = null;
       baseTarget = null;
     } else if ((m = /^Weapon: (.*)$/.exec(line))) {
       gem.weapon = m[1];
@@ -779,6 +847,160 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         const text = await okTool({ mode, query: 'zzzz' });
         expect(text).toContain('Nothing matched "zzzz"');
       }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /** PoB's gem names (gems with a granted effect), each with whether PoB makes it a support. */
+  const gemCandidates = async (asKind?: string): Promise<Candidate[]> => {
+    const gems = await luaQuery<Array<{ name: string; support: boolean }>>(`
+      local out = {}
+      for _, g in pairs(data.gems) do
+        if type(g.name) == 'string' and g.grantedEffect then
+          table.insert(out, { name = g.name, support = g.gemType == 'Support' or (g.tags and g.tags.support == true) or false })
+        end
+      end
+      return out`);
+    return gems.map((g) => ({ name: g.name, kind: asKind ?? (g.support ? 'support' : 'active') }));
+  };
+
+  /** PoB's unique names (`main.uniqueDB`), each with its item type. */
+  const uniqueCandidates = async (itemType?: string): Promise<Candidate[]> => {
+    const uniques = await luaQuery<Array<{ name: string; type: string }>>(`
+      local out = {}
+      for key, item in pairs(main.uniqueDB.list) do
+        table.insert(out, { name = item.title or item.name or tostring(key), type = item.type })
+      end
+      return out`);
+    return uniques.filter((u) => !itemType || u.type === itemType).map((u) => ({ name: u.name, kind: 'unique', detail: u.type }));
+  };
+
+  it(
+    "D-258: every gem block shows PoB's Tier; Blood Hunt is Tier 7",
+    async () => {
+      const text = await okTool({ mode: 'gem', query: 'Blood', max_results: 30 });
+      const gems = blocks(text).map(parseGem);
+      const pob = await luaQuery<Record<string, number[]>>(`
+        local out = {}
+        for _, g in pairs(data.gems) do
+          if g.grantedEffect and g.name:lower():find('blood', 1, true) then
+            out[g.name] = out[g.name] or {}
+            table.insert(out[g.name], g.Tier)
+          end
+        end
+        return out`);
+      expect(gems.length).toBe(Object.keys(pob).length);
+      for (const g of gems) expect({ name: g.name, tier: g.tier }).toEqual({ name: g.name, tier: expect.any(Number) });
+      for (const g of gems) expect(pob[g.name]).toContain(g.tier);
+      // A support gem's block carries its tier too.
+      const supports = gems.filter((g) => g.supports !== undefined);
+      expect(supports.length).toBeGreaterThan(0);
+
+      const hunt = parseGem(blocks(await okTool({ mode: 'gem', query: 'Blood Hunt' }))[0]);
+      expect(hunt.name).toBe('Blood Hunt');
+      expect(pob['Blood Hunt']).toEqual([7]);
+      expect(hunt.tier).toBe(7);
+      // The raw reply carries it as a number.
+      const raw = await lookupAction({ mode: 'gem', query: 'Blood Hunt', maxResults: 1 });
+      expect((raw.results[0] as { tier?: number }).tier).toBe(7);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-258: gem mode with no match lists the 5 closest gem names; "Blod Hunt" puts Blood Hunt first and "No Such Skill" still gets 5',
+    async () => {
+      expect(osa('Blod Hunt', 'Blood Hunt')).toBe(1);
+      expect(osa('ab', 'ba')).toBe(1);
+      const gems = await gemCandidates();
+      for (const query of ['Blod Hunt', 'No Such Skill', 'Ruthlss']) {
+        const want = closest(query, gems);
+        expect(want).toHaveLength(5);
+        const text = await okTool({ mode: 'gem', query });
+        // The existing message stays; the names follow it.
+        expect(text).toContain(`Nothing matched "${query}".`);
+        expect(text).toContain('Closest gem names (fewest edits from the query, then by name):');
+        expect({ query, lines: suggestionLines(text) }).toEqual({ query, lines: want.map((c) => `- ${c.name} (${c.kind})`) });
+        const raw = await lookupAction({ mode: 'gem', query });
+        expect(raw.total).toBe(0);
+        expect(raw.suggestions?.map((x) => ({ name: x.name, kind: x.kind, distance: x.distance }))).toEqual(
+          want.map((c) => ({ name: c.name, kind: c.kind, distance: c.distance })),
+        );
+      }
+      const blod = suggestionLines(await okTool({ mode: 'gem', query: 'Blod Hunt' }));
+      expect(blod[0]).toBe('- Blood Hunt (active)');
+
+      // A query that matches lists no closest names, and its reply has none.
+      const hit = await okTool({ mode: 'gem', query: 'Blood Hunt' });
+      expect(hit).not.toContain('Closest');
+      expect((await lookupAction({ mode: 'gem', query: 'Blood Hunt' })).suggestions).toBeUndefined();
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "D-258: unique mode with no match lists the 5 closest unique names with their types, only of `slot` when given",
+    async () => {
+      const all = await uniqueCandidates();
+      const query = "Atziri's Acuty";
+      const want = closest(query, all);
+      expect(want[0].name).toBe("Atziri's Acuity");
+      const text = await okTool({ mode: 'unique', query });
+      expect(text).toContain(`Nothing matched "${query}".`);
+      expect(text).toContain('Closest unique names (fewest edits from the query, then by name):');
+      expect(suggestionLines(text)).toEqual(want.map((c) => `- ${c.name} (${c.detail})`));
+
+      const gloves = closest('No Such Glove', await uniqueCandidates('Gloves'));
+      expect(gloves).toHaveLength(5);
+      const glovesText = await okTool({ mode: 'unique', query: 'No Such Glove', slot: 'Gloves' });
+      expect(glovesText).toContain('Closest unique names of item type Gloves (fewest edits from the query, then by name):');
+      expect(suggestionLines(glovesText)).toEqual(gloves.map((c) => `- ${c.name} (Gloves)`));
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "D-258: mechanic mode with no match lists the 5 closest names of the gems, uniques, passives and mods it searches, or of `kind`",
+    async () => {
+      const passives = (
+        await luaQuery<Array<{ name: string; ascendancy?: string }>>(`
+          local out = {}
+          for _, node in pairs(build.spec.tree.nodes) do
+            if type(node) == 'table' and type(node.sd) == 'table' and type(node.name) == 'string' and node.name ~= '' then
+              table.insert(out, { name = node.name, ascendancy = node.ascendancyName })
+            end
+          end
+          return out`)
+      ).map((p): Candidate => ({ name: p.name, kind: 'passive', ...(p.ascendancy ? { detail: p.ascendancy } : {}) }));
+      const mods = (
+        await luaQuery<Array<{ name: string; table: string }>>(`
+          local out = {}
+          for tableName, entries in pairs(data.itemMods) do
+            if type(entries) == 'table' then
+              for id, entry in pairs(entries) do
+                if type(entry) == 'table' then table.insert(out, { name = tostring(id), table = tableName }) end
+              end
+            end
+          end
+          return out`)
+      ).map((m): Candidate => ({ name: m.name, kind: 'mod', detail: m.table }));
+      expect(passives.length).toBeGreaterThan(0);
+      expect(mods.length).toBeGreaterThan(0);
+      const label = (c: Candidate) => `- ${c.name} (${[c.kind, c.detail].filter(Boolean).join(', ')})`;
+
+      // "Crushing Impact" is no line's text, but it is one edit from the Titan notable's name.
+      const query = 'Crushing Impact';
+      const onlyPassives = closest(query, passives);
+      expect(onlyPassives[0]).toMatchObject({ name: 'Crushing Impacts', detail: 'Titan', distance: 1 });
+      const text = await okTool({ mode: 'mechanic', query, kind: 'passive' });
+      expect(text).toContain(`Nothing matched "${query}", kind passive.`);
+      expect(text).toContain('Closest passive names (fewest edits from the query, then by name):');
+      expect(suggestionLines(text)).toEqual(onlyPassives.map(label));
+
+      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods]);
+      const all = await okTool({ mode: 'mechanic', query: 'zzzz qqqq' });
+      expect(all).toContain('Closest gem, unique, passive and mod names (fewest edits from the query, then by name):');
+      expect(suggestionLines(all)).toEqual(every.map(label));
     },
     ENGINE_TIMEOUT,
   );

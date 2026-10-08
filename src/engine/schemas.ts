@@ -665,6 +665,8 @@ export const lookupGemSchema = z
     id: z.string(),
     name: z.string(),
     gemKind: z.enum(['active', 'support']),
+    /** PoB's `Tier` (`Data/Gems.lua`; D-258). */
+    tier: z.number().int().optional(),
     gemType: optString,
     tags: optString,
     description: optString,
@@ -732,6 +734,15 @@ export const lookupHitSchema = z
   })
   .passthrough();
 
+/**
+ * A closest name, when a query matched nothing (D-258): `kind` is `active` or `support` (gem mode), `unique`
+ * (unique mode) or the hit kind (mechanic mode); `detail` is a unique's item type, a passive's ascendancy or
+ * a mod's table; `distance` is the edit distance from the query.
+ */
+export const lookupSuggestionSchema = z
+  .object({ name: z.string(), kind: z.string(), detail: optString, distance: z.number().int() })
+  .passthrough();
+
 export const lookupGameDataReply = baseReply.extend({
   result: z
     .object({
@@ -741,6 +752,8 @@ export const lookupGameDataReply = baseReply.extend({
       /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240). */
       kinds: z.object({ gem: z.number().int(), unique: z.number().int(), passive: z.number().int(), mod: z.number().int() }).optional(),
       results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
+      /** Only when nothing matched: the closest names of the kind searched, at most 5, closest first (D-258). */
+      suggestions: luaArray(lookupSuggestionSchema).optional(),
     })
     .passthrough(),
 });
@@ -748,6 +761,7 @@ export type LookupGameDataResult = z.infer<typeof lookupGameDataReply>['result']
 export type LookupGem = z.infer<typeof lookupGemSchema>;
 export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
 export type LookupHit = z.infer<typeof lookupHitSchema>;
+export type LookupSuggestion = z.infer<typeof lookupSuggestionSchema>;
 
 // ---------------------------------------------------------------------------------------------------
 // Coverage actions (`pob-api/API/Coverage.lua`, C-38)

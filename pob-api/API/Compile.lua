@@ -23,7 +23,8 @@
 --     config option its type, whether it has an `apply`, its default (`defaultState`, or the
 --     `defaultIndex` entry of its list), its `defaultPlaceholderState` and its first list value, read from
 --     PoB's option list as ConfigTab:CreateConfigSet fills a new set (Classes/ConfigTab.lua:979-987),
---     without creating a set.
+--     without creating a set, and whether PoB shows it only for some builds (`conditional`: it has a
+--     show gate such as ifSkill or ifCond, ConfigTab.lua:244-541).
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}}}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
@@ -50,8 +51,9 @@
 --     the item or gem each requirement comes from, every gem's tier, kind (skill, support, or spirit: it
 --     reserves Spirit) and level requirement at its level, every equipped item's level requirement and
 --     names (flasks and charms with their toggle), PoB's warning lines (get_warnings, without another
---     rebuild), the allocated nodes' names, the active skills' names, and the stage's config set's `input`
---     and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included).
+--     rebuild), the allocated nodes' names, the active skills' names, the stage's config set's `input`
+--     and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included),
+--     and `shownOptions`, the conditional config options PoB shows for the stage (D-250).
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
 --     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options, and
@@ -399,10 +401,23 @@ local function scalar(v)
   return nil
 end
 
+-- The fields by which ConfigTab shows an option only for some builds (its shownFuncs,
+-- Classes/ConfigTab.lua:244-541): an option with any of them is conditional.
+local SHOW_GATES = { 'ifNode', 'ifOption', 'ifCond', 'ifMinionCond', 'ifEnemyCond', 'ifMult', 'ifEnemyMult', 'ifStat',
+  'ifEnemyStat', 'ifTagType', 'ifFlag', 'ifMod', 'ifSkill', 'ifSkillType', 'ifSkillFlag', 'ifSkillData', 'ifGemFamily' }
+
+local function is_conditional(varData)
+  for _, gate in ipairs(SHOW_GATES) do
+    if varData[gate] ~= nil then return true end
+  end
+  return false
+end
+
 -- Per config option: its type, whether it has an apply, the value a new config set holds for it (its
--- defaultState, or its defaultIndex list entry), its defaultPlaceholderState and its first list value.
--- Read from PoB's option list as ConfigTab:CreateConfigSet fills a new set (a later entry for the same
--- var replaces an earlier one's values); no config set is created, so the loaded build is unchanged.
+-- defaultState, or its defaultIndex list entry), its defaultPlaceholderState, its first list value, and
+-- whether PoB shows it only for some builds (`conditional`, D-250). Read from PoB's option list as
+-- ConfigTab:CreateConfigSet fills a new set (a later entry for the same var replaces an earlier one's
+-- values); no config set is created, so the loaded build is unchanged.
 local configBaselineCache
 local function config_baseline()
   if configBaselineCache then return configBaselineCache end
@@ -423,6 +438,7 @@ local function config_baseline()
         default = scalar(default),
         defaultPlaceholder = scalar(varData.defaultPlaceholderState),
         first = scalar(first),
+        conditional = is_conditional(varData) or (before ~= nil and before.conditional == true),
       }
     end
   end
@@ -869,6 +885,22 @@ local function stage_checks(st, output, configSetId, defer)
     end
   end
   local cs = build.configTab.configSets[configSetId]
+  -- The conditional options PoB shows for this stage (D-250): each one's ConfigTab control `shown`, which
+  -- runs its gates over the measured calculation and the stage's config set (now the active one).
+  local shownOptions = {}
+  local controls = build.configTab.varControls or {}
+  for var, entry in pairs(config_baseline()) do
+    local control = entry.conditional and controls[var]
+    if control then
+      local shown = control.shown
+      if type(shown) == 'function' then
+        local okShown, value = pcall(shown)
+        shown = okShown and value
+      end
+      if shown then shownOptions[#shownOptions + 1] = var end
+    end
+  end
+  table.sort(shownOptions)
   return {
     counts = { used = used, ascendancy = ascUsed, secondaryAscendancy = secondaryAscUsed, sockets = sockets,
       weaponSet1 = ws1, weaponSet2 = ws2 },
@@ -882,6 +914,7 @@ local function stage_checks(st, output, configSetId, defer)
     nodeNames = nodeNames,
     activeSkills = activeSkills,
     config = { input = scalars(cs and cs.input), placeholder = scalars(cs and cs.placeholder) },
+    shownOptions = shownOptions,
   }
 end
 

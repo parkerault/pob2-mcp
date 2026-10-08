@@ -888,6 +888,8 @@ export const configOptionDefaultSchema = z
     defaultPlaceholder: compileConfigScalar.optional(),
     /** A list option's first entry value. */
     first: compileConfigScalar.optional(),
+    /** Whether PoB shows it only for some builds: it has a show gate (ifSkill, ifCond, …; D-250). */
+    conditional: z.boolean(),
   })
   .passthrough();
 export type ConfigOptionDefault = z.infer<typeof configOptionDefaultSchema>;
@@ -959,6 +961,7 @@ export const stageChecksSchema = z
           name: z.string(),
           level: z.number().int(),
           tier: z.number().int().optional(),
+          /** PoB's kind: a support, a gem that reserves Spirit, or another skill (V1 checks by C1's tiers). */
           kind: z.enum(['skill', 'support', 'spirit']),
           levelRequirement: z.number(),
         })
@@ -981,6 +984,8 @@ export const stageChecksSchema = z
     activeSkills: luaArray(z.string()),
     /** The stage's config set after the writes and the recalculation. */
     config: z.object({ input: luaMap(compileConfigScalar), placeholder: luaMap(compileConfigScalar) }).passthrough(),
+    /** The conditional config options PoB shows for the stage (their gates hold, D-250). */
+    shownOptions: luaArray(z.string()),
   })
   .passthrough();
 export type StageChecks = z.infer<typeof stageChecksSchema>;

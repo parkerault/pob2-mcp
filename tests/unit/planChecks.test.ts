@@ -10,7 +10,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
-import { checkV1, expectedResistancePenalty, parseRangeKey, predecessorOf, valueInRange } from '../../src/plan/checks/v1';
+import { checkV1, parseRangeKey, predecessorOf, resistancePenaltyAt, valueInRange } from '../../src/plan/checks/v1';
 import { checkV2, isOnFor, isPlaceholderDriven, producerKey } from '../../src/plan/checks/v2';
 import { FactReader } from '../../src/plan/checks/facts';
 import { ConfigBaselineError, loadConfigBaseline, parseConfigBaseline } from '../../src/plan/checks/configBaseline';
@@ -25,7 +25,6 @@ const ref = loadReferenceData(DATA);
 type Json = Record<string, any>;
 const readJson = (rel: string): Json => JSON.parse(fs.readFileSync(path.join(DATA, rel), 'utf8'));
 const PROGRESS = readJson('campaign/progress.json');
-const LIMITS = readJson('campaign/limits.json');
 const ORDER: string[] = PROGRESS.facts.order.value;
 
 function fixture(): Json {
@@ -51,6 +50,7 @@ function checksFor(stage: Stage, over: Partial<StageChecks> = {}): StageChecks {
     nodeNames: [],
     activeSkills: [],
     config: { input: {}, placeholder: {} },
+    shownOptions: [],
     ...over,
   } as StageChecks;
 }
@@ -74,37 +74,82 @@ describe('the resistance penalty at a progress key (C-35 limits, §3.7)', () => 
     expect(valueInRange({ '54-59': -40, '60-64': -50 }, 65)).toBeNull();
   });
 
-  it('every progress key gets its region\'s value; an interlude key the range holding its own area level', () => {
+  // Hand-derived from data/campaign/progress.json (each key's region and area level, and the next key's
+  // region) and data/campaign/limits.json (act1 0, act2 -10, act3 -20, act4 -30, interlude -40 at 54-59 and
+  // -50 at 60-64, endgame -60). At the last key of a region the next region's entry value is accepted too
+  // (D-251): the interludes' entry is their lowest range, -40.
+  const CASES: { key: string; expected: number; accepted: number[]; boundary: string | null }[] = [
+    { key: 'start', expected: 0, accepted: [0], boundary: null },
+    { key: 'q.act-1-clearfell-beira', expected: 0, accepted: [0], boundary: null },
+    { key: 'q.act-1-ogham-manor-candlemass', expected: 0, accepted: [0, -10], boundary: 'q.act-2-keth-kabala' },
+    { key: 'q.act-2-keth-kabala', expected: -10, accepted: [-10], boundary: null },
+    { key: 'q.act-2-spires-of-deshar-sisters-of-garukhan-shrine', expected: -10, accepted: [-10, -20], boundary: 'q.act-3-jungle-ruins-mighty-silverfist' },
+    { key: 'q.act-3-jiquani-s-machinarium-blackjaw', expected: -20, accepted: [-20], boundary: null },
+    { key: 'q.act-3-aggorat-blood-sacrifice', expected: -20, accepted: [-20, -30], boundary: 'q.act-4-isle-of-kin-blind-beast' },
+    { key: 'q.act-4-halls-of-the-dead-ngamahu-s-test', expected: -30, accepted: [-30], boundary: null },
+    { key: 'q.act-4-abandoned-prison-goddess-of-justice', expected: -30, accepted: [-30, -40], boundary: 'q.interlude-1-wolvenhold-oswin' },
+    { key: 'q.interlude-1-wolvenhold-oswin', expected: -50, accepted: [-50], boundary: null },
+    { key: 'q.interlude-2-khari-bazaar-clearing-the-way', expected: -50, accepted: [-50], boundary: null },
+    { key: 'q.epilog-kingsmarch-siege-of-oriath', expected: -50, accepted: [-50, -60], boundary: 'endgame' },
+    { key: 'endgame', expected: -60, accepted: [-60], boundary: null },
+  ];
+
+  it('D-251: each key\'s value, and at the last key of a region the next region\'s entry value too', () => {
     const facts = new FactReader(ref);
-    for (const key of ORDER) {
-      const region = PROGRESS.facts[`${key}.region`].value as string;
-      const value = LIMITS.facts[`resistance-penalty.${region}`].value;
-      let want: number;
-      if (typeof value === 'number') {
-        want = value;
-      } else {
-        const level = PROGRESS.facts[`${key}.area-level`].value as number;
-        const hit = Object.entries<number>(value).find(([k]) => {
-          const [lo, hi] = k.split('-').map(Number);
-          return level >= lo && level <= hi;
-        });
-        want = hit![1];
-      }
-      const got = expectedResistancePenalty(facts, key);
-      expect({ key, value: got.value }).toEqual({ key, value: want });
+    for (const c of CASES) {
+      expect(ORDER).toContain(c.key);
+      const got = resistancePenaltyAt(facts, c.key);
+      const shape = got.expected === null ? { reason: got.reason } : { expected: got.expected, accepted: got.accepted, boundary: got.boundary?.next ?? null };
+      expect({ key: c.key, ...shape }).toEqual({ key: c.key, expected: c.expected, accepted: c.accepted, boundary: c.boundary });
     }
+  });
+
+  it('D-251 in V1: -40 passes at the last Act 4 key with a note naming the boundary; -50 there is a finding', () => {
+    const plan = fixture();
+    const s = plan.stages[0];
+    s.progress = 'q.act-4-abandoned-prison-goddess-of-justice';
+    const run = (value: number) => {
+      s.config.scenario.find((e: Json) => e.option === 'resistancePenalty').value = value;
+      const [one] = stagesOf(plan);
+      return checkV1({ stage: one, predecessor: null, checks: checksFor(one), ref }).verdict;
+    };
+    const ok = run(-40);
+    expect(ok.findings.filter((f) => f.code === 'resistance-penalty')).toEqual([]);
+    expect(ok.notes.filter((n) => n.code === 'resistance-penalty' && n.data?.next !== undefined).map((n) => n.data)).toEqual([
+      { progress: s.progress, next: 'q.interlude-1-wolvenhold-oswin', region: 'act4', nextRegion: 'interlude', accepted: [-30, -40] },
+    ]);
+    expect(run(-50).findings.filter((f) => f.code === 'resistance-penalty').map((f) => f.data)).toEqual([
+      { listed: -50, expected: -30, accepted: [-30, -40] },
+    ]);
+  });
+
+  it('A-29: the verdict rests on the key\'s region and area level too, so their M grades are noted', () => {
+    // The epilogue key: region interlude (M) at area level 62 (M), then the endgame.
+    const plan = fixture();
+    const s = plan.stages[0];
+    s.progress = 'q.epilog-kingsmarch-siege-of-oriath';
+    s.config.scenario.find((e: Json) => e.option === 'resistancePenalty').value = -50;
+    const [one] = stagesOf(plan);
+    const notes = checkV1({ stage: one, predecessor: null, checks: checksFor(one), ref }).verdict.notes
+      .filter((n) => n.code === 'resistance-penalty' && n.data?.fact !== undefined)
+      .map((n) => n.data);
+    expect(notes).toEqual(expect.arrayContaining([
+      { file: 'campaign/progress.json', fact: 'q.epilog-kingsmarch-siege-of-oriath.region', confidence: 'M' },
+      { file: 'campaign/progress.json', fact: 'q.epilog-kingsmarch-siege-of-oriath.area-level', confidence: 'M' },
+      { file: 'campaign/limits.json', fact: 'resistance-penalty.interlude', confidence: 'M' },
+    ]));
   });
 });
 
 describe('A-P5 and D-212: on, and placeholder-driven', () => {
-  const list: ConfigOptionDefault = { type: 'list', apply: true, default: -60, first: 0 };
+  const list: ConfigOptionDefault = { type: 'list', apply: true, conditional: false, default: -60, first: 0 };
   it('a list option is on when its value isn\'t its first entry; others when true or non-zero', () => {
     expect(isOnFor(-60, list)).toBe(true);
     expect(isOnFor(0, list)).toBe(false);
     expect(isOnFor('0', list)).toBe(false);
-    expect(isOnFor(true, { type: 'check', apply: true })).toBe(true);
-    expect(isOnFor(false, { type: 'check', apply: true })).toBe(false);
-    expect(isOnFor(0, { type: 'count', apply: true })).toBe(false);
+    expect(isOnFor(true, { type: 'check', apply: true, conditional: false })).toBe(true);
+    expect(isOnFor(false, { type: 'check', apply: true, conditional: false })).toBe(false);
+    expect(isOnFor(0, { type: 'count', apply: true, conditional: false })).toBe(false);
     expect(isOnFor(3, undefined)).toBe(true);
   });
 
@@ -163,6 +208,17 @@ describe('V1 over hand-made stage inputs', () => {
     ]);
   });
 
+  it('a Spirit-reserving gem at a skill tier (a persistent minion) is checked as a skill gem', () => {
+    const [one] = stagesOf(fixture());
+    const gems: StageChecks['gems'] = [{ group: 1, index: 1, name: 'A Minion', level: 1, tier: 13, kind: 'spirit', levelRequirement: 0 }];
+    // Stage 1 is at Beira, where uncut skill gems reach level 2 (uncut-skill.2.available-from).
+    const v1 = checkV1({ stage: one, predecessor: null, checks: checksFor(one, { gems }), ref });
+    expect(v1.verdict.findings.filter((f) => f.code === 'gem-availability').map((f) => f.data)).toEqual([
+      { gem: 'A Minion', tier: 13, level: 1, max: 2 },
+    ]);
+    expect(v1.verdict.notes.filter((n) => n.data?.gem === 'A Minion')).toEqual([]);
+  });
+
   it('PoB\'s "too many passive points" line is a finding unless the stage spends the Martyr point', () => {
     const plan = fixture();
     const [one] = stagesOf(plan);
@@ -172,12 +228,14 @@ describe('V1 over hand-made stage inputs', () => {
     expect(v1.verdict.findings).toEqual([{ code: 'pob-warning', message: line, data: { line } }]);
   });
 
-  it('a Spirit gem gets a note, not an availability check (A-31); a support gem is checked by tier', () => {
+  it('a Spirit gem at a C1 Spirit tier gets a note, not an availability check (A-31); a support gem is checked by tier', () => {
     const [one] = stagesOf(fixture());
     const gems: StageChecks['gems'] = [
       { group: 1, index: 1, name: 'Herald of Ice', level: 20, tier: 14, kind: 'spirit', levelRequirement: 0 },
       { group: 1, index: 2, name: 'Some Support', level: 1, tier: 5, kind: 'support', levelRequirement: 0 },
     ];
+    // C1's Spirit tiers (data/campaign/gems.json): 4, 8 and 14.
+    expect(readJson('campaign/gems.json').facts['spirit-tiers'].value).toEqual(['4', '8', '14']);
     const v1 = checkV1({ stage: one, predecessor: null, checks: checksFor(one, { gems }), ref });
     expect(v1.verdict.notes.filter((n) => n.data?.gem === 'Herald of Ice').map((n) => n.code)).toEqual(['gem-availability']);
     const supportMax = Object.entries<Json>(readJson('campaign/gems.json').facts)
@@ -191,9 +249,9 @@ describe('V1 over hand-made stage inputs', () => {
 
 describe('V2 over hand-made stage inputs', () => {
   const defaults: Record<string, ConfigOptionDefault> = {
-    buffOnslaught: { type: 'check', apply: true },
-    conditionUsingFlask: { type: 'check', apply: true },
-    multiplierRage: { type: 'count', apply: true },
+    buffOnslaught: { type: 'check', apply: true, conditional: false },
+    conditionUsingFlask: { type: 'check', apply: true, conditional: false },
+    multiplierRage: { type: 'count', apply: true, conditional: false },
   };
   const baseline = { schemaVersion: 1 as const, options: {} };
 
@@ -235,7 +293,7 @@ describe('V2 over hand-made stage inputs', () => {
         items: [{ slot: 'Flask 1', name: 'Lesser Life Flask', baseName: 'Lesser Life Flask', levelRequirement: 0, active: true }],
       }),
       producers: new Map([[producerKey('gem', 'Rage I'), true]]),
-      defaults: { ...defaults, [option]: { type: 'check', apply: true, default: true } },
+      defaults: { ...defaults, [option]: { type: 'check', apply: true, conditional: false, default: true } },
       baseline: { schemaVersion: 1, options: { [option]: { rationale: 'r' } } },
       ref,
     });
@@ -243,6 +301,41 @@ describe('V2 over hand-made stage inputs', () => {
     expect(v2.verdict.findings.map((f) => [f.code, f.data])).toEqual([
       ['quest-not-reached', { option, quest, progress: one.progress, origin: 'default' }],
     ]);
+  });
+
+  it('D-250, D-252: the baseline list covers a conditional option only while PoB hides it, and no boss enemy stat on a boss stage', () => {
+    const plan = fixture();
+    const [one] = stagesOf(plan);
+    const run = (shownOptions: string[], bossValue: string) => {
+      const p2 = fixture();
+      p2.stages[0].config.scenario.find((e: Json) => e.option === 'enemyIsBoss').value = bossValue;
+      const [stage] = stagesOf(p2);
+      const v2 = checkV2({
+        stage,
+        checks: checksFor(stage, {
+          shownOptions,
+          config: { input: { someSkillToggle: true }, placeholder: { enemyArmour: 49, enemySpeed: 700 } },
+          gems: [{ group: 1, index: 2, name: 'Rage I', level: 1, tier: 1, kind: 'support', levelRequirement: 0 }],
+          items: [{ slot: 'Flask 1', name: 'Lesser Life Flask', baseName: 'Lesser Life Flask', levelRequirement: 0, active: true }],
+        }),
+        producers: new Map([[producerKey('gem', 'Rage I'), true]]),
+        defaults: {
+          ...defaults,
+          enemyIsBoss: { type: 'list', apply: true, conditional: false, default: 'Pinnacle', first: 'None' },
+          someSkillToggle: { type: 'check', apply: true, conditional: true, default: true },
+          enemyArmour: { type: 'countAllowZero', apply: true, conditional: false },
+          enemySpeed: { type: 'countAllowZero', apply: false, conditional: false, defaultPlaceholder: 700 },
+        },
+        baseline: { schemaVersion: 1, options: { someSkillToggle: { rationale: 'r' }, enemyArmour: { rationale: 'r' }, enemySpeed: { rationale: 'r' } } },
+        ref,
+      });
+      const cls = Object.fromEntries(['someSkillToggle', 'enemyArmour', 'enemySpeed'].map((o) => [o, v2.configEffective[o]?.class]));
+      return { cls, unlisted: v2.verdict.findings.filter((f) => f.code === 'default-unlisted').map((f) => f.data!.option) };
+    };
+    expect(one.config.scenario.find((e) => e.option === 'enemyIsBoss')?.value).toBe('None');
+    expect(run([], 'None')).toEqual({ cls: { someSkillToggle: 'baseline', enemyArmour: 'baseline', enemySpeed: 'baseline' }, unlisted: [] });
+    expect(run(['someSkillToggle'], 'None')).toEqual({ cls: { someSkillToggle: 'unlisted', enemyArmour: 'baseline', enemySpeed: 'baseline' }, unlisted: ['someSkillToggle'] });
+    expect(run([], 'Boss')).toEqual({ cls: { someSkillToggle: 'baseline', enemyArmour: 'unlisted', enemySpeed: 'baseline' }, unlisted: ['enemyArmour'] });
   });
 
   it('producersOf lists each producer once, in plan order', () => {

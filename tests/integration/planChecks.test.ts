@@ -269,6 +269,39 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
 
   const configSetOf = (record: CompileRecord, id: string) => record.sets.find((s) => s.kind === 'config' && s.stages.includes(id))!.id;
 
+  /** The show gates ConfigTab builds its shownFuncs from (`if varData.<gate> then`, Classes/ConfigTab.lua). */
+  const SHOW_GATES = [
+    ...new Set(
+      [...fs.readFileSync(path.join(POB_SRC, 'Classes', 'ConfigTab.lua'), 'utf8').matchAll(/\bif varData\.(if[A-Za-z]+) then/g)].map((m) => m[1]),
+    ),
+  ];
+
+  /**
+   * The conditional options PoB shows for the build the engine holds (its active config set and last
+   * calculation): every option with a show gate whose ConfigTab control says it is shown.
+   */
+  async function shownConditional(): Promise<Set<string>> {
+    expect(SHOW_GATES).toEqual(expect.arrayContaining(['ifSkill', 'ifCond', 'ifFlag', 'ifOption']));
+    const vars = await luaQuery<string[]>(String.raw`
+      local gates = { ${SHOW_GATES.map((g) => `'${g}'`).join(', ')} }
+      local out = {}
+      for _, v in ipairs(LoadModule('Modules/ConfigOptions')) do
+        local gated = false
+        for _, g in ipairs(gates) do if v.var and v[g] ~= nil then gated = true end end
+        local control = gated and build.configTab.varControls[v.var]
+        if control then
+          local shown = control.shown
+          if type(shown) == 'function' then shown = shown() end
+          if shown then out[#out + 1] = v.var end
+        end
+      end
+      return out`);
+    return new Set(vars);
+  }
+
+  /** D-252: the enemy stats a boss stage sets from E1, never covered by the baseline list there. */
+  const BOSS_OPTIONS = ['enemyLevel', 'enemyArmour', 'enemyEvasion', 'enemyFireResist', 'enemyColdResist', 'enemyLightningResist', 'enemyChaosResist', 'enemyCritChance', 'enemyCritDamage'];
+
   beforeAll(async () => {
     f = await startSessionFixture({ testActions: true });
   }, ENGINE_TIMEOUT);
@@ -436,6 +469,33 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
     const max = uncutMax('uncut-skill', s.progress);
     expect(max).toBeLessThan(tier);
     expect(findingsOf(record, '1', 'v1', 'gem-availability').map((x) => x.data)).toEqual([{ gem: 'Blood Hunt', tier, level: 1, max }]);
+  }, ENGINE_TIMEOUT);
+
+  it('AC-P40 gem-availability (review): a persistent minion gem with a skill tier is checked as a skill gem, not noted as Spirit', async () => {
+    const gem = await luaQuery<{ tier: number; persistent: boolean }>(
+      `for _, g in pairs(data.gems) do if g.name == 'Skeletal Brute' then return { tier = g.Tier, persistent = g.tags.persistent == true } end end`,
+    );
+    // A persistent (Spirit-reserving) gem whose tier is one of C1's skill tiers, not its Spirit tiers.
+    expect(gem.persistent).toBe(true);
+    expect(fact(GEMS, 'skill-tiers').value).toContain(String(gem.tier));
+    expect(fact(GEMS, 'spirit-tiers').value).not.toContain(String(gem.tier));
+    const plan = fixturePlan();
+    const s = plan.stages[0];
+    s.skills.groups.push({ label: 'Brute', enabled: true, role: 'clear', gems: [{ name: 'Skeletal Brute', level: 1, quality: 0, enabled: true }] });
+    const { record } = await measure(plan, ['1']);
+    const max = uncutMax('uncut-skill', s.progress);
+    expect(max).toBeLessThan(gem.tier);
+    expect(findingsOf(record, '1', 'v1', 'gem-availability').map((x) => x.data)).toEqual([{ gem: 'Skeletal Brute', tier: gem.tier, level: 1, max }]);
+    expect(record.stages['1'].v1?.notes.filter((n) => n.data?.gem === 'Skeletal Brute')).toEqual([]);
+
+    // A Spirit gem at a Spirit tier is still noted, not checked (A-31).
+    const herald = await luaQuery<number>(`for _, g in pairs(data.gems) do if g.name == 'Herald of Ice' then return g.Tier end end`);
+    expect(fact(GEMS, 'spirit-tiers').value).toContain(String(herald));
+    const p2 = fixturePlan();
+    p2.stages[0].skills.groups.push({ label: 'Herald', enabled: true, role: 'utility', gems: [{ name: 'Herald of Ice', level: 1, quality: 0, enabled: true }] });
+    const noted = await measure(p2, ['1']);
+    expect(findingsOf(noted.record, '1', 'v1', 'gem-availability')).toEqual([]);
+    expect(noted.record.stages['1'].v1?.notes.filter((n) => n.data?.gem === 'Herald of Ice').map((n) => n.code)).toEqual(['gem-availability']);
   }, ENGINE_TIMEOUT);
 
   it('AC-P40 gem-level-requirement: Blood Hunt at gem level 15 in a level-40 stage', async () => {
@@ -663,14 +723,49 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
       const cleared = await measureWithBaseline(all, emptyDir, ['1']);
       expect(findingsOf(cleared, '1', 'v2', 'default-unlisted')).toEqual([]);
 
-      // The committed list clears each option it names (the tool's own default, data/config-baseline.json).
+      // The committed list (the tool's own default, data/config-baseline.json) clears each option it names,
+      // except a conditional one PoB shows for the stage (D-250) and, on this boss stage (the Arbiter is a
+      // pinnacle boss), the enemy stats E1 gives (D-252).
       const committed = await measure(only(), ['1']);
+      const shown = await shownConditional();
       const left = new Set(findingsOf(committed.record, '1', 'v2', 'default-unlisted').map((x) => x.data!.option as string));
       const listed = new Set(Object.keys(BASELINE.options));
-      expect(left).toEqual(new Set([...expected.keys()].filter((o) => !listed.has(o))));
-      for (const option of expected.keys()) {
-        if (listed.has(option)) expect({ option, class: committed.record.stages['1'].configEffective[option]?.class }).toEqual({ option, class: 'baseline' });
+      const covered = (o: string) => listed.has(o) && !shown.has(o) && !BOSS_OPTIONS.includes(o);
+      expect(left).toEqual(new Set([...expected.keys()].filter((o) => !covered(o))));
+      for (const option of BOSS_OPTIONS.filter((o) => listed.has(o) && expected.has(o))) {
+        expect({ option, left: left.has(option) }).toEqual({ option, left: true });
       }
+      for (const option of expected.keys()) {
+        if (covered(option)) expect({ option, class: committed.record.stages['1'].configEffective[option]?.class }).toEqual({ option, class: 'baseline' });
+      }
+
+      // D-252: listing the boss's level, defences, resistances and crit from E1 clears them.
+      const arbiter = readJson('enemies/arbiter-of-divinity.json');
+      const fromE1: Record<string, string> = {
+        enemyLevel: 'area-level',
+        enemyArmour: 'base.armour',
+        enemyEvasion: 'base.evasion',
+        enemyFireResist: 'res.fire',
+        enemyColdResist: 'res.cold',
+        enemyLightningResist: 'res.lightning',
+        enemyChaosResist: 'res.chaos',
+        enemyCritChance: 'base.crit-chance',
+        enemyCritDamage: 'base.crit-bonus',
+      };
+      expect(Object.keys(fromE1).sort()).toEqual([...BOSS_OPTIONS].sort());
+      const bossPlan = only();
+      for (const [option, key] of Object.entries(fromE1)) {
+        bossPlan.stages[0].config.scenario.push({
+          option,
+          value: fact(arbiter, key).value,
+          source: { file: 'enemies/arbiter-of-divinity.json', key },
+          tag: tagOf(arbiter, key),
+        });
+      }
+      const boss = await measure(bossPlan, ['1']);
+      const bossLeft = new Set(findingsOf(boss.record, '1', 'v2', 'default-unlisted').map((x) => x.data!.option as string));
+      expect(BOSS_OPTIONS.filter((o) => bossLeft.has(o))).toEqual([]);
+      expect(boss.record.stages['1'].configEffective.enemyArmour).toEqual({ value: fact(arbiter, 'base.armour').value, origin: 'explicit', class: 'scenario' });
     } finally {
       fs.rmSync(emptyDir, { recursive: true, force: true });
     }
@@ -686,6 +781,34 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  }, ENGINE_TIMEOUT);
+
+  it('AC-P42 (D-250): a conditional baseline option is covered only while PoB hides it: Flicker Strike absent and present', async () => {
+    const option = 'FlickerStrikeBypassCD';
+    expect(BASELINE.options[option]).toBeDefined();
+    // Absent: PoB hides the option; the baseline list covers its default.
+    const absent = await measure(fixturePlan(), ['1']);
+    expect((await shownConditional()).has(option)).toBe(false);
+    expect(absent.record.stages['1'].configEffective[option]).toEqual({ value: true, origin: 'default', class: 'baseline' });
+    expect(findingsOf(absent.record, '1', 'v2', 'default-unlisted')).toEqual([]);
+
+    // Present: PoB shows it, so its default is the stage's own unlisted state.
+    const withSkill = () => {
+      const plan = fixturePlan();
+      plan.stages[0].skills.groups.push({ label: 'Flicker', enabled: true, role: 'clear', gems: [{ name: 'Flicker Strike', level: 1, quality: 0, enabled: true }] });
+      return plan;
+    };
+    const present = await measure(withSkill(), ['1']);
+    expect((await shownConditional()).has(option)).toBe(true);
+    expect(present.record.stages['1'].configEffective[option]).toEqual({ value: true, origin: 'default', class: 'unlisted' });
+    expect(findingsOf(present.record, '1', 'v2', 'default-unlisted').map((x) => x.data)).toEqual([{ option, value: true, origin: 'default' }]);
+
+    // Listed as earned state, with its producer and uptime, it is explicit and clears the finding.
+    const listed = withSkill();
+    listed.stages[0].config.earned.push({ option, value: true, producer: { kind: 'skill', name: 'Flicker Strike' }, uptime: 'test uptime' });
+    const done = await measure(listed, ['1']);
+    expect(done.record.stages['1'].configEffective[option]).toEqual({ value: true, origin: 'explicit', class: 'earned' });
+    expect(done.record.stages['1'].v2?.findings).toEqual([]);
   }, ENGINE_TIMEOUT);
 
   // ---------------------------------------------------------------------------------------------------

@@ -11,22 +11,25 @@
  * | `passive-points` | PoB's regular count (`PointsUsed − min(ws1, ws2)`, Build.lua:1029) exceeds (level − 1) + the quests' passive points up to `progress` + `ExtraPoints`; at the last progress key the Martyr point is allowed, with a note |
  * | `weapon-set-points` | `ws1` or `ws2` exceeds the quests' weapon-set points up to `progress` + `PassivePointsToWeaponSetPoints` |
  * | `ascendancy-points` | `AscUsed` exceeds the points of the trials available at `progress`; on a variant stage also `AscUsed` > `ascendancyPoints`, or `ascendancyPoints` > those points (D-193) |
- * | `gem-availability` | a skill gem's tier or level exceeds the highest uncut skill-gem level available at `progress`, or a support gem's tier the highest uncut support level; a Spirit gem gets a note (A-31) |
+ * | `gem-availability` | a skill gem's tier or level exceeds the highest uncut skill-gem level available at `progress`, or a support gem's tier the highest uncut support level; a Spirit gem (at one of C1's Spirit tiers) gets a note (A-31) |
  * | `gem-level-requirement` | a gem's level requirement exceeds the stage level |
  * | `item-level-requirement` | an equipped item's level requirement exceeds the stage level |
  * | `attributes` | Str < ReqStr, Dex < ReqDex or Int < ReqInt, naming the item or gem |
- * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's for its progress point |
+ * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144, A-P3) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
- * picks the range. The key is the last reward quest reached, so a stage between two keys is checked at
- * the earlier one.
+ * picks the range. The key is the last reward quest reached, so at the last key of a region the next
+ * region's entry value is accepted too, with a note naming the boundary (D-251).
+ *
+ * **Spirit gems** (A-31): a gem that reserves Spirit is noted, not checked, only when its tier is one of C1's
+ * `spirit-tiers`; any other non-support gem is checked against the uncut skill gems.
  */
 import type { StageChecks } from '../../engine/schemas.js';
 import type { Finding, Verdict } from '../record.js';
-import type { PlanReferenceData } from '../referenceData.js';
+import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
 import type { Stage } from '../schema.js';
 import { C1, FactReader, type Trial } from './facts.js';
 
@@ -206,28 +209,36 @@ function checkGems(stage: Stage, checks: StageChecks, facts: FactReader, finding
   };
   const skill = availableMax('uncut-skill');
   const support = availableMax('uncut-support');
+  // C1's Spirit gem tiers: a gem that reserves Spirit is a Spirit gem only at one of them; a persistent minion
+  // with a skill tier (Skeletal Brute, 13) comes from an uncut skill gem and is checked as one.
+  const spiritTiersFact = facts.fact(C1.gems, 'spirit-tiers');
+  const spiritTiers = new Set(
+    Array.isArray(spiritTiersFact?.value) ? (spiritTiersFact!.value as string[]).map(Number).filter(Number.isFinite) : [],
+  );
   for (const gem of checks.gems) {
     const where = `skill group ${gem.group} gem ${gem.index}`;
-    if (gem.kind === 'spirit') {
+    const tier = gem.tier ?? 0;
+    if (gem.kind === 'spirit' && spiritTiers.has(tier)) {
+      facts.rely('gem-availability', spiritTiersFact!);
       notes.push({
         code: 'gem-availability',
         message: `${gem.name} (${where}) is a Spirit gem; C1 has no Spirit gem table, so its availability isn't checked (A-31)`,
         data: { gem: gem.name, group: gem.group, index: gem.index },
       });
     } else {
-      const series = gem.kind === 'skill' ? skill : support;
-      const tier = gem.tier ?? 0;
-      const needed = gem.kind === 'skill' ? Math.max(tier, gem.level) : tier;
+      const isSkill = gem.kind !== 'support';
+      const series = isSkill ? skill : support;
+      const needed = isSkill ? Math.max(tier, gem.level) : tier;
       const level = series.levels.find((l) => l.n === needed);
       if (level !== undefined) facts.rely('gem-availability', level.fact);
       if (needed > series.max) {
-        const kind = gem.kind === 'skill' ? 'skill' : 'support';
+        const kind = isSkill ? 'skill' : 'support';
         findings.push({
           code: 'gem-availability',
           message:
-            `${gem.name} (${where}, tier ${tier}${gem.kind === 'skill' ? `, level ${gem.level}` : ''}) needs an uncut ` +
+            `${gem.name} (${where}, tier ${tier}${isSkill ? `, level ${gem.level}` : ''}) needs an uncut ` +
             `${kind} gem of level ${needed}, but ${stage.progress} reaches uncut ${kind} gems of level ${series.max} at most`,
-          data: { gem: gem.name, tier, ...(gem.kind === 'skill' ? { level: gem.level } : {}), max: series.max },
+          data: { gem: gem.name, tier, ...(isSkill ? { level: gem.level } : {}), max: series.max },
         });
       }
     }
@@ -268,44 +279,112 @@ function checkAttributes(checks: StageChecks, findings: Finding[]): void {
   }
 }
 
-/** C1's resistance penalty at a progress key, and the fact it rests on; null with the reason otherwise. */
-export function expectedResistancePenalty(
-  facts: FactReader,
-  progress: string,
-): { value: number; fact: NonNullable<ReturnType<FactReader['fact']>> } | { value: null; reason: string } {
-  const region = facts.string(C1.progress, `${progress}.region`);
-  if (region === null) return { value: null, reason: `C1 gives ${progress} no region` };
-  const fact = facts.fact(C1.limits, `resistance-penalty.${region.value}`);
-  if (fact === null) return { value: null, reason: `C1 has no resistance penalty for ${region.value}` };
-  if (typeof fact.value === 'number') return { value: fact.value, fact };
+/** C1's penalty for a region as a number, or its range table (`"<lo>-<hi>"` → value) for a range-keyed one. */
+function regionPenalty(facts: FactReader, region: string): { fact: ResolvedFact; value: number | Record<string, number | string> } | null {
+  const fact = facts.fact(C1.limits, `resistance-penalty.${region}`);
+  if (fact === null) return null;
+  if (typeof fact.value === 'number') return { fact, value: fact.value };
   if (typeof fact.value === 'object' && fact.value !== null && !Array.isArray(fact.value)) {
-    const area = facts.number(C1.progress, `${progress}.area-level`);
-    if (area === null) return { value: null, reason: `C1 gives ${progress} no area level to pick its ${region.value} penalty by` };
-    const value = valueInRange(fact.value as Record<string, number | string>, area.value);
-    if (value === null) return { value: null, reason: `C1's ${region.value} penalty has no range holding area level ${area.value}` };
-    return { value, fact };
+    return { fact, value: fact.value as Record<string, number | string> };
   }
-  return { value: null, reason: `C1's ${region.value} penalty isn't a number or a range table` };
+  return null;
+}
+
+/** What C1 says the resistance penalty is at a progress key (§3.7, D-251). */
+export type PenaltyExpectation =
+  | {
+      /** The penalty of the key's own region (a range-keyed region: the range holding the key's area level). */
+      expected: number;
+      /** Every value V1 accepts: `expected`, and at a region boundary also the next region's entry value. */
+      accepted: number[];
+      /** The boundary when the next progress key lies in another region (D-251), else null. */
+      boundary: { region: string; next: string; nextRegion: string } | null;
+      /** The facts the expectation rests on (A-29). */
+      facts: ResolvedFact[];
+    }
+  | { expected: null; reason: string; facts: ResolvedFact[] };
+
+/**
+ * C1's resistance penalty at a progress key: its region's value, a range-keyed region's (the interludes)
+ * picked by the key's own area level. The key is the last reward quest reached, so a stage at the last key
+ * of a region may already stand in the next region's areas before that region's first reward quest: there
+ * any value from the key's region's through the next region's entry value (the lowest range of a range-keyed
+ * one) is accepted (D-251).
+ */
+export function resistancePenaltyAt(facts: FactReader, progress: string): PenaltyExpectation {
+  const used: ResolvedFact[] = [];
+  const region = facts.string(C1.progress, `${progress}.region`);
+  if (region === null) return { expected: null, reason: `C1 gives ${progress} no region`, facts: used };
+  used.push(region.fact);
+  const own = regionPenalty(facts, region.value);
+  if (own === null) return { expected: null, reason: `C1 has no resistance penalty for ${region.value} as a number or a range table`, facts: used };
+  used.push(own.fact);
+  let expected: number;
+  if (typeof own.value === 'number') {
+    expected = own.value;
+  } else {
+    const area = facts.number(C1.progress, `${progress}.area-level`);
+    if (area === null) return { expected: null, reason: `C1 gives ${progress} no area level to pick its ${region.value} penalty by`, facts: used };
+    used.push(area.fact);
+    const value = valueInRange(own.value, area.value);
+    if (value === null) return { expected: null, reason: `C1's ${region.value} penalty has no range holding area level ${area.value}`, facts: used };
+    expected = value;
+  }
+  const keys = facts.ref.progressKeys;
+  const next = keys[facts.progressIndex(progress) + 1];
+  const nextRegion = next === undefined ? null : facts.string(C1.progress, `${next}.region`);
+  if (next === undefined || nextRegion === null || nextRegion.value === region.value) {
+    return { expected, accepted: [expected], boundary: null, facts: used };
+  }
+  used.push(nextRegion.fact);
+  const theirs = regionPenalty(facts, nextRegion.value);
+  if (theirs === null) return { expected, accepted: [expected], boundary: null, facts: used };
+  used.push(theirs.fact);
+  let entry: number | null = null;
+  if (typeof theirs.value === 'number') {
+    entry = theirs.value;
+  } else {
+    let lowest = Infinity;
+    for (const [key, value] of Object.entries(theirs.value)) {
+      const r = parseRangeKey(key);
+      if (r !== null && typeof value === 'number' && r.lo < lowest) {
+        lowest = r.lo;
+        entry = value;
+      }
+    }
+  }
+  const accepted = entry === null || entry === expected ? [expected] : [expected, entry];
+  return { expected, accepted, boundary: { region: region.value, next, nextRegion: nextRegion.value }, facts: used };
 }
 
 function checkResistancePenalty(stage: Stage, facts: FactReader, findings: Finding[], notes: Finding[]): void {
   const entry = [...stage.config.earned, ...stage.config.scenario].find((e) => e.option === RESISTANCE_PENALTY);
   if (entry === undefined) return;
-  const expected = expectedResistancePenalty(facts, stage.progress);
-  if (expected.value === null) {
+  const at = resistancePenaltyAt(facts, stage.progress);
+  for (const f of at.facts) facts.rely('resistance-penalty', f);
+  if (at.expected === null) {
     notes.push({
       code: 'resistance-penalty',
-      message: `the listed ${RESISTANCE_PENALTY} isn't checked: ${expected.reason}`,
+      message: `the listed ${RESISTANCE_PENALTY} isn't checked: ${at.reason}`,
       data: { listed: entry.value },
     });
     return;
   }
-  facts.rely('resistance-penalty', expected.fact);
-  if (entry.value !== expected.value) {
+  if (at.boundary !== null) {
+    notes.push({
+      code: 'resistance-penalty',
+      message:
+        `${stage.progress} is the last ${at.boundary.region} progress key before ${at.boundary.next} (${at.boundary.nextRegion}): ` +
+        `a stage there may stand in either region, so ${at.accepted.join(' or ')} is accepted (D-251)`,
+      data: { progress: stage.progress, next: at.boundary.next, region: at.boundary.region, nextRegion: at.boundary.nextRegion, accepted: at.accepted },
+    });
+  }
+  if (typeof entry.value !== 'number' || !at.accepted.includes(entry.value)) {
     findings.push({
       code: 'resistance-penalty',
-      message: `the stage lists ${RESISTANCE_PENALTY} ${JSON.stringify(entry.value)}, but C1 gives ${expected.value} at ${stage.progress}`,
-      data: { listed: entry.value, expected: expected.value },
+      message:
+        `the stage lists ${RESISTANCE_PENALTY} ${JSON.stringify(entry.value)}, but C1 gives ${at.accepted.join(' or ')} at ${stage.progress}`,
+      data: { listed: entry.value, expected: at.expected, ...(at.boundary !== null ? { accepted: at.accepted } : {}) },
     });
   }
 }

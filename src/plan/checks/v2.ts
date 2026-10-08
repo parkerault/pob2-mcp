@@ -13,7 +13,7 @@
  * | `producer-absent` | the producer exists but isn't in the stage (item: an equipped item; gem: a gem of the skill set; passive: an allocated node, ascendancy included; skill: an active skill; flask or charm: equipped with its toggle on), names compared ignoring case |
  * | `source-unresolved` | a scenario entry's `source.file` isn't a loaded C1/E1 file, or its key doesn't resolve |
  * | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on in the stage's effective config and its quest comes after `progress` |
- * | `default-unlisted` | an option on by default, or placeholder-driven in the stage's config set, that neither the stage nor the baseline list names |
+ * | `default-unlisted` | an option on by default, or placeholder-driven in the stage's config set, that the stage doesn't list and the baseline list doesn't cover: it doesn't name it; or it is conditional and PoB shows it for the stage (D-250); or the stage fights a boss and it is one of the enemy's level, armour, evasion, resistances or crit (D-252) |
  * | `toggle-empty` | a toggle is active on a slot holding no flask or charm |
  *
  * **On** (A-P5): `true`, a non-zero number, or a list value other than the option's first list entry.
@@ -29,7 +29,7 @@
  * **configEffective** holds every option that affects the calculation: each listed one (`explicit`, class
  * `earned` or `scenario`), each default-on one the stage doesn't list (`default`, its value in the set) and
  * each placeholder-driven one it doesn't list (`placeholder`, the placeholder's value); an unlisted option's
- * class is `baseline` when the baseline list names it, else `unlisted`.
+ * class is `baseline` when the baseline list covers it there (D-230, D-250, D-252), else `unlisted`.
  */
 import type { ConfigOptionDefault, StageChecks } from '../../engine/schemas.js';
 import type { ConfigValue, Finding, StageRecord, Verdict } from '../record.js';
@@ -42,6 +42,17 @@ import { C1, FactReader } from './facts.js';
 const NUMERIC_TYPES = new Set(['count', 'integer', 'countAllowZero', 'float']);
 /** The option whose placeholder `UpdateLevel` applies (ConfigTab.lua:870-880). */
 const ENEMY_LEVEL = 'enemyLevel';
+/** The option that makes a stage's enemy a boss (any value but its first list entry, "None"). */
+const ENEMY_IS_BOSS = 'enemyIsBoss';
+/**
+ * D-252: the enemy stats a boss stage sets from E1 (its level, armour, evasion, resistances and crit), which
+ * the baseline list never covers there: PoB's boss placeholders are its own PoE1-derived means (pin §B5).
+ */
+export const BOSS_SCENARIO_OPTIONS: readonly string[] = [
+  ENEMY_LEVEL, 'enemyArmour', 'enemyEvasion',
+  'enemyFireResist', 'enemyColdResist', 'enemyLightningResist', 'enemyChaosResist',
+  'enemyCritChance', 'enemyCritDamage',
+];
 
 /** A producer's lookup key in `compile_check`'s reply: `<kind>:<name in lowercase>`. */
 export const producerKey = (kind: string, name: string): string => `${kind}:${name.toLowerCase()}`;
@@ -170,6 +181,21 @@ export function checkV2(input: V2Input): V2Result {
   for (const e of stage.config.scenario) listed.set(e.option, { value: e.value, cls: 'scenario' });
   for (const [option, { value, cls }] of listed) effective[option] = { value, origin: 'explicit', class: cls };
   const { input: setInput, placeholder } = checks.config;
+  // D-250: a conditional option (one PoB shows only for some builds) keeps the baseline only while PoB hides
+  // it for this stage; shown, it is the stage's own state, which the plan lists. D-252: on a boss stage the
+  // enemy's level, defences, resistances and crit come from E1.
+  const shown = new Set(checks.shownOptions);
+  const boss = listed.has(ENEMY_IS_BOSS) && isOnFor(listed.get(ENEMY_IS_BOSS)!.value, defaults[ENEMY_IS_BOSS]);
+  const baselineFor = (option: string): { ok: true } | { ok: false; why: string } => {
+    if (!Object.prototype.hasOwnProperty.call(input.baseline.options, option)) return { ok: false, why: 'neither the stage nor the baseline list names it' };
+    if (defaults[option]?.conditional === true && shown.has(option)) {
+      return { ok: false, why: 'PoB shows it for this stage, so the baseline list no longer covers it (D-250): list it as earned state' };
+    }
+    if (boss && BOSS_SCENARIO_OPTIONS.includes(option)) {
+      return { ok: false, why: 'the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1' };
+    }
+    return { ok: true };
+  };
   for (const option of Object.keys(defaults).sort()) {
     if (listed.has(option)) continue;
     const info = defaults[option];
@@ -180,14 +206,14 @@ export function checkV2(input: V2Input): V2Result {
       entry = { value: placeholder[option], origin: 'placeholder' };
     }
     if (entry === null) continue;
-    const inBaseline = Object.prototype.hasOwnProperty.call(input.baseline.options, option);
-    effective[option] = { ...entry, class: inBaseline ? 'baseline' : 'unlisted' };
-    if (!inBaseline) {
+    const baseline = baselineFor(option);
+    effective[option] = { ...entry, class: baseline.ok ? 'baseline' : 'unlisted' };
+    if (!baseline.ok) {
       findings.push({
         code: 'default-unlisted',
         message:
           `${option} is ${entry.origin === 'default' ? 'on by default' : "driven by PoB's placeholder"} ` +
-          `(${JSON.stringify(entry.value)}), but neither the stage nor the baseline list names it`,
+          `(${JSON.stringify(entry.value)}), but ${baseline.why}`,
         data: { option, value: entry.value, origin: entry.origin },
       });
     }

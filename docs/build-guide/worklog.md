@@ -157,8 +157,10 @@ WU-32's review, because it consumes the coverage statuses.
 - **WU-34** (ranker amendments): done `a62df75`. Review: 1 major. The server's 5000-char truncation
   cut the can't-measure section, which renders last, exactly at its ascendancy entries. 2 minor: the
   multiple-choice ascendancy notables appeared nowhere; the section header overstated `possibly unread`
-  lines. Fixes in progress with D-246 and D-247. All seven deviations were accepted; `suggest_supports`'
-  output (about 17k chars on the golden build) stays complete.
+  lines. Fixed `ec2c822` with D-246 and D-247 (each can't-measure reason now labelled `not applied`,
+  `advisory`, `choice` or `no value`; when entries must go, the longer ranking loses them first). All
+  seven deviations were accepted; `suggest_supports`' output (about 17k chars on the golden build)
+  stays complete.
 
 ### Merges
 
@@ -206,3 +208,19 @@ WU-32's review, because it consumes the coverage statuses.
 - Subagents share the session scratchpad. Two wrote the same `probe.mjs` and `gate2.log`; use
   per-unit subfolders or `mktemp -d`.
 - Timing ACs (AC-T22, AC-E8) false-failed again under parallel load.
+
+### Merge and wave gate: PASS at `ec2c822`
+
+`ec2c822` (WU-34) merged. An independent verifier ran from a clean tree, with the WU-41 lane running
+alongside:
+- `mise run test` rc=0, 112 of 112 suites and 1421 of 1421 tests, 159 s;
+- `pnpm build` rc=0;
+- `scripts/fresh-clone-check.sh` rc=0: 82 tools (81 without poe.ninja), Life 2,977.
+
+AC-B1…B5 and AC-B7 hold; D-244's `list` samples run as `read`. Every review-fix test derives its
+expectation independently. No touches violations. Low notes:
+- D-246 didn't reserve room for notices the session prepends (no `refit`, D-53). Assigned to a WU-34
+  follow-up.
+- **Accepted deviation:** WU-36's file-local helpers in `BuildOps.lua` (about 250 lines beside
+  `set_tree` and `update_tree_delta`) sit outside the functions §8 names; they are local to those
+  functions' features and touch nothing else.

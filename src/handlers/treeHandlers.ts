@@ -723,34 +723,39 @@ export async function handleGetPassiveUpgrades(
   };
 
   // D-246: keep within C-1's limit so no can't-measure line is ever cut. Leave out the ranked entries' stat
-  // lines first (search_tree_nodes gives them back), then ranked entries from the bottom of the longer
-  // ranking, then the tip, and say what was left out in one line.
-  const plan = { stats: true, mainShown: top.length, ascShown: includeAscendancy && asc ? ascTop.length : 0, tip: true };
-  const noteFor = (): string | null => {
-    const parts: string[] = [];
-    if (!plan.stats) parts.push("the ranked entries' stat lines (search_tree_nodes shows them)");
-    if (plan.mainShown < top.length) {
-      parts.push(`passive-point ranks ${plan.mainShown + 1}-${top.length}`);
+  // lines first (search_tree_nodes gives them back), then the closing tip, then ranked entries from the
+  // bottom of the longer ranking, and say what was left out in one line. `limit` is the room left once the
+  // session's notices are in front of the text (the router's `refit`, as find_upgrades uses it, D-53).
+  const fit = (limit: number): string => {
+    const plan = { stats: true, mainShown: top.length, ascShown: includeAscendancy && asc ? ascTop.length : 0, tip: true };
+    const noteFor = (): string | null => {
+      const parts: string[] = [];
+      if (!plan.stats) parts.push("the ranked entries' stat lines (search_tree_nodes shows them)");
+      if (!plan.tip && top.length > 0) parts.push('the closing tip');
+      if (plan.mainShown < top.length) {
+        parts.push(`passive-point ranks ${plan.mainShown + 1}-${top.length}`);
+      }
+      if (includeAscendancy && asc && plan.ascShown < ascTop.length) {
+        parts.push(`ascendancy ranks ${plan.ascShown + 1}-${ascTop.length}`);
+      }
+      return parts.length > 0 ? `Shortened to stay within ${OUTPUT_LIMIT} characters; left out: ${parts.join('; ')}.` : null;
+    };
+    let text = render(plan, noteFor());
+    while (text.length > limit) {
+      if (plan.stats) plan.stats = false;
+      else if (plan.tip && top.length > 0) plan.tip = false;
+      else if (plan.mainShown > 0 || plan.ascShown > 0) {
+        if (plan.mainShown >= plan.ascShown) plan.mainShown--;
+        else plan.ascShown--;
+      } else break;
+      text = render(plan, noteFor());
     }
-    if (includeAscendancy && asc && plan.ascShown < ascTop.length) {
-      parts.push(`ascendancy ranks ${plan.ascShown + 1}-${ascTop.length}`);
-    }
-    if (!plan.tip && top.length > 0) parts.push('the closing tip');
-    return parts.length > 0 ? `Shortened to stay within ${OUTPUT_LIMIT} characters; left out: ${parts.join('; ')}.` : null;
+    return text;
   };
-  let text = render(plan, noteFor());
-  while (text.length > OUTPUT_LIMIT) {
-    if (plan.stats) plan.stats = false;
-    else if (plan.mainShown > 0 || plan.ascShown > 0) {
-      if (plan.mainShown >= plan.ascShown) plan.mainShown--;
-      else plan.ascShown--;
-    } else if (plan.tip) plan.tip = false;
-    else break;
-    text = render(plan, noteFor());
-  }
 
   return {
-    content: [{ type: 'text' as const, text }],
+    content: [{ type: 'text' as const, text: fit(OUTPUT_LIMIT) }],
+    refit: (reservedChars: number) => fit(OUTPUT_LIMIT - Math.max(0, reservedChars)),
   };
 }
 

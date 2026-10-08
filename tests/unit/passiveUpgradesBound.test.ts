@@ -51,14 +51,17 @@ function stubEngine(opts: { statWords: number; unparsed: number; lineWords: numb
   return client as unknown as PoBLuaApiClient;
 }
 
-async function run(client: PoBLuaApiClient, maxResults: number): Promise<string> {
-  const out = await handleGetPassiveUpgrades(
+function handle(client: PoBLuaApiClient, maxResults: number) {
+  return handleGetPassiveUpgrades(
     { getLuaClient: () => client, ensureLuaClient: async () => {}, sourceScan: async () => ({ names: new Set<string>(), templates: [] }) },
     'both',
     maxResults,
     true,
   );
-  return out.content[0].text;
+}
+
+async function run(client: PoBLuaApiClient, maxResults: number): Promise<string> {
+  return (await handle(client, maxResults)).content[0].text;
 }
 
 const ranks = (text: string): number[] => [...text.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
@@ -80,14 +83,15 @@ describe('D-246: get_passive_upgrades keeps its whole text within 5000 character
   });
 
   it('then ranked entries from the bottom of the longer ranking; every can\'t-measure line stays whole', async () => {
-    const unparsed = 16;
+    const unparsed = 12;
     const text = await run(stubEngine({ statWords: 6, unparsed, lineWords: 7 }), 20);
     expect(text.length).toBeLessThanOrEqual(5000);
     const note = /^Shortened to stay within 5000 characters; left out: (.*)\.$/m.exec(text);
     expect(note).not.toBeNull();
     const mainLeft = /passive-point ranks (\d+)-20/.exec(note![1]);
     expect(mainLeft).not.toBeNull();
-    expect(note![1]).toContain("the ranked entries' stat lines");
+    expect(note![1]).toContain("the ranked entries' stat lines (search_tree_nodes shows them); the closing tip; passive-point ranks");
+    expect(text).not.toContain('💡');
 
     // Each ranking keeps its first entries, in order; the longer one loses entries first.
     const main = text.slice(0, text.indexOf('## Ascendancy notables'));
@@ -99,12 +103,48 @@ describe('D-246: get_passive_upgrades keeps its whole text within 5000 character
     expect(mainShown.length).toBe(Number(mainLeft![1]) - 1);
     const ascLeft = /ascendancy ranks (\d+)-8/.exec(note![1]);
     expect(ascShown.length).toBe(ascLeft ? Number(ascLeft[1]) - 1 : 8);
-    expect(mainShown.length).toBeGreaterThanOrEqual(ascShown.length);
+    // The longer ranking loses an entry first, ties going to the passive-point ranking.
+    if (ascShown.length < 8) expect([ascShown.length - 1, ascShown.length]).toContain(mainShown.length);
+    else expect(mainShown.length).toBeGreaterThanOrEqual(8);
+    expect(mainShown.length).toBeGreaterThan(0);
 
     // The can't-measure section is complete: one whole line per unparsed node.
     const cant = text.slice(text.indexOf("## What PoB can't fully measure"));
     const entries = [...cant.matchAll(/^- \*\*(.+?)\*\* \[(\d+)\].*: not applied: \[unparsed\] (.*)$/gm)];
     expect(entries).toHaveLength(unparsed);
     for (const e of entries) expect(e[3]).toBe(LONG(Number(e[2]), 7));
+  });
+
+  it('the closing tip goes before any ranked entry: a text just over the limit without stat lines loses only the tip', async () => {
+    // Find a can't-measure size where the text without stat lines is over 5000 but fits without the tip.
+    let found: string | null = null;
+    for (let unparsed = 1; unparsed <= 32 && !found; unparsed++) {
+      for (let words = 1; words <= 12 && !found; words++) {
+        const client = stubEngine({ statWords: 6, unparsed, lineWords: words });
+        const text = await run(client, 20);
+        if (/left out: the ranked entries' stat lines \(search_tree_nodes shows them\); the closing tip\.$/m.test(text)) found = text;
+      }
+    }
+    expect(found).not.toBeNull();
+    expect(found!.length).toBeLessThanOrEqual(5000);
+    expect(found).not.toContain('💡');
+    expect(ranks(found!)).toEqual([...Array.from({ length: 20 }, (_, i) => i + 1), ...Array.from({ length: 8 }, (_, i) => i + 1)]);
+  });
+
+  it('refit (the router\'s notice room, D-53): with the room a notice takes reserved, the text plus that room stays within 5000 and every can\'t-measure line stays whole', async () => {
+    const unparsed = 12;
+    const result = await handle(stubEngine({ statWords: 6, unparsed, lineWords: 7 }), 20);
+    expect(typeof result.refit).toBe('function');
+    const full = result.content[0].text;
+    for (const reserved of [75, 262, 900]) {
+      const text = result.refit!(reserved);
+      expect({ reserved, fits: text.length + reserved <= 5000 }).toEqual({ reserved, fits: true });
+      expect(text).toMatch(/^Shortened to stay within 5000 characters; left out: /m);
+      const entries = [...text.matchAll(/^- \*\*(.+?)\*\* \[(\d+)\].*: not applied: \[unparsed\] (.*)$/gm)];
+      expect(entries).toHaveLength(unparsed);
+      for (const e of entries) expect(e[3]).toBe(LONG(Number(e[2]), 7));
+    }
+    // With no room reserved, refit renders what the plain result holds.
+    expect(result.refit!(0)).toBe(full);
   });
 });

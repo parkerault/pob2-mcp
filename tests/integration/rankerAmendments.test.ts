@@ -14,9 +14,11 @@
  * AC-E32 and AC-E39 run unchanged in `engineTree.test.ts` and `engineItemsSkills.test.ts`; AC-B3's read
  * check of the `include_ascendancy` sample runs in `engineKinds.test.ts`.
  */
+import fs from 'fs';
+import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
-import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
+import { GOLDEN_XML, startSessionFixture, writeBuild, type SessionFixture } from '../helpers/engineSession';
 import type { EngineKind } from '../../src/engine/session';
 import type { PoBLuaApiClient } from '../../src/pobLuaBridge';
 import type { SupportCandidatesResult } from '../../src/engine/schemas';
@@ -500,6 +502,53 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         for (const part of [ranking(out), section(out, ASCENDANCY_SECTION) ?? '']) {
           const ranks = [...part.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
           expect(ranks).toEqual(ranks.map((_, i) => i + 1));
+        }
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      'D-246 with a session notice (the router\'s refit, D-53): after an on-disk reload of a build with a long path, the "Reloaded" notice plus the text stay within 5000 chars, nothing is truncated, and the can\'t-measure section is complete',
+      async () => {
+        // A long relative path makes the session's notice long (it names the file), so the text must
+        // give up room to it: 3 folders and a file name of 150 characters each.
+        const rel = [1, 2, 3].map((n) => `${String(n).repeat(150)}`).join('/') + `/${'g'.repeat(146)}.xml`;
+        const file = path.join(f.builds, rel);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, GOLDEN_XML, 'utf8');
+        try {
+          await okTool('lua_load_build', { build_name: rel });
+          const args = { include_ascendancy: true, max_results: 20 };
+          const plain = await okTool('get_passive_upgrades', args);
+          expect(plain.startsWith('=== Passive Upgrades')).toBe(true); // no notice
+
+          // The same bytes plus a newline: the session reloads the file and puts its notice first.
+          writeBuild(file, `${GOLDEN_XML}\n`);
+          const out = await okTool('get_passive_upgrades', args);
+          expect(out.startsWith(`Reloaded ${rel}: it changed on disk`)).toBe(true);
+          const head = out.slice(0, out.indexOf('\n\n') + 2);
+          // Without the room reserved, the plain text and the notice would pass C-1's limit.
+          expect(plain.length + head.length).toBeGreaterThan(5000);
+          expect(out.length).toBeLessThanOrEqual(5000);
+          expect(out).not.toContain('[Response truncated');
+          expect(out).toMatch(/^Shortened to stay within 5000 characters; left out: .*the closing tip/m);
+
+          // The can't-measure section is whole: the same entries, line for line, as without the notice.
+          const entries = (text: string) => passiveEntries(section(text, CANT_MEASURE) ?? '').map((e) => e.line);
+          expect(entries(out)).toEqual(entries(plain));
+          const main = await mainPool(['damage', 'critical', 'life', 'energy shield']);
+          const ascendancy = await ascendancyPool();
+          const pool = [...main, ...ascendancy];
+          const nullIds = await nullMeasured(pool, 'both');
+          const notFull = await notFullyParsed(pool);
+          const expected = pool
+            .filter((c) => notFull.has(c.id) || nullIds.has(c.id) || (c.ascendancy && c.lines === 0))
+            .map((c) => c.id)
+            .sort((a, b) => a - b);
+          expect(passiveEntries(section(out, CANT_MEASURE) ?? '').map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
+        } finally {
+          await okTool('lua_load_build', { build_name: 'grenadator.xml' });
+          fs.rmSync(path.join(f.builds, '1'.repeat(150)), { recursive: true, force: true });
         }
       },
       ENGINE_TIMEOUT,

@@ -540,3 +540,17 @@ don't fix headless-only issues.
   - **Doer gate:** test rc 0 (1885), build rc 0. AC-F3, T22 and T40 false-failed under load and passed
     alone.
   - The reviewer is running.
+- **Lane S merged** at `d6a74a3`. Its review fixes are done: D-258a's two groups (5 active, then 3
+  support), suggestions only for queries of at most 100 characters, and the fixture edit reverted.
+  - Coordinator check after the rebase: build rc 0; 87/87 in the affected suites; waivers `[]`;
+    dependencies unchanged.
+- **Lane P** review: no high findings and five low ones, all fixed.
+  - **D-262 skip conditions:** R1b-assemble is added, and the skip fires only for an attempt that
+    wrote (`done` or `infeasible`) for the covered concept.
+  - **W1** returns no import code (D-260).
+  - **Checkpoint entries** record `rule` for pre-supplied and default answers, and V4's prose lens
+    checks "why this concept" against it.
+  - **Pipeline fixtures** are valid under V1 and D-256.
+  - Lane P merged at `3a9c79c`. Doer gate: test rc 0 (1901), build rc 0. Coordinator check: build
+    rc 0; 330/330 in the affected suites.
+- **To fold in:** the checkpoint `rule` field into slice 03's §6 table.

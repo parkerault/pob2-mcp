@@ -613,3 +613,24 @@ don't fix headless-only issues.
 - P1-a: with neither Workflow nor Agent, the log says `orchestration: workflow`.
 - Run A: D-261's count was taken with 2 `grep` calls outside the Bash rule.
 - Run A: the FI-1 timing wording disagrees between `R1b.md` and `offline-and-test.md`.
+
+### Amendment 1 approved (2026-10-08): a simpler pipeline
+
+The user approved S1…S9 (`spec/amendment-1-simplify.md`, 8f804e6) and confirmed dropping workflows.
+- **S1:** one orchestration path; the session calls agents directly.
+- **S2:** verify once, fix once, re-check, and report the rest as known issues; no verification
+  escalation.
+- **S3:** the dossier isn't verified.
+- **S4:** a slim run log, with no timestamps.
+- **S5:** the checker checks artifacts.
+- **S6:** injected faults are free on attempt 1; a persistent fault's attempts count.
+- **S7:** keep the stat-set fix, every finding printed, `mcp__pob2__` tool names and three claim rules.
+- **S8:** WU-47 rewritten.
+- **S9:** the re-run uses Opus.
+
+The coordinator settled Q1…Q5 as the amendment proposed. The fold-in to the spine and slice 03 waits
+for finalization, together with D-239…D-263.
+
+**Accepted cost of S1.** Nine ACs whose tests were the workflow harness (W3, W6–W10, W13, W24, W25)
+lose automated tests. The control flow now rests on SKILL.md. The checker verifies its invariants from
+each run's log: caps, order, one verification pass and one re-check, escalations only from gates.

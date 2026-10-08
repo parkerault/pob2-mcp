@@ -1,9 +1,12 @@
 # Amendment 1: a simpler guide pipeline
 
-**Status: PROPOSED, 2026-10-08.** Every decision here (S1…S9) is a proposal for the user to approve or
-trim; nothing is implemented until then. It amends the spine (`README.md`) and slice 03
-(`03-pipeline.md`). Evidence: the two recorded WU-47 runs, the offline end-to-end test of the pipeline
-(`../worklog.md:422-615`). "Runner" means the user's own Claude Code session following `SKILL.md`.
+**Status: APPROVED by the user, 2026-10-08** (S1…S9; dropping workflows confirmed). The coordinator
+settled the refinements and open questions as proposed below: S6's refinement (an attempt-1 fault re-runs
+free, a persistent fault's attempts count), Q1 (one `Known issues` heading), Q2 (R1b keeps its 2 compile
+retries), Q3 (the checker keeps recomputing the D1 gate, from the record), Q4 (a checkpoint-2 revision gets
+one full pass, then the same fix-once and re-check) and Q5 (`priceOutcomes` on pricing steps). It amends the
+spine (`README.md`) and slice 03 (`03-pipeline.md`); the full fold-in happens at finalization with
+D-239…D-263. Evidence: the two recorded WU-47 runs (`../worklog.md:422-615`). "Runner" means the user's own Claude Code session following `SKILL.md`.
 
 ## 1. Summary
 

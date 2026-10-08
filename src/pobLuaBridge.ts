@@ -35,6 +35,7 @@ import {
   type ItemSlot,
   type ListItemSetsResult,
   type ListSpecsResult,
+  type ManageSetsResult,
   type RenameSpecResult,
   type SelectItemSetResult,
   type SelectSpecResult,
@@ -754,8 +755,12 @@ export class PoBLuaApiClient {
     return res.result.lines;
   }
 
-  async setLevel(level: number): Promise<void> {
-    await this.request("set_level", { level });
+  /**
+   * Set the character level. `autoMode: true` also turns on PoB's auto-level mode (D-196, used by
+   * `compile_plan`); without it the level is manual, as `set_character_level` always sets it.
+   */
+  async setLevel(level: number, opts: { autoMode?: boolean } = {}): Promise<void> {
+    await this.request("set_level", opts.autoMode === undefined ? { level } : { level, autoMode: opts.autoMode });
   }
 
   async getConfig(): Promise<ConfigResult> {
@@ -888,6 +893,15 @@ export class PoBLuaApiClient {
 
   async selectItemSet(id: number): Promise<SelectItemSetResult> {
     const res = await this.request("select_item_set", { id });
+    return res.result;
+  }
+
+  /**
+   * C-39: list, create, copy, rename or select item, skill and config sets, or list and select loadouts
+   * (`API/Sets.lua`). Every action except `list` rebuilds; the reply is the type's list.
+   */
+  async manageSets(params: ActionParams<"manage_sets">): Promise<ManageSetsResult> {
+    const res = await this.request("manage_sets", params);
     return res.result;
   }
 

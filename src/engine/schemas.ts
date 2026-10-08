@@ -3,7 +3,7 @@
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
  * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and the
- * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`) has a schema here (checked statically and on
+ * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`, `API/Sets.lua`) has a schema here (checked statically and on
  * the golden build by `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
  * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
  * get a schema.
@@ -61,6 +61,7 @@ export const ACTION_NAMES = [
   'trade_query_options',
   'lookup_game_data',
   'check_coverage',
+  'manage_sets',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -797,6 +798,68 @@ export const checkCoverageReply = baseReply.extend({
 });
 export type CheckCoverageResult = z.infer<typeof checkCoverageReply>['result'];
 
+// ---------------------------------------------------------------------------------------------------
+// Sets and loadouts (C-39, `pob-api/API/Sets.lua`)
+
+/** The set types `manage_sets` handles (C-39). */
+export const SET_TYPES = ['item', 'skill', 'config', 'loadout'] as const;
+export type SetType = (typeof SET_TYPES)[number];
+/** Its actions; a loadout takes only `list` and `select`, and there is no delete (R-29). */
+export const SET_ACTIONS = ['list', 'create', 'copy', 'rename', 'select'] as const;
+export type SetAction = (typeof SET_ACTIONS)[number];
+
+/**
+ * One item, skill or config set. An item set adds `useSecondWeaponSet`; a skill set adds `mainGroup`, its
+ * group at the build-wide main socket group index (label and active skills), absent when it has none.
+ */
+export const setEntrySchema = z
+  .object({
+    id: z.number().int(),
+    title: z.string(),
+    active: z.boolean(),
+    useSecondWeaponSet: z.boolean().optional(),
+    mainGroup: z
+      .object({ index: z.number().int(), label: optString, skills: luaArray(z.string()) })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+export type SetEntry = z.infer<typeof setEntrySchema>;
+
+/** One loadout as PoB's synced loadout menu lists it, with the four sets it selects. */
+export const loadoutEntrySchema = z
+  .object({
+    name: z.string(),
+    active: z.boolean(),
+    specId: z.number().int().optional(),
+    itemSetId: z.number().int().optional(),
+    skillSetId: z.number().int().optional(),
+    configSetId: z.number().int().optional(),
+  })
+  .passthrough();
+export type LoadoutEntry = z.infer<typeof loadoutEntrySchema>;
+
+export const manageSetsReply = baseReply.extend({
+  result: z
+    .object({
+      setType: z.enum(SET_TYPES),
+      /** The type's active set id (not for loadouts). */
+      activeId: z.number().int().optional(),
+      /** The type's sets; `[]` for loadouts. */
+      sets: luaArray(setEntrySchema),
+      /** Skill sets: the build-wide main socket group index. */
+      mainSocketGroup: z.number().int().optional(),
+      /** The set the action created, copied to, renamed or selected. */
+      targetId: z.number().int().optional(),
+      /** Loadouts only. */
+      loadouts: luaArray(loadoutEntrySchema).optional(),
+      /** A loadout select: the loadout selected. */
+      targetName: optString,
+    })
+    .passthrough(),
+});
+export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
+
 /** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */
 export type TradeItemBehaviour = 'copy' | 'keep' | 'remove';
 /** A sort weight (C-13 param): a `data.powerStatList` stat, never a `*TakenHit` one (D-57). */
@@ -885,6 +948,7 @@ const definedSchemas = {
   trade_query_options: tradeQueryOptionsReply,
   lookup_game_data: lookupGameDataReply,
   check_coverage: checkCoverageReply,
+  manage_sets: manageSetsReply,
 } satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
@@ -932,7 +996,8 @@ export interface ActionParamsMap {
   /** `validateOnly`: parse the text and check the slot, change nothing (the reply's `id` is 0). */
   add_item_text: { text: string; slotName?: string; noAutoEquip?: boolean; validateOnly?: boolean };
   export_build_xml: NoParams;
-  set_level: { level: number };
+  /** `autoMode`: also turn on PoB's auto-level mode (D-196); without it the level is manual. */
+  set_level: { level: number; autoMode?: boolean };
   /** `slot` is "Flask 1"–"Flask 2" or "Charm 1"–"Charm 3"; `index` alone means "Flask <index>". */
   set_flask_active: { slot?: string; index?: number; active: boolean };
   get_build_info: NoParams;
@@ -1015,6 +1080,17 @@ export interface ActionParamsMap {
     build?: boolean;
     sourceNames: string[];
     sourceTemplates?: string[];
+  };
+  /**
+   * C-39: `id` is the source for `copy` and the target for `rename` and `select`; `title` is the new title,
+   * or the loadout name of a loadout `select`; `useSecondWeaponSet` (item sets) is written on the targeted set.
+   */
+  manage_sets: {
+    setType: SetType;
+    action: SetAction;
+    id?: number;
+    title?: string;
+    useSecondWeaponSet?: boolean;
   };
 }
 

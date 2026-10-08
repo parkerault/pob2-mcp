@@ -274,11 +274,13 @@ handlers.export_build_xml = function(params)
   return { ok = true, xml = xml }
 end
 
+-- set_level {level, autoMode?}: autoMode true also turns on PoB's auto-level mode (D-196); without it the
+-- level is manual, as before.
 handlers.set_level = function(params)
   if not params or params.level == nil then
     return { ok = false, error = 'missing level' }
   end
-  local ok2, err = BuildOps.set_level(params.level)
+  local ok2, err = BuildOps.set_level(params.level, params.autoMode)
   if not ok2 then return { ok = false, error = err } end
   return { ok = true }
 end
@@ -509,6 +511,7 @@ end
 for name, fn in pairs(require('API.Trade').handlers) do handlers[name] = fn end
 for name, fn in pairs(require('API.Lookup').handlers) do handlers[name] = fn end
 for name, fn in pairs(require('API.Coverage').handlers) do handlers[name] = fn end
+for name, fn in pairs(require('API.Sets').handlers) do handlers[name] = fn end
 
 return {
   handlers = handlers,

@@ -24,6 +24,7 @@ import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/
 import { handleLookupGameData } from "../handlers/lookupHandlers.js";
 import { handleCheckModelCoverage } from "../handlers/coverageHandlers.js";
 import { handleSetTreeState } from "../handlers/treeStateHandlers.js";
+import { handleManageSets } from "../handlers/setHandlers.js";
 import { pobSourceScan } from "../engine/pobSourceNames.js";
 import { resolvePobSrc } from "../engine/pobPath.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
@@ -383,6 +384,15 @@ async function dispatch(
     case "select_item_set":
       if (args?.id == null) throw new Error("Missing id");
       return await handleSelectItemSet(luaContext, args.id as number);
+
+    case "manage_sets":
+      return await handleManageSets(luaContext, {
+        setType: args?.set_type,
+        action: args?.action,
+        id: args?.id,
+        title: args?.title,
+        useSecondWeaponSet: args?.use_second_weapon_set,
+      });
 
     // Phase 9: Configuration Tools
     case "get_config":

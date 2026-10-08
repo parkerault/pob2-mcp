@@ -85,6 +85,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   delete_spec: core('mutate'),
   rename_spec: core('mutate'),
   select_item_set: core('mutate'),
+  // C-39: item, skill and config sets, and loadouts (list and select); every action but list rebuilds
+  manage_sets: core('mutate'),
   set_character_level: core('mutate'),
   lua_set_tree: core('mutate'),
   update_tree_delta: core('mutate'),

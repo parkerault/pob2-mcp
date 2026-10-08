@@ -2,7 +2,7 @@
  * TS↔Lua reply contract (C-5): AC-E24, engine-required.
  *
  * - **Static check:** the non-test action names registered in `pob-api/API/Handlers.lua` and in every
- *   module it merges by `require('API.<Module>').handlers` (`Trade.lua`, `Lookup.lua`, `Coverage.lua`, …; parsed from
+ *   module it merges by `require('API.<Module>').handlers` (`Trade.lua`, `Lookup.lua`, `Coverage.lua`, `Sets.lua`, …; parsed from
  *   the source) equal `Object.keys(replySchemas)` and `ACTION_NAMES`.
  * - **Coverage:** every parsed action has a case below.
  * - **Each case** loads the golden build, establishes its precondition (a second spec before
@@ -20,6 +20,10 @@
  * replies with `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (C-48), the last
  * equal to a Lua count of the allocated Titan nodes (the start node excluded). That case runs on its own
  * engine with test actions on, for the Lua query.
+ *
+ * WU-35 (C-39, AC-B4): `manage_sets` replies match their schema for every set type, a list and a changing
+ * action of each; AC-K30's contract case: `set_level {level, autoMode:true}` matches its schema and the
+ * export says `characterLevelAutoMode="true"`, without the flag `"false"`, and a non-boolean flag fails.
  */
 import fs from 'fs';
 import path from 'path';
@@ -152,6 +156,8 @@ const CASES: Record<ActionName, Case> = {
   trade_generate_query: { params: { slot: 'Body Armour' } },
   trade_evaluate_items: { params: { slot: 'Body Armour', items: FETCHED } },
   trade_query_options: { params: { slot: 'Body Armour' } },
+  // C-39 (WU-35): the slice sample, a skill set create (its reply carries `mainGroup` and `mainSocketGroup`).
+  manage_sets: { params: { setType: 'skill', action: 'create', title: 'Contract {2}' } },
   // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).
   lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
   // C-38 (WU-32): an item with every line status, a joined node line and a gem with unmodelled lines, so
@@ -230,9 +236,9 @@ const VARIANTS: Variant[] = [
 ];
 
 describe('AC-E24: every Lua action has a reply schema (static)', () => {
-  it('AC-E24: Handlers.lua merges the Trade, Lookup and Coverage modules (AC-B4)', () => {
+  it('AC-E24: Handlers.lua merges the Trade, Lookup, Coverage and Sets modules (AC-B4)', () => {
     const handlers = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Handlers.lua'), 'utf8');
-    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup', 'Coverage']));
+    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup', 'Coverage', 'Sets']));
   });
 
   it('AC-E24: the non-test Lua actions of Handlers.lua and its merged modules equal Object.keys(replySchemas) and ACTION_NAMES', () => {
@@ -337,6 +343,70 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
         (e) => e.line === '+30 to maximum Life',
       );
       expect(lifeScanned?.status).toBe('fully parsed');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (C-39): manage_sets replies match their schema for a list and a change of each set type, and loadouts',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      await call('create_spec', { title: 'Act 1 {1}' });
+      const steps: Json[] = [
+        { setType: 'item', action: 'list' },
+        { setType: 'item', action: 'create', title: 'Early {1}', useSecondWeaponSet: true },
+        { setType: 'item', action: 'copy', id: 1 },
+        { setType: 'skill', action: 'list' },
+        { setType: 'skill', action: 'copy', id: 1, title: 'Act 1 {1}' },
+        { setType: 'skill', action: 'rename', id: 2, title: 'Act 1 {1}' },
+        { setType: 'config', action: 'list' },
+        { setType: 'config', action: 'create', title: 'Campaign {1}' },
+        { setType: 'config', action: 'select', id: 2 },
+        { setType: 'loadout', action: 'list' },
+        { setType: 'loadout', action: 'select', title: 'Act 1 {1}' },
+      ];
+      for (const params of steps) {
+        const reply = await engine.request('manage_sets', params, { timeoutMs: 120_000 });
+        expect({ params, ok: reply.ok }).toEqual({ params, ok: true });
+        const parsed = replySchemas.manage_sets!.safeParse(reply);
+        expect({ params, issues: parsed.success ? [] : parsed.error.issues }).toEqual({ params, issues: [] });
+        expect(reply.result.setType).toBe(params.setType);
+        if (params.setType === 'loadout') expect(Array.isArray(reply.result.loadouts)).toBe(true);
+      }
+      // A failure is ok:false with the reason, never an exception.
+      const bad = await engine.request('manage_sets', { setType: 'item', action: 'create', title: 'Early {1, 2}' }, { timeoutMs: 120_000 });
+      expect(bad.ok).toBe(false);
+      expect(String(bad.error)).toContain('[A-Za-z0-9,]');
+      const unknown = await engine.request('manage_sets', { setType: 'loadout', action: 'select', title: 'Nowhere {9}' }, { timeoutMs: 120_000 });
+      expect(unknown.ok).toBe(false);
+      expect(String(unknown.error)).toContain('no loadout named');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K30 (D-196, contract): set_level {level, autoMode:true} matches its schema and turns on auto mode; without it the mode is manual',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const buildTag = async () => /<Build\b[^>]*>/.exec((await call('export_build_xml')).xml as string)![0];
+
+      const auto = await engine.request('set_level', { level: 40, autoMode: true }, { timeoutMs: 120_000 });
+      expect(auto).toMatchObject({ ok: true });
+      const parsed = replySchemas.set_level!.safeParse(auto);
+      expect(parsed.success).toBe(true);
+      expect(await buildTag()).toMatch(/\blevel="40"/);
+      expect(await buildTag()).toMatch(/\bcharacterLevelAutoMode="true"/);
+
+      const manual = await engine.request('set_level', { level: 41 }, { timeoutMs: 120_000 });
+      expect(manual).toMatchObject({ ok: true });
+      expect(await buildTag()).toMatch(/\blevel="41"/);
+      expect(await buildTag()).toMatch(/\bcharacterLevelAutoMode="false"/);
+
+      // A non-boolean flag fails and changes nothing.
+      const bad = await engine.request('set_level', { level: 50, autoMode: 'yes' }, { timeoutMs: 120_000 });
+      expect(bad.ok).toBe(false);
+      expect(String(bad.error)).toContain('autoMode');
+      expect(await buildTag()).toMatch(/\blevel="41"/);
     },
     ENGINE_TIMEOUT,
   );

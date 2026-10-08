@@ -373,6 +373,39 @@ export function getLuaToolSchemas(): any[] {
       },
     },
     {
+      name: "manage_sets",
+      description: "Manage the loaded build's item, skill and config sets, and its loadouts. set_type is item, skill, config or loadout; action is list, create, copy, rename or select. create adds a set with the next id and the given title; copy duplicates set id (its gear, its socket groups and gems, or its config inputs) as a new set titled title, or '<title> (Copy)'; neither activates the new set. rename gives set id a new title. select makes set id active, so the item, gem and config tools edit that set from then on. A loadout takes only list and select: PoB pairs a tree spec with one item, skill and config set whose titles share a {id} tag, such as 'Act 2 (L25) {2}', or the same plain title, and a type with only one set joins every loadout; a loadout select takes the loadout's name as title and activates all four. A {...} tag may hold only letters, digits and commas, no spaces ('Early {1,2}' joins loadouts 1 and 2); a title with any other tag is refused. use_second_weapon_set (item sets only) sets weapon set II on the set the action targets: the new set, or set id. There is no delete. Every call returns the type's sets with ids, titles and the active one; item sets show their weapon set, and skill sets show their group at the build's main socket group index (one index shared by every skill set), or none. Every action except list recalculates the stats.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          set_type: {
+            type: "string",
+            enum: ["item", "skill", "config", "loadout"],
+            description: "Which sets: item, skill or config sets, or loadouts",
+          },
+          action: {
+            type: "string",
+            enum: ["list", "create", "copy", "rename", "select"],
+            description: "list, create, copy, rename or select; a loadout takes only list and select",
+          },
+          id: {
+            type: "integer",
+            minimum: 1,
+            description: "The set to copy (copy), rename (rename) or activate (select), as list shows it",
+          },
+          title: {
+            type: "string",
+            description: "The new set's title (create; optional for copy), the new title (rename), or the loadout's name (loadout select)",
+          },
+          use_second_weapon_set: {
+            type: "boolean",
+            description: "Item sets only: true uses weapon set II, false weapon set I, on the set the action targets",
+          },
+        },
+        required: ["set_type", "action"],
+      },
+    },
+    {
       name: "set_character_level",
       description: "Set the character level for the currently loaded build. Recalculates all stats.",
       inputSchema: {

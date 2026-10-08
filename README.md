@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-81 tools are listed by default; the full table is [below](#tools).
+82 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -57,7 +57,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 ```
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 81 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 82 tools.
 
 ## Configuration
 
@@ -176,6 +176,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `rename_spec` | core | Rename a passive tree spec in the current build. |
 | `list_item_sets` | core | List all item sets in the currently loaded build. |
 | `select_item_set` | core | Switch the active item set in the currently loaded build. |
+| `manage_sets` | core | Manage the loaded build's item, skill and config sets, and its loadouts. |
 | `set_character_level` | core | Set the character level for the currently loaded build. |
 | `lua_get_stats` | core | Get comprehensive calculated stats from the currently loaded build (requires lua_load_build first). |
 | `lua_get_tree` | core | Get passive tree allocation from currently loaded build |

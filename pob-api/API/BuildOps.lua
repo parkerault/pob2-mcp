@@ -364,8 +364,9 @@ function M.export_build_xml()
   return xml
 end
 
--- Set player level and rebuild
-function M.set_level(level)
+-- Set player level and rebuild. `autoMode` true also turns on PoB's auto-level mode, so the saved file
+-- re-estimates the level from the tree (D-149, D-196); otherwise the level is manual, as before.
+function M.set_level(level, autoMode)
   if not build or not build.configTab then
     return nil, 'build/config not initialized'
   end
@@ -373,8 +374,11 @@ function M.set_level(level)
   if not lvl or lvl < MIN_PLAYER_LEVEL or lvl > MAX_PLAYER_LEVEL then
     return nil, string.format('invalid level (must be %d-%d)', MIN_PLAYER_LEVEL, MAX_PLAYER_LEVEL)
   end
+  if autoMode ~= nil and type(autoMode) ~= 'boolean' then
+    return nil, 'autoMode must be true or false'
+  end
   build.characterLevel = lvl
-  build.characterLevelAutoMode = false
+  build.characterLevelAutoMode = autoMode == true
   if build.configTab and build.configTab.BuildModList then
     build.configTab:BuildModList()
   end

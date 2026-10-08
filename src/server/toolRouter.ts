@@ -22,6 +22,9 @@ import { handleGetBuildIssues, formatIssuesResponse } from "../handlers/buildGoa
 import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, handleLuaLoadBuild, handleLuaGetStats, handleLuaGetTree, handleLuaSetTree, handleSearchTreeNodes, handleListGems, handleGetClasses, handleLuaGetBuildInfo, handleLuaReloadBuild, handleUpdateTreeDelta, handleCreateSpec, handleListSpecs, handleSelectSpec, handleDeleteSpec, handleRenameSpec, handleListItemSets, handleSelectItemSet } from "../handlers/luaHandlers.js";
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
 import { handleLookupGameData } from "../handlers/lookupHandlers.js";
+import { handleCheckModelCoverage } from "../handlers/coverageHandlers.js";
+import { pobSourceNames } from "../engine/pobSourceNames.js";
+import { resolvePobSrc } from "../engine/pobPath.js";
 import { handleImportBuild } from "../handlers/luaHandlers.js";
 import { handleAddItem, handleGetEquippedItems, handleToggleFlask, handleGetSkillSetup, handleSetMainSkill, handleCreateSocketGroup, handleAddGem, handleSetGemLevel, handleSetGemQuality, handleSetGemCorruption, handleRemoveSkill, handleRemoveGem, handleSetupSkillWithGems, handleAddMultipleItems, handleSetSocketGroupEnabled, handleSetGemEnabled } from "../handlers/itemSkillHandlers.js";
 import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
@@ -483,6 +486,17 @@ async function dispatch(
         kind: args?.kind,
         maxResults: args?.max_results,
       });
+
+    case "check_model_coverage":
+      return await handleCheckModelCoverage(
+        {
+          getLuaClient: luaContext.getLuaClient,
+          ensureLuaClient: luaContext.ensureLuaClient,
+          // D-226: the name scan of the PoB source the engine runs, once per server process.
+          sourceNames: () => pobSourceNames(resolvePobSrc(deps.env)),
+        },
+        { itemText: args?.item_text, nodes: args?.nodes, gems: args?.gems, build: args?.build },
+      );
 
     // Phase 4: Item & Skill tools
     case "add_item":

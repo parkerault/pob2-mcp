@@ -1,0 +1,10 @@
+Rarity: RARE
+Coverage Pendant
+Gold Amulet
+Item Level: 80
+Implicits: 0
++30 to maximum Life
++5 to any Attribute
+Charms use no Charges
+10% of Physical damage dealt by your Hits causes Blood Loss
+Your Hits are Crushing Blows

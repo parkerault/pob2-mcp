@@ -2,7 +2,7 @@
  * TS↔Lua reply contract (C-5): AC-E24, engine-required.
  *
  * - **Static check:** the non-test action names registered in `pob-api/API/Handlers.lua` and in every
- *   module it merges by `require('API.<Module>').handlers` (`Trade.lua`, `Lookup.lua`, …; parsed from
+ *   module it merges by `require('API.<Module>').handlers` (`Trade.lua`, `Lookup.lua`, `Coverage.lua`, …; parsed from
  *   the source) equal `Object.keys(replySchemas)` and `ACTION_NAMES`.
  * - **Coverage:** every parsed action has a case below.
  * - **Each case** loads the golden build, establishes its precondition (a second spec before
@@ -12,6 +12,9 @@
  * Replies are read raw through the line client (`tests/helpers/luaLineClient.ts`), so the schemas are
  * checked against exactly what the Lua side sends, not against a value the bridge already parsed.
  * A unit that adds a Lua action adds its schema and its case here in the same merge (C-5).
+ *
+ * AC-K46 (WU-32, contract part): `check_coverage` without `sourceNames` replies `ok:false`, and with
+ * `sourceNames: []` it rates `+30 to maximum Life` `possibly unread`, so Lua uses the names it is passed.
  */
 import fs from 'fs';
 import path from 'path';
@@ -19,11 +22,14 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startLuaLineClient, type Json, type LuaLineClient } from '../helpers/luaLineClient';
 import { ACTION_NAMES, replySchemas, type ActionName } from '../../src/engine/schemas';
+import { pobSourceNames } from '../../src/engine/pobSourceNames';
+import { resolvePobSrc } from '../../src/engine/pobPath';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures');
 const GOLDEN = fs.readFileSync(path.join(FIXTURES, 'builds', 'grenadator.xml'), 'utf8');
 const RUBY_RING = fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8');
+const COVERAGE_AMULET = fs.readFileSync(path.join(FIXTURES, 'items', 'coverage-amulet.txt'), 'utf8');
 /** Two committed trade2 `/fetch` entries, verbatim (no network). */
 const FETCHED = (
   JSON.parse(fs.readFileSync(path.join(FIXTURES, 'trade2', 'fetch-weighted-session.response.json'), 'utf8')) as {
@@ -143,6 +149,16 @@ const CASES: Record<ActionName, Case> = {
   trade_query_options: { params: { slot: 'Body Armour' } },
   // C-37 (WU-31): gem mode carries every reply field a gem has (stat sets, quality lines, requirements).
   lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
+  // C-38 (WU-32): an item with every line status, a joined node line and a gem with unmodelled lines, so
+  // `remainder`, `unread`, `joinedWith`, `nodeId` and `stat` are all in the reply; the real name scan.
+  check_coverage: {
+    setup: async () => ({
+      itemText: COVERAGE_AMULET,
+      nodes: ['38570'],
+      gems: ['Blood Hunt'],
+      sourceNames: [...(await pobSourceNames(resolvePobSrc(process.env)))],
+    }),
+  },
 };
 
 /** The golden socket group whose active skill is Gas Grenade (stat sets Impact, Poison Cloud, Explosion). */
@@ -185,9 +201,9 @@ const VARIANTS: Variant[] = [
 ];
 
 describe('AC-E24: every Lua action has a reply schema (static)', () => {
-  it('AC-E24: Handlers.lua merges the Trade and Lookup modules (AC-B4)', () => {
+  it('AC-E24: Handlers.lua merges the Trade, Lookup and Coverage modules (AC-B4)', () => {
     const handlers = fs.readFileSync(path.join(REPO, 'pob-api', 'API', 'Handlers.lua'), 'utf8');
-    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup']));
+    expect(mergedModules(handlers)).toEqual(expect.arrayContaining(['Trade', 'Lookup', 'Coverage']));
   });
 
   it('AC-E24: the non-test Lua actions of Handlers.lua and its merged modules equal Object.keys(replySchemas) and ACTION_NAMES', () => {
@@ -258,4 +274,41 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       ENGINE_TIMEOUT,
     );
   }
+
+  it(
+    'AC-K46: check_coverage without sourceNames replies ok:false (the possibly-unread rule is never skipped)',
+    async () => {
+      const reply = await engine.request('check_coverage', { itemText: COVERAGE_AMULET }, { timeoutMs: 120_000 });
+      expect(reply.ok).toBe(false);
+      expect(String(reply.error)).toContain('sourceNames');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K46: with sourceNames [], "+30 to maximum Life" is possibly unread (Lua uses the names it is passed)',
+    async () => {
+      const reply = await engine.request(
+        'check_coverage',
+        { itemText: COVERAGE_AMULET, sourceNames: [] },
+        { timeoutMs: 120_000 },
+      );
+      expect(reply).toMatchObject({ ok: true });
+      const life = (reply.result.entries as Array<{ line: string; status: string; unread?: string[] }>).find(
+        (e) => e.line === '+30 to maximum Life',
+      );
+      expect(life).toMatchObject({ status: 'possibly unread', unread: ['Life'] });
+      // With the real scan the same line is fully parsed: the status follows the names passed.
+      const scanned = await engine.request(
+        'check_coverage',
+        { itemText: COVERAGE_AMULET, sourceNames: [...(await pobSourceNames(resolvePobSrc(process.env)))] },
+        { timeoutMs: 120_000 },
+      );
+      const lifeScanned = (scanned.result.entries as Array<{ line: string; status: string }>).find(
+        (e) => e.line === '+30 to maximum Life',
+      );
+      expect(lifeScanned?.status).toBe('fully parsed');
+    },
+    ENGINE_TIMEOUT,
+  );
 });

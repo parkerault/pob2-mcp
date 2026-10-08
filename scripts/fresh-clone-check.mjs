@@ -7,7 +7,7 @@
  *
  * It starts `node <clone>/build/index.js` over stdio with an explicit env (never the caller's
  * cookie), from its own cwd (the caller's temp dir), and checks:
- *  1. `tools/list` returns the full tool set (79 tools, D-91, C-37, C-42) when every group is enabled;
+ *  1. `tools/list` returns the full tool set (80 tools, D-91, C-37, C-42, C-38) when every group is enabled;
  *  2. with the check env below, `lua_load_build {build_name: "grenadator.xml"}` reports Life 2,977;
  *  3. `find_upgrades {slot: "Ring 1"}` returns a result that starts with `Trade search not run:`
  *     (no session: D-49 decides that before any network request).
@@ -16,7 +16,7 @@
  * POE_LEAGUE="Forbidden Rites", POE_TRADE_BASE=http://127.0.0.1:9/api/trade2 (a tripwire: any trade
  * request fails), POE_NINJA_DISABLED=true, and no POESESSID/POE_SESSION_ID. The listing of step 1
  * runs on a server without POE_NINJA_DISABLED, because that flag hides the ninja group's tool
- * (C-1); that server is only listed, never called. The check server lists the other 78.
+ * (C-1); that server is only listed, never called. The check server lists the other 79.
  *
  * Exits 0 when every step passes, 1 otherwise. It makes no request itself.
  */
@@ -24,7 +24,7 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const EXPECTED_TOOLS = 79;
+const EXPECTED_TOOLS = 80;
 const NINJA_TOOLS = ['get_currency_rates'];
 const CALL_TIMEOUT_MS = 180_000;
 

@@ -487,6 +487,77 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
+    'D-239 overflow: in a several-unique listing, a unique with more than 5 matching lines shows exactly its first 5 and "(and N more matching lines)", N counted from PoB\'s unique data',
+    async () => {
+      const query = 'resistance';
+      // Every unique's mod lines (enchant, rune, implicit, explicit, class requirement) containing the query,
+      // flattened to one line, by C-37's variant rule: a line of the selected variant counts; another
+      // variant's line counts when one of its variants isn't a legacy "Pre x.y" one.
+      const pob = await luaQuery<Array<{ id: string; name: string; type: string; lines: string[] }>>(`
+        local q = ${JSON.stringify(query)}
+        local function legacy(name)
+          return type(name) == 'string' and (name:find('^Pre %d') ~= nil or name:find('%(Pre %d') ~= nil)
+        end
+        local out = {}
+        for key, item in pairs(main.uniqueDB.list) do
+          local lines = {}
+          for _, list in ipairs({ 'enchantModLines', 'runeModLines', 'implicitModLines', 'explicitModLines', 'classRequirementModLines' }) do
+            for _, ml in ipairs(item[list] or {}) do
+              local line = tostring(ml.line):gsub('%s*\\n%s*', ' ')
+              if line:lower():find(q, 1, true) then
+                local counts = (not ml.variantList) or item:CheckModLineVariant(ml)
+                if not counts then
+                  for index in pairs(ml.variantList) do
+                    if not legacy(item.variantList and item.variantList[index]) then counts = true end
+                  end
+                end
+                if counts then table.insert(lines, line) end
+              end
+            end
+          end
+          if #lines > 0 then
+            table.insert(out, { id = tostring(key), name = item.title or item.name or tostring(key), type = item.type, lines = lines })
+          end
+        end
+        return out`);
+      const byName = (a: { name: string; id: string }, b: { name: string; id: string }) =>
+        a.name !== b.name ? (a.name < b.name ? -1 : 1) : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      const matching = [...pob].sort(byName);
+      // The first unique (by name) with more than 5 matching lines whose item type has other matches, so a
+      // query narrowed to that type still lists several uniques in brief.
+      const pick = matching.find(
+        (u) => u.lines.length > 5 && matching.filter((o) => o.type === u.type).length > 1 &&
+          matching.filter((o) => o.type === u.type).indexOf(u) < 30,
+      );
+      expect(pick).toBeDefined();
+
+      const text = await okTool({ mode: 'unique', query, slot: pick!.type, max_results: 30 });
+      const found = blocks(text);
+      expect(found.length).toBe(Math.min(matching.filter((o) => o.type === pick!.type).length, 30));
+      expect(found.length).toBeGreaterThan(1);
+      expect(text).not.toContain('```');
+      const block = found.find((b) => b.startsWith(`## ${pick!.name} (${pick!.type})`));
+      expect(block).toBeDefined();
+      const shown = parseUnique(block!).matched;
+      expect(shown).toHaveLength(5);
+      // The first 5 matching lines, in PoB's order (a line of another variant ends with its variant note).
+      shown.forEach((line, i) => {
+        const want = pick!.lines[i];
+        expect({ i, ok: line === want || line.startsWith(`${want} (variant`) }).toEqual({ i, ok: true });
+      });
+      const overflow = block!.split('\n').filter((l) => /^\(and \d+ more matching lines?\)$/.test(l));
+      expect(overflow).toEqual([`(and ${pick!.lines.length - 5} more matching lines)`]);
+      // Uniques with 5 or fewer matching lines carry no overflow note.
+      for (const b of found.filter((x) => x !== block)) {
+        const name = /^## (.*) \(/.exec(b)![1];
+        const u = matching.find((o) => o.name === name && o.type === pick!.type);
+        if (u && u.lines.length <= 5) expect({ name, note: /more matching line/.test(b) }).toEqual({ name, note: false });
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'C-37 gem_level (review fix): a returned gem without that level is shown at its default level with a note; it is an error only when no returned gem has it',
     async () => {
       const text = await okTool({ mode: 'gem', query: 'Blood', gem_level: 20, max_results: 30 });

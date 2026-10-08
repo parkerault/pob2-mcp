@@ -568,6 +568,33 @@ export function getLuaToolSchemas(): any[] {
       },
     },
     {
+      name: "check_model_coverage",
+      description: "Check, line by line, whether the pinned Path of Building applies an item's, a passive node's or a gem's lines, so you know which parts of a build its numbers leave out. Reads only; the build is never changed. Give one or more of `item_text` (one item, as add_item takes it), `nodes` (node ids or exact names; a name selects every node bearing it) and `gems` (gem names), or `build: true` alone for the loaded build (the active item set's equipped items, the active tree's allocated nodes and the active skill set's gems). Each item line (implicit, explicit, rune, enchant) and node line gets one status: 'fully parsed'; 'partly parsed' (the ignored remainder is shown); 'unparsed' (ignored); 'parsed to nothing' (read, but changes no stat); or 'possibly unread' (parsed, but a mod it makes is named nowhere in PoB's calculation code, so PoB probably never reads it). A line PoB can't parse alone is first re-joined as PoB joins it (an item line with the next line, a node line with the lines after it); a clean join is one entry naming its lines. Each gem is checked at its level and quality in the build, else at its natural max level and quality 0: every described line of every stat set is 'fully parsed', or 'possibly unmodelled; check config' when PoB's own gem tooltip marks it unsupported (the effect may be modelled only through a config option). The output starts with the counts per status, then the entries grouped by source; build mode lists only the lines that aren't fully parsed, but its counts cover every line.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          item_text: {
+            type: "string",
+            description: "One item's text, as add_item takes it (PoB's item format)",
+          },
+          nodes: {
+            type: "array",
+            items: { type: "string" },
+            description: "Passive node ids (such as '38570') or exact node names (case-insensitive; a name selects every node bearing it)",
+          },
+          gems: {
+            type: "array",
+            items: { type: "string" },
+            description: "Gem names (exact, case-insensitive), such as 'Blood Hunt' or 'Heft'",
+          },
+          build: {
+            type: "boolean",
+            description: "true checks the loaded build (equipped items, allocated nodes, socketed gems) and can't be combined with the other inputs",
+          },
+        },
+      },
+    },
+    {
       name: "get_classes",
       description: "List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). Authoritative — replaces the PoE1 class-ID table.",
       inputSchema: { type: "object", properties: {} },

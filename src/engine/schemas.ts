@@ -3,7 +3,7 @@
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
  * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and the
- * modules it merges (`API/Trade.lua`, `API/Lookup.lua`) has a schema here (checked statically and on
+ * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`) has a schema here (checked statically and on
  * the golden build by `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
  * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
  * get a schema.
@@ -60,6 +60,7 @@ export const ACTION_NAMES = [
   'trade_evaluate_items',
   'trade_query_options',
   'lookup_game_data',
+  'check_coverage',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -723,6 +724,58 @@ export type LookupGem = z.infer<typeof lookupGemSchema>;
 export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
 export type LookupHit = z.infer<typeof lookupHitSchema>;
 
+// ---------------------------------------------------------------------------------------------------
+// Coverage actions (`pob-api/API/Coverage.lua`, C-38)
+
+/** C-38's statuses, one per checked line, in the order counts are reported. */
+export const COVERAGE_STATUSES = [
+  'fully parsed',
+  'partly parsed',
+  'unparsed',
+  'parsed to nothing',
+  'possibly unread',
+  'possibly unmodelled; check config',
+] as const;
+export type CoverageStatus = (typeof COVERAGE_STATUSES)[number];
+
+/**
+ * One checked line (or clean join of lines) of an item, a passive node or a gem's stat set. `remainder`
+ * (partly parsed) is the parser's text verbatim; `unread` (possibly unread) names the mods the name scan
+ * didn't find; `stat` is a gem line's stat id; `nodeId` a node line's node.
+ */
+export const coverageEntrySchema = z
+  .object({
+    kind: z.enum(['item', 'node', 'gem']),
+    source: z.string(),
+    line: z.string(),
+    status: z.enum(COVERAGE_STATUSES),
+    remainder: optString,
+    joinedWith: luaArray(z.string()).optional(),
+    unread: luaArray(z.string()).optional(),
+    stat: optString,
+    nodeId: z.number().int().optional(),
+  })
+  .passthrough();
+export type CoverageEntry = z.infer<typeof coverageEntrySchema>;
+
+export const checkCoverageReply = baseReply.extend({
+  result: z
+    .object({
+      /** Every status's line count, over every checked line (also the ones build mode doesn't list). */
+      counts: z.object(
+        Object.fromEntries(COVERAGE_STATUSES.map((s) => [s, z.number().int()])) as Record<CoverageStatus, z.ZodNumber>,
+      ),
+      entries: luaArray(coverageEntrySchema),
+      /** The level and quality each gem was checked at; `fromBuild` when they are its build instance's. */
+      gems: luaArray(
+        z.object({ name: z.string(), level: z.number().int(), quality: z.number().int(), fromBuild: z.boolean() }).passthrough(),
+      ),
+      checked: z.object({ items: z.number().int(), nodes: z.number().int(), gems: z.number().int() }).passthrough(),
+    })
+    .passthrough(),
+});
+export type CheckCoverageResult = z.infer<typeof checkCoverageReply>['result'];
+
 /** The behaviour PoB's trade dialog applies to runes or anoints of fetched items. */
 export type TradeItemBehaviour = 'copy' | 'keep' | 'remove';
 /** A sort weight (C-13 param): a `data.powerStatList` stat, never a `*TakenHit` one (D-57). */
@@ -810,6 +863,7 @@ const definedSchemas = {
   trade_evaluate_items: tradeEvaluateItemsReply,
   trade_query_options: tradeQueryOptionsReply,
   lookup_game_data: lookupGameDataReply,
+  check_coverage: checkCoverageReply,
 } satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
@@ -919,6 +973,17 @@ export interface ActionParamsMap {
     slot?: string;
     kind?: 'gem' | 'unique' | 'passive' | 'mod';
     maxResults?: number;
+  };
+  /**
+   * C-38: one or more of `itemText`, `nodes` (ids or exact names) and `gems` (names), or `build: true`
+   * alone; `sourceNames` (required) is the server's name scan of PoB's source (D-226).
+   */
+  check_coverage: {
+    itemText?: string;
+    nodes?: Array<string | number>;
+    gems?: string[];
+    build?: boolean;
+    sourceNames: string[];
   };
 }
 

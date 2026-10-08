@@ -78,6 +78,7 @@
   {"name": "set_gem_corruption", "bucket": "new", "lane": "B"},
   {"name": "lookup_game_data", "bucket": "new", "lane": "build-guide"},
   {"name": "encode_build_code", "bucket": "new", "lane": "build-guide"},
+  {"name": "check_model_coverage", "bucket": "new", "lane": "build-guide"},
   {"name": "analyze_build_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "analyze_cluster_jewels", "bucket": "delete", "lane": "D4"},
   {"name": "search_cluster_jewels", "bucket": "delete", "lane": "D4"},

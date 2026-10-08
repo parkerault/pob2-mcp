@@ -29,10 +29,10 @@ const ENTRIES = JSON.parse(fs.readFileSync(FILE, 'utf8')) as DispositionEntry[];
 
 const BUCKETS = ['keep', 'fix', 'rewrite', 'new', 'delete'];
 /**
- * The build-guide epic's new tools so far (lane "build-guide"): WU-31's `lookup_game_data` (C-37) and
- * WU-40's `encode_build_code` (C-42).
+ * The build-guide epic's new tools so far (lane "build-guide"): WU-31's `lookup_game_data` (C-37),
+ * WU-40's `encode_build_code` (C-42) and WU-32's `check_model_coverage` (C-38).
  */
-const BUILD_GUIDE_NEW = ['lookup_game_data', 'encode_build_code'];
+const BUILD_GUIDE_NEW = ['lookup_game_data', 'encode_build_code', 'check_model_coverage'];
 /** The stabilization epic's new tools: vision §4's 2 and `set_gem_corruption` (D-91). */
 const STABILIZATION_NEW = ['find_upgrades', 'set_gem_corruption', 'trade_query_options'];
 /** Vision §4 row sizes: Keep 25, Fix 46 (engine ops 36 + shapes 6 + trade 4), Rewrite 3, New 2 + set_gem_corruption (D-91) + the build-guide tools, Delete 25 + find_item_upgrades. */

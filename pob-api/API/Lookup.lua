@@ -17,7 +17,8 @@
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
 -- unique, passive, mod), then by name, then by id, then by line. `total` counts every match.
 --
--- The gem helpers (findGem, gemEffects, defaultLevel, describeStatSet) are shared with other modules.
+-- The gem helpers (findGem, gemEffects, defaultLevel, describeStatSet, statSetLabel) and lineIsSelected (a
+-- unique's or item's selected-variant test) are shared with other modules (API/Coverage.lua, WU-32).
 --
 -- Rules: a lookup reads data only. Nothing here changes the build, writes a file or makes a request.
 
@@ -148,6 +149,7 @@ local function statSetLabel(grantedEffect, statSet, index)
   if type(statSet.label) == 'string' and statSet.label ~= '' then return statSet.label end
   return (grantedEffect.name ~= '' and grantedEffect.name) or ('Stat set ' .. index)
 end
+M.statSetLabel = statSetLabel
 
 -- Requirements at gem levels 1..naturalMaxLevel (GemTooltip: the level's levelRequirement, and
 -- calcLib.getGemStatRequirement per attribute). Attribute lists only for non-zero weights.
@@ -367,6 +369,7 @@ local function lineIsSelected(item, modLine)
   if type(item.CheckModLineVariant) == 'function' then return item:CheckModLineVariant(modLine) and true or false end
   return modLine.variantList[item.variant] ~= nil
 end
+M.lineIsSelected = lineIsSelected
 
 -- The item's mod lines across every variant, made one line each. `variants` is absent for a line the
 -- selected variant(s) have; otherwise it lists the non-legacy variants that have it ({index, name}).

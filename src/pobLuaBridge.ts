@@ -814,6 +814,15 @@ export class PoBLuaApiClient {
     return res.result;
   }
 
+  /**
+   * C-38: per line, whether PoB applies an item's, a passive node's or a gem's lines (`API/Coverage.lua`);
+   * reads only. `sourceNames` is the server's name scan of PoB's source (D-226).
+   */
+  async checkCoverage(params: ActionParams<"check_coverage">): Promise<ActionReply<"check_coverage">["result"]> {
+    const res = await this.request("check_coverage", params);
+    return res.result;
+  }
+
   /** List gems from PoB2's authoritative gem database (PoE2). */
   async listGems(params: ActionParams<"list_gems"> = {}): Promise<ActionReply<"list_gems">["result"]> {
     const res = await this.request("list_gems", params);

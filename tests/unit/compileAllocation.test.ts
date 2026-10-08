@@ -7,7 +7,7 @@
  * - A-P2 (§3.6 step 4): `groupSets` shares a set between stages whose content is deep-equal, titled
  *   `<base> {<ids>}`; the highest-level stage (the last among ties, A-P9) is the saved one.
  * - The text: plan errors name the stage after a `stages[n]` path; the compile modes refuse every other
- *   argument combination (C-41, C-50).
+ *   argument combination (C-41, C-50); `compile_plan`'s text prints every V1/V2 finding (amendment 1 S7).
  * - The record (C-33): `versionNotes` names every version the engine doesn't run; `unresolvedRefs` lists the
  *   `pob-computed` tags that name no record field.
  * - WU-41 review: `compareItems` reports every slot PoB holds differently from the plan; `weaponFlagWarnings`
@@ -30,7 +30,7 @@ import {
 } from '../../src/plan/compiler';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from '../../src/plan/savedConfig';
 import { validatePlan, type Stage } from '../../src/plan/schema';
-import { compileRequestOf, guideRunRequestOf } from '../../src/handlers/planHandlers';
+import { compileRequestOf, guideRunRequestOf, renderCompileText } from '../../src/handlers/planHandlers';
 import { unresolvedRefs, versionNotes } from '../../src/plan/record';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'two-stage', 'plan.json');
@@ -170,6 +170,55 @@ describe('C-41, C-50: argument combinations and error lines', () => {
         raw,
       ),
     ).toEqual(['stages[1].level (stage b): too small', 'stages[2].id: Required', 'ledger: Required']);
+  });
+
+  it("amendment 1 S7: compile_plan's text prints every V1 and V2 finding of a stage, more than 10 of them, with no cut", () => {
+    const v1 = Array.from({ length: 9 }, (_, i) => ({ code: `v1-code-${i + 1}`, message: `V1 finding ${i + 1}` }));
+    const v2 = Array.from({ length: 5 }, (_, i) => ({ code: `v2-code-${i + 1}`, message: `V2 finding ${i + 1}` }));
+    const stage = (findings1: typeof v1, findings2: typeof v2) => ({
+      loadoutName: 'Endgame budget (L90) {b}',
+      level: 90,
+      elapsedMs: 1,
+      outputs: {},
+      skillOutputs: {},
+      configWritten: {},
+      configEffective: {},
+      pobWarnings: { kept: [], filtered: [] },
+      v1: { pass: findings1.length === 0, findings: findings1, notes: [] },
+      v2: { pass: findings2.length === 0, findings: findings2, notes: [] },
+    });
+    const record = {
+      recordVersion: 1 as const,
+      planSchemaVersion: 1,
+      planSha1: 'x',
+      compiledAt: '2026-10-08T00:00:00.000Z',
+      mode: 'measure-only' as const,
+      stagesCompiled: ['b', 'n'],
+      engine: { pobTag: 'v0.23.1', pobCommit: 'abc', treeVersion: '0_5' },
+      versionNotes: [],
+      loadoutWarnings: [],
+      saveWarnings: [],
+      pobFile: { location: 'run' as const, path: 'r/compiled-build.xml', sha1: 'y', bytes: 1 },
+      importCode: 'code',
+      savedLevel: { level: 90, autoMode: true as const },
+      activeLoadout: 'Endgame budget (L90) {b}',
+      sets: [],
+      stages: { b: stage(v1, v2), n: stage(v1.slice(0, 11 - 5), v2) },
+      ledger: {},
+      unresolvedRefs: [],
+      timing: { totalMs: 1000, checkMs: 0, finishMs: 0, exportMs: 0 },
+    };
+    const text = renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false });
+    const lines = text.split('\n');
+    const after = (id: string) => {
+      const at = lines.findIndex((l) => l.startsWith(`Stage ${id} `));
+      const next = lines.findIndex((l, i) => i > at && !l.startsWith('  - '));
+      return lines.slice(at + 1, next);
+    };
+    // 14 findings on stage b and 11 on stage n, each printed in full, V1 first; nothing points at the record instead.
+    expect(after('b')).toEqual([...v1, ...v2].map((f) => `  - ${f.code}: ${f.message}`));
+    expect(after('n')).toHaveLength(11);
+    expect(text).not.toMatch(/more in the record/);
   });
 });
 

@@ -107,10 +107,11 @@ function verdictText(name: string, v: Verdict | null): string {
   return v === null ? `${name} not checked` : `${name} ${v.pass ? 'pass' : 'fail'}`;
 }
 
-/** The most findings the text shows per stage; the rest are in the record. */
-const MAX_FINDINGS_SHOWN = 10;
-
-/** C-41's text: the summary line, a line per stage with its verdicts, the ledger values, the paths written. */
+/**
+ * C-41's text: the summary line, a line per stage with its verdicts and every V1/V2 finding (amendment 1 S7:
+ * a gate reads its findings here, since a large record is beyond a single Read), the ledger values, the paths
+ * written.
+ */
 export function renderCompileText(result: CompileResult): string {
   const r = result.record;
   const n = r.stagesCompiled.length;
@@ -121,8 +122,7 @@ export function renderCompileText(result: CompileResult): string {
     const s = r.stages[id];
     lines.push(`Stage ${id} "${s.loadoutName}" level ${s.level}: ${verdictText('V1', s.v1)}, ${verdictText('V2', s.v2)}`);
     const findings = [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])];
-    for (const f of findings.slice(0, MAX_FINDINGS_SHOWN)) lines.push(`  - ${f.code}: ${f.message}`);
-    if (findings.length > MAX_FINDINGS_SHOWN) lines.push(`  … and ${findings.length - MAX_FINDINGS_SHOWN} more in the record`);
+    for (const f of findings) lines.push(`  - ${f.code}: ${f.message}`);
   }
   for (const [id, entry] of Object.entries(r.ledger)) {
     lines.push(entry.value !== null ? `${id} = ${entry.value}` : `${id}: ${entry.error ?? 'no value'}`);

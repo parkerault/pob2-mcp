@@ -1,5 +1,6 @@
 import { wrapHandler } from '../utils/errorHandling.js';
 import type { TradeApiClient, FetchEntry } from '../trade/tradeClient.js';
+import { TradeError } from '../trade/errors.js';
 import { TradeQueryBuilder } from '../services/tradeQueryBuilder.js';
 import type { StatMapper } from '../services/statMapper.js';
 import type { ItemListing } from '../types/tradeTypes.js';
@@ -23,12 +24,46 @@ export interface TradeContext {
   currency: CurrencyService;
   /** The default league (D-20): `POE_LEAGUE`, else the first current league on trade2. */
   resolveLeague: () => Promise<string>;
+  /** The wall clock (epoch ms) that dates price results (C-49): `ServerDeps.now ?? Date.now`; default `Date.now`. */
+  now?: () => number;
 }
 
 type TextResult = { content: Array<{ type: string; text: string }> };
 
 function text(output: string): TextResult {
   return { content: [{ type: 'text', text: output }] };
+}
+
+/**
+ * The trade handlers' error wrapper (D-218). As `wrapHandler`, except that an error a `TradeError`
+ * (C-10) caused keeps its kind as a stable prefix, so the router's error text reads
+ * `Error: [trade:<kind>] Failed to <action>: <message>`. Any other error gets no prefix.
+ */
+async function wrapTradeHandler<T>(action: string, handler: () => Promise<T>): Promise<T> {
+  try {
+    return await handler();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const prefix = error instanceof TradeError ? `[trade:${error.kind}] ` : '';
+    throw new Error(`${prefix}Failed to ${action}: ${message}`);
+  }
+}
+
+// ========================================
+// Dated price results (C-49)
+// ========================================
+
+/** `YYYY-MM-DDTHH:MM:SSZ`: the UTC time, in whole seconds (C-49's `Checked:` line). */
+function checkedTimestamp(epochMs: number): string {
+  return new Date(Math.floor(epochMs / 1000) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/**
+ * The `League:` and `Checked:` lines every price result carries (C-49). `checkedAt` is the wall-clock
+ * time the handler sent the search. Nothing is cached (D-46), so each call has its own.
+ */
+function datedLines(league: string, checkedAt: number): string {
+  return `League: ${league}\nChecked: ${checkedTimestamp(checkedAt)}\n`;
 }
 
 /** Message for a search_stats call when the live stat catalogue could not be loaded. */
@@ -107,7 +142,7 @@ export interface SearchTradeItemsArgs {
  * native price and, where poe.ninja can place the currency, its primary-currency equivalent.
  */
 export async function handleSearchTradeItems(context: TradeContext, args: SearchTradeItemsArgs): Promise<TextResult> {
-  return wrapHandler('search trade items', async () => {
+  return wrapTradeHandler('search trade items', async () => {
     const {
       league,
       item_name,
@@ -139,9 +174,10 @@ export async function handleSearchTradeItems(context: TradeContext, args: Search
     const query = builder.build();
 
     // The kept tools search anonymously (auth: false): the cookie is only for weighted search (C-10).
+    const checkedAt = (context.now ?? Date.now)();
     const searchResult = await context.tradeClient.search(league, query, { auth: false });
     if (searchResult.result.length === 0) {
-      return text(`No items found matching your search criteria in ${league} league.`);
+      return text(`No items found matching your search criteria in ${league} league.\n${datedLines(league, checkedAt)}`);
     }
 
     const count = Math.max(1, Math.min(10, Math.floor(Number(limit) || 5)));
@@ -149,7 +185,7 @@ export async function handleSearchTradeItems(context: TradeContext, args: Search
       await context.tradeClient.fetch(searchResult.result.slice(0, count), searchResult.id, { auth: false }),
     );
     const prices = await normalizePrices(context.currency, league, items);
-    return text(formatSearchResults(items, searchResult.total, league, searchResult.id, prices));
+    return text(formatSearchResults(items, searchResult.total, league, searchResult.id, prices, checkedAt));
   });
 }
 
@@ -164,8 +200,11 @@ function formatSearchResults(
   league: string,
   searchId: string,
   prices: NormalizedPrices,
+  checkedAt: number,
 ): string {
   let output = `=== Trade Search (${league}) ===\n`;
+  // C-49: the date and league come before the listings, so C-1's truncation can't drop them.
+  output += datedLines(league, checkedAt);
   output += `Found: ${totalResults} | Showing: ${items.length}\n`;
   output += `🔗 ${tradeSearchUrl(league, searchId)}\n`;
   // Each listing names its id rather than repeating the search link: trade2 search ids run to
@@ -271,7 +310,7 @@ export async function handleGetItemPrice(
     rarity?: 'unique' | 'rare' | 'magic' | 'normal';
   },
 ): Promise<TextResult> {
-  return wrapHandler('get item price', async () => {
+  return wrapTradeHandler('get item price', async () => {
     const { item_name, item_type, rarity } = args;
     const league = args.league || (await context.resolveLeague());
 
@@ -279,22 +318,24 @@ export async function handleGetItemPrice(
     if (item_type) builder.withType(item_type);
     if (rarity) builder.withRarity(rarity);
 
+    const checkedAt = (context.now ?? Date.now)();
     const searchResult = await context.tradeClient.search(league, builder.build(), { auth: false });
     if (searchResult.result.length === 0) {
-      return text(`No price data found for "${item_name}" in ${league}.`);
+      return text(`No price data found for "${item_name}" in ${league}.\n${datedLines(league, checkedAt)}`);
     }
 
     const items = presentEntries(
       await context.tradeClient.fetch(searchResult.result.slice(0, 10), searchResult.id, { auth: false }),
     ).filter((l) => l.listing.price);
     if (items.length === 0) {
-      return text(`No priced listings found for "${item_name}" in ${league}.`);
+      return text(`No priced listings found for "${item_name}" in ${league}.\n${datedLines(league, checkedAt)}`);
     }
 
     const { rates, values, note } = await normalizePrices(context.currency, league, items);
 
     let output = `=== Price Check: ${item_name} ===\n`;
-    output += `League: ${league}\n`;
+    // C-49: the date and league come before the listings, so C-1's truncation can't drop them.
+    output += datedLines(league, checkedAt);
     output += `Total Listings: ${searchResult.total} · Priced listings fetched: ${items.length}\n`;
     if (note) output += `${note}\n`;
     output += '\nListings (cheapest first, as listed):\n';
@@ -344,7 +385,7 @@ export async function handleGetItemPrice(
 
 /** The trade2 leagues in API order, with the D-20 default marked. */
 export async function handleGetLeagues(context: TradeContext): Promise<TextResult> {
-  return wrapHandler('get leagues', async () => {
+  return wrapTradeHandler('get leagues', async () => {
     const leagues = await context.tradeClient.getLeagues();
     if (leagues.length === 0) return text('No leagues found.');
 

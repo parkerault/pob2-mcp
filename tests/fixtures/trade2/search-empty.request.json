@@ -1,0 +1,12 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {},
+    "name": "x"
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

@@ -247,6 +247,8 @@ export function createServer(deps: ServerDeps): {
     ensureTradeStats: () => ensureTradeStats(tradeClient, statMapper),
     resolveLeague: () => resolveDefaultLeague(env, tradeClient),
     credentials: deps.credentials,
+    // C-49: price results are dated on the wall clock, as the currency cache's ages are.
+    wallClock: deps.now ?? Date.now,
   };
 
   server.onerror = (error) => {

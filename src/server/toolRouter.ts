@@ -52,6 +52,8 @@ export interface ToolRouterDependencies {
   resolveLeague: () => Promise<string>;
   /** C-9: the trade session cookie, re-read on every call (`find_upgrades` decides its fallback on it). */
   credentials: () => Credentials;
+  /** The wall clock (epoch ms) that dates price results (C-49); default `Date.now`. */
+  wallClock?: () => number;
 }
 
 /**
@@ -200,6 +202,7 @@ function tradeContext(deps: ToolRouterDependencies): TradeContext {
     statMapper: deps.statMapper,
     currency: deps.currency,
     resolveLeague: deps.resolveLeague,
+    ...(deps.wallClock ? { now: deps.wallClock } : {}),
   };
 }
 

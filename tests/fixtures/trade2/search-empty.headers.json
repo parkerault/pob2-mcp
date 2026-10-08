@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "request": {
+    "method": "POST",
+    "url": "https://www.pathofexile.com/api/trade2/search/poe2/Runes%20of%20Aldur",
+    "note": "synthesized, not captured: no live request was made. The body is get_item_price's query for item_name \"x\"; the headers are search-ring-divine's anonymous rate-limit headers"
+  },
+  "headers": {
+    "content-type": "application/json",
+    "access-control-expose-headers": "X-Rate-Limit-Policy, X-Rate-Limit-Rules, X-Rate-Limit-Ip, X-Rate-Limit-Ip-State",
+    "x-rate-limit-policy": "trade-search-request-limit",
+    "x-rate-limit-rules": "Ip",
+    "x-rate-limit-ip": "5:10:60,15:60:300,30:300:1800,600:21600:3600",
+    "x-rate-limit-ip-state": "1:10:0,1:60:0,3:300:0,22:21600:0"
+  }
+}

@@ -1,0 +1,1032 @@
+{
+  "schemaVersion": 1,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Blood Hunt"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "stages": [
+    {
+      "id": "1",
+      "loadoutName": "Act 1 (L8) {1}",
+      "level": 8,
+      "progress": "q.act-1-clearfell-beira",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Campaign gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHunting Spear"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 2,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 2,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s1-beira",
+          "text": "Beira's quest reward is +10% to Cold Resistance.",
+          "source": {
+            "kind": "pob-data",
+            "ref": "Data/QuestRewards.lua:7",
+            "patch": "0.5.4"
+          }
+        },
+        {
+          "id": "s1-penalty",
+          "text": "Act 1 has no elemental resistance penalty.",
+          "source": "data:campaign/limits.json#resistance-penalty.act1"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "loadoutName": "Act 2 (L30) {2}",
+      "level": 30,
+      "progress": "q.act-2-keth-kabala",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Campaign gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHunting Spear"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -10,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act2"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s2-penalty",
+          "text": "Act 2 lowers elemental resistances by 10%.",
+          "source": "data:campaign/limits.json#resistance-penalty.act2"
+        },
+        {
+          "id": "s2-slam",
+          "text": "Rolling Slam is a strike that hits twice.",
+          "source": {
+            "kind": "pob-data",
+            "ref": "lookup_game_data gem \"Rolling Slam\"",
+            "patch": "0.5.4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "loadoutName": "Endgame budget (L90) {b}",
+      "level": 90,
+      "progress": "endgame",
+      "variant": "budget",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a budget character reaching T15 maps sits near level 90",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "uncut gems of tier 20 are cheap by endgame",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "external",
+          "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+          "accessed": "2026-10-07",
+          "patch": "0.5.x",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nGale Spike\nWar Spear\n+60% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDread Shell\nRusted Cuirass\n+80 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Crown\nIron Cap\n+60 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nStorm Track\nRough Greaves\n+25% increased Movement Speed\n+35% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nBlood Loop\nIron Ring\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyPhysicalDamage",
+            "value": 324.19000244141,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyFireDamage",
+            "value": 324.19000244141,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "b-life",
+          "text": "The budget variant's maximum life, as PoB computes it at level 90.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "b.Life"
+          }
+        },
+        {
+          "id": "b-bloodloss",
+          "text": "Blood Hunt consumes Blood Loss on the target for a burst.",
+          "source": {
+            "kind": "pob-data",
+            "ref": "lookup_game_data gem \"Blood Hunt\"",
+            "patch": "0.5.4"
+          }
+        },
+        {
+          "id": "b-monster-life",
+          "text": "A normal area-79 monster has 24,852 life.",
+          "source": "data:enemies/map-monsters.json#life.by-level[79]"
+        },
+        {
+          "id": "b-helmet-price",
+          "text": "A life and cold-resistance helmet for the budget variant.",
+          "source": "price:b-helmet"
+        },
+        {
+          "id": "b-ttk",
+          "text": "The Arbiter of Divinity takes about 160 seconds of single-target damage under the extrapolated life.",
+          "source": "ledger:ttk_arbiter"
+        },
+        {
+          "id": "b-meta",
+          "text": "Spear builds clear T15 maps on a budget this league.",
+          "source": {
+            "kind": "external",
+            "ref": "https://maxroll.gg/poe2/build-guides/blood-hunt-titan",
+            "accessed": "2026-10-08",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "n",
+      "loadoutName": "Endgame non-budget (L95) {n}",
+      "level": 95,
+      "progress": "endgame",
+      "variant": "non-budget",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a geared character pushing area 82 sits near level 95",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "uncut gems of tier 20 are cheap by endgame",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "external",
+          "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+          "accessed": "2026-10-07",
+          "patch": "0.5.x",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nGale Spike\nWar Spear\n+60% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDread Shell\nRusted Cuirass\n+80 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Crown\nIron Cap\n+60 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nStorm Track\nRough Greaves\n+25% increased Movement Speed\n+35% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nBlood Loop\nIron Ring\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyPhysicalDamage",
+            "value": 324.19000244141,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyFireDamage",
+            "value": 324.19000244141,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "n-dps",
+          "text": "The non-budget variant's damage, as PoB computes it at level 95.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "n.TotalDPS"
+          }
+        },
+        {
+          "id": "n-herald",
+          "text": "Herald of Blood reserves spirit.",
+          "source": {
+            "kind": "pob-data",
+            "ref": "lookup_game_data gem \"Herald of Blood\"",
+            "patch": "0.5.4"
+          }
+        }
+      ]
+    }
+  ],
+  "ledger": [
+    {
+      "id": "ttk_arbiter",
+      "claim": "The Arbiter of Divinity takes about N seconds of single-target damage.",
+      "formula": "arbiter_life ÷ b.TotalDPS",
+      "inputs": [
+        {
+          "name": "arbiter_life",
+          "value": 8000000,
+          "tag": {
+            "kind": "judgment",
+            "ref": "The Arbiter of Ash's in-fight to base life ratio (about 34x) applied to the Arbiter of Divinity's base life",
+            "patch": "0.5.5",
+            "confidence": "L"
+          }
+        }
+      ]
+    }
+  ],
+  "prices": [
+    {
+      "id": "b-weapon",
+      "item": "budget Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 8,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "b-body",
+      "item": "budget Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 5,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "b-helmet",
+      "item": "budget Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 150,
+      "currency": "exalted",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "b-boots",
+      "item": "budget Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 2,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "b-ring1",
+      "item": "budget Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Ring 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 40,
+      "currency": "chaos",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "b-ring2",
+      "item": "budget Ring 2",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 2.5,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-weapon",
+      "item": "non-budget Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 64,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-body",
+      "item": "non-budget Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 40,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-helmet",
+      "item": "non-budget Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 1200,
+      "currency": "exalted",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-boots",
+      "item": "non-budget Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 16,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-ring1",
+      "item": "non-budget Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Ring 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 320,
+      "currency": "chaos",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "n-ring2",
+      "item": "non-budget Ring 2",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 20,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    }
+  ]
+}

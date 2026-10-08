@@ -1,0 +1,21 @@
+{
+  "stage": "V4",
+  "lens": "sources",
+  "concept": "c1",
+  "pass": 1,
+  "mode": "online",
+  "coverage": {
+    "external": 2,
+    "opened": 2,
+    "data": 4,
+    "dataChecked": 4,
+    "pobDataEndgame": 3,
+    "recheckedEndgame": 3,
+    "pobDataOther": 6,
+    "recheckedOther": 2,
+    "prices": 3,
+    "matched": 3
+  },
+  "findings": [],
+  "verdict": "pass"
+}

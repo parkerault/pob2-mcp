@@ -1,0 +1,15 @@
+{
+  "stage": "D2-gate",
+  "concept": "c1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "finalCompile": {
+    "buildName": "titan-blood-hunt-2026-10-08-1",
+    "pobFile": "titan-blood-hunt-2026-10-08-1.xml"
+  }
+}

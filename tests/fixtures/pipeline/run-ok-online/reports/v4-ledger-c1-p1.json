@@ -1,0 +1,13 @@
+{
+  "stage": "V4",
+  "lens": "ledger",
+  "concept": "c1",
+  "pass": 1,
+  "mode": "online",
+  "coverage": {
+    "entries": 1,
+    "rederived": 1
+  },
+  "findings": [],
+  "verdict": "pass"
+}

@@ -1,0 +1,165 @@
+{
+  "recordVersion": 1,
+  "planSchemaVersion": 1,
+  "planSha1": "3f786850e387550fdab836ed7e6dc881de23001b",
+  "compiledAt": "2026-10-08T10:41:00.000Z",
+  "mode": "measure-only",
+  "stagesCompiled": [
+    "b",
+    "n"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "pobFile": {
+    "location": "run",
+    "path": "titan-blood-hunt/2026-10-08-1/compiled-build.xml",
+    "sha1": "a9993e364706816aba3e25717850c26c9cd0d89d",
+    "bytes": 412
+  },
+  "importCode": "eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001",
+  "savedLevel": {
+    "level": 95,
+    "autoMode": true
+  },
+  "activeLoadout": "Endgame non-budget (L95) {n}",
+  "sets": [],
+  "stages": {
+    "b": {
+      "loadoutName": "Endgame budget (L1) {b}",
+      "level": 1,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4200,
+        "TotalDPS": 50000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 47,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 28,
+        "PhysicalMaximumHitTaken": 5100,
+        "FireMaximumHitTaken": 9800,
+        "ColdMaximumHitTaken": 9700,
+        "LightningMaximumHitTaken": 9600,
+        "ChaosMaximumHitTaken": 3000
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 50000,
+            "AverageHit": 12000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 21000,
+            "AverageHit": 8000
+          }
+        }
+      },
+      "configWritten": {},
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": false,
+        "findings": [
+          {
+            "code": "level-points",
+            "message": "stage b spends 108 passive points, but level 1 grants 0 (FI-2)",
+            "data": {
+              "stage": "b"
+            }
+          }
+        ],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    },
+    "n": {
+      "loadoutName": "Endgame non-budget (L95) {n}",
+      "level": 95,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 5600,
+        "TotalDPS": 140000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 0,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 75,
+        "PhysicalMaximumHitTaken": 7400,
+        "FireMaximumHitTaken": 14800,
+        "ColdMaximumHitTaken": 14700,
+        "LightningMaximumHitTaken": 14600,
+        "ChaosMaximumHitTaken": 7000
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 140000,
+            "AverageHit": 33000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 60000,
+            "AverageHit": 21000
+          }
+        }
+      },
+      "configWritten": {},
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    }
+  },
+  "ledger": {
+    "ttk_arbiter": {
+      "value": 160,
+      "error": null
+    }
+  },
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 9000,
+    "checkMs": 300,
+    "finishMs": 200,
+    "exportMs": 400
+  }
+}

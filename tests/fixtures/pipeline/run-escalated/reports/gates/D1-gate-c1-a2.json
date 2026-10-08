@@ -1,0 +1,157 @@
+{
+  "stage": "D1-gate",
+  "concept": "c1",
+  "attempt": 2,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "fail",
+    "v2": "pass",
+    "floor": "pass",
+    "budget": "unverified",
+    "rolledSkill": "pass"
+  },
+  "findings": [
+    {
+      "part": "v1",
+      "code": "level-points",
+      "stage": "b",
+      "message": "stage b spends 108 passive points, but level 1 grants 0 (FI-2)"
+    },
+    {
+      "part": "floor",
+      "code": "floor-chaos-exception",
+      "stage": "b",
+      "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    }
+  ],
+  "basis": {
+    "floor": [
+      {
+        "stage": "b",
+        "missing": {
+          "Fire": 0,
+          "Cold": 0,
+          "Lightning": 0
+        },
+        "chaos": 47,
+        "hits": [
+          {
+            "type": "Physical",
+            "hit": 324.19000244141,
+            "maxHitTaken": 5100
+          },
+          {
+            "type": "Fire",
+            "hit": 324.19000244141,
+            "maxHitTaken": 9800
+          }
+        ]
+      },
+      {
+        "stage": "n",
+        "missing": {
+          "Fire": 0,
+          "Cold": 0,
+          "Lightning": 0
+        },
+        "chaos": 0,
+        "hits": [
+          {
+            "type": "Physical",
+            "hit": 324.19000244141,
+            "maxHitTaken": 7400
+          },
+          {
+            "type": "Fire",
+            "hit": 324.19000244141,
+            "maxHitTaken": 14800
+          }
+        ]
+      }
+    ],
+    "budget": {
+      "rates": [],
+      "slots": [
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "priceId": "b-weapon"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "priceId": "b-body"
+        },
+        {
+          "stage": "b",
+          "slot": "Helmet",
+          "priceId": "b-helmet"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "priceId": "b-boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "priceId": "b-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "priceId": "b-ring2"
+        }
+      ],
+      "totals": [
+        {
+          "stage": "b",
+          "divines": null
+        }
+      ],
+      "nonBudget": [
+        {
+          "stage": "n",
+          "divines": null,
+          "reference": 200
+        }
+      ]
+    },
+    "rolledSkill": [
+      {
+        "stage": "b",
+        "group": 1,
+        "role": "clear",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS",
+            "value": 50000
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS",
+            "value": 21000
+          }
+        ]
+      },
+      {
+        "stage": "n",
+        "group": 1,
+        "role": "clear",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS",
+            "value": 140000
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS",
+            "value": 60000
+          }
+        ]
+      }
+    ]
+  }
+}

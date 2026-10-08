@@ -40,45 +40,66 @@ function isHttpUrl(s: string): boolean {
   }
 }
 
+/**
+ * The source tag's fields, unrefined and not yet strict, so a schema that adds fields (a data file's
+ * `sources[]` entry, `SourceTag & {id}`, C-35) can `.extend()` it. Pair it with `refineSourceTag`, or
+ * use `sourceTagWith`.
+ */
+export const sourceTagObject = z.object({
+  kind: z.enum(SOURCE_KINDS),
+  ref: z.string().min(1, { message: 'ref must not be empty' }),
+  accessed: isoDateSchema.optional(),
+  patch: z.string().min(1, { message: 'patch must not be empty' }).optional(),
+  confidence: z.enum(['H', 'M', 'L']).optional(),
+});
+
+/** A source tag's fields, as `sourceTagObject` parses them. */
+export type SourceTagFields = z.infer<typeof sourceTagObject>;
+
+/** C-30's per-kind rules, as a zod refinement over a tag (or a tag with more fields). */
+export function refineSourceTag(tag: SourceTagFields, ctx: z.RefinementCtx): void {
+  if (tag.kind === 'pob-computed' && tag.ref !== '' && !isMultiSegmentRef(tag.ref)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['ref'],
+      message: `a pob-computed ref names a compile-record field as <stageId>.<Field> or <stageId>.g<group>s<skill>p<statSet>.<Field>; got "${tag.ref}"`,
+    });
+  }
+  if (tag.kind === 'external' && tag.ref !== '' && !isHttpUrl(tag.ref)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: `an external ref is an http(s) URL; got "${tag.ref}"` });
+  }
+  if (tag.kind === 'external-unavailable' && tag.ref !== EXTERNAL_UNAVAILABLE_REF) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['ref'],
+      message: `an external-unavailable ref is exactly "${EXTERNAL_UNAVAILABLE_REF}"`,
+    });
+  }
+  if (tag.kind === 'external' && tag.accessed === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['accessed'], message: 'an external tag needs accessed (YYYY-MM-DD)' });
+  }
+  if (NEEDS_CONFIDENCE.includes(tag.kind) && tag.confidence === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['confidence'],
+      message: `a tag of kind ${tag.kind} needs confidence (H, M or L)`,
+    });
+  }
+}
+
 /** A C-30 source tag. Strict: an unknown key is an error. */
-export const sourceTagSchema = z
-  .object({
-    kind: z.enum(SOURCE_KINDS),
-    ref: z.string().min(1, { message: 'ref must not be empty' }),
-    accessed: isoDateSchema.optional(),
-    patch: z.string().min(1, { message: 'patch must not be empty' }).optional(),
-    confidence: z.enum(['H', 'M', 'L']).optional(),
-  })
-  .strict()
-  .superRefine((tag, ctx) => {
-    if (tag.kind === 'pob-computed' && tag.ref !== '' && !isMultiSegmentRef(tag.ref)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['ref'],
-        message: `a pob-computed ref names a compile-record field as <stageId>.<Field> or <stageId>.g<group>s<skill>p<statSet>.<Field>; got "${tag.ref}"`,
-      });
-    }
-    if (tag.kind === 'external' && tag.ref !== '' && !isHttpUrl(tag.ref)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: `an external ref is an http(s) URL; got "${tag.ref}"` });
-    }
-    if (tag.kind === 'external-unavailable' && tag.ref !== EXTERNAL_UNAVAILABLE_REF) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['ref'],
-        message: `an external-unavailable ref is exactly "${EXTERNAL_UNAVAILABLE_REF}"`,
-      });
-    }
-    if (tag.kind === 'external' && tag.accessed === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['accessed'], message: 'an external tag needs accessed (YYYY-MM-DD)' });
-    }
-    if (NEEDS_CONFIDENCE.includes(tag.kind) && tag.confidence === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['confidence'],
-        message: `a tag of kind ${tag.kind} needs confidence (H, M or L)`,
-      });
-    }
-  });
+export const sourceTagSchema = sourceTagObject.strict().superRefine(refineSourceTag);
+
+/**
+ * A strict source tag with extra fields, under the same rules: `sourceTagWith({ id: z.string() })` is a
+ * data file's `sources[]` entry (C-35). `extra` adds fields; it must not redefine the tag's own.
+ */
+export function sourceTagWith<T extends z.ZodRawShape>(extra: T) {
+  return sourceTagObject
+    .extend(extra)
+    .strict()
+    .superRefine((tag, ctx) => refineSourceTag(tag as SourceTagFields, ctx));
+}
 
 export type SourceTag = z.infer<typeof sourceTagSchema>;
 

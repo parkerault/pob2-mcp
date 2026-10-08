@@ -104,6 +104,11 @@ describe('C-33: validation-time and compile-time errors', () => {
     expect(run('16 ÷ 4 ÷ 2').value).toBe(2);
   });
 
+  it('a WORD that is neither NUMBER nor REF is a syntax error: .5, 1e-3, 1E+3 (plan-reference.md)', () => {
+    for (const formula of ['.5', '1e-3', '1E+3']) expect(run(formula).error).toEqual(expect.objectContaining({ code: 'syntax', column: 0 }));
+    expect(run('0.5 + 0.001 + 1e3').value).toBe(0.5 + 0.001 + 1e3);
+  });
+
   it('values are unrounded doubles', () => {
     expect(run('1 / 3').value).toBe(1 / 3);
     expect(run('0.1 + 0.2').value).toBe(0.1 + 0.2);

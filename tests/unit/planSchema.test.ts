@@ -10,7 +10,9 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
+import { z } from 'zod';
 import { validatePlan, type PlanError } from '../../src/plan/schema';
+import { refineSourceTag, sourceTagObject, sourceTagSchema, sourceTagWith } from '../../src/plan/sourceTag';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURE_PATH = path.join(REPO, 'tests', 'fixtures', 'plans', 'two-stage', 'plan.json');
@@ -443,5 +445,40 @@ describe('C-31 rules beyond the AC-P10 table', () => {
   it('a non-object plan is one error at $', () => {
     expect(errorsOf('[1, 2]')).toEqual([{ path: '$', message: 'a plan is a JSON object' }]);
     expect(errorsOf(null)).toEqual([{ path: '$', message: 'a plan is a JSON object' }]);
+  });
+});
+
+describe('C-30: a source tag with extra fields, for C-35 data files (WU-39)', () => {
+  const withId = sourceTagWith({ id: z.string().min(1) });
+  const byHand = sourceTagObject.extend({ id: z.string().min(1) }).strict().superRefine(refineSourceTag);
+  const issuesOf = (schema: z.ZodTypeAny, value: unknown) => {
+    const r = schema.safeParse(value);
+    return r.success ? [] : r.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message }));
+  };
+  const good = { id: 'S40', kind: 'external', ref: 'https://maxroll.gg/poe2/', accessed: '2026-10-07', patch: '0.5.5', confidence: 'M' };
+
+  it('a tag with id validates through sourceTagWith and through sourceTagObject + refineSourceTag', () => {
+    expect(withId.safeParse(good)).toEqual({ success: true, data: good });
+    expect(byHand.safeParse(good)).toEqual({ success: true, data: good });
+  });
+
+  it.each([
+    ['external without accessed', { kind: 'external', ref: 'https://maxroll.gg/poe2/', confidence: 'M' }],
+    ['external with a non-URL ref', { kind: 'external', ref: 'maxroll', accessed: '2026-10-07', confidence: 'M' }],
+    ['judgment without confidence', { kind: 'judgment', ref: 'a reason' }],
+    ['external-unavailable with another ref', { kind: 'external-unavailable', ref: 'offline', confidence: 'L' }],
+    ['pob-computed with a one-segment ref', { kind: 'pob-computed', ref: 'Life' }],
+  ])('%s: the same refinement errors as sourceTagSchema', (_label, tag) => {
+    const expected = issuesOf(sourceTagSchema, tag);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(issuesOf(withId, { id: 'S1', ...tag })).toEqual(expected);
+    expect(issuesOf(byHand, { id: 'S1', ...tag })).toEqual(expected);
+  });
+
+  it('the extended tag stays strict and requires its extra field', () => {
+    expect(issuesOf(withId, { ...good, extra: 1 }).map((i) => i.path)).toEqual(['']);
+    const { id: _id, ...noId } = good;
+    expect(issuesOf(withId, noId).map((i) => i.path)).toEqual(['id']);
+    expect(sourceTagSchema.safeParse(good).success).toBe(false); // id is unknown to the plain tag
   });
 });

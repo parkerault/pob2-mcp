@@ -85,15 +85,21 @@ expr    := term (('+' | '-' | '−') term)*
 term    := unary (('*' | '/' | '×' | '÷') unary)*
 unary   := ('-' | '−' | '+') unary | primary
 primary := NUMBER | REF | '(' expr ')'
-NUMBER  := 12, 2.5, 2.5e3          (digits, an optional fraction, an optional exponent)
-REF     := x                       (one segment: an input of this entry)
-         | 1.Life                  (<stageId>.<Field>: a stage's main output)
-         | 2.g1s1p1.TotalDPS       (<stageId>.g<group>s<skill>p<statSet>.<Field>: a breakdown field)
+WORD    := a maximal run of [A-Za-z0-9_.]; whitespace separates tokens and is otherwise ignored
+NUMBER  := a WORD matching ^\d+(\.\d+)?([eE]\d+)?$
+REF     := a WORD matching ^[A-Za-z0-9_]+(\.[A-Za-z_][A-Za-z0-9_]*)+$ or ^[A-Za-z_][A-Za-z0-9_]*$
 ```
 
-Whitespace separates tokens and is otherwise ignored. Validation fails on a syntax error (an unexpected
-token, a missing `)`, an empty formula), an unknown input, or a reference to a stage the plan doesn't
-have, each with its 0-based column. At compile time, a reference to an output the record doesn't hold, a
+A WORD that is neither a NUMBER nor a REF is a syntax error. So `12`, `2.5` and `2.5e3` are numbers,
+but `.5`, `1e-3` and `1E+3` are syntax errors (write `0.5`, `0.001` and `1e3`). A REF takes one of three
+forms:
+
+- `x`, one segment: an input of this entry;
+- `1.Life`, `<stageId>.<Field>`: a stage's main output;
+- `2.g1s1p1.TotalDPS`, `<stageId>.g<group>s<skill>p<statSet>.<Field>`: a per-skill breakdown field (C-45).
+
+Validation fails on a syntax error (an unexpected token, a missing `)`, an empty formula), an unknown
+input, or a reference to a stage the plan doesn't have, each with its 0-based column. At compile time, a reference to an output the record doesn't hold, a
 stage the compile didn't include, a division by zero or a non-finite result sets that entry's value to
 null with the error in the record; the compile still succeeds. Values are unrounded doubles.
 

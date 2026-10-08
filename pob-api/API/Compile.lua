@@ -16,7 +16,15 @@
 --     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket;
 --     an unknown config option or a bad value (BuildOps' own config check); a main group or main active
 --     skill outside the stage's groups or their active skills.
---     -> {defects[], treeVersion, stageCount}
+--     It also reports (WU-42), for V2: `producers`, whether each `{kind, name}` producer the plan's earned
+--     config names exists in the game data (by kind: an item base or unique; a gem, as C-37's lookup finds
+--     it; a passive or ascendancy node; an active skill; a flask or charm base or unique), names compared
+--     ignoring case (an unknown producer is no defect: V2 reports it, D-221); and `configBaseline`, per
+--     config option its type, whether it has an `apply`, its default (`defaultState`, or the
+--     `defaultIndex` entry of its list), its `defaultPlaceholderState` and its first list value, read from
+--     PoB's option list as ConfigTab:CreateConfigSet fills a new set (Classes/ConfigTab.lua:979-987),
+--     without creating a set.
+--     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}}}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[], main, configSet, config, offenseFields[],
@@ -35,7 +43,15 @@
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
---         configSurvivesDrop{option: boolean}}
+--         configSurvivesDrop{option: boolean},
+--         checks{...}}
+--     `checks` (WU-42) are the V1 and V2 inputs, read right after the measurement: PassiveSpec:CountAllocNodes'
+--     counts, `ExtraPoints` and `PassivePointsToWeaponSetPoints`, Str/Dex/Int and ReqStr/ReqDex/ReqInt with
+--     the item or gem each requirement comes from, every gem's tier, kind (skill, support, or spirit: it
+--     reserves Spirit) and level requirement at its level, every equipped item's level requirement and
+--     names (flasks and charms with their toggle), PoB's warning lines (get_warnings, without another
+--     rebuild), the allocated nodes' names, the active skills' names, and the stage's config set's `input`
+--     and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included).
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
 --     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options, and
@@ -74,6 +90,7 @@
 -- Handlers.lua.
 
 local BuildOps = require('API.BuildOps')
+local Lookup = require('API.Lookup')
 local Sets = require('API.Sets')
 local construct = require('API.Util').construct
 
@@ -330,6 +347,89 @@ local function check_stage(tree, roll, st, defect)
   end
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- compile_check's V2 inputs (WU-42): the producers and the config baseline
+
+-- PoB's game data: the loaded build's copy when there is one, else the global.
+local function game_data()
+  return (build and build.data) or data
+end
+
+local function lower(s)
+  return type(s) == 'string' and s:lower() or nil
+end
+
+-- An item base or unique named `wanted` (lowercase); `itemType` ('Flask', 'Charm') keeps only that type.
+local function item_exists(wanted, itemType)
+  for baseName, base in pairs(game_data().itemBases or {}) do
+    if lower(baseName) == wanted and (not itemType or base.type == itemType) then return true end
+  end
+  local db = main and main.uniqueDB and main.uniqueDB.list or {}
+  for key, item in pairs(db) do
+    if lower(item.title or item.name or key) == wanted and (not itemType or item.type == itemType) then return true end
+  end
+  return false
+end
+
+-- Whether a producer of `kind` named `name` exists in the game data (D-221), names compared ignoring case.
+local function producer_exists(tree, kind, name)
+  local wanted = tostring(name or ''):lower()
+  if kind == 'gem' then return Lookup.findGem(name) ~= nil end
+  if kind == 'passive' then
+    for _, node in pairs(tree.nodes or {}) do
+      if lower(node.dn) == wanted then return true end
+    end
+    return false
+  end
+  if kind == 'skill' then
+    for _, ge in pairs(game_data().skills or {}) do
+      if type(ge) == 'table' and not ge.support and lower(ge.name) == wanted then return true end
+    end
+    return false
+  end
+  if kind == 'item' then return item_exists(wanted, nil) end
+  if kind == 'flask' then return item_exists(wanted, 'Flask') end
+  if kind == 'charm' then return item_exists(wanted, 'Charm') end
+  return false
+end
+
+local function scalar(v)
+  local t = type(v)
+  if t == 'boolean' or t == 'string' or finite(v) then return v end
+  return nil
+end
+
+-- Per config option: its type, whether it has an apply, the value a new config set holds for it (its
+-- defaultState, or its defaultIndex list entry), its defaultPlaceholderState and its first list value.
+-- Read from PoB's option list as ConfigTab:CreateConfigSet fills a new set (a later entry for the same
+-- var replaces an earlier one's values); no config set is created, so the loaded build is unchanged.
+local configBaselineCache
+local function config_baseline()
+  if configBaselineCache then return configBaselineCache end
+  local ok, varList = pcall(LoadModule, 'Modules/ConfigOptions')
+  if not ok or type(varList) ~= 'table' then fail('could not load the config option list') end
+  local out = {}
+  for _, varData in ipairs(varList) do
+    if varData.var then
+      local default = varData.defaultState
+      if varData.defaultIndex and varData.list and varData.list[varData.defaultIndex] then
+        default = varData.list[varData.defaultIndex].val
+      end
+      local first = varData.list and varData.list[1] and varData.list[1].val
+      local before = out[varData.var]
+      out[varData.var] = {
+        type = tostring(varData.type),
+        apply = varData.apply ~= nil or (before ~= nil and before.apply == true),
+        default = scalar(default),
+        defaultPlaceholder = scalar(varData.defaultPlaceholderState),
+        first = scalar(first),
+      }
+    end
+  end
+  configBaselineCache = out
+  return out
+end
+
 function M.compile_check(params)
   local tree = main and main.LoadTree and main:LoadTree(latestTreeVersion)
   if not tree then fail('passive tree data not available') end
@@ -341,7 +441,13 @@ function M.compile_check(params)
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
     check_stage(tree, roll, st, defect)
   end
-  return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages }
+  local producers = {}
+  for _, p in ipairs(list(params.producers)) do
+    local kind, name = tostring(p.kind), tostring(p.name)
+    producers[#producers + 1] = { kind = kind, name = name, exists = producer_exists(tree, kind, name) }
+  end
+  return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
+    configBaseline = config_baseline() }
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -646,6 +752,139 @@ local function survives_drop(cs, option, value)
   return value == false or value == 0 or value == ''
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- compile_stage's V1 and V2 inputs (WU-42)
+
+local ATTRIBUTES = { 'Str', 'Dex', 'Int' }
+local ATTRIBUTE_NAMES = { Str = 'Strength', Dex = 'Dexterity', Int = 'Intelligence' }
+
+-- The item or gem a requirement comes from (CalcPerform's Req<attr>Item), as PoB's warning names it.
+local function requirement_source(attr, req)
+  if type(req) ~= 'table' then return nil end
+  if req.source == 'Item' and req.sourceItem then
+    return { source = 'item', name = tostring(req.sourceItem.name) }
+  elseif req.source == 'Gem' and req.sourceGem then
+    return { source = 'gem', name = tostring(req.sourceGem.nameSpec or (req.sourceGem.gemData and req.sourceGem.gemData.name)) }
+  elseif req.source == 'Support Gems' then
+    return { source = 'support gems', name = 'your total ' .. ATTRIBUTE_NAMES[attr] .. ' support gems' }
+  end
+  return nil
+end
+
+-- A gem's kind for V1: support, spirit (it reserves Spirit: a persistent skill, or one whose level reserves
+-- Spirit), or skill.
+local function gem_kind(gem, grantedEffect, level)
+  if (grantedEffect and grantedEffect.support) or (gem.gemData and gem.gemData.gemType == 'Support') then return 'support' end
+  local lv = grantedEffect and grantedEffect.levels and grantedEffect.levels[level]
+  local tags = gem.gemData and gem.gemData.tags
+  if (lv and (lv.spiritReservationFlat or lv.spiritReservationPercent)) or (tags and tags.persistent) then return 'spirit' end
+  return 'skill'
+end
+
+-- Every gem of the active skill set's socket groups (item-granted groups excluded): its group and index,
+-- name, level, tier, kind and level requirement at its level.
+local function stage_gems()
+  local out = {}
+  for gi, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    if not group.source then
+      for k, gem in ipairs(group.gemList or {}) do
+        local gemData = gem.gemData
+        local ge = gem.grantedEffect or (gemData and gemData.grantedEffect)
+        local level = tonumber(gem.level) or 1
+        local lv = ge and ge.levels and ge.levels[level]
+        out[#out + 1] = {
+          group = gi, index = k,
+          name = tostring(gem.nameSpec or (gemData and gemData.name) or ''),
+          level = level,
+          tier = gemData and tonumber(gemData.Tier) or nil,
+          kind = gem_kind(gem, ge, level),
+          levelRequirement = tonumber(gem.reqLevel) or (lv and tonumber(lv.levelRequirement)) or 0,
+        }
+      end
+    end
+  end
+  return out
+end
+
+local function is_activatable(slotName)
+  return slotName:match('^Flask %d+$') ~= nil or slotName:match('^Charm %d+$') ~= nil
+end
+
+-- Every item equipped in `slotNames` of the active item set: its slot, names, level requirement, and for
+-- a flask or charm its toggle (the slot control's `active`, which the calcs read).
+local function stage_items(slotNames)
+  local itemsTab = build.itemsTab
+  local out = {}
+  for _, slotName in ipairs(slotNames) do
+    local slot = itemsTab.slots[slotName]
+    local sel = slot and slot.selItemId or 0
+    local item = sel ~= 0 and itemsTab.items[sel] or nil
+    if item then
+      out[#out + 1] = {
+        slot = slotName, name = tostring(item.name or ''), title = item.title and tostring(item.title) or nil,
+        baseName = tostring(item.baseName or ''),
+        levelRequirement = item.requirements and tonumber(item.requirements.level) or 0,
+        active = is_activatable(slotName) and slot.active == true or nil,
+      }
+    end
+  end
+  return out
+end
+
+-- A config set's table of scalar values (option -> value).
+local function scalars(t)
+  local out = {}
+  for k, v in pairs(t or {}) do
+    if type(k) == 'string' and scalar(v) ~= nil then out[k] = v end
+  end
+  return out
+end
+
+-- The V1 and V2 inputs, read after the stage's measurement (`output` is its main output). PoB's warning
+-- lines come from get_warnings with the rebuild it starts skipped when `defer` is on: the build was just
+-- rebuilt.
+local function stage_checks(st, output, configSetId, defer)
+  local spec = build.spec
+  local used, ascUsed, secondaryAscUsed, sockets, ws1, ws2 = spec:CountAllocNodes()
+  local attributes, sources = {}, {}
+  for _, attr in ipairs(ATTRIBUTES) do
+    attributes[attr] = finite(output[attr]) and output[attr] or 0
+    attributes['Req' .. attr] = finite(output['Req' .. attr]) and output['Req' .. attr] or 0
+    sources[attr] = requirement_source(attr, output['Req' .. attr .. 'Item'])
+  end
+  local slotNames = {}
+  for _, s in ipairs(list(st.itemSlots)) do slotNames[#slotNames + 1] = s end
+  for _, j in ipairs(list(st.jewels)) do slotNames[#slotNames + 1] = 'Jewel ' .. tostring(j.node) end
+  local warnings = must('reading PoB\'s warnings', deferring(defer, function() return BuildOps.get_warnings() end))
+  local nodeNames = {}
+  for _, node in pairs(spec.allocNodes or {}) do
+    if node.type ~= 'ClassStart' and node.type ~= 'AscendClassStart' and node.dn then nodeNames[#nodeNames + 1] = tostring(node.dn) end
+  end
+  table.sort(nodeNames)
+  local activeSkills = {}
+  for _, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    for _, skill in ipairs(group.displaySkillList or {}) do
+      local ge = skill.activeEffect and skill.activeEffect.grantedEffect
+      if ge and ge.name then activeSkills[#activeSkills + 1] = tostring(ge.name) end
+    end
+  end
+  local cs = build.configTab.configSets[configSetId]
+  return {
+    counts = { used = used, ascendancy = ascUsed, secondaryAscendancy = secondaryAscUsed, sockets = sockets,
+      weaponSet1 = ws1, weaponSet2 = ws2 },
+    extraPoints = finite(output.ExtraPoints) and output.ExtraPoints or 0,
+    passivePointsToWeaponSetPoints = finite(output.PassivePointsToWeaponSetPoints) and output.PassivePointsToWeaponSetPoints or 0,
+    attributes = attributes,
+    requirementSources = sources,
+    gems = stage_gems(),
+    items = stage_items(slotNames),
+    warnings = warnings.lines or {},
+    nodeNames = nodeNames,
+    activeSkills = activeSkills,
+    config = { input = scalars(cs and cs.input), placeholder = scalars(cs and cs.placeholder) },
+  }
+end
+
 function M.compile_stage(st)
   if TEST_ACTIONS and st.__crashForTest then os.exit(3) end
   if not build or not build.treeTab or not build.itemsTab or not build.skillsTab or not build.configTab
@@ -699,6 +938,8 @@ function M.compile_stage(st)
         configSurvivesDrop[option] = survives_drop(cs, option, v)
       end
     end
+    -- The V1/V2 inputs, before the breakdown changes the main selection and restores it.
+    local checks = stage_checks(st, output, configSetId, defer)
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
@@ -711,6 +952,7 @@ function M.compile_stage(st)
       weaponFlags = weapon_flags(),
       configInputs = configInputs,
       configSurvivesDrop = configSurvivesDrop,
+      checks = checks,
     }
   end)
   if not ok then fail('stage ' .. tostring(st.id) .. ': ' .. message_of(res)) end

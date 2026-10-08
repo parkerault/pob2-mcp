@@ -5,8 +5,7 @@
  * check verdicts. It is informational: overwriting a builds-folder file is decided by the write ledger,
  * never by the record (D-211).
  *
- * V1 and V2 (WU-42) fill `v1`, `v2`, `configEffective` and `pobWarnings`; until then they are `null`,
- * `null`, `{}` and empty lists.
+ * V1 and V2 (WU-42, `src/plan/checks/`) fill `v1`, `v2`, `configEffective` and `pobWarnings`.
  */
 import { isMultiSegmentRef, type StageOutputs } from './ledger.js';
 import type { Plan } from './schema.js';
@@ -44,12 +43,12 @@ export interface StageRecord {
   skillOutputs: Record<string, { skill: string; statSetLabel: string; fields: Record<string, number> }>;
   /** Every option the stage lists, earned and scenario, as written into its config set (C-32). */
   configWritten: Record<string, ConfigValue>;
-  /** D-212; filled from WU-42's V2 inputs, `{}` until then. */
+  /** D-212: every option that affects the calculation, filled by V2 from the stage's config set. */
   configEffective: Record<
     string,
     { value: ConfigValue; origin: 'explicit' | 'default' | 'placeholder'; class: 'earned' | 'scenario' | 'baseline' | 'unlisted' }
   >;
-  /** Filled from WU-42's V1 inputs. */
+  /** PoB's warning lines, kept (each a V1 `pob-warning` finding) or filtered as informational. */
   pobWarnings: { kept: string[]; filtered: string[] };
   v1: Verdict | null;
   v2: Verdict | null;

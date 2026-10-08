@@ -63,7 +63,15 @@
             "value": 10,
             "producer": { "kind": "gem", "name": "Rage I" },
             "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
-          }
+          },
+          { "option": "questAct 1FreythornKing In The Mists", "value": false },
+          { "option": "questAct 1Ogham ManorCandlemass", "value": false },
+          { "option": "questAct 2Spires of DesharSisters of Garukhan Shrine", "value": false },
+          { "option": "questAct 3Azak BogIgnagduk", "value": false },
+          { "option": "questAct 3Jiquani's MachinariumBlackjaw", "value": false },
+          { "option": "questAct 4Eye of HinekoraSilent Hall", "value": false },
+          { "option": "questInterlude 2Khari CrossingMolten Shrine", "value": false },
+          { "option": "questInterlude 3Kriar VillageLythara", "value": false }
         ],
         "scenario": [
           {
@@ -172,7 +180,13 @@
             "value": 20,
             "producer": { "kind": "gem", "name": "Rage I" },
             "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
-          }
+          },
+          { "option": "questAct 2Spires of DesharSisters of Garukhan Shrine", "value": false },
+          { "option": "questAct 3Azak BogIgnagduk", "value": false },
+          { "option": "questAct 3Jiquani's MachinariumBlackjaw", "value": false },
+          { "option": "questAct 4Eye of HinekoraSilent Hall", "value": false },
+          { "option": "questInterlude 2Khari CrossingMolten Shrine", "value": false },
+          { "option": "questInterlude 3Kriar VillageLythara", "value": false }
         ],
         "scenario": [
           {

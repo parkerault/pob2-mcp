@@ -869,14 +869,37 @@ export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
 /**
  * `compile_check`: the read-only preflight. `defects` are `stage <id>: <defect>` lines (and `roll: …` for
  * the class or ascendancy), empty when every stage can be built; `treeVersion` is the tree the compile
- * builds against. WU-42 adds `producers` and the config baseline.
+ * builds against. WU-42 adds, for V2, `producers` (whether each producer the plan's earned config names
+ * exists in the game data, D-221) and `configBaseline` (per config option, what a new config set holds for
+ * it, from PoB's option list; no set is created).
  */
+/** A config value as the compiler writes and reads it (C-32): no null. */
+const compileConfigScalar = z.union([z.boolean(), z.number(), z.string()]);
+
+/** One config option as a new config set holds it (ConfigTab:CreateConfigSet), for V2's default audit. */
+export const configOptionDefaultSchema = z
+  .object({
+    type: z.string(),
+    /** Whether the option has an `apply` (BuildModList applies it). */
+    apply: z.boolean(),
+    /** `defaultState`, or the `defaultIndex` entry's value of a list; absent when nil. */
+    default: compileConfigScalar.optional(),
+    /** `defaultPlaceholderState`; absent when nil. */
+    defaultPlaceholder: compileConfigScalar.optional(),
+    /** A list option's first entry value. */
+    first: compileConfigScalar.optional(),
+  })
+  .passthrough();
+export type ConfigOptionDefault = z.infer<typeof configOptionDefaultSchema>;
+
 export const compileCheckReply = baseReply.extend({
   result: z
     .object({
       defects: luaArray(z.string()),
       treeVersion: z.string(),
       stageCount: z.number().int(),
+      producers: luaArray(z.object({ kind: z.string(), name: z.string(), exists: z.boolean() }).passthrough()),
+      configBaseline: luaMap(configOptionDefaultSchema),
     })
     .passthrough(),
 });
@@ -906,9 +929,62 @@ export const stageSkillOutputSchema = z
  * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots;
  * what the stage's item set holds in each requested slot after the measurement (`items`) and what this
  * stage equipped when it created the set (`addedItems`); the stage's weapon-fit flags; the stored
- * values of its listed config options (`configInputs`), and whether each keeps its value on a reload when
- * PoB's save leaves it out (`configSurvivesDrop`, D-248).
+ * values of its listed config options (`configInputs`), whether each keeps its value on a reload when
+ * PoB's save leaves it out (`configSurvivesDrop`, D-248), and the V1 and V2 inputs (`checks`, WU-42).
  */
+export const stageChecksSchema = z
+  .object({
+    /** PassiveSpec:CountAllocNodes (ascendancy: multiple-choice options and free nodes excluded). */
+    counts: z
+      .object({
+        used: z.number().int(),
+        ascendancy: z.number().int(),
+        secondaryAscendancy: z.number().int(),
+        sockets: z.number().int(),
+        weaponSet1: z.number().int(),
+        weaponSet2: z.number().int(),
+      })
+      .passthrough(),
+    extraPoints: z.number(),
+    passivePointsToWeaponSetPoints: z.number(),
+    /** Str, Dex, Int and ReqStr, ReqDex, ReqInt (0 when PoB sets none). */
+    attributes: luaMap(z.number()),
+    /** Per attribute, the item or gem its requirement comes from. */
+    requirementSources: luaMap(z.object({ source: z.string(), name: z.string() }).passthrough()),
+    gems: luaArray(
+      z
+        .object({
+          group: z.number().int(),
+          index: z.number().int(),
+          name: z.string(),
+          level: z.number().int(),
+          tier: z.number().int().optional(),
+          kind: z.enum(['skill', 'support', 'spirit']),
+          levelRequirement: z.number(),
+        })
+        .passthrough(),
+    ),
+    items: luaArray(
+      z
+        .object({
+          slot: z.string(),
+          name: z.string(),
+          title: z.string().optional(),
+          baseName: z.string(),
+          levelRequirement: z.number(),
+          active: z.boolean().optional(),
+        })
+        .passthrough(),
+    ),
+    warnings: luaArray(z.string()),
+    nodeNames: luaArray(z.string()),
+    activeSkills: luaArray(z.string()),
+    /** The stage's config set after the writes and the recalculation. */
+    config: z.object({ input: luaMap(compileConfigScalar), placeholder: luaMap(compileConfigScalar) }).passthrough(),
+  })
+  .passthrough();
+export type StageChecks = z.infer<typeof stageChecksSchema>;
+
 export const compileStageReply = baseReply.extend({
   result: z
     .object({
@@ -932,6 +1008,7 @@ export const compileStageReply = baseReply.extend({
       weaponFlags: weaponFlagsSchema,
       configInputs: luaMap(z.union([z.boolean(), z.number(), z.string()])),
       configSurvivesDrop: luaMap(z.boolean()),
+      checks: stageChecksSchema,
     })
     .passthrough(),
 });
@@ -1259,8 +1336,16 @@ export interface ActionParamsMap {
     title?: string;
     useSecondWeaponSet?: boolean;
   };
-  /** C-41 step 5: the read-only preflight of every stage; changes nothing. */
-  compile_check: { className: string; ascendancy: string; stages: CompileCheckStage[] };
+  /**
+   * C-41 step 5: the read-only preflight of every stage; changes nothing. `producers`: the earned config's
+   * producers, each looked up in the game data (D-221, WU-42).
+   */
+  compile_check: {
+    className: string;
+    ascendancy: string;
+    stages: CompileCheckStage[];
+    producers?: Array<{ kind: string; name: string }>;
+  };
   /** C-41 step 7: build and measure one stage. */
   compile_stage: CompileStageParams;
   /** C-41 step 8: the loadout check, the highest stage's loadout and the auto-mode level. */

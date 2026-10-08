@@ -218,11 +218,10 @@ export async function handleGuideRun(context: PlanContext, args: Record<string, 
       request.stages,
     );
     const n = checked.stages.length;
-    return {
-      content: [{
-        type: 'text' as const,
-        text: `Plan ${request.planPath} is valid: ${n} stage${n === 1 ? '' : 's'} (${checked.stages.join(', ')}).`,
-      }],
-    };
+    const lines = [`Plan ${request.planPath} is valid: ${n} stage${n === 1 ? '' : 's'} (${checked.stages.join(', ')}).`];
+    for (const p of checked.unknownProducers) {
+      lines.push(`Unknown producer: ${p.kind} "${p.name}" isn't in the game data; a compile reports it as producer-unknown (V2).`);
+    }
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
   });
 }

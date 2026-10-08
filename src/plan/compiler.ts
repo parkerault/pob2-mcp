@@ -21,14 +21,17 @@
  *     checked (D-248), and the XML is encoded as an import code (C-42);
  * 10. final: the builds-folder file through C-17, then its write-ledger entry; measure-only: the XML
  *     beside the plan;
- * 11. the ledger formulas are evaluated and the record is written beside the plan.
+ * 11. V1 and V2 check every compiled stage (`src/plan/checks/`, D-192), the ledger formulas are evaluated and
+ *     the record is written beside the plan.
  * Any failure up to step 9 writes nothing. Steps 1–5 leave the engine's build as it was.
  *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
  *
- * V1 and V2 (WU-42) are not run here yet: the record's verdicts are null and `configEffective` is empty.
+ * V1 and V2 (WU-42) run over `compile_stage`'s check inputs, `compile_check`'s producer lookups and config
+ * defaults, the plan, the C1/E1 data and the baseline list (D-230), which is read with the plan, before any
+ * engine request. Their findings go into the record and the text; they never fail the compile (D-192).
  */
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -60,10 +63,14 @@ import {
   type CompileRecord,
   type ConfigValue,
   type StageRecord,
+  type Verdict,
 } from './record.js';
 import { validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
+import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
+import { checkV1, predecessorOf } from './checks/v1.js';
+import { checkV2, producerKey } from './checks/v2.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
 export class CompileError extends Error {
@@ -83,6 +90,8 @@ export interface CompilerEnv {
   writer: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile'>;
   /** The C1/E1 reference data (`loadReferenceData`). */
   referenceData: () => PlanReferenceData;
+  /** The baseline list (D-230); default `loadConfigBaseline()` from the package's `data/`. */
+  configBaseline?: () => ConfigBaseline;
   /** C-45's offense fields, measured per active skill and stat set. */
   offenseFields: readonly string[];
   /** The pinned engine (C-6). */
@@ -116,6 +125,9 @@ const CONTENT_OF: Record<ContentKind, (s: Stage) => Stage['items'] | Stage['skil
 };
 
 const sha1 = (data: string | Buffer) => crypto.createHash('sha1').update(data).digest('hex');
+
+/** A stage's V1 and V2 verdicts and what they read for the record (D-192, D-212). */
+type StageVerdicts = Pick<StageRecord, 'configEffective' | 'pobWarnings'> & { v1: Verdict; v2: Verdict };
 
 // ---------------------------------------------------------------------------------------------------
 // Pure helpers (unit-tested)
@@ -308,6 +320,34 @@ export function stageConfig(stage: Pick<Stage, 'config'>): Record<string, Config
   for (const e of stage.config.earned) out[e.option] = e.value;
   for (const e of stage.config.scenario) out[e.option] = e.value;
   return out;
+}
+
+/**
+ * The producers the stages' earned config names (C-32), each once, in plan order: what `compile_check`
+ * looks up in the game data for V2 (D-221).
+ */
+export function producersOf(stages: readonly Pick<Stage, 'config'>[]): { kind: string; name: string }[] {
+  const seen = new Set<string>();
+  const out: { kind: string; name: string }[] = [];
+  for (const stage of stages) {
+    for (const e of stage.config.earned) {
+      if (e.producer === undefined) continue;
+      const key = producerKey(e.producer.kind, e.producer.name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ kind: e.producer.kind, name: e.producer.name });
+    }
+  }
+  return out;
+}
+
+/** The baseline list (D-230), read before any engine request; an invalid file stops the compile. */
+function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBaseline {
+  try {
+    return (env.configBaseline ?? (() => loadConfigBaseline()))();
+  } catch (error) {
+    throw new CompileError(`${(error as Error).message}\nNothing was compiled.`);
+  }
 }
 
 /** What `compile_check` reads of a stage. */
@@ -583,13 +623,16 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   await checkGuidesRoot(env.guidesDirectory, env.pobDirectory);
 
   // 2. Resolve, read and validate the plan (D-163); no engine request before it passes.
+  const refData = env.referenceData();
   const loaded = await loadPlan(
     env.guidesDirectory,
     request.planPath,
-    env.referenceData(),
+    refData,
     request.mode === 'measure-only' ? request.stages : undefined,
   );
   const { plan, compiled } = loaded;
+  // V2's baseline list (D-230), checked with the plan: an invalid file stops the compile here.
+  const baselineList = readConfigBaseline(env);
 
   // 3. A final compile's target (D-199, D-211).
   let target: TargetCheck | null = null;
@@ -614,6 +657,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     className: plan.roll.className,
     ascendancy: plan.roll.ascendancy,
     stages: compiled.map(checkStageOf),
+    producers: producersOf(compiled),
   });
   const checkMs = env.clock() - tCheck;
   if (check.defects.length > 0) {
@@ -633,7 +677,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   /** Per config set id: the stored values of the options its stages list (D-248), and whether a reload keeps each. */
   const configInputs = new Map<number, ConfigSetInputs['inputs']>();
   const configSurvives = new Map<number, Readonly<Record<string, boolean>>>();
-  const results: { stage: Stage; reply: CompileStageResult; elapsedMs: number }[] = [];
+  const results: { stage: Stage; reply: CompileStageResult; elapsedMs: number; checked: StageVerdicts }[] = [];
+  // V1 and V2's producer lookups, from the preflight (D-221).
+  const producers = new Map(check.producers.map((p) => [producerKey(p.kind, p.name), p.exists]));
   for (const [i, stage] of compiled.entries()) {
     const refs = {} as Record<ContentKind, StageSetRef>;
     for (const kind of CONTENT_KINDS) {
@@ -660,7 +706,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     if (itemDefects.length > 0) {
       throw new CompileError(`PoB doesn't hold stage ${stage.id}'s planned items; nothing was written:\n${itemDefects.join('\n')}`);
     }
-    results.push({ stage, reply, elapsedMs });
+    // V1 and V2, once the stage is measured (D-192): findings go into the record, never into an error.
+    const v1 = checkV1({ stage, predecessor: predecessorOf(plan.stages, plan.stages.indexOf(stage)), checks: reply.checks, ref: refData });
+    const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
+    results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
   }
 
   // 8. The loadouts, the saved stage and its level in auto mode.
@@ -734,7 +783,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   // 11. The ledger and the record.
   const numbers: Record<string, StageOutputs> = {};
   const stages: Record<string, StageRecord> = {};
-  for (const { stage, reply, elapsedMs } of results) {
+  for (const { stage, reply, elapsedMs, checked } of results) {
     numbers[stage.id] = { outputs: reply.outputs, skillOutputs: reply.skillOutputs };
     stages[stage.id] = {
       loadoutName: stage.loadoutName,
@@ -743,10 +792,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       outputs: reply.outputs,
       skillOutputs: reply.skillOutputs,
       configWritten: stageConfig(stage),
-      configEffective: {},
-      pobWarnings: { kept: [], filtered: [] },
-      v1: null,
-      v2: null,
+      configEffective: checked.configEffective,
+      pobWarnings: checked.pobWarnings,
+      v1: checked.v1,
+      v2: checked.v2,
     };
   }
   const ledger: CompileRecord['ledger'] = {};
@@ -795,22 +844,28 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   return { planPath: request.planPath, record, written, replacedFile };
 }
 
-/** `guide_run {validate}` (C-50): §3.6 step 2 and step 5, nothing else; the build is unchanged. */
+/**
+ * `guide_run {validate}` (C-50): §3.6 step 2 and step 5, nothing else; the build is unchanged. The
+ * producers the earned config names that the game data lacks are listed (V2's `producer-unknown`).
+ */
 export async function validatePlanFile(
   env: Pick<CompilerEnv, 'ctx' | 'guidesDirectory' | 'referenceData'>,
   planPath: string,
   subset?: readonly string[],
-): Promise<{ stages: string[] }> {
+): Promise<{ stages: string[]; unknownProducers: { kind: string; name: string }[] }> {
   const loaded = await loadPlan(env.guidesDirectory, planPath, env.referenceData(), subset);
   const check = await env.ctx.client.compileCheck({
     className: loaded.plan.roll.className,
     ascendancy: loaded.plan.roll.ascendancy,
     stages: loaded.compiled.map(checkStageOf),
+    producers: producersOf(loaded.compiled),
   });
   if (check.defects.length > 0) {
     throw new CompileError(
       `Plan ${planPath} has ${check.defects.length} defect${check.defects.length === 1 ? '' : 's'}:\n${check.defects.join('\n')}`,
     );
   }
-  return { stages: loaded.compiled.map((s) => s.id) };
+  // C-50: unknown producers are listed, not defects (V2 reports them at compile time, D-221).
+  const unknownProducers = check.producers.filter((p) => !p.exists).map(({ kind, name }) => ({ kind, name }));
+  return { stages: loaded.compiled.map((s) => s.id), unknownProducers };
 }

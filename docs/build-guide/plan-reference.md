@@ -223,7 +223,7 @@ rule may require an optional key in some cases.
 | `stages[].config.earned[].producer.kind` | `item`, `gem`, `passive`, `skill`, `flask` or `charm` | yes | The producer's kind | C-32 |
 | `stages[].config.earned[].producer.name` | string | yes | Non-empty. Its name as PoB has it | C-32 |
 | `stages[].config.earned[].uptime` | string | no | Non-empty. Required when the value is on: how the state is kept up | A-P5, C-32 |
-| `stages[].config.scenario` | object[] | yes | Scenario inputs: enemy level, `enemyIsBoss`, enemy damage and resistances, waystone modifiers, quest rewards, the resistance penalty. Must list `enemyIsBoss`, which the compiler writes into every config set (error at `config.scenario`) | C-32, D-119, A-P4 |
+| `stages[].config.scenario` | object[] | yes | Scenario inputs: enemy level, `enemyIsBoss`, enemy damage and resistances, waystone modifiers, quest rewards, the resistance penalty. Must list `enemyIsBoss`, which the compiler writes into every config set (error at `config.scenario`). The config check (V2) reports `default-unlisted` for every option PoB has on by default (`resistancePenalty`) or fills from a placeholder (for a boss, the enemy's resistances) that neither this stage nor `data/config-baseline.json` lists, so list each such option here or in `earned`. A reward quest's checkbox is on by default and in the baseline list; list it `false` in `earned` while its quest is beyond `progress` (`quest-not-reached`) | C-32, D-119, A-P4, D-212, D-230 |
 | `stages[].config.scenario[].option` | string | yes | Non-empty. A PoB config option. Appears once across both lists (a repeat errs at the later entry) | C-32 |
 | `stages[].config.scenario[].value` | boolean, number or string | yes | The value written, taken from the cited fact | C-32 |
 | `stages[].config.scenario[].source` | object | yes | The C1/E1 fact the value comes from | C-32, C-35 |
@@ -352,7 +352,15 @@ Titan who rolled Boneshatter.
             "value": 10,
             "producer": { "kind": "gem", "name": "Rage I" },
             "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
-          }
+          },
+          { "option": "questAct 1FreythornKing In The Mists", "value": false },
+          { "option": "questAct 1Ogham ManorCandlemass", "value": false },
+          { "option": "questAct 2Spires of DesharSisters of Garukhan Shrine", "value": false },
+          { "option": "questAct 3Azak BogIgnagduk", "value": false },
+          { "option": "questAct 3Jiquani's MachinariumBlackjaw", "value": false },
+          { "option": "questAct 4Eye of HinekoraSilent Hall", "value": false },
+          { "option": "questInterlude 2Khari CrossingMolten Shrine", "value": false },
+          { "option": "questInterlude 3Kriar VillageLythara", "value": false }
         ],
         "scenario": [
           {
@@ -461,7 +469,13 @@ Titan who rolled Boneshatter.
             "value": 20,
             "producer": { "kind": "gem", "name": "Rage I" },
             "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
-          }
+          },
+          { "option": "questAct 2Spires of DesharSisters of Garukhan Shrine", "value": false },
+          { "option": "questAct 3Azak BogIgnagduk", "value": false },
+          { "option": "questAct 3Jiquani's MachinariumBlackjaw", "value": false },
+          { "option": "questAct 4Eye of HinekoraSilent Hall", "value": false },
+          { "option": "questInterlude 2Khari CrossingMolten Shrine", "value": false },
+          { "option": "questInterlude 3Kriar VillageLythara", "value": false }
         ],
         "scenario": [
           {

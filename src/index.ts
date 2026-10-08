@@ -13,23 +13,28 @@ import path from "path";
 
 import { createServer, type ServerDeps } from "./server/createServer.js";
 import { createCredentialGetter } from "./trade/credentials.js";
+import { defaultGuidesDirectory } from "./utils/guidesPath.js";
 import { packageRoot } from "./utils/packageRoot.js";
 
 /**
- * The entry's path defaults (C-7, D-16, C-16):
+ * The entry's path defaults (C-7, D-16, C-16, C-34):
  * - `pobDirectory` = `POB_DIRECTORY`, else `~/Documents/Path of Building (PoE2)/Builds`;
- * - `stateDir` = `$XDG_STATE_HOME/pob2-mcp`, else `~/.local/state/pob2-mcp`.
- * An empty value counts as unset.
+ * - `stateDir` = `$XDG_STATE_HOME/pob2-mcp`, else `~/.local/state/pob2-mcp`;
+ * - `guidesDirectory` = `POB_GUIDES_DIRECTORY`, else `Guides` beside the builds folder (D-154).
+ * An empty value counts as unset. Nothing is created here.
  */
 export function entryDefaults(
   env: Readonly<Record<string, string | undefined>>,
   homeDir: string = os.homedir(),
-): { pobDirectory: string; stateDir: string } {
+): { pobDirectory: string; stateDir: string; guidesDirectory: string } {
   const pobDirectory = env.POB_DIRECTORY
     ? env.POB_DIRECTORY
     : path.join(homeDir, "Documents", "Path of Building (PoE2)", "Builds");
   const stateHome = env.XDG_STATE_HOME ? env.XDG_STATE_HOME : path.join(homeDir, ".local", "state");
-  return { pobDirectory, stateDir: path.join(stateHome, "pob2-mcp") };
+  const guidesDirectory = env.POB_GUIDES_DIRECTORY
+    ? env.POB_GUIDES_DIRECTORY
+    : defaultGuidesDirectory(pobDirectory);
+  return { pobDirectory, stateDir: path.join(stateHome, "pob2-mcp"), guidesDirectory };
 }
 
 /** The package.json version (reported as the MCP server version, C-1). */
@@ -41,13 +46,14 @@ export function packageVersion(root: string = packageRoot()): string {
 
 async function main(): Promise<void> {
   const env: Record<string, string | undefined> = { ...process.env };
-  const { pobDirectory, stateDir } = entryDefaults(env);
+  const { pobDirectory, stateDir, guidesDirectory } = entryDefaults(env);
 
   const deps: ServerDeps = {
     version: packageVersion(),
     env,
     pobDirectory,
     stateDir,
+    guidesDirectory,
     fetch: (input, init) => globalThis.fetch(input, init),
     spawn,
     // C-9: the trade session cookie, re-read from the env and <packageRoot>/.env on every

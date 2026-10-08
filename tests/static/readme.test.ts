@@ -11,6 +11,7 @@
  *   check itself is a script check the verifier runs.
  * - AC-G5: CLAUDE.md carries the tooling cautions.
  * - AC-G6: the hygiene allowlist and the cruft waivers are empty.
+ * - AC-P7 (WU-37): the env table has a `POB_GUIDES_DIRECTORY` row stating its default.
  *
  * The tool-table test runs the generator, which reads the compiled registry under build/: run
  * `pnpm build` first (`mise run test` does).
@@ -306,5 +307,30 @@ describe('WU-19: hygiene files end empty (AC-G6)', () => {
     const read = (p: string) => JSON.parse(fs.readFileSync(path.join(REPO, p), 'utf8')) as unknown;
     expect(read('tests/fixtures/tool-hygiene-allowlist.json')).toEqual([]);
     expect(read('tests/static/poe1-cruft-waivers.json')).toEqual([]);
+  });
+});
+
+/** The README's Configuration env table, as rows of cells (the header and separator rows excluded). */
+function envTableRows(): string[][] {
+  const lines = README.split('\n');
+  const header = lines.indexOf('| Variable | Default | What it does |');
+  expect(header).toBeGreaterThanOrEqual(0);
+  const rows: string[][] = [];
+  for (const line of lines.slice(header + 2)) {
+    if (!line.startsWith('|')) break;
+    rows.push(line.split('|').slice(1, -1).map((cell) => cell.trim()));
+  }
+  return rows;
+}
+
+describe('WU-37: README env table (AC-P7)', () => {
+  it('AC-P7: the env table has a POB_GUIDES_DIRECTORY row whose default is `Guides` beside the builds folder', () => {
+    const row = envTableRows().find((cells) => cells[0] === '`POB_GUIDES_DIRECTORY`');
+    expect(row).toBeDefined();
+    const [, defaultCell, what] = row!;
+    expect(defaultCell).toContain('`Guides` beside the builds folder');
+    expect(defaultCell).toContain('~/Documents/Path of Building (PoE2)/Guides');
+    expect(what).toMatch(/guide runs/);
+    expect(what).toMatch(/outside the folder PoB2 browses/);
   });
 });

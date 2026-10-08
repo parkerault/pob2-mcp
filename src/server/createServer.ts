@@ -60,6 +60,11 @@ export interface ServerDeps {
   pobDirectory: string;
   /** C-16: ${XDG_STATE_HOME:-~/.local/state}/pob2-mcp */
   stateDir: string;
+  /**
+   * C-34: the guides root, `POB_GUIDES_DIRECTORY` or `Guides` beside the builds folder (D-154).
+   * Nothing creates it at construction; only `guide_run`'s run-folder mode does.
+   */
+  guidesDirectory: string;
   /** Every outbound HTTP goes through this. */
   fetch: typeof globalThis.fetch;
   /** The engine process factory. */

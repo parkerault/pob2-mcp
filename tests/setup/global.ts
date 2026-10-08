@@ -4,6 +4,8 @@
  *  - the trade cookie variables are deleted (FR-F5);
  *  - POB_DIRECTORY and XDG_STATE_HOME point at fresh temp dirs; the builds dir holds a copy of the
  *    golden build;
+ *  - POB_GUIDES_DIRECTORY points at a fresh, empty temp dir (C-34, AC-B6), so no test resolves the
+ *    default guides folder beside the user's builds folder;
  *  - the engine is probed once (unless POB_SKIP_ENGINE=1) and the verdict goes to POB_TEST_ENGINE:
  *    "ok", or the cause engine-required tests fail with (engineDescribe).
  */
@@ -119,8 +121,10 @@ export default async function globalSetup(): Promise<void> {
   const builds = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-mcp-test-builds-'));
   fs.copyFileSync(GOLDEN, path.join(builds, 'grenadator.xml'));
   const state = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-mcp-test-state-'));
+  const guides = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-mcp-test-guides-'));
   process.env.POB_DIRECTORY = builds;
   process.env.XDG_STATE_HOME = state;
+  process.env.POB_GUIDES_DIRECTORY = guides;
 
   delete process.env.POB_TEST_ENGINE;
   if (process.env.POB_SKIP_ENGINE === '1') return;

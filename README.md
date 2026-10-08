@@ -70,6 +70,7 @@ wins over `.env`, so a refreshed cookie there would be ignored.
 | Variable | Default | What it does |
 |---|---|---|
 | `POB_DIRECTORY` | `~/Documents/Path of Building (PoE2)/Builds` | Your PoB2 builds folder, subfolders included. On WSL2, point it at the Windows folder, e.g. `/mnt/c/Users/<you>/Documents/Path of Building (PoE2)/Builds`. |
+| `POB_GUIDES_DIRECTORY` | `Guides` beside the builds folder, e.g. `~/Documents/Path of Building (PoE2)/Guides` | The guides folder, which holds guide runs, one dated folder per run. The default sits outside the folder PoB2 browses, so guide files don't show up in its build list. |
 | `POESESSID` | unset | Your pathofexile.com session cookie, for weighted trade searches. Set it only in `.env`, never with `-e`: see [Trade session](#trade-session-poesessid). `POE_SESSION_ID` is accepted as an alias. |
 | `POE_LEAGUE` | see [League](#league) | The trade league the trade tools use. |
 | `POE_TRADE_DISABLED` | unset | `true` hides the trade tools (`search_trade_items`, `get_item_price`, `get_leagues`, `search_stats`, `find_upgrades`, `trade_query_options`). The server then never contacts the trade site or reads `.env`. |

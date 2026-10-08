@@ -4,8 +4,8 @@
  *
  * Defaults: the throwing global `fetch` (tests/setup/env.ts), the real `spawn`, credentials
  * `{sessionId: null, source: null}`, and `env` = a copy of `process.env` with `overrides.env`
- * merged in. `pobDirectory` and `stateDir` follow the entry's defaults for that env (the Jest
- * globalSetup points both at temp dirs). Callers of slow tools pass `{timeout}` to `callTool`:
+ * merged in. `pobDirectory`, `stateDir` and `guidesDirectory` follow the entry's defaults for that env
+ * (the Jest globalSetup points all three at temp dirs). Callers of slow tools pass `{timeout}` to `callTool`:
  * the SDK client's default is 60 s.
  *
  * `session` is the server's engine session (C-3): tests read `revision`/`loaded`/`isDirty()`, subscribe
@@ -35,6 +35,7 @@ export async function startTestServer(overrides: Partial<ServerDeps> = {}): Prom
     version: packageVersion(),
     pobDirectory: defaults.pobDirectory,
     stateDir: defaults.stateDir,
+    guidesDirectory: defaults.guidesDirectory,
     fetch: globalThis.fetch,
     spawn,
     credentials: () => ({ sessionId: null, source: null }),

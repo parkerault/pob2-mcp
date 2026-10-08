@@ -3,7 +3,8 @@
  * explicit, safe env, and connect an SDK `Client` to it.
  *
  * The child's env is the (globalSetup-scrubbed) `process.env` minus the cookie variables, plus:
- * the temp POB_DIRECTORY and XDG_STATE_HOME, `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true`,
+ * the temp POB_DIRECTORY, XDG_STATE_HOME and POB_GUIDES_DIRECTORY, `POE_TRADE_DISABLED=true`,
+ * `POE_NINJA_DISABLED=true`,
  * `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`, then `extraEnv` (an `undefined` value removes a
  * variable). With trade disabled the server never reads `.env` or opens a trade connection.
  * The cwd is a fresh temp dir unless `opts.cwd` is given: probes never run from the repo root.
@@ -46,6 +47,7 @@ export function spawnServerEnv(extraEnv: Record<string, string | undefined> = {}
   Object.assign(merged, {
     POB_DIRECTORY: process.env.POB_DIRECTORY,
     XDG_STATE_HOME: process.env.XDG_STATE_HOME,
+    POB_GUIDES_DIRECTORY: process.env.POB_GUIDES_DIRECTORY,
     POE_TRADE_DISABLED: 'true',
     POE_NINJA_DISABLED: 'true',
     POE_TRADE_BASE: 'http://127.0.0.1:9/api/trade2',

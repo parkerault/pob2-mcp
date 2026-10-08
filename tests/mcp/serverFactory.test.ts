@@ -89,6 +89,7 @@ describe('server factory (C-7)', () => {
       env: { ...process.env },
       pobDirectory: process.env.POB_DIRECTORY!,
       stateDir: path.join(process.env.XDG_STATE_HOME!, 'pob2-mcp'),
+      guidesDirectory: process.env.POB_GUIDES_DIRECTORY!,
       fetch: globalThis.fetch,
       spawn: jest.fn() as unknown as typeof import('child_process').spawn,
       credentials: () => ({ sessionId: null, source: null }),

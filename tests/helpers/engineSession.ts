@@ -22,6 +22,8 @@ export interface SessionFixture {
   server: TestServer;
   session: EngineSession;
   builds: string;
+  /** The fixture's own guides root, `<tmp>/guides` (C-34); not created until a run folder is. */
+  guides: string;
   tmp: string;
   call(tool: string, args?: Record<string, unknown>): Promise<ToolOutcome>;
   close(): Promise<void>;
@@ -43,7 +45,10 @@ export function writeBuild(file: string, xml: string): void {
   fs.utimesSync(file, t, t);
 }
 
-/** A server over a private builds folder that holds `grenadator.xml` (or the files given). */
+/**
+ * A server over a private builds folder that holds `grenadator.xml` (or the files given), with its own
+ * guides root `<tmp>/guides` in deps and env (C-18, C-34).
+ */
 export async function startSessionFixture(
   opts: { testActions?: boolean; files?: Record<string, string>; deps?: Partial<ServerDeps> } = {},
 ): Promise<SessionFixture> {
@@ -54,13 +59,16 @@ export async function startSessionFixture(
     fs.mkdirSync(path.dirname(path.join(builds, name)), { recursive: true });
     fs.writeFileSync(path.join(builds, name), xml, 'utf8');
   }
+  const guides = path.join(tmp, 'guides');
   const server = await startTestServer({
     pobDirectory: builds,
     stateDir: path.join(tmp, 'state'),
+    guidesDirectory: guides,
     ...(opts.deps ?? {}),
     env: {
       POB_DIRECTORY: builds,
       XDG_STATE_HOME: path.join(tmp, 'xdg'),
+      POB_GUIDES_DIRECTORY: guides,
       POB_API_TEST_ACTIONS: opts.testActions ? '1' : undefined,
       ...(opts.deps?.env ?? {}),
     },
@@ -76,6 +84,7 @@ export async function startSessionFixture(
     server,
     session: server.session,
     builds,
+    guides,
     tmp,
     call,
     async close() {

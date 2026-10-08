@@ -24,6 +24,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { performance } from 'perf_hooks';
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
@@ -60,8 +61,8 @@ interface Candidate {
 /** Byte order, as Lua compares strings. */
 const byteCmp = (a: string, b: string) => Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
 
-/** The 5 closest candidates (one per name, kind and detail): by distance, then name, kind and detail. */
-function closest(query: string, list: Candidate[]): Array<Candidate & { distance: number }> {
+/** The `n` (default 5) closest candidates (one per name, kind and detail): by distance, then name, kind and detail. */
+function closest(query: string, list: Candidate[], n = 5): Array<Candidate & { distance: number }> {
   const seen = new Set<string>();
   const unique = list.filter((c) => {
     const key = `${c.name}\0${c.kind}\0${c.detail ?? ''}`;
@@ -72,21 +73,28 @@ function closest(query: string, list: Candidate[]): Array<Candidate & { distance
   return unique
     .map((c) => ({ ...c, distance: osa(query, c.name) }))
     .sort((a, b) => a.distance - b.distance || byteCmp(a.name, b.name) || byteCmp(a.kind, b.kind) || byteCmp(a.detail ?? '', b.detail ?? ''))
-    .slice(0, 5);
+    .slice(0, n);
 }
 
-/** The `- <name> (<label>)` lines under the tool's "Closest … names" header. */
-function suggestionLines(text: string): string[] {
-  const lines = text.split('\n');
-  const at = lines.findIndex((l) => /^Closest .+ \(fewest edits from the query, then by name\):$/.test(l));
-  if (at < 0) return [];
-  const out: string[] = [];
-  for (const line of lines.slice(at + 1)) {
-    if (!line.startsWith('- ')) break;
-    out.push(line);
+/** Each "Closest … names (…):" header of the tool's text, with the `- <name> (<label>)` lines under it. */
+function suggestionGroups(text: string): Array<{ header: string; lines: string[] }> {
+  const groups: Array<{ header: string; lines: string[] }> = [];
+  let current: { header: string; lines: string[] } | null = null;
+  for (const line of text.split('\n')) {
+    if (/^Closest .+ \(fewest edits from the query, then by name\):$/.test(line)) {
+      current = { header: line, lines: [] };
+      groups.push(current);
+    } else if (current && line.startsWith('- ')) {
+      current.lines.push(line);
+    } else {
+      current = null;
+    }
   }
-  return out;
+  return groups;
 }
+
+/** Every closest-name line of the tool's text, in order. */
+const suggestionLines = (text: string): string[] => suggestionGroups(text).flatMap((g) => g.lines);
 
 const ENGINE_TIMEOUT = 240_000;
 const FIXTURES = path.resolve(__dirname, '..', 'fixtures');
@@ -908,23 +916,37 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
-    'D-258: gem mode with no match lists the 5 closest gem names; "Blod Hunt" puts Blood Hunt first and "No Such Skill" still gets 5',
+    'D-258, D-258a: gem mode with no match lists the 5 closest active gems, then the 3 closest supports under their own header; "Blod Hunt" puts Blood Hunt first, and "No Such Skill" and "Ruthlss" (closest to supports) still get 5 active names',
     async () => {
       expect(osa('Blod Hunt', 'Blood Hunt')).toBe(1);
       expect(osa('ab', 'ba')).toBe(1);
       const gems = await gemCandidates();
-      for (const query of ['Blod Hunt', 'No Such Skill', 'Ruthlss']) {
-        const want = closest(query, gems);
-        expect(want).toHaveLength(5);
+      const actives = gems.filter((g) => g.kind === 'active');
+      const supports = gems.filter((g) => g.kind === 'support');
+      // "Ruthlss" and "Rage Vortx" sit closer to supports than to any active gem: one ranking across both
+      // kinds would hold at most one active name (the review's case for D-258a).
+      for (const query of ['Ruthlss', 'Rage Vortx']) {
+        expect({ query, actives: closest(query, gems).filter((c) => c.kind === 'active').length <= 1 }).toEqual({ query, actives: true });
+      }
+      for (const query of ['Blod Hunt', 'No Such Skill', 'Ruthlss', 'Rage Vortx']) {
+        const wantActive = closest(query, actives, 5);
+        const wantSupport = closest(query, supports, 3);
+        expect(wantActive).toHaveLength(5);
+        expect(wantSupport).toHaveLength(3);
         const text = await okTool({ mode: 'gem', query });
-        // The existing message stays; the names follow it.
+        // The existing message stays; the names follow it, active gems first.
         expect(text).toContain(`Nothing matched "${query}".`);
-        expect(text).toContain('Closest gem names (fewest edits from the query, then by name):');
-        expect({ query, lines: suggestionLines(text) }).toEqual({ query, lines: want.map((c) => `- ${c.name} (${c.kind})`) });
+        expect({ query, groups: suggestionGroups(text) }).toEqual({
+          query,
+          groups: [
+            { header: 'Closest active gem names (fewest edits from the query, then by name):', lines: wantActive.map((c) => `- ${c.name} (active)`) },
+            { header: 'Closest support gem names (fewest edits from the query, then by name):', lines: wantSupport.map((c) => `- ${c.name} (support)`) },
+          ],
+        });
         const raw = await lookupAction({ mode: 'gem', query });
         expect(raw.total).toBe(0);
         expect(raw.suggestions?.map((x) => ({ name: x.name, kind: x.kind, distance: x.distance }))).toEqual(
-          want.map((c) => ({ name: c.name, kind: c.kind, distance: c.distance })),
+          [...wantActive, ...wantSupport].map((c) => ({ name: c.name, kind: c.kind, distance: c.distance })),
         );
       }
       const blod = suggestionLines(await okTool({ mode: 'gem', query: 'Blod Hunt' }));
@@ -1001,6 +1023,36 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const all = await okTool({ mode: 'mechanic', query: 'zzzz qqqq' });
       expect(all).toContain('Closest gem, unique, passive and mod names (fewest edits from the query, then by name):');
       expect(suggestionLines(all)).toEqual(every.map(label));
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-258 (review): a query over 100 characters gets "Nothing matched" and a one-line note instead of closest names; a 5,000-character mechanic query returns quickly; 100 characters still get names',
+    async () => {
+      const long = 'q'.repeat(5000);
+      const t0 = performance.now();
+      const out = await tool({ mode: 'mechanic', query: long });
+      const ms = performance.now() - t0;
+      expect(out.isError).toBe(false);
+      // Ranking 5,000 characters against every name took longer than the 30 s engine timeout before the cap.
+      expect(ms).toBeLessThan(10_000);
+      expect(out.text).toContain(`Nothing matched "${long}".`);
+      expect(out.text).toContain('The query is 5000 characters long, over the 100 that closest names are listed for.');
+      expect(out.text).not.toContain('Closest');
+      const raw = await lookupAction({ mode: 'mechanic', query: long });
+      expect({ suggestions: raw.suggestions, skipped: raw.suggestionsSkipped }).toEqual({
+        suggestions: undefined,
+        skipped: { queryLength: 5000, maxQueryLength: 100 },
+      });
+
+      // The boundary, in gem mode: 100 characters get names, 101 get the note.
+      const at = await okTool({ mode: 'gem', query: 'z'.repeat(100) });
+      expect(suggestionLines(at)).toHaveLength(8);
+      expect(at).not.toContain('characters long');
+      const over = await okTool({ mode: 'gem', query: 'z'.repeat(101) });
+      expect(suggestionLines(over)).toEqual([]);
+      expect(over).toContain('The query is 101 characters long, over the 100 that closest names are listed for.');
     },
     ENGINE_TIMEOUT,
   );

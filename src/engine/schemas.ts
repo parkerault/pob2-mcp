@@ -752,8 +752,13 @@ export const lookupGameDataReply = baseReply.extend({
       /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240). */
       kinds: z.object({ gem: z.number().int(), unique: z.number().int(), passive: z.number().int(), mod: z.number().int() }).optional(),
       results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
-      /** Only when nothing matched: the closest names of the kind searched, at most 5, closest first (D-258). */
+      /**
+       * Only when nothing matched: the closest names of the kind searched, closest first (D-258). Gem mode: up
+       * to 5 active gems, then up to 3 supports (D-258a); other modes: up to 5.
+       */
       suggestions: luaArray(lookupSuggestionSchema).optional(),
+      /** Only when nothing matched and the query was too long to rank names against (D-258). */
+      suggestionsSkipped: z.object({ queryLength: z.number().int(), maxQueryLength: z.number().int() }).passthrough().optional(),
     })
     .passthrough(),
 });

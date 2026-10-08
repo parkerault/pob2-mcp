@@ -133,20 +133,29 @@ ascendancy; mod hits name their table.
 unknown `slot`, answered with the valid types; a `gem_level` outside the gem's levels. No match is not an
 error: the text says nothing matched, then lists the closest names (D-258).
 
-**Closest names (D-258; amends C-37).** When a `query` matches nothing, the reply keeps "Nothing matched …"
-and lists up to 5 names of the kind searched, closest first:
-- gem mode: every `data.gems` name with a granted effect, each labelled `active` or `support`;
-- unique mode: every unique's name, only of `slot`'s type when it is given, each labelled with its type;
-- mechanic mode: the names of the sources it searches (gems, uniques, passives and `data.itemMods`
+**Closest names (D-258, D-258a; amends C-37).** When a `query` matches nothing, the reply keeps "Nothing
+matched …" and lists names of the kind searched, closest first:
+- gem mode (D-258a): two groups. First up to 5 active gems, then up to 3 support gems, from every
+  `data.gems` name with a granted effect, each labelled `active` or `support`. One ranking across both kinds
+  could hold no active gem ("Ruthlss" is closest to five supports), and the invalid-roll refusal needs skill
+  names;
+- unique mode: up to 5 unique names, only of `slot`'s type when it is given, each labelled with its type;
+- mechanic mode: up to 5 names of the sources it searches (gems, uniques, passives and `data.itemMods`
   entries), only of `kind` when it is given, each labelled with its kind and, where there is one, a
   unique's type, a passive's ascendancy or a mod's table.
 
-Each name appears once per label. They are ranked by the optimal string alignment distance from the query:
-the fewest insertions, deletions, substitutions and swaps of two adjacent characters (each costing 1),
+Each name appears once per label. Each group is ranked by the optimal string alignment distance from the
+query: the fewest insertions, deletions, substitutions and swaps of two adjacent characters (each costing 1),
 over characters, with ASCII letters lowercased. Ties go by name (byte order), then by label. **[slice]**
-Format: a line `Closest <kind> names (fewest edits from the query, then by name):`, then one line
-`- <name> (<label>)` per name. A misspelt or unknown skill gets 5 names this way ("Blod Hunt" lists Blood Hunt
-first), so the build-guide skill's invalid-roll refusal can quote them (D-238, AC-W26).
+Format: a line `Closest <kind> names (fewest edits from the query, then by name):` per group (gem mode:
+`Closest active gem names …`, then `Closest support gem names …`), then one line `- <name> (<label>)` per
+name. A misspelt or unknown skill gets 5 active names this way ("Blod Hunt" lists Blood Hunt first), so the
+build-guide skill's invalid-roll refusal can quote them (D-238, AC-W26).
+
+**[slice]** The ranking costs (query length) × (name length) per name, so only a query of at most 100
+characters gets names. A longer one gets "Nothing matched …" and one line instead: `The query is <n>
+characters long, over the 100 that closest names are listed for.` The reply then carries
+`suggestionsSkipped` in place of `suggestions`.
 
 ### 2.3 C-43 `search_tree_nodes` (modified, `read`)
 

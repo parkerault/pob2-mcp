@@ -17,10 +17,12 @@
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
 -- unique, passive, mod), then by name, then by id, then by line. `total` counts every match.
 --
--- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258), at
--- most MAX_SUGGESTIONS: gem names (gem mode), unique names, of `slot` when given (unique mode), and the
--- names of the gems, uniques, passives and mods searched, of `kind` when given (mechanic mode). They are
--- ranked by edit distance to the query (see editDistance), then by name, then by kind and detail.
+-- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258): in gem
+-- mode up to 5 active gems, then up to 3 supports (D-258a); in unique mode up to 5 unique names, of `slot`
+-- when given; in mechanic mode up to 5 names of the gems, uniques, passives and mods searched, of `kind`
+-- when given. Each group is ranked by edit distance to the query (see editDistance), then by name, then by
+-- kind and detail. A query longer than MAX_SUGGESTION_QUERY characters gets none (the cost grows with its
+-- length); the reply says so with `suggestionsSkipped`.
 --
 -- The gem helpers (findGem, gemEffects, defaultLevel, describeStatSet, statSetLabel) and lineIsSelected (a
 -- unique's or item's selected-variant test) are shared with other modules (API/Coverage.lua, WU-32).
@@ -610,6 +612,10 @@ end
 -- Closest names, when nothing matched (D-258)
 
 local MAX_SUGGESTIONS = 5
+-- Gem mode's groups (D-258a): active gems first, so an invalid skill still gets skill names, then supports.
+local GEM_GROUPS = { { kind = 'active', max = 5 }, { kind = 'support', max = 3 } }
+-- The longest query (in characters) that gets suggestions: each costs (query length) x (name length) per name.
+local MAX_SUGGESTION_QUERY = 100
 
 -- A name's characters (UTF-8 sequences), ASCII letters lowercased.
 local function chars(s)
@@ -703,9 +709,9 @@ local function suggestionCandidates(mode, filter)
   return list
 end
 
--- The MAX_SUGGESTIONS candidates closest to `query`: by edit distance, then name, then kind, then detail.
-local function closestNames(query, list)
-  local q = chars(query)
+-- The candidates closest to the query's characters `q`: by edit distance, then name, then kind, then
+-- detail. Gem mode takes each of GEM_GROUPS in turn; other modes the first MAX_SUGGESTIONS.
+local function closestNames(mode, q, list)
   for _, c in ipairs(list) do c.distance = editDistance(q, chars(c.name)) end
   table.sort(list, function(a, b)
     if a.distance ~= b.distance then return a.distance < b.distance end
@@ -713,7 +719,19 @@ local function closestNames(query, list)
     if a.kind ~= b.kind then return a.kind < b.kind end
     return (a.detail or '') < (b.detail or '')
   end)
-  return cut(list, MAX_SUGGESTIONS)
+  if mode ~= 'gem' then return cut(list, MAX_SUGGESTIONS) end
+  local out = {}
+  for _, group in ipairs(GEM_GROUPS) do
+    local n = 0
+    for _, c in ipairs(list) do
+      if n >= group.max then break end
+      if c.kind == group.kind then
+        table.insert(out, c)
+        n = n + 1
+      end
+    end
+  end
+  return out
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -759,10 +777,20 @@ function M.lookup_game_data(params)
     results, total, kinds = lookupMechanics(needle, kind, maxResults)
     filter = kind
   end
-  -- D-258: a query that matched nothing gets the closest names of the kind searched.
-  local suggestions
-  if total == 0 and needle then suggestions = closestNames(needle, suggestionCandidates(mode, filter)) end
-  return { mode = mode, total = total, results = results, kinds = kinds, suggestions = suggestions }
+  -- D-258: a query that matched nothing gets the closest names of the kind searched, unless it is too long.
+  local suggestions, suggestionsSkipped
+  if total == 0 and needle then
+    local q = chars(needle)
+    if #q > MAX_SUGGESTION_QUERY then
+      suggestionsSkipped = { queryLength = #q, maxQueryLength = MAX_SUGGESTION_QUERY }
+    else
+      suggestions = closestNames(mode, q, suggestionCandidates(mode, filter))
+    end
+  end
+  return {
+    mode = mode, total = total, results = results, kinds = kinds,
+    suggestions = suggestions, suggestionsSkipped = suggestionsSkipped,
+  }
 end
 
 -- ---------------------------------------------------------------------------------------------------

@@ -11,7 +11,9 @@
  *   kind's hit total in the header (D-240).
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
- * the reply lists Lua's closest names of the kind searched, at most 5, closest first (D-258).
+ * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
+ * active gems, then up to 3 supports under their own header (D-258a); otherwise up to 5. A query too long
+ * to rank names against gets a note instead.
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
 import type { LookupGameDataResult, LookupGem, LookupHit, LookupSuggestion, LookupUnique } from "../engine/schemas.js";
@@ -171,9 +173,26 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /** What the closest names are names of (D-258): the kind the request searched. */
 function suggestionNoun(req: Request): string {
-  if (req.mode === "gem") return "gem names";
   if (req.mode === "unique") return req.slot ? `unique names of item type ${req.slot}` : "unique names";
   return req.kind ? `${req.kind} names` : "gem, unique, passive and mod names";
+}
+
+const SUGGESTION_ORDER = "(fewest edits from the query, then by name)";
+
+/**
+ * The closest-names block: one header and its names, or in gem mode one header per group, active gems
+ * first, then supports (D-258a).
+ */
+function suggestionBlock(req: Request, suggestions: LookupSuggestion[]): string[] {
+  if (req.mode !== "gem") {
+    return [`Closest ${suggestionNoun(req)} ${SUGGESTION_ORDER}:`, ...suggestions.map((s) => renderSuggestion(req.mode, s))];
+  }
+  const lines: string[] = [];
+  for (const kind of ["active", "support"]) {
+    const group = suggestions.filter((s) => s.kind === kind);
+    if (group.length > 0) lines.push(`Closest ${kind} gem names ${SUGGESTION_ORDER}:`, ...group.map((s) => renderSuggestion(req.mode, s)));
+  }
+  return lines;
 }
 
 /** One closest name: `- <name> (<kind>[, <detail>])`; gem mode's kind is `active` or `support`. */
@@ -197,9 +216,10 @@ function render(req: Request, result: LookupGameDataResult): string {
   if (shown === 0) {
     lines.push(`Nothing matched ${criteria(req)}.`);
     const suggestions = result.suggestions ?? [];
-    if (suggestions.length > 0) {
-      lines.push(`Closest ${suggestionNoun(req)} (fewest edits from the query, then by name):`);
-      for (const s of suggestions) lines.push(renderSuggestion(req.mode, s));
+    if (suggestions.length > 0) lines.push(...suggestionBlock(req, suggestions));
+    const skipped = result.suggestionsSkipped;
+    if (skipped) {
+      lines.push(`The query is ${skipped.queryLength} characters long, over the ${skipped.maxQueryLength} that closest names are listed for.`);
     }
     lines.push("Tips: try a shorter or more general query, or another mode.");
     return lines.join("\n");

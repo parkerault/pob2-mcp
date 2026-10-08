@@ -187,7 +187,7 @@
             "gems": [
               {
                 "name": "Tempest Bell",
-                "level": 3,
+                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -316,7 +316,7 @@
             "gems": [
               {
                 "name": "Blood Hunt",
-                "level": 7,
+                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -778,7 +778,7 @@
             "gems": [
               {
                 "name": "Tempest Bell",
-                "level": 3,
+                "level": 2,
                 "quality": 0,
                 "enabled": true
               },
@@ -907,7 +907,7 @@
             "gems": [
               {
                 "name": "Blood Hunt",
-                "level": 7,
+                "level": 2,
                 "quality": 0,
                 "enabled": true
               },
@@ -1530,7 +1530,7 @@
             "gems": [
               {
                 "name": "Blood Hunt",
-                "level": 7,
+                "level": 4,
                 "quality": 0,
                 "enabled": true
               },
@@ -2191,7 +2191,7 @@
             "gems": [
               {
                 "name": "Blood Hunt",
-                "level": 7,
+                "level": 5,
                 "quality": 0,
                 "enabled": true
               },
@@ -2877,7 +2877,7 @@
             "gems": [
               {
                 "name": "Blood Hunt",
-                "level": 7,
+                "level": 6,
                 "quality": 0,
                 "enabled": true
               },

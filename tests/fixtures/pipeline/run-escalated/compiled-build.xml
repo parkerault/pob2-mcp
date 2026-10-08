@@ -1,2 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<PathOfBuilding2><Build level="95"/></PathOfBuilding2>
+<PathOfBuilding2>
+	<Build level="95" targetVersion="0_1" className="Warrior" ascendClassName="Titan" mainSocketGroup="1"/>
+	<Tree activeSpec="2">
+		<Spec title="Endgame budget (L1) {b}" treeVersion="0_5" classId="2" ascendClassId="1" nodes=""/>
+		<Spec title="Endgame non-budget (L95) {n}" treeVersion="0_5" classId="2" ascendClassId="1" nodes=""/>
+	</Tree>
+</PathOfBuilding2>

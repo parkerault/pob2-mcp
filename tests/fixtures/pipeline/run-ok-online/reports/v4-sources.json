@@ -1,0 +1,9 @@
+{
+  "stage": "V4",
+  "lens": "sources",
+  "check": "full",
+  "concept": "c1",
+  "mode": "online",
+  "findings": [],
+  "verdict": "pass"
+}

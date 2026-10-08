@@ -421,7 +421,8 @@
         ],
         "main": {
           "group": 1,
-          "activeSkill": 1
+          "activeSkill": 1,
+          "statSet": 1
         },
         "rolledGroup": 1
       },
@@ -721,7 +722,8 @@
         ],
         "main": {
           "group": 1,
-          "activeSkill": 1
+          "activeSkill": 1,
+          "statSet": 1
         },
         "rolledGroup": 1
       },

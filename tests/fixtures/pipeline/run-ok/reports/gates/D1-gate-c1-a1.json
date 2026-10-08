@@ -4,13 +4,19 @@
   "attempt": 1,
   "verdict": {
     "compiled": "pass",
-    "v1": "pass",
+    "v1": "fail",
     "v2": "pass",
     "floor": "pass",
     "budget": "unverified",
     "rolledSkill": "pass"
   },
   "findings": [
+    {
+      "part": "v1",
+      "code": "level-points",
+      "stage": "b",
+      "message": "stage b spends 108 passive points, but level 1 grants 0 (FI-2)"
+    },
     {
       "part": "floor",
       "code": "chaos-exception",
@@ -19,80 +25,6 @@
     }
   ],
   "basis": {
-    "floor": [
-      {
-        "stage": "b",
-        "missing": {
-          "Fire": 0,
-          "Cold": 0,
-          "Lightning": 0
-        },
-        "chaos": 47,
-        "hits": [
-          {
-            "type": "Physical",
-            "hit": 402,
-            "maxHitTaken": 5100
-          },
-          {
-            "type": "Fire",
-            "hit": 97,
-            "maxHitTaken": 9800
-          },
-          {
-            "type": "Cold",
-            "hit": 97,
-            "maxHitTaken": 9700
-          },
-          {
-            "type": "Lightning",
-            "hit": 97,
-            "maxHitTaken": 9600
-          },
-          {
-            "type": "Chaos",
-            "hit": 97,
-            "maxHitTaken": 3000
-          }
-        ]
-      },
-      {
-        "stage": "n",
-        "missing": {
-          "Fire": 0,
-          "Cold": 0,
-          "Lightning": 0
-        },
-        "chaos": 0,
-        "hits": [
-          {
-            "type": "Physical",
-            "hit": 439,
-            "maxHitTaken": 7400
-          },
-          {
-            "type": "Fire",
-            "hit": 106,
-            "maxHitTaken": 14800
-          },
-          {
-            "type": "Cold",
-            "hit": 106,
-            "maxHitTaken": 14700
-          },
-          {
-            "type": "Lightning",
-            "hit": 106,
-            "maxHitTaken": 14600
-          },
-          {
-            "type": "Chaos",
-            "hit": 106,
-            "maxHitTaken": 7000
-          }
-        ]
-      }
-    ],
     "budget": {
       "rates": [],
       "slots": [
@@ -149,38 +81,37 @@
     "rolledSkill": [
       {
         "stage": "b",
-        "group": 1,
-        "role": "clear",
         "figures": [
           {
             "group": 1,
-            "figure": "g1s1p1.TotalDPS",
-            "value": 50000
+            "figure": "g1s1p1.TotalDPS"
           },
           {
             "group": 2,
-            "figure": "g2s1p1.TotalDPS",
-            "value": 21000
+            "figure": "g2s1p1.TotalDPS"
           }
         ]
       },
       {
         "stage": "n",
-        "group": 1,
-        "role": "clear",
         "figures": [
           {
             "group": 1,
-            "figure": "g1s1p1.TotalDPS",
-            "value": 140000
+            "figure": "g1s1p1.TotalDPS"
           },
           {
             "group": 2,
-            "figure": "g2s1p1.TotalDPS",
-            "value": 60000
+            "figure": "g2s1p1.TotalDPS"
           }
         ]
       }
     ]
-  }
+  },
+  "recordPath": "compile-record.json",
+  "faultsApplied": [
+    {
+      "id": "FI-2",
+      "observed": "V1 level-points on stage b at level 1"
+    }
+  ]
 }

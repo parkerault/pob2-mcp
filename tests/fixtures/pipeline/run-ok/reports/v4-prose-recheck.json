@@ -1,0 +1,20 @@
+{
+  "stage": "V4",
+  "lens": "prose",
+  "check": "recheck",
+  "concept": "c1",
+  "mode": "offline",
+  "findings": [
+    {
+      "id": "v4-prose-1",
+      "artifact": "guide.md",
+      "location": "Rotation, line 57",
+      "claim": "Rolling Slam clears; Blood Hunt bursts.",
+      "issue": "Rotation names Rolling Slam as the clear skill, but Blood Hunt's group is the clear group's main damage source (D-122)",
+      "evidence": "the fix round left the Rotation line unchanged",
+      "owner": "W1",
+      "status": "unresolved"
+    }
+  ],
+  "verdict": "fail"
+}

@@ -1,0 +1,30 @@
+{
+  "stage": "V4",
+  "lens": "sources",
+  "check": "full",
+  "concept": "c1",
+  "mode": "offline",
+  "findings": [
+    {
+      "id": "v4-sources-1",
+      "artifact": "plan.json",
+      "location": "stages[2].claims[5]",
+      "claim": "Spear builds clear T15 maps on a budget this league.",
+      "issue": "tagged external-unavailable",
+      "evidence": "offline run (run-log mode offline)",
+      "owner": "D1",
+      "status": "accepted-offline"
+    },
+    {
+      "id": "v4-sources-2",
+      "artifact": "guide.md",
+      "location": "Sources [^g9]",
+      "claim": "The same, with more damage.",
+      "issue": "tagged external-unavailable",
+      "evidence": "offline run (run-log mode offline)",
+      "owner": "W1",
+      "status": "accepted-offline"
+    }
+  ],
+  "verdict": "pass"
+}

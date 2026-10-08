@@ -9,7 +9,9 @@
   },
   "findings": [],
   "finalCompile": {
-    "buildName": "titan-blood-hunt-2026-10-08-1",
+    "compiled": true,
+    "errors": [],
+    "recordPath": "compile-record.json",
     "pobFile": "titan-blood-hunt-2026-10-08-1.xml"
   }
 }

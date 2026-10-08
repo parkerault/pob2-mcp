@@ -5,7 +5,7 @@
 Engine data: PoB2 v0.23.1 (game 0.5.4). Prices and boss data: 0.5.5. Date: 2026-10-08. League: Forbidden Rites. Mode: online. PoB file: titan-blood-hunt-2026-10-08-1.xml. Each stage is a loadout, and the file is in auto-level mode.
 
 ```
-eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001
+eJy1kk9Lw0AQxc_JpxjmlBxq_mihhd0UFRUhqNCoR9luxri42S2bTRCC311SlCo9qsc3D97vwTy2ems1DOQ6ZQ3H7ChFICNtrUzD8b66nC1wVYTsTviX2-ezXunJyYswYDsBmgbSHJdzBC9cQ_7hKyt9yhCkFl13I1ri-CicU9YhiE6Sqc_3TqW8MAitUGZt5Sv5K2f7LccMkwlUOSIQ0quB1luSHE-wCIOATQK88po4nkoPGUTlIoYxe0fwjuhbk_lnk-uaY_6jwXTJEIytqeO4Ax4m5xCVx2kMY_6n0RembkRLsOnrhjxE5XJibP6FYayZ7TnzGEbzSw5LpscUIUsOxvEBO6W6mA==
 ```
 
 ## Summary
@@ -66,6 +66,10 @@ Don't skip the Act 1 cold resistance.
 ## Confidence and what PoB can't model
 
 Blood Loss uptime is a hand calculation.[^g10]
+
+### Known issues
+
+None.
 
 ## Changelog
 

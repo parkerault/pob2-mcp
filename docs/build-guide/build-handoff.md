@@ -103,6 +103,8 @@ fails on time alone, re-run it in isolation; record "tooling false-failure" only
     as `pob2` with temp `POB_DIRECTORY`, `XDG_STATE_HOME` and `POB_GUIDES_DIRECTORY`,
     `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true` and `POE_TRADE_BASE` at a dead address.
   - WebSearch and WebFetch are denied.
+  - Set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`: otherwise `claude -p` kills background workflows 10
+    minutes after its last turn (WU-47 F2).
   - Report the session's cost.
   - The user's own `pob2` registration (user scope, pointing at `/mnt/c`) must never load.
 - **Serena.** Don't use the Serena MCP tools: one shared instance points at the wrong checkout. Use

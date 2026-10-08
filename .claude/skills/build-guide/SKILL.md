@@ -86,13 +86,13 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md` | the checkpoint-1 comparison, one line per concept |
 | 5 | Checkpoint 1 (§3) | you | log | asks the user: pick, more (step 2, round *k*+1) or stop |
 | 6 | D1, the endgame | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
-| 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json` | one verdict line; route by §4 |
+| 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) | one verdict line; route by §4 |
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
 | 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
 | 10 | W1, the guide | `build-guide-writer` | `guide.md` | at most 8 lines |
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files | the ids fixed and the locations changed |
-| 13 | V4 re-check | `build-guide-verifier`, each lens that raised a finding, in parallel | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
+| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when the fix round re-ran D1 or D2 | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
 | 14 | Known issues | you | the open findings, into `guide.md`'s `Known issues` | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
@@ -175,10 +175,15 @@ verdict as its evidence.
   - compiled, V1, V2, floor and rolled skill pass, budget pass or unverified: step 8;
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third failure
     escalates (§5);
+  - any part but the budget `unverified` (only the budget may stay unverified, D-164): a failure, routed as a
+    compile, V1 or V2 failure;
   - only floor, budget or rolled skill failing, D1 having claimed `infeasible`: `infeasible`, back to
     checkpoint 1 with the verdict as evidence; D1 having claimed `done`: D1 re-runs, up to 2 counted
     retries, then `infeasible`;
-  - a verdict with `"forced": "infeasible"` (FI-3): `infeasible`.
+  - a verdict with `"forced": "infeasible"` (FI-3): `infeasible`;
+  - after a guided retry or an accepted re-run (§5), any failure: the gate escalates again.
+  Log each gate attempt with the outcome its verdict file routes to; the run checker holds the log to the
+  files.
 - **D2** adds the campaign stages; **the D2 gate** checks every stage and, when the compile, V1 and V2 pass,
   runs the final compile with `buildName` in the same step. A failure (the final compile's included)
   re-runs D2 with the verdict, up to 2 counted retries; the third escalates (§5). A pass goes to W1.
@@ -197,9 +202,9 @@ the stage, the attempts and the verdict file, and ask:
    code) fails no later gate, and W1 lists them under `Known issues`. After the D1 gate, go on as if it
    passed; after the D2 gate, run the D2 gate once more, uncounted, with them in `accepted`, so it runs the
    final compile.
-2. **guidance and one more retry**: the producer (D1 or D2) runs once more with the verdict and the
-   user's guidance (`code: "user-guidance"`) in `findings`, uncounted; its gate failing again escalates
-   again.
+2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt, uncounted, with the
+   verdict and the user's guidance (`code: "user-guidance"`) in `findings`, then its gate. If the gate fails,
+   whatever part fails, it escalates again.
 3. **back to checkpoint 1**, the verdict file as that concept's evidence.
 4. **stop**: the run ends `escalated`.
 
@@ -213,11 +218,15 @@ the stage, the attempts and the verdict file, and ask:
   its `owner`; the earliest owner runs first, then the steps after it: **D1** → D1 gate → D2 gate → W1;
   **D2** → D2 gate → W1; **W1** alone. A step that is itself an owner gets its findings in `findings`
   (D2 after D1: D1 → D1 gate → D2 → D2 gate → W1). Each owner fixes every claim the issue touches, not only
-  the flagged location, and returns the ids it fixed and the locations it changed. The round is uncounted;
-  the gates in it keep their 2 counted retries, and an escalation in it is a gate escalation.
-- **Step 13, the re-check.** Each lens that raised a finding runs once, in parallel, with `check:
-  "recheck"`, its own open findings in `findings` and the owners' changed locations in `changed`. It checks
-  only those. Write each report to `reports/v4-<lens>-recheck.json`. There is no further round.
+  the flagged location, and returns the ids it fixed and the locations it changed. W1 fixes the guide in
+  place, and writes it anew only after D1 or D2 re-ran. The round is uncounted; the gates in it keep their 2
+  counted retries, and an escalation in it is a gate escalation.
+- **Step 13, the re-check.** When the fix round re-ran D1 or D2, the plan and the guide are new: all three
+  lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and
+  `changed: "all"`, and check every claim, as a full pass does. Otherwise each lens that raised a finding runs
+  once, in parallel, with its own open findings in `findings` and the owners' changed locations in
+  `changed`, and checks only those. Write each report to `reports/v4-<lens>-recheck.json`. Either way there is
+  no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
   `unresolved` in the full pass and not reported `fixed` by a re-check. Grep `guide.md` for its
   `### Known issues` line, Read the three lines from there, and Edit them so that every open finding has its

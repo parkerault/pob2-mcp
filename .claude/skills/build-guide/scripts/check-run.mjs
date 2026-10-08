@@ -104,6 +104,8 @@ const STAGE_OUTCOMES = {
   ...Object.fromEntries(LENSES.flatMap((l) => [[`V4-${l}`, ['pass', 'fail']], [`V4-${l}-recheck`, ['pass', 'fail']]])),
 };
 const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing'];
+/** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
+const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate'];
 /** The steps that concern no one concept. */
 const ROUND_STAGES = ['R1a', 'R1b-assemble'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
@@ -265,6 +267,17 @@ export function parseDefinition(body) {
 // ---------------------------------------------------------------------------------------------------
 
 const dataFiles = new Map();
+/** A C1/E1 fact's value (`<file>` relative to data/), or undefined. */
+function factValue(file, id) {
+  resolveFact(file, id);
+  const data = dataFiles.get(file);
+  return isObj(data) && isObj(data.facts) && isObj(data.facts[id]) ? data.facts[id].value : undefined;
+}
+/** D-254: a variant's area level: T15 (`area-level.offset` + 15) for the budget variant, `area-level.max` otherwise. */
+function areaLevelOf(variant) {
+  const v = factValue('enemies/waystones.json', variant === 'budget' ? 'area-level.offset' : 'area-level.max');
+  return isNum(v) ? (variant === 'budget' ? v + 15 : v) : undefined;
+}
 function resolveFact(file, key) {
   if (!dataFiles.has(file)) {
     let parsed = null;
@@ -330,7 +343,6 @@ export async function checkRun(runFolder) {
     return violations;
   }
   checkRunLog(log, fail);
-  checkFlow(log, fail);
   const mode = log.mode;
   const offline = mode === 'offline';
   const completed = log.status === 'completed';
@@ -391,7 +403,19 @@ export async function checkRun(runFolder) {
   const planStages = isObj(plan) && Array.isArray(plan.stages) ? plan.stages.filter(isObj) : [];
   const endgame = planStages.filter((s) => s.variant !== undefined);
   const campaign = planStages.filter((s) => s.variant === undefined);
-  const guideText = readText('guide.md');
+  // Which artifacts are current, from the log (the runner can't delete files): the guide is current when no
+  // design step ran after the last W1 (a revision, a fix round that escalated, or another concept's design
+  // leaves an older guide behind), and the final record is current when no producer ran after the last D2 gate.
+  const lastAt = (pred) => stages.reduce((at, s, i) => (pred(s) ? i : at), -1);
+  const lastW1 = lastAt((s) => s.stage === 'W1' && s.outcome !== 'missing');
+  const lastDesign = lastAt((s) => DESIGN_STAGES.includes(s.stage));
+  const guideText0 = readText('guide.md');
+  const guideCurrent = guideText0 !== null && (lastW1 < 0 || lastW1 > lastDesign);
+  const guideText = guideCurrent ? guideText0 : null;
+  if (guideText0 !== null && !guideCurrent && completed) {
+    fail('layout', `status is "completed", but guide.md is from ${describe(stages[lastW1])}, and design steps ran after it; a completed run ends with a current guide`);
+  }
+  const recordCurrent = finalRecord !== null && !(lastAt((s) => s.stage === 'D1' || s.stage === 'D2') > lastAt((s) => s.stage === 'D2-gate' && s.outcome !== 'missing'));
   if (guideText !== null && isObj(record) && !finalRecord) {
     fail('layout', `guide.md exists, but compile-record.json is a ${show(record.mode)} record; W1 writes the guide from the final compile's record (§5.3)`);
   }
@@ -411,7 +435,7 @@ export async function checkRun(runFolder) {
       fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${runName}", the run folder's last two segments joined (§2)`);
     }
     const compiled = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
-    for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);
+    if (recordCurrent) for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);
   }
 
   // ---- Offline mode (§11.1, D-233; AC-W2 k) -----------------------------------------------------
@@ -571,19 +595,25 @@ export async function checkRun(runFolder) {
     v4[r.check].set(r.lens, r);
   }
 
-  // The concept the guide is for, from the report files: the only concept with D1 gate reports, or, when
-  // several have them, the one whose D1 gate ran last (the log orders them).
+  // The concept designed last: the one whose D1 gate ran last (the log orders the files), or the only concept
+  // with D1 gate reports. The gate file of a logged attempt is the one its log entry names.
   const d1Concepts = [...new Set(gates.filter((g) => g.stage === 'D1-gate').map((g) => g.concept))];
-  let guideConcept = null;
-  if (d1Concepts.length === 1) guideConcept = d1Concepts[0];
-  else if (d1Concepts.length > 1) {
-    const ordered = stages.filter((s) => s.stage === 'D1-gate' && d1Concepts.includes(s.concept));
-    if (ordered.length > 0) guideConcept = ordered[ordered.length - 1].concept;
-    else fail('reports', `D1 gate reports exist for ${d1Concepts.join(', ')}, and the run log doesn't say which ran last`);
-  }
+  const lastD1GateAt = lastAt((s) => s.stage === 'D1-gate' && s.outcome !== 'missing');
+  let designConcept = lastD1GateAt >= 0 ? stages[lastD1GateAt].concept : null;
+  if (designConcept === null && d1Concepts.length === 1) designConcept = d1Concepts[0];
+  else if (designConcept === null && d1Concepts.length > 1) fail('reports', `D1 gate reports exist for ${d1Concepts.join(', ')}, and the run log doesn't say which ran last`);
+  /** The verdict file of a gate's last logged attempt for `concept` before log index `before`, or its highest-numbered file. */
+  const gateFor = (stage, concept, before = stages.length) => {
+    const at = stages.slice(0, before).reduce((found, s, i) => (s.stage === stage && s.concept === concept && s.outcome !== 'missing' ? i : found), -1);
+    if (at >= 0) return gates.find((g) => g.stage === stage && g.concept === concept && g.attempt === stages[at].attempt) ?? { file: `reports/gates/${stage}-${concept}-a${stages[at].attempt}.json`, stage, concept, attempt: stages[at].attempt };
+    return stages.some((s) => s.stage === stage && s.concept === concept) ? undefined : lastGate(stage, concept);
+  };
+  // The concept the current guide is for: its last W1's.
+  const guideConcept = guideText !== null ? (lastW1 >= 0 ? stages[lastW1].concept : designConcept) : null;
+  const guideBefore = lastW1 >= 0 ? lastW1 : stages.length;
   if (guideText !== null) {
-    if (guideConcept === null) fail('reports', 'guide.md exists, but no reports/gates/D1-gate-<concept>-a<n>.json does; W1 runs only after the D1 gate passed (§5.3)');
-    else if (!lastGate('D2-gate', guideConcept)) fail('reports', `guide.md exists, but no reports/gates/D2-gate-${guideConcept}-a<n>.json does; W1 runs only after the D2 gate passed (§5.3)`);
+    if (guideConcept === null || !gateFor('D1-gate', guideConcept, guideBefore)) fail('reports', 'guide.md exists, but no reports/gates/D1-gate-<concept>-a<n>.json does; W1 runs only after the D1 gate passed (§5.3)');
+    else if (!gateFor('D2-gate', guideConcept, guideBefore)) fail('reports', `guide.md exists, but no reports/gates/D2-gate-${guideConcept}-a<n>.json does; W1 runs only after the D2 gate passed (§5.3)`);
     for (const lens of LENSES) {
       if (!v4.full.has(lens)) fail('reports', `guide.md exists, but reports/v4-${lens}.json doesn't; every guide gets one full pass of the three lenses (S2)`);
     }
@@ -621,15 +651,23 @@ export async function checkRun(runFolder) {
     }
   }
 
+  // ---- The control flow, read from the log and tied to the verdict files it routed on --------------------
+  const firstEndgame = planStages.find((s) => s.variant !== undefined)?.id ?? null;
+  checkFlow(log, fail, {
+    verdict: (s) => gateReports.get(`reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`),
+    /** The plan stage a fault directive breaks (offline-and-test.md): FI-1 the concept's skeleton, FI-2 the first endgame stage. */
+    faultedStage: (id, concept) => (id === 'FI-1' ? `${concept}e` : id === 'FI-2' ? firstEndgame : null),
+  });
+
   // ---- Open V4 findings (S2): the re-check's unresolved ones, and the full pass's it didn't fix -------
   // A re-check report belongs to the last full pass only when the log runs it after that pass (a revision
   // rewrites the full-pass reports, and may leave an earlier cycle's re-check report behind).
-  const lastAt = (stage) => stages.reduce((at, s, i) => (s.stage === stage && s.outcome !== 'missing' ? i : at), -1);
+  const lastRun = (stage) => lastAt((s) => s.stage === stage && s.outcome !== 'missing');
   const open = [];
-  for (const lens of LENSES) {
+  for (const lens of guideText !== null ? LENSES : []) {
     const full = v4.full.get(lens);
     if (!full || !isObj(full.report)) continue;
-    const re = lastAt(`V4-${lens}-recheck`) > lastAt(`V4-${lens}`) ? v4.recheck.get(lens) : undefined;
+    const re = lastRun(`V4-${lens}-recheck`) > lastRun(`V4-${lens}`) ? v4.recheck.get(lens) : undefined;
     const reFindings = re && isObj(re.report) ? list(re.report.findings) : [];
     const ids = new Set();
     for (const f of [...reFindings, ...list(full.report.findings)]) {
@@ -711,8 +749,9 @@ export async function checkRun(runFolder) {
     claims.guide = markdownClaims(guide, 'guide.md', planScope(plan));
   }
 
-  // accepted-offline (C-30, §7.4): only for a claim tagged external-unavailable, which the location names.
-  for (const r of [...v4.full.values(), ...v4.recheck.values()]) {
+  // accepted-offline (C-30, §7.4): only for a claim tagged external-unavailable, which the location names. The
+  // reports of a guide that is no longer current verified artifacts that have since changed.
+  for (const r of guideText !== null ? [...v4.full.values(), ...v4.recheck.values()] : []) {
     if (!isObj(r.report)) continue;
     list(r.report.findings).forEach((f, i) => {
       if (f.status !== 'accepted-offline') return;
@@ -725,33 +764,52 @@ export async function checkRun(runFolder) {
 
   // ---- The D1 gate, recomputed from the plan and the record (Q3; AC-W2 o, p, q, u) ------------------
   const ruleOf = (part) => (part === 'rolledSkill' ? 'rolled-skill' : ['floor', 'budget'].includes(part) ? part : 'gates');
-  const d1 = guideConcept !== null ? lastGate('D1-gate', guideConcept) : undefined;
+  // The last D1 gate of the concept designed last. Only the budget may be unverified (D-164): a gate whose
+  // compile ran reads every other part from its record, and a gate that didn't fail has that record.
+  const d1 = designConcept !== null ? gateFor('D1-gate', designConcept) : undefined;
   const d1rep = d1 ? gateReports.get(d1.file) : null;
-  if (d1 && isObj(d1rep) && isObj(d1rep.verdict) && d1rep.verdict.compiled === 'pass') {
+  const holdsEndgame = isObj(record) && isObj(record.stages) && endgame.length > 0 && endgame.every((s) => isObj(record.stages[s.id]?.outputs));
+  const compileFailed = isObj(d1rep) && isObj(d1rep.verdict) && d1rep.verdict.compiled === 'fail';
+  if (d1 && isObj(d1rep) && isObj(d1rep.verdict) && !compileFailed) {
+    for (const part of GATE_PARTS['D1-gate'].filter((x) => x !== 'budget')) {
+      if (d1rep.verdict[part] === 'unverified') fail(ruleOf(part), `${d1.file} says ${part}: "unverified"; only the budget may be unverified: a gate whose compile ran reads every other part from its record (gates.md)`);
+    }
     if (!isObj(plan)) fail('layout', `${d1.file} exists, but plan.json doesn't; the gate can't be recomputed`);
-    else if (!isObj(record) || !isObj(record.stages)) fail('layout', `${d1.file} exists, but compile-record.json doesn't; the gate can't be recomputed`);
-    else {
-      const parts = {
-        floor: recomputeFloor(endgame, record, guide, fail),
-        budget: recomputeBudget(endgame, plan, d1rep, guide, fail),
-        rolledSkill: recomputeRolledSkill(endgame, record, d1rep, fail),
-      };
-      for (const [part, got] of Object.entries(parts)) {
-        const said = d1rep.verdict[part];
-        const openFailures = got.failures.filter((f) => !covered(f));
-        const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
-        const why = got.failures.map((f) => f.why).join('; ');
-        // The gate's verdict must agree with the records (accepted failures may be counted either way).
-        if (said !== got.verdict && said !== effective) fail(ruleOf(part), `${d1.file} says ${part}: ${show(said)}, but the records give ${show(got.verdict)}${why ? `: ${why}` : ''}`);
-        // A guide is written only after the gate passed: no recomputed failure stands unless accepted.
-        if (guideText !== null) for (const f of openFailures) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to D2 (§5.3)`);
+    else if (!holdsEndgame) fail('gates', `${d1.file} doesn't fail its compile, but compile-record.json holds no values for the endgame stages; a gate that didn't fail has its compile's record`);
+  }
+  // The recompute runs whenever the record holds the endgame values. The gate's own verdict is compared only
+  // when its compile ran and no D1 rewrote the plan after it; a current guide's concept passes it outright.
+  if (isObj(plan) && holdsEndgame && (guideText !== null || (d1 && isObj(d1rep) && isObj(d1rep.verdict)))) {
+    const said = (part) => (isObj(d1rep?.verdict) ? d1rep.verdict[part] : undefined);
+    const parts = {
+      floor: recomputeFloor(endgame, record, guide, fail),
+      budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, guide, fail),
+      rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, fail),
+    };
+    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => s.stage === 'D1') < lastD1GateAt;
+    for (const [part, got] of Object.entries(parts)) {
+      const openFailures = got.failures.filter((f) => !covered(f));
+      const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
+      const why = got.failures.map((f) => f.why).join('; ');
+      // The gate's verdict must agree with the records (accepted failures may be counted either way).
+      if (gateFresh && (['pass', 'fail'].includes(said(part)) || part === 'budget')) {
+        if (said(part) !== got.verdict && said(part) !== effective) fail(ruleOf(part), `${d1.file} says ${part}: ${show(said(part))}, but the records give ${show(got.verdict)}${why ? `: ${why}` : ''}`);
       }
+      // A guide is written only after the gate passed: no recomputed failure stands unless accepted.
+      if (guideText !== null) for (const f of openFailures) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to D2 (§5.3)`);
     }
   }
-  // Once a guide exists, the last D1 and D2 gates passed: a failing part stands only where accepted findings cover it.
+  // S7: a stage with the rolled skill makes it the main skill, so the PoB file opens on it.
+  for (const s of campaign) {
+    if (s.skills?.rolledGroup !== undefined && s.skills?.main?.group !== s.skills.rolledGroup) {
+      fail('rolled-skill', `campaign stage ${s.id}'s main group is ${show(s.skills?.main?.group)}, but its rolledGroup is ${s.skills.rolledGroup}; a stage with the rolled skill makes it the main skill (S7)`);
+    }
+  }
+  // Once a guide is current, the D1 and D2 gates it rests on (the last attempts before its W1) passed: a failing
+  // part stands only where accepted findings cover it.
   if (guideText !== null && guideConcept !== null) {
     for (const stage of ['D1-gate', 'D2-gate']) {
-      const g = lastGate(stage, guideConcept);
+      const g = gateFor(stage, guideConcept, guideBefore);
       const rep = g ? gateReports.get(g.file) : null;
       if (!isObj(rep) || !isObj(rep.verdict)) continue;
       for (const part of GATE_PARTS[stage]) {
@@ -779,7 +837,7 @@ export async function checkRun(runFolder) {
       }
     }
   }
-  if (finalRecord && exists('plan.json')) {
+  if (recordCurrent && exists('plan.json')) {
     // (r) The record is of this plan: the final compile validated it (D-163), so the plan validates too.
     const planSha1 = sha1(fs.readFileSync(abs('plan.json')));
     if (finalRecord.planSha1 !== planSha1) {
@@ -798,12 +856,13 @@ export async function checkRun(runFolder) {
       const pob = isObj(finalRecord.pobFile) ? finalRecord.pobFile : {};
       if (sha1(xml) !== pob.sha1) fail('pob-file', `the decoded importCode's sha1 is ${sha1(xml)}, but the record's PoB file ${show(pob.path)} has sha1 ${show(pob.sha1)}: the import code isn't the file's`);
       const got = specTitles(xml.toString('utf8'));
-      const want = planStages.map((s) => finalRecord.stages?.[s.id]?.loadoutName ?? `<stage ${s.id} not in the record>`);
-      if (got.length !== want.length) fail('pob-file', `the import code's build holds ${got.length} tree set(s), but the plan has ${want.length} stage(s); the file holds one loadout per stage (D-215)`);
+      const ids = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
+      const want = ids.map((id) => finalRecord.stages?.[id]?.loadoutName ?? `<stage ${id} not in the record>`);
+      if (got.length !== want.length) fail('pob-file', `the import code's build holds ${got.length} tree set(s), but the record compiled ${want.length} stage(s); the file holds one loadout per stage (D-215)`);
       else if (show(got) !== show(want)) fail('pob-file', `the import code's tree sets are titled ${show(got)}; the record's loadout names, in plan order, are ${show(want)} (D-103, D-215)`);
     }
   }
-  if (finalRecord && isObj(plan) && Array.isArray(plan.ledger) && isObj(finalRecord.stages)) {
+  if (recordCurrent && isObj(plan) && Array.isArray(plan.ledger) && isObj(finalRecord.stages)) {
     // (t) Every ledger entry re-evaluates over the record, with the server's own evaluator, to the record's value.
     const ledgerModule = await loadLedgerModule();
     if (ledgerModule === null) {
@@ -958,8 +1017,11 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *  - `verification`: one full pass of the three lenses per cycle, at most one re-check, only of lenses that
  *    raised a finding, after the fix round; a new cycle only for a checkpoint-2 revision.
  *  - `escalation`: only gates escalate, each escalation logged once, in order, and the choice followed.
+ *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
+ * `ctx` gives a gate attempt's verdict file and the stage each fault breaks; findings accepted at an escalation
+ * cover the gate attempts after it.
  */
-function checkFlow(log, fail) {
+function checkFlow(log, fail, ctx) {
   if (!Array.isArray(log.stages) || !log.stages.every(isObj)) return;
   const stages = log.stages;
   const escalations = list(log.escalations);
@@ -1000,9 +1062,23 @@ function checkFlow(log, fail) {
     }
   });
 
-  // S6: an attempt failed by a fault directive that applies to attempt 1 only counts against no cap.
-  const freeFault = (s) =>
-    s.attempt === 1 && s.outcome === 'fail' && faults.some((f) => FAULT_STAGE[f.id] === s.stage && f.target?.persistent !== true && targets(f.target, s.concept));
+  // The findings accepted so far: an acceptance covers the gate attempts after its escalation, not before.
+  const acceptedSoFar = [];
+  const coveredSoFar = (f) => acceptedSoFar.some((a) => a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  // S6: an attempt failed by a fault directive that applies to attempt 1 only counts against no cap, when its
+  // verdict says the fault was applied and every failing finding is on the stage the fault breaks.
+  const freeFault = (s) => {
+    if (s.attempt !== 1 || s.outcome !== 'fail') return false;
+    const rep = ctx.verdict(s);
+    const failing = failingFindings(rep, s.stage, coveredSoFar);
+    return faults.some(
+      (f) =>
+        ['FI-1', 'FI-2'].includes(f.id) && FAULT_STAGE[f.id] === s.stage && f.target?.persistent !== true && targets(f.target, s.concept) &&
+        list(rep?.faultsApplied).some((a) => a.id === f.id) && failing.length > 0 && failing.every((x) => x.stage === ctx.faultedStage(f.id, s.concept)),
+    );
+  };
+  // FI-3 forces the D1 gate's attempt (attempt 1 unless persistent) to infeasible.
+  const forcedByFault = (s) => faults.some((f) => f.id === 'FI-3' && targets(f.target, s.concept) && (f.target?.persistent === true || s.attempt === 1));
 
   const picks = checkpoints.filter((c) => c.checkpoint === 1 && typeof c.answer === 'string' && c.answer.startsWith('pick:')).map((c) => c.answer.slice(5));
   const mores = checkpoints.filter((c) => c.checkpoint === 1 && c.answer === 'more').length;
@@ -1033,7 +1109,13 @@ function checkFlow(log, fail) {
       const missing = LENSES.filter((l) => !cycle.lenses.has(l));
       if (missing.length > 0) fail('verification', `run-log.json stages[${i}]: the full V4 pass before it ran without ${missing.join(', ')}; it runs all three lenses, with no sampling (S2)`);
     }
-    if (cycle?.recheck === 'open') cycle.recheck = 'done';
+    if (cycle?.recheck === 'open') {
+      cycle.recheck = 'done';
+      const missing = LENSES.filter((l) => !cycle.rechecked.has(l));
+      if (cycle.fixDesign && missing.length > 0) {
+        fail('verification', `run-log.json stages[${i}]: the fix round re-ran D1 or D2, so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ${missing.join(', ')}`);
+      }
+    }
   };
   /** A fresh design of `concept`, from a checkpoint 1 pick. */
   const freshDesign = (s, i) => {
@@ -1151,10 +1233,36 @@ function checkFlow(log, fail) {
         freshChain('D2-gate', s.concept);
       }
     }
+    // Item 6: a fix round that re-runs D1 or D2 rewrites the plan and the guide, so its re-check is a full pass.
+    if ((s.stage === 'D1' || s.stage === 'D2') && cycle?.fix && cycle.full === 'done' && cycle.recheck === 'none') cycle.fixDesign = true;
     if (s.stage === 'D2-gate' && pf === 'D1-gate') freshChain('D2-gate', s.concept);
     if (s.stage === 'D2-gate' && pf === 'D2-gate' && p.outcome === 'escalated' && lastEscalation?.choice === 'accept') chain('D2-gate', s.concept).guided = true;
     if (s.stage === 'W1' && (pf === 'V4' || pf === 'V4r')) afterVerification(s, i, pf);
     if (s.stage === 'W1' && pf === 'D2-gate' && cycle === null) cycle = { full: 'none', lenses: new Set(), failed: new Set(), fix: false, recheck: 'none', rechecked: new Set() };
+    // Each gate attempt routes as its own verdict file says (gates.md's outcome tables).
+    if (GATE_STAGES.includes(s.stage)) {
+      const rep = ctx.verdict(s);
+      const file = `reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`;
+      const guided = s.stage !== 'R1b' && chain(s.stage, s.concept).guided;
+      const counted = s.stage !== 'R1b' ? chain(s.stage, s.concept).counted : 0;
+      if (!isObj(rep) || !isObj(rep.verdict)) fail('routing', `${at(i)}: has no verdict file ${file}; a gate step writes its own, and the runner routes on it (§3)`);
+      else {
+        const cls = gateClass(rep, s.stage, coveredSoFar);
+        const claimedInfeasible = p?.stage === 'D1' && p.concept === s.concept && p.outcome === 'infeasible';
+        const why = {
+          pass: cls === 'pass' ? null : `its verdict ${describeClass(cls)}, which isn't a pass`,
+          fail: cls === 'hard' || cls === 'soft' ? (guided ? 'a guided retry or an accepted re-run that fails escalates again' : null) : `its verdict ${describeClass(cls)}, which isn't a failure`,
+          escalated: cls === 'hard' || (guided && cls === 'soft') ? null : `its verdict ${describeClass(cls)}; only a compile, V1 or V2 failure escalates, or any failure of a guided retry`,
+          infeasible:
+            cls === 'forced' ? (forcedByFault(s) ? null : 'its verdict is forced infeasible, but no FI-3 directive targets this attempt')
+              : cls !== 'soft' ? `its verdict ${describeClass(cls)}; infeasible is FI-3's forced verdict, or a floor, budget or rolled-skill failure`
+                : guided ? 'a guided retry that fails escalates again'
+                  : claimedInfeasible || counted >= GATE_RETRIES ? null : `D1 claimed done and the gate has ${counted} counted retr${counted === 1 ? 'y' : 'ies'}; a floor, budget or rolled-skill failure re-runs D1 until its 2 counted retries, unless D1 claimed infeasible`,
+        }[s.outcome];
+        if (cls === 'forced' && s.outcome !== 'infeasible') fail('routing', `${at(i)}: is routed ${s.outcome}, but ${file} is forced infeasible (FI-3)`);
+        else if (why) fail('routing', `${at(i)}: is routed ${s.outcome}, but ${s.outcome === 'pass' || s.outcome === 'fail' || s.outcome === 'escalated' || s.outcome === 'infeasible' ? why : 'that outcome'} (${file})`);
+      }
+    }
     if (s.stage === 'D1-gate' || s.stage === 'D2-gate') {
       const c = chain(s.stage, s.concept);
       if (s.outcome === 'fail' && !freeFault(s)) {
@@ -1172,6 +1280,9 @@ function checkFlow(log, fail) {
         if (!e) fail('escalation', `${at(i)}: escalated, but escalations[] has no entry ${esc - 1} for it`);
         else if (e.stage !== s.stage || e.concept !== s.concept) fail('escalation', `${at(i)}: escalated, but escalations[${esc - 1}] is ${e.stage} ${e.concept}'s; the escalations are logged in stages[] order`);
         else if (!e.verdict?.endsWith?.(`-a${s.attempt}.json`)) fail('escalation', `${at(i)}: escalated, but escalations[${esc - 1}].verdict ${show(e.verdict)} isn't this attempt's verdict file`);
+        if (e?.choice === 'accept') {
+          for (const f of failingFindings(ctx.verdict(s), s.stage, coveredSoFar)) acceptedSoFar.push({ stage: typeof f.stage === 'string' ? f.stage : null, part: f.part, code: f.code });
+        }
       }
     }
 
@@ -1190,7 +1301,7 @@ function checkFlow(log, fail) {
       if (!cycle || cycle.full !== 'done' || !cycle.fix) fail('verification', `${at(i)}: re-checks with no full pass and fix round before it in this cycle`);
       else if (cycle.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check in one cycle; there is no further round, what stays open is a known issue (S2)`);
       else {
-        if (!cycle.failed.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; only a lens that raised one re-checks`);
+        if (!cycle.fixDesign && !cycle.failed.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless the fix round re-ran D1 or D2`);
         if (cycle.rechecked.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens twice`);
         cycle.recheck = 'open';
         cycle.rechecked.add(lensOf(s));
@@ -1209,10 +1320,42 @@ function checkFlow(log, fail) {
   if (log.status === 'escalated' && !(last?.outcome === 'escalated' && lastEscalation?.choice === 'stop')) {
     fail('escalation', 'run-log.json: status is "escalated", but the run doesn\'t end with a gate escalation answered stop');
   }
+  const lastAnswer = checkpoints.filter((c) => c.checkpoint === 2).pop()?.answer;
+  if (log.status === 'completed' && lastAnswer !== 'accept') {
+    fail('order', `run-log.json: status is "completed", but checkpoint 2's last answer is ${show(lastAnswer)}; only an accept at checkpoint 2 completes a run`);
+  }
   if (log.status === 'completed' && !(cycle && cycle.full === 'done' && (cycle.failed.size === 0 || cycle.recheck === 'done'))) {
     fail('verification', 'run-log.json: status is "completed", but the run doesn\'t end with a full V4 pass and, when it found anything, its re-check');
   }
 }
+
+/**
+ * A gate verdict's failing findings: those of a part that fails, information codes and accepted findings aside.
+ * A part other than the budget that is `unverified` fails too (only the budget may stay unverified, D-164).
+ */
+function failingFindings(rep, stage, covered) {
+  if (!isObj(rep) || !isObj(rep.verdict)) return [];
+  return list(rep.findings).filter((f) => GATE_PARTS[stage]?.includes(f.part) && ['fail', 'unverified'].includes(rep.verdict[f.part]) && !INFO_CODES.includes(f.code) && !covered(f));
+}
+
+/**
+ * Where a gate verdict routes (gates.md): `forced` (FI-3), `hard` (a compile, V1 or V2 failure, or a part other
+ * than the budget unverified), `soft` (only floor, budget or rolled skill), or `pass`. A failing part whose
+ * findings an escalation accepted passes.
+ */
+function gateClass(rep, stage, covered) {
+  if (rep.forced === 'infeasible') return 'forced';
+  const failing = GATE_PARTS[stage].filter((part) => {
+    const v = rep.verdict[part];
+    if (v === 'unverified') return part !== 'budget';
+    if (v !== 'fail') return v !== 'pass';
+    const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
+    return part === 'compiled' || findings.length === 0 || findings.some((f) => !covered(f));
+  });
+  if (failing.some((part) => ['compiled', 'v1', 'v2'].includes(part))) return 'hard';
+  return failing.length > 0 ? 'soft' : 'pass';
+}
+const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor, budget or rolled skill', forced: 'is forced infeasible (FI-3)' })[cls];
 
 /** The claim a V4 finding's location names: a plan claim `stages[i].claims[k]`, or a guide `[^id]`. */
 function claimAt(claims, artifact, location) {
@@ -1354,6 +1497,24 @@ function recomputeFloor(endgame, record, guide, fail) {
       } else if (opt.value !== hitCeiling(derived)) {
         failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} isn't ${hitCeiling(derived)}, the ceiling of its ledger entry ${entry}'s value ${derived} rounded to 2 decimals (D-256)`));
       }
+      // D-254 at the stage's area level: the hit cites the monster damage at the variant's area level, and its
+      // ledger entry derives the hit from that damage and the tops of the waystone damage modifiers.
+      const level = areaLevelOf(s.variant);
+      const cited = /^damage\.by-level\[(\d+)\]$/.exec(String(opt.source?.key ?? ''));
+      if (!isNum(level)) continue;
+      if (opt.source?.file !== 'enemies/map-monsters.json' || !cited || Number(cited[1]) !== level) {
+        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage cites ${show(`${opt.source?.file}#${opt.source?.key}`)}; the ${s.variant} variant's area level is ${level}, so it cites enemies/map-monsters.json#damage.by-level[${level}] (D-254)`));
+        continue;
+      }
+      const base = factValue('enemies/map-monsters.json', 'damage.by-level')?.[String(level)];
+      const increased = factValue('enemies/waystones.json', 'mods.increased-monster-damage')?.max;
+      const extra = factValue('enemies/waystones.json', 'mods.extra-damage-as-element')?.max;
+      if (isNum(derived) && isNum(base) && isNum(increased) && isNum(extra)) {
+        const expected = base * (1 + increased / 100) * (type === 'Physical' ? 1 : extra / 100);
+        if (Math.abs(derived - expected) > 0.005 + 1e-9 * Math.abs(expected)) {
+          failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s ledger entry ${entry} is ${derived}, but the damage at its area level ${level} (enemies/map-monsters.json#damage.by-level[${level}], ${base}) × (1 + ${increased} / 100)${type === 'Physical' ? '' : ` × ${extra} / 100`} is ${round2(expected)} (D-254)`));
+        }
+      }
     }
     for (const opt of scenario) {
       const m = HIT_OPTION.exec(opt.option ?? '');
@@ -1429,17 +1590,27 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
  * `skillOutputs` figure of the rolled group is of the stage's `skills.main.statSet`, the set the PoB file
  * opens on.
  */
-function recomputeRolledSkill(endgame, record, rep, fail) {
+function recomputeRolledSkill(endgame, plan, record, rep, fail) {
   const failures = [];
   const basis = list(rep.basis?.rolledSkill);
+  const ledger = new Map(list(plan.ledger).map((e) => [e.id, e]));
   for (const s of endgame) {
     const groups = Array.isArray(s.skills?.groups) ? s.skills.groups : [];
     const rolled = s.skills?.rolledGroup;
+    const main = isObj(s.skills?.main) ? s.skills.main : {};
     const role = groups[rolled - 1]?.role;
     if (!['clear', 'single_target'].includes(role)) {
       failures.push(failure('rolledSkill', s.id, 'rolled-role', `stage ${s.id}'s rolled group ${show(rolled)} has role ${show(role)}; the rolled skill is clear or single_target, never a token role (D-122)`));
       continue;
     }
+    // S7: the PoB file opens on the main skill's stat set, so the rolled skill is the main skill.
+    if (main.group !== rolled) {
+      failures.push(failure('rolledSkill', s.id, 'rolled-not-main', `stage ${s.id}'s main group is ${show(main.group)}, but its rolled group is ${rolled}; the rolled skill is the main skill, which the PoB file opens on (S7)`));
+    }
+    if (!isInt(main.statSet, 1)) {
+      failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id} sets no skills.main.statSet; D1 names the stat set the PoB file opens on (S7)`));
+    }
+    const mainKey = `g${main.group}s${main.activeSkill}p${main.statSet}`;
     const b = basis.find((x) => x.stage === s.id);
     if (!b) {
       fail('gate-report', `the D1 gate's basis.rolledSkill has no entry for endgame stage ${s.id} (gates.md)`);
@@ -1458,20 +1629,25 @@ function recomputeRolledSkill(endgame, record, rep, fail) {
         continue;
       }
       let value;
-      const sk = /^g(\d+)s\d+p(\d+)\.(\w+)$/.exec(String(f.figure));
+      const sk = /^g(\d+)s(\d+)p(\d+)\.(\w+)$/.exec(String(f.figure));
       const lg = /^ledger:(\w+)$/.exec(String(f.figure));
       if (sk) {
         if (Number(sk[1]) !== n) fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id} is another group's, not group ${n}'s`);
-        fields.add(sk[3]);
-        value = record.stages[s.id]?.skillOutputs?.[String(f.figure).split('.')[0]]?.fields?.[sk[3]];
-        // S7: the rolled figure is of the stat set the PoB file opens on.
-        if (n === rolled && Number(sk[2]) !== s.skills?.main?.statSet) {
-          failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id}'s rolled figure ${f.figure} is stat set ${sk[2]}, but skills.main.statSet is ${show(s.skills?.main?.statSet)}; the PoB file opens on that set, so the gate compares its figure (S7)`));
+        fields.add(sk[4]);
+        value = record.stages[s.id]?.skillOutputs?.[String(f.figure).split('.')[0]]?.fields?.[sk[4]];
+        // S7: the rolled figure is the main skill's, of the stat set the PoB file opens on.
+        if (n === rolled && isInt(main.statSet, 1) && `g${sk[1]}s${sk[2]}p${sk[3]}` !== mainKey) {
+          failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id}'s rolled figure ${f.figure} isn't the main skill's stat set ${mainKey} (skills.main); the PoB file opens on that set, so the gate compares its figure (S7)`));
         }
       } else if (lg) {
         value = record.ledger?.[lg[1]]?.value;
-        if (n === rolled && !isInt(s.skills?.main?.statSet, 1)) {
-          failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id} sets no skills.main.statSet; D1 names the stat set the PoB file opens on (S7)`));
+        // S7, inside a ledger figure: every breakdown field its formula reads is the main skill's stat set on this stage.
+        if (n === rolled && isInt(main.statSet, 1)) {
+          const refs = [...String(ledger.get(lg[1])?.formula ?? '').matchAll(/([A-Za-z0-9_]+)\.(g\d+s\d+p\d+)\.[A-Za-z_]\w*/g)];
+          const off = refs.filter((m) => m[1] !== s.id || m[2] !== mainKey).map((m) => `${m[1]}.${m[2]}`);
+          if (off.length > 0) {
+            failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id}'s rolled figure ${f.figure} reads ${[...new Set(off)].join(', ')}, not the main skill's stat set ${s.id}.${mainKey} (skills.main); the PoB file opens on that set (S7)`));
+          }
         }
       } else {
         fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} is neither a record skillOutputs field nor ledger:<id> (gates.md)`);

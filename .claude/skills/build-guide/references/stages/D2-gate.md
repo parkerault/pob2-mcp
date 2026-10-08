@@ -11,7 +11,9 @@ step. You check; you don't design. Fix nothing in the plan: a failure goes back 
 - **Header:** `stage: "D2-gate"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`,
   `compile: "final"`, `buildName`, `accepted` (findings the user accepted), `writes`: the verdict file
   `reports/gates/D2-gate-<concept>-a<attempt>.json`.
-- **Read:** `plan.json`; after each compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding) and
+- **Read:** `plan.json`; after each compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding up to
+  200; when a line says how many more, Grep `compile-record.json`'s `stages.<id>.v1.findings` and
+  `stages.<id>.v2.findings` for them) and
   `compile-record.json` (a large record: Read it in parts, or Grep the fields you need);
   `.claude/skills/build-guide/references/gates.md`.
 

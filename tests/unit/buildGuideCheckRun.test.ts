@@ -314,14 +314,14 @@ const broken: BrokenCase[] = [
   // (s)
   { name: "(s) the import code isn't the PoB file's (its sha1 differs from the record's pobFile)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.pobFile.sha1 = 'a9993e364706816aba3e25717850c26c9cd0d89d')), rule: 'pob-file', says: /the decoded importCode's sha1 is [0-9a-f]{40}, but the record's PoB file "titan-blood-hunt-2026-10-08-1\.xml" has sha1 "a9993e36/ },
   { name: "(s) the import code doesn't decode", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.importCode = 'eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001')), rule: 'pob-file', says: /importCode doesn't decode as a PoB code/ },
-  { name: '(s) the loadout count differs from the plan stages: one tree set missing (D-215)', fixture: 'run-ok', edit: (d) => recode(d, specs(['Act 1 (L8) {1}', 'Act 2 (L30) {2}', 'Endgame budget (L90) {b}'])), rule: 'pob-file', says: /holds 3 tree set\(s\), but the plan has 4 stage\(s\); the file holds one loadout per stage \(D-215\)/ },
+  { name: '(s) the loadout count differs from the plan stages: one tree set missing (D-215)', fixture: 'run-ok', edit: (d) => recode(d, specs(['Act 1 (L8) {1}', 'Act 2 (L30) {2}', 'Endgame budget (L90) {b}'])), rule: 'pob-file', says: /holds 3 tree set\(s\), but the record compiled 4 stage\(s\); the file holds one loadout per stage \(D-215\)/ },
   { name: "(s) a tree set isn't titled by its stage's loadout name (a Default left behind)", fixture: 'run-ok', edit: (d) => recode(d, specs(['Default', 'Act 2 (L30) {2}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}'])), rule: 'pob-file', says: /tree sets are titled \["Default",.*the record's loadout names, in plan order, are \["Act 1 \(L8\) \{1\}"/ },
   // (t)
   { name: "(t) a ledger entry doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.ttk_arbiter.value = 161)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 160, but the final record has 161 \(compared to 2 decimals\)/ },
   { name: "(t) a doubled ledger formula (FI-4's edit) doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 320, but the final record has 160/ },
   // (u)
-  { name: "(u) the rolled figure's stat set isn't skills.main.statSet (S7)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.main.statSet = 2)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's rolled figure g1s1p1\.TotalDPS is stat set 1, but skills\.main\.statSet is 2/ },
-  { name: '(u) an endgame stage sets no skills.main.statSet (S7)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).skills.main.statSet), rule: 'rolled-skill', says: /stage b's rolled figure g1s1p1\.TotalDPS is stat set 1, but skills\.main\.statSet is undefined/ },
+  { name: "(u) the rolled figure's stat set isn't skills.main.statSet (S7)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.main.statSet = 2)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's rolled figure g1s1p1\.TotalDPS isn't the main skill's stat set g1s1p2 \(skills\.main\)/ },
+  { name: '(u) an endgame stage sets no skills.main.statSet (S7)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).skills.main.statSet), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b sets no skills\.main\.statSet/ },
 ];
 
 describe('AC-W2: each broken copy exits non-zero, naming the broken rule', () => {
@@ -647,6 +647,15 @@ describe("checkpoints[]: a pre-supplied or default answer records its rule, whic
 // The control flow (the accepted cost of S1): each invariant passes the fixtures and fails a violating copy
 // ---------------------------------------------------------------------------------------------------
 
+/** Writes R1b's verdict file for an attempt: a compile failure on the concept's skeleton stage names FI-1's gem. */
+function r1bVerdict(dir: string, concept: string, attempt: number, compiled: 'pass' | 'fail', fault: boolean): void {
+  const error = { part: 'compiled', code: 'compile-error', stage: `${concept}e`, message: `stage ${concept}e: unknown gem "FI-1 Unknown Gem"` };
+  writeJson(dir, `reports/gates/R1b-${concept}-a${attempt}.json`, {
+    stage: 'R1b', concept, attempt, verdict: { compiled }, findings: compiled === 'fail' ? [error] : [],
+    faultsApplied: fault && compiled === 'fail' ? [{ id: 'FI-1', observed: error.message }] : [],
+  });
+}
+
 /** Replaces the run log's stages[] entries from `from` on (by index) with `entries`. */
 const restage = (dir: string, from: number, entries: Json[], edit: (l: Json) => void = () => undefined) =>
   editLog(dir, (l) => {
@@ -724,8 +733,10 @@ describe('flow invariant 2: the caps, R1b at most 3 counted attempts and each ga
   it("R1b: a persistent FI-1 fails c1 after 3 counted attempts (run A's clause); a 4th attempt breaks the cap", () => {
     const dir = copyOf('run-escalated');
     const rest = readJson(dir, 'run-log.json').stages.slice(5);
-    const withR1b = (outcomes: string[], persistent: boolean) =>
+    const withR1b = (outcomes: string[], persistent: boolean) => {
+      outcomes.forEach((o, i) => r1bVerdict(dir, 'c1', i + 1, o === 'pass' ? 'pass' : 'fail', true));
       restage(dir, 0, [...research(r1b(outcomes)), ...rest], (l) => (l.faults = [l.faults[0], { id: 'FI-1', target: { concepts: ['c1'], persistent }, applied: outcomes.length, observed: 'FI-1 Unknown Gem' }]));
+    };
     withR1b(['fail', 'fail', 'fail'], true);
     passes(dir);
     withR1b(['fail', 'fail', 'fail', 'fail'], true);
@@ -864,5 +875,294 @@ describe('flow invariant 4: only the D1 and D2 gates escalate; verification neve
     const dir2 = copyOf('run-ok');
     editLog(dir2, (l) => (l.status = 'escalated'));
     expect(failing(dir2)).toMatch(/\[escalation\] run-log\.json: status is "escalated", but the run doesn't end with a gate escalation answered stop/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Review of bg/amend-1 (items 1-8, 10): each fix fails the reviewer's probe case and passes the legal routes
+// ---------------------------------------------------------------------------------------------------
+
+/** A copy of run-ok's passing D1 gate verdict, as attempt `attempt`, failing V1 with `finding` (or as is). */
+const d1Verdict = (dir: string, attempt: number, finding: Json | null = levelPoints, concept = 'c1') => {
+  const passing = readJson(path.join(FIXTURES, 'run-ok'), lastD1);
+  writeJson(dir, `reports/gates/D1-gate-${concept}-a${attempt}.json`, {
+    ...passing, concept, attempt,
+    ...(finding ? { verdict: { ...passing.verdict, [finding.part]: 'fail' }, findings: [...passing.findings, finding] } : {}),
+  });
+};
+
+describe('review 1 (HIGH): the D1 gate is recomputed whenever the record holds its values; only the budget may be unverified', () => {
+  it("fails a gate that says every part unverified, routed pass, over failing records (probe p1-unverified)", () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, lastD1, (r) => (r.verdict = { compiled: 'unverified', v1: 'unverified', v2: 'unverified', floor: 'unverified', budget: 'unverified', rolledSkill: 'unverified' }));
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.b.outputs.MissingFireResist = 25;
+      r.stages.b.skillOutputs.g2s1p1.fields.TotalDPS = 99999;
+    });
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[routing\] .*\(D1-gate c1 attempt 2\): is routed pass, but its verdict fails its compile, V1 or V2 \(or leaves one unverified\)/);
+    expect(stderr).toMatch(/\[floor\] reports\/gates\/D1-gate-c1-a2\.json says floor: "unverified"; only the budget may be unverified/);
+    expect(stderr).toMatch(/\[floor\] the guide's concept fails the D1 gate's floor \(missing-fire-resist, stage b\): stage b MissingFireResist is 25/);
+    expect(stderr).toMatch(/\[rolled-skill\] the guide's concept fails the D1 gate's rolledSkill \(rolled-not-largest, stage b\)/);
+  });
+
+  it("fails a gate that didn't fail its compile but left no record of it", () => {
+    const dir = copyOf('run-escalated');
+    fs.rmSync(path.join(dir, 'compile-record.json'));
+    fs.rmSync(path.join(dir, 'compiled-build.xml'));
+    expect(failing(dir)).toMatch(/\[gates\] reports\/gates\/D1-gate-c1-a3\.json doesn't fail its compile, but compile-record\.json holds no values for the endgame stages/);
+  });
+});
+
+describe('review 2 (MED): the stat-set check (S7) holds the rolled skill to the main skill, directly and in a ledger figure', () => {
+  it('(a) fails an endgame or campaign stage whose main group is not its rolled group (probe p2-main-not-rolled)', () => {
+    const dir = copyOf('run-ok');
+    editPlan(dir, (p) => {
+      stageB(p).skills.rolledGroup = 2;
+      p.stages.find((s: Json) => s.id === '2').skills.main.group = 2;
+    });
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[rolled-skill\] the guide's concept fails the D1 gate's rolledSkill \(rolled-not-main, stage b\): stage b's main group is 1, but its rolled group is 2/);
+    expect(stderr).toMatch(/\[rolled-skill\] campaign stage 2's main group is 2, but its rolledGroup is 1; a stage with the rolled skill makes it the main skill \(S7\)/);
+  });
+
+  it("(b) fails a ledger figure whose formula reads another stat set than skills.main's (probe p3-ledger-statset), and passes it on the main set", () => {
+    const withLedgerFigure = (statSet: number) => {
+      const dir = copyOf('run-ok');
+      editPlan(dir, (p) => {
+        stageB(p).skills.main.statSet = statSet;
+        p.ledger.push({ id: 'bh_b', claim: 'Blood Hunt DPS on b', formula: 'b.g1s1p1.TotalDPS', inputs: [] });
+      });
+      editJson(dir, 'compile-record.json', (r) => (r.ledger.bh_b = { value: 50000, error: null }));
+      editJson(dir, lastD1, (r) => (r.basis.rolledSkill[0].figures[0].figure = 'ledger:bh_b'));
+      return dir;
+    };
+    expect(failing(withLedgerFigure(2))).toMatch(/\[rolled-skill\] .*\(rolled-stat-set, stage b\): stage b's rolled figure ledger:bh_b reads b\.g1s1p1, not the main skill's stat set b\.g1s1p2 \(skills\.main\)/);
+    passes(withLedgerFigure(1));
+  });
+});
+
+describe('review 3 (MED): each gate attempt is routed as its verdict file says', () => {
+  /** run-escalated stopped at checkpoint 1 after c1's D1 gate attempt 1, logged `outcome` after D1 claimed `claim`. */
+  const routedOnce = (outcome: string, claim = 'done') => {
+    const dir = copyOf('run-escalated');
+    restage(dir, 5, [step('D1', 'c1', 1, claim), step('D1-gate', 'c1', 1, outcome)], (l) => {
+      l.status = 'stopped';
+      l.escalations = [];
+      l.checkpoints = [l.checkpoints[0], { checkpoint: 1, visit: 2, answer: 'stop', answeredBy: 'default', rule: 'no checkpoint1 answer left: stop' }];
+    });
+    return dir;
+  };
+  const softFailure = (dir: string) => {
+    editJson(dir, 'reports/gates/D1-gate-c1-a1.json', (r) => {
+      r.verdict = { ...r.verdict, v1: 'pass', floor: 'fail' };
+      r.findings = [{ part: 'floor', code: 'missing-cold-resist', stage: 'n', message: 'n.MissingColdResist 12' }];
+    });
+    editJson(dir, 'compile-record.json', (r) => (r.stages.n.outputs.MissingColdResist = 12));
+  };
+
+  it('fails an infeasible route over a V1 failure (probe p4-infeasible-misroute)', () => {
+    expect(failing(routedOnce('infeasible'))).toMatch(/\[routing\] .*\(D1-gate c1 attempt 1\): is routed infeasible, but its verdict fails its compile, V1 or V2 .*; infeasible is FI-3's forced verdict, or a floor, budget or rolled-skill failure/);
+  });
+
+  it('routes a floor failure infeasible only when D1 claimed it, or after 2 counted retries', () => {
+    const done = routedOnce('infeasible');
+    softFailure(done);
+    expect(failing(done)).toMatch(/\[routing\] .*: is routed infeasible, but D1 claimed done and the gate has 0 counted retries/);
+    const claimed = routedOnce('infeasible', 'infeasible');
+    softFailure(claimed);
+    passes(claimed);
+  });
+
+  it("routes a forced verdict infeasible only under FI-3, and never anything else", () => {
+    const forced = routedOnce('infeasible');
+    editJson(forced, 'reports/gates/D1-gate-c1-a1.json', (r) => Object.assign(r, { forced: 'infeasible', evidence: 'FI-3 (injected)' }));
+    expect(failing(forced)).toMatch(/\[routing\] .*: is routed infeasible, but its verdict is forced infeasible, but no FI-3 directive targets this attempt/);
+    editLog(forced, (l) => l.faults.push({ id: 'FI-3', target: { concepts: ['c1'] }, applied: 1, observed: 'forced' }));
+    passes(forced);
+    editLog(forced, (l) => (l.stages[l.stages.length - 1].outcome = 'fail'));
+    expect(failing(forced)).toMatch(/\[routing\] .*: is routed fail, but reports\/gates\/D1-gate-c1-a1\.json is forced infeasible \(FI-3\)/);
+  });
+
+  it('fails a pass route over a failing verdict, and a gate attempt with no verdict file', () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'reports/gates/D2-gate-c1-a1.json', (r) => {
+      r.verdict.v1 = 'fail';
+      r.findings = [{ part: 'v1', code: 'tree-continuity', stage: '2', message: 'stage 2 drops a node' }];
+    });
+    expect(failing(dir)).toMatch(/\[routing\] .*\(D2-gate c1 attempt 1\): is routed pass, but its verdict fails its compile, V1 or V2/);
+    const gone = copyOf('run-ok');
+    fs.rmSync(path.join(gone, 'reports/gates/R1b-c2-a1.json'));
+    expect(failing(gone)).toMatch(/\[routing\] .*\(R1b c2 attempt 1\): has no verdict file reports\/gates\/R1b-c2-a1\.json; a gate step writes its own/);
+  });
+});
+
+describe("review 4 (MED): S6's free retry needs the verdict's faultsApplied and a failure on the faulted stage", () => {
+  /** run-escalated with FI-2 on attempt 1 only: a free attempt 1 leaves the escalation at attempt 3 after 1 counted retry. */
+  const freeFirst = (edit: (r: Json) => void) => {
+    const dir = copyOf('run-escalated');
+    editLog(dir, (l) => (l.faults[0].target.persistent = false));
+    editJson(dir, 'reports/gates/D1-gate-c1-a1.json', edit);
+    return dir;
+  };
+
+  it('grants it when the verdict names FI-2 and fails only on its stage: the escalation then comes too early', () => {
+    expect(failing(freeFirst(() => undefined))).toMatch(/\[caps\] .*\(D1-gate c1 attempt 3\): escalates after 1 counted retry/);
+  });
+
+  it("doesn't grant it without FI-2 in faultsApplied, or for a failure on another stage: attempt 1 counts", () => {
+    passes(freeFirst((r) => (r.faultsApplied = [])));
+    passes(freeFirst((r) => r.findings.push({ part: 'v1', code: 'tree-disconnected', stage: 'n', message: 'stage n: node 123 not connected' })));
+  });
+
+  it('counts a real failure the faults list alone would have freed (probe p5-s6-free-real-failure)', () => {
+    const dir = copyOf('run-ok');
+    const tree = { part: 'v1', code: 'tree-disconnected', stage: 'n', message: 'stage n: node 123 not connected' };
+    editJson(dir, 'reports/gates/D1-gate-c1-a1.json', (r) => {
+      r.findings = [tree];
+      r.faultsApplied = [];
+    });
+    for (const a of [2, 3]) d1Verdict(dir, a, tree);
+    d1Verdict(dir, 4, null);
+    editLog(dir, (l) => {
+      const i = l.stages.findIndex((s: Json) => s.stage === 'D1-gate' && s.attempt === 2);
+      l.stages.splice(i, 1, step('D1-gate', 'c1', 2, 'fail'), step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'fail'), step('D1', 'c1', 4, 'done'), step('D1-gate', 'c1', 4, 'pass'));
+    });
+    expect(failing(dir)).toMatch(/\[caps\] .*\(D1-gate c1 attempt 3\): is counted failure 3 of D1-gate for c1 in one chain/);
+  });
+});
+
+describe('review 5 (MED): the log says which artifacts are current; legal routes pass once a guide exists', () => {
+  /** run-ok after its first cycle: a checkpoint-2 revision of D1 that fails its gate twice, then escalates. */
+  const revisionEscalates = (choice: string) => {
+    const dir = copyOf('run-ok');
+    for (const a of [3, 4, 5]) d1Verdict(dir, a);
+    editLog(dir, (l) => {
+      l.stages.push(step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'fail'), step('D1', 'c1', 4, 'done'), step('D1-gate', 'c1', 4, 'fail'), step('D1', 'c1', 5, 'done'), step('D1-gate', 'c1', 5, 'escalated'));
+      l.checkpoints[1] = { checkpoint: 2, visit: 1, answer: 'revise:cheaper boots', answeredBy: 'pre-supplied', rule: 'revise:cheaper boots' };
+      l.checkpoints.push({ checkpoint: 'escalation', visit: 1, answer: choice, answeredBy: choice === 'stop' ? 'default' : 'pre-supplied', rule: choice === 'stop' ? 'no escalation answer left: stop' : choice });
+      l.escalations.push({ stage: 'D1-gate', concept: 'c1', verdict: 'reports/gates/D1-gate-c1-a5.json', choice });
+      l.status = 'escalated';
+    });
+    return dir;
+  };
+
+  it('passes a revision whose D1 gate escalates to a stop: the guide is from before it (probe p8-fixround-escalation-stop)', () => {
+    passes(revisionEscalates('stop'));
+  });
+
+  it("passes the run going back to checkpoint 1 and another concept's design: the guide is the first concept's (probe p7-stale-guide-false-reject)", () => {
+    const dir = revisionEscalates('checkpoint-1');
+    d1Verdict(dir, 1, null, 'c2');
+    editJson(dir, 'reports/gates/D1-gate-c2-a1.json', (r) => Object.assign(r, { forced: 'infeasible', evidence: 'FI-3 (injected)' }));
+    editLog(dir, (l) => {
+      l.stages.push(step('D1', 'c2', 1, 'done'), step('D1-gate', 'c2', 1, 'infeasible'));
+      l.checkpoints.push({ checkpoint: 1, visit: 2, answer: 'pick:c2', answeredBy: 'pre-supplied', rule: 'pick:c2' }, { checkpoint: 1, visit: 3, answer: 'stop', answeredBy: 'default', rule: 'no checkpoint1 answer left: stop' });
+      l.faults.push({ id: 'FI-3', target: { concepts: ['c2'] }, applied: 1, observed: 'forced' });
+      l.status = 'stopped';
+    });
+    passes(dir);
+  });
+
+  it('fails a completed run whose guide is older than the design steps after it', () => {
+    const dir = revisionEscalates('stop');
+    editLog(dir, (l) => (l.status = 'completed'));
+    expect(failing(dir)).toMatch(/\[layout\] status is "completed", but guide\.md is from W1 c1 attempt 2, and design steps ran after it/);
+  });
+});
+
+describe('review 6 (MED): a fix round that re-runs D1 or D2 re-checks all three lenses over the new plan and guide', () => {
+  /** run-ok whose fix round runs D1 → D1 gate → D2 gate → W1 instead of W1 alone, then re-checks `lenses`. */
+  const designFix = (lenses: string[]) => {
+    const dir = copyOf('run-ok');
+    d1Verdict(dir, 3, null);
+    fs.copyFileSync(path.join(dir, 'reports/gates/D2-gate-c1-a1.json'), path.join(dir, 'reports/gates/D2-gate-c1-a2.json'));
+    editJson(dir, 'reports/gates/D2-gate-c1-a2.json', (r) => (r.attempt = 2));
+    for (const lens of lenses.filter((l) => l !== 'prose')) {
+      editJson(dir, `reports/v4-${lens}.json`, () => undefined);
+      fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
+      editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
+    }
+    restage(dir, 15, [step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'pass'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), ...lenses.map((l) => step(`V4-${l}-recheck`, 'c1', 1, l === 'prose' ? 'fail' : 'pass'))]);
+    return dir;
+  };
+
+  it('fails a targeted re-check of only the raising lens after D1 re-ran', () => {
+    expect(failing(designFix(['prose']))).toMatch(/\[verification\] .*the fix round re-ran D1 or D2, so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ledger, sources/);
+  });
+
+  it('passes the full re-check, a lens that raised nothing included; still no second fix round', () => {
+    passes(designFix(['ledger', 'sources', 'prose']));
+  });
+});
+
+describe('review 7 (LOW): each reference hit is derived from the damage at its variant\'s area level (D-254, D-256)', () => {
+  it('fails a hit whose ledger base is another level\'s damage (probe p6-d256-tiny-hits), and a hit citing another level', () => {
+    const dir = copyOf('run-ok');
+    editPlan(dir, (p) => {
+      p.ledger.find((e: Json) => e.id === 'hit_b_physical').inputs.find((x: Json) => x.name === 'base').value = 9.1599998474121;
+      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyPhysicalDamage').value = 12;
+      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').source.key = 'damage.by-level[78]';
+    });
+    editJson(dir, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 9.1599998474121 * 1.24));
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[floor\] .*\(reference-hit-ledger-physical, stage b\): stage b's ledger entry hit_b_physical is 11\.358\d*, but the damage at its area level 79 \(enemies\/map-monsters\.json#damage\.by-level\[79\], 324\.19\d*\) × \(1 \+ 24 \/ 100\) is 402 \(D-254\)/);
+    expect(stderr).toMatch(/\[floor\] .*\(reference-hit-ledger-fire, stage b\): stage b's enemyFireDamage cites "enemies\/map-monsters\.json#damage\.by-level\[78\]"; the budget variant's area level is 79/);
+    expect(stderr).not.toMatch(/\[ledger\]/);
+  });
+});
+
+describe('review 8 (LOW): a completed run ends with checkpoint 2 answered accept', () => {
+  it('fails a completed run with no checkpoint-2 accept (probe p9-completed-without-accept)', () => {
+    const dir = copyOf('run-ok');
+    editLog(dir, (l) => (l.checkpoints = l.checkpoints.filter((c: Json) => c.checkpoint !== 2)));
+    expect(failing(dir)).toMatch(/\[order\] run-log\.json: status is "completed", but checkpoint 2's last answer is undefined; only an accept at checkpoint 2 completes a run/);
+  });
+});
+
+describe('review 10 (LOW): a guided retry gives the producer one more attempt, then its gate; any failure escalates again', () => {
+  it('fails a guided retry whose gate failure is routed infeasible instead of escalating', () => {
+    const dir = copyOf('run-escalated');
+    d1Verdict(dir, 4, { part: 'floor', code: 'missing-cold-resist', stage: 'n', message: 'n.MissingColdResist 12' });
+    editLog(dir, (l) => {
+      l.escalations[0].choice = 'retry';
+      l.escalations[0].guidance = 'drop the level-1 stage';
+      l.checkpoints[1] = { checkpoint: 'escalation', visit: 1, answer: 'retry:drop the level-1 stage', answeredBy: 'pre-supplied', rule: 'retry:drop the level-1 stage' };
+      l.stages.push(step('D1', 'c1', 4, 'done'), step('D1-gate', 'c1', 4, 'infeasible'));
+      l.status = 'stopped';
+    });
+    expect(failing(dir)).toMatch(/\[routing\] .*\(D1-gate c1 attempt 4\): is routed infeasible, but a guided retry that fails escalates again/);
+  });
+});
+
+describe("W19: run B's failure routes pass the checker with no --partial (no viable concept, FI-3, a D1 gate escalation stopped by default)", () => {
+  it('passes R1b failing every concept under a persistent FI-1, c1 forced infeasible, c2 escalating on a persistent FI-2', () => {
+    const dir = copyOf('run-escalated');
+    for (const c of ['c1', 'c2', 'c3']) for (const a of [1, 2, 3]) r1bVerdict(dir, c, a, 'fail', true);
+    for (const a of [2, 3]) fs.rmSync(path.join(dir, `reports/gates/D1-gate-c1-a${a}.json`));
+    for (const a of [1, 2, 3]) {
+      writeJson(dir, `reports/gates/D1-gate-c2-a${a}.json`, { ...readJson(path.join(FIXTURES, 'run-escalated'), `reports/gates/D1-gate-c1-a${a}.json`), concept: 'c2' });
+    }
+    editJson(dir, 'reports/gates/D1-gate-c1-a1.json', (r) => Object.assign(r, { forced: 'infeasible', evidence: 'FI-3 (injected)', faultsApplied: [{ id: 'FI-3', observed: 'gate run as usual; outcome forced to infeasible' }] }));
+    editText(dir, 'dossier.md', replace('## Not carried', '### c3: Blood Hunt on a two-hander\n\n- Status: failed after 3 attempts (reports/gates/R1b-c3-a3.json).\n\n## Not carried'));
+    const r1bs = ['c1', 'c2', 'c3'].flatMap((c) => [1, 2, 3].map((a) => step('R1b', c, a, 'fail')));
+    restage(dir, 0, [
+      step('R1a', null, 1, 'done'), step('R1a', null, 1, 'done'), step('R1a', null, 1, 'done'), ...r1bs, step('R1b-assemble', null, 1, 'done'),
+      step('D1', 'c1', 1, 'done'), step('D1-gate', 'c1', 1, 'infeasible'),
+      step('D1', 'c2', 1, 'done'), step('D1-gate', 'c2', 1, 'fail'), step('D1', 'c2', 2, 'done'), step('D1-gate', 'c2', 2, 'fail'), step('D1', 'c2', 3, 'done'), step('D1-gate', 'c2', 3, 'escalated'),
+    ], (l) => {
+      l.checkpoints = [
+        { checkpoint: 1, visit: 1, answer: 'pick:c1', answeredBy: 'pre-supplied', rule: 'pick:c1' },
+        { checkpoint: 1, visit: 2, answer: 'pick:c2', answeredBy: 'pre-supplied', rule: 'pick:c2' },
+        { checkpoint: 'escalation', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no escalation answer left: stop' },
+      ];
+      l.escalations = [{ stage: 'D1-gate', concept: 'c2', verdict: 'reports/gates/D1-gate-c2-a3.json', choice: 'stop' }];
+      l.faults = [
+        { id: 'FI-1', target: { concepts: 'all', persistent: true }, applied: 9, observed: 'each R1b compile failed on FI-1 Unknown Gem' },
+        { id: 'FI-3', target: { concepts: ['c1'] }, applied: 1, observed: "c1's D1 gate forced infeasible" },
+        { id: 'FI-2', target: { concepts: ['c2'], persistent: true }, applied: 3, observed: "each of c2's D1 gates found V1 level-points on stage b" },
+      ];
+    });
+    passes(dir);
   });
 });

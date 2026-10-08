@@ -82,6 +82,11 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
   rolled skill, its figure's stat set equal to `skills.main.statSet`. The checker fails a verdict that
   differs from its own, and, once a guide exists, any failure no accepted finding covers.
 - **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;
-  R1b at most 3 counted attempts and each gate at most 2 counted retries (S6 honoured); one full V4 pass and
-  at most one re-check per verification cycle; escalations only from the gates, each naming its verdict
-  file; and a `rule` on every pre-supplied or default answer.
+  each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
+  counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
+  one full V4 pass and at most one re-check per verification cycle, of all three lenses when the fix round
+  re-ran D1 or D2; escalations only from the gates, each naming its verdict file; a `rule` on every
+  pre-supplied or default answer; and `completed` only after checkpoint 2's accept.
+- **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
+  is when no design step ran after its W1, and the final record when no producer ran after the last D2 gate.
+  A guide, V4 reports or a record from an earlier cycle or concept aren't held to the current plan.

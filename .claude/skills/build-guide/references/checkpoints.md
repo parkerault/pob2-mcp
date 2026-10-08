@@ -69,9 +69,9 @@ choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the que
    plan stage; the run checker looks for them there. After the D1 gate the run goes on as if it passed;
    after the D2 gate, the D2 gate runs once more, uncounted, with them in `accepted`, so it runs the final
    compile. **Not offered when the failure is a compile error**: nothing compiled to continue from.
-2. **guidance and one more retry**: the producer (D1 or D2) runs once more with the verdict and the
-   user's guidance in `findings`. That attempt counts against no cap, and if its gate fails, the run
-   escalates again.
+2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt with the verdict and the
+   user's guidance in `findings`, then its gate. That attempt counts against no cap, and if the gate fails,
+   whatever part fails, it escalates again.
 3. **back to checkpoint 1**, with the verdict file as that concept's evidence.
 4. **stop**: the run ends `escalated`.
 

@@ -34,6 +34,8 @@ rest, and the run checker reads both (`run-folder.md`).
   - `done` for a step that only produces, `infeasible` for D1 claiming it and for a D1 gate routed so;
   - `escalated` for the gate attempt that escalated;
   - `missing` for an agent that returned without its file.
+  A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the
+  two together.
 - **`priceOutcomes`**, on a pricing step (R1b, D1, D1-gate, D2) that made price calls: its calls counted by
   outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
   `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`.

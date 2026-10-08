@@ -987,8 +987,8 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     const text = skill();
     expect(text).toMatch(/\*\*Step 11, the full pass\.\*\* Start the three lenses in parallel, `check: "full"`/);
     expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when a report has an `unresolved` finding\. Send each finding to its `owner`; the earliest owner runs first, then the steps after it: \*\*D1\*\* → D1 gate → D2 gate → W1; \*\*D2\*\* → D2 gate → W1; \*\*W1\*\* alone/);
-    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* Each lens that raised a finding runs once, in parallel/);
-    expect(text).toMatch(/There is no further round/);
+    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* When the fix round re-ran D1 or D2, the plan and the guide are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does\. Otherwise each lens that raised a finding runs once, in parallel/);
+    expect(text).toMatch(/Either way there is no further round: what stays open is a known issue/);
     expect(text).toMatch(/\*\*Step 14, known issues\.\*\* A finding is open when it is `unresolved` in its lens's re-check, or `unresolved` in the full pass and not reported `fixed` by a re-check/);
     expect(text).toMatch(/Verification never runs a lens again for its findings beyond the one re-check, and never escalates; only the D1 and D2 gates escalate/);
   });
@@ -1028,8 +1028,12 @@ describe('Amendment 1 S6, Q2: the retries', () => {
 describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2__…, and the three claim rules', () => {
   it('(1) D1 sets skills.main.statSet to the stat set the rolled-skill gate compares, and the gate and the checker hold it (RC-5)', () => {
     expect(folded(readStage('D1'))).toMatch(/\*\*Set `skills\.main\.statSet`\*\* on each variant stage to the rolled skill's stat set whose figure the gate compares, `p<statSet>` in `g<group>s<skill>p<statSet>\.<Field>` \(amendment 1 S7\)/);
-    expect(folded(readStage('D1-gate'))).toMatch(/\*\*The rolled figure's stat set is the stage's `skills\.main\.statSet`\*\* \(S7\): a stage without `statSet`, or a rolled figure `g<group>s<skill>p<n>` whose `n` differs from it, fails with `rolled-stat-set`/);
+    expect(folded(readStage('D1-gate'))).toMatch(/\*\*The rolled figure's stat set is the stage's `skills\.main\.statSet`\*\* \(S7\): the stage's `skills\.main\.group` is its `rolledGroup` \(else `rolled-not-main`\), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than `g<main\.group>s<main\.activeSkill>p<main\.statSet>`, or a rolled `ledger:<id>` figure whose formula reads another breakdown field fails with `rolled-stat-set`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8')).toContain('| rolledSkill | `rolled-stat-set` |');
+    // Review 2: the rolled skill is the main skill, on every stage with a rolledGroup (D1 and D2).
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8')).toContain('| rolledSkill | `rolled-not-main` |');
+    expect(folded(readStage('D1'))).toMatch(/`skills\.main\.group` is the `rolledGroup`, and the rolled figure, or every breakdown field a ledger figure's formula reads, is `<stage>\.g<main\.group>s<main\.activeSkill>p<main\.statSet>`/);
+    expect(folded(readStage('D2'))).toMatch(/Set `skills\.rolledGroup` wherever a stage has the rolled skill, and there `skills\.main\.group` is the `rolledGroup`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("'rolled-stat-set'");
   });
 
@@ -1151,5 +1155,55 @@ describe('D-263: the M-12 run is an interactive session the user starts', () => 
     const ac4 = spec.slice(spec.indexOf('- **AC-W4 '), spec.indexOf('- **AC-W15 '));
     expect(ac4).not.toMatch(/headless/);
     expect(spec).not.toContain('CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Review of bg/amend-1: the references say what the checker now holds (items 1, 6, 7, 9, 10)
+// ---------------------------------------------------------------------------------------------------
+
+describe('Review of bg/amend-1: the references', () => {
+  const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+  const gates = () => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
+
+  it('1: only the budget may be unverified; any other unverified part routes as a compile, V1 or V2 failure (SKILL.md §4, gates.md)', () => {
+    expect(skill()).toMatch(/any part but the budget `unverified` \(only the budget may stay unverified, D-164\): a failure, routed as a compile, V1 or V2 failure/);
+    expect(gates()).toMatch(/Only the budget may stay `unverified` \(D-164\): a gate whose compile failed leaves its other parts `unverified`, and any other part `unverified` is a failure/);
+    expect(gates()).toContain('| any part but the budget `unverified` | any | as a compile, V1 or V2 failure |');
+    expect(folded(readStage('D1-gate'))).toMatch(/Once the compile ran, every part but the budget is `pass` or `fail`: only the budget may stay `unverified` \(D-164\)/);
+  });
+
+  it('3: the runner logs each gate attempt with the outcome its verdict file routes to', () => {
+    expect(skill()).toMatch(/Log each gate attempt with the outcome its verdict file routes to; the run checker holds the log to the files/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'))).toMatch(/A gate attempt's outcome is the one its verdict file routes to/);
+  });
+
+  it('6: a fix round that re-ran D1 or D2 re-checks all three lenses (changed: "all"); W1 rewrites the guide only then', () => {
+    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when the fix round re-ran D1 or D2 \|/);
+    expect(skill()).toMatch(/W1 fixes the guide in place, and writes it anew only after D1 or D2 re-ran/);
+    expect(folded(readStage('V4'))).toMatch(/With `changed: "all"` \(the fix round re-ran D1 or D2\), that is every claim of the new `plan\.json` and `guide\.md` in your lens, as a full pass checks them/);
+    expect(folded(readStage('W1'))).toMatch(/in place with Edit; write the guide anew only after D1 or D2 re-ran, since the re-check then checks it whole/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/or `"all"` when the fix round re-ran D1 or D2/);
+  });
+
+  it("7: a reference hit cites the damage at its variant's area level, and its ledger entry derives from it (gates.md, the D1 gate)", () => {
+    for (const text of [gates(), folded(readStage('D1-gate'))]) {
+      expect(text).toMatch(/cites `enemies\/map-monsters\.json#damage\.by-level\[<area level>\]` at the variant's area level \(79 for the budget variant/);
+    }
+  });
+
+  it('9: the gate steps Grep the record when compile_plan says how many findings it left out', () => {
+    for (const stage of ['D1-gate', 'D2-gate']) {
+      expect({ stage, grep: /every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record\.json`'s `stages\.<id>\.v1\.findings` and `stages\.<id>\.v2\.findings` for them/.test(folded(readStage(stage))) }).toEqual({ stage, grep: true });
+    }
+    const handler = fs.readFileSync(path.join(REPO, 'src', 'handlers', 'planHandlers.ts'), 'utf8');
+    expect(handler).toContain("more findings; Grep the record's findings");
+  });
+
+  it("10: the D1 gate's writes include plan.json, and the guided retry reads the same in SKILL.md, checkpoints.md and gates.md", () => {
+    expect(skill()).toContain('| 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) |');
+    expect(skill()).toMatch(/\*\*guidance and one more retry\*\*: the producer \(D1 or D2\) gets one more attempt, uncounted, with the verdict and the user's guidance .* then its gate\. If the gate fails, whatever part fails, it escalates again/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the producer \(D1 or D2\) gets one more attempt with the verdict and the user's guidance in `findings`, then its gate\. That attempt counts against no cap, and if the gate fails, whatever part fails, it escalates again/);
+    expect(gates()).toContain('| any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |');
   });
 });

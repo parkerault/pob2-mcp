@@ -13,8 +13,10 @@ findings.
   `faults` (FI-2, FI-3: offline test runs only), `writes`: the verdict file
   `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.json` when the re-price pass or FI-2 may edit
   it.
-- **Read:** `plan.json`; after the compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding) and
-  `compile-record.json` (a large record: Read it in parts, or Grep the fields you need); `run-log.json` (has
+- **Read:** `plan.json`; after the compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding up to
+  200; when a line says how many more, Grep `compile-record.json`'s `stages.<id>.v1.findings` and
+  `stages.<id>.v2.findings` for them) and `compile-record.json` (a large record: Read it in parts, or Grep the
+  fields you need); `run-log.json` (has
   pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited` call);
   `.claude/skills/build-guide/references/gates.md` (the parts, the codes and the verdict file),
   `.claude/skills/build-guide/references/pricing.md`.
@@ -33,7 +35,8 @@ findings.
    `compile-error`, the error line as the message, the plan stage it names as `stage`); then every other
    part is `unverified`, and you write the verdict file.
 4. **Read the record** (`compile-record.json`, C-33) and fill each part (`gates.md`). "Endgame stages" are
-   the plan's stages with a `variant`.
+   the plan's stages with a `variant`. Once the compile ran, every part but the budget is `pass` or `fail`:
+   only the budget may stay `unverified` (D-164).
    - **v1, v2**: `fail` when any endgame stage's `v1` or `v2` verdict in the record has a finding. Each
      record finding becomes a gate finding with its record `code`, part `v1` or `v2`, and the plan stage.
    - **floor**: per endgame stage, `MissingFireResist`, `MissingColdResist` and `MissingLightningResist`
@@ -45,7 +48,11 @@ findings.
      the record's value of its ledger entry `hit_<stage id>_<type>`, that value rounded to 2 decimals and
      then up to a whole number, since PoB takes these options as whole numbers (D-256: 96.4789 gives 97,
      402.000003 gives 402; else `reference-hit-ledger-<type>`); and each is below the record's
-     `<Type>MaximumHitTaken` (else `max-hit-<type>`). `<type>` is lower case (`physical`, `chaos`). The
+     `<Type>MaximumHitTaken` (else `max-hit-<type>`). The hit is the variant's (D-254): its scenario entry cites
+     `enemies/map-monsters.json#damage.by-level[<area level>]` at the variant's area level (79 for the budget
+     variant, `enemies/waystones.json#area-level.max` for the non-budget one), and its ledger entry's value is
+     that damage × (1 + the top of the increased-damage modifier / 100), × the top of the extra-damage modifier
+     / 100 for an element (else `reference-hit-ledger-<type>`). `<type>` is lower case (`physical`, `chaos`). The
      other codes: `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`,
      `missing-chaos-resist`. `chaos-exception` and `near-ceiling` are information on a passing part, never
      a failure.
@@ -61,8 +68,10 @@ findings.
      role (else `rolled-not-largest`). Compare one record field for every group of that role
      (`g<group>s<skill>p<statSet>.<Field>` from the stage's `skillOutputs`, the same `<Field>` for each),
      or a ledger value (`ledger:<id>`), and list every group of that role. **The rolled figure's stat set
-     is the stage's `skills.main.statSet`** (S7): a stage without `statSet`, or a rolled figure
-     `g<group>s<skill>p<n>` whose `n` differs from it, fails with `rolled-stat-set`.
+     is the stage's `skills.main.statSet`** (S7): the stage's `skills.main.group` is its `rolledGroup` (else
+     `rolled-not-main`), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than
+     `g<main.group>s<main.activeSkill>p<main.statSet>`, or a rolled `ledger:<id>` figure whose formula reads
+     another breakdown field fails with `rolled-stat-set`.
 5. **Accepted findings.** Report every failure the record shows. One equal to a finding in the header's
    `accepted` (same plan stage, part and code) is reported with `"accepted": true`, and fails no part.
 

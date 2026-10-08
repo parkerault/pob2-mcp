@@ -3,7 +3,7 @@ export const meta = {
   description: 'One research round of a build-guide run (R1): three lookup-only researchers in parallel, then one coordinator step at a time compiles each carried concept skeleton measure-only and prices its key items, then the dossier is assembled',
   whenToUse: 'Only from the build-guide skill (.claude/skills/build-guide/SKILL.md) or its fallback, once per research round, with args {runFolder, runFolderRel, roll, mode, pass, firstId, note?, faults?}',
   phases: [
-    { title: 'R1a research', detail: 'three build-guide-researcher agents in parallel, one research file each' },
+    { title: 'R1a research', detail: 'three build-guide-researcher agents in parallel, one research file each; a dead one re-runs, up to 2 retries' },
     { title: 'R1b skeletons', detail: 'one build-guide-coordinator step per carried concept, in id order, up to 2 retries each' },
     { title: 'R1b assembly', detail: 'one build-guide-coordinator step writes dossier.md' },
   ],
@@ -17,9 +17,10 @@ export const meta = {
 // - status: "ok" when a concept of this round is viable, else "no-viable";
 // - concepts: [{id, title, status: "viable" | "failed" | "not-carried", attempts, evidence}];
 // - gateVerdicts: one R1b verdict per attempt that returned a result (references/gates.md);
-// - stats: {attempts, agents, retries, priceCalls, faults, revision} (references/run-log.md);
+// - stats: {attempts, agents, retries, priceCalls, faults, revision} (references/run-log.md); each retries
+//   entry carries the round, and an R1a entry its researcher, so rounds never merge;
 // - round: {round, firstId, note, concepts, conceptsCompiled}, for the run log's rounds[];
-// - dossier: "dossier.md", or null when the assembly step never returned.
+// - dossier: "dossier.md", or null when the assembly step never returned (then no concept is viable).
 
 const STAGE_REFS = '.claude/skills/build-guide/references/stages/'
 const RESEARCHER = 'build-guide-researcher'
@@ -28,6 +29,9 @@ const CONCEPTS_PER_ROUND = 3 // D-161, D-235: the cap is per research round
 const RETRIES = 2 // D-127: at most 2 retries per (stage, concept)
 const PRICING_STOPS = ['locked_out', 'rate_limited'] // section 9: pricing stops for the rest of the run
 const FI1_GEM = 'FI-1 Unknown Gem'
+const COMPILES_PER_ATTEMPT = 2 // R1b: at most one bootstrap compile, then the whole skeleton (R1b.md)
+// The researchers' foci, in researcher order; R1a.md says what each covers and proposes.
+const FOCI = ['mechanics', 'items', 'tree']
 
 // ---- Arguments ---------------------------------------------------------------------------------------
 
@@ -108,10 +112,15 @@ async function run(agentType, prompt, opts) {
   }
 }
 
-const nullFinding = (stage, attempt, concept) => ({
+const nullFinding = (stage, attempt, who) => ({
   code: 'null-result',
-  message: `${stage} attempt ${attempt}${concept ? ` for ${concept}` : ''} returned no result: the agent died, was skipped or failed`,
+  message: `${stage} attempt ${attempt}${who ? ` for ${who}` : ''} returned no result: the agent died, was skipped or failed`,
 })
+
+// A cap-counted retry (references/run-log.md): keyed by stage, concept and round, and for R1a by researcher.
+const retried = (stage, concept, count, extra) => {
+  if (count > 0) stats.retries.push({ stage, concept, round, ...(extra || {}), count })
+}
 
 // ---- Schemas of the steps' returns -------------------------------------------------------------------
 
@@ -132,7 +141,9 @@ const R1B_SCHEMA = {
   properties: {
     compiled: { type: 'boolean' },
     errors: { type: 'array', items: { type: 'string' } },
+    compiles: { type: 'integer' },
     recordPath: { type: ['string', 'null'] },
+    leagueUnverified: { type: 'boolean' },
     numbers: {
       type: 'array',
       items: {
@@ -176,7 +187,7 @@ const R1B_SCHEMA = {
       items: { type: 'object', properties: { id: { type: 'string' }, observed: { type: 'string' } }, required: ['id', 'observed'] },
     },
   },
-  required: ['compiled', 'errors', 'numbers', 'prices', 'priceCalls'],
+  required: ['compiled', 'errors', 'compiles', 'numbers', 'prices', 'priceCalls'],
 }
 
 const ASSEMBLE_SCHEMA = {
@@ -188,67 +199,75 @@ const ASSEMBLE_SCHEMA = {
   required: ['file', 'missingRecords'],
 }
 
-// ---- R1a: up to 3 researchers in parallel (D-161), one research file each -----------------------------
+// ---- R1a: 3 researchers in parallel (D-161), one research file each; a dead one re-runs ------------------
 
-const FOCI = [
-  {
-    focus: 'mechanics',
-    task: "the rolled skill's mechanics, the ascendancy's interactions with it, and the config gaps (sections Mechanics and Config gaps)",
-    propose: 'Propose no concept: return "concepts": [].',
-  },
-  {
-    focus: 'items',
-    task: 'the synergy search through unique items and support gems (section Synergy search)',
-    propose: 'Propose one or two concepts led by key items, each in its own "## Concept: <title>" section.',
-  },
-  {
-    focus: 'tree',
-    task: 'the synergy search through the ascendancy notables, keystones and the passive tree (section Synergy search)',
-    propose: 'Propose one concept led by the ascendancy and the tree, in a "## Concept: <title>" section.',
-  },
-]
 const researchFiles = FOCI.map((_, i) => `research/p${round}-r1a-${i + 1}.md`)
 
-function researchPrompt(i) {
-  const f = FOCI[i]
+function researchPrompt(i, attempt, findings) {
   const file = researchFiles[i]
   const lines = [
     `Research agent ${i + 1} of ${FOCI.length}, research round ${round}, for the build guide of ${rollText}.`,
     '',
-    `- Focus "${f.focus}": ${f.task}.`,
-    `- ${f.propose}`,
+    `- Your focus is "${FOCI[i]}" (researcher ${i + 1}): do what your stage reference's section for that focus says, and propose as many concepts as it allows.`,
     `- Write only ${file} (the header's writes), inside the run folder.`,
     `- Source-marker ids in your file are p${round}r${i + 1}-<m> (m from 1), so they stay unique in the dossier.`,
   ]
+  if (attempt > 1) lines.push(`- Attempt ${attempt}: an earlier attempt returned no result, and ${file} may hold its partial work. Write the file whole.`)
   if (round > 1) lines.push("- This is a later research round: read dossier.md first, and propose only concepts it doesn't already hold.")
   if (note) lines.push(`- The user's note for this round: ${JSON.stringify(note)}`)
   lines.push('', `Follow your stage reference (the header's "reference") and end with the JSON it names: {"file": "${file}", "concepts": [{"title": "..."}]}.`)
-  return header({ stage: 'R1a', attempt: 1, compile: 'none', writes: [file] }) + '\n' + lines.join('\n') + '\n'
+  return header({ stage: 'R1a', attempt, compile: 'none', findings, writes: [file] }) + '\n' + lines.join('\n') + '\n'
 }
 
 phase('R1a research')
-const research = await parallel(
-  FOCI.map((f, i) => () => run(RESEARCHER, researchPrompt(i), { label: `R1a ${i + 1} (${f.focus})`, phase: 'R1a research', schema: R1A_SCHEMA })),
-)
+const research = FOCI.map(() => null)
+const researchAttempts = FOCI.map(() => 0)
+const researchFindings = FOCI.map(() => [])
+let pending = FOCI.map((_, i) => i)
+// Attempt 1 runs every researcher; each later attempt re-runs, together, only those that returned nothing.
+for (let attempt = 1; attempt <= 1 + RETRIES && pending.length > 0; attempt += 1) {
+  const batch = pending
+  const results = await parallel(
+    batch.map((i) => () =>
+      run(RESEARCHER, researchPrompt(i, attempt, researchFindings[i].slice()), {
+        label: `R1a ${i + 1} (${FOCI[i]}) attempt ${attempt}`,
+        phase: 'R1a research',
+        schema: R1A_SCHEMA,
+      }),
+    ),
+  )
+  pending = []
+  results.forEach((r, k) => {
+    const i = batch[k]
+    researchAttempts[i] = attempt
+    if (r === null || typeof r !== 'object') {
+      stats.attempts.push({ stage: 'R1a', attempt, agents: 1, outcome: 'null-result', findings: 1 })
+      researchFindings[i].push({ attempt, ...nullFinding('R1a', attempt, researchFiles[i]) })
+      pending.push(i)
+      return
+    }
+    stats.attempts.push({ stage: 'R1a', attempt, agents: 1, outcome: 'done', findings: 0 })
+    research[i] = r
+  })
+}
+FOCI.forEach((_, i) => retried('R1a', null, researchAttempts[i] - 1, { researcher: i + 1 }))
 
 const proposals = []
 const silentFiles = []
 research.forEach((r, i) => {
   const file = researchFiles[i]
-  if (r === null || typeof r !== 'object') {
-    stats.attempts.push({ stage: 'R1a', attempt: 1, agents: 1, outcome: 'null-result', findings: 0 })
+  if (r === null) {
     silentFiles.push(file)
-    log(`R1a ${i + 1}: no result; ${file} may be missing or partial`)
+    log(`R1a ${i + 1}: no result in ${researchAttempts[i]} attempts; ${file} may be missing or partial`)
     return
   }
-  stats.attempts.push({ stage: 'R1a', attempt: 1, agents: 1, outcome: 'done', findings: 0 })
   if (r.file !== file) log(`R1a ${i + 1} reported ${JSON.stringify(r.file)}; its file is ${file}`)
   for (const c of Array.isArray(r.concepts) ? r.concepts : []) {
     if (c && isText(c.title)) proposals.push({ title: c.title.trim(), file })
   }
 })
 
-// ---- Ids and the cap (D-235): ids in return order from c<firstId>; at most 3 carried this round --------
+// ---- Ids and the cap (D-235): ids in researcher order from c<firstId>; at most 3 carried this round ---
 
 const concepts = proposals.map((p, i) => ({ id: `c${firstId + i}`, title: p.title, file: p.file }))
 const carried = concepts.slice(0, CONCEPTS_PER_ROUND)
@@ -276,7 +295,7 @@ function pricingLine() {
   if (pricingStopped) {
     return `Pricing has stopped for this run (a price call came back ${pricingStopped}): make no price call; every key item is unavailable.`
   }
-  return 'Price the concept\'s key items at the pace .claude/skills/build-guide/references/pricing.md sets, and report every price-tool call in priceCalls.'
+  return 'Once the skeleton validates, price the concept\'s key items at the pace .claude/skills/build-guide/references/pricing.md sets, and report every price-tool call in priceCalls.'
 }
 
 function skeletonPrompt(c, attempt, findings, faults) {
@@ -284,11 +303,12 @@ function skeletonPrompt(c, attempt, findings, faults) {
   const lines = [
     `R1b for concept ${c.id}, "${c.title}", proposed in ${c.file} (research round ${round}), for the build guide of ${rollText}.`,
     '',
-    `- Write the concept's endgame skeleton at ${plan}, check it with guide_run {validate: "${runFolderRel}/${plan}"}, and compile it with compile_plan {plan_path: "${runFolderRel}/${plan}", measure_only: true}. Never a final compile.`,
+    `- Write the concept's endgame skeleton at ${plan} and check it with guide_run {validate: "${runFolderRel}/${plan}"}.`,
+    `- Compile only measure-only: compile_plan {plan_path: "${runFolderRel}/${plan}", measure_only: true}. At most ${COMPILES_PER_ATTEMPT} compiles in this attempt: one bootstrap compile of a tree-minimal skeleton, if you need it to path the tree, then the whole skeleton. Never a final compile.`,
     `- ${pricingLine()}`,
   ]
   if (attempt > 1) lines.push(`- Attempt ${attempt}: the header's findings are the earlier attempts' gate findings; fix what they name.`)
-  if (faults.length > 0) lines.push('- Fault directive FI-1 applies to this attempt: apply it right before the compile, as the stage reference says, and never work around it.')
+  if (faults.length > 0) lines.push('- Fault directive FI-1 applies to this attempt: apply it right before the last compile, as the stage reference says, and never work around it.')
   lines.push('', "Follow your stage reference (the header's \"reference\") and end with the JSON it names.")
   return header({ stage: 'R1b', attempt, concept: c.id, compile: 'measure-only', findings, faults, writes: [plan] }) + '\n' + lines.join('\n') + '\n'
 }
@@ -297,7 +317,7 @@ phase('R1b skeletons')
 for (const c of carried) {
   const earlier = []
   let lastErrors = [] // the last compile errors any attempt reported: a failed concept's evidence
-  let outcome = { status: 'failed', attempts: 0, evidence: [], recordPath: null, numbers: [], prices: [] }
+  let outcome = { status: 'failed', attempts: 0, evidence: [], recordPath: null, numbers: [], prices: [], leagueUnverified: false }
   for (let attempt = 1; attempt <= 1 + RETRIES; attempt += 1) {
     const faults = faultsFor(c.id, attempt)
     for (const d of faults) faultTally[FAULTS.indexOf(d)].targeted += 1
@@ -323,6 +343,10 @@ for (const c of carried) {
       ? []
       : (errors.length > 0 ? errors : [`the step reported compiled: ${JSON.stringify(res.compiled)} with no error line`]).map(compileFinding)
     const recordPath = isText(res.recordPath) ? res.recordPath : null
+    const compiles = Number.isInteger(res.compiles) ? res.compiles : null
+    if (compiles !== null && compiles > COMPILES_PER_ATTEMPT) {
+      log(`R1b ${c.id} attempt ${attempt} reported ${compiles} compiles; R1b.md allows ${COMPILES_PER_ATTEMPT} (a bootstrap, then the whole skeleton)`)
+    }
     gateVerdicts.push({
       stage: 'R1b',
       concept: c.id,
@@ -331,6 +355,7 @@ for (const c of carried) {
       findings,
       errors,
       recordPath,
+      compiles,
     })
     stats.attempts.push({ stage: 'R1b', concept: c.id, attempt, agents: 1, outcome: passed ? 'pass' : 'fail', findings: findings.length })
 
@@ -362,6 +387,7 @@ for (const c of carried) {
       }
     }
 
+    const common = { prices: Array.isArray(res.prices) ? res.prices : [], leagueUnverified: res.leagueUnverified === true }
     if (passed) {
       outcome = {
         status: 'viable',
@@ -369,16 +395,16 @@ for (const c of carried) {
         evidence: [],
         recordPath: recordPath || `concepts/${c.id}/compile-record.json`,
         numbers: Array.isArray(res.numbers) ? res.numbers : [],
-        prices: Array.isArray(res.prices) ? res.prices : [],
+        ...common,
       }
       break
     }
     lastErrors = findings.map((f) => f.message)
     outcome.evidence = lastErrors
-    outcome.prices = Array.isArray(res.prices) ? res.prices : []
+    Object.assign(outcome, common)
     earlier.push(...findings.map((f) => ({ attempt, ...f })))
   }
-  if (outcome.attempts > 1) stats.retries.push({ stage: 'R1b', concept: c.id, count: outcome.attempts - 1 })
+  retried('R1b', c.id, outcome.attempts - 1)
   if (outcome.status === 'failed') log(`${c.id} failed after ${outcome.attempts} attempts: ${outcome.evidence.join(' | ')}`)
   outcomes.set(c.id, outcome)
 }
@@ -406,6 +432,7 @@ const assemblyInput = {
       recordPath: o.recordPath,
       numbers: o.numbers,
       prices: o.prices,
+      leagueUnverified: o.leagueUnverified,
     }
   }),
 }
@@ -418,6 +445,9 @@ function assemblePrompt(attempt, findings) {
       ? '- Write dossier.md from the template, the research files and the R1b results below.'
       : '- dossier.md holds the earlier rounds: keep everything in it, and add this round as the stage reference says.',
     '- Confirm that every viable concept\'s compile record is beside its skeleton; list each one that isn\'t in "missingRecords" and mark it failed in the dossier.',
+  ]
+  if (attempt > 1) lines.push(`- Attempt ${attempt}: an earlier attempt returned no result, and dossier.md may hold its partial work. Make it whole.`)
+  lines.push(
     '',
     'This round (research files, and every concept with its R1b result):',
     '',
@@ -426,7 +456,7 @@ function assemblePrompt(attempt, findings) {
     '```',
     '',
     "Follow your stage reference (the header's \"reference\") and end with the JSON it names.",
-  ]
+  )
   return header({ stage: 'R1b-assemble', attempt, compile: 'none', findings, writes: ['dossier.md'] }) + '\n' + lines.join('\n') + '\n'
 }
 
@@ -457,8 +487,17 @@ for (let attempt = 1; attempt <= 1 + RETRIES && dossier === null; attempt += 1) 
     }
   }
 }
-if (assemblyAttempts > 1) stats.retries.push({ stage: 'R1b-assemble', concept: null, count: assemblyAttempts - 1 })
-if (dossier === null) log(`R1b-assemble returned no result in ${assemblyAttempts} attempts; dossier.md may be missing`)
+retried('R1b-assemble', null, assemblyAttempts - 1)
+if (dossier === null) {
+  // Section 5.2 step 4: a concept is viable only once the assembly confirmed its record. With no assembly,
+  // nothing is confirmed and no dossier exists, so every carried concept fails, with the reason.
+  log(`R1b-assemble returned no result in ${assemblyAttempts} attempts; no dossier, and no concept confirmed`)
+  for (const [id, o] of outcomes) {
+    if (o.status !== 'viable') continue
+    o.status = 'failed'
+    o.evidence = [`R1b-assemble returned no result in ${assemblyAttempts} attempts, so ${id}'s record was never confirmed and no dossier was written (section 5.2 step 4)`]
+  }
+}
 
 // ---- Result ---------------------------------------------------------------------------------------------
 

@@ -21,7 +21,7 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
 | `timeline[]` | `{what, startedAt, endedAt}`, one per workflow call, checkpoint, question and fallback agent call, in order |
 | `stages[]` | one per attempt: `{stage, concept?, lens?, pass?, attempt, startedAt, endedAt, agents, outcome, findings}` |
 | `agents` | `{total, byType: {<agent type>: n}, maxConcurrent}` |
-| `retries[]` | `{stage, concept, count}`: cap-counted retries only |
+| `retries[]` | `{stage, concept, round?, researcher?, count}`: cap-counted retries only, one entry per key |
 | `rounds[]` | `{round, note, firstId, concepts, conceptsCompiled, startedBy}`, one per research round |
 | `concepts[]` | `{id, title, round, status, attempts}`; `status` is `viable`, `failed` or `not-carried` |
 | `conceptsCompiled` | how many skeletons R1b compiled in the whole run: the sum over `rounds[]` |
@@ -46,10 +46,15 @@ one (FR-W2, D-158). Only the skill writes it. The run checker requires every fie
   price's `Checked:` line). In fallback mode the skill stamps every attempt. `startedAt` ≤ `endedAt`
   wherever both are set, and `timeline[]` is in order. No agent gains Bash or a network tool for timing.
 - **`retries[]`** counts only cap-counted retries: a user's revision and a guided retry count against no
-  cap (D-236), so they don't appear here; their attempts still appear in `stages[]`.
+  cap (D-236), so they don't appear here; their attempts still appear in `stages[]`. An entry's key is
+  (`stage`, `concept`, `round`, `researcher`), a missing field counting as `null`, and each key appears
+  once. The research workflow's entries carry their `round` (the research round), and R1a's also the
+  `researcher` (`n` of `research/p<round>-r1a-<n>.md`), so two rounds' retries of the same step, or two
+  researchers' retries, are never merged into one count; `concept` is `null` for R1a and R1b-assemble.
 - **`rounds[]`**: the first round is `startedBy: "user"` (the invocation); a later round is `user` when
   the user answered "ask for more" at checkpoint 1, `pre-supplied` when the test config did. `concepts`
-  lists the ids the round carried; `conceptsCompiled` how many of them R1b compiled.
+  lists the ids the round carried; `conceptsCompiled` how many of them R1b ran (the research workflow's
+  `round.conceptsCompiled`; a concept that failed its attempts counts).
 - **`checkpoints[]`**: `checkpoint` is `1`, `2`, `unsaved-build` or `escalation`; `visit` counts that
   checkpoint's visits from 1; `shown` is what was presented, in short; `answer` the effective answer
   (`pick:c2`, `more`, `stop`, `accept`, `revise:<text>`, `proceed`, `retry:<guidance>`, …);
@@ -77,7 +82,7 @@ Each workflow returns `stats` beside its result (slice 03 §5.2, §5.3), and the
 "stats": {
   "attempts": [ { "stage": "R1b", "concept": "c1", "attempt": 1, "agents": 1, "outcome": "pass", "findings": 0 } ],
   "agents": { "total": 6, "byType": { "build-guide-researcher": 3, "build-guide-coordinator": 3 }, "maxConcurrent": 3 },
-  "retries": [ { "stage": "R1b", "concept": "c2", "count": 1 } ],
+  "retries": [ { "stage": "R1b", "concept": "c2", "round": 1, "count": 1 } ],
   "priceCalls": [ { "at": "2026-10-08T10:12:31Z", "stage": "R1b", "tool": "get_item_price", "item": "…", "outcome": "ok" } ],
   "faults": [ { "id": "FI-1", "target": { "concepts": ["c1"], "persistent": true }, "applied": 1, "observed": "…" } ],
   "revision": [ { "request": "…", "owner": "W1" } ]
@@ -85,9 +90,13 @@ Each workflow returns `stats` beside its result (slice 03 §5.2, §5.3), and the
 ```
 
 - `attempts` become `stages[]` entries (times `null` in workflow mode); `agents` adds into `agents`
-  (`maxConcurrent` is the largest seen); `retries` merge by (stage, concept); `priceCalls` append to
-  `pricing.calls`; `faults` append to `faults[]`; `revision`, after a checkpoint-2 revision, becomes that
-  revision's `requests` (`{text, owner}`).
+  (`maxConcurrent` is the largest seen); `retries` merge by their key (stage, concept, round,
+  researcher), adding the counts of equal keys; `priceCalls` append to `pricing.calls`; `faults` append
+  to `faults[]`; `revision`, after a checkpoint-2 revision, becomes that revision's `requests`
+  (`{text, owner}`).
+- The research workflow also returns `round` (`{round, firstId, note, concepts, conceptsCompiled}`, the
+  round's `rounds[]` entry without `startedBy`) and `dossier` (`"dossier.md"`, or `null` when the
+  assembly step never returned; every carried concept of the round is then `failed`).
 - `gateVerdicts`, `v3Reports` and `v4Reports` are written to `reports/` unchanged (`run-folder.md`);
   each report goes in `v4Passes[]` and each verdict's concept in `concepts[]` as the run proceeds.
 

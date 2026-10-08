@@ -786,9 +786,19 @@ function checkRunLog(log, fail) {
     if (!isObj(a) || !isInt(a.total) || !isObj(a.byType) || !isInt(a.maxConcurrent)) bad('agents', 'is {total, byType, maxConcurrent}');
     else if (a.maxConcurrent > CAPS.fanOut) fail('caps', `agents.maxConcurrent is ${a.maxConcurrent}; fan-out is at most ${CAPS.fanOut} (NFR-23, D-161)`);
   }
+  // §6: one entry per key (stage, concept, round, researcher), a missing field counting as null. The
+  // research workflow's entries carry their round, so two rounds' retries of one step stay apart.
+  const retryKeys = new Map();
   list('retries').forEach((r, i) => {
-    if (!isObj(r) || typeof r.stage !== 'string' || !isInt(r.count)) return bad(`retries[${i}]`, 'is {stage, concept, count}');
-    if (r.count > CAPS.retriesPerStage) fail('caps', `retries[${i}]: ${r.stage} ${r.concept ?? ''} has ${r.count} retries; at most ${CAPS.retriesPerStage} per stage (NFR-23, D-127)`);
+    if (!isObj(r) || typeof r.stage !== 'string' || !isInt(r.count)) return bad(`retries[${i}]`, 'is {stage, concept, round?, researcher?, count}');
+    for (const k of ['round', 'researcher']) {
+      if (k in r && r[k] !== null && !isInt(r[k], 1)) bad(`retries[${i}]`, `${k} is ${show(r[k])}; an integer from 1`);
+    }
+    const key = show([r.stage, r.concept ?? null, r.round ?? null, r.researcher ?? null]);
+    if (retryKeys.has(key)) bad(`retries[${i}]`, `repeats the key (stage, concept, round, researcher) ${key} of retries[${retryKeys.get(key)}]; equal keys merge into one entry (§6)`);
+    else retryKeys.set(key, i);
+    const who = [r.concept, r.round !== undefined && r.round !== null ? `round ${r.round}` : null, r.researcher ? `researcher ${r.researcher}` : null].filter(Boolean).join(' ');
+    if (r.count > CAPS.retriesPerStage) fail('caps', `retries[${i}]: ${r.stage} ${who} has ${r.count} retries; at most ${CAPS.retriesPerStage} per stage (NFR-23, D-127)`);
   });
   let compiledSum = 0;
   list('rounds').forEach((r, i) => {

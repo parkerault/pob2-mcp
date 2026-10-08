@@ -384,6 +384,40 @@ describe('WU-44: the research stage references', () => {
     const text = fs.readFileSync(path.join(STAGES_DIR, 'R1b.md'), 'utf8');
     expect(text).toContain('FI-1 Unknown Gem');
     expect(text).toContain('measure_only: true');
+    expect(text).not.toMatch(/build_name: /);
+  });
+
+  it('R1b paths the tree through one bootstrap compile, and validates before any price call', () => {
+    const text = fs.readFileSync(path.join(STAGES_DIR, 'R1b.md'), 'utf8');
+    expect(text).toContain('At most **two compiles per attempt**');
+    expect(text).toMatch(/\*\*Bootstrap compile\*\* \(at most once per attempt/);
+    expect(text).toContain('find_path_to_node {target_node_id: <id>}');
+    const step = (name: string) => text.search(new RegExp(`^\\d\\. \\*\\*${name}`, 'm'));
+    const order = ['Tree targets', 'Bootstrap compile', 'Write the skeleton', 'Validate', 'Prices', 'Validate again', 'FI-1', 'The last compile'].map(step);
+    for (const i of order) expect(i).toBeGreaterThan(0);
+    expect([...order].sort((x, y) => x - y)).toEqual(order);
+    // A fallback league is flagged, and D1 doesn't inherit it.
+    expect(text).toContain('leagueUnverified: true');
+    expect(text).toMatch(/D1 doesn't take its\s+league from a skeleton whose league is unverified/);
+  });
+
+  it('R1a names the discovery calls for supports, uniques and the tree', () => {
+    const text = fs.readFileSync(path.join(STAGES_DIR, 'R1a.md'), 'utf8');
+    for (const call of [
+      'list_gems {type: "support", tag:',
+      'kind: "gem"}',
+      'lookup_game_data {mode: "unique", query:',
+      'search_tree_nodes {query}',
+      'search_tree_nodes {ascendancy}',
+    ]) {
+      expect({ call, named: text.includes(call) }).toEqual({ call, named: true });
+    }
+  });
+
+  it('SKILL.md says what the skill does when the research workflow returns dossier: null', () => {
+    const text = fs.readFileSync(SKILL_MD, 'utf8');
+    expect(text).toContain('**`dossier: null`**');
+    expect(text).toMatch(/no concept of that\s+round can be picked/);
   });
 });
 
@@ -407,6 +441,10 @@ describe('WU-44: the dossier template (§7.2)', () => {
     for (const h of h3) expect(h.title).toMatch(/^c[1-9]\d*: /);
     const section = text.split(/\r?\n/).slice(concepts.line, next.line).join('\n');
     for (const field of CONCEPT_FIELDS) expect({ field, present: section.includes(`- ${field}: `) }).toEqual({ field, present: true });
+  });
+
+  it('states the league, and marks a fallback league unverified for D1', () => {
+    expect(text).toMatch(/League: <none \(offline\) \| <league>, from get_leagues \| <league>, unverified/);
   });
 
   it('puts every footnote definition under the last heading, after Not carried', () => {

@@ -88,15 +88,24 @@ than the highest concept id so far; `note` is the user's note for a later round;
 accepted test config.
 
 It returns `{status: "ok" | "no-viable", concepts: [{id, title, status, attempts, evidence}],
-gateVerdicts, stats}`. Write each gate verdict to `reports/gates/` (FR-W6), then update `rounds[]`,
-`concepts[]`, `conceptsCompiled`, `stages[]`, `agents`, `retries[]`, `pricing` and `faults[]`
+gateVerdicts, stats, round, dossier}`. Write each gate verdict to `reports/gates/` (FR-W6), then update
+`rounds[]` (from `round`, adding `startedBy`), `concepts[]`, `conceptsCompiled`, `stages[]`, `agents`,
+`retries[]` (merged by their key, each research entry carrying its round), `pricing` and `faults[]`
 (`references/run-log.md`).
+
+**`dossier: null`** means the assembly step never returned in 3 attempts: no dossier was written for the
+round, and the workflow returned every carried concept of the round `failed`, with that as evidence, so
+the status is `no-viable`. Record it in `timeline[]`, and at checkpoint 1 say that the round has no
+dossier entry and show its concepts from the result. A design reads the dossier, so no concept of that
+round can be picked; concepts of earlier rounds, which `dossier.md` holds, still can, and **ask for
+more** runs a new round whose assembly writes the dossier (anew, if it is missing).
 
 ## 5. Checkpoint 1 (`references/checkpoints.md`)
 
 Show the concepts and ask: pick one, ask for more, or stop. **Ask for more** starts research round
 `pass + 1` (step 4) with the user's note, up to 3 more concepts (D-235); only that answer starts a round.
-**Stop** ends the run `stopped`.
+**Stop** ends the run `stopped`. A round that returned `dossier: null` offers none of its concepts to
+pick (step 4); in offline test mode, `pick:<id>` naming one of them is answered as `stop`.
 
 ## 6. Design and write (slice 03 §5.3)
 

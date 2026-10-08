@@ -442,3 +442,40 @@ describe('AC-W2: --partial', () => {
     expect(r.stderr).toMatch(/usage: node check-run\.mjs <runFolder> \[--partial\]/);
   });
 });
+
+describe('§6: retries are keyed by (stage, concept, round, researcher) (WU-44)', () => {
+  const withRetries = (retries: Json[]) => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'run-log.json', (l) => (l.retries = retries));
+    return runChecker(dir);
+  };
+
+  it("passes two rounds' assembly retries and two researchers' R1a retries, each within the cap", () => {
+    const r = withRetries([
+      { stage: 'R1a', concept: null, round: 1, researcher: 1, count: 2 },
+      { stage: 'R1a', concept: null, round: 1, researcher: 3, count: 1 },
+      { stage: 'R1b-assemble', concept: null, round: 1, count: 2 },
+      { stage: 'R1b-assemble', concept: null, round: 2, count: 2 },
+      { stage: 'D1', concept: 'c1', count: 2 },
+    ]);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it('fails an unmerged key: the same (stage, concept, round, researcher) twice', () => {
+    const r = withRetries([
+      { stage: 'R1b-assemble', concept: null, round: 1, count: 1 },
+      { stage: 'R1b-assemble', concept: null, round: 1, count: 2 },
+    ]);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/check-run: \[run-log\] run-log\.json retries\[1\]: repeats the key \(stage, concept, round, researcher\) \["R1b-assemble",null,1,null\] of retries\[0\]/);
+  });
+
+  it('fails a round or researcher that is not an integer from 1, and names the round in a cap breach', () => {
+    const r = withRetries([{ stage: 'R1a', concept: null, round: 0, researcher: 'two', count: 3 }]);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/retries\[0\]: round is 0; an integer from 1/);
+    expect(r.stderr).toMatch(/retries\[0\]: researcher is "two"; an integer from 1/);
+    expect(r.stderr).toMatch(/check-run: \[caps\] retries\[0\]: R1a round 0 researcher two has 3 retries/);
+  });
+});

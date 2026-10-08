@@ -7,8 +7,10 @@
  * - WU-45 appends the design cases (AC-W8…AC-W11, AC-W24) and WU-46 the verification cases (AC-W12,
  *   AC-W13, AC-W25), each in its own `describe` block below the research ones, reusing the shared helpers.
  */
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, afterAll } from '@jest/globals';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import {
   byStage,
@@ -86,7 +88,7 @@ interface ResearchResult {
   stats: {
     attempts: { stage: string; concept?: string; attempt: number; agents: number; outcome: string; findings: number }[];
     agents: { total: number; byType: Record<string, number>; maxConcurrent: number };
-    retries: { stage: string; concept: string | null; count: number }[];
+    retries: { stage: string; concept: string | null; round: number; researcher?: number; count: number }[];
     priceCalls: { at: string | null; stage: string; tool: string; item: string; outcome: string }[];
     faults: { id: string; target: { concepts: string[] | 'all'; persistent: boolean }; applied: number; observed: string }[];
     revision: unknown[];
@@ -120,6 +122,7 @@ const r1bPass = (call: AgentCall) => {
   return {
     compiled: true,
     errors: [],
+    compiles: 2,
     recordPath: `concepts/${id}/compile-record.json`,
     numbers: [{ stage: `${id}e`, field: 'Life', value: 4000 }],
     prices: [
@@ -128,13 +131,46 @@ const r1bPass = (call: AgentCall) => {
     priceCalls: [],
   };
 };
-const r1bFail = (errors: string[]) => () => ({ compiled: false, errors, recordPath: null, numbers: [], prices: [], priceCalls: [] });
+const r1bFail = (errors: string[]) => () => ({ compiled: false, errors, compiles: 2, recordPath: null, numbers: [], prices: [], priceCalls: [] });
 /** A failure whose error names the attempt, so each attempt's findings are told apart. */
 const r1bFailNth = (call: AgentCall) => {
   const h = header(call);
   return r1bFail([`stage ${h.concept}e: unknown gem "Bad Gem ${h.attempt}"`])();
 };
 const assembleOk = () => ({ file: 'dossier.md', missingRecords: [] });
+/** R1a, where researcher n returns nothing on its first `dies[n]` attempts, then proposes as `r1a(titles)`. */
+const r1aDying = (titles: string[][], dies: Record<number, number>) => (call: AgentCall) => {
+  const n = Number(/-r1a-(\d+)\.md$/.exec((header(call).writes as string[])[0])![1]);
+  return (header(call).attempt as number) <= (dies[n] ?? 0) ? null : r1a(titles)(call);
+};
+
+type Retry = { stage: string; concept: string | null; round?: number; researcher?: number; count: number };
+/** references/run-log.md: the skill merges retries by (stage, concept, round, researcher), adding counts. */
+function mergeRetries(entries: Retry[]): Retry[] {
+  const out: Retry[] = [];
+  for (const e of entries) {
+    const same = out.find((o) => o.stage === e.stage && o.concept === e.concept && o.round === e.round && o.researcher === e.researcher);
+    if (same) same.count += e.count;
+    else out.push({ ...e });
+  }
+  return out;
+}
+
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'bg-workflows-'));
+afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
+let copies = 0;
+/** The run checker on a copy of the passing fixture run whose run log holds these retries. */
+function checkRunWithRetries(retries: Retry[]): { code: number | null; stderr: string } {
+  const dir = path.join(TMP, `run-ok-${++copies}`);
+  fs.cpSync(path.join(REPO_ROOT, 'tests', 'fixtures', 'pipeline', 'run-ok'), dir, { recursive: true });
+  const logPath = path.join(dir, 'run-log.json');
+  const log = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+  log.retries = retries;
+  fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
+  const checker = path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+  const r = spawnSync(process.execPath, [checker, dir], { env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+  return { code: r.status, stderr: r.stderr };
+}
 
 async function research(table: Parameters<typeof byStage>[0], args: Record<string, unknown> = {}, options: Partial<RunOptions> = {}) {
   const r = await run('build-guide-research', { args: researchArgs(args), respond: byStage(table), ...options });
@@ -306,7 +342,7 @@ describe('AC-W7: the R1b gate, its retries, no-viable and FI-1', () => {
         }),
       ),
     );
-    expect(r.out.stats.retries).toEqual([{ stage: 'R1b', concept: 'c2', count: 2 }]);
+    expect(r.out.stats.retries).toEqual([{ stage: 'R1b', concept: 'c2', round: 1, count: 2 }]);
   });
 
   it('returns no-viable, with every concept\'s evidence, when every concept fails', async () => {
@@ -318,7 +354,7 @@ describe('AC-W7: the R1b gate, its retries, no-viable and FI-1', () => {
     expect(callsOf(r, 'R1b')).toHaveLength(9);
     // The dossier is still assembled, so checkpoint 1 can show why each failed (D-141).
     expect(callsOf(r, 'R1b-assemble')).toHaveLength(1);
-    expect(r.out.stats.retries).toEqual(['c1', 'c2', 'c3'].map((concept) => ({ stage: 'R1b', concept, count: 2 })));
+    expect(r.out.stats.retries).toEqual(['c1', 'c2', 'c3'].map((concept) => ({ stage: 'R1b', concept, round: 1, count: 2 })));
   });
 
   it('counts a null R1b result as a failed attempt, which re-runs with a finding saying so', async () => {
@@ -334,7 +370,7 @@ describe('AC-W7: the R1b gate, its retries, no-viable and FI-1', () => {
     expect(r.out.stats.attempts.filter((a) => a.concept === 'c1').map((a) => a.outcome)).toEqual(['null-result', 'pass']);
     // A null attempt has no verdict, so no gate file; the log's entry says null-result (FR-W6).
     expect(r.out.gateVerdicts.filter((g) => g.concept === 'c1').map((g) => g.attempt)).toEqual([2]);
-    expect(r.out.stats.retries).toEqual([{ stage: 'R1b', concept: 'c1', count: 1 }]);
+    expect(r.out.stats.retries).toEqual([{ stage: 'R1b', concept: 'c1', round: 1, count: 1 }]);
   });
 
   it('fails a concept whose three R1b attempts all return null, and keeps the last errors as evidence', async () => {
@@ -380,6 +416,30 @@ describe('AC-W7: the R1b gate, its retries, no-viable and FI-1', () => {
     ]);
   });
 
+  it('puts a persistent FI-1 on c2 in all three of c2\'s headers and in none of c1\'s or c3\'s', async () => {
+    const failing = (c: AgentCall) =>
+      (header(c).faults as unknown[]).length > 0 ? r1bFail([`stage ${header(c).concept}e: unknown gem "FI-1 Unknown Gem"`])() : r1bPass(c);
+    const r = await research({ R1a: r1a(THREE), R1b: failing, 'R1b-assemble': [assembleOk()] }, { faults: [{ id: 'FI-1', concepts: ['c2'], persistent: true }] });
+    const r1b = callsOf(r, 'R1b').map((c) => [header(c).concept, header(c).attempt, (header(c).faults as { id: string }[]).map((f) => f.id)]);
+    expect(r1b).toEqual([
+      ['c1', 1, []],
+      ['c2', 1, ['FI-1']],
+      ['c2', 2, ['FI-1']],
+      ['c2', 3, ['FI-1']],
+      ['c3', 1, []],
+    ]);
+    for (const c of r.calls.filter((c) => stageOf(c) !== 'R1b')) expect(header(c).faults).toEqual([]);
+    expect(r.out.concepts.map((c) => [c.id, c.status, c.attempts])).toEqual([
+      ['c1', 'viable', 1],
+      ['c2', 'failed', 3],
+      ['c3', 'viable', 1],
+    ]);
+    expect(r.out.concepts[1].evidence).toEqual(['stage c2e: unknown gem "FI-1 Unknown Gem"']);
+    expect(r.out.stats.faults).toEqual([
+      { id: 'FI-1', target: { concepts: ['c2'], persistent: true }, applied: 3, observed: 'stage c2e: unknown gem "FI-1 Unknown Gem"' },
+    ]);
+  });
+
   it('never sends a fault directive in online mode, nor one meant for another step', async () => {
     const faults = [
       { id: 'FI-1', concepts: 'all', persistent: true },
@@ -408,20 +468,51 @@ describe('build-guide-research: assembly, dead researchers and pricing', () => {
   it('re-runs a dead assembly step, up to 2 retries', async () => {
     const r = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [null, assembleOk()] });
     expect(callsOf(r, 'R1b-assemble').map((c) => header(c).attempt)).toEqual([1, 2]);
+    expect((header(callsOf(r, 'R1b-assemble')[1]).findings as { code: string }[]).map((f) => f.code)).toEqual(['null-result']);
     expect(r.out.dossier).toBe('dossier.md');
-    expect(r.out.stats.retries).toEqual([{ stage: 'R1b-assemble', concept: null, count: 1 }]);
-    const dead = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [null, null, null] });
-    expect(callsOf(dead, 'R1b-assemble')).toHaveLength(3);
-    expect(dead.out.dossier).toBeNull();
+    expect(r.out.status).toBe('ok');
+    expect(r.out.stats.retries).toEqual([{ stage: 'R1b-assemble', concept: null, round: 1, count: 1 }]);
+    expect(r.out.stats.attempts.filter((a) => a.stage === 'R1b-assemble')).toEqual([
+      { stage: 'R1b-assemble', attempt: 1, agents: 1, outcome: 'null-result', findings: 1 },
+      { stage: 'R1b-assemble', attempt: 2, agents: 1, outcome: 'done', findings: 0 },
+    ]);
   });
 
-  it('carries on without a dead researcher, and tells the assembly which file came back empty', async () => {
-    const r = await research({ R1a: (c) => (c.index === 1 ? null : r1a(THREE)(c)), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
-    // Researcher 2 died: its two proposals are gone; researcher 3's is c1.
-    expect(r.out.concepts.map((c) => [c.id, c.title])).toEqual([['c1', 'Totem titan']]);
-    expect(r.out.stats.attempts.filter((a) => a.stage === 'R1a').map((a) => a.outcome)).toEqual(['done', 'null-result', 'done']);
-    expect(callsOf(r, 'R1a')).toHaveLength(3);
-    expect(callsOf(r, 'R1b-assemble')[0].prompt).toMatch(/"file": "research\/p1-r1a-2\.md",\s*"returned": false/);
+  it('fails every carried concept, with the reason, when the assembly never returns (§5.2 step 4)', async () => {
+    const r = await research({ R1a: r1a(FOUR), R1b: (c) => r1bPass(c), 'R1b-assemble': [null, null, null] });
+    expect(callsOf(r, 'R1b-assemble')).toHaveLength(3);
+    expect(r.out.dossier).toBeNull();
+    // No record was confirmed and no dossier written, so nothing is viable: the skill acts on no-viable.
+    expect(r.out.status).toBe('no-viable');
+    expect(r.out.concepts.map((c) => [c.id, c.status])).toEqual([
+      ['c1', 'failed'],
+      ['c2', 'failed'],
+      ['c3', 'failed'],
+      ['c4', 'not-carried'],
+    ]);
+    for (const c of r.out.concepts.slice(0, 3)) {
+      expect(c.evidence).toEqual([expect.stringMatching(/R1b-assemble returned no result in 3 attempts, so c\d's record was never confirmed and no dossier was written/)]);
+    }
+    expect(r.out.stats.retries).toEqual([{ stage: 'R1b-assemble', concept: null, round: 1, count: 2 }]);
+  });
+
+  it("keys each round's retries by its round, so two rounds of dying assembly stay within the cap", async () => {
+    const dying = { R1a: r1a(THREE), R1b: (c: AgentCall) => r1bPass(c), 'R1b-assemble': [null, null, assembleOk()] };
+    const one = await research(dying, { pass: 1, firstId: 1 });
+    const two = await research(dying, { pass: 2, firstId: 4 });
+    expect(one.out.stats.retries).toEqual([{ stage: 'R1b-assemble', concept: null, round: 1, count: 2 }]);
+    expect(two.out.stats.retries).toEqual([{ stage: 'R1b-assemble', concept: null, round: 2, count: 2 }]);
+    // Folded as references/run-log.md says (equal keys add up), the rounds stay apart, and the run checker
+    // passes them; keyed without the round they would merge into one count of 4.
+    const merged = mergeRetries([...one.out.stats.retries, ...two.out.stats.retries]);
+    expect(merged).toEqual([
+      { stage: 'R1b-assemble', concept: null, round: 1, count: 2 },
+      { stage: 'R1b-assemble', concept: null, round: 2, count: 2 },
+    ]);
+    expect(checkRunWithRetries(merged)).toEqual({ code: 0, stderr: '' });
+    const unkeyed = mergeRetries([...one.out.stats.retries, ...two.out.stats.retries].map(({ round: _round, ...rest }) => rest));
+    expect(unkeyed).toEqual([{ stage: 'R1b-assemble', concept: null, count: 4 }]);
+    expect(checkRunWithRetries(unkeyed).stderr).toMatch(/check-run: \[caps\] .*has 4 retries; at most 2 per stage/);
   });
 
   it('stops pricing for the rest of the round once a price call comes back locked_out', async () => {
@@ -435,5 +526,113 @@ describe('build-guide-research: assembly, dead researchers and pricing', () => {
     expect(c1.prompt).not.toMatch(/Pricing has stopped/);
     expect(c2.prompt).toMatch(/Pricing has stopped for this run \(a price call came back locked_out\)/);
     expect(c3.prompt).toMatch(/Pricing has stopped/);
+  });
+});
+
+describe('build-guide-research: a researcher that returns nothing re-runs (§5.4)', () => {
+  it('re-runs it after the barrier, with a finding saying so, and keeps its proposals', async () => {
+    const r = await research({ R1a: r1aDying(THREE, { 2: 1 }), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
+    const r1aCalls = callsOf(r, 'R1a');
+    expect(r1aCalls.map((c) => [(header(c).writes as string[])[0], header(c).attempt])).toEqual([
+      ['research/p1-r1a-1.md', 1],
+      ['research/p1-r1a-2.md', 1],
+      ['research/p1-r1a-3.md', 1],
+      ['research/p1-r1a-2.md', 2],
+    ]);
+    const retry = r1aCalls[3];
+    expect((header(retry).findings as { attempt: number; code: string }[]).map((f) => [f.attempt, f.code])).toEqual([[1, 'null-result']]);
+    expect(retry.prompt).toContain('Write the file whole');
+    // The retry starts after the first barrier, so no more than 3 researchers are ever in flight.
+    for (const first of r1aCalls.slice(0, 3)) expect(first.endTick!).toBeLessThan(retry.startTick);
+    expect(r.maxInFlight).toBeLessThanOrEqual(3);
+    // Researcher 2's proposals are back, in researcher order.
+    expect(r.out.concepts.map((c) => [c.id, c.title])).toEqual([
+      ['c1', 'Bleed burst'],
+      ['c2', 'Rage slam'],
+      ['c3', 'Totem titan'],
+    ]);
+    expect(r.out.stats.attempts.filter((a) => a.stage === 'R1a')).toEqual([
+      { stage: 'R1a', attempt: 1, agents: 1, outcome: 'done', findings: 0 },
+      { stage: 'R1a', attempt: 1, agents: 1, outcome: 'null-result', findings: 1 },
+      { stage: 'R1a', attempt: 1, agents: 1, outcome: 'done', findings: 0 },
+      { stage: 'R1a', attempt: 2, agents: 1, outcome: 'done', findings: 0 },
+    ]);
+    expect(r.out.stats.retries).toEqual([{ stage: 'R1a', concept: null, round: 1, researcher: 2, count: 1 }]);
+    expect(callsOf(r, 'R1b-assemble')[0].prompt).toMatch(/"file": "research\/p1-r1a-2\.md",\s*"returned": true/);
+  });
+
+  it('re-runs dead researchers together, up to 2 retries each, and tells the assembly which never returned', async () => {
+    const r = await research({ R1a: r1aDying(THREE, { 1: 3, 3: 1 }), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
+    const r1aCalls = callsOf(r, 'R1a');
+    expect(r1aCalls.map((c) => [(header(c).writes as string[])[0].slice(-8), header(c).attempt])).toEqual([
+      ['r1a-1.md', 1],
+      ['r1a-2.md', 1],
+      ['r1a-3.md', 1],
+      ['r1a-1.md', 2],
+      ['r1a-3.md', 2],
+      ['r1a-1.md', 3],
+    ]);
+    // Attempt 2's two re-runs run together; attempt 3 waits for them.
+    expect(overlaps(r1aCalls[3], r1aCalls[4])).toBe(true);
+    expect(r1aCalls[4].endTick!).toBeLessThan(r1aCalls[5].startTick);
+    expect(r.maxInFlight).toBe(3);
+    expect(r.out.stats.agents.byType['build-guide-researcher']).toBe(6);
+    expect(r.out.stats.retries).toEqual([
+      { stage: 'R1a', concept: null, round: 1, researcher: 1, count: 2 },
+      { stage: 'R1a', concept: null, round: 1, researcher: 3, count: 1 },
+    ]);
+    // Researcher 1 never returned: the assembly is told; researchers 2 and 3 proposed.
+    expect(callsOf(r, 'R1b-assemble')[0].prompt).toMatch(/"file": "research\/p1-r1a-1\.md",\s*"returned": false/);
+    expect(r.out.concepts.map((c) => c.title)).toEqual(['Bleed burst', 'Rage slam', 'Totem titan']);
+    // AC-W18 read with re-runs: the R1a attempts that returned (one per researcher, at most 3 a round) match
+    // the research files; the extra invocations are the retries[] entries.
+    expect(r.out.stats.attempts.filter((a) => a.stage === 'R1a' && a.outcome === 'done')).toHaveLength(2);
+  });
+
+  it('assigns researcher n the focus R1a.md gives it, so both orchestrations divide the work alike', async () => {
+    const ref = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'build-guide', 'references', 'stages', 'R1a.md'), 'utf8');
+    const table = [...ref.matchAll(/^\| (\d) \| `([a-z]+)` \|/gm)].map((m) => [Number(m[1]), m[2]]);
+    expect(table).toEqual([
+      [1, 'mechanics'],
+      [2, 'items'],
+      [3, 'tree'],
+    ]);
+    const r = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
+    for (const [n, focus] of table) {
+      const call = callsOf(r, 'R1a').find((c) => (header(c).writes as string[])[0] === `research/p1-r1a-${n}.md`)!;
+      expect(call.prompt).toContain(`Your focus is "${focus}" (researcher ${n})`);
+    }
+  });
+});
+
+describe('build-guide-research: R1b compiles and prices (R1b.md)', () => {
+  it('allows one bootstrap compile and the last, and records each attempt\'s compiles on its verdict', async () => {
+    const r = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
+    for (const c of callsOf(r, 'R1b')) {
+      expect(c.prompt).toMatch(/At most 2 compiles in this attempt: one bootstrap compile of a tree-minimal skeleton, if you need it to path the tree, then the whole skeleton/);
+      expect(c.prompt).toContain('measure_only: true');
+      expect(c.opts.schema?.required).toEqual(expect.arrayContaining(['compiled', 'errors', 'compiles']));
+    }
+    expect(r.out.gateVerdicts.map((g) => (g as unknown as { compiles: number }).compiles)).toEqual([2, 2, 2]);
+  });
+
+  it('prices online only once the skeleton validates, and never offline', async () => {
+    const online = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] }, { mode: 'online' });
+    for (const c of callsOf(online, 'R1b')) expect(c.prompt).toContain('Once the skeleton validates, price');
+    const offline = await research({ R1a: r1a(THREE), R1b: (c) => r1bPass(c), 'R1b-assemble': [assembleOk()] });
+    for (const c of callsOf(offline, 'R1b')) expect(c.prompt).toContain('Offline run: make no price call');
+  });
+
+  it('passes an unverified league on to the assembly', async () => {
+    const r = await research(
+      { R1a: r1a(THREE), R1b: (c) => ({ ...r1bPass(c), leagueUnverified: header(c).concept === 'c2' }), 'R1b-assemble': [assembleOk()] },
+      { mode: 'online' },
+    );
+    const input = JSON.parse(/```json\n[\s\S]*?```[\s\S]*?```json\n([\s\S]*?)\n```/.exec(callsOf(r, 'R1b-assemble')[0].prompt)![1]);
+    expect(input.concepts.map((c: { id: string; leagueUnverified: boolean }) => [c.id, c.leagueUnverified])).toEqual([
+      ['c1', false],
+      ['c2', true],
+      ['c3', false],
+    ]);
   });
 });

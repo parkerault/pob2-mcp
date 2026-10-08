@@ -12,6 +12,8 @@ after them (source-markers.md). Replace every <placeholder>; delete this comment
 ## Roll and mode
 
 <Class> <Ascendancy> with <Skill>. Mode: <offline: no web source and no price was consulted | online>.
+League: <none (offline) | <league>, from get_leagues | <league>, unverified: trade couldn't be reached, so
+D1 doesn't take the league from here>.
 
 - Round 1: started with the run.
 - Round <k>: <the user's note>.

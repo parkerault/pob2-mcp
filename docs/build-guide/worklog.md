@@ -224,3 +224,118 @@ expectation independently. No touches violations. Low notes:
 - **Accepted deviation:** WU-36's file-local helpers in `BuildOps.lua` (about 250 lines beside
   `set_tree` and `update_tree_delta`) sit outside the functions §8 names; they are local to those
   functions' features and touch nothing else.
+
+## 2026-10-08: wave 4 (WU-41, WU-42, WU-43, WU-44; WU-34 follow-up)
+
+### Verdicts
+
+- **WU-34 follow-up** `e983b84`: `get_passive_upgrades` returns `refit`, so prepended session notices
+  can't push can't-measure lines past C-1's cut; the tip goes before ranked entries.
+- **WU-41** (compiler, `compile_plan`, `guide_run`, record, write ledger): done `de7b61b`. NFR: a
+  15-stage compile takes 20.9–23.0 s, slowest stage 2.25 s; per-call rebuilds are deferred, with
+  per-stage outputs equal to the eager path. Two reviewers checked it.
+  - **Safety:** PASS. Nothing can overwrite or lose a user file. Two lows: `runFolderOf` split on
+    `\`; the guides-root overlap check was case-sensitive on drvfs. One wording item.
+  - **Fidelity:** two problems.
+    - High: an off-hand's legality (Giant's Blood, Instruments of Power, Lord of the Wilds) was checked
+      against the previous stage's tree. Planned off-hands were refused, or dropped silently from shared
+      sets.
+    - Medium: PoB's `ConfigTab:Save` drops an input equal to the active set's placeholder, so
+      non-active stages lost explicit options (one probe: 56 outputs differed on reload).
+  - **Fixes** (`b4094fa`, `8efa45b`):
+    - each stage's tree, and its non-off-hand items, are calculated before the off-hands go in;
+    - a `compareItems` check runs per stage and per item set; any drop is an error;
+    - weapon flags are read from the measured `mainEnv.modDB`, so item-granted flags like Treefingers
+      count;
+    - D-248;
+    - `loadoutWarnings` (PoB2's own GUI switch can still drop such an off-hand) and `saveWarnings`
+      (saving the file in PoB2 drops restored options again).
+  - The fidelity reviewer re-ran its probes and variants: Titan tree and item Giant's Blood, Lord of
+    the Wilds, weapon swap, flag loss, a mid-stage placeholder. All compile and reload exactly.
+  - **Accepted, not done:** catching an impossible shared-set off-hand in `compile_check`. It needs a
+    calculation; the stage is refused at compile instead, after the loaded build is replaced.
+- **WU-43** (skill, run checker, harness): done `0c580cc`. AC-W23 was met by a headless `claude -p`
+  probe (Sonnet, about $0.16, strict MCP config, temp dirs): the researcher's allowlist reaches
+  `lookup_game_data` directly. The handoff now allows headless sessions only for spec-required probes
+  and runs.
+  - **Review:** one high, two medium.
+    - High: the checker chose what to recompute from the skill's own `stages[]`.
+    - Medium: it passed a completed run whose gate honestly failed.
+    - Medium: accepted findings matched by gate stage, not plan stage.
+  - **Fixed** `232b991` with D-249 and hardening; rebased onto WU-41 as `d7d584c`.
+- **WU-44** (research workflow): done `c6e361d`.
+  - **Review:** two medium. Dead R1a researchers were never re-run. R1b couldn't path a skeleton's
+    tree, which starved keystone- and notable-led concepts.
+  - **Fixed** `bbad209`:
+    - R1a retries;
+    - R1b may run one bootstrap measure-only compile of a tree-minimal skeleton, then path with
+      `find_path_to_node`;
+    - R1a foci table in R1a.md: mechanics 0–1 skill- or support-led concepts, items 1–2, tree 1;
+      at most 3 carried;
+    - the discovery calls named;
+    - validate before pricing;
+    - retries keyed by stage, concept, round and researcher;
+    - an unreachable-trade `Standard` league marked `leagueUnverified`, which D1 must not inherit.
+  - AC-W18 reads now as "R1a attempts with outcome `done` equal the research files".
+- **WU-42** (V1/V2, config baseline): done `2f00504`.
+  - **Review:** two medium.
+    - Persistent minion skill gems (e.g. Skeletal Brute, tier 13) were classed as Spirit gems and
+      escaped the tier check.
+    - Skill-conditional default-on options (e.g. `FlickerStrikeBypassCD`) were baseline
+      unconditionally.
+  - **Fixed** `6528b13` with D-250…D-252. All nine deviations accepted, among them the widened
+    placeholder rule (D-212), quest checkboxes in the baseline list, and the Martyr-point warning
+    filter.
+
+### Merges
+
+`e983b84` (WU-34 follow-up) → `8efa45b` (WU-41) → `d7d584c` (WU-43) → `bbad209` (WU-44) → `1d6f260`
+(WU-42). Tools: 84, 83 without poe.ninja. WU-45 started off `bbad209`.
+
+### Coordinator decisions (to fold into the spine)
+
+- **D-248** (amends §3.6 step 9, D-212): the compiler puts every listed config option PoB's save
+  dropped back into its stage's ConfigSet in the exported XML, and checks each survives. `saveWarnings`
+  names options a re-save in PoB2 would drop.
+- **D-249** (amends D-116, D-147): tree jewels count toward the budget. Each filled slot or jewel needs
+  a distinct price entry unless the item text is identical. Totals are compared at 2 decimals.
+- **D-250** (amends D-230, V2): a skill-conditional config option is baseline only while PoB hides it
+  for the stage. A shown, default-on, unlisted option is `default-unlisted`.
+- **D-251** (amends V1): at a region's last progress key, the next region's entry penalty is also
+  accepted, with a note.
+- **D-252** (amends V2): on a boss-scenario stage, the enemy level, armour, evasion, resistances and crit
+  options are scenario entries citing E1, never baseline.
+- **R1 rules** (amend slice 03 §5): R1b may run a bootstrap measure-only compile. The R1a foci split
+  lives in R1a.md. Retries are keyed by round and researcher.
+- **Run-checker rules** (amend FR-W7): the concept comes from the gate report files. A completed run
+  fails on any recomputed or reported gate failure not covered by an accepted finding. Findings are
+  equal by plan stage, part and code.
+
+### Wave gate: PASS at `1d6f260`. **M-11 exit: PASS.**
+
+An independent verifier ran from a clean tree:
+- `mise run test` rc=0: 121 of 121 suites and 1685 of 1685 tests (173 s), then the NFR step, 2 of 2
+  (67 s);
+- `pnpm build` rc=0;
+- `scripts/fresh-clone-check.sh` rc=0: 84 tools (83 without poe.ninja), Life 2,977.
+
+**NFR:** a 15-stage final compile takes 23.64 s (limit 100 s, NFR-20); the slowest stage request is
+2.23 s (limit under 20 s, NFR-21); deferred outputs equal the eager path on every stage, and Full DPS is
+off.
+
+**M-11 items:**
+- every AC-P maps to a passing test;
+- the two-stage fixture compiles to one loadout per stage, with nothing titled `Default`;
+- it reloads with Life and CombinedDPS within 1e-9;
+- its import code round-trips;
+- V1 and V2 pass;
+- AC-B6 and AC-B8 hold;
+- WU-30's report is committed.
+
+AC-B2…B5 and AC-B7 hold. No touches violations. Low notes:
+- AC-P50's expected class predates D-250 and D-252; it holds only for the non-boss fixture, and AC-P42
+  tests the amended rule.
+- D-251 accepts only the two boundary values; an area-60 interlude zone before the first interlude key
+  is an edge case.
+- The pipeline fixtures' compile records are hand-written, but match the real record's shape for every
+  field the checker reads.

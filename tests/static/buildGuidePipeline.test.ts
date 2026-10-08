@@ -1028,7 +1028,7 @@ describe('WU-47 fixes: what the skill runner does', () => {
   });
 
   it('D-258: the invalid-roll refusal quotes the closest names lookup_game_data lists on no match', () => {
-    expect(skill()).toMatch(/when nothing matched, `lookup_game_data` lists up to 5 closest names of the queried kind \(D-258\), and you quote those, in its order/);
+    expect(skill()).toMatch(/when nothing matched, `lookup_game_data` says "Nothing matched …" and then lists the closest names under a `Closest gem names \(…\):` header, up to 5 lines `- <name> \(active\|support\)` \(D-258\); quote those names in its order/);
   });
 });
 
@@ -1056,7 +1056,7 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
 
   it('D2 keeps a skill gem at or above its tier (D-259), names nodes by their names, and carries a recorded dispute', () => {
     const d2 = folded(readStage('D2'));
-    expect(d2).toMatch(/A skill gem's level is at least its tier .* \(`campaign\/gems\.json#tier-rule`; V1 enforces it, D-259\)/);
+    expect(d2).toMatch(/A skill gem's level is at least its tier .* \(`campaign\/gems\.json#tier-rule`; V1 reports a gem below it as `gem-below-tier`, D-259\)/);
     expect(d2).toMatch(/Name a passive node by the name the tool gives it, never by one of its stat lines/);
     expect(d2).toMatch(/A claim citing a fact whose `note` records a dispute carries the dispute/);
   });

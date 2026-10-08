@@ -634,3 +634,21 @@ for finalization, together with D-239…D-263.
 **Accepted cost of S1.** Nine ACs whose tests were the workflow harness (W3, W6–W10, W13, W24, W25)
 lose automated tests. The control flow now rests on SKILL.md. The checker verifies its invariants from
 each run's log: caps, order, one verification pass and one re-check, escalations only from gates.
+- **Amendment 1 implemented** in `bg/amend-1`, head 9782897: +2.8K/−8.6K lines. Doer gate: test rc 0
+  (1,783), build rc 0.
+- **Review: 1 high, 5 medium, 4 low, all sent back.**
+  - **High:** the D1 gate recompute was skipped unless the gate compiled. Only `budget` may be
+    `unverified`.
+  - **Medium:**
+    - the stat-set check could be bypassed: tie `main.group` to `rolledGroup`, and check the stat set
+      inside ledger formulas;
+    - routing wasn't tied to the verdict files;
+    - S6's free retry came from `faults[]` alone;
+    - legal routes failed once a guide existed;
+    - a guide rewritten in the fix round went unverified. If any design step re-runs, the re-check is a
+      full pass, still with no second fix round.
+  - **Low:**
+    - D-256 hits must be tied to the stage's area level;
+    - `completed` requires checkpoint 2 to be answered accept;
+    - `compile_plan` prints at most 200 findings, then says to Grep the record;
+    - two reference disagreements: the D1 gate's writes, and the guided-retry rule.

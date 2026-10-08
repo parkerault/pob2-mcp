@@ -8,7 +8,7 @@ spec; pull each unit's block and ACs at dispatch time.
 
 - **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`
   (`git log --oneline -1` for the head).
-- **Merged and gated:** every unit through WU-44, plus WU-49 (17 of 18 non-human units minus WU-45…47).
+- **Merged and gated:** WU-30…WU-44 and WU-49, 16 of this run's 19 units (WU-30…WU-47 and WU-49).
   M-10 and M-11 exits pass (wave-4 gate at `1d6f260`). Tools: 84 (83 without poe.ninja).
 - **In flight when last updated:** WU-45 (design-and-write workflow), lane `bg-45` off `bbad209`.
   It rebases onto the integration head before merging. `git worktree list` shows unmerged lanes.
@@ -52,7 +52,7 @@ spec; pull each unit's block and ACs at dispatch time.
 
 ## To fold into the spine at the end (all recorded in the work-log)
 
-D-239…D-252 (the work-log lists each); the C-48 counting wording; spine §1.3's two missing count sites; the slice 01 §2.1
-`statSet` reply field; §2.4's 106 files / 18,805 names; the WU-30 rulings (HG-13 not fired; Full DPS off
+D-239…D-252 (the work-log lists each); the C-48 counting wording; spine §1.3's two missing count
+sites; the slice 01 §2.1 `statSet` reply field; §2.4's 106 files / 18,805 names; the WU-30 rulings (HG-13 not fired; Full DPS off
 in the compiler); the accepted deviations; the pre-existing `buildExportService.ts` dangling-symlink
 gap (stab D-42) for the user.

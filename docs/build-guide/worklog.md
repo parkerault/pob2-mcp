@@ -554,3 +554,19 @@ don't fix headless-only issues.
   - Lane P merged at `3a9c79c`. Doer gate: test rc 0 (1901), build rc 0. Coordinator check: build
     rc 0; 330/330 in the affected suites.
 - **To fold in:** the checkpoint `rule` field into slice 03's §6 table.
+- **Gate after the fix lanes: PASS at `d0cd637`** (independent verifier).
+  - test rc 0: 121 suites, 1901 tests, plus the NFR step (15-stage compile 24.8 s, slowest stage
+    2.37 s).
+  - build rc 0.
+  - Fresh-clone check rc 0: 84/83 tools, golden Life 2,977.
+  - Waivers `[]`; dependencies unchanged.
+  - Fidelity sample: D-256, D-258/258a, D-259, D-260 and D-262 each assert the decision through the
+    real path. Minor gap: D-262's `infeasible` outcome and a dossier-fix logged under another concept
+    are untested.
+  - No drift.
+- **The WU-47 re-run is interactive (D-263)** in worktree `m12`, branch `bg/m12`. Sessions, in order:
+  - P1, with Workflow and Agent denied: the invalid-roll refusals and AC-W4;
+  - run A;
+  - run B;
+  - P2, with its own builds folder holding the fixture: AC-W21, AC-W15 on a seeded copy of run A
+    outside the guides root, and AC-W26's unsaved build.

@@ -452,3 +452,60 @@ mechanics, not guide quality; the live run (WU-48) uses the user's default model
   - F4: Workflow results reach the main loop truncated.
 - **Other findings (F6–F11) go to triage:** a stray W1 file, checker tolerance, claim count, pricing
   totals, D1 re-run overwriting the final compile record.
+
+### WU-47 triage (read-only verifier; `wu47/triage.md`)
+
+- **Clusters behind the failures:**
+  - Run A's 41 violations: 19 V4 ledger findings (F1 fallout); 17 real V4 findings; 2 claim counts
+    (a checker bug, F8); 1 rolled-skill tolerance (a checker bug, F7); 1 stray file (F6); 1 status
+    (expected for a stopped run).
+  - Run B's 34 violations: all null attempt stamps in agent-tool mode (F5).
+- **The 17 real V4 findings:**
+  - Two code bugs:
+    - `lookup_game_data` omits PoB's gem `Tier`;
+    - V1 lets a tier-7 gem sit at gem level 5, below the tier rule's floor.
+  - One prompt gap: W1 is sent to the dossier for why the concept won, but that reason is in the run
+    log.
+  - 14 agent misses, which V4 correctly caught. The revision loop would have routed them if the run
+    had continued.
+- **Refuted:**
+  - F8 as a V4 miscount: the checker counted after D1 retagged a claim.
+  - F10 as a defect: a routed re-run ends with a final compile by design.
+- **F4 (truncated results):**
+  - The task notification's result is cut at about 10K characters; the full result is in its
+    output file.
+  - The runner copied 13 of 14 reports exactly; only the 10K import code got a placeholder.
+
+**Coordinator decisions (2026-10-08):**
+
+- **D-256 (refined).** The reference-hit scenario value is `ceil(round2(ledger value))`. `round2`
+  absorbs float32 noise in the inputs (402.0000030 must not become 403). The guide quotes the ledger
+  value; the config holds the ceiling.
+- **D-257.** The writer agent gets `Edit`, so it can fix a guide without rewriting it whole (F6).
+- **D-258 (amends C-37).**
+  - When nothing matches, `lookup_game_data` replies with up to 5 closest names of the queried kind,
+    in a fixed order.
+  - Gem entries show PoB's `Tier`.
+  - The skill's invalid-roll refusal quotes those names (AC-W26).
+- **D-259.** V1 enforces the gem tier floor: a gem's level must be at least its tier's floor (the
+  `gems.json` cut rule). Before this fix, V1 checked only that the uncut gem was available.
+- **D-260.**
+  - The D2-gate verdict and the run log's `outputs` drop `importCode`; the compile record is its one
+    home.
+  - The skill runner Reads the notification's output file when a result is truncated.
+  - Considered and rejected for now: a deterministic save-reports script. The task output file's
+    format isn't a documented contract.
+- **D-261.** `pricing.totals.unavailable` counts every `unavailable` `prices[]` entry across every
+  plan the run wrote, and check-run checks it.
+- **D-262.** Under `--partial`, check-run skips the V4 claim-count rules when a plan-changing step ran
+  after the last V4 pass.
+- **F2 and F3** go into the headless recipe and SKILL.md:
+  - set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`;
+  - the runner's Bash is only `date` and the checker, with no `cd` and no compound commands.
+- **F5.** `fallback.md` gets a concrete attempt-stamping procedure.
+- **Quality prompts.** Only the triage's general one-line rules (§5.4) go in, no run-specific facts.
+
+**Fix lanes:**
+- **Lane P (pipeline):** the triage's L1 (checker), L2 (stage references and SKILL.md) and L3 (compact
+  design result) together, in `bg-47p`.
+- **Lane S (server):** L4 (the lookup tool) and L5 (the V1 tier floor), in `bg-47s`.

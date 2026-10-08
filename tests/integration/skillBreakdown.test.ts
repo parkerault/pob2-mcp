@@ -85,6 +85,14 @@ function gemElement(xml: string, name: string): string {
   return m![0];
 }
 
+/** Every `<StatSetIndex>` in an XML fragment, as `{grantedEffect, index}` (PoB writes its attributes in pairs() order). */
+function statSetIndexes(xml: string): Array<{ grantedEffect: string; index: string }> {
+  return [...xml.matchAll(/<StatSetIndex\b[^>]*\/?>/g)].map(([tag]) => ({
+    grantedEffect: /\bgrantedEffect="([^"]*)"/.exec(tag)?.[1] ?? '',
+    index: /\bindex="([^"]*)"/.exec(tag)?.[1] ?? '',
+  }));
+}
+
 /** `<Field>: <value>` stat lines of a `lua_get_stats` view (the header and tree-version lines aside). */
 function statLines(text: string): string[] {
   return text.split('\n').filter((l) => /^[A-Za-z]+: /.test(l));
@@ -171,16 +179,16 @@ engineDescribe('M1 (WU-33): the stat-set fix (C-44) and the per-skill breakdown 
           expect(choice).toEqual({ mainSocketGroup: gas.group, grantedEffectId: gas.grantedEffectId, statSet: 3, skillPart: 'nil' });
           // (b) the export keeps it on that gem.
           const gem = gemElement(await canonicalExport(f.session), 'Gas Grenade');
-          expect(gem).toContain(`<StatSetIndex grantedEffect="${gas.grantedEffectId}" index="3"/>`);
+          expect(statSetIndexes(gem)).toEqual([{ grantedEffect: gas.grantedEffectId, index: '3' }]);
         };
         await check();
 
         // (d) save under a new name, load it back: (a) and (b) still hold.
         await ok('lua_save_build', { build_name: 'wu33-statset.xml' });
         await ok('lua_load_build', { build_name: 'wu33-statset.xml' });
-        expect(fs.readFileSync(path.join(f.builds, 'wu33-statset.xml'), 'utf8')).toContain(
-          `<StatSetIndex grantedEffect="${gas.grantedEffectId}" index="3"/>`,
-        );
+        expect(statSetIndexes(gemElement(fs.readFileSync(path.join(f.builds, 'wu33-statset.xml'), 'utf8'), 'Gas Grenade'))).toEqual([
+          { grantedEffect: gas.grantedEffectId, index: '3' },
+        ]);
         await check();
       },
       ENGINE_TIMEOUT,
@@ -380,6 +388,54 @@ engineDescribe('M1 (WU-33): the stat-set fix (C-44) and the per-skill breakdown 
           const text = await ok('lua_get_stats', args);
           expect(text).not.toMatch(/^## /m);
           expect(statLines(text).length).toBeGreaterThan(0);
+        }
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      'C-45 heading: every block of the Mirage Archer group is headed "## <skill> / <stat set label> [skill_part <i>]" with a non-empty skill; its hidden effect (PoB name "") takes the gem\'s name',
+      async () => {
+        await freshGolden();
+        // PoB's own view of the group: its display skills, with each granted effect's name and the gem's name.
+        const mirage = await luaQuery<{ group: number; skills: Array<{ name: string; nameSpec: string; id: string }> }>(`
+          for gi, g in ipairs(build.skillsTab.socketGroupList) do
+            for _, gem in ipairs(g.gemList) do
+              local ge = gem.gemData and gem.gemData.grantedEffect
+              if ge and ge.name == 'Mirage Archer' then
+                local skills = {}
+                for i, s in ipairs(g.displaySkillList) do
+                  skills[i] = { name = s.activeEffect.grantedEffect.name, nameSpec = s.activeEffect.srcInstance.nameSpec, id = s.activeEffect.grantedEffect.id }
+                end
+                return { group = gi, skills = skills }
+              end
+            end
+          end`);
+        const hidden = mirage.skills.find((s) => s.name === '');
+        expect(hidden).toBeDefined();
+
+        const view = await ok('lua_get_stats', { breakdown: true, group_index: mirage.group });
+        const headings = blocks(view).map((b) => b.heading);
+        expect(headings.length).toBeGreaterThan(0);
+        for (const heading of headings) expect(heading).toMatch(/^## \S.* \/ \S.* \[skill_part \d+\]$/);
+        expect(headings.some((h) => h.startsWith(`## ${hidden!.nameSpec} / `))).toBe(true);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      'C-45/C-44 errors: on a build with no socket groups, the breakdown and set_main_skill say "the build has no socket groups" (no "nil" index)',
+      async () => {
+        await ok('lua_new_build', { class_name: 'Witch' });
+        expect(await luaQuery<number>('return #build.skillsTab.socketGroupList')).toBe(0);
+        for (const [tool, args] of [
+          ['lua_get_stats', { breakdown: true }],
+          ['set_main_skill', { group_index: 1 }],
+        ] as const) {
+          const out = await f.call(tool, args);
+          expect(out.isError).toBe(true);
+          expect(out.text).toContain('the build has no socket groups');
+          expect(out.text).not.toContain('nil');
         }
       },
       ENGINE_TIMEOUT,

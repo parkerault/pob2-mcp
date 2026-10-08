@@ -604,19 +604,36 @@ local function restore_selection(snap)
   end
 end
 
--- "1 Impact, 2 Poison Cloud, 3 Explosion": a granted effect's stat sets, as PoB's stat-set dropdown
--- lists them (vendor Modules/Build.lua RefreshSkillSelectControls).
-local function stat_set_label(grantedEffect, index)
-  local set = grantedEffect.statSets and grantedEffect.statSets[index]
-  return tostring(set and set.label or grantedEffect.name)
+local function nonblank(v)
+  if v ~= nil and tostring(v):match('%S') then return tostring(v) end
+  return nil
 end
 
-local function stat_set_list(grantedEffect)
+-- A skill's name for headings and messages: PoB's granted-effect name; for a hidden effect whose name
+-- is "" (Mirage Archer's MirageArcherSpawnPlayer), the gem's name, else the granted effect's id.
+local function effect_name(grantedEffect, srcInstance)
+  return nonblank(grantedEffect.name) or nonblank(srcInstance and srcInstance.nameSpec) or tostring(grantedEffect.id)
+end
+
+-- "1 Impact, 2 Poison Cloud, 3 Explosion": a granted effect's stat sets, as PoB's stat-set dropdown
+-- lists them (vendor Modules/Build.lua RefreshSkillSelectControls).
+local function stat_set_label(grantedEffect, index, srcInstance)
+  local set = grantedEffect.statSets and grantedEffect.statSets[index]
+  return nonblank(set and set.label) or effect_name(grantedEffect, srcInstance)
+end
+
+local function stat_set_list(grantedEffect, srcInstance)
   local parts = {}
   for i = 1, #(grantedEffect.statSets or {}) do
-    table.insert(parts, i .. ' ' .. stat_set_label(grantedEffect, i))
+    table.insert(parts, i .. ' ' .. stat_set_label(grantedEffect, i, srcInstance))
   end
   return table.concat(parts, ', ')
+end
+
+-- The error for a socket group index the build doesn't have.
+local function missing_group(index, count)
+  if count == 0 then return 'the build has no socket groups' end
+  return ('socket group %s does not exist: the build has %d socket groups'):format(tostring(index), count)
 end
 
 local function socket_group_label(g)
@@ -639,9 +656,7 @@ function M.set_main_selection(params)
     groupIndex = tonumber(params.mainSocketGroup) or groupIndex
   end
   local g = list[groupIndex]
-  if not g then
-    return nil, ('socket group %s does not exist: the build has %d socket groups'):format(tostring(groupIndex), #list)
-  end
+  if not g then return nil, missing_group(groupIndex, #list) end
   local snap = params.statSet ~= nil and snapshot_selection({ groupIndex }) or nil
   build.mainSocketGroup = groupIndex
   if params.mainActiveSkill ~= nil then
@@ -663,8 +678,8 @@ function M.set_main_selection(params)
     local count = #(ge.statSets or {})
     local index = tonumber(params.statSet)
     if not index or index ~= math.floor(index) or index < 1 or index > count then
-      refuse = ('stat set %s is out of range: %s has %d stat set%s (%s)'):format(
-        tostring(params.statSet), tostring(ge.name), count, count == 1 and '' or 's', stat_set_list(ge))
+      refuse = ('stat set %s is out of range: %s has %d stat set%s (%s)'):format(tostring(params.statSet),
+        effect_name(ge, effect.srcInstance), count, count == 1 and '' or 's', stat_set_list(ge, effect.srcInstance))
     end
   end
   if refuse then
@@ -679,9 +694,9 @@ function M.set_main_selection(params)
   rebuild_outputs()
   return {
     index = index,
-    label = stat_set_label(ge, index),
+    label = stat_set_label(ge, index, src),
     count = #ge.statSets,
-    skill = tostring(ge.name),
+    skill = effect_name(ge, src),
     grantedEffectId = tostring(ge.id),
   }
 end
@@ -699,9 +714,7 @@ function M.stats_breakdown(params)
   local groupIndex = build.mainSocketGroup
   if params.groupIndex ~= nil then groupIndex = tonumber(params.groupIndex) end
   local g = groupIndex and list[groupIndex]
-  if not g then
-    return nil, ('socket group %s does not exist: the build has %d socket groups'):format(tostring(params.groupIndex), #list)
-  end
+  if not g then return nil, missing_group(groupIndex, #list) end
 
   local snap = snapshot_selection({ groupIndex })
   local ok, measured = pcall(function()
@@ -722,7 +735,7 @@ function M.stats_breakdown(params)
       local src, id = s.src, s.ge.id
       local priorTable = src.statSet
       local prior = priorTable and priorTable[id]
-      local entry = { index = s.index, name = tostring(s.ge.name), grantedEffectId = tostring(id), statSets = {} }
+      local entry = { index = s.index, name = effect_name(s.ge, src), grantedEffectId = tostring(id), statSets = {} }
       for j = 1, math.max(#(s.ge.statSets or {}), 1) do
         g.mainActiveSkill = s.index
         src.statSet = src.statSet or {}
@@ -733,7 +746,7 @@ function M.stats_breakdown(params)
           local v = output[k]
           if SCALAR_TYPES[type(v)] then values[k] = v end
         end
-        table.insert(entry.statSets, { index = j, label = stat_set_label(s.ge, j), output = values })
+        table.insert(entry.statSets, { index = j, label = stat_set_label(s.ge, j, src), output = values })
       end
       -- This skill's own choice goes back before the next skill is measured.
       if priorTable then

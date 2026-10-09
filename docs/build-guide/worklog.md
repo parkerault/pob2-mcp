@@ -759,3 +759,25 @@ The user is on a subscription: report costs in tokens, not dollars.
 2. The precision dial: is it set too high? A human guide is mostly judgment.
 3. Tune length, specificity and topics against specific human-written guides.
 4. Study creative builds that use less popular skills, for inspiration.
+
+### D-264 and D-265 lane (`bg/d264`)
+
+- **Doer:** a6c31bc, gate rc 0 (1834). Earlier coordinator changes:
+  - (d) `reader` sentences come from V4, and the runner writes Known issues. No extra W1 call: W1 is the
+    heaviest step.
+  - `reader` is required only on unresolved findings.
+- **Review:** 1 high, 3 medium, 4 low, all sent back.
+  - **High:** a claims-only fix could swap gear, gems or tree undetected; no lens compares them to the
+    PoB file.
+    - **D-266 (coordinator):** the compile record gains `buildSha1`, a hash of the plan with claims,
+      sources and tags removed. When a claims-only owner ran, the checker requires the current plan's
+      projection to equal it. An additive C-33 field.
+  - **Medium:**
+    - (a)'s skip is narrowed to superseding reports that checked everything;
+    - (c) reward picks apply to the endgame stages too (D1 carries them);
+    - the sources lens always re-checks the changed locations.
+  - **Low:**
+    - the runner replaces the Known issues list, and the checker forbids extra lines;
+    - wording fixes;
+    - an exhaustive Bash allowlist;
+    - behavioural tests replace the tests that grepped the checker's own source.

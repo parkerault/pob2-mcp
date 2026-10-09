@@ -674,3 +674,4 @@ each run's log: caps, order, one verification pass and one re-check, escalations
 - **The re-run environment** is rebuilt as worktree `m12b` at the new head, with a fresh temp root and
   model `opus` (S9). The attempt-2 evidence stays in `/tmp/m12.DbTF` and worktree `m12`'s transcripts.
 - **Friction (launcher):** Claude Code warns that a `Write(path)` deny rule matches nothing, because `Edit(path)` rules cover every file-editing tool. The launcher dropped `Write(//mnt/**)`. Attempts 1 and 2 were still protected by their `Edit(//mnt/**)` rule, and the AC-W20 scans found no `/mnt/` path.
+- **WU-47 attempt 3 (Opus):** run A `completed`; run B `escalated` (default stop, as expected); P1 done. AC-W15 seed: a copy of run A in `/tmp/m12b.B0zi/seed`, with FI-4 doubling ledger `mana_4_balance` and FI-5 setting the log mode to online. P2 is next.

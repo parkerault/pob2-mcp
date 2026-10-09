@@ -675,3 +675,46 @@ each run's log: caps, order, one verification pass and one re-check, escalations
   model `opus` (S9). The attempt-2 evidence stays in `/tmp/m12.DbTF` and worktree `m12`'s transcripts.
 - **Friction (launcher):** Claude Code warns that a `Write(path)` deny rule matches nothing, because `Edit(path)` rules cover every file-editing tool. The launcher dropped `Write(//mnt/**)`. Attempts 1 and 2 were still protected by their `Edit(//mnt/**)` rule, and the AC-W20 scans found no `/mnt/` path.
 - **WU-47 attempt 3 (Opus):** run A `completed`; run B `escalated` (default stop, as expected); P1 done. AC-W15 seed: a copy of run A in `/tmp/m12b.B0zi/seed`, with FI-4 doubling ledger `mana_4_balance` and FI-5 setting the log mode to online. P2 is next.
+
+### WU-47 attempt 3 (Opus, amendment 1): results (2026-10-09)
+
+**Cost:** P1 $1.08, run A $77.05 (2h12m, 27 agents, 107M cache read, 817K output), run B $32.29,
+P2 $21.55. Total $131.97. Amendment S9's estimate of about $32 for run A was wrong; it rested on
+unverified list prices.
+
+**PASS:**
+- AC-W4, W15 (the ledger lens flags `mana_4_balance`; all 6 external-unavailable claims are unresolved),
+  W16(a, b, d), W20, W21, W26 (all three).
+- AC-W18, all clauses: run A `completed`, the free FI-2 re-run, both checkpoints pre-supplied with
+  `rule`.
+- Most of AC-W17: the build file equals the import code and the guide, 8 loadouts, V1/V2 pass, every fixed
+  finding passes its re-check, and every open finding is listed under Known issues.
+- **AC-W19 clauses passing:** no-viable display, D1 ×3 then escalation, default stop, no builds file.
+- **Amendment 1 followed:** one full pass; one fix round (D1 → gate → D2 → gate+final → W1); a full
+  re-check with `changed: "all"`; 5 open findings listed as known issues.
+- **S7 stat set fixed:** the PoB file opens on the explosion stat set the guide quotes.
+
+**FAIL:**
+- **AC-W17, checker rc 1:** `check-run.mjs:754-762` checks the full pass's accepted-offline locations
+  against the plan after the fix round moved those claims. A checker bug.
+- **AC-W19, two clauses:**
+  - checker rc 1 on a stray `scratch-note.txt` written by D1 c2 a1, outside its `writes`; the limit is
+    enforced only in prose;
+  - the second checkpoint-1 display (FI-3's evidence) was skipped for a pre-supplied answer;
+    `checkpoints.md` doesn't say the display still prints.
+- **AC-W16(e):** passes once this list is recorded. Non-checker Bash in run B's runner: `ls`,
+  `cd … && cat …`, `cd`. In P2's runner: `cat` and `ls` of prompts and config. Two coordinator Bash
+  attempts were refused.
+- **AC-W22:** Campaign rewards is incomplete. The guide lists the 8 reward choices and picks none (re-opens
+  D2, then W1).
+  - Followable from level 1 to 62. Gaps from there:
+    - no bridge from 62 to 90;
+    - tree nodes unnamed and without a why;
+    - gem levels against character-level requirements;
+    - survival advice.
+  - Known issues are written in pipeline jargon.
+
+**Other:**
+- The verifiers' recall still varies: W15's fresh pass found 5 sources findings that run A's re-check
+  didn't, including an off-list host in a scenario source.
+- A `/effort` during run A's setup saved `xhigh` as the user's default.

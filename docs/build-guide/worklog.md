@@ -661,3 +661,15 @@ each run's log: caps, order, one verification pass and one re-check, escalations
     - a fix round re-runs all three lenses whenever D1 or D2 re-ran.
   - Merged by rebase and ff at `b7e815e`. Coordinator check: build rc 0; 270/270 in the affected
     suites.
+- **Gate after amendment 1: PASS at `75cd598`** (independent verifier).
+  - test rc 1 with only AC-T22 failing on time (8.48 s against 8 s); it passed alone, so it's a tooling
+    false-failure. 1,809/1,810 tests.
+  - build rc 0. Fresh clone rc 0: 84/83 tools, golden Life 2,977.
+  - Waivers `[]`; dependencies unchanged.
+  - Every review probe behaves as intended.
+  - Fidelity holds for review items 1 and 3–6, and SKILL.md is coherent.
+  - Two nits fixed in a949257:
+    - the runner has no Grep tool, so step 14 Reads from W1's returned `known-issues-line`;
+    - the D1 gate reads the pricing state from the log itself.
+- **The re-run environment** is rebuilt as worktree `m12b` at the new head, with a fresh temp root and
+  model `opus` (S9). The attempt-2 evidence stays in `/tmp/m12.DbTF` and worktree `m12`'s transcripts.

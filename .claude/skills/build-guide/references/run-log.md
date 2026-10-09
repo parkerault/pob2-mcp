@@ -36,6 +36,8 @@ rest, and the run checker reads both (`run-folder.md`).
     claims in place and compiled nothing, so no gate follows it (D-264). The run checker tells it from a
     redesign: the final record stays current, the plan may differ from the record's `planSha1` only in what
     the record doesn't hold as a build part, and the re-check stays with the lenses that raised a finding;
+  - `known-issues` for W1's last call, after the re-check, writing the open findings under `Known issues`
+    (SKILL.md step 14, D-265);
   - `escalated` for the gate attempt that escalated;
   - `missing` for an agent that returned without its file.
   A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the

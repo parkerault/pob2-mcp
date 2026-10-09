@@ -108,6 +108,12 @@
       "concept": "c1",
       "attempt": 1,
       "outcome": "fail"
+    },
+    {
+      "stage": "W1",
+      "concept": "c1",
+      "attempt": 3,
+      "outcome": "known-issues"
     }
   ],
   "checkpoints": [

@@ -67,7 +67,7 @@ ends the flow: run A's persistent FI-1 fails `c1` after 3 attempts, and run B's 
 
 | Id | Applied by, when | Edit | Must then fail |
 |---|---|---|---|
-| FI-1 | the R1b step, before compiling a target concept's skeleton | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | the compile, with a per-stage error naming the gem (D-162) |
+| FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there |
 | FI-2 | the D1 gate step, before its compile | set the first endgame stage's `level` to 1 in `plan.json`, and its `loadoutName`'s `(L<n>)` to `(L1)` so the plan stays valid (C-31 ties the two) | V1, for that stage: its points and requirements exceed level 1 |
 | FI-3 | the D1 gate step | none: the gate's outcome is forced to `infeasible`, with evidence `FI-3 (injected)` | control flow only: the route back to checkpoint 1 |
 

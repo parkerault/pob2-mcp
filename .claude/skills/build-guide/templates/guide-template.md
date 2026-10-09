@@ -64,7 +64,10 @@ Hand calculations (the ledger), for what PoB doesn't model:
 
 ## Campaign rewards
 
-- <quest and act>: take <the reward>, because <why>.[^c1]
+<Every quest reward the campaign passes, in campaign order. A reward choice names the option to take and why: the plan's pick and its claim's reason (D-265). Never list a choice's options without the pick.>
+
+- <quest and act>: <the reward>.[^c1]
+- <quest and act, a reward choice>: take <the option the plan picks>, because <the one-line reason its claim gives>.[^c2]
 
 ## Endgame: budget variant
 
@@ -155,8 +158,8 @@ Hand calculations (the ledger), for what PoB doesn't model:
 
 ### Known issues
 
-[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks the runner adds one line per finding they left open.] - `<code>` (<gate: D1-gate or D2-gate>, stage <plan stage>): <the finding's message>.
-[added by the runner] - `<V4 finding id>` (V4 <lens>, <artifact> <location>): <the issue>.
+[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks W1 adds one line per finding they left open (step 14). Each line is one plain sentence the reader can act on, then the finding's id in parentheses (D-265).] - <What is wrong, in plain words, and what is true instead> (<gate: D1-gate or D2-gate> <code>, stage <plan stage>).
+[added at step 14] - <What is wrong in the guide, in plain words: "the Act 1 resistance line is wrong: stage 2 already has 40% fire"> (<V4 finding id>).
 
 ## Changelog
 
@@ -171,6 +174,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 [^p1]: price | <priceId>
 [^n1]: pob-computed | <stageId>.Life
 [^c1]: data | campaign/progress.json#<progress key>.reward
+[^c2]: data | campaign/progress.json#<progress key>.options[<the picked option's index>]
 [^e1]: pob-computed | b.Life
 [^p2]: price | <priceId>
 [^f1]: pob-computed | b.MissingColdResist

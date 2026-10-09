@@ -66,8 +66,8 @@ choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the que
 1. **accept**: the verdict's failing findings are accepted. A gate finding equal to an accepted one, **same
    plan stage, part and `code`**, fails no gate afterwards, whichever gate reports it: every later header's
    `accepted` carries them. The guide lists each under its H3 `Known issues` in "Confidence and what PoB
-   can't model", one line per finding naming its `code` and its gate (`D1-gate` or `D2-gate`), with its
-   plan stage; the run checker looks for them there. After the D1 gate the run goes on as if it passed;
+   can't model", one line per finding: a plain sentence the reader can act on, then its gate (`D1-gate` or
+   `D2-gate`), `code` and plan stage in parentheses (D-265); the run checker looks for them there. After the D1 gate the run goes on as if it passed;
    after the D2 gate, the D2 gate runs once more, uncounted, with them in `accepted`, so it runs the final
    compile. **Not offered when the failure is a compile error**: nothing compiled to continue from.
 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt with the verdict and the
@@ -87,6 +87,13 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 | checkpoint 1 | `answers.checkpoint1[]`, one per visit: `first-viable`, `pick:<id>`, `more` or `stop` | `first-viable` is the first `viable` concept not yet designed in this run, else `stop` |
 | checkpoint 2 | `answers.checkpoint2[]`, one per visit: `accept`, `not-accept` or `revise:<text>` | |
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `checkpoint-1` or `stop` | none left: `stop`, `default` |
+
+**A pre-supplied answer still prints the display** (D-265). The test config replaces only the question:
+show everything the checkpoint shows the user, then the answer it resolved to. At checkpoint 1 that is
+R1b-assemble's comparison lines, each concept's status and the dossier's path, on every visit; on a revisit
+after an `infeasible` design or an escalation, that concept's evidence (its last verdict file); with no
+viable concept, each concept's last verdict. At checkpoint 2 and at an escalation, the same holds for their
+displays.
 
 When `checkpoint1` or `checkpoint2` answers run out, the run ends `stopped` (recorded as answer `stop`,
 `answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it resolved

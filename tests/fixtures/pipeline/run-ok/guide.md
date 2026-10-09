@@ -70,7 +70,7 @@ Blood Loss uptime is a hand calculation.[^g10]
 
 ### Known issues
 
-- `v4-prose-1` (V4 prose, guide.md Rotation, line 57): Rotation names Rolling Slam as the clear skill, but Blood Hunt's group is the clear group's main damage source (D-122).
+- The Rotation section is wrong to call Rolling Slam your clear skill: Blood Hunt does the clearing damage, so lead packs with Blood Hunt (v4-prose-1).
 
 ## Changelog
 

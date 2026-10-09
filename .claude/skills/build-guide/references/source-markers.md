@@ -113,5 +113,10 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
   In an online run such a claim is `unresolved`. The run checker resolves the location and fails any other
   `accepted-offline`.
 - **Open findings.** A finding is open after the re-check when its lens's re-check reports it
-  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. Every open
-  finding goes into the guide's `Known issues`, by id (SKILL.md step 14); the run checker looks for each.
+  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. W1 writes
+  every open finding into the guide's `Known issues` as one plain sentence the reader can act on, followed by
+  its id in parentheses (SKILL.md step 14, D-265); the run checker looks for each id. The finding's `claim`,
+  `issue` and `evidence` are what W1 writes from, so state them so a reader of the guide could act on them.
+- A superseded report (a later report of its lens ran after it) is checked against the artifact as it was
+  when it was written: once a step wrote that artifact after it, the run checker doesn't resolve its
+  locations (D-265).

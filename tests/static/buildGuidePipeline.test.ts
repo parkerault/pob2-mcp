@@ -425,7 +425,8 @@ describe('WU-44: the research stage references', () => {
     expect(text).toMatch(/\*\*Bootstrap compile\*\* \(at most once per attempt/);
     expect(text).toContain('find_path_to_node {target_node_id: <id>}');
     const step = (name: string) => text.search(new RegExp(`^\\d\\. \\*\\*${name}`, 'm'));
-    const order = ['Tree targets', 'Bootstrap compile', 'Write the skeleton', 'Validate', 'Prices', 'Validate again', 'FI-1', 'The last compile'].map(step);
+    // D-265 (f): FI-1 goes into the attempt's first compile, so it comes before the bootstrap.
+    const order = ['Tree targets', 'FI-1', 'Bootstrap compile', 'Write the skeleton', 'Validate', 'Prices', 'Validate again', 'The last compile'].map(step);
     for (const i of order) expect(i).toBeGreaterThan(0);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
     // A fallback league is flagged, and D1 doesn't inherit it.
@@ -998,10 +999,10 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/then the full V4 pass, the fix round, the re-check and the known issues again/);
   });
 
-  it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and the runner adds the open findings', () => {
+  it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and adds the open findings at step 14 (D-265)', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/Its last part is always the H3 `Known issues` \(amendment 1 Q1\)\. It lists each finding of the header's `accepted` on its own line/);
-    expect(w1).toMatch(/the runner adds the findings they left open \(SKILL\.md step 14\)/);
+    expect(w1).toMatch(/after the V4 checks you add the findings they left open \(SKILL\.md step 14\)/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/### Known issues\n\n\[always this H3/);
   });
@@ -1067,11 +1068,21 @@ describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2
 describe('WU-47 fixes: what the runner does', () => {
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
 
-  it("F3: the runner's Bash is the run checker only, as written, one per call, never cd and never compound", () => {
+  it("D-265 (e): the runner's Bash runs read-only commands and the run checker; never a network client or a write; the no-cd rule is gone", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash is the run checker and nothing else:\*\* `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, run exactly as written, one per Bash call\. Never `cd`, and no compound command: no `;`, `&&`, `\|\|` or pipe/);
-    expect(text).toMatch(/Write every file with Write \(or Edit\), never with Bash or a script/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. It runs read-only commands, `ls`, `cat`, `head`, `grep`, `wc` and `jq` \(with `cd`, pipes and `&&` between them as you need\), and the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`/);
+    expect(text).toMatch(/Never a network client \(`curl`, `wget`, `nc`, `ssh`\) or any host, and never a command that writes, moves or deletes a file: no `>`, `>>`, `tee`, `cp`, `mv`, `rm`, `mkdir`, `touch` or `sed -i`/);
+    expect(text).toMatch(/Write every file with Write \(or Edit\), never with Bash or a script\. The agents have no Bash at all/);
+    // F3's no-cd and one-command rules went with the workflows.
+    expect(text).not.toMatch(/Never `cd`|no compound command|run exactly as written, one per Bash call/);
     expect(text).not.toMatch(/date -u/);
+    // The reads still obey the read rule: never the plan, a record, the dossier or the guide.
+    expect(text).toMatch(/Never read `plan\.json`, a compile record, `dossier\.md` or `guide\.md` \(one final record was 268 KB\), with Read or with Bash/);
+    // And no agent type has Bash.
+    for (const file of fs.readdirSync(path.join(REPO, '.claude', 'agents', 'build-guide'))) {
+      const tools = /^tools:\s*(.*)$/m.exec(fs.readFileSync(path.join(REPO, '.claude', 'agents', 'build-guide', file), 'utf8'))?.[1] ?? '';
+      expect({ file, bash: /\bBash\b/.test(tools) }).toEqual({ file, bash: false });
+    }
   });
 
   it("D-260: the import code lives only in the record; the D2 gate copies none and the run log's outputs hold none", () => {
@@ -1209,7 +1220,7 @@ describe('Review of bg/amend-1: the references', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------
-// D-264 (claims fixed in place): what the references say
+// D-264 (claims fixed in place) and D-265 (the small items): what the references say
 // ---------------------------------------------------------------------------------------------------
 
 describe('D-264: the fix round edits claims in place and recompiles only for a build change', () => {
@@ -1242,5 +1253,50 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     expect(checker).toContain("const CLAIMS_EDITED = 'claims-edited';");
     expect(ref('run-folder.md')).toMatch(/of all three lenses if and only if a gate re-ran in the fix round \(D-264\)/);
+  });
+});
+
+describe('D-265: the small items', () => {
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+
+  it('(b) checkpoints.md: a pre-supplied answer still prints the display, checkpoint 1\'s comparison lines and an infeasible concept\'s evidence on a revisit', () => {
+    const text = ref('checkpoints.md');
+    expect(text).toMatch(/\*\*A pre-supplied answer still prints the display\*\* \(D-265\)\. The test config replaces only the question: show everything the checkpoint shows the user, then the answer it resolved to/);
+    expect(text).toMatch(/At checkpoint 1 that is R1b-assemble's comparison lines, each concept's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an escalation, that concept's evidence \(its last verdict file\)/);
+  });
+
+  it('(c) D2 picks every campaign reward choice into config.scenario with a one-line reason; W1 and the template write the picks under Campaign rewards', () => {
+    const d2 = folded(readStage('D2'));
+    expect(d2).toMatch(/\*\*Reward choices\*\* \(D-265\): pick every campaign reward choice C1 lists, each a quest with a `q\.<key>\.options` fact in `data\/campaign\/progress\.json`/);
+    expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* campaign stage at or after the quest, the same pick on each/);
+    expect(d2).toMatch(/Each reward pick of step 6 has one claim, on the first stage that lists it: the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
+    expect(folded(readStage('W1'))).toMatch(/\*\*Campaign rewards\*\* \(D-265\): one line per quest reward the campaign passes, in campaign order\. For each reward choice the plan picks .* with a marker defined as `data \| campaign\/progress\.json#q\.<key>\.options\[<i>\]`\. Never list a choice's options without its pick/);
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    expect(template).toContain("- <quest and act, a reward choice>: take <the option the plan picks>, because <the one-line reason its claim gives>.[^c2]");
+    expect(template).toContain('[^c2]: data | campaign/progress.json#<progress key>.options[<the picked option\'s index>]');
+    // The plan field is the existing scenario list, as the plan reference says.
+    expect(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'plan-reference.md'), 'utf8')).toMatch(/A reward choice \(a quest whose C1 data has `q\.<key>\.options`\) defaults to Nothing; once the stage's `progress` is at or after its quest, list the pick here/);
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("fail('campaign-rewards'");
+  });
+
+  it('(d) W1 writes each known issue as one plain sentence the reader can act on, then the finding id in parentheses; SKILL.md runs W1 for them at step 14', () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/## Known issues \(D-265\) Each known issue is one line: one plain sentence the reader can act on, saying what is wrong in the guide and what is true instead, then the finding's id in parentheses\. No pipeline words/);
+    expect(w1).toContain('`- The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance (v4-prose-3).`');
+    expect(w1).toMatch(/\(D1-gate level-points, stage b\)/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/With any open finding, W1 runs once more \(D-265\): its header's `findings` are the open findings as the reports give them, its `accepted` the accepted gate findings, and its prompt says `known issues`\. It rewrites only the lines under `### Known issues`, each issue one plain sentence the reader can act on, followed by the finding's id in parentheses\. Log it as W1 with outcome `known-issues`/);
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 14 | Known issues, only with open findings | `build-guide-writer` | `guide.md`\'s `Known issues` lines | at most 8 lines |');
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    expect(template).toMatch(/\[added at step 14\] - <What is wrong in the guide, in plain words: "the Act 1 resistance line is wrong: stage 2 already has 40% fire"> \(<V4 finding id>\)\./);
+    expect(template).not.toMatch(/\(V4 <lens>, <artifact> <location>\)/);
+    expect(ref('source-markers.md')).toMatch(/W1 writes every open finding into the guide's `Known issues` as one plain sentence the reader can act on, followed by its id in parentheses \(SKILL\.md step 14, D-265\); the run checker looks for each id/);
+  });
+
+  it('(f) R1b applies FI-1 in the attempt\'s first compile, the bootstrap, and offline-and-test.md says the same', () => {
+    const r1b = folded(readStage('R1b'));
+    expect(r1b).toMatch(/2\. \*\*FI-1\*\*, only when the header's `faults` holds it: FI-1 goes into this attempt's \*\*first\*\* compile, so a faulted attempt compiles nothing clean and a concept FI-1 fails leaves no clean record \(D-265\)\. That first compile is the bootstrap \(step 3\), which you then always run/);
+    expect(r1b).toMatch(/\*\*FI-1\*\* \(`\.claude\/skills\/build-guide\/references\/offline-and-test\.md`\): step 2, in the attempt's first compile, the bootstrap, which always runs then \(D-265\)/);
+    expect(r1b).not.toMatch(/before the last compile and never in the bootstrap|right before the last compile, add/);
+    expect(ref('offline-and-test.md')).toContain('| FI-1 | the R1b step, before the attempt\'s first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) |');
   });
 });

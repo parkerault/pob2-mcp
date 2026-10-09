@@ -18,28 +18,29 @@ spine C-36).
   Trade and poe.ninja are reached only through the server's price tools, only by coordinator steps
   (`references/pricing.md`). Web research uses only poe2db.tw, maxroll.gg, game8.co, poe-vault.com and
   patch-note mirrors, and none at all in offline mode.
-- **Write only inside the run folder.** You write `run-log.json`, the V4 reports under `reports/`, and the
-  open findings into `guide.md`'s `Known issues` (step 14). Each agent writes only its header's `writes`.
-  The PoB file reaches the builds folder only through the final compile.
+- **Write only inside the run folder.** You write `run-log.json` and the V4 reports under `reports/`. Each
+  agent writes only its header's `writes`. The PoB file reaches the builds folder only through the final
+  compile.
 - **Your pob2 tools** are `mcp__pob2__get_classes` and `mcp__pob2__lookup_game_data` for the roll check, and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, every engine change and every price call is a
   coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in
   `subagent_type` (`.claude/agents/build-guide/`). A default agent would see every tool.
 - **Read only what routes the run:** the gate verdict files under `reports/gates/`, your own
-  `run-log.json`, the agents' returns and the verifiers' reports. Never read `plan.json`, a compile record,
-  `dossier.md` or `guide.md` (one final record was 268 KB); step 14 reads only the `Known issues` lines it
-  edits.
-- **Your Bash is the run checker and nothing else:**
-  `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, run exactly as written, one per
-  Bash call. Never `cd`, and no compound command: no `;`, `&&`, `||` or pipe. Write every file with Write
-  (or Edit), never with Bash or a script.
+  `run-log.json`, the test config, the agents' returns and the verifiers' reports. Never read `plan.json`, a
+  compile record, `dossier.md` or `guide.md` (one final record was 268 KB), with Read or with Bash.
+- **Your Bash reads, and runs the run checker; nothing else** (D-265). It runs read-only commands, `ls`,
+  `cat`, `head`, `grep`, `wc` and `jq` (with `cd`, pipes and `&&` between them as you need), and the run
+  checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`. Never a network client
+  (`curl`, `wget`, `nc`, `ssh`) or any host, and never a command that writes, moves or deletes a file: no
+  `>`, `>>`, `tee`, `cp`, `mv`, `rm`, `mkdir`, `touch` or `sed -i`. Write every file with Write (or Edit),
+  never with Bash or a script. The agents have no Bash at all.
 
 | Agent type (`subagent_type`) | Steps |
 |---|---|
 | `build-guide-researcher` | R1a: lookup-only research, up to 3 in parallel |
 | `build-guide-coordinator` | R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (and its final compile); the only type that compiles or prices |
-| `build-guide-writer` | W1: writes `guide.md` |
+| `build-guide-writer` | W1: writes `guide.md`, and at step 14 its known issues |
 | `build-guide-verifier` | V4: every claim true, one lens each (`ledger`, `sources`, `prose`), a full pass or a re-check; it can't write |
 
 ## Calling an agent
@@ -93,7 +94,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
 | 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
-| 14 | Known issues | you | the open findings, into `guide.md`'s `Known issues` | — |
+| 14 | Known issues, only with open findings | `build-guide-writer` | `guide.md`'s `Known issues` lines | at most 8 lines |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
 
@@ -239,11 +240,11 @@ the stage, the attempts and the verdict file, and ask:
   `findings` and the owners' changed locations in `changed`, and checks only those. Write each report to
   `reports/v4-<lens>-recheck.json`. Either way there is no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. Read the three lines of `guide.md` from
-  the `known-issues-line` W1 returned (no Grep: if the line isn't the `### Known issues` heading, Read the
-  guide in parts until you find it), and Edit them so that every open finding has its
-  own line after the heading, `` - `<id>` (V4 <lens>, <artifact> <location>): <issue> ``, replacing a lone
-  `None.`. With no open finding, change nothing.
+  `unresolved` in the full pass and not reported `fixed` by a re-check. With any open finding, W1 runs once
+  more (D-265): its header's `findings` are the open findings as the reports give them, its `accepted` the
+  accepted gate findings, and its prompt says `known issues`. It rewrites only the lines under `### Known
+  issues`, each issue one plain sentence the reader can act on, followed by the finding's id in
+  parentheses. Log it as W1 with outcome `known-issues`. With no open finding, nothing runs.
 - **Step 15.** Run the run checker (§7).
 - **Step 16, checkpoint 2.** Show the guide's path, the PoB file (the D2 gate verdict's `finalCompile`),
   the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run ends

@@ -781,3 +781,50 @@ The user is on a subscription: report costs in tokens, not dollars.
     - wording fixes;
     - an exhaustive Bash allowlist;
     - behavioural tests replace the tests that grepped the checker's own source.
+- **D-264/D-265/D-266 lane merged** at `d844178`. Coordinator check: build rc 0; 282/282 in the
+  affected suites.
+  - **Doer deviations accepted:**
+    - the projection keeps `ledger[].claim`, `respec.note` and `chaosResistException.reason`, so edits to
+      those take the recompile path;
+    - D2 writes the reward picks onto the endgame stages, and D1 keeps them;
+    - a raising lens that skips its re-check fails.
+- **Gate: PASS at `d844178`** (independent verifier).
+  - test rc 0: 120 suites, 1,842 tests, plus the NFR step. build rc 0.
+  - Fresh clone rc 0: 84/83 tools, Life 2,977.
+  - Waivers `[]`; dependencies unchanged.
+  - Every review demo now fails on its rule: gear, gem, tree, price and ledger swaps under a claims-only
+    edit, the stale accepted-offline location, the endgame pick, and stale Known issues lines.
+  - Fidelity holds for D-266 and items 3 and 4.
+
+### M-12 exit (2026-10-09): met with recorded exceptions, closed by the user's direction without a re-run
+
+The offline pipeline runs end to end in the user's interactive session (D-263), on the single
+orchestration path (amendment 1). Evidence is attempt 3 on Opus (`/tmp/m12b.B0zi`), re-checked by the
+merged checker. Each AC:
+
+**Passed:**
+- AC-W4, W15, W18, W20, W21, W26;
+- W16(a, b, d);
+- W16(e): the non-checker Bash commands are listed in this work-log, and none is a network client;
+- W17, except the checker clause.
+
+**AC-W19:**
+- pass: everything except two clauses;
+- the second checkpoint-1 display (D-265 b): fixed in the references, not yet verified live;
+- check-run rc 0: exception E2 below.
+
+**AC-W22:** every H2 is complete except Campaign rewards, which D-265 (c) fixed and enforces in the
+checker; not yet verified live. Followability is a quality gap, carried to the endgame-content agenda.
+
+**Recorded exceptions:**
+- **E1.** Run A's checker gives rc 1 on 8 `[campaign-rewards]` (the real defect, since fixed) and 41
+  `[report-shape]` (reports written before `reader` existed).
+- **E2.** Run B's stray `scratch-note.txt`. The checker caught it; D-177 holds by prompt only.
+- **E3.** Verifier recall varies between passes: a fresh pass found 5 more sources findings, including an
+  off-list host cited in a scenario source.
+- **E4.** D-264's claims-only path, D-265 (b)/(c)/(d)/(e) and D-266 are verified by tests and the review
+  demos, not by a live run. WU-48 will be their first live run.
+
+**Next:** the user's agenda: endgame content, the precision dial, tuning against human guides, creative
+builds. Then WU-48 (HG-14) and finalization, which includes folding D-239…D-266 and amendment 1 into the
+spine and slice 03, plus C-33's `buildSha1`.

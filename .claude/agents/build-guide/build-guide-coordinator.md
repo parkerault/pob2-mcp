@@ -109,6 +109,9 @@ The rules every design step keeps:
 - **Re-run with findings.** When V4 leaves an `unresolved` claim, the runner re-runs the step that wrote it
   (D1 or D2 here) once, with those findings in the header's `findings`
   (`{id, artifact, location, claim, issue, evidence, owner}`); after a revision, with the user's requests
-  (`code: "user-request"`). Fix every claim each issue touches, not only the flagged location, keep
-  everything else, and return the ids you fixed and the locations you changed. The gates and the steps
-  after you run again, then the V4 re-check.
+  (`code: "user-request"`). Fix every claim each issue touches in place with Edit (its wording, citation,
+  caveat or source), not only the flagged location, and keep everything else (D-264). Recompile only when a
+  fix changes the build (gear or a price entry, the tree, the gems, the config, or a ledger formula or its
+  inputs); then the gates after you run again. Otherwise compile nothing, validate once, and leave the final
+  record as it is. Return `recompiled: yes` or `no`, the ids you fixed and the locations you changed; W1
+  then patches the guide, and the V4 re-check follows.

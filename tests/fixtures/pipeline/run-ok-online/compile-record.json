@@ -55,7 +55,10 @@
           }
         }
       },
-      "configWritten": {},
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": 0
+      },
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -97,7 +100,10 @@
           }
         }
       },
-      "configWritten": {},
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -10
+      },
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -153,7 +159,15 @@
           }
         }
       },
-      "configWritten": {},
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 402,
+        "enemyFireDamage": 97,
+        "enemyColdDamage": 97,
+        "enemyLightningDamage": 97,
+        "enemyChaosDamage": 97
+      },
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -209,7 +223,15 @@
           }
         }
       },
-      "configWritten": {},
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 439,
+        "enemyFireDamage": 106,
+        "enemyColdDamage": 106,
+        "enemyLightningDamage": 106,
+        "enemyChaosDamage": 106
+      },
       "configEffective": {},
       "pobWarnings": {
         "kept": [],

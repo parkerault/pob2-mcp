@@ -48,10 +48,11 @@ Shown after the run checker (step 15).
   - **accept**: the run ends `completed`.
   - **changes** (D-236): a revision. The runner maps each request to the step that owns it, by the fix
     round's owners: the guide's text is W1's; an endgame stage of `plan.json`, its ledger entries and
-    prices D1's; a campaign stage D2's. It runs that owner's chain (D1 → D1 gate → D2 gate → W1; D2 → D2
-    gate → W1; W1 alone) with the requests as `findings` (`code: "user-request"`), then the full V4 pass,
-    the fix round, the re-check and the known issues again, and comes back here. A revision counts against
-    no retry cap. The answer is recorded as `revise:<text>`.
+    prices D1's; a campaign stage D2's. It runs that owner as the fix round does (SKILL.md step 12, D-264:
+    claims in place, then W1; the owner's gates only after it recompiled: D1 → D1 gate → D2 gate → W1, D2 →
+    D2 gate → W1) with the requests as `findings` (`code: "user-request"`), then the full V4 pass, the fix
+    round, the re-check and the known issues again, and comes back here. A revision counts against no retry
+    cap. The answer is recorded as `revise:<text>`.
   - **any other answer**: the run ends `not-accepted`, with the user's note recorded as the answer.
 
 ## Escalations (D-127, D-141, D-236)

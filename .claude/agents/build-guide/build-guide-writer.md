@@ -41,4 +41,4 @@ the D1 gate's verdict file and anything else the step needs.
   (`.claude/skills/build-guide/references/source-markers.md`). The import code is copied from the record's
   `importCode` exactly.
 - **End with at most 8 lines**, as your stage reference says: `guide.md`, your gaps, and in the fix round
-  the ids you fixed and the locations you changed.
+  the ids you fixed and the locations you changed (you fix the guide in place there, never anew).

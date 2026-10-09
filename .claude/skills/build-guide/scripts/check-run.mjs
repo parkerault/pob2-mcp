@@ -6,8 +6,9 @@
 // It checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
 // applies. It checks the artifacts rather than self-reports:
 //  - the layout (slice 03 §2), the source markers (§7.3), the dossier's and the guide's sections (§7.2, §8);
-//  - the final record against the plan (`planSha1`), its PoB file (the decoded import code, one tree set
-//    per plan stage) and its ledger (re-evaluated with the server's own compiled evaluator);
+//  - the final record against the plan (`planSha1`, or after claims-only edits the build parts the record
+//    holds, D-264), its PoB file (the decoded import code, one tree set per plan stage) and its ledger
+//    (re-evaluated with the server's own compiled evaluator);
 //  - the D1 gate, recomputed from the plan and the record: the floor, the budget, and the rolled skill with
 //    its figure's stat set;
 //  - every V4 finding open after the re-check listed under the guide's `Known issues`;
@@ -91,19 +92,24 @@ const ARTIFACTS = ['plan.json', 'guide.md'];
 const PARTS = ['pass', 'fail', 'unverified'];
 const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
+/**
+ * D-264: a fix-round (or revision) owner, D1 or D2, that edited claims in place and compiled nothing. No gate
+ * follows it, the final record stays the last D2 gate's, and the re-check stays targeted.
+ */
+const CLAIMS_EDITED = 'claims-edited';
 /** Each `stages[]` stage and the outcomes its entries may have (run-log.md); every step may miss its file. */
 const STAGE_OUTCOMES = {
   R1a: ['done'],
   R1b: ['pass', 'fail'],
   'R1b-assemble': ['done'],
-  D1: ['done', 'infeasible'],
+  D1: ['done', 'infeasible', CLAIMS_EDITED],
   'D1-gate': ['pass', 'fail', 'infeasible', 'escalated'],
-  D2: ['done'],
+  D2: ['done', CLAIMS_EDITED],
   'D2-gate': ['pass', 'fail', 'escalated'],
   W1: ['done'],
   ...Object.fromEntries(LENSES.flatMap((l) => [[`V4-${l}`, ['pass', 'fail']], [`V4-${l}-recheck`, ['pass', 'fail']]])),
 };
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing'];
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED];
 /** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
 const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate'];
 /** The steps that concern no one concept. */
@@ -415,7 +421,11 @@ export async function checkRun(runFolder) {
   if (guideText0 !== null && !guideCurrent && completed) {
     fail('layout', `status is "completed", but guide.md is from ${describe(stages[lastW1])}, and design steps ran after it; a completed run ends with a current guide`);
   }
-  const recordCurrent = finalRecord !== null && !(lastAt((s) => s.stage === 'D1' || s.stage === 'D2') > lastAt((s) => s.stage === 'D2-gate' && s.outcome !== 'missing'));
+  // A claims-only owner (D-264) compiles nothing, so it leaves the final record current.
+  const lastFinalGate = lastAt((s) => s.stage === 'D2-gate' && s.outcome !== 'missing');
+  const recordCurrent = finalRecord !== null && !(lastAt((s) => (s.stage === 'D1' || s.stage === 'D2') && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
+  /** The claims-only owner entries after the last D2 gate, whose edits the final record predates. */
+  const claimsOnlyAfterFinal = stages.slice(lastFinalGate + 1).filter((s) => (s.stage === 'D1' || s.stage === 'D2') && s.outcome === CLAIMS_EDITED);
   if (guideText !== null && isObj(record) && !finalRecord) {
     fail('layout', `guide.md exists, but compile-record.json is a ${show(record.mode)} record; W1 writes the guide from the final compile's record (§5.3)`);
   }
@@ -786,7 +796,7 @@ export async function checkRun(runFolder) {
       budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, guide, fail),
       rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, fail),
     };
-    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => s.stage === 'D1') < lastD1GateAt;
+    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => s.stage === 'D1' && s.outcome !== CLAIMS_EDITED) < lastD1GateAt;
     for (const [part, got] of Object.entries(parts)) {
       const openFailures = got.failures.filter((f) => !covered(f));
       const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
@@ -837,11 +847,29 @@ export async function checkRun(runFolder) {
       }
     }
   }
+  // D-264: a claims-only owner compiles nothing, so the record is still the final compile the last D2 gate ran.
+  if (claimsOnlyAfterFinal.length > 0 && lastFinalGate >= 0) {
+    const who = claimsOnlyAfterFinal.map(describe).join(', ');
+    const gate = stages[lastFinalGate];
+    const named = gateReports.get(`reports/gates/D2-gate-${gate.concept}-a${gate.attempt}.json`)?.finalCompile?.pobFile;
+    if (isObj(record) && record.mode !== 'final') {
+      fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but compile-record.json is a ${show(record.mode)} record, not the final compile of ${describe(gate)}: a claims-only edit compiles nothing (D-264)`);
+    } else if (finalRecord && typeof named === 'string' && finalRecord.pobFile?.path !== named) {
+      fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but the final record's PoB file ${show(finalRecord.pobFile?.path)} isn't ${show(named)}, the one ${describe(gate)} wrote (D-264)`);
+    }
+  }
   if (recordCurrent && exists('plan.json')) {
     // (r) The record is of this plan: the final compile validated it (D-163), so the plan validates too.
     const planSha1 = sha1(fs.readFileSync(abs('plan.json')));
-    if (finalRecord.planSha1 !== planSha1) {
+    if (finalRecord.planSha1 !== planSha1 && claimsOnlyAfterFinal.length === 0) {
       fail('record-plan', `sha1(plan.json) is ${planSha1}, but the final record's planSha1 is ${show(finalRecord.planSha1)}: plan.json changed after the final compile`);
+    } else if (finalRecord.planSha1 !== planSha1) {
+      // D-264: claims edited in place after the final compile change the plan's sha1 but no build part. The record
+      // holds the build parts it compiled as plain values (the stage ids, each stage's loadout name, level and
+      // config as written) and the ledger values, which (t) re-evaluates; they must still be the plan's.
+      for (const why of buildDrift(planStages, finalRecord)) {
+        fail('record-plan', `plan.json changed after the final compile by claims-only edits (${claimsOnlyAfterFinal.map(describe).join(', ')}), but ${why}; only a recompile changes the build (D-264)`);
+      }
     }
   }
   if (finalRecord) {
@@ -883,6 +911,31 @@ export async function checkRun(runFolder) {
     }
   }
   return violations;
+}
+
+/**
+ * D-264: where the plan's build parts differ from what the final record compiled, as far as the record holds
+ * them as plain values: the stages (ids, in order), each stage's loadout name and level, and each stage's config
+ * (`configWritten`: every earned and scenario option, as written). The tree, items and gems exist in the record
+ * only inside the import code's PoB XML, which PoB rewrites, so they aren't compared.
+ */
+function buildDrift(planStages, record) {
+  const out = [];
+  const ids = planStages.map((s) => s.id);
+  const compiled = Array.isArray(record.stagesCompiled) ? record.stagesCompiled : [];
+  if (show(ids) !== show(compiled)) out.push(`its stages are ${show(ids)}, and the record compiled ${show(compiled)}`);
+  for (const s of planStages) {
+    const rec = isObj(record.stages) ? record.stages[s.id] : undefined;
+    if (!isObj(rec)) continue;
+    if (rec.loadoutName !== s.loadoutName) out.push(`stage ${s.id}'s loadoutName is ${show(s.loadoutName)}, and the record's is ${show(rec.loadoutName)}`);
+    if (rec.level !== s.level) out.push(`stage ${s.id}'s level is ${show(s.level)}, and the record's is ${show(rec.level)}`);
+    const listed = Object.fromEntries([...list(s.config?.earned), ...list(s.config?.scenario)].map((o) => [o.option, o.value]));
+    const written = isObj(rec.configWritten) ? rec.configWritten : {};
+    const options = [...new Set([...Object.keys(listed), ...Object.keys(written)])].sort();
+    const moved = options.filter((o) => show(listed[o]) !== show(written[o]));
+    if (moved.length > 0) out.push(`stage ${s.id}'s config differs from the record's configWritten in ${moved.map((o) => show(o)).join(', ')}`);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -1014,8 +1067,10 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *  - `caps`: at most 3 R1a researchers and 3 R1b concepts per round; R1b at most 3 counted attempts; each gate
  *    at most 2 counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a persistent
  *    fault's attempts count; a guided retry and an accepted re-run escalate again on failure).
- *  - `verification`: one full pass of the three lenses per cycle, at most one re-check, only of lenses that
- *    raised a finding, after the fix round; a new cycle only for a checkpoint-2 revision.
+ *  - `verification`: one full pass of the three lenses per cycle, at most one re-check after the fix round, of
+ *    all three lenses if and only if a gate re-ran in the fix round (an owner recompiled), else only of the
+ *    lenses that raised a finding (D-264); a claims-only owner (`claims-edited`) runs only before any gate of its
+ *    fix round or revision, and no gate follows it; a new cycle only for a checkpoint-2 revision.
  *  - `escalation`: only gates escalate, each escalation logged once, in order, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
  * `ctx` gives a gate attempt's verdict file and the stage each fault breaks; findings accepted at an escalation
@@ -1112,8 +1167,8 @@ function checkFlow(log, fail, ctx) {
     if (cycle?.recheck === 'open') {
       cycle.recheck = 'done';
       const missing = LENSES.filter((l) => !cycle.rechecked.has(l));
-      if (cycle.fixDesign && missing.length > 0) {
-        fail('verification', `run-log.json stages[${i}]: the fix round re-ran D1 or D2, so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ${missing.join(', ')}`);
+      if (cycle.fixGate && missing.length > 0) {
+        fail('verification', `run-log.json stages[${i}]: a gate re-ran in the fix round (an owner recompiled), so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ${missing.join(', ')} (D-264)`);
       }
     }
   };
@@ -1148,6 +1203,8 @@ function checkFlow(log, fail, ctx) {
     const same = p !== undefined && p.concept === s.concept;
     if (f !== pf) closeBlocks(i);
     const illegal = (why) => fail('order', `${at(i)}: ${why}`);
+    // After the V4 checks: a full pass or a re-check.
+    const postVerify = pf === 'V4' || pf === 'V4r';
 
     // What the previous step's outcome allows next.
     if (p && p.outcome === 'escalated') {
@@ -1165,9 +1222,10 @@ function checkFlow(log, fail, ctx) {
         R1a: ['R1a', 'R1b', 'R1b-assemble'],
         R1b: ['R1b', 'R1b-assemble'],
         'R1b-assemble': ['R1a', 'D1'],
-        D1: ['D1-gate'],
+        // D-264: a claims-only D1 runs no gate; D2 (a claims-only one, or one that recompiles) or W1 follows.
+        D1: p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : ['D1-gate'],
         'D1-gate': p?.outcome === 'pass' ? ['D2', ...(design?.verified ? ['D2-gate'] : [])] : p?.outcome === 'fail' ? ['D1'] : ['D1', 'R1a'],
-        D2: ['D2-gate'],
+        D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
         'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
         W1: cycle?.fix && cycle.full === 'done' ? ['V4r'] : ['V4'],
         V4: ['V4', 'D1', 'D2', 'W1'],
@@ -1175,10 +1233,15 @@ function checkFlow(log, fail, ctx) {
       }[pf] ?? [];
       const want = f === 'V4' || f === 'V4r' ? f : s.stage;
       if (!allowed.includes(want)) illegal(`can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}); SKILL.md's step list allows ${allowed.join(', ') || 'nothing'} next`);
-      const keepsConcept = ['D1-gate', 'D2', 'D2-gate', 'W1'].includes(pf) || (pf === 'D1' && s.stage === 'D1-gate') || ((pf === 'V4' || pf === 'V4r') && f !== 'R1a');
+      const keepsConcept = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1'].includes(pf) || ((pf === 'V4' || pf === 'V4r') && f !== 'R1a');
       if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !(pf === 'D1-gate' && p.outcome === 'infeasible') && !same) {
         illegal(`is about ${s.concept}, but the design before it is ${p.concept}'s; a design runs through D1, its gate, D2, its gate, W1 and V4 for one concept`);
       }
+    }
+    // D-264: a claims-only owner edits in place before any gate of its fix round or revision: right after the V4
+    // checks, or (D2) right after a claims-only D1. Once a gate re-ran, the final record is gone, so D2 runs its gate.
+    if (s.outcome === CLAIMS_EDITED && !(postVerify || (s.stage === 'D2' && pf === 'D1' && p?.outcome === CLAIMS_EDITED))) {
+      illegal(`edits claims without a compile (${CLAIMS_EDITED}), which an owner does only in the fix round or a revision, before any gate of it re-runs (D-264)`);
     }
 
     // Research rounds (D-235, NFR-23).
@@ -1218,10 +1281,10 @@ function checkFlow(log, fail, ctx) {
         // a counted retry, or a free one after an attempt-1 fault
       } else if (pf === 'D1-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
         chain('D1-gate', s.concept).guided = true;
-      } else if (pf === 'V4' || pf === 'V4r') {
+      } else if (postVerify) {
         afterVerification(s, i, pf);
         freshChain('D1-gate', s.concept);
-      } else freshDesign(s, i);
+      } else if (s.outcome !== CLAIMS_EDITED) freshDesign(s, i);
     }
     if (s.stage === 'D2') {
       if (pf === 'D2-gate' && p.outcome === 'fail' && same) {
@@ -1229,15 +1292,17 @@ function checkFlow(log, fail, ctx) {
       } else if (pf === 'D2-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
         chain('D2-gate', s.concept).guided = true;
       } else {
-        if (pf === 'V4' || pf === 'V4r') afterVerification(s, i, pf);
+        if (postVerify) afterVerification(s, i, pf);
         freshChain('D2-gate', s.concept);
       }
     }
-    // Item 6: a fix round that re-runs D1 or D2 rewrites the plan and the guide, so its re-check is a full pass.
-    if ((s.stage === 'D1' || s.stage === 'D2') && cycle?.fix && cycle.full === 'done' && cycle.recheck === 'none') cycle.fixDesign = true;
+    // Flow invariant 3 (D-264): a gate that re-runs in the fix round compiles a new plan and record (an owner
+    // recompiled), so the re-check is a full pass of all three lenses; a claims-only round runs no gate, and its
+    // re-check stays with the lenses that raised a finding.
+    if ((s.stage === 'D1-gate' || s.stage === 'D2-gate') && cycle?.fix && cycle.full === 'done' && cycle.recheck === 'none') cycle.fixGate = true;
     if (s.stage === 'D2-gate' && pf === 'D1-gate') freshChain('D2-gate', s.concept);
     if (s.stage === 'D2-gate' && pf === 'D2-gate' && p.outcome === 'escalated' && lastEscalation?.choice === 'accept') chain('D2-gate', s.concept).guided = true;
-    if (s.stage === 'W1' && (pf === 'V4' || pf === 'V4r')) afterVerification(s, i, pf);
+    if (s.stage === 'W1' && postVerify) afterVerification(s, i, pf);
     if (s.stage === 'W1' && pf === 'D2-gate' && cycle === null) cycle = { full: 'none', lenses: new Set(), failed: new Set(), fix: false, recheck: 'none', rechecked: new Set() };
     // Each gate attempt routes as its own verdict file says (gates.md's outcome tables).
     if (GATE_STAGES.includes(s.stage)) {
@@ -1301,7 +1366,7 @@ function checkFlow(log, fail, ctx) {
       if (!cycle || cycle.full !== 'done' || !cycle.fix) fail('verification', `${at(i)}: re-checks with no full pass and fix round before it in this cycle`);
       else if (cycle.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check in one cycle; there is no further round, what stays open is a known issue (S2)`);
       else {
-        if (!cycle.fixDesign && !cycle.failed.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless the fix round re-ran D1 or D2`);
+        if (!cycle.fixGate && !cycle.failed.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless a gate re-ran in the fix round (D-264)`);
         if (cycle.rechecked.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens twice`);
         cycle.recheck = 'open';
         cycle.rechecked.add(lensOf(s));

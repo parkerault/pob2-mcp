@@ -1088,7 +1088,7 @@ describe('review 6 (MED): a fix round that re-runs D1 or D2 re-checks all three 
   };
 
   it('fails a targeted re-check of only the raising lens after D1 re-ran', () => {
-    expect(failing(designFix(['prose']))).toMatch(/\[verification\] .*the fix round re-ran D1 or D2, so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ledger, sources/);
+    expect(failing(designFix(['prose']))).toMatch(/\[verification\] .*a gate re-ran in the fix round \(an owner recompiled\), so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ledger, sources \(D-264\)/);
   });
 
   it('passes the full re-check, a lens that raised nothing included; still no second fix round', () => {
@@ -1164,5 +1164,89 @@ describe("W19: run B's failure routes pass the checker with no --partial (no via
       ];
     });
     passes(dir);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// D-264: the fix round fixes claims in place; only a recompile re-runs the gates and the full re-check
+// ---------------------------------------------------------------------------------------------------
+
+describe('D-264: a claims-only fix round edits claims in place, runs no gate, and re-checks only the raising lenses', () => {
+  /**
+   * run-ok whose fix round is a claims-only D1 (its claims edited in place, nothing compiled, so the record keeps
+   * the final compile's planSha1), then W1 patching the guide and the prose re-check.
+   */
+  const claimsOnly = (planEdit: (p: Json) => void = (p) => (stageB(p).claims[0].text += ' (fixed in place)')) => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'plan.json', planEdit);
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('W1', 'c1', 2, 'done'), step('V4-prose-recheck', 'c1', 1, 'fail')]);
+    return dir;
+  };
+
+  it('passes D1 → W1 → the raising lens re-checking: the plan differs from the record only in its claims', () => {
+    const dir = claimsOnly();
+    expect(sha1(fs.readFileSync(path.join(dir, 'plan.json')))).not.toBe(readJson(dir, 'compile-record.json').planSha1);
+    passes(dir);
+  });
+
+  it('fails a claims-only edit that changed a build part the record holds: a stage\'s config, level or loadout name', () => {
+    const stderr = failing(claimsOnly((p) => {
+      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value = 120;
+      p.stages.find((s: Json) => s.id === '2').level = 31;
+    }));
+    expect(stderr).toMatch(/\[record-plan\] plan\.json changed after the final compile by claims-only edits \(D1 c1 attempt 3\), but stage 2's level is 31, and the record's is 30; only a recompile changes the build \(D-264\)/);
+    expect(stderr).toMatch(/\[record-plan\] .*but stage b's config differs from the record's configWritten in "enemyFireDamage"/);
+    // Without a claims-only entry the same plan edit is the old (r) failure: the plan changed after the final compile.
+    const dir = copyOf('run-ok');
+    editJson(dir, 'plan.json', (p) => (stageB(p).claims[0].text += ' (edited)'));
+    expect(failing(dir)).toMatch(/\[record-plan\] sha1\(plan\.json\) is [0-9a-f]{40}, but the final record's planSha1 is "[0-9a-f]{40}": plan\.json changed after the final compile/);
+  });
+
+  it('fails a claims-only owner that compiled: the record is no longer the last D2 gate\'s final compile', () => {
+    const measured = claimsOnly();
+    editJson(measured, 'compile-record.json', (r) => (r.mode = 'measure-only'));
+    expect(failing(measured)).toMatch(/\[record-plan\] D1 c1 attempt 3 edited claims without a compile \(claims-edited\), but compile-record\.json is a "measure-only" record, not the final compile of D2-gate c1 attempt 1/);
+    const other = claimsOnly();
+    editJson(other, 'compile-record.json', (r) => (r.pobFile.path = 'titan-blood-hunt-2026-10-08-9.xml'));
+    expect(failing(other)).toMatch(/\[record-plan\] .*but the final record's PoB file "titan-blood-hunt-2026-10-08-9\.xml" isn't "titan-blood-hunt-2026-10-08-1\.xml", the one D2-gate c1 attempt 1 wrote/);
+  });
+
+  it('flow invariant 3: with no gate re-run, a re-check of a lens that raised nothing fails (the re-check is full only after a gate)', () => {
+    const dir = claimsOnly();
+    editLog(dir, (l) => l.stages.push(step('V4-ledger-recheck', 'c1', 1, 'pass'), step('V4-sources-recheck', 'c1', 1, 'pass')));
+    expect(failing(dir)).toMatch(/\[verification\] .*\(V4-ledger-recheck c1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless a gate re-ran in the fix round \(D-264\)/);
+  });
+
+  it('a claims-only owner runs no gate, and only before any gate of its round', () => {
+    // A D1 gate after a claims-only D1.
+    const gated = copyOf('run-ok');
+    d1Verdict(gated, 3, null);
+    restage(gated, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D1-gate', 'c1', 3, 'pass'), step('W1', 'c1', 2, 'done'), step('V4-prose-recheck', 'c1', 1, 'fail')]);
+    expect(failing(gated)).toMatch(/\[order\] .*\(D1-gate c1 attempt 3\): can't follow D1 c1 attempt 3 \(outcome "claims-edited"\); SKILL\.md's step list allows D2, W1 next/);
+    // A claims-only D2 after the D1 gate re-ran: the D1 gate's compile replaced the final record, so D2 runs its gate.
+    const late = copyOf('run-ok');
+    d1Verdict(late, 3, null);
+    restage(late, 15, [step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'pass'), step('D2', 'c1', 2, 'claims-edited'), step('W1', 'c1', 2, 'done')]);
+    expect(failing(late)).toMatch(/\[order\] .*\(D2 c1 attempt 2\): edits claims without a compile \(claims-edited\), which an owner does only in the fix round or a revision, before any gate of it re-runs \(D-264\)/);
+    // The first D1 of a design is never claims-only.
+    const first = copyOf('run-ok');
+    editLog(first, (l) => (l.stages[5].outcome = 'claims-edited'));
+    expect(failing(first)).toMatch(/\[order\] .*\(D1 c1 attempt 1\): edits claims without a compile/);
+  });
+
+  it('passes D1 claims-only, then D2 recompiling: its gate runs the final compile again, and the re-check is full', () => {
+    const dir = copyOf('run-ok');
+    fs.copyFileSync(path.join(dir, 'reports/gates/D2-gate-c1-a1.json'), path.join(dir, 'reports/gates/D2-gate-c1-a2.json'));
+    editJson(dir, 'reports/gates/D2-gate-c1-a2.json', (r) => (r.attempt = 2));
+    for (const lens of ['ledger', 'sources']) {
+      fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
+      editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
+    }
+    const rechecks = ['ledger', 'sources', 'prose'].map((l) => step(`V4-${l}-recheck`, 'c1', 1, l === 'prose' ? 'fail' : 'pass'));
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), ...rechecks.slice(0, 2), rechecks[2]]);
+    passes(dir);
+    // That re-check must be full: a gate re-ran.
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), rechecks[2]]);
+    expect(failing(dir)).toMatch(/\[verification\] .*a gate re-ran in the fix round \(an owner recompiled\), so the re-check before it is a full pass of all three lenses/);
   });
 });

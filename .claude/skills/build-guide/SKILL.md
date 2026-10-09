@@ -91,8 +91,8 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
 | 10 | W1, the guide | `build-guide-writer` | `guide.md` | at most 8 lines |
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
-| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files | the ids fixed and the locations changed |
-| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when the fix round re-ran D1 or D2 | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
+| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
+| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
 | 14 | Known issues | you | the open findings, into `guide.md`'s `Known issues` | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
@@ -214,19 +214,30 @@ the stage, the attempts and the verdict file, and ask:
   the last D1 gate verdict file (its budget totals).
 - **Step 11, the full pass.** Start the three lenses in parallel, `check: "full"`; each checks every claim
   of `plan.json` and `guide.md` in its lens, with no sampling. Write each report to `reports/v4-<lens>.json`.
-- **Step 12, the fix round**, once, only when a report has an `unresolved` finding. Send each finding to
-  its `owner`; the earliest owner runs first, then the steps after it: **D1** → D1 gate → D2 gate → W1;
-  **D2** → D2 gate → W1; **W1** alone. A step that is itself an owner gets its findings in `findings`
-  (D2 after D1: D1 → D1 gate → D2 → D2 gate → W1). Each owner fixes every claim the issue touches, not only
-  the flagged location, and returns the ids it fixed and the locations it changed. W1 fixes the guide in
-  place, and writes it anew only after D1 or D2 re-ran. The round is uncounted; the gates in it keep their 2
-  counted retries, and an escalation in it is a gate escalation.
-- **Step 13, the re-check.** When the fix round re-ran D1 or D2, the plan and the guide are new: all three
-  lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and
-  `changed: "all"`, and check every claim, as a full pass does. Otherwise each lens that raised a finding runs
-  once, in parallel, with its own open findings in `findings` and the owners' changed locations in
-  `changed`, and checks only those. Write each report to `reports/v4-<lens>-recheck.json`. Either way there is
-  no further round: what stays open is a known issue.
+- **Step 12, the fix round**, once, only when a report has an `unresolved` finding (D-264). Send each
+  finding to its `owner`: D1, D2 or W1. Each owner fixes, in place with Edit, every claim the issue touches,
+  not only the flagged location: the claim's wording, citation, caveat or source. It recompiles only when a
+  finding needs a build change: gear, tree, gems, config, scenario or a ledger formula. It returns the ids it
+  fixed, the locations it changed and whether it recompiled. The earliest owner runs first (D1, then D2), and
+  W1 always runs last: it fixes its own findings and patches the guide in place wherever it repeats a claim
+  another owner changed (their locations in its header's `changed`).
+  - **No owner recompiled** (claims only): no gate runs; D1 → W1, D2 → W1, D1 → D2 → W1 or W1 alone. Log each
+    D1 or D2 of the round with outcome `claims-edited`. The final record and the PoB file stay the last D2
+    gate's.
+  - **An owner recompiled:** its gates run as now: **D1** → D1 gate → D2 gate → W1; **D2** → D2 gate → W1. A
+    step that is itself an owner gets its findings in `findings` (D2 after D1: D1 → D1 gate → D2 → D2 gate →
+    W1; that D2 runs its gate even for claim edits, since the D1 gate's compile replaced the final record).
+    Log the owners `done`. W1 still patches the guide in place, its header's `changed` `"all"`: the import
+    code and every record or ledger number the guide quotes may have moved.
+
+  The round is uncounted; the gates in it keep their 2 counted retries, and an escalation in it is a gate
+  escalation.
+- **Step 13, the re-check.** When a gate re-ran in the fix round (an owner recompiled), the plan and the
+  guide's numbers are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own
+  open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does. Otherwise
+  (claims only) each lens that raised a finding runs once, in parallel, with its own open findings in
+  `findings` and the owners' changed locations in `changed`, and checks only those. Write each report to
+  `reports/v4-<lens>-recheck.json`. Either way there is no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
   `unresolved` in the full pass and not reported `fixed` by a re-check. Read the three lines of `guide.md` from
   the `known-issues-line` W1 returned (no Grep: if the line isn't the `### Known issues` heading, Read the
@@ -239,8 +250,8 @@ the stage, the attempts and the verdict file, and ask:
   `completed`), **ask for changes**, or anything else (the run ends `not-accepted`, with the user's note).
   Asking for changes is a revision (D-236): map each request to D1, D2 or W1 by step 12's owners (the
   guide's text is W1's; an endgame stage, its ledger entries and prices D1's; a campaign stage D2's), run
-  that chain with the requests as `findings` (`code: "user-request"`), then steps 11 to 16 again. A
-  revision counts against no cap.
+  that chain as step 12 does (claims in place, the gates only after a recompile), with the requests as
+  `findings` (`code: "user-request"`), then steps 11 to 16 again. A revision counts against no cap.
 
 ## 7. Finish
 

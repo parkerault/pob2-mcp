@@ -36,7 +36,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 | `compile` | `none`, `measure-only` or `final`: what this step may ask `mcp__pob2__compile_plan` for |
 | `buildName` | the D2 gate only: `<slug>-<YYYY-MM-DD>-<n>` (`run-folder.md`), for its final compile |
 | `findings` | what to fix or check: the earlier attempt's gate verdict (its file and findings), the V4 findings routed to this owner, the user's revision requests (`code: "user-request"`) or guidance (`code: "user-guidance"`); for a V4 re-check, the lens's own open findings; `[]` otherwise |
-| `changed` | a V4 re-check only: the locations the fix round's owners changed (`plan.json stages[2].claims[1]`, `guide.md Summary`), or `"all"` when the fix round re-ran D1 or D2 (every claim is checked again) |
+| `changed` | a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed (`plan.json stages[2].claims[1]`, `guide.md Summary`), or `"all"` when a gate re-ran in the fix round (an owner recompiled: every claim is checked again, and W1 brings every number and the import code up to the new record) |
 | `accepted` | gate findings the user accepted at an escalation, from its verdict file; an equal finding (same plan stage, part and code) fails no gate |
 | `faults` | offline test mode only: this step's fault directives (`offline-and-test.md`) |
 | `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else |

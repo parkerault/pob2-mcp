@@ -960,7 +960,7 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
     expect(text).toContain('| `stage` | `R1a`, `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |');
     expect(text).not.toMatch(/\| `pass` \|/);
     expect(text).toMatch(/\| `check` \| V4 only: `full` .* or `recheck`/);
-    expect(text).toMatch(/\| `changed` \| a V4 re-check only: the locations the fix round's owners changed/);
+    expect(text).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed/);
   });
 
   it('every stage reference but V4 returns at most 8 lines; V4 returns its report, which the runner writes (R-5)', () => {
@@ -986,15 +986,15 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
   it('SKILL.md runs one full pass, one fix round routed to the owners, a re-check of the raising lenses, then the known issues', () => {
     const text = skill();
     expect(text).toMatch(/\*\*Step 11, the full pass\.\*\* Start the three lenses in parallel, `check: "full"`/);
-    expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when a report has an `unresolved` finding\. Send each finding to its `owner`; the earliest owner runs first, then the steps after it: \*\*D1\*\* → D1 gate → D2 gate → W1; \*\*D2\*\* → D2 gate → W1; \*\*W1\*\* alone/);
-    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* When the fix round re-ran D1 or D2, the plan and the guide are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does\. Otherwise each lens that raised a finding runs once, in parallel/);
+    expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when a report has an `unresolved` finding \(D-264\)\. Send each finding to its `owner`: D1, D2 or W1/);
+    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* When a gate re-ran in the fix round \(an owner recompiled\), the plan and the guide's numbers are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does\. Otherwise \(claims only\) each lens that raised a finding runs once, in parallel/);
     expect(text).toMatch(/Either way there is no further round: what stays open is a known issue/);
     expect(text).toMatch(/\*\*Step 14, known issues\.\*\* A finding is open when it is `unresolved` in its lens's re-check, or `unresolved` in the full pass and not reported `fixed` by a re-check/);
     expect(text).toMatch(/Verification never runs a lens again for its findings beyond the one re-check, and never escalates; only the D1 and D2 gates escalate/);
   });
 
   it('Q4: a checkpoint-2 revision maps each request to its owner, runs that chain, then the full pass and the same cycle again', () => {
-    expect(skill()).toMatch(/run that chain with the requests as `findings` \(`code: "user-request"`\), then steps 11 to 16 again\. A revision counts against no cap/);
+    expect(skill()).toMatch(/run that chain as step 12 does \(claims in place, the gates only after a recompile\), with the requests as `findings` \(`code: "user-request"`\), then steps 11 to 16 again\. A revision counts against no cap/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/then the full V4 pass, the fix round, the re-check and the known issues again/);
   });
 
@@ -1178,12 +1178,12 @@ describe('Review of bg/amend-1: the references', () => {
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'))).toMatch(/A gate attempt's outcome is the one its verdict file routes to/);
   });
 
-  it('6: a fix round that re-ran D1 or D2 re-checks all three lenses (changed: "all"); W1 rewrites the guide only then', () => {
-    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when the fix round re-ran D1 or D2 \|/);
-    expect(skill()).toMatch(/W1 fixes the guide in place, and writes it anew only after D1 or D2 re-ran/);
-    expect(folded(readStage('V4'))).toMatch(/With `changed: "all"` \(the fix round re-ran D1 or D2\), that is every claim of the new `plan\.json` and `guide\.md` in your lens, as a full pass checks them/);
-    expect(folded(readStage('W1'))).toMatch(/in place with Edit; write the guide anew only after D1 or D2 re-ran, since the re-check then checks it whole/);
-    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/or `"all"` when the fix round re-ran D1 or D2/);
+  it('6, as D-264 changes it: a fix round in which a gate re-ran re-checks all three lenses (changed: "all"); W1 always patches in place', () => {
+    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when a gate re-ran in the fix round \|/);
+    expect(skill()).toMatch(/W1 still patches the guide in place, its header's `changed` `"all"`/);
+    expect(folded(readStage('V4'))).toMatch(/With `changed: "all"` \(a gate re-ran in the fix round: an owner recompiled, D-264\), that is every claim of the new `plan\.json` and `guide\.md` in your lens, as a full pass checks them/);
+    expect(folded(readStage('W1'))).toMatch(/\*\*The fix round and revisions\*\* \(D-264\)\. You never write the guide anew: fix it in place with Edit/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/or `"all"` when a gate re-ran in the fix round \(an owner recompiled/);
   });
 
   it("7: a reference hit cites the damage at its variant's area level, and its ledger entry derives from it (gates.md, the D1 gate)", () => {
@@ -1205,5 +1205,42 @@ describe('Review of bg/amend-1: the references', () => {
     expect(skill()).toMatch(/\*\*guidance and one more retry\*\*: the producer \(D1 or D2\) gets one more attempt, uncounted, with the verdict and the user's guidance .* then its gate\. If the gate fails, whatever part fails, it escalates again/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the producer \(D1 or D2\) gets one more attempt with the verdict and the user's guidance in `findings`, then its gate\. That attempt counts against no cap, and if the gate fails, whatever part fails, it escalates again/);
     expect(gates()).toContain('| any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// D-264 (claims fixed in place): what the references say
+// ---------------------------------------------------------------------------------------------------
+
+describe('D-264: the fix round edits claims in place and recompiles only for a build change', () => {
+  const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+
+  it('SKILL.md step 12: owners fix claims in place, recompile only for gear, tree, gems, config, scenario or a ledger formula, and say whether they recompiled', () => {
+    const text = skill();
+    expect(text).toMatch(/Each owner fixes, in place with Edit, every claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source\. It recompiles only when a finding needs a build change: gear, tree, gems, config, scenario or a ledger formula\. It returns the ids it fixed, the locations it changed and whether it recompiled/);
+    expect(text).toMatch(/\*\*No owner recompiled\*\* \(claims only\): no gate runs; D1 → W1, D2 → W1, D1 → D2 → W1 or W1 alone\. Log each D1 or D2 of the round with outcome `claims-edited`/);
+    expect(text).toMatch(/\*\*An owner recompiled:\*\* its gates run as now: \*\*D1\*\* → D1 gate → D2 gate → W1; \*\*D2\*\* → D2 gate → W1/);
+    expect(text).toMatch(/W1 always runs last: it fixes its own findings and patches the guide in place wherever it repeats a claim another owner changed/);
+    expect(text).toContain('| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |');
+  });
+
+  it('D1 and D2: edit in place, recompile only for a build change, otherwise validate once and leave the final record; return recompiled', () => {
+    for (const stage of ['D1', 'D2']) {
+      const text = folded(readStage(stage));
+      expect({ stage, inPlace: /## The fix round and revisions \(D-264\) With V4 findings or the user's requests in `findings`, you edit the plan in place/.test(text) }).toEqual({ stage, inPlace: true });
+      expect({ stage, rule: /\*\*Recompile only for a build change\.\*\* A fix changes the build when it changes gear .* the tree, the gems, the config \(earned or scenario.*\), or a ledger entry's formula or inputs/.test(text) }).toEqual({ stage, rule: true });
+      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them/.test(text) }).toEqual({ stage, none: true });
+      expect({ stage, returns: /`recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed/.test(text) }).toEqual({ stage, returns: true });
+    }
+    expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/Recompile only when a fix changes the build .* Otherwise compile nothing, validate once, and leave the final record as it is\. Return `recompiled: yes` or `no`/);
+  });
+
+  it('the run log names the claims-only owner `claims-edited`, which the checker tells from a redesign, and the header carries W1 its changed locations', () => {
+    expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited claims in place and compiled nothing, so no gate follows it \(D-264\)/);
+    expect(ref('task-header.md')).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round/);
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    expect(checker).toContain("const CLAIMS_EDITED = 'claims-edited';");
+    expect(ref('run-folder.md')).toMatch(/of all three lenses if and only if a gate re-ran in the fix round \(D-264\)/);
   });
 });

@@ -75,7 +75,10 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
   is `unavailable` and no step priced. The guide's import code equals the record's (D-205), and every
   finding open after the re-check is under `Known issues`, by id, with every accepted gate finding.
 - **The final record.** V1 and V2 pass for every stage, accepted findings aside. `sha1(plan.json)` equals the
-  record's `planSha1`. The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
+  record's `planSha1`, unless claims-only owners (`claims-edited`, D-264) edited the plan after the final
+  compile: then the record must still be that compile's (final, its PoB file the one the last D2 gate named),
+  and the build parts it holds as plain values must still be the plan's: the stages in order, each stage's
+  loadout name and level, and its config as written (`configWritten`). The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
   plan stage, titled by the record's loadout names (D-215). Every ledger entry, re-evaluated over the record
   by the server's evaluator, equals the record's value to 2 decimals.
 - **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor, the budget and the
@@ -84,9 +87,11 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
 - **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;
   each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
   counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
-  one full V4 pass and at most one re-check per verification cycle, of all three lenses when the fix round
-  re-ran D1 or D2; escalations only from the gates, each naming its verdict file; a `rule` on every
+  one full V4 pass and at most one re-check per verification cycle, of all three lenses if and only if a gate
+  re-ran in the fix round (D-264); a claims-only owner only before any gate of its round, with no gate after
+  it; escalations only from the gates, each naming its verdict file; a `rule` on every
   pre-supplied or default answer; and `completed` only after checkpoint 2's accept.
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
-  is when no design step ran after its W1, and the final record when no producer ran after the last D2 gate.
+  is when no design step ran after its W1, and the final record when no producer that recompiled ran after
+  the last D2 gate (a claims-only D1 or D2 leaves it current).
   A guide, V4 reports or a record from an earlier cycle or concept aren't held to the current plan.

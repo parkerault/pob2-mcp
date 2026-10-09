@@ -187,7 +187,7 @@ verdict as its evidence.
 - **D2** adds the campaign stages; **the D2 gate** checks every stage and, when the compile, V1 and V2 pass,
   runs the final compile with `buildName` in the same step. A failure (the final compile's included)
   re-runs D2 with the verdict, up to 2 counted retries; the third escalates (§5). A pass goes to W1.
-- **Pricing.** Tell each coordinator step how to price: offline; stopped (once any `stages[]` entry's
+- **Pricing.** Tell each coordinator step how to price (the D1 gate reads it from `run-log.json` itself): offline; stopped (once any `stages[]` entry's
   `priceOutcomes` counts a `locked_out` or `rate_limited` call); or paced. Log each pricing step's outcome
   counts as its `priceOutcomes` (`references/pricing.md`).
 
@@ -228,8 +228,9 @@ the stage, the attempts and the verdict file, and ask:
   `changed`, and checks only those. Write each report to `reports/v4-<lens>-recheck.json`. Either way there is
   no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. Grep `guide.md` for its
-  `### Known issues` line, Read the three lines from there, and Edit them so that every open finding has its
+  `unresolved` in the full pass and not reported `fixed` by a re-check. Read the three lines of `guide.md` from
+  the `known-issues-line` W1 returned (no Grep: if the line isn't the `### Known issues` heading, Read the
+  guide in parts until you find it), and Edit them so that every open finding has its
   own line after the heading, `` - `<id>` (V4 <lens>, <artifact> <location>): <issue> ``, replacing a lone
   `None.`. With no open finding, change nothing.
 - **Step 15.** Run the run checker (§7).

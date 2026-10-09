@@ -718,3 +718,44 @@ unverified list prices.
 - The verifiers' recall still varies: W15's fresh pass found 5 sources findings that run A's re-check
   didn't, including an off-list host in a scenario source.
 - A `/effort` during run A's setup saved `xhigh` as the user's default.
+
+### The user's direction after attempt 3 (2026-10-09)
+
+The user is on a subscription: report costs in tokens, not dollars.
+
+**Now:** fix the small items without a full re-run, and change the fix round to fix claims in place
+(D-264). Then close M-12 with recorded exceptions.
+
+**D-264, claims fixed in place.**
+- In the fix round each owner (D1, D2 or W1) edits the claims its findings name in place, with Edit:
+  wording, citation, caveat or source. It recompiles only when a finding needs a build change (gear,
+  tree, gems, config, scenario or ledger).
+- **No recompile:** the gates don't re-run, W1 patches the guide in place, and the re-check is
+  targeted: the raising lens, its findings and the changed locations.
+- **A recompile:** the gates run as now, W1 still patches in place, and the re-check is full, the
+  current rule. That path should now be rare.
+- **Why:** in run A the claim-level fixes cascaded into a full redesign, a guide rewrite and a full
+  re-check: about a third of the run's 107M cache reads.
+
+**Small items (D-265):**
+- (a) Checker: check the accepted-offline locations of a superseded full-pass report against its own
+  plan, not the post-fix plan (`check-run.mjs:754-762`).
+- (b) `checkpoints.md`: a pre-supplied answer still prints the display, including checkpoint 1's
+  comparison lines and an infeasible concept's evidence.
+- (c) Campaign rewards: D2 picks every reward choice with a one-line reason, and W1 writes the picks.
+- (d) Known issues: W1 writes each as a plain sentence the reader can act on, with the finding id in
+  parentheses.
+- (e) The runner's Bash may run read-only commands and the checker. Never a network client, never a
+  write. F3's `cd` rule went with the workflows.
+- (f) R1b applies FI-1 before its first compile, so a failed concept leaves no clean record.
+
+**Recorded exceptions for M-12** (no re-run):
+- the stray `scratch-note.txt` in run B, which the checker caught: D-177 holds by prompt only;
+- verifier recall varies between passes: a fresh pass found 5 more sources findings.
+
+**Next agenda, in order:**
+1. Endgame content: the bridge from 62 to 90, tree points named with reasons and an order, gem-level
+   timing, survival-first advice.
+2. The precision dial: is it set too high? A human guide is mostly judgment.
+3. Tune length, specificity and topics against specific human-written guides.
+4. Study creative builds that use less popular skills, for inspiration.

@@ -673,3 +673,4 @@ each run's log: caps, order, one verification pass and one re-check, escalations
     - the D1 gate reads the pricing state from the log itself.
 - **The re-run environment** is rebuilt as worktree `m12b` at the new head, with a fresh temp root and
   model `opus` (S9). The attempt-2 evidence stays in `/tmp/m12.DbTF` and worktree `m12`'s transcripts.
+- **Friction (launcher):** Claude Code warns that a `Write(path)` deny rule matches nothing, because `Edit(path)` rules cover every file-editing tool. The launcher dropped `Write(//mnt/**)`. Attempts 1 and 2 were still protected by their `Edit(//mnt/**)` rule, and the AC-W20 scans found no `/mnt/` path.

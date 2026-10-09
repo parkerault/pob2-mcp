@@ -999,10 +999,10 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/then the full V4 pass, the fix round, the re-check and the known issues again/);
   });
 
-  it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and adds the open findings at step 14 (D-265)', () => {
+  it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and the runner adds the open findings', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/Its last part is always the H3 `Known issues` \(amendment 1 Q1\)\. It lists each finding of the header's `accepted` on its own line/);
-    expect(w1).toMatch(/after the V4 checks you add the findings they left open \(SKILL\.md step 14\)/);
+    expect(w1).toMatch(/after the V4 checks the runner adds the findings they left open \(SKILL\.md step 14\)/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/### Known issues\n\n\[always this H3/);
   });
@@ -1279,17 +1279,27 @@ describe('D-265: the small items', () => {
     expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("fail('campaign-rewards'");
   });
 
-  it('(d) W1 writes each known issue as one plain sentence the reader can act on, then the finding id in parentheses; SKILL.md runs W1 for them at step 14', () => {
+  it("(d) every V4 finding carries a reader sentence; the runner writes each open one as `- <reader> (<id>)` at step 14, from W1's known-issues-line", () => {
+    const v4 = folded(readStage('V4'));
+    expect(v4).toMatch(/\*\*`reader`\*\* \(D-265\) is one plain sentence the guide's reader can act on, what is wrong in the guide and what is true instead, with no pipeline words/);
+    expect(v4).toMatch(/Every finding has its `reader` sentence, whatever its status/);
+    expect(readStage('V4')).toMatch(/"reader": "[^"]+",\n\s+"owner": "D1", "status": "unresolved"/);
+    const markers = ref('source-markers.md');
+    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json` or `guide\.md`\), `location`, `claim`, `issue`, `evidence`, `reader`, `owner`/);
+    expect(markers).toMatch(/The runner writes every open finding into the guide's `Known issues` as `- <reader> \(<id>\)`: its `reader` sentence as the report gives it, then its id in parentheses \(SKILL\.md step 14, D-265\)\. The run checker finds each line by its id and requires its text to be the finding's `reader` sentence/);
+    const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
+    expect(skill).toMatch(/Read the three lines of `guide\.md` from the `known-issues-line` W1 returned last \(W1 returns it on its first write and on every patch;/);
+    expect(skill).toMatch(/every open finding has its own line after the heading, `- <reader> \(<id>\)`: the finding's `reader` sentence exactly as its report gives it, a plain sentence the guide's reader can act on \(D-265\), then its id in parentheses/);
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues` | — |");
+    expect(skill).not.toMatch(/known-issues`|W1 runs once more/);
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/## Known issues \(D-265\) Each known issue is one line: one plain sentence the reader can act on, saying what is wrong in the guide and what is true instead, then the finding's id in parentheses\. No pipeline words/);
-    expect(w1).toContain('`- The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance (v4-prose-3).`');
-    expect(w1).toMatch(/\(D1-gate level-points, stage b\)/);
-    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/With any open finding, W1 runs once more \(D-265\): its header's `findings` are the open findings as the reports give them, its `accepted` the accepted gate findings, and its prompt says `known issues`\. It rewrites only the lines under `### Known issues`, each issue one plain sentence the reader can act on, followed by the finding's id in parentheses\. Log it as W1 with outcome `known-issues`/);
-    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 14 | Known issues, only with open findings | `build-guide-writer` | `guide.md`\'s `Known issues` lines | at most 8 lines |');
+    expect(w1).toMatch(/`known-issues-line: <n>`, the line number of the `### Known issues` heading in the guide as you leave it, on your first write and on every patch/);
+    expect(w1).toMatch(/You write each accepted gate finding, with its gate, code and plan stage in the parentheses/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
-    expect(template).toMatch(/\[added at step 14\] - <What is wrong in the guide, in plain words: "the Act 1 resistance line is wrong: stage 2 already has 40% fire"> \(<V4 finding id>\)\./);
+    expect(template).toMatch(/\[added by the runner at step 14\] - <the finding's reader sentence, word for word: "[^"]+"> \(<V4 finding id>\)/);
     expect(template).not.toMatch(/\(V4 <lens>, <artifact> <location>\)/);
-    expect(ref('source-markers.md')).toMatch(/W1 writes every open finding into the guide's `Known issues` as one plain sentence the reader can act on, followed by its id in parentheses \(SKILL\.md step 14, D-265\); the run checker looks for each id/);
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain('has no reader: one plain sentence');
+    expect(ref('run-log.md')).not.toMatch(/known-issues/);
   });
 
   it('(f) R1b applies FI-1 in the attempt\'s first compile, the bootstrap, and offline-and-test.md says the same', () => {

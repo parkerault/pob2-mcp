@@ -12,6 +12,7 @@
       "claim": "Rolling Slam clears; Blood Hunt bursts.",
       "issue": "Rotation names Rolling Slam as the clear skill, but Blood Hunt's group is the clear group's main damage source (D-122)",
       "evidence": "the fix round left the Rotation line unchanged",
+      "reader": "The Rotation section is wrong to call Rolling Slam your clear skill: Blood Hunt does the clearing damage, so lead packs with Blood Hunt.",
       "owner": "W1",
       "status": "unresolved"
     }

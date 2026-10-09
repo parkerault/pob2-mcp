@@ -95,6 +95,7 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
   "findings": [
     { "id": "v4-sources-1", "artifact": "plan.json", "location": "stages[2].claims[5]",
       "claim": "…", "issue": "tagged external-unavailable", "evidence": "the run log's mode is offline",
+      "reader": "The note that spear builds clear T15 maps cheaply has no source in this offline run: treat it as unconfirmed.",
       "owner": "D1", "status": "accepted-offline" }
   ],
   "verdict": "pass"
@@ -105,18 +106,22 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
   says; `mode` is the run log's. The dossier isn't verified: it serves the checkpoint-1 pick, and the guide
   can't cite it (amendment 1 S3).
 - Each finding has `id`, `artifact` (`plan.json` or `guide.md`), `location`, `claim`, `issue`, `evidence`,
-  `owner` (`W1`, `D1` or `D2`: the step that wrote the claim) and `status`: `unresolved`, `accepted-offline`,
-  or in a re-check `fixed` (a finding of the header's `findings` that now holds).
+  `reader`, `owner` (`W1`, `D1` or `D2`: the step that wrote the claim) and `status`: `unresolved`,
+  `accepted-offline`, or in a re-check `fixed` (a finding of the header's `findings` that now holds).
+- `reader` (D-265) is one plain sentence the guide's reader can act on: what is wrong in the guide and what
+  is true instead, in the guide's words, with no pipeline words (lens, finding, owner, claim, location) and
+  no JSON path: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance." The run
+  checker fails a finding without one.
 - `verdict` is `pass` exactly when no finding is `unresolved`.
 - `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), and only in the
   V4 `sources` report, its `location` naming that claim (`stages[<i>].claims[<k>]` or `<file> [^<id>]`).
   In an online run such a claim is `unresolved`. The run checker resolves the location and fails any other
   `accepted-offline`.
 - **Open findings.** A finding is open after the re-check when its lens's re-check reports it
-  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. W1 writes
-  every open finding into the guide's `Known issues` as one plain sentence the reader can act on, followed by
-  its id in parentheses (SKILL.md step 14, D-265); the run checker looks for each id. The finding's `claim`,
-  `issue` and `evidence` are what W1 writes from, so state them so a reader of the guide could act on them.
+  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. The runner
+  writes every open finding into the guide's `Known issues` as `- <reader> (<id>)`: its `reader` sentence as
+  the report gives it, then its id in parentheses (SKILL.md step 14, D-265). The run checker finds each line
+  by its id and requires its text to be the finding's `reader` sentence.
 - A superseded report (a later report of its lens ran after it) is checked against the artifact as it was
   when it was written: once a step wrote that artifact after it, the run checker doesn't resolve its
   locations (D-265).

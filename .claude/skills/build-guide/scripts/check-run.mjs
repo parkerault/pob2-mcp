@@ -98,8 +98,6 @@ const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'flo
  * follows it, the final record stays the last D2 gate's, and the re-check stays targeted.
  */
 const CLAIMS_EDITED = 'claims-edited';
-/** D-265 (d): W1's last call, after the re-check, writing the open findings under `Known issues`. */
-const KNOWN_ISSUES_STEP = 'known-issues';
 /** Each `stages[]` stage and the outcomes its entries may have (run-log.md); every step may miss its file. */
 const STAGE_OUTCOMES = {
   R1a: ['done'],
@@ -109,13 +107,13 @@ const STAGE_OUTCOMES = {
   'D1-gate': ['pass', 'fail', 'infeasible', 'escalated'],
   D2: ['done', CLAIMS_EDITED],
   'D2-gate': ['pass', 'fail', 'escalated'],
-  W1: ['done', KNOWN_ISSUES_STEP],
+  W1: ['done'],
   ...Object.fromEntries(LENSES.flatMap((l) => [[`V4-${l}`, ['pass', 'fail']], [`V4-${l}-recheck`, ['pass', 'fail']]])),
 };
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, KNOWN_ISSUES_STEP];
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED];
 /**
- * D-265 (a): the steps that write each V4-checked artifact. A known-issues W1 edits only the `Known issues`
- * lines, which hold no claim or marker.
+ * D-265 (a): the steps that write each V4-checked artifact (the runner's step-14 edit adds only `Known issues`
+ * lines, which hold no claim or marker).
  */
 const ARTIFACT_WRITERS = { 'plan.json': ['D1', 'D1-gate', 'D2'], 'guide.md': ['W1'] };
 /** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
@@ -163,6 +161,13 @@ export const hitCeiling = (value) => Math.ceil(round2(value));
 const hasWord = (text, word) =>
   typeof word === 'string' && word !== '' && new RegExp(`(?<![A-Za-z0-9_-])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_-])`, 'i').test(text);
 const norm = (s) => String(s).replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
+/** Whitespace collapsed and one closing period dropped: how a reader sentence and its Known issues line compare. */
+const collapse = (s) => String(s).replace(/\s+/g, ' ').trim().replace(/\.$/, '');
+/** D-265 (d): the text of a Known issues line `- <reader> (<id>)` (a period after the parentheses allowed), or null. */
+function readerText(line, id) {
+  const m = new RegExp(`^\\s*[-*]\\s+(.*\\S)\\s+\\(${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)\\.?\\s*$`).exec(line);
+  return m ? collapse(m[1]) : null;
+}
 const list = (v) => (Array.isArray(v) ? v.filter(isObj) : []);
 
 /** §2's slug: `<ascendancy>-<skill>` in lower case, each run outside [a-z0-9] one `-`, trimmed of `-`. */
@@ -743,9 +748,9 @@ export async function checkRun(runFolder) {
     }
 
     // (l) Known issues (Q1): every accepted gate finding, with its gate, and every V4 finding open after the
-    // re-check, by id, each on its own line under the one H3 in "Confidence and what PoB can't model". W1 writes
-    // each as a plain sentence followed by the finding's id in parentheses (D-265 d); the id, a whole token on the
-    // line (its code and gate for an accepted gate finding), is what this matches.
+    // re-check, by id, each on its own line under the one H3 in "Confidence and what PoB can't model". An open
+    // finding's line is `- <reader> (<id>)`, its text the finding's `reader` sentence (D-265 d); an accepted gate
+    // finding's line names its code and gate.
     if (accepted.length > 0 || open.length > 0) {
       const conf = h2Named(guide, CONFIDENCE_H2);
       const h3 = conf ? h3sUnder(guide, conf).find((h) => h.title === KNOWN_ISSUES) : null;
@@ -759,8 +764,11 @@ export async function checkRun(runFolder) {
           }
         }
         for (const f of open) {
-          if (!lines.some((l) => hasWord(l, f.id))) {
-            fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but guide.md's ${KNOWN_ISSUES} doesn't list it: a line saying what is wrong in plain words, then "(${f.id})" (S2, D-265)`);
+          const listing = lines.filter((l) => hasWord(l, f.id));
+          if (listing.length === 0) {
+            fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but guide.md's ${KNOWN_ISSUES} doesn't list it as "- <its reader sentence> (${f.id})" (S2, D-265)`);
+          } else if (typeof f.reader === 'string' && f.reader.trim() !== '' && !listing.some((l) => readerText(l, f.id) === collapse(f.reader))) {
+            fail('known-issues', `guide.md's ${KNOWN_ISSUES} lists V4 ${f.lens} finding ${show(f.id)}, but not as "- ${f.reader.trim()} (${f.id})": its line's text is the finding's reader sentence, word for word (D-265)`);
           }
         }
       }
@@ -777,7 +785,7 @@ export async function checkRun(runFolder) {
   // full pass after a re-check) is held to the artifact as it was when it was written (D-265 a): once a step wrote
   // that artifact after the report's log entry, that version is gone and the location check skips it; the later
   // report is what counts.
-  const changedSince = (artifact, at) => stages.slice(at + 1).some((s) => (ARTIFACT_WRITERS[artifact] ?? []).includes(s.stage) && s.outcome !== KNOWN_ISSUES_STEP);
+  const changedSince = (artifact, at) => stages.slice(at + 1).some((s) => (ARTIFACT_WRITERS[artifact] ?? []).includes(s.stage));
   for (const r of guideText !== null ? [...v4.full.values(), ...v4.recheck.values()] : []) {
     if (!isObj(r.report)) continue;
     const at = lastRun(r.check === 'recheck' ? `V4-${r.lens}-recheck` : `V4-${r.lens}`);
@@ -1143,8 +1151,7 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *  - `verification`: one full pass of the three lenses per cycle, at most one re-check after the fix round, of
  *    all three lenses if and only if a gate re-ran in the fix round (an owner recompiled), else only of the
  *    lenses that raised a finding (D-264); a claims-only owner (`claims-edited`) runs only before any gate of its
- *    fix round or revision, and no gate follows it; a known-issues W1 only right after the re-check (D-265 d);
- *    a new cycle only for a checkpoint-2 revision.
+ *    fix round or revision, and no gate follows it; a new cycle only for a checkpoint-2 revision.
  *  - `escalation`: only gates escalate, each escalation logged once, in order, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
  * `ctx` gives a gate attempt's verdict file and the stage each fault breaks; findings accepted at an escalation
@@ -1277,8 +1284,8 @@ function checkFlow(log, fail, ctx) {
     const same = p !== undefined && p.concept === s.concept;
     if (f !== pf) closeBlocks(i);
     const illegal = (why) => fail('order', `${at(i)}: ${why}`);
-    // After the V4 checks: a full pass, a re-check, or the known-issues W1 that closes a re-check (D-265 d).
-    const postVerify = pf === 'V4' || pf === 'V4r' || (pf === 'W1' && p?.outcome === KNOWN_ISSUES_STEP);
+    // After the V4 checks: a full pass or a re-check.
+    const postVerify = pf === 'V4' || pf === 'V4r';
 
     // What the previous step's outcome allows next.
     if (p && p.outcome === 'escalated') {
@@ -1301,8 +1308,7 @@ function checkFlow(log, fail, ctx) {
         'D1-gate': p?.outcome === 'pass' ? ['D2', ...(design?.verified ? ['D2-gate'] : [])] : p?.outcome === 'fail' ? ['D1'] : ['D1', 'R1a'],
         D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
         'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
-        // D-265 (d): the known-issues W1 ends the cycle; only a revision's owner follows it.
-        W1: p?.outcome === KNOWN_ISSUES_STEP ? ['D1', 'D2', 'W1'] : cycle?.fix && cycle.full === 'done' ? ['V4r'] : ['V4'],
+        W1: cycle?.fix && cycle.full === 'done' ? ['V4r'] : ['V4'],
         V4: ['V4', 'D1', 'D2', 'W1'],
         V4r: ['V4r', 'D1', 'D2', 'W1'],
       }[pf] ?? [];
@@ -1317,10 +1323,6 @@ function checkFlow(log, fail, ctx) {
     // checks, or (D2) right after a claims-only D1. Once a gate re-ran, the final record is gone, so D2 runs its gate.
     if (s.outcome === CLAIMS_EDITED && !(postVerify || (s.stage === 'D2' && pf === 'D1' && p?.outcome === CLAIMS_EDITED))) {
       illegal(`edits claims without a compile (${CLAIMS_EDITED}), which an owner does only in the fix round or a revision, before any gate of it re-runs (D-264)`);
-    }
-    // D-265 (d): the known-issues W1 runs right after the re-check (step 14).
-    if (s.stage === 'W1' && s.outcome === KNOWN_ISSUES_STEP && pf !== 'V4r') {
-      illegal(`writes the known issues, which W1 does only right after the V4 re-check (step 14, D-265)`);
     }
 
     // Research rounds (D-235, NFR-23).
@@ -1381,7 +1383,7 @@ function checkFlow(log, fail, ctx) {
     if ((s.stage === 'D1-gate' || s.stage === 'D2-gate') && cycle?.fix && cycle.full === 'done' && cycle.recheck === 'none') cycle.fixGate = true;
     if (s.stage === 'D2-gate' && pf === 'D1-gate') freshChain('D2-gate', s.concept);
     if (s.stage === 'D2-gate' && pf === 'D2-gate' && p.outcome === 'escalated' && lastEscalation?.choice === 'accept') chain('D2-gate', s.concept).guided = true;
-    if (s.stage === 'W1' && s.outcome !== KNOWN_ISSUES_STEP && postVerify) afterVerification(s, i, pf);
+    if (s.stage === 'W1' && postVerify) afterVerification(s, i, pf);
     if (s.stage === 'W1' && pf === 'D2-gate' && cycle === null) cycle = { full: 'none', lenses: new Set(), failed: new Set(), fix: false, recheck: 'none', rechecked: new Set() };
     // Each gate attempt routes as its own verdict file says (gates.md's outcome tables).
     if (GATE_STAGES.includes(s.stage)) {
@@ -1552,6 +1554,8 @@ function checkReportShape(rep, r, mode, fail) {
     for (const k of ['id', 'artifact', 'location', 'claim', 'issue', 'evidence', 'owner', 'status']) {
       if (!(k in f)) bad(`findings[${i}] has no ${k} (§7.4)`);
     }
+    // D-265 (d): the plain sentence for the guide's reader, which the runner copies into Known issues.
+    if (typeof f.reader !== 'string' || f.reader.trim() === '') bad(`findings[${i}] has no reader: one plain sentence the guide's reader can act on (D-265)`);
     if (ids.has(f.id)) bad(`findings[${i}] reuses the id ${show(f.id)}; each finding has its own`);
     ids.add(f.id);
     if (!statuses.includes(f.status)) bad(`findings[${i}].status is ${show(f.status)}; one of ${statuses.join(', ')}`);

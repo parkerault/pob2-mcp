@@ -38,7 +38,7 @@ folder (D-153).
 | `dossier.md` | the R1b-assemble step | the dossier (slice 03 §7.2) |
 | `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
 | `compile-record.json`, `compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` |
-| `guide.md` | W1, and W1 again at step 14 for its `Known issues` lines | the guide (slice 03 §8) |
+| `guide.md` | W1; the runner appends the open findings to its `Known issues` (step 14) | the guide (slice 03 §8) |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate | its verdict (`gates.md`) |
 | `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged | the V4 full pass and re-check reports (`source-markers.md`) |
 
@@ -73,7 +73,8 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
 - **The artifacts.** This layout. The dossier's H2s; the guide's H2s, its `Checks` H3s, and its Leveling H3s
   equal to the record's loadout names. Every marker resolves and parses as a C-30 tag. Offline, every price
   is `unavailable` and no step priced. The guide's import code equals the record's (D-205), and every
-  finding open after the re-check is under `Known issues`, by id, with every accepted gate finding. Every
+  finding open after the re-check is under `Known issues`, by id, its line's text the finding's `reader`
+  sentence (D-265), with every accepted gate finding. Every V4 finding has its `reader`. Every
   campaign reward choice the campaign passes is picked, the same pick on each stage after it, and the guide's
   Campaign rewards cites each pick (D-265). A superseded V4 report (a later report of its lens ran after it)
   is held to the artifact as it was: once a step wrote that artifact after it, its locations aren't checked.
@@ -92,7 +93,7 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
   counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
   one full V4 pass and at most one re-check per verification cycle, of all three lenses if and only if a gate
   re-ran in the fix round (D-264); a claims-only owner only before any gate of its round, with no gate after
-  it; W1's known-issues call only right after the re-check; escalations only from the gates, each naming its verdict file; a `rule` on every
+  it; escalations only from the gates, each naming its verdict file; a `rule` on every
   pre-supplied or default answer; and `completed` only after checkpoint 2's accept.
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after

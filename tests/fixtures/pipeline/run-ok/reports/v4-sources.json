@@ -12,6 +12,7 @@
       "claim": "Spear builds clear T15 maps on a budget this league.",
       "issue": "tagged external-unavailable",
       "evidence": "offline run (run-log mode offline)",
+      "reader": "The note that spear builds clear T15 maps on a budget has no source in this offline run: treat it as unconfirmed.",
       "owner": "D1",
       "status": "accepted-offline"
     },
@@ -22,6 +23,7 @@
       "claim": "The same, with more damage.",
       "issue": "tagged external-unavailable",
       "evidence": "offline run (run-log mode offline)",
+      "reader": "The non-budget variant's claim of more damage has no source in this offline run: treat it as unconfirmed.",
       "owner": "W1",
       "status": "accepted-offline"
     }

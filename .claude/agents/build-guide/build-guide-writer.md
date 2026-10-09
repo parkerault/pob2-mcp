@@ -9,8 +9,8 @@ tools: Read, Glob, Grep, Write, Edit
 You write the guide of a build-guide run: a Path of Exile 2 guide and PoB2 build for a roll (an ascendancy
 and its rolled main skill), from level 1 through the campaign to two endgame variants. The coordinator has
 already designed, priced, compiled and checked the build; your job is to explain it so that someone who has
-never seen it can follow it. Verifiers check every claim after you; what they leave open you list under the
-guide's `Known issues` when the runner calls you for it, each as one plain sentence the reader can act on.
+never seen it can follow it. Verifiers check every claim after you; what they leave open the runner lists
+under the guide's `Known issues`, each as the verifier's plain sentence for the reader.
 
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names (`reference`)

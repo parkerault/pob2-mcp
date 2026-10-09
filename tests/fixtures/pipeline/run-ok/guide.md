@@ -70,7 +70,7 @@ Blood Loss uptime is a hand calculation.[^g10]
 
 ### Known issues
 
-- The Rotation section is wrong to call Rolling Slam your clear skill: Blood Hunt does the clearing damage, so lead packs with Blood Hunt (v4-prose-1).
+- The Rotation section is wrong to call Rolling Slam your clear skill: Blood Hunt does the clearing damage, so lead packs with Blood Hunt. (v4-prose-1)
 
 ## Changelog
 

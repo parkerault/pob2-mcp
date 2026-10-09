@@ -4,51 +4,41 @@ Written 2026-10-08, after the waves 2–3 gate. Read this, then `build-handoff.m
 the tail of `worklog.md` (every verdict, decision and friction note so far). Don't re-read the whole
 spec; pull each unit's block and ACs at dispatch time.
 
-## State (updated after the wave-5 gate)
+## State (updated 2026-10-09, after the M-12 exit)
 
-- **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`
-  (`git log --oneline -1` for the head).
-- **Merged and gated:** WU-30…WU-46 and WU-49, 18 of this run's 19 units. Gates: wave 1, waves 2–3,
-  wave 4 (with the M-11 exit) and wave 5, all PASS. Tools: 84 (83 without poe.ninja). No lane is open
-  (`git worktree list` shows only `guide` and the stabilization `build`).
-- **Main checkout** `/home/parker/projects/pob2-mcp` (branch `stabilization/foundation`, spec at
-  `b34db2a`) is untouched by the fleet. The stabilization worktree `pob2-mcp-wt/build` is not ours.
+- **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`. The gate passed
+  at `d844178`: 120 suites, 1,842 tests; 84 tools.
+- **Done:**
+  - all 19 units;
+  - amendment 1 (`spec/amendment-1-simplify.md`, user-approved): no workflows; the user's session calls agents
+    directly; verify once, fix once, re-check, list the rest as known issues;
+  - D-263: no headless sessions; WU-47's runs are interactive sessions the user starts;
+  - D-264: the fix round edits claims in place;
+  - D-265: small items;
+  - D-266: `buildSha1` in the compile record.
+- **M-12** is met with recorded exceptions E1–E4 (work-log, "M-12 exit"). The last run environment is
+  `/tmp/m12b.B0zi` (worktree `m12b`, launcher `start.sh`, Opus).
+- **Costs:** the user is on a subscription, so report tokens, not dollars. The Opus attempt 3 used 1.33M output
+  and 193M cache-read tokens; its run A alone used 817K output and 107M cache read.
 
 ## What's left
 
-1. **WU-47, the recorded offline pipeline run** (M-12). The user chose **Sonnet** for its headless
-   session (2026-10-08).
-   - **Procedure:** slice 03's "### WU-47" block, owning AC-W4, W15…W22 and W26.
-   - **Setup:**
-     - a fresh worktree at the integration head, bootstrapped with `pnpm build`;
-     - temp builds, state and guides dirs, plus a temp cwd for the server;
-     - an MCP config registering this worktree's server as `pob2` with those dirs,
-       `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true` and
-       `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`;
-     - the server started through a wrapper that puts mise's luajit and node on PATH (WU-43's probe did
-       this).
-   - **The headless session:** `claude -p --model sonnet --strict-mcp-config --mcp-config <cfg>`, with
-     WebSearch and WebFetch denied and `--add-dir <temp guides root>` (the gate's risk 1).
-   - **Runs:** run A (workflows; FI-1 and FI-2), run B (`agent-tool`; FI-1, FI-2, FI-3, no escalation
-     answer), then the seeded V4 check (AC-W15) and the probes (AC-W4, W21, W26).
-   - **Evidence:** the session transcripts and each workflow's `journal.jsonl` at
-     `~/.claude/projects/<cwd-slug>/<session>/subagents/workflows/<runId>/journal.jsonl`.
-   - **Record:** each session's cost.
-   - **Delegate:** have one runner agent do the setup and runs, and return a terse record (paths,
-     outcomes, the AC-by-AC evidence, cost). Then a separate verifier checks the record, re-runs
-     `check-run.mjs` on both run folders, and does AC-W22's per-H2 review of run A's guide.
-   - **If a run misses:** a quality clause gets one coordinator re-run of that run, then a finding
-     against the owning unit's stage references. A code failure re-opens the owning unit.
-   - **If structured output fails live** (the gate's risk 2: custom agentType plus schema, nullable
-     type arrays): that re-opens WU-44/45/46. Probe it first with one cheap headless call before the
-     full runs.
-2. **The M-12 exit check** (spine §7), recorded in the work-log.
-3. **WU-48** (the live Titan / Blood Hunt run) waits for the user's approval (HG-14).
-4. **Finalization with the user:**
-   - fold the work-log's coordinator decisions (D-239…D-255 and the rest) into the spine;
+1. **The user's agenda, in order:**
+   - endgame content: the bridge from 62 to 90, trees with reasons and an order, gem-level timing,
+     survival-first advice;
+   - whether the precision dial is too high (human guides are mostly judgment);
+   - tuning length, specificity and topics against specific human-written guides;
+   - creative builds that use less popular skills, for inspiration.
+
+   Ask the user before fetching any web pages. Never pathofexile.com or poe.ninja.
+2. **WU-48**, the live Titan / Blood Hunt run: it needs the user's approval (HG-14). It is the first live test of
+   D-264, D-265 and D-266.
+3. **Finalization with the user:**
+   - fold D-239…D-266, amendment 1 and C-33's `buildSha1` into the spine and slice 03;
    - sign-rebase;
    - the push decision;
-   - remove the worktrees.
+   - remove the worktrees (`m12b`, and `guide` after merging);
+   - the open `buildExportService` symlink item.
 
 ## Orchestration conventions used so far
 

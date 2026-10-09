@@ -652,3 +652,12 @@ each run's log: caps, order, one verification pass and one re-check, escalations
     - `completed` requires checkpoint 2 to be answered accept;
     - `compile_plan` prints at most 200 findings, then says to Grep the record;
     - two reference disagreements: the D1 gate's writes, and the guided-retry rule.
+- **Amendment 1 review fixes done** (doer gate: test rc 0, 1,810; build rc 0). The reviewer's probes
+  p1–p6 and p9 now fail as intended; p7 and p8 pass.
+  - **Deviations accepted:**
+    - budget `unverified` is allowed online too (D-164: an unavailable price);
+    - a forced `infeasible` is valid with FI-3 in `faults[]` plus the gate's `forced` field;
+    - the rolled figure must also name `main.activeSkill`;
+    - a fix round re-runs all three lenses whenever D1 or D2 re-ran.
+  - Merged by rebase and ff at `b7e815e`. Coordinator check: build rc 0; 270/270 in the affected
+    suites.

@@ -120,9 +120,10 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
   `accepted-offline`.
 - **Open findings.** A finding is open after the re-check when its lens's re-check reports it
   `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. The runner
-  writes every open finding into the guide's `Known issues` as `- <reader> (<id>)`: its `reader` sentence as
-  the report gives it, then its id in parentheses (SKILL.md step 14, D-265). The run checker finds each line
-  by its id and requires its text to be the finding's `reader` sentence.
+  replaces the guide's `Known issues` list every cycle: W1's accepted-gate-finding lines, then every open
+  finding as `- <reader> (<id>)`, its `reader` sentence as the report gives it, then its id in parentheses
+  (SKILL.md step 14, D-265). The run checker finds each line by its id, requires its text to be the finding's
+  `reader` sentence, and fails any other line.
 - A superseded report (a later report of its lens ran after it) is checked against the artifact as it was
   when it was written: once a step wrote that artifact after it, the run checker doesn't resolve its
   locations (D-265).

@@ -6,9 +6,9 @@
 // It checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
 // applies. It checks the artifacts rather than self-reports:
 //  - the layout (slice 03 §2), the source markers (§7.3), the dossier's and the guide's sections (§7.2, §8);
-//  - the final record against the plan (`planSha1`, or after claims-only edits the build parts the record
-//    holds, D-264), its PoB file (the decoded import code, one tree set per plan stage) and its ledger
-//    (re-evaluated with the server's own compiled evaluator);
+//  - the final record against the plan (`planSha1`, or after claims-only edits its `buildSha1`, computed with
+//    the server's compiled projection, D-264, D-266), its PoB file (the decoded import code, one tree set per
+//    plan stage) and its ledger (re-evaluated with the server's own compiled evaluator);
 //  - the D1 gate, recomputed from the plan and the record: the floor, the budget, and the rolled skill with
 //    its figure's stat set;
 //  - every V4 finding open after the re-check listed under the guide's `Known issues`, and every campaign
@@ -19,7 +19,8 @@
 //    pre-supplied or default answer.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
-// type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it). No network.
+// type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it) and its build projection
+// `build/plan/buildHash.js` (D-266; it imports only crypto). No network.
 //
 // Exit 0: every check passed (one line on stdout). Exit 1: each violation on stderr as
 // `check-run: [<rule>] <message>`. Exit 2: usage error.
@@ -40,6 +41,8 @@ const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
 const DATA_DIR = path.join(REPO, 'data');
 /** The server's compiled ledger evaluator (C-33), the one `compile_plan` fills the record with. */
 const LEDGER_MODULE = path.join(REPO, 'build', 'plan', 'ledger.js');
+/** D-266: the server's compiled build projection, the one the compiler writes the record's `buildSha1` with. */
+const BUILD_HASH_MODULE = path.join(REPO, 'build', 'plan', 'buildHash.js');
 
 // ---------------------------------------------------------------------------------------------------
 // Contracts (slice 03 and amendment 1; spine C-30, C-31, C-33, D-219, D-234)
@@ -321,6 +324,13 @@ function resolveFact(file, key) {
 }
 
 /** The server's ledger evaluator, or null when the server isn't built. */
+/** The server's build projection (`buildSha1`), or null when the server isn't built. */
+async function loadBuildHashModule() {
+  if (!fs.existsSync(BUILD_HASH_MODULE)) return null;
+  const mod = await import(pathToFileURL(BUILD_HASH_MODULE).href);
+  return typeof mod.buildSha1 === 'function' ? mod : null;
+}
+
 async function loadLedgerModule() {
   if (!fs.existsSync(LEDGER_MODULE)) return null;
   const mod = await import(pathToFileURL(LEDGER_MODULE).href);
@@ -751,9 +761,25 @@ export async function checkRun(runFolder) {
     // re-check, by id, each on its own line under the one H3 in "Confidence and what PoB can't model". An open
     // finding's line is `- <reader> (<id>)`, its text the finding's `reader` sentence (D-265 d); an accepted gate
     // finding's line names its code and gate.
+    const conf = h2Named(guide, CONFIDENCE_H2);
+    const kiH3 = conf ? h3sUnder(guide, conf).find((h) => h.title === KNOWN_ISSUES) : null;
+    if (kiH3) {
+      // D-265: the list is this cycle's alone (the runner replaces it whole at step 14): every line is an accepted
+      // gate finding's or an open finding's, and `None.` stands only when nothing is open or accepted.
+      const { start } = guide.sectionOf(kiH3);
+      sectionText(guide, kiH3).split('\n').forEach((raw, k) => {
+        const line = raw.trim();
+        if (line === '') return;
+        const where = `guide.md:${start + k + 2}`;
+        if (line === 'None.') {
+          if (accepted.length + open.length > 0) fail('known-issues', `${where}: ${KNOWN_ISSUES} says "None.", but ${open.length} V4 finding(s) are open and ${accepted.length} gate finding(s) accepted (D-265)`);
+        } else if (!accepted.some((a) => hasWord(line, a.code) && hasWord(line, a.gate)) && !open.some((f) => hasWord(line, f.id))) {
+          fail('known-issues', `${where}: ${KNOWN_ISSUES} lists ${show(line.length > 80 ? `${line.slice(0, 77)}...` : line)}, which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole list at step 14 (D-265)`);
+        }
+      });
+    }
     if (accepted.length > 0 || open.length > 0) {
-      const conf = h2Named(guide, CONFIDENCE_H2);
-      const h3 = conf ? h3sUnder(guide, conf).find((h) => h.title === KNOWN_ISSUES) : null;
+      const h3 = kiH3;
       const lines = h3 ? sectionText(guide, h3).split('\n') : [];
       if (!h3) {
         fail('known-issues', `${accepted.length} accepted gate finding(s) and ${open.length} open V4 finding(s), but guide.md has no "${KNOWN_ISSUES}" H3 under "${CONFIDENCE_H2}" (amendment 1 Q1)`);
@@ -778,18 +804,20 @@ export async function checkRun(runFolder) {
   }
 
   // ---- Campaign rewards (D-265 c): every reward choice the campaign passes is picked, and the guide says so ----
-  if (isObj(plan) && campaign.length > 0) checkRewardPicks(campaign, guide, fail);
+  if (isObj(plan) && campaign.length > 0) checkRewardPicks(planStages, campaign, guide, fail);
 
-  // accepted-offline (C-30, §7.4): only for a claim tagged external-unavailable, which the location names. A
-  // superseded report (a later report of its lens ran after it: the re-check after a full pass, or a revision's
-  // full pass after a re-check) is held to the artifact as it was when it was written (D-265 a): once a step wrote
-  // that artifact after the report's log entry, that version is gone and the location check skips it; the later
-  // report is what counts.
+  // accepted-offline (C-30, §7.4): only for a claim tagged external-unavailable, which the location names. A report
+  // superseded by one that checked every claim again (a full re-check after a fix round in which a gate re-ran, or a
+  // revision's full pass) is held to the artifact as it was when it was written (D-265 a): once a step wrote that
+  // artifact after the report's log entry, that version is gone, the location check skips it, and the later report
+  // is what counts. A claims-only round edits claims in place and moves none, so its locations still hold.
   const changedSince = (artifact, at) => stages.slice(at + 1).some((s) => (ARTIFACT_WRITERS[artifact] ?? []).includes(s.stage));
   for (const r of guideText !== null ? [...v4.full.values(), ...v4.recheck.values()] : []) {
     if (!isObj(r.report)) continue;
     const at = lastRun(r.check === 'recheck' ? `V4-${r.lens}-recheck` : `V4-${r.lens}`);
-    const superseded = at >= 0 && lastRun(r.check === 'recheck' ? `V4-${r.lens}` : `V4-${r.lens}-recheck`) > at;
+    const later = lastRun(r.check === 'recheck' ? `V4-${r.lens}` : `V4-${r.lens}-recheck`);
+    const gateBetween = stages.slice(at + 1, later).some((s) => (s.stage === 'D1-gate' || s.stage === 'D2-gate') && s.outcome !== 'missing');
+    const superseded = at >= 0 && later > at && (r.check === 'recheck' || gateBetween);
     list(r.report.findings).forEach((f, i) => {
       if (f.status !== 'accepted-offline') return;
       if (superseded && changedSince(f.artifact, at)) return;
@@ -889,14 +917,22 @@ export async function checkRun(runFolder) {
   if (recordCurrent && exists('plan.json')) {
     // (r) The record is of this plan: the final compile validated it (D-163), so the plan validates too.
     const planSha1 = sha1(fs.readFileSync(abs('plan.json')));
-    if (finalRecord.planSha1 !== planSha1 && claimsOnlyAfterFinal.length === 0) {
-      fail('record-plan', `sha1(plan.json) is ${planSha1}, but the final record's planSha1 is ${show(finalRecord.planSha1)}: plan.json changed after the final compile`);
-    } else if (finalRecord.planSha1 !== planSha1) {
-      // D-264: claims edited in place after the final compile change the plan's sha1 but no build part. The record
-      // holds the build parts it compiled as plain values (the stage ids, each stage's loadout name, level and
-      // config as written) and the ledger values, which (t) re-evaluates; they must still be the plan's.
-      for (const why of buildDrift(planStages, finalRecord)) {
-        fail('record-plan', `plan.json changed after the final compile by claims-only edits (${claimsOnlyAfterFinal.map(describe).join(', ')}), but ${why}; only a recompile changes the build (D-264)`);
+    if (claimsOnlyAfterFinal.length === 0) {
+      if (finalRecord.planSha1 !== planSha1) {
+        fail('record-plan', `sha1(plan.json) is ${planSha1}, but the final record's planSha1 is ${show(finalRecord.planSha1)}: plan.json changed after the final compile`);
+      }
+    } else if (isObj(plan)) {
+      // D-264, D-266: claims edited in place after the final compile change plan.json's sha1, never its build:
+      // the projection without stages[].claims and the source and tag fields is still the one the final compile
+      // built, its sha1 the record's buildSha1. A record without one predates D-266 and can't show it.
+      const who = claimsOnlyAfterFinal.map(describe).join(', ');
+      const hash = await loadBuildHashModule();
+      if (hash === null) {
+        fail('record-plan', `the server's build projection ${path.relative(REPO, BUILD_HASH_MODULE)} is missing; build the server (pnpm build) to check ${who}'s claims-only edit`);
+      } else if (typeof finalRecord.buildSha1 !== 'string') {
+        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but the final record has no buildSha1 to hold the plan's build to (D-266)`);
+      } else if (hash.buildSha1(plan) !== finalRecord.buildSha1) {
+        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but plan.json's build changed: the sha1 of its build-affecting part (everything but stages[].claims and the source and tag fields) is ${hash.buildSha1(plan)}, and the final record's buildSha1 is ${show(finalRecord.buildSha1)}; only a recompile changes the build (D-264, D-266)`);
       }
     }
   }
@@ -942,31 +978,6 @@ export async function checkRun(runFolder) {
 }
 
 /**
- * D-264: where the plan's build parts differ from what the final record compiled, as far as the record holds
- * them as plain values: the stages (ids, in order), each stage's loadout name and level, and each stage's config
- * (`configWritten`: every earned and scenario option, as written). The tree, items and gems exist in the record
- * only inside the import code's PoB XML, which PoB rewrites, so they aren't compared.
- */
-function buildDrift(planStages, record) {
-  const out = [];
-  const ids = planStages.map((s) => s.id);
-  const compiled = Array.isArray(record.stagesCompiled) ? record.stagesCompiled : [];
-  if (show(ids) !== show(compiled)) out.push(`its stages are ${show(ids)}, and the record compiled ${show(compiled)}`);
-  for (const s of planStages) {
-    const rec = isObj(record.stages) ? record.stages[s.id] : undefined;
-    if (!isObj(rec)) continue;
-    if (rec.loadoutName !== s.loadoutName) out.push(`stage ${s.id}'s loadoutName is ${show(s.loadoutName)}, and the record's is ${show(rec.loadoutName)}`);
-    if (rec.level !== s.level) out.push(`stage ${s.id}'s level is ${show(s.level)}, and the record's is ${show(rec.level)}`);
-    const listed = Object.fromEntries([...list(s.config?.earned), ...list(s.config?.scenario)].map((o) => [o.option, o.value]));
-    const written = isObj(rec.configWritten) ? rec.configWritten : {};
-    const options = [...new Set([...Object.keys(listed), ...Object.keys(written)])].sort();
-    const moved = options.filter((o) => show(listed[o]) !== show(written[o]));
-    if (moved.length > 0) out.push(`stage ${s.id}'s config differs from the record's configWritten in ${moved.map((o) => show(o)).join(', ')}`);
-  }
-  return out;
-}
-
-/**
  * D-265 (c): the campaign reward choices C1 lists (`q.<key>.options` in data/campaign/progress.json), each with
  * PoB's config option for it (`q.<key>.pob-config-key`) and its place in the progress order.
  */
@@ -985,24 +996,26 @@ function rewardChoices() {
 }
 
 /**
- * D-265 (c): D2 picks every reward choice the campaign passes. Each campaign stage at or after the choice's
- * quest lists its option with one of its values, the same one on each (the player picks once); the guide's
- * Campaign rewards cites the pick, `data | campaign/progress.json#q.<key>.options[<i>]`.
+ * D-265 (c): D2 picks every reward choice the campaign passes, and the endgame stages carry the picks. Every stage
+ * at or after the choice's quest, the endgame stages included, lists its option with one of its values, the same
+ * one on each (the player picks once, and the record's numbers include the reward); the guide's Campaign rewards
+ * cites the pick, `data | campaign/progress.json#q.<key>.options[<i>]`. A choice no campaign stage reaches needs
+ * no pick.
  */
-function checkRewardPicks(campaign, guide, fail) {
+function checkRewardPicks(planStages, campaign, guide, fail) {
   const { order, choices } = rewardChoices();
   for (const c of choices) {
-    const passed = campaign.filter((s) => order.indexOf(s.progress) >= c.at);
-    if (passed.length === 0) continue;
+    if (!campaign.some((s) => order.indexOf(s.progress) >= c.at)) continue;
+    const passed = planStages.filter((s) => order.indexOf(s.progress) >= c.at);
     const picks = passed.map((s) => ({ id: s.id, value: [...list(s.config?.earned), ...list(s.config?.scenario)].find((o) => o.option === c.option)?.value }));
     const unpicked = picks.filter((p) => !c.options.includes(p.value));
     if (unpicked.length > 0) {
-      fail('campaign-rewards', `campaign stage${unpicked.length === 1 ? '' : 's'} ${unpicked.map((p) => p.id).join(', ')} pass${unpicked.length === 1 ? 'es' : ''} ${c.quest}, a reward choice, without picking it: list option ${show(c.option)} with one of the ${c.options.length} values of data/campaign/progress.json#${c.quest}.options in config.scenario (D-265)`);
+      fail('campaign-rewards', `stage${unpicked.length === 1 ? '' : 's'} ${unpicked.map((p) => p.id).join(', ')} pass${unpicked.length === 1 ? 'es' : ''} ${c.quest}, a reward choice the campaign makes, without picking it: list option ${show(c.option)} with one of the ${c.options.length} values of data/campaign/progress.json#${c.quest}.options in config.scenario, on every stage at or after the quest, the endgame stages included (D-265)`);
       continue;
     }
     const values = [...new Set(picks.map((p) => p.value))];
     if (values.length > 1) {
-      fail('campaign-rewards', `campaign stages ${picks.map((p) => p.id).join(', ')} pick ${c.quest}'s reward ${values.length} different ways; the player picks once, so every stage lists the same pick (D-265)`);
+      fail('campaign-rewards', `stages ${picks.map((p) => p.id).join(', ')} pick ${c.quest}'s reward ${values.length} different ways; the player picks once, so every stage at or after the quest, the endgame stages included, lists the same pick (D-265)`);
       continue;
     }
     if (!guide) continue;
@@ -1149,8 +1162,8 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *    at most 2 counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a persistent
  *    fault's attempts count; a guided retry and an accepted re-run escalate again on failure).
  *  - `verification`: one full pass of the three lenses per cycle, at most one re-check after the fix round, of
- *    all three lenses if and only if a gate re-ran in the fix round (an owner recompiled), else only of the
- *    lenses that raised a finding (D-264); a claims-only owner (`claims-edited`) runs only before any gate of its
+ *    all three lenses if and only if a gate re-ran in the fix round (an owner recompiled), else of the lenses
+ *    that raised a finding and the sources lens, which always re-checks the changed locations (D-264); a claims-only owner (`claims-edited`) runs only before any gate of its
  *    fix round or revision, and no gate follows it; a new cycle only for a checkpoint-2 revision.
  *  - `escalation`: only gates escalate, each escalation logged once, in order, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
@@ -1250,6 +1263,13 @@ function checkFlow(log, fail, ctx) {
       const missing = LENSES.filter((l) => !cycle.rechecked.has(l));
       if (cycle.fixGate && missing.length > 0) {
         fail('verification', `run-log.json stages[${i}]: a gate re-ran in the fix round (an owner recompiled), so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ${missing.join(', ')} (D-264)`);
+      }
+      // A claims-only round: each lens that raised a finding re-checks it, and the sources lens always re-checks
+      // the changed locations, whose citations may have changed (D-264).
+      const wanted = LENSES.filter((l) => cycle.failed.has(l) || l === 'sources');
+      const left = wanted.filter((l) => !cycle.rechecked.has(l));
+      if (!cycle.fixGate && left.length > 0) {
+        fail('verification', `run-log.json stages[${i}]: the claims-only fix round's re-check before it ran without ${left.join(', ')}; each lens that raised a finding re-checks it, and the sources lens always re-checks the changed locations (D-264)`);
       }
     }
   };
@@ -1447,7 +1467,7 @@ function checkFlow(log, fail, ctx) {
       if (!cycle || cycle.full !== 'done' || !cycle.fix) fail('verification', `${at(i)}: re-checks with no full pass and fix round before it in this cycle`);
       else if (cycle.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check in one cycle; there is no further round, what stays open is a known issue (S2)`);
       else {
-        if (!cycle.fixGate && !cycle.failed.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless a gate re-ran in the fix round (D-264)`);
+        if (!cycle.fixGate && !cycle.failed.has(lensOf(s)) && lensOf(s) !== 'sources') fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; after a claims-only round only a lens that raised one re-checks, with the sources lens, unless a gate re-ran in the fix round (D-264)`);
         if (cycle.rechecked.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens twice`);
         cycle.recheck = 'open';
         cycle.rechecked.add(lensOf(s));

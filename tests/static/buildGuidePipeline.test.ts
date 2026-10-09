@@ -1002,7 +1002,7 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
   it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and the runner adds the open findings', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/Its last part is always the H3 `Known issues` \(amendment 1 Q1\)\. It lists each finding of the header's `accepted` on its own line/);
-    expect(w1).toMatch(/after the V4 checks the runner adds the findings they left open \(SKILL\.md step 14\)/);
+    expect(w1).toMatch(/after the V4 checks the runner replaces the whole list with your accepted-finding lines and one line per finding they left open, or `None\.` \(SKILL\.md step 14\)/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/### Known issues\n\n\[always this H3/);
   });
@@ -1068,10 +1068,10 @@ describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2
 describe('WU-47 fixes: what the runner does', () => {
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
 
-  it("D-265 (e): the runner's Bash runs read-only commands and the run checker; never a network client or a write; the no-cd rule is gone", () => {
+  it("D-265 (e): the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, and the run checker; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. It runs read-only commands, `ls`, `cat`, `head`, `grep`, `wc` and `jq` \(with `cd`, pipes and `&&` between them as you need\), and the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`/);
-    expect(text).toMatch(/Never a network client \(`curl`, `wget`, `nc`, `ssh`\) or any host, and never a command that writes, moves or deletes a file: no `>`, `>>`, `tee`, `cp`, `mv`, `rm`, `mkdir`, `touch` or `sed -i`/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`\./);
+    expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every file with Write \(or Edit\), never with Bash or a script\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
     expect(text).not.toMatch(/Never `cd`|no compound command|run exactly as written, one per Bash call/);
@@ -1190,7 +1190,7 @@ describe('Review of bg/amend-1: the references', () => {
   });
 
   it('6, as D-264 changes it: a fix round in which a gate re-ran re-checks all three lenses (changed: "all"); W1 always patches in place', () => {
-    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when a gate re-ran in the fix round \|/);
+    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round \|/);
     expect(skill()).toMatch(/W1 still patches the guide in place, its header's `changed` `"all"`/);
     expect(folded(readStage('V4'))).toMatch(/With `changed: "all"` \(a gate re-ran in the fix round: an owner recompiled, D-264\), that is every claim of the new `plan\.json` and `guide\.md` in your lens, as a full pass checks them/);
     expect(folded(readStage('W1'))).toMatch(/\*\*The fix round and revisions\*\* \(D-264\)\. You never write the guide anew: fix it in place with Edit/);
@@ -1241,18 +1241,34 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
       const text = folded(readStage(stage));
       expect({ stage, inPlace: /## The fix round and revisions \(D-264\) With V4 findings or the user's requests in `findings`, you edit the plan in place/.test(text) }).toEqual({ stage, inPlace: true });
       expect({ stage, rule: /\*\*Recompile only for a build change\.\*\* A fix changes the build when it changes gear .* the tree, the gems, the config \(earned or scenario.*\), or a ledger entry's formula or inputs/.test(text) }).toEqual({ stage, rule: true });
-      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them/.test(text) }).toEqual({ stage, none: true });
+      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* A claims-only edit changes only `stages\[\]\.claims` and `source` and `tag` fields; anything else, a ledger entry's `claim` text, a respec's note or a `chaosResistException`'s reason included, takes step 2's path\. After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan without its claims, sources and tags to equal the final record's `buildSha1` \(D-266\)/.test(text) }).toEqual({ stage, none: true });
       expect({ stage, returns: /`recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed/.test(text) }).toEqual({ stage, returns: true });
     }
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/Recompile only when a fix changes the build .* Otherwise compile nothing, validate once, and leave the final record as it is\. Return `recompiled: yes` or `no`/);
   });
 
   it('the run log names the claims-only owner `claims-edited`, which the checker tells from a redesign, and the header carries W1 its changed locations', () => {
-    expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited claims in place and compiled nothing, so no gate follows it \(D-264\)/);
+    expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited claims in place and compiled nothing, so no gate of its own follows it \(D-264\)/);
+    expect(ref('run-log.md')).toMatch(/its build projection's sha1 equals the record's `buildSha1`, D-266/);
     expect(ref('task-header.md')).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round/);
-    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    expect(checker).toContain("const CLAIMS_EDITED = 'claims-edited';");
-    expect(ref('run-folder.md')).toMatch(/of all three lenses if and only if a gate re-ran in the fix round \(D-264\)/);
+    expect(ref('run-folder.md')).toMatch(/of all three lenses if and only if a gate re-ran in the fix round \(D-264\), else of each lens that raised a finding and the sources lens/);
+  });
+});
+
+describe('Review of bg/d264: the references say what the checker now holds', () => {
+  const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+
+  it('item 4: after a claims-only round the sources lens always re-checks the changed locations (SKILL.md step 13, V4.md)', () => {
+    expect(skill()).toMatch(/Otherwise \(claims only\) each lens that raised a finding runs once, in parallel, with its own open findings in `findings` and the owners' changed locations in `changed`, and checks only those; the \*\*sources lens always runs\*\*, even when it raised nothing, since an edited claim may cite something new/);
+    expect(folded(readStage('V4'))).toMatch(/After a claims-only round the `sources` lens always runs, even with no finding of its own, and checks every citation at a changed location, since an edited claim may cite something new \(D-264\); the other lenses run only when they raised a finding/);
+  });
+
+  it("item 6: each owner is logged by what it did, and a claims-only D1 may precede a D2 that recompiles and its gate", () => {
+    expect(skill()).toMatch(/Log each owner as `run-log\.md` says: `done` when it recompiled, or when it is the D2 whose gate follows a recompiled D1; `claims-edited` when it edited claims only \(a claims-only D1 before a D2 that recompiled\)/);
+    expect(skill()).not.toMatch(/Log the owners `done`/);
+    expect(ref('run-folder.md')).toMatch(/a claims-only owner only before any gate of its round and never directly before a gate \(a claims-only D1 may be followed by a D2 that recompiles, and its D2 gate\)/);
+    expect(ref('run-folder.md')).not.toMatch(/with no gate after it/);
   });
 });
 
@@ -1268,7 +1284,8 @@ describe('D-265: the small items', () => {
   it('(c) D2 picks every campaign reward choice into config.scenario with a one-line reason; W1 and the template write the picks under Campaign rewards', () => {
     const d2 = folded(readStage('D2'));
     expect(d2).toMatch(/\*\*Reward choices\*\* \(D-265\): pick every campaign reward choice C1 lists, each a quest with a `q\.<key>\.options` fact in `data\/campaign\/progress\.json`/);
-    expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* campaign stage at or after the quest, the same pick on each/);
+    expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* stage at or after the quest, the same pick on each, the endgame stages `b` and `n` included/);
+    expect(folded(readStage('D1'))).toMatch(/\*\*Campaign reward picks\*\* \(D-265\): the endgame stages carry the campaign's reward picks\. For every reward choice a campaign stage picks .* `b` and `n` list the same entry, the same pick/);
     expect(d2).toMatch(/Each reward pick of step 6 has one claim, on the first stage that lists it: the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
     expect(folded(readStage('W1'))).toMatch(/\*\*Campaign rewards\*\* \(D-265\): one line per quest reward the campaign passes, in campaign order\. For each reward choice the plan picks .* with a marker defined as `data \| campaign\/progress\.json#q\.<key>\.options\[<i>\]`\. Never list a choice's options without its pick/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
@@ -1276,7 +1293,6 @@ describe('D-265: the small items', () => {
     expect(template).toContain('[^c2]: data | campaign/progress.json#<progress key>.options[<the picked option\'s index>]');
     // The plan field is the existing scenario list, as the plan reference says.
     expect(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'plan-reference.md'), 'utf8')).toMatch(/A reward choice \(a quest whose C1 data has `q\.<key>\.options`\) defaults to Nothing; once the stage's `progress` is at or after its quest, list the pick here/);
-    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("fail('campaign-rewards'");
   });
 
   it("(d) every unresolved V4 finding carries a reader sentence; the runner writes each open one as `- <reader> (<id>)` at step 14, from W1's known-issues-line", () => {
@@ -1287,10 +1303,12 @@ describe('D-265: the small items', () => {
     const markers = ref('source-markers.md');
     expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json` or `guide\.md`\), `location`, `claim`, `issue`, `evidence`, `reader` \(only when `unresolved`\), `owner`/);
     expect(markers).toMatch(/the run checker fails an `unresolved` finding without it\. A `fixed` or `accepted-offline` finding needs none/);
-    expect(markers).toMatch(/The runner writes every open finding into the guide's `Known issues` as `- <reader> \(<id>\)`: its `reader` sentence as the report gives it, then its id in parentheses \(SKILL\.md step 14, D-265\)\. The run checker finds each line by its id and requires its text to be the finding's `reader` sentence/);
+    expect(markers).toMatch(/The runner replaces the guide's `Known issues` list every cycle: W1's accepted-gate-finding lines, then every open finding as `- <reader> \(<id>\)`, its `reader` sentence as the report gives it, then its id in parentheses \(SKILL\.md step 14, D-265\)\. The run checker finds each line by its id, requires its text to be the finding's `reader` sentence, and fails any other line/);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
-    expect(skill).toMatch(/Read the three lines of `guide\.md` from the `known-issues-line` W1 returned last \(W1 returns it on its first write and on every patch;/);
-    expect(skill).toMatch(/every open finding has its own line after the heading, `- <reader> \(<id>\)`: the finding's `reader` sentence exactly as its report gives it, a plain sentence the guide's reader can act on \(D-265\), then its id in parentheses/);
+    expect(skill).toMatch(/Read `guide\.md` from the `known-issues-line` W1 returned last \(W1 returns it on its first write and on every patch;/);
+    // Item 5 of the d264 review: the runner replaces the whole list every cycle, so no stale line survives.
+    expect(skill).toMatch(/\*\*replace the whole list\*\* under `### Known issues` with Edit, every cycle \(D-265\): first W1's lines for the accepted gate findings .* then one line per open finding, `- <reader> \(<id>\)`, the finding's `reader` sentence exactly as its report gives it, then its id in parentheses; or, with neither, the one line `None\.`\. Drop every other line: a line from an earlier cycle is stale/);
+    expect(folded(readStage('W1'))).toMatch(/Leave the lines under `### Known issues` to the runner's step 14, which replaces them whole, except to add a line for a gate finding newly in `accepted`/);
     expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues` | — |");
     expect(skill).not.toMatch(/known-issues`|W1 runs once more/);
     const w1 = folded(readStage('W1'));
@@ -1299,7 +1317,6 @@ describe('D-265: the small items', () => {
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/\[added by the runner at step 14\] - <the finding's reader sentence, word for word: "[^"]+"> \(<V4 finding id>\)/);
     expect(template).not.toMatch(/\(V4 <lens>, <artifact> <location>\)/);
-    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain('is unresolved and has no reader: one plain sentence');
     expect(ref('run-log.md')).not.toMatch(/known-issues/);
   });
 

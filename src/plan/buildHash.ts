@@ -1,0 +1,56 @@
+/**
+ * D-266: the plan's build-affecting projection and its sha1, the compile record's `buildSha1` (C-33). The
+ * projection is the plan with every `stages[].claims` and every `source` and `tag` field (at any depth)
+ * removed, serialized canonically: object keys sorted, arrays in order, no whitespace. A claims-only edit in
+ * the fix round (D-264: a claim's wording, citation, caveat or source) leaves it unchanged; a change to an
+ * item, a gem, the tree, the config, a ledger entry or a price changes it.
+ *
+ * The compiler writes it beside `planSha1`, and the build-guide run checker loads this module's compiled form
+ * (`build/plan/buildHash.js`) to hold a plan edited after the final compile to it. It imports only
+ * `crypto`, so it loads on its own.
+ */
+import crypto from 'crypto';
+
+/** The fields a claims-only edit may change anywhere in the plan: a claim's source and a value's source tag. */
+const SOURCE_KEYS = new Set(['source', 'tag']);
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** The plan without `stages[].claims` and without any `source` or `tag` field. */
+export function buildProjection(plan: unknown): unknown {
+  const strip = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(strip);
+    if (!isRecord(v)) return v;
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) if (!SOURCE_KEYS.has(k)) out[k] = strip(x);
+    return out;
+  };
+  const projected = strip(plan);
+  if (isRecord(projected) && Array.isArray(projected.stages)) {
+    projected.stages = projected.stages.map((s) => {
+      if (!isRecord(s)) return s;
+      const rest = { ...s };
+      delete rest.claims;
+      return rest;
+    });
+  }
+  return projected;
+}
+
+/** JSON with every object's keys sorted and no whitespace, so equal values serialize alike. */
+export function canonicalJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
+  if (isRecord(v)) {
+    return `{${Object.keys(v)
+      .filter((k) => v[k] !== undefined)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonicalJson(v[k])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(v) ?? 'null';
+}
+
+/** D-266: the sha1 of the plan's build-affecting projection, as the compile record's `buildSha1`. */
+export function buildSha1(plan: unknown): string {
+  return crypto.createHash('sha1').update(canonicalJson(buildProjection(plan))).digest('hex');
+}

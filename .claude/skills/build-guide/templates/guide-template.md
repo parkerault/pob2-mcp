@@ -158,7 +158,7 @@ Hand calculations (the ledger), for what PoB doesn't model:
 
 ### Known issues
 
-[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks the runner adds one line per finding they left open (step 14). Each line is one plain sentence the reader can act on, then the finding's id in parentheses (D-265).] - <What is wrong, in plain words, and what is true instead> (<gate: D1-gate or D2-gate> <code>, stage <plan stage>).
+[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks the runner replaces the list with those lines and one line per finding they left open, or "None." (step 14). Each line is one plain sentence the reader can act on, then the finding's id in parentheses (D-265).] - <What is wrong, in plain words, and what is true instead> (<gate: D1-gate or D2-gate> <code>, stage <plan stage>).
 [added by the runner at step 14] - <the finding's reader sentence, word for word: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance."> (<V4 finding id>)
 
 ## Changelog

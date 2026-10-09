@@ -192,6 +192,7 @@ describe('C-41, C-50: argument combinations and error lines', () => {
       recordVersion: 1 as const,
       planSchemaVersion: 1,
       planSha1: 'x',
+      buildSha1: 'x',
       compiledAt: '2026-10-08T00:00:00.000Z',
       mode: 'measure-only' as const,
       stagesCompiled: ['b', 'n'],
@@ -244,7 +245,7 @@ describe('C-41, C-50: argument combinations and error lines', () => {
         ]),
       );
       const record = {
-        recordVersion: 1 as const, planSchemaVersion: 1, planSha1: 'x', compiledAt: '2026-10-08T00:00:00.000Z', mode: 'measure-only' as const,
+        recordVersion: 1 as const, planSchemaVersion: 1, planSha1: 'x', buildSha1: 'x', compiledAt: '2026-10-08T00:00:00.000Z', mode: 'measure-only' as const,
         stagesCompiled: ids, engine: { pobTag: 'v0.23.1', pobCommit: 'abc', treeVersion: '0_5' }, versionNotes: [], loadoutWarnings: [], saveWarnings: [],
         pobFile: { location: 'run' as const, path: 'r/compiled-build.xml', sha1: 'y', bytes: 1 }, importCode: 'code',
         savedLevel: { level: 10, autoMode: true as const }, activeLoadout: 'Stage 0 (L10) {s0}', sets: [], stages, ledger: {}, unresolvedRefs: [],

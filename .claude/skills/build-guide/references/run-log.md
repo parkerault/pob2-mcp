@@ -33,9 +33,10 @@ rest, and the run checker reads both (`run-folder.md`).
     `unresolved` finding);
   - `done` for a step that only produces, `infeasible` for D1 claiming it and for a D1 gate routed so;
   - `claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited
-    claims in place and compiled nothing, so no gate follows it (D-264). The run checker tells it from a
-    redesign: the final record stays current, the plan may differ from the record's `planSha1` only in what
-    the record doesn't hold as a build part, and the re-check stays with the lenses that raised a finding;
+    claims in place and compiled nothing, so no gate of its own follows it (D-264). The run checker tells it
+    from a redesign: the final record stays current, the plan may differ from the record's `planSha1` only in
+    its claims and source tags (its build projection's sha1 equals the record's `buildSha1`, D-266), and the
+    re-check stays with the lenses that raised a finding, plus the sources lens;
   - `escalated` for the gate attempt that escalated;
   - `missing` for an agent that returned without its file.
   A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the

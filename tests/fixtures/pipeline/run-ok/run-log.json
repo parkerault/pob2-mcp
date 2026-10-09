@@ -104,6 +104,12 @@
       "outcome": "done"
     },
     {
+      "stage": "V4-sources-recheck",
+      "concept": "c1",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
       "stage": "V4-prose-recheck",
       "concept": "c1",
       "attempt": 1,

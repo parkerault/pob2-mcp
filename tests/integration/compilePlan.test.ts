@@ -38,6 +38,7 @@ import { decodePobCode } from '../../src/utils/buildCode';
 import { TOOL_META } from '../../src/server/toolMeta';
 import { getLuaToolSchemas } from '../../src/server/toolSchemas';
 import { WRITE_LEDGER_FILE } from '../../src/plan/writeLedger';
+import { buildSha1 } from '../../src/plan/buildHash';
 import type { CompileRecord } from '../../src/plan/record';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -196,6 +197,10 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     const record = recordOf(run);
     expect(record.mode).toBe('final');
     expect(record.stagesCompiled).toEqual(['1', '2']);
+    // D-266: the record carries the build-affecting projection's sha1 beside the file's.
+    const planText = fs.readFileSync(path.join(f.guides, run.plan), 'utf8');
+    expect(record.planSha1).toBe(sha1(planText));
+    expect(record.buildSha1).toBe(buildSha1(JSON.parse(planText)));
     for (const id of ['1', '2']) expect(record.stages[id].elapsedMs).toBeGreaterThan(0);
     expect(record.pobFile).toEqual({ location: 'builds', path: 'm11-two-stage.xml', sha1: sha1(xml), bytes: Buffer.byteLength(xml) });
     expect(record.savedLevel).toEqual({ level: 14, autoMode: true });

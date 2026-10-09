@@ -51,6 +51,7 @@ import { BuildFileWriteError, type BuildFileWriter, type WriteGuard } from '../s
 import { encodePobCode } from '../utils/buildCode.js';
 import { checkGuidesRoot, realPathInGuides, resolveInGuidesRoot, runFolderOf } from '../utils/guidesPath.js';
 import { canonicalBuildPath } from '../utils/pathSanitizer.js';
+import { buildSha1 } from './buildHash.js';
 import { evaluateLedger, ledgerErrorText, type StageOutputs } from './ledger.js';
 import {
   MEASURE_ONLY_XML_FILE,
@@ -396,6 +397,8 @@ export interface LoadedPlan {
   /** Its path relative to the guides root's real path, with `/` separators. */
   relPath: string;
   sha1: string;
+  /** D-266: the sha1 of the plan's build-affecting projection (`buildHash.ts`). */
+  buildSha1: string;
   /** The stages to compile: the subset named, in plan order, or every stage. */
   compiled: Stage[];
 }
@@ -461,6 +464,8 @@ export async function loadPlan(
     realDir: path.dirname(realPath),
     relPath,
     sha1: sha1(bytes),
+    // The validated text parses; the projection is of the plan as written, not its parsed form (D-266).
+    buildSha1: buildSha1(JSON.parse(text)),
     compiled,
   };
 }
@@ -820,6 +825,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     recordVersion: RECORD_VERSION,
     planSchemaVersion: plan.schemaVersion,
     planSha1: loaded.sha1,
+    buildSha1: loaded.buildSha1,
     compiledAt: env.wallClock().toISOString(),
     mode,
     stagesCompiled: compiled.map((s) => s.id),

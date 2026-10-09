@@ -2,6 +2,7 @@
   "recordVersion": 1,
   "planSchemaVersion": 1,
   "planSha1": "5a8915c293323966b47269b3d56cfc1fa477bd94",
+  "buildSha1": "772585a0db42425c65fb195148a84d9b7fb2e6ae",
   "compiledAt": "2026-10-08T10:41:00.000Z",
   "mode": "measure-only",
   "stagesCompiled": [

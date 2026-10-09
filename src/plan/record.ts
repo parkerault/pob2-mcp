@@ -58,6 +58,11 @@ export interface CompileRecord {
   recordVersion: 1;
   planSchemaVersion: number;
   planSha1: string;
+  /**
+   * D-266: the sha1 of the plan's build-affecting projection (`buildHash.ts`: the plan without its
+   * `stages[].claims` and its `source` and `tag` fields). A claims-only edit after the compile leaves it equal.
+   */
+  buildSha1: string;
   compiledAt: string;
   mode: CompileMode;
   stagesCompiled: string[];

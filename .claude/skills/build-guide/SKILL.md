@@ -30,12 +30,16 @@ spine C-36).
   `run-log.json`, the test config, the agents' returns and the verifiers' reports. Never read `plan.json`, a
   compile record, `dossier.md` or `guide.md` (one final record was 268 KB), with Read or with Bash; step 14
   reads only the `Known issues` lines it edits.
-- **Your Bash reads, and runs the run checker; nothing else** (D-265). It runs read-only commands, `ls`,
-  `cat`, `head`, `grep`, `wc` and `jq` (with `cd`, pipes and `&&` between them as you need), and the run
-  checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`. Never a network client
-  (`curl`, `wget`, `nc`, `ssh`) or any host, and never a command that writes, moves or deletes a file: no
-  `>`, `>>`, `tee`, `cp`, `mv`, `rm`, `mkdir`, `touch` or `sed -i`. Write every file with Write (or Edit),
-  never with Bash or a script. The agents have no Bash at all.
+- **Your Bash reads, and runs the run checker; nothing else** (D-265). The whole list:
+  - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is
+    fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
+    `-delete` where the tool writes with it), and no command substitution (`$(…)`, backticks) feeding
+    another tool;
+  - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`.
+
+  Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
+  client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing that writes, moves or deletes a file. Write every
+  file with Write (or Edit), never with Bash or a script. The agents have no Bash at all.
 
 | Agent type (`subagent_type`) | Steps |
 |---|---|
@@ -94,7 +98,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 10 | W1, the guide | `build-guide-writer` | `guide.md` | at most 8 lines |
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
-| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
+| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
 | 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues` | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
@@ -229,8 +233,10 @@ the stage, the attempts and the verdict file, and ask:
   - **An owner recompiled:** its gates run as now: **D1** → D1 gate → D2 gate → W1; **D2** → D2 gate → W1. A
     step that is itself an owner gets its findings in `findings` (D2 after D1: D1 → D1 gate → D2 → D2 gate →
     W1; that D2 runs its gate even for claim edits, since the D1 gate's compile replaced the final record).
-    Log the owners `done`. W1 still patches the guide in place, its header's `changed` `"all"`: the import
-    code and every record or ledger number the guide quotes may have moved.
+    Log each owner as `run-log.md` says: `done` when it recompiled, or when it is the D2 whose gate follows a
+    recompiled D1; `claims-edited` when it edited claims only (a claims-only D1 before a D2 that recompiled).
+    W1 still patches the guide in place, its header's `changed` `"all"`: the import code and every record or
+    ledger number the guide quotes may have moved.
 
   The round is uncounted; the gates in it keep their 2 counted retries, and an escalation in it is a gate
   escalation.
@@ -238,15 +244,18 @@ the stage, the attempts and the verdict file, and ask:
   guide's numbers are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own
   open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does. Otherwise
   (claims only) each lens that raised a finding runs once, in parallel, with its own open findings in
-  `findings` and the owners' changed locations in `changed`, and checks only those. Write each report to
+  `findings` and the owners' changed locations in `changed`, and checks only those; the **sources lens always
+  runs**, even when it raised nothing, since an edited claim may cite something new. Write each report to
   `reports/v4-<lens>-recheck.json`. Either way there is no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. Read the three lines of `guide.md` from
-  the `known-issues-line` W1 returned last (W1 returns it on its first write and on every patch; no Grep: if
-  the line isn't the `### Known issues` heading, Read the guide in parts until you find it), and Edit them so
-  that every open finding has its own line after the heading, `- <reader> (<id>)`: the finding's `reader`
-  sentence exactly as its report gives it, a plain sentence the guide's reader can act on (D-265), then its
-  id in parentheses. Replace a lone `None.`. With no open finding, change nothing.
+  `unresolved` in the full pass and not reported `fixed` by a re-check. Read `guide.md` from the
+  `known-issues-line` W1 returned last (W1 returns it on its first write and on every patch; no Grep: if the
+  line isn't the `### Known issues` heading, Read the guide in parts until you find it) down to the next
+  heading, and **replace the whole list** under `### Known issues` with Edit, every cycle (D-265): first W1's
+  lines for the accepted gate findings (each names its gate, `D1-gate` or `D2-gate`), as W1 wrote them; then
+  one line per open finding, `- <reader> (<id>)`, the finding's `reader` sentence exactly as its report gives
+  it, then its id in parentheses; or, with neither, the one line `None.`. Drop every other line: a line from
+  an earlier cycle is stale.
 - **Step 15.** Run the run checker (§7).
 - **Step 16, checkpoint 2.** Show the guide's path, the PoB file (the D2 gate verdict's `finalCompile`),
   the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run ends

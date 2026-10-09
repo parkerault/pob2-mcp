@@ -67,22 +67,26 @@ like any other: report it, never work around it.
 
 `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>` checks what the folder holds, whatever
 the run's status; when a guide exists, every guide check applies (amendment 1 §4.2). It uses Node built-ins
-and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each violation is one stderr line
+and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and build projection,
+`build/plan/buildHash.js` (D-266). Each violation is one stderr line
 `check-run: [<rule>] <message>`.
 
 - **The artifacts.** This layout. The dossier's H2s; the guide's H2s, its `Checks` H3s, and its Leveling H3s
   equal to the record's loadout names. Every marker resolves and parses as a C-30 tag. Offline, every price
   is `unavailable` and no step priced. The guide's import code equals the record's (D-205), and every
   finding open after the re-check is under `Known issues`, by id, its line's text the finding's `reader`
-  sentence (D-265), with every accepted gate finding. Every V4 finding has its `reader`. Every
-  campaign reward choice the campaign passes is picked, the same pick on each stage after it, and the guide's
-  Campaign rewards cites each pick (D-265). A superseded V4 report (a later report of its lens ran after it)
-  is held to the artifact as it was: once a step wrote that artifact after it, its locations aren't checked.
+  sentence (D-265), with every accepted gate finding, and no other line: no stale line from an earlier cycle,
+  and `None.` only when nothing is open or accepted. Every `unresolved` V4 finding has its `reader`. Every
+  campaign reward choice the campaign passes is picked, the same pick on every stage after it, the endgame
+  stages included, and the guide's Campaign rewards cites each pick (D-265). A V4 report superseded by one that
+  checked every claim again (a full re-check after a gate re-ran, or a revision's full pass) is held to the
+  artifact as it was: once a step wrote that artifact after it, its locations aren't checked.
 - **The final record.** V1 and V2 pass for every stage, accepted findings aside. `sha1(plan.json)` equals the
   record's `planSha1`, unless claims-only owners (`claims-edited`, D-264) edited the plan after the final
   compile: then the record must still be that compile's (final, its PoB file the one the last D2 gate named),
-  and the build parts it holds as plain values must still be the plan's: the stages in order, each stage's
-  loadout name and level, and its config as written (`configWritten`). The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
+  and the sha1 of the plan's build-affecting part (everything but `stages[].claims` and the `source` and `tag`
+  fields, as the server's `build/plan/buildHash.js` computes it) must equal the record's `buildSha1` (D-266).
+  A record without `buildSha1` (from before D-266) is a violation only then. The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
   plan stage, titled by the record's loadout names (D-215). Every ledger entry, re-evaluated over the record
   by the server's evaluator, equals the record's value to 2 decimals.
 - **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor, the budget and the
@@ -92,8 +96,9 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`. Each vio
   each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
   counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
   one full V4 pass and at most one re-check per verification cycle, of all three lenses if and only if a gate
-  re-ran in the fix round (D-264); a claims-only owner only before any gate of its round, with no gate after
-  it; escalations only from the gates, each naming its verdict file; a `rule` on every
+  re-ran in the fix round (D-264), else of each lens that raised a finding and the sources lens; a claims-only
+  owner only before any gate of its round and never directly before a gate (a claims-only D1 may be followed
+  by a D2 that recompiles, and its D2 gate); escalations only from the gates, each naming its verdict file; a `rule` on every
   pre-supplied or default answer; and `completed` only after checkpoint 2's accept.
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after

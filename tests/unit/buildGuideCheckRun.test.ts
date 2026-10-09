@@ -24,6 +24,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
+import { buildSha1 } from '../../src/plan/buildHash';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
@@ -69,10 +70,13 @@ const replace = (from: string, to: string) => (t: string) => {
   return t.replace(from, to);
 };
 const sha1 = (b: Buffer | string) => crypto.createHash('sha1').update(b).digest('hex');
-/** Edits plan.json as a final compile of the edited plan would leave it: the record's planSha1 follows (r). */
+/** Edits plan.json as a final compile of the edited plan would leave it: the record's planSha1 (r) and buildSha1 (D-266) follow. */
 function editPlan(dir: string, edit: (p: Json) => void): void {
   editJson(dir, 'plan.json', edit);
-  editJson(dir, 'compile-record.json', (r) => (r.planSha1 = sha1(fs.readFileSync(path.join(dir, 'plan.json')))));
+  editJson(dir, 'compile-record.json', (r) => {
+    r.planSha1 = sha1(fs.readFileSync(path.join(dir, 'plan.json')));
+    r.buildSha1 = buildSha1(readJson(dir, 'plan.json'));
+  });
 }
 const editLog = (dir: string, edit: (l: Json) => void) => editJson(dir, 'run-log.json', edit);
 const stageB = (plan: Json) => plan.stages.find((s: Json) => s.id === 'b');
@@ -119,7 +123,7 @@ describe('AC-W2: the passing fixtures, in the slim shape (amendment 1 §4)', () 
     expect(log.faults).toEqual([expect.objectContaining({ id: 'FI-2', target: { concepts: 'all', persistent: false } })]);
     expect(log.stages.map((s: Json) => `${s.stage}:${s.outcome}`).slice(5)).toEqual([
       'D1:done', 'D1-gate:fail', 'D1:done', 'D1-gate:pass', 'D2:done', 'D2-gate:pass', 'W1:done',
-      'V4-ledger:pass', 'V4-sources:pass', 'V4-prose:fail', 'W1:done', 'V4-prose-recheck:fail',
+      'V4-ledger:pass', 'V4-sources:pass', 'V4-prose:fail', 'W1:done', 'V4-sources-recheck:pass', 'V4-prose-recheck:fail',
     ]);
     expect(readJson(dir, 'reports/v4-prose-recheck.json').findings).toEqual([expect.objectContaining({ id: 'v4-prose-1', status: 'unresolved' })]);
     const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
@@ -810,7 +814,7 @@ describe('flow invariant 3: one full V4 pass and at most one re-check per cycle 
     expect(failing(dir)).toMatch(/\[verification\] .*\(V4-ledger-recheck c1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass/);
     const nofix = copyOf('run-ok');
     editLog(nofix, (l) => l.stages.splice(tail + 3, 1));
-    expect(failing(nofix)).toMatch(/\[order\] .*\(V4-prose-recheck c1 attempt 1\): can't follow V4-prose c1 attempt 1/);
+    expect(failing(nofix)).toMatch(/\[order\] .*\(V4-sources-recheck c1 attempt 1\): can't follow V4-prose c1 attempt 1/);
   });
 
   it('fails a second re-check in one cycle, and a revision no checkpoint 2 answer asked for', () => {
@@ -832,6 +836,8 @@ describe('flow invariant 3: one full V4 pass and at most one re-check per cycle 
       r.findings = [];
       r.verdict = 'pass';
     });
+    // Step 14 replaces the list: with nothing open after the revision's pass, it says None.
+    editText(dir, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
     passes(dir);
   });
 
@@ -846,7 +852,7 @@ describe('flow invariant 4: only the D1 and D2 gates escalate; verification neve
   it('fails a V4 lens logged escalated', () => {
     const dir = copyOf('run-ok');
     editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'V4-prose-recheck').outcome = 'escalated'));
-    expect(failing(dir)).toMatch(/\[escalation\] run-log\.json stages\[16\]: V4-prose-recheck is logged escalated; only the D1 and D2 gates escalate, and verification never does/);
+    expect(failing(dir)).toMatch(/\[escalation\] run-log\.json stages\[17\]: V4-prose-recheck is logged escalated; only the D1 and D2 gates escalate, and verification never does/);
   });
 
   it('fails an escalation whose stage is not a gate', () => {
@@ -1173,35 +1179,53 @@ describe("W19: run B's failure routes pass the checker with no --partial (no via
 // D-264: the fix round fixes claims in place; only a recompile re-runs the gates and the full re-check
 // ---------------------------------------------------------------------------------------------------
 
-describe('D-264: a claims-only fix round edits claims in place, runs no gate, and re-checks only the raising lenses', () => {
+describe('D-264: a claims-only fix round edits claims in place, runs no gate, and re-checks the raising lenses and the sources lens', () => {
   /**
    * run-ok whose fix round is a claims-only D1 (its claims edited in place, nothing compiled, so the record keeps
-   * the final compile's planSha1), then W1 patching the guide and the prose re-check.
+   * the final compile's planSha1 and buildSha1), then W1 patching the guide, then the targeted re-check: the
+   * prose lens, which raised the finding, and the sources lens, which always re-checks the changed locations.
    */
   const claimsOnly = (planEdit: (p: Json) => void = (p) => (stageB(p).claims[0].text += ' (fixed in place)')) => {
     const dir = copyOf('run-ok');
     editJson(dir, 'plan.json', planEdit);
-    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('W1', 'c1', 2, 'done'), step('V4-prose-recheck', 'c1', 1, 'fail')]);
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('W1', 'c1', 2, 'done'), step('V4-sources-recheck', 'c1', 1, 'pass'), step('V4-prose-recheck', 'c1', 1, 'fail')]);
     return dir;
   };
 
-  it('passes D1 → W1 → the raising lens re-checking: the plan differs from the record only in its claims', () => {
-    const dir = claimsOnly();
+  it('passes D1 → W1 → the targeted re-check: the plan differs from the record only in its claims, sources and tags', () => {
+    const dir = claimsOnly((p) => {
+      stageB(p).claims[0].text += ' (fixed in place)';
+      stageB(p).claims[1].source = { kind: 'judgment', ref: 'recited', confidence: 'M' };
+      stageB(p).config.scenario[0].tag = { ...stageB(p).config.scenario[0].tag, ref: 'recited' };
+    });
     expect(sha1(fs.readFileSync(path.join(dir, 'plan.json')))).not.toBe(readJson(dir, 'compile-record.json').planSha1);
     passes(dir);
   });
 
-  it('fails a claims-only edit that changed a build part the record holds: a stage\'s config, level or loadout name', () => {
-    const stderr = failing(claimsOnly((p) => {
-      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value = 120;
-      p.stages.find((s: Json) => s.id === '2').level = 31;
-    }));
-    expect(stderr).toMatch(/\[record-plan\] plan\.json changed after the final compile by claims-only edits \(D1 c1 attempt 3\), but stage 2's level is 31, and the record's is 30; only a recompile changes the build \(D-264\)/);
-    expect(stderr).toMatch(/\[record-plan\] .*but stage b's config differs from the record's configWritten in "enemyFireDamage"/);
-    // Without a claims-only entry the same plan edit is the old (r) failure: the plan changed after the final compile.
-    const dir = copyOf('run-ok');
-    editJson(dir, 'plan.json', (p) => (stageB(p).claims[0].text += ' (edited)'));
-    expect(failing(dir)).toMatch(/\[record-plan\] sha1\(plan\.json\) is [0-9a-f]{40}, but the final record's planSha1 is "[0-9a-f]{40}": plan\.json changed after the final compile/);
+  it('item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed a ledger formula (the review\'s run-gearswap)', () => {
+    const swaps: [string, (p: Json) => void][] = [
+      ['item', (p) => (stageB(p).items.slots.find((x: Json) => x.slot === 'Body Armour').text = "Rarity: Unique\nKaom's Heart\nClaimed Body\n+500 to maximum Life")],
+      ['gem', (p) => stageB(p).skills.groups[0].gems.push({ name: 'Martial Tempo', level: 20, quality: 0, enabled: true })],
+      ['tree', (p) => (stageB(p).tree.nodes = stageB(p).tree.nodes.slice(1))],
+      ['ledger', (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)],
+      ['config', (p) => (stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value = 120)],
+    ];
+    for (const [what, swap] of swaps) {
+      const stderr = failing(claimsOnly((p) => {
+        stageB(p).claims[0].text += ' (fixed in place)';
+        swap(p);
+      }));
+      expect({ what, line: lines(stderr, 'record-plan').some((l) => /D1 c1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed: the sha1 of its build-affecting part .* is [0-9a-f]{40}, and the final record's buildSha1 is "[0-9a-f]{40}"; only a recompile changes the build \(D-264, D-266\)/.test(l)) }).toEqual({ what, line: true });
+    }
+  });
+
+  it("item 1: a record without buildSha1 (from before D-266) is a violation only when a claims-only owner ran", () => {
+    const old = copyOf('run-ok');
+    editJson(old, 'compile-record.json', (r) => delete r.buildSha1);
+    passes(old);
+    const claims = claimsOnly();
+    editJson(claims, 'compile-record.json', (r) => delete r.buildSha1);
+    expect(failing(claims)).toMatch(/\[record-plan\] D1 c1 attempt 3 edited claims without a compile \(claims-edited\), but the final record has no buildSha1 to hold the plan's build to \(D-266\)/);
   });
 
   it('fails a claims-only owner that compiled: the record is no longer the last D2 gate\'s final compile', () => {
@@ -1213,10 +1237,17 @@ describe('D-264: a claims-only fix round edits claims in place, runs no gate, an
     expect(failing(other)).toMatch(/\[record-plan\] .*but the final record's PoB file "titan-blood-hunt-2026-10-08-9\.xml" isn't "titan-blood-hunt-2026-10-08-1\.xml", the one D2-gate c1 attempt 1 wrote/);
   });
 
-  it('flow invariant 3: with no gate re-run, a re-check of a lens that raised nothing fails (the re-check is full only after a gate)', () => {
+  it('item 4: after a claims-only round the sources lens always re-checks, even with no finding of its own; another lens that raised nothing may not', () => {
     const dir = claimsOnly();
-    editLog(dir, (l) => l.stages.push(step('V4-ledger-recheck', 'c1', 1, 'pass'), step('V4-sources-recheck', 'c1', 1, 'pass')));
-    expect(failing(dir)).toMatch(/\[verification\] .*\(V4-ledger-recheck c1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass; only a lens that raised one re-checks, unless a gate re-ran in the fix round \(D-264\)/);
+    editLog(dir, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V4-sources-recheck')));
+    expect(failing(dir)).toMatch(/\[verification\] run-log\.json stages\[\d+\]: the claims-only fix round's re-check before it ran without sources; each lens that raised a finding re-checks it, and the sources lens always re-checks the changed locations \(D-264\)/);
+    const extra = claimsOnly();
+    editLog(extra, (l) => l.stages.push(step('V4-ledger-recheck', 'c1', 1, 'pass')));
+    expect(failing(extra)).toMatch(/\[verification\] .*\(V4-ledger-recheck c1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass; after a claims-only round only a lens that raised one re-checks, with the sources lens, unless a gate re-ran in the fix round \(D-264\)/);
+    // A raising lens that skips its re-check fails too.
+    const skipped = claimsOnly();
+    editLog(skipped, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V4-prose-recheck')));
+    expect(failing(skipped)).toMatch(/\[verification\] .*the claims-only fix round's re-check before it ran without prose/);
   });
 
   it('a claims-only owner runs no gate, and only before any gate of its round', () => {
@@ -1245,10 +1276,10 @@ describe('D-264: a claims-only fix round edits claims in place, runs no gate, an
       editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
     }
     const rechecks = ['ledger', 'sources', 'prose'].map((l) => step(`V4-${l}-recheck`, 'c1', 1, l === 'prose' ? 'fail' : 'pass'));
-    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), ...rechecks.slice(0, 2), rechecks[2]]);
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), ...rechecks]);
     passes(dir);
     // That re-check must be full: a gate re-ran.
-    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), rechecks[2]]);
+    restage(dir, 15, [step('D1', 'c1', 3, 'claims-edited'), step('D2', 'c1', 2, 'done'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'), rechecks[1], rechecks[2]]);
     expect(failing(dir)).toMatch(/\[verification\] .*a gate re-ran in the fix round \(an owner recompiled\), so the re-check before it is a full pass of all three lenses/);
   });
 });
@@ -1291,30 +1322,32 @@ describe("D-265 (a): a superseded full-pass report is held to the plan it was wr
     expect(failing(dir)).toMatch(/\[report-shape\] reports\/v4-sources-recheck\.json: findings\[0\] is accepted-offline, but "plan\.json" "stages\[2\]\.claims\[0\]" names a pob-computed claim/);
   });
 
-  it('still checks a superseded report on an artifact no step wrote after it', () => {
-    // run-ok with the sources lens raising a finding too: its fix round is W1 alone, so plan.json is still the plan
-    // the full pass read, while the guide moved.
-    const dir = copyOf('run-ok');
-    const raised = { id: 'v4-sources-3', artifact: 'guide.md', location: 'guide.md [^g1]', claim: 'Rolling Slam clears.', issue: 'no source', evidence: 'the marker cites nothing on the clear', reader: 'The Rotation line on Rolling Slam has no source.', owner: 'W1', status: 'unresolved' };
-    editJson(dir, 'reports/v4-sources.json', (r) => {
-      r.findings.push(raised);
-      r.verdict = 'fail';
-    });
-    writeJson(dir, 'reports/v4-sources-recheck.json', { ...readJson(dir, 'reports/v4-sources.json'), check: 'recheck', findings: [{ ...raised, status: 'fixed' }], verdict: 'pass' });
-    editLog(dir, (l) => {
-      l.stages[13].outcome = 'fail';
-      l.stages.splice(16, 0, step('V4-sources-recheck', 'c1', 1, 'pass'));
-    });
-    passes(dir);
-    // The guide.md location is skipped (W1 wrote the guide after the full pass); the plan.json one is still checked.
-    editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[1].location = 'Summary, line 3'));
-    passes(dir);
-    editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
-    expect(failing(dir)).toMatch(/\[report-shape\] reports\/v4-sources\.json: findings\[0\] is accepted-offline, but "plan\.json" "stages\[2\]\.claims\[0\]" names a pob-computed claim/);
+  it("item 2: a claims-only round moves no claim, so the full pass's locations still hold and are checked (the review's run-a-d1claims)", () => {
+    // run-ok whose sources lens raised a finding too, fixed in a claims-only round (D1 edits in place, then W1);
+    // the full pass's accepted-offline location now names a pob-computed claim.
+    const make = (owners: Json[]) => {
+      const dir = copyOf('run-ok');
+      const raised = { id: 'v4-sources-3', artifact: 'guide.md', location: 'guide.md [^g1]', claim: 'Rolling Slam clears.', issue: 'no source', evidence: 'the marker cites nothing on the clear', reader: 'The Rotation line on Rolling Slam has no source.', owner: 'W1', status: 'unresolved' };
+      editJson(dir, 'reports/v4-sources.json', (r) => {
+        r.findings.push(raised);
+        r.verdict = 'fail';
+      });
+      writeJson(dir, 'reports/v4-sources-recheck.json', { ...readJson(dir, 'reports/v4-sources.json'), check: 'recheck', findings: [{ ...raised, status: 'fixed' }], verdict: 'pass' });
+      if (owners.length > 0) editJson(dir, 'plan.json', (p) => (stageB(p).claims[0].text += ' (fixed in place)'));
+      editLog(dir, (l) => (l.stages[13].outcome = 'fail'));
+      restage(dir, 15, [...owners, step('W1', 'c1', 2, 'done'), step('V4-sources-recheck', 'c1', 1, 'pass'), step('V4-prose-recheck', 'c1', 1, 'fail')]);
+      return dir;
+    };
+    for (const owners of [[step('D1', 'c1', 3, 'claims-edited')], []]) {
+      const dir = make(owners);
+      passes(dir);
+      editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
+      expect({ owners: owners.length, out: failing(dir) }).toEqual({ owners: owners.length, out: expect.stringMatching(/\[report-shape\] reports\/v4-sources\.json: findings\[0\] is accepted-offline, but "plan\.json" "stages\[2\]\.claims\[0\]" names a pob-computed claim/) });
+    }
   });
 });
 
-describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, and the guide writes the picks', () => {
+describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, the endgame stages carry the picks, and the guide writes them', () => {
   const MEDALLION = 'q.act-2-valley-of-the-titans-medallion';
   const OPTION = 'questAct 2Valley of the TitansMedallion';
   const options = loadReferenceData().resolveFact('campaign/progress.json', `${MEDALLION}.options`);
@@ -1331,6 +1364,8 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
     });
     return dir;
   };
+  /** Every stage at or after the quest, the endgame stages included, lists pick `i`. */
+  const pickEverywhere = (i: number) => (p: Json) => ['2', 'b', 'n'].forEach((id) => stage(p, id).config.scenario.push(pick(i)));
   const writePick = (dir: string, i: number) =>
     editText(dir, 'guide.md', (t) => t.replace('## Campaign rewards\n', `## Campaign rewards\n\n- Act 2, the Medallion: take ${values[i].split('\n')[0]}, because Blood Hunt's charms carry its flask sustain.[^cr1]\n`) + `[^cr1]: data | campaign/progress.json#${MEDALLION}.options[${i}]\n`);
 
@@ -1339,26 +1374,44 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
     passes(copyOf('run-ok'));
   });
 
-  it('fails a campaign stage past a reward choice that lists no pick', () => {
-    expect(failing(pastMedallion())).toMatch(/\[campaign-rewards\] campaign stage 2 passes q\.act-2-valley-of-the-titans-medallion, a reward choice, without picking it: list option "questAct 2Valley of the TitansMedallion" with one of the 2 values of data\/campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options in config\.scenario \(D-265\)/);
+  it('fails a stage past a reward choice the campaign makes that lists no pick', () => {
+    expect(failing(pastMedallion())).toMatch(/\[campaign-rewards\] stages 2, b, n pass q\.act-2-valley-of-the-titans-medallion, a reward choice the campaign makes, without picking it: list option "questAct 2Valley of the TitansMedallion" with one of the 2 values of data\/campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options in config\.scenario, on every stage at or after the quest, the endgame stages included \(D-265\)/);
     // "None", PoB's default, is no pick.
-    expect(failing(pastMedallion((p) => stage(p, '2').config.scenario.push({ ...pick(0), value: 'None' })))).toMatch(/\[campaign-rewards\] campaign stage 2 passes q\.act-2-valley-of-the-titans-medallion/);
+    expect(failing(pastMedallion((p) => {
+      pickEverywhere(0)(p);
+      stage(p, '2').config.scenario.find((o: Json) => o.option === OPTION).value = 'None';
+    }))).toMatch(/\[campaign-rewards\] stage 2 passes q\.act-2-valley-of-the-titans-medallion/);
+  });
+
+  it("item 3: fails an endgame stage that leaves the campaign's pick at Nothing, or picks it another way (the review's run-endgame-pick)", () => {
+    const missing = pastMedallion((p) => {
+      pickEverywhere(1)(p);
+      stage(p, 'b').config.scenario = stage(p, 'b').config.scenario.filter((o: Json) => o.option !== OPTION);
+    });
+    writePick(missing, 1);
+    expect(failing(missing)).toMatch(/\[campaign-rewards\] stage b passes q\.act-2-valley-of-the-titans-medallion, a reward choice the campaign makes, without picking it/);
+    const other = pastMedallion((p) => {
+      pickEverywhere(1)(p);
+      stage(p, 'b').config.scenario.find((o: Json) => o.option === OPTION).value = values[0];
+    });
+    writePick(other, 1);
+    expect(failing(other)).toMatch(/\[campaign-rewards\] stages 2, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways; the player picks once, so every stage at or after the quest, the endgame stages included, lists the same pick \(D-265\)/);
   });
 
   it("fails a pick the guide's Campaign rewards doesn't cite, and passes once W1 writes it", () => {
-    const dir = pastMedallion((p) => stage(p, '2').config.scenario.push(pick(1)));
+    const dir = pastMedallion(pickEverywhere(1));
     expect(failing(dir)).toMatch(/\[campaign-rewards\] the plan picks .* for q\.act-2-valley-of-the-titans-medallion, but guide\.md's "Campaign rewards" cites no "data \| campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options\[1\]" for it/);
     writePick(dir, 1);
     passes(dir);
   });
 
-  it('fails two stages picking the same choice two ways: the player picks once', () => {
+  it('fails two campaign stages picking the same choice two ways: the player picks once', () => {
     const dir = pastMedallion((p) => {
+      pickEverywhere(1)(p);
       stage(p, '1').progress = MEDALLION;
       stage(p, '1').config.scenario.push(pick(0));
-      stage(p, '2').config.scenario.push(pick(1));
     });
-    expect(failing(dir)).toMatch(/\[campaign-rewards\] campaign stages 1, 2 pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways; the player picks once/);
+    expect(failing(dir)).toMatch(/\[campaign-rewards\] stages 1, 2, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways/);
   });
 });
 
@@ -1398,9 +1451,26 @@ describe("D-265 (d): every unresolved V4 finding carries a reader sentence, whic
     expect(failing(jargon)).toMatch(/\[known-issues\] guide\.md's Known issues lists V4 prose finding "v4-prose-1", but not as/);
   });
 
+  it("item 5: the list is this cycle's alone: a stale line from an earlier cycle fails, and None. only stands with nothing open (the review's run-stale)", () => {
+    const stale = copyOf('run-ok');
+    editText(stale, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\n- The budget fire hit is wrong: it is about 367, not 735. (v4-ledger-1)\n'));
+    expect(failing(stale)).toMatch(/\[known-issues\] guide\.md:73: Known issues lists "- The budget fire hit is wrong: it is about 367, not 735\. \(v4-ledger-1\)", which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole list at step 14 \(D-265\)/);
+    const none = copyOf('run-ok');
+    editText(none, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\nNone.\n'));
+    expect(failing(none)).toMatch(/\[known-issues\] guide\.md:73: Known issues says "None\.", but 1 V4 finding\(s\) are open and 0 gate finding\(s\) accepted/);
+    // With nothing open, None. is the list.
+    const fixed = copyOf('run-ok');
+    editJson(fixed, 'reports/v4-prose-recheck.json', (r) => {
+      r.findings[0].status = 'fixed';
+      r.verdict = 'pass';
+    });
+    editText(fixed, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+    passes(fixed);
+  });
+
   it('logs no known-issues W1: the runner writes the lines, and W1 runs no extra step', () => {
     const dir = copyOf('run-ok');
     editLog(dir, (l) => l.stages.push(step('W1', 'c1', 3, 'known-issues')));
-    expect(failing(dir)).toMatch(/\[run-log\] run-log\.json stages\[17\]: outcome "known-issues" isn't one of/);
+    expect(failing(dir)).toMatch(/\[run-log\] run-log\.json stages\[18\]: outcome "known-issues" isn't one of/);
   });
 });

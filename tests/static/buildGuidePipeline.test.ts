@@ -1279,13 +1279,14 @@ describe('D-265: the small items', () => {
     expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("fail('campaign-rewards'");
   });
 
-  it("(d) every V4 finding carries a reader sentence; the runner writes each open one as `- <reader> (<id>)` at step 14, from W1's known-issues-line", () => {
+  it("(d) every unresolved V4 finding carries a reader sentence; the runner writes each open one as `- <reader> (<id>)` at step 14, from W1's known-issues-line", () => {
     const v4 = folded(readStage('V4'));
     expect(v4).toMatch(/\*\*`reader`\*\* \(D-265\) is one plain sentence the guide's reader can act on, what is wrong in the guide and what is true instead, with no pipeline words/);
-    expect(v4).toMatch(/Every finding has its `reader` sentence, whatever its status/);
+    expect(v4).toMatch(/Every `unresolved` finding has its `reader` sentence: only those can become known issues\. A `fixed` or `accepted-offline` finding needs none/);
     expect(readStage('V4')).toMatch(/"reader": "[^"]+",\n\s+"owner": "D1", "status": "unresolved"/);
     const markers = ref('source-markers.md');
-    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json` or `guide\.md`\), `location`, `claim`, `issue`, `evidence`, `reader`, `owner`/);
+    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json` or `guide\.md`\), `location`, `claim`, `issue`, `evidence`, `reader` \(only when `unresolved`\), `owner`/);
+    expect(markers).toMatch(/the run checker fails an `unresolved` finding without it\. A `fixed` or `accepted-offline` finding needs none/);
     expect(markers).toMatch(/The runner writes every open finding into the guide's `Known issues` as `- <reader> \(<id>\)`: its `reader` sentence as the report gives it, then its id in parentheses \(SKILL\.md step 14, D-265\)\. The run checker finds each line by its id and requires its text to be the finding's `reader` sentence/);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/Read the three lines of `guide\.md` from the `known-issues-line` W1 returned last \(W1 returns it on its first write and on every patch;/);
@@ -1298,7 +1299,7 @@ describe('D-265: the small items', () => {
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/\[added by the runner at step 14\] - <the finding's reader sentence, word for word: "[^"]+"> \(<V4 finding id>\)/);
     expect(template).not.toMatch(/\(V4 <lens>, <artifact> <location>\)/);
-    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain('has no reader: one plain sentence');
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain('is unresolved and has no reader: one plain sentence');
     expect(ref('run-log.md')).not.toMatch(/known-issues/);
   });
 

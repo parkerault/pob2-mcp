@@ -1554,8 +1554,9 @@ function checkReportShape(rep, r, mode, fail) {
     for (const k of ['id', 'artifact', 'location', 'claim', 'issue', 'evidence', 'owner', 'status']) {
       if (!(k in f)) bad(`findings[${i}] has no ${k} (§7.4)`);
     }
-    // D-265 (d): the plain sentence for the guide's reader, which the runner copies into Known issues.
-    if (typeof f.reader !== 'string' || f.reader.trim() === '') bad(`findings[${i}] has no reader: one plain sentence the guide's reader can act on (D-265)`);
+    // D-265 (d): an unresolved finding (only it can become a known issue) has the plain sentence for the guide's
+    // reader, which the runner copies into Known issues; a fixed or accepted-offline one needs none.
+    if (f.status === 'unresolved' && (typeof f.reader !== 'string' || f.reader.trim() === '')) bad(`findings[${i}] is unresolved and has no reader: one plain sentence the guide's reader can act on (D-265)`);
     if (ids.has(f.id)) bad(`findings[${i}] reuses the id ${show(f.id)}; each finding has its own`);
     ids.add(f.id);
     if (!statuses.includes(f.status)) bad(`findings[${i}].status is ${show(f.status)}; one of ${statuses.join(', ')}`);

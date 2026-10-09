@@ -1362,14 +1362,26 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
   });
 });
 
-describe("D-265 (d): every V4 finding carries a reader sentence, which the runner copies into Known issues as `- <reader> (<id>)`", () => {
-  it('fails a V4 finding without its reader sentence (the report shape)', () => {
+describe("D-265 (d): every unresolved V4 finding carries a reader sentence, which the runner copies into Known issues as `- <reader> (<id>)`", () => {
+  it('fails an unresolved V4 finding without its reader sentence (the report shape)', () => {
     const dir = copyOf('run-ok');
-    editJson(dir, 'reports/v4-sources.json', (r) => delete r.findings[0].reader);
+    editJson(dir, 'reports/v4-prose.json', (r) => delete r.findings[0].reader);
     editJson(dir, 'reports/v4-prose-recheck.json', (r) => (r.findings[0].reader = ' '));
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[report-shape\] reports\/v4-sources\.json: findings\[0\] has no reader: one plain sentence the guide's reader can act on \(D-265\)/);
-    expect(stderr).toMatch(/\[report-shape\] reports\/v4-prose-recheck\.json: findings\[0\] has no reader/);
+    expect(stderr).toMatch(/\[report-shape\] reports\/v4-prose\.json: findings\[0\] is unresolved and has no reader: one plain sentence the guide's reader can act on \(D-265\)/);
+    expect(stderr).toMatch(/\[report-shape\] reports\/v4-prose-recheck\.json: findings\[0\] is unresolved and has no reader/);
+  });
+
+  it('passes a fixed finding, and an accepted-offline one, without a reader sentence: neither can become a known issue', () => {
+    const dir = copyOf('run-ok');
+    expect(readJson(dir, 'reports/v4-sources.json').findings.map((f: Json) => [f.status, 'reader' in f])).toEqual([['accepted-offline', false], ['accepted-offline', false]]);
+    editJson(dir, 'reports/v4-prose-recheck.json', (r) => {
+      delete r.findings[0].reader;
+      r.findings[0].status = 'fixed';
+      r.verdict = 'pass';
+    });
+    editText(dir, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+    passes(dir);
   });
 
   it("matches an open finding's line by its id, and requires the line's text to be the finding's reader sentence", () => {

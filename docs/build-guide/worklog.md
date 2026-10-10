@@ -871,3 +871,65 @@ spine and slice 03, plus C-33's `buildSha1`.
 
 Not implemented yet. The user will supply more guides to compare, then off-meta builds. Never pick or fetch
 sources unasked: a Maxroll read I started on my own was stopped by the user.
+
+### Guide comparison 2: ronarray's Martial Artist Monk (user-supplied, 2026-10-09)
+
+- **Sources:**
+  - Mobalytics `martial-artist-monk-build-league-starter-to-endgame`, all 8 tabs, read through Playwright;
+  - its 14 linked YouTube videos, fetched with yt-library: 6 build, 2 crafting, 5 farming, plus the
+    embedded build video.
+  - Three agents did the reading, about 430K subagent tokens on Opus.
+- **The page:**
+  - 8 loadout tabs, from Lvl 1-23 through Uber. The default tab has about 2,050 prose words; all tabs
+    hold about 3,500–4,500 unique words.
+  - Mostly gut feel, about 12 numbers. First person throughout. No tutorial content.
+  - Inconsistent: three different ascendancy orders, and gear prose copied into 5 tabs with drift. Our
+    rule that the guide renders the plan prevents both.
+  - Commenters ask for benchmarks, which supports keeping our survival and DPS verdicts.
+- **The videos carry the precision:**
+  - Thresholds come as a floor, a target and what he did (for example Chaos Inoculation at 4k energy
+    shield, better 6k).
+  - Swap triggers are items you own or panel stats, each with an "until then, keep X".
+  - Each "why" is a mechanism plus one number.
+  - He never opens PoB; all his numbers come from the in-game panel.
+  - Farming and crafting are generic: they fail the swap test (G4) and stay out.
+- **Checked:**
+  - **Trinity.** PoB models it only through a user-set "Total Resonance Count", capped at 300
+    (`ConfigOptions.lua:673`).
+  - **Chaos Inoculation.** It is already a named exception reason under D-234, so no gate change is needed.
+  - **Desecrated mods.** Arcane Surge on Crit is desecrated and rolls only on gloves with energy shield
+    (`ModVeiled.lua:163`). Our lookup names the mod table, but not base weights or essences.
+- **Proposed amendment-2 changes,** awaiting the user. "Clear" means an obvious improvement; "judgment"
+  means a user call.
+  - **P1 (rules):** each caveat ends with its fallback. Clear.
+  - **P2 (§6, §8–10):** triggers are stat or item thresholds with an "until then". Clear.
+  - **P3 (§2):** the loadout ladder on one line with triggers, and "items are stat examples". Clear, about
+    +40 words.
+  - **P4 (§5):** a "when you're short" line covering the spirit drop order and mana fixes, checkable in
+    PoB. Clear, about +40.
+  - **P5 (§8, §9):** a numbered upgrade order for `m`; each buy step gets a reason; the fallback column
+    becomes "affix to drop first". Clear, about +50.
+  - **P6 (§4):** hold and save rows: gem level caps with a reason, and what to stockpile before a swap.
+    Clear, about +20.
+  - **P7 (G5):** the gate into `b` may be a key rare with a stat floor, not only a unique. Clear, wording
+    only.
+  - **P8 (§12):** state the config assumptions behind the headline figure (resonance count, charges,
+    rage). Clear, about +30.
+  - **P9 (§9, §10):** name the affix source when it limits the base. Clear for the reader. It needs a
+    claim, or a lookup extension for base weights and essences.
+  - **P10 (§11 or §13):** 2–4 trap bullets, only ones sourced from item or gem text or PoB. Judgment,
+    about +60.
+  - **P11 (§5 or §13):** 1–2 either/or picks with a PoB delta, plus a price when online. Judgment, about
+    +50.
+  - **P12 (§6):** a rotation clause when a leveling stage's damage is a combo, within the 110-word cap.
+    Judgment.
+  - **Rejected:**
+    - a "you'll know it's working" line (needs per-element hit ranges we don't expose);
+    - a content-fit line;
+    - video offloading;
+    - crafting recipes, prices and tier labels;
+    - atlas content;
+    - the vendor regex;
+    - campaign alt-character tricks;
+    - patch bugs and traps found only by playing;
+    - sidegrade variants.

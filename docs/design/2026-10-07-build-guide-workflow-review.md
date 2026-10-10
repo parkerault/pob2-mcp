@@ -3,7 +3,7 @@
 ## How it ran
 
 - **Artifact:** `2026-10-07-build-guide-workflow.md`, after the Phase 1 grounding fold-back (commit
-  `1f7bd9a`).
+  `e61777b`).
 - **Lenses:** three agents, each hunting one class of problem:
   - gaps and intent fit;
   - false assumptions;

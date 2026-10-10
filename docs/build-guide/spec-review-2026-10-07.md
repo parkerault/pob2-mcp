@@ -2,7 +2,7 @@
 
 ## How it ran
 
-- **What was reviewed:** the spec at commit `16ac50b`, i.e. the spine plus slices 01, 02 and 03.
+- **What was reviewed:** the spec at commit `7154cf3`, i.e. the spine plus slices 01, 02 and 03.
 - **Lenses:** three agents, each hunting two classes of problem:
   - invented decisions, plus environment and contract fit;
   - unverifiable ACs, plus task-graph integrity;

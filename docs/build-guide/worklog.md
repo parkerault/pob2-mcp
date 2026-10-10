@@ -5,7 +5,7 @@ only in the integration worktree (`/home/parker/projects/pob2-mcp-wt/guide`, bra
 
 ## 2026-10-08: build start
 
-- **Spec:** `docs/build-guide/spec/` at `b34db2a`. The user approved implementation on 2026-10-08 and
+- **Spec:** `docs/build-guide/spec/` at `a091a6b`. The user approved implementation on 2026-10-08 and
   settled the three open questions:
   - asking before a compile discards unsaved work in the loaded build (D-210);
   - the budget tolerance: at most 20 divines passes, over 20 up to 22 passes with a "near the ceiling"
@@ -18,7 +18,7 @@ only in the integration worktree (`/home/parker/projects/pob2-mcp-wt/guide`, bra
 - **Orchestration:** individual background agents (no Workflow), one doer per unit, a read-only
   reviewer per unit (small units may share one), and an independent verifier per wave gate.
 
-### Baseline gate at `eaf2075`
+### Baseline gate at `7eaa0c8`
 
 - Bootstrap rc=0; `mise run test` rc=1 (1 failed of 1041, 116 s); `pnpm build` rc=0.
 - The one failure: stab AC-G2 (`tests/static/readme.test.ts`) asserted `docs/` holds only
@@ -28,43 +28,43 @@ only in the integration worktree (`/home/parker/projects/pob2-mcp-wt/guide`, bra
 
 ## 2026-10-08: wave 1 (WU-30, WU-31, WU-33, WU-37, WU-38, WU-40, WU-49)
 
-All seven started off `83ae021` in parallel lanes. Each had one doer, then a read-only reviewer
+All seven started off `63fe84e` in parallel lanes. Each had one doer, then a read-only reviewer
 (WU-37 with WU-49, WU-30 with WU-40), then fixes by the same doer.
 
 ### Verdicts
 
-- **WU-49** (dated trade outputs, `[trade:<kind>]` errors): done `dbadd71`; review clean.
-- **WU-37** (guides-folder root): done `284bdf9`; review: 1 low (`createRunFolder` accepted an invalid
-  date and created `0NaN-NaN-NaN-1`), fixed `674abcc` (an invalid date or a year outside `YYYY` is
+- **WU-49** (dated trade outputs, `[trade:<kind>]` errors): done `26ecc02`; review clean.
+- **WU-37** (guides-folder root): done `fece2a3`; review: 1 low (`createRunFolder` accepted an invalid
+  date and created `0NaN-NaN-NaN-1`), fixed `44d608e` (an invalid date or a year outside `YYYY` is
   refused before any `mkdir`).
-- **WU-33** (per-skill breakdown, skill-part fix): done `a0736fb`; review: 2 low (a hidden effect with
-  an empty PoB name rendered a nameless heading; a missing-group error said "nil"), fixed `cb6ed6a`,
+- **WU-33** (per-skill breakdown, skill-part fix): done `931d85c`; review: 2 low (a hidden effect with
+  an empty PoB name rendered a nameless heading; a missing-group error said "nil"), fixed `f71fa81`,
   which also stabilized a flaky attribute-order check. All six deviations accepted, among them an
   additive `statSet` field in `set_main_selection`'s reply (slice 01 §2.1 said "unchanged"; fold in)
   and a group-exists check before mutating, which fixes a pre-existing C-3 violation.
-- **WU-38** (plan schema, reference, ledger): done `70dcfab`; review PASS with 2 low (export an
+- **WU-38** (plan schema, reference, ledger): done `4bc24d5`; review PASS with 2 low (export an
   extendable source-tag schema for WU-39's data files; copy §3.3's WORD/NUMBER/REF lines verbatim into
-  the reference), fixed `47316d9`. Fixture: Warrior/Titan, Boneshatter rolled, checked in the engine.
-- **WU-31** (`lookup_game_data`, `search_tree_nodes` ascendancy filter): done `e0c6e36`; review: 1 medium
+  the reference), fixed `2e47473`. Fixture: Warrior/Titan, Boneshatter rolled, checked in the engine.
+- **WU-31** (`lookup_game_data`, `search_tree_nodes` ascendancy filter): done `cacfa51`; review: 1 medium
   (unique and mechanic modes searched only each unique's selected variant, so alternative rolls such as
   Prism of Belief's "+(1-3) to Level of all Blood Hunt Skills" were invisible) and 3 low (`gem_level`
   failed the whole call when one result lacked the level; AC-K5's exact-name-first rule was untested;
-  "gem level 1" format). Fixed `dec0950`, with three coordinator decisions (below). The fix commit was
+  "gem level 1" format). Fixed `32e17e5`, with three coordinator decisions (below). The fix commit was
   not re-reviewed; the wave gate checks it.
-- **WU-30** (compile-time spike): done `acdc42f`; review PASS, 1 low (the rebuild-deferral claim covered
-  only the saved file), fixed `247a08a`. **D-229 holds; HG-13 does not fire:** slowest stage request
+- **WU-30** (compile-time spike): done `aa991f5`; review PASS, 1 low (the rebuild-deferral claim covered
+  only the saved file), fixed `1ec4944`. **D-229 holds; HG-13 does not fire:** slowest stage request
   3.10 s, whole 15-stage compiles 25.8–33.6 s (≤ 7.13 s and ≤ 48.3 s under fleet load). A sensitivity
   run with every skill group in PoB's Full DPS mode, under load, took 160.68 s with a 25.50 s stage;
   the plan schema can't request Full DPS, so the coordinator ruled the gate met for the specified
   plan and imposed requirements on WU-41 (below). The user is told.
-- **WU-40** (`encode_build_code`): done `7af4453`; review PASS, no findings (encoding checked against
-  PoB2's `ImportTab.lua`); rebased and reconciled with WU-31 as `1ed4178`.
+- **WU-40** (`encode_build_code`): done `19e3140`; review PASS, no findings (encoding checked against
+  PoB2's `ImportTab.lua`); rebased and reconciled with WU-31 as `19e3140`.
 
 ### Merges (integration `build-guide/build`)
 
-`674abcc` (WU-37) → `ce62a95` (WU-49) → `cd605e5` (WU-38) → `1a431a9` (WU-33) → `9baaef7` (WU-31, full
-gate re-run by the coordinator on the rebased lane: rc 0, 102 suites, 1254 tests) → `247a08a` (WU-30) →
-`fbfd85d` (WU-40). Tools: 79, 78 without poe.ninja.
+`44d608e` (WU-37) → `26ecc02` (WU-49) → `2e47473` (WU-38) → `f71fa81` (WU-33) → `32e17e5` (WU-31, full
+gate re-run by the coordinator on the rebased lane: rc 0, 102 suites, 1254 tests) → `1ec4944` (WU-30) →
+`19e3140` (WU-40). Tools: 79, 78 without poe.ninja.
 
 ### Coordinator decisions (to fold into the spine)
 
@@ -98,7 +98,7 @@ gate re-run by the coordinator on the rebased lane: rc 0, 102 suites, 1254 tests
 - PoB's `SaveDB` attribute and element order varies between processes; compare XML canonically.
 - A stale `build/` makes the README table test (AC-G1) fail after a tool-adding rebase; run `pnpm build`.
 
-### Wave gate: PASS at `fbfd85d`
+### Wave gate: PASS at `19e3140`
 
 An independent verifier ran from a clean tree (build, coverage and the Jest cache cleared):
 - `mise run test` rc=0, 103 of 103 suites and 1266 of 1266 tests, none skipped, 147 s;
@@ -106,8 +106,8 @@ An independent verifier ran from a clean tree (build, coverage and the Jest cach
 - `scripts/fresh-clone-check.sh` rc=0: 79 tools (78 without poe.ninja) and Life 2,977.
 
 Cross-cutting checks: AC-B1 (79/78, disposition set equal, README table equal to `pnpm docs:tools`),
-AC-B2 (waivers `[]`), AC-B4, AC-B5 (golden files unchanged since `b34db2a`), and AC-B7 (dependencies
-byte-identical to `b34db2a`) hold. No touches violations. Per-unit AC fidelity holds, with two low
+AC-B2 (waivers `[]`), AC-B4, AC-B5 (golden files unchanged since `a091a6b`), and AC-B7 (dependencies
+byte-identical to `a091a6b`) hold. No touches violations. Per-unit AC fidelity holds, with two low
 notes on the unreviewed WU-31 fix commit:
 - D-239's 5-matched-lines cap per unique and its "(and N more matching lines)" note have no test. It is
   assigned to WU-32, which also extends the lookup code.
@@ -124,10 +124,10 @@ WU-32's review, because it consumes the coverage statuses.
 
 ### Verdicts
 
-- **WU-39** (C1/E1 data files, loader, progress keys): done `e61149f`. Review: the values hold against
+- **WU-39** (C1/E1 data files, loader, progress keys): done `4b61c88`. Review: the values hold against
   the pin and the grounding (monster tables at all 100 levels, 29 quest rows, Spirit, books, resistance
   penalties, Arbiter, waystones). 1 medium: a resolved fact carried its source's tag, not its own, so
-  the Arbiter's fight-life input resolved at H where A-30 requires L. 4 data items. Fixed `9322094`:
+  the Arbiter's fight-life input resolved at H where A-30 requires L. 4 data items. Fixed `d4d5fc5`:
   - a fact's tag is now its source's kind, ref and accessed date plus the fact's own patch and
     confidence;
   - trial 3 is available from `q.act-4-abandoned-prison-goddess-of-justice` at L (coordinator decision:
@@ -135,37 +135,37 @@ WU-32's review, because it consumes the coverage statuses.
   - each reward note says only what its source says (Seven Pillars is "swappable");
   - `0.5.x` on sources the grounding doesn't pin to 0.5.5;
   - passive-point facts re-sourced to the pin (`Build.lua:79-98, :1006`; 99 + 24 = 123).
-- **WU-32** (`check_model_coverage`): done `37ca40e`. Review: statuses agree with PoB's own parse flags
+- **WU-32** (`check_model_coverage`): done `8315c21`. Review: statuses agree with PoB's own parse flags
   on 2,315 of 2,322 unique lines and all 6,056 node lines. 1 medium: the "partly parsed" note said PoB
   applies part of the line, but PoB drops the whole line when there is a remainder (`Item.lua:2158`,
   `PassiveTree.lua:489`). 2 low: a zero-crossing range rolled at 0; build mode skipped tree-socket
-  jewels. Fixed `b372f3f` with D-242 and D-243 (below). 27 mod names stay flagged `possibly unread`,
+  jewels. Fixed `afea7f4` with D-242 and D-243 (below). 27 mod names stay flagged `possibly unread`,
   down from 132. The scan finds 106 files and 18,805 names; the spec's 107/18,806 counted
   `ModParser.lua`.
-- **WU-36** (`set_tree_state`, tree-jewel slots, the `update_tree_delta` fix): done `35a519e`. The
-  coordinator rebased it as `9973d5a`, resolving one import conflict; full gate rc 0, 109 suites, 1359
+- **WU-36** (`set_tree_state`, tree-jewel slots, the `update_tree_delta` fix): done `3fd22ac`. The
+  coordinator rebased it as `3fd22ac`, resolving one import conflict; full gate rc 0, 109 suites, 1359
   tests. Review: no high findings; the compiler builds trees through `set_tree`, never the auto-path.
   1 medium: an add next to a weapon-set-tagged branch made PoB re-allocate the branch untagged and reset
   its attribute choices to Strength. **Coordinator decision:** restore attribute choices; refuse any
   add that would change an allocated node's weapon-set tag, after a dry run, leaving the build
   unchanged. 2 low: a remove-then-add re-route lost nodes; the ascendancy-count tests were too loose.
-  The code already counts like PoB's `CountAllocNodes`. Fixed `af3e4f3`.
-- **WU-35** (`manage_sets`, loadouts, the auto-level flag): done `6cce0d4`. Review: 1 medium. A copied
+  The code already counts like PoB's `CountAllocNodes`. Fixed `3070336`.
+- **WU-35** (`manage_sets`, loadouts, the auto-level flag): done `e96c8fa`. Review: 1 medium. A copied
   skill set shared each gem's stat-set tables with the original (PoB's `CopySkillSet` copies
-  shallowly), so a skill-part change on set 2 changed set 1, and the export kept it. Fixed `783fe33`
-  with D-244 and D-245 (below), rebased over WU-36 as `413bec7`; gate rc 0, 110 suites, 1406 tests.
-- **WU-34** (ranker amendments): done `a62df75`. Review: 1 major. The server's 5000-char truncation
+  shallowly), so a skill-part change on set 2 changed set 1, and the export kept it. Fixed `0ac33f5`
+  with D-244 and D-245 (below), rebased over WU-36 as `0ac33f5`; gate rc 0, 110 suites, 1406 tests.
+- **WU-34** (ranker amendments): done `d93448f`. Review: 1 major. The server's 5000-char truncation
   cut the can't-measure section, which renders last, exactly at its ascendancy entries. 2 minor: the
   multiple-choice ascendancy notables appeared nowhere; the section header overstated `possibly unread`
-  lines. Fixed `ec2c822` with D-246 and D-247 (each can't-measure reason now labelled `not applied`,
+  lines. Fixed `198888c` with D-246 and D-247 (each can't-measure reason now labelled `not applied`,
   `advisory`, `choice` or `no value`; when entries must go, the longer ranking loses them first). All
   seven deviations were accepted; `suggest_supports`' output (about 17k chars on the golden build)
   stays complete.
 
 ### Merges
 
-`545f5b6` (WU-39) → `c411f98`, `b372f3f` (WU-32) → `9973d5a`, `af3e4f3` (WU-36) → `1384e96`, `413bec7`
-(WU-35). Tools: 82, 81 without poe.ninja. WU-41 started off `413bec7`.
+`d4d5fc5` (WU-39) → `8315c21`, `afea7f4` (WU-32) → `3fd22ac`, `3070336` (WU-36) → `e96c8fa`, `0ac33f5`
+(WU-35). Tools: 82, 81 without poe.ninja. WU-41 started off `0ac33f5`.
 
 ### Coordinator decisions (to fold into the spine)
 
@@ -209,9 +209,9 @@ WU-32's review, because it consumes the coverage statuses.
   per-unit subfolders or `mktemp -d`.
 - Timing ACs (AC-T22, AC-E8) false-failed again under parallel load.
 
-### Merge and wave gate: PASS at `ec2c822`
+### Merge and wave gate: PASS at `198888c`
 
-`ec2c822` (WU-34) merged. An independent verifier ran from a clean tree, with the WU-41 lane running
+`198888c` (WU-34) merged. An independent verifier ran from a clean tree, with the WU-41 lane running
 alongside:
 - `mise run test` rc=0, 112 of 112 suites and 1421 of 1421 tests, 159 s;
 - `pnpm build` rc=0;
@@ -229,9 +229,9 @@ expectation independently. No touches violations. Low notes:
 
 ### Verdicts
 
-- **WU-34 follow-up** `e983b84`: `get_passive_upgrades` returns `refit`, so prepended session notices
+- **WU-34 follow-up** `0d780cc`: `get_passive_upgrades` returns `refit`, so prepended session notices
   can't push can't-measure lines past C-1's cut; the tip goes before ranked entries.
-- **WU-41** (compiler, `compile_plan`, `guide_run`, record, write ledger): done `de7b61b`. NFR: a
+- **WU-41** (compiler, `compile_plan`, `guide_run`, record, write ledger): done `92738c6`. NFR: a
   15-stage compile takes 20.9–23.0 s, slowest stage 2.25 s; per-call rebuilds are deferred, with
   per-stage outputs equal to the eager path. Two reviewers checked it.
   - **Safety:** PASS. Nothing can overwrite or lose a user file. Two lows: `runFolderOf` split on
@@ -242,7 +242,7 @@ expectation independently. No touches violations. Low notes:
       sets.
     - Medium: PoB's `ConfigTab:Save` drops an input equal to the active set's placeholder, so
       non-active stages lost explicit options (one probe: 56 outputs differed on reload).
-  - **Fixes** (`b4094fa`, `8efa45b`):
+  - **Fixes** (`8579f07`, `408ffd9`):
     - each stage's tree, and its non-off-hand items, are calculated before the off-hands go in;
     - a `compareItems` check runs per stage and per item set; any drop is an error;
     - weapon flags are read from the measured `mainEnv.modDB`, so item-granted flags like Treefingers
@@ -254,7 +254,7 @@ expectation independently. No touches violations. Low notes:
     the Wilds, weapon swap, flag loss, a mid-stage placeholder. All compile and reload exactly.
   - **Accepted, not done:** catching an impossible shared-set off-hand in `compile_check`. It needs a
     calculation; the stage is refused at compile instead, after the loaded build is replaced.
-- **WU-43** (skill, run checker, harness): done `0c580cc`. AC-W23 was met by a headless `claude -p`
+- **WU-43** (skill, run checker, harness): done `82c2d92`. AC-W23 was met by a headless `claude -p`
   probe (Sonnet, about $0.16, strict MCP config, temp dirs): the researcher's allowlist reaches
   `lookup_game_data` directly. The handoff now allows headless sessions only for spec-required probes
   and runs.
@@ -262,11 +262,11 @@ expectation independently. No touches violations. Low notes:
     - High: the checker chose what to recompute from the skill's own `stages[]`.
     - Medium: it passed a completed run whose gate honestly failed.
     - Medium: accepted findings matched by gate stage, not plan stage.
-  - **Fixed** `232b991` with D-249 and hardening; rebased onto WU-41 as `d7d584c`.
-- **WU-44** (research workflow): done `c6e361d`.
+  - **Fixed** `dcc9e9d` with D-249 and hardening; rebased onto WU-41 as `dcc9e9d`.
+- **WU-44** (research workflow): done `32630f0`.
   - **Review:** two medium. Dead R1a researchers were never re-run. R1b couldn't path a skeleton's
     tree, which starved keystone- and notable-led concepts.
-  - **Fixed** `bbad209`:
+  - **Fixed** `962d0b6`:
     - R1a retries;
     - R1b may run one bootstrap measure-only compile of a tree-minimal skeleton, then path with
       `find_path_to_node`;
@@ -277,20 +277,20 @@ expectation independently. No touches violations. Low notes:
     - retries keyed by stage, concept, round and researcher;
     - an unreachable-trade `Standard` league marked `leagueUnverified`, which D1 must not inherit.
   - AC-W18 reads now as "R1a attempts with outcome `done` equal the research files".
-- **WU-42** (V1/V2, config baseline): done `2f00504`.
+- **WU-42** (V1/V2, config baseline): done `3bf2ad2`.
   - **Review:** two medium.
     - Persistent minion skill gems (e.g. Skeletal Brute, tier 13) were classed as Spirit gems and
       escaped the tier check.
     - Skill-conditional default-on options (e.g. `FlickerStrikeBypassCD`) were baseline
       unconditionally.
-  - **Fixed** `6528b13` with D-250…D-252. All nine deviations accepted, among them the widened
+  - **Fixed** `c3dba2e` with D-250…D-252. All nine deviations accepted, among them the widened
     placeholder rule (D-212), quest checkboxes in the baseline list, and the Martyr-point warning
     filter.
 
 ### Merges
 
-`e983b84` (WU-34 follow-up) → `8efa45b` (WU-41) → `d7d584c` (WU-43) → `bbad209` (WU-44) → `1d6f260`
-(WU-42). Tools: 84, 83 without poe.ninja. WU-45 started off `bbad209`.
+`0d780cc` (WU-34 follow-up) → `408ffd9` (WU-41) → `dcc9e9d` (WU-43) → `962d0b6` (WU-44) → `c3dba2e`
+(WU-42). Tools: 84, 83 without poe.ninja. WU-45 started off `962d0b6`.
 
 ### Coordinator decisions (to fold into the spine)
 
@@ -311,7 +311,7 @@ expectation independently. No touches violations. Low notes:
   fails on any recomputed or reported gate failure not covered by an accepted finding. Findings are
   equal by plan stage, part and code.
 
-### Wave gate: PASS at `1d6f260`. **M-11 exit: PASS.**
+### Wave gate: PASS at `c3dba2e`. **M-11 exit: PASS.**
 
 An independent verifier ran from a clean tree:
 - `mise run test` rc=0: 121 of 121 suites and 1685 of 1685 tests (173 s), then the NFR step, 2 of 2
@@ -344,13 +344,13 @@ AC-B2…B5 and AC-B7 hold. No touches violations. Low notes:
 
 ### Verdicts
 
-- **WU-45** (design-and-write workflow, writer, D1/D2/W1 references, guide template): done `9380637`.
+- **WU-45** (design-and-write workflow, writer, D1/D2/W1 references, guide template): done `f110d92`.
   - **Review:** two medium findings.
     - An accepted V3/V4 escalation returned `ready` without re-running W1, so the guide hid the
       failure and the checker failed the run.
     - The floor compared max hit taken against UNMODDED T15 hits, about 19% low, and never gated the
       waystone's extra elemental damage.
-  - **Fixed** `f008db8` with D-253 and D-254, plus:
+  - **Fixed** `1c233d6` with D-253 and D-254, plus:
     - a respec line in the endgame sections;
     - "each capped" conditional on there being no chaos exception;
     - informational findings no longer counted as failures;
@@ -358,11 +358,11 @@ AC-B2…B5 and AC-B7 hold. No touches violations. Low notes:
     - an unverified league kept and stated.
   - The run checker's floor recompute now applies D-254's rules, and the pipeline fixtures were
     regenerated.
-- **WU-46** (V3 provenance, V4 verifiers, §5.5 routing, checkpoint-2 revision): done `37079a1`.
+- **WU-46** (V3 provenance, V4 verifiers, §5.5 routing, checkpoint-2 revision): done `f04b1ad`.
   - **Review:** independence (R-5) holds on every path. Two medium findings:
     - an accepted finding matched by id only, so a reused id excused a different issue;
     - W1 wasn't told to write anew after a D1/D2 re-run in the same round.
-  - **Fixed** `185f716` with D-255, plus:
+  - **Fixed** `a6e4d50` with D-255, plus:
     - equality by report, id, artifact and location section;
     - `accepted-offline` only from the sources lens for `external-unavailable` claims;
     - offline reports open no sources;
@@ -370,9 +370,9 @@ AC-B2…B5 and AC-B7 hold. No touches violations. Low notes:
 
 ### Merges
 
-`f008db8` (WU-45) → `185f716` (WU-46).
+`1c233d6` (WU-45) → `a6e4d50` (WU-46).
 
-### Wave gate: PASS at `185f716`
+### Wave gate: PASS at `a6e4d50`
 
 An independent verifier ran from a clean tree:
 - `mise run test` rc=0, 121 suites and 1846 tests, plus the NFR step (24.57 s, slowest stage 2.25 s);
@@ -421,12 +421,12 @@ mechanics, not guide quality; the live run (WU-48) uses the user's default model
 
 ## WU-47 (2026-10-08)
 
-- Dispatched one runner agent at integration head `fcd6af9`: worktree `bg-47`, Sonnet headless sessions,
+- Dispatched one runner agent at integration head `d4a2175`: worktree `bg-47`, Sonnet headless sessions,
   strict MCP config, temp dirs, web tools denied, cost caps as a runaway backstop ($3 per probe, $80 run A,
   $50 run B). It probes structured output and the Workflow tool first, then does runs A and B, the seeded V4
   check and the probes. Record: scratchpad `wu47/record.md`.
 
-### WU-47 attempt 1: M-12 not met (runner record `wu47/record.md`, head `83f1b95`)
+### WU-47 attempt 1: M-12 not met (runner record `wu47/record.md`, head `c0510ae`)
 
 - **Cost:** $34.25 on Sonnet. Run A $14.50, plus $5.18 for its first attempt, which the platform killed;
   run B $11.31; probes $0.09–0.27 each; the seeded check $2.10.
@@ -525,7 +525,7 @@ don't fix headless-only issues.
 
 ### WU-47 fix lanes: results so far
 
-- **Lane S** (`bg/wu-47s`, db07bb4).
+- **Lane S** (`bg/wu-47s`, e2fdc8a).
   - **Doer gate:** test rc 0 (1852), build rc 0.
   - **Review:** no high findings. The tier rule, the exemptions, a deterministic ranking and the test
     fidelity all checked clean.
@@ -536,11 +536,11 @@ don't fix headless-only issues.
     - **(low)** Suggestions are computed only for queries of at most 100 characters. A 6K-character
       mechanic query would pass the 30 s engine timeout.
     - **(low)** Revert the fifteen-stage fixture edit: it didn't make that fixture valid.
-- **Lane P** (`bg/wu-47p`, 1d5ded9).
+- **Lane P** (`bg/wu-47p`, 755538a).
   - **Doer gate:** test rc 0 (1885), build rc 0. AC-F3, T22 and T40 false-failed under load and passed
     alone.
   - The reviewer is running.
-- **Lane S merged** at `d6a74a3`. Its review fixes are done: D-258a's two groups (5 active, then 3
+- **Lane S merged** at `850f1a8`. Its review fixes are done: D-258a's two groups (5 active, then 3
   support), suggestions only for queries of at most 100 characters, and the fixture edit reverted.
   - Coordinator check after the rebase: build rc 0; 87/87 in the affected suites; waivers `[]`;
     dependencies unchanged.
@@ -551,10 +551,10 @@ don't fix headless-only issues.
   - **Checkpoint entries** record `rule` for pre-supplied and default answers, and V4's prose lens
     checks "why this concept" against it.
   - **Pipeline fixtures** are valid under V1 and D-256.
-  - Lane P merged at `3a9c79c`. Doer gate: test rc 0 (1901), build rc 0. Coordinator check: build
+  - Lane P merged at `c3e8447`. Doer gate: test rc 0 (1901), build rc 0. Coordinator check: build
     rc 0; 330/330 in the affected suites.
 - **To fold in:** the checkpoint `rule` field into slice 03's §6 table.
-- **Gate after the fix lanes: PASS at `d0cd637`** (independent verifier).
+- **Gate after the fix lanes: PASS at `ce69ce0`** (independent verifier).
   - test rc 0: 121 suites, 1901 tests, plus the NFR step (15-stage compile 24.8 s, slowest stage
     2.37 s).
   - build rc 0.
@@ -573,7 +573,7 @@ don't fix headless-only issues.
 
 ### WU-47 attempt 2 (interactive, D-263): analysis, before fixing (2026-10-08)
 
-**Sessions** (worktree `m12` at `d134fb9`, env `/tmp/m12.DbTF`):
+**Sessions** (worktree `m12` at `815a457`, env `/tmp/m12.DbTF`):
 - P1 probes: invalid rolls and AC-W4.
 - Run A (`-2`): $19.86, 38.2M cache read, 417K output.
 - Run B (`-3`): about 27.9M cache read, 146K output.
@@ -616,7 +616,7 @@ don't fix headless-only issues.
 
 ### Amendment 1 approved (2026-10-08): a simpler pipeline
 
-The user approved S1…S9 (`spec/amendment-1-simplify.md`, 8f804e6) and confirmed dropping workflows.
+The user approved S1…S9 (`spec/amendment-1-simplify.md`, 829bccf) and confirmed dropping workflows.
 - **S1:** one orchestration path; the session calls agents directly.
 - **S2:** verify once, fix once, re-check, and report the rest as known issues; no verification
   escalation.
@@ -634,7 +634,7 @@ for finalization, together with D-239…D-263.
 **Accepted cost of S1.** Nine ACs whose tests were the workflow harness (W3, W6–W10, W13, W24, W25)
 lose automated tests. The control flow now rests on SKILL.md. The checker verifies its invariants from
 each run's log: caps, order, one verification pass and one re-check, escalations only from gates.
-- **Amendment 1 implemented** in `bg/amend-1`, head 9782897: +2.8K/−8.6K lines. Doer gate: test rc 0
+- **Amendment 1 implemented** in `bg/amend-1`, head 93b3438: +2.8K/−8.6K lines. Doer gate: test rc 0
   (1,783), build rc 0.
 - **Review: 1 high, 5 medium, 4 low, all sent back.**
   - **High:** the D1 gate recompute was skipped unless the gate compiled. Only `budget` may be
@@ -659,16 +659,16 @@ each run's log: caps, order, one verification pass and one re-check, escalations
     - a forced `infeasible` is valid with FI-3 in `faults[]` plus the gate's `forced` field;
     - the rolled figure must also name `main.activeSkill`;
     - a fix round re-runs all three lenses whenever D1 or D2 re-ran.
-  - Merged by rebase and ff at `b7e815e`. Coordinator check: build rc 0; 270/270 in the affected
+  - Merged by rebase and ff at `7558988`. Coordinator check: build rc 0; 270/270 in the affected
     suites.
-- **Gate after amendment 1: PASS at `75cd598`** (independent verifier).
+- **Gate after amendment 1: PASS at `499b1f2`** (independent verifier).
   - test rc 1 with only AC-T22 failing on time (8.48 s against 8 s); it passed alone, so it's a tooling
     false-failure. 1,809/1,810 tests.
   - build rc 0. Fresh clone rc 0: 84/83 tools, golden Life 2,977.
   - Waivers `[]`; dependencies unchanged.
   - Every review probe behaves as intended.
   - Fidelity holds for review items 1 and 3–6, and SKILL.md is coherent.
-  - Two nits fixed in a949257:
+  - Two nits fixed in 96bdb05:
     - the runner has no Grep tool, so step 14 Reads from W1's returned `known-issues-line`;
     - the D1 gate reads the pricing state from the log itself.
 - **The re-run environment** is rebuilt as worktree `m12b` at the new head, with a fresh temp root and
@@ -762,7 +762,7 @@ The user is on a subscription: report costs in tokens, not dollars.
 
 ### D-264 and D-265 lane (`bg/d264`)
 
-- **Doer:** a6c31bc, gate rc 0 (1834). Earlier coordinator changes:
+- **Doer:** 3e1c4df, gate rc 0 (1834). Earlier coordinator changes:
   - (d) `reader` sentences come from V4, and the runner writes Known issues. No extra W1 call: W1 is the
     heaviest step.
   - `reader` is required only on unresolved findings.
@@ -781,14 +781,14 @@ The user is on a subscription: report costs in tokens, not dollars.
     - wording fixes;
     - an exhaustive Bash allowlist;
     - behavioural tests replace the tests that grepped the checker's own source.
-- **D-264/D-265/D-266 lane merged** at `d844178`. Coordinator check: build rc 0; 282/282 in the
+- **D-264/D-265/D-266 lane merged** at `0771ede`. Coordinator check: build rc 0; 282/282 in the
   affected suites.
   - **Doer deviations accepted:**
     - the projection keeps `ledger[].claim`, `respec.note` and `chaosResistException.reason`, so edits to
       those take the recompile path;
     - D2 writes the reward picks onto the endgame stages, and D1 keeps them;
     - a raising lens that skips its re-check fails.
-- **Gate: PASS at `d844178`** (independent verifier).
+- **Gate: PASS at `0771ede`** (independent verifier).
   - test rc 0: 120 suites, 1,842 tests, plus the NFR step. build rc 0.
   - Fresh clone rc 0: 84/83 tools, Life 2,977.
   - Waivers `[]`; dependencies unchanged.
@@ -857,7 +857,7 @@ spine and slice 03, plus C-33's `buildSha1`.
 
 ### Amendment 2 approved (2026-10-09): guide style
 
-`spec/amendment-2-guide-style.md`, b855a5c. The user approved:
+`spec/amendment-2-guide-style.md`, 8fd8261. The user approved:
 - **The lighter verification.** The plan holds the facts, verified as today. The prose lens reads
   `guide.md` like an editor. The checker keeps structural guards plus a fixed-form survival and damage
   verdict line per endgame rung, matched against the record.
@@ -1439,7 +1439,7 @@ card.
 
 - **Removed:** `pob2-mcp-wt/build` (`stabilization/build`) and `pob2-mcp-wt/m12b` (`bg/m12b`). Both were clean, and
   both branches are contained in `build-guide/build`.
-- **Fast-forwarded:** `stabilization/foundation` to `build-guide/build` (`0e712da`, 108 commits) in the main
+- **Fast-forwarded:** `stabilization/foundation` to `build-guide/build` (`50a8928`, 108 commits) in the main
   checkout.
 - **Removed:** `pob2-mcp-wt/guide`.
 - **Where work happens now:** in `/home/parker/projects/pob2-mcp`. Nothing was pushed, and the sign-rebase stays a
@@ -1452,3 +1452,19 @@ card.
 - **A fresh worktree** is planned for amendment 3's parallel implementation.
 - **Amendment 3 approved** by the user (2026-10-10, "I approve amendment 3"), Q8 (EHP) included.
   Implementation waits for git bookkeeping.
+
+**Git bookkeeping (2026-10-10, with the user present).**
+
+- **Deleted 7 merged local branches:** `bg/m12b`, `build-guide/build`, `build/a3`, `build/lua`, `build/trade`,
+  `build/trade2`, `stabilization/build`.
+- **Sign-rebased the 186 unsigned commits after `fd289ba`,** keeping their dates.
+  - The tree is identical to the pre-sign history.
+  - All 191 commits above `main` show good signatures.
+  - The old history is kept locally as `refs/archive/pre-sign-2026-10-10`, which is not pushed.
+- **Updated the commit hashes the docs cite:**
+  - 119 citations were remapped to the signed commits, by position.
+  - 35 more already pointed at unit-branch originals that were never on the main line; they were mapped to
+    their main-line copies by subject.
+  - All 94 cited commits now resolve on the main line.
+- **Then:** fast-forward `main`, push it to `origin` (the user's fork, tracking `origin/main`), and delete
+  `stabilization/foundation`. Amendment 3's implementation starts on a feature branch.

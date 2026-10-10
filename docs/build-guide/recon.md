@@ -1,6 +1,6 @@
 # Build-guide epic: brownfield recon
 
-Read-only audit of `stabilization/foundation` at `2758b02` (2026-10-07), for the spec of the build-guide
+Read-only audit of `stabilization/foundation` at `e6ebec1` (2026-10-07), for the spec of the build-guide
 workflow (`docs/design/2026-10-07-build-guide-workflow.md`, its review beside it). Every claim cites
 file:line. `vendor/` means `vendor/PathOfBuilding-PoE2/src` (the v0.23.1 pin). "Spine" means
 `docs/stabilization/spec/README.md`.

@@ -7,7 +7,7 @@ spec; pull each unit's block and ACs at dispatch time.
 ## State (updated 2026-10-09, after the M-12 exit)
 
 - **Integration:** worktree `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`. The gate passed
-  at `d844178`: 120 suites, 1,842 tests; 84 tools.
+  at `0771ede`: 120 suites, 1,842 tests; 84 tools.
 - **Done:**
   - all 19 units;
   - amendment 1 (`spec/amendment-1-simplify.md`, user-approved): no workflows; the user's session calls agents

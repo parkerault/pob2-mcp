@@ -28,7 +28,7 @@ first. If anything here conflicts with the spec, the spec wins, and you report t
 ## Worktrees and branches
 
 - **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/guide`, branch `build-guide/build`,
-  branched off `b34db2a`. Work lands here, unit by unit, in DAG order. The work-log
+  branched off `a091a6b`. Work lands here, unit by unit, in DAG order. The work-log
   `docs/build-guide/worklog.md` is written only here, by the coordinator.
 - **Lane worktrees:** `/home/parker/projects/pob2-mcp-wt/bg-<nn>` on branch `bg/wu-<nn>`, created off
   the integration head current when the unit starts. A lane is rebased onto `build-guide/build`, then

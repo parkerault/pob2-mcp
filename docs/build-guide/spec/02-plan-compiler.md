@@ -14,7 +14,7 @@ stage's numbers and check verdicts), a re-evaluated ledger and an import code. I
 
 ## 1. Existing system context (this slice)
 
-Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `2758b02`, pin v0.23.1.
+Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6ebec1`, pin v0.23.1.
 
 - **Entry and deps.** `entryDefaults(env)` (`src/index.ts:20-33`) computes `pobDirectory` and `stateDir`
   (`$XDG_STATE_HOME/pob2-mcp`); `ServerDeps` is `src/server/createServer.ts:54-71`. Only the entry reads

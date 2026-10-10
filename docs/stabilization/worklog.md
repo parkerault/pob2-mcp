@@ -25,10 +25,10 @@ is `build-handoff.md`.
 
 ## 2026-10-04: wave 1 (WU-02…WU-04) gate fix
 
-- **Gate failure.** The first W1 gate at `fa9cdbe` failed 4 tests in 3 static suites: the
+- **Gate failure.** The first W1 gate at `c360346` failed 4 tests in 3 static suites: the
   deleted-plumbing check (AC-F19), the PoE1-cruft scan (AC-F20) and the dead-module scan (AC-F21).
   Root cause: WU-04's commit removed the D-4 tools from the surface, but none of the module files
-  were deleted. This was not a WU-02 or WU-03 regression; the gate was green at `fb9881d`
+  were deleted. This was not a WU-02 or WU-03 regression; the gate was green at `2ec88c7`
   (34/34 suites, 346 tests).
 - **Fix.** `git rm` of the 15 modules WU-04 lists, which stop being referenced, plus
   `src/types/optimization.ts`. That file is not in the spec's list, but nothing imports it once the
@@ -68,7 +68,7 @@ is `build-handoff.md`.
     - `pnpm install --frozen-lockfile`: 0;
     - `jest --coverage` without the 3 WU-04 suites: 0.
   - AC-F9:
-    - `mise run test` at `fb9881d`: 0;
+    - `mise run test` at `2ec88c7`: 0;
     - with an injected failing test, `mise run test` gives 1 and `jest` gives 1, so the exit codes
       match.
   - AC-F14: no removed env flags in `src/` (pass): 1.
@@ -84,7 +84,7 @@ is `build-handoff.md`.
 
 ## 2026-10-04: wave 1 (WU-02…WU-04) second gate fix: the LuaJIT plugin pin
 
-- **Gate failure (AC-F7, WU-02).** The W1 gate at `fee3d92` found that the `[plugins]` entry in
+- **Gate failure (AC-F7, WU-02).** The W1 gate at `14d024e` found that the `[plugins]` entry in
   `mise.toml`, which pins the LuaJIT asdf plugin revision (the C-19 developer entry points
   contract), had no effect. It was keyed `"asdf-mise-plugins-mise-lua-jit"`, the directory name of
   the plugin already installed on this box. mise 2026.5.15 looks up `[plugins]` pins by the tool's
@@ -113,7 +113,7 @@ is `build-handoff.md`.
 
 ## 2026-10-04: W1 (WU-02..WU-04)
 
-### WU-02: done (head ca872a0)
+### WU-02: done (head 4c522fb)
 
 The PoB pin and fetch path are in place: `pob-pin.json` plus `scripts/fetch-pob.sh`, which does a sparse clone into the gitignored `vendor/`. New mise tasks: `pob:fetch`, `setup`, `build`, `test`. The LuaJIT plugin is pinned to its full SHA under `[plugins]`, `LUAROCKS_VERSION` moved to `install_env`, and `corepack enable` runs as a node postinstall. New code: `src/utils/packageRoot.ts`; `src/engine/pobPath.ts`, now the only reader of `POB_FORK_PATH`; `src/engine/pinCheck.ts` (`checkPin`), which runs before luajit spawns; and `pob-api/API/Util.lua` with `construct()`. Dependencies: zod and zod-to-json-schema added; `@types/chokidar`, `@types/node-fetch` and `coverageThreshold` removed. The bridge, `luaClientManager` and `treeService` now go through the resolvers, and the integration suite runs against `vendor/`.
 
@@ -145,7 +145,7 @@ Gate: 1 attempt; clean gate `mise run test` rc 0, `pnpm build` rc 0; 23/23 suite
 
 Tooling false-failures: none.
 
-### WU-03: done (head fb9881d)
+### WU-03: done (head 2ec88c7)
 
 Server factory (C-7): `createServer.ts` does no I/O when it is constructed, and `src/index.ts` is the only code that reads env or touches the process. Closing stdin shuts down the watcher and luajit, then exits 0. The injected fetch, spawn, env and state dir are threaded through. Error surface (C-1, D-27): handler errors become `isError`, unknown or disabled tools get -32602, and the six error-as-success paths now throw. Tool registry (C-8): listing and routing go by tool group, the old enable flags are gone, and trade stats load lazily, once. The C-18 test harness is complete, and the bridge integration suite runs on `engineDescribe`.
 
@@ -187,9 +187,9 @@ The Claude Code permission classifier refused `git rm` of the 16 modules and 2 u
 
 None recorded in the wave data.
 
-### Wave gate: PASS (head ed1a25b)
+### Wave gate: PASS (head 3e03aeb)
 
-- Fixes: fee3d92 deleted the WU-04-listed modules, which turns AC-F19, AC-F20 and AC-F21 green. ed1a25b re-keyed `[plugins]` to the backend name `asdf:mise-plugins/mise-luaJIT`, so the AC-F7 pin now takes effect (shown by the SHA-swap control).
+- Fixes: 14d024e deleted the WU-04-listed modules, which turns AC-F19, AC-F20 and AC-F21 green. 3e03aeb re-keyed `[plugins]` to the backend name `asdf:mise-plugins/mise-luaJIT`, so the AC-F7 pin now takes effect (shown by the SHA-swap control).
 - Clean gate: `mise run test` rc 0, `pnpm build` rc 0; 37/37 suites, 366/366 tests, 0 skipped. The engine suites ran against vendor/: poe2Bridge 7/7, vendorTree, stdinEof, errorSurface. The baseline at fd289ba was 17 files and 274 cases (267 passed, 7 skipped).
 - Dropped tests, 22 in total and all sanctioned by the spec: craftingAdvisorHandler (7), craftingDataService (8), buildService bandit/cluster parsing (5), contextBuilder deleted contexts (2). Also the pathTraversal entry for advancedOptimizationHandlers.ts. The only describe.skip added is the engineDescribe POB_SKIP_ENGINE path.
 - Fresh scratch clone with one injected failure: 37 passed + 1 failed suites, 366 + 1 failed tests.
@@ -223,15 +223,15 @@ None recorded in the wave data.
 
 ### WU-04: blocked
 - **Reason:** loop ended blocked. One condition (AC-F19, all files on WU-04's delete list must be gone) is unmet: src/services/costBenefitAnalyzer.ts is on WU-04's delete list but still exists, and tests/static/deletedPlumbing.test.ts exempts it via `PENDING_SPEC_AMENDMENT`.
-- **Head:** b3d37558e6c32237fb0af31f6a3ae34b5bc0ede6
-- **Summary:** WU-04 was implemented in W1, but its unit review and gate never ran in W1. fa9cdbe removed the tools that D-4 deletes and added the PoE1-cruft and dead-module scans. The Claude Code permission classifier blocked the implementer's `git rm`, so the W1 wave-gate fixer deleted the dead modules in fee3d92, which the ratified spec D-4/AC-F19 requires. ed1a25b (the mise.toml plugin pin key, WU-02 scope) and the worklog commits are also in this range. They are known and are not out-of-scope work. The implementer's deviations are recorded under W1.
+- **Head:** 7d30aa748f4ee4b89f03c52f3f8d88460b35cae0
+- **Summary:** WU-04 was implemented in W1, but its unit review and gate never ran in W1. c360346 removed the tools that D-4 deletes and added the PoE1-cruft and dead-module scans. The Claude Code permission classifier blocked the implementer's `git rm`, so the W1 wave-gate fixer deleted the dead modules in 14d024e, which the ratified spec D-4/AC-F19 requires. 3e03aeb (the mise.toml plugin pin key, WU-02 scope) and the worklog commits are also in this range. They are known and are not out-of-scope work. The implementer's deviations are recorded under W1.
 - **Deviations:**
   - The unit kept src/services/costBenefitAnalyzer.ts even though WU-04's delete list names it (AC-F19 bullet 3). The kept search_trade_items tool imports it (src/handlers/tradeHandlers.ts:6, used at :369). Deleting it would change that tool's output beyond its vision §4 row, which is a human-decision gate (HG-3). Proposed amendment: drop the file from WU-04's list and from AC-F19, add it to WU-15's touches, and let WU-15 decide whether it survives. Once that lands, remove the `PENDING_SPEC_AMENDMENT` entry and the spec-list cross-check's expectation in deletedPlumbing.test.ts.
 - **Review:** 12 raw / 4 material / 3 confirmed
   - spec-1 [high]: AC-F19 bullet 3 is unmet. costBenefitAnalyzer.ts (408 lines) still exists, and deletedPlumbing.test.ts:51-67 leaves it out of its list, so the test passes. There is no spec amendment and no coordinator ruling.
   - correctness-1 [medium]: The test checks a narrower list than the AC. Keeping the file is behaviourally correct, but the green test hides that the AC is unmet until the spec is amended.
   - safety-1 [medium]: The test hard-coded the deviation with no pointer to it. The deviation is recorded only in the worklog.
-  - **Not fixed (all three):** The test half is fixed in b3d37558, and the test now points to the deviation and fails if that goes stale. The spec half needs a coordinator ruling for three reasons:
+  - **Not fixed (all three):** The test half is fixed in 7d30aa74, and the test now points to the deviation and fails if that goes stale. The spec half needs a coordinator ruling for three reasons:
     - build-handoff.md says build agents may not edit the spine or slice specs.
     - Deleting the file instead would hit HG-3, because it changes the output of search_trade_items, which WU-15 owns.
     - WU-15's touches don't include the file either.
@@ -249,7 +249,7 @@ None recorded in the wave data.
   - AC-F19 bullet 3: `test ! -e src/services/costBenefitAnalyzer.ts` exit 1 (**FAIL**; the other 15 listed files are gone)
   - Tooling false-failures: none.
   - Out of scope, all known or legitimate:
-    - ed1a25b changed mise.toml (a WU-02 wave-level fix).
+    - 3e03aeb changed mise.toml (a WU-02 wave-level fix).
     - Changes within WU-04's implied scope: levelingHandlers.ts, watchHandlers.ts, src/types.ts, src/types/optimization.ts (deleted), contextBuilder.ts, three test files, and the worklog.
   - Failure: AC-F19 bullet 3 is unmet. `git log --all -S costBenefitAnalyzer -- docs/stabilization/spec` returns only fd289ba, so no spec amendment exists on any branch.
 
@@ -278,7 +278,7 @@ None recorded in the wave data.
   is the same fetch the user's own `mise install` makes; the handoff had restricted agents to GitHub
   and npm.
 - Wave 1 note: Claude Code's permission classifier refused the WU-04 implementer's `git rm` of the
-  D-4 dead modules. The wave-1 gate fixer then deleted them (fee3d92), as the ratified spec (D-4,
+  D-4 dead modules. The wave-1 gate fixer then deleted them (14d024e), as the ratified spec (D-4,
   AC-F19) requires. Git history keeps the files. WU-04's review and unit gate ran as a catch-up at the
   start of W2.
 
@@ -299,9 +299,9 @@ None recorded in the wave data.
 
 ## 2026-10-04: W2 (WU-04 rework, WU-05..08, WU-14..16)
 
-All eight units are **done**. Both lanes merged. The wave gate **passed** at `4cfd1ac`.
+All eight units are **done**. Both lanes merged. The wave gate **passed** at `281ce11`.
 
-### WU-04 (rework under D-61): done, head `53f7081`
+### WU-04 (rework under D-61): done, head `d87e7b9`
 
 `formatSearchResults` no longer uses the analyzer. The value score, tier and budget emoji, best-value rank and re-sort are gone, so listings keep the order the trade site returned them in. What stays: the native price, links, the condensed Life/ES/Res line, the seller and the item links. `costBenefitAnalyzer.ts` is deleted. The `PENDING_SPEC_AMENDMENT` carve-out is removed, so the check that WU-04's deleted files are gone (AC-F19) covers the full list again. A new test, `tests/mcp/tradeSearchUnscored.test.ts`, pins the D-61 behaviour.
 
@@ -326,7 +326,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 38/38 suites and 371/371 tests, from a c
 
 No tooling false-failures.
 
-### WU-05: done, head `7ca9390`
+### WU-05: done, head `9eb61a1`
 
 Tests only, no `src/` changes:
 - golden save/reload: 109 PlayerStat pairs and a 711-key `get_stats` comparison (AC-F23/F24);
@@ -364,7 +364,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 42/42 suites and 469/469 tests. Script c
 
 No tooling false-failures.
 
-### WU-06: done, head `970ec31`
+### WU-06: done, head `f926bb7`
 
 The Lua side now speaks the v2 wire protocol (C-2):
 - replies echo the request id;
@@ -400,7 +400,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 43/43 suites and 484/484 tests. Script c
 
 No tooling false-failures.
 
-### WU-07: done, head `dfc9aea`
+### WU-07: done, head `bc5c2c8`
 
 The TypeScript side of the bridge client (C-4):
 - replies are matched to requests by id;
@@ -434,7 +434,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 44/44 suites and 472/472 tests. Script c
 
 Out of scope, accepted as implied: the constructor changes in `tests/setup/global.ts`, `bridgeClient`, `golden` and `poe2Bridge`. No tooling false-failures were recorded in the gate data.
 
-### WU-08: done, head `07bbed3`
+### WU-08: done, head `b8b95f8`
 
 `src/engine/session.ts` implements the engine session (C-3):
 - a first-in-first-out lock per tool call, with abort and deadline handling while waiting;
@@ -469,7 +469,7 @@ Review: 15 raw / 4 material / 4 confirmed.
 
 Gate: 1 attempt. Test rc 0, build rc 0, 49/49 suites and 567/567 tests, engine suites run against real luajit. No script checks. A pin-timing false-failure is noted under Friction.
 
-### WU-14: done, head `100f091`
+### WU-14: done, head `93e1f64`
 
 The trade client rewrite:
 - `credentials.ts` (C-9);
@@ -504,7 +504,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 47/47 suites and 467/467 tests. Script c
 
 Out of scope, accepted as not violations: `toolRouter.ts` (serialized wiring), `league.ts`, `userAgent.test.ts`. No tooling false-failures.
 
-### WU-15: done, head `cf2bf0a`
+### WU-15: done, head `075bd7e`
 
 - New `src/trade/modLines.ts` parses mod lines whether trade2 sends strings or objects. `stripMarkup` matches PoB2's `escapeGGGString`.
 - New `src/trade/currency.ts` is the C-12 currency service: the primary currency comes from each response, a 60-minute cache, revalidated with If-None-Match.
@@ -548,7 +548,7 @@ Gate: 1 attempt. Test rc 0, build rc 0, 54/54 suites and 511/511 tests. Script c
 
 No tooling false-failures.
 
-### WU-16: done, head `50d0e9e`
+### WU-16: done, head `281ce11`
 
 New `pob-api/API/Trade.lua` drives PoB's query generator and evaluator headless for three actions (C-13):
 - generate the weighted query for a slot;
@@ -590,23 +590,23 @@ Tooling false-failure: a bare `pnpm exec jest` failed with "luajit not found" ou
 
 ### Merges
 
-- **trade lane: merged, head `840c5c1`.** Test rc 0, build rc 0.
+- **trade lane: merged, head `93a19cd`.** Test rc 0, build rc 0.
   - Conflicts resolved:
     - `createServer.ts` keeps WU-08's session wiring and takes WU-15's `CurrencyService`. `ninjaClient` is dropped.
     - `toolRouter.ts` keeps `session: EngineSession` and replaces `ninjaClient` with `currency: CurrencyService`.
-  - Integration fix (840c5c1): in `toolHygiene.test.ts`, `get_currency_rates` is now `required: [], allowed: ['ninja']`, because the C-12 cache serves it after the trade samples. A new assertion requires exactly one poe.ninja fetch, made by the first sample that reads rates.
+  - Integration fix (93a19cd): in `toolHygiene.test.ts`, `get_currency_rates` is now `required: [], allowed: ['ninja']`, because the C-12 cache serves it after the trade samples. A new assertion requires exactly one poe.ninja fetch, made by the first sample that reads rates.
   - No fixture edits were needed.
   - Ran `pnpm install --frozen-lockfile` after the rebase, to match the lockfile without `bottleneck`.
-- **lua lane: merged, head `4cfd1ac`.** No conflicts, no fixes. Test rc 0, build rc 0.
+- **lua lane: merged, head `281ce11`.** No conflicts, no fixes. Test rc 0, build rc 0.
 
-### Wave gate: PASS at `4cfd1ac`
+### Wave gate: PASS at `281ce11`
 
 Test rc 0, build rc 0. The clean gate gave 66/66 suites and 715/715 tests, 0 skipped. It was repeated three times with the same result:
 - a `jest --json` re-run;
 - a fresh clone with `vendor/` deleted;
 - a `jest --coverage` run.
 
-The W1 baseline `ed1a25b` reproduced 37/366, and all 37 baseline suites are still present. The engine-required suites ran and were not skipped.
+The W1 baseline `3e03aeb` reproduced 37/366, and all 37 baseline suites are still present. The engine-required suites ran and were not skipped.
 
 Script checks:
 - AC-F2: fresh fetch rc 0, second run rc 0, no network on the second run rc 0.
@@ -624,7 +624,7 @@ Script checks:
 
 Tooling false-failure: AC-F3(a), the 1 s pin-check timing test (NFR-2), took 1224 ms once, under a parallel coverage run. It passed alone in 310 and 507 ms, and on a full re-run.
 
-Root cause: no gate failure. Every AC of the wave maps to a passing named test. The 840c5c1 hygiene change keeps the spine §12 recorded-request rule. AC-T24 now builds its reference through PoB's own `TradeQuery` route (4cfd1ac). No test file was deleted, and no skip, only or todo was added. `pobLuaBridge.simple.test.ts` went from 19 to 4 tests through consolidation, with those assertions moved to `pobLuaBridge.test.ts` (38 to 39). `deletedPlumbing` went from 4 to 5, and there are 29 new suites.
+Root cause: no gate failure. Every AC of the wave maps to a passing named test. The 93a19cd hygiene change keeps the spine §12 recorded-request rule. AC-T24 now builds its reference through PoB's own `TradeQuery` route (281ce11). No test file was deleted, and no skip, only or todo was added. `pobLuaBridge.simple.test.ts` went from 19 to 4 tests through consolidation, with those assertions moved to `pobLuaBridge.test.ts` (38 to 39). `deletedPlumbing` went from 4 to 5, and there are 29 new suites.
 
 ### Friction
 
@@ -635,12 +635,12 @@ Root cause: no gate failure. Every AC of the wave maps to a passing named test. 
 - Write/Edit was refused on files that had not been opened with Read first (WU-06, WU-15).
 - WU-07: an event-loop-turn wait was flaky under load and now polls by wall clock. AC-F3(a) took 1196 ms once; it passed in isolation and on the second gate run.
 - WU-08: AC-F3(a) took 1733 ms at load average about 5. It passed on re-run.
-- WU-14: a baseline run caught a half-written `errors.ts`. A first commit swept in a staged deletion, and was soft-reset and recommitted as `146e64e`.
+- WU-14: a baseline run caught a half-written `errors.ts`. A first commit swept in a staged deletion, and was soft-reset and recommitted as `d91852f`.
 - WU-16: AC-T22 timed out at load average about 12 and passed on re-run. `tsc -p tsconfig.test.json` shows TS6059 rootDir errors that predate this wave.
 
 ## 2026-10-04: W3 (WU-22, WU-09..11, WU-17, WU-23)
 
-### WU-22: done (`e5d15ae`)
+### WU-22: done (`775a3ed`)
 
 The build-file writer (C-17), the state dir (C-16) and the new `lua_save_build` are in. `src/services/buildFileWriter.ts` canonicalizes the target path (D-52). It needs `overwrite` to replace a file and refuses when the file changed on disk since the engine loaded or saved it. It backs up to `<stateDir>/backups/` first, then writes a temp file and renames it over the target. It invalidates the parse cache and calls `noteSaved` only for engine bytes, so a save under a new name re-points the loaded build. `lua_save_build` is now `export_build_xml` plus the writer. The Lua `save_build` action and `PoBLuaApiClient.saveBuild` are deleted (D-60). Snapshots, exports, restore backups and config presets now live under `${XDG_STATE_HOME}/pob2-mcp/`.
 
@@ -663,7 +663,7 @@ Review: 11 raw / 0 material / 0 confirmed. Lows were recorded, including:
 
 Gate: 1 attempt. test rc 0, build rc 0, 70/70 suites, 739/739 tests. AC-E62 script checks: `rg -n "save_build\b" pob-api/` rc 1, `rg -n "saveBuild\b" src/` rc 1, `rg -n "save_build" src/engine/schemas.ts` rc 1 (all pass). No tooling false-failures.
 
-### WU-09: done (`8aab1f0`)
+### WU-09: done (`2b9f7a5`)
 
 The reply schemas (C-5) are complete: each of the 41 Lua actions has a zod schema and typed params, and the typed bridge wrappers return precise types. New `tests/integration/contract.test.ts` checks every action on the golden build. It also checks statically that the Lua action names equal `Object.keys(replySchemas)`. Fixed the TS-side key mismatches: pointsUsed, bytes, `result.*`, activeItemSet, and `_meta` in lua_get_stats. The default stat export is wider (E7). get_build_info and `_meta` report the active spec's tree version. get_items calls UpdateSockets and exports `inactive`/`shown` per slot, and consumers drop hidden slots through `src/utils/itemSlots.ts` (E8). The 6 WU-09 hygiene allowlist entries are removed.
 
@@ -693,7 +693,7 @@ Gate: 1 attempt. test rc 0, build rc 0, 68/68 suites, 768/768 tests (clean gate)
 - Tooling false-failure: the first two full runs failed only AC-T22 (timing; 8032/14778 ms against 8000 ms at load average 12-13). It passed alone, and on the third clean run.
 - Out-of-scope edits were noted as not real violations: buildHandlers.ts, optimizationHandlers.ts and buildGoalsHandlers.ts, which are consumer fixes the summary requires.
 
-### WU-10: done (`66d47aa`)
+### WU-10: done (`48be5a0`)
 
 - set_tree and update_tree_delta keep each node's weapon-set assignment and a copy of `hashOverrides` (E2).
 - get_tree reports the engine's class and ascendancy names and drops `masteryEffects`.
@@ -721,7 +721,7 @@ Gate: 1 attempt. test rc 0, build rc 0, 69/69 suites, 775/775 tests.
 - No tooling false-failures.
 - Noted out-of-scope: the lua_new_build description rewrite is WU-11's content. WU-11 should rebase onto it rather than edit it again.
 
-### WU-11: done (`46a9073`)
+### WU-11: done (`578db39`)
 
 - add_item_text uses `construct()`, rejects unknown or unfitting slots, and equips only into the named slot.
 - add_gem rejects unknown names and suggests up to 5.
@@ -758,7 +758,7 @@ Gate: 1 attempt. test rc 0, build rc 0, 72/72 suites, 790/790 tests.
 - AC-E41: `rg -n "EvasionChance" src/` rc 1 (pass); `! rg -n "EvasionChance" src/` rc 0.
 - Tooling false-failure: AC-F3 (pin check, at most 1 s) took 1267 ms under load. It passed alone in 341 ms and on the second full run.
 
-### WU-17: done (`36642ca`)
+### WU-17: done (`0f2373d`)
 
 `runUpgradeSearch`, the C-21 seam with WU-23, is in `src/trade/findUpgrades.ts` and covers C-14 steps 1-9:
 - a zod input schema mapped to `trade_generate_query`;
@@ -802,7 +802,7 @@ Gate: 1 attempt. test rc 0, build rc 0, 69/69 suites, 755/755 tests.
 - No tracked changes left: rc 0.
 - No tooling false-failures.
 
-### WU-23: done (`aeee493`)
+### WU-23: done (`baa3fc6`)
 
 C-14 steps 10-13 and the find_upgrades tool:
 - `src/trade/rankUpgrades.ts` evaluates listings 10 per block within the 90 s budget, converts prices with poe.ninja rates, applies the budget filter, flags listings it cannot convert, ranks with a stat_value fallback, and selects upgrades.
@@ -839,16 +839,16 @@ Gate: 1 attempt. test rc 0, build rc 0, 71/71 suites, 798/798 tests.
 
 ### Merges
 
-- **Lane a3: merged (`e5beb93`).** Conflicts resolved:
+- **Lane a3: merged (`578db39`).** Conflicts resolved:
   - `luaHandlers.ts`: kept both imports and WU-22's handleLuaSaveBuild; "Saved <rel> (<n> bytes)." still meets AC-E25.
   - `pobLuaBridge.ts`: dropped saveBuild and kept WU-09's typed loadBuildXml.
   - `engine/schemas.ts`: removed the save_build entries and kept list_support_candidates.
   - `contract.test.ts`: removed the save_build case and its setup, kept list_support_candidates.
 
   No separate merge commit: the fixes were folded into the rebased commits. Post-rebase checks found no save_build or saveBuild, the slot exports intact, the toggle_flask sample `{slot:'Charm 1'}`, and the JSON files parsing. test rc 0, build rc 0.
-- **Lane trade: merged (`ec13fef`).** No conflicts, no integration fixes. test rc 0, build rc 0.
+- **Lane trade: merged (`baa3fc6`).** No conflicts, no integration fixes. test rc 0, build rc 0.
 
-### Wave gate: PASS (`ec13fef`)
+### Wave gate: PASS (`baa3fc6`)
 
 Clean run: test rc 0, build rc 0, 81/81 suites, 896/896 tests, 0 skipped, 110.5 s. W2 was 66 suites / 715 tests; the 15 new suites hold 173 tests, and the pre-existing suites grew to 723 from new tool-calls samples. The engine suites ran against vendor/, with POB_SKIP_ENGINE unset.
 
@@ -872,7 +872,7 @@ Every owned AC maps to a passing named test. The wider exit set is green: AC-E1.
 
 ## 2026-10-04: W4 (WU-12, WU-13, WU-18, WU-19)
 
-### WU-12 — done (head b99e2a9)
+### WU-12 — done (head f5d1bec)
 
 Config tools now work on PoB2's own config options. Lua `get_config` reads the active config set via PoB2's option list (Modules/ConfigOptions) and returns build-set values, PoB's default for every other option (ConfigTab:GetDefaultState), option keys with type and section, and the enemy level in effect. `set_config` validates every key and value before changing anything (unknown key such as `bandit`, or wrong-typed value, fails and leaves config unchanged); `""` clears a non-checkbox option. Values are written into the config set's input as PoB's controls do, then BuildModList runs and the build recalculates. `set_config`/`set_enemy_stats` report real previous/new values; enemyLevel goes through input. Presets store `{enemyLevel, input}`, are applied through `set_config`, and clear keys the preset doesn't hold. The two WU-12 allowlist entries and four cruft waivers are removed.
 
@@ -892,7 +892,7 @@ Review: raw 10 / material 2 / confirmed 2.
 
 Gate: 1 attempt; test rc 0, build rc 0; 82 suites / 904 tests passed (clean gate); engineConfig.test.ts ran all 8 tests, none skipped. Script checks: `grep -rniE "bandit|pantheon" src pob-api/API` rc 1 (no matches); `grep -c WU-12` over allowlist and cruft waivers rc 1 (both 0). Tooling false-failures: none.
 
-### WU-13 — done (head 9b0b89b)
+### WU-13 — done (head 37e288d)
 
 Every remaining write into the builds folder goes through the C-17 build-file writer: restore_snapshot (always backs up), set_build_notes, import_build save_as (engine content) and export_build. export_build byte-copies when there are no notes; with notes it loads the source via withTemporaryBuild and writes the engine's `<PathOfBuilding2>` export; output_directory must be inside the builds folder or the state dir. analyze_build and compare_builds read live stats via withTemporaryBuild; compare reports both levels. import_build accepts only a `<PathOfBuilding2>` root and caps inflation at 16 MiB. Parse cache keyed by canonical relative path, validated by size+mtime, LRU 20. The watcher polls on /mnt/, ignores dotfiles and `~~temp~~`, invalidates by relative path; its descriptions no longer claim engine reloads. Snapshots keyed by canonical path. Hygiene allowlist now empty.
 
@@ -923,9 +923,9 @@ Review: raw 21 / material 7 / confirmed 6.
 
 Not fixed: spec-1 / safety-2 spec-amendment part — code side fixed (strict canonicalize restored for AC-E16; reload cases use reloadCanonical.ts); amending spec text is the coordinator's call. Evidence: with strict canonicalize, AC-E48 (notes), AC-E51 (x3) and AC-E56's compare bullet failed due to pairs() reordering (vendor PassiveSpec.lua:226-311).
 
-Gate: 1 attempt; test rc 0, build rc 0; 84 suites / 951 tests (clean gate, engine probe ok). Script checks: `git diff b99e2a9..HEAD --exit-code -- tests/static/poe1-cruft-waivers.json` rc 0; allowlist length check prints 0, rc 0; temporary fidelity probe `mise exec -- pnpm exec jest tests/integration/zzVerifierProbe.test.ts` rc 0 (strict equal false / reload-canonical equal true after compare and set_tree). Tooling false-failures: one single-file jest rerun outside mise failed with "luajit not found" (own probe, not the gate). Note: lua_set_tree sample's stateChangeReason is stale after 9b0b89b (cosmetic, should be reworded).
+Gate: 1 attempt; test rc 0, build rc 0; 84 suites / 951 tests (clean gate, engine probe ok). Script checks: `git diff f5d1bec..HEAD --exit-code -- tests/static/poe1-cruft-waivers.json` rc 0; allowlist length check prints 0, rc 0; temporary fidelity probe `mise exec -- pnpm exec jest tests/integration/zzVerifierProbe.test.ts` rc 0 (strict equal false / reload-canonical equal true after compare and set_tree). Tooling false-failures: one single-file jest rerun outside mise failed with "luajit not found" (own probe, not the gate). Note: lua_set_tree sample's stateChangeReason is stale after 37e288d (cosmetic, should be reworded).
 
-### WU-18 — done (head 343f16c)
+### WU-18 — done (head 007d584)
 
 New Lua action `get_warnings` returns PoB's own warning lines and leaves characterLevel and its auto mode unchanged (schema, bridge wrapper getWarnings, contract case). New pure `judge(stats, warnings, items)` in src/advice/judge.ts returns Issue[]; src/advice/report.ts reads the engine and formats. Judgments: PoB warnings, Missing<Elem>Resist > 0, per-type max hit below the configured enemy's hit; empty gear slots are facts. validate_build, analyze_defenses (build_name optional, defaults to loaded build), get_build_issues and the load summary's Top Issues all use judge(); another build file goes through withTemporaryBuild. validationService.ts and defensiveAnalyzer.ts deleted; analyze_build's validation section uses judge(). Three descriptions rewritten, WU-18 cruft waivers removed; waiver and allowlist files both `[]`.
 
@@ -948,7 +948,7 @@ Review: raw 10 / material 1 / confirmed 1.
 
 Gate: 1 attempt; test rc 0, build rc 0; 87 suites / 977 tests (clean gate, no skips, real luajit + vendor pin). Script checks (all rc 1 = no match = pass): AC-A2 `rg -n -i -w -e 4000 -e aim <advice files>`; AC-A2 PoE1-advice phrase rg over the same files; AC-A4 `rg -n 'validateDamageScaling|ValidationService|validationService|defensiveAnalyzer' src`. Tooling false-failures: none. Out-of-scope notes: Handlers.lua keepLevel extends C-2 beyond slice 04 §3 and should be noted in the contract; compare_builds Crit Multi x100 is an untested drive-by.
 
-### WU-19 — done (head 373bba4)
+### WU-19 — done (head bd1c168)
 
 README rewritten around the current server: setup, D-16 registration, configuration, state folder, gate, a marked migration block, and GGG's notice. Its tool table is generated from the registry by `pnpm docs:tools` (scripts/gen-tool-table.mjs, `--write` refreshes). HANDOFF.md and 8 stale docs/*.md deleted; project CLAUDE.md added. scripts/fresh-clone-check.sh + fresh-clone-check.mjs clone HEAD, run mise trust and mise run setup, and check the server behind the trade tripwire with no session. New tests/static/readme.test.ts covers AC-G1/G2/G3/G5/G6 and AC-G4's static part. Allowlist and waivers stay `[]`.
 
@@ -971,7 +971,7 @@ Gate: 1 attempt; test rc 0, build rc 0; 88 suites / 995 tests, 0 snapshots, noth
 
 None recorded (no conflicts, no integration fixes).
 
-### Wave gate — PASS (head 373bba4)
+### Wave gate — PASS (head bd1c168)
 
 Clean gate (rm -rf build coverage; jest --clearCache; mise run test; pnpm build): test rc 0, build rc 0; 88 suites / 995 tests, 0 skipped, 0 failed. Versus W3 (81/896): -1 suite / -9 tests (validationService.test.ts removed, allowed by WU-18 touches); +8 suites / +89 tests (advice 15, buildFiles 24, engineConfig 8, mcp/buildFiles 5, adviceNoThresholds 6, adviceStatKeys 4, readme 18, judge 9); +19 in existing suites (buildFileWriter +7, buildService +5, watchService +5, contract +1, engineKinds +1). 896-9+89+19 = 995. With POB_SKIP_ENGINE=1: 72 passed / 16 skipped suites, 636 passed / 359 skipped tests, rc 0.
 
@@ -1012,11 +1012,11 @@ The lean final pass ran after W4:
     disk-change reload);
   - S-F1: the server's own writes were flagged as "changed on disk";
   - S-F2: the crash restore re-estimated an auto-mode character level.
-- **1 fixer:** `aa5a2c0`.
-- **Final gate PASS at `aa5a2c0`:** 89 suites / 1006 tests; M-3 checks pass; AC-G4 fresh clone pass
+- **1 fixer:** `20e70e6`.
+- **Final gate PASS at `20e70e6`:** 89 suites / 1006 tests; M-3 checks pass; AC-G4 fresh clone pass
   (76 tools, Life 2,977, no-session fallback). AC-E8 had one false failure from a WSL2 clock step.
 
-### Follow-up (items 1-6), head `632eee8` + this docs commit
+### Follow-up (items 1-6), head `0870b8c` + this docs commit
 
 Each fix has a test that drives the real path. The claim first written here, that each test was
 checked to fail without its fix, overstated it: the final gate found two tests that still passed with
@@ -1081,7 +1081,7 @@ fidelity gaps found by the gate"):
    - Slices: 02 (C-3, C-17 step 3, AC-E49) and 03 (C-11 admission, C-13 params, AC-T46).
 
 Gate:
-- `mise run test` rc 0: 91 suites / 1024 tests, 0 failed (+2 suites / +18 tests versus `aa5a2c0`).
+- `mise run test` rc 0: 91 suites / 1024 tests, 0 failed (+2 suites / +18 tests versus `20e70e6`).
 - `pnpm build` rc 0.
 
 ### Friction
@@ -1102,7 +1102,7 @@ The two PoB2-on-Windows checks (items 6–7) and final acceptance (WU-21) stay w
 
 ## 2026-10-05: WU-20 live smoke, coordinator-run part
 
-The main checkout `stabilization/foundation` was fast-forwarded to `cc3a36e`. `mise trust && mise run setup`
+The main checkout `stabilization/foundation` was fast-forwarded to `d83e93e`. `mise trust && mise run setup`
 exited 0. The server is registered with the D-16 command, and `claude mcp list` reports
 `pob2 … ✔ Connected`. A stdio MCP client (SDK `Client`) drove `build/index.js` with
 `POB_DIRECTORY` set to the Windows builds folder. Outputs were masked for any 32-hex token.
@@ -1137,11 +1137,11 @@ The user chose short exact links (D-90) and a flexible-scope `set_gem_corruption
 **Process.** A lean build ran serially: implementer, one combined reviewer, fixer and independent gate per unit (8 agents).
 
 **WU-24.**
-- Done. Gate at `999021f`: 91 suites, 1028 tests, both rc 0. The AC-T47 mutation check passed.
+- Done. Gate at `f64bdc1`: 91 suites, 1028 tests, both rc 0. The AC-T47 mutation check passed.
 - Review: 1 material finding, declined. It was the unverifiable live risk, which the user's link check covers.
 
 **WU-25.**
-- Done. Gate at `f7a3664`: 92 suites, 1041 tests, both rc 0. The AC-E65 mutation checks passed.
+- Done. Gate at `fe99f7a`: 92 suites, 1041 tests, both rc 0. The AC-E65 mutation checks passed.
 - Review: 1 material finding, fixed. Fiery Death has a support primary effect, and the group scope used to corrupt it.
 - The tool count is now 77, and the tool-count ACs are amended (D-91).
 

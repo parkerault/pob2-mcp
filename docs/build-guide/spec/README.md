@@ -46,7 +46,7 @@ endgame design · D2 campaign plan · W1 guide writer · O1 orchestration.
 
 ## 1. Existing system context
 
-Summarized from recon (an audit of `2758b02`), which holds the file:line evidence. Nothing here is
+Summarized from recon (an audit of `e6ebec1`), which holds the file:line evidence. Nothing here is
 redefined; §3 tags every contract this epic relies on or changes.
 
 ### 1.1 Components in scope

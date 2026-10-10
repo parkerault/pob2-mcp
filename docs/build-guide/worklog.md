@@ -1450,3 +1450,5 @@ card.
 - **The running pob2 server** (started from the main checkout's `build/index.js`) gains the build-guide tools
   only after it restarts.
 - **A fresh worktree** is planned for amendment 3's parallel implementation.
+- **Amendment 3 approved** by the user (2026-10-10, "I approve amendment 3"), Q8 (EHP) included.
+  Implementation waits for git bookkeeping.

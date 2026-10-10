@@ -1086,3 +1086,27 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
   - modelling proxies, overlap, Glory or spread in Lua;
   - patching `vendor/`;
   - broad searches of every unique against every gem.
+
+### The user's answers and a new direction (2026-10-10)
+
+- **D-122, clarified (the user: yes):** damage from the rolled skill's own hits, ailments and projectiles
+  counts as the rolled skill's damage when another skill fires, spreads or copies them (Mirage Archer firing
+  Snipe, Contagion spreading Perfect Strike's ignite, Tornado Shot copying Stormcaller arrows). To fold into
+  the spine at finalization.
+- **Direction asked for (discussion open, nothing adopted):** generalize beyond "ascendancy + skill". A user
+  may name only an ascendancy, only a playstyle, or nothing but a style. The user's suggestion: lean less on
+  PoB numbers and verifiers, brainstorm from a pattern library, and run the numbers only on candidates that
+  pass a sniff test. The user expects the Gemling quality effects to be nerfed in 1.0.
+- **PoB's Count field (the user's pointer; grounded):**
+  - It is the "Count:" box beside "Include in Full DPS" on each socket group (`Classes/SkillsTab.lua:218-223`),
+    saved in the build file as `groupCount` (`:307`, `:470`).
+  - It multiplies the group's contribution to Full DPS only (`Modules/Calcs.lua:342-411`); damage over time
+    is multiplied only when it can stack (`dotScale`). The main skill's own DPS ignores it.
+  - It also multiplies reservation for skills reserved per copy and for totems with Ancestral Bond
+    (`Modules/CalcDefence.lua:283-288`).
+  - Our compiler creates every group with Full DPS off (`pob-api/API/Compile.lua:632`), and nothing in
+    `pob-api/` or `src/` sets `groupCount`. So the pipeline reads the plain main-skill figure today.
+  - The user: players use Count to approximate copies and overlaps; "more of an art than a science".
+- **Observation:** the funnel the user describes already exists in shape. R1a's three researchers propose
+  concepts, R1b compiles each as a skeleton, and checkpoint 1 asks the user to pick, ask for more or stop.
+  Generalizing mostly changes the funnel's mouth: the input, the library, the sniff test and Count.

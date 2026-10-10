@@ -1319,10 +1319,12 @@ card.
   - Corrupted Blood stacks;
   - Heavy Stunned;
   - Current Mana %.
-- **Confirmed by me** (details in the scratchpad notes):
-  - the Concussive Runes shockwave has no skill definition;
-  - energy-based meta gems (Cast on Critical, Cast on Minion Death, Cast on Elemental Ailment) aren't
-    modelled at all;
+- **Confirmed by me:**
+  - the Concussive Runes shockwave has no skill definition (`Data/Gems.lua:19614` grants
+    `ConcussiveRunesPlayer`, and no `skills[...]` entry exists);
+  - energy-based meta gems (Cast on Critical, Cast on Minion Death, Cast on Elemental Ailment) aren't modelled
+    at all. Trigger configs are looked up by skill name (`CalcTriggers.lua:1447-1453`), the only entry is
+    PoE1's `"cast on critical strike"` (`:1089`), and nothing in `Modules/` models energy;
   - a skill granted by a support takes the support gem's level (`CalcSetup.lua:1850-1876`).
 - **Agent-reported, not checked by me:**
   - Archon of Undeath is absent from `Modules/`;

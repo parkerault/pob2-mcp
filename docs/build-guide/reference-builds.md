@@ -36,7 +36,8 @@ mechanic chains. Never fetch a source the user didn't name (memory: user-picks-s
 - **Videos:**
   - Guide: `FUeS6JNqHrw` (https://www.youtube.com/watch?v=FUeS6JNqHrw&t=11s; the embed starts at 544 s).
   - "200% Deli Map Showcase": https://www.youtube.com/watch?v=MgM-IHM5sJg (not fetched; gameplay only).
-- **PoB:** none linked; only Mobalytics' "Download Build File".
+- **PoB:** the written guide links none (only Mobalytics' "Download Build File"); the video's pinned
+  comment has https://poe.ninja/poe2/pob/25a80.
 - **Chain:**
   - Mirage Archer: "While active, dodge rolling will create a Mirage that uses socketed ranged Attacks for a
     short duration". In 0.5 it can use channelled skills such as Snipe.
@@ -69,6 +70,15 @@ mechanic chains. Never fetch a source the user didn't name (memory: user-picks-s
   crafted emeralds, Megalomaniac, and corrupted gloves and boots. No leveling.
 
 ### 2. "The Eraser": Perfect Strike Chaos (Josiahyeeet)
+
+- **Chain, from the video:**
+  - Gemling attack speed plus the Opportunity flask turn Perfect Strike's channel into a 0.4 s tap.
+  - Xoph's Pyre and Scouring Flame on the hit.
+  - Blackflame makes the ignite chaos, so Cast on Elemental Ailment can trigger a level-1 Contagion that
+    spreads it.
+  - Loreweave spreads it again.
+  - Block chance scales damage, through Chernobog's Pillar and Lay Siege.
+  - Ignite duration has to stay at 2–3 s for the spread to work.
 
 - **Written guide:** archived, HTTP 410:
   https://mobalytics.gg/poe-2/profile/deadly-golem-wt8y0n/builds/f52b8e1b-4b05-4078-a404-782a7b1af75b
@@ -118,6 +128,7 @@ mechanic chains. Never fetch a source the user didn't name (memory: user-picks-s
 - **Guide:** "0.5.5 Glacial Bolt Gemling - 1 Button All Content", Sep 4, 2026,
   /profile/josiahyeet/builds/a7dc5f61-628f-45ea-8ad4-88b616944b95
 - **Videos:**
+  - The 7-divine budget video: `bJ_JWxOqzZk` (not fetched).
   - Index: `7T64H0DX_E8`.
   - Final Build: `5lydYZx9mEw`.
   - Starting MB/HH Setup: `pxiFAWe-k24`.
@@ -156,10 +167,25 @@ mechanic chains. Never fetch a source the user didn't name (memory: user-picks-s
 
 Video only, `L_bhEMOtqEI`: "No Written guide for this one."
 
+- **Class:** Gemling Legionnaire, level 97 (frame 19:42). "Gembit" is the creator's nickname for it.
+- **PoBs:** https://poe.ninja/poe2/pob/24ddc (the video's build) and https://poe.ninja/poe2/pob/24de9 (the
+  budget version).
+- **Chain:**
+  - Gemling quality gives Stormcaller Arrow +1 projectile per 10% quality.
+  - Surpassing chance is about 300%.
+  - Barrage with Olroth's Conviction and Heightened Charges, with a 94% chance not to remove charges.
+  - Tornado Shot copies the arrows.
+  - Garukhan's Resolve at exactly 50% crit, and Rakiata's Flow.
+  - Verglas on Frost Walls that Cast on Elemental Ailment casts.
+  - Low life through Atziri's Communion's reservation, with Pain Attunement.
+
 ### 5. HotG "Infinite Bonker": "[0.5.5] Ulf's Hammer Engine" (Ulfhednar), Gemling Legionnaire
 
 - **Guide:** Sep 1, 2026.
-- **Video:** `r6yQKNRoVlI`.
+- **Video:** `r6yQKNRoVlI`. It shows the Chaos Dreamer variant.
+- **Corrections from the video:** the no-consume chance is 2.5% per 1% quality, so 40% quality alone is
+  enough and Everlasting Glory isn't needed. Fury of the King's line is "generate 6 Glory every 2
+  seconds". Mutated Hateforge gloves add +9 maximum Rage.
 - **PoBs:**
   - Olrovasara: https://poe.ninja/poe2/pob/25c7f
   - Chaos Dreamer: https://poe.ninja/poe2/pob/26184

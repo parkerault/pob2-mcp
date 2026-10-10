@@ -999,3 +999,90 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
       calculation; it would be the user's call;
     - modelling the flask ourselves;
     - broad all-uniques interaction searches.
+
+### Off-meta builds 2–6: perra's "Broken Off-Meta Builds" (user-supplied, 2026-10-10)
+
+- **Sources:**
+  - The Mobalytics index and 4 written guides; The Eraser's guide is archived (410), and Stormcaller has a
+    video only.
+  - 10 videos. Skipped: one gameplay showcase and one glove-craft video.
+  - Six agents, about 1.38M subagent tokens on Opus.
+  - Builds, links and corrections are in `reference-builds.md`.
+- **All five are Gemling Legionnaire,** on 0.5.5.
+- **Every headline number is wrong in PoB:**
+  - **Mirage Sniper:** PoB never runs the Mirage Archer branch, because no gem has
+    `skill_can_own_mirage_archers`. It shows one player Snipe at 30% less damage, not about 6 mirages.
+  - **Glacial Bolt:** Kaom's Madness's +3 fissures are unmapped but its penalties apply, and there is no
+    crystal-overlap setting. The minion-detonation core (Biting Frost popping crystals) is undocumented
+    anywhere.
+  - **The Eraser:** Scouring Flame's support stat is unmapped, and Tasalio's per-stack lines are missing
+    from the data. The ignite is about 2.25× low, and the Contagion spread is invisible.
+  - **Stormcaller:** the arrow count never multiplies DPS (no overlap stat), Tornado Shot's copies are
+    zero, and the 94% charge retention is unmapped.
+  - **HotG:** Glory appears in no calculation module, so a Glory-gated skill computes as spammable.
+- **Gemling in PoB,** checked:
+  - The `GemlingQuality` flag applies `altQualityStats`; 47 of 244 such stats are unmapped.
+  - Gem Studded's if/elseif gives one colour on a tie (`CalcSetup.lua:2155-2162`), so a 17/17/17 balance
+    gets only Red.
+  - Supports from every weapon set are counted.
+- **Our lookup is blind to Gemling quality effects,** checked: `describeStatSet` passes only level and
+  quality, and `qualityLines` reads only `qualityStats`. Nothing in `pob-api` reads `altQualityStats`.
+- **Linking patterns** across all six off-meta builds:
+  - the skill's inputs and outputs: consumed resources, objects left behind, ailments and events emitted,
+    and who consumes them;
+  - a "chance not to consume" pushed to 100% turns a per-use cost into a one-time unlock (HotG Glory,
+    Barrage charges);
+  - force a condition by lowering its threshold or reserving into it (Surrounded with 1 enemy, low life
+    through reservation);
+  - zero a resource, then harvest every drawback priced in it (CI);
+  - a proxy or helper multiplies the rolled skill (Mirage Archer, Barrage, Tornado Shot), with count =
+    duration ÷ cooldown;
+  - minions that deal no damage, used as triggers or headcount (Brutus' Brain);
+  - convert the damage type so another mechanic applies (Blackflame, then Contagion);
+  - quality as a second stat line (Gemling);
+  - weapon set 2 doing a non-damage job;
+  - utility gems kept at a low level for cost;
+  - a defence stat that also scales damage (block);
+  - filler gems to satisfy a count.
+- **Budget ladder:** Josiah's tiers (7 divines, then 10–20, 50–70, then Mageblood/Headhunter) line up with
+  our `m`, `b` and `n` rungs. His 7-divine entry keeps "nothing that loses value on resale".
+- **Candidate ideas,** continuing I1–I4; none adopted:
+  - **I1, widened:** an inputs-and-outputs pass covering resources, objects, ailments and events,
+    retention ("not consume" or "not remove"), conditions, and drawbacks priced in a zeroed resource.
+    Re-run it on the next bottleneck. Queries must be narrow, since results are capped at 20–30. Cheap.
+  - **I2, reworded:** coverage flags unmodelled mechanics, not only unparsed damage lines:
+    - proxy gems;
+    - usage-gated skills (`HasUsageCondition`, Glory);
+    - unmapped count lines;
+    - a gem description promising what its stats lack;
+    - Gem Studded ties.
+
+    Today, coverage gives Mirage Archer a false all-clear. Cheap to moderate.
+  - **I3, both ways:** input demand is a con; a proxy or breakpoint that removes it is a pro. The two Glacial
+    Bolt variants split on it alone. Cheap.
+  - **I4, generalized:** threshold-gated engines get a named stage or rung. This covers item level, lineage
+    supports at 65, quality at 40%, a mod roll value, and budget-gated pieces. Cheap wording.
+  - **I5, lookup shows and searches Gemling quality effects** (`altQualityStats`), labelled. Cheap code,
+    and the highest value for any Gemling roll.
+  - **I6, lookup "usable by":** an active gem's skill types, plus the meta gems that accept it (Snipe → Mirage
+    Archer). Cheap code.
+  - **I7, lookup searches item-base implicits** (the Absent Amulet recurs). Cheap code.
+  - **I8, D1 ledger idioms:**
+    - proxy count;
+    - usage-gate rate (income ÷ requirement, unless 100% no-consume);
+    - hits per target (overlap, fissures);
+    - "PoB's default is optimistic": a claim naming the enabler.
+
+    Judgment wording.
+  - **I9, D1:** non-DPS breakpoints as claims (ignite duration of at least 2 s), and utility gems levelled
+    for cost. Cheap wording.
+- **Open for the user, D-122** ("the rolled skill is the main source of damage"):
+  - Does damage from the rolled skill's own hits, ailments and projectiles count when another skill
+    fires, spreads or copies them? Mirage Archer firing Snipe, Contagion spreading Perfect Strike's
+    ignite, Tornado Shot copying Stormcaller arrows.
+  - This would be a clarification, not a relaxation.
+- **Not attempted:**
+  - hunting undocumented interactions;
+  - modelling proxies, overlap, Glory or spread in Lua;
+  - patching `vendor/`;
+  - broad searches of every unique against every gem.

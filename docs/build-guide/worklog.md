@@ -953,3 +953,44 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
   supported syntax from a source the user names.
 - **Section budgets rebalanced:** Leveling 660→620, route 240→210 and At a glance 160→150 make room for the
   additions. The total is about 2,840, with the cap still 3,000.
+
+### Off-meta build 1: Melting Maelstrom Shaman (user-supplied, 2026-10-09)
+
+- **Source:** Troy Tesko's video (patch 0.5.5), already in yt-library as `GsLBMXy3tDk`. It was read from the
+  transcript plus about 25 frames, at about 161K subagent tokens on Opus. No links were opened.
+- **The build:**
+  - The damage comes from the Melting Maelstrom mana flask: every 3 seconds, 100% of the mana spent in
+    those seconds is dealt as chaos damage within 3 metres.
+  - The flask is spammed, because each use's window stacks (the creator's observation, not item text).
+  - Corpsewade boots trigger Decompose every 1.2 m. Archmage adds 6.7% of max mana to its cost, which
+    supports and Eldritch Battery multiply.
+  - Brutus' Brain clerics supply the corpses through Sacrifice.
+  - The Forsaken Bangle charm, tripled by the Magnum Opus anoint, recoups the flask's self-damage.
+  - Endgame only: the flask needs level 60.
+- **PoB sees none of the damage,** checked:
+  - The nova line is not parsed (`ModCache.lua:5363`, nil).
+  - Magnum Opus is not parsed (`:5022`).
+  - The Bangle recoup line is a partial parse, so it is not applied (`:3233`).
+  - Corpsewade's trigger is not parsed, so PoB treats Decompose as a self-cast.
+- **Our pipeline would reject it twice:**
+  - R1a's feasibility read requires the rolled skill as the main damage source (`R1a.md:100-101`).
+  - D-122 and D-148 (the rolled skill is the main damage and the clear skill) fail for every skill in the
+    chain, which are all fuel or utility.
+  - Our boundary holds as designed: we can't verify damage PoB can't see.
+- **Candidate ideas,** collected for a concept-discovery write-up after the remaining off-meta builds; not
+  adopted:
+  - **I1, a resource-flow pass in R1a.** List what the rolled skill consumes and produces (mana, corpses,
+    charges, flask charges), and run 2–3 mechanic lookups on those resources across uniques. This finds
+    supplemental damage and sustain engines that keep D-122 intact. Cheap.
+  - **I2, `check_model_coverage` flags unparsed "deal … Damage to Enemies" lines** as unmodelled damage
+    sources, so D1 must ledger them. This guards the D-122 gate and the headline figure when an item
+    out-damages the rolled skill unseen. Cheap.
+  - **I3, input demand** (presses per second, "must keep moving") in a concept's Risks and in At a glance's
+    cons. Cheap.
+  - **I4, a level-gated engine item** gets a named swap stage in D2, as the rolled skill's requirement does.
+    Cheap, wording.
+  - **Not attempted:**
+    - an "item is the build" mode that relaxes D-122. It is against the randomizer premise and all hand
+      calculation; it would be the user's call;
+    - modelling the flask ourselves;
+    - broad all-uniques interaction searches.

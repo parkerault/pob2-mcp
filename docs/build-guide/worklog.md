@@ -1434,3 +1434,19 @@ card.
   - It is shown beside max hit, which stays the basis of the survival verdict.
   - It is added to the card, R1b-assemble's key numbers, and amendment 2's verdict line (checked against
     `TotalEHP`).
+
+**Worktrees removed (2026-10-10, at the user's request).**
+
+- **Removed:** `pob2-mcp-wt/build` (`stabilization/build`) and `pob2-mcp-wt/m12b` (`bg/m12b`). Both were clean, and
+  both branches are contained in `build-guide/build`.
+- **Fast-forwarded:** `stabilization/foundation` to `build-guide/build` (`0e712da`, 108 commits) in the main
+  checkout.
+- **Removed:** `pob2-mcp-wt/guide`.
+- **Where work happens now:** in `/home/parker/projects/pob2-mcp`. Nothing was pushed, and the sign-rebase stays a
+  finalization step.
+- **The gate in the main checkout:**
+  - `mise run test`: rc 0, with 120 suites and 1,842 tests, plus the NFR suite's 2 tests.
+  - `pnpm build`: rc 0.
+- **The running pob2 server** (started from the main checkout's `build/index.js`) gains the build-guide tools
+  only after it restarts.
+- **A fresh worktree** is planned for amendment 3's parallel implementation.

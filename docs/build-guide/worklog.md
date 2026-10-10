@@ -854,3 +854,20 @@ spine and slice 03, plus C-33's `buildSha1`.
   - campaign practicals: boss order, currency habits, keeping gold for the respec;
   - variants with gates, including an "entering maps" loadout as the bridge to the endgame.
 - **Held back:** crafting recipes. They depend on orb mechanics our data doesn't cover. No atlas section.
+
+### Amendment 2 approved (2026-10-09): guide style
+
+`spec/amendment-2-guide-style.md`, b855a5c. The user approved:
+- **The lighter verification.** The plan holds the facts, verified as today. The prose lens reads
+  `guide.md` like an editor. The checker keeps structural guards plus a fixed-form survival and damage
+  verdict line per endgame rung, matched against the record.
+- **The open questions:**
+  - Q1: the entering-maps rung's budget is 5 divines (players finish the campaign with 5–10);
+  - Q2: the first person marks advice;
+  - Q3: one tree track from `m` to `b` to `n`, with V1 checking respec gold;
+  - Q4: affix targets as text, with links deferred to WU-48.
+- **The targets:** about 70–90 stage claims instead of 232, and an estimated 11–14M V4 cache reads instead
+  of 37.6M.
+
+Not implemented yet. The user will supply more guides to compare, then off-meta builds. Never pick or fetch
+sources unasked: a Maxroll read I started on my own was stopped by the user.

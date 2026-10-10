@@ -1468,3 +1468,20 @@ card.
   - All 94 cited commits now resolve on the main line.
 - **Then:** fast-forward `main`, push it to `origin` (the user's fork, tracking `origin/main`), and delete
   `stabilization/foundation`. Amendment 3's implementation starts on a feature branch.
+
+**Before compaction (2026-10-10).**
+
+- **Study reports kept.** The 34 study reports (guide comparisons 1 and 2, Maelstrom, perra's set, the YouTube
+  list, the random-build playthroughs) are copied verbatim to `docs/build-guide/studies/`, with an index. The
+  three agent briefs they followed are in `studies/briefs/`.
+  - Until now they lived only in temporary transcripts.
+  - They hold the per-pattern search steps and process notes that work unit N-5 (the pattern library) needs.
+- **Branch.** Work continues on the feature branch `build-guide/amendment-3`, off `main` at `afbcc6b`.
+- **Next step, open for the user.**
+  - Option 1: fold the finalization items into the spec first. These are D-239…D-266 (decisions made during
+    the build), amendments 1–3, and C-33, folded into the spine (`spec/README.md`) and slice 03. Amendment 3's
+    implementation would then build against one consolidated spec.
+  - Option 2: start amendment 3's implementation directly.
+  - Recommended: option 1.
+  - Then amendment 3. Its independent units are S-N1 (the poe.ninja API spike), S-N2 (the Full DPS timing
+    spike), N-2 (lookup), N-3 (coverage) and N-5 (content), with a fresh worktree for the parallel build.

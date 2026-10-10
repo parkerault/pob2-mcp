@@ -1,0 +1,41 @@
+# Build studies
+
+The agents' study reports on the guides and builds the user supplied, kept verbatim so the pattern library
+(amendment 3, O3 and work unit N-5) can be built from their search steps and process notes. Summaries are in
+`../worklog.md` and `../reference-builds.md`; the PoB gaps they found are in `../pob-gaps.md`. The briefs
+the agents followed are in `briefs/`.
+
+- [Guide comparison 1: Fubgun's Lightning Arrow Deadeye guides vs our run A guide](2026-10-09-guide-comparison-1-fubgun.md)
+- [Guide comparison 2: ronarray's Martial Artist Monk guide (Mobalytics page)](2026-10-09-guide-comparison-2-ronarray-page.md)
+- [Guide comparison 2: ronarray's Martial Artist videos](2026-10-09-guide-comparison-2-ronarray-videos.md)
+- [Guide comparison 2: ronarray's crafting and farming videos](2026-10-09-guide-comparison-2-ronarray-crafting-farming.md)
+- [Off-meta build 1: Melting Maelstrom Shaman (Troy Tesko)](2026-10-09-GsLBMXy3tDk-melting-maelstrom-shaman.md)
+- [perra's "Broken Off-Meta Builds" page: index and written guides](2026-10-10-perra-index.md)
+- [Mirage Sniper (J_Macc)](2026-10-10-FUeS6JNqHrw-mirage-sniper.md)
+- [The Eraser: Perfect Strike Chaos (josiahyeet)](2026-10-10-4BVTG_E7N-w-the-eraser.md)
+- [Glacial Bolt Gemling: Phylaris and josiahyeet](2026-10-10-glacial-bolt-gemling.md)
+- [Stormcaller Arrow "GPU Nuker" (poe2builder)](2026-10-10-L_bhEMOtqEI-stormcaller-arrow.md)
+- [Hammer of the Gods "Hammer Engine 2.0" (Ulfhednar)](2026-10-10-r6yQKNRoVlI-hotg-hammer-engine.md)
+- [Enervating Nova Chronomancer (Troy Tesko)](2026-10-10-q8dhc4DOBPU-enervating-nova-chronomancer.md)
+- [Infernal Cry Gemling (ExFluent)](2026-10-10-QO5Un_eRyQM-infernal-cry-gemling.md)
+- [Eventide Petals Martial Artist (Lolcohol)](2026-10-10-lVEhfsub0mY-eventide-petals-martial-artist.md)
+- [Oracle Entangle (Amonera)](2026-10-10-p5aRVgy0pM4-oracle-entangle.md)
+- [Whirling Assault and Flicker Strike Martial Artist (Rynze)](2026-10-10-t2o56g88DHk-whirling-assault-flicker-monk.md)
+- [Earthshatter Gemling, endgame and budget (Phylaris POE)](2026-10-10-Ix82BSjoAdY-9H1lUVfvxTg-earthshatter-gemling.md)
+- [Crossbow Titan, Double Vision (Struth Builds, 0.4)](2026-10-10-9Z9ep97Whkg-crossbow-titan-double-vision.md)
+- [20k Mana Flare Shaman (Swedge)](2026-10-10-ekgGPoNjvmo-mana-flare-shaman.md)
+- [Chayula Monk minions (GhazzyTV)](2026-10-10-yeuHB5HnJFM-chayula-minion-monk.md)
+- [Supporting Fire Tactician (Crouching_Tuna)](2026-10-10-cpbNC4toSxU-supporting-fire-tactician.md)
+- [Widowhail Spark Blood Mage (Barczi POE2, 0.4)](2026-10-10-YHIm3ACDtHc-widowhail-spark-blood-mage.md)
+- [Concussive Ancestral Cry Titan (ccs)](2026-10-10-5W5YX6Zsb5Q-concussive-ancestral-cry-titan.md)
+- [Sand & Fire Djinn, Disciple of Varashta (Blazeworks TV)](2026-10-10-d2QbaO-sJ3o-varashta-djinn.md)
+- [Twister Spirit Walker (SiahZ)](2026-10-10-6jbyoRO2pUs-twister-spirit-walker.md)
+- [Random build: Eye of Winter Pathfinder (Schwingy; Path of Exile 1)](2026-10-10-X9wCdbgep5I-eye-of-winter-pathfinder-poe1.md)
+- [Random build: Twisted Empyrean Blood Mage (Schwingy)](2026-10-10-urJZoOU-w48-twisted-empyrean-blood-mage.md)
+- [Random build: Wing Blast Spirit Walker (Schwingy)](2026-10-10-S0diAweTCeI-wing-blast-spirit-walker.md)
+- [Random build: Shockchain Arrow Gemling, HC SSF (Schwingy, 0.4)](2026-10-10-zRIEdxQ20fQ-shockchain-arrow-gemling.md)
+- [Random build: Gathering Storm Infernalist, SSF (Schwingy, 0.4)](2026-10-10-bdxU10Jjz30-gathering-storm-infernalist.md)
+- [Random build: Bone Cage Smith of Kitava (Schwingy, 0.4)](2026-10-10-rXDZlCW2dF8-bone-cage-smith-of-kitava.md)
+- [Random build: Walking Calamity Witchhunter (Schwingy, 0.4)](2026-10-10-aeT9rsQZ4dM-walking-calamity-witchhunter.md)
+- [Random build: Fangs of Frost Chronomancer (Schwingy, 0.3.1)](2026-10-10-gLac8n8iBeA-fangs-of-frost-chronomancer.md)
+- [Random build: Shield Charge Acolyte of Chayula (Schwingy, 0.3.x)](2026-10-10-1ZqM9dJ9MF0-shield-charge-chayula.md)

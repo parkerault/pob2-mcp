@@ -1,8 +1,18 @@
 # Slice 02: Plan and compiler (compile-time spike, guides root, plan schema, C1/E1 data, import code, compiler, V1/V2)
 
-Part of the [build-guide spine](README.md). It covers work units WU-30 and WU-37…WU-42, acceptance criteria
-AC-P1…AC-P50, and milestone M-11. When this slice and the spine disagree, the spine wins. The adversarial
-review's fixes and the coordinator's resolutions are folded in under their spine IDs (D-210…D-238).
+Part of the [build-guide spine](README.md). It covers work units WU-30 and WU-37…WU-42 (built; milestone
+M-11) and WU-51, WU-55 and WU-61 (approved, not built; milestone M-14), and acceptance criteria AC-P1…AC-P59.
+When this slice and the spine disagree, the spine wins. The adversarial review's fixes and the coordinator's
+resolutions are folded in under their spine IDs (D-210…D-238).
+
+**Fold applied on 2026-10-10.** The build's later decisions are folded in: D-244, D-248, D-250…D-252, D-259,
+D-265 (c), D-266, D-273, D-306, D-310 and D-313. So are the approved amendments' decisions: amendment 2's
+D-281 and D-282, and amendment 3's D-286, D-293, D-294 and D-295. Amendments 2 and 3 aren't built yet. Text
+that describes them carries a *Target (WU-nn, D-nnn)* marker and keeps the as-built behaviour beside it until
+that unit merges. The rulings that settled the fold's gaps on 2026-10-10 are folded where they apply, and
+listed in §8: the new milestone M-14 (D-315), the schema version (D-320), the record's Count fields (D-321),
+the reason checks (D-322), the `buildSha1` projection (D-328), S-N2's plan (D-329), the unverified league
+(D-330) and version-1 plans (D-332).
 
 This slice turns a JSON build plan into one PoB2 file with a loadout per stage, plus a compile record (each
 stage's numbers and check verdicts), a re-evaluated ledger and an import code. It also owns:
@@ -10,7 +20,11 @@ stage's numbers and check verdicts), a re-evaluated ledger and an import code. I
 - the write ledger, which decides when a final compile may overwrite a builds-folder file (D-211);
 - the C1 (campaign) and E1 (enemy) data files, and the config baseline list (D-230);
 - the plan's offline-mode markers: the `external-unavailable` source tag, `unavailable` prices and a null
-  `league` (D-233).
+  `league` (D-233);
+- *Target (WU-55, D-293):* Count and custom modifiers. These are a skill group's `count`, the config's
+  `customMods`, the record's Count-scaled figures and custom-modifier marks, and the delivered file's Full
+  DPS set-up;
+- *Target (WU-61, D-281, D-282):* the entering-maps rung `m` and one endgame tree track, `m` → `b` → `n`.
 
 ## 1. Existing system context (this slice)
 
@@ -43,7 +57,9 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
   (`tests/integration/toolHygiene.test.ts:95`, `engineKinds.test.ts:49`). PoB's own export is base64 of the
   zlib-deflated `SaveDB` output with `+`→`-` and `/`→`_`, padding kept (pin `Classes/ImportTab.lua:133`).
 - **Lua building blocks** (`pob-api/API/BuildOps.lua`): `new_build`, `create_spec`, `add_item_text`,
-  `create_socket_group`, `add_gem` and `resolve_gem` (unknown gems rejected with suggestions),
+  `create_socket_group` (`:1291-1300`: `label`, `slot`, `enabled`, `includeInFullDPS`. *Target* (WU-55,
+  D-293): it gains `groupCount`, the group's Count; `add_gem`'s `count`, `:1465`, is a gem's own),
+  `add_gem` and `resolve_gem` (unknown gems rejected with suggestions),
   `set_flask_active`, `export_build_xml`; `set_config` with its key and value checks `config_options()` and
   `config_value()` (`:323-475`); `set_level`, which forces manual mode (`:175-190`); `get_warnings`, PoB's
   warning lines after `RefreshStatList` with the level put back (`:241-256`). Slice 1 (M-10) adds the set
@@ -62,7 +78,9 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
     `enemyIsBoss`'s `apply` sets the placeholders of the enemy's level, damage per type, resistances,
     penetration, armour, evasion, speed and crit (`Modules/ConfigOptions.lua:1964-1997`), so they are
     known only after a calculation. Save skips an `<Input>` equal to `GetDefaultState`, which returns the
-    placeholder when the set has one (`ConfigTab.lua:712-714, :741-742`).
+    *active* config set's placeholder when it has one, not the saved set's (`ConfigTab.lua:712-715,
+    :741-742`). So a non-active stage can lose an explicit option in the file, which the compiler puts back
+    (D-248, §3.6 step 9).
   - **A new build has default sets.** Tree spec 1 and item, skill and config set 1 exist from the start,
     titled `Default` when untitled (e.g. `ItemsTab.lua:1071`, `ConfigTab.lua:690`), so a compile that
     creates every stage's sets anew leaves an extra `Default` loadout (D-215).
@@ -76,6 +94,16 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
     ws2)` (`Modules/Build.lua:1029`). Attribute nodes carry `isAttribute` (`Classes/PassiveTree.lua:548`).
   - PoB's warning lines are `Build.lua:1030-1055` and `:2148-2222`; only "You have N Weapon set 2 passives
     available" (`:1051-1055`) is informational.
+  - **Count and Full DPS** (D-293). Each socket group has an "Include in Full DPS" flag and a "Count:" box
+    (`Classes/SkillsTab.lua:218-223`), saved as `includeInFullDPS` and `groupCount` (`:307`, `:470`).
+    - Count multiplies the group's contribution to Full DPS only (`Modules/Calcs.lua:342-411`): hits by the
+      count, damage over time only when it can stack (`dotScale`). The main skill's own DPS ignores it.
+    - It also multiplies reservation for skills reserved per copy and for totems with Ancestral Bond
+      (`Modules/CalcDefence.lua:283-288`), and scales Umbral Well buffs (`Modules/CalcPerform.lua:1318`).
+    - The compiler creates every group with Full DPS off and sets no `groupCount` (D-306,
+      `pob-api/API/Compile.lua:632`).
+  - **Custom modifiers.** `customMods` is a `text` config option (`Modules/ConfigOptions.lua:2279`). Each line
+    PoB parses whole is added as a `Custom` modifier; a line it can't parse whole is skipped.
 - **Data and dependencies.** `data/` doesn't exist. zod 3 is a runtime dependency; `zod-to-json-schema`
   is dev-only.
 - **Tests.** `engineDescribe`, `startSessionFixture` (a private builds folder; it gains a guides folder
@@ -147,6 +175,12 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
   (`stages[1].config.scenario[0].source`). The root, and a JSON parse error, are `$`.
 - **Version.** `schemaVersion` must be `1`. Any other value gives exactly one error, naming the accepted
   versions (`[1]`).
+  - *Target (WU-55, WU-61, D-320):* one bump, to `2`, covers `count`, `countReason`,
+    `customMods` and the `entering-maps` variant. The first of WU-61 and WU-55 to merge makes the bump, and
+    the second extends the same, unreleased version. Each updates `plan-reference.md` and its worked
+    example in the same unit. Version-1 plans stay accepted after the bump: the schema accepts versions 1
+    and 2, an error names `[1, 2]`, and a version-1 plan defaults the new fields (`count` 1, no
+    `customMods`, no `entering-maps` variant) (D-332).
 - **Strictness.** Objects are strict: an unknown key is an error.
 - **Cross-reference rules** are marked † below. They run as refinements, each with its own path.
 
@@ -166,6 +200,10 @@ type Claim = { id: string; text: string;
 type Plan = {
   schemaVersion: 1;
   roll: { className: string; ascendancy: string; skill: string };
+                                          // the run's roll. Target (WU-57, D-286): a card's identity. A
+                                          // skeleton's roll is its card's; the run's plan takes the identity
+                                          // picked at the verification gate. skill is the build's named
+                                          // damage source (D-295)
   versions: { pobTag: string; pobCommit: string; treeVersion: string;
               enginePatch: string;        // the game patch the engine data targets
               externalPatch: string };    // the patch of the prices and boss data (D-107)
@@ -181,7 +219,7 @@ type Stage = {
   level: number;                          // integer 1–100
   progress: string;                       // ^(start|endgame|q\.[a-z0-9]+(-[a-z0-9]+)*)$ (D-214, A-P13);
                                           // a C1 progress key † (checked once WU-39 lands)
-  variant?: 'budget' | 'non-budget';
+  variant?: 'budget' | 'non-budget';      // Target (WU-61, D-281): also 'entering-maps', the rung m
   ascendancyPoints?: number;              // integer 0–8
   variantBasis?: { level: SourceTag; gemLevels: SourceTag; ascendancyPoints: SourceTag };
                                           // variant, ascendancyPoints, variantBasis: all or none † (D-193)
@@ -204,10 +242,17 @@ type Stage = {
     setTitle?: string;
     groups: { label?: string; enabled: boolean;
               role: 'clear' | 'single_target' | 'utility' | 'leveling';                          // D-217
-              gems: { name: string; level: number; quality: number; enabled: boolean }[] }[];   // ≥ 1 gem each
+              gems: { name: string; level: number; quality: number; enabled: boolean }[];        // ≥ 1 gem each
+              count?: number;             // Target (WU-55, D-293): integer ≥ 1, default 1
+              countReason?: string }[];   // Target (WU-55, D-293): why count is above 1; missing there, a V1
+                                          // finding (§3.7), not a schema error (D-322)
     main: { group: number; activeSkill: number; statSet?: number };  // 1-based; group equal in every stage †
+                                          // D1 sets statSet on each variant stage. On every stage with a
+                                          // rolledGroup, main.group equals rolledGroup (D-273). The D1 gate
+                                          // and the run checker enforce both, not the schema
     rolledGroup?: number;                 // 1-based group holding a gem named roll.skill †; required on
-                                          // variant stages † (D-217)
+                                          // variant stages † (D-217). Target (WU-57, D-295): the group holding
+                                          // the build's named damage source; the field keeps its name
   };
   config: {
     setTitle?: string;
@@ -217,6 +262,11 @@ type Stage = {
     scenario: { option: string; value: boolean | number | string;
                 source: { file: string; key: string };   // a C1/E1 file and fact key (§3.4)
                 tag: SourceTag }[];       // the fact's tag, copied with its value (D-168)
+    customMods?: { text: string; reason?: string }[];
+                                          // Target (WU-55, D-293): a third kind beside earned and scenario,
+                                          // with no producer and no source key. Each entry is one
+                                          // hand-calculated effect as a PoB modifier line, with its reason;
+                                          // an entry without a reason is a V1 finding (D-322)
   };                                      // an option appears once across both lists †; scenario holds enemyIsBoss † (A-P4)
   claims: Claim[];
 };
@@ -238,14 +288,26 @@ type Price = { id: string;              // ^[A-Za-z0-9_-]+$, unique †; what a 
   `unavailable` with `note: "offline run"` (D-233). A claim copied from C1/E1 cites `data:<file>#<key>`,
   `<file>` relative to `data/` (`data:campaign/limits.json#passive-points.max`), which offline V4 checks
   against the fact and its stored citation (D-232).
+- **Unverified league** (D-313). When no league could be verified online, D1 writes `"league":
+  "unverified"`, with every price `unavailable` (note `trade unreachable`). To the schema it is an ordinary
+  league string, so each price's `league` is `"unverified"` too. It is the convention for an online run that
+  can't reach the trade site; an offline run's league stays null (D-233, D-330).
+- **Reward picks** (D-265 c). A campaign reward choice is a scenario entry: its option is the quest's
+  `pob-config-key`, its value the picked option, and its `source` is `{file: "campaign/progress.json", key:
+  "q.<key>.options[<i>]"}`. D2 lists the same pick on every stage at or after the quest, the endgame stages
+  included.
 - **Endgame variants.** Every gem has a `level`. A variant stage's `variantBasis` cites the source of its
   level, gem levels and ascendancy points (D-193), and its `rolledGroup` names the group holding the
   rolled skill (D-217).
+  - *Target (WU-61, D-281):* the entering-maps rung `m` is a third variant stage, between the last campaign
+    stage and `b`. These rules, D-234's chaos exception and the variant-only checks apply to it as to `b`
+    and `n`.
 - **Chaos exception** (D-234). A variant stage may carry `chaosResistException` when capping chaos
   resistance is infeasible; the survival floor (slice 3) then accepts `MissingChaosResist` above 0 with a
   finding. The schema checks only its shape and that the stage is a variant.
 - **Skill roles** (D-217). Every group has a `role`; the rolled-skill gate (slice 3) compares the rolled
-  skill against the stage's other skills of its group's role.
+  skill against the stage's other skills of its group's role. *Target (WU-57, D-295, D-293):* it compares
+  the build's named damage source, by its figure × its group's `count`.
 
 **Committed reference.** `docs/build-guide/plan-reference.md` (new) has one table row per schema field
 path (form `stages[].tree.nodes`), giving its type, whether it's required, its rule and the decision it
@@ -373,8 +435,9 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      exists in the game data (by kind: an item base or unique, a gem, a passive or ascendancy node, an
      active skill, a flask or charm base). An unknown producer isn't a defect; V2 reports it;
    - **the config baseline:** per option, its type, whether it has an `apply`, its default value
-     (`defaultState`, or `list[defaultIndex].val`), its `defaultPlaceholderState` and its first list
-     entry. It comes from the defaults loop over `LoadModule("Modules/ConfigOptions")`, as `ConfigTab.lua`
+     (`defaultState`, or `list[defaultIndex].val`), its `defaultPlaceholderState`, its first list entry,
+     and whether PoB shows it only for some builds (`conditional`: a show gate such as `ifSkill`, D-250).
+     It comes from the defaults loop over `LoadModule("Modules/ConfigOptions")`, as `ConfigTab.lua`
      fills a new set (`:979-987`), and never from `CreateConfigSet`, so no set is added to the loaded
      build (review S21).
 
@@ -389,7 +452,22 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
    jewels, equips the items, sets the toggles and `useSecondWeaponSet`, adds the groups and gems, and sets
    the main selection: the build-wide group, the group's active skill, the stat set (C-44). It writes
    every listed config option, earned and scenario, into the config set (C-32), sets the stage's level in
-   manual mode, and recalculates. It replies with:
+   manual mode, and recalculates.
+   - **Off-hands** (D-310). Whether an off-hand fits depends on Giant's Blood, Instruments of Power and Lord
+     of the Wilds, from the tree or from an item, which PoB reads from its last calculation. So the stage's
+     tree goes in first, then a new item set gets every item but the off-hands (Weapon 2, Weapon 2 Swap).
+     The stage is calculated, and then the off-hands go in, checked against this stage's own tree and items.
+     The weapon flags come from the measured `mainEnv.modDB`, so an item-granted flag (Treefingers) counts.
+   - **Full DPS off** (D-306). Every socket group is created with `includeInFullDPS` off (`Compile.lua:632`).
+   - **Deferred rebuilds** (D-306). PoB's rebuild after each mutation is deferred while the tree, jewels,
+     items, toggles and gems go in, and again while the config and level are written. The stage rebuilds
+     once before its main selection and once before it is measured. Its `outputs` and `skillOutputs` must
+     equal the eager path's (a rebuild after every mutation); the NFR step tests that on the fifteen-stage
+     fixture.
+   - *Target (WU-55, D-293):* after the listed config options, each `customMods` entry is written into PoB's
+     `customMods` text option, one line per entry.
+
+   It replies with:
    - `allocation` (D-213): PoB's allocated nodes and ascendancy nodes after the import, each with its
      weapon-set tag (0, 1 or 2);
    - `outputs`, every finite numeric scalar of `mainOutput`, and `skillOutputs`, C-45's breakdown keyed
@@ -400,17 +478,43 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      `requirements.level`; PoB's warning lines (the `get_warnings` path);
    - V2 inputs (added by WU-42): allocated node names, equipped item names by slot, gem names, active
      skill names, flask and charm `active` states, and the config set's `input` and `placeholder` tables
-     after the writes and the recalculation, so `enemyIsBoss`'s placeholders are included (D-212).
+     after the writes and the recalculation, so `enemyIsBoss`'s placeholders are included (D-212). Also
+     `shownOptions`, the conditional options PoB shows for the stage (D-250);
+   - `items`, what the stage's item set holds per slot after the measurement, and `addedItems`, what this
+     stage equipped when it created the set; `weaponFlags`, the measured stage's three flags (D-310);
+   - `configInputs`, the stored values of the stage's listed options, and `configSurvivesDrop`, whether a
+     reload gives each the same value when PoB's save leaves it out (D-248).
 
    The compiler compares `allocation` with the stage's plan (`compareAllocation` in
    `src/plan/compiler.ts`). Any node PoB dropped, added or tagged differently → `isError` naming the
-   stage and each such node (D-213). A Lua failure or an allocation difference → `isError` naming the
-   stage; nothing is written, and the engine holds the partial build.
-8. **Finish:** one `compile_finish {activeStage, level}` request. It runs `SyncLoadouts` and checks that
-   each stage's loadout resolves to exactly that stage's four sets, and that the loadout count equals the
-   stage count. It selects the loadout of the highest-level stage (the last among ties, A-P9), then calls
-   `set_level(<max stage level>, auto=true)` (D-196). It replies with the loadout list.
-9. **Export:** `export_build_xml`, then `encodePobCode`.
+   stage and each such node (D-213). It compares the item set's `items` with the plan the same way
+   (`compareItems`, D-310). PoB unequips an off-hand that doesn't fit without an error, so any slot that
+   differs → `isError` naming the stage, the slot and the item. A Lua failure, an allocation difference or
+   an item difference → `isError` naming the stage; nothing is written, and the engine holds the partial
+   build.
+   - **Known limit** (D-310). An off-hand that can't fit in a set shared by several stages is caught at
+     compile, not in step 5's `compile_check`. Catching it there needs a calculation. So the stage is
+     refused after step 6 has replaced the loaded build.
+8. **Finish:** one `compile_finish {stages, active, level, itemSlots}` request. `stages` lists each compiled
+   stage as `{id, title, ids}`: its loadout title and its tree spec and set ids. `active` is the loadout of
+   the highest-level stage (the last among ties, A-P9), and `level` is that stage's level. `itemSlots` lists
+   the slots to report. It runs `SyncLoadouts` and checks that the loadouts are exactly the stages'
+   loadouts, each resolving to its stage's four sets, and that no tree spec or set is untitled. It selects
+   `active`, then calls `set_level(<level>, auto=true)` (D-196). It replies with `loadouts`, `active`,
+   `level`, `autoMode` and `itemSets` (each set's items in `itemSlots`). The compiler compares those items
+   with the plan again; any difference → `isError` (D-310).
+9. **Export:** `export_build_xml`.
+   - **Config the save dropped** (D-248). PoB's `ConfigTab:Save` compares each input with the *active* set's
+     placeholder or default (`ConfigTab.lua:712-715, :741-742`), so a non-active stage can lose an explicit
+     option. The compiler puts every listed option the save left out back into its stage's `<ConfigSet>`
+     in the XML. Then it checks that every listed option is in the file with its value
+     (`src/plan/savedConfig.ts`).
+   - Then `encodePobCode`.
+   - *Target (WU-55, D-293):* the delivered file sets `groupCount` (the plan's `count`) and
+     `includeInFullDPS` on the named source's groups only, so a reader who opens it sees Full DPS with the
+     same Count. WU-51 (S-N2) decides how. If Full DPS for those groups fits NFR-21, the final compile
+     computes it; otherwise the flags are written at export only. PoB's Full DPS mode stays out of the
+     measure compiles unless S-N2 shows it's cheap (D-306 until then).
 10. **Write.** Final mode: `writeBuildFile({name: build_name, kind:'engine', overwrite, guard, ctx})`
     (C-17, which calls `noteSaved`), then at once the target's write-ledger entry (D-211). Measure-only:
     `compiled-build.xml` beside the plan; the ledger is neither read nor written.
@@ -457,10 +561,14 @@ item, gem and config functions instead of copying them. Under `POB_API_TEST_ACTI
 
 ```ts
 type CompileRecord = {
-  recordVersion: 1; planSchemaVersion: number; planSha1: string; compiledAt: string /* ISO 8601 */;
+  recordVersion: 1; planSchemaVersion: number; planSha1: string;
+  buildSha1: string;                // D-266: the sha1 of the plan's build-affecting projection
+  compiledAt: string /* ISO 8601 */;
   mode: 'final' | 'measure-only'; stagesCompiled: string[];
   engine: { pobTag: string; pobCommit: string; treeVersion: string };   // as running (C-6)
   versionNotes: string[];           // every place the plan's `versions` differ from `engine`
+  loadoutWarnings: string[];        // D-310: one per weapon-fit flag the stages differ in
+  saveWarnings: string[];           // D-248: one per config set whose options a PoB2 re-save would drop
   pobFile: { location: 'builds' | 'run'; path: string; sha1: string; bytes: number };   // informational (D-211)
   importCode: string;               // D-205
   savedLevel: { level: number; autoMode: true }; activeLoadout: string;
@@ -474,7 +582,8 @@ type CompileRecord = {
       value: boolean | number | string;
       origin: 'explicit' | 'default' | 'placeholder';        // written by the compile, a default-on default,
                                                              // or a placeholder PoB applies (§3.7)
-      class: 'earned' | 'scenario' | 'baseline' | 'unlisted' }>;   // baseline: in data/config-baseline.json
+      class: 'earned' | 'scenario' | 'baseline' | 'unlisted' }>;   // baseline: data/config-baseline.json
+                                                             // covers it for the stage (§3.7, D-250, D-252)
     pobWarnings: { kept: string[]; filtered: string[] };     // filled from WU-42's V1 inputs
     v1: Verdict | null; v2: Verdict | null;                  // null until WU-42 lands
   }>;
@@ -488,11 +597,44 @@ type Finding = { code: string; message: string; data?: Record<string, unknown> }
 Notes record reliance on M- or L-confidence facts (A-29); they never fail a check. `configEffective` holds
 every option that affects calcs: each listed one, each default-on one and each placeholder-driven one. It,
 not the saved XML, is the authority on a stage's config, because PoB's Save omits an explicit value equal
-to its placeholder (D-212, D-113).
+to its placeholder (D-212, D-113). The written file also carries every listed option, since step 9 puts
+back what the save dropped (D-248).
+
+- **`buildSha1`** (D-266, `src/plan/buildHash.ts`). The projection is the plan without `stages[].claims` and
+  without every `source` and `tag` key at any depth. It is serialized canonically: object keys sorted, arrays
+  in order, no whitespace.
+  - It keeps `ledger[].claim`, `respec.note` and `chaosResistException.reason`, so an edit to one of those
+    takes the recompile path.
+  - It also strips `config.scenario[].source` and `respec.goldCost.source`, so a change to a scenario
+    entry's fact key alone leaves `buildSha1` equal. That is intended (D-328):
+    `buildSha1` tracks build content, and sources and tags are citations.
+  - When only claims were edited after the final compile, the run checker requires the current plan's
+    `buildSha1` to equal the record's (slice 3, D-264).
+- **`loadoutWarnings`** (D-310). PoB2 checks an off-hand against the passives of the loadout it switches
+  from, so switching loadouts in PoB2 can unequip a planned off-hand. One line per weapon-fit flag (Giant's
+  Blood, Instruments of Power, Lord of the Wilds) that some stages have and others lack.
+- **`saveWarnings`** (D-248). One line per config set, naming its stages and the options that a save in PoB2
+  would drop again.
+- **`recordVersion`** stays 1: these three fields are additive.
+- *Target (WU-55, D-293, D-294, D-321):*
+  - The raw `outputs` and `skillOutputs` stay as they are.
+  - New fields beside them hold each figure × its group's `count`, by PoB's rule (`Modules/Calcs.lua:342-411`):
+    hits × count, damage over time × count only when it stacks.
+  - A mark flags every figure computed while a custom modifier was present, defences included.
+  - `recordVersion` bumps, to 2.
+  - The headline and the verdict line read the named source's Count-scaled figure, with `TotalEHP` beside it.
+    `TotalEHP` is already in `outputs`, because the compiler copies every finite PoB output
+    (`Compile.lua:961-964`).
+  - WU-55 names the exact fields and writes them into C-33's text in the same unit.
 
 **Text output.** First `Compiled <plan_path>: <n> stages (<mode>) in <s> s.` Then per stage `Stage <id>
-"<loadoutName>" level <L>: V1 pass|fail, V2 pass|fail`, with at most 10 findings and `… and <k> more in
-the record`. Then one line per ledger entry (`<id> = <value>` or `<id>: <error>`), and the paths written,
+"<loadoutName>" level <L>: V1 pass|fail, V2 pass|fail`, then its V1 and V2 findings, one line each.
+- Every finding is printed, up to 200 over all stages (D-273: a gate reads its findings in this text).
+- Past that, one line: `<k> more findings; Grep the record's findings (compile-record.json:
+  stages.<id>.v1.findings and stages.<id>.v2.findings).`
+
+Then one line per ledger entry (`<id> = <value>` or `<id>: <error>`), and one per version note, loadout
+warning and save warning (D-310, D-248). Then the saved level and active loadout, and the paths written,
 relative to the builds folder and the guides root.
 
 **Wiring** (spine §1.2). The schema literal, `TOOL_META` `{engine:'load', group:'core'}`, the router
@@ -526,9 +668,10 @@ usage comes from PoB's own counts.
 | `gem-level-requirement` | a gem's `levelRequirement` at its level exceeds the stage level |
 | `item-level-requirement` | an equipped item's `requirements.level` exceeds the stage level |
 | `attributes` | PoB's `Str < ReqStr`, `Dex < ReqDex` or `Int < ReqInt`, with the attribute choices applied; the finding names the source item or gem |
-| `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's for its `progress` region |
-| `pob-warning` | any PoB warning line except the informational ones. The filter is one pattern, `^You have \d+ Weapon set 2 passives available$` (`Build.lua:1051-1055`); filtered lines go to `pobWarnings.filtered` |
-| `tree-continuity` | the stage's nodes and ascendancy nodes don't contain its predecessor's (A-P3) apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144) |
+| `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's for its `progress` region. At a region's last progress key, the next region's entry value is also accepted, with a note naming the boundary (D-251) |
+| `pob-warning` | any PoB warning line except the filtered ones, which go to `pobWarnings.filtered`. Two patterns are filtered. `^You have \d+ Weapon set 2 passives available$` (`Build.lua:1051-1055`) is always informational. `^You have too many passive points allocated$` is filtered only when the stage's regular points pass `passive-points` with the Martyr point alone: PoB's cap (`Build.lua:1007, :1030`) doesn't know that point, which V1 notes instead (A-29) |
+| `tree-continuity` | the stage's nodes and ascendancy nodes don't contain its predecessor's (A-P3) apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). *Target (WU-61, D-282):* one endgame track, `m` from the last campaign stage, `b` from `m`, `n` from `b`, replaces A-P3's per-variant tracks. V1 then checks each rung's `respec` and its gold cost against the rung before it |
+| *Target (WU-55, D-322):* the code WU-55 names | a group with `count` above 1 and no `countReason`, or a `config.customMods` entry without a `reason`. It is a V1 finding, so the stage's `v1.pass` is false; it is not a schema error (AC-P51, AC-P52) |
 
 **V2: config** (D-114, C-32).
 
@@ -538,7 +681,7 @@ usage comes from PoB's own counts.
 | `producer-absent` | the producer exists but isn't in the stage. Item: an equipped item's name. Gem: a gem in the skill set. Passive: an allocated node, ascendancy included. Skill: an active skill of the stage. Flask or charm: equipped, with its toggle on. Names compare case-insensitively |
 | `source-unresolved` | a scenario entry's `source.file` isn't a loaded C1/E1 file, or its `key` (and member) doesn't resolve |
 | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on and its quest comes after `progress` |
-| `default-unlisted` | an option is on in the config baseline, or is placeholder-driven in the stage's config set, and neither the stage nor `data/config-baseline.json` lists it (A-P4, D-212, D-230). `data` names the option, its value and its `origin` (`default` or `placeholder`) |
+| `default-unlisted` | an option is on in the config baseline, or is placeholder-driven in the stage's config set, the stage doesn't list it, and the baseline list doesn't cover it for the stage (A-P4, D-212, D-230). The list doesn't cover an option it doesn't name. Nor does it cover a conditional option PoB shows for the stage (D-250), or, on a stage that fights a boss, the enemy's level, armour, evasion, resistances or crit, which come from E1 as scenario entries (D-252). `data` names the option, its value and its `origin` (`default` or `placeholder`) |
 | `toggle-empty` | a toggle is active on a slot holding no flask or charm |
 
 **Placeholder-driven** (D-212). An option is placeholder-driven in a config set when it has no effective
@@ -557,8 +700,9 @@ type ConfigBaseline = { schemaVersion: 1;
                                                                             // rationale: one non-empty line
 ```
 V2 loads it through its own zod schema (the data directory is injectable for tests); an invalid file is
-an error naming the file and the option. A listed option never gets `default-unlisted`; its
-`configEffective` class is `baseline`.
+an error naming the file and the option. An option the list covers for the stage never gets
+`default-unlisted`, and its `configEffective` class is `baseline`. The list covers a named option except where
+D-250 or D-252 takes it out (the `default-unlisted` row); there the class is `unlisted`.
 
 ### 3.8 C-50: `guide_run` (WU-41)
 
@@ -569,10 +713,13 @@ nothing, bumps `revision` or marks the build dirty (D-216).
 guides root); `stages` only with `validate`. Any other combination is `isError` naming the conflict, and
 nothing is done.
 
-**Kind.** `TOOL_META.guide_run` is `{engine:'read', group:'core'}`. `toolRouter.ts` gains
-`effectiveKind(name, args)`, which returns `none` for a `guide_run` call carrying `new_run` and the static
-kind otherwise; `routeToolCall` uses it. So a `new_run` call never enters `session.run`: it takes no lock,
-emits no session event and never starts the engine.
+**Kind** (D-216, D-244). `TOOL_META.guide_run` is `{engine:'read', group:'core'}`. `toolRouter.ts`'s
+`engineKindFor(name, args)` gives a call's kind from its tool's per-call rule, else from its `TOOL_META`
+kind, and `routeToolCall` uses it.
+- `guide_run`'s rule: a `validate` call without `new_run` is a `read`, and every other call is `none`.
+- So a `new_run` call, like any other argument mix (which the handler refuses), never enters `session.run`.
+  It takes no lock, emits no session event and never starts the engine.
+- The same function holds `manage_sets`' rule: `{action:"list"}` is a `read` (D-244, slice 1).
 
 **Run-folder mode** (`new_run`, D-207).
 1. `checkGuidesRoot(guidesDirectory, pobDirectory)` (D-220); an overlap → `isError` naming both, nothing
@@ -591,10 +738,11 @@ step 5. Otherwise it returns `Plan <path> is valid: <n> stages (<ids>).`, follow
 `producers`, by one line per producer `compile_check` reports unknown (`producer-unknown`: a V2 finding at
 compile, not an error). It sends exactly one engine request.
 
-**Wiring** (spine §1.2). The schema literal, the `TOOL_META` entry, the router case and `effectiveKind`,
-`handleGuideRun` in `src/handlers/planHandlers.ts`, and a disposition entry with `bucket:"new"`. Two ok
-samples: `{new_run:"kinds-probe"}` and `{validate:"$TWO_STAGE_PLAN"}`. Both are `read` samples, so
-`engineKinds.test.ts` expects the export and `revision` unchanged, with no `stateChange` declaration.
+**Wiring** (spine §1.2). The schema literal, the `TOOL_META` entry, the router case and `guide_run`'s rule
+in `engineKindFor`, `handleGuideRun` in `src/handlers/planHandlers.ts`, and a disposition entry with
+`bucket:"new"`. Two ok samples: `{new_run:"kinds-probe"}` and `{validate:"$TWO_STAGE_PLAN"}`. Both are
+`read` samples, so `engineKinds.test.ts` expects the export and `revision` unchanged, with no `stateChange`
+declaration.
 
 ## 4. Slice assumptions (proceed-on; to fold into spine §6.2)
 
@@ -604,7 +752,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
 |---|---|---|---|
 | A-P1 | Stage ids match `[A-Za-z0-9]+`, so they work as brace ids. `loadoutName` contains `(L<level>)` and ends with ` {<id>}` | D-103; D-138's `Act 2 (L25) {2}` | Change the rule in `schema.ts` and the reference |
 | A-P2 | Sets are shared by deep equality of `items`, `skills` or `config`, and titled as in §3.6 step 4 | C-31: "the compiler names shared sets" | Add explicit set keys to the schema |
-| A-P3 | The continuity predecessor: stages without `variant` form the campaign track, each variant its own track, each in plan order. A variant track's first stage continues from the last campaign stage before it | D-144 names only "the previous stage" | Re-scope `tree-continuity` |
+| A-P3 | The continuity predecessor: stages without `variant` form the campaign track, each variant its own track, each in plan order. A variant track's first stage continues from the last campaign stage before it. This is the as-built rule (`predecessorOf`, `src/plan/checks/v1.ts`). *Replaced by D-282 (target, WU-61):* the endgame stages form one track, `m` from the last campaign stage, `b` from `m`, `n` from `b` | D-144 names only "the previous stage"; D-282 (amendment 2) | Re-scope `tree-continuity` |
 | A-P4 | An option is on by default when its default value (`defaultState`, or `list[defaultIndex].val`, from the defaults loop over `ConfigOptions`, as `ConfigTab.lua:979-987` fills a new set) is on (A-P5). **Corrected by D-212:** placeholders are not hints. PoB applies a numeric option's placeholder as its value when it has no input (`ConfigTab.lua:870-900`), and `enemyIsBoss` sets the enemy-stat placeholders (`ConfigOptions.lua:1964-1997`), so the audit also covers placeholder-driven options (§3.7), read after each stage's recalculation. Every stage lists `enemyIsBoss`, which the compiler writes into every config set | C-32, D-79, D-119, D-212 | Widen or narrow the audit |
 | A-P5 | "On" is as defined in §3.2. An earned entry whose value is off needs no producer | C-32 (nothing to produce) | Require producers on every entry |
 | A-P6 | The measure-only XML is named `compiled-build.xml`, beside the plan | D-208 names no file | Rename it |
@@ -619,6 +767,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
 ## 5. Work units
 
 ### WU-30: Compile-time spike
+- status: built, merged at `1ec4944`
 - kind: spike
 - depends-on: []
 - role: lua-dev
@@ -642,6 +791,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
     whole-call times and the decision.
 
 ### WU-37: Guides-folder root
+- status: built, merged at `44d608e`
 - kind: build
 - depends-on: []
 - role: backend-dev
@@ -659,6 +809,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   `guide_run` (D-216).
 
 ### WU-38: P1, the plan schema, its reference and the ledger evaluator
+- status: built, merged at `2e47473`
 - kind: build
 - depends-on: []
 - role: backend-dev
@@ -680,6 +831,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   keys.
 
 ### WU-39: C1 and E1 data files and their loader
+- status: built, merged at `d4d5fc5`
 - kind: build
 - depends-on: [WU-38]
 - role: backend-dev
@@ -696,6 +848,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   worked example's progress keys to real ones, together.
 
 ### WU-40: Import-code encoder and `encode_build_code`
+- status: built, merged at `19e3140`
 - kind: build
 - depends-on: []
 - role: backend-dev
@@ -710,16 +863,18 @@ These are formalizer's choices where the inputs fix a requirement but not its me
 - summary: `encodePobCode` and the `none`-kind tool. This is a tool-adding merge: the counts move by +1.
 
 ### WU-41: P2, the compiler, `compile_plan` and `guide_run`
+- status: built, merged at `408ffd9`
 - kind: build
 - depends-on: [WU-30, WU-33, WU-35, WU-36, WU-37, WU-38, WU-39, WU-40]
 - role: backend-dev + lua-dev
 - touches: [`pob-api/API/Compile.lua` (new), `pob-api/API/Handlers.lua` (one merge line),
   `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `src/plan/compiler.ts`, `src/plan/record.ts` and
   `src/plan/writeLedger.ts` (new), `src/handlers/planHandlers.ts` (new), `src/utils/guidesPath.ts`
-  (`checkGuidesRoot`, `runFolderOf`), the wiring files (`toolRouter.ts` with `effectiveKind`), fixtures,
-  count sites and README table, `tests/integration/contract.test.ts`,
-  `tests/integration/compilePlan.test.ts`, `compilePlanNfr.test.ts` and `guideRun.test.ts` (new),
-  `tests/unit/compileAllocation.test.ts` (new), `tests/fixtures/plans/` (the fifteen-stage fixture, defect
+  (`checkGuidesRoot`, `runFolderOf`), the wiring files (`toolRouter.ts` with `guide_run`'s per-call kind
+  rule, now in `engineKindFor`, D-244), `src/plan/savedConfig.ts` (new in review, D-248), fixtures (the
+  off-hand fixtures added in review, D-310), count sites and README table,
+  `tests/integration/contract.test.ts`, `tests/integration/compilePlan.test.ts`, `compilePlanNfr.test.ts`
+  and `guideRun.test.ts` (new), `tests/unit/compileAllocation.test.ts` (new), `tests/fixtures/plans/` (the fifteen-stage fixture, defect
   variants), `toolHygiene.test.ts` and `engineKinds.test.ts` (the placeholder), `mise.toml` (the `test`
   task's NFR step) and `jest.config.cjs` (its exclusion); `buildFileWriter.ts` only if a new write kind
   is needed]
@@ -732,8 +887,13 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   `compile_plan`'s two modes, the write ledger and `guide_run` (§3.8). The fifteen-stage fixture is
   WU-30's synthetic plan in P1 form. This merge adds two tools: counts reach 84, and 83 without
   poe.ninja.
+  - **As built:** every group is created with Full DPS off, and the rebuilds are deferred, with outputs
+    equal to the eager path (D-306).
+  - **Its review** (`8579f07`, `408ffd9`) added the per-stage off-hand handling, `compareItems` and
+    `loadoutWarnings` (D-310), and the config restore and `saveWarnings` (D-248).
 
 ### WU-42: V1 validity and V2 config checks inside compile
+- status: built, merged at `c3dba2e`
 - kind: build
 - depends-on: [WU-41, WU-39, WU-31]
 - role: backend-dev + lua-dev
@@ -750,7 +910,70 @@ These are formalizer's choices where the inputs fix a requirement but not its me
 - summary: §3.7: the V1/V2 inputs in the stage reply, `producers` and the config baseline in
   `compile_check`, the placeholder-aware default audit (D-212), the baseline list (D-230), and the checks.
   The two-stage fixture passes both: each of its placeholder-driven and default-on options is listed by
-  the stage or by the baseline list.
+  the stage or by the baseline list. Its review fix (`c3dba2e`) added D-250…D-252.
+
+### WU-51: Spike: Full DPS compile cost with only the named groups (amendment 3's S-N2)
+- status: not built (target; amendment 3, approved 2026-10-10)
+- kind: spike
+- depends-on: []
+- role: lua-dev
+- touches: [`docs/build-guide/spikes/WU-51-full-dps.md` (new)]. Probes run only from `mktemp -d`, with
+  temp `POB_DIRECTORY`, `XDG_STATE_HOME` and `POB_GUIDES_DIRECTORY`.
+- produces: [the report: the compile cost with Full DPS on for the named source's groups only; the
+  decision for §3.6 step 9 (D-293)]
+- consumes: [WU-41's compiler; the fifteen-stage fixture (D-329)]
+- acceptance: [AC-P57]
+- milestone: M-14
+- summary: Measure a final compile of the fifteen-stage fixture with `includeInFullDPS` on for the named
+  source's groups only (each stage's `rolledGroup` there). The reason is amendment 3's test run: every group
+  in Full DPS took 160.68 s, with one stage at 25.50 s. That is against NFR-20's 100 s and NFR-21's
+  per-stage limit (R-32). Within NFR-21, the final compile computes Full DPS for those groups; otherwise the
+  flags are written at export only.
+
+### WU-55: Count and custom modifiers in the plan, the compiler and the record (amendment 3's N-4)
+- status: not built (target; amendment 3, approved 2026-10-10)
+- kind: build
+- depends-on: [WU-51]; serialize with WU-61 on `src/plan/schema.ts` (D-320)
+- role: backend-dev + lua-dev
+- touches: [`src/plan/schema.ts`, `src/plan/compiler.ts`, `src/plan/record.ts`, `src/plan/checks/` (the
+  reason findings), `pob-api/API/Compile.lua`, `pob-api/API/BuildOps.lua` (`create_socket_group`'s
+  `groupCount`), `docs/build-guide/plan-reference.md` and its worked example,
+  `tests/unit/planChecks.test.ts`, the compiler's engine tests, `src/engine/schemas.ts`,
+  `src/pobLuaBridge.ts` and `tests/integration/contract.test.ts` (the amended actions' schemas, wrapper
+  types and contract cases)]
+- produces: [§3.2's `count`, `countReason` and `customMods`; §3.6's `customMods` writes and the delivered
+  file's `groupCount` and `includeInFullDPS`; the record's Count-scaled figures and custom-modifier marks,
+  with their field names in C-33's text (D-293, D-294)]
+- consumes: [WU-51's decision, C-31, C-32, C-33, C-41]
+- acceptance: [AC-P51, AC-P52, AC-P53, AC-P54, AC-P55, AC-P56, AC-B3, AC-B4, AC-B5]
+- milestone: M-14
+- summary: The plan gains `count`, `countReason` and `customMods`.
+  - The compiler writes `customMods` after the config options. The record applies Count itself and marks
+    the figures computed with custom modifiers.
+  - The delivered file carries `groupCount` and `includeInFullDPS` on the named source's groups, as WU-51
+    decided.
+  - V1 reports a missing reason. If WU-55 merges before WU-61, it makes §3.2's `schemaVersion` bump, and
+    AC-P10's version row moves with it.
+  - AC-P37's test now checks that no group is in Full DPS (D-306). That check narrows to the groups
+    outside the named source.
+  - Slice 3 reads the new figures (WU-57, WU-58).
+
+### WU-61: The entering-maps variant and the ladder track (amendment 2)
+- status: not built (target; amendment 2, approved 2026-10-09)
+- kind: build
+- depends-on: []; serialize with WU-55 on `src/plan/schema.ts` (D-320)
+- role: backend-dev
+- touches: [`src/plan/schema.ts` (`variant`), `src/plan/checks/v1.ts` (`predecessorOf`),
+  `docs/build-guide/plan-reference.md`, `tests/unit/planChecks.test.ts`]
+- produces: [§3.2's `entering-maps` variant (D-281); §3.7's one endgame track (D-282), replacing A-P3]
+- consumes: [C-31, §3.7]
+- acceptance: [AC-P58, AC-P59]
+- milestone: M-14
+- summary: `variant` gains `entering-maps`, and `tree-continuity` follows one track, `m` → `b` → `n`.
+  - If WU-61 merges before WU-55, it makes §3.2's `schemaVersion` bump, and AC-P10's version row moves
+    with it.
+  - The track change can move fixture verdicts (R-37).
+  - Slice 3's guide-style unit, WU-62, builds on this one.
 
 ## 6. Acceptance criteria
 
@@ -1037,9 +1260,41 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   `scenario`; every default-on option it doesn't list, with `origin:"default"`; and every
   placeholder-driven option it doesn't list, with `origin:"placeholder"` and a value equal to a Lua query
   of that config set's `placeholder` entry after the compile. An unlisted option's class is `baseline`
-  exactly when `data/config-baseline.json` lists it, else `unlisted`. A variant that sets `enemyLevel`
-  explicitly to its placeholder value keeps it in `configEffective` with `origin:"explicit"`, while the
-  saved XML's config set has no `<Input name="enemyLevel">`.
+  exactly when `data/config-baseline.json` lists it, else `unlisted`.
+  - That class rule predates D-250 and D-252 (§3.7). It holds for this fixture, which has no boss stage;
+    AC-P42 tests the amended rule.
+  - A variant that sets `enemyLevel` explicitly to its placeholder value keeps it in `configEffective` with
+    `origin:"explicit"`. PoB's own `SaveDB` leaves `<Input name="enemyLevel">` out of that config set, and
+    the written file has it (D-248).
+
+**Count and custom modifiers (WU-51, WU-55; target, D-293).** Engine-required unless stated otherwise.
+
+- **AC-P51 (WU-55, D-293).** Unit, `tests/unit/planChecks.test.ts`. A group with `count` above 1 and no
+  `countReason` gives a V1 finding on that stage, so `v1.pass` is false; with a `countReason`, no finding.
+  This is a V1 finding, not a schema error (D-322), and WU-55 names its code. A group
+  without `count` counts as 1. A `count` of 0, or one that isn't an integer, is a schema error at its path.
+- **AC-P52 (WU-55, D-293).** Unit, `tests/unit/planChecks.test.ts`. A `customMods` entry without a `reason`
+  gives a V1 finding on that stage; with one, no finding. A plan without `customMods` is valid.
+- **AC-P53 (WU-55, D-293).** A group with `count` n records its hit figure × n and a stacking
+  damage-over-time figure × n. A non-stacking damage-over-time figure stays unchanged (PoB's rule,
+  `Modules/Calcs.lua:342-411`). The raw figures stay as they were.
+- **AC-P54 (WU-55, D-293).** Each `customMods` entry reaches PoB's `customMods` option, one line per entry,
+  written after the stage's config options.
+- **AC-P55 (WU-55, D-293).** Every record figure computed while a custom modifier was present is marked,
+  defences included; a stage without one has no mark.
+- **AC-P56 (WU-55, D-293).** The final PoB file sets `groupCount` (the plan's `count`) and
+  `includeInFullDPS` on the named source's groups only.
+- **AC-P57 (WU-51, D-293, NFR-21).** Script check. The report at the WU-51 path gives the compile cost of
+  the fifteen-stage fixture with Full DPS on for the named source's groups only, and a decision line. Within
+  NFR-21, the final compile computes Full DPS; otherwise the flags are written at export only.
+
+**Entering maps and the ladder (WU-61; target, D-281, D-282)**
+
+- **AC-P58 (WU-61, D-281).** Unit. `validatePlan` accepts a stage with `variant: "entering-maps"` and the
+  variant fields (`ascendancyPoints`, `variantBasis`, `rolledGroup`).
+- **AC-P59 (WU-61, D-282).** Unit, `tests/unit/planChecks.test.ts`. V1's `tree-continuity` uses one track:
+  `m` from the last campaign stage, `b` from `m`, `n` from `b`. A rung that drops its predecessor's node
+  without `respec` gets a `tree-continuity` finding on that rung.
 
 ## 7. Test strategy and migration (this slice)
 
@@ -1049,13 +1304,18 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   list, the NFR step in `mise.toml`. Engine-required, in process across the real TS↔Lua seam through
   `engineDescribe`: the compile, `guide_run`, write-ledger, check, quest-key and NFR criteria, plus
   `contract.test.ts` cases for the three Lua actions.
-- **The M-11 exit** is the spine's (§7): every AC-P green, the hand-written two-stage fixture compiling,
-  reloading and round-tripping (AC-P21…AC-P24, AC-P39), AC-P37 for NFR-20 and NFR-21, and AC-B6 and AC-B8.
+- **The M-11 exit** is the spine's (§7): every AC-P of M-11's units green (AC-P1…AC-P50), the hand-written
+  two-stage fixture compiling, reloading and round-tripping (AC-P21…AC-P24, AC-P39), AC-P37 for NFR-20 and
+  NFR-21, and AC-B6 and AC-B8. M-11 is met (`../worklog.md:314`).
+- **M-14** ("open builds offline", D-315, spine §7) needs this slice's WU-51, WU-55 and WU-61 merged
+  (D-315). AC-P51…AC-P59 green at the last merge is part of the exit the coordinator added (PROPOSED,
+  2026-10-10; spine §7).
 - **Regression.** Golden values (AC-B5), `engineKinds.test.ts`, the hygiene test and the static scans stay
   green with empty waivers; only the count literals move (AC-B1).
 - **Migration.** None. Everything is additive: a new env var with a default, new tools, new `data/` files,
   new Lua modules, the write ledger in the state dir, and a separate NFR step in `mise run test`. Roll back
-  by reverting a unit.
+  by reverting a unit. *Target (WU-55, WU-61):* `schemaVersion` and `recordVersion` each bump once (§3.2,
+  §3.6). Version-1 plans stay accepted (D-332).
 
 ## 8. Open items (holes in the inputs)
 
@@ -1065,3 +1325,33 @@ All four were resolved by the coordinator on 2026-10-07:
    and `data/config-baseline.json` (D-230; §3.7, AC-P42).
 3. Spirit-gem availability: V1 notes Spirit gems instead of checking them (A-31).
 4. Respec gold costs: `goldCost` carries `judgment` tags (A-32).
+
+The fold of 2026-10-10 settled these, by the user's ruling (D-315) or the coordinator's (the rest, proposed
+and binding until the user overrides them):
+
+5. **The milestone** (D-315). This slice's new units, WU-51, WU-55 and WU-61, belong to M-14, "open builds
+   offline" (§7).
+6. **Schema version** (D-320, D-332, §3.2). One `schemaVersion` bump covers `count`, `countReason`, `customMods`
+   (optional) and `entering-maps`. The first of WU-61 and WU-55 to merge makes it; the second extends the
+   same, unreleased version. Version-1 plans stay accepted after the bump (D-332; PROPOSED by the
+   coordinator, 2026-10-10). The new fields are optional with defaults: `count` 1, no `customMods`, no
+   `entering-maps` variant. So recorded runs' plans still validate and compile.
+7. **The record's Count fields** (D-321, §3.6).
+   - The raw figures stay, and new fields beside them hold figure × count.
+   - A mark flags the figures computed with custom modifiers, and `recordVersion` bumps.
+   - The verdict line and the headline read the named source's Count-scaled figure, with `TotalEHP` beside
+     it (D-294).
+   - WU-55 names the fields.
+8. **The reason checks** (D-322). A missing `countReason` (when `count` isn't 1), or a `customMods` entry
+   without a reason, is a V1 finding, not a schema error (AC-P51, AC-P52).
+9. **`buildSha1`'s projection** (D-328, §3.6). It also strips `config.scenario[].source` and
+   `respec.goldCost.source`. That is intended: it tracks build content, and sources and tags are citations.
+10. **S-N2's plan** (D-329). WU-51 measures the fifteen-stage fixture (AC-P57).
+11. **The unverified league** (D-330, §3.2). `"league": "unverified"` (D-313) is the convention for an
+    online run that can't reach the trade site; an offline run's league stays null (D-233).
+
+Two V1 edge cases from the build are risks in the spine's register:
+- Trial 1's progress key lets an end-of-Act-1 stage spend 2 ascendancy points, with no level check to
+  catch it (R-38, `../worklog.md:201-202`).
+- D-251 accepts only the two boundary values. So an area-60 interlude zone before the first interlude key
+  is an edge case (R-39, `../worklog.md:338-339`).

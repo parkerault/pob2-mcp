@@ -1,6 +1,8 @@
 # Amendment 3: open-ended builds
 
-**Status: APPROVED by the user, 2026-10-10** ("I approve amendment 3"). Proposed the same day. The user set the direction on 2026-10-10
+**Status: FOLDED into the spine and slices on 2026-10-10; those are authoritative** (D-285…D-304, as target design: not built yet, WU-50…WU-59). This file stays as the rationale record.
+
+**Approval: APPROVED by the user, 2026-10-10** ("I approve amendment 3"). Proposed the same day. The user set the direction on 2026-10-10
 (`../worklog.md`, from "The user's answers and a new direction" through "The user's answers (2026-10-10,
 continued)"). The user approved drafting this memo ("Go ahead"). The user then took the recommendations on Q1–Q7 and
 asked about EHP (`TotalEHP`) next to the headline; Q8 folds it in. The contents stay proposals until the user

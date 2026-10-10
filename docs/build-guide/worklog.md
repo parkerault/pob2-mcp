@@ -1485,3 +1485,152 @@ card.
   - Recommended: option 1.
   - Then amendment 3. Its independent units are S-N1 (the poe.ninja API spike), S-N2 (the Full DPS timing
     spike), N-2 (lookup), N-3 (coverage) and N-5 (content), with a fresh worktree for the parallel build.
+
+### Spec fold v1.3 (2026-10-10)
+
+The user chose option 1: fold first, then build amendment 3.
+
+**Process.**
+- A planner agent mapped every item to its target and assigned the new ids. That covered D-239…D-266,
+  ten settled decisions the work-log never numbered, amendments 1–3 and C-33.
+- Four editors applied the map in parallel, one per spec file.
+- Three read-only review lenses checked it: id integrity and the task graph, stale or contradictory text,
+  and fidelity to sources.
+
+**The map's main finding: amendment 2 is approved but not built.**
+- `src/plan/schema.ts:217` has no `entering-maps` variant.
+- The guide template keeps its old headings, and there is no `audit.md`.
+- See "Not implemented yet." above.
+
+It is folded as target design, like amendment 3, with units WU-60…WU-62.
+
+**The user's rulings (2026-10-10).**
+- **F4. Live run.** New milestone M-14, "open builds offline": amendments 2 and 3 are built and their
+  offline run with an open brief (WU-59) is recorded. The live Titan / Blood Hunt run (WU-48, M-13) comes
+  after M-14.
+- **F5. Tool cap.** The user said: "I didn't explicitly ask for a cap, so I'm fine with whichever is the
+  cleanest." So D-173's numeric cap and NFR-24 are retired (D-316). Grouping stays. The poe.ninja tools
+  are one per distinct query shape, set by S-N1 (WU-50).
+
+**The fold's gap list ("F-n" in the spec).** The coordinator resolved the planner's other 25 gaps. They are
+recorded as decision rows marked PROPOSED by the coordinator. The text below is the resolution list as
+written.
+
+**The coordinator's resolutions (PROPOSED, 2026-10-10).**
+
+- **F1.** Fold amendment 2 as target design.
+  - Keep the map's numbering: no chronological renumbering.
+  - Split amendment 2 into WU-60, WU-61 and WU-62 as the map proposes.
+  - WU-62 merges before WU-57 and WU-58.
+- **F2.** D-305…D-314 become decision rows.
+- **F3.** Slice 01 hosts WU-50 (S-N1), N-1, N-2 and N-3, with AC-K criteria.
+- **F6. Card ids** are `r<round>-<researcher letter>-<n>`, for example `r1-a-2`, with files at
+  `cards/<id>.md`.
+  - The runner letters the researchers when it starts them, so parallel researchers never collide.
+  - `research/p<k>-r1a-<n>.md` stays.
+  - If WU-57 (N-6) finds the research files unused, it removes them and records a decision row.
+- **F7. One `schemaVersion` bump** covers all of these: `count` (an integer of at least 1, default 1),
+  `countReason`, `customMods` (optional) and the `entering-maps` variant.
+  - The first of WU-61 and WU-55 to merge makes the bump, and the second extends the same, unreleased
+    version.
+  - The plan reference and the worked example are updated in the same unit.
+- **F8. The record keeps the raw figures** as they are.
+  - New fields beside them hold figure × count, and a mark flags each figure computed with custom
+    modifiers. `recordVersion` bumps.
+  - The verdict line and the headline read the named source's Count-scaled figure, with `TotalEHP` beside
+    it (Q8).
+  - WU-55 (N-4) names the exact fields and writes them into C-33's text in the same unit.
+- **F9. A missing reason is a V1 finding of error severity, not a schema error.** This covers a missing
+  `countReason` when `count` isn't 1, and a `customMods` entry with no reason. The amendment names the test
+  `planChecks.test.ts`.
+- **F10, F11, F12, F20. Missing acceptance criteria** (N-2, the four N-3 flags, N-8, the D-122 wording test).
+  - Each unit's first step pins its acceptance criteria in its slice spec, from the amendment's text, and
+    the coordinator reviews them before any code is written. Record this as a proceed-on assumption (A-n).
+  - "Like WU-47" (N-8) means WU-47's recorded procedure, with an open brief in place of a roll. The brief,
+    the test answers and the faults are chosen when the unit starts.
+  - "Culmination II, then Ailith's Chimes" (AM3:429-430) is settled by the same step.
+- **F13. Test answers** are `answers.brainstorm`, `answers.verification` and `answers.final`.
+  `checkpoint1` and `checkpoint2` are retired in run-log v3.
+- **F14.** S-N1 sets the popularity threshold from the data and records it as a decision row.
+- **F15.** The poe.ninja tool details (names, arguments, outputs, kinds, cache lifetime, back-off) are
+  outputs of S-N1 (WU-50), recorded in C-54 when it merges.
+- **F16.** The pattern library's cap is 6,000 words, counted by the checker.
+- **F17.** The checker accepts run logs of schema v2 and v3. v2 is accepted only so recorded runs (WU-47's)
+  still check.
+- **F18.** The spine editor rates R-32…R-37 on the register's existing scale, marked PROPOSED.
+- **F19.** Unchanged: the trade-link field stays deferred to WU-48, as amendment 2 says (a human-decision
+  gate).
+- **F21.** `m` follows D-256's area-level tie, with the entering-maps rung's area level from D-281. The row
+  says the coordinator inferred this.
+- **F22.** WU-60 and WU-53 both edit `Lookup.lua`, so they serialize, WU-60 first (consistent with F1).
+- **F23.** Record both work-log notes as risks with their work-log lines: trial 1's progress key (WL:201-202)
+  and D-251's area-60 interlude edge (WL:338-339).
+- **F24. Intended.** `buildSha1` tracks build content, and sources and tags are citations. Say so in C-33's
+  text, naming `config.scenario[].source` and `respec.goldCost.source`.
+- **F25.** S-N2 measures the fifteen-stage fixture.
+- **F26.** `"league": "unverified"` stays the offline convention, stated beside D-233.
+- **F27.** Probe variants live at `probes/<card-id>/<n>/` in the run folder.
+
+**After the editors finished, the coordinator added two more rulings (both PROPOSED).**
+- **Version-1 plans** stay accepted after the schema bump, since the new fields are optional and default.
+- **`--no-ninja`** means the run calls no tool in the `ninja` group: neither C-54's tools nor
+  `get_currency_rates`. Price totals then become `unverified`, which is pricing's existing path when rates
+  are missing.
+
+**The spine editor corrected F26 to match the code.** `"league": "unverified"` marks an online run that
+can't reach trade. Offline, `league` is null (`D1.md:43-51`; D-330).
+- **A non-skill card's identity, D-334 (PROPOSED).** The fix pass left this open: amendment 3 says a card
+  whose damage source isn't a skill "can be dealt and verified", but not how it passes the identity check,
+  which wants `Kind: active`. The ruling:
+  - its `skill` names the damage source and is checked by a lookup of its kind;
+  - verification runs only the checklist's read-only checks, with no skeleton or probe compile until HG-21's
+    plan field exists;
+  - the card says so.
+
+**The review of the fold.**
+- Three lenses found 51 findings: 18 stale or contradictory text, 15 fidelity, 18 ids and graph.
+  - About 137 of the 150 claims the fidelity lens sampled held.
+  - The id lens found no undefined ids, no cycles, and the user's three ordering rulings all hold.
+- Clustered, that came to 21 material clusters and 23 low items.
+- One verify-and-fix pass checked each one against the amendments, the work-log and the code. Every cluster
+  except 8 (a non-skill card's identity, settled as D-334 above) was fixed.
+
+**The convergent high finding.** D-297 allowed polite poe.ninja requests, but the spine kept stab HG-1 (any
+live request to poe.ninja stops for the user) and stab D-34 unamended. The fix:
+- D-297 now amends stab D-34, stab HG-1, D-181 and D-201, for poe.ninja only;
+- D-316 resolves stab HG-3 for the C-54 tools;
+- the project `CLAUDE.md` line is reworded in this commit. Tests stay offline; pathofexile.com and requests
+  carrying a cookie or personal data still need approval; agents may query poe.ninja politely in development.
+
+**Other notable fixes.**
+- M-10…M-12's exits now cover only their own units' ACs. M-14 lists the target ACs, as the coordinator's
+  PROPOSED addition to the user's ruling.
+- D-277 is restored: only amendment 2's optional items are optional.
+- Amendment 1's coordinator-settled parts are no longer labelled as the user's.
+- D-332 (version-1 plans) and D-333 (`--no-ninja`) are recorded.
+- WU-57 hard-depends on WU-50, with WU-52 a soft dependency on offline stubs.
+- The engine-action units now own AC-B3…AC-B5.
+
+**Not changed.**
+- The allowlist rules R-1…R-6 in slice 03 keep their names, because `buildGuidePipeline.test.ts` cites them.
+- The exception labels E1–E4 stay, because the work-log uses them.
+
+**Skill drift found and left for WU-57.** `.claude/agents/build-guide-verifier.md:11-13`, and its test, still
+carry the pre-D-264 re-check rule. Fixed now:
+- `references/run-folder.md:41` said the runner "appends" known issues. The runner replaces the list (D-265).
+
+**Gate.** `jest tests/static`: 195/195. One assertion pinned slice 03's `outputs` row word for word, so that row
+keeps its old wording. The fold changes only docs, `CLAUDE.md` and one skill reference line.
+
+**Spec state.** The spine is v1.3. The decision log runs D-100…D-334, the contracts C-30…C-54, and the units
+WU-30…WU-62:
+- WU-50…WU-59 are amendment 3;
+- WU-60…WU-62 are amendment 2;
+- M-14 comes before the M-13 alpha.
+
+**Next:** implement amendments 2 and 3 from the folded spec. The independent first wave is:
+- WU-50 (the poe.ninja spike, S-N1);
+- WU-51 (the Full DPS timing spike, S-N2);
+- WU-56 (the pattern library and card template, N-5);
+- WU-60 (amendment 2's lookup work), with WU-53 after it on `Lookup.lua`;
+- WU-54 (coverage flags, N-3).

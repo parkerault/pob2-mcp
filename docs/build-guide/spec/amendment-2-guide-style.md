@@ -1,6 +1,8 @@
 # Amendment 2: guide style
 
-**Status: APPROVED by the user, 2026-10-09,** with one change and the four open questions answered:
+**Status: FOLDED into the spine and slices on 2026-10-10; those are authoritative** (D-276…D-284, as target design: not built yet, WU-60…WU-62). This file stays as the rationale record.
+
+**Approval: APPROVED by the user, 2026-10-09,** with one change and the four open questions answered:
 - **Lighter verification.** There is no per-fact trace table. The plan holds the facts and is verified as
   today, and the guide renders the plan. The prose lens reads the guide like an editor. The checker keeps
   cheap structural guards and one number check (G3, G6).

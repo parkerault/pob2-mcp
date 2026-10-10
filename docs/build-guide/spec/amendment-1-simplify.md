@@ -1,6 +1,8 @@
 # Amendment 1: a simpler guide pipeline
 
-**Status: APPROVED by the user, 2026-10-08** (S1…S9; dropping workflows confirmed). The coordinator
+**Status: FOLDED into the spine and slices on 2026-10-10; those are authoritative** (D-267…D-275). This file stays as the rationale record.
+
+**Approval: APPROVED by the user, 2026-10-08** (S1…S9; dropping workflows confirmed). The coordinator
 settled the refinements and open questions as proposed below: S6's refinement (an attempt-1 fault re-runs
 free, a persistent fault's attempts count), Q1 (one `Known issues` heading), Q2 (R1b keeps its 2 compile
 retries), Q3 (the checker keeps recomputing the D1 gate, from the record), Q4 (a checkpoint-2 revision gets

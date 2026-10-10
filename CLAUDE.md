@@ -34,8 +34,10 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
 - **Tests never touch the network or the real builds folder (D-34).** Jest's setup makes global `fetch`
   throw, scrubs `POESESSID`/`POE_SESSION_ID`, and points `POB_DIRECTORY` and `XDG_STATE_HOME` at temp
   dirs. HTTP in tests goes through `fixtureFetch` and the committed fixtures in `tests/fixtures/`. No
-  agent or test makes requests to pathofexile.com or poe.ninja: the rate limits are shared with the
-  user's IP and account.
+  test makes requests to pathofexile.com or poe.ninja, and no agent contacts pathofexile.com or sends a
+  request that carries a cookie or personal data without the user's approval: the rate limits are shared
+  with the user's IP and account. In development, agents may query poe.ninja politely: serial requests, a
+  back-off on HTTP 429, and nothing fetched twice that a cache could hold (build-guide D-297).
 - **Spawned test servers use `spawnServer`** (`tests/helpers/spawnServer.ts`). It gives the child an
   explicit safe env: trade and poe.ninja disabled, trade requests pointed at a dead address, temp
   folders. In-process tests use `startTestServer` (`tests/helpers/server.ts`).

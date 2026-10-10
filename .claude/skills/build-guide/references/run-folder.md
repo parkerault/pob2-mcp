@@ -38,7 +38,7 @@ folder (D-153).
 | `dossier.md` | the R1b-assemble step | the dossier (slice 03 §7.2) |
 | `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
 | `compile-record.json`, `compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` |
-| `guide.md` | W1; the runner appends the open findings to its `Known issues` (step 14) | the guide (slice 03 §8) |
+| `guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide (slice 03 §8) |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate | its verdict (`gates.md`) |
 | `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged | the V4 full pass and re-check reports (`source-markers.md`) |
 

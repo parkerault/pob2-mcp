@@ -958,6 +958,11 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
 
 - **Source:** Troy Tesko's video (patch 0.5.5), already in yt-library as `GsLBMXy3tDk`. It was read from the
   transcript plus about 25 frames, at about 161K subagent tokens on Opus. No links were opened.
+- **Links kept for later, not opened:**
+  - The creator's PoB export, `https://poe.ninja/poe2/pob/2abaf`, from the video description. Fetching
+    it from poe.ninja needs the user's approval.
+  - His PoE2 guide playlist, `youtube.com/playlist?list=PLTXChyYiMk9JhdkR5uQw7vPt49t965QjZ`.
+  - The video's frames, in `~/projects/yt-library/videos/GsLBMXy3tDk/frames/`.
 - **The build:**
   - The damage comes from the Melting Maelstrom mana flask: every 3 seconds, 100% of the mana spent in
     those seconds is dealt as chaos damage within 3 metres.

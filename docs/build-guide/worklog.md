@@ -933,3 +933,23 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
     - campaign alt-character tricks;
     - patch bugs and traps found only by playing;
     - sidegrade variants.
+
+**The user's decisions (2026-10-09):** "Agreed on everything else. Fold it in now."
+- **P1 softened.** The user asked whether requiring a fallback for every suggestion would massively increase
+  research. As a rule, yes: the cost is less the research than the strictness. The designers would have to
+  find and source a fallback for each caveat, and the prose lens would flag every miss, which drives fix
+  rounds.
+  - So fallbacks are stated only where D1 or D2 already weighed one.
+  - This now covers all fallbacks, including the existing slot-table and leveling gear fallbacks, whose cells
+    may be empty.
+  - None is required, and none is checked.
+- **P2 softened.** "There might not always be clear thresholds … 'when you can afford it' or 'when it starts
+  feeling underpowered'. I'm wary of making the rules/lenses too strict."
+  - A threshold is used when the plan has one; otherwise a first-person judgment trigger is fine.
+  - The lens doesn't check a trigger's form.
+- **P3–P12 adopted** as optional items: none is required, and the comparison-2 additions add no guard.
+- **The vendor regex moves from rejected to deferred** (amendment 2 §10, Q6). The user notes it is plain regex
+  and that community tools build the shortest one for chosen mods. It is unblocked by grounding the game's
+  supported syntax from a source the user names.
+- **Section budgets rebalanced:** Leveling 660→620, route 240→210 and At a glance 160→150 make room for the
+  additions. The total is about 2,840, with the cap still 3,000.

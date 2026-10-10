@@ -10,6 +10,22 @@
 - **Trade links.** Affix targets are written as text for now. A link field comes with WU-48, the live
   Titan / Blood Hunt run, if the price tool returns a link.
 
+**Revised 2026-10-09, after guide comparison 2** (ronarray's Martial Artist Monk guide and its videos,
+`../worklog.md:875-955`). The user approved the additions and softened two of them: fallbacks and threshold
+triggers are used where they exist, never required, and the prose lens doesn't flag their absence. The
+additions:
+- trigger lines and the loadout ladder;
+- "when you're short";
+- hold and save rows;
+- the entering-maps buy order;
+- config assumptions;
+- affix sources;
+- traps;
+- either/or picks;
+- a rotation clause.
+
+The vendor search regex is deferred (§10). Section budgets were rebalanced to about 2,840 words.
+
 The memo carries out the guide style the user settled after comparing our output with Fubgun's guides
 (`../worklog.md:832-856`). At finalization it folds into the spine (`README.md`), slice 03
 (`03-pipeline.md`) and amendment 1 (`amendment-1-simplify.md`). Paths without a directory are under
@@ -31,12 +47,12 @@ The memo carries out the guide style the user settled after comparing our output
 
 ## 1. Summary
 
-- **The guide.** `guide.md` becomes a reader layer of about 2,600 words, capped at 3,000. Everything kept for
+- **The guide.** `guide.md` becomes a reader layer of about 2,850 words, capped at 3,000. Everything kept for
   agents moves to `audit.md`.
 - **The guide renders the plan,** with no markers and no fact or number of its own. The plan is verified as
   today; the prose lens checks the guide against it.
 - **Advice** is in the first person and isn't verified.
-- **Fewer claims.** D1 and D2 write about 70–90 stage claims instead of 232.
+- **Fewer claims.** D1 and D2 write about 75–95 stage claims instead of 232.
 - **A bridge rung,** "entering maps", between the campaign's end and the budget variant.
 - **Cost.** V4's cache reads fall from 37.6M to roughly 11–14M per run (§4.4).
 
@@ -51,31 +67,45 @@ The memo carries out the guide style the user settled after comparing our output
 - **No pipeline text.** No markers, confidence labels, finding ids or pipeline words. No stage ids outside the
   loadout names.
 - **Numbers** come from the plan or the record, rounded as a guide would ("about 2,740").
+- **Fallbacks where they exist.** When a caveat, a choice or a gear target has an obvious fallback, say it in
+  the same place ("if you can't fit it, I drop Herald of Ash first"). The fallbacks come from alternatives D1
+  and D2 already weighed; none is required, a slot table's fallback cell may be empty, and the prose lens
+  doesn't flag a missing one.
+- **Triggers.** A "Move here when" or "when to swap" line uses a threshold when the plan has one: a stat, an
+  item owned, a level. It adds what to keep until then ("until then, keep Storm Wave"). Otherwise a
+  first-person judgment trigger is fine ("when you can afford it", "once clears start to feel slow"). The
+  prose lens doesn't check a trigger's form.
+- **Optional items,** used when the build has them; none is fine: traps (§11), either/or picks (§13), a
+  rotation clause (§6), hold and save rows (§4).
 - **Kept from our current guides:** survival as a verdict, the stage-matched PoB file, gem and trial timing,
   reasons and the FAQ (`worklog.md:848-849`).
-- **Held back:** crafting recipes, an atlas section, affix tier labels (our lookups can't supply them,
-  `references/lookups.md:9-23`), and trade links until WU-48.
+- **Held back:**
+  - crafting recipes;
+  - an atlas section;
+  - affix tier labels (our lookups can't supply them, `references/lookups.md:9-23`);
+  - trade links until WU-48;
+  - a vendor search regex (deferred, §10).
 
-Examples use run A's plan and record; the reward pick (`guide.md:184`) and the entering-maps rung are
-illustrative.
+Examples use run A's plan and record. The reward pick (`guide.md:184`), the entering-maps rung, the save row
+(row 4) and the short line (row 5) are illustrative.
 
 | # | Heading | Words | Holds | Example (Titan / Blood Hunt) |
 |---|---|---|---|---|
-| 1 | `## At a glance` | 160 | what the build does, its payoff, pros, cons, difficulty | "Blood Hunt lunges at a target, and on an enemy that has suffered Blood Loss it also sets off a 1.7-metre explosion. Atziri's Acuity makes 10% of your hits' physical damage cause Blood Loss, so in maps one button clears." |
-| 2 | `## Your PoB file` | 80 | the import code (first fenced block), the file name, loadouts, engine and boss-data versions, the offline line, PoB warnings | "Import the code below; each stage is a loadout at the top of PoB2. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Made offline, so no prices were checked." |
+| 1 | `## At a glance` | 150 | what the build does, its payoff, pros, cons, difficulty | "Blood Hunt lunges at a target, and on an enemy that has suffered Blood Loss it also sets off a 1.7-metre explosion. Atziri's Acuity makes 10% of your hits' physical damage cause Blood Loss, so in maps one button clears." |
+| 2 | `## Your PoB file` | 120 | the import code (first fenced block), the file name; the loadouts as one ordered line, each with its trigger; that the items are stat examples; engine and boss-data versions, the offline line, PoB warnings | "Import the code below; each stage is a loadout at the top of PoB2: Act 1 Clearfell (L4) → Act 1 Ogham Manor (L15) → Act 2 Keth (L24) at 22, with Blood Hunt → … → Entering maps when the campaign is done → Endgame budget once you own Atziri's Acuity. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Made offline, so no prices were checked." |
 | 3 | `## Survival by stage` | 130 | a legend; one verdict per campaign group (Acts 1–2, Acts 3–4, the interludes and Epilogue); one line per endgame rung in G6's fixed form | "Acts 1–2, watch lightning: 38% at Keth after Act 2's −10%; take the Sisters of Garukhan's +10%." and "**Budget (L90): solid.** Resistances 75/75/75/75% at −60%. Max hit 3,498 physical against about 400, and at least 10,900 elemental or chaos against about 96. Blood Hunt about 20,700 DPS." |
-| 4 | `## Gem and ascendancy timing` | 110 | a When / Change table: uncut-gem steps, trials and their nodes | "Level 22 and a level-7 uncut gem (Act 2 drops): Blood Hunt replaces Whirling Slash (needs 41 Dex)." |
-| 5 | `## Priorities` | 140 | support, link, quality and stat priority; the weapon-swap rule of thumb | "My support order: Brutality, Rapid Attacks, Heavy Swing, Heft, then Physical Mastery." |
-| 6 | `## Leveling` | 660 | one H3 per campaign stage (its loadout name), at most 110 words: setup, tree additions with reasons, attributes (have and need), gear targets with a fallback, when to swap | `### Act 2 Keth (L24) {3}`: "At 22, swap Whirling Slash for Blood Hunt; Rake stays alone to open on rares. Dex 82, needs 41. Without mana leech I keep the mana flask going: packs cost about 6 mana a second more than you regain." |
-| 7 | `## Campaign route and rewards` | 240 | reward quests in route order; each reward choice's pick with a reason; currency habits that serve this build | "Goddess of Justice, Act 4: take 30% increased Mana Recovery from Flasks. Vaal Pact switches your life flask off in maps." |
-| 8 | `## Endgame: entering maps`, with `### Checks` | 200 | the gate in, changes from the Epilogue, the fallback, checks (G5) | "Move here when the campaign is done and all four resistances are capped at −60%." |
-| 9 | `## Endgame: budget`, with `### Checks` | 330 | the gate in, buy order, a slot table (slot, target, fallback), gems, tree with reasons, checks | "Move here when you own Atziri's Acuity. Then buy 30% movement-speed boots with cold, lightning and chaos resistance." |
-| 10 | `## Endgame: non-budget`, with `### Checks` | 180 | the gate in, the upgrade order, checks | "Upgrade first to a spear with +3 to melee skills." |
-| 11 | `## How to play it` | 110 | clear and single target; the rolled skill as the main damage (D-122), and why when it isn't the clear skill (D-148) | "Bosses: Rake first so the target bleeds, then Blood Hunt, then Rake again once the Bleeding is consumed." |
-| 12 | `## What PoB can't show`, ending with `### Known issues` | 170 | each caveat once, by the figure it qualifies; Known issues hold the runner's sentences, outside the cap | "PoB has no switch for Blood Loss, so its explosion figure assumes every use explodes; I read it as a ceiling." |
-| 13 | `## FAQ` | 110 | 3–5 questions a player asks | "**Why keep Life Regeneration under Vaal Pact?** It's the only path to Mysterious Lineage's 15% more maximum life." |
+| 4 | `## Gem and ascendancy timing` | 130 | a When / Change table: uncut-gem steps, trials and their nodes; optional hold rows (a gem kept at a lower level, or an investment delayed, with the reason) and save rows (what to stockpile before a swap) | "Level 22 and a level-7 uncut gem (Act 2 drops): Blood Hunt replaces Whirling Slash (needs 41 Dex)." and "Act 2: keep the first level-7 uncut gem for Blood Hunt at 22." |
+| 5 | `## Priorities` | 180 | support, link, quality and stat priority; the weapon-swap rule of thumb; one "when you're short" line: what to drop first when spirit, mana or an attribute runs short, with the record's numbers | "My support order: Brutality, Rapid Attacks, Heavy Swing, Heft, then Physical Mastery." and "Short on mana before leech? I drop Physical Mastery first, then Heft." |
+| 6 | `## Leveling` | 620 | one H3 per campaign stage (its loadout name), at most 110 words: setup, tree additions with reasons, attributes (have and need), gear targets (with a fallback where there is one), when to swap; a rotation clause when the stage's damage is a combo | `### Act 2 Keth (L24) {3}`: "At 22, swap Whirling Slash for Blood Hunt; Rake stays alone to open on rares. Dex 82, needs 41. Without mana leech I keep the mana flask going: packs cost about 6 mana a second more than you regain." |
+| 7 | `## Campaign route and rewards` | 210 | reward quests in route order; each reward choice's pick with a reason; currency habits that serve this build | "Goddess of Justice, Act 4: take 30% increased Mana Recovery from Flasks. Vaal Pact switches your life flask off in maps." |
+| 8 | `## Endgame: entering maps`, with `### Checks` | 250 | the gate in, changes from the Epilogue, a numbered buy order within 5 divines (each step with a short reason where it isn't obvious), fallbacks where there are any, checks (G5) | "Move here when the campaign is done and all four resistances are capped at −60%." |
+| 9 | `## Endgame: budget`, with `### Checks` | 330 | the gate in, buy order (each step with a short reason where it isn't obvious), a slot table (slot, target, fallback: the affix to give up first, or empty), gems, tree with reasons, checks. A target names the affix's source when it limits the base ("Arcane Surge on Crit is desecrated, so the gloves need energy shield") | "Move here when you own Atziri's Acuity. Then buy 30% movement-speed boots with cold, lightning and chaos resistance." |
+| 10 | `## Endgame: non-budget`, with `### Checks` | 180 | the gate in, the upgrade order, checks; affix sources as in §9 | "Upgrade first to a spear with +3 to melee skills." |
+| 11 | `## How to play it` | 170 | clear and single target; the rolled skill as the main damage (D-122), and why when it isn't the clear skill (D-148); up to 4 trap bullets: interactions that break or kill the build, each one that item text, gem text or PoB confirms | "Bosses: Rake first so the target bleeds, then Blood Hunt, then Rake again once the Bleeding is consumed." and "**Trap:** Vaal Pact stops your life flask, so don't buy life-flask affixes after the switch." |
+| 12 | `## What PoB can't show`, ending with `### Known issues` | 200 | each caveat once, by the figure it qualifies; the settings the headline figure assumes (charges, stacks, counts such as Trinity's resonance count), from the plan's config; Known issues hold the runner's sentences, outside the cap | "PoB has no switch for Blood Loss, so its explosion figure assumes every use explodes; I read it as a ceiling." and "The DPS averages Brutality's 20% chance to ignore physical damage reduction, and assumes the target isn't Bleeding." |
+| 13 | `## FAQ` | 160 | 3–5 questions a player asks; up to 2 may be either/or picks, each with its deciding factor as a PoB damage or survival difference, plus the price difference when online | "**Why keep Life Regeneration under Vaal Pact?** It's the only path to Mysterious Lineage's 15% more maximum life." |
 | 14 | `## Changelog` | 10 | dated entries | |
-| | **Total** | **2,630** | cap 3,000 | |
+| | **Total** | **2,840** | cap 3,000 | |
 
 **The endgame rungs.**
 - Each rung's "Move here when" line appears once, at the top of its H2.
@@ -122,7 +152,12 @@ The guide's 297 source lines have no successor: the plan's claims carry the sour
   - the mechanics the build depends on (Blood Hunt's explosion on Blood Loss, Vaal Pact);
   - why a support, node or item is in or out;
   - requirements, gem and trial timing, and reward picks;
-  - rules of thumb with a number, as D1 or D2 `judgment` claims.
+  - rules of thumb with a number, as D1 or D2 `judgment` claims;
+  - traps (§11), each sourced to item text, gem text or the record;
+  - an either/or pick's deciding factor (§13): the PoB difference and the comparison it came from;
+  - an affix's source when it limits the base (§9, §10).
+- **No claim needed for advice:** fallbacks, judgment triggers, drop orders and rotation clauses written in
+  the first person. A number inside them is still a plan or record number.
 
 ### 4.2 The prose lens reads like an editor
 
@@ -131,6 +166,9 @@ It reads `guide.md` against the plan, the record and `audit.md`. It flags:
 - first-person advice that asserts a fact the plan lacks ("I find every hit explodes");
 - tutorial text (G4);
 - a caveat repeated, or later stated as settled.
+
+It doesn't flag a missing optional item: a fallback, a threshold trigger, a trap, an either/or pick, a hold or
+save row, or a rotation clause.
 
 It keeps today's checks of the gated statements: the rolled skill as the main damage (D-122, D-148), the
 budget lines (D-164, D-219), the chaos line (D-234) and the offline line. It checks "why this concept" in
@@ -149,13 +187,14 @@ Of run A's 232 stage claims, 86 go outright: 77 restate a record number, 7 an ac
 the uncut-gem tier rule.
 
 **Targets.**
-- **D1: about 30–40 stage claims** across `m`, `b` and `n`: mechanics, gate lines, fallbacks, rules of thumb.
+- **D1: about 35–45 stage claims** across `m`, `b` and `n`: mechanics, gate lines, rules of thumb, traps,
+  either/or picks and affix sources.
 - **D2: about 40–50:** timing, requirements and tree reasons per stage, plus one claim per reward pick.
 - **Ledger: about 30 entries,** down from 45: 15 reference hits, the Arbiter, and only the hand calculations
   the guide quotes.
 - **Prices: about 30,** up from 21, with `m`'s slots.
 
-That is about 130 checkable items instead of about 300.
+That is about 135 checkable items instead of about 300.
 
 ### 4.4 Token effect
 
@@ -169,7 +208,7 @@ An agent's cache reads are its turns times its average context: 29–51 turns at
 - **Full pass: about 9–11M.**
   - `sources`, about 3–4M: the plan only, about half the items, no markers.
   - `ledger`, about 3M: it loses its guide-number step (`references/stages/V4.md:119-121`).
-  - `prose`, about 3–4M: a 2,600-word guide with no markers, plus an `audit.md` of about 25 KB, instead of
+  - `prose`, about 3–4M: a 2,850-word guide with no markers, plus an `audit.md` of about 25 KB, instead of
     a 96 KB guide.
 - **Re-check: about 2–4M.**
   - In run A, 15 of the 21 unresolved `sources` findings and 4 of the 8 `prose` findings were missing
@@ -178,7 +217,9 @@ An agent's cache reads are its turns times its average context: 29–51 turns at
     (`worklog.md:737-738`), so don't add the two.
 - **V4 total: about 11–14M.**
 - **W1:** from 10.0M to roughly 6–8M: a guide a quarter the length.
-- **D1:** about +3–5M for the third rung.
+- **D1:** about +3–5M for the third rung, plus a compile per either/or pick it chooses to make.
+- **Comparison-2 additions:** about 5–10 more claims, roughly +0.3M for `sources`, inside the estimate's
+  range.
 
 ## 5. G4: not a tutorial
 
@@ -229,7 +270,10 @@ Campaign practicals are actions, not explanations, and they live in their own se
 
 **D1 and D2.**
 - D1 designs `m` after `b` and `n`: the cheapest setup that passes `m`'s gate with the same skill and supports.
-  At 5 divines the key unique may fit; when it doesn't, it is the gate into `b`.
+  At 5 divines the key item may fit: a unique, or a rare with a stat floor (a weapon's elemental DPS, an energy
+  shield total). When it doesn't, it is the gate into `b`.
+- D1 orders `m`'s buys for the guide's numbered buy order (§8), with a short reason per step where it isn't
+  obvious.
 - D1 prices `m-<slot>` entries, adds the five hits `hit_m_<type>`, and writes claims for the gate lines and
   fallbacks.
 - D2 plans the campaign backward to `m`.
@@ -286,7 +330,8 @@ The checker:
    - **Known issues, by sentence.** Each open finding's reader sentence is a line of the guide's list, which
      has no other lines; its id is in `audit.md`. This replaces `:760-800`.
 
-Everything else is judgment: the prose lens, then the user's review at checkpoint 2.
+Everything else is judgment: the prose lens, then the user's review at checkpoint 2. The comparison-2
+additions add no guard; the checker counts only their words, under the cap.
 
 ## 8. G7: what is superseded or changed
 
@@ -313,10 +358,11 @@ Everything else is judgment: the prose lens, then the user's review at checkpoin
 |---|---|
 | `templates/guide-template.md` | Rewritten to G1, with the fixed verdict lines. Its "why this concept" (`:38`), ledger table (`:44-48`) and Confidence (`:152-162`) go to `audit.md`, and Sources (`:168-192`) goes |
 | `templates/audit-template.md` | New: G2's H2s |
-| `references/stages/W1.md` | Renders the plan; the voice; the tutorial rule; each caveat once; the cap; writes both files. Replaces rules 1, 6, 7 and 9 (`:48-49, :109-126`), "Keep every hedge" (`:128-131`) and Writes (`:150-155`) |
-| `references/stages/V4.md` | The guide side of `sources` goes (`:145-154`), and so does `ledger` step 3 (`:119-121`). The prose lens becomes the editor (`:156-181`) |
-| `references/stages/D1.md` | The `m` rung (`:52-61`), its hits and prices (`:109-145`), load-bearing claims (`:156-165`) |
-| `references/stages/D2.md` | Plans backward to `m` (`:34-38, :51-56`); load-bearing claims (`:87-92`) |
+| `references/stages/W1.md` | Renders the plan; the voice; the tutorial rule; each caveat once; the cap; writes both files; the ladder and stat-examples lines, the short line, the config assumptions, and the optional items (fallbacks and threshold triggers where they exist). Replaces rules 1, 6, 7 and 9 (`:48-49, :109-126`), "Keep every hedge" (`:128-131`) and Writes (`:150-155`) |
+| `references/stages/V4.md` | The guide side of `sources` goes (`:145-154`), and so does `ledger` step 3 (`:119-121`). The prose lens becomes the editor (`:156-181`) and doesn't flag a missing optional item |
+| `references/stages/D1.md` | The `m` rung (`:52-61`), its key-item gate and buy order, its hits and prices (`:109-145`), load-bearing claims (`:156-165`): traps, either/or picks (a compile each) and affix sources |
+| `references/stages/D2.md` | Plans backward to `m` (`:34-38, :51-56`); load-bearing claims (`:87-92`); hold and save rows, rotation clauses, triggers |
+| `pob-api/API/Lookup.lua`, `src/handlers/` lookup handler, `references/lookups.md` | A mod hit lists the base types that can roll it (non-zero spawn weights), and the essence table is searchable, so D1 can source an affix's limit on the base (§9) |
 | `references/stages/D1-gate.md`, `references/gates.md` | `m`'s area level (`:66-68`) and budget (`:76-87`) |
 | `references/source-markers.md` | Markers in the dossier and research only (`:35-63`); rule 3 (`:75-77`); Known issues by sentence (`:121-126`) |
 | `SKILL.md` steps 10 and 14 (`:98, :102`); `references/run-folder.md:41`; `references/task-header.md` | Add `audit.md` |
@@ -332,6 +378,8 @@ Everything else is judgment: the prose lens, then the user's review at checkpoin
   marker in the guide, a verdict line missing, wrong or mis-rounded, and `m`'s floor and budget (5 and 5.5).
 - **`tests/fixtures/pipeline/run-ok` and `run-ok-online`:** a new-style `guide.md` plus `audit.md`.
 - **`tests/unit/planChecks.test.ts`:** the ladder track and the variant value.
+- **The lookup's engine tests:** a desecrated mod's base types (Arcane Surge on Crit: gloves with energy
+  shield only, `ModVeiled.lua:163`) and an essence hit.
 
 **Where the cost hides.**
 1. **Markers carried three checks.** Two get G6's minimal replacements. The third, V4's comparison of
@@ -346,4 +394,12 @@ Everything else is judgment: the prose lens, then the user's review at checkpoin
 
 ## 10. Open questions
 
-None. The draft's four questions are answered in the status line.
+The draft's four questions are answered in the status line.
+
+**Q6, a vendor search regex: DEFERRED.** ronarray's guide gives a regex to paste into the vendor search
+while leveling. The user notes the game's search takes regular expressions, and that community tools build
+the shortest one for chosen mods. We could generate it from the plan's gear targets, and check it
+deterministically against PoB's mod text.
+- **Unblocked by:** grounding the game's supported regex syntax and length limit, from a source the user
+  names.
+- **Then decide:** whether the guide carries one regex per leveling band, and where (§6 or §7).

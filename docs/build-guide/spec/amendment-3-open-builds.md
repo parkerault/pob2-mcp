@@ -2,7 +2,8 @@
 
 **Status: PROPOSED, 2026-10-10, for the user's review.** The user set the direction on 2026-10-10
 (`../worklog.md`, from "The user's answers and a new direction" through "The user's answers (2026-10-10,
-continued)"). The user approved drafting this memo ("Go ahead"). Its contents stay proposals until the user
+continued)"). The user approved drafting this memo ("Go ahead"). The user then took the recommendations on Q1–Q7 and
+asked about EHP (`TotalEHP`) next to the headline; Q8 folds it in. The contents stay proposals until the user
 approves the memo. It was revised after an adversarial review, whose findings were checked against the code
 (`../worklog.md`, the same section).
 
@@ -249,7 +250,7 @@ the verification half.
 **Verification half:**
 
 - **Verified:**
-  - defences from PoB: life, energy shield, resistances, max hit;
+  - defences from PoB: life, energy shield, resistances, max hit and effective HP (Q8);
   - modelled DPS.
 - **Estimates:**
   - each Count and custom modifier, with its reason;
@@ -329,6 +330,11 @@ Full DPS off.
   Today's per-group figures (`Compile.lua:666-678`) ignore Count.
 - **The headline** is the named source's main stat-set figure × its Count. Custom modifiers are config, so
   they're already applied. Clear and boss figures stay separate; groups of different roles are never summed.
+- **Effective HP beside it** (Q8). PoB's `TotalEHP` is already in the record: the compiler copies every PoB
+  output (`Compile.lua:961-964`), so it costs no compile time.
+  - Max hit against the reference hits stays the basis of the survival verdict.
+  - EHP depends on the assumed enemy damage, and it misses defences PoB doesn't model. So it is shown beside
+    max hit, never alone. A figure computed with a custom modifier present is marked, as above.
 - **The delivered PoB file** sets `groupCount` and `includeInFullDPS` on the named source's groups only. A reader
   who opens it sees Full DPS with the same Count.
   - `BuildOps.create_socket_group` (`BuildOps.lua:1291-1300`) gains `groupCount`. `add_gem`'s `count`
@@ -357,8 +363,12 @@ Full DPS off.
 - **R1a's feasibility read** (`R1a.md:100-102`): "the rolled skill as the main damage source" becomes "the
   named damage source as the main damage source".
 - **The headline rule** (`D1.md:73-78`) follows the headline defined above.
-- **Amendment 2's verdict line** quotes the Count-scaled figure. "What PoB can't show" lists each Count and
-  custom modifier with its reason, rendered from the plan.
+- **Amendment 2's verdict line** (`amendment-2-guide-style.md:306`) quotes the Count-scaled figure and ends with
+  "Effective HP about <n>." The checker compares that number with the stage's `TotalEHP`, using the same
+  rounding rule. "What PoB can't show" lists each Count and custom modifier with its reason, rendered from the
+  plan.
+- **R1b-assemble's key numbers** (`R1b-assemble.md:20-22`: Life, ES, missing resistances, max hit) add
+  `TotalEHP`. The verification gate compares candidates on it too.
 
 ## 8. O7: poe.ninja on by default
 
@@ -504,7 +514,7 @@ Run A has no per-stage research figures, so these are relative estimates.
 | D-238 (`:532`): the roll check | Checks the brief's named fields, and each card's identity at deck assembly (O1) |
 | NFR-23 (`references/run-log.md:66-70`): the cost caps | Per brainstorm round and per verification round (O2) |
 | A-28 (`:553`): the coordinator answers offline checkpoints | Adds the brainstorm gate (O2) |
-| Amendment 2: the verdict line, "What PoB can't show", `D1.md:75-76`'s headline rule | O6 |
+| Amendment 2: the verdict line (G6, `amendment-2-guide-style.md:306-318`), "What PoB can't show", `D1.md:75-76`'s headline rule | O6: the Count-scaled figure, plus "Effective HP about <n>" checked against `TotalEHP` |
 
 ## 14. Implementation impact
 
@@ -539,7 +549,8 @@ Run A has no per-stage research figures, so these are relative estimates.
 - `R1a.md`: foci, cards, the library;
 - a new `R1a-assemble.md`;
 - `R1b.md`: the card's identity, the checklist, the probe budget;
-- `R1b-assemble.md`;
+- `R1b-assemble.md`, with `TotalEHP` in the key numbers;
+- `templates/guide-template.md` and `W1.md`, for the verdict line's EHP;
 - `references/checkpoints.md` and `references/offline-and-test.md`;
 - `references/gates.md` and `D1-gate.md`: figure × count;
 - `D1.md` (`:63-78`), `D2.md` and `W1.md`;
@@ -555,6 +566,7 @@ Run A has no per-stage research figures, so these are relative estimates.
 - the flow from `:1173`: picks, mores, brainstorm and verification rounds, card ids, and the caps at
   `:1351-1364`;
 - `recomputeRolledSkill` (`:1765`), with Count;
+- the verdict-line check, which gains EHP;
 - `references/run-log.md`;
 - tests and fixtures.
 
@@ -568,7 +580,8 @@ Run A has no per-stage research figures, so these are relative estimates.
 **Tests:**
 
 - **`tests/static/buildGuidePipeline.test.ts`:** the brief, the gates, the card template, the D-122 wording.
-- **`tests/unit/buildGuideCheckRun.test.ts`:** run log v3, both kinds of round, the caps, the renamed answers.
+- **`tests/unit/buildGuideCheckRun.test.ts`:** run log v3, both kinds of round, the caps, the renamed answers,
+  and the verdict line's EHP (missing, wrong, mis-rounded).
 - **`tests/unit/planChecks.test.ts`:** `countReason` and the `customMods` reasons.
 - **The compiler's engine tests:**
   - figure × count, for hits and for stacking damage over time;
@@ -578,22 +591,27 @@ Run A has no per-stage research figures, so these are relative estimates.
 - **Tool counts:** the tool-count tests (`gemCorruption.test.ts:306`, `findUpgrades.test.ts:1086`,
   `tradeQueryOptions.test.ts:86`) and the README tool table, for N-1's new tools.
 
-## 15. Open questions
+## 15. Questions
 
-- **Q1, the playstyle vocabulary** (O1). Recommended: the five axes as listed, plus free text.
-- **Q2, an empty brief.** Recommended: allowed. The brainstorm then seeds from the library's families and,
-  with poe.ninja on, from skills few characters play.
-- **Q3, deck size.** Recommended: 6–9 cards per round (three researchers, 2–3 each), with up to 3 verified at
-  once.
-- **Q4, damage sources that aren't skills,** such as a flask nova. Recommended: DEFERRED for finalization. Cards
-  may show them, marked "can't be finalized yet".
+The user took the recommendations on Q1–Q7 on 2026-10-10. Q8 is a recommendation.
+
+- **Q1, the playstyle vocabulary** (O1). Decided: the five axes as listed, plus free text.
+- **Q2, an empty brief.** Decided: allowed. The brainstorm then seeds from the library's families and, with
+  poe.ninja on, from skills few characters play.
+- **Q3, deck size.** Decided: 6–9 cards per round (three researchers, 2–3 each), with up to 3 verified at once.
+- **Q4, damage sources that aren't skills,** such as a flask nova. Decided: DEFERRED for finalization. Cards may
+  show them, marked "can't be finalized yet".
   - **Unblocked by:** a plan field for an item-effect damage source and its hand calculation.
-- **Q5, favouring under-played builds.** Recommended: with poe.ninja on, each deck includes at least two cards
-  below a popularity threshold, set after S-N1.
-- **Q6, library maintenance.** Recommended: the coordinator proposes entries after each user-supplied study,
-  and the user approves them.
-- **Q7, the headline figure.** You adopted "Full DPS as the headline". Recommended:
+- **Q5, favouring under-played builds.** Decided: with poe.ninja on, each deck includes at least two cards below a
+  popularity threshold, set after S-N1.
+- **Q6, library maintenance.** Decided: the coordinator proposes entries after each user-supplied study, and the
+  user approves them.
+- **Q7, the headline figure.** Decided:
   - the record computes the named source's figure × Count itself, which equals PoB's Full DPS for that group;
   - PoB's own Full DPS mode stays out of the measure compiles unless S-N2 shows it's cheap;
   - the delivered file still opens with Full DPS set up.
+- **Q8, EHP beside the headline.** The user asked whether to include it now or later. Recommended: now (O6).
+  - It's already in the record, so it costs no compile time.
+  - Players compare builds on it, and poe.ninja shows it.
+  - It is shown beside max hit and never replaces max hit as the basis of the survival verdict.
 - **Still deferred:** the vendor search regex (amendment 2, Q6), and rolls above the data range (O8).

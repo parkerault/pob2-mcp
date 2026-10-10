@@ -1427,3 +1427,10 @@ card.
     - figures computed with custom modifiers were unmarked;
     - the tool-count tests;
     - eight citations needed correcting.
+- **Amendment 3's questions.** The user took the recommendations on Q1–Q7 ("Take the recommendations"). The
+  user also asked whether EHP should sit beside the headline now, or wait until after approval.
+  - Recommended and folded in as Q8: now. `TotalEHP` is already in the compile record, because the compiler
+    copies every PoB output (`pob-api/API/Compile.lua:961-964`), so it adds no compile time.
+  - It is shown beside max hit, which stays the basis of the survival verdict.
+  - It is added to the card, R1b-assemble's key numbers, and amendment 2's verdict line (checked against
+    `TotalEHP`).

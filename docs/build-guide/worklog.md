@@ -1110,3 +1110,35 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
 - **Observation:** the funnel the user describes already exists in shape. R1a's three researchers propose
   concepts, R1b compiles each as a skeleton, and checkpoint 1 asks the user to pick, ask for more or stop.
   Generalizing mostly changes the funnel's mouth: the input, the library, the sniff test and Count.
+
+**The user's decisions on generalization (2026-10-10):**
+
+- **Adopted as proposed:**
+  - constraints as the input;
+  - the pattern library;
+  - the text-check sniff test;
+  - Count in the plan and the compiler, with Full DPS as the headline;
+  - PoB kept for defences;
+  - DPS estimates labelled rather than verified for exactness;
+  - the main-damage rule reworded to the build's named damage source;
+  - the "won't do" list.
+- **Three phases, each gated by the user:** brainstorm, verification and finalization.
+  - Each surviving concept goes to the user, with what has and hasn't been verified stated plainly.
+  - The user moves it to the next phase or asks for more candidates.
+  - The user's reason: a better experience than waiting a long time for a guide that isn't what they wanted.
+  - Mapped onto today's pipeline:
+    - a new gate after brainstorming, before any skeleton is compiled;
+    - skeletons only for the concepts the user picks;
+    - today's checkpoint 1 becomes the gate after verification;
+    - checkpoint 2 stays as the final gate.
+- **poe.ninja on by default:** popularity and the build index (the user: "a treasure trove").
+  - Only web requests that need PII or a cookie require explicit approval, so trade stays gated.
+  - An override flag disables it.
+  - Tests stay offline (D-34 is unchanged).
+  - **To ground:** the PoE2 build index API (shape, rate limits, terms).
+  - **To reword when implemented:**
+    - the project CLAUDE.md line "No agent or test makes requests to … poe.ninja";
+    - the build-guide skill's "never contact poe.ninja yourself" rule (`SKILL.md:17-20`).
+  - The server already holds a poe.ninja client for currency rates only (`src/services/poeNinjaClient.ts`). The
+    build index would be a new server tool, so one client, cache and rate limiter cover it.
+- **Open:** whether development-time agents may now call poe.ninja, for example to ground the API.

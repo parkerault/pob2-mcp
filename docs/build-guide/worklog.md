@@ -828,3 +828,29 @@ checker; not yet verified live. Followability is a quality gap, carried to the e
 **Next:** the user's agenda: endgame content, the precision dial, tuning against human guides, creative
 builds. Then WU-48 (HG-14) and finalization, which includes folding D-239…D-266 and amendment 1 into the
 spine and slice 03, plus C-33's `buildSha1`.
+
+### Guide style, after comparing Fubgun's Lightning Arrow Deadeye guides (user, 2026-10-09)
+
+- **The finding.** Ours runs about 9,800 words of body plus 2,500 of sources: roughly 3× both Fubgun pages.
+  - It has a marker every 16 words, "confidence L" 49 times, and the same caveat in every stage.
+  - In the user's words, it "reads more like an enterprise architecture design document than a video
+    game guide".
+- **Settled by the user:**
+  1. **Two layers.** The reader layer is the guide. An audit appendix holds sources, hand calculations,
+     model coverage and known-issue ids. It is kept for agents, and no human is expected to read it.
+  2. **Verify only what carries weight:** plan numbers, and the mechanics the build depends on. Advice
+     and rules of thumb are labelled as advice and not verified.
+  3. **Each caveat once,** where it matters. No per-sentence confidence labels.
+  4. **Length:** 2,000–3,000 words for the reader layer.
+  5. **Not a game tutorial.** Mention a game mechanic only when it bears on this build's synergies,
+     constraints or requirements. Basic game knowledge (for example "an uncut gem of level N cuts tier N
+     or lower") is cut.
+  6. **Keep our strengths, short:** survival numbers as a verdict, the stage-matched PoB file, the
+     ascendancy and trial timing, gem timing, reasons for choices, FAQ.
+- **Adopt from Fubgun:**
+  - fallbacks ("if you lack X, use Y") and swap rules of thumb;
+  - support, link and quality priority;
+  - per-slot affix targets and buy order (trade links online);
+  - campaign practicals: boss order, currency habits, keeping gold for the respec;
+  - variants with gates, including an "entering maps" loadout as the bridge to the endgame.
+- **Held back:** crafting recipes. They depend on orb mechanics our data doesn't cover. No atlas section.

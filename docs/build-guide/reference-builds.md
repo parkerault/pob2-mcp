@@ -213,3 +213,497 @@ Video only, `L_bhEMOtqEI`: "No Written guide for this one."
   - Chaos Dreamer: Giant's Blood with Palm of the Dreamer, Sacred Maul and Hateforge.
 - **Defences:** CI, Decree of Flight (Guard on dodge roll), Blood of the Warrior, Arctic Armour, Ghost Dance
   and Wind Dancer.
+
+## The user's YouTube off-meta list (supplied 2026-10-10)
+
+The user found these by searching YouTube for off-meta build guides, and hasn't vetted them. Videos are in
+`~/projects/yt-library/videos/<id>/`. Links are recorded here, not opened.
+
+### Enervating Nova Chronomancer (Troy Tesko, 0.5): `q8dhc4DOBPU`
+
+- **Chain:**
+  - The 0-mana Enervating Nova granted by a Paralysing Staff.
+  - Doryani's Prototype copies your lightning resistance onto enemies in your Presence. Your own resistance
+    is pushed to -200 by a Vaal-rolled Doryani's and a catalysed Ventor's Gamble, doubled by Kalandra's Touch.
+  - Esh's Prowess (each lightning roll is its minimum or maximum), plus 48% lucky.
+  - Copies from Spell Cascade, Trickster's Shard's mimics and Now and Again.
+  - The skill deals up to 100% more damage at the ring's edge, and slows keep enemies there.
+- **Patterns:**
+  - mirrored stat (new);
+  - zeroed resource;
+  - bimodal roll plus luck (new);
+  - proxy multiplier;
+  - weapon set 2 job.
+- **PoB:**
+  - Modelled: the resistance copy (`CalcOffence.lua:539-540`, floor -200).
+  - Not mapped: min-or-max rolls, the edge bonus, the mimics and Now and Again.
+- **PoB export:** https://poe.ninja/poe2/pob/22dbc
+
+### Eventide Petals Martial Artist (Lolcohol, early 0.5): `lVEhfsub0mY`
+
+- **Chain:**
+  - Midnight Zenith, granted by the Eventide Petals amulet, turns crits from other skills into Arctic
+    Petals. Every 10 petals become 5 Ice Crystals.
+  - Biting Frost II on Herald of Ice and Herald of Thunder consumes Freeze, which shatters the crystals.
+  - The heralds' crits feed petals again.
+  - Shattering Palm and Hollow Focus bells (always crit) provide the crits.
+  - On bosses, the heralds go quiet, so the boss stays Frozen. Heavy Frost then ignores the boss's
+    elemental resistances.
+- **Patterns:**
+  - inputs-and-outputs;
+  - quality as a stat line (Way of the Stonefist);
+  - filler count (rune sockets for Emergent Possibility);
+  - relay around self-exclusion (new);
+  - count events, not damage (new);
+  - kill-gated consumer (new).
+- **PoB:** the crystal loop isn't modelled, so Count = crystals shattered per second. Way of the Stonefist
+  isn't parsed.
+- **Links:**
+  - No PoB export ("created on vibes, not numbers").
+  - Written guide: mobalytics.gg/poe-2/builds/lolcohol-eventide-monk
+  - Update video: youtu.be/Ue8HgVYTp28
+
+### Oracle Entangle, two buttons (Amonera, 0.5.5): `p5aRVgy0pM4`
+
+- **Chain:**
+  - Entangle pays its cost in life through Atalui's Bloodletting, which adds extra physical damage per 20
+    life cost.
+  - Wildsurge Incantation gives 50% more damage and 75% less duration.
+  - Inevitable Critical Hits gives 100% crit.
+  - The crits power Cast on Critical, which fires Thunderstorm. Thunderstorm makes plants Overgrown, and
+    Accelerated Growth II turns them into explosions.
+  - Nightscale gloves turn "crit recently" into mana regeneration. Mana is kept as a defence buffer (Mind
+    over Matter, Harmony Within).
+  - Entwined Realities lets keystones be taken just for their radius.
+- **Patterns:**
+  - inputs-and-outputs;
+  - forced condition;
+  - zeroed resource (a variant);
+  - weapon set 2 job;
+  - split pools (new);
+  - keystone as pathing anchor (new).
+- **PoB:**
+  - The hits are modelled.
+  - Vines and branching fissures need Count.
+  - It can't follow the Accelerated Growth explosion or Cast on Critical, whose handler expects an attack
+    as the trigger (`CalcTriggers.lua:1089`).
+- **Links:**
+  - Budget PoB: https://pobb.in/hzKQsR2Y5Ht2
+  - Character: https://poe.ninja/poe2/profile/handsolution-6795/forbiddenrites/character/Amonish
+
+### Infernal Cry Gemling, Corrupted Blood (ExFluent, 0.5): `QO5Un_eRyQM`
+
+- **Chain:**
+  - Infernal Cry is only a host. Paquate's Pact triggers Twisted Pact (Corrupted Blood, a physical damage
+    over time effect) per enemy in range.
+  - The creator says Twisted Pact takes the host's level, and stacks +fire, +all-skills,
+    +Strength-requirement and +Infernal Cry levels to reach level 39.
+  - Echoing Cry fills the 10-stack cap in one press.
+  - Herald of Blood, block-to-damage (with Magma Barrier's Gemling quality giving max block) and
+    Megalomaniac scale it.
+  - A Brutus' Brain companion carries an aura and shock.
+- **Patterns:**
+  - level-carrier host (new);
+  - repeat to cap (new);
+  - zeroed resource;
+  - forced condition;
+  - inert minions;
+  - quality as a stat line;
+  - defence that scales damage;
+  - filler gems.
+- **PoB:** Twisted Pact gets the support gem's own level (`CalcSetup.lua:1876`), and the host's +level
+  sources don't reach it. Setting the support level by hand is an untested workaround.
+- **Links:**
+  - Character: https://poe.ninja/poe2/profile/Exfluent-1283/runesofaldur/character/ExFluento
+  - The idea is credited to @josiah8486.
+
+### Crossbow Titan, Double Vision (Struth Builds, 0.4): `9Z9ep97Whkg`
+
+- **Chain:**
+  - Armour Piercing Rounds bolts carry Gemini Surge explosions, granted by the Double Vision crossbow on
+    reload. The surges do most of the damage.
+  - Crushing Impacts (Titan: your hits are Crushing Blows) heavy-stuns enemies that are primed for stun.
+    Double Barrel III then reloads automatically on each heavy stun, which refills the surges.
+  - Pin II on Gemini Surge stops the surges from using up the heavy stuns that the bolts need.
+  - Chain I and Daze raise how often heavy stuns happen.
+- **Still valid in 0.5.4:** all the core links are intact. The Shatter Palm anoint lost its Daze; Seeing
+  Stars is the nearest substitute.
+- **Patterns:**
+  - routine action as damage;
+  - automate the routine action (new);
+  - keep the event for the engine (new);
+  - forced condition.
+- **PoB:** the surge shows hit size only, and the reload trigger isn't modelled. DPS needs a hand
+  calculation.
+- **PoB export:** maxroll.gg/poe2/pob/lo95l0o4
+
+### Whirling Assault and Flicker Strike Martial Artist (Rynze, 0.5.5): `t2o56g88DHk`
+
+- **Chain:**
+  - Concussive Runes socketed in Herald of Ice and Herald of Thunder: a heavy stun spawns a Runic Shockwave.
+    The Shockwave counts as a non-Herald attack, so it fires both Heralds again, which makes a chain.
+  - The Shockwaves cost Runic Ward, which the Remnants setup keeps up.
+  - Polcirkeln lets chilled enemies shatter, which fires Herald of Ice.
+  - Culmination II makes Whirling Assault a Combo-spending skill, which unlocks Ailith's Chimes. Ailith's
+    Chimes turns spent Combo into Power Charges, which Flicker Strike spends at +2 strikes per charge on
+    bosses.
+  - CI.
+- **Patterns:**
+  - relay trigger past a self-exclusion (new; same shape as Eventide's);
+  - type-granting support unlock (new);
+  - inputs-and-outputs;
+  - forced condition;
+  - conversion;
+  - zeroed resource.
+- **PoB:**
+  - The Runic Shockwave has no skill entry (`Gems.lua:19614`), and Polcirkeln's line isn't parsed.
+  - Flicker's burst is modelled; set the charge count.
+- **Links:**
+  - poe-vault.com/poe2/monk/martial-artist/herald-flicker-strike-build-guide
+  - Cheaper version: youtu.be/xZFc40jhyAA
+
+### 20k Mana Flare Shaman (Swedge, 0.5): `ekgGPoNjvmo`
+
+- **Chain:**
+  - Low-level Entangle (maps) or Frost Darts (bosses) crits trigger Mana Flare, a fire hit worth 25% of current
+    mana.
+  - Three sources scale damage off max mana: Archmage, a mutated (Vaal) Rathpith Globe, and Arcane
+    Intensity.
+  - Runeseeker's Call triples socketed runes, and Shaman's Wisdom of the Maji turns on their Bonded lines,
+    for 20k mana.
+  - Eonyr's Thunder electrocutes, and Voltaic Fulmination explodes the kills.
+- **Patterns:**
+  - stat-as-base convergence (new);
+  - socket amplifier plus latent lines (new);
+  - reactive carrier (new; Arctic Armour carries Mana Flare);
+  - low-level utility gems;
+  - conversion;
+  - zeroed resource and forced condition (low life).
+- **PoB:**
+  - The hit is modelled (set Current Mana %), and Count stays 1 because of the 1 s cooldown.
+  - The mutated Rathpith must be imported.
+- **Links:**
+  - PoB export: https://poe.ninja/poe2/pob/20256
+  - Written guide: https://www.poe-vault.com/poe2/guides/mana-flare-build-guide
+
+### Chayula Monk minions (GhazzyTV, 0.5): `yeuHB5HnJFM`
+
+- **Chain:**
+  - Into the Breach's Flames of Chayula: Choice of Power makes every flame purple, which gives damage as extra
+    chaos.
+  - Selfless Remnants redirects the flames to allies in your Presence, so they buff Skeletal Reavers. The
+    creator claims about 182% as extra chaos at 10 stacks.
+  - Presence radius (Profane Commander, Warlord Leader, Alpha's Howl) keeps the minions inside it.
+  - Capped minion resistances keep the stacks alive.
+- **Patterns:**
+  - buff relay (new);
+  - outcome lock (new, minor);
+  - defence that scales damage;
+  - inputs-and-outputs (leveling: an ignite aura detonates gas clouds);
+  - inert minions.
+- **PoB:** the relay isn't modelled (`CalcPerform.lua:1379-1397`). Add the custom mod "Allies in your Presence
+  Gain N% of Damage as Extra Chaos Damage" and set Count = 8.
+- **Links:**
+  - poe-vault.com/poe2/monk/acolyte-of-chayula/breach-minions-build-guide
+  - Leveling guide: poe-vault.com/poe2/monk/acolyte-of-chayula/chaos-minion-leveling-build
+
+### Earthshatter Gemling Legionnaire, endgame and budget (Phylaris POE, 0.5): `Ix82BSjoAdY`, `9H1lUVfvxTg`
+
+- **Chain:**
+  - Gemling quality scales Frost Wall's crystal life to about 220k.
+  - Verglas grants 1% of damage gained as extra cold per 2,000 crystal life, about 110–120% in total.
+  - The Absent Amulet's Cast on Elemental Ailment re-casts Frost Wall on each freeze, so a single seed keeps
+    the loop going. The seed is a manual Frost Wall or Infernal Cry with Vruun's Aftermath.
+  - Earthshatter's spikes and aftershocks break the walls.
+  - The armour stack (Arctic Armour quality, Scavenged Plating) feeds War Banner with Refraction III for up to
+    80% exposure.
+  - The Herald of Ice shatter chain (Spirit of the Wolf, Loreweave's chill-shatter) clears maps.
+- **Budget vs endgame:**
+  - The whole damage chain is kept. Swaps: Sadist's Mercy with Vestige of Darkness instead of Olrovasara; a
+    tower shield instead of Sacred Flame; no Scavenged Plating; the Stimulants anoint instead of Paragon, so
+    39% quality instead of 44%.
+  - Thresholds: 44% quality gives a 7th Arctic Armour stage, and a rare mace needs at least 800 DPS at
+    1.9 APS.
+- **Patterns:**
+  - quality as a stat line;
+  - object stat as damage (new);
+  - closed trigger loop with a seed and a decay timer (new);
+  - defence that scales damage;
+  - conversion;
+  - filler gems;
+  - low-level utility gems.
+- **PoB:**
+  - Verglas, the per-spike multiplier and Arctic Armour's per-stage armour aren't mapped. Add a custom "X%
+    gained as extra cold" mod.
+  - Aftershocks need Count.
+  - The Herald chain isn't modelled.
+  - Loreweave and the Runemastered Olrovasara are missing from the data.
+- **Links:**
+  - Budget PoB: poe.ninja/poe2/pob/2154a
+  - Written build: mobalytics.gg/poe-2/profile/stone-dagger-zuckm8/builds/2b0c277f-2694-4799-8173-23a635161b40
+
+### Sand & Fire Djinn, Disciple of Varashta (Blazeworks TV, 0.5, SSF campaign): `d2QbaO-sJ3o`
+
+- **Chain:**
+  - Kelari's Deception is a Command skill: you press it and the Sand Djinn casts it. It deals 50% more damage
+    per consecutive use, up to 300%.
+  - It is scaled as minion damage by:
+    - +minion levels;
+    - Muster (7% more per type of reviving minion, so spirit goes on variety: one skeleton of each type);
+    - Pain Offering;
+    - Archon of Undeath (25% more minion damage, and 200% more cooldown recovery for Command skills, which
+      feeds the ramp).
+  - Ruzhan's Trap is the third button.
+  - No uniques.
+- **Patterns:**
+  - inert minions (headcount by type);
+  - weapon set 2 job;
+  - sequence ramp fed by use rate (new);
+  - actor rerouting (new).
+- **PoB:**
+  - The base hit and Muster are modelled.
+  - The ramp (`minion.lua:2330`) and Archon of Undeath (`ModCache.lua:1582`) are hand calculations.
+- **Links:**
+  - No PoB yet.
+  - Written guide: mobalytics.gg/poe-2/profile/blazeworkstv/builds/0-5-ssf-minion2win-varashta-campaign-build-guide
+
+### Widowhail Spark Blood Mage (Barczi POE2, 0.4): `YHIm3ACDtHc`
+
+- **Chain:**
+  - A Widowhail bow with about 300% increased quiver bonuses quadruples a rare quiver's projectile mods:
+    +8 projectile levels, about 180% projectile speed, pierce, and far-hit damage. The caster holds the bow
+    only to unlock the quiver.
+  - Projectile Acceleration III turns projectile speed into damage.
+  - Archmage and Zenith scale off a full mana pool, while Lifetap and Atalui's Bloodletting move the costs to
+    life.
+  - Sunder the Flesh sets spell base crit to 15%, and Cast on Critical fires Arc.
+- **Patterns:**
+  - amplified slot as stat stick (new);
+  - stat-to-damage bridge (new);
+  - cost redirection (the same shape as Oracle's split pools);
+  - forced condition.
+- **PoB:**
+  - Modelled: quiver scaling, Projectile Acceleration and Archmage.
+  - The 280% roll is above the data range, so it has to be typed in by hand.
+  - Atziri's Acuity changed in 0.5.
+- **Links:**
+  - No PoB.
+  - Mobalytics build: https://mobalytics.gg/poe-2/profile/52af3805-d6ed-481f-9889-daa674aef459/builds/44904455-02e0-4eab-9d0c-6fbe532e8443
+
+### Supporting Fire Tactician (Crouching_Tuna, 0.5): `cpbNC4toSxU`
+
+- **Chain:**
+  - Supporting Fire's Death From Above (6 volleys, 10 s cooldown) is scaled by:
+    - Strength, at 1% minion damage per point;
+    - minion gem levels from a corrupted +4 Chober Chaber, held in one hand through Giant's Blood with a
+      sceptre in the other.
+  - Archon of Undeath gives 200% more command cooldown recovery and 25% more minion damage. The Dominion
+    anoint makes it permanent, and spamming a free command farms its procs.
+  - Muster uses a cheap minion "zoo", one of each type.
+  - Strength also gives energy shield through Black Scythe Training on CI.
+- **Patterns:**
+  - cooldown recovery as DPS (new);
+  - proc farm with a free action (new);
+  - attribute bridge (new);
+  - inert minions and filler;
+  - zeroed resource;
+  - not-consume variant (Dominion).
+- **PoB:** Archon isn't modelled anywhere; use Count ≈ 2.5, hand-derived.
+- **Links:**
+  - PoB: https://maxroll.gg/poe2/pob/ykd67a0y
+  - Planner: https://maxroll.gg/poe2/planner/o9ch0h06
+  - Character: https://poe.ninja/poe2/profile/Crouching_Tuna-1733/runesofaldur/character/Carpetbombtheirhouse
+
+### Concussive Ancestral Cry Titan (ccs, 0.5): `5W5YX6Zsb5Q`
+
+- **Chain:**
+  - Ancestral Cry triggers Volcanic Steps every 12 units you travel, so movement speed is attack rate
+    (Mageblood's Quicksilver, Onslaught).
+  - Concussive Runes in Ancestral Cry erupts shockwaves on heavy stun. Sine Aequo's 41% threshold makes
+    heavy stun nearly guaranteed.
+  - Glory comes from Zerphi's Infamy (5% of life spent on other skills) and Animus Exchange with Lifetap and
+    Second Wind III. The same cast refills the Runic Ward the shockwaves spend.
+  - Against the Darkness gives gain-as-extra.
+  - Hulking Form's 50% increased small-node effect steers the choice of passive clusters.
+- **Titan nodes that any skill could reuse:**
+  - Hulking Form (small-node effect);
+  - Crushing Impacts (25% more against heavy stunned, and Crushing Blows);
+  - Mysterious Lineage (15% more life).
+  - The "Slam you use yourself" nodes probably don't apply to triggered slams.
+- **Patterns:**
+  - routine action as damage (movement);
+  - inputs-and-outputs;
+  - forced condition;
+  - weapon set 2 job (a snapshot cast);
+  - inflated cost as fuel (new);
+  - node-effect multiplier steers cluster choice (new).
+- **PoB:**
+  - The Runic Shockwave is missing from the data.
+  - The Volcanic Steps rate needs Count (steps per second = movement speed ÷ 12).
+- **Links:** maxroll.gg/poe2/planner/qasixz0t; the build is adapted from a Bilibili creator (space.bilibili.com/46512837).
+
+### Twister Spirit Walker (SiahZ, 0.5): `6jbyoRO2pUs`
+
+- **Chain:**
+  - The Taming ring makes Twister count as boosted by all three ground surfaces at once. That fills every
+    "per element type" scaler (the ring, Stormbreaker, Harness the Elements, Trinity).
+  - Whirling Slash on weapon set 1 feeds whirlwinds that Twister consumes.
+  - Primal Bounty (Owl Feathers on dodge, doubled by The Mhacha's Gift and stretched over 3 attacks by
+    Olroth's Conviction) gives extra projectiles.
+  - Projectile Acceleration III turns projectile speed into damage.
+  - Heavy Frost, with a fast freeze from Sine Aequo and Ice-Tipped Arrows, removes resistances.
+  - A Brutus' Brain companion re-applies the Blind that Blindside takes away.
+- **Patterns:**
+  - forced condition;
+  - proxy multiplier;
+  - not-consume (stretched);
+  - conversion;
+  - weapon set job (inverted);
+  - inert minions;
+  - saturated type count (new);
+  - stat bridge (a second sighting, after Widowhail);
+  - drawback offload (new).
+- **PoB:**
+  - The Taming isn't parsed, so tick the three ground config boxes instead.
+  - Primal Bounty, The Mhacha's Gift and Olroth's Conviction aren't modelled.
+  - The Mhacha's Gift in game says 3 feathers; PoB's data says 2.
+- **Links:** mobalytics.gg/poe-2/profile/siahz/builds/siahz-s-spirit-walker-twister
+
+## Schwingy's random-build playthroughs (supplied 2026-10-10, studied for process)
+
+The user calls Schwingy the pioneer of the "random build" genre. Most of these aren't good builds. They are
+studied for how an experienced builder searches, tests, rejects and recovers.
+
+### Eye of Winter Pathfinder, self-cast poison (Path of Exile 1, Allflame league): `X9wCdbgep5I`
+
+- **This is a PoE1 video,** so none of its game facts apply to PoE2. The process transfers.
+- **Arc:**
+  - It is useless until one enabler unique arrives, Volkuur's Guidance ("Your Cold Damage can Poison").
+  - That unique's downside (shorter poison duration) becomes the next shopping target.
+  - Deaths are diagnosed by mechanism (spell suppression at 39%), not met with "more life".
+  - A dead support slot was found and swapped for Slower Projectiles. The orb then hits the same target
+    more times, and the damage "skyrockets".
+- **Outcome:** all four Voidstones, Maven and the league boss, in 32 hours with 99 deaths.
+- **PoB:** pobb.in/5MMroi4uCr8Q. It is a PoE1 file, so our PoB2 can't load it.
+
+### Twisted Empyrean Blood Mage (0.5, a race against TheSpudKing): `urJZoOU-w48`
+
+- **Roll:** only the ascendancy, Blood Mage. He chose the Twisted Empyrean mace himself, and the main skill
+  (Perfect Strike, a slow huge hit that makes big bleeds) emerged during play.
+- **Arc:**
+  - The payoff (bleed) is fixed first.
+  - Blood Barbs lets elemental damage scale bleed, so the mace's conversion no longer costs the bleeds.
+  - Blasphemy with a curse meets the node's "cursed target" condition.
+  - Shockwave Totems set off Volcanic Fissure for clearing. Both halves were on his bar from Act 2, and he
+    missed the combo for a long time.
+  - Zerphi's Infamy turns Blood Mage's forced life costs into glory for Starborn Onslaught.
+  - Two lockouts came from attribute requirements.
+- **Outcome:** Arbiter of Divinity and the other pinnacle bosses, in 43 hours with 53 deaths. "Easily the
+  strongest character I have ever played" for single-target.
+- **Links:**
+  - Final PoB: https://pobb.in/G-_QWnF5ZzEV
+  - Rival's run: https://youtu.be/9lHbDZOmepY
+
+### Wing Blast Spirit Walker (0.5, "the dumbest build I've ever created"): `S0diAweTCeI`
+
+- **Roll:** Spirit Walker with Wing Blast, a utility leap. Wing Blast's hit builds no stun. Its damage is a
+  shockwave that only fires on enemies already primed for heavy stun.
+- **Arc:**
+  - The build becomes two skills: a builder fills the stun bar and Wing Blast cashes it in.
+  - Brink (builds stun but can't stun) is the lock. It supports only melee skills, which ruled out Flash
+    Grenade and settled on Wind Blast on weapon set 2.
+  - A tamed boss is kept only for stun.
+  - He spent a long time hunting for what was "stealing" the stun: gloves, ascendancy stags, Pounce's
+    wolves, curse explosions.
+  - He respecced into evasion and deflection because fights were long.
+- **Outcome:** Arbiter of Ash, Arbiter of Divinity (9 tries) and the Trickster, in 37 hours with 77 deaths.
+  The damage stayed "laughable".
+- **PoB:** pobb.in/-k-RuftR5lF8
+
+### Shockchain Arrow Gemling, hardcore SSF (0.4): `zRIEdxQ20fQ`
+
+- **Roll:** Gemling Legionnaire with Shockchain Arrow, which "Cannot Shock" and consumes Shock to chain.
+- **Arc:**
+  - Lightning Arrow fills in until level 41.
+  - Shockchain tested as "a straight up downgrade" because too few enemies were shocked. He demoted it to a
+    burst button and spent tree and gear on shock supply (Spreading Shocks, ailment chance, Stormcaller
+    Arrow and Electrocuting Arrow on the Mirage Archer clone).
+  - It became the main skill once supply was enough.
+  - Gem Studded's movement-penalty relief offsets the skill's -70% movement while attacking.
+- **Outcome:** campaign, tier-15 maps and three citadel bosses, at level 87. He died to the Arbiter of Ash
+  in phase 2 on about 8k effective HP.
+- **PoB:** pobb.in/kuH5emBYy6V4
+
+### Gathering Storm Infernalist, SSF (0.4): `bdxU10Jjz30`
+
+- **Roll:** Infernalist with Gathering Storm, a quarterstaff channel-and-dash skill that unlocks at level 52.
+- **Arc:**
+  - Bridge skills share the weapon, the element and the charge loop, so investment carries over.
+  - He banked a white Mail Belt and chanced it into Coward's Legacy (low life at 75%). With Beidat's Will
+    reserving 25% of life, he sits permanently on low life, and Beidat's spirit pays for the payoffs
+    (Direstrike II, Pain Attunement, Execute III).
+  - He fixed deaths in the exposed charging phase specifically (Wind Dancer, Steadfast II).
+  - Every buff is stacked into one release on bosses.
+  - Monster elemental-resistance mods on a map halved his damage, so he reads waystone mods from then on.
+- **Outcome:** campaign, tier-15 maps and the Arbiter of Ash after 12 attempts. "A nuclear bomb with a
+  glass casing."
+- **Links:** build overview at youtu.be/8zeREmRkhmk.
+
+### Bone Cage Smith of Kitava (0.4, a private league): `rXDZlCW2dF8`
+
+- **Roll:** Smith of Kitava with Bone Cage.
+- **Arc:**
+  - Bone Cage only spawns on solid ground, which walled him on a boss. The staff's built-in skill was the
+    backup.
+  - Astral Projection and Spell Cascade came late ("stubborn trying not to use the meta solution").
+  - Smith's Masterwork: Tantalum Alloy plus Coal Stoker caps elemental resistances at level 37.
+  - He bought Cast on Minion Death and the Dark Defiler early, parked them, and re-tested later.
+  - Minion Pact needs a minion with at least your max life, so he capped his own life and moved to energy
+    shield. Dialla's Desire makes the trigger fire on every cast.
+- **Outcome:** the Arbiter at level 88 (36 hours, 55 deaths), then a Headhunter and the Uber Arbiter on the
+  third try (68 hours).
+- **PoB:** pobb.in/jZXioOx7Z2rI (Arbiter); pobb.in/6kk-MdFtT_wT (Uber); pobb.in/XpbN6JBXe_U1 (mapping).
+
+### Walking Calamity Witchhunter (0.4): `aeT9rsQZ4dM`
+
+- **Roll:** Witchhunter with Walking Calamity, a bear-form ultimate unlocked at level 52. It casts only at
+  maximum Glory, and Glory builds from Rage gained while already at maximum Rage.
+- **Arc:**
+  - Bridge skills are bear attacks on the same talisman, and the tree pre-buys the payoff's scaling.
+  - Ferocious Roar with Raging Cry, next to a boss, fills Glory at once, because the Rage gain scales with
+    monster power.
+  - Eternal Rage made Calamity nearly always ready.
+  - He cut supports that only sped up the activation.
+  - A cost-ordered ladder for an unmet freeze landed on Lunar Assault (436% more freeze buildup).
+  - Sorcery Ward is sized from armour, so The Brass Dome and Heart of the Well grow it.
+- **Outcome:** the Arbiter and Atziri at level 92, after about 39 hours. "The most fun random build run."
+- **PoB:** pobb.in/_M6SpsSStIwx
+
+### Fangs of Frost Chronomancer (0.3.1): `gLac8n8iBeA`
+
+- **Roll:** Chronomancer with Fangs of Frost, a spear stab that consumes Parried for a frost explosion.
+- **Arc:**
+  - Parry fails to the stun bar, slams and projectiles. Steadfast fixes the first; Kaltenhalt turns parry's
+    stun buildup into freeze buildup.
+  - Herald of Ice and Infernal Cry clear packs.
+  - Mana starvation was fixed by cutting cost multipliers.
+  - Concentrated Area turned out to boost the stab too.
+  - The defence pivot to CI kept his recoup investment through Sacrosanctum.
+  - Temporal Chains was copied from poe.ninja.
+  - A boss was much harder because of its cold resistance, so bosses got their own loadout.
+- **Outcome:** Arbiter of Ash at level 86+ on 9.5k energy shield. The damage stayed "yikes"; control
+  carried the bosses.
+- **PoB:** pobb.in/CAhQ0kalcEeH
+
+### Shield Charge Acolyte of Chayula (0.3.x): `1ZqM9dJ9MF0`
+
+- **Roll:** Acolyte of Chayula with Shield Charge. Its damage reads shield armour and distance travelled.
+- **Arc:**
+  - Disengage, from a spear, creates the run-up and cancels the end of the charge.
+  - Shield Wall, which Shield Charge shatters into a big explosion, was the turning point.
+  - Inner Turmoil was dropped after he found its rate cap (one stack per 0.1 s) against slow, big hits.
+  - The shield's armour went from 220 to 1,148.
+  - Stomping Ground was cut once the shield carried the damage.
+  - He stayed on armour because Strength was already needed.
+- **Outcome:** Arbiter of Ash at about level 89. "By far the smoothest campaign run I've had."
+- **PoB:** pobb.in/N-CGiIdRDFvS

@@ -1142,3 +1142,245 @@ sources unasked: a Maxroll read I started on my own was stopped by the user.
   - The server already holds a poe.ninja client for currency rates only (`src/services/poeNinjaClient.ts`). The
     build index would be a new server tool, so one client, cache and rate limiter cover it.
 - **Open:** whether development-time agents may now call poe.ninja, for example to ground the API.
+
+### Off-meta builds 7–30: the user's YouTube list (2026-10-10)
+
+**Coverage and cost.**
+
+- The user supplied 15 build guides (14 cards; one agent took both Earthshatter videos) and 9 "random build"
+  playthroughs by Schwingy, studied for process.
+- 23 agents, 2.36M subagent tokens on Opus, about 102K each. Briefs are in the scratchpad (`offmeta-brief-2.md`,
+  `random-brief.md`).
+- Patches:
+  - 0.3.x: 2;
+  - 0.4: 6;
+  - 0.5: most;
+  - 0.5.5: 3;
+  - one Path of Exile 1 video (Eye of Winter), studied for process only.
+- Each build's chain and links are in `reference-builds.md`. Two downloads were throttled to about 240 KiB/s at
+  720p and re-fetched at 480p.
+- The Gemling bias of the first list is gone: 4 of the 22 builds are Gemling.
+
+**The pattern library, consolidated into families.**
+
+About 40 new pattern names came in. They fold into ten families. Each entry carries a search step in its
+card.
+
+1. **Loops and relays:**
+   - inputs-and-outputs;
+   - closed trigger loop with a seed and a decay timer (Earthshatter);
+   - relay past a self-exclusion (Eventide, Flicker);
+   - automate the routine action (Crossbow);
+   - kill-gated consumer (Eventide);
+   - debuff loop split across two skills (Bone Cage);
+   - condition carrier (Walking Calamity);
+   - placed detonator (Shield Charge).
+2. **State consumers (builder and finisher):**
+   - builder that can't spend (Wing Blast);
+   - keep the event for the engine (Crossbow);
+   - staged handover (Shockchain);
+   - state-keyed payoffs (Fangs);
+   - the anti-pattern, a payoff thief (Wing Blast, Fangs).
+3. **Resource conversions:**
+   - zeroed resource;
+   - split pools or cost redirection (Oracle, Widowhail);
+   - cost to a gated resource:
+     - inflated cost as fuel (Ancestral Cry);
+     - drawback as fuel (Empyrean);
+     - support cost as trigger fuel (Bone Cage);
+   - overflow resource and threat-scaled generator (Walking Calamity);
+   - the enabler funds its own payoffs (Gathering Storm);
+   - mirrored stat (Enervating Nova).
+4. **Stat bridges:**
+   - stat-to-damage (Widowhail, Twister);
+   - attribute bridge (Supporting Fire);
+   - scope bridge, "also affects you" (Empyrean);
+   - one stat broadcast to its siblings (Bone Cage);
+   - object stat as damage (Earthshatter);
+   - stat-as-base convergence (Mana Flare);
+   - damage-source substitution (Shield Charge);
+   - defence that scales damage, and defence that scales defence (Walking Calamity);
+   - pivot bridge (Fangs).
+5. **Copies and rate:**
+   - proxy multiplier;
+   - repeat to cap (Infernal Cry);
+   - cooldown recovery as DPS (Supporting Fire);
+   - sequence ramp fed by use rate (Varashta);
+   - proc farm with a free action (Supporting Fire);
+   - count events, not damage (Eventide);
+   - burst-window stacking (Gathering Storm);
+   - slow the emitter (Eye of Winter);
+   - stacking rate caps (Shield Charge).
+6. **Levels, quality and tags:**
+   - level-carrier host (Infernal Cry);
+   - quality as a stat line;
+   - low-level utility gems;
+   - type-granting support unlock (Flicker);
+   - tag audit (Walking Calamity, Fangs).
+7. **Conditions:**
+   - forced condition; permanence = reservation of at least 1 minus the threshold (Gathering Storm);
+   - outcome lock (Chayula);
+   - saturated type count (Twister);
+   - drawback cancellation (Shockchain);
+   - drawback offload (Twister).
+8. **Item and slot tricks:**
+   - amplified slot as stat stick (Widowhail);
+   - socket amplifier plus latent lines (Mana Flare);
+   - support moved to gear (Empyrean);
+   - skill granted by an item base (Enervating);
+   - weapon set 2 job;
+   - bimodal roll plus luck (Enervating).
+9. **Actors:**
+   - inert minions;
+   - buff relay (Chayula);
+   - actor rerouting (Varashta);
+   - reactive carrier (Mana Flare);
+   - movement delivers the radius (Gathering Storm);
+   - control as defence (Shockchain, Fangs);
+   - hit count as sustain (Eye of Winter).
+10. **Tree:**
+    - keystone as pathing anchor (Oracle);
+    - a node-effect multiplier steers cluster choice (Ancestral Cry);
+    - a radius jewel instead of an anoint (Twister).
+
+**Families seen in two or more independent builds:**
+
+- relay past a self-exclusion;
+- stat-to-damage bridge;
+- cost redirection;
+- cost to a gated resource (3);
+- builder and finisher with a payoff thief (3);
+- command skills with Archon of Undeath and Muster (Varashta, Supporting Fire);
+- Concussive Runes heavy-stun shockwaves (Flicker, Ancestral Cry);
+- Gemling quality (Infernal Cry and Earthshatter here, plus perra's five).
+
+**Process heuristics, by phase** (mostly from the random-build videos).
+
+- **Brainstorm.** Questions to ask of every candidate:
+  1. What is the damage source, what does it read, and which slot carries it? (Shield Charge, Enervating)
+  2. Fix the payoff first, then judge each piece by whether it feeds it. (Empyrean)
+  3. What does the payoff consume or require, and can the skill create it? If not, it's a builder and a
+     finisher, and the lock must fit by tag. (Wing Blast, Shockchain)
+  4. The enabler: name it, the level it arrives at, and how to get it ("dormant until X"). Its downside is
+     the next buy. (Eye of Winter, Gathering Storm)
+  5. Which routine action already produces the resource it needs? (Empyrean, Walking Calamity)
+  6. Read the skill's own text for payout conditions, ramps and hidden scaling. (Wing Blast, Varashta, Eye of
+     Winter)
+  7. Tag audit: which +level sources and supports can reach it? (Walking Calamity, Fangs)
+  8. Search other skills' text for the main skill's tags, and pair-test the planned skills. (Shield Charge,
+     Empyrean)
+  9. Give it the standard kit before calling it weak. (Bone Cage)
+  10. How does the required state fail? Plan one fix per failure. (Fangs)
+- **Verification.** Checks on the skeleton, each reported as verified, estimate or risk:
+  1. For ailments and damage over time, a pillar checklist: base, type-specific scaling, duration, 100%
+     application.
+  2. The enabler's numeric conditions at the target level, and what they force out of the build (Bone Cage
+     caps its own life). A permanence check on forced conditions.
+  3. Attribute requirements at the target level, including after swaps.
+  4. A dead-slot audit (toggle each source, and flag a zero change). Does each support touch the activation
+     or the payload?
+  5. DPS with the condition on and off at a realistic uptime. Stacks per second against rate caps.
+  6. Clear and bosses reported separately, with encounter mods (+resistance, bosses that resist your
+     element).
+  7. Risks PoB can't show:
+     - payoff thieves;
+     - placement limits;
+     - the exposed phase;
+     - cooldown dead windows;
+     - hidden clauses on links between items ("from a Hit", "you use yourself"), stated as theory.
+  8. Skill-shape probes (projectile speed up and down).
+- **Finalization (the guide):**
+  - bridge skills that share the weapon, element or resource while a payoff is level-gated (Gathering Storm,
+    Walking Calamity, Varashta);
+  - bank the enabler, and pivot when points or level allow; pillars marked "buy now, works at stage X";
+  - fallback ladders: the staged handover, a cost-ordered ladder for an unmet condition, a fix ladder for
+    clearing;
+  - fix by mechanism, cheapest first, and defend the exposed phase;
+  - report effective HP and max hit honestly, and say when damage stays low and control carries;
+  - a boss loadout separate from mapping.
+
+**How PoB follows these builds.**
+
+- **Count fits copies and rate:**
+  - Spell Cascade 1–3;
+  - mimics;
+  - Reavers = 8;
+  - Volcanic Steps = movement speed ÷ 12;
+  - aftershocks;
+  - overlapping twisters;
+  - Archon's cooldown gain ≈ 2.5.
+
+  It doesn't fit per-hit ramps, cooldown-capped triggers (Mana Flare), stack fills (Corrupted Blood) or
+  per-hit surges.
+- **A second idiom:** hand-calculate, then inject the result as a custom mod. Examples: Chayula's "Allies in
+  your Presence Gain N%…", Verglas's gain-as-extra, a ramp's "more".
+- **Config stand-ins:**
+  - the three ground boxes for The Taming;
+  - Corrupted Blood stacks;
+  - Heavy Stunned;
+  - Current Mana %.
+- **Confirmed by me** (details in the scratchpad notes):
+  - the Concussive Runes shockwave has no skill definition;
+  - energy-based meta gems (Cast on Critical, Cast on Minion Death, Cast on Elemental Ailment) aren't
+    modelled at all;
+  - a skill granted by a support takes the support gem's level (`CalcSetup.lua:1850-1876`).
+- **Agent-reported, not checked by me:**
+  - Archon of Undeath is absent from `Modules/`;
+  - Verglas, The Taming, Way of the Stonefist, Polcirkeln, Primal Bounty and Crushing Blows are unparsed;
+  - Muster's count differs from the game's.
+- **Data drift:**
+  - rolls above the data range have to be typed in (Widowhail 280%, Chober Chaber +4, Fireflower +6);
+  - mutated (Vaal) uniques only import;
+  - some numbers lag the game (The Mhacha's Gift: 3 in game vs 2 in PoB; Dialla's Desire: 10 vs 5);
+  - Loreweave and the Runemastered Olrovasara are missing.
+- **Evidence:** creators rarely show PoB numbers. They show in-game tooltip DPS, footage and boss kills.
+  poe.ninja character and PoB links appear in about a third of the guides. That backs poe.ninja as evidence
+  by default.
+
+**Budget and campaign.**
+
+- Earthshatter's budget and endgame pair is the best ladder example: the damage chain is identical, and the
+  swaps cost defence, consistency and spirit, with numeric thresholds.
+- Varashta is the only campaign guide (SSF, no uniques).
+- The random-build videos are mostly campaign. The early game is dominated by bridge skills, attribute
+  lockouts and "dormant until X".
+
+**Candidate ideas, continuing I1–I9; none adopted.**
+
+- **I10, pattern library v1.** Ten families with variants, each with:
+  - a search step;
+  - how PoB follows it (modelled, Count, custom mod, hand calculation, not modelled);
+  - examples from `reference-builds.md` (29 builds).
+
+  Shapes only. Each use is re-checked against current data. Judgement; cheap to write.
+- **I11, candidate card fields:**
+  - the damage source and its slot;
+  - what the payoff consumes or requires;
+  - the enabler (level, acquisition, "dormant until");
+  - the resource producer;
+  - how PoB follows each link;
+  - evidence (poe.ninja characters, the creator);
+  - risks;
+  - a fallback ladder.
+- **I12, the verification checklist above,** reported as verified, estimate or risk. None of it is a required
+  gate.
+- **I13, lookup additions (cheap code):**
+  - type-granting unlocks (`addSkillTypes` against `requireSkillTypes`);
+  - "what can this support ride";
+  - named phrase searches ("also apply to", "while already at maximum", "per 100 maximum", "for each type
+    of", "cannot … but", "instead of you", "your <tag> … shatter");
+  - a skill's hit-making children, for the payoff-thief audit;
+  - skill stat sets.
+- **I14, coverage flags** (extends I2):
+  - energy-based meta gems;
+  - skills granted by supports (level);
+  - granted skills with no definition;
+  - rolls above the data range.
+- **I15, Count plus custom-mod injection** as plan fields, each with a reason. This extends the Count
+  decision.
+- **I16, campaign:** bridge skills for level-gated payoffs, and "dormant until X" in Leveling.
+- **I17, poe.ninja peers:** what similar characters run. The Fangs creator used this.
+- **Not attempted:**
+  - modelling meta-gem energy or shockwaves in Lua;
+  - patching `vendor/`;
+  - turning the checklists into required gates.

@@ -1352,7 +1352,7 @@ card.
 - **I10, pattern library v1.** Ten families with variants, each with:
   - a search step;
   - how PoB follows it (modelled, Count, custom mod, hand calculation, not modelled);
-  - examples from `reference-builds.md` (29 builds).
+  - examples from `reference-builds.md` (30 entries: 21 off-meta builds, 9 playthroughs).
 
   Shapes only. Each use is re-checked against current data. Judgement; cheap to write.
 - **I11, candidate card fields:**
@@ -1386,3 +1386,44 @@ card.
   - modelling meta-gem energy or shockwaves in Lua;
   - patching `vendor/`;
   - turning the checklists into required gates.
+
+**The user's answers (2026-10-10, continued).**
+
+- **poe.ninja in development:** "It's fine to use poe.ninja in development, just be polite with request
+  rate." This closes the open question above. pathofexile.com and requests carrying a cookie or PII stay
+  gated, and tests stay offline (D-34).
+- **Also adopted on 2026-10-10,** under the user's "Everything else looks good" but left out of the list
+  above:
+  - PoB keeps its job for the delivered file, as well as for defences;
+  - the finished guide still checks that every stated interaction exists in game text;
+  - the verifiers stop checking DPS figures for exactness when they rest on Count or a hand calculation.
+- **Amendment 3: "Go ahead, and let's start keeping a list of PoB gaps and bugs."** This answered my offer
+  to write amendment 3 with:
+  - the open-ended input;
+  - the three gated phases;
+  - the pattern library;
+  - the candidate card;
+  - the verification checklist (advisory);
+  - Count and custom modifiers;
+  - poe.ninja on by default;
+  - the lookup additions.
+
+  Ideas I10–I17 are drafted into the memo and stay proposals until the user approves it.
+- **The PoB gaps list** was started as `pob-gaps.md` (PG-1 to PG-50). Every agent citation was re-checked
+  against the code.
+- **Amendment 3's review:**
+  - One adversarial reviewer ran three lenses: invented decisions, citations and completeness. It cost 172K
+    tokens and checked about 45 citations.
+  - Findings I verified and folded in:
+    - Full DPS breaks the compile limits (a test run with Full DPS on every group took 160.68 s, against
+      D-159/D-229's 100 s budget);
+    - the checklist's toggles have no measure-only tool (`toggle_*` and `set_config` are `mutate` tools,
+      `toolMeta.ts:114-117`);
+    - cards lacked an identity for R1b;
+    - the deck had no assembly step;
+    - offline answers were undefined;
+    - the round cap (NFR-23) and the other routes back to checkpoint 1 were missing from the change table;
+    - R1a's foci assumed a rolled skill;
+    - figures computed with custom modifiers were unmarked;
+    - the tool-count tests;
+    - eight citations needed correcting.

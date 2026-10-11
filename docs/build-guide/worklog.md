@@ -2425,3 +2425,30 @@ command, `/build-guide Titan "Explosive Concoction" --offline`, which should sto
 evidence for D-342, to fold into AC-W47.
 
 **Waiting on the user** to start the WU-59 sessions.
+
+## 2026-10-11: WU-59, P1 check 3 fails; WU-57 re-opened
+
+**What happened.** For `/build-guide a Fork build, any ascendancy --offline`, AC-W47 (c) expects a stop that says
+Fork is a support gem. Instead the runner looked Fork up, found a support gem, and parsed the brief as
+`{around: "Fork", notes: "any ascendancy"}`. With no `skill` field, the brief check had nothing to reject. The
+runner then saw that the Agent tool was missing and stopped before step 2. It created no folder; the guides root
+is still empty.
+
+**Two defects in the skill text (WU-57 owns the brief):**
+1. **The brief's fields.** `skill` is defined as an active gem, and `around` as "an item or mechanic", so a
+   support gem routes to `around` and the D-258 refusal never fires. AC-W47 (c) and the skill disagree.
+2. **No rule for a missing Agent tool.** The runner improvised a check before step 2. P1's checks 4 and 5
+   (AC-W48) need steps 2 and 3 (the run folder, and a run log that records the refused config) to run first,
+   so the same improvisation would fail them.
+
+**Coordinator rulings (PROPOSED):**
+- **D-343.** In free text, a support gem named as the build's subject goes in `around`, and the reply says it
+  is a support whose researchers will look for skills it can support. The fixed roll's second name is always
+  `skill`, so `/build-guide Pathfinder Fork` stops with "Fork is a support gem" (D-258). P1 check 3 becomes
+  that fixed roll, and a seventh check runs the free-text Fork brief: Fork goes in `around`, the run makes its
+  folder and run log, then stops at the first agent step.
+- **D-344.** Steps 1 to 4 always run before any agent. A missing Agent tool stops the run at its first agent
+  step: `status: "stopped"`, with the reason in the run log and the reply.
+
+**Next:** the user runs P1's checks 4 to 6 in the same session, for evidence. A doer fixes WU-57 in `amend`,
+and P1 then re-runs from the start on the fixed head.

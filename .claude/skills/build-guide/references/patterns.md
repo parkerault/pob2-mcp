@@ -179,7 +179,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Shape:** list the states the build always applies, then collect "against X enemies" modifiers.
 - **Search:** the skeleton's guaranteed states (Frozen, Cursed, Heavy Stunned); `mechanic "against <state>"
   (passive)`, then unique and mod.
-- **PoB:** config stand-in where the option exists (Heavy Stunned, Isolated); else not modelled.
+- **PoB:** config stand-in where the option exists (Heavy Stunned, Dazed [crossbow], Isolated); else not
+  modelled.
 - **Examples:** Fangs of Frost: Exploit the Elements and Honourless against frozen enemies [fangs]. Ancestral
   Cry: Sine Aequo's 41% threshold keeps "against heavy stunned" on [ancestral-cry].
 - **Cautions:** a consumer added later removes the state [fangs].

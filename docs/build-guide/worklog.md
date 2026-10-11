@@ -2312,3 +2312,21 @@ under the schema-2 log rules. Artifacts are held to the current formats, though.
 H2s and `audit.md` don't depend on the log schema, so WU-47's recorded runs can't pass. M-12's record stands
 as written, closed with exceptions E1–E4. Keeping schema 2 now keeps logs written before v3 readable; it no
 longer keeps WU-47's runs checkable. `run-ok-v2` is the regression fixture for the schema-2 log rules.
+
+### WU-58 merged at `3ffd7d0`
+
+All five review findings are fixed:
+- **The final gate's answer is now tied to the run's end status** (`checkpoints.md:78`, `:86`, `:136`):
+  - accept → `completed`;
+  - a default `stop` → `stopped`;
+  - any other answer → `not-accepted`.
+- **Escalation answers** match their escalations one for one.
+- **The probe count** includes failed probes.
+- **Card files** for rounds that never ran now fail.
+- **A schema-2 log** now rejects the schema-3-only fields.
+
+The static and checker suites pass 532 of 532, and the checker exits 0 on all four good fixtures. The lane
+was removed.
+
+Every M-14 unit is now merged except WU-59, the recorded run. The final wave gate runs next, and then the
+WU-59 worktree is created at the gated head.

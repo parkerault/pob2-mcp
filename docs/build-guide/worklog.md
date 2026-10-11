@@ -2330,3 +2330,18 @@ was removed.
 
 Every M-14 unit is now merged except WU-59, the recorded run. The final wave gate runs next, and then the
 WU-59 worktree is created at the gated head.
+
+### Wave gate (WU-57, WU-58 and fold v1.4): PASS at `278b89c`
+
+An independent verifier ran the gate from clean, with the Jest cache cleared and `POB_SKIP_ENGINE` unset:
+- `mise run test` rc=0: 122 of 122 suites and 2095 of 2095 tests, none skipped. The NFR step passed 2 of 2;
+  the fifteen-stage compile took 25.8 s.
+- `pnpm build` rc=0.
+- Both waivers are `[]`, there is no dependency change, and the tool count is 84 (83 with poe.ninja
+  disabled).
+- The ACs of WU-57 (AC-W14, W27, W30…W33) and WU-58 (AC-W2 (aa)…(ff) and D-339) pass, and the checker
+  exits 0 on all four good fixtures.
+- None of the earlier units regressed.
+
+**Every M-14 build unit is merged and gated.** WU-59's worktree, `pob2-mcp-wt/m14`, is a detached checkout
+of `278b89c`, bootstrapped and built.

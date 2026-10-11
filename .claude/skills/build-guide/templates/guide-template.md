@@ -15,11 +15,13 @@ It is a game guide, not a design document.
   supports, nodes, key items, an attribute or level requirement, or a plan number, and changes what the reader
   does. If it would read as true word for word in a guide for another skill on another class, cut it.
 - At most 3,000 words, the H1, the import code and the Known issues list not counted. The word counts below are
-  each section's budget, about 2,840 in all.
+  each section's budget, about 2,840 in all. Each section states its budget, as "About <n> words." in its prose
+  placeholder or as a note of its own in square brackets; a Leveling H3 has at most 110.
 - Ledger tables, per-loadout numbers, coverage flags, confidence levels and why this concept was picked go in
   audit.md, never here.
 Replace every <placeholder>. Keep a line marked [only when ...] only when it applies, and a line marked
-[optional] only where the build has it; drop the mark. Delete this comment.
+[optional] only where the build has it; drop the mark. Delete every line that is only a note in square brackets,
+such as [About 120 words.], and this comment.
 -->
 
 ## At a glance
@@ -31,6 +33,8 @@ Replace every <placeholder>. Keep a line marked [only when ...] only when it app
 - **Difficulty:** <easy | medium | hard>, because <why>.
 
 ## Your PoB file
+
+[About 120 words.]
 
 Import this code in PoB2 (Import/Export Build, then Import from code):
 
@@ -47,6 +51,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 ## Survival by stage
 
+[About 130 words.]
+
 <A one-line legend: solid, watch and risky against the reference hits.>
 
 - **Acts 1–2: <solid | watch | risky>.** <the gap that matters, with its number and what closes it>.
@@ -60,6 +66,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 ## Gem and ascendancy timing
 
+[About 130 words.]
+
 | When | Change |
 |---|---|
 | <level, quest or trial> | <the uncut-gem step, or the trial and the ascendancy node it buys> |
@@ -67,6 +75,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 | [optional] <when> | Save: <what to stockpile before a swap>. |
 
 ## Priorities
+
+[About 180 words.]
 
 - **Supports:** my order is <support>, <support>, ….
 - **Links and quality:** <…>.
@@ -77,6 +87,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 ## Leveling
 
+[About 620 words in all: at most 110 words for each stage's H3.]
+
 ### <loadoutName of the first campaign stage, exactly as compile-record.json has it>
 
 <At most 110 words. Setup: <skill> with <supports>. Tree: add <nodes>, with why. Attributes: <have> of the <need> <attribute> <gem or item> needs. Gear: <the target> [optional: , or <the fallback> D1 or D2 weighed]. Swap to the next loadout when <trigger>.>
@@ -85,6 +97,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 [optional] <the item or node> stays dormant until <loadout name or level>.
 
 ## Campaign route and rewards
+
+[About 210 words.]
 
 - <Act and quest>: <the reward, and what it does for this build>.
 - <Act and quest, a reward choice>: take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.
@@ -151,6 +165,8 @@ Move here when <the trigger>.
 
 ## How to play it
 
+[About 170 words.]
+
 - **Clear:** <…>.
 - **Single target:** <…>.
 - [only when <Skill> isn't the clear skill] <Skill> is the single-target skill because <why it can't clear>.
@@ -169,9 +185,13 @@ The headline figures assume <the plan's config they rest on: charges, stacks, co
 
 ## FAQ
 
-- **<A question a player asks>** <The answer.>
+[About 160 words.]
+
+- **<One of the 3–5 questions a player asks>** <The answer.>
 - [optional, up to 2] **<X or Y?>** <the deciding factor, as a PoB damage or survival difference>[online: , and the price difference].
 
 ## Changelog
+
+[About 10 words.]
 
 - <YYYY-MM-DD>: first version (<online | offline> run).

@@ -816,6 +816,36 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     expect(comment).toMatch(/At most 3,000 words, the H1, the import code and the Known issues list not counted\. The word counts below are each section's budget, about 2,840 in all/);
   });
 
+  /** §8's target table, read from the spec: each row's H2, word budget and "Holds" text. */
+  const s8Rows = () => {
+    const spec = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8');
+    const s8 = spec.slice(spec.indexOf('\n## 8. Guide template'), spec.indexOf('\n## 9. '));
+    const rows = [...s8.matchAll(/^\| \d+ \| `([^`]+)`[^|]* \| ([\d,]+) \| ([^\n]*) \|$/gm)].map((m) => ({ h2: m[1], words: Number(m[2].replace(/,/g, '')), holds: m[3] }));
+    const total = Number(/^\| \| \*\*Total\*\* \| \*\*([\d,]+)\*\* \|/m.exec(s8)![1].replace(/,/g, ''));
+    return { rows, total };
+  };
+
+  it("opens every section with §8's word budget, and gives each Leveling H3 §8's per-stage limit (§8, D-283)", () => {
+    const { rows, total } = s8Rows();
+    // The parse holds: §8's table names the 14 H2s in order, and its budgets sum to its total.
+    expect(rows.map((r) => r.h2)).toEqual(GUIDE_H2);
+    expect(rows.reduce((sum, r) => sum + r.words, 0)).toBe(total);
+    const stated = (title: string) => {
+      const m = /About ([\d,]+) words/.exec(sectionOf(title).join('\n'));
+      return m ? Number(m[1].replace(/,/g, '')) : null;
+    };
+    expect(GUIDE_H2.map((title) => ({ title, words: stated(title) }))).toEqual(rows.map((r) => ({ title: r.h2, words: r.words })));
+    const perStage = Number(/at most (\d+) words/.exec(rows.find((r) => r.h2 === 'Leveling')!.holds)![1]);
+    expect(sectionOf('Leveling').join('\n')).toContain(`at most ${perStage} words for each stage's H3`);
+    expect(sectionOf('<loadoutName of the first campaign stage, exactly as compile-record.json has it>').join('\n')).toContain(`At most ${perStage} words.`);
+  });
+
+  it("asks the FAQ for §8's 3–5 questions a player asks, in its question placeholder (§8 row 13)", () => {
+    const rule = '3–5 questions a player asks';
+    expect(s8Rows().rows.find((r) => r.h2 === 'FAQ')!.holds).toContain(rule);
+    expect(sectionOf('FAQ').filter((l) => /^- \*\*<[^>]*>\*\* <The answer\.>$/.test(l))).toEqual([`- **<One of the ${rule}>** <The answer.>`]);
+  });
+
   it('puts the import code in the first fenced block of Your PoB file, with the loadout line, the stat-examples line, the versions, the offline line and the PoB notes (§8 row 2)', () => {
     const section = sectionOf('Your PoB file').join('\n');
     expect(section).toMatch(/```\n<importCode, copied exactly from compile-record\.json>\n```/);

@@ -837,9 +837,9 @@ export async function checkRun(runFolder) {
     }
 
     // (w) No pipeline text: no footnote marker, confidence label or finding id, anywhere outside the import code.
-    const fenced = new Set(guide.fences.flatMap((f) => Array.from({ length: f.end - f.start + 1 }, (_, k) => f.start + k)));
+    // Only the import code's block is exempt; any other fenced block is guide text like the rest.
     guide.lines.forEach((line, i) => {
-      if (fenced.has(i)) return;
+      if (importBlock !== null && i >= importBlock.start && i <= importBlock.end) return;
       const label = CONFIDENCE_LABEL.exec(line)?.[0];
       const id = FINDING_ID.exec(line)?.[0];
       const what = line.includes('[^') ? 'a footnote marker "[^"' : label ? `the confidence label "${label}"` : id ? `the finding id "${id}"` : null;

@@ -369,6 +369,7 @@ const broken: BrokenCase[] = [
   { name: '(w) a footnote marker in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('one button for rares;', 'one button for rares;[^g1]')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
   { name: '(w) a confidence label in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('I read it as a ceiling.', 'I read it as a ceiling (confidence L).')), rule: 'guide-markers', says: /carries the confidence label "confidence L"/ },
   { name: '(w) a finding id in guide.md (the old Known issues form)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, `- ${PROSE_READER} (v4-prose-1)\n`)), rule: 'guide-markers', says: /carries the finding id "v4-prose-1"/ },
+  { name: '(w) pipeline text in a second fenced block under Priorities: only the import code is exempt', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Leveling\n', '```\n[^g1] (confidence L) v4-prose-1\n```\n\n## Leveling\n')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
   // (x)
   { name: "(x) a rung's verdict line is missing", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', (t) => t.replace(/- \*\*Budget \(L90\)[^\n]*\n/, '')), rule: 'verdict-line', says: /"Survival by stage" has no verdict line for the Budget rung, stage b/ },
   { name: '(x) a verdict line not in the fixed form', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('75/75/75/28% at −60%.', '75/75/75/28% at the endgame penalty.')), rule: 'verdict-line', says: /the Budget verdict line isn't in the fixed form/ },
@@ -431,6 +432,19 @@ describe('D-283: the guide has at most 3,000 words, the H1, the import code and 
   it('passes a guide of exactly 3,000 counted words, and fails one word more', () => {
     passes(padTo(3000));
     expect(failing(padTo(3001))).toMatch(/\[word-cap\] guide\.md has 3001 words, over the 3000-word cap/);
+  });
+});
+
+describe('D-276: only the import code is exempt from the no-pipeline-text guard (w)', () => {
+  it('names a marker, a confidence label and a finding id, each on its own line of a second fenced block', () => {
+    const dir = copyOf('run-ok');
+    editText(dir, 'guide.md', replace('## Leveling\n', '```\nsee [^g1]\nI read it as a ceiling (confidence L)\nas v4-prose-1 says\n```\n\n## Leveling\n'));
+    const at = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8').split('\n').indexOf('see [^g1]') + 1;
+    expect(lines(failing(dir), 'guide-markers').map((l) => /guide\.md:(\d+) carries (a footnote marker|the confidence label|the finding id)/.exec(l)?.slice(1))).toEqual([
+      [String(at), 'a footnote marker'],
+      [String(at + 1), 'the confidence label'],
+      [String(at + 2), 'the finding id'],
+    ]);
   });
 });
 

@@ -462,6 +462,8 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       // Some mod has base types, some (a unique-only mod) has none: the empty list is sent as `[]`.
       expect(weighted.some((m) => m.baseTypes.length > 0 && m.baseTypes[0].count > 0)).toBe(true);
       expect(weighted.some((m) => m.baseTypes.length === 0)).toBe(true);
+      // An Exclusive mod isn't rolled on a base: an empty list and the reason.
+      expect(weighted.some((m) => m.table === 'Exclusive' && m.baseTypes.length === 0 && typeof m.notRolled === 'string')).toBe(true);
       expect(weighted.some((m) => (m.baseTypes as Json[]).some((b) => b.itemType === true))).toBe(true);
       const essences = hits.filter((h) => h.kind === 'essence');
       expect(essences.length).toBeGreaterThan(0);

@@ -24,14 +24,17 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
     - `Gloves (all)`: every base of that item type;
     - `Gloves: Energy Shield`: every base of one of PoB's base types (item type, then defence);
     - `Staff (8 of 14 bases: …)`: only the named bases of that base type;
-    - `none (no base has a spawn weight for it)`: the mod never rolls on an item. It comes from a unique,
-      an essence or another source.
+    - `none (no base has a spawn weight for it)`: no base can roll the mod.
+    - `none (Exclusive mods aren't rolled on a base)`: PoB never rolls this table's mods on a base, whatever
+      their weights. They come from a unique, an essence or another fixed source. `IncursionLimb` mods, and
+      Desecrated mods without a desecrated tag, say the same.
 
     A rune's mod has no line. Desecrated mods (table `Desecrated`) are often limited to a defence type.
   - **Essences** (D-277). An `[essence]` hit names the essence, the item types it applies that mod to,
-    and whether the mod is a prefix or a suffix. Example: `[essence] Greater Essence of Haste (Bow,
+    and Prefix or Suffix when PoB gives one. Example: `[essence] Greater Essence of Haste (Bow,
     Crossbow; Suffix): (14-16)% increased Attack Speed`. A hit matches on the mod line or on the
-    essence's name, so `{query: "Essence of Haste", kind: "essence"}` lists every tier.
+    essence's name, so `{query: "Essence of Haste", kind: "essence"}` lists every tier. An essence whose
+    only mod has no text (Essence of Delirium) has no hits.
   - **Sourcing an affix's limit on its base** (D1, amendment 2): look the affix up with `kind: "mod"`
     and `kind: "essence"`. When its base types (or an essence's item types) narrow the base, the guide
     says so. Example: "Arcane Surge on Crit is desecrated, so the gloves need energy shield".

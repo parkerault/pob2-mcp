@@ -168,9 +168,10 @@ export const BASE_TYPES_PREFIX = "  Base types: ";
  * A mod hit's base types, the ones with a non-zero spawn weight for it (WU-60, D-277), separated by `; `:
  * `<item type> (all)` when every base of an item type with several base lists can roll it, else each of
  * PoB's base lists that has a base that can, as `<list>` or, when only some of its bases can,
- * `<list> (<n> of <m> bases: <names>)`.
+ * `<list> (<n> of <m> bases: <names>)`. A mod PoB never rolls on a base says why (`notRolled`).
  */
-export function renderBaseTypes(baseTypes: LookupBaseType[]): string {
+export function renderBaseTypes(baseTypes: LookupBaseType[], notRolled?: string): string {
+  if (notRolled) return `${BASE_TYPES_PREFIX}none (${notRolled})`;
   if (baseTypes.length === 0) return `${BASE_TYPES_PREFIX}none (no base has a spawn weight for it)`;
   const parts = baseTypes.map((b) => {
     if (b.itemType) return `${b.name} (all)`;
@@ -280,7 +281,7 @@ function render(req: Request, result: LookupGameDataResult): string {
       const hit = r as LookupHit;
       lines.push(renderHit(hit));
       // WU-60 (D-277): the base types that can roll a mod, on the line under it.
-      if (hit.kind === "mod" && hit.baseTypes) lines.push(renderBaseTypes(hit.baseTypes));
+      if (hit.kind === "mod" && hit.baseTypes) lines.push(renderBaseTypes(hit.baseTypes, hit.notRolled));
     }
   } else {
     for (const r of result.results) {

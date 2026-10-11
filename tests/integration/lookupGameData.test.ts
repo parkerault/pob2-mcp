@@ -1016,7 +1016,14 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const essences = (
         await luaQuery<string[]>(`
           local out = {}
-          for _, essence in pairs(data.essences) do table.insert(out, essence.name) end
+          for _, essence in pairs(data.essences) do
+            -- Only essences with a hit: one of their mods has text (Item, else Exclusive mods).
+            local hasText = false
+            for _, modId in pairs(essence.mods) do
+              if data.itemMods.Item[modId] or data.itemMods.Exclusive[modId] then hasText = true end
+            end
+            if hasText then table.insert(out, essence.name) end
+          end
           return out`)
       ).map((name): Candidate => ({ name, kind: 'essence' }));
       expect(passives.length).toBeGreaterThan(0);
@@ -1110,14 +1117,21 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
 
   /**
    * PoB's own answer for one mod: every base of PoB's base lists made into a real item (`new("Item", …)`),
-   * and whether `item:GetModSpawnWeight(mod) > 0`. A mod of a table some item takes its affixes from
-   * (`item.affixes`: Item, Flask, Charm, Jewel) counts only on those items, as PoB's crafting lists do;
-   * `byTags` counts the bases ignoring that, to show where it matters.
+   * and whether `item:GetModSpawnWeight(mod) > 0`. `weighed`: PoB's item crafter weighs the mod at all,
+   * which it does for the item's own affix table (`item.affixes`: Item, Flask, Charm, Jewel; only on those
+   * items), the corrupted-enchant list (Corruption) and the desecrated list (Desecrated mods with a
+   * desecrated tag), never for Exclusive or IncursionLimb. `byTags` counts the bases by weight alone, to
+   * show where those rules matter.
    */
   const pobBaseLists = (table: string, id: string) =>
-    luaQuery<{ text: string; lists: PobList[]; byTags: number }>(`
-      local tbl = data.itemMods[${JSON.stringify(table)}]
+    luaQuery<{ text: string; lists: PobList[]; byTags: number; weighed: boolean }>(`
+      local name = ${JSON.stringify(table)}
+      local tbl = data.itemMods[name]
       local mod = tbl[${JSON.stringify(id)}]
+      local tagged = false
+      for _, tag in ipairs(mod.modTags or {}) do
+        if tag == 'ulaman_mod' or tag == 'amanamu_mod' or tag == 'kurgal_mod' or tag == 'unveiled_mod' then tagged = true end
+      end
       _G.__wu60Items = _G.__wu60Items or {}
       local entries, affixTables = {}, {}
       for listName, list in pairs(data.itemBaseLists) do
@@ -1128,6 +1142,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
           table.insert(entries, { list = listName, name = entry.name, item = item })
         end
       end
+      local weighed = (affixTables[tbl] or name == 'Corruption' or (name == 'Desecrated' and tagged)) and true or false
       local lists, byName, byTags = {}, {}, 0
       for _, e in ipairs(entries) do
         local l = byName[e.list]
@@ -1139,18 +1154,20 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         table.insert(l.bases, e.name)
         local weighted = e.item:GetModSpawnWeight(mod) > 0
         if weighted then byTags = byTags + 1 end
-        if weighted and (not affixTables[tbl] or e.item.affixes == tbl) then table.insert(l.can, e.name) end
+        if weighted and weighed and (not affixTables[tbl] or e.item.affixes == tbl) then table.insert(l.can, e.name) end
         if ((e.item.base.armour or {}).EnergyShield or 0) > 0 then table.insert(l.energyShield, e.name) end
         if ((e.item.base.armour or {}).Ward or 0) > 0 then table.insert(l.ward, e.name) end
       end
-      return { text = mod[1], lists = lists, byTags = byTags }`);
+      return { text = mod[1], lists = lists, byTags = byTags, weighed = weighed }`);
 
   /**
    * The base types §2.2's target (WU-60) lists, from PoB's lists: by item type, then by list name (byte
    * order); `<type> (all)` when every base of a type with several lists can roll it, else each list with a
-   * base that can, with `(<n> of <m> bases: <names>)` when only some can; `none (…)` when no base can.
+   * base that can, with `(<n> of <m> bases: <names>)` when only some can; `none (…)` when no base can, or
+   * the reason when PoB doesn't weigh the mod on a base at all.
    */
-  function expectedBaseTypes(lists: PobList[]): string[] {
+  function expectedBaseTypes(lists: PobList[], notRolled?: string): string[] {
+    if (notRolled) return [`none (${notRolled})`];
     const byType = new Map<string, PobList[]>();
     for (const l of lists) byType.set(l.type, [...(byType.get(l.type) ?? []), l]);
     const out: string[] = [];
@@ -1222,14 +1239,17 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         { table: 'Charm', id: 'FlaskChanceRechargeOnKill2', shows: /^Charm$/ },
         // A corruption on boots of every kind.
         { table: 'Corruption', id: 'CorruptionMovementVelocity1', shows: /^Boots \(all\)$/ },
-        // A unique's mod: no base can roll it.
-        { table: 'Exclusive', id: 'UniqueMutatedVaalArcaneSurgeEffect', shows: /^none \(no base has a spawn weight for it\)$/ },
+        // A unique's mod (Exclusive): PoB never rolls it on a base.
+        { table: 'Exclusive', id: 'UniqueMutatedVaalArcaneSurgeEffect', shows: /^none \(Exclusive mods aren't rolled on a base\)$/ },
+        // A mod no base can roll.
+        { table: 'Item', id: 'GlobalLightningSpellGemsLevel1', shows: /^none \(no base has a spawn weight for it\)$/ },
       ];
       for (const { table, id, shows } of cases) {
         const pob = await pobBaseLists(table, id);
         const text = await okTool({ mode: 'mechanic', query: pob.text, kind: 'mod', max_results: 30 });
         const listed = baseTypesOf(text, table, id);
-        expect({ table, id, listed }).toEqual({ table, id, listed: expectedBaseTypes(pob.lists) });
+        const notRolled = pob.weighed ? undefined : `${table} mods aren't rolled on a base`;
+        expect({ table, id, listed }).toEqual({ table, id, listed: expectedBaseTypes(pob.lists, notRolled) });
         expect({ table, id, shows: listed!.some((b) => shows.test(b)) }).toEqual({ table, id, shows: true });
         if (table === 'Charm') {
           // By tags alone the charm mod would roll on other bases too; PoB's crafting offers it on charms only.
@@ -1297,6 +1317,54 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         expect(l.startsWith('[essence] ')).toBe(true);
         expect(l.toLowerCase()).toContain(line.toLowerCase());
       }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /** The line right after `line` in the tool's text; undefined when `line` isn't there. */
+  function lineAfter(text: string, line: string): string | undefined {
+    const lines = text.split('\n');
+    const i = lines.indexOf(line);
+    return i < 0 ? undefined : lines[i + 1];
+  }
+
+  it(
+    "AC-K51 (literal, at the pin): weighted Exclusive mods aren't rolled on a base; IncreasedLife3's and JewelBleedingEffect's base-type lines; Greater Essence of Haste's hits; Essence of Delirium has no hits and isn't suggested for itself",
+    async () => {
+      // Exclusive mods whose tags give them weight on bases, which PoB still never rolls on a base.
+      for (const [id, text] of [
+        ['CorruptionUpgradeJewelLightningResist1', '+(15-20)% to Lightning Resistance'],
+        ['LightningResistanceJewel', '+(12-15)% to Lightning Resistance'],
+      ]) {
+        expect((await pobBaseLists('Exclusive', id)).byTags).toBeGreaterThan(0);
+        const out = await okTool({ mode: 'mechanic', query: text, kind: 'mod', max_results: 30 });
+        expect({ id, line: lineAfter(out, `[mod] ${id} (Exclusive mods): ${text}`) }).toEqual({
+          id,
+          line: "  Base types: none (Exclusive mods aren't rolled on a base)",
+        });
+      }
+
+      // A life affix on whole item types and single-list types; a jewel affix on two of the four jewels.
+      const life = await okTool({ mode: 'mechanic', query: '+(30-39) to maximum Life', kind: 'mod', max_results: 30 });
+      expect(lineAfter(life, '[mod] IncreasedLife3 (Item mods): +(30-39) to maximum Life')).toBe(
+        '  Base types: Amulet; Belt; Body Armour (all); Boots (all); Gloves (all); Helmet (all); Ring; Shield (all)',
+      );
+      const bleed = await okTool({ mode: 'mechanic', query: 'increased Magnitude of Bleeding you inflict', kind: 'mod', max_results: 30 });
+      expect(lineAfter(bleed, '[mod] JewelBleedingEffect (Jewel mods): (5-15)% increased Magnitude of Bleeding you inflict')).toBe(
+        '  Base types: Jewel (2 of 4 bases: Diamond, Ruby)',
+      );
+
+      // An essence's hits, written out.
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'Greater Essence of Haste', kind: 'essence' }))).toEqual([
+        '[essence] Greater Essence of Haste (Bow, Crossbow; Suffix): (14-16)% increased Attack Speed',
+        '[essence] Greater Essence of Haste (Dagger, Flail, One Hand Axe, One Hand Mace, One Hand Sword, Spear, Talisman, Two Hand Axe, Two Hand Mace, Two Hand Sword, Warstaff; Suffix): (23-25)% increased Attack Speed',
+      ]);
+
+      // Essence of Delirium's only mod is a passive grant with no text: no hits, and its name isn't suggested.
+      const delirium = await okTool({ mode: 'mechanic', query: 'Essence of Delirium', kind: 'essence' });
+      expect(delirium).toContain('Nothing matched "Essence of Delirium", kind essence.');
+      expect(suggestionLines(delirium).length).toBeGreaterThan(0);
+      expect(suggestionLines(delirium)).not.toContain('- Essence of Delirium (essence)');
     },
     ENGINE_TIMEOUT,
   );

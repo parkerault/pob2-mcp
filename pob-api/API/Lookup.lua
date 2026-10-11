@@ -484,14 +484,32 @@ end
 -- Base types are PoB's own base lists (data.itemBaseLists: the item creator's "<type>: <subType>"
 -- groups, hidden bases left out). A base can roll a mod when PoB's ItemClass:GetModSpawnWeight gives it
 -- a non-zero weight (Classes/Item.lua:1377: the weight of the first of the mod's weightKey tags the base
--- has, times its weightMultiplier). A mod of an item affix table (Item, Flask, Charm or Jewel) counts only
--- on the bases whose items take their affixes from that table (Item.lua:840-842), as PoB's crafting lists
--- do (ItemsTab.lua:3049); a mod of any other table (Desecrated, Corruption, Exclusive, ...) is weighed on
--- every base, as PoB weighs its desecrated and corrupted lists (ItemsTab.lua:2718, :3146). A mod without
--- `weightKey` (a rune's) has no base types.
+-- has, times its weightMultiplier). PoB weighs only these mods on a base, so only these get base types:
+-- - a mod of an item affix table (Item, Flask, Charm or Jewel), only on the bases whose items take their
+--   affixes from that table (Item.lua:840-842), as PoB's prefix and suffix lists weigh the item's own
+--   affixes (ItemsTab.lua:3047-3049);
+-- - a Corruption mod, as PoB's corrupted-enchant list weighs that table on the item (ItemsTab.lua:2717-2718);
+-- - a Desecrated mod with a desecrated tag (ulaman_mod, amanamu_mod, kurgal_mod or unveiled_mod), as PoB's
+--   desecrated list weighs that table's tagged mods on the item (ItemsTab.lua:3129-3146).
+-- PoB weighs no other table on a base: Exclusive (uniques' and essences' fixed mods; read only as the
+-- essence fallback, ItemsTab.lua:3076) and IncursionLimb. Their mods, and an untagged Desecrated mod, get
+-- `notRolled`, the reason they aren't rolled on a base, whatever their weights say. A mod without
+-- `weightKey` (a rune's) gets neither.
 
 local baseIndexCache = setmetatable({}, { __mode = 'k' })
 local baseTypesCache = setmetatable({}, { __mode = 'k' })
+
+-- The mod tables PoB weighs on a base besides the item's own affix table (see above).
+local WEIGHED_TABLES = { Corruption = true, Desecrated = true }
+-- PoB's desecrated-list filter (ItemsTab.lua:3129-3135).
+local DESECRATED_TAGS = { ulaman_mod = true, amanamu_mod = true, kurgal_mod = true, unveiled_mod = true }
+
+local function hasDesecratedTag(mod)
+  for _, tag in ipairs(mod.modTags or {}) do
+    if DESECRATED_TAGS[tag] then return true end
+  end
+  return false
+end
 
 -- PoB's spawn weight of `mod` on `base` (ItemClass:GetModSpawnWeight reads only the item's base).
 local function spawnWeight(base, mod)
@@ -542,12 +560,26 @@ end
 -- list name. An item type all of whose bases can roll it is one entry `{name = <item type>, itemType =
 -- true, count, total}` when it has more than one base list; otherwise each base list with a base that
 -- can is `{name = <list name>, count, total}`, with `names` (those bases, sorted) when not all of them
--- can. `count` and `total` count bases. Empty when no base can; nil for a mod without spawn weights.
-function M.modBaseTypes(mod, modTable)
+-- can. `count` and `total` count bases. Empty when no base can. A mod PoB doesn't weigh on a base (see
+-- above) gets an empty list and, second, the reason; a mod without spawn weights gets nil.
+function M.modBaseTypes(mod, tableName)
   if type(mod) ~= 'table' or type(mod.weightKey) ~= 'table' then return nil end
-  if baseTypesCache[mod] then return baseTypesCache[mod] end
-  local index = baseIndex(gameData())
+  local cached = baseTypesCache[mod]
+  if cached then return cached.out, cached.notRolled end
+  local d = gameData()
+  local index = baseIndex(d)
+  local modTable = d.itemMods[tostring(tableName)]
   local only = modTable and index.affixTables[modTable] and modTable or nil
+  local notRolled
+  if not only and not WEIGHED_TABLES[tableName] then
+    notRolled = tostring(tableName) .. " mods aren't rolled on a base"
+  elseif tableName == 'Desecrated' and not hasDesecratedTag(mod) then
+    notRolled = "Desecrated mods without a desecrated tag aren't rolled on a base"
+  end
+  if notRolled then
+    baseTypesCache[mod] = { out = {}, notRolled = notRolled }
+    return {}, notRolled
+  end
   local out = {}
   for _, itemType in ipairs(index.types) do
     local entries, count, total = {}, 0, 0
@@ -570,7 +602,7 @@ function M.modBaseTypes(mod, modTable)
       for _, e in ipairs(entries) do table.insert(out, e) end
     end
   end
-  baseTypesCache[mod] = out
+  baseTypesCache[mod] = { out = out }
   return out
 end
 
@@ -620,11 +652,22 @@ local function collectEssenceHits(hits, query)
   end
 end
 
--- The essences' names, for the closest names of mechanic mode (D-258).
+-- The names of the essences that have hits (a mod with text), for the closest names of mechanic mode
+-- (D-258): an essence whose only mod has no text (Essence of Delirium's passive grant) can't be found, so
+-- it isn't suggested.
 local function addEssenceNames(add)
   local d = gameData()
+  local itemMods, exclusive = d.itemMods.Item or {}, d.itemMods.Exclusive or {}
   for _, key in ipairs(sortedKeys(d.essences)) do
-    if type(d.essences[key]) == 'table' then add(d.essences[key].name, 'essence') end
+    local essence = d.essences[key]
+    if type(essence) == 'table' and type(essence.mods) == 'table' then
+      for _, modId in pairs(essence.mods) do
+        if type(itemMods[modId] or exclusive[modId]) == 'table' then
+          add(essence.name, 'essence')
+          break
+        end
+      end
+    end
   end
 end
 
@@ -762,7 +805,7 @@ local function lookupMechanics(query, kind, maxResults)
   for _, hit in ipairs(results) do
     hit.order = nil
     if hit.kind == 'passive' then hit.id = tostring(hit.nodeId) end
-    if hit.kind == 'mod' then hit.baseTypes = M.modBaseTypes(hit.mod, d.itemMods[hit.table]) end
+    if hit.kind == 'mod' then hit.baseTypes, hit.notRolled = M.modBaseTypes(hit.mod, hit.table) end
     hit.mod = nil
   end
   return results, #listed, kinds

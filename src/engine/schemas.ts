@@ -751,6 +751,11 @@ export const lookupHitSchema = z
      * absent for a mod without spawn weights (a rune's).
      */
     baseTypes: luaArray(lookupBaseTypeSchema).optional(),
+    /**
+     * A mod hit whose mod PoB never rolls on a base, whatever its weights (an Exclusive or IncursionLimb mod,
+     * or a Desecrated mod without a desecrated tag): the reason; `baseTypes` is then empty.
+     */
+    notRolled: optString,
     /** An essence hit (WU-60): the item types the essence grants the mod on, the mod's id and affix type. */
     itemTypes: luaArray(z.string()).optional(),
     modId: optString,

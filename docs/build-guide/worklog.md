@@ -2116,3 +2116,16 @@ class. It also writes D-338, PROPOSED by the coordinator:
 - a new AC-W2 (ff) for WU-58: the checker accepts `probes/` and `cards.md`, and the run log counts probes.
 
 The spine becomes v1.4. WU-57 starts after this fold and WU-55 merge.
+
+### WU-55 merged at `3fc1500`
+
+The fixer closed the four findings:
+- `measuredWithCustomMods` marks a stage whose written config holds PoB's `customMods` option, including a
+  version-1 plan's earned or scenario entry;
+- the Count docs are corrected (`Calcs.lua:520-521` for the record's `outputs`);
+- a new Count sample (#58) compiles `tests/fixtures/plans/two-stage-count/`. That needed a `$COUNT_PLAN`
+  placeholder in `engineKinds.test.ts` and `toolHygiene.test.ts`, which are serialized wiring files.
+
+The rebase onto `92b0cc2`, which includes WU-54, was clean. On the rebased head, the shared-file suites (plan,
+compileCount, contract, engineKinds, toolHygiene, modelCoverage and static) passed 658 of 658. The lane was
+removed.

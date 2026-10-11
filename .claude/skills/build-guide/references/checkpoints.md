@@ -50,7 +50,9 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
   figure, `Life` and `TotalEHP`, D-294; the figure labelled `estimate` when its group's Count is above 1 or
   the stage is `computedWithCustomMods`, D-296), key prices (dated, or `unavailable`), risks, what PoB can't
   verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
-  (D-303, D-334; from its R1b verdict's `not-a-skill` finding). Give the dossier's path. After an
+  (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b verdict's finding is
+  `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own the passive-tree
+  node that grants its skill, the node the finding names. Give the dossier's path. After an
   `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no viable
   card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
   listed with its status, never as a failure.

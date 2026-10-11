@@ -30,6 +30,22 @@ The brief's other fields steer every focus: `playstyle` (each card's tags, from 
 notes on what players run, each card's only player evidence). A fixed roll (a brief naming `ascendancy` and
 `skill`) fixes every card's identity: its named damage source is that skill.
 
+**A skill the tree grants** (D-342). When the brief names a skill, run `mcp__pob2__search_tree_nodes {query:
+"Grants Skill: <skill>"}` before you write any card; for a skill only your card names as its damage source,
+run it before that card. A node whose stats list `Grants Skill: <skill>` grants the skill:
+
+- **with an `Ascendancy: <name>` line**, only that ascendancy can use it: every card with that damage source
+  uses `<name>` and its class, and its identity says why, naming the node (`Granted by: "<node name>" (<node
+  id>), a <name> ascendancy node`). A brief naming another ascendancy contradicts itself: say so in your
+  research file; R1a-assemble then deals no card;
+- **with no `Ascendancy:` line**, any class can take it through that node: every card with that damage source
+  allocates the node, and its identity says so (`Granted by: "<node name>" (<node id>), allocated by this
+  card`). No class lock;
+- **no matching node:** the tree grants nothing, and the skill's gem is its source.
+
+A card that breaks the lock isn't dealt (`R1a-assemble.md`), and R1b fails it before any compile
+(`wrong-ascendancy`).
+
 **An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
 pattern-library shape that you judge under-played: one few builds use with this skill, ascendancy or
 playstyle. Label it in its pitch, `Under-played (judgment): <the shape, and why you judge it under-played>`.

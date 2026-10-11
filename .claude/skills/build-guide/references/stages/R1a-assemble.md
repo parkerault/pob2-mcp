@@ -33,7 +33,15 @@ never edits a card.
      returns it (`{mode: "unique", query: <exact name>}`, or `{mode: "mechanic", query: <its line>}` with
      `kind: "passive"` or `kind: "mod"`). Such a card can be dealt, marked "can't be finalized yet" (D-303);
    - the brief's fixed pieces: a card whose identity contradicts the brief's `ascendancy` or `skill` isn't
-     dealt.
+     dealt;
+   - a skill the tree grants (D-342): run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}`
+     again, once per skill the cards name, and read each node whose stats list `Grants Skill: <skill>`. With
+     an `Ascendancy: <name>` line, the card's ascendancy must be `<name>`, and its identity must name the node;
+     with none, the card must allocate the node. A card that breaks the lock isn't dealt: "Not dealt" gives
+     `wrong-ascendancy: <skill> is granted only by <name>'s node "<node name>" (<node id>)`, or `doesn't
+     allocate "<node name>" (<node id>), the node that grants <skill>`. When the brief names an `ascendancy`
+     other than `<name>`, no card can pass: the round is short (step 6), `short: the brief's ascendancy can't
+     use <skill>: only <name>'s node "<node name>" grants it`.
 
    A failed check holds the card back, naming what failed. Use the names exactly as the tools give them.
 3. **The sniff test** (D-287). A link in the card's links table is load-bearing when the payoff stops working

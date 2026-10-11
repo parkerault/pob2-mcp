@@ -25,9 +25,9 @@
 //  - the run log (schema version 3, D-289; schema 2 only so recorded runs still check, D-326) and the control
 //    flow it records, which stands in for the workflow harness tests amendment 1 deleted: steps in a legal
 //    order, each gate's answer followed (the brainstorm, verification and final gates, D-287), the caps per
-//    brainstorm and verification round, the retry caps (S6 honoured; an R1b `not-a-skill` failure is terminal,
-//    D-334), one full V4 pass and at most one re-check per cycle, escalations only from the gates, and the rule
-//    on every pre-supplied or default answer.
+//    brainstorm and verification round, the retry caps (S6 honoured; an R1b `not-a-skill` or `wrong-ascendancy`
+//    failure is terminal, D-334, D-342), one full V4 pass and at most one re-check per cycle, escalations only
+//    from the gates, and the rule on every pre-supplied or default answer.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it) and its build projection
@@ -868,8 +868,8 @@ export async function checkRun(runFolder) {
     verdict: verdictOf,
     /** The plan stage a fault directive breaks (offline-and-test.md): FI-1 the card's skeleton, FI-2 the first endgame stage. */
     faultedStage: (id, concept) => (id === 'FI-1' ? skeletonStage(concept) : id === 'FI-2' ? firstEndgame : null),
-    /** D-334: an R1b attempt that compiled nothing because the card's damage source isn't a skill; no retry can compile it. */
-    terminal: (s) => s.stage === 'R1b' && s.outcome === 'fail' && isTerminalR1b(verdictOf(s)),
+    /** D-334, D-342: the code of an R1b attempt that failed with no compile and that no retry can fix (`not-a-skill`, `wrong-ascendancy`), else null. */
+    terminal: (s) => (s.stage === 'R1b' && s.outcome === 'fail' ? terminalR1b(verdictOf(s)) : null),
     /** Whether the run holds the card a gate answer names (C-52). */
     cardExists: (id) => cardIds.has(id),
   });
@@ -1673,7 +1673,8 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *    `accept` completed, the default `stop` stopped, any other answer but `revise:<text>` not-accepted.
  *  - `caps`: per brainstorm round at most 3 R1a researchers and one R1a-assemble, per verification round at
  *    most 3 cards compiled (NFR-23, D-287; a schema-2 log's research round carries at most 3 concepts, D-235);
- *    R1b at most 3 counted attempts, none after a terminal `not-a-skill` failure (D-334); each gate at most 2
+ *    R1b at most 3 counted attempts, none after a terminal `not-a-skill` or `wrong-ascendancy` failure (D-334,
+ *    D-342); each gate at most 2
  *    counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a persistent fault's
  *    attempts count; a guided retry and an accepted re-run escalate again on failure).
  *  - `verification`: one full pass of the three lenses per cycle, at most one re-check after the fix round, of
@@ -1684,8 +1685,8 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *  - `escalation`: only gates escalate, each escalation logged once, in order, its choice the answer to its
  *    escalation question, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
- * `ctx` gives the log's schema, a gate attempt's verdict file, the stage each fault breaks, whether an R1b
- * failure is terminal and whether a card exists; findings accepted at an escalation cover the gate attempts
+ * `ctx` gives the log's schema, a gate attempt's verdict file, the stage each fault breaks, an R1b failure's
+ * terminal code (or null) and whether a card exists; findings accepted at an escalation cover the gate attempts
  * after it.
  */
 function checkFlow(log, fail, ctx) {
@@ -1767,7 +1768,7 @@ function checkFlow(log, fail, ctx) {
   let vround = null; // schema 3: the open verification round {n, gate, expected, cards}
   let vrounds = 0;
   let finalized = null; // schema 3: the card the verification gate's last pick finalized, whose design comes next
-  const r1bSeen = new Map(); // concept -> {round, counted, passed, terminal}
+  const r1bSeen = new Map(); // concept -> {round, counted, passed, terminal: null or the terminal R1b code}
   /** Whether a card's R1b failed with retries left: its next attempt runs before any other card's, or the assembly. */
   const retriesLeft = (c) => {
     const r = r1bSeen.get(c);
@@ -1861,7 +1862,7 @@ function checkFlow(log, fail, ctx) {
       const id = m[2];
       const r = r1bSeen.get(id);
       if (r === undefined) illegal(`follows the verification gate answered ${show(a)}, but no R1b verified ${id} in the run; the gate finalizes a verified card (D-287)`);
-      else if (r.terminal) illegal(`follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
+      else if (r.terminal === 'not-a-skill') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
       if (s.stage !== 'D1') illegal(`follows the verification gate answered ${show(a)}, which finalizes ${id}: its design (D1) comes next, not ${s.stage}`);
       finalized = id;
       return undefined;
@@ -1981,16 +1982,18 @@ function checkFlow(log, fail, ctx) {
           if (round.concepts.size > ROUND_CAP) fail('caps', `${at(i)}: research round ${round.n} carries ${round.concepts.size} concepts; at most ${ROUND_CAP} per round (D-235)`);
         }
       }
-      const r = seen ?? { round: v3 ? vround?.n : round?.n, counted: 0, passed: false, terminal: false };
+      const r = seen ?? { round: v3 ? vround?.n : round?.n, counted: 0, passed: false, terminal: null };
       r1bSeen.set(s.concept, r);
-      if (r.terminal) illegal(`runs R1b for ${s.concept} again, but its last attempt ended not-a-skill with no compile: its damage source isn't a skill, so no retry can compile it (D-334)`);
+      if (r.terminal === 'not-a-skill') illegal(`runs R1b for ${s.concept} again, but its last attempt ended not-a-skill with no compile: its damage source isn't a skill, so no retry can compile it (D-334)`);
+      else if (r.terminal === 'wrong-ascendancy') illegal(`runs R1b for ${s.concept} again, but its last attempt ended wrong-ascendancy with no compile: its ascendancy doesn't own the passive-tree node that grants its skill, so no retry can change it (D-342)`);
       else if (r.passed) illegal(`runs R1b for ${s.concept} after it compiled`);
       else if (r.counted >= R1B_ATTEMPTS) fail('caps', `${at(i)}: is a counted R1b attempt for ${s.concept} after ${r.counted}; R1b allows 2 counted retries, then the ${v3 ? 'card' : 'concept'} is failed (Q2)`);
       if (p && p.stage === 'R1b' && p.outcome === 'fail' && p.concept !== s.concept && retriesLeft(p.concept)) {
         illegal(`R1b ${p.concept} failed with retries left, but the next R1b is ${s.concept}'s; a failed compile re-runs first`);
       }
       if (s.outcome === 'pass') r.passed = true;
-      if (ctx.terminal(s)) r.terminal = true;
+      const terminal = ctx.terminal(s);
+      if (terminal) r.terminal = terminal;
       if (s.outcome === 'pass' || !freeFault(s)) r.counted += 1;
     }
     if (s.stage === 'R1b-assemble') {
@@ -2224,12 +2227,18 @@ function checkGateReport(rep, g, fail) {
   }
 }
 
+/** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342). */
+const TERMINAL_R1B = ['not-a-skill', 'wrong-ascendancy'];
+
 /**
- * D-334: an R1b verdict for a card whose damage source isn't a skill: it compiled nothing (`compiles: 0`) and
- * failed with `not-a-skill`. It is terminal: no retry can compile it, and the card can't be finalized yet (D-303).
+ * An R1b verdict that compiled nothing (`compiles: 0`) and failed with a terminal code, which it returns (else
+ * null). `not-a-skill` (D-334): the card's damage source isn't a skill, so no retry can compile it, and the card
+ * can't be finalized yet (D-303). `wrong-ascendancy` (D-342): the card's ascendancy doesn't own the passive-tree
+ * node that grants its skill, so no retry can change its identity; the card is a plain failure.
  */
-function isTerminalR1b(rep) {
-  return isObj(rep) && isObj(rep.verdict) && rep.verdict.compiled === 'fail' && rep.compiles === 0 && list(rep.findings).some((f) => f.code === 'not-a-skill');
+function terminalR1b(rep) {
+  if (!isObj(rep) || !isObj(rep.verdict) || rep.verdict.compiled !== 'fail' || rep.compiles !== 0) return null;
+  return TERMINAL_R1B.find((code) => list(rep.findings).some((f) => f.code === code)) ?? null;
 }
 
 /**

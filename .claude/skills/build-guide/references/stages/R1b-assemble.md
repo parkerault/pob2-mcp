@@ -56,6 +56,9 @@ skeleton's result.
      none`, `Compile: not compiled: its damage source isn't a skill`, `Record: none`, `Key numbers: none (not
      compiled)`, `Key-item prices: none (not compiled)`, and `Status: can't be finalized yet: its damage source
      isn't a skill`. It names no `concepts/<id>/` path: none exists.
+   - **A `wrong-ascendancy` card** (D-342) is `failed`, and compiled nothing either: `Skeleton: none`,
+     `Compile: not compiled: wrong-ascendancy`, `Record: none`, `Key numbers: none (not compiled)`,
+     `Key-item prices: none (not compiled)`, and `Status: failed: <its finding's message>`.
    - **Not carried:** one line per card dealt in `cards.md` and not verified yet: its id, title and
      `cards.md`, which the verification gate can still verify; or `None.`
 3. **A later round** keeps everything already in `dossier.md`: add this round's lines under Roll and mode,

@@ -13,7 +13,8 @@
  * - The control flow, from the run log (schema 3, D-289): the invariants that stand in for the deleted workflow
  *   harness tests (the accepted cost of S1), each with a violating copy: steps in a legal order and each gate's
  *   answer followed (D-287); the caps (per brainstorm and verification round, R1b at most 3 counted attempts
- *   and none after a terminal not-a-skill failure, each gate at most 2 counted retries, S6 honoured); one full
+ *   and none after a terminal not-a-skill or wrong-ascendancy failure (D-334, D-342), each gate at most 2
+ *   counted retries, S6 honoured); one full
  *   V4 pass and at most one re-check per cycle; escalations only from the gates; the rule on pre-supplied and
  *   default answers.
  * - Amendment 2's guards (WU-62, D-276…D-283): the reader layer's 14 H2s (b), the 3,000-word cap (v), no
@@ -1003,6 +1004,35 @@ describe("D-334: an R1b failure whose card's damage source isn't a skill is term
   it('still re-runs an ordinary compile failure before the round assembles', () => {
     const dir = copyOf('run-escalated');
     editJson(dir, 'reports/gates/R1b-r1-c-1-a1.json', (r) => (r.compiles = 2));
+    expect(failing(dir)).toMatch(/\[order\] .*\(R1b-assemble attempt 1\): R1b r1-c-1 failed with retries left, but the round assembles; a failed compile re-runs first/);
+  });
+});
+
+describe("D-342: an R1b failure whose card's ascendancy doesn't own the node that grants its skill is terminal, a plain failure", () => {
+  /** run-escalated with r1-c-1 failed by R1b's ascendancy lock (stages/R1b.md): no compile, one wrong-ascendancy finding. */
+  function wrongAscendancy(): string {
+    const dir = copyOf('run-escalated');
+    editJson(dir, 'reports/gates/R1b-r1-c-1-a1.json', (r) => {
+      r.findings = [{ part: 'compiled', code: 'wrong-ascendancy', message: 'Explosive Concoction is granted only by Pathfinder\'s node "Explosive Concoction" (38004); the card\'s ascendancy is Titan (D-342)' }];
+    });
+    editText(dir, 'dossier.md', replace("- Status: can't be finalized yet: its damage source isn't a skill.", "- Status: failed: Explosive Concoction is granted only by Pathfinder's node."));
+    return dir;
+  }
+
+  it('passes a run whose wrong-ascendancy card fails once, with no compile, and the round assembles', () => {
+    passes(wrongAscendancy());
+  });
+
+  it('fails a retry of the wrong-ascendancy card', () => {
+    const retry = wrongAscendancy();
+    writeJson(retry, 'reports/gates/R1b-r1-c-1-a2.json', { ...readJson(retry, 'reports/gates/R1b-r1-c-1-a1.json'), attempt: 2 });
+    editLog(retry, (l) => l.stages.splice(6, 0, step('R1b', 'r1-c-1', 2, 'fail', { probes: 0 })));
+    expect(failing(retry)).toMatch(/\[order\] .*\(R1b r1-c-1 attempt 2\): runs R1b for r1-c-1 again, but its last attempt ended wrong-ascendancy with no compile: its ascendancy doesn't own the passive-tree node that grants its skill, so no retry can change it \(D-342\)/);
+  });
+
+  it('is terminal only with compiles 0: a wrong-ascendancy finding after a compile still re-runs first', () => {
+    const dir = wrongAscendancy();
+    editJson(dir, 'reports/gates/R1b-r1-c-1-a1.json', (r) => (r.compiles = 1));
     expect(failing(dir)).toMatch(/\[order\] .*\(R1b-assemble attempt 1\): R1b r1-c-1 failed with retries left, but the round assembles; a failed compile re-runs first/);
   });
 });

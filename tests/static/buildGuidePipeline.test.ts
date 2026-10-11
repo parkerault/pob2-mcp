@@ -25,6 +25,8 @@
  * Amendment 3's pipeline (WU-57, D-285…D-301, D-335, D-338): the brief and the invocation (AC-W30); the three
  * gates and R1a-assemble (AC-W31); D-122's wording, "named damage source" (AC-W32, pinned by A-33); the poe.ninja
  * rule (AC-W33); AC-W27's strings and AC-W14's re-check rule as D-335 and D-264 restate them.
+ * WU-63 (D-342): a skill a passive-tree node grants locks the cards to the node's ascendancy; R1a, R1a-assemble and
+ * R1b each run the "Grants Skill:" search, and R1b fails a card that breaks the lock, `wrong-ascendancy`.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -2176,5 +2178,28 @@ describe('WU-57 review: a card that can\'t be finalized yet, the estimate label,
       const text = fs.readFileSync(path.join(SKILL_DIR, rel), 'utf8');
       expect({ rel, stale: text.match(/"concept": "c\d+"|\bc\d+e\.|\bc\d+-helmet|-c\d+-a\d|\b[A-Za-z0-9-]+ c\d+ attempt/g) ?? [] }).toEqual({ rel, stale: [] });
     }
+  });
+});
+
+describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to that node's ascendancy", () => {
+  const GRANTS = '`mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}`';
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+
+  it('R1a, R1a-assemble and R1b each run the "Grants Skill:" search, and R1b fails a card that breaks the lock with wrong-ascendancy', () => {
+    for (const stage of ['R1a', 'R1a-assemble', 'R1b']) expect({ stage, search: folded(readStage(stage)).includes(GRANTS) }).toEqual({ stage, search: true });
+    const r1a = folded(readStage('R1a'));
+    expect(r1a).toMatch(/\*\*with an `Ascendancy: <name>` line\*\*, only that ascendancy can use it: every card with that damage source uses `<name>` and its class, and its identity says why, naming the node/);
+    expect(r1a).toMatch(/\*\*with no `Ascendancy:` line\*\*, any class can take it through that node: every card with that damage source allocates the node, and its identity says so .* No class lock/);
+    expect(folded(readStage('R1a-assemble'))).toMatch(/A card that breaks the lock isn't dealt: "Not dealt" gives `wrong-ascendancy: <skill> is granted only by <name>'s node "<node name>" \(<node id>\)`/);
+    const r1b = folded(readStage('R1b'));
+    expect(r1b).toMatch(/\*\*The ascendancy lock\*\* \(D-342\), the identity check every other card gets first, before any compile and before FI-1/);
+    expect(r1b).toMatch(/Write no skeleton, compile nothing, run no checklist or probe, price nothing .* `compiled: "fail"`, one finding `\{part: "compiled", code: "wrong-ascendancy", message: .*`compiles: 0`, `recordPath: null`/);
+    expect(r1b).toMatch(/It is terminal: the runner never re-runs it, since no retry can change the card's identity\. Unlike a card whose damage source isn't a skill, it is a plain failure: its status is `failed`, and it counts among the failed cards when none is viable \(D-141\)/);
+  });
+
+  it('SKILL.md never retries a wrong-ascendancy card, the run log calls it final, and the verification gate shows it failed with its reason', () => {
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/its verdict's `wrong-ascendancy` finding is never retried, and the card is `failed`/);
+    expect(ref('run-log.md')).toMatch(/So is one whose finding is `wrong-ascendancy` with `compiles: 0`: .* \(D-342\)\. That card is `failed`/);
+    expect(ref('checkpoints.md')).toMatch(/A card whose R1b verdict's finding is `wrong-ascendancy` \(D-342\) is `failed`, shown with that reason/);
   });
 });

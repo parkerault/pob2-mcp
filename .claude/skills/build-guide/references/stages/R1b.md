@@ -36,6 +36,21 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
 A card whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A card whose damage source
 isn't a skill" below.
 
+**The ascendancy lock** (D-342), the identity check every other card gets first, before any compile and
+before FI-1: run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` for the card's named damage
+source, and read each node whose stats list `Grants Skill: <skill>`.
+
+- **A node with an `Ascendancy: <name>` line, and the card's ascendancy isn't `<name>`:** the card's character
+  can't use its skill, so it fails at once. Write no skeleton, compile nothing, run no checklist or probe,
+  price nothing and leave the card as R1a wrote it; write only the verdict (step 9) with `compiled: "fail"`,
+  one finding `{part: "compiled", code: "wrong-ascendancy", message: "<skill> is granted only by <name>'s
+  node \"<node name>\" (<node id>); the card's ascendancy is <ascendancy> (D-342)"}`, `errors: []`,
+  `compiles: 0`, `recordPath: null` and `faultsApplied: []`. It is terminal: the runner never re-runs it, since
+  no retry can change the card's identity. Unlike a card whose damage source isn't a skill, it is a plain
+  failure: its status is `failed`, and it counts among the failed cards when none is viable (D-141).
+- **A node with no `Ascendancy:` line:** step 1's tree targets include it.
+- **The card's ascendancy owns the node, or no node matches:** go on to step 1.
+
 1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
    card rests on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own
    nodes). `mcp__pob2__search_tree_nodes` gives no links between nodes, so the paths come from step 3.

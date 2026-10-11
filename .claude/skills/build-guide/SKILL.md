@@ -235,7 +235,9 @@ In this order, before any agent runs:
   gate. A failed compile re-runs with that verdict file as `findings`, up to 2 counted retries; then the card
   is `failed`, its last verdict file the evidence (D-141). FI-1 applies here. A card whose damage source
   isn't a skill compiles nothing (D-334): its verdict's `not-a-skill` finding is never retried, and the card's
-  status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`.
+  status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`. A card whose
+  ascendancy doesn't own the passive-tree node that grants its skill compiles nothing either (D-342): its
+  verdict's `wrong-ascendancy` finding is never retried, and the card is `failed`.
 - **R1b-assemble** (step 4) writes `dossier.md` from the brainstorm rounds' research files and the
   verification round's cards and skeletons; its key numbers add `TotalEHP` (D-294). Its prompt lists the
   verification round, the research files (and whether each researcher returned), and each card

@@ -1663,3 +1663,41 @@ Run in the integration worktree, from a clean tree (build, coverage and the Jest
 wave A's lanes started:
 - `mise run test` rc=0: 120 of 120 suites and 1842 of 1842 tests, then the NFR step (`--runInBand`, 2 of 2);
 - `pnpm build` rc=0.
+
+### WU-50: blocked by poe.ninja's terms (HG-12; the user's decision)
+
+The doer stopped on a handoff stop condition: the terms forbid this use. Its report is `793ed26` on
+`bg/wu-50` (`docs/build-guide/spikes/WU-50-poe-ninja.md`).
+
+**The evidence.** poe.ninja's API Reference (`/docs/api`) says the builds and profiles API, "and every other
+non-economy endpoint (character, Path of Building, authentication), are internal. They are undocumented,
+unsupported, and not available for third-party use". It gives two reasons: server load ("risen sharply as
+AI-assisted development has taken off") and the privacy of players who hide their characters.
+- The coordinator checked the quote against the cached page body, without refetching it.
+- **The coordinator's error.** The stabilization grounding already quoted this clause on 2026-10-03
+  (`docs/stabilization/grounding/ctx-external.md:182-183`). Amendment 3 and R-35 didn't cite it.
+
+**The requests.** 5 in total, all HTTP 200: `/`, `/docs`, `/docs/api`, `/poe1/data` and `/privacy`.
+- Serial, at least 3.5 s apart, with the D-25 User-Agent and no cookie.
+- No builds, character or API endpoint and no JS bundle was fetched.
+
+**What is still allowed.** Only the economy endpoints (leagues, exchange and stash overviews), and none of
+them carries skill, ascendancy or character data.
+
+**Blocked:**
+- C-54's tools, and their unit, WU-52 (AC-K47…AC-K49);
+- D-298's popularity threshold and D-324;
+- the cards' player-evidence status and Evidence block;
+- the brief's seeding from under-played builds.
+
+D-297's poe.ninja-on-by-default needs restating for the economy endpoints only. Wave B (WU-53, WU-55,
+WU-62) doesn't depend on WU-50, so the other lanes continue. WU-57 waits for the user's decision.
+
+**The options put to the user:**
+- **A.** Withdraw the player-evidence tools; every card says "no player evidence".
+- **B.** The user supplies popularity notes in the brief, and cards cite them as user-supplied.
+- **C.** An economy-only signal (the stash overview's `listingCount`). It measures market supply, not
+  players.
+- **D.** GGG's official API. It needs an application to GGG, and stays gated by HG-1.
+
+The doer recommends A, plus B.

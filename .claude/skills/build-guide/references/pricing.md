@@ -17,7 +17,8 @@ D-219). Only coordinator steps price; no other agent type has a price tool (D-17
 - `mcp__pob2__search_trade_items`: a search with `mods`, for a rare as an affix target.
 - `mcp__pob2__search_stats`, `mcp__pob2__trade_query_options`: building a query.
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
-- `mcp__pob2__get_currency_rates` (poe.ninja): currency values in divines, for totals.
+- `mcp__pob2__get_currency_rates` (poe.ninja's economy endpoints): currency values in divines, for totals. It is
+  the one poe.ninja tool: there are no poe.ninja tools beyond the currency rates (D-335).
 
 Each call prices one item; there is no batch mode (D-224). Every price result carries two lines (C-49):
 
@@ -87,7 +88,8 @@ has stopped, and in offline mode.
 ## Divines and the budget (D-116, D-117, D-219, D-281)
 
 Totals convert with `mcp__pob2__get_currency_rates`. The D1 gate records the rates it used (`gates.md`). If the
-rates are unavailable, totals are `unverified`.
+rates are unavailable, totals are `unverified`; so with `--no-ninja`, which calls no tool in group `ninja`
+(D-333), every total is `unverified`.
 
 - Budget variant, slots and tree jewels together (D-249), the total rounded to 2 decimals: **at most 20
   divines passes; above 20 and at most 22 passes, and the guide says "near the ceiling"; above 22
@@ -96,7 +98,7 @@ rates are unavailable, totals are `unverified`.
   guide says "near the ceiling"; above 5.5 fails.**
 - Non-budget variant: reported against the ~200-divine reference, never gated.
 - A variant with any `unavailable` slot price can't be claimed to be under budget; the guide and
-  checkpoint 2 say so (D-164).
+  the final gate say so (D-164).
 
 ## Reporting the calls
 

@@ -59,10 +59,10 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 - **Acts 3–4: <solid | watch | risky>.** <…>.
 - **Interludes and Epilogue: <solid | watch | risky>.** <…>.
 
-[one line per endgame rung, in this fixed form, word for word but the placeholders; the run checker compares each number with the record by rounding it at its own last digit (D-283)]
-- **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
-- **Budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
-- **Non-budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
+[one line per endgame rung, in this fixed form, word for word but the placeholders; the run checker compares each number with the record by rounding it at its own last digit (D-283). <Skill> is the named damage source and its DPS the Count-scaled headline figure; Effective HP is the stage's TotalEHP, beside max hit and never the basis of the verdict (D-294)]
+- **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
+- **Budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
+- **Non-budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
 
 ## Gem and ascendancy timing
 
@@ -177,6 +177,8 @@ Move here when <the trigger>.
 <About 200 words. Each caveat once, by the figure it qualifies: what PoB doesn't model or assumes there, and how I read that figure.>
 
 The headline figures assume <the plan's config they rest on: charges, stacks, counts>.
+
+[only when the plan has a Count above 1 or a custom modifier; one line each, rendered from the plan (D-294)] <The group> counts <n> copies because <its countReason>. | <The custom modifier's effect, in plain words> stands in for <its reason>.
 
 ### Known issues
 

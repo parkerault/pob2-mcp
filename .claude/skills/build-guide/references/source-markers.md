@@ -111,8 +111,8 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
 ```
 
 - `stage` is `V4`; `lens` is `ledger`, `sources` or `prose`; `check` is `full` or `recheck`, as the header
-  says; `mode` is the run log's. The dossier isn't verified: it serves the checkpoint-1 pick, and the guide
-  can't cite it (amendment 1 S3).
+  says; `mode` is the run log's. The dossier isn't verified: it serves the verification gate's pick, and the
+  guide can't cite it (amendment 1 S3).
 - Each finding has `id`, `artifact` (`plan.json`, `guide.md`, or `audit.md` for the prose lens's check of
   "why this concept"), `location`, `claim`, `issue`, `evidence`, `reader` (only when `unresolved`), `owner`
   (`W1`, `D1` or `D2`: the step that wrote the claim) and `status`: `unresolved`, `accepted-offline`, or in a re-check `fixed` (a finding of the header's `findings`

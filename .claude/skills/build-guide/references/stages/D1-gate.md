@@ -1,10 +1,10 @@
 # D1-gate: check the endgame variants (`build-guide-coordinator`)
 
-Slice 03 §5.3 step 2; spine D-118, D-119, D-122, D-141, D-164, D-217, D-219, D-234; amendment 1 S7. A fresh
-coordinator step after every D1 attempt: it runs the final re-price pass, compiles `plan.json`
-measure-only, reads the record, and writes the D1 gate's verdict file, which the runner routes on and the
-run checker recomputes. You check; you don't design. Fix nothing in the plan: a failure goes back to D1 as
-findings.
+Slice 03 §5.3 step 2; spine D-118, D-119, D-122, D-141, D-164, D-217, D-219, D-234, D-293, D-295, D-333;
+amendment 1 S7. A fresh coordinator step after every D1 attempt: it runs the final re-price pass, compiles
+`plan.json` measure-only, reads the record, and writes the D1 gate's verdict file, which the runner routes on
+and the run checker recomputes. You check; you don't design. Fix nothing in the plan: a failure goes back to
+D1 as findings.
 
 ## Inputs
 
@@ -13,6 +13,7 @@ findings.
   `faults` (FI-2, FI-3: offline test runs only), `writes`: the verdict file
   `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.json` when the re-price pass or FI-2 may edit
   it.
+- **Prompt:** with `--no-ninja`, that there are no currency rates (D-333).
 - **Read:** `plan.json`; after the compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding up to
   200; when a line says how many more, Grep `compile-record.json`'s `stages.<id>.v1.findings` and
   `stages.<id>.v2.findings` for them) and `compile-record.json` (a large record: Read it in parts, or Grep the
@@ -59,7 +60,8 @@ findings.
      a failure.
    - **budget** (D-219, D-249, D-281): for the budget variant and for the entering-maps rung, the stage's
      filled slots **and tree jewels**, each mapped to its `prices[].id`. Online, convert with
-     `mcp__pob2__get_currency_rates` (a divine counts 1) and total, rounded to 2 decimals: at most 20 divines
+     `mcp__pob2__get_currency_rates` (a divine counts 1; with `--no-ninja`, the prompt says there are no rates,
+     so you don't call it and the budget is `unverified`, D-333) and total, rounded to 2 decimals: at most 20 divines
      `pass`; above 20 and at most 22 `pass` with a `near-ceiling` finding (the guide must say "near the
      ceiling"); above 22 `fail` (`over-budget`). The entering-maps rung's budget is 5 divines: at most 5
      `pass`; above 5 and at most 5.5 `pass` with a `near-ceiling` finding; above 5.5 `fail`
@@ -67,11 +69,14 @@ findings.
      (code `unverified`), and the total is `null`. Offline, every price is unavailable, so the budget is
      `unverified` and no rate is fetched. The non-budget variant's total is reported against the
      ~200-divine reference, never gated.
-   - **rolledSkill** (D-122, D-217): per endgame stage, the `skills.rolledGroup` group's role is `clear` or
-     `single_target` (else `rolled-role`), and its figure is the largest among the stage's groups with that
-     role (else `rolled-not-largest`). Compare one record field for every group of that role
-     (`g<group>s<skill>p<statSet>.<Field>` from the stage's `skillOutputs`, the same `<Field>` for each),
-     or a ledger value (`ledger:<id>`), and list every group of that role. **The rolled figure's stat set
+   - **rolledSkill**, the named damage source (D-122, D-217, D-293, D-295): per endgame stage, the
+     `skills.rolledGroup` group, which holds the named damage source, has role `clear` or `single_target`
+     (else `rolled-role`), and its figure **× its Count** is the largest among the stage's groups with that
+     role (else `rolled-not-largest`). Compare one record field for every group of that role, named
+     `g<group>s<skill>p<statSet>.<Field>` (the same `<Field>` for each) and read Count-scaled from the stage's
+     `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (each group's per-copy figure × its
+     Count, WU-55; the raw `skillOutputs` figure when the count is 1), or a ledger value (`ledger:<id>`, its
+     formula carrying any Count), and list every group of that role. **The rolled figure's stat set
      is the stage's `skills.main.statSet`** (S7): the stage's `skills.main.group` is its `rolledGroup` (else
      `rolled-not-main`), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than
      `g<main.group>s<main.activeSkill>p<main.statSet>`, or a rolled `ledger:<id>` figure whose formula reads
@@ -112,8 +117,8 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
   or L fact says so (A-29).
 - `basis`: only what the plan and the record don't say (`gates.md`): every slot and tree jewel of the
   entering-maps and budget stages with its `priceId`, the rates, each of their totals (`null` when
-  unverified) and the non-budget totals; per endgame stage, the figure of every group of the rolled group's
-  role, with no value. The run checker takes every number from the record, and W1 quotes the totals and the
+  unverified) and the non-budget totals; per endgame stage, the figure of every group of the named source's
+  group's role, with no value (the checker reads each Count-scaled from the record). The run checker takes every number from the record, and W1 quotes the totals and the
   figures.
 - `faultsApplied`: `[{"id": "FI-2", "observed": "<the V1 finding it caused>"}]`, and for FI-3
   `{"id": "FI-3", "observed": "gate run as usual; outcome forced to infeasible"}`, for each directive the

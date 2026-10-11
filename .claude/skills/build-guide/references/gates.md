@@ -90,15 +90,21 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   - any slot price `unavailable`, or a currency without a rate: **unverified**, which doesn't fail the
     gate, and the guide can't claim the stage is within its budget. Offline, both are unverified.
   The non-budget total is reported against the ~200-divine reference (D-117), never gated.
-- **rolledSkill** (D-122, D-148, D-217). In each endgame stage, the rolled skill's group
-  (`skills.rolledGroup`) has role `clear` or `single_target`, never `utility` or `leveling`, and its
-  figure is the largest among the stage's groups with that role. A figure is a record `skillOutputs`
-  field (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared, or a ledger
-  entry's value (`ledger:<id>`). **The rolled skill is the main skill, and its figure is the main stat
-  set's** (amendment 1 S7): the PoB file opens on `skills.main`, so the guide's headline figure is the one the
-  user sees. On every stage with a `rolledGroup`, `skills.main.group` is that group; D1 sets
-  `skills.main.statSet`; and the rolled figure, directly or every breakdown field its ledger formula reads,
-  is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
+- **rolledSkill**, the named damage source's part (D-122, D-148, D-217, D-293, D-295). The build's named
+  damage source is the main source of damage, never a token role. For a fixed skill that skill is the named
+  source, and its own hits, ailments and projectiles count when another skill fires, spreads or copies them.
+  In each endgame stage, the named source's group (`skills.rolledGroup`; the name stays, D-295) has role
+  `clear` or `single_target`, never `utility` or `leveling`, and its figure × its Count is the largest among
+  the stage's groups with that role. A figure is named as a record `skillOutputs` field
+  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared, and compared
+  **Count-scaled**: the record's `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy
+  figure × that group's Count by PoB's Full DPS rule (WU-55; equal to the raw figure when the count is 1), so
+  name a field the counted fields hold (`TotalDPS`). Or a figure is a ledger entry's value (`ledger:<id>`),
+  whose formula carries any Count itself. **The named source is the main skill, and its figure is the main
+  stat set's** (amendment 1 S7): the PoB file opens on `skills.main`, so the guide's headline figure, the
+  Count-scaled one (D-294), is the one the user sees as PoB's Full DPS. On every stage with a `rolledGroup`,
+  `skills.main.group` is that group; D1 sets `skills.main.statSet`; and the named source's figure, directly or
+  every breakdown field its ledger formula reads, is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
 
 ### The basis: what the run checker reads from the D1 gate's file
 
@@ -129,8 +135,9 @@ rates, and each endgame stage's figures, from here; it fills every number from t
 - `budget.totals` (each budget-variant and entering-maps stage's total, `null` when unverified) and
   `budget.nonBudget` are what W1 quotes in the guide; the run checker computes its own total from the prices
   and rates.
-- `rolledSkill`: per endgame stage, one figure for **every** group of the rolled group's role: the record
-  field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record.
+- `rolledSkill`: per endgame stage, one figure for **every** group of the named source's group's role: the
+  record field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record,
+  Count-scaled as above.
 - Findings with codes `chaos-exception` and `near-ceiling` report on a passing part: they are never
   failures, and need no acceptance.
 
@@ -179,13 +186,13 @@ retries, `escalated`. After a guided retry or an accepted re-run, any failure es
 
 The runner logs each gate attempt with the outcome its verdict file routes to, and the run checker holds the
 log to the files: a pass is a verdict that passes, an `infeasible` one is forced by FI-3 or fails only floor,
-budget or rolled skill (with D1 claiming infeasible, or after 2 counted retries), and an attempt failed by a
+budget or `rolledSkill` (with D1 claiming infeasible, or after 2 counted retries), and an attempt failed by a
 fault on attempt 1 runs free only when the verdict's `faultsApplied` names the fault and every failing finding
 is on the stage the fault breaks (S6).
 
 A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
 nor a later one (`checkpoints.md`). A current guide passed every gate: the run checker fails a run whose
-guide is current (no design step ran after its W1) and whose recomputed floor, budget or rolled skill
-fails, or whose D1 or D2 gate before that W1 has a failing part, unless accepted findings cover every
+guide is current (no design step ran after its W1) and whose recomputed floor, budget or named damage
+source fails, or whose D1 or D2 gate before that W1 has a failing part, unless accepted findings cover every
 failure. Only a pass, or an `unverified` budget,
 proceeds to D2.

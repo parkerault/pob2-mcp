@@ -529,8 +529,10 @@ const GUIDE_H2 = [
 /** §7.8, the audit layer (WU-62, D-278): audit.md's H2s, in order. */
 const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
 const ENDGAME_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
-/** D-283: the verdict line's fixed form, as §8's target gives it. */
-const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.';
+/** D-283: the verdict line's fixed form, as WU-62 built it and the run checker holds it today. */
+const VERDICT_FORM_D283 = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.';
+/** D-294 (WU-57): the verdict line ends "Effective HP about <n>.", checked against `TotalEHP` (§8's target). */
+const VERDICT_FORM = `${VERDICT_FORM_D283} Effective HP about <n>.`;
 const readStage = (stage: string) => fs.readFileSync(path.join(STAGES_DIR, `${stage}.md`), 'utf8');
 /** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
@@ -584,9 +586,9 @@ describe('WU-45: the design stage references', () => {
     expect(text).toMatch(/\*\*partly parsed\*\* line means PoB applies none of it/);
   });
 
-  it('D1 makes the rolled skill the main damage source, never a token role (D-122, D-217)', () => {
+  it('D1 makes the named damage source the main source of damage, never a token role (D-122 as D-295 words it, D-217)', () => {
     const text = folded(readStage('D1'));
-    expect(text).toContain('**The rolled skill is the main damage source, never a token role** (D-122)');
+    expect(text).toContain("**The build's named damage source is the main source of damage, never a token role.** (D-122, as D-295 words it.)");
     expect(text).toContain('Never give a damage skill the `utility` role to keep it out of the comparison');
   });
 
@@ -843,8 +845,11 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     const forms = section.filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
     const fixed = (label: string) => VERDICT_FORM.replace('<Entering maps|Budget|Non-budget>', label);
     expect(forms).toEqual(['Entering maps', 'Budget', 'Non-budget'].map(fixed));
+    // The run checker gains the EHP part with WU-58 (AC-W2 (dd)), which follows WU-57 on this file (D-317).
+    // Until then it holds D-283's form; once its form names Effective HP, it must be the template's.
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    expect(checker).toContain(`const VERDICT_FORM = '${VERDICT_FORM}';`);
+    const held = /const VERDICT_FORM = '([^']*)';/.exec(checker)![1];
+    expect(held).toBe(held.includes('Effective HP') ? VERDICT_FORM : VERDICT_FORM_D283);
   });
 
   it("puts in each rung's Checks only what the verdict line doesn't: the chaos exception, the budget line, and the Arbiter for b and n (D-281)", () => {
@@ -906,8 +911,8 @@ describe('§7.8 (WU-62, D-278): the audit template', () => {
       expect({ part, present: text.includes(part) }).toEqual({ part, present: true });
     }
     const why = text.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("run-log.json's checkpoint 1 entry that picked it records");
-    expect(why).toContain("the test config picked it at checkpoint 1 by the rule `<the entry's rule, exactly>`");
+    expect(why).toContain("run-log.json's verification gate entry that finalized it records");
+    expect(why).toContain("the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`");
   });
 
   it("gives Known issues the table the run checker reads: each finding's id, its lens or gate, its stage and the sentence the guide prints", () => {
@@ -1135,13 +1140,13 @@ describe('Amendment 1 S6, Q2: the retries', () => {
 
 describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2__…, and the three claim rules', () => {
   it('(1) D1 sets skills.main.statSet to the stat set the rolled-skill gate compares, and the gate and the checker hold it (RC-5)', () => {
-    expect(folded(readStage('D1'))).toMatch(/\*\*Set `skills\.main\.statSet`\*\* on each variant stage to the rolled skill's stat set whose figure the gate compares, `p<statSet>` in `g<group>s<skill>p<statSet>\.<Field>` \(amendment 1 S7\)/);
+    expect(folded(readStage('D1'))).toMatch(/\*\*Set `skills\.main\.statSet`\*\* on each variant stage to the named source's stat set whose figure the gate compares, `p<statSet>` in `g<group>s<skill>p<statSet>\.<Field>` \(amendment 1 S7\)/);
     expect(folded(readStage('D1-gate'))).toMatch(/\*\*The rolled figure's stat set is the stage's `skills\.main\.statSet`\*\* \(S7\): the stage's `skills\.main\.group` is its `rolledGroup` \(else `rolled-not-main`\), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than `g<main\.group>s<main\.activeSkill>p<main\.statSet>`, or a rolled `ledger:<id>` figure whose formula reads another breakdown field fails with `rolled-stat-set`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8')).toContain('| rolledSkill | `rolled-stat-set` |');
     // Review 2: the rolled skill is the main skill, on every stage with a rolledGroup (D1 and D2).
     expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8')).toContain('| rolledSkill | `rolled-not-main` |');
     expect(folded(readStage('D1'))).toMatch(/`skills\.main\.group` is the `rolledGroup`, and the rolled figure, or every breakdown field a ledger figure's formula reads, is `<stage>\.g<main\.group>s<main\.activeSkill>p<main\.statSet>`/);
-    expect(folded(readStage('D2'))).toMatch(/Set `skills\.rolledGroup` wherever a stage has the rolled skill, and there `skills\.main\.group` is the `rolledGroup`/);
+    expect(folded(readStage('D2'))).toMatch(/Set `skills\.rolledGroup` wherever a stage has the named damage source, and there `skills\.main\.group` is the `rolledGroup`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain("'rolled-stat-set'");
   });
 
@@ -1220,12 +1225,13 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
   it("v4-prose-8, as D-278 moves it to audit.md's Run notes: W1 and the audit template say only what the run log's picking checkpoint records, quoting a pre-supplied rule; V4 checks it", () => {
     const w1 = folded(readStage('W1'));
     expect(w1).not.toMatch(/the mechanics, why it won\)/);
-    expect(w1).toMatch(/`checkpoints\[\]`: checkpoint 1's entry that picked this concept, which is the only record of why it was picked/);
-    expect(w1).toMatch(/\*\*Why this concept\*\*, in `Run notes`, says only what `run-log\.json`'s checkpoint 1 entry whose `answer` picked the concept .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
+    // D-287: the verification gate (checkpoint 1 renamed) is where the card is finalized.
+    expect(w1).toMatch(/`checkpoints\[\]`: the verification gate's entry that finalized this card, which is the only record of why it was picked/);
+    expect(w1).toMatch(/\*\*Why this concept\*\*, in `Run notes`, says only what `run-log\.json`'s verification gate entry whose `answer` finalized the card .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
     const template = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
     const why = template.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("run-log.json's checkpoint 1 entry that picked it records");
-    expect(why).toContain("the test config picked it at checkpoint 1 by the rule `<the entry's rule, exactly>`");
+    expect(why).toContain("run-log.json's verification gate entry that finalized it records");
+    expect(why).toContain("the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`");
     expect(why).not.toMatch(/why it won|why each lost/);
     expect(fs.readFileSync(GUIDE_TEMPLATE, 'utf8')).not.toContain('Why this concept');
     // The run log records the rule (S4 keeps it), and V4's prose lens checks the sentence against it.
@@ -1234,7 +1240,7 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:c2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
     const v4 = folded(readStage('V4'));
-    expect(v4).toMatch(/\*\*why this concept\*\*, in `audit\.md`'s `Run notes`: check it against `run-log\.json`'s last checkpoint 1 entry whose `answer` is `pick:<the guide's concept>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(artifact `audit\.md`, owner `W1`\)/);
+    expect(v4).toMatch(/\*\*why this concept\*\*, in `audit\.md`'s `Run notes`: check it against `run-log\.json`'s last verification gate entry whose `answer` is `pick:<the guide's card>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(artifact `audit\.md`, owner `W1`\)/);
   });
 
   it('D-260: W1 returns no import code', () => {
@@ -1757,7 +1763,9 @@ describe('WU-62: W1 writes the reader layer and the audit layer (D-276, D-278, D
     const text = w1();
     expect(text).toMatch(/`Survival by stage` has one line per endgame rung in the template's fixed form, word for word but the placeholders, and the run checker compares each number with the record/);
     expect(text).toMatch(/"at least <n> elemental or chaos against about <hit>": the least of the four other `<Type>MaximumHitTaken`, against the largest of the four other `hit_<stage>_<type>` ledger values/);
-    expect(text).toMatch(/"<Skill> about <n> DPS": the rolled-skill figure the D1 gate's verdict names for the stage/);
+    expect(text).toMatch(/"<Skill> about <n> DPS": the named damage source's Count-scaled figure the D1 gate's verdict names for the stage/);
+    // D-294: the line ends with the stage's TotalEHP, beside max hit, never the verdict's basis.
+    expect(text).toMatch(/"Effective HP about <n>\.", which ends the line: the stage's `TotalEHP` \(D-294\)\. It stands beside max hit, never alone, and max hit stays the basis of the verdict word/);
     expect(text).toMatch(/Round each number as a guide does, at its last significant digit: 2,736 is "2,740" or "2,700", 401\.996 is "about 400"/);
   });
 
@@ -1788,7 +1796,7 @@ describe('WU-62: V4 reads the guide like an editor (D-279)', () => {
 
   it('it keeps the gated statements, checks why this concept in audit.md, and never flags a missing optional item (D-277)', () => {
     const text = v4();
-    for (const gated of ['**the rolled skill is the main damage source** (D-122)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)', "**why this concept**, in `audit.md`'s `Run notes`"]) {
+    for (const gated of ['**the named damage source is the main source of damage** (D-122, as D-295 words it)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)', "**why this concept**, in `audit.md`'s `Run notes`"]) {
       expect({ gated, kept: text.includes(gated) }).toEqual({ gated, kept: true });
     }
     expect(text).toMatch(/\*\*Never flag a missing optional item\*\* \(D-277\): a fallback, a threshold trigger \(a first-person judgment trigger is fine, and a trigger's form isn't checked\), a trap, an either\/or pick, a hold or save row, a rotation clause/);
@@ -2000,5 +2008,87 @@ describe('AC-W33: never contact pathofexile.com or poe.ninja yourself; no poe.ni
       expect({ file, cOrP: tools(file).filter((t) => C.includes(t) || P.includes(t)) }).toEqual({ file, cOrP: [] });
     }
     expect(tools('build-guide-coordinator.md')).toEqual(expect.arrayContaining([...C, ...P]));
+  });
+});
+
+/** AC-W32 (c), as pinned (A-33): D-122's old wording, "rolled skill", in any of its forms. */
+const ROLLED_SKILL = /rolled[ -](main )?skill/gi;
+
+describe('AC-W32: the skill uses D-122\'s wording, "named damage source" (A-33; D-122 and D-148 as D-295 words them)', () => {
+  const D122 = "The build's named damage source is the main source of damage, never a token role.";
+  const D148 = "The named damage source should be the clear skill. It takes the single-target role only when it can't clear, and the guide says so.";
+  const textOf = (rel: string) => folded(fs.readFileSync(path.join(REPO, rel), 'utf8'));
+  const scan = (text: string) => [...folded(text).matchAll(ROLLED_SKILL)].map((m) => m[0]);
+
+  it.each<[string, string[]]>([
+    ['.claude/skills/build-guide/references/stages/D1.md', [D122, D148]],
+    ['.claude/skills/build-guide/references/gates.md', [D122]],
+    ['.claude/agents/build-guide/build-guide-coordinator.md', [D122]],
+  ])("(a) %s states D-122's sentence (D1 D-148's too) as D-295 words it", (rel, phrases) => {
+    for (const phrase of phrases) expect({ rel, phrase, present: textOf(rel).includes(phrase) }).toEqual({ rel, phrase, present: true });
+  });
+
+  it.each(['SKILL.md', ...['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D1-gate', 'D2', 'W1', 'V4'].map((s) => `references/stages/${s}.md`)])(
+    '(b) %s says "named damage source"',
+    (rel) => {
+      expect(textOf(path.join('.claude', 'skills', 'build-guide', rel))).toContain('named damage source');
+    },
+  );
+
+  it('(c) no markdown file of the skill or its agents says "rolled skill", "rolled-skill" or "rolled main skill"', () => {
+    const skillMd = fs
+      .readdirSync(SKILL_DIR, { recursive: true, withFileTypes: true })
+      .filter((e) => e.isFile() && e.name.endsWith('.md'))
+      .map((e) => path.join(e.parentPath, e.name));
+    const agentMd = definitionFiles.map((f) => path.join(AGENTS_DIR, f));
+    // SKILL.md, 11 shared references, 11 stage references and README, 5 templates; 4 agents.
+    expect(skillMd.length + agentMd.length).toBeGreaterThan(25);
+    const offenders = [...skillMd, ...agentMd].flatMap((file) => scan(fs.readFileSync(file, 'utf8')).map((m) => `${path.relative(REPO, file)}: ${m}`));
+    expect(offenders).toEqual([]);
+  });
+
+  it('(c) the scan finds every form, across a line break, and lets the identifiers and "the roll" through (D-295, D-286)', () => {
+    expect(scan('the rolled skill is main')).toEqual(['rolled skill']);
+    expect(scan('the rolled-skill figure, and a rolled\n  main skill')).toEqual(['rolled-skill', 'rolled main skill']);
+    expect(scan('`rolledGroup`, the part `rolledSkill`, `rolled-role`, `rolled-stat-set`, the rolled group, the roll')).toEqual([]);
+  });
+});
+
+describe("WU-57: Count in D1 and the D1 gate's figure × count, D2's bridge skills, and the verdict line's EHP (D-293, D-294, D-296, D-301)", () => {
+  it('D1 sets Count and custom modifiers with their reasons, and checks reservation and buffs after Count (D-293)', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*Count and custom modifiers\*\* \(D-293; .*set the group's `count` with a `countReason` saying why that many act at once/);
+    expect(text).toMatch(/add a `config\.customMods` entry `\{text, reason\}`: one PoB modifier line, its reason saying what it stands for and how its number was worked out/);
+    expect(text).toMatch(/\*\*After setting Count\*\* on a group whose skill reserves once per copy, on totems under Ancestral Bond, or on a group whose Umbral Well buffs it scales, check the stage's reservation and those buffs in the record/);
+    expect(text).toMatch(/Its figure, × its Count, must be the largest of the stage's groups with that role/);
+  });
+
+  it('the D1 gate and gates.md compare each group Count-scaled, from countedSkillOutputs (D-293, D-321)', () => {
+    const gate = folded(readStage('D1-gate'));
+    const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
+    expect(gate).toMatch(/its figure \*\*× its Count\*\* is the largest among the stage's groups with that role \(else `rolled-not-largest`\)/);
+    for (const text of [gate, gates]) expect(text).toContain('`countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`');
+    expect(gates).toMatch(/its figure × its Count is the largest among the stage's groups with that role/);
+    // The record holds those fields (C-33, WU-55).
+    expect(fs.readFileSync(path.join(REPO, 'src', 'plan', 'record.ts'), 'utf8')).toContain('countedSkillOutputs');
+  });
+
+  it('D2 plans bridge skills while the named source is level-gated, and banks the enabler (D-301)', () => {
+    const text = folded(readStage('D2'));
+    expect(text).toMatch(/\*\*Skills and bridge skills\*\* \(D-110, D-301\)\. .* until then a \*\*bridge skill\*\* carries the campaign/);
+    expect(text).toMatch(/\*\*Bank the enabler\*\* \(D-301\): while the named source waits on an enabler, the hold and save rows say what to keep and stockpile for it/);
+  });
+
+  it("the guide template's verdict line ends with Effective HP, and What PoB can't show lists each Count and custom modifier (D-294)", () => {
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    const verdicts = template.split(/\r?\n/).filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
+    expect(verdicts).toHaveLength(3);
+    for (const l of verdicts) expect(l.endsWith('<Skill> about <n> DPS. Effective HP about <n>.')).toBe(true);
+    expect(template).toContain('[only when the plan has a Count above 1 or a custom modifier; one line each, rendered from the plan (D-294)] <The group> counts <n> copies because <its countReason>.');
+    expect(folded(readStage('W1'))).toMatch(/Each Count above 1 and each custom modifier, with the reason the plan gives it \(`countReason`, `customMods\[\]\.reason`\), rendered from the plan \(D-294\)/);
+  });
+
+  it('V4 holds a Count, hand-calculated or custom-modifier figure to being labelled an estimate, and every interaction to game text (D-296)', () => {
+    expect(folded(readStage('V4'))).toMatch(/\*\*estimates\*\* \(D-296\): .* a figure that rests on Count or a hand calculation, or that the record marks `computedWithCustomMods`, is stated as an estimate, never as exact; .* every interaction the guide states must still exist in game text/);
   });
 });

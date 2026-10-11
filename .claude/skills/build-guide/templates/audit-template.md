@@ -17,13 +17,14 @@ only when it applies (and drop the mark), and delete this comment.
 
 ## Stage detail
 
-| Loadout | Level | Life | <Skill> <field> | Fire / cold / lightning / chaos | Max hit, physical / least of the others |
-|---|---|---|---|---|---|
-| <loadoutName> | <level> | <Life> | <the rolled-skill figure> | <n>/<n>/<n>/<n>% | <n> / <n> |
+| Loadout | Level | Life | <Skill> <field> | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Effective HP |
+|---|---|---|---|---|---|---|
+| <loadoutName> | <level> | <Life> | <the named damage source's figure: Count-scaled, × <count> when above 1> | <n>/<n>/<n>/<n>% | <n> / <n> | <TotalEHP> |
 
 - **Resistances by stage:** <each loadout's resistances at its own penalty, and where each gap closes>.
 - **Reference hits:** <per endgame rung, each `hit_<stage>_<type>` ledger value, and the whole number its scenario gives PoB>.
 - **Mana and leech:** <per stage, the cost and the recovery the guide's advice rests on>.
+- [only when the plan has a Count above 1 or a custom modifier] **Count and custom modifiers:** <each group's count and countReason; each custom modifier's line and reason; the figures the record marks computedWithCustomMods> (D-293, D-296).
 - **The Arbiter of Divinity:** <its hits against each variant's max hit taken; the time to kill under each fight-life assumption>.
 - **Mapping:** <for the budget and non-budget variants: movement speed, clicks per pack, the clear skill's hit against T15 monster life>.
 
@@ -39,7 +40,7 @@ only when it applies (and drop the mark), and delete this comment.
 
 ## Run notes
 
-- **Why this concept:** <only what run-log.json's checkpoint 1 entry that picked it records: "the user picked it at checkpoint 1"; or, for a pre-supplied or default answer, "the test config picked it at checkpoint 1 by the rule `<the entry's rule, exactly>`". No other reason>. The dossier keeps the other concepts.
+- **Why this concept:** <only what run-log.json's verification gate entry that finalized it records: "the user picked it at the verification gate"; or, for a pre-supplied or default answer, "the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`". No other reason>. The dossier keeps the other verified cards, and `cards.md` the deck.
 - **The D1 gate's budget:** <from its verdict file's basis.budget: each gated total (entering maps, budget), or unverified and why; the non-budget total against its reference; the rates used>.
 
 ## Known issues

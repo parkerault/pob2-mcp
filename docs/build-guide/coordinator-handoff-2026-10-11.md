@@ -67,18 +67,20 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
    - **Run A's cost** was 296M cache read and 1.78M output against an estimate of 130M. The work-log's section
      "WU-59 run A ended" has the breakdown.
    - **Run B and P2 are on hold.** Re-scope them after amendment 4, which changes what a run produces.
-2a. **Amendment 4: cost and scope.** *Who acts: you, then the user approves.*
-   - **The user's decisions** are D-345…D-350, with issues I-1…I-3 (anoints, support sockets on granted
-     skills, more than one tree root). They are in the work-log section "the user's cost and scope direction".
-   - **Three read-only investigations** were running when this was written. Each writes a report under
-     `docs/build-guide/studies/`:
-     - `2026-10-11-cost-1-mechanics.md`;
-     - `2026-10-11-cost-2-claims-and-rules.md`;
-     - `2026-10-11-run-a-issues.md`.
-   - **Next:** draft `docs/build-guide/spec/amendment-4-cost-and-scope.md` from those reports and get the user's
-     approval. Then plan its build.
-   - **After that,** the user brings their own poe.ninja Explosive Concoction build to compare with run A. They
-     obtain it themselves, under D-335.
+2a. **Amendment 4: cost and scope. ACCEPTED by the user on 2026-10-11, with answers.**
+   - **The document:** `docs/build-guide/spec/amendment-4-cost-and-scope.md`.
+   - **Decisions:** D-345…D-350 are the user's; D-351…D-361 were proposed and accepted; D-362 is the user's
+     design gate. Plus the ledger and triage rules under D-352.
+   - **Evidence:** the three reports in `docs/build-guide/studies/2026-10-11-*`.
+   - **The work:** milestone M-15, units WU-64…WU-72 with their DAG, and AC-W51…W60, AC-P60…P67 and AC-K66.
+   - **Next, folding (you, docs only):** fold amendment 4 into the spine and slices together with the pending
+     v1.5 items (item 3 below, plus D-343 and D-344).
+   - **Then the build (you, by the coordinator method):**
+     - WU-64, the output-counter spike, and WU-65, plan schema 3 and the measures, first. They are independent.
+     - WU-66 and WU-68 then run in parallel.
+     - WU-69 → WU-70 → WU-71 run in series; WU-67 after WU-66.
+     - Last, WU-72, the lean recorded run, which the user starts.
+   - **After M-15:** the user brings their own poe.ninja Explosive Concoction build to compare with run A.
 3. **Fold v1.5 into the spec.** *Who acts: you; docs only.* The work-log holds the content.
    - **Decision rows to add:**
      - D-339: the deck and short rounds;
@@ -123,7 +125,7 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `05d6a20` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
+- **Integration head:** `5d7d1d9` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
 - **Live worktrees:**
   - `amend`, the integration worktree;
   - `m14`, detached at `96b1785` and built: the WU-59 run worktree.

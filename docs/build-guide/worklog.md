@@ -2620,6 +2620,13 @@ After run A (296M cache read, 1.78M output), the user compared the output with F
 - **I-3, more than one tree root.** The compiled tree has several roots.
   - The Pathfinder's Path of the Sorceress (node 12795: "Can Allocate Passive Skills from the Sorceress's starting
     point") can make a second root legal.
+  - **The user's rule** (checked against real builds that take Path of the Sorceress):
+    - the class-start tree and the Sorceress-start tree are separate, and that is legal;
+    - each start holds only **one** tree, so two branches from the same start are illegal;
+    - at most 2 trees in all, and 1 without Path of the Sorceress.
+
+    Run A's build has **four** trees, so it breaks the rule. The investigator confirms this per loadout and finds
+    the fix point.
   - Still to check, per loadout:
     - Sorceress-side nodes before 12795 is allocated;
     - any other root;

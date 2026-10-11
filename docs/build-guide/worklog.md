@@ -2452,3 +2452,45 @@ is still empty.
 
 **Next:** the user runs P1's checks 4 to 6 in the same session, for evidence. A doer fixes WU-57 in `amend`,
 and P1 then re-runs from the start on the fixed head.
+
+### WU-57 re-open: fixed, reviewed, accepted at `30abc7a`
+
+**P1 evidence, first attempt** (the session's run folder is moved to `/tmp/m14.zfPx/attempt1-p1/`):
+- **Check 4** stopped early for the missing Agent tool: no folder and no run log. That is defect 2.
+- **Check 5** passed AC-W48 (b): the config was refused, `status: "stopped"`, and the checker exits 0.
+- **Check 6** passed the D-342 brief check: it names node 38004, stops before any agent, and creates no folder.
+
+**The fix.**
+- **The doer, `51b22c9`.** It implemented D-343 and D-344 in SKILL.md and R1a.md, rewrote AC-W47, and added static
+  and checker tests.
+- **Accepted deviations:**
+  - no run-log field for a stop reason (the reply carries it, as for a refused config);
+  - a sentence in R1a.md;
+  - WU-59's P1 count updated;
+  - AC-W47 retitled "the brief check".
+- **Review 1: FAIL.**
+  - *Blocker:* the fixed roll was defined by whether its names are valid, so the misspelled checks 1 and 2 could
+    pass as free text.
+  - *Should-fix:* AC-W48 didn't require check 4's stop.
+  - *Should-fix:* `around` wasn't recorded by the lookup's name.
+  - *Nit:* step 3's stop path wasn't spelled out.
+  - *Nit:* the checker test missed check 4's log shape.
+  - *Declined nit:* widening D-344 to a refused Agent call. The missing-return rule owns that case.
+- **The doer, `3c57d50`.** It fixed all five: the fixed roll is now defined by its shape, as two names whatever
+  the lookups find. Gate: 2117 of 2117, rc 0 and 0.
+- **Review 2: PASS for P1.**
+  - *Should-fix:* a gem-lookup miss could stop a brief whose subject is an item or a mechanic.
+  - *Nit:* an unquoted `Blood Hunt` counts as two names.
+- **The doer, `30abc7a`.** It fixed both:
+  - a lookup miss stops a run only for a name the user gives as the skill, and items and mechanics go in
+    `around`;
+  - an unquoted brief that the gem lookup finds whole is one name.
+
+  The coordinator read the diff and accepts it. Static suites 284 of 284, checker suites 270 of 270. Only the
+  skill text and the static test changed, so the full gate was skipped: `3c57d50`'s gate covers everything else.
+
+**Next.** The run worktree moves to `30abc7a`. `/tmp/m14.zfPx/README.md`'s P1 list now has seven checks:
+- check 3 is `/build-guide Pathfinder Fork --offline`;
+- check 7 is the free-text Fork brief.
+
+P1 then re-runs from the start.

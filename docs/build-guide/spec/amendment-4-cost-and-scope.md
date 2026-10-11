@@ -60,6 +60,22 @@ compiler's plan validity checks; the runner is the session running the skill; "t
   claim after a recompile (D-264) and a revision's full pass (`03-pipeline.md`:699-706).
 - **Reports kept.** Each pass writes `reports/V4-<n>.md` itself, never overwriting one (run A's round 2 did).
   The verifier gains Write, limited to `reports/` (amends D-231).
+- **Estimates aren't the build.** A change to a ledger entry's formula or inputs, like a claim edit, needs no
+  recompile and no gate. The checker re-evaluates the ledger (D-271), so it leaves the ledger out of the build's
+  sha1 (`[record-plan]`). Only a change to the gear, tree, gems or config recompiles and re-runs the gates.
+  - *This amends* `D1.md`:233-236 and `D2.md`'s matching rule.
+  - *Evidence:* run A's first fix round recompiled for charge-limited estimates alone (budget boss DPS 1,774 →
+    1,762, 0.7%). It re-ran both gates, D2 and W1, then all three lenses over every claim, about 45M (the user's
+    account of run A's rounds, 2026-10-11).
+- **Triage before fixing.** V4 marks each finding `hinge` or not.
+  - A finding on a non-hinge statement is fixed by removing or narrowing the statement, never by new research or
+    a recompile.
+  - A difference under 5% in an estimate is no finding.
+  - *Evidence:* of the first full pass's 19 findings, one touched what the build hinges on: "one throw ignites"
+    against PoB's 42% and 71%. The rest were kill times (4), rounding and trivia (3), wording (5), repeated
+    caveats (2), an offline price over-claim, campaign-reward credits and timings (3).
+  - *Also seen:* the second full pass found two issues the first had missed. Attention spread over 133 claims
+    misses things, which is the case for checking fewer.
 
 ## 4. D-353: the endgame measures, computed by the compiler (D-347: DPS, EHP, the Arbiter verdict, clear speed)
 
@@ -199,6 +215,7 @@ nor on import (the user reports its UI blocks it, so a newer release may differ)
 |---|---|
 | C-30, D-276, D-279: a claim per stated fact | Hinge facts and measured reasons only (D-351) |
 | D-179, D-231, D-264, D-268, NFR-23's three lenses | One pass, narrow re-checks, kept reports (D-352) |
+| `D1.md`:233-236, `D2.md`: a ledger change recompiles; `[record-plan]`'s sha1 | Ledger edits need no compile; triage (D-352) |
 | D-116, D-119, D-132, D-254, D-294: kill times, hand-computed hits, the verdict line | Record `measures`, the survival label (D-353) |
 | `D2.md`:70-77, `guide-template.md`:56-60; amendment 3's "bank the enabler" | No campaign defences; no crafting (D-354) |
 | D-278, AC-W2 (z): W1 writes `audit.md`; D-200, D-269: the dossier | Script-rendered audit; the comparison table (D-355) |
@@ -263,6 +280,10 @@ WU-66 and WU-68 run in parallel after WU-65. WU-69…WU-71 run in series: they s
 - **AC-W54 (WU-71, D-352).** Checker unit. After a claims-only edit, and after a recompile moving one stage,
   `--changed` lists exactly the changed claims and H2s. A re-check missing one fails; so does an overwritten
   report.
+- **AC-W59 (WU-69…WU-71, D-352).**
+  - *Static:* `D1.md` and `D2.md` recompile only for gear, tree, gems or config, and `V4.md` defines the triage.
+  - *Checker unit:* a ledger-only edit after the final compile passes `[record-plan]`, and a gear edit still
+    fails it.
 - **AC-W55 (WU-71, D-351, D-353, D-355).** Checker unit. A claim without a `kind`, an `audit.md` or Checks block
   differing from the script's render (Known issues aside), and a label disagreeing with `measures.arbiter` each
   fail.

@@ -2252,22 +2252,28 @@ describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a miss
     expect(brief).toContain('| `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |');
     expect(brief).toContain('| `skill` | an active skill gem, the named damage source | Blood Hunt |');
     expect(folded(brief)).toMatch(/- \*\*A support gem\*\* the free text names as the build's subject goes in `around`, by its name as the lookup gave it, never in `skill` \(D-343\): only an active gem is a `skill`\. Step 1's gem lookup tells them apart\./);
-    // The fixed roll is defined by its shape, never by whether its names are valid, so a misspelled name still fails.
-    expect(folded(text)).toMatch(/A brief of exactly two names and nothing else is the fixed roll: the first is always `ascendancy` and the second always `skill`, whatever the lookups find \(D-343\)\./);
+    // The fixed roll is defined by its shape, never by whether its names are valid, so a misspelled name still fails;
+    // what counts as one name is settled first, so an unquoted skill the lookup finds whole isn't two names.
+    const flat = folded(text);
+    const oneName = flat.indexOf('Multi-word names are quoted, and an unquoted brief the gem lookup finds whole, such as `Blood Hunt`, is one name, a skill, so it isn\'t a fixed roll.');
+    const shape = flat.indexOf('Counted so, a brief of exactly two names and nothing else is the fixed roll: the first is always `ascendancy` and the second always `skill`, whatever the lookups find (D-343).');
+    expect(oneName).toBeGreaterThan(-1);
+    expect(shape).toBeGreaterThan(oneName);
     expect(folded(text)).not.toMatch(/exactly an ascendancy and one gem name/);
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toContain('| `around` | text, as the user wrote it; a support gem by its name as the lookup gave it (`"Fork"`, D-343) |');
   });
 
-  it('D-343: the brief check looks a free-text gem up before placing it; only a support it finds goes in around, a name it misses fails in skill, and the fixed roll\'s support gem fails (D-258)', () => {
+  it('D-343: the brief check looks a free-text subject up before placing it; a support goes in around, an item or mechanic is never stopped by a gem-lookup miss, only a skill the lookup misses fails, and the fixed roll\'s support gem fails (D-258)', () => {
     const flat = folded(raw());
     const check = flat.slice(flat.indexOf('1. **Brief check**'), flat.indexOf('2. **Run folder.**'));
-    expect(check).toMatch(/- a gem the free text names as the build's subject \(D-343\): look it up this way before you place it\. Only a gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes on: say it is a support gem, and that the researchers will look for skills it can support\. Every other gem name goes in `skill`: an active gem passes, and a name the lookup doesn't find fails here\. The fixed roll's second name is always `skill`, so there a support gem fails: `\/build-guide Pathfinder Fork` stops with "Fork is a support gem"\./);
+    expect(check).toMatch(/- a name the free text gives as the build's subject \(D-343\): look it up this way before you place it\. A gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes on: say it is a support gem, and that the researchers will look for skills it can support\. An active gem goes in `skill`\. An item or mechanic \(Melting Maelstrom, block\) isn't a gem: it goes in `around`, and a gem-lookup miss never stops it\. Only a name the user gives as the build's skill, which the lookup misses, fails here\. The fixed roll's second name is always `skill`, so there a support gem fails: `\/build-guide Pathfinder Fork` stops with "Fork is a support gem"\./);
+    expect(check).not.toMatch(/Every other gem name goes in `skill`/);
     expect(check).toMatch(/for a support gem, say "<name> is a support gem"/);
     // The rule sits in the brief check, after the skill's own check and before the ascendancy lock.
     expect(check.indexOf('- `skill`: call')).toBeGreaterThan(-1);
-    expect(check.indexOf('- `skill`: call')).toBeLessThan(check.indexOf("- a gem the free text names as the build's subject"));
-    expect(check.indexOf("- a gem the free text names as the build's subject")).toBeLessThan(check.indexOf('- both, once each passes'));
+    expect(check.indexOf('- `skill`: call')).toBeLessThan(check.indexOf("- a name the free text gives as the build's subject"));
+    expect(check.indexOf("- a name the free text gives as the build's subject")).toBeLessThan(check.indexOf('- both, once each passes'));
     expect(folded(readStage('R1a'))).toMatch(/A support gem in `around` is the build's subject \(D-343\): each card's named damage source is an active skill it can support\./);
   });
 

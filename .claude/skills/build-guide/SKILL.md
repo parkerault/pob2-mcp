@@ -129,9 +129,10 @@ re-check, and never escalates; only the D1 and D2 gates escalate.
 
 `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. The free text is the **brief**: what the
 user wants, in their words. The fixed roll `/build-guide <ascendancy> <skill>` still works, multi-word names
-quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`. A brief of exactly two
-names and nothing else is the fixed roll: the first is always `ascendancy` and the second always `skill`,
-whatever the lookups find (D-343).
+quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`. Multi-word names are
+quoted, and an unquoted brief the gem lookup finds whole, such as `Blood Hunt`, is one name, a skill, so it
+isn't a fixed roll. Counted so, a brief of exactly two names and nothing else is the fixed roll: the first is
+always `ascendancy` and the second always `skill`, whatever the lookups find (D-343).
 
 - `--offline` starts offline mode (`references/offline-and-test.md`): no web, no prices.
 - `--test <path>` is a test config. It is accepted only with `--offline` (`testConfig: "accepted"`);
@@ -174,12 +175,13 @@ In this order, before any agent runs:
      class.
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
-   - a gem the free text names as the build's subject (D-343): look it up this way before you place it. Only
-     a gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run
-     goes on: say it is a support gem, and that the researchers will look for skills it can support. Every
-     other gem name goes in `skill`: an active gem passes, and a name the lookup doesn't find fails here. The
-     fixed roll's second name is always `skill`, so there a support gem fails: `/build-guide Pathfinder Fork`
-     stops with "Fork is a support gem".
+   - a name the free text gives as the build's subject (D-343): look it up this way before you place it. A
+     gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes
+     on: say it is a support gem, and that the researchers will look for skills it can support. An active gem
+     goes in `skill`. An item or mechanic (Melting Maelstrom, block) isn't a gem: it goes in `around`, and a
+     gem-lookup miss never stops it. Only a name the user gives as the build's skill, which the lookup misses,
+     fails here. The fixed roll's second name is always `skill`, so there a support gem fails:
+     `/build-guide Pathfinder Fork` stops with "Fork is a support gem".
    - both, once each passes: **the ascendancy lock** (D-342). Call `mcp__pob2__search_tree_nodes {query:
      "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind:
      "unique"}`. The ascendancy can't use the skill, and the check fails, when a node grants it (its stats

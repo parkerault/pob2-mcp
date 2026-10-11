@@ -1,11 +1,11 @@
 # Slice 02: Plan and compiler (compile-time spike, guides root, plan schema, C1/E1 data, import code, compiler, V1/V2)
 
 Part of the [build-guide spine](README.md). It covers work units WU-30 and WU-37…WU-42 (built; milestone
-M-11), and WU-61 (built), WU-51 (done) and WU-55 (approved, not built), all milestone M-14, and acceptance
+M-11), and WU-61 (built), WU-51 (done) and WU-55 (built), all milestone M-14, and acceptance
 criteria AC-P1…AC-P59. When this slice and the spine disagree, the spine wins. The adversarial review's
 fixes and the coordinator's resolutions are folded in under their spine IDs (D-210…D-238).
 
-**Fold v1.4 (2026-10-11).** WU-61 is built and WU-51 done, so their text is as-built. D-337 (Full DPS in
+**Fold v1.4 (2026-10-11).** WU-61 and WU-55 are built and WU-51 done, so their text is as-built (WU-55 merged at `3fc1500`). D-337 (Full DPS in
 every compile, PROPOSED by the coordinator) amends §3.6, and D-332's and D-282's as-built additions are
 folded in. WU-55 merges later: its record fields, its new `compile_check` error and where PoB applies a
 group's Count are folded here as its *target* text, from the work-log's "Review: WU-55".
@@ -26,7 +26,7 @@ stage's numbers and check verdicts), a re-evaluated ledger and an import code. I
 - the C1 (campaign) and E1 (enemy) data files, and the config baseline list (D-230);
 - the plan's offline-mode markers: the `external-unavailable` source tag, `unavailable` prices and a null
   `league` (D-233);
-- *Target (WU-55, D-293, D-337):* Count and custom modifiers. These are a skill group's `count`, the
+- Count and custom modifiers (WU-55, D-293, D-337; built). These are a skill group's `count`, the
   config's `customMods`, the record's Count-scaled figures and custom-modifier marks, and the named source's
   groups in Full DPS in every compile;
 - the entering-maps rung `m` and one endgame tree track, `m` → `b` → `n` (WU-61, D-281, D-282; built).
@@ -111,8 +111,8 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
     - Count adds no calculation: PoB runs one `calcs.perform` per Full DPS skill and multiplies when it
       merges the results (S-N2's note, `Calcs.lua:322`, `:344`).
     - As built, the compiler creates every group with Full DPS off and sets no `groupCount` (D-306,
-      `pob-api/API/Compile.lua:632`). *Target (WU-55, D-337):* the named source's groups go in Full DPS with
-      their Count in every compile.
+      `pob-api/API/Compile.lua:632`). The named source's groups go in Full DPS with
+      their Count in every compile (WU-55, D-337; built).
   - **Custom modifiers.** `customMods` is a `text` config option (`Modules/ConfigOptions.lua:2279`). Each line
     PoB parses whole is added as a `Custom` modifier; a line it can't parse whole is skipped.
 - **Data and dependencies.** `data/` doesn't exist. zod 3 is a runtime dependency; `zod-to-json-schema`
@@ -260,8 +260,8 @@ type Stage = {
     groups: { label?: string; enabled: boolean;
               role: 'clear' | 'single_target' | 'utility' | 'leveling';                          // D-217
               gems: { name: string; level: number; quality: number; enabled: boolean }[];        // ≥ 1 gem each
-              count?: number;             // Target (WU-55, D-293): integer ≥ 1, default 1
-              countReason?: string }[];   // Target (WU-55, D-293): why count is above 1; missing there, a V1
+              count?: number;             // WU-55, D-293: integer ≥ 1, default 1
+              countReason?: string }[];   // WU-55, D-293: why count is above 1; missing there, a V1
                                           // finding (§3.7), not a schema error (D-322)
     main: { group: number; activeSkill: number; statSet?: number };  // 1-based; group equal in every stage †
                                           // D1 sets statSet on each variant stage. On every stage with a
@@ -280,7 +280,7 @@ type Stage = {
                 source: { file: string; key: string };   // a C1/E1 file and fact key (§3.4)
                 tag: SourceTag }[];       // the fact's tag, copied with its value (D-168)
     customMods?: { text: string; reason?: string }[];
-                                          // Target (WU-55, D-293): a third kind beside earned and scenario,
+                                          // WU-55, D-293: a third kind beside earned and scenario,
                                           // with no producer and no source key. Each entry is one
                                           // hand-calculated effect as a PoB modifier line, with its reason;
                                           // an entry without a reason is a V1 finding (D-322)
@@ -447,7 +447,7 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
    (`CanPathThroughAllocMode`, D-213); a weapon-set tag on an unlisted node or in both sets; an attribute
    choice on a node without `isAttribute`; a tree-jewel node that isn't a jewel socket; an unknown config
    option or a bad value (`config_value`); a main-skill index outside the stage's groups or active skills.
-   *Target (WU-55, D-293):* also a custom-modifier line (`config.customMods[<i>]`) that PoB can't parse
+   Also (WU-55, D-293; built) a custom-modifier line (`config.customMods[<i>]`) that PoB can't parse
    whole, since PoB's `customMods` option would skip it without a word: the line, stripped as PoB strips
    it, must give a mod list with no remainder from `modLib.parseMod`.
    It also returns (both added by WU-42):
@@ -479,7 +479,7 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      The stage is calculated, and then the off-hands go in, checked against this stage's own tree and items.
      The weapon flags come from the measured `mainEnv.modDB`, so an item-granted flag (Treefingers) counts.
    - **Full DPS off** (D-306). As built, every socket group is created with `includeInFullDPS` off
-     (`Compile.lua:632`). *Target (WU-55, D-293, D-337):* in both modes, the named source's groups (each
+     (`Compile.lua:632`). In both modes (WU-55, D-293, D-337; built), the named source's groups (each
      stage's `rolledGroup`) are created with `includeInFullDPS` on and `groupCount` set to their `count`,
      so PoB computes Full DPS for them during the stage's calculation; every other group stays off (D-306,
      narrowed). The flags go in where `build_skills` creates the groups, so stages that share a skill set
@@ -489,7 +489,7 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      once before its main selection and once before it is measured. Its `outputs` and `skillOutputs` must
      equal the eager path's (a rebuild after every mutation); the NFR step tests that on the fifteen-stage
      fixture.
-   - *Target (WU-55, D-293):* after the listed config options, each `customMods` entry is written into PoB's
+   - After the listed config options (WU-55, D-293; built), each `customMods` entry is written into PoB's
      `customMods` text option, one line per entry, in a `set_config` call of its own; the save check below
      treats that option like a listed one.
 
@@ -541,8 +541,8 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      who opens it sees Full DPS with the same Count. WU-51 (S-N2) decided how: Full DPS on the named groups
      cost ×1.14 of the whole call and at most 3.08 s per stage request on the fifteen-stage fixture, within
      NFR-21, so step 7 sets the flags and PoB computes Full DPS in every compile, measure-only included
-     (D-337). Nothing is patched in at export. *Target (WU-55):* until it merges, no group is in Full DPS
-     (D-306).
+     (D-337). Nothing is patched in at export. Groups outside the named source stay out of Full DPS (D-306, narrowed by
+     D-337).
 10. **Write.** Final mode: `writeBuildFile({name: build_name, kind:'engine', overwrite, guard, ctx})`
     (C-17, which calls `noteSaved`), then at once the target's write-ledger entry (D-211). Measure-only:
     `compiled-build.xml` beside the plan; the ledger is neither read nor written.
@@ -644,7 +644,7 @@ back what the save dropped (D-248).
 - **`saveWarnings`** (D-248). One line per config set, naming its stages and the options that a save in PoB2
   would drop again.
 - **`recordVersion`** stays 1: these three fields are additive.
-- *Target (WU-55, D-293, D-294, D-321):* **record version 2**, with the fields WU-55 names (work-log
+- **Record version 2** (WU-55, D-293, D-294, D-321; built), with the fields WU-55 names (work-log
   "Review: WU-55"; spine C-33):
   - `recordVersion: 2`. The raw `outputs` and `skillOutputs` stay as PoB measured them.
   - Per stage, `countedOutputs: {group, count, dotCanStack, fields}`, the main skill's figures with the main
@@ -711,7 +711,7 @@ usage comes from PoB's own counts.
 | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's for its `progress` region. At a region's last progress key, the next region's entry value is also accepted, with a note naming the boundary (D-251) |
 | `pob-warning` | any PoB warning line except the filtered ones, which go to `pobWarnings.filtered`. Two patterns are filtered. `^You have \d+ Weapon set 2 passives available$` (`Build.lua:1051-1055`) is always informational. `^You have too many passive points allocated$` is filtered only when the stage's regular points pass `passive-points` with the Martyr point alone: PoB's cap (`Build.lua:1007, :1030`) doesn't know that point, which V1 notes instead (A-29) |
 | `tree-continuity` | the stage's nodes and ascendancy nodes don't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor (`predecessorOf`, `src/plan/checks/v1.ts`; built by WU-61, D-282): stages without `variant` form the campaign track, in plan order; the endgame stages form one ladder, `m` → `b` → `n`, by rung whatever the plan order (plan order only within a rung; a rung the plan lacks is skipped). The ladder's first stage continues from the last campaign stage in the plan, wherever the rung is listed, and from none when there is no campaign stage. So each rung's `respec.dropped` is checked against the rung before it; its gold cost gets only its schema check, since it carries a `judgment` tag (A-32). This replaced A-P3's per-variant tracks |
-| *Target (WU-55, D-322):* `missing-reason` | a group with `count` above 1 and no `countReason`, or a `config.customMods` entry without a `reason`; `data.path` names the field. It is a V1 finding, so the stage's `v1.pass` is false; it is not a schema error (AC-P51, AC-P52) |
+| `missing-reason` (WU-55, D-322; built) | a group with `count` above 1 and no `countReason`, or a `config.customMods` entry without a `reason`; `data.path` names the field. It is a V1 finding, so the stage's `v1.pass` is false; it is not a schema error (AC-P51, AC-P52) |
 
 **V2: config** (D-114, C-32).
 
@@ -976,7 +976,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   flags are written at export only.
 
 ### WU-55: Count and custom modifiers in the plan, the compiler and the record (amendment 3's N-4)
-- status: not built (target; amendment 3, approved 2026-10-10)
+- status: built, merged at `3fc1500`
 - kind: build
 - depends-on: [WU-51 (done)]; after WU-61 on `src/plan/schema.ts`: WU-61 merged first, so WU-55 extends
   its version bump (D-320)

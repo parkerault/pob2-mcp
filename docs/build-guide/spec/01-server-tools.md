@@ -94,7 +94,7 @@ bridge actions that the spine delegates to this slice.
 | `set_level` | `BuildOps.lua` | adds `autoMode?` (default false) | unchanged | WU-35 |
 | `set_tree` | `BuildOps.lua` | adds `weaponSets?: {[nodeId]: 1\|2}`, which replaces the preserved tags, and `attributeChoices?: {[nodeId]: "strength"\|"dexterity"\|"intelligence"}`, which is applied over the preserved choices. Without either, `set_tree` behaves as today (AC-E29) | unchanged | WU-36 |
 | `update_tree_delta` | `BuildOps.lua` | unchanged | adds `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (already read at `pobLuaBridge.ts:858` and `luaHandlers.ts:616-617, :640`), the points counted as PoB's `CountAllocNodes` counts them (D-307). Refuses, after a dry run and with the build unchanged, an add that would change an allocated node's weapon-set tag; nodes allocated before the call keep their attribute choices (D-308) | WU-36 |
-| `lookup_game_data` (*target*) | `pob-api/API/Lookup.lua` | set by the unit | *Target (WU-53, D-299):* amendment 3's additions (§2.2), in the formats its criteria pin | WU-53 |
+| `lookup_game_data` (amendment 3's additions) | `pob-api/API/Lookup.lua` | `lookup_game_data` | amendment 3's additions (§2.2), in the formats AC-K58…AC-K65 pin (D-299; built) | WU-53 |
 
 **Compatibility.** The spine's C-2/C-5 row is a modified contract that lists these changes (D-222). Every
 change is additive except `set_main_selection`'s `skillPart` → `statSet` rename, which is internal: only
@@ -220,7 +220,7 @@ characters gets names. A longer one gets "Nothing matched …" and one line inst
 characters long, over the 100 that closest names are listed for.` The reply then carries
 `suggestionsSkipped` in place of `suggestions`.
 
-*Target (WU-53, D-299):* amendment 3's additions, which the brainstorm's researchers (R1a) and R1b's
+Amendment 3's additions (WU-53, D-299; built, merge `25bde2a`; formats pinned by AC-K58…AC-K65), which the brainstorm's researchers (R1a) and R1b's
 advisory verification checklist (D-292) read (`amendment-3-open-builds.md:423-441`):
 - Gemling quality effects: `altQualityStats`, shown and searched beside `qualityLines`, labelled (PG-46 in
   [`../pob-gaps.md`](../pob-gaps.md));
@@ -694,14 +694,14 @@ AC-K47…AC-K49. Nothing was built.
 
 ### WU-53: K1 lookup additions (N-2)
 - kind: build
-- status: not built
+- status: built, merged at `25bde2a`
 - depends-on: [WU-60]
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Lookup.lua`, `src/handlers/lookupHandlers.ts`,
   `.claude/skills/build-guide/references/lookups.md`, `tests/integration/lookupGameData.test.ts`,
   `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `tests/integration/contract.test.ts` (the amended action's
   reply schema, wrapper types and contract case)]
-- produces: [C-37's amendment-3 additions (§2.2's *Target (WU-53, D-299)*)]
+- produces: [C-37's amendment-3 additions (§2.2, D-299)]
 - consumes: [C-37 as built]
 - acceptance: [AC-K58…AC-K65, pinned by the unit's first step from `amendment-3-open-builds.md:425-443`
   and reviewed by the coordinator before any code is written (A-33); AC-B3, AC-B4]
@@ -1230,7 +1230,7 @@ engine-required. Built (merge `fdcf6a7`; D-277).
   energy shield (`vendor/Data/ModVeiled.lua:163`). An essence query returns an essence hit.
 
 **K1 lookup additions (WU-53)**: `tests/integration/lookupGameData.test.ts`, in-process, engine-required;
-the `lookups.md` check in its static block. *Target (WU-53, D-299):* not built.
+the `lookups.md` check in its static block. Built by WU-53 (`25bde2a`).
 
 AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendment 3's lookup list
 (`amendment-3-open-builds.md:425-443`). Every value below was probed at the pin. Shared rules:

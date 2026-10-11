@@ -57,8 +57,8 @@ slice fixes the contracts and required behaviours, not the prose of prompts.
   - the dated price outputs (C-49, WU-49), whose errors start with a stable `[trade:<kind>]` prefix
     (D-218), and the limiter's `would_wait`/`locked_out` answers (C-11).
   - since WU-60 and WU-54 (D-277, D-300, D-336): a mod hit that lists the base types that can roll it,
-    essences as a mechanic kind (C-37), and the coverage flags (C-38). *Target (WU-53, D-299):* the lookup
-    additions. There are no poe.ninja tools beyond `get_currency_rates` (C-54 withdrawn, D-335).
+    essences as a mechanic kind (C-37), and the coverage flags (C-38). The lookup
+    additions (WU-53, D-299; built). There are no poe.ninja tools beyond `get_currency_rates` (C-54 withdrawn, D-335).
 
   The registration names the server `pob2` (stab D-16), so allowlists name `mcp__pob2__<tool>`.
 - **Tool groups** (stab C-1): `POE_TRADE_DISABLED=true` hides group `trade` and `POE_NINJA_DISABLED=true`
@@ -792,7 +792,7 @@ at most 3 agents in flight, read from the session's transcript. NFR-22 (no 429s,
   its quest, the endgame stages included (D-265 c).
 - `league` is null offline (D-233), and `"unverified"` when trade couldn't be reached online (D-313,
   D-330).
-- *Target (WU-55, D-293):* a skill group's `count` (default 1) with a `countReason` when above 1, and
+- (WU-55, D-293; built) A skill group's `count` (default 1) with a `countReason` when above 1, and
   `config.customMods: [{text, reason}]`, a hand-calculated effect beside the `earned` and `scenario`
   entries.
 - `variant: "entering-maps"` for the rung `m`, with loadout `Entering maps (L<level>) {m}` (D-281; WU-61,

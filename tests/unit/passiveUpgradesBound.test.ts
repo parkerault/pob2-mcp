@@ -53,7 +53,7 @@ function stubEngine(opts: { statWords: number; unparsed: number; lineWords: numb
 
 function handle(client: PoBLuaApiClient, maxResults: number) {
   return handleGetPassiveUpgrades(
-    { getLuaClient: () => client, ensureLuaClient: async () => {}, sourceScan: async () => ({ names: new Set<string>(), templates: [] }) },
+    { getLuaClient: () => client, ensureLuaClient: async () => {}, sourceScan: async () => ({ names: new Set<string>(), templates: [], skillCallNames: [] }) },
     'both',
     maxResults,
     true,

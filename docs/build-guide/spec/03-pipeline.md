@@ -185,7 +185,8 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   The runner rewrites the whole log after every step, checkpoint and question, so an interrupted run still
   leaves one (D-270).
 - **FR-W3 (one coordinator; C-36 as corrected by D-231; D-130, D-112).** During a run the runner calls no
-  `pob2` tool except `get_classes` and `lookup_game_data` for the roll check and `guide_run {new_run}`.
+  `pob2` tool except `get_classes` and `lookup_game_data` for the roll check (with `search_tree_nodes` for
+  the ascendancy lock of a brief naming both an ascendancy and a skill, D-342) and `guide_run {new_run}`.
   Lookups (the tools in L, §4) may also be called by the R1a researchers, the V4 verifiers and coordinator
   steps. Every engine-changing and trade call is made by a coordinator step, and no coordinator step
   overlaps any other agent. No agent calls a poe.ninja tool beyond the coordinator's `get_currency_rates`
@@ -1783,7 +1784,9 @@ subagents') or the coordinator's review. Numbers come from the run folder, never
   - The slug is `open-explosive-concoction`. `roll` is `null` until the verification gate's pick, and then
     `{className: "Ranger", ascendancy: "Pathfinder", skill: "Explosive Concoction"}`.
   - Before `guide_run {new_run}`, the runner checked the skill with `lookup_game_data {mode: "gem"}`. Its only
-    `pob2` calls in the run are that check, `get_classes` and `guide_run {new_run}` (FR-W3).
+    `pob2` calls in the run are that check, `get_classes`, the ascendancy lock's lookups
+    (`search_tree_nodes {query: "Grants Skill: <skill>"}` and the unique search, D-342) when a brief names both
+    an ascendancy and a skill (this one names no ascendancy, so none), and `guide_run {new_run}` (FR-W3).
   - Evidence: run folder, transcript.
 - **AC-W35 (run A: the deck narrows to Pathfinder, with the reason; D-286, D-287).** *(quality)*
   - Every card `cards.md` deals has the identity Ranger, Pathfinder, Explosive Concoction.

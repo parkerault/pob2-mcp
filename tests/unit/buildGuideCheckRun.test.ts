@@ -1009,15 +1009,73 @@ describe("D-334: an R1b failure whose card's damage source isn't a skill is term
 });
 
 describe("D-342: an R1b failure whose card's ascendancy doesn't own the node that grants its skill is terminal, and the card can't be finalized", () => {
-  /** run-escalated with r1-c-1 failed by R1b's ascendancy lock (stages/R1b.md): no compile, one wrong-ascendancy finding. */
+  /** Explosive Concoction's one source at the pin: the Pathfinder node 38004 (`TreeData/0_5/tree.lua:86216`); no unique grants it. */
+  const LOCK = 'Explosive Concoction is granted only by Pathfinder\'s node "Explosive Concoction" (38004)';
+  /** r1-c-1 as a Warrior Titan card for Explosive Concoction, which only the Pathfinder can use; R1b left it as R1a wrote it. */
+  const CONCOCTION_CARD = [
+    '# Card r1-c-1: Concoction slam', '', '## Brainstorm half', '', '### Identity', '',
+    '- Class: Warrior', '- Ascendancy: Titan', '- Named damage source: Explosive Concoction', '',
+    '### Pitch', '', '- Title: Concoction slam', '- Playstyle: melee, one-button, tanky',
+    '- Under-played (judgment): a thrown concoction on a slam warrior, which few builds pair',
+    '- Explosive Concoction carries the damage, thrown between slams.', '- It kills rares first and clears packs between them.', '',
+    '### Chain', '', '- Damage source: Explosive Concoction, reading its own hit, carried by the skill.', '- Multipliers: none found.',
+    '- Enablers: none.', '- Consumes or requires: nothing.', '',
+    '### Enabler', '', '- Explosive Concoction: arrives at level 1, by an uncut skill gem.', '- Dormant until then: nothing.', '',
+    '### Links', '', '| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', '|---|---|---|---|---|---|',
+    '| Explosive Concoction → hit | "the concoction\'s explosion" | lookup_game_data gem "Explosive Concoction" | modelled | none | confirmed in game text |', '',
+    '### Evidence', '', '- Player evidence: no player evidence', '- Reference build: none', '',
+    '### Risks so far', '', '- Payoff thieves: none found', '- Placement limits: none found', '- Exposed phase: the throw commits to its target',
+    '- Resistant bosses: none found', '', '## Verification half', '',
+    ...['Verified', 'Estimates', 'Checklist results', 'Fallback ladder', 'Key item prices'].flatMap((h) => [`### ${h}`, '', 'Not checked yet.', '']),
+  ].join('\n');
+  /**
+   * run-escalated with r1-c-1 an Explosive Concoction card on a Warrior Titan: R1a-assemble held it back under "Not
+   * dealt" (wrong-ascendancy), the brainstorm gate picked it anyway, and R1b's ascendancy lock (stages/R1b.md) failed
+   * it with no compile. The deck, the card, the dossier and the verdict agree.
+   */
   function wrongAscendancy(): string {
     const dir = copyOf('run-escalated');
+    fs.writeFileSync(path.join(dir, 'cards', 'r1-c-1.md'), CONCOCTION_CARD);
+    editText(dir, 'cards.md', (t) => t.replace(/^- r1-c-1 .*\n/m, '').replace('## Not dealt\n\n', `## Not dealt\n\n- r1-c-1 "Concoction slam" | Warrior Titan, Explosive Concoction | wrong-ascendancy: ${LOCK}\n`));
+    editLog(dir, (l) => (l.stages[ESCALATED.assemble].shortReason = '4 of 9 cards passed the identity check and the sniff test'));
+    editText(dir, 'dossier.md', (t) => t.replace(/### r1-c-1: Melting Maelstrom nova\n[\s\S]*?\n\n(?=## )/, [
+      '### r1-c-1: Concoction slam', '', '- Skeleton: none.', '- Compile: not compiled: wrong-ascendancy.', '- Record: none.',
+      '- Key numbers: none (not compiled).', '- Key-item prices: none (not compiled).', `- Status: failed: ${LOCK}; the card's ascendancy is Titan (D-342).`, '', '',
+    ].join('\n')));
     editJson(dir, 'reports/gates/R1b-r1-c-1-a1.json', (r) => {
-      r.findings = [{ part: 'compiled', code: 'wrong-ascendancy', message: 'Explosive Concoction is granted only by Pathfinder\'s node "Explosive Concoction" (38004); the card\'s ascendancy is Titan (D-342)' }];
+      r.findings = [{ part: 'compiled', code: 'wrong-ascendancy', message: `${LOCK}; the card's ascendancy is Titan (D-342)` }];
     });
-    editText(dir, 'dossier.md', replace("- Status: can't be finalized yet: its damage source isn't a skill.", "- Status: failed: Explosive Concoction is granted only by Pathfinder's node."));
     return dir;
   }
+  /** wrongAscendancy() stopped at the verification gate, whose pre-supplied `pick:<id>` resolved to stop: no design ran. */
+  function stoppedAtPick(id: string): string {
+    const dir = wrongAscendancy();
+    editLog(dir, (l) => {
+      l.stages = l.stages.slice(0, ESCALATED.d1);
+      l.checkpoints = [l.checkpoints[0], { checkpoint: 'verification', visit: 1, answer: 'stop', answeredBy: 'pre-supplied', rule: `pick:${id}` }];
+      Object.assign(l, { escalations: [], status: 'stopped', roll: null, outputs: { ...l.outputs, plan: null, record: null } });
+    });
+    for (const f of ['plan.json', 'compile-record.json', 'compiled-build.xml', ...fs.readdirSync(path.join(dir, 'reports', 'gates')).filter((g) => g.startsWith('D1-gate-')).map((g) => `reports/gates/${g}`)]) {
+      fs.rmSync(path.join(dir, f));
+    }
+    return dir;
+  }
+
+  it('the passing copy is consistent: the card, the deck, the dossier and the verdict name Explosive Concoction on a Titan', () => {
+    const dir = wrongAscendancy();
+    expect(fs.readFileSync(path.join(dir, 'cards.md'), 'utf8')).toMatch(/## Not dealt\n\n- r1-c-1 "Concoction slam" \| Warrior Titan, Explosive Concoction \| wrong-ascendancy: /);
+    expect(fs.readFileSync(path.join(dir, 'dossier.md'), 'utf8')).toContain('### r1-c-1: Concoction slam\n\n- Skeleton: none.\n- Compile: not compiled: wrong-ascendancy.');
+    expect(readJson(dir, 'reports/gates/R1b-r1-c-1-a1.json')).toEqual(expect.objectContaining({ compiles: 0, recordPath: null, findings: [expect.objectContaining({ code: 'wrong-ascendancy' })] }));
+    expect(fs.readFileSync(path.join(dir, 'cards', 'r1-c-1.md'), 'utf8')).not.toMatch(/Melting Maelstrom|not-a-skill|isn't a skill/);
+  });
+
+  it('passes a pre-supplied pick of the wrong-ascendancy card that ends the run stopped, an illegal answer (checkpoints.md)', () => {
+    passes(stoppedAtPick('r1-c-1'));
+  });
+
+  it('fails a pre-supplied pick of a card the gate can finalize turned into a stop', () => {
+    expect(failing(stoppedAtPick(CARD))).toMatch(/\[order\] run-log\.json: the verification gate's pre-supplied "pick:r1-a-1" ended the run with "stop", but r1-a-1 can be finalized; a pre-supplied pick stops the run only when its card can't be \(its R1b ended wrong-ascendancy or not-a-skill; D-303, D-342\)/);
+  });
 
   it('passes a run whose wrong-ascendancy card fails once, with no compile, and the round assembles', () => {
     passes(wrongAscendancy());

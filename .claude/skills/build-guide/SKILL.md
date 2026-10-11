@@ -30,7 +30,8 @@ never a token role (D-122 as D-295 words it); the card the user finalizes gives 
   open findings into the `Known issues` of `guide.md` and `audit.md` (step 14). Each agent writes only its
   header's `writes`.
   The PoB file reaches the builds folder only through the final compile.
-- **Your pob2 tools** are `mcp__pob2__get_classes` and `mcp__pob2__lookup_game_data` for the brief check, and
+- **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and
+  `mcp__pob2__search_tree_nodes` for the brief check (the last for the ascendancy lock, D-342), and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, every engine change and every price call is a
   coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in
@@ -169,13 +170,21 @@ In this order, before any agent runs:
      class.
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
+   - both, once each passes: **the ascendancy lock** (D-342). Call `mcp__pob2__search_tree_nodes {query:
+     "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind:
+     "unique"}`. The ascendancy can't use the skill, and the check fails, when a node grants it (its stats
+     list `Grants Skill: <skill>`), every such node is an ascendancy node (an `Ascendancy: <name>` line), none
+     of them the brief's ascendancy, and no unique has a line `Grants Skill: <skill>` or `Grants Skill: Level
+     (<range>) <skill>`.
    - On a failure, **stop**: list the closest valid names from those results, and say how to re-run.
      Ascendancies come from `mcp__pob2__get_classes`. For the skill, quote the names the lookup gave: when
      nothing matched, `mcp__pob2__lookup_game_data` says "Nothing matched …", then lists up to 5 names under
      `Closest active gem names (…):` and up to 3 under `Closest support gem names (…):`, each line
      `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem
      is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say it
-     is a support. Create no run folder and write nothing.
+     is a support. A failed lock gives its reason instead: the nodes that grant the skill, each with its id
+     and ascendancy, so a re-run names one of those ascendancies or none. Create no run folder and write
+     nothing.
    - Use the names exactly as the tools gave them from here on. The run's `roll`,
      `{className, ascendancy, skill}`, is set only at the verification gate, from the card the user
      finalizes (D-286).

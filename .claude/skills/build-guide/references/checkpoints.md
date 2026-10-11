@@ -59,8 +59,10 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
 - **Ask**: finalize one card, verify other cards, brainstorm more, or stop.
   - **finalize** (`pick:<id>`): a failed card may be finalized anyway; a card whose damage source isn't a
     skill can't be yet (D-303). A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even
-    anyway: the build it describes can't exist (D-342). Refuse that answer and ask again. The card's identity `{className, ascendancy, skill}` becomes the run's `roll`
-    (D-286), and the design (steps 6 to 9) runs for it.
+    anyway: the build it describes can't exist (D-342). Refuse such an answer and ask again. A test config
+    that pre-supplies one has given an illegal answer: the run ends `stopped`, recorded as answer `stop` with
+    the test config's `pick:<id>` as its `rule`. The card's identity `{className, ascendancy, skill}` becomes
+    the run's `roll` (D-286), and the design (steps 6 to 9) runs for it.
   - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet): a new
     verification round (step 3), without a brainstorm.
   - **brainstorm more** (`more`, with the user's note): a new brainstorm round (step 2a).

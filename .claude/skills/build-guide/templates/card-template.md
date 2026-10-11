@@ -27,8 +27,9 @@ Status words, used everywhere on the card, exactly as written here, one per link
   the item, passive or modifier that deals it, D-334>
 - [only when the damage source isn't a skill] Can't be finalized yet: its damage source isn't a skill
   (D-303).
-- [only when a passive-tree node grants the skill, D-342] Granted by: "<node name>" (<node id>), <a
-  <ascendancy> ascendancy node | allocated by this card>.
+- [only when a passive-tree node or a unique grants a skill the card uses, D-342; one line per skill]
+  Granted by: <skill>: "<node name>" (<node id>), <a <ascendancy> ascendancy node | allocated by this card>,
+  or <the unique>, equipped by this card.
 
 ### Pitch
 

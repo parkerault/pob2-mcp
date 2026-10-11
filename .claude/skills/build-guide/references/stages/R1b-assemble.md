@@ -1,9 +1,9 @@
 # R1b-assemble: the dossier (`build-guide-coordinator`)
 
-Slice 03 §5.2 (the verification phase) and §7.2; spine D-269, D-287, D-294, D-296, D-303, D-334. One step per
-verification round, after every R1b step of the round. It writes `dossier.md`, what the verification gate shows
-the user and what the design steps read: the brainstorm rounds' research and every verified card with its
-skeleton's result.
+Slice 03 §5.2 (the verification phase) and §7.2; spine D-269, D-287, D-294, D-296, D-303, D-334, D-342. One
+step per verification round, after every R1b step of the round. It writes `dossier.md`, what the verification
+gate shows the user and what the design steps read: the brainstorm rounds' research and every verified card
+with its skeleton's result.
 
 ## Inputs
 

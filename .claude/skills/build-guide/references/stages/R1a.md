@@ -1,7 +1,7 @@
 # R1a: brainstorm (`build-guide-researcher`)
 
 Slice 03 §5.2 (the brainstorm phase) and §7.5; spine C-36, C-51, C-52, C-53, D-287, D-290, D-298, D-319, D-335,
-D-339. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
+D-339, D-342. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
 research file (the dossier's mechanics, synergy search and config gaps) and 3 **cards**, each the brainstorm
 half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
 picks the cards to verify at the brainstorm gate, and R1b compiles them (`R1b.md`).
@@ -30,21 +30,22 @@ The brief's other fields steer every focus: `playstyle` (each card's tags, from 
 notes on what players run, each card's only player evidence). A fixed roll (a brief naming `ascendancy` and
 `skill`) fixes every card's identity: its named damage source is that skill.
 
-**A skill the tree grants** (D-342). When the brief names a skill, run `mcp__pob2__search_tree_nodes {query:
-"Grants Skill: <skill>"}` before you write any card; for a skill only your card names as its damage source,
-run it before that card. A node whose stats list `Grants Skill: <skill>` grants the skill:
+**The ascendancy lock** (D-342). Check every skill a card names, its named damage source and each skill in
+its chain and links, before you write that card; when the brief names a skill, check it before any card:
 
-- **with an `Ascendancy: <name>` line**, only that ascendancy can use it: every card with that damage source
-  uses `<name>` and its class, and its identity says why, naming the node (`Granted by: "<node name>" (<node
-  id>), a <name> ascendancy node`). A brief naming another ascendancy contradicts itself: say so in your
-  research file; R1a-assemble then deals no card;
-- **with no `Ascendancy:` line**, any class can take it through that node: every card with that damage source
-  allocates the node, and its identity says so (`Granted by: "<node name>" (<node id>), allocated by this
-  card`). No class lock;
-- **no matching node:** the tree grants nothing, and the skill's gem is its source.
+- `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` lists the nodes whose stats hold
+  `Grants Skill: <skill>`, an ascendancy node with an `Ascendancy: <name>` line;
+- `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind: "unique"}` lists the uniques; one
+  grants the skill when its line reads `Grants Skill: <skill>` or `Grants Skill: Level (<range>) <skill>`.
 
-A card that breaks the lock isn't dealt (`R1a-assemble.md`), and R1b fails it before any compile
-(`wrong-ascendancy`).
+A skill is **locked** when a node grants it, every node that grants it is an ascendancy node, and no unique
+grants it: only those ascendancies can use it. A card that uses a locked skill takes the lock's ascendancy
+(one of them, when several grant it) and its class, and its identity says why, naming the node (`Granted by:
+"<node name>" (<node id>), a <name> ascendancy node`). A skill a non-ascendancy node or a unique grants isn't
+locked: the card names the source it uses, the node it allocates or the unique it equips. With no node and no
+unique, the skill comes from its gem. A card that uses a locked skill on another ascendancy isn't dealt
+(`R1a-assemble.md`), and R1b fails it before any compile (`wrong-ascendancy`). A brief whose ascendancy
+can't use its skill never reaches you: the runner's brief check stops it (SKILL.md step 1).
 
 **An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
 pattern-library shape that you judge under-played: one few builds use with this skill, ascendancy or

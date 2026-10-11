@@ -1482,11 +1482,12 @@ function checkGateAnswer(c, at, bad) {
     bad(at, `has rule ${show(c.rule)}, which isn't an answers.${gate === 'unsaved-build' ? 'unsavedBuild' : gate} value of the test config (checkpoints.md)`);
     return;
   }
-  // The answer is the rule as written, or what first-n:<n> and first-viable resolved to.
+  // The answer is the rule as written, or what first-n:<n> and first-viable resolved to. A verification pick of
+  // a card the gate can't finalize is illegal, so the run stops (D-303, D-342): the flow check holds that card.
   const n = /^first-n:([1-3])$/.exec(c.rule)?.[1];
   const resolved = n !== undefined ? c.answer === 'stop' || (/^pick:/.test(c.answer) && ids.length <= Number(n))
     : c.rule === 'first-viable' ? c.answer === 'stop' || new RegExp(`^pick:${CARD_ID}$`).test(c.answer)
-      : c.answer === c.rule;
+      : c.answer === c.rule || (gate === 'verification' && /^pick:/.test(c.rule) && c.answer === 'stop');
   if (!resolved) bad(at, `answers ${show(c.answer)}, but its rule ${show(c.rule)} resolves to ${n !== undefined ? `pick: with at most ${n} card(s), or stop` : c.rule === 'first-viable' ? 'pick:<one card>, or stop' : show(c.rule)} (checkpoints.md)`);
 }
 
@@ -2118,6 +2119,12 @@ function checkFlow(log, fail, ctx) {
       else if (c?.answer === 'stop' && log.status !== 'stopped') fail('order', `run-log.json: ${name} answered "stop", which ends the run stopped, but its status is ${show(log.status)}`);
       else if (c !== undefined && c.answer !== 'stop' && log.status !== 'running') fail('order', `run-log.json: ${name} answered ${show(c.answer)}, but no step follows it and the run ends ${show(log.status)}`);
     }
+    // D-303, D-342: a pre-supplied pick of a card the gate can't finalize is illegal, and the run stops; a pick
+    // of any other card is followed, never turned into a stop.
+    const picked = end === 'verification' && c?.answer === 'stop' && c.answeredBy === 'pre-supplied' ? /^pick:(.+)$/.exec(String(c.rule))?.[1] : undefined;
+    if (picked !== undefined && !r1bSeen.get(picked)?.terminal) {
+      fail('order', `run-log.json: the verification gate's pre-supplied ${show(c.rule)} ended the run with "stop", but ${picked} can be finalized; a pre-supplied pick stops the run only when its card can't be (its R1b ended wrong-ascendancy or not-a-skill; D-303, D-342)`);
+    }
   }
   for (const kind of v3 ? ['brainstorm', 'verification'] : []) {
     if (answers[kind].length > 0) fail('order', `run-log.json: checkpoints[] records ${answers[kind].length} ${kind} answer(s) more than the run visits ${GATE_NAME[kind]}; each visit records one answer, in order (D-289)`);
@@ -2229,7 +2236,7 @@ function checkGateReport(rep, g, fail) {
 }
 
 /** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342). */
-const TERMINAL_R1B = ['not-a-skill', 'wrong-ascendancy'];
+const TERMINAL_R1B = ['wrong-ascendancy', 'not-a-skill'];
 
 /**
  * An R1b verdict that compiled nothing (`compiles: 0`) and failed with a terminal code, which it returns (else

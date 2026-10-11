@@ -1,10 +1,10 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
-Slice 03 §5.2 and §7.5; spine C-52, C-53, D-286, D-287, D-298, D-319, D-334, D-335, D-339. One step per
-brainstorm round, after the round's R1a researchers return. It turns their cards into the deck the user picks
-from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when lookups
-confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices nothing and
-never edits a card.
+Slice 03 §5.2 and §7.5; spine C-52, C-53, D-286, D-287, D-298, D-319, D-334, D-335, D-339, D-342. One step
+per brainstorm round, after the round's R1a researchers return. It turns their cards into the deck the user
+picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when
+lookups confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices
+nothing and never edits a card.
 
 ## Inputs
 
@@ -34,14 +34,16 @@ never edits a card.
      `kind: "passive"` or `kind: "mod"`). Such a card can be dealt, marked "can't be finalized yet" (D-303);
    - the brief's fixed pieces: a card whose identity contradicts the brief's `ascendancy` or `skill` isn't
      dealt;
-   - a skill the tree grants (D-342): run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}`
-     again, once per skill the cards name, and read each node whose stats list `Grants Skill: <skill>`. With
-     an `Ascendancy: <name>` line, the card's ascendancy must be `<name>`, and its identity must name the node;
-     with none, the card must allocate the node. A card that breaks the lock isn't dealt: "Not dealt" gives
-     `wrong-ascendancy: <skill> is granted only by <name>'s node "<node name>" (<node id>)`, or `doesn't
-     allocate "<node name>" (<node id>), the node that grants <skill>`. When the brief names an `ascendancy`
-     other than `<name>`, no card can pass: the round is short (step 6), `short: the brief's ascendancy can't
-     use <skill>: only <name>'s node "<node name>" grants it`.
+   - the ascendancy lock (D-342): for every skill a card names (its named damage source, its chain and its
+     links), once per skill in the round, run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}`
+     and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind: "unique"}` again. A skill is
+     locked when a node grants it (its stats list `Grants Skill: <skill>`), every such node is an ascendancy
+     node (an `Ascendancy: <name>` line), and no unique has a line `Grants Skill: <skill>` or `Grants Skill:
+     Level (<range>) <skill>`. A card that uses a locked skill must be one of those ascendancies, its identity
+     naming the node; a card that uses a skill a non-ascendancy node or a unique grants must name the source
+     it uses. A card that breaks either isn't dealt: "Not dealt" gives `wrong-ascendancy: <skill> is granted
+     by <each node, "<node name>" (<node id>), with its ascendancy>` (`granted only by` when there is exactly
+     one source), or `no source for <skill>: <the nodes and uniques that grant it>`.
 
    A failed check holds the card back, naming what failed. Use the names exactly as the tools give them.
 3. **The sniff test** (D-287). A link in the card's links table is load-bearing when the payoff stops working

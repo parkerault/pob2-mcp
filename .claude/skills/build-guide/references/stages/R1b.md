@@ -1,10 +1,10 @@
 # R1b: card skeleton, measure-only compile, key-item prices, the checklist (`build-guide-coordinator`)
 
-Slice 03 §5.2 (the verification phase) and §7.5, §7.7; spine C-36, C-52, D-208, D-286, D-292, D-334, D-338.
-One step per picked card, one at a time, at most 3 per verification round. It turns a card into an endgame
-skeleton plan, compiles it measure-only, prices the card's key items, runs the advisory checklist with its
-probes, and writes the card's verification half. **Gate:** the skeleton compiled with no compile error. You
-write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
+Slice 03 §5.2 (the verification phase) and §7.5, §7.7; spine C-36, C-52, D-208, D-286, D-292, D-334, D-338,
+D-342. One step per picked card, one at a time, at most 3 per verification round. It turns a card into an
+endgame skeleton plan, compiles it measure-only, prices the card's key items, runs the advisory checklist with
+its probes, and writes the card's verification half. **Gate:** the skeleton compiled with no compile error.
+You write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
 counted retries; then the card is `failed`, its last verdict the evidence (D-141).
 
 ## Inputs
@@ -33,23 +33,29 @@ last compile of the whole skeleton (step 8). Validation comes before any price c
 trade site's limits are shared with the user's account) is spent on an item validation would reject. The
 verification checklist's probe variants (below) come on top: up to 4 per card (D-292).
 
-A card whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A card whose damage source
-isn't a skill" below.
+**The ascendancy lock** (D-342), the identity check every card gets first, before any compile and before
+FI-1. For every skill the card names (its named damage source, and each skill in its chain and links), run
+`mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode:
+"mechanic", query: "<skill>", kind: "unique"}`. A skill is locked when a node grants it (its stats list
+`Grants Skill: <skill>`), every such node is an ascendancy node (an `Ascendancy: <name>` line), and no unique
+has a line `Grants Skill: <skill>` or `Grants Skill: Level (<range>) <skill>`.
 
-**The ascendancy lock** (D-342), the identity check every other card gets first, before any compile and
-before FI-1: run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` for the card's named damage
-source, and read each node whose stats list `Grants Skill: <skill>`.
-
-- **A node with an `Ascendancy: <name>` line, and the card's ascendancy isn't `<name>`:** the card's character
-  can't use its skill, so it fails at once. Write no skeleton, compile nothing, run no checklist or probe,
-  price nothing and leave the card as R1a wrote it; write only the verdict (step 9) with `compiled: "fail"`,
-  one finding `{part: "compiled", code: "wrong-ascendancy", message: "<skill> is granted only by <name>'s
-  node \"<node name>\" (<node id>); the card's ascendancy is <ascendancy> (D-342)"}`, `errors: []`,
+- **The card uses a locked skill, and no node that grants it is the card's ascendancy's:** the card's
+  character can't use that skill, so the card fails at once. Write no skeleton, compile nothing, run no
+  checklist or probe, price nothing and leave the card as R1a wrote it; write only the verdict (step 9) with
+  `compiled: "fail"`, one finding per such skill, `{part: "compiled", code: "wrong-ascendancy", message:
+  "<skill> is granted by <each node, <name>'s node \"<node name>\" (<node id>)>; the card's ascendancy is
+  <ascendancy> (D-342)"}` (`granted only by` when one node is the skill's only source), `errors: []`,
   `compiles: 0`, `recordPath: null` and `faultsApplied: []`. It is terminal: the runner never re-runs it, since
   no retry can change the card's identity. Unlike a card whose damage source isn't a skill, it is a plain
   failure: its status is `failed`, and it counts among the failed cards when none is viable (D-141).
-- **A node with no `Ascendancy:` line:** step 1's tree targets include it.
-- **The card's ascendancy owns the node, or no node matches:** go on to step 1.
+- **A skill a non-ascendancy node grants, which the card takes from that node:** step 1's tree targets
+  include the node.
+- **Otherwise** (the card's ascendancy owns a granting node, a unique or a non-ascendancy node grants the
+  skill, or nothing does): go on.
+
+A card that passes the lock and whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A
+card whose damage source isn't a skill" below.
 
 1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
    card rests on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own

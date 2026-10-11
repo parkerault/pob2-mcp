@@ -1,15 +1,21 @@
 # WU-51: Full DPS compile cost with only the named groups (S-N2)
 
-Date 2026-10-10. Pin PathOfBuilding-PoE2 `v0.23.1` (commit `7d6f530`). Lane head `acec4d1`. **[V]** = measured
-or read here, **[I]** = inference.
+Date 2026-10-10. Pin PathOfBuilding-PoE2 `v0.23.1` (commit `7d6f530`). Lane head `acec4d1`. Evidence labels:
+- **[V]** = measured here, or read in the source. A measured [V] figure is in a table that `summarize.mjs`
+  (appendix) prints from the probe's results files, or follows from such a table by arithmetic.
+- **[V, not retained]** = measured here, but read from the probe's raw output with an ad-hoc query that isn't
+  in the appendix. That raw output (`results.json`, `all.json` and the logs, in the `mktemp -d` directory)
+  wasn't kept. So the figure can't be checked again without a new run.
+- **[I]** = inference.
 
 **Decision: within NFR-21, so the final compile computes Full DPS for the named source's groups.** The
 measurement put `includeInFullDPS` on for each stage's `rolledGroup` only. In the three quiet runs, the slowest
 stage request took 3.08 s. NFR-21's limit is under 20 s per stage request. The slowest whole call took
 31.92 s, against NFR-20's limit of 100 s for fifteen stages. Two runs were made under heavy load from other
 lanes, with the 1-minute load average reaching 26. They still stayed at 9.22 s per stage and 71.18 s per
-call. So the compiler sets the flag when it creates the named groups, and PoB computes Full DPS during the final
-compile. The flags are not left to be written at export only (§3.6 step 9, D-293).
+call [V, not retained]. So the compiler sets the flag when it creates the named groups, and PoB computes Full
+DPS during the final compile. The flags are not left to be written at export only (§3.6 step 9, D-293).
+The coordinator has ruled that measure-only compiles compute Full DPS for the named groups too (D-337).
 
 ## The question
 
@@ -77,11 +83,19 @@ compile. The flags are not left to be written at export only (§3.6 step 9, D-29
 
   Both variants run with the same wrappers. The only difference is the target table: the stage's
   `rolledGroup` ("named"), or nothing ("off").
-- **Checks on every compile.**
-  - `compile_plan` didn't return `isError`, and the record lists 15 stages.
-  - The saved file has `includeInFullDPS="true"` on exactly the 15 groups labelled `Stage <n> Rolling Slam`
-    ("named"), or on none of its 90 groups ("off").
-  - The Lua side reports group `[1]` in Full DPS for every stage ("named"), or `[]` ("off").
+- **What the probe asserts, and what was only observed.** The probe asserts one thing: no compile returned
+  `isError` (`expect(compiles.every((c) => !c.error))`). Nothing else fails a run. The checks below were
+  observed in its output, not asserted:
+  - In every named compile, the saved file had 15 of its 90 groups in Full DPS. In every off compile it had
+    none. `summarize.mjs` prints these counts in the whole-call table. [V]
+  - In every named compile, the Lua side reported group `[1]` in Full DPS on every stage. `summarize.mjs`
+    prints this in the Lua CPU table. [V]
+  - The record listed 15 stages. [V, not retained]
+  - The groups in Full DPS were the `Stage <n> Rolling Slam` groups. Their labels were printed only for a
+    one-pair trial run made before the measured set to check the probe, and only for its first three
+    stages. That run isn't part of the results. [V, not retained]
+  - Every off compile's stages reported `[]` from the Lua side. This was printed only for three stages of
+    the same trial run. [V, not retained]
 - **Timing.** The whole call is timed with `performance.now()` around the `callTool`. It includes the
   session's snapshot export after the call. Per-stage times are the record's `stages.*.elapsedMs`: the
   compiler's own `performance.now()` around each `compile_stage` request. The bridge's request timeout was
@@ -147,8 +161,10 @@ The per-call totals are consistent: Full DPS adds 2.2–5.6 s to the stage sum i
 
 ### Load averages (every compile)
 
-All ten compiles, from `uptime`, as 1, 5 and 15 minutes. "Quiet" means the 1-minute average was at most 8 at
-the start and at the end. The 5-minute average was above 8 at the start of some quiet runs, because of
+All ten compiles, from `uptime`, as 1, 5 and 15 minutes. **[V, not retained]**: an ad-hoc query printed this
+table from the raw output, which wasn't kept. The measured pairs' 1-minute figures and whole-call times also
+appear in `summarize.mjs`'s whole-call table, but the loaded runs' rows appear only here. "Quiet" means the
+1-minute average was at most 8 at the start and at the end. The 5-minute average was above 8 at the start of some quiet runs, because of
 earlier spikes. The 1-minute average is the one that covers the compile's own 25–70 s window.
 
 | Pair | Order | Variant | Whole call | Slowest stage | Load at start | Load at end | Quiet |
@@ -167,10 +183,12 @@ earlier spikes. The 1-minute average is the one that covers the compile's own 25
 - **Load from other lanes inflates a compile by up to about 2.3×.** In pair 1, the named compile took 71.18 s
   while the load rose to 26. The quiet named compiles had a median of 31.27 s. The loaded runs are not part of the
   measured set, but they bound the contended case. With Full DPS on the named groups and a load of 18–26, no
-  stage took longer than 9.22 s, and no call longer than 71.18 s. Both are still inside the limits. [V]
+  stage took longer than 9.22 s, and no call longer than 71.18 s. Both are still inside the limits. [V, not
+  retained]
 - **CPU time inflates under load too.** In the loaded named run of pair 1, the Lua CPU summed over the stages
-  was 59.9 s, against 26.3–28.1 s in the quiet named runs. So `os.clock` doesn't shield the measurement from
-  contention on this machine. Shared cores and caches are the likely cause. [I]
+  was 59.9 s, against 26.3–28.1 s in the quiet named runs. [V, not retained: per-run sums from an ad-hoc
+  query; `summarize.mjs` prints only the median over the measured runs, 27.51 s.] So `os.clock` doesn't shield
+  the measurement from contention on this machine. Shared cores and caches are the likely cause. [I]
 
 ### Where the time goes
 
@@ -231,17 +249,18 @@ This bounds a named source with several groups, and updates R-32's basis.
 | 3 | 69.49 s | 67.00 s | 8.33 s (stage 15) | 3.83 → 13.28 | no |
 | 4 | 63.23 s | 62.22 s | 6.17 s (stage 15) | 6.60 → 3.55 | yes |
 
-The full load averages (1, 5, 15 minutes), start → end:
+The full load averages (1, 5, 15 minutes), start → end [V, not retained]:
 - run 1: 7.76, 9.58, 7.40 → 5.33, 8.52, 7.19;
 - run 2: 5.33, 8.52, 7.19 → 3.90, 7.54, 6.93;
 - run 3: 3.83, 7.46, 6.91 → 13.28, 8.88, 7.40;
 - run 4: 6.60, 10.34, 8.44 → 3.55, 8.71, 8.00.
 
-All 90 groups were in Full DPS in every saved file.
+All 90 groups were in Full DPS in every saved file. That was observed, not asserted. [V, not retained]
 
 - **Every group in Full DPS fits the limits too, with a smaller margin.** The quiet whole calls took
-  61.41–67.42 s, about 2.3× the "off" compile, against 100 s. The slowest stage took 6.17 s, against 20 s. In
-  the quiet runs, 33–36 s of the 55–60 s of Lua CPU was spent in `calcFullDPS`. [V]
+  61.41–67.42 s, about 2.3× the "off" compile, against 100 s. The slowest stage took 6.17 s, against 20 s. [V]
+  In the quiet runs, 33–36 s of the 55–60 s of Lua CPU was spent in `calcFullDPS`. [V, not retained: the
+  split came from an ad-hoc query, and `summarize.mjs` doesn't print it for this mode.]
 - **R-32's figure doesn't apply to the compiler as built.** The 160.68 s / 25.50 s run came from WU-30's
   emulation, which made 87–91 rebuilds per stage with none deferred, under a load that reached 23.6. The
   compiler defers rebuilds (34 per stage, D-306). With every group in Full DPS it takes 61–69 s, loaded run
@@ -253,15 +272,17 @@ The rule (AC-P57, D-293): if Full DPS for the named groups fits NFR-21, the fina
 the flags are written at export only.
 
 - Every stage request with Full DPS on the named groups finished in under 20 s: at most 3.08 s in the quiet
-  runs, and 9.22 s under a load of 18–26.
-- Every whole call took at most 100 s: at most 31.92 s quiet, and 71.18 s loaded.
+  runs [V]. Under a load of 18–26 it was at most 9.22 s [V, not retained].
+- Every whole call took at most 100 s: at most 31.92 s quiet [V], and 71.18 s loaded [V, not retained].
+- The decision rests on the quiet figures alone. The loaded ones only add margin.
 
 **Within NFR-21: the final compile computes Full DPS for the named source's groups.**
 
 - WU-55 creates the named source's groups with `includeInFullDPS` on during the final compile, in step 7. It
   doesn't patch the flags into the XML at export.
-- D-293's other clause is not decided here: whether measure-only compiles also compute Full DPS. The cost
-  measured here would apply to them in the same way (below).
+- **Measure-only compiles compute Full DPS for the named groups too (D-337).** D-293 keeps Full DPS out of
+  measure compiles unless S-N2 shows it is cheap. The coordinator ruled that the ×1.14 measured here counts as
+  cheap. Measure-only compiles do the same step-7 work, so the same cost applies (below).
 
 ## Notes for WU-55 (not decisions)
 
@@ -278,8 +299,8 @@ the flags are written at export only.
   It then multiplies when it merges the results (`Calcs.lua:322`). So `groupCount` above 1 shouldn't change
   the cost measured here. [V: source read; I: not timed]
 - **Measure-only compiles.** Step 7 is the same in both modes (§3.6), so Full DPS on the named groups would add
-  the same 1.14× to a measure-only compile: a median of 27.42 s rising to 31.27 s on this fixture. [I] Whether
-  that is "cheap" under D-293 is the coordinator's call.
+  the same 1.14× to a measure-only compile: a median of 27.42 s rising to 31.27 s on this fixture. [I] D-337
+  makes measure-only compiles compute it, so WU-55 sets the flag in both modes.
 - **AC-P37's test.** `compilePlanNfr.test.ts:83` asserts that no group is in Full DPS. WU-55's block already
   narrows that check to the groups outside the named source. The test's 100 s and 20 s thresholds keep about
   3× and 6× margins on this fixture.

@@ -1916,3 +1916,30 @@ Apparition".
 - chains of helpers;
 - children outside gem data, such as ascendancy procs, item effects and Mirage Archer's mirages (PG-4);
 - "trigger gems" beyond the meta gems.
+
+### Review: WU-54
+
+FINDINGS: 1 high, 2 medium and 2 low. Being fixed.
+
+**What held:**
+- No regressions: the old and new `Coverage.lua` give byte-identical statuses and counts over every node, all
+  961 gems and the golden build.
+- AC-B4.
+- Speed: 0.19 s for everything.
+- The energy, undefined-granted-skill, Gem Studded and `stat not mapped` rules, spot-checked against
+  `vendor/`.
+
+**What didn't:**
+- **High: 14 of 38 `mapped but unread` lines were false.** PoB reads those names, and the coordinator
+  checked all three cases:
+  - minion `limit` names, through `CalcPerform.lua:1298-1303`;
+  - stage caps built as `"Multiplier:"..name.."MaxStages"`, at `CalcActiveSkill.lua:866-869`;
+  - `AdditionalFlickersPerPowerCharge`, read by a `:Sum` in skill data at `act_int.lua:8673`.
+
+  The fix: minion limits, and string literals passed to modList calls in `Data/Skills`, now count as read.
+- **Medium:** names containing `:` skipped AC-K50's whole-template fit.
+- **Medium:** the AC-K50 tests copied the implementation. Literal counts and cases with their PoB sources
+  are being added.
+- **Low:** the energy note's wording.
+- **Low:** the `level from support` note now says PoB computes a skill with a global effect only when it is
+  enabled.

@@ -218,8 +218,8 @@ Only the header's `writes` (D-338): `concepts/<id>/plan.json`, the verdict file
 
 ## Returns
 
-At most 8 lines: the outcome, the verdict file, the card with its checklist and probe counts, and your price
-calls counted by outcome (`pricing.md`):
+At most 8 lines: the outcome, the verdict file, the card with its checklist and probe counts (`probes <n>`:
+every probe run, a probe whose compile failed included), and your price calls counted by outcome (`pricing.md`):
 
 ```
 R1b r1-a-2 attempt 1: compiled

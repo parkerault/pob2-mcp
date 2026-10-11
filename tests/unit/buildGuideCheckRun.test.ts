@@ -761,7 +761,7 @@ describe('AC-W2 (ff): the layout holds the cards, the deck and the probe variant
   it("fails a log whose probe count isn't the card's probe folders, an R1b entry without its count, and a failed attempt that logs probes (D-338)", () => {
     const fewer = copyOf('run-ok');
     editLog(fewer, (l) => (l.stages.find((s: Json) => s.stage === 'R1b' && s.concept === CARD).probes = 1));
-    expect(failing(fewer)).toMatch(/\[probes\] run-log\.json's R1b entries for r1-a-1 log 1 probe\(s\), but probes\/r1-a-1\/ holds 2; the runner logs each R1b return's "probes <n>" \(D-338\)/);
+    expect(failing(fewer)).toMatch(/\[probes\] run-log\.json's R1b entries for r1-a-1 log 1 probe\(s\), but probes\/r1-a-1\/ holds 2; the runner logs each R1b return's "probes <n>", every probe run, a probe whose compile failed included \(D-338\)/);
     const unlogged = copyOf('run-ok');
     editLog(unlogged, (l) => delete l.stages.find((s: Json) => s.stage === 'R1b' && s.concept === 'r1-a-2').probes);
     expect(failing(unlogged)).toMatch(/\[run-log\] run-log\.json stages\[5\]: probes is undefined; an R1b entry logs the probe variants its attempt wrote, its return's "probes <n>" \(D-338\)/);
@@ -771,6 +771,30 @@ describe('AC-W2 (ff): the layout holds the cards, the deck and the probe variant
     const stray = copyOf('run-ok');
     fs.cpSync(path.join(stray, 'probes', CARD), path.join(stray, 'probes', 'r1-b-1'), { recursive: true });
     expect(failing(stray)).toMatch(/\[probes\] probes\/r1-b-1\/ holds 2 probe variant\(s\), but run-log\.json logs no R1b for r1-b-1; only its R1b step writes them \(D-338\)/);
+  });
+
+  it("counts a probe whose compile failed: its folder holds only its plan, and the log's count includes it (D-338)", () => {
+    const dir = copyOf('run-ok');
+    fs.mkdirSync(path.join(dir, 'probes', CARD, '3'));
+    fs.copyFileSync(path.join(dir, 'probes', CARD, '1', 'plan.json'), path.join(dir, 'probes', CARD, '3', 'plan.json'));
+    expect(failing(dir)).toMatch(/\[probes\] run-log\.json's R1b entries for r1-a-1 log 2 probe\(s\), but probes\/r1-a-1\/ holds 3; the runner logs each R1b return's "probes <n>", every probe run, a probe whose compile failed included \(D-338\)/);
+    editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'R1b' && s.concept === CARD).probes = 3));
+    passes(dir);
+  });
+
+  it('fails a card of a brainstorm round the log never ran, and passes it once the log runs that round (D-319)', () => {
+    const never = copyOf('run-ok');
+    fs.copyFileSync(path.join(never, 'cards', 'r1-c-3.md'), path.join(never, 'cards', 'r2-a-1.md'));
+    expect(lines(failing(never), 'layout')).toContainEqual(expect.stringMatching(/cards\/r2-a-1\.md is a card of brainstorm round 2, but run-log\.json runs 1 brainstorm round\(s\); R1a writes a card only in its own round \(§2, D-319\)/));
+    // The verification gate answered "more", and round 2's researcher has written its card.
+    const ran = stoppedAtVerification();
+    fs.copyFileSync(path.join(ran, 'cards', 'r1-c-3.md'), path.join(ran, 'cards', 'r2-a-1.md'));
+    editLog(ran, (l) => {
+      l.checkpoints[1] = { checkpoint: 'verification', visit: 1, answer: 'more', answeredBy: 'pre-supplied', rule: 'more' };
+      l.stages.push(step('R1a', null, 1, 'done'));
+      l.status = 'running';
+    });
+    passes(ran);
   });
 });
 
@@ -868,6 +892,99 @@ describe("D-287: each gate visit's answer, in order, leads to the next step", ()
   });
 });
 
+describe("checkpoints.md: the final gate's last answer gives the run's end status: accept completed, the default stop stopped, any other answer but revise:<text> not-accepted", () => {
+  /** A fixture run whose last final-gate visit was answered `final`, and which ends `status`. */
+  const ended = (final: Json, status: string, fixture: Fixture = 'run-ok') => {
+    const dir = copyOf(fixture);
+    editLog(dir, (l) => {
+      l.checkpoints[cpAt(l, 'final')] = { checkpoint: 'final', visit: 1, ...final };
+      l.status = status;
+    });
+    return dir;
+  };
+  const ACCEPT = { answer: 'accept', answeredBy: 'pre-supplied', rule: 'accept' };
+  const NOT_ACCEPT = { answer: 'not-accept', answeredBy: 'pre-supplied', rule: 'not-accept' };
+  const DEFAULT_STOP = { answer: 'stop', answeredBy: 'default', rule: 'no final answer left: stop' };
+  const REVISE = { answer: 'revise:cheaper boots', answeredBy: 'pre-supplied', rule: 'revise:cheaper boots' };
+  /** The user's note, in run-ok-online (no test config): anything but accept or changes. */
+  const NOTE = { answer: 'too many buttons for me', answeredBy: 'user' };
+
+  it('passes each answer with the status it ends the run with', () => {
+    passes(ended(ACCEPT, 'completed'));
+    passes(ended(NOT_ACCEPT, 'not-accepted'));
+    passes(ended(DEFAULT_STOP, 'stopped'));
+    passes(ended(NOTE, 'not-accepted', 'run-ok-online'));
+  });
+
+  const mismatches: [string, Json, string, Fixture, RegExp][] = [
+    ['accept, ending not-accepted', ACCEPT, 'not-accepted', 'run-ok', /the final gate's last answer is "accept", which ends the run completed, but its status is "not-accepted" \(checkpoints\.md\)/],
+    ['accept, ending stopped', ACCEPT, 'stopped', 'run-ok', /the final gate's last answer is "accept", which ends the run completed, but its status is "stopped"/],
+    ['not-accept, ending stopped', NOT_ACCEPT, 'stopped', 'run-ok', /the final gate's last answer is "not-accept", which ends the run not-accepted, but its status is "stopped"/],
+    ['not-accept, ending completed', NOT_ACCEPT, 'completed', 'run-ok', /status is "completed", but the final gate's last answer is "not-accept"; only an accept at the final gate completes a run/],
+    ['the default stop, ending not-accepted', DEFAULT_STOP, 'not-accepted', 'run-ok', /the final gate's last answer is "stop" by default, which ends the run stopped, but its status is "not-accepted"/],
+    ['the default stop, ending completed', DEFAULT_STOP, 'completed', 'run-ok', /status is "completed", but the final gate's last answer is "stop"; only an accept at the final gate completes a run/],
+    ["the user's note, ending stopped", NOTE, 'stopped', 'run-ok-online', /the final gate's last answer is "too many buttons for me", which ends the run not-accepted, but its status is "stopped"/],
+    ["the user's note, ending completed", NOTE, 'completed', 'run-ok-online', /status is "completed", but the final gate's last answer is "too many buttons for me"; only an accept/],
+    ['a revision asked for, ending not-accepted', REVISE, 'not-accepted', 'run-ok', /status is "not-accepted", but the final gate's last answer is "revise:cheaper boots"; only an answer at the final gate other than accept, revise:<text> and the default stop ends a run not-accepted/],
+  ];
+  it.each(mismatches)('fails %s (order)', (_name, final, status, fixture, says) => {
+    expect(lines(failing(ended(final, status, fixture)), 'order')).toContainEqual(expect.stringMatching(says));
+  });
+
+  it('fails a run ended not-accepted with no final-gate answer', () => {
+    const dir = copyOf('run-ok');
+    editLog(dir, (l) => {
+      l.checkpoints = l.checkpoints.filter((c: Json) => c.checkpoint !== 'final');
+      l.status = 'not-accepted';
+    });
+    expect(failing(dir)).toMatch(/\[order\] run-log\.json: status is "not-accepted", but the final gate's last answer is undefined/);
+  });
+});
+
+describe("checkpoints.md: each escalation's choice is its escalation question's answer, in order (retry:<guidance> is retry with that guidance)", () => {
+  /** run-escalated (its escalation's choice stop) whose escalation question was answered `answer` by the test config. */
+  const answered = (answer: string) => {
+    const dir = copyOf('run-escalated');
+    editLog(dir, (l) => (l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer, answeredBy: 'pre-supplied', rule: answer }));
+    return dir;
+  };
+  /** run-escalated whose escalation the test config answered retry:<answered>, logged retry with `guidance`; D1 has re-run once. */
+  const retried = (answeredWith: string, guidance: string | undefined) => {
+    const dir = copyOf('run-escalated');
+    editLog(dir, (l) => {
+      l.escalations[0].choice = 'retry';
+      if (guidance !== undefined) l.escalations[0].guidance = guidance;
+      l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer: `retry:${answeredWith}`, answeredBy: 'pre-supplied', rule: `retry:${answeredWith}` };
+      l.stages.push(step('D1', CARD, 4, 'done'));
+      l.status = 'running';
+    });
+    return dir;
+  };
+
+  it('passes the default stop logged as the choice stop (run-escalated), and retry:<guidance> logged as retry with that guidance', () => {
+    passes(copyOf('run-escalated'));
+    passes(retried('drop the level-1 stage', 'drop the level-1 stage'));
+  });
+
+  it.each(['accept', 'verification', 'retry:drop the level-1 stage'])('fails the answer %s logged as the choice stop', (answer) => {
+    expect(failing(answered(answer))).toMatch(new RegExp(`\\[escalation\\] run-log\\.json escalations\\[0\\] logs the choice "stop", but checkpoints\\[2\\], escalation answer 1, is "${answer}"; the choice is the answer, and retry:<guidance> is retry with that guidance \\(checkpoints\\.md\\)`));
+  });
+
+  it('fails retry logged with other guidance than the answer gave, or with none', () => {
+    expect(failing(retried('drop the level-1 stage', 'raise life'))).toMatch(/\[escalation\] run-log\.json escalations\[0\] logs the choice "retry" with guidance "raise life", but checkpoints\[2\], escalation answer 1, is "retry:drop the level-1 stage"/);
+    expect(failing(retried('drop the level-1 stage', undefined))).toMatch(/\[escalation\] run-log\.json escalations\[0\] logs the choice "retry" with guidance undefined, but checkpoints\[2\], escalation answer 1, is "retry:drop the level-1 stage"/);
+  });
+
+  it('fails an escalation with no escalation answer, and an escalation answer with no escalation', () => {
+    const unasked = copyOf('run-escalated');
+    editLog(unasked, (l) => (l.checkpoints = l.checkpoints.filter((c: Json) => c.checkpoint !== 'escalation')));
+    expect(failing(unasked)).toMatch(/\[escalation\] run-log\.json escalations\[0\] \(D1-gate r1-a-1\) has no escalation answer: checkpoints\[\] records 0 escalation question\(s\); each escalation records its question's answer as checkpoint "escalation", in order/);
+    const unlogged = copyOf('run-ok');
+    editLog(unlogged, (l) => l.checkpoints.push({ checkpoint: 'escalation', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no escalation answer left: stop' }));
+    expect(failing(unlogged)).toMatch(/\[escalation\] run-log\.json checkpoints\[\] records 1 escalation answer\(s\), but escalations\[\] has 0 entries; each answer is an escalation's/);
+  });
+});
+
 describe("D-334: an R1b failure whose card's damage source isn't a skill is terminal: no retry, and the card can't be finalized", () => {
   it('passes run-escalated, whose not-a-skill card fails once and the round assembles', () => {
     passes(copyOf('run-escalated'));
@@ -917,13 +1034,22 @@ describe('D-326: a schema-2 run, recorded before amendment 3, still checks by it
     expect(failing(dir)).toMatch(/\[order\] .*\(D1 c2 attempt 1\): designs c2, but checkpoint 1's pick was c1/);
   });
 
-  it("fails a schema-2 log that uses schema 3's card ids, gates or brief", () => {
+  it("fails a schema-2 log that uses schema 3's card ids, gates or brief, its R1a-assemble, probe counts or short round's reason, or its cards, deck and probes", () => {
     const dir = copyOf('run-ok');
-    editLog(dir, (l) => (l.schemaVersion = 2));
+    editLog(dir, (l) => {
+      l.schemaVersion = 2;
+      l.stages[3].shortReason = 'only five cards passed';
+    });
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[3\]: stage "R1a-assemble" isn't one of/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json brief: is schema 3's parsed brief \(C-51, D-289\); a schema-2 log has none/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[3\]: stage "R1a-assemble" isn't one of [^\n]*; R1a-assemble is schema 3's \(D-287\), and a schema-2 log has none \(D-326\)/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[3\]: has shortReason, which schema 3 added \(D-339\); a schema-2 log has none \(D-326\)/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[4\]: has probes, which schema 3 added \(D-338\); a schema-2 log has none \(D-326\)/);
     expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[4\]: a R1b entry names its concept, the concept id c<n>/);
-    expect(stderr).toMatch(/\[run-log\] run-log\.json checkpoints\[0\]: checkpoint "brainstorm" isn't 1, 2, "unsaved-build" or "escalation"/);
+    for (const [i, gate] of ['brainstorm', 'verification', 'final'].entries()) {
+      expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json checkpoints\\[${i}\\]: checkpoint "${gate}" isn't 1, 2, "unsaved-build" or "escalation"`));
+    }
+    expect(lines(stderr, 'layout').map((l) => /\] (\S+) is part of schema 3's layout \(the cards, the deck and the probes, D-338\); a schema-2 run, recorded before amendment 3, has none \(D-326\)$/.exec(l)?.[1]).filter(Boolean)).toEqual(['cards/', 'cards.md', 'probes/']);
   });
 });
 
@@ -1513,6 +1639,7 @@ describe('flow invariant 2: the caps, R1b at most 3 counted attempts and each ga
     editLog(dir, (l) => {
       l.escalations[0].choice = 'retry';
       l.escalations[0].guidance = 'drop the level-1 stage';
+      l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer: 'retry:drop the level-1 stage', answeredBy: 'pre-supplied', rule: 'retry:drop the level-1 stage' };
       l.stages.push(step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'fail'), step('D1', CARD, 5, 'done'), step('D1-gate', CARD, 5, 'pass'));
       l.status = 'stopped';
     });

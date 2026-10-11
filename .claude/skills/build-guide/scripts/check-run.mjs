@@ -520,6 +520,8 @@ export async function checkRun(runFolder) {
   }
   for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true]]) {
     if (exists(name) && isDir(name) !== dir) fail('layout', `${name} is a ${dir ? 'file' : 'folder'}; §2 names ${dir ? `the folder ${name}/` : `the file ${name}`}`);
+    // D-326: the cards, the deck and the probes are schema 3's layout (D-319, D-338); a schema-2 run has none.
+    if (!v3 && exists(name)) fail('layout', `${name}${dir ? '/' : ''} is part of schema 3's layout (the cards, the deck and the probes, D-338); a schema-2 run, recorded before amendment 3, has none (D-326)`);
   }
   // C-52, D-319: R1a writes each card at cards/<id>.md, and R1b its verification half; nothing else goes there.
   const cardIds = new Set();
@@ -875,7 +877,8 @@ export async function checkRun(runFolder) {
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
     checkDeck(readText('cards.md'), stages, cardIds, fail);
-    // D-338: each card's probes, as R1b's return counted them, are the folders under probes/<card-id>/.
+    // D-338: each card's probes, as R1b's return counted them, are the folders under probes/<card-id>/: every
+    // probe run, a probe whose compile failed included (its plan's folder stays, with no record beside it).
     const logged = new Map();
     for (const s of stages) if (s.stage === 'R1b' && isInt(s.probes)) logged.set(s.concept, (logged.get(s.concept) ?? 0) + s.probes);
     const r1bCards = new Set(stages.filter((s) => s.stage === 'R1b').map((s) => s.concept));
@@ -886,7 +889,7 @@ export async function checkRun(runFolder) {
       const folders = probeCounts.get(id) ?? 0;
       const sum = logged.get(id) ?? 0;
       if (sum > PROBE_CAP) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probes; a card has at most ${PROBE_CAP} (D-292)`);
-      if (sum !== folders) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probe(s), but probes/${id}/ holds ${folders}; the runner logs each R1b return's "probes <n>" (D-338)`);
+      if (sum !== folders) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probe(s), but probes/${id}/ holds ${folders}; the runner logs each R1b return's "probes <n>", every probe run, a probe whose compile failed included (D-338)`);
     }
     // D-286: the card the verification gate finalized gives the run its roll, its skeleton's identity.
     const finalized = list(log.checkpoints).filter((c) => c.checkpoint === 'verification' && /^pick:/.test(String(c.answer))).map((c) => c.answer.slice(5)).pop();
@@ -1496,6 +1499,8 @@ function checkRunLog(log, fail, schema) {
   }
   const roll = log.roll;
   if (!v3) {
+    // D-326: the parsed brief is schema 3's (C-51, D-289); a schema-2 run's roll is set from the start.
+    if ('brief' in log) bad('brief', "is schema 3's parsed brief (C-51, D-289); a schema-2 log has none: its roll is set from the start, and its slug comes from the roll (D-326)");
     if ('roll' in log && !(isObj(roll) && typeof roll.ascendancy === 'string' && typeof roll.skill === 'string')) bad('roll', 'is {ascendancy, skill}');
     if (isObj(roll) && 'slug' in log && log.slug !== slugOf(roll.ascendancy ?? '', roll.skill ?? '')) {
       bad('slug', `is ${show(log.slug)}; the roll's slug is "${slugOf(roll.ascendancy ?? '', roll.skill ?? '')}" (§2)`);
@@ -1548,17 +1553,19 @@ function checkRunLog(log, fail, schema) {
   arr('stages').forEach((s, i) => {
     const at = `stages[${i}]`;
     if (!isObj(s)) return bad(at, 'is an object');
+    // D-326: a probe count (D-338), a short round's reason (D-339) and R1a-assemble (D-287) are schema 3's.
+    if (!v3) for (const [k, why] of [['probes', 'D-338'], ['shortReason', 'D-339']]) if (k in s) bad(at, `has ${k}, which schema 3 added (${why}); a schema-2 log has none (D-326)`);
     const known = Object.keys(STAGE_OUTCOMES).filter((x) => v3 || x !== 'R1a-assemble');
-    if (!known.includes(s.stage)) return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}`);
+    if (!known.includes(s.stage)) return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}${!v3 && s.stage === 'R1a-assemble' ? "; R1a-assemble is schema 3's (D-287), and a schema-2 log has none (D-326)" : ''}`);
     if (ROUND_STAGES.includes(s.stage) ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
       bad(at, ROUND_STAGES.includes(s.stage) ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}`);
     }
     // D-339: a short brainstorm round's reason, on its R1a-assemble entry.
-    if ('shortReason' in s && (s.stage !== 'R1a-assemble' || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
+    if (v3 && 'shortReason' in s && (s.stage !== 'R1a-assemble' || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
       bad(at, `has shortReason ${show(s.shortReason)}; only an R1a-assemble entry carries one, the reason its return gave for a short round (D-339)`);
     }
     // D-338: each R1b attempt's probe count, from its return's "probes <n>", so D-292's cap can be audited.
-    if ('probes' in s && s.stage !== 'R1b') bad(at, `has probes, but only R1b writes probe variants (D-338)`);
+    if (v3 && 'probes' in s && s.stage !== 'R1b') bad(at, `has probes, but only R1b writes probe variants (D-338)`);
     if (v3 && s.stage === 'R1b' && (s.outcome !== 'missing' || 'probes' in s)) {
       if (!isInt(s.probes)) bad(at, `probes is ${show(s.probes)}; an R1b entry logs the probe variants its attempt wrote, its return's "probes <n>" (D-338)`);
       else if (s.probes > PROBE_CAP) fail('probes', `run-log.json ${at}: R1b ${s.concept} logs ${s.probes} probes; a card has at most ${PROBE_CAP} (D-292)`);
@@ -1662,7 +1669,8 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *    schema-3 log each gate visit has its answer, in order, and the next step is the one it leads to (D-287):
  *    the brainstorm gate's `pick:<ids>` a verification round of those cards, in that order; the verification
  *    gate's `pick:<id>` that card's design, `verify:<ids>` a verification round without a brainstorm; `more` a
- *    brainstorm round; `stop` the end of the run.
+ *    brainstorm round; `stop` the end of the run. The final gate's last answer gives the run's end status:
+ *    `accept` completed, the default `stop` stopped, any other answer but `revise:<text>` not-accepted.
  *  - `caps`: per brainstorm round at most 3 R1a researchers and one R1a-assemble, per verification round at
  *    most 3 cards compiled (NFR-23, D-287; a schema-2 log's research round carries at most 3 concepts, D-235);
  *    R1b at most 3 counted attempts, none after a terminal `not-a-skill` failure (D-334); each gate at most 2
@@ -1673,7 +1681,8 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *    that raised a finding and the sources lens, which always re-checks the changed locations (D-264); a
  *    claims-only owner (`claims-edited`) runs only before any gate of its fix round or revision, and no gate
  *    follows it; a new cycle only for a revision the final gate asked for.
- *  - `escalation`: only gates escalate, each escalation logged once, in order, and the choice followed.
+ *  - `escalation`: only gates escalate, each escalation logged once, in order, its choice the answer to its
+ *    escalation question, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
  * `ctx` gives the log's schema, a gate attempt's verdict file, the stage each fault breaks, whether an R1b
  * failure is terminal and whether a card exists; findings accepted at an escalation cover the gate attempts
@@ -2111,6 +2120,19 @@ function checkFlow(log, fail, ctx) {
   }
 
   if (esc !== escalations.length) fail('escalation', `run-log.json escalations[] has ${escalations.length} entr${escalations.length === 1 ? 'y' : 'ies'}, but stages[] logs ${esc} escalated gate attempt(s); every escalation is logged once, in order`);
+  // Each escalation's question is recorded as checkpoint `escalation`, in order, and escalations[k]'s choice is the
+  // k-th one's answer (checkpoints.md, "Escalations"): `retry:<guidance>` is the choice retry with that guidance.
+  const asked = checkpoints.filter((c) => c.checkpoint === 'escalation');
+  escalations.forEach((e, k) => {
+    const c = asked[k];
+    const want = e.choice === 'retry' ? `retry:${e.guidance}` : e.choice;
+    if (c === undefined) {
+      fail('escalation', `run-log.json escalations[${k}] (${e.stage} ${e.concept}) has no escalation answer: checkpoints[] records ${asked.length} escalation question(s); each escalation records its question's answer as checkpoint "escalation", in order (checkpoints.md)`);
+    } else if (c.answer !== want || (e.choice === 'retry' && typeof e.guidance !== 'string')) {
+      fail('escalation', `run-log.json escalations[${k}] logs the choice ${show(e.choice)}${e.choice === 'retry' ? ` with guidance ${show(e.guidance)}` : ''}, but checkpoints[${checkpoints.indexOf(c)}], escalation answer ${k + 1}, is ${show(c.answer)}; the choice is the answer, and retry:<guidance> is retry with that guidance (checkpoints.md)`);
+    }
+  });
+  if (asked.length > escalations.length) fail('escalation', `run-log.json checkpoints[] records ${asked.length} escalation answer(s), but escalations[] has ${escalations.length} entr${escalations.length === 1 ? 'y' : 'ies'}; each answer is an escalation's, logged in escalations[] in order (checkpoints.md)`);
   if (revisions > revises) fail('verification', `run-log.json stages[] runs ${revisions} revision(s) after the V4 checks, but ${G.final} was answered revise:<text> ${revises} time(s); without findings to fix, only a revision runs the owners again`);
   const last = steps[steps.length - 1]?.s;
   if (last?.outcome === 'escalated' && lastEscalation?.choice === 'stop' && log.status !== 'escalated') {
@@ -2119,9 +2141,21 @@ function checkFlow(log, fail, ctx) {
   if (log.status === 'escalated' && !(last?.outcome === 'escalated' && lastEscalation?.choice === 'stop')) {
     fail('escalation', 'run-log.json: status is "escalated", but the run doesn\'t end with a gate escalation answered stop');
   }
-  const lastAnswer = checkpoints.filter((c) => c.checkpoint === G.finalKey).pop()?.answer;
+  // The final gate's last answer ends the run (checkpoints.md, "The final gate"): accept ends it completed; the
+  // default stop (no final answer left) stopped; revise:<text> is a revision, with steps to come; any other
+  // answer not-accepted.
+  const lastFinal = checkpoints.filter((c) => c.checkpoint === G.finalKey).pop();
+  const lastAnswer = lastFinal?.answer;
+  const endsAs = typeof lastAnswer !== 'string' || lastAnswer.startsWith('revise:') ? null
+    : lastAnswer === 'accept' ? 'completed'
+      : lastAnswer === 'stop' && lastFinal.answeredBy === 'default' ? 'stopped'
+        : 'not-accepted';
   if (log.status === 'completed' && lastAnswer !== 'accept') {
     fail('order', `run-log.json: status is "completed", but ${G.final}'s last answer is ${show(lastAnswer)}; only an accept at ${G.final} completes a run`);
+  } else if (endsAs !== null && log.status !== endsAs) {
+    fail('order', `run-log.json: ${G.final}'s last answer is ${show(lastAnswer)}${lastFinal.answeredBy === 'default' ? ' by default' : ''}, which ends the run ${endsAs}, but its status is ${show(log.status)} (checkpoints.md)`);
+  } else if (log.status === 'not-accepted' && endsAs !== 'not-accepted') {
+    fail('order', `run-log.json: status is "not-accepted", but ${G.final}'s last answer is ${show(lastAnswer)}; only an answer at ${G.final} other than accept, revise:<text> and the default stop ends a run not-accepted (checkpoints.md)`);
   }
   if (log.status === 'completed' && !(cycle && cycle.full === 'done' && (cycle.failed.size === 0 || cycle.recheck === 'done'))) {
     fail('verification', 'run-log.json: status is "completed", but the run doesn\'t end with a full V4 pass and, when it found anything, its re-check');
@@ -2203,7 +2237,8 @@ function isTerminalR1b(rep) {
  * round R1a-assemble dealt, each line `- <card id> …` a card of that round, then `## Not dealt`. A round deals
  * 6–9 cards, and the deck (every round's dealt cards so far) keeps at least two under-played cards, each line
  * labelled `under-played (judgment: …)`; a round short of either is accepted only with its reason, the
- * `shortReason` on its R1a-assemble entry. Every card of a dealt round is in the deck, dealt or not.
+ * `shortReason` on its R1a-assemble entry. Every card of a dealt round is in the deck, dealt or not, and every card
+ * `cards/<id>.md` is of a round the log ran.
  */
 function checkDeck(text, stages, cardIds, fail) {
   const rounds = [];
@@ -2215,6 +2250,13 @@ function checkDeck(text, stages, cardIds, fail) {
     prev = s.stage;
   });
   const dealtRounds = rounds.filter((r) => r.assembly !== null);
+  // C-52, D-319: R1a writes a card in its own round, so no card's round is past the brainstorm rounds the log ran
+  // (counted with the researchers that returned without their file, which may have written cards).
+  const ran = stages.filter((s, i) => isObj(s) && s.stage === 'R1a' && stages[i - 1]?.stage !== 'R1a').length;
+  for (const id of cardIds) {
+    const k = Number(/^r(\d+)-/.exec(id)[1]);
+    if (k > ran) fail('layout', `cards/${id}.md is a card of brainstorm round ${k}, but run-log.json runs ${ran} brainstorm round(s); R1a writes a card only in its own round (§2, D-319)`);
+  }
   if (text === null) {
     if (dealtRounds.length > 0) fail('layout', `cards.md is missing, but R1a-assemble dealt ${dealtRounds.length} brainstorm round(s); it writes the deck there (§2, D-287)`);
     return;

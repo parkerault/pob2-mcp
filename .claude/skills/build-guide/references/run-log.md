@@ -62,10 +62,11 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the
   two together. An R1b `fail` whose verdict's finding is `not-a-skill` with `compiles: 0` is final: its card's
   damage source isn't a skill and no retry can compile it, so it never re-runs (D-334).
-- **`probes`**, on every R1b entry: how many probe variants that attempt wrote, its return's `probes <n>`
-  (`stages/R1b.md`), `0` when none (a failed attempt writes none: the checklist runs only after the last compile
-  succeeded). A card's entries add up to the folders under `probes/<card-id>/`, and to at most 4, D-292's cap
-  (D-338).
+- **`probes`**, on every R1b entry: how many probe variants that attempt ran, its return's `probes <n>`
+  (`stages/R1b.md`): every probe run, a probe whose compile failed included, since each leaves its folder
+  `probes/<card-id>/<n>/`. `0` when none (a failed attempt runs none: the checklist runs only after the last
+  compile succeeded). A card's entries add up to the folders under `probes/<card-id>/`, and to at most 4, D-292's
+  cap (D-338).
 - **`shortReason`**, on an R1a-assemble entry only: the reason its return gave for a short round, its line
   `short: <why>` without the `short: ` (D-339). A round is short when it deals fewer than 6 cards, or the deck
   (every round's dealt cards so far) holds fewer than two under-played cards; the run checker counts both from
@@ -95,7 +96,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with
   the user's `guidance` for `retry`. The escalations are in the order of the `stages[]` entries whose outcome is
-  `escalated`.
+  `escalated`, and the k-th one's `choice` is the answer of the k-th `escalation` checkpoint (`retry:<guidance>`
+  is `retry` with that `guidance`).
 - **`faults[]`**: each directive the test config gave, with its `target` as written (`{concepts, persistent}`,
   `concepts` a list of card ids or `"all"`), `applied` (how many headers carried it) and `observed` (what failed
   as a result).

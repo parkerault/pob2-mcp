@@ -2030,3 +2030,47 @@ All four re-check findings were fixed. `mapped but unread` is 24 lines.
   `tests/unit/pobSourceNames.test.ts`.
 - Targeted suites: 315 of 315. The full gate passed at `819eb8e`; the wave gate re-runs it.
 - The lane was removed.
+
+### Review: WU-55
+
+FINDINGS: 6 low. The behaviour matches the spec.
+- **Count is applied once.** PoB reads `groupCount` only for Full DPS, reservation and Umbral Well. The
+  record multiplies the per-copy `TotalDPS` by Count, and PoB's own `FullDPS` is never multiplied again.
+- **Full DPS** covers only each stage's `rolledGroup`, in both modes (D-337).
+- **`customMods`** are written in their own `set_config` call, after the listed options.
+- **Version-1 plans** that use the new fields are refused.
+- **The AC map:**
+  - AC-P51 and AC-P52: `planChecks`;
+  - AC-P53…AC-P56: `compileCount.test.ts`;
+  - AC-P37 (narrowed): `compilePlanNfr`;
+  - AC-B3: `engineKinds`;
+  - AC-B4: `contract`;
+  - AC-B5: `golden`, `engineTree` and `skillBreakdown`.
+- **The NFR compile:** 32.3 s for 15 stages.
+
+**Fixed by a fresh fixer** (the doer's session was lost):
+1. A version-1 plan can carry PoB's `customMods` option as a config entry. Stages whose written config holds
+   it are now marked too.
+2. `plan-reference.md` wrongly said PoB applies Count only to Full DPS. It also scales reservation and
+   Umbral Well.
+3. The record's doc now says the raw `FullDPS`/`FullDotDPS` are already counted by PoB.
+4. An AC-B3 sample now uses `count` and `customMods`.
+
+**Accepted:** the worked example stays the two-stage fixture, with separate snippets for the new fields
+(the reviewer's finding 5).
+
+**To fold into the spec:**
+- **C-33's new fields** (`recordVersion: 2`):
+  - per stage: `countedOutputs {group, count, dotCanStack, fields}`;
+  - per stage: `countedSkillOutputs[g<g>s<s>p<p>] {skill, statSetLabel, count, dotCanStack, fields}`;
+  - per stage: `customModsWritten: string[]` and `computedWithCustomMods`;
+  - per ledger entry: `computedWithCustomMods`.
+
+  The counted `fields` hold:
+  - `TotalDPS` and `ImpaleDPS`, multiplied by Count;
+  - `TotalDot`, multiplied only when `dotCanStack` is true;
+  - the ailment and ground DPS figures, unchanged.
+
+  The headline is `countedSkillOutputs[g<main.group>s<activeSkill>p<statSet>].fields.TotalDPS`. The V1
+  finding is `missing-reason`, with `data.path`.
+- **C-41:** a new `compile_check` error class, for a custom-modifier line PoB can't parse whole.

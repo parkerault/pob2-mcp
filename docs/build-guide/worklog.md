@@ -2286,3 +2286,29 @@ mentions the skill.
 - the faults that drive WU-47's exception E4 paths: D-264's claims-only path, D-265 (b)–(e) and D-266.
 
 It also builds `/tmp/m14.*` in the shape of `/tmp/m12b.B0zi`.
+
+### Review: WU-58
+
+FINDINGS: 5 low. A fresh fixer is working on them.
+- **No false rejections.** The reviewer ran every path of the skill as fixture copies:
+  - a fixed roll, and an open brief (`{}` → `open`);
+  - `more` at both gates;
+  - a second verification round;
+  - a short round with its reason;
+  - a `not-a-skill` card;
+  - `first-n` and `first-viable`;
+  - the `verification` escalation answer;
+  - offline and online pricing.
+- **(aa)…(ff) and D-339** each fail their broken copies.
+- **The fixes:**
+  - the final gate's answer is held to the end status;
+  - the escalation answer is matched to `escalations[k].choice`;
+  - the probe count includes failed probes. That one-line edit to `R1b.md` is granted;
+  - a card file for a round that never ran fails;
+  - a schema-2 log rejects the schema-3-only fields.
+
+**D-341 (PROPOSED by the coordinator, 2026-10-11): D-326 restated.** The checker accepts schema-2 run logs
+under the schema-2 log rules. Artifacts are held to the current formats, though. Since WU-62, the guide's 14
+H2s and `audit.md` don't depend on the log schema, so WU-47's recorded runs can't pass. M-12's record stands
+as written, closed with exceptions E1–E4. Keeping schema 2 now keeps logs written before v3 readable; it no
+longer keeps WU-47's runs checkable. `run-ok-v2` is the regression fixture for the schema-2 log rules.

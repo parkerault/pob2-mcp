@@ -1769,3 +1769,31 @@ one:
 - **WU-50** (`793ed26`): blocked by the terms; resolved by D-335.
 
 **Reviews** are running: WU-60; WU-61 with WU-51; WU-56.
+
+### Reviews: WU-61 and WU-51
+
+- **WU-61:** two low findings, now being fixed.
+  - The first rung continued from the last campaign stage *before it in plan order*. It now follows the
+    last campaign stage overall, as D-282 words it.
+  - `schemaVersion`'s literal union is now built from `PLAN_SCHEMA_VERSIONS`.
+  - Every deviation was accepted. To fold into D-332: a version-1 plan that uses a version-2 field is an
+    error, so WU-55 inherits that an explicit `count` in a version-1 plan is an error too. To fold into
+    D-282: V1 checks a rung's `respec.dropped`, and the gold cost gets only its schema check (A-32).
+  - Notes for WU-62:
+    - The pipeline fixtures declare `schemaVersion: 1`, so adding an `m` stage needs version 2 and
+      regenerated compile records, because `buildProjection` keeps the version.
+    - `check-run.mjs:299-301` maps `entering-maps` to area 82, not 69.
+    - `check-run.mjs:69` (`VARIANT_H2`) has no `m` heading.
+    - `check-run.mjs:688` takes the first endgame stage in plan order, not rung `m`.
+- **WU-51:** the decision stands. The reviewer recomputed the sums, medians and the ×1.14 ratio, and
+  confirmed that only group 1 was flagged (15 of 90 groups in the saved file) and that `FullDPS` was
+  computed. One low finding is being fixed: claims resting on an unkept `results.json`, and per-compile
+  checks that were observed but not asserted, are relabelled.
+
+### D-337 (PROPOSED by the coordinator, 2026-10-10): Full DPS in measure-only compiles too
+
+D-293 and §3.6 step 9 keep Full DPS out of measure-only compiles "unless S-N2 shows it is cheap". S-N2
+(WU-51) shows ×1.14 on the whole call and at most 3.08 s per stage. That is cheap, so every compile
+(measure-only and final) puts the named source's groups in Full DPS. Verification and finalization then
+report the same headline figure, and the compiler has no mode branch. Groups outside the named source stay
+out of Full DPS (D-306, narrowed). WU-55 builds it.

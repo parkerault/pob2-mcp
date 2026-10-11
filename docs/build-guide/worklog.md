@@ -2532,3 +2532,9 @@ Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides r
 - **The fix.** WU-57's doer puts the display rule in SKILL.md at every gate, in `amend`. The run worktree moves
   only after run A ends, so run B, which has two brainstorm visits and several verification visits, carries
   AC-W37's evidence at the fixed head. Run A's AC-W37 result is recorded as a fail at `30abc7a`.
+- **Fixed at `96b1785`; the coordinator read the diff and accepts it.**
+  - A new Hard rules bullet: "Every gate visit prints its display first, in your reply, whoever answers it
+    (D-265)". A pre-supplied or default answer then states what it resolved to.
+  - Each gate paragraph opens with a pointer to it: steps 2c, 5 and 16, and the §5 escalation.
+  - Static suite 286 of 286, checker suite 270 of 270. Only SKILL.md and the static test changed.
+- **Pending:** move `m14` to `96b1785` and rebuild it after run A ends, before run B.

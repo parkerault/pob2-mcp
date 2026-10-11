@@ -35,7 +35,8 @@ text gives it, with the names exactly as the brief check's tools gave them:
 | `ascendancy`, `skill` | text: an ascendancy, and an active skill gem (the named damage source) |
 | `playstyle` | a list of strings: the vocabulary's tags in the user's order (`melee`, `tanky`, …), then any free text as one more string (`["melee", "tanky", "slow and heavy"]`) |
 | `budget` | `"budget"`, `"non-budget"`, or a figure in divines (a number) |
-| `around`, `like`, `notes`, `popularity` | text, as the user wrote it |
+| `around` | text, as the user wrote it; a support gem by its name as the lookup gave it (`"Fork"`, D-343) |
+| `like`, `notes`, `popularity` | text, as the user wrote it |
 
 The slug comes from it: `<ascendancy>-<skill>`, `<ascendancy>-open`, `open-<skill>`, or with neither
 `open-<first playstyle tag>`, else `open` (`run-folder.md`). A finalized card whose identity contradicts the

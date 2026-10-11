@@ -2246,19 +2246,23 @@ describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a miss
   const raw = () => fs.readFileSync(SKILL_MD, 'utf8');
   const slice = () => folded(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8'));
 
-  it("D-343: the brief's `around` holds a support gem the free text names as the build's subject; only an active gem is a `skill`, and the fixed roll's second name is always `skill`", () => {
+  it("D-343: the brief's `around` holds a support gem the free text names as the build's subject, by the lookup's name; only an active gem is a `skill`, and the fixed roll is two names by shape", () => {
     const text = raw();
     const brief = text.slice(text.indexOf('**The brief**'), text.indexOf('In this order, before any agent runs'));
     expect(brief).toContain('| `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |');
     expect(brief).toContain('| `skill` | an active skill gem, the named damage source | Blood Hunt |');
-    expect(folded(brief)).toMatch(/- \*\*A support gem\*\* the free text names as the build's subject goes in `around`, never in `skill` \(D-343\): only an active gem is a `skill`\. Step 1's gem lookup tells them apart\./);
-    expect(folded(text)).toMatch(/A brief that is exactly an ascendancy and one gem name, with nothing else, is the fixed roll, and its second name is always `skill` \(D-343\)\./);
+    expect(folded(brief)).toMatch(/- \*\*A support gem\*\* the free text names as the build's subject goes in `around`, by its name as the lookup gave it, never in `skill` \(D-343\): only an active gem is a `skill`\. Step 1's gem lookup tells them apart\./);
+    // The fixed roll is defined by its shape, never by whether its names are valid, so a misspelled name still fails.
+    expect(folded(text)).toMatch(/A brief of exactly two names and nothing else is the fixed roll: the first is always `ascendancy` and the second always `skill`, whatever the lookups find \(D-343\)\./);
+    expect(folded(text)).not.toMatch(/exactly an ascendancy and one gem name/);
+    const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
+    expect(log).toContain('| `around` | text, as the user wrote it; a support gem by its name as the lookup gave it (`"Fork"`, D-343) |');
   });
 
-  it('D-343: the brief check looks a free-text gem up before placing it, and a support gem in the fixed roll still fails (D-258)', () => {
+  it('D-343: the brief check looks a free-text gem up before placing it; only a support it finds goes in around, a name it misses fails in skill, and the fixed roll\'s support gem fails (D-258)', () => {
     const flat = folded(raw());
     const check = flat.slice(flat.indexOf('1. **Brief check**'), flat.indexOf('2. **Run folder.**'));
-    expect(check).toMatch(/- a gem the free text names as the build's subject \(D-343\): look it up this way before you place it\. Only an active gem goes in `skill`\. A support gem goes in `around`, and the run goes on: say it is a support gem, and that the researchers will look for skills it can support\. The fixed roll's second name is always `skill`, so there a support gem fails: `\/build-guide Pathfinder Fork` stops with "Fork is a support gem"\./);
+    expect(check).toMatch(/- a gem the free text names as the build's subject \(D-343\): look it up this way before you place it\. Only a gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes on: say it is a support gem, and that the researchers will look for skills it can support\. Every other gem name goes in `skill`: an active gem passes, and a name the lookup doesn't find fails here\. The fixed roll's second name is always `skill`, so there a support gem fails: `\/build-guide Pathfinder Fork` stops with "Fork is a support gem"\./);
     expect(check).toMatch(/for a support gem, say "<name> is a support gem"/);
     // The rule sits in the brief check, after the skill's own check and before the ascendancy lock.
     expect(check.indexOf('- `skill`: call')).toBeGreaterThan(-1);
@@ -2273,7 +2277,21 @@ describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a miss
     const rule = folded(text.slice(at, text.indexOf('## 2. Brainstorm')));
     expect(at).toBeGreaterThan(0);
     expect(rule).toMatch(/Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before them\./);
+    expect(rule).toMatch(/A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1 gets no folder, and a test config refused in step 3 gets no unsaved-build question\./);
     expect(rule).toMatch(/\*\*No Agent tool\*\* \(D-344\): if the Agent tool isn't available when the first agent step is due, the run stops there, and no agent runs\. Set `status: "stopped"` with no `stages\[\]` entry, finish \(§7\), and give the reason in your reply/);
+  });
+
+  it('step 3: a test config refused with --offline stops the run: the log is written stopped, the run finishes (§7), and the reply gives the reason', () => {
+    const flat = folded(raw());
+    const step3 = flat.slice(flat.indexOf('3. **Run log.**'), flat.indexOf('4. **Unsaved build**'));
+    expect(step3).toMatch(/A file that can't be read or isn't the documented shape is refused, and the run stops: write `run-log\.json` with `testConfig: "refused"` and `status: "stopped"`, finish \(§7\), and give the reason in your reply \(`references\/offline-and-test\.md`\)\. Otherwise write `run-log\.json` with `status: "running"`/);
+  });
+
+  it('AC-W48 requires the refused-without---offline run to stop at its first agent step (D-344)', () => {
+    const s = slice();
+    const ac = s.slice(s.indexOf('- **AC-W48'), s.indexOf('- **AC-W49'));
+    expect(ac).toMatch(/^- \*\*AC-W48 \(P1: refused test configs; A-28, D-157, D-323, D-344; AC-W4 restated\)\.\*\*/);
+    expect(ac).toMatch(/`\/build-guide Explosive Concoction, any ascendancy --test A\.json`, without `--offline`: .* The run then stops at the first agent step, `status: "stopped"`, no `stages\[\]` entry \(D-344\)\./);
   });
 
   it('AC-W47 pins the P1 probes: Pathfinder Fork and Titan "Explosive Concoction" stop at the brief check, and the free-text Fork brief runs steps 1 to 4, then stops', () => {

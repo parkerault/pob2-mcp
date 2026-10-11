@@ -1967,10 +1967,11 @@ subagents') or the coordinator's review. Numbers come from the run folder, never
     it is a support gem (D-343). It writes its run folder and a run log with `around: "Fork"`, then stops at
     the first agent step with `status: "stopped"` (D-344), and no agent runs.
   - Evidence: transcript, the guides root's listing, the free-text brief's run folder.
-- **AC-W48 (P1: refused test configs; A-28, D-157, D-323; AC-W4 restated).**
+- **AC-W48 (P1: refused test configs; A-28, D-157, D-323, D-344; AC-W4 restated).**
   - `/build-guide Explosive Concoction, any ascendancy --test A.json`, without `--offline`: the run log exists,
     with `schemaVersion: 3`, `mode: "online"` and `testConfig: "refused"`; the reply says the file was
-    refused; no checkpoint is `pre-supplied`; and no `research/` or `cards/` file exists.
+    refused; no checkpoint is `pre-supplied`; and no `research/` or `cards/` file exists. The run then stops
+    at the first agent step, `status: "stopped"`, no `stages[]` entry (D-344).
   - `/build-guide Explosive Concoction, any ascendancy --offline --test M.json`, a config holding the
     retired keys `checkpoint1` and `checkpoint2`: `testConfig: "refused"`, `status: "stopped"`, the reply
     names what is wrong, and no `research/` or `cards/` file exists.

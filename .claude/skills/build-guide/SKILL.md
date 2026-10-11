@@ -129,9 +129,9 @@ re-check, and never escalates; only the D1 and D2 gates escalate.
 
 `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. The free text is the **brief**: what the
 user wants, in their words. The fixed roll `/build-guide <ascendancy> <skill>` still works, multi-word names
-quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`. A brief that is exactly an
-ascendancy and one gem name, with nothing else, is the fixed roll, and its second name is always `skill`
-(D-343).
+quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`. A brief of exactly two
+names and nothing else is the fixed roll: the first is always `ascendancy` and the second always `skill`,
+whatever the lookups find (D-343).
 
 - `--offline` starts offline mode (`references/offline-and-test.md`): no web, no prices.
 - `--test <path>` is a test config. It is accepted only with `--offline` (`testConfig: "accepted"`);
@@ -162,8 +162,8 @@ text doesn't give, and never invent one:
   (`references/patterns.md`) and the coordinator's judgment of what is under-played.
 - **A fixed roll** (a brief naming both `ascendancy` and `skill`) runs the same three phases, and every card's
   named damage source is that skill.
-- **A support gem** the free text names as the build's subject goes in `around`, never in `skill` (D-343):
-  only an active gem is a `skill`. Step 1's gem lookup tells them apart.
+- **A support gem** the free text names as the build's subject goes in `around`, by its name as the lookup gave
+  it, never in `skill` (D-343): only an active gem is a `skill`. Step 1's gem lookup tells them apart.
 - **Player evidence** comes only from `popularity`: no tool supplies it (D-335).
 
 In this order, before any agent runs:
@@ -175,10 +175,11 @@ In this order, before any agent runs:
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
    - a gem the free text names as the build's subject (D-343): look it up this way before you place it. Only
-     an active gem goes in `skill`. A support gem goes in `around`, and the run goes on: say it is a support
-     gem, and that the researchers will look for skills it can support. The fixed roll's second name is
-     always `skill`, so there a support gem fails: `/build-guide Pathfinder Fork` stops with "Fork is a
-     support gem".
+     a gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run
+     goes on: say it is a support gem, and that the researchers will look for skills it can support. Every
+     other gem name goes in `skill`: an active gem passes, and a name the lookup doesn't find fails here. The
+     fixed roll's second name is always `skill`, so there a support gem fails: `/build-guide Pathfinder Fork`
+     stops with "Fork is a support gem".
    - both, once each passes: **the ascendancy lock** (D-342). Call `mcp__pob2__search_tree_nodes {query:
      "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind:
      "unique"}`. The ascendancy can't use the skill, and the check fails, when a node grants it (its stats
@@ -202,17 +203,21 @@ In this order, before any agent runs:
    absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
    finalized later goes in the run log, not in the folder name.
 3. **Run log.** Read the test config if one was given with `--offline`. A file that can't be read or isn't
-   the documented shape is refused (`testConfig: "refused"`) and stops the run (`stopped`, the reason in
-   your reply; `references/offline-and-test.md`). Write `run-log.json` with `status: "running"`, the mode,
-   `testConfig`, the parsed brief and no roll yet (`references/run-log.md` has a first write).
+   the documented shape is refused, and the run stops: write `run-log.json` with `testConfig: "refused"` and
+   `status: "stopped"`, finish (§7), and give the reason in your reply (`references/offline-and-test.md`).
+   Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, the parsed brief and no
+   roll yet (`references/run-log.md` has a first write).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).
 
 Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
-them. **No Agent tool** (D-344): if the Agent tool isn't available when the first agent step is due, the run
-stops there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (§7), and give the
-reason in your reply, as for a refused test config (`stopped: the Agent tool isn't available`).
+them. A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1
+gets no folder, and a test config refused in step 3 gets no unsaved-build question.
+
+**No Agent tool** (D-344): if the Agent tool isn't available when the first agent step is due, the run stops
+there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (§7), and give the reason
+in your reply, as for a refused test config (`stopped: the Agent tool isn't available`).
 
 ## 2. Brainstorm (steps 2a to 2c)
 

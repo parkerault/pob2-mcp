@@ -576,10 +576,11 @@ describe('AC-W2 (aa): the run log is schema 3, or schema 2 for a recorded run; i
 
 describe('D-344: a run stopped at its first agent step, with no Agent tool, before any agent ran (SKILL.md §1)', () => {
   /**
-   * The free-text Fork brief's folder as P1 leaves it (AC-W47, D-343): steps 1 to 4 ran, so the folder holds the run
-   * log alone, with Fork in `around`, `status: "stopped"` and no `stages[]` entry.
+   * A P1 folder that holds the run log alone, `status: "stopped"` with no `stages[]` entry. By default it is the
+   * free-text Fork brief's (AC-W47, D-343): steps 1 to 4 ran, Fork is in `around`, and the run stopped at its first
+   * agent step. `over` gives another P1 command's shape.
    */
-  function stoppedBeforeAgents(): string {
+  function stoppedBeforeAgents(over: Json = {}): string {
     const dir = path.join(TMP, `stopped-${++copies}`);
     writeJson(dir, 'run-log.json', {
       schemaVersion: 3,
@@ -595,12 +596,35 @@ describe('D-344: a run stopped at its first agent step, with no Agent tool, befo
       escalations: [],
       faults: [],
       outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
+      ...over,
     });
     return dir;
   }
+  /** The Explosive Concoction brief of AC-W48's two refused test configs: its slug `open-<skill>`. */
+  const EC = {
+    runFolder: '/tmp/pob2-guides/open-explosive-concoction/2026-10-11-1',
+    slug: 'open-explosive-concoction',
+    brief: { skill: 'Explosive Concoction', notes: 'any ascendancy' },
+    testConfig: 'refused',
+  };
 
   it('passes the run log alone, stopped with no stage, its brief holding the support gem in around', () => {
     passes(stoppedBeforeAgents());
+  });
+
+  it('passes AC-W48\'s first command: a test config refused without --offline, the run online, stopped at its first agent step with no stage', () => {
+    passes(stoppedBeforeAgents({ ...EC, mode: 'online' }));
+  });
+
+  it('passes AC-W48\'s second command: a malformed test config refused with --offline, the run stopped in step 3 with no stage', () => {
+    passes(stoppedBeforeAgents({ ...EC, mode: 'offline' }));
+  });
+
+  it('fails the refused-config log with a wrong slug, or accepted while online', () => {
+    const slug = stoppedBeforeAgents({ ...EC, mode: 'online', slug: 'open' });
+    expect(failing(slug)).toMatch(/\[run-log\] run-log\.json slug: is "open"; the brief's slug is "open-explosive-concoction"/);
+    const accepted = stoppedBeforeAgents({ ...EC, mode: 'online', testConfig: 'accepted' });
+    expect(failing(accepted)).toMatch(/\[run-log\] run-log\.json testConfig: is "accepted" in an online run/);
   });
 
   it('fails the same log ending completed, which needs the design, the guide and its checks', () => {

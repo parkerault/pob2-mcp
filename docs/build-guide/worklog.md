@@ -1984,3 +1984,39 @@ commits survive, but agent reports are lost unless the agent is resumed.
 
 **Reviews running:** WU-55, WU-62 and WU-53. WU-55's and WU-62's doer reports were lost in the crash, so
 their reviewers also build the AC maps.
+
+### Reviews: WU-62, and the WU-54 re-check
+
+**WU-62: FINDINGS, 1 medium and 4 low.** A fresh fixer is working on them, because the doer's session was
+lost.
+- **Held:**
+  - 346 of 346 tests pass, and the checker exits 0 on all three good fixtures;
+  - the fixtures with an `m` rung are at version 2 and validate;
+  - `areaLevelOf` maps `entering-maps` to 69;
+  - the first rung is taken by rung order (a test moves `m` after `b`);
+  - the `m` floor, budget and rolled skill recompute (a mutation fails);
+  - the audit template has §7.8's six H2s;
+  - no vendor regex and no trade-link field (HG-19, HG-22);
+  - clauses (a)…(u) are still enforced.
+- **The AC map:** AC-W2 (v)…(z) and the amended (b) and (l) are behaviour tests in
+  `buildGuideCheckRun.test.ts`. AC-W11 is static, at `buildGuidePipeline.test.ts:765`.
+- **Medium:** the template gave only 5 of §8's 14 word budgets, and W1 doesn't read §8.
+- **Low:**
+  - the FAQ's "3–5 questions" rule was missing;
+  - the guard against pipeline text skipped every fenced block, not only the import code;
+  - a fault string named stage b;
+  - `references/lookups.md:61` still points at the removed H2 "Confidence and what PoB can't model". WU-53
+    and WU-54 also edit that file, so the coordinator fixes this line after those three merge.
+- **Out-of-touch edits accepted** as needed for consistency: `pricing.md`, `checkpoints.md`,
+  `offline-and-test.md`, and the writer and coordinator agents.
+
+**WU-54 re-check:** 4 of the 5 findings are resolved; `mapped but unread` is down to 23 lines.
+- **Medium:** the skill-name wildcard let `*Cooldown` mark Combat Frenzy's cooldown as read. That template
+  reads an output field, for three other skills only (`CalcOffence.lua:3452`, `:3529-3549`). The wildcard
+  is now limited to templates PoB builds from `activeGrantedEffect.name` in a modList call
+  (`Multiplier:*MaxStages`, `*MinimumStage`). The count becomes 24.
+- **Medium:** the equality test still mirrors the code, so literal anchors were added: Combat Frenzy,
+  `AttackSpeedScalesCost` and `ActiveWolfLimit`.
+- **Low:** `modListCallLiterals` gets a unit test, and AC-K53's opening is reworded.
+- **The reviewer's scope finding was wrong.** The coordinator had allowed `pobSourceNames.ts` and the test
+  fake.

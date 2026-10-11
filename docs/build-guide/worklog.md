@@ -2538,3 +2538,47 @@ Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides r
   - Each gate paragraph opens with a pointer to it: steps 2c, 5 and 16, and the §5 escalation.
   - Static suite 286 of 286, checker suite 270 of 270. Only SKILL.md and the static test changed.
 - **Pending:** move `m14` to `96b1785` and rebuild it after run A ends, before run B.
+
+### WU-59 run A ended; its token cost; run B on hold
+
+- **Result.**
+  - `status: "completed"`, roll Ranger / Pathfinder / Explosive Concoction, and `check-run` exits 0.
+  - The final gate answers came from the test config (`pre-supplied`): `revise:` (the Mana Flask claim), then
+    `accept`.
+  - The seeded check AC-W44 (f) passes on a scratch copy. An item text added in `plan.json` gives
+    `[record-plan]`, exit 1.
+- **The run worktree** is at `96b1785` (the gate-display fix), rebuilt, with an empty `git status`.
+- **Cost, all on Opus.** Cache read 296.2M, cache write 9.05M, output 1.78M, over 37 transcripts and 1695 API turns.
+  The estimate was about 130M cache read.
+
+**By kind:**
+
+| Kind | Runs | Cache read |
+|---|---|---|
+| V4 | 11 | 104.9M |
+| D1 | 4 | 41.2M |
+| R1a | 3 | 36.8M |
+| D2 | 3 | 36.0M |
+| R1b | 4 | 25.5M |
+| runner | 1 | 21.6M |
+| W1 | 4 | 16.3M |
+| gates and assembles | | 14.0M |
+
+**Where the turns came from:**
+- **One pass of each step:** about 208M. D1 attempt 1 and D2 attempt 1 each took about 33M, over 104–109 turns
+  with a peak context of 500–545K.
+- **Real failures:** about 45M. V4's first pass failed all three lenses, which led to a D1 fix round, D2, a W1 fix
+  and three rechecks.
+- **The test's `revise:`:** about 40M. A claims-only change re-ran full V4 passes on all three lenses (about 30M),
+  and two lenses failed again.
+- **Injected faults:** about 3.6M. FI-1 caused two R1b retries, and FI-2 one D1 retry.
+
+**The mechanism.** Cache read is the sum, over an agent's turns, of its context size. Context grows with every
+tool result, and nothing leaves it.
+- Agents read `plan.json` (206 KB: 133 claims, 48K characters; ledger 42K; config 26K) 130 times, 116 of them as
+  partial reads, about 3.3M characters in all.
+- Agents read `compile-record.json` (388 KB) 61 times.
+- Long agents take 100 or more small sequential steps: D2 ran 38 Grep, 38 Edit and 29 Read calls.
+
+**Run B is on hold** until the user has looked into the cost. With costs like run A's, it would probably exceed
+150M.

@@ -2582,3 +2582,52 @@ tool result, and nothing leaves it.
 
 **Run B is on hold** until the user has looked into the cost. With costs like run A's, it would probably exceed
 150M.
+
+## 2026-10-11: the user's direction on cost and scope (amendment 4, in preparation)
+
+After run A (296M cache read, 1.78M output), the user compared the output with Fubgun's guide. Decisions:
+
+- **D-345, verify only what the build hinges on.**
+  - Before spending tokens verifying a claim, ask whether the build's success or failure hinges on it.
+  - Superfluous content that is expensive to verify is removed, not verified.
+  - The bar is a top human guide, and those are full of errors.
+- **D-346, the endgame gets the effort.**
+  - The campaign needs a rough upgrade order, the tree pathing and the support gem order, plus a target life per
+    act.
+  - No resistance or defence calculations in the campaign.
+  - Name the build-specific mods to target, and leave resistance balancing to the player until the endgame.
+- **D-347, the endgame's measures.**
+  - Report DPS and EHP, and whether the build survives the Arbiter of Divinity's max hit, which decides whether it
+    can clear all content.
+  - Clear speed is rough (fast, medium or slow), plus how many hits or clicks a kill takes.
+  - No boss kill time.
+- **D-348, no crafting guidance.** Players buy gear on trade.
+- **D-349, the output budget.** A run uses at most 1M output tokens.
+- **D-350, the cuts to investigate.** The coordinator's six cuts are approved for investigation:
+  - claims cut to the ones the build hinges on;
+  - one checker, with the ledger checked mechanically;
+  - the audit file generated, or limited to estimates;
+  - the dossier reduced to the comparison table;
+  - no boss kill-time modelling;
+  - caveats said once.
+
+  The paging and context growth of the long agents are investigated too.
+
+**Issues the user found in run A:**
+- **I-1, amulet anoints.** No guide mentions one. An anoint fits a notable from an unreachable part of the tree.
+- **I-2, support slots on granted skills.** They follow level: character level for a tree-granted skill, item level
+  for an item-granted one. The guide assumes Jeweller's Orbs for Explosive Concoction. The thresholds need finding.
+- **I-3, more than one tree root.** The compiled tree has several roots.
+  - The Pathfinder's Path of the Sorceress (node 12795: "Can Allocate Passive Skills from the Sorceress's starting
+    point") can make a second root legal.
+  - Still to check, per loadout:
+    - Sorceress-side nodes before 12795 is allocated;
+    - any other root;
+    - whether the compiler validates connectivity.
+
+**Next:**
+- Three read-only investigations: the cost mechanics, the claims and content inventory with the rules behind it,
+  and I-1…I-3.
+- Then the amendment 4 draft for the user.
+- Later, the user's own poe.ninja Explosive Concoction build is compared with run A.
+- Run B stays on hold.

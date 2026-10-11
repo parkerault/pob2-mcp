@@ -16,7 +16,7 @@ import { checkV1, parseRangeKey, predecessorOf, resistancePenaltyAt, valueInRang
 import { checkV2, isOnFor, isPlaceholderDriven, producerKey } from '../../src/plan/checks/v2';
 import { FactReader } from '../../src/plan/checks/facts';
 import { ConfigBaselineError, loadConfigBaseline, parseConfigBaseline } from '../../src/plan/checks/configBaseline';
-import { producersOf } from '../../src/plan/compiler';
+import { measuredWithCustomMods, producersOf } from '../../src/plan/compiler';
 import { COUNT_RULE, countedFields, countedFigures, formulaReadsStages } from '../../src/plan/record';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { validatePlan, type PlanVariant, type Stage } from '../../src/plan/schema';
@@ -653,5 +653,28 @@ describe('WU-55 (D-293, D-321): the record\'s Count rule and custom-modifier mar
     expect(formulaReadsStages('1.TotalDPS * x', marked)).toBe(false);
     expect(formulaReadsStages('1 +', marked)).toBe(false);
     expect(formulaReadsStages('2.Life', new Set())).toBe(false);
+  });
+
+  it('AC-P55 (D-321, D-332): measuredWithCustomMods marks a stage whose written config holds PoB\'s customMods option, whatever its source, a version-1 plan\'s earned or scenario entry included', () => {
+    const marks = (plan: Json) => stagesOf(plan).map((s) => measuredWithCustomMods(s));
+    const versionOne = (): Json => Object.assign(fixture(), { schemaVersion: 1 });
+    expect(marks(fixture())).toEqual([false, false]);
+    // Version 2: config.customMods.
+    const two = fixture();
+    two.stages[1].config.customMods = [{ text: '+100 to maximum Life', reason: 'r' }];
+    expect(marks(two)).toEqual([false, true]);
+    // Version 1: PoB's option listed as an earned entry, or as a scenario entry.
+    const earned = versionOne();
+    earned.stages[1].config.earned.push({ option: 'customMods', value: '+100 to maximum Life', producer: { kind: 'gem', name: 'Rage I' }, uptime: 'u' });
+    expect(marks(earned)).toEqual([false, true]);
+    const scenario = versionOne();
+    scenario.stages[0].config.scenario.push({ ...scenario.stages[0].config.scenario[0], option: 'customMods', value: '10% more Damage' });
+    expect(marks(scenario)).toEqual([true, false]);
+    // An empty or blank value adds no modifier, so it carries no mark.
+    for (const value of ['', '  ']) {
+      const blank = versionOne();
+      blank.stages[1].config.earned.push({ option: 'customMods', value, producer: { kind: 'gem', name: 'Rage I' }, uptime: 'u' });
+      expect({ value, marks: marks(blank) }).toEqual({ value, marks: [false, false] });
+    }
   });
 });

@@ -50,7 +50,7 @@ const LEDGER_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PRICE_ID_RE = /^[A-Za-z0-9_-]+$/;
 const ENEMY_IS_BOSS = 'enemyIsBoss';
 /** PoB's text option the compiler writes `config.customMods` into, one line per entry (D-293). */
-const CUSTOM_MODS_OPTION = 'customMods';
+export const CUSTOM_MODS_OPTION = 'customMods';
 
 const text = (field: string) => z.string().min(1, { message: `${field} must not be empty` });
 const setTitle = text('setTitle').refine((s) => !/[{}]/.test(s), { message: 'setTitle must not contain braces' });

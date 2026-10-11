@@ -12,7 +12,8 @@
  * - `countedOutputs` and `countedSkillOutputs`: the figures with their group's Count applied by PoB's own Full
  *   DPS rule (`COUNT_RULE`, `countedFields`): hits × count, damage over time × count only when it stacks.
  * - `customModsWritten` and the mark `computedWithCustomMods`: when true, every figure of the stage, defences
- *   included, was computed with the plan's custom modifiers present. A ledger value that reads such a stage
+ *   included, was computed with custom modifiers present: from `config.customMods`, or, in a version-1 plan,
+ *   PoB's `customMods` option listed as an earned or scenario entry. A ledger value that reads such a stage
  *   carries the same mark.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
@@ -55,6 +56,11 @@ export interface Verdict {
  *
  * A figure Full DPS doesn't merge per skill (`CombinedDPS`, `TotalDotDPS`, a defence, a crit chance) has no
  * Count rule, so it isn't in the counted figures; the raw figure is the one to read.
+ *
+ * The raw `outputs.FullDPS` and `outputs.FullDotDPS`, non-zero because the named source's group is in Full
+ * DPS (D-337), are already multiplied by Count inside PoB: they are `calcFullDPS`'s totals (stored at `:81`,
+ * and at `:520-521` for the main output), which add each hit × its count (`:322`) and each damage over time
+ * by this same rule (`:325-326`). Never apply Count to them again.
  */
 export type CountScale = 'count' | 'stacking-dot' | 'once';
 export const COUNT_RULE: ReadonlyMap<string, CountScale> = new Map<string, CountScale>([
@@ -152,7 +158,9 @@ export interface StageRecord {
   /**
    * D-293, D-321: the custom-modifier mark. True when the stage was measured with custom modifiers present,
    * so every figure of it (`outputs`, defences included, `skillOutputs` and the counted figures) rests on
-   * them: an estimate, not PoB's model alone.
+   * them: an estimate, not PoB's model alone. That is when its written config held PoB's `customMods` option
+   * with text, whatever the source: `customModsWritten`, or, in a version-1 plan, an earned or scenario entry
+   * for the option in `configWritten` (`measuredWithCustomMods`).
    */
   computedWithCustomMods: boolean;
   /** D-212: every option that affects the calculation, filled by V2 from the stage's config set. */

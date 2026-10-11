@@ -32,7 +32,9 @@
  * - `"$GOLDEN_BUILD_CODE"`: the golden build as a PoB export code (`encodePobCode`, C-42);
  * - `"$ALLOCATED_NODES"`: the golden build's allocated node ids (its `<Spec nodes>`), as numbers;
  * - `"$TWO_STAGE_PLAN"`: `tests/fixtures/plans/two-stage/plan.json`, copied into the server's guides folder
- *   at that path (relative to the guides root), for `compile_plan` and `guide_run` (WU-41).
+ *   at that path (relative to the guides root), for `compile_plan` and `guide_run` (WU-41);
+ * - `"$COUNT_PLAN"`: `tests/fixtures/plans/two-stage-count/plan.json`, the two-stage plan with a group's
+ *   `count` and a `config.customMods` entry, copied in the same way (WU-55).
  */
 import fs from 'fs';
 import os from 'os';
@@ -95,8 +97,11 @@ const CALL_TIMEOUT_MS = 150000;
 const goldenXml = fs.readFileSync(GOLDEN, 'utf8');
 /** Where `$TWO_STAGE_PLAN` puts the two-stage fixture plan, relative to the guides root. */
 const TWO_STAGE_PLAN = 'two-stage/fixture-1/plan.json';
+/** Where `$COUNT_PLAN` puts the two-stage plan with a Count and a custom modifier (WU-55). */
+const COUNT_PLAN = 'two-stage-count/fixture-1/plan.json';
 const PLACEHOLDERS: Record<string, unknown> = {
   $TWO_STAGE_PLAN: TWO_STAGE_PLAN,
+  $COUNT_PLAN: COUNT_PLAN,
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
   $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(goldenXml),
@@ -275,6 +280,8 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     const guides = path.join(tmp, 'guides');
     fs.mkdirSync(path.dirname(path.join(guides, TWO_STAGE_PLAN)), { recursive: true });
     fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), path.join(guides, TWO_STAGE_PLAN));
+    fs.mkdirSync(path.dirname(path.join(guides, COUNT_PLAN)), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage-count', 'plan.json'), path.join(guides, COUNT_PLAN));
     http = fixtureFetch([
       { match: /\/api\/trade2\/data\/leagues/, respond: { fixture: 'trade2/data-leagues' } },
       { match: /\/api\/trade2\/data\/stats/, respond: { fixture: 'trade2/data-stats' } },

@@ -27,7 +27,8 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
   - a group's `count` and `countReason` (`stages[].skills.groups[]`, D-293); in a version-1 plan every group
     counts as 1, and the keys are errors;
-  - `config.customMods` (D-293); a version-1 plan has no custom modifiers.
+  - `config.customMods` (D-293); a version-1 plan has none, though it may list PoB's `customMods` option as
+    an `earned` or `scenario` entry, which the compile record marks like custom modifiers.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -139,11 +140,17 @@ record marks what rests on it.
   minions each casting the skill. It is a whole number of at least 1, and 1 when absent. Above 1 the group
   needs a `countReason` saying why that many act at once; without one, V1 reports `missing-reason` on the
   stage.
-  - PoB applies Count only when it adds up Full DPS, and the compile record applies it by PoB's rule. Hits
-    are multiplied by the count. Damage over time is multiplied only when it stacks; the ailments count
-    once. The record keeps the raw figures and holds the counted ones beside them.
-  - The named source's group, `rolledGroup`, is put in PoB's Full DPS with its count. Every other group stays
-    out of Full DPS, and its count lives only in the plan and the record.
+  - The named source's group, `rolledGroup`, is put in PoB's Full DPS with its count (PoB's `groupCount`).
+    Every other group stays out of Full DPS, and its count lives only in the plan and the record.
+  - PoB applies that group's count in three places. It multiplies the group's damage when it adds up Full
+    DPS. It multiplies the reservation of a skill that reserves once per copy, and of totems under Ancestral
+    Bond. And it scales Umbral Well's buffs by it. A skill's own damage figures stay those of one copy.
+  - The compile record keeps PoB's figures as measured, in `outputs` and `skillOutputs`. Its counted fields,
+    `countedOutputs` and `countedSkillOutputs`, apply Count to those per-copy figures by PoB's Full DPS rule:
+    hits are multiplied by the count, damage over time only when it stacks, and the ailments count once.
+  - The raw `outputs.FullDPS` and `outputs.FullDotDPS` are PoB's Full DPS totals. They are non-zero because
+    the named source's group is in Full DPS (D-337), and PoB has already multiplied them by Count, so they
+    are never multiplied again.
 - **Custom modifiers.** `config.customMods` lists hand-calculated effects, one PoB modifier line each, such
   as `10% more Damage`. The compiler writes them into PoB's custom modifier box after the stage's config
   options.
@@ -151,7 +158,9 @@ record marks what rests on it.
   - Each entry needs a `reason` saying what it stands for and how it was worked out; without one, V1
     reports `missing-reason`.
   - Every figure of a stage with custom modifiers, defences included, is marked in the compile record, and
-    so is every ledger value that reads one. Don't list `customMods` in `earned` or `scenario`.
+    so is every ledger value that reads one. In a version-2 plan, don't list `customMods` in `earned` or
+    `scenario`. A version-1 plan may still list PoB's `customMods` option there, and its stage is marked the
+    same way.
 
 ```json
 {

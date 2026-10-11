@@ -75,6 +75,7 @@
   { "tool": "guide_run", "args": { "validate": "two-stage/nowhere/plan.json" }, "expect": "error",
     "reason": "the plan file does not exist (C-50)" },
   { "tool": "compile_plan", "args": { "plan_path": "$TWO_STAGE_PLAN", "measure_only": true }, "expect": "ok" },
+  { "tool": "compile_plan", "args": { "plan_path": "$COUNT_PLAN", "measure_only": true }, "expect": "ok" },
   { "tool": "compile_plan", "args": { "plan_path": "$TWO_STAGE_PLAN", "measure_only": true, "build_name": "hygiene-compile" }, "expect": "error",
     "reason": "build_name and measure_only conflict: a measure-only compile writes no builds-folder file (C-41, D-208)" },
   { "tool": "compile_plan", "args": { "plan_path": "../outside/plan.json", "measure_only": true }, "expect": "error",

@@ -72,7 +72,7 @@ import {
   type StageRecord,
   type Verdict,
 } from './record.js';
-import { validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
+import { CUSTOM_MODS_OPTION, validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
@@ -377,6 +377,18 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
 /** D-293: a stage's custom modifier lines, `config.customMods` texts in plan order (none for a version-1 plan). */
 export function customModLines(stage: Pick<Stage, 'config'>): string[] {
   return (stage.config.customMods ?? []).map((m) => m.text);
+}
+
+/**
+ * D-293, D-321: whether the stage is measured with custom modifiers present, so its figures carry the mark:
+ * its written config holds PoB's `customMods` option with text, whatever its source. That is
+ * `config.customMods`, or, in a version-1 plan (D-332), an `earned` or `scenario` entry for the option. An
+ * empty value clears the option (`BuildOps.lua`'s `config_value`), and blank text adds no modifier.
+ */
+export function measuredWithCustomMods(stage: Pick<Stage, 'config'>): boolean {
+  if (customModLines(stage).length > 0) return true;
+  const listed = stageConfig(stage)[CUSTOM_MODS_OPTION];
+  return listed !== undefined && String(listed).trim() !== '';
 }
 
 /** The stage PoB saves the build at: the highest level, the last among ties (A-P9). */
@@ -815,7 +827,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     // D-293, D-321: the raw figures stay as measured; the counted ones beside them apply each group's Count.
     const counted = countedFigures(stage, reply.outputs, reply.skillOutputs, reply.dotCanStack);
     const customModsWritten = customModLines(stage);
-    if (customModsWritten.length > 0) marked.add(stage.id);
+    const computedWithCustomMods = measuredWithCustomMods(stage);
+    if (computedWithCustomMods) marked.add(stage.id);
     stages[stage.id] = {
       loadoutName: stage.loadoutName,
       level: stage.level,
@@ -826,7 +839,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       countedSkillOutputs: counted.countedSkillOutputs,
       configWritten: stageConfig(stage),
       customModsWritten,
-      computedWithCustomMods: customModsWritten.length > 0,
+      computedWithCustomMods,
       configEffective: checked.configEffective,
       pobWarnings: checked.pobWarnings,
       v1: checked.v1,

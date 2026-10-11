@@ -12,7 +12,8 @@
  * - AC-P54: each custom modifier reaches PoB's customMods option, one line per entry, after the stage's
  *   config options.
  * - AC-P55: every figure of a stage measured with a custom modifier present is marked, defences included, and
- *   so is a ledger value reading it; a stage without one has no mark.
+ *   so is a ledger value reading it; a stage without one has no mark. A version-1 plan that lists PoB's
+ *   customMods option as an earned entry is marked the same way (D-332).
  * - AC-P56 and D-337: the final file sets groupCount and includeInFullDPS on the named source's groups only,
  *   and so does the measure-only XML; PoB computes Full DPS for them.
  * - D-322 through the compile: a missing reason is a V1 finding in the record, and the compile still succeeds.
@@ -296,6 +297,27 @@ engineDescribe('WU-55: Count and custom modifiers through compile_plan (D-293, D
     expect(counted.ledger.s1_dps).toMatchObject({ computedWithCustomMods: false, error: null, value: counted.stages['1'].outputs.TotalDPS });
     expect(Object.values(plain.ledger).every((e) => e.computedWithCustomMods === false)).toBe(true);
   });
+
+  it('AC-P55 (D-321, D-332): a version-1 plan listing PoB\'s customMods option as an earned entry has that stage\'s figures and the ledger value reading them marked', async () => {
+    // Version 1 has no config.customMods, but its earned and scenario lists may still name PoB's option.
+    const plan = plainPlan();
+    plan.schemaVersion = 1;
+    plan.stages[1].config.earned.push({
+      option: 'customMods',
+      value: CUSTOM_MODS[0].text,
+      producer: { kind: 'gem', name: 'Rage I' },
+      uptime: 'test: a hand-calculated defence, written through the option',
+    });
+    const { record } = await measure('count-v1-option', plan);
+    expect(record.planSchemaVersion).toBe(1);
+    expect(record.stages['2']).toMatchObject({ computedWithCustomMods: true, customModsWritten: [] });
+    expect(record.stages['2'].configWritten.customMods).toBe(CUSTOM_MODS[0].text);
+    expect(record.stages['1']).toMatchObject({ computedWithCustomMods: false, customModsWritten: [] });
+    // PoB applied the line: stage 2's Life rose by at least the flat 100, so the mark sits on a figure it changed.
+    expect(record.stages['2'].outputs.Life - plain.stages['2'].outputs.Life).toBeGreaterThanOrEqual(100);
+    expect(record.ledger.life_gain_pct).toMatchObject({ computedWithCustomMods: true, error: null });
+    expect(record.ledger.s1_dps).toMatchObject({ computedWithCustomMods: false, error: null });
+  }, ENGINE_TIMEOUT);
 
   it('AC-P56, D-337: the final file and the measure-only XML put the named source\'s group in Full DPS with its groupCount, and no other group', async () => {
     const r = await newRun('count-final', countedPlan());

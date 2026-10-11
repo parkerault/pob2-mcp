@@ -49,8 +49,11 @@ const ALLOWLIST = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-hygiene-a
 }>;
 /** `$TWO_STAGE_PLAN` (WU-41): the two-stage fixture plan, copied into the fixture's guides folder at this path. */
 const TWO_STAGE_PLAN = 'two-stage/fixture-1/plan.json';
+/** `$COUNT_PLAN` (WU-55): the two-stage plan with a Count and a custom modifier, copied in the same way. */
+const COUNT_PLAN = 'two-stage-count/fixture-1/plan.json';
 const PLACEHOLDERS: Record<string, unknown> = {
   $TWO_STAGE_PLAN: TWO_STAGE_PLAN,
+  $COUNT_PLAN: COUNT_PLAN,
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
   $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(GOLDEN_XML),
@@ -105,6 +108,8 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
     // $TWO_STAGE_PLAN: the compile_plan and guide_run samples read the fixture from the guides folder.
     fs.mkdirSync(path.dirname(path.join(f.guides, TWO_STAGE_PLAN)), { recursive: true });
     fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), path.join(f.guides, TWO_STAGE_PLAN));
+    fs.mkdirSync(path.dirname(path.join(f.guides, COUNT_PLAN)), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage-count', 'plan.json'), path.join(f.guides, COUNT_PLAN));
   }, 180000);
   afterAll(async () => f?.close(), 30000);
 

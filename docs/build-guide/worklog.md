@@ -2638,3 +2638,49 @@ After run A (296M cache read, 1.78M output), the user compared the output with F
 - Then the amendment 4 draft for the user.
 - Later, the user's own poe.ninja Explosive Concoction build is compared with run A.
 - Run B stays on hold.
+
+### The three investigations reported (reports in `studies/`, dated 2026-10-11)
+
+- **Cost mechanics** (`cost-1-mechanics.md`).
+  - **Context over all turns** totalled 305M: `plan.json` 59M, the reference docs 42M (`plan-reference.md` 11.6M
+    over 22 reads), retained thinking 39M, the system prompt and the brief 37M.
+  - **Why the agents page `plan.json`:** Read stops at line 755 of 2,848. The V4 checkers are told to read the
+    whole plan. And `compile_plan` returns no per-stage figures, so agents Grep the record after every compile.
+  - **Output is under-recorded** in the transcripts: a 60K-character Write is logged at 8 tokens. The real output
+    is about 2.3–2.5M, 63% of it thinking. D-349 therefore needs a reliable counter.
+  - **Levers by cache read saved**, which overlap to about 100–130M in all:
+
+    | Lever | Saving |
+    |---|---|
+    | re-check only the changed claims | ~41M |
+    | narrow plan and record views | ~37M |
+    | batched tool calls | ~32M |
+    | split D1 and D2 | 17–23M |
+    | per-stage reference excerpts | ~18M |
+    | runner fixes | ~6.5M |
+- **Claims and rules** (`cost-2-claims-and-rules.md`).
+  - **The 133 claims:**
+
+    | Class | Count | Note |
+    |---|---|---|
+    | the build hinges on it | 29 | 24 of them endgame |
+    | proven by the compile | 42 | |
+    | reasons | 27 | |
+    | superfluous | 35 | 12 are Arbiter kill times |
+
+    No compile-proven claim or reason was ever found wrong.
+  - **A guide defect.** Both endgame rungs say "solid", but the Arbiter's slam one-shots them (max hit 0.66 and
+    0.85 of the slam).
+  - **Rules.** The report gives each costly layer's rules at file:line. A revise re-runs all three lenses in full
+    (P3:699-706), and round 2 overwrote round 1's reports.
+- **Run A issues** (`run-a-issues.md`).
+  - **I-1:** an anoint is the amulet line "Allocates <notable>". 875 notables have a three-emotion recipe. It
+    compiles today, but no step, template or tool has a place for it.
+  - **I-2:** PoB2 has no support-socket rule for granted skills, and our data has no thresholds, so they need the
+    user's source. Nothing checks support counts. `guide.md:94`, which saves Jeweller's Orbs for the concoction, is
+    wrong under the user's rule.
+  - **I-3:** PoB2 keeps a separate Sorceress tree (node 12795 links to the Sorceress exits 4739 and 44871). Run A
+    has two Ranger trees from stage 2 and four trees from stage 6.
+    - PoB2 v0.23.1 enforces one exit per start neither in the UI code nor on import; a headless probe confirms
+      import. The user says the UI blocks it; a newer PoB2 may differ.
+    - The fix goes in `pob-api/API/Compile.lua:182-285` and in `find_path_to_node`.

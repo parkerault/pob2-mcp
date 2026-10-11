@@ -686,8 +686,8 @@ not built; their milestone is M-14 ("open builds offline", D-315).
   `tests/integration/contract.test.ts` (the amended action's reply schema, wrapper types and contract case)]
 - produces: [C-38's new flags (§2.4's *Target (WU-54, D-300)*)]
 - consumes: [C-38 as built]
-- acceptance: [AC-K50; the other four flags' criteria are pinned by the unit's first step and reviewed by
-  the coordinator before any code is written (A-33); AC-B3, AC-B4]
+- acceptance: [AC-K50; AC-K53…AC-K57, pinned by the unit's first step and reviewed by the coordinator
+  before any code is written (A-33); AC-B3, AC-B4]
 - milestone: M-14
 - summary: Add the flags, with engine tests.
 
@@ -1046,7 +1046,77 @@ Cross-checks compare against PoB's own data and functions, never against the too
 
 - **AC-K50 (C-38 mapped-but-unread stats).** `check_model_coverage {gems:["Mirage Archer"]}` flags its
   stat that is mapped but read nowhere, ending its false all-clear (PG-49). The other four flags' criteria
-  are pinned by WU-54's first step (A-33).
+  are AC-K53…AC-K56, pinned by WU-54's first step (A-33).
+
+AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has one shape:
+- **Beside the status, never a status.** `check_coverage`'s reply gains `flags[]`, each
+  `{flag, source, note, line?}`. `source` is `Gem <name>`, or a node's `Node <id> <name>`. `line` is set
+  when the flag belongs to one line.
+- **Shown in every mode.** The text lists each flag as `[<flag>] <source>`, then its line if it has one,
+  then the note. Build mode lists every flag too, although it hides fully parsed lines.
+- **Notes.** Where a criterion says a note names something, the test finds that text in the note.
+
+- **AC-K53 (C-38 energy-based meta gems; PG-9).** PoB doesn't model Energy, so it can't tell how often an
+  energy-based meta gem triggers its socketed skills.
+  - `{gems:["Cast on Critical"]}` reports one flag `energy not modelled`, source `Gem Cast on Critical`,
+    with no `line`. The gem's five lines keep their status, `possibly unmodelled; check config` (AC-K13's
+    rule).
+  - One call covers every gem with a granted effect of skill type `Meta` (Lua query; 29 at the pin), plus
+    Trail of Caltrops. It flags exactly the gems with a granted effect whose `skillTypes` hold both
+    `SkillType.Meta` and `SkillType.GeneratesEnergy` (`Data/Global.lua:467, :526`). That is 16 at the pin,
+    Cast on Melee Kill, Spellslinger and Barrier Invocation among them.
+  - Mirage Archer, a meta gem without Energy, gets no flag. Nor does Trail of Caltrops, which generates
+    Energy but isn't a meta gem.
+  - The flag rests on PoB never reading the type: `pobSourceNames(<the PoB src dir>)` lacks
+    `GeneratesEnergy`, so no file in `Modules/` or `Classes/` names it.
+- **AC-K54 (C-38 skills granted by a support; PG-2).** PoB computes a skill that a support gem grants at
+  the support gem's level (`Modules/CalcSetup.lua:1851-1876`, `level = gemInstance.level`).
+  - `{gems:["Paquate's Pact"]}` reports one flag `level from support`, source `Gem Paquate's Pact`, with
+    no `line`. Its note names Twisted Pact and the gem level the call checked Paquate's Pact at (1, its
+    `gems[]` level). Twisted Pact's lines (`Gem Paquate's Pact / Twisted Pact`) keep their statuses.
+  - One call covers every support gem with an `additionalGrantedEffectId1` (Lua query). It gives one
+    `level from support` flag per granted effect that PoB makes an active skill (`CalcSetup.lua:1855`):
+    one with a `data.skills` entry, not itself a support, and not `hideFromSideBar`. The flagged
+    (gem, skill name) pairs equal the Lua query's, 52 at the pin.
+  - Edge cases: Empowered Sparks I gets exactly one flag, for its visible skill and not its hidden one.
+    Concussive Runes gets none, because its granted skill is undefined (AC-K55).
+  - A gem that isn't a support gets no flag for its own granted skills: Pounce (Predator's Mark, Summon
+    Wolf) and Mirage Archer.
+- **AC-K55 (C-38 granted skills with no definition; PG-10).** PoB drops a granted effect id that has no
+  `skills[...]` entry (`Modules/Data.lua:987-998`), so it never computes that skill.
+  - `{gems:["Concussive Runes"]}` reports one flag `granted skill undefined`, source
+    `Gem Concussive Runes`, with no `line`. Its note names `ConcussiveRunesPlayer` (`Data/Gems.lua:19614`).
+    Its one line, "Supported Skills Trigger a Runic Shockwave on Heavy Stunning an enemy", keeps its status.
+  - One call covers every gem with an `additionalGrantedEffectId1` (Lua query; 156 at the pin). It flags
+    exactly the (gem, id) pairs whose `additionalGrantedEffectId<n>` has no `data.skills` entry.
+  - At the pin those are Concussive Runes, Supporting Fire and six Skeletal gems: Arsonist, Brute, Frost
+    Mage, Reaver, Sniper and Storm Mage. Their `Command…Player` skills are undefined.
+  - The flag shows where no line would: Supporting Fire's two described lines are both `fully parsed`, and
+    `{gems:["Skeletal Brute"]}` has no entries at all. Both still report the flag.
+- **AC-K56 (C-38 Gem Studded ties; PG-1).** PoB sets one `MostNumerous<colour>SocketedSupports` condition
+  through an if/elseif (`Modules/CalcSetup.lua:2155-2162`). On a tie, only one colour applies: red, then
+  green, then blue. The node's text gives each colour that is most numerous.
+  - `{nodes:["Gem Studded"]}` flags three of its lines `support colour tie`, each with its `line`:
+    - "Red: Hits against you have no Critical Damage Bonus";
+    - "Blue: Skills have 30% less cost";
+    - "Green: 40% less Movement Speed Penalty from using Skills while Moving".
+
+    The test finds the node's id by Lua query (30996 in tree 0_5). Its first line, "For each colour of
+    Socketed Support Gem that is most numerous, gain:", gets no flag, and every line keeps its status.
+  - The rule applies to any item or node line. One call covers every passive node (Lua query). It flags
+    exactly the lines whose parse has a mod with a `Condition` tag on `MostNumerousRedSocketedSupports`,
+    `MostNumerousGreenSocketedSupports` or `MostNumerousBlueSocketedSupports`. At the pin those are Gem
+    Studded's three.
+  - Crystallised Immunities' lines get no flag: they use the strict-majority conditions
+    `Majority…SocketedSupports` (`CalcSetup.lua:2146-2153`).
+  - The flag is static: it is reported whatever the loaded build's support colours are.
+- **AC-K57 (C-38 flags beside statuses; build mode).**
+  - A flag changes no line's status and no count. AC-K10…AC-K14, AC-K46 and the C-47 criteria
+    (AC-K20…AC-K22, AC-K44) pass unchanged.
+  - Load the golden build and add a socket group holding Cast on Critical (gem level 20), Paquate's Pact
+    and Concussive Runes (gem level 1). `{build:true}` then reports every flag that single-source calls
+    report for the same items, nodes and gems (AC-K14's set). That includes the three gems' flags, although
+    build mode lists no fully parsed line.
 
 **K1 base types and essences (WU-60)**: `tests/integration/lookupGameData.test.ts`, in-process,
 engine-required. *Target (WU-60, D-277):* not built.
@@ -1069,7 +1139,7 @@ engine-required. *Target (WU-60, D-277):* not built.
 | AC-K42 | stdio end-to-end (`spawnServer`), engine-required | `tests/e2e/serverTools.test.ts` |
 | AC-K43 | in-process, `fixtureFetch`, no engine; direct handler calls with a stub trade client | `tests/mcp/tradeErrorPrefix.test.ts` |
 | AC-K47…K49 (*target*, WU-52) | in-process, `fixtureFetch`, no engine | named by WU-52 |
-| AC-K50 (*target*, WU-54) | in-process, engine-required | `tests/integration/modelCoverage.test.ts` |
+| AC-K50, AC-K53…K57 (*target*, WU-54) | in-process, engine-required | `tests/integration/modelCoverage.test.ts` |
 | AC-K51 (*target*, WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
 | AC-K52 (*target*, WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
 

@@ -36,6 +36,10 @@ never a token role (D-122 as D-295 words it); the card the user finalizes gives 
   coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in
   `subagent_type` (`.claude/agents/build-guide/`). A default agent would see every tool.
+- **Every gate visit prints its display first, in your reply, whoever answers it** (D-265): the user, a
+  pre-supplied answer or a default. This holds at the brainstorm, verification and final gates and at an
+  escalation. A pre-supplied or default answer replaces only the question: after the display, state the
+  answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` (`references/checkpoints.md`).
 - **Read only what routes the run:** the gate verdict files under `reports/gates/`, the deck `cards.md` (you
   show it at the brainstorm gate), your own `run-log.json`, the test config, the agents' returns and the
   verifiers' reports. Never read `plan.json`, a compile record, `dossier.md` or `guide.md` (one final record was
@@ -244,9 +248,9 @@ in your reply, as for a refused test config (`stopped: the Agent tool isn't avai
   whether it returned. **A short round** (fewer than 6 cards pass, or the deck holds fewer than two
   under-played cards): it returns `short: <why>`; record the reason in the run log, as `shortReason` on its
   `stages[]` entry (`references/run-log.md`), and say so at the brainstorm gate.
-- **The brainstorm gate** (step 2c; `references/checkpoints.md`). Echo the parsed brief at the top, then
-  print the deck from `cards.md`: the dealt cards not verified yet, and the "Not dealt" list; after a short
-  round, its reason. Ask with
+- **The brainstorm gate** (step 2c; `references/checkpoints.md`). Print its display on every visit, whoever
+  answers (Hard rules): echo the parsed brief at the top, then print the deck from `cards.md`: the dealt
+  cards not verified yet, and the "Not dealt" list; after a short round, its reason. Ask with
   AskUserQuestion in `multiSelect` mode, up to 4 cards a question and up to 3 questions, plus one question for
   more or stop:
   - **verify** 1–3 cards: the union of the selections, more than 3 asked again; a card under "Not dealt" may
@@ -273,13 +277,13 @@ in your reply, as for a refused test config (`stopped: the Agent tool isn't avai
   verification round, the research files (and whether each researcher returned), and each card
   `{id, title, status, attempts, verdict}`, `status` being `viable`, `failed`, or `can't be finalized yet`
   when the last R1b verdict's finding is `not-a-skill`; it returns the verification gate's comparison.
-- **The verification gate** (step 5; `references/checkpoints.md`). Show the comparison lines of every card
-  verified in the run (`TotalEHP` included; a figure resting on Count or a custom modifier labelled
-  `estimate`, D-296), each card's status (`viable`, `failed`, or "can't be finalized yet: its damage source
-  isn't a skill") and the dossier's path. After an `infeasible` design or an escalation sent the run back
-  here, show that card's evidence (its last verdict file); with no viable card, each failed card's last
-  verdict as its evidence (D-141), and a card that can't be finalized yet with its status, not as a failure.
-  Ask:
+- **The verification gate** (step 5; `references/checkpoints.md`). Print its display on every visit,
+  whoever answers (Hard rules): show the comparison lines of every card verified in the run (`TotalEHP`
+  included; a figure resting on Count or a custom modifier labelled `estimate`, D-296), each card's status
+  (`viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill") and the dossier's path.
+  After an `infeasible` design or an escalation sent the run back here, show that card's evidence (its last
+  verdict file); with no viable card, each failed card's last verdict as its evidence (D-141), and a card
+  that can't be finalized yet with its status, not as a failure. Ask:
   - **finalize** one card (a failed one may be picked anyway; one that can't be finalized yet can't be,
     D-303; nor can a `wrong-ascendancy` card, failed or not, since the build it describes can't exist,
     D-342): its identity becomes the run's `roll`, which you record in the run log, and the design (steps 6
@@ -324,8 +328,8 @@ in your reply, as for a refused test config (`stopped: the Agent tool isn't avai
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
 Only the D1 and D2 gates escalate. Record the escalation as `{stage, concept, verdict, choice, guidance?}`,
-`verdict` being the escalated attempt's verdict file, and the question as checkpoint `escalation`. Show
-the stage, the attempts and the verdict file, and ask:
+`verdict` being the escalated attempt's verdict file, and the question as checkpoint `escalation`. Print its
+display, whoever answers (Hard rules): show the stage, the attempts and the verdict file, and ask:
 
 1. **accept** (not offered for a compile failure: nothing compiled). The verdict's failing findings are
    accepted: every later header's `accepted` carries them, an equal finding (same plan stage, part and
@@ -385,9 +389,10 @@ the stage, the attempts and the verdict file, and ask:
 
   Drop every other line and row: one from an earlier cycle is stale.
 - **Step 15.** Run the run checker (§7).
-- **Step 16, the final gate** (once checkpoint 2). Show the guide's path, the PoB file (the D2 gate verdict's
-  `finalCompile`), the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run
-  ends `completed`), **ask for changes**, or anything else (the run ends `not-accepted`, with the user's note).
+- **Step 16, the final gate** (once checkpoint 2). Print its display on every visit, whoever answers
+  (Hard rules): show the guide's path, the PoB file (the D2 gate verdict's `finalCompile`), the gate
+  verdicts, the known issues and the checker's result, and ask: **accept** (the run ends `completed`), **ask
+  for changes**, or anything else (the run ends `not-accepted`, with the user's note).
   Asking for changes is a revision (D-236): map each request to D1, D2 or W1 by step 12's owners (the
   guide's text is W1's; an endgame stage, its ledger entries and prices D1's; a campaign stage D2's), run
   that chain as step 12 does (claims in place, the gates only after a recompile), with the requests as

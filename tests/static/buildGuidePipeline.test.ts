@@ -2311,3 +2311,35 @@ describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a miss
     expect(ac).not.toMatch(/none creates a folder/);
   });
 });
+
+describe('D-265 (b) at the point of use: every gate visit prints its display, whoever answers it (WU-59 run A)', () => {
+  const raw = () => fs.readFileSync(SKILL_MD, 'utf8');
+  /** The text from a gate paragraph's start up to its question. */
+  const paragraph = (text: string, start: string, end: string) => {
+    const at = text.indexOf(start);
+    expect({ start, found: at > -1 }).toEqual({ start, found: true });
+    return text.slice(at, text.indexOf(end, at));
+  };
+
+  it('Hard rules: the display comes first, in the reply, whoever answers; a pre-supplied or default answer replaces only the question, and the reply states what it resolved to', () => {
+    const text = raw();
+    const hard = folded(text.slice(text.indexOf('## Hard rules'), text.indexOf('## Calling an agent')));
+    expect(hard).toMatch(/- \*\*Every gate visit prints its display first, in your reply, whoever answers it\*\* \(D-265\): the user, a pre-supplied answer or a default\. This holds at the brainstorm, verification and final gates and at an escalation\. A pre-supplied or default answer replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` \(`references\/checkpoints\.md`\)\./);
+  });
+
+  it('each gate paragraph points to the rule before its display and its question: the brainstorm, verification and final gates and the escalation', () => {
+    const text = folded(raw());
+    const POINTER = /Print its display(?: on every visit)?, whoever answers \(Hard rules\): (?:echo|show) /;
+    const gates: [string, string, string][] = [
+      ['brainstorm', '- **The brainstorm gate** (step 2c;', 'Ask with AskUserQuestion'],
+      ['verification', '- **The verification gate** (step 5;', 'Ask:'],
+      ['escalation', 'Only the D1 and D2 gates escalate.', 'and ask:'],
+      ['final', '- **Step 16, the final gate**', 'and ask:'],
+    ];
+    for (const [gate, start, end] of gates) {
+      const p = paragraph(text, start, end);
+      expect({ gate, pointer: POINTER.test(p) }).toEqual({ gate, pointer: true });
+    }
+    expect(paragraph(text, '- **The brainstorm gate** (step 2c;', 'Ask with')).toMatch(/Print its display on every visit, whoever answers \(Hard rules\): echo the parsed brief at the top/);
+  });
+});

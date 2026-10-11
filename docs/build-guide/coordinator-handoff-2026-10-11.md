@@ -5,12 +5,9 @@
 **Trust posture:**
 - **Gated PASS at `278b89c`:** everything through WU-58. An independent verifier ran the full gate from clean:
   2095 of 2095 tests, none skipped.
-- **Not gated:** everything after that:
-  - WU-59's criteria commit (docs only);
-  - WU-63, still in its lane;
-  - the work-log commits.
-
-  Re-run the static and checker suites before you trust a merge of WU-63.
+- **Since then:** WU-59's criteria (docs) and WU-63 (skill text, the checker and tests). The coordinator checked these
+  with the static and checker suites (543 of 543) and the four good fixtures. The full gate hasn't been re-run since
+  `278b89c`. The run itself is the next end-to-end check.
 
 ## Read first, in order
 
@@ -61,28 +58,14 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ## The queue
 
-1. **WU-63, the ascendancy-lock guard (D-342).** *Who acts: you.*
-   - The doer was last told to bar finalizing a `wrong-ascendancy` card, rebase onto `build-guide/amendments`, and
-     report. Lane `/home/parker/projects/pob2-mcp-wt/bg-63`, branch `bg/wu-63`.
-   - The doer may not reach a new session. Check the lane's head and `git status`. If the finalize bar isn't there,
-     have a fresh fixer add it:
-     - the skill: `SKILL.md` and `checkpoints.md`;
-     - `check-run.mjs`'s finalize bar;
-     - a checker test.
-   - Then:
-     - dispatch a small read-only reviewer;
-     - fix the findings;
-     - merge with a fast-forward after rebasing;
-     - run `pnpm build`, the static and checker suites (`mise exec -- pnpm exec jest tests/static
-       tests/unit/buildGuideCheckRun.test.ts`), and the checker on the four good fixtures in the `amend` worktree.
-2. **Move the run worktree, then hand the run to the user.** *Who acts: you, then the user.*
-   - Run `git -C /home/parker/projects/pob2-mcp-wt/m14 checkout --detach <new integration head>`, then `pnpm build`
-     in `m14`.
-   - Tell the user to start the sessions in the order `/tmp/m14.zfPx/README.md` gives (P1, run A, run B, P2). Each
-     runs in its own terminal, with `bash /tmp/m14.zfPx/start.sh <session>`.
-   - The prep agent's estimate, all on Opus: about 205M cache read and 1.6–2.1M output in total. Run A is about
-     130M and 3–3.5 h; run B about 70M and 1.5–2 h.
-   - The brief is the user's: **Explosive Concoction, any ascendancy**. It's an ascendancy skill, granted only by
+1. **Done:** WU-63 is merged at `e62799b`, with static and checker suites passing 543 of 543. The run worktree `m14` was
+   moved to `e62799b` and built. The work-log's last section has the details.
+2. **The WU-59 run.** *Who acts: the user.* They start the sessions in the order `/tmp/m14.zfPx/README.md` gives:
+   P1, which now has six commands including the D-342 brief check, then run A, run B and P2. Each one runs with
+   `bash /tmp/m14.zfPx/start.sh <session>`.
+   - **Estimate, all on Opus:** about 205M cache read and 1.6–2.1M output in total. Run A takes about 130M and
+     3–3.5 h; run B about 70M and 1.5–2 h.
+   - **The brief is the user's:** **Explosive Concoction, any ascendancy**. It's an ascendancy skill, granted only by
      Pathfinder node 38004.
 3. **Fold v1.5 into the spec.** *Who acts: you; docs only.* The work-log holds the content.
    - **Decision rows to add:**
@@ -128,12 +111,10 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `cfdab2e` on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`, plus
-  this file's commit.
+- **Integration head:** `1ee2cd1` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
 - **Live worktrees:**
   - `amend`, the integration worktree;
-  - `bg-63`, the WU-63 lane;
-  - `m14`, detached at `278b89c`, which item 2 moves.
+  - `m14`, detached at `e62799b` and built: the WU-59 run worktree.
 - **The main checkout** `/home/parker/projects/pob2-mcp` is on `build-guide/amendment-3` at `acec4d1`. The fleet
   doesn't touch it, because the user's pob2 server runs from its `build/`.
 - **Temp dirs:**

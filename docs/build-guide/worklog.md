@@ -1656,3 +1656,10 @@ starts with the others (spine §8). All six started off `acec4d1`.
 - WU-54 begins with A-33's step: it pins its flags' criteria, from AC-K53 upward, and stops for the
   coordinator's review.
 - WU-51 records the load average with each timing run, because the other lanes load the machine.
+
+### Baseline gate at `acec4d1`: PASS
+
+Run in the integration worktree, from a clean tree (build, coverage and the Jest cache cleared), while
+wave A's lanes started:
+- `mise run test` rc=0: 120 of 120 suites and 1842 of 1842 tests, then the NFR step (`--runInBand`, 2 of 2);
+- `pnpm build` rc=0.

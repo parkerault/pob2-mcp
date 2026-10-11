@@ -2243,3 +2243,15 @@ poe.ninja or popularity hit is either D-335's rule or the user's notes. All devi
 - the slug comes from the brief;
 - the run log names the probe-count field;
 - `run-log.md`'s first write must match `SKILL.md`'s.
+
+### WU-57 merged at `66362d0`
+
+All seven review findings are fixed.
+- **D-339, as applied.** A card's pitch labels it `Under-played (judgment)`. R1a-assemble returns
+  `short: <why>`, and the runner records `shortReason` on its `stages[]` entry.
+  - The doer's addition, accepted: a round is also short when the deck still holds fewer than two
+    under-played cards after it.
+- **D-340** is written in `gates.md` and `D1-gate.md`.
+- Static and checker suites at the merge: 462 of 462. The lane was removed.
+
+WU-58 started off `66362d0`, carrying WU-57's "for WU-58" list and the reviewer's additions.

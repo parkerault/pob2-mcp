@@ -1860,3 +1860,26 @@ the integration head: 212 of 212. The lane was removed.
 - **WU-53** started off `fdcf6a7` with A-33's step: it pins its criteria from AC-K58 upward, and settles
   the "Culmination II, then Ailith's Chimes" example. The description has 23 characters left, so WU-53
   reports how its additions will fit.
+
+### WU-54 built (`9cf186e`); one more fix before review
+
+- **Gate:** rc=0/0 (1852 tests).
+- **The flags at the pin:**
+  - `mapped but unread`: 38 lines over 36 gems.
+  - `stat not mapped`: 318 (gem, stat) pairs over 115 gems.
+  - Energy: 16 gems.
+  - Level from support: 52 pairs.
+  - Granted skill undefined: 8.
+  - Gem Studded: 3 lines.
+- **Deviations accepted:**
+  - a line flag carries its entry's full source;
+  - names that skill data reads are collected at run time from the loaded tags;
+  - every string field of a tag counts as read (with only `var`, 18 more lines were flagged wrongly);
+  - a stat counts as described when removing it changes PoB's described lines.
+- **D-336, extended: one `stat not mapped` flag per gem.** The flag was noisy: it reported stats PoB takes
+  from skill types, such as `is_area_damage`, and the golden build showed 19 flags, 12 of them Pounce's.
+  - The note lists the gem's unmapped stat ids and says PoB may derive some of them from the gem's skill
+    types.
+  - No hand list or id-prefix cut is used beyond `display_`.
+- `check_model_coverage`'s description and `references/lookups.md` gain a short account of the flags.
+  The coordinator allowed both edits.

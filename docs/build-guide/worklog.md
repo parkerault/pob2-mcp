@@ -2376,3 +2376,26 @@ a card ignores it.** It becomes a new unit, WU-63, with no server change:
 - The checker accepts `wrong-ascendancy` as terminal.
 
 The run worktree `m14` moves to the head that includes WU-63 once it is gated.
+
+### WU-63: built, reviewed, fixes under way
+
+**Built.** The lock code is in `7135280`; `b82cfd8` adds the finalize bar (a `wrong-ascendancy` card is never
+finalized, not even "anyway"). Static and checker suites: 538 of 538.
+
+**Review: FINDINGS, 1 medium and 4 low.** The flow and both checker bars hold, and `not-a-skill` didn't
+regress. The pinned tree has 54 tree-granted skills, each granted by a single ascendancy node.
+
+**Coordinator rulings, extending D-342:**
+- **Lock every skill on the card.** The lock checks every skill the card names (its damage source, chain
+  and links), not only the damage source.
+- **When the lock applies.** It applies only when:
+  - every granting node is an ascendancy node;
+  - none of those nodes is the card's;
+  - no unique grants the skill. The Covenant also grants Life Remnants.
+- **Check the brief at step 1.** A brief naming an ascendancy that can't use its skill stops at step 1's
+  brief check, before any agent starts. The runner gains the `search_tree_nodes` lookup, and AC-W34's
+  wording follows.
+- **Test fidelity:**
+  - an order assertion (the lock comes before FI-1);
+  - a consistent `wrong-ascendancy` fixture card;
+  - a pre-supplied pick of a locked card ends the run `stopped`.

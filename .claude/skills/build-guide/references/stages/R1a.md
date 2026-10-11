@@ -1,9 +1,9 @@
 # R1a: brainstorm (`build-guide-researcher`)
 
-Slice 03 §5.2 (the brainstorm phase) and §7.5; spine C-36, C-51, C-52, C-53, D-287, D-290, D-319, D-335. Three
-researchers run in parallel in each brainstorm round, each on its own focus. Each writes one research file (the
-dossier's mechanics, synergy search and config gaps) and 2 or 3 **cards**, each the brainstorm half of a
-candidate build. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
+Slice 03 §5.2 (the brainstorm phase) and §7.5; spine C-36, C-51, C-52, C-53, D-287, D-290, D-298, D-319, D-335,
+D-339. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
+research file (the dossier's mechanics, synergy search and config gaps) and 3 **cards**, each the brainstorm
+half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
 picks the cards to verify at the brainstorm gate, and R1b compiles them (`R1b.md`).
 
 ## Researchers and their focus
@@ -13,9 +13,9 @@ The runner assigns the foci and letters you when it starts you: researcher `n` w
 
 | Researcher | Letter | Focus | Sections | Cards |
 |---|---|---|---|---|
-| 1 | `a` | `mechanics` | `Mechanics`, `Config gaps` | 2 or 3, each led by a skill, its supports or a mechanic |
-| 2 | `b` | `items` | `Synergy search` | 2 or 3, each led by key items (uniques) |
-| 3 | `c` | `tree` | `Synergy search` | 2 or 3, each led by tree notables, keystones or ascendancy nodes |
+| 1 | `a` | `mechanics` | `Mechanics`, `Config gaps` | 3, each led by a skill, its supports or a mechanic |
+| 2 | `b` | `items` | `Synergy search` | 3, each led by key items (uniques) |
+| 3 | `c` | `tree` | `Synergy search` | 3, each led by tree notables, keystones or ascendancy nodes |
 
 Each focus starts from the brief's fixed pieces (D-287):
 
@@ -23,12 +23,18 @@ Each focus starts from the brief's fixed pieces (D-287):
 |---|---|---|---|
 | names a skill | from the skill, its supports and what it reads | from `around`, or from uniques that change how the skill plays | from the ascendancy's nodes |
 | names no skill | from the pattern library's families and the playstyle tags | (same) | (same) |
-| names no ascendancy | (as above) | (same) | from ascendancies that suit the playstyle, and ones the pattern library suggests are under-played (`judgment`), or the user's `popularity` notes (D-298, D-335) |
+| names no ascendancy | (as above) | (same) | from ascendancies that suit the playstyle, or the user's `popularity` notes (D-335) |
 
 The brief's other fields steer every focus: `playstyle` (each card's tags, from the same vocabulary),
 `budget`, `around`, `like` (a reference build and what to change), `notes`, and `popularity` (the user's own
 notes on what players run, each card's only player evidence). A fixed roll (a brief naming `ascendancy` and
 `skill`) fixes every card's identity: its named damage source is that skill.
+
+**An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
+pattern-library shape that you judge under-played: one few builds use with this skill, ascendancy or
+playstyle. Label it in its pitch, `Under-played (judgment): <the shape, and why you judge it under-played>`.
+It is your judgment, never a measurement: no tool counts what players run (D-335). The brief's `popularity`
+notes may inform it; cite them as the user's notes.
 
 ## Inputs
 
@@ -115,7 +121,7 @@ By focus:
   research file has no plan to cite, so use tags (`pob-data`, `judgment`, `external`,
   `external-unavailable`) and `data | <file>#<key>`, never `ledger` or `price`.
 
-**The cards** (C-52): 2 or 3, each `cards/r<k>-<letter>-<m>.md`, from the template
+**The cards** (C-52): 3, each `cards/r<k>-<letter>-<m>.md`, from the template
 `.claude/skills/build-guide/templates/card-template.md`. Write its H1 and its whole brainstorm half, about
 250–400 words; under `## Verification half` keep the template's H3s, each with the one line `Not checked
 yet.`, for R1b to fill.
@@ -126,7 +132,8 @@ yet.`, for R1b to fill.
   them. A damage source that isn't a skill (an item, a passive or a modifier, such as a flask nova) may lead a
   card, marked "can't be finalized yet" (D-303, D-334).
 - **Pitch:** the title is short (at most 60 characters), names the idea rather than the roll, and is unique
-  among your cards; the playstyle tags come from the brief's vocabulary.
+  among your cards; the playstyle tags come from the brief's vocabulary; and on the under-played card, its
+  `Under-played (judgment)` line.
 - **Chain, Enabler and Links:** every link of the chain in the links table, with its confirming game text
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
   clauses stated as theory ("from a Hit", "you use yourself"). A link no lookup confirmed is `not checked yet`:

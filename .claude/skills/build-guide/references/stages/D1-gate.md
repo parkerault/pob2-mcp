@@ -1,7 +1,7 @@
 # D1-gate: check the endgame variants (`build-guide-coordinator`)
 
-Slice 03 §5.3 step 2; spine D-118, D-119, D-122, D-141, D-164, D-217, D-219, D-234, D-293, D-295, D-333;
-amendment 1 S7. A fresh coordinator step after every D1 attempt: it runs the final re-price pass, compiles
+Slice 03 §5.3 step 2; spine D-118, D-119, D-122, D-141, D-164, D-217, D-219, D-234, D-293, D-295, D-333,
+D-340; amendment 1 S7. A fresh coordinator step after every D1 attempt: it runs the final re-price pass, compiles
 `plan.json` measure-only, reads the record, and writes the D1 gate's verdict file, which the runner routes on
 and the run checker recomputes. You check; you don't design. Fix nothing in the plan: a failure goes back to
 D1 as findings.
@@ -73,10 +73,13 @@ D1 as findings.
      `skills.rolledGroup` group, which holds the named damage source, has role `clear` or `single_target`
      (else `rolled-role`), and its figure **× its Count** is the largest among the stage's groups with that
      role (else `rolled-not-largest`). Compare one record field for every group of that role, named
-     `g<group>s<skill>p<statSet>.<Field>` (the same `<Field>` for each) and read Count-scaled from the stage's
+     `g<group>s<skill>p<statSet>.<Field>` (the same `<Field>` for each), read by one rule (D-340): a field
+     with a counted copy Count-scaled, from the stage's
      `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (each group's per-copy figure × its
-     Count, WU-55; the raw `skillOutputs` figure when the count is 1), or a ledger value (`ledger:<id>`, its
-     formula carrying any Count), and list every group of that role. **The rolled figure's stat set
+     Count, WU-55; `TotalDPS` has one); any other field from the raw
+     `skillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy value, labelled "per copy" in
+     your messages when the group's count is above 1. Or compare a ledger value (`ledger:<id>`, its formula
+     carrying any Count). List every group of that role. **The rolled figure's stat set
      is the stage's `skills.main.statSet`** (S7): the stage's `skills.main.group` is its `rolledGroup` (else
      `rolled-not-main`), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than
      `g<main.group>s<main.activeSkill>p<main.statSet>`, or a rolled `ledger:<id>` figure whose formula reads
@@ -92,7 +95,7 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
 ```json
 {
   "stage": "D1-gate",
-  "concept": "c1",
+  "concept": "r1-a-2",
   "attempt": 1,
   "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass", "floor": "pass", "budget": "unverified", "rolledSkill": "pass" },
   "findings": [
@@ -118,8 +121,8 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
 - `basis`: only what the plan and the record don't say (`gates.md`): every slot and tree jewel of the
   entering-maps and budget stages with its `priceId`, the rates, each of their totals (`null` when
   unverified) and the non-budget totals; per endgame stage, the figure of every group of the named source's
-  group's role, with no value (the checker reads each Count-scaled from the record). The run checker takes every number from the record, and W1 quotes the totals and the
-  figures.
+  group's role, with no value. The run checker takes every number from the record (each figure by D-340's
+  rule), and W1 quotes the totals and the figures.
 - `faultsApplied`: `[{"id": "FI-2", "observed": "<the V1 finding it caused>"}]`, and for FI-3
   `{"id": "FI-3", "observed": "gate run as usual; outcome forced to infeasible"}`, for each directive the
   header held.
@@ -130,8 +133,8 @@ At most 8 lines: the verdict in one line, the verdict file, and the re-price pas
 outcome.
 
 ```
-D1-gate c1 attempt 1: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass
-reports/gates/D1-gate-c1-a1.json
+D1-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass
+reports/gates/D1-gate-r1-a-2-a1.json
 prices: none (offline)
 ```
 

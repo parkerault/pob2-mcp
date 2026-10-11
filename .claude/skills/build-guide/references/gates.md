@@ -11,7 +11,7 @@ names exactly.
 ```json
 {
   "stage": "D1-gate",
-  "concept": "c1",
+  "concept": "r1-a-2",
   "attempt": 1,
   "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass" },
   "findings": [
@@ -96,11 +96,13 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   In each endgame stage, the named source's group (`skills.rolledGroup`; the name stays, D-295) has role
   `clear` or `single_target`, never `utility` or `leveling`, and its figure × its Count is the largest among
   the stage's groups with that role. A figure is named as a record `skillOutputs` field
-  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared, and compared
-  **Count-scaled**: the record's `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy
-  figure × that group's Count by PoB's Full DPS rule (WU-55; equal to the raw figure when the count is 1), so
-  name a field the counted fields hold (`TotalDPS`). Or a figure is a ledger entry's value (`ledger:<id>`),
-  whose formula carries any Count itself. **The named source is the main skill, and its figure is the main
+  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared. **One rule reads it**
+  (D-340): a field with a counted copy is read **Count-scaled**, from the record's
+  `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (the per-copy figure × that group's Count by
+  PoB's Full DPS rule, WU-55; `TotalDPS` has one); any other field is read from the raw
+  `skillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy value, and is labelled "per copy"
+  wherever it is quoted when the group's count is above 1. Or a figure is a ledger entry's value
+  (`ledger:<id>`), whose formula carries any Count itself. **The named source is the main skill, and its figure is the main
   stat set's** (amendment 1 S7): the PoB file opens on `skills.main`, so the guide's headline figure, the
   Count-scaled one (D-294), is the one the user sees as PoB's Full DPS. On every stage with a `rolledGroup`,
   `skills.main.group` is that group; D1 sets `skills.main.statSet`; and the named source's figure, directly or
@@ -136,8 +138,8 @@ rates, and each endgame stage's figures, from here; it fills every number from t
   `budget.nonBudget` are what W1 quotes in the guide; the run checker computes its own total from the prices
   and rates.
 - `rolledSkill`: per endgame stage, one figure for **every** group of the named source's group's role: the
-  record field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record,
-  Count-scaled as above.
+  record field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record by
+  the same rule (D-340): Count-scaled where the field has a counted copy, else per copy.
 - Findings with codes `chaos-exception` and `near-ceiling` report on a passing part: they are never
   failures, and need no acceptance.
 

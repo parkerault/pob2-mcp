@@ -61,8 +61,8 @@ Blood Hunt consumes Blood Loss for a burst.[^d2] The skeleton keeps chaos resist
 None.
 
 [^d2]: pob-data | lookup_game_data gem "Blood Hunt" | patch: 0.5.4
-[^d5]: pob-computed | c1e.ChaosResist
-[^d6]: price | c1-helmet
+[^d5]: pob-computed | r1a2e.ChaosResist
+[^d6]: price | r1-a-2-helmet
 [^d9]: external | https://maxroll.gg/poe2/build-guides/… | accessed: 2026-10-08 | patch: 0.5.5 | confidence: M
 [^d10]: judgment | PoB has no Blood Loss stack option | confidence: L
 ```
@@ -99,7 +99,7 @@ The verifiers can't write (R-5): a report is the verifier's return, and the runn
   "stage": "V4",
   "lens": "sources",
   "check": "full",
-  "concept": "c1",
+  "concept": "r1-a-2",
   "mode": "offline",
   "findings": [
     { "id": "v4-sources-1", "artifact": "plan.json", "location": "stages[2].claims[5]",

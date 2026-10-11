@@ -27,7 +27,9 @@ Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoin
 - **Show** the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
   line each (its id, title, identity, playstyle tags, links confirmed, under-played label and evidence), and
   the "Not dealt" list, each with the link no lookup confirmed. A card whose damage source isn't a skill is
-  marked "can't be finalized yet" (D-303).
+  marked "can't be finalized yet" (D-303). After a short round (D-339: fewer than 6 cards passed, or the deck
+  holds fewer than two under-played cards), say so, with the reason R1a-assemble gave, which the run log
+  keeps as its `shortReason`.
 - **Ask** with AskUserQuestion in `multiSelect` mode: up to 4 cards a question and up to 3 questions, plus one
   question for brainstorm more or stop. With more than 12 cards to offer, offer the latest round's first; the
   user can name any other card id, a held-back one included, in the free-text answer.
@@ -45,10 +47,13 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
 
 - **Show** R1b-assemble's comparison, one line per card verified in the run (every verification round, not
   only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
-  figure, `Life` and `TotalEHP`, D-294), key prices (dated, or `unavailable`), risks, what PoB can't verify,
-  and its status (`viable`, `failed`). Give the dossier's path. After an `infeasible` design or an escalation,
-  show that card's evidence: its last verdict file. With no viable card, show each card's last verdict and why
-  it fails (D-141).
+  figure, `Life` and `TotalEHP`, D-294; the figure labelled `estimate` when its group's Count is above 1 or
+  the stage is `computedWithCustomMods`, D-296), key prices (dated, or `unavailable`), risks, what PoB can't
+  verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
+  (D-303, D-334; from its R1b verdict's `not-a-skill` finding). Give the dossier's path. After an
+  `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no viable
+  card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
+  listed with its status, never as a failure.
 - **Ask**: finalize one card, verify other cards, brainstorm more, or stop.
   - **finalize** (`pick:<id>`): a failed card may be finalized anyway; a card whose damage source isn't a
     skill can't be yet (D-303). The card's identity `{className, ascendancy, skill}` becomes the run's `roll`
@@ -112,7 +117,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 |---|---|---|
 | unsaved build | `answers.unsavedBuild`: `proceed` or `stop` | none given: `stop`, `default` |
 | brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` dealt cards in `cards.md` not verified yet, else `stop` |
-| verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>`, `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, else `stop` |
+| verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>`, `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, else `stop`; a card that can't be finalized yet is never `viable` |
 | final gate | `answers.final[]`, one per visit: `accept`, `not-accept` or `revise:<text>` | |
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` | none left: `stop`, `default` |
 
@@ -124,7 +129,8 @@ carries no note.
 show everything the gate shows the user, then the answer it resolved to. At the brainstorm gate that is the
 brief and the deck, on every visit. At the verification gate that is R1b-assemble's comparison lines, each
 card's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an
-escalation, that card's evidence (its last verdict file); with no viable card, each card's last verdict. At
+escalation, that card's evidence (its last verdict file); with no viable card, each failed card's last
+verdict. At
 the final gate and at an escalation, the same holds for their displays.
 
 When the `brainstorm`, `verification` or `final` answers run out, the run ends `stopped` (recorded as answer

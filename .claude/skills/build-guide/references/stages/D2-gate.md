@@ -45,7 +45,7 @@ record, the XML and the PoB file.
 ```json
 {
   "stage": "D2-gate",
-  "concept": "c1",
+  "concept": "r1-a-2",
   "attempt": 1,
   "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass" },
   "findings": [],
@@ -64,8 +64,8 @@ At most 8 lines: the verdict in one line, the verdict file, and the PoB file whe
 it.
 
 ```
-D2-gate c1 attempt 1: compiled pass, v1 pass, v2 pass; final compile written
-reports/gates/D2-gate-c1-a1.json
+D2-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass; final compile written
+reports/gates/D2-gate-r1-a-2-a1.json
 titan-blood-hunt-2026-10-08-1.xml
 ```
 

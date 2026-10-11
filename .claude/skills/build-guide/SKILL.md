@@ -100,8 +100,8 @@ to 16 are the finalization.
 | # | Step | Agent type | Writes | Returns, user, retries |
 |---|---|---|---|---|
 | 1 | Start (§1) | you | `run-log.json` | parses and checks the brief; asks the user when `loadedBuildUnsaved` (D-210) |
-| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 2–3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' titles |
-| 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played |
+| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' titles |
+| 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played; `short: <why>` for a short round |
 | 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
 | 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
 | 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md` | the verification gate's comparison, one line per card |
@@ -196,21 +196,27 @@ In this order, before any agent runs:
 - **R1a** (step 2a), brainstorm round `k`. Three researchers in parallel, foci `mechanics`, `items` and
   `tree` (`references/stages/R1a.md`), which you letter `a`, `b` and `c` when you start them, so parallel
   researchers never collide (D-319). Each reads the pattern library, `references/patterns.md`, first. Each
-  writes its research file `research/p<k>-r1a-<n>.md` (`n` is 1, 2 or 3 for `a`, `b` or `c`) and 2–3 cards,
+  writes its research file `research/p<k>-r1a-<n>.md` (`n` is 1, 2 or 3 for `a`, `b` or `c`) and 3 cards,
   `cards/r<k>-<letter>-<m>.md` (`m` from 1), each a card's brainstorm half (`templates/card-template.md`).
   Its header's `writes` are its research file and `cards/r<k>-<letter>-1.md` to `cards/r<k>-<letter>-3.md`.
-  The prompt carries the brief, the focus and letter, and in a later round the user's note.
+  At least one of each researcher's 3 cards is built on a pattern-library shape it judges under-played,
+  labelled `judgment` (D-298, D-339). The prompt carries the brief, the focus and letter, and in a later
+  round the user's note.
 - **R1a-assemble** (step 2b; `references/stages/R1a-assemble.md`), one coordinator step after the round's
   researchers return. It reads the round's cards, merges duplicates, checks each card's identity
   `{className, ascendancy, skill}` as step 1 checks a brief (D-286; for a damage source that isn't a skill,
   a lookup by its kind, D-334), and deals a card only when a lookup confirms every load-bearing link in game
-  text. It writes the deck `cards.md`: 6–9 dealt cards a round, at least two of them under-played by the
-  coordinator's judgment from the pattern library (`judgment`, D-298), then a "Not dealt" list naming each
-  held-back card's unconfirmed link. Its header's `writes` are `["cards.md"]`; a later round adds only new
-  cards. Its prompt lists the round, the brief, the user's note, and each researcher's letter, research file
-  and cards, with whether it returned.
+  text. It writes the deck `cards.md`: 6–9 dealt cards a round, the ones that differ most, keeping at least
+  two under-played cards in the deck by the coordinator's judgment from the pattern library (`judgment`,
+  D-298, D-339), then a "Not dealt" list naming each held-back card's unconfirmed link. Its header's `writes`
+  are `["cards.md"]`; the deck builds up over the rounds, and a later round adds only new cards. Its prompt
+  lists the round, the brief, the user's note, and each researcher's letter, research file and cards, with
+  whether it returned. **A short round** (fewer than 6 cards pass, or the deck holds fewer than two
+  under-played cards): it returns `short: <why>`; record the reason in the run log, as `shortReason` on its
+  `stages[]` entry (`references/run-log.md`), and say so at the brainstorm gate.
 - **The brainstorm gate** (step 2c; `references/checkpoints.md`). Echo the parsed brief at the top, then
-  print the deck from `cards.md`: the dealt cards not verified yet, and the "Not dealt" list. Ask with
+  print the deck from `cards.md`: the dealt cards not verified yet, and the "Not dealt" list; after a short
+  round, its reason. Ask with
   AskUserQuestion in `multiSelect` mode, up to 4 cards a question and up to 3 questions, plus one question for
   more or stop:
   - **verify** 1–3 cards: the union of the selections, more than 3 asked again; a card under "Not dealt" may
@@ -228,19 +234,23 @@ In this order, before any agent runs:
   skeleton compiles, R1b runs the advisory checklist and up to 4 one-stage probe variants (D-292); none is a
   gate. A failed compile re-runs with that verdict file as `findings`, up to 2 counted retries; then the card
   is `failed`, its last verdict file the evidence (D-141). FI-1 applies here. A card whose damage source
-  isn't a skill compiles nothing (D-334): its verdict's `not-a-skill` finding is never retried, and the card
-  can't be finalized yet (D-303).
+  isn't a skill compiles nothing (D-334): its verdict's `not-a-skill` finding is never retried, and the card's
+  status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`.
 - **R1b-assemble** (step 4) writes `dossier.md` from the brainstorm rounds' research files and the
   verification round's cards and skeletons; its key numbers add `TotalEHP` (D-294). Its prompt lists the
   verification round, the research files (and whether each researcher returned), and each card
-  `{id, title, status, attempts, verdict}`; it returns the verification gate's comparison.
+  `{id, title, status, attempts, verdict}`, `status` being `viable`, `failed`, or `can't be finalized yet`
+  when the last R1b verdict's finding is `not-a-skill`; it returns the verification gate's comparison.
 - **The verification gate** (step 5; `references/checkpoints.md`). Show the comparison lines of every card
-  verified in the run (`TotalEHP` included), each card's status (`viable`, `failed`) and the dossier's path.
-  After an `infeasible` design or an escalation sent the run back here, show that card's evidence (its last
-  verdict file); with no viable card, each card's last verdict as its evidence. Ask:
-  - **finalize** one card (a failed one may be picked anyway; one whose damage source isn't a skill can't
-    be, D-303): its identity becomes the run's `roll`, which you record in the run log, and the design
-    (steps 6 to 9) runs for it;
+  verified in the run (`TotalEHP` included; a figure resting on Count or a custom modifier labelled
+  `estimate`, D-296), each card's status (`viable`, `failed`, or "can't be finalized yet: its damage source
+  isn't a skill") and the dossier's path. After an `infeasible` design or an escalation sent the run back
+  here, show that card's evidence (its last verdict file); with no viable card, each failed card's last
+  verdict as its evidence (D-141), and a card that can't be finalized yet with its status, not as a failure.
+  Ask:
+  - **finalize** one card (a failed one may be picked anyway; one that can't be finalized yet can't be,
+    D-303): its identity becomes the run's `roll`, which you record in the run log, and the design (steps 6
+    to 9) runs for it;
   - **verify other cards** from the deck (1–3): a new verification round (step 3), without a brainstorm;
   - **brainstorm more**, with the user's note: brainstorm round `k + 1` (step 2a);
   - **stop**: the run ends `stopped`.

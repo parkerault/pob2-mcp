@@ -1,10 +1,10 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
-Slice 03 §5.2 and §7.5; spine C-52, C-53, D-286, D-287, D-298, D-319, D-334, D-335. One step per brainstorm
-round, after the round's R1a researchers return. It turns their cards into the deck the user picks from at the
-brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when lookups confirm its
-load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices nothing and never edits a
-card.
+Slice 03 §5.2 and §7.5; spine C-52, C-53, D-286, D-287, D-298, D-319, D-334, D-335, D-339. One step per
+brainstorm round, after the round's R1a researchers return. It turns their cards into the deck the user picks
+from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when lookups
+confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices nothing and
+never edits a card.
 
 ## Inputs
 
@@ -42,16 +42,24 @@ card.
    there. A load-bearing link no lookup confirms holds the card back, and "Not dealt" names that link. A hidden
    clause stated as theory ("from a Hit") doesn't hold a card back by itself, but the link it sits on still
    needs its text.
-4. **Deal 6–9 cards** for the round, in card-id order, from the cards that pass steps 1 to 3. When more pass,
-   deal the 9 that differ most (delivery, damage source, focus) and put the rest under "Not dealt" as
-   `round full`. When fewer than 6 pass, deal those and say so in your return.
-5. **Under-played cards** (D-298, as D-335 restates it). At least two dealt cards of the deck are ones you
-   judge under-played: a shape from the pattern library that few builds use with this skill or ascendancy.
-   Label each in its line `under-played (judgment: <the shape, and why>)`. There is no popularity threshold and
+4. **Under-played cards** (D-298 as D-335 restates it; D-339). Each researcher built at least one of its 3
+   cards on a pattern-library shape it judges under-played, labelled `Under-played (judgment)` in its pitch.
+   Read each label against the library: keep it when the shape is one few builds use with this skill,
+   ascendancy or playstyle, in your judgment too, and drop it otherwise. A kept label goes in the card's
+   `cards.md` line as `under-played (judgment: <the shape, and why>)`. There is no popularity threshold and
    no tool for it: poe.ninja's builds API is closed to third parties (D-335). The brief's `popularity` notes,
    where they speak to a card, are the card's evidence, cited as the user's notes, never as your judgment.
-   When fewer than two dealt cards qualify, say so in your return.
-6. **Write `cards.md`** (below).
+5. **Deal 6–9 cards** for the round, in card-id order, from the cards that pass steps 1 to 3: the ones that
+   differ most (delivery, damage source, focus), keeping **at least two under-played cards in the deck**. The
+   deck is every round's dealt cards together, and a later round adds only new cards, so count the
+   under-played cards already dealt in `cards.md`, and deal this round's under-played cards first when the
+   deck needs them. Put the cards you don't deal under "Not dealt" as `round full`.
+6. **A short round.** When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two
+   under-played cards after this round, the round is short: deal what passes, and give the reason in your
+   return as one line, `short: <why>` ("4 of 9 cards passed the sniff test"; "the deck holds one under-played
+   card: the other two failed their identity check"). The runner records it in the run log, and the
+   brainstorm gate says so.
+7. **Write `cards.md`** (below).
 
 ## Writes: `cards.md`
 
@@ -83,12 +91,20 @@ card.
 
 ## Returns
 
-At most 8 lines: `cards.md`, the round's counts, and the under-played ids:
+At most 8 lines: `cards.md`, the round's counts, the deck's under-played ids, and for a short round its
+`short:` line:
 
 ```
 cards.md
 round 1: dealt 7, not dealt 2
 under-played: r1-b-2, r1-c-3
+```
+
+```
+cards.md
+round 1: dealt 4, not dealt 5
+under-played: r1-b-2, r1-c-3
+short: 4 of 9 cards passed the sniff test
 ```
 
 ## Fault directives

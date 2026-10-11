@@ -1913,10 +1913,31 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
   const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
 
-  it('SKILL.md names the gates brainstorm, verification and final, one per phase', () => {
+  /** The step list's rows for the three gates, each run by the runner and writing only the log. */
+  const GATE_ROWS = [
+    '| 2c | The brainstorm gate (§2) | you | log |',
+    '| 5 | The verification gate (§3) | you | log |',
+    '| 16 | The final gate (§6) | you | log |',
+  ];
+  const gateRows = (text: string) => {
+    const section = text.slice(text.indexOf('## The steps'), text.indexOf('## 1. Start'));
+    return GATE_ROWS.map((row) => ({ row, listed: section.split('\n').some((l) => l.startsWith(row)) }));
+  };
+
+  it('SKILL.md names the gates brainstorm, verification and final, one per phase, each a row of the step list', () => {
     for (const gate of ['brainstorm', 'verification', 'final']) expect({ gate, named: skill().includes(`gate \`${gate}\``) }).toEqual({ gate, named: true });
     expect(skill()).toMatch(/\*\*three phases, each ending at a gate the user answers\*\* \(D-287\)/);
     expect(skill()).toMatch(/Only the user starts a round/);
+    expect(gateRows(fs.readFileSync(SKILL_MD, 'utf8'))).toEqual(GATE_ROWS.map((row) => ({ row, listed: true })));
+  });
+
+  it('the gate-row check fails when a gate row is missing', () => {
+    const text = fs.readFileSync(SKILL_MD, 'utf8');
+    for (const [i, row] of GATE_ROWS.entries()) {
+      const line = text.split('\n').find((l) => l.startsWith(row))!;
+      const listed = gateRows(text.replace(`${line}\n`, '')).map((r) => r.listed);
+      expect(listed).toEqual(GATE_ROWS.map((_, j) => j !== i));
+    }
   });
 
   it('SKILL.md has the step R1a-assemble, type build-guide-coordinator, and its stage reference exists', () => {
@@ -1926,16 +1947,33 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     expect(coordinator.body).toContain('| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` |');
   });
 
-  it('R1a-assemble checks identities, deals only what lookups confirm, 6–9 a round, two under-played by judgment, and writes cards.md', () => {
+  it('R1a-assemble checks identities, deals only what lookups confirm, 6–9 a round keeping two under-played cards in the deck (D-339), and writes cards.md', () => {
     const text = folded(readStage('R1a-assemble'));
     expect(text).toContain('`writes: ["cards.md"]`');
     expect(text).toMatch(/\*\*Check each card's identity\*\* `\{className, ascendancy, skill\}`, `skill` being the named damage source \(D-286\)/);
     expect(text).toMatch(/\*\*The sniff test\*\* \(D-287\)\. .* Deal the card only when a lookup confirms every load-bearing link in game text/);
-    expect(text).toMatch(/\*\*Deal 6–9 cards\*\* for the round/);
-    expect(text).toMatch(/At least two dealt cards of the deck are ones you judge under-played: a shape from the pattern library/);
+    expect(text).toMatch(/\*\*Deal 6–9 cards\*\* for the round, .* the ones that differ most .* keeping \*\*at least two under-played cards in the deck\*\*\. The deck is every round's dealt cards together, and a later round adds only new cards/);
+    expect(text).toMatch(/Each researcher built at least one of its 3 cards on a pattern-library shape it judges under-played/);
     expect(text).toContain('`under-played (judgment: <the shape, and why>)`');
     expect(text).toMatch(/There is no popularity threshold and no tool for it/);
+    expect(text).toMatch(/\*\*A short round\.\*\* When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two under-played cards after this round, the round is short: .* give the reason in your return as one line, `short: <why>`/);
     expect(text).toMatch(/The last H2 is `## Not dealt`: every card held back in any round, with what held it back/);
+  });
+
+  it('D-339: each researcher writes 3 cards, at least one under-played by its judgment, whatever the brief names; SKILL.md records a short round', () => {
+    const r1a = folded(readStage('R1a'));
+    expect(r1a).toMatch(/\*\*An under-played card\*\* \(D-298, D-339\)\. Whatever the brief names, at least one of your 3 cards is built on a pattern-library shape that you judge under-played/);
+    expect(r1a).toMatch(/\*\*The cards\*\* \(C-52\): 3, each/);
+    expect(r1a).not.toMatch(/2 or 3/);
+    const researcher = folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-researcher.md'), 'utf8'));
+    expect(researcher).toMatch(/3 candidate cards/);
+    expect(researcher).not.toMatch(/2 or 3/);
+    const card = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8');
+    expect(folded(card)).toContain('Under-played (judgment): <the pattern-library shape');
+    expect(skill()).toMatch(/keeping at least two under-played cards in the deck by the coordinator's judgment from the pattern library \(`judgment`, D-298, D-339\)/);
+    expect(skill()).not.toMatch(/2–3 cards|at least two of them under-played/);
+    expect(skill()).toMatch(/\*\*A short round\*\* .* it returns `short: <why>`; record the reason in the run log, as `shortReason` on its `stages\[\]` entry/);
+    expect(ref('checkpoints.md')).toMatch(/After a short round \(D-339: .*\), say so, with the reason R1a-assemble gave, which the run log keeps as its `shortReason`/);
   });
 
   it('R1a reads the pattern library first and writes cards, lettered by the runner (C-53, D-290, D-319)', () => {
@@ -2090,5 +2128,57 @@ describe("WU-57: Count in D1 and the D1 gate's figure × count, D2's bridge skil
 
   it('V4 holds a Count, hand-calculated or custom-modifier figure to being labelled an estimate, and every interaction to game text (D-296)', () => {
     expect(folded(readStage('V4'))).toMatch(/\*\*estimates\*\* \(D-296\): .* a figure that rests on Count or a hand calculation, or that the record marks `computedWithCustomMods`, is stated as an estimate, never as exact; .* every interaction the guide states must still exist in game text/);
+  });
+});
+
+describe('WU-57 review: a card that can\'t be finalized yet, the estimate label, one rule for compared fields, card ids', () => {
+  const STATUS = "can't be finalized yet: its damage source isn't a skill";
+
+  it("a not-a-skill card has its own status (D-303), never failed, with no plan path, in R1b-assemble, the dossier and the verification gate", () => {
+    const assemble = folded(readStage('R1b-assemble'));
+    expect(assemble).toMatch(/`status` `viable`, `failed`, or `can't be finalized yet` \(its last R1b verdict's finding is `not-a-skill`/);
+    expect(assemble).toMatch(/A card that can't be finalized yet has no skeleton, record or prices to confirm: it compiled nothing \(D-334\), and it is never `failed`/);
+    expect(assemble).toMatch(/It names no `concepts\/<id>\/` path: none exists/);
+    expect(assemble).toContain(`r1-c-3 ${STATUS}`);
+    // The dossier template's entry for such a card: no skeleton or record path, its own status.
+    const dossier = fs.readFileSync(DOSSIER_TEMPLATE, 'utf8');
+    const entry = dossier.slice(dossier.indexOf('### r1-c-3:'), dossier.indexOf('## Not carried'));
+    expect(entry).toContain(`- Status: ${STATUS}`);
+    expect(entry).toContain('- Skeleton: none');
+    expect(entry).not.toMatch(/concepts\//);
+    // The verification gate shows it as a status, never in D-141's failure list, and first-viable skips it.
+    const gate = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'));
+    expect(gate).toContain(`its status: \`viable\`, \`failed\`, or "${STATUS}"`);
+    expect(gate).toMatch(/With no viable card, show each failed card's last verdict and why it fails \(D-141\); a card that can't be finalized yet is listed with its status, never as a failure/);
+    expect(gate).toMatch(/a card that can't be finalized yet is never `viable`/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/the card's status is "can't be finalized yet: its damage source isn't a skill" \(D-303\), never `failed`/);
+  });
+
+  it('the verification gate labels the DPS figure an estimate when Count is above 1 or a custom modifier is present (D-296)', () => {
+    const rule = /labelled `estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods` \(D-296\)/;
+    expect(folded(readStage('R1b-assemble'))).toMatch(rule);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(
+      /the figure labelled `estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods`, D-296/,
+    );
+  });
+
+  it('gates.md and the D1 gate read a compared field by one rule: Count-scaled where it has a counted copy, else per copy (D-340)', () => {
+    const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
+    const gate = folded(readStage('D1-gate'));
+    for (const text of [gates, gate]) {
+      expect(text).toContain('(D-340)');
+      expect(text).toContain('`countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`');
+      expect(text).toContain('`skillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy value');
+      expect(text).toMatch(/labelled "per copy" .*when the group's count is above 1/);
+    }
+    expect(gates).toMatch(/a field with a counted copy is read \*\*Count-scaled\*\*/);
+    expect(gate).toMatch(/a field with a counted copy Count-scaled/);
+  });
+
+  it('the stage references and shared references show card ids, not concept ids', () => {
+    for (const rel of ['references/gates.md', 'references/source-markers.md', 'references/stages/D1-gate.md', 'references/stages/D2-gate.md', 'references/stages/D1.md', 'references/stages/D2.md']) {
+      const text = fs.readFileSync(path.join(SKILL_DIR, rel), 'utf8');
+      expect({ rel, stale: text.match(/"concept": "c\d+"|\bc\d+e\.|\bc\d+-helmet|-c\d+-a\d|\b[A-Za-z0-9-]+ c\d+ attempt/g) ?? [] }).toEqual({ rel, stale: [] });
+    }
   });
 });

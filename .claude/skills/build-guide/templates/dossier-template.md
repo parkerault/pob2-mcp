@@ -51,9 +51,31 @@ calculation, Count or custom modifier with the inputs it needs (D-123, D-293).>[
 - Skeleton: concepts/r1-a-2/plan.json
 - Compile: <compiled, no errors | failed after <N> attempts: <the last errors>>
 - Record: <concepts/r1-a-2/compile-record.json | none>
-- Key numbers: <field> <value>, …, TotalEHP <value>[^r1-a-2-1]
+- Key numbers: <field> <value>, …, TotalEHP <value>; a figure resting on Count above 1 or a custom modifier
+  marked "estimate" (D-296)[^r1-a-2-1]
 - Key-item prices: <item>: <amount currency, dated YYYY-MM-DD | unavailable (<note>)>[^r1-a-2-2]
 - Status: <viable | failed: <evidence>>
+
+### r1-c-3: <title>
+
+[only for a card whose damage source isn't a skill (D-303, D-334): it compiled nothing, so it has no skeleton,
+record or prices, and it is never a failure; drop this note]
+
+- Key uniques: <names, or None>
+- Ascendancy nodes: <names>
+- Supports: <None, or the supports its chain names>
+- Keystones: <names, or None>
+- Feasibility read: <what the read-only checks found, and what finalizing it waits on: a plan field for an
+  item-effect damage source (HG-21)>
+- Risks: <what could sink it, the checklist's risks among them>
+- What PoB can't verify: <its damage source, and every figure that rests on it>
+- Proposed in: cards/r1-c-3.md
+- Skeleton: none
+- Compile: not compiled: its damage source isn't a skill
+- Record: none
+- Key numbers: none (not compiled)
+- Key-item prices: none (not compiled)
+- Status: can't be finalized yet: its damage source isn't a skill
 
 ## Not carried
 

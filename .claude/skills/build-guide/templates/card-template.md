@@ -32,6 +32,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Title: <at most 60 characters; names the idea, not the roll>
 - Playstyle: <tags from the brief's vocabulary: delivery, buttons, focus, defence, pace>
+- [only on the card you judge under-played, at least one of each researcher's 3; D-339] Under-played
+  (judgment): <the pattern-library shape, and why few builds use it with this skill, ascendancy or playstyle>
 - <Line 1: what the build does.>
 - <Line 2: how it kills.>
 

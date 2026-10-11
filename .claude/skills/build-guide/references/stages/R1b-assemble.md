@@ -1,8 +1,9 @@
 # R1b-assemble: the dossier (`build-guide-coordinator`)
 
-Slice 03 §5.2 (the verification phase) and §7.2; spine D-269, D-287, D-294. One step per verification round,
-after every R1b step of the round. It writes `dossier.md`, what the verification gate shows the user and what
-the design steps read: the brainstorm rounds' research and every verified card with its skeleton's result.
+Slice 03 §5.2 (the verification phase) and §7.2; spine D-269, D-287, D-294, D-296, D-303, D-334. One step per
+verification round, after every R1b step of the round. It writes `dossier.md`, what the verification gate shows
+the user and what the design steps read: the brainstorm rounds' research and every verified card with its
+skeleton's result.
 
 ## Inputs
 
@@ -12,8 +13,9 @@ the design steps read: the brainstorm rounds' research and every verified card w
 - **Prompt:** a `json` block for the round: `round` (the verification round), the parsed `brief`, the user's
   `note` for each brainstorm round; `researchFiles` (`{file, returned}`: `returned: false` means that
   researcher returned without its file, so its file may be missing or partial); and `cards`, each
-  `{id, title, status, attempts, verdict}`: `status` `viable` or `failed`, with the R1b attempts it made and
-  its last verdict file.
+  `{id, title, status, attempts, verdict}`: `status` `viable`, `failed`, or `can't be finalized yet` (its last
+  R1b verdict's finding is `not-a-skill`: its damage source isn't a skill, D-303, D-334), with the R1b
+  attempts it made and its last verdict file.
 - **Read:** the template `.claude/skills/build-guide/templates/dossier-template.md`; the research files; each
   card of the round, `cards/<id>.md` (both halves); each card's last verdict file (its errors, `recordPath`
   and `leagueUnverified`), its `concepts/<id>/plan.json` (the key-item prices) and, where it compiled,
@@ -26,7 +28,8 @@ the design steps read: the brainstorm rounds' research and every verified card w
 
 1. **Confirm each record.** For every card the input calls `viable`, check that
    `concepts/<id>/compile-record.json` exists beside its skeleton. If it doesn't, the card is `failed`:
-   say so in its entry and in its comparison line.
+   say so in its entry and in its comparison line. A card that can't be finalized yet has no skeleton,
+   record or prices to confirm: it compiled nothing (D-334), and it is never `failed`.
 2. **Write the dossier from the template**, keeping its H2s exactly, in order: `Roll and mode`,
    `Mechanics`, `Synergy search`, `Config gaps`, `Concepts`, `Not carried`. Nothing else is an H2.
    - **Roll and mode:** the brief (its fields as parsed; a fixed roll names its class, ascendancy and
@@ -47,7 +50,12 @@ the design steps read: the brainstorm rounds' research and every verified card w
      `Record`, `Key numbers` (from the record, with markers, `TotalEHP` among them, D-294), `Key-item prices`
      (each dated, or `unavailable` with its note) and `Status` (`viable`, or `failed` with its evidence). When
      the card's payoff rests on a mechanic no lookup confirmed, or that has no source in the card (no item,
-     node or gem that grants it), its `Risks` says so.
+     node or gem that grants it), its `Risks` says so. A key number resting on Count above 1 or on a stage
+     the record marks `computedWithCustomMods` is labelled `estimate` (D-296).
+   - **A card that can't be finalized yet** (D-303, D-334): the same fields from its card, but `Skeleton:
+     none`, `Compile: not compiled: its damage source isn't a skill`, `Record: none`, `Key numbers: none (not
+     compiled)`, `Key-item prices: none (not compiled)`, and `Status: can't be finalized yet: its damage source
+     isn't a skill`. It names no `concepts/<id>/` path: none exists.
    - **Not carried:** one line per card dealt in `cards.md` and not verified yet: its id, title and
      `cards.md`, which the verification gate can still verify; or `None.`
 3. **A later round** keeps everything already in `dossier.md`: add this round's lines under Roll and mode,
@@ -73,12 +81,16 @@ the design steps read: the brainstorm rounds' research and every verified card w
 At most 8 lines: `dossier.md`, then the verification gate's comparison, one line per card of this round in id
 order: its id, its status, its synergy in a few words, its key numbers from the record (the named source's
 Count-scaled figure, `Life` and `TotalEHP`), its key prices (dated, or `unavailable`), and its main risk; a
-failed card's line names its last verdict file.
+failed card's line names its last verdict file. The figure is labelled `estimate` when its group's Count is
+above 1 or the stage is `computedWithCustomMods` (D-296). A card that can't be finalized yet says so, with no
+numbers, and isn't a failure.
 
 ```
 dossier.md
-r1-a-2 viable: bleed burst on rares; Blood Hunt 50,000 DPS (r1a2e g1s1p1 TotalDPS × 1), Life 4,210, EHP 31,500; prices unavailable (offline); risk: chaos resistance
+r1-a-2 viable: bleed burst on rares; Blood Hunt 50,000 DPS (r1a2e g1s1p1 TotalDPS), Life 4,210, EHP 31,500; prices unavailable (offline); risk: chaos resistance
+r1-b-2 viable: totem relay; Ancestral Warrior Totem 84,000 DPS, estimate (Count 2: two totems), Life 3,900, EHP 27,800; prices unavailable (offline); risk: totem placement
 r1-b-1 failed after 3 attempts: FI-1 Unknown Gem (reports/gates/R1b-r1-b-1-a3.json)
+r1-c-3 can't be finalized yet: its damage source isn't a skill (a flask nova); read-only checks only
 ```
 
 ## Fault directives

@@ -1709,8 +1709,18 @@ and its file is shown to the user with item 1's approval.
   of D-285 and D-335's `popularity`), and still accepts `<ascendancy> <skill>`.
 - **AC-W31 (WU-57).** Static: `SKILL.md` names the gates `brainstorm`, `verification` and `final` and the step
   `R1a-assemble` (type `build-guide-coordinator`), and `references/stages/R1a-assemble.md` exists.
-- **AC-W32 (WU-57).** Static: the stage references use D-122's wording, "named damage source". The exact
-  assertion is pinned at the unit's first step (A-33).
+- **AC-W32 (WU-57; pinned at its first step, A-33).** Static, `buildGuidePipeline.test.ts`, each file's text
+  folded (line breaks to spaces):
+  - (a) D-122 as D-295 words it, "The build's named damage source is the main source of damage, never a token
+    role.", is in `references/stages/D1.md`, `references/gates.md` and `build-guide-coordinator.md`; D-148's
+    "The named damage source should be the clear skill. It takes the single-target role only when it can't
+    clear, and the guide says so." is in `D1.md`.
+  - (b) "named damage source" is in `SKILL.md` and the stages that apply the rule: `R1a`, `R1a-assemble`,
+    `R1b`, `R1b-assemble`, `D1-gate`, `D2`, `W1` and `V4` (`references/stages/<stage>.md`).
+  - (c) No `.md` under `.claude/skills/build-guide/` or `.claude/agents/build-guide/` matches
+    `/rolled[ -](main )?skill/i`. Identifiers stay (`rolledGroup`, the part `rolledSkill`, the `rolled-*`
+    codes; D-295), and so does "the roll" (C-31's `roll`, D-286).
+  - Each (a) and (b) phrase is a `toContain` per file; (c)'s `<file>: <match>` offender list equals `[]`.
 - **AC-W33 (WU-57; restated by D-335).** Static: `SKILL.md` and the researcher's and coordinator's
   definitions say: never contact pathofexile.com or poe.ninja yourself, and there are no poe.ninja tools
   beyond the currency rates; no researcher's allowlist names a group-`ninja` tool; R-3 holds for C and P.

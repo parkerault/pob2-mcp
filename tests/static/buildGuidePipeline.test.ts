@@ -1693,6 +1693,10 @@ describe('AC-W29: R1b lists the advisory checklist of §7.7 and its probe budget
     expect(flat).toMatch(/A probe that doesn't fit the budget, or whose compile fails, is reported `not checked`/);
     // A card whose damage source isn't a skill gets only the read-only checks (D-334).
     expect(flat).toMatch(/run checks 1–4 from the card and the lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill"/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
 // WU-62 (amendment 2, D-276…D-283): the reader layer, the audit layer, the editor lens and the entering-maps
 // rung in D1, D2 and the gates
 // ---------------------------------------------------------------------------------------------------

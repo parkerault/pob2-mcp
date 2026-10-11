@@ -1418,6 +1418,8 @@ export interface ActionParamsMap {
     sourceTemplates?: string[];
     /** WU-54 (D-336): the string literals of mod-list reads in `Data/Skills/`, for `mapped but unread` only. */
     sourceCallNames?: string[];
+    /** WU-54 (D-336): the templates of mod-list reads built from a skill's name, for `mapped but unread` only. */
+    sourceSkillTemplates?: string[];
   };
   /**
    * C-39: `id` is the source for `copy` and the target for `rename` and `select`; `title` is the new title,

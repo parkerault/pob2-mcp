@@ -237,6 +237,7 @@ async function coverageParams(): Promise<Json> {
     sourceNames: [...scan.names],
     sourceTemplates: scan.templates,
     sourceCallNames: scan.skillCallNames,
+    sourceSkillTemplates: scan.skillNameTemplates,
   };
 }
 

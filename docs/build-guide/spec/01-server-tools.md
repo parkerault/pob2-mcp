@@ -1061,9 +1061,11 @@ Cross-checks compare against PoB's own data and functions, never against the too
       request carries them as `sourceCallNames`;
     - a compound `X:Y` whose parts are read;
     - else, whether or not it holds a `:`, a whole fit to a concatenation template. Every fixed part
-      matches, and each `*` is empty, a name read as above, or a skill's name with its whitespace removed
-      (as `Modules/CalcActiveSkill.lua:866-869` builds `"Multiplier:"..name:gsub("%s+", "").."MaxStages"`).
-      D-243's suffix rule doesn't apply.
+      matches, and each `*` is empty or a name read as above. D-243's suffix rule doesn't apply.
+    - In a template PoB builds from `activeGrantedEffect.name` inside a mod-list read, a `*` may also be a
+      skill's name with its whitespace removed. The server's scan finds these templates, and each request
+      carries them as `sourceSkillTemplates`. At the pin they are `Multiplier:*MaxStages` and
+      `Multiplier:*MinimumStage` (`Modules/CalcActiveSkill.lua:866-869`).
 
     The flag carries its line and that entry's source, and its note names the unread mod names. Line
     statuses, D-243's included, don't change (AC-K57).
@@ -1076,7 +1078,10 @@ Cross-checks compare against PoB's own data and functions, never against the too
       strikes (`AdditionalFlickersPerPowerCharge`, `Data/Skills/act_int.lua:8673`).
     - One call covers every gem (Lua query). It flags exactly the lines that the rule above, applied in the
       test, gives for each gem's mapped lines and mod names, which a Lua query lists at the gem's checked
-      level and quality. That is 23 lines at the pin at the default levels.
+      level and quality. That is 24 lines at the pin at the default levels.
+    - These are flagged, each named only in its own stat map: Combat Frenzy's `CombatFrenzyCooldown`
+      (`Data/Skills/act_dex.lua:814`), Snipe's `AttackSpeedScalesCost` (`Data/SkillStatMap.lua:437`) and
+      Pounce's `ActiveWolfLimit` (`Data/SkillStatMap.lua:2606`).
   - **`stat not mapped`** (PG-4, PG-49). A stat of a support or meta gem that PoB can't act on, and whose
     effect its tooltip check never sees. A support or meta gem is one whose own effect is a support, or
     that has a granted effect of skill type `Meta`. The stat qualifies when all of these hold:
@@ -1105,8 +1110,8 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
   then the note. Build mode lists every flag too, although it hides fully parsed lines.
 - **Notes.** Where a criterion says a note names something, the test finds that text in the note.
 
-- **AC-K53 (C-38 energy-based meta gems; PG-9).** PoB doesn't model Energy, so it can't tell how often an
-  energy-based meta gem triggers its socketed skills.
+- **AC-K53 (C-38 energy-based meta gems; PG-9).** PoB doesn't model Energy, so any trigger rate it shows
+  for an energy-based meta gem isn't based on Energy.
   - `{gems:["Cast on Critical"]}` reports one flag `energy not modelled`, source `Gem Cast on Critical`,
     with no `line`. Its note is exactly "PoB doesn't model Energy; any trigger rate it shows isn't based on
     Energy." The gem's five lines keep their status, `possibly unmodelled; check config` (AC-K13's rule).

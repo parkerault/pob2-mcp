@@ -869,6 +869,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       sourceNames: [...scan.names],
       sourceTemplates: scan.templates,
       sourceCallNames: scan.skillCallNames,
+      sourceSkillTemplates: scan.skillNameTemplates,
       ...params,
     });
   }
@@ -945,7 +946,8 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
   /**
    * D-336's strict reading: exactly a scanned name, a skill-data mod-list read literal, a skill-data tag
    * name or a minion limit; a compound "X:Y" whose parts are read; or else a whole template fit whose
-   * `*` is empty, such a name or a skill name without whitespace. D-243's suffix rule doesn't apply.
+   * `*` is empty or such a name, or, in a template of a mod-list read built from a skill's name, a skill
+   * name without whitespace. D-243's suffix rule doesn't apply.
    */
   function strictlyRead(data: DataNames, name: string): boolean {
     const calls = new Set(scan.skillCallNames);
@@ -953,9 +955,10 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
     if (known(name)) return true;
     if (name.includes(':') && name.split(':').filter(Boolean).every((p) => strictlyRead(data, p))) return true;
     const wild = (n: string) => known(n) || data.skills.has(n);
-    return scan.templates
-      .filter((t) => /[^*]/.test(t))
-      .some((t) => fitsWith(wild, name, t.split(/(\*+)/).filter((x) => x !== '').map((x) => (x.startsWith('*') ? '*' : x))));
+    const parts = (t: string) => t.split(/(\*+)/).filter((x) => x !== '').map((x) => (x.startsWith('*') ? '*' : x));
+    const fits = (templates: string[], ok: (n: string) => boolean) =>
+      templates.filter((t) => /[^*]/.test(t)).some((t) => fitsWith(ok, name, parts(t)));
+    return fits(scan.templates, known) || fits(scan.skillNameTemplates, wild);
   }
 
   /** Every string a mod tag in the loaded skill data names (any tag field but `type`), every minion
@@ -1066,6 +1069,37 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
   );
 
   it(
+    'AC-K50 (mapped but unread, literal): Combat Frenzy\'s cooldown, Snipe\'s attack-speed cost and Pounce\'s wolf limit are flagged; PoB names each only where it maps it',
+    async () => {
+      const cases = [
+        // CombatFrenzyCooldown appears only in its own stat map, Data/Skills/act_dex.lua:814. CalcOffence.lua:3452's
+        // globalOutput[skillNameVar.."Cooldown"] is an output field, built only for Fist Of War, Ancestral
+        // Empowerment and Ancestral Call (:3529-3549), so a skill name doesn't fill that template's `*`.
+        { gem: 'Combat Frenzy', stat: 'skill_combat_frenzy_x_ms_cooldown', mod: 'CombatFrenzyCooldown' },
+        // AttackSpeedScalesCost appears only at Data/SkillStatMap.lua:437, flag("AttackSpeedScalesCost").
+        { gem: 'Snipe', stat: 'attack_speed_modifiers_apply_to_over_time_cost', mod: 'AttackSpeedScalesCost' },
+        // ActiveWolfLimit appears only at Data/SkillStatMap.lua:2606, mod("ActiveWolfLimit", "BASE", nil); no
+        // minion's `limit` names it.
+        { gem: 'Pounce', stat: 'number_of_wolves_allowed', mod: 'ActiveWolfLimit' },
+      ];
+      for (const c of cases) {
+        const result = await scannedAction({ gems: [c.gem] });
+        const lines = arr(result.entries).filter((e) => e.stat === c.stat);
+        expect({ gem: c.gem, lines: lines.length > 0 }).toEqual({ gem: c.gem, lines: true });
+        for (const line of lines) {
+          const flagged = arr(result.flags).filter((x) => x.flag === 'mapped but unread' && x.source === line.source && x.line === line.line);
+          expect({ gem: c.gem, line: line.line, flagged: flagged.length }).toEqual({ gem: c.gem, line: line.line, flagged: 1 });
+          expect(flagged[0].note).toContain(c.mod);
+        }
+        // Through the tool's text too.
+        const text = await okTool({ gems: [c.gem] });
+        expect(ofFlag(parseFlags(text), 'mapped but unread').some((x) => x.note.includes(c.mod))).toBe(true);
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'AC-K50 (mapped but unread): over every gem, the flagged lines equal the mapped lines whose stat map yields a mod name the strict reading finds unread (Lua query)',
     async () => {
       const catalogue = await gemCatalogue();
@@ -1125,7 +1159,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       // No status moved: the gem entries are still AC-K13's two statuses.
       expect(arr(result.entries).every((e) => e.status === 'fully parsed' || e.status === UNMODELLED)).toBe(true);
       // The count at the pin (default levels, or the golden build's for its gems).
-      expect(expected).toHaveLength(23);
+      expect(expected).toHaveLength(24);
       expect(expected).toContain(JSON.stringify(['Gem Aftershock I / Aftershock I', 'Supported skills have 25% chance to cause an additional Aftershock']));
     },
     ENGINE_TIMEOUT,

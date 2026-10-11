@@ -20,6 +20,12 @@
  * (`Data/Skills/act_int.lua:8673`). The requests carry them as `sourceCallNames`; only the
  * `mapped but unread` flag reads them, so no line status depends on them.
  *
+ * For the same flag it keeps `skillNameTemplates`: the templates of the mod-list reads in `Modules/` and
+ * `Classes/` whose arguments build a name from `activeGrantedEffect.name`, as
+ * `skillModList:Sum("BASE", cfg, "Multiplier:"..activeGrantedEffect.name:gsub("%s+", "").."MaxStages")`
+ * does (`Modules/CalcActiveSkill.lua:866-869`). Only in these may a `*` be a skill's name (D-336). The
+ * requests carry them as `sourceSkillTemplates`.
+ *
  * The scan runs once per server process, lazily on the first call, and is memoized per source directory:
  * a second call returns the same objects, and an engine restart doesn't repeat it. A failed scan isn't
  * memoized, so the next call tries again.
@@ -43,6 +49,8 @@ export interface PobSourceScan {
   templates: string[];
   /** Every distinct string literal passed to a mod-list read in `Data/Skills/` (D-336), sorted. */
   skillCallNames: string[];
+  /** The templates of mod-list reads that build a name from `activeGrantedEffect.name` (D-336), sorted. */
+  skillNameTemplates: string[];
 }
 
 /** The mod-list methods that read mods by name; `NewMod` adds one, so it isn't here. */
@@ -50,21 +58,21 @@ const READ_METHODS = ["Sum", "More", "Flag", "Override", "Max", "Min", "List", "
 const READ_CALL = new RegExp(`:(?:${READ_METHODS.join("|")})\\s*\\(`, "g");
 
 /**
- * The string literals passed to a mod-list read (`:Sum(`, `:Flag(`, `:List(`, …) in Lua source: every
- * quoted literal between the call's `(` and its matching `)`. Comments aren't skipped; skill data has
- * none that hold such a call.
+ * The argument text of every mod-list read (`:Sum(`, `:Flag(`, `:List(`, …) in Lua source: what lies
+ * between the call's `(` and its matching `)`, a parenthesis inside a quoted literal not counted.
+ * Comments aren't skipped.
  */
-export function modListCallLiterals(text: string): string[] {
-  const out = new Set<string>();
+export function modListCallArgs(text: string): string[] {
+  const out: string[] = [];
   for (const match of text.matchAll(READ_CALL)) {
-    let i = (match.index ?? 0) + match[0].length;
+    const start = (match.index ?? 0) + match[0].length;
+    let i = start;
     let depth = 1;
     while (i < text.length && depth > 0) {
       const c = text[i];
       if (c === '"' || c === "'") {
         let j = i + 1;
         while (j < text.length && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
-        out.add(text.slice(i + 1, j));
         i = j + 1;
         continue;
       }
@@ -72,6 +80,48 @@ export function modListCallLiterals(text: string): string[] {
       else if (c === ")") depth--;
       i++;
     }
+    out.push(text.slice(start, depth === 0 ? i - 1 : i));
+  }
+  return out;
+}
+
+/** Every quoted literal in a stretch of Lua source. */
+function quotedLiterals(text: string): string[] {
+  const out: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < text.length && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
+      out.push(text.slice(i + 1, j));
+      i = j + 1;
+    } else {
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
+ * The string literals passed to a mod-list read (`:Sum(`, `:Flag(`, `:List(`, …) in Lua source: every
+ * quoted literal in the call's arguments. Strings outside such a call, and `NewMod`'s, aren't collected.
+ */
+export function modListCallLiterals(text: string): string[] {
+  const out = new Set<string>();
+  for (const args of modListCallArgs(text)) for (const literal of quotedLiterals(args)) out.add(literal);
+  return [...out];
+}
+
+/**
+ * The concatenation templates of the mod-list reads whose arguments build a name from
+ * `activeGrantedEffect.name` (D-336), such as `Multiplier:*MaxStages`.
+ */
+export function skillNameTemplates(text: string): string[] {
+  const out = new Set<string>();
+  for (const args of modListCallArgs(text)) {
+    if (!args.includes("activeGrantedEffect.name")) continue;
+    for (const template of concatTemplates(args)) out.add(template);
   }
   return [...out];
 }
@@ -236,6 +286,7 @@ const memo = new Map<string, Promise<PobSourceScan>>();
 async function scan(pobSrc: string): Promise<PobSourceScan> {
   const names = new Set<string>();
   const templates = new Set<string>();
+  const skillTemplates = new Set<string>();
   for (const dir of SCANNED_DIRS) {
     const entries = await fs.promises.readdir(path.join(pobSrc, dir), { withFileTypes: true });
     const files = entries
@@ -246,6 +297,7 @@ async function scan(pobSrc: string): Promise<PobSourceScan> {
       const text = await fs.promises.readFile(path.join(pobSrc, dir, file), "utf8");
       for (const match of text.matchAll(IDENTIFIER)) names.add(match[0]);
       for (const template of concatTemplates(text)) templates.add(template);
+      for (const template of skillNameTemplates(text)) skillTemplates.add(template);
     }
   }
   const skillCallNames = new Set<string>();
@@ -257,7 +309,12 @@ async function scan(pobSrc: string): Promise<PobSourceScan> {
     const text = await fs.promises.readFile(path.join(pobSrc, SKILL_DATA_DIR, file), "utf8");
     for (const literal of modListCallLiterals(text)) skillCallNames.add(literal);
   }
-  return { names, templates: [...templates].sort(), skillCallNames: [...skillCallNames].sort() };
+  return {
+    names,
+    templates: [...templates].sort(),
+    skillCallNames: [...skillCallNames].sort(),
+    skillNameTemplates: [...skillTemplates].sort(),
+  };
 }
 
 /**

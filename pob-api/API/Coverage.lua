@@ -1,7 +1,8 @@
 -- API/Coverage.lua
 -- Whether PoB applies each line of an item, a passive node or a gem (C-38, WU-32):
 --
---   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames, sourceTemplates?, sourceCallNames?}
+--   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames, sourceTemplates?, sourceCallNames?,
+--                    sourceSkillTemplates?}
 --     itemText   one item, as add_item takes it: its enchant, rune, implicit and explicit lines of the
 --                selected variant (the lines Item.lua's BuildModList applies or drops), rated as PoB applies
 --                them: parsed at range 1 as ParseRaw does, then re-parsed at the line's range as
@@ -18,6 +19,8 @@
 --                with `*` for each run of other operands, such as "*ConvertTo*" or "*CostEfficiency"
 --     sourceCallNames  the string literals passed to mod-list reads in Data/Skills/*.lua (D-336); only the
 --                `mapped but unread` flag reads them
+--     sourceSkillTemplates  the templates of mod-list reads in Modules/ and Classes/ that build a name from
+--                activeGrantedEffect.name, such as "Multiplier:*MaxStages" (D-336); the same flag only
 --   -> {counts, entries[], gems[], checked, flags[]}, each entry {kind, source, line, status, remainder?,
 --      joinedWith?, unread?, stat?, nodeId?}, each flag {flag, source, note, line?}
 --
@@ -49,7 +52,9 @@
 --                         strict reading: exactly a scanned name, a skill-data mod-list read literal
 --                         (`sourceCallNames`), a string a mod tag in the skill data names, or a minion
 --                         limit; a compound "X:Y" of read parts; or else a whole template fit whose `*`
---                         is empty, such a name or a skill name without whitespace (no D-243 suffix rule)
+--                         is empty or such a name, or, in a template of a mod-list read built from a
+--                         skill's name (`sourceSkillTemplates`), a skill name without whitespace (no D-243
+--                         suffix rule)
 --   stat not mapped       a support or meta gem's stats, non-zero, with no stat map and in no described line
 --                         (removing one leaves the described lines unchanged); display_ and
 --                         quality_display_ stats left out. One flag per gem, its note listing the ids sorted
@@ -136,7 +141,23 @@ local WILD = {}
 
 -- The scan as Lua reads it: the name set, the compiled templates, and the template literals of 6 or more
 -- characters that start with a capital (the D-243 fragments a computed name may end with).
-function M.reader(sourceNames, sourceTemplates, sourceCallNames)
+-- A template's parts: its literals, and WILD for each run of `*`.
+local function templateParts(text)
+  local parts, i = {}, 1
+  while i <= #text do
+    if text:sub(i, i) == '*' then
+      if parts[#parts] ~= WILD then table.insert(parts, WILD) end
+      i = i + 1
+    else
+      local j = text:find('*', i, true) or (#text + 1)
+      table.insert(parts, text:sub(i, j - 1))
+      i = j
+    end
+  end
+  return parts
+end
+
+function M.reader(sourceNames, sourceTemplates, sourceCallNames, sourceSkillTemplates)
   local names = {}
   for _, name in ipairs(sourceNames or {}) do
     if type(name) == 'string' then names[name] = true end
@@ -148,26 +169,22 @@ function M.reader(sourceNames, sourceTemplates, sourceCallNames)
   local templates, fragments, seen = {}, {}, {}
   for _, text in ipairs(type(sourceTemplates) == 'table' and sourceTemplates or {}) do
     if type(text) == 'string' and text:find('[^%*]') then
-      local parts, i = {}, 1
-      while i <= #text do
-        if text:sub(i, i) == '*' then
-          if parts[#parts] ~= WILD then table.insert(parts, WILD) end
-          i = i + 1
-        else
-          local j = text:find('*', i, true) or (#text + 1)
-          local literal = text:sub(i, j - 1)
-          table.insert(parts, literal)
-          if #literal >= 6 and literal:match('^%u') and not seen[literal] then
-            seen[literal] = true
-            table.insert(fragments, literal)
-          end
-          i = j
+      local parts = templateParts(text)
+      for _, part in ipairs(parts) do
+        if part ~= WILD and #part >= 6 and part:match('^%u') and not seen[part] then
+          seen[part] = true
+          table.insert(fragments, part)
         end
       end
       table.insert(templates, parts)
     end
   end
-  return { names = names, templates = templates, fragments = fragments, callNames = callNames }
+  local skillTemplates = {}
+  for _, text in ipairs(type(sourceSkillTemplates) == 'table' and sourceSkillTemplates or {}) do
+    if type(text) == 'string' and text:find('[^%*]') then table.insert(skillTemplates, templateParts(text)) end
+  end
+  return { names = names, templates = templates, fragments = fragments, callNames = callNames,
+    skillTemplates = skillTemplates }
 end
 
 -- Whether `name` from `pos` matches the template parts from `k`: a literal exactly, a wildcard by an empty
@@ -187,8 +204,8 @@ local function matchFrom(name, pos, parts, k, names)
 end
 
 -- Whether `name` fits a template whole; a wildcard run is empty or in `names` (default: the scanned names).
-local function matchesTemplate(reader, name, names)
-  for _, parts in ipairs(reader.templates) do
+local function matchesTemplate(reader, name, names, templates)
+  for _, parts in ipairs(templates or reader.templates) do
     local plausible = true
     for _, part in ipairs(parts) do
       if part ~= WILD and not name:find(part, 1, true) then
@@ -249,7 +266,8 @@ end
 --            reads these names when it evaluates the tags (a Condition tag's `var` X reads "Condition:X")
 --   limits   every minion's and spectre's `limit` (Data/Minions.lua), which CalcPerform.lua:1298-1303 reads
 --   skills   every skill's name with its whitespace removed, as CalcActiveSkill.lua:866-869 builds a name
---            from one ("Multiplier:"..name:gsub("%s+", "").."MaxStages"): a template's `*` may be one
+--            from one ("Multiplier:"..name:gsub("%s+", "").."MaxStages"): the `*` of such a template
+--            (`sourceSkillTemplates`) may be one
 local dataNamesFor, dataNamesSets
 local function skillDataNames(d)
   if dataNamesFor == d then return dataNamesSets end
@@ -297,8 +315,8 @@ local function skillDataNames(d)
 end
 
 -- The strict reading's sets: `names`, a name read exactly (the scanned names, the skill-data mod-list
--- read literals of `sourceCallNames`, the tag names and the minion limits); `wild`, what a template's `*`
--- may be (those, plus the skill names).
+-- read literals of `sourceCallNames`, the tag names and the minion limits); `wild`, what a `*` of a
+-- `sourceSkillTemplates` template may be (those, plus the skill names).
 local function strictNames(reader, d)
   if not reader.strict then
     local data = skillDataNames(d)
@@ -313,8 +331,9 @@ local function strictNames(reader, d)
 end
 
 -- Whether PoB reads a mod name, strictly: a name in the strict set, a compound "X:Y" whose parts are read,
--- or else a whole template fit (every fixed part matches; each `*` is empty or a `wild` name). Unlike
--- `named`, a name ending with a template literal doesn't count.
+-- or else a whole template fit (every fixed part matches; each `*` is empty or a strict name, or, in a
+-- template PoB builds from a skill's name in a mod-list read, a skill name). Unlike `named`, a name ending
+-- with a template literal doesn't count.
 local function strictlyNamed(reader, strict, name)
   if strict.names[name] then return true end
   if name:find(':', 1, true) then
@@ -327,7 +346,8 @@ local function strictlyNamed(reader, strict, name)
     end
     if all then return true end
   end
-  return matchesTemplate(reader, name, strict.wild)
+  return matchesTemplate(reader, name, strict.names)
+    or matchesTemplate(reader, name, strict.wild, reader.skillTemplates)
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -744,7 +764,7 @@ local function scanReader(params)
   if type(params.sourceNames) ~= 'table' then
     fail('check_coverage needs sourceNames (the server\'s name scan of PoB\'s Modules/ and Classes/)')
   end
-  return M.reader(params.sourceNames, params.sourceTemplates, params.sourceCallNames)
+  return M.reader(params.sourceNames, params.sourceTemplates, params.sourceCallNames, params.sourceSkillTemplates)
 end
 
 local function nonEmptyList(v)

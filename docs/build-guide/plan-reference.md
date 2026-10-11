@@ -119,9 +119,11 @@ respec, or when `respec.dropped` isn't exactly the dropped set.
 
 - **The campaign track:** the stages without `variant`, in plan order.
 - **The endgame ladder:** the stages with `variant`, one track by rung: `entering-maps` (`m`) continues from
-  the last campaign stage, `budget` (`b`) from `m`, and `non-budget` (`n`) from `b`. The rung order holds
-  even if the plan lists the rungs in another order; within a rung, stages follow plan order. A rung the plan
-  doesn't have is skipped, so without `m`, `b` continues from the last campaign stage.
+  the last campaign stage in the plan (the campaign's end, wherever the plan lists `m`), `budget` (`b`) from
+  `m`, and `non-budget` (`n`) from `b`. The rung order holds even if the plan lists the rungs in another
+  order; within a rung, stages follow plan order. A rung the plan doesn't have is skipped, so without `m`,
+  `b` continues from the last campaign stage. In a plan with no campaign stage, the first rung continues from
+  none.
 
 ### Shared sets (A-P2)
 

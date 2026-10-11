@@ -322,10 +322,15 @@ const priceSchema = z
 
 const versionMessage = () => ({ message: `schemaVersion must be one of the accepted versions [${PLAN_SCHEMA_VERSIONS.join(', ')}]` });
 
+/** One zod literal per accepted version, so `schemaVersion`'s type follows `PLAN_SCHEMA_VERSIONS`. */
+type Literals<T extends readonly number[]> = { readonly [K in keyof T]: z.ZodLiteral<T[K]> };
+const versionLiterals = PLAN_SCHEMA_VERSIONS.map((v) => z.literal(v, { errorMap: versionMessage })) as unknown as Literals<
+  typeof PLAN_SCHEMA_VERSIONS
+>;
+
 const planObject = z
   .object({
-    // One literal per PLAN_SCHEMA_VERSIONS entry.
-    schemaVersion: z.union([z.literal(1, { errorMap: versionMessage }), z.literal(2, { errorMap: versionMessage })]),
+    schemaVersion: z.union(versionLiterals),
     roll: z.object({ className: text('className'), ascendancy: text('ascendancy'), skill: text('skill') }).strict(),
     versions: z
       .object({

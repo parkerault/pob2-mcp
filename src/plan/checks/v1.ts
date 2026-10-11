@@ -72,8 +72,9 @@ export interface V1Result {
  * stage, `b` (`budget`) from `m`, and `n` (`non-budget`) from `b`. The ladder goes by rung (`PLAN_VARIANTS`'
  * order), then plan order within a rung, so a plan that lists `m` after `b` still puts it first. A rung the
  * plan doesn't have is skipped: without `m`, `b` continues from the last campaign stage. The ladder's first
- * stage continues from the last campaign stage before it in plan order. This replaces A-P3's per-variant
- * tracks, where `n` continued from the campaign rather than from `b`.
+ * stage continues from the campaign's end, the last campaign stage in the plan wherever the rung is listed
+ * (D-281: `m` sits between the campaign's end and `b`), and from no stage when the plan has no campaign
+ * stage. This replaces A-P3's per-variant tracks, where `n` continued from the campaign rather than from `b`.
  */
 export function predecessorOf(stages: readonly Stage[], index: number): Stage | null {
   const stage = stages[index];
@@ -88,7 +89,7 @@ export function predecessorOf(stages: readonly Stage[], index: number): Stage | 
     .filter(({ s }) => s.variant !== undefined)
     .sort((a, b) => rung(a.s) - rung(b.s) || a.i - b.i);
   const at = ladder.findIndex(({ i }) => i === index);
-  return at > 0 ? ladder[at - 1].s : lastCampaignBefore(index);
+  return at > 0 ? ladder[at - 1].s : lastCampaignBefore(stages.length);
 }
 
 /** A range key `"<lo>-<hi>"` of an object-valued C1 fact, parsed; null when it isn't one. */

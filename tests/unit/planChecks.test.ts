@@ -128,8 +128,11 @@ describe('AC-P59 (WU-61, D-282): the continuity predecessor, one endgame track',
     // Without m (every version-1 plan): b continues from the campaign, and n from b, where A-P3 had n from the campaign.
     expect(preds([s('1'), s('2'), s('b', 'budget'), s('n', 'non-budget')])).toEqual([null, '1', '2', 'b']);
     expect(preds([s('1'), s('b1', 'budget'), s('b2', 'budget'), s('n', 'non-budget')])).toEqual([null, '1', 'b1', 'b2']);
-    // The ladder's first stage continues from the last campaign stage before it in plan order.
-    expect(preds([s('c1'), s('b1', 'budget'), s('c2'), s('n1', 'non-budget'), s('b2', 'budget'), s('c3')])).toEqual([null, 'c1', 'c1', 'b2', 'b1', 'c2']);
+    // The ladder's first stage continues from the campaign's end, the last campaign stage in the plan, even one
+    // listed after it; with no campaign stage, from none.
+    expect(preds([s('c1'), s('m', 'entering-maps'), s('c2')])).toEqual([null, 'c2', 'c1']);
+    expect(preds([s('c1'), s('b1', 'budget'), s('c2'), s('n1', 'non-budget'), s('b2', 'budget'), s('c3')])).toEqual([null, 'c3', 'c1', 'b2', 'b1', 'c2']);
+    expect(preds([s('b', 'budget'), s('n', 'non-budget')])).toEqual([null, 'b']);
   });
 });
 

@@ -669,9 +669,8 @@ not built; their milestone is M-14 ("open builds offline", D-315).
   reply schema, wrapper types and contract case)]
 - produces: [C-37's amendment-3 additions (§2.2's *Target (WU-53, D-299)*)]
 - consumes: [C-37 as built]
-- acceptance: [pinned by the unit's first step in §4 from `amendment-3-open-builds.md:423-441`, and
-  reviewed by the coordinator before any code is written (A-33); no AC id is allocated yet; AC-B3,
-  AC-B4]
+- acceptance: [AC-K58…AC-K65, pinned by the unit's first step from `amendment-3-open-builds.md:425-443`
+  and reviewed by the coordinator before any code is written (A-33); AC-B3, AC-B4]
 - milestone: M-14
 - summary: Add the lookup additions, with engine tests. It follows WU-60 because both edit `Lookup.lua`
   (D-317). WU-53 and WU-54 touch different `pob-api` files.
@@ -1183,6 +1182,198 @@ engine-required. *Target (WU-60, D-277):* not built.
 - **AC-K51 (C-37 mod base types, essences).** The mod hit for Arcane Surge on Crit lists only gloves with
   energy shield (`vendor/Data/ModVeiled.lua:163`). An essence query returns an essence hit.
 
+**K1 lookup additions (WU-53)**: `tests/integration/lookupGameData.test.ts`, in-process, engine-required;
+the `lookups.md` check in its static block. *Target (WU-53, D-299):* not built.
+
+AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendment 3's lookup list
+(`amendment-3-open-builds.md:425-443`). Every value below was probed at the pin. Shared rules:
+- **Where.** A gem-mode addition is lines in each gem's block; a mechanic-mode addition is hits. Each
+  arrives as data in the Lua action's reply (its C-5 schema, wrapper types and contract case: AC-B3, AC-B4)
+  and the handler renders it.
+- **One gem or several (D-239's rule).** The two long lists, the active gems a support can support
+  (AC-K62) and the supports another support unlocks (AC-K61), come only when exactly one gem is returned.
+  Otherwise neither appears, and one line under the count line says to look a gem up by its exact name,
+  or with `max_results` 1.
+- **PoB's support rule.** "Can support" means PoB's `calcLib.canGrantedEffectSupportActiveSkill`
+  (`Modules/CalcTools.lua:85-110`) is true for the support's effect and one of the gem's active effects,
+  with that effect's own skill types and minion skill types. A gem's active effects are its granted
+  effects that PoB makes active skills: not a support and not `hideFromSideBar`
+  (`Modules/CalcSetup.lua:1855`). An active gem is one whose kind is `active` (§2.2).
+- **Name lists** are sorted by name (byte order) and separated by `; `, because some gem names contain a
+  comma (Kelari, the Tainted Sands).
+- **The every-gem sweep.** Where a criterion covers every gem, the test reads the Lua action's gem
+  results for the queries `a`, `e`, `i`, `o`, `u` and `y` (`maxResults:10000`). A Lua query confirms that
+  together they return every gem with a granted effect (Syzygy has only the `y`).
+- **Samples.** `tests/fixtures/tool-calls.json` gains `expect:"ok"` samples
+  `{mode:"gem", query:"Whirling Assault"}`, `{mode:"mechanic", query:"cannot … but"}` and
+  `{mode:"mechanic", query:"Spirit", kind:"base"}`. AC-K6's read-kind check and the hygiene checks cover
+  them.
+- **Unchanged.** AC-K1…AC-K5, AC-K45 and AC-K51 still pass. The only format changes are the mechanic
+  gem-hit sources (AC-K65) and the header's base count (AC-K60).
+
+- **AC-K58 (C-37 Gemling quality effects; PG-46, I5).** PoB applies a gem's `altQualityStats` only when
+  the build has the `GemlingQuality` flag (`Modules/CalcTools.lua:147-151`). Advanced Thaumaturgy's line
+  "Gem Quality grants Socketed Skills an additional effect" sets it (`Data/ModCache.lua:5683`), and PoB's
+  tooltip then lists those effects beside the quality lines (`Classes/SkillsTab.lua:893-910`). The lookup
+  shows them whatever the build, labelled.
+  - **Gem mode.** After the "At +20% Quality:" lines, a gem with an `altQualityStats` entry in any granted
+    effect gets the header `At +20% Quality, with the Gemling Legionnaire's Advanced Thaumaturgy:`. Under
+    it, one line `  - <line>` per line PoB describes: each entry is described alone at value × 20 in its
+    stat set's scope, as the quality lines are (`describeStats({[stat] = value × 20}, scope, true)`), in
+    the block's effect order. A gem whose entries describe to no line shows `  (no described line)`. A gem
+    without such an entry has no header.
+    - `{mode:"gem", query:"Hammer of the Gods"}`: exactly "50% chance to not consume Glory", which isn't
+      among its quality lines.
+    - `{mode:"gem", query:"Blood Hunt"}`: exactly "Enemies lose Life equal to +4% of Consumed Blood Loss".
+    - `{mode:"gem", query:"Snipe", max_results:1}`: "20% more Attack Speed", then "20% longer Perfect Timing
+      window".
+    - A Lua query over the tree finds that Advanced Thaumaturgy (Gemling Legionnaire) is the only node with
+      the header's line (node 14429 at the pin).
+    - The every-gem sweep: each gem's Gemling lines equal those a Lua query describes from its
+      `altQualityStats` by the rule above. That is 257 gems at the pin. Four entries describe to no line
+      (in Detonate Living, Flash Grenade, Fortifying Cry and Siege Cascade).
+  - **Mechanic mode** also searches each gem's quality lines and Gemling lines, as gem hits with the
+    sources `<gem> (quality)` and `<gem> (Gemling quality)`.
+    - `{query:"not consume Glory", kind:"gem"}` includes `[gem] Hammer of the Gods (Gemling quality): 50%
+      chance to not consume Glory`. As built, it has no hit.
+    - `{query:"metres to explosion radius", kind:"gem"}` includes `[gem] Blood Hunt (quality): +0.4 metres
+      to explosion radius`.
+- **AC-K59 (C-37 "usable by"; I6).** Each active gem's block gains two lines:
+  - `Skill types: <names>`: the `SkillTypeName` of each type in its granted effect's `skillTypes`,
+    sorted by name and separated by `, `. Each `Also grants:` block of a non-support effect gets its own
+    `Skill types:` line.
+  - `Usable by: <meta gems>`: each meta gem whose support effect can support one of the gem's active
+    effects (the shared rule), marked ` (trigger)` when that support effect has `isTrigger`. With none, it
+    reads `Usable by: (no meta gem)`. A meta gem has a granted effect of skill type `Meta` (29 at the
+    pin). Its support effect is its granted effect with `support` set; each meta gem has exactly one at the
+    pin.
+
+  Support gems get neither line.
+  - `{mode:"gem", query:"Snipe", max_results:1}`: `Skill types: Area, Attack, Barrageable, Bow, Channel,
+    Cold, MirageArcherCanUse, PerfectTiming, Projectile, ProjectilesFromUser, RangedAttack,
+    SkillConsumesFreeze` and `Usable by: Animus Splinters; Mirage Archer; Mirage Deadeye` (I6's Snipe →
+    Mirage Archer).
+  - `{query:"Fireball"}` lists `Fire Spell on Hit (trigger)` but not Thundergod's Wrath.
+    `{query:"Spark", max_results:1}` lists `Thundergod's Wrath (trigger)` but not Fire Spell on Hit. Both
+    list `Cast on Critical (trigger)` and `Spell Totem`.
+  - `{query:"Whirling Assault"}`: `Usable by: Animus Splinters; Hollow Form`.
+  - The every-gem sweep: each active gem's line equals a Lua query that applies PoB's function to each
+    meta gem's support effect and the gem's active effects.
+- **AC-K60 (C-37 item-base implicits; I7, PG-48).** Mechanic mode gains a sixth hit kind, `base`.
+  - **What it searches.** Each implicit line of every base in PoB's base lists (`data.itemBaseLists`, as
+    AC-K51's base types use them; hidden bases are left out), with its `{variant:<n>}` tag removed. A hit
+    matches on its line or on its base's name, as an essence hit does.
+  - **Format.** `[base] <base name> (<item type>): <line>`. A line tagged with a variant names it from the
+    base's `variantList`: `(<item type>; variant <name>)`.
+  - **Order and filters.** Base hits sort after essence hits, then by name, then by line order.
+    `kind:"base"` lists only them, and the header's totals end `, <e> essence, <b> base.`. The closest
+    names of kind `base` are base names, each labelled with its item type.
+  - `{query:"Cast on Critical", kind:"base"}` includes `[base] Absent Amulet (Amulet; variant Cast on
+    Critical): Grants Skill: Level (1-20) Cast on Critical`.
+  - `{query:"Spirit", kind:"base"}` includes `[base] Solar Amulet (Amulet): +(10-15) to Spirit`.
+  - For the queries `Spirit`, `Grants Skill` and `Resistance`, the Lua action's base hits
+    (`maxResults:100000`) are exactly the lines a Lua query reads from `data.itemBaseLists`, each base
+    name once: every line containing the query, and every line of a base whose name contains it, in the
+    order above. 501 bases have implicit lines at the pin.
+  - `{query:"Solar Amulett", kind:"base"}` matches nothing and lists `Solar Amulet` (Amulet) first.
+  - `{query:"Spirit", kind:"nonsense"}` is `isError`, and its message lists `base` among the kinds.
+- **AC-K61 (C-37 type-granting unlocks; settles "Culmination II, then Ailith's Chimes").** PoB adds a
+  supporting gem's `addSkillTypes` to the skill's types, then re-checks the supports it rejected
+  (`Modules/CalcActiveSkill.lua:182-208`). It keeps a support only if it still applies with every added
+  type (`:210-212`), and keeps one support per gem family (`Modules/CalcSetup.lua:517-527`).
+  - **Format.** With exactly one active gem returned, its block gains `Unlocked by another support:`.
+    Under it is one line `- <X>: after <Y1>; <Y2>; …` per support gem X, sorted by X's name, or
+    `  (none)`.
+  - **The rule.** X is listed with Y, a support gem, when both of these hold:
+    1. X can support none of the gem's active effects with their own types.
+    2. For one active effect E, all of these hold:
+       - Y can support E, Y has `addSkillTypes`, and Y shares no `gemFamily` entry with X;
+       - with Y's added types, X can support E;
+       - with Y's and X's added types, both still can.
+
+    One helper only: chains of two or more aren't listed.
+  - **The example holds at the pin, as a pair on a skill.**
+    - Whirling Assault's skill types are Area, Attack, Melee and MeleeSingleTarget. They lack
+      `ComboStacking`, which Ailith's Chimes requires (`Data/Skills/sup_dex.lua:121`).
+    - Culmination II supports Attack and Melee skills and adds `ComboStacking`
+      (`Data/Skills/sup_dex.lua:1634-1635`).
+    - So `{mode:"gem", query:"Whirling Assault"}` lists
+      `- Ailith's Chimes: after Combo Finisher I; Combo Finisher II; Culmination I; Culmination II; Vruun's
+      Inevitability`, one of its 29 lines.
+  - **Family.** On Gas Grenade, Nova Projectiles I doesn't unlock Nova Projectiles II, although the type
+    checks pass: the two share a family.
+  - **Rule check.** For Whirling Assault, `{query:"Snipe", max_results:1}`, Fireball, Gas Grenade, Raise
+    Zombie and Cast on Critical, the lines equal a Lua query that applies the rule with PoB's function.
+    Over every active gem the rule gives 6,435 (gem, X) pairs at the pin; a gem lookup lists one gem's.
+- **AC-K62 (C-37 what a support can ride).** With exactly one support gem returned, its block gains
+  `Can support (<n> active gems): <names>`. It lists every active gem with an active effect that the
+  support's own effect can support (the shared rule), or reads `Can support: (no active gem)`.
+  - `{mode:"gem", query:"Ailith's Chimes"}`: `Can support (2 active gems): Mantra of Destruction; Tempest
+    Bell`. Whirling Assault is reached only through AC-K61.
+  - `{query:"Culmination II"}`: 93 active gems, Whirling Assault among them.
+  - `{query:"Uhtred's Exodus"}`: 398 of the 399 active gems, all but Abyssal Apparition.
+  - For Ailith's Chimes, Culmination II, Uhtred's Exodus, Paquate's Pact and
+    `{query:"Living Lightning", max_results:1}`, the names equal a Lua query's.
+  - `{query:"Culmination"}` returns Culmination I and Culmination II. Neither block has a `Can support`
+    line, and the several-gems line is present.
+- **AC-K63 (C-37 named phrase searches).** Mechanic mode's `query` may hold gaps, written `…` or `...`.
+  - **Matching.** A line matches when the query's parts, split at the gaps and trimmed, appear in it in
+    order without overlapping, case-insensitive. A query of gaps alone is an error, as an empty one is.
+    Gem and unique modes are unchanged.
+  - **The named searches.** `.claude/skills/build-guide/references/lookups.md` lists the seven, each in
+    backticks: `also apply to`, `while already at maximum`, `per 100 maximum`, `for each type of`,
+    `cannot … but`, `instead of you` and `your … shatter`. The amendment's "your <tag> … shatter" takes any
+    text for `<tag>`, so it is a gap.
+  - **Gap check.** The Lua action's full list (`maxResults:100000`) for `cannot … but` equals, in order,
+    its full list for `cannot` filtered to the lines matching `/cannot.*but/i`, and `kinds` counts that
+    list. The same holds for `your … shatter`, from `shatter` and `/your.*shatter/i`. `cannot ... but`
+    gives the same list as `cannot … but`.
+  - `cannot … but` includes Combo Finisher I's description and `[unique] Lavianga's Spirits (Flask): This
+    Flask cannot be Used but applies its Effect constantly`.
+  - `your … shatter` includes `[unique] Polcirkeln (Ring): Enemies Chilled by your Hits can be Shattered as
+    though Frozen` (PG-33).
+  - The five searches without a gap each return at least one hit, and every hit's line contains the
+    phrase.
+- **AC-K64 (C-37 a skill's hit-making children).** Each gem's block gains `Hit-making children:`, then
+  one line per child, or `  (none)`. There are two kinds of child:
+  - `- <name> (triggered)` or `- <name> (granted)`: each of the gem's other granted effects
+    (`additionalGrantedEffects`, in order) that PoB makes an active skill. It is `triggered` when its skill
+    types hold `Triggered` or `InbuiltTrigger`.
+  - `- <skill> (minion <minion>)`: for each granted effect that PoB makes an active skill, its first
+    included, each minion of its `minionList` with a `data.minions` entry, then each skill of that
+    minion's `skillList` with a `data.skills` entry (`Modules/CalcActiveSkill.lua:900-919`).
+
+  Granted effects come first, then minions' skills, each in data order. Each (name, label) is listed once.
+  A child is listed only when it makes hits by PoB's rule (`Modules/CalcActiveSkill.lua:176`): one of its
+  stat sets has `baseFlags.hit`, or its skill types hold `Attack`, `Damage` or `Projectile`.
+  - `{mode:"gem", query:"Bloodhound's Mark"}`: exactly `- Blood Explosion (triggered)`.
+  - `{query:"Pounce"}`: exactly `- Basic Attack (minion Wolf Companion)` and `- Leap Slam (minion Wolf
+    Companion)`. Its Predator's Mark and Summon Wolf make no hits.
+  - `{query:"Living Lightning", max_results:1}`, a support: exactly `- Zap (minion Living Lightning)`.
+  - `{query:"Artillery Ballista"}`: exactly `- Ballista Bolt (granted)`. `{query:"Raise Zombie"}`:
+    exactly `- Basic Attack (minion Raised Zombie)`.
+  - `{query:"Snipe", max_results:1}` and `{query:"Mirage Archer"}`: `  (none)`. PoB has no skill data for
+    Mirage Archer's mirages (PG-4).
+  - The every-gem sweep: each gem's children equal a Lua query applying the rule. At the pin, 94 of the 126
+    other granted effects that PoB makes active skills make hits, and 121 gems have a child.
+- **AC-K65 (C-37 stat sets named).** Gem mode already names and numbers each stat set (`Stat set <n>:
+  <label>`, AC-K1), and that number is what `skills.main.statSet` and `set_main_skill`'s `skill_part`
+  take. Mechanic mode's gem hits now carry it too, so a card can name the stat set its payoff uses (C-52).
+  - **Sources.** A hit from a stat set of the gem's first granted effect has the source
+    `<gem> (stat set <n>: <label>)`. A hit from another granted effect has
+    `<gem> / <effect> (stat set <n>: <label>)`, the effect named as its `Also grants:` line names it.
+    Description, quality and Gemling hits keep `<gem>`, `<gem> (quality)` and `<gem> (Gemling quality)`.
+  - `{query:"Consumed Blood Loss", kind:"gem"}` includes `[gem] Blood Hunt (stat set 2: Explosion): Enemies
+    lose Life equal to 25% of Consumed Blood Loss`.
+  - `{query:"originating from a Unique enemy", kind:"gem"}` includes `[gem] Wing Blast (stat set 2:
+    Shockwave): 50% more damage with Hits for Shockwaves originating from a Unique enemy`, the payoff the
+    Wing Blast study names.
+  - `{query:"Heavy Stun buildup caused by Blood Loss", kind:"gem"}` includes `[gem] Bloodhound's Mark /
+    Blood Explosion (stat set 1: Blood Explosion): Gains up to 100% more damage and 100% more area of
+    effect based on the percentage of target's Heavy Stun buildup caused by Blood Loss`.
+  - Every stat-set hit in the Lua action's full gem-hit list for `Explosion` names a stat set whose
+    described lines include the hit's line, at the gem's default level and quality 0 (Lua query).
+
 ## 5. Test strategy (this slice)
 
 | AC | Class | File |
@@ -1200,6 +1391,7 @@ engine-required. *Target (WU-60, D-277):* not built.
 | AC-K47…K49 (*target*, WU-52) | in-process, `fixtureFetch`, no engine | named by WU-52 |
 | AC-K50, AC-K53…K57 (*target*, WU-54) | in-process, engine-required | `tests/integration/modelCoverage.test.ts` |
 | AC-K51 (*target*, WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
+| AC-K58…K65 (*target*, WU-53) | in-process, engine-required; AC-K63's `lookups.md` check static; the new samples also in `engineKinds.test.ts` (AC-K6) | `tests/integration/lookupGameData.test.ts` |
 | AC-K52 (*target*, WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
 
 **Kind checks.** `engineKinds.test.ts` runs every new `ok` sample from §3. The `read` samples (the

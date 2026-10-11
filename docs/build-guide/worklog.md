@@ -2697,3 +2697,23 @@ milestone M-15, and AC-W51…W58, AC-P60…P67 and AC-K66. It has six open quest
 - Q6: dropping runs B and P2.
 
 The coordinator read the draft in full and found no blocker; it goes to the user as written.
+
+### Amendment 4: the user accepts all proposals, with answers (2026-10-11)
+
+- **The proposals.** All are accepted (D-351…D-361, the triage and ledger rules included), with one change: D-353
+  drops hits to kill normal monsters.
+- **Q1, support sockets.** No source has the thresholds.
+  - Jeweller's Orbs work on items that grant skills, but not for skills granted by passives.
+  - Until exact numbers turn up, use estimates: 3 supports in Act 2, rising to 5 by the campaign's end.
+- **Q2, clear speed.** Rough, and not worth much effort.
+  - The proxy is the skill's area, assuming a normal monster dies to one use: 0–2 m slow, 2–4 m medium, 4 m or more
+    fast.
+  - Explode-on-death or spread-on-death effects give a bonus; a long use time gives a penalty. No exact formula.
+- **Q3.** A revision doesn't count against the 1M, for now. Revisit it if revisions prove heavy.
+- **Q4.** Output tokens matter more than cache reads, but keep each agent's context to a minimum. The target is the
+  coordinator's call.
+- **Q5.** Anoints on budget and non-budget. A player who can afford one before maps can look ahead.
+- **Q6.** Runs B and P2 are dropped.
+- **D-362 (the user): a design gate.** The user gates the endgame build before the leveling loadouts and the guide
+  are made. Today's gates are brainstorm, verification and final, with nothing between D1 and D2. The coordinator
+  sees no reason against it.

@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 1)
+# Build plan reference (`plan.json`, schema version 2)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,8 +18,13 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** `schemaVersion` must be `1`. Any other value, or none, gives exactly one error, at
-  `schemaVersion`, listing the accepted versions `[1]`; nothing else is checked.
+- **Version first.** A new plan declares `schemaVersion: 2`. Versions `1` and `2` are accepted. Any other
+  value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions `[1, 2]`;
+  nothing else is checked.
+- **Older versions** (D-320, D-332). A version-1 plan still validates and compiles, with the version-1
+  shape: it takes the defaults of what version 2 added, and each use of an addition errs at its own path,
+  naming the version that added it. Version 2 added:
+  - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -105,6 +110,19 @@ input, or a reference to a stage the plan doesn't have, each with its 0-based co
 stage the compile didn't include, a division by zero or a non-finite result sets that entry's value to
 null with the error in the record; the compile still succeeds. Values are unrounded doubles.
 
+### Tree tracks (D-144, D-282)
+
+Each stage's tree contains its predecessor's, the previous stage on its track, except the nodes its
+`respec` drops. The respec names exactly those nodes and carries the respec's gold cost, which the guide
+lists. The compile's validity check (V1) reports `tree-continuity` when a stage drops a node without a
+respec, or when `respec.dropped` isn't exactly the dropped set.
+
+- **The campaign track:** the stages without `variant`, in plan order.
+- **The endgame ladder:** the stages with `variant`, one track by rung: `entering-maps` (`m`) continues from
+  the last campaign stage, `budget` (`b`) from `m`, and `non-budget` (`n`) from `b`. The rung order holds
+  even if the plan lists the rungs in another order; within a rung, stages follow plan order. A rung the plan
+  doesn't have is skipped, so without `m`, `b` continues from the last campaign stage.
+
 ### Shared sets (A-P2)
 
 The compiler gives every stage its own tree, titled `loadoutName`. Stages whose `items` (likewise
@@ -119,7 +137,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1` | yes | Must be `1`. Any other value, or none, is the only error reported, and it lists the accepted versions `[1]` | C-31, D-167 |
+| `schemaVersion` | `1` or `2` | yes | `2` for a new plan; `1` is still accepted, with the version-1 shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2]` | C-31, D-167, D-320, D-332 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -136,7 +154,7 @@ rule may require an optional key in some cases.
 | `stages[].loadoutName` | string | yes | Contains `(L<level>)` with the stage's own level, ends with ` {<id>}`, and has no other braces, e.g. `Act 2 (L25) {2}`. Also the stage's tree title | A-P1, D-103, D-138 |
 | `stages[].level` | integer | yes | 1 to 100. The level the stage is measured at | D-138 |
 | `stages[].progress` | string | yes | A progress key: `start`, `endgame` or `q.<key>` with `<key>` lowercase letters and digits in `-`-joined runs (`q.act-1-clearfell-beira`); a C1 key once the data is loaded | D-214, A-P13 |
-| `stages[].variant` | `budget` or `non-budget` | no | Marks an endgame variant stage. `variant`, `ascendancyPoints` and `variantBasis` are all present or all absent; a missing one errs at its own path | C-31, D-193 |
+| `stages[].variant` | `entering-maps`, `budget` or `non-budget` | no | Marks an endgame variant stage, a rung of the endgame ladder: `entering-maps` (stage `m`, between the campaign's end and `b`; schema version 2), `budget` (`b`) or `non-budget` (`n`). `variant`, `ascendancyPoints` and `variantBasis` are all present or all absent; a missing one errs at its own path. Every variant-stage rule applies to each rung alike | C-31, D-193, D-281 |
 | `stages[].ascendancyPoints` | integer | no | 0 to 8. The variant's ascendancy points | D-193 |
 | `stages[].variantBasis` | object | no | Where the variant's level, gem levels and ascendancy points come from | D-193 |
 | `stages[].variantBasis.level` | object (SourceTag) | yes | The source of the stage's level | D-193 |
@@ -174,8 +192,8 @@ rule may require an optional key in some cases.
 | `stages[].tree.attributeChoices` | object[] | yes | The attribute picked on each `+5 to any Attribute` node | C-31 |
 | `stages[].tree.attributeChoices[].node` | integer | yes | In `tree.nodes` | C-31 |
 | `stages[].tree.attributeChoices[].attribute` | `strength`, `dexterity` or `intelligence` | yes | The attribute the node grants | C-31 |
-| `stages[].respec` | object | no | Present wherever the tree drops a node the previous stage on its track had; the guide lists it with its gold cost | D-144, A-P3 |
-| `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the previous stage's tree | D-144 |
+| `stages[].respec` | object | no | Present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost | D-144, D-282 |
+| `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |
 | `stages[].respec.goldCost.value` | number | yes | At least 0 | D-144 |
 | `stages[].respec.goldCost.source` | object (SourceTag) | yes | The source of the cost | D-144 |
@@ -271,7 +289,7 @@ rule may require an optional key in some cases.
 ## Worked example
 
 The two-stage plan below is `tests/fixtures/plans/two-stage/plan.json`, and it validates. It is a Warrior
-Titan who rolled Boneshatter.
+Titan who rolled Boneshatter, written at the current schema version, 2.
 
 - **Stage `1`** is level 5 at Beira, the first Act 1 quest reward (`q.act-1-clearfell-beira`). Its tree
   spends 4 points from the Warrior's start, one of them on an attribute node set to strength.
@@ -288,7 +306,7 @@ Titan who rolled Boneshatter.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "roll": { "className": "Warrior", "ascendancy": "Titan", "skill": "Boneshatter" },
   "versions": {
     "pobTag": "v0.23.1",

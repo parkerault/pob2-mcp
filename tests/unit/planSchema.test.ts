@@ -6,6 +6,7 @@
  * - AC-P10 (D-163): the fixture with one change gives `ok:false` with an error at exactly the change's
  *   JSON path. Where a change also breaks a rule that depends on the changed field, the extra paths are
  *   listed with the row (`also`), and no other path may appear.
+ * - D-320, D-332 (WU-61): the schema accepts versions 1 and 2; a version-1 plan has the version-1 shape.
  */
 import fs from 'fs';
 import path from 'path';
@@ -87,10 +88,10 @@ interface Row {
 
 const ROWS: Row[] = [
   {
-    change: 'schemaVersion: 2',
-    input: () => ({ ...fixture(), schemaVersion: 2 }),
+    change: 'schemaVersion: 3',
+    input: () => ({ ...fixture(), schemaVersion: 3 }),
     path: 'schemaVersion',
-    message: /\[1\]/,
+    message: /\[1, 2\]/,
   },
   {
     change: 'ledger removed',
@@ -354,10 +355,44 @@ describe('AC-P10 (WU-38, D-163): one change, one error at its JSON path', () => 
     if (row.message) expect(errors.find((e) => e.path === row.path)!.message).toMatch(row.message);
   });
 
-  it('AC-P10: schemaVersion 2 is the only error, even with other faults present', () => {
-    const p = { ...fixture(), schemaVersion: 2, foo: 1, stages: [] };
+  it('AC-P10: schemaVersion 3 is the only error, even with other faults present', () => {
+    const p = { ...fixture(), schemaVersion: 3, foo: 1, stages: [] };
     const errors = errorsOf(p);
-    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1]') }]);
+    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2]') }]);
+  });
+});
+
+describe('D-320, D-332: schema versions 1 and 2', () => {
+  /** The fixture with a third stage, the entering-maps rung m: stage 2's content, at the endgame. */
+  const withEnteringMaps = (version: number): Json => {
+    const p = fixture();
+    p.schemaVersion = version;
+    const m = JSON.parse(JSON.stringify(p.stages[1]));
+    Object.assign(m, { id: 'm', loadoutName: 'Entering maps (L65) {m}', level: 65, progress: 'endgame' }, variantFields(), { variant: 'entering-maps' });
+    m.claims = [];
+    p.stages.push(m);
+    return p;
+  };
+
+  it('the fixture declares the current version, 2; a version-1 plan without additions still validates (D-332)', () => {
+    expect(fixture().schemaVersion).toBe(2);
+    const v1 = validatePlan({ ...fixture(), schemaVersion: 1 });
+    expect(v1.ok ? v1.plan.schemaVersion : v1.errors).toBe(1);
+    for (const name of ['fifteen-stage', 'off-hand-fresh', 'off-hand-item', 'off-hand-shared']) {
+      const text = fs.readFileSync(path.join(REPO, 'tests', 'fixtures', 'plans', name, 'plan.json'), 'utf8');
+      const r = validatePlan(text);
+      expect({ name, version: JSON.parse(text).schemaVersion, ok: r.ok ? true : r.errors }).toEqual({ name, version: 1, ok: true });
+    }
+  });
+
+  it('version 2 accepts the entering-maps variant; in a version-1 plan it is the one error, at its variant (D-281, D-332)', () => {
+    expect(validatePlan(withEnteringMaps(2)).ok).toBe(true);
+    const errors = errorsOf(withEnteringMaps(1));
+    expect(errors).toEqual([{ path: 'stages[2].variant', message: expect.stringMatching(/entering-maps.*schemaVersion 2.*declares schemaVersion 1/) }]);
+    // A version-1 plan keeps its other variants.
+    const b = withEnteringMaps(1);
+    b.stages[2].variant = 'budget';
+    expect(validatePlan(b).ok).toBe(true);
   });
 });
 

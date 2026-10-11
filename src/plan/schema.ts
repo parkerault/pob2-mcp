@@ -4,8 +4,12 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be 1; any other value is the only error reported,
- * naming the accepted versions.
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 or 2; any other value is the
+ * only error reported, naming the accepted versions (C-31, D-332).
+ *
+ * **Versions** (D-320, D-332). Version 2 is the current one. A version-1 plan stays accepted with the
+ * version-1 shape: it takes the defaults of what version 2 added and can't use it, so each use errs at its
+ * own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
@@ -22,8 +26,16 @@ import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from
 
 export type { PlanReferenceData } from './referenceData.js';
 
-/** The plan schema versions this server accepts (C-31). */
-export const PLAN_SCHEMA_VERSIONS: readonly number[] = [1];
+/** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
+export const PLAN_SCHEMA_VERSIONS = [1, 2] as const;
+export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
+
+/**
+ * The endgame variants, in the order of the endgame ladder (D-281, D-282): the entering-maps rung `m`, the
+ * budget rung `b`, then the non-budget rung `n`. V1's tree track follows this order (§3.7).
+ */
+export const PLAN_VARIANTS = ['entering-maps', 'budget', 'non-budget'] as const;
+export type PlanVariant = (typeof PLAN_VARIANTS)[number];
 
 /** The note an `unavailable` price carries in an offline run (D-233). */
 export const OFFLINE_PRICE_NOTE = 'offline run';
@@ -214,7 +226,7 @@ const stageSchema = z
     progress: z.string().regex(PROGRESS_KEY_RE, {
       message: 'progress is start, endgame or q.<QuestRewards key>, the key in lowercase letters and digits joined by - (D-214, A-P13)',
     }),
-    variant: z.enum(['budget', 'non-budget']).optional(),
+    variant: z.enum(PLAN_VARIANTS).optional(),
     ascendancyPoints: z.number().int().min(0).max(8).optional(),
     variantBasis: z
       .object({ level: sourceTagSchema, gemLevels: sourceTagSchema, ascendancyPoints: sourceTagSchema })
@@ -308,9 +320,12 @@ const priceSchema = z
     }
   });
 
+const versionMessage = () => ({ message: `schemaVersion must be one of the accepted versions [${PLAN_SCHEMA_VERSIONS.join(', ')}]` });
+
 const planObject = z
   .object({
-    schemaVersion: z.literal(1, { errorMap: () => ({ message: `schemaVersion must be one of the accepted versions [${PLAN_SCHEMA_VERSIONS.join(', ')}]` }) }),
+    // One literal per PLAN_SCHEMA_VERSIONS entry.
+    schemaVersion: z.union([z.literal(1, { errorMap: versionMessage }), z.literal(2, { errorMap: versionMessage })]),
     roll: z.object({ className: text('className'), ascendancy: text('ascendancy'), skill: text('skill') }).strict(),
     versions: z
       .object({
@@ -328,10 +343,48 @@ const planObject = z
   })
   .strict();
 
+/**
+ * What a version after 1 added to the plan (D-320). A plan of an earlier version keeps its version's shape:
+ * it takes the addition's default, and each use of the addition errs at its own path (D-332).
+ */
+interface VersionAddition {
+  /** The version that added it. */
+  since: PlanSchemaVersion;
+  /** What was added, with its decision. */
+  what: string;
+  /** What a plan of an earlier version has instead: the addition's default. */
+  before: string;
+  /** The paths where the plan uses the addition. */
+  uses: (plan: z.infer<typeof planObject>) => (string | number)[][];
+}
+
+/** Every addition, by the version that made it (D-320). WU-55 adds `count`, `countReason` and `customMods` to version 2. */
+const VERSION_ADDITIONS: readonly VersionAddition[] = [
+  {
+    since: 2,
+    what: 'the entering-maps variant (D-281)',
+    before: 'no entering-maps stage',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.variant === 'entering-maps' ? [['stages', i, 'variant']] : [])),
+  },
+];
+
 /** The plan schema: C-31's shape, with the cross-reference rules as refinements. */
 export const planSchema = planObject.superRefine((plan, ctx) => {
   if (plan.stages.length === 0) return; // reported by stages' own minimum
   const stageIds = plan.stages.map((s) => s.id);
+
+  // D-320, D-332: a plan of an earlier version has that version's shape, without the later additions.
+  for (const added of VERSION_ADDITIONS) {
+    if (plan.schemaVersion >= added.since) continue;
+    for (const at of added.uses(plan)) {
+      issue(
+        ctx,
+        at,
+        `${added.what} needs schemaVersion ${added.since} or later; this plan declares schemaVersion ${plan.schemaVersion}, ` +
+          `whose plans have ${added.before} (D-320, D-332)`,
+      );
+    }
+  }
 
   // A-P1: stage ids are unique.
   const firstStage = new Map<string, number>();
@@ -522,7 +575,7 @@ export function validatePlan(input: unknown, refData?: PlanReferenceData): Valid
     return { ok: false, errors: [{ path: '$', message: 'a plan is a JSON object' }] };
   }
   const version = (value as Record<string, unknown>).schemaVersion;
-  if (typeof version !== 'number' || !PLAN_SCHEMA_VERSIONS.includes(version)) {
+  if (typeof version !== 'number' || !(PLAN_SCHEMA_VERSIONS as readonly number[]).includes(version)) {
     const got = version === undefined ? 'missing' : JSON.stringify(version);
     return {
       ok: false,

@@ -18,7 +18,7 @@
  * | `attributes` | Str < ReqStr, Dex < ReqDex or Int < ReqInt, naming the item or gem |
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
- * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144, A-P3) |
+ * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -33,7 +33,7 @@
 import type { StageChecks } from '../../engine/schemas.js';
 import type { Finding, Verdict } from '../record.js';
 import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
-import type { Stage } from '../schema.js';
+import { PLAN_VARIANTS, type Stage } from '../schema.js';
 import { C1, FactReader, type Trial } from './facts.js';
 
 /** PoB's informational warning (Build.lua:1051-1055): unspent weapon set 2 points are no defect. */
@@ -53,7 +53,7 @@ const ATTRIBUTE_NAMES: Record<string, string> = { Str: 'Strength', Dex: 'Dexteri
 
 export interface V1Input {
   stage: Stage;
-  /** The stage's continuity predecessor (A-P3), or null for the first stage of the campaign track. */
+  /** The stage's continuity predecessor (`predecessorOf`, D-282), or null when no stage comes before it on its track. */
   predecessor: Stage | null;
   /** `compile_stage`'s V1 inputs for the stage. */
   checks: StageChecks;
@@ -67,18 +67,28 @@ export interface V1Result {
 }
 
 /**
- * A-P3: stages without `variant` form the campaign track, and each variant its own track, each in plan
- * order. A variant track's first stage continues from the last campaign stage before it.
+ * The continuity predecessor (§3.7). Stages without `variant` form the campaign track, in plan order. The
+ * endgame stages form one track, the ladder (D-282): `m` (`entering-maps`) continues from the last campaign
+ * stage, `b` (`budget`) from `m`, and `n` (`non-budget`) from `b`. The ladder goes by rung (`PLAN_VARIANTS`'
+ * order), then plan order within a rung, so a plan that lists `m` after `b` still puts it first. A rung the
+ * plan doesn't have is skipped: without `m`, `b` continues from the last campaign stage. The ladder's first
+ * stage continues from the last campaign stage before it in plan order. This replaces A-P3's per-variant
+ * tracks, where `n` continued from the campaign rather than from `b`.
  */
 export function predecessorOf(stages: readonly Stage[], index: number): Stage | null {
   const stage = stages[index];
-  const before = stages.slice(0, index);
-  const last = (match: (s: Stage) => boolean): Stage | null => {
-    for (let i = before.length - 1; i >= 0; i--) if (match(before[i])) return before[i];
+  const lastCampaignBefore = (at: number): Stage | null => {
+    for (let i = at - 1; i >= 0; i--) if (stages[i].variant === undefined) return stages[i];
     return null;
   };
-  if (stage.variant === undefined) return last((s) => s.variant === undefined);
-  return last((s) => s.variant === stage.variant) ?? last((s) => s.variant === undefined);
+  if (stage.variant === undefined) return lastCampaignBefore(index);
+  const rung = (s: Stage) => PLAN_VARIANTS.indexOf(s.variant!);
+  const ladder = stages
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => s.variant !== undefined)
+    .sort((a, b) => rung(a.s) - rung(b.s) || a.i - b.i);
+  const at = ladder.findIndex(({ i }) => i === index);
+  return at > 0 ? ladder[at - 1].s : lastCampaignBefore(index);
 }
 
 /** A range key `"<lo>-<hi>"` of an object-valued C1 fact, parsed; null when it isn't one. */

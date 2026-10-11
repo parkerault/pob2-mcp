@@ -1,8 +1,9 @@
 /**
- * V1 and V2's rules without the engine (WU-42, slice 2 §3.7): the continuity predecessor (A-P3), the
- * resistance penalty at a progress key (range-keyed interlude values), "on" and placeholder-driven
- * (A-P5, D-212), the baseline list's loader (D-230), and checks over hand-made stage inputs. The engine
- * criteria (AC-P39…AC-P44, AC-P50) are `tests/integration/planChecks.test.ts`.
+ * V1 and V2's rules without the engine (WU-42, slice 2 §3.7): the continuity predecessor and the endgame
+ * ladder (WU-61, D-282; AC-P59), the entering-maps variant (WU-61, D-281; AC-P58), the resistance penalty at
+ * a progress key (range-keyed interlude values), "on" and placeholder-driven (A-P5, D-212), the baseline
+ * list's loader (D-230), and checks over hand-made stage inputs. The engine criteria (AC-P39…AC-P44,
+ * AC-P50) are `tests/integration/planChecks.test.ts`.
  *
  * C1 values are read here as plain JSON from `data/`, never from the checks.
  */
@@ -16,7 +17,7 @@ import { FactReader } from '../../src/plan/checks/facts';
 import { ConfigBaselineError, loadConfigBaseline, parseConfigBaseline } from '../../src/plan/checks/configBaseline';
 import { producersOf } from '../../src/plan/compiler';
 import { loadReferenceData } from '../../src/plan/referenceData';
-import { validatePlan, type Stage } from '../../src/plan/schema';
+import { validatePlan, type PlanVariant, type Stage } from '../../src/plan/schema';
 import type { ConfigOptionDefault, StageChecks } from '../../src/engine/schemas';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -55,12 +56,133 @@ function checksFor(stage: Stage, over: Partial<StageChecks> = {}): StageChecks {
   } as StageChecks;
 }
 
-describe('A-P3: the continuity predecessor', () => {
-  it('a campaign stage continues from the last campaign stage; a variant track from its own last stage, else the last campaign stage before it', () => {
-    const s = (id: string, variant?: 'budget' | 'non-budget') => ({ id, ...(variant ? { variant } : {}) }) as unknown as Stage;
-    const stages = [s('c1'), s('b1', 'budget'), s('c2'), s('n1', 'non-budget'), s('b2', 'budget'), s('c3')];
-    const pred = (i: number) => predecessorOf(stages, i)?.id ?? null;
-    expect([0, 1, 2, 3, 4, 5].map(pred)).toEqual([null, 'c1', 'c1', 'c2', 'b1', 'c2']);
+const judgment = (r: string) => ({ kind: 'judgment', ref: r, confidence: 'M' });
+
+/**
+ * The fixture with the endgame ladder after it (D-281): stages `m`, `b` and `n`, each stage 2's content at the
+ * endgame with the variant fields, and each tree its predecessor's plus one node: `m` adds 900001, `b` 900002
+ * and `n` 900003. The schema doesn't look node ids up; the engine isn't involved here.
+ */
+function ladderPlan(): Json {
+  const plan = fixture();
+  const base = plan.stages[1];
+  let nodes: number[] = [...base.tree.nodes];
+  const rung = (id: string, variant: PlanVariant, level: number, added: number): Json => {
+    nodes = [...nodes, added];
+    const stage = JSON.parse(JSON.stringify(base));
+    Object.assign(stage, {
+      id,
+      loadoutName: `Endgame ${variant} (L${level}) {${id}}`,
+      level,
+      progress: 'endgame',
+      variant,
+      ascendancyPoints: 0,
+      variantBasis: { level: judgment('level'), gemLevels: judgment('gems'), ascendancyPoints: judgment('trials') },
+      claims: [],
+    });
+    stage.tree.nodes = nodes;
+    return stage;
+  };
+  plan.stages.push(rung('m', 'entering-maps', 65, 900001), rung('b', 'budget', 90, 900002), rung('n', 'non-budget', 95, 900003));
+  return plan;
+}
+
+describe('AC-P58 (WU-61, D-281): the entering-maps variant', () => {
+  it('AC-P58: validatePlan accepts a stage with variant "entering-maps" and the variant fields (ascendancyPoints, variantBasis, rolledGroup)', () => {
+    const plan = ladderPlan();
+    const v = validatePlan(JSON.stringify(plan), ref);
+    expect(v.ok ? 'ok' : v.errors).toBe('ok');
+    if (!v.ok) return;
+    const m = v.plan.stages.find((s) => s.id === 'm')!;
+    expect({ variant: m.variant, ascendancyPoints: m.ascendancyPoints, basis: Object.keys(m.variantBasis!), rolledGroup: m.skills.rolledGroup }).toEqual({
+      variant: 'entering-maps',
+      ascendancyPoints: 0,
+      basis: ['level', 'gemLevels', 'ascendancyPoints'],
+      rolledGroup: 1,
+    });
+  });
+
+  it('AC-P58: the variant-stage rules apply to m as to b and n (D-193, D-217, D-234)', () => {
+    const errorPaths = (edit: (m: Json) => void) => {
+      const plan = ladderPlan();
+      edit(plan.stages[2]);
+      const v = validatePlan(JSON.stringify(plan), ref);
+      return v.ok ? [] : v.errors.map((e) => e.path);
+    };
+    expect(errorPaths((m) => (m.chaosResistException = { reason: 'Chaos Inoculation', tag: judgment('ci') }))).toEqual([]);
+    expect(errorPaths((m) => delete m.ascendancyPoints)).toEqual(['stages[2].ascendancyPoints']);
+    expect(errorPaths((m) => delete m.skills.rolledGroup)).toEqual(['stages[2].skills.rolledGroup']);
+  });
+});
+
+describe('AC-P59 (WU-61, D-282): the continuity predecessor, one endgame track', () => {
+  const s = (id: string, variant?: PlanVariant) => ({ id, ...(variant ? { variant } : {}) }) as unknown as Stage;
+  const preds = (stages: Stage[]) => stages.map((_, i) => predecessorOf(stages, i)?.id ?? null);
+
+  it('AC-P59: m continues from the last campaign stage, b from m, n from b; a campaign stage from the last campaign stage', () => {
+    expect(preds([s('1'), s('2'), s('m', 'entering-maps'), s('b', 'budget'), s('n', 'non-budget')])).toEqual([null, '1', '2', 'm', 'b']);
+  });
+
+  it('AC-P59: the ladder goes by rung whatever the plan order, a rung the plan lacks is skipped, and stages of one rung follow plan order', () => {
+    expect(preds([s('1'), s('2'), s('b', 'budget'), s('n', 'non-budget'), s('m', 'entering-maps')])).toEqual([null, '1', 'm', 'b', '2']);
+    // Without m (every version-1 plan): b continues from the campaign, and n from b, where A-P3 had n from the campaign.
+    expect(preds([s('1'), s('2'), s('b', 'budget'), s('n', 'non-budget')])).toEqual([null, '1', '2', 'b']);
+    expect(preds([s('1'), s('b1', 'budget'), s('b2', 'budget'), s('n', 'non-budget')])).toEqual([null, '1', 'b1', 'b2']);
+    // The ladder's first stage continues from the last campaign stage before it in plan order.
+    expect(preds([s('c1'), s('b1', 'budget'), s('c2'), s('n1', 'non-budget'), s('b2', 'budget'), s('c3')])).toEqual([null, 'c1', 'c1', 'b2', 'b1', 'c2']);
+  });
+});
+
+describe('AC-P59 (WU-61, D-282): tree-continuity along the ladder, through checkV1', () => {
+  /** Each stage's tree-continuity findings, with the predecessor the compiler passes (compiler.ts, step 7). */
+  function continuity(plan: Json): Record<string, unknown[]> {
+    const stages = stagesOf(plan);
+    return Object.fromEntries(
+      stages.map((stage, i) => [
+        stage.id,
+        checkV1({ stage, predecessor: predecessorOf(stages, i), checks: checksFor(stage), ref }).verdict.findings
+          .filter((f) => f.code === 'tree-continuity')
+          .map((f) => f.data),
+      ]),
+    );
+  }
+  const none = { '1': [], '2': [], m: [], b: [], n: [] };
+  const drop = (plan: Json, id: string, node: number) => {
+    const stage = plan.stages.find((x: Json) => x.id === id);
+    stage.tree.nodes = stage.tree.nodes.filter((n: number) => n !== node);
+  };
+  const respec = (plan: Json, id: string, dropped: number[]) => {
+    plan.stages.find((x: Json) => x.id === id).respec = { dropped, goldCost: { value: 1000, source: judgment('respec cost') }, note: 'swap a node' };
+  };
+
+  it('AC-P59: a ladder whose every rung contains the rung before it has no finding', () => {
+    expect(continuity(ladderPlan())).toEqual(none);
+  });
+
+  it('AC-P59: n dropping a node only b had, with no respec, is a finding on n against b; a respec naming it clears it', () => {
+    // n still holds all of stage 2's tree, so A-P3's per-variant track (n from the campaign) found nothing here.
+    const plan = ladderPlan();
+    drop(plan, 'n', 900002);
+    expect(continuity(plan)).toEqual({ ...none, n: [{ predecessor: 'b', dropped: [900002] }] });
+    respec(plan, 'n', [900002]);
+    expect(continuity(plan)).toEqual(none);
+  });
+
+  it('AC-P59: b dropping a node of m is a finding on b against m; m dropping a campaign node is a finding on m against stage 2', () => {
+    const plan = ladderPlan();
+    drop(plan, 'b', 900001);
+    drop(plan, 'm', 7721);
+    expect(continuity(plan)).toEqual({ ...none, m: [{ predecessor: '2', dropped: [7721] }], b: [{ predecessor: 'm', dropped: [900001] }] });
+    respec(plan, 'b', [900001]);
+    respec(plan, 'm', [7721]);
+    expect(continuity(plan)).toEqual(none);
+  });
+
+  it('AC-P59: listed out of rung order, the rungs are still checked m → b → n', () => {
+    const plan = ladderPlan();
+    plan.stages.push(plan.stages.splice(2, 1)[0]); // plan order 1, 2, b, n, m
+    drop(plan, 'b', 900001);
+    expect(continuity(plan)).toEqual({ ...none, b: [{ predecessor: 'm', dropped: [900001] }] });
   });
 });
 

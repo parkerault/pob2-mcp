@@ -60,16 +60,25 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 1. **Done:** WU-63 is merged at `e62799b`, with static and checker suites passing 543 of 543. The run worktree `m14` was
    moved to `e62799b` and built. The work-log's last section has the details.
-2. **The WU-59 run.** *Who acts: the user.* P1's first attempt failed check 3, so WU-57 was re-opened and fixed
-   at `30abc7a` (D-343: a support gem in a free-text brief goes in `around`; D-344: a missing Agent tool stops
-   at the first agent step). The work-log's last two sections have the details. P1 re-runs from the start, now
-   with seven checks. They start the sessions in the order `/tmp/m14.zfPx/README.md` gives:
-   P1, which now has six commands including the D-342 brief check, then run A, run B and P2. Each one runs with
-   `bash /tmp/m14.zfPx/start.sh <session>`.
-   - **Estimate, all on Opus:** about 205M cache read and 1.6–2.1M output in total. Run A takes about 130M and
-     3–3.5 h; run B about 70M and 1.5–2 h.
-   - **The brief is the user's:** **Explosive Concoction, any ascendancy**. It's an ascendancy skill, granted only by
-     Pathfinder node 38004.
+2. **The WU-59 run, paused.** *Who acts: the user, once amendment 4 decides run B.*
+   - **P1** passed on its second attempt, at `30abc7a`.
+   - **Run A** ended `completed` at `30abc7a`, and the run checker exits 0. Its gates printed no display (AC-W37
+     fails at that head). The fix is `96b1785`, and the run worktree `m14` is rebuilt there.
+   - **Run A's cost** was 296M cache read and 1.78M output against an estimate of 130M. The work-log's section
+     "WU-59 run A ended" has the breakdown.
+   - **Run B and P2 are on hold.** Re-scope them after amendment 4, which changes what a run produces.
+2a. **Amendment 4: cost and scope.** *Who acts: you, then the user approves.*
+   - **The user's decisions** are D-345…D-350, with issues I-1…I-3 (anoints, support sockets on granted
+     skills, more than one tree root). They are in the work-log section "the user's cost and scope direction".
+   - **Three read-only investigations** were running when this was written. Each writes a report under
+     `docs/build-guide/studies/`:
+     - `2026-10-11-cost-1-mechanics.md`;
+     - `2026-10-11-cost-2-claims-and-rules.md`;
+     - `2026-10-11-run-a-issues.md`.
+   - **Next:** draft `docs/build-guide/spec/amendment-4-cost-and-scope.md` from those reports and get the user's
+     approval. Then plan its build.
+   - **After that,** the user brings their own poe.ninja Explosive Concoction build to compare with run A. They
+     obtain it themselves, under D-335.
 3. **Fold v1.5 into the spec.** *Who acts: you; docs only.* The work-log holds the content.
    - **Decision rows to add:**
      - D-339: the deck and short rounds;
@@ -114,10 +123,10 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `10561d9` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
+- **Integration head:** `05d6a20` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
 - **Live worktrees:**
   - `amend`, the integration worktree;
-  - `m14`, detached at `30abc7a` and built: the WU-59 run worktree.
+  - `m14`, detached at `96b1785` and built: the WU-59 run worktree.
 - **The main checkout** `/home/parker/projects/pob2-mcp` is on `build-guide/amendment-3` at `acec4d1`. The fleet
   doesn't touch it, because the user's pob2 server runs from its `build/`.
 - **Temp dirs:**

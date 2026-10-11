@@ -11,7 +11,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - confirmed in game text: a lookup returned the text;
 - modelled in PoB: a compile record holds the figure;
 - estimate (<the reason>): a Count, a custom modifier or a hand calculation carries it;
-- players use it (poe.ninja): characters run it;
+- players use it (the user's notes): the brief's `popularity` notes say players run it, cited as
+  user-supplied; no tool supplies player evidence (D-335);
 - not checked yet: nothing has looked;
 - needs in-game testing: no text or tool can settle it.
 -->
@@ -56,9 +57,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Evidence
 
-- Popularity: <the skill's share and the ascendancy's share of characters, from poe.ninja | no player
-  evidence>
-- Combination: <how many characters use it, at what level | no player evidence>
+- Player evidence: <the brief's `popularity` notes on this card's skill, ascendancy or combination,
+  quoted and cited as user-supplied ("the user's notes") | no player evidence>
 - Reference build: <the build and what it shows | none>
 
 ### Risks so far
@@ -74,7 +74,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Defences (modelled in PoB): life <`Life`>, energy shield <`EnergyShield`>, resistances <the four
   `Missing<Elem>Resist` values>, max hit <each `<Type>MaximumHitTaken`>, effective HP <`TotalEHP`>.
-- Modelled DPS: <the named source's figure, its stat set and group> (modelled in PoB).
+- Modelled DPS: <the named source's Count-scaled figure (`countedSkillOutputs`), its stat set and group>
+  (modelled in PoB; an estimate when its Count is above 1 or a custom modifier is present).
 - [only when the damage source isn't a skill] Not compiled: its damage source isn't a skill. Only the
   checklist's read-only checks ran (D-334).
 

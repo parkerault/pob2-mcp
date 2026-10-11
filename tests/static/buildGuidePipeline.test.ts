@@ -1484,7 +1484,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
         ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by']],
         ['Enabler', ['<The item, node or gem>', 'arrives at level', 'by <how to get it', 'Dormant until then:']],
         ['Links', ['| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', ...POB_LABELS, 'PG ids', '"from a Hit"', '"you use yourself"']],
-        ['Evidence', ['Popularity:', "the skill's share", "the ascendancy's share", 'poe.ninja', 'Combination:', 'at what level', 'Reference build:', 'no player evidence']],
+        // D-335: the brief's `popularity` notes, cited as user-supplied, or "no player evidence"; no tool.
+        ['Evidence', ['Player evidence:', '`popularity` notes', "this card's skill, ascendancy or combination", 'cited as user-supplied', 'no player evidence', 'Reference build:']],
         ['Risks so far', ['Payoff thieves:', 'Placement limits:', 'Exposed phase:', 'Resistant bosses:']],
       ],
     ],
@@ -1545,10 +1546,14 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
     expect(text).toMatch(/Not compiled: its damage source isn't a skill/i);
   });
 
-  it('carries the six status words (D-291)', () => {
-    for (const word of ['confirmed in game text', 'modelled in PoB', 'estimate (', 'players use it (poe.ninja)', 'not checked yet', 'needs in-game testing']) {
+  it("carries the six status words (D-291), the fourth citing the user's notes (D-335)", () => {
+    for (const word of ['confirmed in game text', 'modelled in PoB', 'estimate (', "players use it (the user's notes)", 'not checked yet', 'needs in-game testing']) {
       expect({ word, present: text.includes(word) }).toEqual({ word, present: true });
     }
+  });
+
+  it('names no player-evidence tool: poe.ninja supplies none (D-335)', () => {
+    expect(text).not.toMatch(/poe\.ninja|share of characters|how many characters/);
   });
 });
 

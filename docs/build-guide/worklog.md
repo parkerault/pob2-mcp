@@ -2345,3 +2345,34 @@ An independent verifier ran the gate from clean, with the Jest cache cleared and
 
 **Every M-14 build unit is merged and gated.** WU-59's worktree, `pob2-mcp-wt/m14`, is a detached checkout
 of `278b89c`, bootstrapped and built.
+
+### WU-59's criteria merged (`56ad83d`); D-342, the user's direction: an ascendancy-locked skill
+
+**The criteria.** WU-59's are AC-W34…AC-W50, pinned by the prep step (A-33) and reviewed by the
+coordinator.
+- **The environment** is `/tmp/m14.zfPx`. Its launcher matches attempt 3's safety settings, and its paths
+  check out.
+- **Sessions:**
+  - P1: invalid briefs and the test-config refusals;
+  - run A: the open brief, with answers `first-n:2`, `first-viable`, then a claims-only `revise:` and
+    `accept`, and FI-1/FI-2 on attempt 1 only;
+  - run B: `more`, no viable card, FI-3 and an escalation answered by default;
+  - P2: a seeded `not-a-skill` card.
+- **Estimate:** about 205M cache read and 1.6–2.1M output in total, on Opus.
+- **A slip.** The prep agent's launcher test ran `claude` once without a TTY. It exited at argument
+  parsing: no session, no model call, nothing written.
+
+**The risk the prep found.** Nothing makes a card for a tree-granted skill use the ascendancy that grants
+it. The identity check confirms only that the ascendancy exists and the skill is active, and PoB computes
+an Explosive Concoction group on any class.
+
+**D-342 (the user's direction, 2026-10-11): check whether the skill limits the ascendancy, and fail fast if
+a card ignores it.** It becomes a new unit, WU-63, with no server change:
+`search_tree_nodes {query: "Grants Skill: <skill>"}` already prints the granting node's ascendancy.
+- R1a and R1a-assemble run that search for the brief's skill. If an ascendancy node grants it, every card
+  uses that ascendancy and says why.
+- R1b's identity check repeats the search. A card whose ascendancy doesn't own the granting node fails
+  before any compile with code `wrong-ascendancy`. That failure is terminal, never retried.
+- The checker accepts `wrong-ascendancy` as terminal.
+
+The run worktree `m14` moves to the head that includes WU-63 once it is gated.

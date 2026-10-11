@@ -466,7 +466,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 ### Type-granting support unlock
 
 - **Shape:** a support adds a skill type another support requires.
-- **Search:** read the wanted support's required types; find supports adding them (D-299 once built).
+- **Search:** the skill's gem lookup, its `Unlocked by another support:` line (D-299): each support it
+  gains, after the supports that add the types it requires.
 - **PoB:** not modelled until coverage shows otherwise, for the unlocked effect (not established).
 - **Examples:** Flicker Monk: Culmination II lets Ailith's Chimes support Whirling Assault [flicker].
 - **Cautions:** "infinite power charges" is the creator's word.

@@ -710,16 +710,17 @@ export const lookupGemSchema = z
       z.object({ name: z.string(), kind: z.enum(['granted', 'triggered', 'minion']), minion: optString }).passthrough(),
     ),
     /**
-     * WU-53, only when exactly one support gem is returned: the active gems it can support. `count` of
-     * `total`; `names` are those gems, or with `except` (over half of them) the ones it can't support.
+     * WU-53, only when exactly one gem is returned, or every returned gem is named as the query, for a support
+     * gem: the active gems it can support. `count` of `total`; `names` are those gems, or with `except` (over
+     * half of them) the ones it can't support, one entry per gem (a shared name repeats).
      */
     canSupport: z
       .object({ count: z.number().int(), total: z.number().int(), except: z.boolean(), names: luaArray(z.string()) })
       .passthrough()
       .optional(),
     /**
-     * WU-53, only when exactly one active gem is returned: each support it can't support that another support
-     * (`after`) unlocks by adding skill types.
+     * WU-53, under the same rule as `canSupport`, for an active gem: each support it can't support that another
+     * support (`after`) unlocks by adding skill types.
      */
     unlocks: luaArray(z.object({ name: z.string(), after: luaArray(z.string()) }).passthrough()).optional(),
     /** Supports only: PoB's `requireSkillTypes` / `excludeSkillTypes`, as SkillType names. */

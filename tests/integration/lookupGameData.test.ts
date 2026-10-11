@@ -29,9 +29,10 @@
  * Essence hits (kind `essence`) are recomputed from `data.essences` and the mods they name.
  *
  * AC-K58…AC-K65 (WU-53, D-299): amendment 3's lookup additions. The expected values are recomputed with
- * PoB's own functions and data: `calcLib.canGrantedEffectSupportActiveSkill` for "usable by", a support's
- * reach and the unlocks; `altQualityStats` through the describer for the Gemling lines; the granted
- * effects, minion lists and hit flags for the children; `data.itemBaseLists` for the base implicits.
+ * PoB's own engine and data: "usable by", a support's reach and the unlocks build the skill with
+ * `calcs.createActiveSkill` and a real support list, as PoB's CalcSetup does, after PoB's one support per
+ * gem family; `altQualityStats` through the describer for the Gemling lines; the granted effects, minion
+ * lists and hit flags for the children; `data.itemBaseLists` for the base implicits.
  */
 import fs from 'fs';
 import path from 'path';
@@ -1412,9 +1413,12 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   // from PoB's data and functions (Lua queries), never from the tool's output.
 
   /**
-   * Lua helpers for the shared rule: a gem's granted effects (its own, then its additional ones), the ones
-   * PoB makes active skills (not a support, not hideFromSideBar; CalcSetup.lua:1855), and PoB's own
-   * `calcLib.canGrantedEffectSupportActiveSkill` on an active skill built from one of them.
+   * Lua helpers for the shared rule: a gem's granted effects (its own, then its additional ones) and the ones
+   * PoB makes active skills (not a support, not hideFromSideBar; CalcSetup.lua:1855). Whether PoB applies a
+   * support comes from PoB's engine itself, never from a copy of the tool's test: `applied` builds the
+   * skill with `calcs.createActiveSkill` and a support list, as CalcSetup does (CalcSetup.lua:1955), for the
+   * build's player. The list is made with PoB's addBestSupport rule (one support per gem family;
+   * CalcSetup.lua:502-543), restated because it is a local there; `raw` skips it.
    */
   const RULE_LUA = `
     local function isSupportGem(gem) return gem.gemType == 'Support' or (type(gem.tags) == 'table' and gem.tags.support == true) end
@@ -1428,17 +1432,6 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       local out = {}
       for _, e in ipairs(effectsOf(gem)) do if isActive(e) then table.insert(out, e) end end
       return out
-    end
-    local function skillOf(e, gem)
-      local p = {}
-      p.enemy = { player = p }
-      return { activeEffect = { grantedEffect = e, gemData = gem }, skillTypes = copyTable(e.skillTypes or {}),
-        minionSkillTypes = e.minionSkillTypes and copyTable(e.minionSkillTypes) or nil, actor = p }
-    end
-    local function can(sup, sk) return calcLib.canGrantedEffectSupportActiveSkill(sup, sk) and true or false end
-    local function canAny(sup, gem)
-      for _, e in ipairs(activeEffects(gem)) do if can(sup, skillOf(e, gem)) then return true end end
-      return false
     end
     local function allGems()
       local out = {}
@@ -1458,7 +1451,76 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       table.sort(out)
       return out
     end
+    -- How PoB's gem tooltip names a granted effect: its name, else its first stat set's label
+    -- (SkillsTab.lua:915-916); n is its place among the gem's granted effects.
+    local function effectName(e, n)
+      if type(e.name) == 'string' and e.name ~= '' then return e.name end
+      local ss = e.statSets and e.statSets[1]
+      if ss and type(ss.label) == 'string' and ss.label ~= '' then return ss.label end
+      return 'Granted effect ' .. n
+    end
+    local calcs, player = build.calcsTab.calcs, build.calcsTab.mainEnv.player
+    local function addBestSupport(s, list)
+      local add = true
+      for i, o in ipairs(list) do
+        if s.grantedEffect == o.grantedEffect then
+          add = false
+          break
+        elseif s.grantedEffect.gemFamily and o.grantedEffect.gemFamily then
+          for _, f in ipairs(s.grantedEffect.gemFamily) do
+            for _, g in ipairs(o.grantedEffect.gemFamily) do
+              if f == g then add = false; list[i] = s; break end
+            end
+          end
+        elseif s.grantedEffect.plusVersionOf == o.grantedEffect.id then
+          add = false; list[i] = s
+        elseif o.grantedEffect.plusVersionOf == s.grantedEffect.id then
+          add = false
+        end
+      end
+      if add then table.insert(list, s) end
+    end
+    -- The support effects PoB applies to the active effect e of gem, with the support effects sups socketed
+    -- in that order: a set keyed by effect.
+    local function applied(e, gem, sups, raw)
+      local list = {}
+      for _, sup in ipairs(sups) do
+        local entry = { grantedEffect = sup, level = 1, quality = 0 }
+        if raw then table.insert(list, entry) else addBestSupport(entry, list) end
+      end
+      local active = { grantedEffect = e, gemData = gem, level = 1, quality = 0, statSet = { index = 1 } }
+      local skill = calcs.createActiveSkill(active, list, { mode = 'MAIN' }, player)
+      local on = {}
+      for i = 2, #skill.effectList do on[skill.effectList[i].grantedEffect] = true end
+      return on
+    end
+    -- PoB applies the support alone to one of the gem's active effects.
+    local function canAny(sup, gem)
+      for _, e in ipairs(activeEffects(gem)) do if applied(e, gem, { sup })[sup] then return true end end
+      return false
+    end
   `;
+
+  /** The ids of the gems named `name`, in the order gem mode returns them (by id), and whether each is a support. */
+  async function gemsNamed(name: string): Promise<Array<{ id: string; support: boolean }>> {
+    const got = await luaQuery<Array<{ id: string; support: boolean }> | Record<string, never>>(`${RULE_LUA}
+      local out = {}
+      for _, e in ipairs(allGems()) do
+        if e.name == ${JSON.stringify(name)} then table.insert(out, { id = e.id, support = isSupportGem(e.gem) }) end
+      end
+      return out`);
+    return Array.isArray(got) ? got : [];
+  }
+
+  /**
+   * A name list as the spec prints it: one entry per gem, a name that several share printed once, where it
+   * first appears, as `<name> ×<n>`; separated by `; `.
+   */
+  function nameListOf(names: string[]): string {
+    const counts = new Map<string, number>();
+    for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
+    return [...counts].map(([n, c]) => (c > 1 ? `${n} ×${c}` : n)).join('; ');
+  }
 
   /** The `## <name>` block of a gem-mode reply (the first one with that name). */
   function gemBlockOf(text: string, name: string): string {
@@ -1729,114 +1791,133 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   /**
-   * AC-K61's rule, applied in Lua to one active gem: each support X that can support none of its active
-   * effects, with the supports Y that unlock it on one effect E (Y can support E, adds skill types and
-   * shares no gem family with X; with Y's types X can; with Y's and X's types both still can).
+   * AC-K61's lines for one active gem (by id), from PoB's engine: each support X that PoB applies alone to
+   * none of the gem's active effects, with each support Y such that, socketed as (Y, X) after PoB's
+   * one-support-per-family rule, PoB's createActiveSkill applies both to one active effect. One line per X,
+   * `<X>: after <Y names>`, the names as a name list.
    */
-  async function unlocksOf(name: string): Promise<string[]> {
-    const got = await luaQuery<string[]>(`${RULE_LUA}
-      local gem = gemNamed(${JSON.stringify(name)})
-      local supports, adders = {}, {}
-      for _, e in ipairs(allGems()) do
-        if isSupportGem(e.gem) then
-          table.insert(supports, e)
-          if #(e.gem.grantedEffect.addSkillTypes or {}) > 0 then table.insert(adders, e) end
-        end
-      end
-      local function family(a, b)
-        for _, f in ipairs(a.gemFamily or {}) do for _, g in ipairs(b.gemFamily or {}) do if f == g then return true end end end
-        return false
-      end
+  async function unlocksOf(id: string): Promise<string[]> {
+    const got = await luaQuery<Array<{ name: string; after: string[] }> | Record<string, never>>(`${RULE_LUA}
+      local gem = data.gems[${JSON.stringify(id)}]
+      local effects = activeEffects(gem)
+      local supports = {}
+      for _, e in ipairs(allGems()) do if isSupportGem(e.gem) then table.insert(supports, e) end end
       local out = {}
       for _, x in ipairs(supports) do
         local xe = x.gem.grantedEffect
         if not canAny(xe, gem) then
           local after = {}
-          for _, y in ipairs(adders) do
+          for _, y in ipairs(supports) do
             local ye = y.gem.grantedEffect
-            if y.id ~= x.id and not family(xe, ye) then
-              for _, e in ipairs(activeEffects(gem)) do
-                local sk = skillOf(e, gem)
-                if can(ye, sk) then
-                  for _, t in ipairs(ye.addSkillTypes) do sk.skillTypes[t] = true end
-                  if can(xe, sk) then
-                    for _, t in ipairs(xe.addSkillTypes or {}) do sk.skillTypes[t] = true end
-                    if can(ye, sk) and can(xe, sk) then table.insert(after, y.name) break end
-                  end
-                end
+            if y.id ~= x.id then
+              for _, e in ipairs(effects) do
+                local on = applied(e, gem, { ye, xe })
+                if on[ye] and on[xe] then table.insert(after, y.name) break end
               end
             end
           end
-          if #after > 0 then table.insert(out, x.name .. ': after ' .. table.concat(after, '; ')) end
+          if #after > 0 then table.insert(out, { name = x.name, after = after }) end
         end
       end
       return out`);
-    return arr(got as string[] | Record<string, never>);
+    return (Array.isArray(got) ? got : []).map((u) => `${u.name}: after ${nameListOf(u.after)}`);
   }
 
   const UNLOCKED = 'Unlocked by another support:';
+  const SEVERAL = 'Several gems are returned';
+
+  /** The `## <name>` blocks of a gem-mode reply, in order. */
+  const blocksNamed = (text: string, name: string): string[] => blocks(text).filter((b) => b.split('\n')[0] === `## ${name}`);
+
+  /** The lines under a block's `Unlocked by another support:` (its `- ` lines or `  (none)`); undefined without it. */
+  function unlockLines(block: string): string[] | undefined {
+    const lines = block.split('\n');
+    const at = lines.indexOf(UNLOCKED);
+    if (at < 0) return undefined;
+    const out: string[] = [];
+    for (const l of lines.slice(at + 1)) {
+      if (!l.startsWith('- ') && l !== '  (none)') break;
+      out.push(l);
+    }
+    return out;
+  }
+
+  /** The lines AC-K61 expects under the header, from `unlocksOf`. */
+  const unlockWant = (want: string[]): string[] => (want.length > 0 ? want.map((l) => `- ${l}`) : ['  (none)']);
 
   it(
-    "AC-K61 (type-granting unlocks): Whirling Assault lists Ailith's Chimes after Culmination II among 29 lines; Gas Grenade's Nova Projectiles II isn't unlocked by its own family; the lines equal the rule for six gems",
+    "AC-K61 (type-granting unlocks): Whirling Assault lists Ailith's Chimes after Culmination II among 29 lines; Gas Grenade's Nova Projectiles II isn't unlocked by its own family; Herald of Ash has none; the lines equal PoB's createActiveSkill for eight gems, Mace Strike's three among them",
     async () => {
       const wa = gemBlockOf(await okTool({ mode: 'gem', query: 'Whirling Assault' }), 'Whirling Assault');
       const waLines = listUnder(wa, UNLOCKED, '- ')!;
       expect(waLines).toContain("Ailith's Chimes: after Combo Finisher I; Combo Finisher II; Culmination I; Culmination II; Vruun's Inevitability");
       expect(waLines).toHaveLength(29);
-      // The example's facts, from PoB's data.
-      const facts = await luaQuery<{ types: string[]; req: string[]; adds: boolean; c2: boolean; ac: boolean }>(`${RULE_LUA}
+      // The example's facts, from PoB's data and engine.
+      const facts = await luaQuery<{ types: string[]; req: string[]; adds: boolean; c2: boolean; ac: boolean; pair: boolean }>(`${RULE_LUA}
         local wa = gemNamed('Whirling Assault')
         local ac, c2 = gemNamed("Ailith's Chimes").grantedEffect, gemNamed('Culmination II').grantedEffect
         local req = {}
         for _, t in ipairs(ac.requireSkillTypes) do table.insert(req, SkillTypeName[t]) end
         local adds = false
         for _, t in ipairs(c2.addSkillTypes) do if t == SkillType.ComboStacking then adds = true end end
-        return { types = typeNames(wa.grantedEffect.skillTypes), req = req, adds = adds, c2 = canAny(c2, wa), ac = canAny(ac, wa) }`);
-      expect(facts).toEqual({ types: ['Area', 'Attack', 'Melee', 'MeleeSingleTarget'], req: ['ComboStacking'], adds: true, c2: true, ac: false });
+        local on = applied(wa.grantedEffect, wa, { c2, ac })
+        return { types = typeNames(wa.grantedEffect.skillTypes), req = req, adds = adds, c2 = canAny(c2, wa), ac = canAny(ac, wa),
+          pair = on[c2] == true and on[ac] == true }`);
+      expect(facts).toEqual({ types: ['Area', 'Attack', 'Melee', 'MeleeSingleTarget'], req: ['ComboStacking'], adds: true, c2: true, ac: false, pair: true });
 
-      // Family: on Gas Grenade, the type checks let Nova Projectiles I unlock II, but the two share a family.
-      const nova = await luaQuery<{ typesPass: boolean; family: boolean }>(`${RULE_LUA}
+      // Family: on Gas Grenade, PoB's engine applies both Nova Projectiles I and II when both reach it, but
+      // PoB keeps one support per family, so the pair never forms.
+      const nova = await luaQuery<{ alone: boolean; raw: boolean; kept: boolean; family: boolean }>(`${RULE_LUA}
         local gg = gemNamed('Gas Grenade')
         local y, x = gemNamed('Nova Projectiles I').grantedEffect, gemNamed('Nova Projectiles II').grantedEffect
-        local pass = false
+        local raw, kept = false, false
         for _, e in ipairs(activeEffects(gg)) do
-          local sk = skillOf(e, gg)
-          if not canAny(x, gg) and can(y, sk) then
-            for _, t in ipairs(y.addSkillTypes) do sk.skillTypes[t] = true end
-            if can(x, sk) then pass = true end
-          end
+          local on = applied(e, gg, { y, x }, true)
+          if on[y] and on[x] then raw = true end
+          local fam = applied(e, gg, { y, x })
+          if fam[y] and fam[x] then kept = true end
         end
         local fam = false
         for _, f in ipairs(x.gemFamily or {}) do for _, g in ipairs(y.gemFamily or {}) do if f == g then fam = true end end end
-        return { typesPass = pass, family = fam }`);
-      expect(nova).toEqual({ typesPass: true, family: true });
+        return { alone = canAny(x, gg), raw = raw, kept = kept, family = fam }`);
+      expect(nova).toEqual({ alone: false, raw: true, kept: false, family: true });
       const gg = listUnder(gemBlockOf(await okTool({ mode: 'gem', query: 'Gas Grenade' }), 'Gas Grenade'), UNLOCKED, '- ')!;
       expect(gg.find((l) => l.startsWith('Nova Projectiles II: ') && l.includes('Nova Projectiles I;'))).toBeUndefined();
       expect(gg.find((l) => l.startsWith('Nova Projectiles II: ') && l.endsWith('Nova Projectiles I'))).toBeUndefined();
 
-      // The rule check.
-      for (const [name, extra] of [
-        ['Whirling Assault', {}],
-        ['Snipe', { max_results: 1 }],
-        ['Fireball', {}],
-        ['Gas Grenade', {}],
-        ['Raise Zombie', {}],
-        ['Cast on Critical', {}],
+      // A gem with no unlock says so: Herald of Ash.
+      expect(unlockLines(gemBlockOf(await okTool({ mode: 'gem', query: 'Herald of Ash' }), 'Herald of Ash'))).toEqual(['  (none)']);
+
+      // The rule check: each returned gem's lines equal PoB's engine. Mace Strike's three gems share its
+      // name, so its exact name returns all three, each with its lines, and no several-gems line.
+      for (const [name, extra, count] of [
+        ['Whirling Assault', {}, 1],
+        ['Snipe', { max_results: 1 }, 1],
+        ['Fireball', {}, 1],
+        ['Gas Grenade', {}, 1],
+        ['Raise Zombie', {}, 1],
+        ['Cast on Critical', {}, 1],
+        ['Herald of Ash', {}, 1],
+        ['Mace Strike', {}, 3],
       ] as const) {
-        const block = gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name);
-        const lines = listUnder(block, UNLOCKED, '- ')!;
-        const want = await unlocksOf(name);
-        if (want.length === 0) expect(listUnder(block, UNLOCKED, '  ')).toEqual(['(none)']);
-        expect({ name, lines }).toEqual({ name, lines: want });
+        const text = await okTool({ mode: 'gem', query: name, ...extra });
+        const named = blocksNamed(text, name);
+        const ids = (await gemsNamed(name)).slice(0, count);
+        expect({ name, blocks: named.length, ids: ids.length }).toEqual({ name, blocks: count, ids: count });
+        if (count > 1) expect({ name, note: text.includes(SEVERAL) }).toEqual({ name, note: false });
+        for (const [i, block] of named.entries()) {
+          const want = unlockWant(await unlocksOf(ids[i].id));
+          expect({ name, id: ids[i].id, got: unlockLines(block) }).toEqual({ name, id: ids[i].id, got: want });
+        }
       }
     },
     ENGINE_TIMEOUT,
   );
 
-  /** AC-K62's gems, in Lua: the active gems a support can support with their own types, and the total. */
-  async function reachOf(name: string): Promise<{ yes: string[]; no: string[]; total: number }> {
+  /** AC-K62's gems for one support gem (by id), from PoB's engine: the active gems it is applied to alone, and the total. */
+  async function reachOf(id: string): Promise<{ yes: string[]; no: string[]; total: number }> {
     const r = await luaQuery<{ yes: string[] | Record<string, never>; no: string[] | Record<string, never>; total: number }>(`${RULE_LUA}
-      local sup = gemNamed(${JSON.stringify(name)}).grantedEffect
+      local sup = data.gems[${JSON.stringify(id)}].grantedEffect
       local yes, no, total = {}, {}, 0
       for _, e in ipairs(allGems()) do
         if not isSupportGem(e.gem) then
@@ -1848,8 +1929,15 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
     return { yes: arr(r.yes), no: arr(r.no), total: r.total };
   }
 
+  /** The `Can support` line AC-K62 expects for a support gem's reach. */
+  function canSupportOf(want: { yes: string[]; no: string[]; total: number }): string {
+    const head = `${want.yes.length} of ${want.total} active gems): `;
+    if (want.yes.length * 2 > want.total) return `${head}all except ${nameListOf(want.no)}`;
+    return head + (want.yes.length > 0 ? nameListOf(want.yes) : '(none)');
+  }
+
   it(
-    "AC-K62 (what a support can ride): Ailith's Chimes and Culmination II in the list form, Uhtred's Exodus in the complement form; five supports equal PoB's support test; several gems get the note instead",
+    "AC-K62 (what a support can ride): Ailith's Chimes and Culmination II in the list form, Uhtred's Exodus in the complement form; five supports equal PoB's createActiveSkill; shared names print once with ×n; Unleash's support and spell both get their lists; several gems get the note instead",
     async () => {
       const line = async (name: string, extra: Record<string, unknown> = {}) =>
         lineWith(gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name), 'Can support (');
@@ -1857,7 +1945,12 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const culm = (await line('Culmination II'))!;
       expect(culm.startsWith('93 of 399 active gems): ')).toBe(true);
       expect(culm).not.toContain('all except');
-      expect(culm.slice('93 of 399 active gems): '.length).split('; ')).toContain('Whirling Assault');
+      const culmNames = culm.slice('93 of 399 active gems): '.length).split('; ');
+      expect(culmNames).toContain('Whirling Assault');
+      // Gems that share a name print once, with ×n; the count still counts every gem.
+      expect(culmNames).toContain('Mace Strike ×3');
+      expect(culmNames).toContain('Spear Stab ×2');
+      expect(culmNames).not.toContain('Mace Strike');
       expect(await line("Uhtred's Exodus")).toBe('398 of 399 active gems): all except Abyssal Apparition');
 
       for (const [name, extra] of [
@@ -1867,25 +1960,33 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         ["Paquate's Pact", {}],
         ['Living Lightning', { max_results: 1 }],
       ] as const) {
-        const want = await reachOf(name);
+        const [{ id }] = await gemsNamed(name);
+        const want = await reachOf(id);
         expect(want.total).toBe(399);
-        const got = (await line(name, extra))!;
-        const head = `${want.yes.length} of ${want.total} active gems): `;
-        expect({ name, head: got.startsWith(head) }).toEqual({ name, head: true });
-        const rest = got.slice(head.length);
-        if (want.yes.length * 2 > want.total) {
-          expect({ name, rest }).toEqual({ name, rest: `all except ${want.no.join('; ')}` });
-        } else {
-          expect({ name, rest }).toEqual({ name, rest: want.yes.length > 0 ? want.yes.join('; ') : '(none)' });
-        }
+        expect({ name, got: await line(name, extra) }).toEqual({ name, got: canSupportOf(want) });
       }
 
-      // Several gems returned: neither long list, and the note says how to get them.
+      // Unleash is a spell and a support. Both are named as the query, so each gets its long list, as
+      // though it were the only result, and the several-gems line is left out.
+      const unleash = await okTool({ mode: 'gem', query: 'Unleash' });
+      const unleashBlocks = blocksNamed(unleash, 'Unleash');
+      const unleashGems = await gemsNamed('Unleash');
+      expect(unleashGems.map((g) => g.support)).toEqual([false, true]);
+      expect(blocks(unleash)).toHaveLength(2);
+      expect(unleashBlocks).toHaveLength(2);
+      expect(unleash).not.toContain(SEVERAL);
+      const [spell, support] = unleashBlocks;
+      expect(lineWith(support, 'Can support (')).toBe(canSupportOf(await reachOf(unleashGems[1].id)));
+      expect(lineWith(spell, 'Can support (')).toBeUndefined();
+      expect(unlockLines(spell)).toEqual(unlockWant(await unlocksOf(unleashGems[0].id)));
+      expect(unlockLines(support)).toBeUndefined();
+
+      // Several gems returned, not all named as the query: neither long list, and the note says how to get them.
       const several = await okTool({ mode: 'gem', query: 'Culmination' });
       expect(blocks(several).map((b) => b.split('\n')[0])).toEqual(['## Culmination I', '## Culmination II']);
       expect(several).not.toContain('Can support (');
       expect(several).not.toContain(UNLOCKED);
-      const note = several.split('\n').find((l) => l.startsWith('Several gems are returned'));
+      const note = several.split('\n').find((l) => l.startsWith(SEVERAL));
       expect(note).toBeDefined();
       expect(note).toContain('exact name');
       expect(note).toContain('max_results 1');
@@ -1935,7 +2036,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
-    "AC-K64 (hit-making children): Bloodhound's Mark, Pounce, Living Lightning, Artillery Ballista and Raise Zombie name theirs; Snipe and Mirage Archer have none; the every-gem sweep equals PoB's data by the rule (94 of 126 effects; 121 gems)",
+    "AC-K64 (hit-making children): Bloodhound's Mark, Pounce, Living Lightning, Artillery Ballista and Raise Zombie name theirs; Snipe and Mirage Archer have none; Charged Mark's and Voltaic Barrier's unnamed effects take their stat set's label; the every-gem sweep equals PoB's data by the rule (94 of 126 effects; 121 gems)",
     async () => {
       const children = async (name: string, extra: Record<string, unknown> = {}) =>
         listUnder(gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name), 'Hit-making children:', '')!.filter(
@@ -1948,6 +2049,28 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(await children('Raise Zombie')).toEqual(['- Basic Attack (minion Raised Zombie)']);
       expect(await children('Snipe', { max_results: 1 })).toEqual(['  (none)']);
       expect(await children('Mirage Archer')).toEqual(['  (none)']);
+
+      // Unnamed effects take their first stat set's label, as PoB's gem tooltip names them: Charged Mark's
+      // and Voltaic Barrier's triggered effects have no name.
+      const unnamed = await luaQuery<Array<{ name: string; label: string }>>(`${RULE_LUA}
+        local out = {}
+        for _, gemName in ipairs({ 'Charged Mark', 'Voltaic Barrier' }) do
+          local e = gemNamed(gemName).additionalGrantedEffects[1]
+          table.insert(out, { name = e.name, label = e.statSets[1].label })
+        end
+        return out`);
+      expect(unnamed).toEqual([
+        { name: '', label: 'Charged Mark' },
+        { name: '', label: 'Beam' },
+      ]);
+      for (const [gem, label] of [
+        ['Charged Mark', 'Charged Mark'],
+        ['Voltaic Barrier', 'Beam'],
+      ] as const) {
+        const block = gemBlockOf(await okTool({ mode: 'gem', query: gem }), gem);
+        expect({ gem, also: lineWith(block, 'Also grants: ') }).toEqual({ gem, also: label });
+        expect({ gem, children: await children(gem) }).toEqual({ gem, children: [`- ${label} (triggered)`] });
+      }
 
       const want = await luaQuery<{ other: number; hit: number; gems: Record<string, string[] | Record<string, never>> }>(`${RULE_LUA}
         local function hits(e)
@@ -1966,7 +2089,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
               if hits(e) then
                 hit = hit + 1
                 local t = e.skillTypes or {}
-                local name = (e.name and e.name ~= '') and e.name or ('Granted effect ' .. (i + 1))
+                local name = effectName(e, i + 1)
                 add('- ' .. name .. ' (' .. ((t[SkillType.Triggered] or t[SkillType.InbuiltTrigger]) and 'triggered' or 'granted') .. ')')
               end
             end
@@ -2000,7 +2123,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
-    "AC-K65 (stat sets named): mechanic gem hits name the stat set's number (Blood Hunt's Explosion, Wing Blast's Shockwave, Bloodhound's Mark's Blood Explosion); every stat-set hit for Explosion names a stat set whose lines hold it",
+    "AC-K65 (stat sets named): mechanic gem hits name the stat set's number (Blood Hunt's Explosion, Wing Blast's Shockwave, Bloodhound's Mark's Blood Explosion, and the unnamed effects of Charged Mark and Voltaic Barrier by their label); every stat-set hit for Explosion names a stat set whose lines hold it",
     async () => {
       const hits = async (query: string) => hitLines(await okTool({ mode: 'mechanic', query, kind: 'gem', max_results: 30 }));
       expect(await hits('Consumed Blood Loss')).toContain('[gem] Blood Hunt (stat set 2: Explosion): Enemies lose Life equal to 25% of Consumed Blood Loss');
@@ -2010,6 +2133,22 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(await hits('Heavy Stun buildup caused by Blood Loss')).toContain(
         "[gem] Bloodhound's Mark / Blood Explosion (stat set 1: Blood Explosion): Gains up to 100% more damage and 100% more area of effect based on the percentage of target's Heavy Stun buildup caused by Blood Loss",
       );
+      // An unnamed effect is named by its first stat set's label, as its `Also grants:` line names it.
+      const unnamed = await luaQuery<Array<{ gem: string; label: string; line: string }>>(`${RULE_LUA}
+        local out = {}
+        for _, gemName in ipairs({ 'Charged Mark', 'Voltaic Barrier' }) do
+          local gem = gemNamed(gemName)
+          local e = gem.additionalGrantedEffects[1]
+          local ss = e.statSets[1]
+          local lines = data.describeStats(calcLib.buildSkillInstanceStats({ level = gem.naturalMaxLevel, quality = 0 }, e, ss), ss.statDescriptionScope) or {}
+          table.insert(out, { gem = gemName, label = ss.label, line = lines[1] and oneLine(lines[1]) or '' })
+        end
+        return out`);
+      for (const u of unnamed) {
+        expect(u.line).not.toBe('');
+        const all = await lookupAction({ mode: 'mechanic', query: u.line, kind: 'gem', maxResults: 100000 });
+        expect((all.results as LookupHit[]).map(renderHit)).toContain(`[gem] ${u.gem} / ${u.label} (stat set 1: ${u.label}): ${u.line}`);
+      }
 
       const full = await lookupAction({ mode: 'mechanic', query: 'Explosion', kind: 'gem', maxResults: 100000 });
       const named = (full.results as LookupHit[])
@@ -2034,7 +2173,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
           local effect
           if c.effect == nil then effect = gem.grantedEffect else
             for j, e in ipairs(gem.additionalGrantedEffects or {}) do
-              local name = (e.name and e.name ~= '') and e.name or ('Granted effect ' .. (j + 1))
+              local name = effectName(e, j + 1)
               if name == c.effect then effect = e end
             end
           end

@@ -13,10 +13,11 @@
  *
  * WU-53 (D-299), amendment 3's additions: gem blocks show the Gemling quality lines (labelled), an active
  * gem's skill types and the meta gems that can use it ("usable by"), and every gem's hit-making children.
- * With exactly one gem returned, a support shows the active gems it can support (the complement when it can
- * support most of them) and an active gem the supports another support unlocks. Mechanic mode searches
- * quality, Gemling and item-base implicit lines (kind `base`), names a gem hit's stat set by number, and
- * takes gaps (`…` or `...`) in the query.
+ * With exactly one gem returned, or several that are all named as the query (gems that share a name), a support
+ * shows the active gems it can support (the complement when it can support most of them) and an active gem the
+ * supports another support unlocks. A name that several gems in a list share is printed once, with `×n`.
+ * Mechanic mode searches quality, Gemling and item-base implicit lines (kind `base`), names a gem hit's stat
+ * set by number, and takes gaps (`…` or `...`) in the query.
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
@@ -81,7 +82,10 @@ function resultLimit(value: unknown): number {
 /** WU-53 (AC-K58): the header of a gem's Gemling quality lines. */
 export const GEMLING_HEADER = "At +20% Quality, with the Gemling Legionnaire's Advanced Thaumaturgy:";
 
-/** WU-53: the line a gem-mode reply with several gems gets, since the long lists come only for one gem. */
+/**
+ * WU-53: the line a gem-mode reply with several gems gets when the long lists are left out: they come only for
+ * one gem, or for gems that are all named as the query.
+ */
 export const SEVERAL_GEMS_NOTE =
   "Several gems are returned, so the active gems a support can support and the supports another support unlocks are left out; look a gem up by its exact name (or with max_results 1) for them.";
 
@@ -91,11 +95,29 @@ const levelsLabel = (n: number) => `gem levels 1–${n}`;
 /** WU-53: gem-name lists are separated by `; `, since some gem names contain a comma. */
 const NAME_SEPARATOR = "; ";
 
+/**
+ * WU-53: a gem-name list, one entry per gem, in its order. A name that several of its gems share (Mace Strike
+ * has three gems) is printed once, where it first appears, as `<name> ×<n>`; `suffix` follows each name.
+ */
+function nameList(entries: Array<{ name: string; suffix?: string }>): string {
+  const counts = new Map<string, { name: string; suffix: string; n: number }>();
+  for (const e of entries) {
+    const suffix = e.suffix ?? "";
+    const key = `${e.name}\0${suffix}`;
+    const seen = counts.get(key);
+    if (seen) seen.n += 1;
+    else counts.set(key, { name: e.name, suffix, n: 1 });
+  }
+  return [...counts.values()].map((c) => `${c.name}${c.n > 1 ? ` ×${c.n}` : ""}${c.suffix}`).join(NAME_SEPARATOR);
+}
+
+const names = (list: string[]) => nameList(list.map((name) => ({ name })));
+
 /** WU-53 (AC-K62): the active gems a support can support, or the ones it can't when it can support most. */
 function canSupportLine(reach: NonNullable<LookupGem["canSupport"]>): string {
   const head = `Can support (${reach.count} of ${reach.total} active gems): `;
-  if (reach.except) return head + (reach.names.length > 0 ? `all except ${reach.names.join(NAME_SEPARATOR)}` : "all");
-  return head + (reach.names.length > 0 ? reach.names.join(NAME_SEPARATOR) : "(none)");
+  if (reach.except) return head + (reach.names.length > 0 ? `all except ${names(reach.names)}` : "all");
+  return head + (reach.names.length > 0 ? names(reach.names) : "(none)");
 }
 
 /** WU-53 (AC-K64): one hit-making child. */
@@ -114,8 +136,8 @@ function renderGem(gem: LookupGem): string[] {
   // WU-53 (AC-K59): an active gem's skill types and the meta gems that can use it.
   if (gem.skillTypes) lines.push(`Skill types: ${gem.skillTypes.join(", ")}`);
   if (gem.usableBy) {
-    const metas = gem.usableBy.map((m) => `${m.name}${m.trigger ? " (trigger)" : ""}`);
-    lines.push(`Usable by: ${metas.length > 0 ? metas.join(NAME_SEPARATOR) : "(no meta gem)"}`);
+    const metas = gem.usableBy.map((m) => ({ name: m.name, suffix: m.trigger ? " (trigger)" : "" }));
+    lines.push(`Usable by: ${metas.length > 0 ? nameList(metas) : "(no meta gem)"}`);
   }
   if (gem.description) lines.push(`Description: ${gem.description}`);
   lines.push(`Stat sets at gem level ${gem.level}, quality ${gem.quality}%:`);
@@ -153,7 +175,7 @@ function renderGem(gem: LookupGem): string[] {
   if (gem.unlocks) {
     lines.push("Unlocked by another support:");
     if (gem.unlocks.length === 0) lines.push("  (none)");
-    for (const u of gem.unlocks) lines.push(`- ${u.name}: after ${u.after.join(NAME_SEPARATOR)}`);
+    for (const u of gem.unlocks) lines.push(`- ${u.name}: after ${names(u.after)}`);
   }
   // WU-53 (AC-K64): the hit-making children, for the payoff-thief check.
   lines.push("Hit-making children:");
@@ -326,7 +348,11 @@ function render(req: Request, result: LookupGameDataResult): string {
     const kindNote = req.mode === "mechanic" && req.kind ? ` ${req.kind}` : "";
     lines.push(`Found ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}).`);
   }
-  if (req.mode === "gem" && shown > 1) lines.push(SEVERAL_GEMS_NOTE);
+  // WU-53: the note only when the long lists are left out (not every returned gem is named as the query).
+  if (req.mode === "gem" && shown > 1) {
+    const gems = result.results as LookupGem[];
+    if (gems.some((g) => g.canSupport === undefined && g.unlocks === undefined)) lines.push(SEVERAL_GEMS_NOTE);
+  }
   if (req.mode === "unique" && shown > 1) {
     lines.push("Several uniques are returned, so each is shown in brief; look one up by its exact name (or with max_results 1) for its full item text, ready for add_item.");
   }

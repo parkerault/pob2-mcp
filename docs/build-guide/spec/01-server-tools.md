@@ -1191,16 +1191,22 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
   arrives as data in the Lua action's reply (its C-5 schema, wrapper types and contract case: AC-B3, AC-B4)
   and the handler renders it.
 - **One gem or several (D-239's rule).** The two long lists, the active gems a support can support
-  (AC-K62) and the supports another support unlocks (AC-K61), come only when exactly one gem is returned.
-  Otherwise neither appears, and one line under the count line says to look a gem up by its exact name,
-  or with `max_results` 1.
+  (AC-K62) and the supports another support unlocks (AC-K61), come only when exactly one gem is returned,
+  or when every returned gem's name is the query (case-insensitive). Some gems share a name: Mace Strike
+  has three, and Lightning Bolt, Spear Stab and Unleash two each (Unleash is a spell and a support). Their
+  exact name returns them all, and each gets its long list as though it were the only result. Otherwise
+  neither list appears, and one line under the count line says to look a gem up by its exact name, or
+  with `max_results` 1. That line appears only when the lists are left out.
 - **PoB's support rule.** "Can support" means PoB's `calcLib.canGrantedEffectSupportActiveSkill`
   (`Modules/CalcTools.lua:85-110`) is true for the support's effect and one of the gem's active effects,
   with that effect's own skill types and minion skill types. A gem's active effects are its granted
   effects that PoB makes active skills: not a support and not `hideFromSideBar`
   (`Modules/CalcSetup.lua:1855`). An active gem is one whose kind is `active` (§2.2).
 - **Name lists** are sorted by name (byte order) and separated by `; `, because some gem names contain a
-  comma (Kelari, the Tainted Sands).
+  comma (Kelari, the Tainted Sands). A name list is the `Can support` names, the `Usable by` names and
+  an unlock line's `after` names. A name that several gems in one list share is printed once, as
+  `<name> ×<n>`, where n is how many of them the list holds (`Mace Strike ×3`). Counts such as AC-K62's
+  n still count gems.
 - **The every-gem sweep.** Where a criterion covers every gem, the test reads the Lua action's gem
   results for the queries `a`, `e`, `i`, `o`, `u` and `y` (`maxResults:10000`). A Lua query confirms that
   together they return every gem with a granted effect (Syzygy has only the `y`).
@@ -1281,7 +1287,8 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
   supporting gem's `addSkillTypes` to the skill's types, then re-checks the supports it rejected
   (`Modules/CalcActiveSkill.lua:182-208`). It keeps a support only if it still applies with every added
   type (`:210-212`), and keeps one support per gem family (`Modules/CalcSetup.lua:517-527`).
-  - **Format.** With exactly one active gem returned, its block gains `Unlocked by another support:`.
+  - **Format.** When an active gem gets the long lists (the one-gem-or-several rule), its block gains
+    `Unlocked by another support:`.
     Under it is one line `- <X>: after <Y1>; <Y2>; …` per support gem X, sorted by X's name, or
     `  (none)`.
   - **The rule.** X is listed with Y, a support gem, when both of these hold:
@@ -1304,10 +1311,13 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
     checks pass: the two share a family.
   - **Rule check.** For Whirling Assault, `{query:"Snipe", max_results:1}`, Fireball, Gas Grenade, Raise
     Zombie and Cast on Critical, the lines equal a Lua query that applies the rule with PoB's function.
-    Over every active gem the rule gives 6,435 (gem, X) pairs at the pin; a gem lookup lists one gem's.
-- **AC-K62 (C-37 what a support can ride).** With exactly one support gem returned, its block gains one
-  `Can support` line. Its gems are every active gem with an active effect that the support's own effect can
-  support (the shared rule); n counts them, of the total active gems.
+  - **Pair count (informational, not asserted).** Over every active gem, the rule gives 6,435 (gem, X)
+    pairs at the pin, counted per gem (399 gems). Counted by gem name it gives 6,339 (395 names). The
+    gap is the gems that share a name, such as Mace Strike's three. A gem lookup lists one gem's pairs.
+- **AC-K62 (C-37 what a support can ride).** When a support gem gets the long lists (the
+  one-gem-or-several rule), its block gains one `Can support` line. Its gems are every active gem with an
+  active effect that the support's own effect can support (the shared rule); n counts them, of the total
+  active gems.
   - **The list form**, when n is at most half the total: `Can support (<n> of <total> active gems):
     <names>`, or `Can support (0 of <total> active gems): (none)`.
   - **The complement form**, when n is more than half the total, to keep the reply short: `Can support
@@ -1322,6 +1332,13 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
     form, all active gems but the named ones in the complement form.
   - `{query:"Culmination"}` returns Culmination I and Culmination II. Neither block has a `Can support`
     line, and the several-gems line is present.
+  - **Gems that share a name.**
+    - `{query:"Unleash"}` returns the Unleash spell and the Unleash support, both named as the query. The
+      support's block has its `Can support` line, the spell's block has `Unlocked by another support:`,
+      and there is no several-gems line.
+    - `{query:"Mace Strike"}` returns its three gems, each block with `Unlocked by another support:`.
+    - Culmination II's list prints `Mace Strike ×3` and `Spear Stab ×2` once each, and its count still
+      counts every gem.
 - **AC-K63 (C-37 named phrase searches).** Mechanic mode's `query` may hold gaps, written `…` or `...`.
   - **Matching.** A line matches when the query's parts, split at the gaps and trimmed, appear in it in
     order without overlapping, case-insensitive. A query of gaps alone is an error, as an empty one is.

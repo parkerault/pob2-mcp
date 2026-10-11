@@ -8,8 +8,8 @@
 --               default), the +20% quality lines and the Gemling ones (`altQualityStats`), support rules,
 --               the requirements at every gem level, and (WU-53, D-299) an active gem's skill types and
 --               the meta gems that can use it, and every gem's hit-making children. With exactly one gem
---               returned, a support lists the active gems it can support and an active gem the supports
---               another support unlocks (D-239's one-result rule)
+--               returned (D-239's one-result rule), or several that are all named as the query, a support
+--               lists the active gems it can support and an active gem the supports another support unlocks
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
@@ -388,7 +388,8 @@ local function usableBy(gem, effects)
 end
 
 -- What a support can ride: the active gems it can support with their own types. When they are more than
--- half of all active gems, the reply names the ones it can't (`except`), to stay short.
+-- half of all active gems, the reply names the ones it can't (`except`), to stay short. `names` has one
+-- entry per gem, so a name that several gems share repeats; the handler prints it once, with `×n`.
 local function supportReach(gem)
   local index = gemIndex()
   local yes, no = {}, {}
@@ -459,9 +460,13 @@ local function makesHits(effect)
   return false
 end
 
--- The name a gem block gives its i-th other granted effect (its `Also grants:` line).
+-- The name a gem block gives its i-th other granted effect (its `Also grants:` line): its name, else, as
+-- PoB's gem tooltip names an unnamed effect, its first stat set's label (SkillsTab.lua:915-916).
 local function otherEffectName(effect, i)
-  return (effect.name and effect.name ~= '') and effect.name or ('Granted effect ' .. (i + 1))
+  if type(effect.name) == 'string' and effect.name ~= '' then return effect.name end
+  local first = type(effect.statSets) == 'table' and effect.statSets[1] or nil
+  if first and type(first.label) == 'string' and first.label ~= '' then return first.label end
+  return 'Granted effect ' .. (i + 1)
 end
 
 -- A gem's hit-making children: its other granted effects that PoB makes active skills (`triggered` with the
@@ -501,7 +506,8 @@ local function hitChildren(gem)
 end
 
 -- A requested gem level the gem lacks shows the gem at its default level, with a note saying so. `single`
--- (exactly one gem returned) adds the long lists: a support's reach, an active gem's unlocks (WU-53).
+-- (exactly one gem returned, or every returned gem named as the query) adds the long lists: a support's
+-- reach, an active gem's unlocks (WU-53).
 local function gemResult(id, gem, levelParam, quality, single)
   local ge = gem.grantedEffect
   local level = levelParam or M.defaultLevel(gem)
@@ -584,9 +590,18 @@ local function lookupGems(query, level, quality, maxResults)
         shown[1].gem.name, lo, hi))
     end
   end
+  -- The long lists come for one returned gem, or for each when every returned gem is named as the query
+  -- (gems that share a name: Mace Strike's three, Unleash's spell and support).
+  local single = #shown == 1
+  if not single and #shown > 0 then
+    single = true
+    for _, m in ipairs(shown) do
+      if m.name:lower() ~= query then single = false break end
+    end
+  end
   local results = {}
   for i, m in ipairs(shown) do
-    results[i] = gemResult(m.id, m.gem, level, quality, #shown == 1)
+    results[i] = gemResult(m.id, m.gem, level, quality, single)
   end
   return results, #matches
 end

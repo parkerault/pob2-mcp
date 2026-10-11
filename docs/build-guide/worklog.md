@@ -2074,3 +2074,17 @@ FINDINGS: 6 low. The behaviour matches the spec.
   The headline is `countedSkillOutputs[g<main.group>s<activeSkill>p<statSet>].fields.TotalDPS`. The V1
   finding is `missing-reason`, with `data.path`.
 - **C-41:** a new `compile_check` error class, for a custom-modifier line PoB can't parse whole.
+
+### WU-62 merged at `14f3553`
+
+The fixer closed the four findings:
+- every section's word budget now comes from §8's table (lines 1011–1024, a total of 2,840), and a static
+  test reads that table from the spec;
+- the FAQ placeholder holds the "3–5 questions" rule;
+- the fence guard exempts only the import code, and two new checker tests cover it;
+- the fault string now names stage m.
+
+One deviation was accepted: the nine sections that had no budget placeholder carry `[About N words.]` lines,
+which W1 deletes. Static and checker suites at the merge: 421 of 421. The lane was removed.
+
+WU-57 can start once WU-55 merges (its last hard dependency; WU-50's is moot under D-335).

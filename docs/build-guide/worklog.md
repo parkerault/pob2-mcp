@@ -1701,3 +1701,71 @@ WU-62) doesn't depend on WU-50, so the other lanes continue. WU-57 waits for the
 - **D.** GGG's official API. It needs an application to GGG, and stays gated by HG-1.
 
 The doer recommends A, plus B.
+
+### D-335 (the user's decision, 2026-10-10): no player-evidence tools
+
+The user chose "No tool; your notes". To be folded into the spine:
+- **Withdrawn:** C-54's poe.ninja tools and their unit, WU-52 (AC-K47…AC-K49). The count sites stay at 84,
+  and 83 with poe.ninja disabled.
+- **Cards** say "no player evidence" unless the brief carries the user's own popularity notes. A card cites
+  those notes as user-supplied.
+- **D-298's under-played seeding** (at least two under-played cards per deck) becomes a judgment the
+  coordinator makes from the pattern library, labelled `judgment`. It has no threshold, so D-324 is
+  withdrawn.
+- **D-297 is restated.** poe.ninja is used only through its documented economy endpoints: C-12's currency
+  rates, plus polite development queries. Its builds, profiles and character API is not used, by any agent
+  or tool, in development or in runs.
+- **D-333's `--no-ninja`** still turns off the economy tool (`get_currency_rates`).
+- **WU-57** no longer depends on WU-50's tool names or threshold. WU-50's report is merged as the record
+  of the block.
+- **CLAUDE.md** (this branch): the development allowance now names the economy endpoints only, and states
+  that the builds API is closed by poe.ninja's terms.
+
+### WU-54: criteria review (A-33) and D-336 (PROPOSED by the coordinator)
+
+**The pinned criteria** (`b06c72c`): AC-K53 (energy-based meta gems), AC-K54 (skills granted by a support),
+AC-K55 (granted skills with no definition), AC-K56 (Gem Studded ties) and AC-K57 (one shape for the flags,
+and build mode). Each is pinned to real gems and nodes at the pin, with a Lua-query equality over the
+whole set. The coordinator approved them with these choices:
+- **Flags in their own list.** The flags go in a separate `flags[]` list, never as a status, so no count
+  and no C-47 output changes. Three flags are per gem, and Skeletal Brute has no lines to carry one.
+- **The Gem Studded flag is static.**
+- **The energy note** says only that PoB doesn't model Energy. Cast on Melee Kill and Spellslinger get a
+  trigger rate from Path of Exile 1-style configs, not from Energy.
+
+**D-336: AC-K50 restated.** Amendment 3 misread Mirage Archer's gap. Its only mapped-but-"unread" line is
+"cannot consume Charges" (`Condition:CannotConsumeCharges`). PoB does read that condition, in the skill data
+(`Data/Skills/act_dex.lua:222`), which the name scan doesn't search. The real gap is the stat
+`triggered_by_lingering_mirage`, which has no stat map and no described line (PG-4). Two flags replace the
+one:
+- **`mapped but unread`** (PG-24): Aftershock I's `AftershockChance` is flagged. For this flag, a name
+  counts as read by an exact match, by a use in `Data/` skill definitions, or by a template whose fixed
+  parts all match. D-243's suffix rule had let `AftershockChance` through. D-243's line statuses are
+  unchanged (AC-K57).
+- **`stat not mapped`** (PG-4, PG-49): a support or meta gem stat with no stat map (global or the skill's
+  own) and no described line. Mirage Archer reports it, which ends its false all-clear. The set is pinned by
+  a Lua-query equality, and presentational stats are excluded by a stated rule, never by a hand list.
+
+### Wave A doer reports
+
+- **WU-51** (`6bd9591`): done. The decision line reads "Within NFR-21: the final compile computes Full DPS
+  for the named source's groups."
+  - Three quiet runs at a 1-minute load average ≤ 8: whole call 26.22–27.77 s with Full DPS off, and
+    29.93–31.92 s with it on for the named groups (median ×1.14). Slowest stage 3.08 s.
+  - With every group in Full DPS, through the real compiler: 61–67 s, slowest stage 6.17 s. R-32's
+    160.68 s came from WU-30's emulation under load.
+- **WU-60** (`e3d4113`): done; gate rc=0/0 (1850 tests).
+  - Essences are a fifth mechanic kind, `essence`, which touches the tool's `kind` enum, its README row
+    and `tool-calls.json`.
+  - "Can roll" means `GetModSpawnWeight` > 0, restricted to bases that use the mod's own affix table.
+- **WU-61** (`9657f93`): done; gate rc=0/0 (1851 tests).
+  - `schemaVersion` 2. A version-1 plan is held to version 1's shape. `VERSION_ADDITIONS` is the list
+    WU-55 extends.
+  - The two-stage fixture and the worked example now declare version 2.
+  - The ladder goes by rung, `m` → `b` → `n`, whatever the plan order. No fixture verdict moved.
+- **WU-56** (`29c20f1`): done. Static tests 210 of 210.
+  - `patterns.md` is 5,589 words: 60 entries in ten families.
+  - An `AWAITING_SKILL_WIRING` entry exempts `patterns.md` from AC-W1 until WU-57 lists it in `SKILL.md`.
+- **WU-50** (`793ed26`): blocked by the terms; resolved by D-335.
+
+**Reviews** are running: WU-60; WU-61 with WU-51; WU-56.

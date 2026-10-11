@@ -36,8 +36,10 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
   dirs. HTTP in tests goes through `fixtureFetch` and the committed fixtures in `tests/fixtures/`. No
   test makes requests to pathofexile.com or poe.ninja, and no agent contacts pathofexile.com or sends a
   request that carries a cookie or personal data without the user's approval: the rate limits are shared
-  with the user's IP and account. In development, agents may query poe.ninja politely: serial requests, a
-  back-off on HTTP 429, and nothing fetched twice that a cache could hold (build-guide D-297).
+  with the user's IP and account. In development, agents may query poe.ninja's documented economy endpoints
+  politely: serial requests, a back-off on HTTP 429, and nothing fetched twice that a cache could hold. Its
+  builds, profiles and character API is closed to third parties by poe.ninja's terms, so no agent or tool
+  uses it (build-guide D-297, D-335).
 - **Spawned test servers use `spawnServer`** (`tests/helpers/spawnServer.ts`). It gives the child an
   explicit safe env: trade and poe.ninja disabled, trade requests pointed at a dead address, temp
   folders. In-process tests use `startTestServer` (`tests/helpers/server.ts`).

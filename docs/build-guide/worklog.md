@@ -2184,3 +2184,30 @@ cleared and `POB_SKIP_ENGINE` unset.
 
 **Next:** WU-57, the pipeline. Its dependencies are all merged: WU-55, WU-56 and WU-62. WU-50's edge is moot
 under D-335.
+
+### WU-57: AC-W32 pinned (A-33); built (`d0cbd4d`)
+
+- **AC-W32 (pinned and approved).** D-295's wordings of D-122 and D-148 appear in D1, `gates.md` and the
+  coordinator agent. "named damage source" appears in `SKILL.md` and eight stage references. No skill or
+  agent `.md` matches "rolled (main) skill". Identifiers stay, and so does "the roll".
+- **Built.** Gate rc=0/0 (2019 tests).
+- **ACs:** AC-W14, AC-W27 (restated for D-335), AC-W30…AC-W33, plus a block for D1's Count, the D1 gate's
+  figure × count, D2's bridge skills and EHP.
+- **Deviations, in review:**
+  - steps 2a/2b/2c are sub-steps;
+  - the skeleton stage id is `r1a2e`;
+  - a non-skill card's R1b verdict is `compiled: fail`, code `not-a-skill`, never retried;
+  - the slugs `open-<skill>` and `open`;
+  - the runner reads `cards.md`;
+  - the `cards.md` format;
+  - `AWAITING_SKILL_WIRING` removed;
+  - wording and route edits in seven references outside the touches.
+- **For WU-58:**
+  - card ids where the checker matches `c<n>` (`check-run.mjs` :462, :663, :1298, :1343, :1351, :1788);
+  - `KNOWN_TOP` gains `cards/`, `cards.md` and `probes/`;
+  - the verdict form gains "Effective HP about <n>." (dd);
+  - the D1-gate recompute and the verdict-line DPS read `countedSkillOutputs` (ee);
+  - an R1b `not-a-skill` fail gets no retry;
+  - run-log v3: the brief, the roll null until the verification gate, the gate names, R1a-assemble, the
+    `verification` escalation, the answers `pick:`/`verify:`/`first-n`, and the `answers.*` test keys;
+  - the checker's messages still say "rolled skill" and "checkpoint 1".

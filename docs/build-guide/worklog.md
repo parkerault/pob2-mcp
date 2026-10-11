@@ -1840,3 +1840,10 @@ Their lanes were removed.
 - WU-62 (amendment 2's pipeline). It carries the WU-61 reviewer's notes on fixtures and `check-run.mjs`.
 
 WU-53 starts once WU-60 merges.
+
+### WU-56 merged at `228bec1`
+
+All eight review findings were fixed: 212 static tests pass, and `patterns.md` is 5,642 words. One review
+finding was wrong: "Dazed" is grounded. The crossbow study's line 51 records PoB's `conditionEnemyDazed`
+option, at `ConfigOptions.lua:1684`, so it was restored with a `[crossbow]` citation. Static tests at
+the integration head: 212 of 212. The lane was removed.

@@ -60,7 +60,10 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 1. **Done:** WU-63 is merged at `e62799b`, with static and checker suites passing 543 of 543. The run worktree `m14` was
    moved to `e62799b` and built. The work-log's last section has the details.
-2. **The WU-59 run.** *Who acts: the user.* They start the sessions in the order `/tmp/m14.zfPx/README.md` gives:
+2. **The WU-59 run.** *Who acts: the user.* P1's first attempt failed check 3, so WU-57 was re-opened and fixed
+   at `30abc7a` (D-343: a support gem in a free-text brief goes in `around`; D-344: a missing Agent tool stops
+   at the first agent step). The work-log's last two sections have the details. P1 re-runs from the start, now
+   with seven checks. They start the sessions in the order `/tmp/m14.zfPx/README.md` gives:
    P1, which now has six commands including the D-342 brief check, then run A, run B and P2. Each one runs with
    `bash /tmp/m14.zfPx/start.sh <session>`.
    - **Estimate, all on Opus:** about 205M cache read and 1.6–2.1M output in total. Run A takes about 130M and
@@ -111,10 +114,10 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `1ee2cd1` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
+- **Integration head:** `10561d9` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
 - **Live worktrees:**
   - `amend`, the integration worktree;
-  - `m14`, detached at `e62799b` and built: the WU-59 run worktree.
+  - `m14`, detached at `30abc7a` and built: the WU-59 run worktree.
 - **The main checkout** `/home/parker/projects/pob2-mcp` is on `build-guide/amendment-3` at `acec4d1`. The fleet
   doesn't touch it, because the user's pob2 server runs from its `build/`.
 - **Temp dirs:**

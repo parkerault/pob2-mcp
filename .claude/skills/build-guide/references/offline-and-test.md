@@ -1,6 +1,6 @@
 # Offline mode, the test config and fault directives
 
-(slice 03 §11; D-201, D-233, A-28, D-157)
+(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335)
 
 ## Offline mode (`--offline`)
 
@@ -22,6 +22,17 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 - The guide's `Your PoB file` says the run was offline and no price was checked (D-276); `audit.md`'s
   `Inputs by confidence` lists the claims that would need an external source (D-278).
 
+## No currency rates (`--no-ninja`; D-333, D-335)
+
+`--no-ninja` turns off group `ninja`, whose one tool is `mcp__pob2__get_currency_rates`: no step calls it. The
+runner tells every pricing step, the D1 gate included, that there are no currency rates. Prices are still
+checked online, but totals in divines are `unverified`, pricing's path when rates are missing (`pricing.md`),
+so the guide can't claim a rung is within its budget. Offline mode turns the rates off anyway.
+
+There are no poe.ninja tools beyond the currency rates (D-335): poe.ninja's terms close its builds API, so no
+tool supplies player evidence. In every run, offline or not, a card says "no player evidence" unless the
+brief's `popularity` notes speak to it, cited as the user's notes.
+
 ## The test config (`--test <path>`, offline only; A-28)
 
 `--test <path>` names a JSON file:
@@ -29,23 +40,28 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 ```json
 {
   "answers": {
-    "checkpoint1": ["first-viable"],
-    "checkpoint2": ["accept"],
+    "brainstorm": ["first-n:2"],
+    "verification": ["first-viable"],
+    "final": ["accept"],
     "escalation": ["retry:keep the budget variant's helmet"],
     "unsavedBuild": "proceed"
   },
   "faults": [
-    { "id": "FI-1", "concepts": ["c1"], "persistent": true },
+    { "id": "FI-1", "concepts": ["r1-a-1"], "persistent": true },
     { "id": "FI-2", "concepts": "all", "persistent": false }
   ]
 }
 ```
 
+The answers are `brainstorm`, `verification` and `final`, one per gate (D-323; `checkpoints.md` has their
+values); `checkpoint1` and `checkpoint2` are retired with the run log's schema 3. A fault's `concepts` lists
+card ids (D-319), or `"all"`.
+
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at
-  checkpoints and questions (`checkpoints.md` lists what each answer means and the defaults when they run
+  gates and questions (`checkpoints.md` lists what each answer means and the defaults when they run
   out), and its faults are applied.
 - **Without `--offline`** the runner records `testConfig: "refused"`, ignores the file (no answer, no
-  fault) and asks the user at every checkpoint (D-157). Say so in the reply.
+  fault) and asks the user at every gate (D-157). Say so in the reply.
 - A file that can't be read or isn't this shape, given with `--offline`, is refused too
   (`testConfig: "refused"`), and the run stops before research: status `stopped`, and the reason in the
   reply (`stopped: malformed test config <path>: <what is wrong>`).
@@ -53,7 +69,7 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 
 ## Fault directives (test config only)
 
-Each directive names its target concepts (a list of ids, or `"all"`) and whether it is `persistent`
+Each directive names its target cards (a list of card ids, or `"all"`) and whether it is `persistent`
 (every attempt) or applies to attempt 1 only (`persistent` missing or `false`). The runner puts a
 directive only into the task headers of the steps it targets, in the header's `faults` (`task-header.md`).
 The step that applies one reports it, and the runner logs each directive in `faults[]` as
@@ -62,14 +78,14 @@ carried it; `observed` says what failed as a result).
 
 **Retries** (amendment 1 S6). An attempt failed by a directive that applies to attempt 1 only re-runs
 free: it counts against no retry cap. A persistent directive's failed attempts count, so the cap still
-ends the flow: run A's persistent FI-1 fails `c1` after 3 attempts, and run B's persistent FI-2 escalates
-`c2`'s D1 gate on its third failure. The run checker counts the same way.
+ends the flow: a persistent FI-1 fails its card after 3 attempts (WU-47's run A failed concept `c1` so), and a
+persistent FI-2 escalates the D1 gate on its third failure (run B's `c2`). The run checker counts the same way.
 
 | Id | Applied by, when | Edit | Must then fail |
 |---|---|---|---|
 | FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there |
 | FI-2 | the D1 gate step, before its compile | set the first endgame stage's `level` to 1 in `plan.json`, and its `loadoutName`'s `(L<n>)` to `(L1)` so the plan stays valid (C-31 ties the two) | V1, for that stage: its points and requirements exceed level 1 |
-| FI-3 | the D1 gate step | none: the gate's outcome is forced to `infeasible`, with evidence `FI-3 (injected)` | control flow only: the route back to checkpoint 1 |
+| FI-3 | the D1 gate step | none: the gate's outcome is forced to `infeasible`, with evidence `FI-3 (injected)` | control flow only: the route back to the verification gate (D-287) |
 
 FI-4 and FI-5 (the seeded V4 checks) are applied by the build coordinator to a copy of a run folder, not
 through the skill.

@@ -1,21 +1,26 @@
-# R1b: concept skeleton, measure-only compile, key-item prices (`build-guide-coordinator`)
+# R1b: card skeleton, measure-only compile, key-item prices, the checklist (`build-guide-coordinator`)
 
-Slice 03 §5.2 step 3; spine C-36, D-208. One step per carried concept, one at a time. It turns a research
-proposal into an endgame skeleton plan, compiles it measure-only, and prices the concept's key items.
-**Gate:** the skeleton compiled with no compile error. You write the gate's verdict file yourself. A
-failed attempt re-runs with your verdict as findings, at most 2 counted retries; then the concept is
-`failed`, its last verdict the evidence (D-141).
+Slice 03 §5.2 (the verification phase) and §7.5, §7.7; spine C-36, C-52, D-208, D-286, D-292, D-334, D-338.
+One step per picked card, one at a time, at most 3 per verification round. It turns a card into an endgame
+skeleton plan, compiles it measure-only, prices the card's key items, runs the advisory checklist with its
+probes, and writes the card's verification half. **Gate:** the skeleton compiled with no compile error. You
+write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
+counted retries; then the card is `failed`, its last verdict the evidence (D-141).
 
 ## Inputs
 
-- **Header:** `stage: "R1b"`, `attempt`, `concept` (`c<n>`), `mode`, `runFolder`, `runFolderRel`,
-  `compile: "measure-only"`, `findings` (the earlier attempt's verdict file and its findings: fix what each
-  names), `faults` (FI-1, offline test runs only), `writes: ["concepts/<id>/plan.json",
-  "reports/gates/R1b-<id>-a<attempt>.json"]`.
-- **Prompt:** the roll, the concept's title, the research file that proposed it, and how to price in
-  this run (offline; stopped; or paced).
-- **Read:** the proposal (`## Concept: <title>` in that research file) and the round's other research
-  files for the mechanics; `docs/build-guide/plan-reference.md` (every field, and the worked example);
+- **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319), `mode`,
+  `runFolder`, `runFolderRel`, `compile: "measure-only"`, `findings` (the earlier attempt's verdict file and
+  its findings: fix what each names), `faults` (FI-1, offline test runs only), and `writes:
+  ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md",
+  "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338).
+- **Prompt:** the card's id and title, and how to price in this run (offline; stopped; or paced; and with
+  `--no-ninja`, no currency rates).
+- **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
+  skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
+  the skeleton's `rolledGroup`.
+- **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks) and the
+  round's research files for the mechanics; `docs/build-guide/plan-reference.md` (every field, and the worked example);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs; `run-log.json`
   (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited`
   call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On
@@ -28,11 +33,14 @@ last compile of the whole skeleton (step 8). Validation comes before any price c
 trade site's limits are shared with the user's account) is spent on an item validation would reject. The
 verification checklist's probe variants (below) come on top: up to 4 per card (D-292).
 
-1. **Tree targets.** From the proposal, list the ascendancy nodes, notables and keystones the concept rests
-   on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own
+A card whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A card whose damage source
+isn't a skill" below.
+
+1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
+   card rests on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own
    nodes). `mcp__pob2__search_tree_nodes` gives no links between nodes, so the paths come from step 3.
 2. **FI-1**, only when the header's `faults` holds it: FI-1 goes into this attempt's **first** compile, so a
-   faulted attempt compiles nothing clean and a concept FI-1 fails leaves no clean record (D-265). That first
+   faulted attempt compiles nothing clean and a card FI-1 fails leaves no clean record (D-265). That first
    compile is the bootstrap (step 3), which you then always run, even when the skeleton's tree is already
    pathed: add `{"name": "FI-1 Unknown Gem", "level": 1, "quality": 0, "enabled": true}` to the gems of the
    bootstrap skeleton's main socket group (`skills.main.group`) before you compile it. Don't validate first,
@@ -44,16 +52,17 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
    `concepts/<id>/plan.json` as a tree-minimal skeleton: the roll, versions and league of step 4, its one
    stage with an empty tree (no
    `nodes`, `ascendancyNodes`, weapon-set nodes or attribute choices), no item slots, jewels or toggles,
-   the rolled skill alone in one group (with its `role`, `main` and `rolledGroup`), the scenario's
+   the named damage source alone in one group (with its `role`, `main` and `rolledGroup`), the scenario's
    `enemyIsBoss` and resistance penalty, no claims and no prices. Compile it:
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. The engine
    then holds the class and ascendancy with only their start nodes allocated, so
    `mcp__pob2__find_path_to_node {target_node_id: <id>}` gives the nodes between the start and each target, and
    `mcp__pob2__get_nearby_nodes` shows what lies around them. The last compile overwrites the bootstrap's record and
    XML. If the bootstrap compile fails, stop: report its errors with `compiled: false`.
-4. **Write the skeleton** `concepts/<id>/plan.json` (C-31), a plan that tests the concept at the
+4. **Write the skeleton** `concepts/<id>/plan.json` (C-31), a plan that tests the card at the
    endgame, not a guide:
-   - `roll` is the run's roll (class, ascendancy, skill), exactly as the prompt names them.
+   - `roll` is the card's identity (class, ascendancy, named damage source), exactly as the card names it
+     (D-286).
    - `versions`: `pobTag` and `pobCommit` from `pob-pin.json`; `treeVersion`, `enginePatch` and
      `externalPatch` as the plan reference describes. The compile record notes any that differ from the
      engine.
@@ -61,19 +70,20 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
      reached, reuse the league of another plan in this run, else `Standard`, and return
      `leagueUnverified: true`. The dossier then marks the league unverified, and **D1 doesn't take its
      league from a skeleton whose league is unverified**.
-   - **One stage**, `id` `<id>e` (the concept id and `e`, e.g. `c2e`: so a dossier ref like
-     `c2e.Life` names this concept's record), `progress: "endgame"`, no `variant`, a `level` the
-     concept is meant to play at (90 when the proposal doesn't say), and
-     `loadoutName` `<short title> (L<level>) {<id>e}`.
+   - **One stage**, `id` the card id without its hyphens, then `e` (`r1a2e` for card `r1-a-2`: a stage id
+     is letters and digits only, so a dossier ref like `r1a2e.Life` names this card's record),
+     `progress: "endgame"`, no `variant`, a `level` the card is meant to play at (90 when the card doesn't
+     say), and `loadoutName` `<short title> (L<level>) {<stage id>}`.
    - `tree`: the targets of step 1 and the paths step 3 found to them, so every node connects to the
      class start through listed nodes, and no more points than the level allows
      (`data/campaign/limits.json`).
    - `items`: each key unique's text from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`
      (full text comes only for a single match); plain bases or simple rares for the other slots the
      skill needs (its weapon first).
-   - `skills`: the rolled skill's group with the concept's supports, each group with a `role` (the
-     rolled skill's is `clear` or `single_target`), `main` on the rolled skill, and `rolledGroup`.
-   - `config`: the earned states the concept relies on, each that is on with its producer and uptime;
+   - `skills`: the named damage source's group with the card's supports, each group with a `role` (the
+     named source's is `clear` or `single_target`), `main` on the named source, and `rolledGroup`; a
+     `count` with its `countReason` where the card's chain has several copies act at once (D-293).
+   - `config`: the earned states the card relies on, each that is on with its producer and uptime;
      `scenario` lists `enemyIsBoss` and the endgame resistance penalty, each from a data fact with its
      tag, as in the worked example.
    - `claims` may stay empty; any claim carries a source. `ledger` is `[]`.
@@ -83,8 +93,8 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
    connection; config options) and validate again, until it reports none. If one can't be fixed, stop
    before any price call and report it with `compiled: false`.
 6. **Prices** (`.claude/skills/build-guide/references/pricing.md`), one `prices[]` entry per key item
-   (each key unique; a key base only where the concept depends on it), with id `<id>-<item>` (e.g.
-   `c2-weapon`):
+   (each key unique; a key base only where the card depends on it), with id `<id>-<item>` (e.g.
+   `r1-a-2-weapon`):
    - **offline:** no price call. Each entry is `unavailable` with note `offline run`, `amount`,
      `currency` and `league` null, dated the run folder's date (the `YYYY-MM-DD` in its last path
      segment).
@@ -100,18 +110,18 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
    `concepts/<id>/compile-record.json` and `concepts/<id>/compiled-build.xml` beside the plan and
    nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
    verdict. The runner re-runs the step with them as findings. If it succeeds, run the verification
-   checklist (below) before the verdict.
+   checklist (below), then write the card's verification half (below), before the verdict.
 9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json` (`.claude/skills/build-guide/references/gates.md`),
    written last, whatever happened:
 
    ```json
-   { "stage": "R1b", "concept": "c2", "attempt": 1, "verdict": { "compiled": "pass" }, "findings": [],
-     "errors": [], "compiles": 2, "recordPath": "concepts/c2/compile-record.json", "faultsApplied": [],
+   { "stage": "R1b", "concept": "r1-a-2", "attempt": 1, "verdict": { "compiled": "pass" }, "findings": [],
+     "errors": [], "compiles": 2, "recordPath": "concepts/r1-a-2/compile-record.json", "faultsApplied": [],
      "leagueUnverified": false }
    ```
 
    - `verdict.compiled`: whether the last compile (step 8) succeeded. A failure has one finding per error
-     line, `{part: "compiled", code: "compile-error", stage: "<id>e", message: <the line verbatim>}`, and
+     line, `{part: "compiled", code: "compile-error", stage: "<stage id>", message: <the line verbatim>}`, and
      `errors` lists the lines (the `stage <id>: …` lines, or the schema's `<path>: <message>` lines). An
      error that stopped you before the compile (a validation error you couldn't fix, a refused call) is a
      failure too.
@@ -123,7 +133,7 @@ verification checklist's probe variants (below) come on top: up to 4 per card (D
      applied FI-1, else `[]`.
    - `leagueUnverified`: `true` when trade couldn't be reached online and the league is a fallback (step 4).
 
-A `possibly unread` line the concept depends on goes under what PoB can't verify; D1 confirms it by
+A `possibly unread` line the card depends on goes under what PoB can't verify; D1 confirms it by
 measurement (`.claude/skills/build-guide/references/lookups.md`), not R1b.
 
 ## Verification checklist (advisory, D-292)
@@ -179,19 +189,42 @@ A card whose damage source isn't a skill (D-334) has no skeleton: run checks 1�
 lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill" in its
 verification half.
 
+## The card's verification half (C-52)
+
+Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
+(`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's.
+
+- **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
+  `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled
+  DPS: its Count-scaled figure, `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.TotalDPS` (the per-copy
+  figure × its group's Count, WU-55), with its stat set and group.
+- **Estimates** (D-296): each Count above 1 with its `countReason`, each custom modifier with its reason, and
+  every figure the record marks `computedWithCustomMods`, defences included; the clear and boss figures kept
+  separate, never summed.
+- **Checklist results**, from the checklist above; **a fallback ladder**, cheapest first; **key item prices**,
+  from step 6, each dated or `unavailable` with its note.
+
+**A card whose damage source isn't a skill** (D-334) compiles nothing, so it has no skeleton, record or probe.
+Run checks 1–4, write its verification half as above, and write the verdict with `compiled: "fail"`, one
+finding `{part: "compiled", code: "not-a-skill", message: "not compiled: its damage source isn't a skill
+(D-334)"}`, `compiles: 0` and `recordPath: null`. The runner doesn't re-run it: no retry can compile it, and
+the card can't be finalized yet (D-303).
+
 ## Writes
 
-`concepts/<id>/plan.json` and the verdict file `reports/gates/R1b-<id>-a<attempt>.json`. The server writes
-the record and the XML beside the plan. The checklist adds each probe's `probes/<card-id>/<n>/plan.json`
-(the server writes its record beside it) and the card's `Checklist results`.
+Only the header's `writes` (D-338): `concepts/<id>/plan.json`, the verdict file
+`reports/gates/R1b-<id>-a<attempt>.json`, the card `cards/<id>.md` (its verification half), and each probe's
+`probes/<id>/<n>/plan.json`, `n` from 1 to 4. The server writes each compile's record and XML beside its plan.
 
 ## Returns
 
-At most 8 lines: the outcome, the verdict file, and your price calls counted by outcome (`pricing.md`):
+At most 8 lines: the outcome, the verdict file, the card with its checklist and probe counts, and your price
+calls counted by outcome (`pricing.md`):
 
 ```
-R1b c2 attempt 1: compiled
-reports/gates/R1b-c2-a1.json
+R1b r1-a-2 attempt 1: compiled
+reports/gates/R1b-r1-a-2-a1.json
+cards/r1-a-2.md: checklist 8 run (2 not checked), probes 3
 prices: none (offline)
 ```
 

@@ -1,7 +1,7 @@
 # The task header
 
-Every agent prompt starts with a fenced `json` block: the task header (slice 03 §5.1, as amendment 1
-changes it). The runner builds it from the run state; the agent reads its job from the header and from the
+Every agent prompt starts with a fenced `json` block: the task header (slice 03 §5.1, as amendments 1
+and 3 change it). The runner builds it from the run state; the agent reads its job from the header and from the
 stage reference it names, and the rest of the prompt adds nothing the header contradicts.
 
 ````
@@ -9,7 +9,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 {
   "stage": "D1",
   "attempt": 1,
-  "concept": "c1",
+  "concept": "r1-a-2",
   "mode": "offline",
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "runFolderRel": "titan-blood-hunt/2026-10-08-1",
@@ -25,9 +25,9 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 
 | Field | Content |
 |---|---|
-| `stage` | `R1a`, `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |
+| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |
 | `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included |
-| `concept` | the concept id (`c<n>`), where the step concerns one |
+| `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319), where the step concerns one card: R1b and every step of the finalization |
 | `lens` | V4 only: `ledger`, `sources` or `prose` |
 | `check` | V4 only: `full` (step 11, every claim in the lens) or `recheck` (step 13, only `findings` and `changed`) |
 | `mode` | `offline` or `online`, as the run log records it |
@@ -39,7 +39,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 | `changed` | a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed (`plan.json stages[2].claims[1]`, `guide.md At a glance`), or `"all"` when a gate re-ran in the fix round (an owner recompiled: every claim is checked again, and W1 brings every number and the import code up to the new record) |
 | `accepted` | gate findings the user accepted at an escalation, from its verdict file; an equal finding (same plan stage, part and code) fails no gate |
 | `faults` | offline test mode only: this step's fault directives (`offline-and-test.md`) |
-| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. W1's are `guide.md` and `audit.md` (D-278) |
+| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. R1a's are its research file and its cards, `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-assemble's `cards.md`; R1b's include its card `cards/<id>.md` and its probes `probes/<id>/<n>/` (D-338); W1's are `guide.md` and `audit.md` (D-278) |
 | `reference` | the step's stage reference, under `references/stages/` |
 
 Rules:

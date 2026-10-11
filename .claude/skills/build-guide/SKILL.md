@@ -1,36 +1,45 @@
 ---
 name: build-guide
-description: Build a Path of Exile 2 guide (level 1 through the campaign to two endgame variants) and a PoB2 build for an ascendancy and a rolled main skill, through the pob2 MCP server. Research concepts, let the user pick one, design and compile the plan, write the guide and verify its claims. Use when the user runs /build-guide <ascendancy> <skill> [--offline [--test <path>]] or asks for a build guide for an ascendancy and skill roll.
+description: Build a Path of Exile 2 guide (level 1 through the campaign to two endgame variants) and a PoB2 build from an open brief, through the pob2 MCP server. Brainstorm a deck of candidate builds, verify the ones the user picks, let the user finalize one, then design and compile the plan, write the guide and verify its claims. Use when the user runs /build-guide <free text> [--offline [--test <path>]] [--no-ninja], the fixed roll /build-guide <ascendancy> <skill> included, or asks for a build guide.
 ---
 
 # build-guide
 
 You are the **runner**: you start the run, call one agent per step with the Agent tool, ask the user at the
-checkpoints, keep the run log, write the verifiers' reports and run the run checker. Agents research,
-design, compile, write and check (slice 03 of `docs/build-guide/spec/`, as its amendment 1 simplifies it;
-spine C-36).
+gates, keep the run log, write the verifiers' reports and run the run checker. Agents research, design,
+compile, write and check (slice 03 of `docs/build-guide/spec/`, as its amendments 1 to 3 change it; spine C-36,
+C-51, C-52).
+
+The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (researchers write
+candidate cards and a coordinator step deals the deck; gate `brainstorm`), the verification (the picked cards
+are compiled and checked; gate `verification`) and the finalization (the design, the guide and its checks; gate
+`final`). Only the user starts a round. Every card names its **named damage source**, the main source of damage,
+never a token role (D-122 as D-295 words it); the card the user finalizes gives the run its roll.
 
 ## Hard rules (for you and for every agent)
 
 - **Never read, print or copy any `.env` file**, and never set `POESESSID`. The trade cookie stays with
   the server.
-- **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them.
-  Trade and poe.ninja are reached only through the server's price tools, only by coordinator steps
-  (`references/pricing.md`). Web research uses only poe2db.tw, maxroll.gg, game8.co, poe-vault.com and
-  patch-note mirrors, and none at all in offline mode.
+- **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them. There are
+  no poe.ninja tools beyond the currency rates (`mcp__pob2__get_currency_rates`, D-335): poe.ninja's terms
+  close its builds API, so no tool supplies player evidence, and a card cites the brief's `popularity` notes or
+  says "no player evidence". Trade and the currency rates are reached only through the server's price tools,
+  only by coordinator steps (`references/pricing.md`). Web research uses only poe2db.tw, maxroll.gg, game8.co,
+  poe-vault.com and patch-note mirrors, and none at all in offline mode.
 - **Write only inside the run folder.** You write `run-log.json`, the V4 reports under `reports/`, and the
   open findings into the `Known issues` of `guide.md` and `audit.md` (step 14). Each agent writes only its
   header's `writes`.
   The PoB file reaches the builds folder only through the final compile.
-- **Your pob2 tools** are `mcp__pob2__get_classes` and `mcp__pob2__lookup_game_data` for the roll check, and
+- **Your pob2 tools** are `mcp__pob2__get_classes` and `mcp__pob2__lookup_game_data` for the brief check, and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, every engine change and every price call is a
   coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in
   `subagent_type` (`.claude/agents/build-guide/`). A default agent would see every tool.
-- **Read only what routes the run:** the gate verdict files under `reports/gates/`, your own
-  `run-log.json`, the test config, the agents' returns and the verifiers' reports. Never read `plan.json`, a
-  compile record, `dossier.md` or `guide.md` (one final record was 268 KB), with Read or with Bash; step 14
-  reads only the `Known issues` lines it edits, in `guide.md` and `audit.md`.
+- **Read only what routes the run:** the gate verdict files under `reports/gates/`, the deck `cards.md` (you
+  show it at the brainstorm gate), your own `run-log.json`, the test config, the agents' returns and the
+  verifiers' reports. Never read `plan.json`, a compile record, `dossier.md` or `guide.md` (one final record was
+  268 KB), with Read or with Bash; step 14 reads only the `Known issues` lines it edits, in `guide.md` and
+  `audit.md`.
 - **Your Bash reads, and runs the run checker; nothing else** (D-265). The whole list:
   - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is
     fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
@@ -44,8 +53,8 @@ spine C-36).
 
 | Agent type (`subagent_type`) | Steps |
 |---|---|
-| `build-guide-researcher` | R1a: lookup-only research, up to 3 in parallel |
-| `build-guide-coordinator` | R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (and its final compile); the only type that compiles or prices |
+| `build-guide-researcher` | R1a: lookup-only brainstorm, up to 3 in parallel |
+| `build-guide-coordinator` | R1a-assemble, R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (and its final compile); the only type that compiles or prices |
 | `build-guide-writer` | W1: writes `guide.md` and `audit.md` |
 | `build-guide-verifier` | V4: every claim true, one lens each (`ledger`, `sources`, `prose`), a full pass or a re-check; it can't write |
 
@@ -54,7 +63,7 @@ spine C-36).
 Every step is one Agent call, for example:
 
 ```
-Agent({subagent_type: "build-guide-coordinator", description: "D1 c1 attempt 1", prompt: "<header, then the reference line>"})
+Agent({subagent_type: "build-guide-coordinator", description: "D1 r1-a-2 attempt 1", prompt: "<header, then the reference line>"})
 ```
 
 - **The prompt** is the task header (`references/task-header.md`), a fenced `json` block, then one line
@@ -70,7 +79,7 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1 c1 attempt 1",
 - **A missing return.** An agent that returns without its file (a gate step without its verdict file, a
   verifier without a report) is re-run once, uncounted, its attempt logged `missing`. A second miss ends
   the run `stopped`, naming the step.
-- **The run log.** Rewrite `run-log.json` whole after every step, checkpoint and question
+- **The run log.** Rewrite `run-log.json` whole after every step, gate and question
   (`references/run-log.md`), so an interrupted run still leaves one.
 
 The verifier's prompt is always exactly this, the header and the reference line, so it carries nothing a
@@ -85,13 +94,18 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 
 ## The steps
 
+Step 2 is the brainstorm phase, in three parts (2a to 2c); steps 3 to 5 are the verification phase; steps 6
+to 16 are the finalization.
+
 | # | Step | Agent type | Writes | Returns, user, retries |
 |---|---|---|---|---|
-| 1 | Start (§1) | you | `run-log.json` | asks the user when `loadedBuildUnsaved` (D-210) |
-| 2 | R1a, research round *k* | `build-guide-researcher`, ≤ 3 in parallel | `research/p<k>-r1a-<n>.md` | its file and concept titles |
-| 3 | R1b, one concept at a time, ≤ 3 per round (D-235) | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the concept is `failed` |
-| 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md` | the checkpoint-1 comparison, one line per concept |
-| 5 | Checkpoint 1 (§3) | you | log | asks the user: pick, more (step 2, round *k*+1) or stop |
+| 1 | Start (§1) | you | `run-log.json` | parses and checks the brief; asks the user when `loadedBuildUnsaved` (D-210) |
+| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 2–3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' titles |
+| 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played |
+| 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
+| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
+| 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md` | the verification gate's comparison, one line per card |
+| 5 | The verification gate (§3) | you | log | asks the user: finalize one card, verify other cards (step 3), brainstorm more (step 2a) or stop |
 | 6 | D1, the endgame | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
 | 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) | one verdict line; route by §4 |
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
@@ -102,7 +116,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
 | 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
-| 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
+| 16 | The final gate (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
 
 **Retries, in full.** The R1b compile, the D1 gate and the D2 gate allow 2 counted retries each. These
 attempts count against no cap: an attempt failed by a fault directive that applies to attempt 1 only (a
@@ -110,21 +124,50 @@ persistent directive's failed attempts do count: S6), a guided retry, the fix ro
 re-run after a missing return. Verification never runs a lens again for its findings beyond the one
 re-check, and never escalates; only the D1 and D2 gates escalate.
 
-## 1. Start (FR-W1, FR-W2)
+## 1. Start (FR-W1, FR-W2; C-51)
 
-`/build-guide <ascendancy> <skill> [--offline [--test <path>]]`. Multi-word names are quoted:
-`/build-guide Titan "Blood Hunt"`.
+`/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. The free text is the **brief**: what the
+user wants, in their words. The fixed roll `/build-guide <ascendancy> <skill>` still works, multi-word names
+quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`.
 
 - `--offline` starts offline mode (`references/offline-and-test.md`): no web, no prices.
 - `--test <path>` is a test config. It is accepted only with `--offline` (`testConfig: "accepted"`);
   without `--offline` it is refused (`testConfig: "refused"`), ignored, and you ask the user at every
-  checkpoint (D-157). No `--test`: `testConfig: "none"`.
+  gate (D-157). No `--test`: `testConfig: "none"`.
+- `--no-ninja` (D-333): the run calls no tool in group `ninja`, whose one tool is
+  `mcp__pob2__get_currency_rates`. Tell every pricing step, the D1 gate included, to price without currency
+  rates, so totals in divines are `unverified` (`references/pricing.md`).
+
+**The brief** (D-285, D-335). Parse the free text into these fields, every one optional. Leave out a field the
+text doesn't give, and never invent one:
+
+| Field | Holds | Example |
+|---|---|---|
+| `ascendancy` | an ascendancy | Titan |
+| `skill` | an active skill gem, the named damage source | Blood Hunt |
+| `playstyle` | tags from the vocabulary below, plus free text | `melee`, `tanky`, "slow and heavy" |
+| `budget` | `budget` or `non-budget` (the endgame variants), or a figure in divines | `budget` |
+| `around` | an item or mechanic to build around | "Melting Maelstrom", "block" |
+| `like` | a reference build and what to change | "like the Eraser, but not Gemling" |
+| `notes` | anything else | |
+| `popularity` | the user's own notes on what players run, which cards cite as user-supplied | "Blood Hunt Titans are rare this league" |
+
+- **The playstyle vocabulary** (cards use the same tags): delivery `melee`, `ranged-attack`, `spell`,
+  `minion`, `totem-trap`, `mixed`; buttons `one-button`, `few-buttons`, `combo`; focus `clear`, `boss`,
+  `balanced`; defence `tanky`, `balanced`, `glass`; pace `fast`, `steady`.
+- **An empty brief** means "surprise me": the researchers start from the pattern library's families
+  (`references/patterns.md`) and the coordinator's judgment of what is under-played.
+- **A fixed roll** (a brief naming both `ascendancy` and `skill`) runs the same three phases, and every card's
+  named damage source is that skill.
+- **Player evidence** comes only from `popularity`: no tool supplies it (D-335).
 
 In this order, before any agent runs:
 
-1. **Roll check** (D-238).
-   - Call `mcp__pob2__get_classes`. The ascendancy must be listed (case-insensitive). Note its class.
-   - Call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
+1. **Brief check** (D-238, D-285). Check each field that names an ascendancy or a skill, as a roll is
+   checked:
+   - `ascendancy`: call `mcp__pob2__get_classes`. The ascendancy must be listed (case-insensitive). Note its
+     class.
+   - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
    - On a failure, **stop**: list the closest valid names from those results, and say how to re-run.
      Ascendancies come from `mcp__pob2__get_classes`. For the skill, quote the names the lookup gave: when
@@ -133,70 +176,107 @@ In this order, before any agent runs:
      `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem
      is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say it
      is a support. Create no run folder and write nothing.
-   - Use the names exactly as the tools gave them from here on: `roll = {className, ascendancy, skill}`.
-2. **Run folder.** Call `mcp__pob2__guide_run {new_run: <slug>}` (`references/run-folder.md` gives the slug
-   rule). Keep its absolute path (`runFolder`), its root-relative path (`runFolderRel`) and
-   `loadedBuildUnsaved`.
+   - Use the names exactly as the tools gave them from here on. The run's `roll`,
+     `{className, ascendancy, skill}`, is set only at the verification gate, from the card the user
+     finalizes (D-286).
+2. **Run folder.** Call `mcp__pob2__guide_run {new_run: <slug>}`, the slug from the brief
+   (`references/run-folder.md`: `titan-blood-hunt`, `titan-open`, `open-<first playstyle tag>`). Keep its
+   absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
+   finalized later goes in the run log, not in the folder name.
 3. **Run log.** Read the test config if one was given with `--offline`. A file that can't be read or isn't
    the documented shape is refused (`testConfig: "refused"`) and stops the run (`stopped`, the reason in
-   your reply; `references/offline-and-test.md`). Write `run-log.json` with `status: "running"`, the mode
-   and `testConfig` (`references/run-log.md` has a first write).
+   your reply; `references/offline-and-test.md`). Write `run-log.json` with `status: "running"`, the mode,
+   `testConfig`, the parsed brief and no roll yet (`references/run-log.md` has a first write).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).
 
-## 2. Research (steps 2 to 4)
+## 2. Brainstorm (steps 2a to 2c)
 
-- **R1a.** Three researchers, foci `mechanics`, `items` and `tree` (`references/stages/R1a.md`), each
-  writing `research/p<k>-r1a-<n>.md` (round `k`, researcher `n`). A later round's prompt carries the
-  user's note.
-- **Concept ids.** Number the proposals the researchers returned `c<firstId>`, … in researcher order,
-  each file's in file order; `firstId` is 1 in the first round, then one more than the highest id so far.
-  Carry at most 3 per round (D-235); the rest are `not-carried`.
-- **R1b**, for each carried concept in id order, one at a time. Its header's `writes` are
-  `concepts/<id>/plan.json` and `reports/gates/R1b-<id>-a<n>.json`. A failed compile re-runs with that
-  verdict file as `findings`, up to 2 counted retries; then the concept is `failed`, its last verdict file
-  the evidence (D-141). FI-1 applies here.
-- **R1b-assemble** writes `dossier.md` from the round's research files and the carried concepts'
-  skeletons. Its prompt lists the round, `firstId`, the note, each research file (and whether its
-  researcher returned), and each concept `{id, title, proposedIn, status, attempts, verdict}`; it returns
-  the checkpoint-1 comparison.
+- **R1a** (step 2a), brainstorm round `k`. Three researchers in parallel, foci `mechanics`, `items` and
+  `tree` (`references/stages/R1a.md`), which you letter `a`, `b` and `c` when you start them, so parallel
+  researchers never collide (D-319). Each reads the pattern library, `references/patterns.md`, first. Each
+  writes its research file `research/p<k>-r1a-<n>.md` (`n` is 1, 2 or 3 for `a`, `b` or `c`) and 2–3 cards,
+  `cards/r<k>-<letter>-<m>.md` (`m` from 1), each a card's brainstorm half (`templates/card-template.md`).
+  Its header's `writes` are its research file and `cards/r<k>-<letter>-1.md` to `cards/r<k>-<letter>-3.md`.
+  The prompt carries the brief, the focus and letter, and in a later round the user's note.
+- **R1a-assemble** (step 2b; `references/stages/R1a-assemble.md`), one coordinator step after the round's
+  researchers return. It reads the round's cards, merges duplicates, checks each card's identity
+  `{className, ascendancy, skill}` as step 1 checks a brief (D-286; for a damage source that isn't a skill,
+  a lookup by its kind, D-334), and deals a card only when a lookup confirms every load-bearing link in game
+  text. It writes the deck `cards.md`: 6–9 dealt cards a round, at least two of them under-played by the
+  coordinator's judgment from the pattern library (`judgment`, D-298), then a "Not dealt" list naming each
+  held-back card's unconfirmed link. Its header's `writes` are `["cards.md"]`; a later round adds only new
+  cards. Its prompt lists the round, the brief, the user's note, and each researcher's letter, research file
+  and cards, with whether it returned.
+- **The brainstorm gate** (step 2c; `references/checkpoints.md`). Echo the parsed brief at the top, then
+  print the deck from `cards.md`: the dealt cards not verified yet, and the "Not dealt" list. Ask with
+  AskUserQuestion in `multiSelect` mode, up to 4 cards a question and up to 3 questions, plus one question for
+  more or stop:
+  - **verify** 1–3 cards: the union of the selections, more than 3 asked again; a card under "Not dealt" may
+    be named too. They go to step 3 as a new verification round;
+  - **brainstorm more**, with the user's note: brainstorm round `k + 1` (step 2a); only this answer starts
+    one;
+  - **stop**: the run ends `stopped`.
 
-## 3. Checkpoint 1 (step 5; `references/checkpoints.md`)
+## 3. Verification (steps 3 to 5)
 
-Show the comparison lines, each concept's status (`viable`, `failed`, `not-carried`) and the dossier's
-path, and ask: pick one (a failed one may be picked anyway), ask for more, or stop. **Ask for more**
-starts round `k + 1` (step 2) with the user's note, up to 3 more concepts (D-235); only that answer starts
-a round. **Stop** ends the run `stopped`. After an `infeasible` design or an escalation sent back here,
-show that concept's evidence (its last verdict file). With no viable concept, show each concept's last
-verdict as its evidence.
+- **R1b** (step 3; `references/stages/R1b.md`), for each picked card in the order picked, one at a time, at
+  most 3 per verification round. Its header's `concept` is the card id, and its `writes` are
+  `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, the card `cards/<id>.md` (its verification
+  half) and its probes, `probes/<id>/<p>/` (D-338). The card's identity is the skeleton's `roll`. After the
+  skeleton compiles, R1b runs the advisory checklist and up to 4 one-stage probe variants (D-292); none is a
+  gate. A failed compile re-runs with that verdict file as `findings`, up to 2 counted retries; then the card
+  is `failed`, its last verdict file the evidence (D-141). FI-1 applies here. A card whose damage source
+  isn't a skill compiles nothing (D-334): its verdict's `not-a-skill` finding is never retried, and the card
+  can't be finalized yet (D-303).
+- **R1b-assemble** (step 4) writes `dossier.md` from the brainstorm rounds' research files and the
+  verification round's cards and skeletons; its key numbers add `TotalEHP` (D-294). Its prompt lists the
+  verification round, the research files (and whether each researcher returned), and each card
+  `{id, title, status, attempts, verdict}`; it returns the verification gate's comparison.
+- **The verification gate** (step 5; `references/checkpoints.md`). Show the comparison lines of every card
+  verified in the run (`TotalEHP` included), each card's status (`viable`, `failed`) and the dossier's path.
+  After an `infeasible` design or an escalation sent the run back here, show that card's evidence (its last
+  verdict file); with no viable card, each card's last verdict as its evidence. Ask:
+  - **finalize** one card (a failed one may be picked anyway; one whose damage source isn't a skill can't
+    be, D-303): its identity becomes the run's `roll`, which you record in the run log, and the design
+    (steps 6 to 9) runs for it;
+  - **verify other cards** from the deck (1–3): a new verification round (step 3), without a brainstorm;
+  - **brainstorm more**, with the user's note: brainstorm round `k + 1` (step 2a);
+  - **stop**: the run ends `stopped`.
+
+  Every route back from the design comes here: an `infeasible` design, an escalation's option 3, and FI-3.
 
 ## 4. Design (steps 6 to 9; `references/gates.md`)
 
 `buildName` is `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments joined with `-`.
 
 - **D1** writes `plan.json` anew on its first attempt of a fresh design, and edits it otherwise; its header
-  carries the earlier D1 gate findings on a retry. It returns `done` or `infeasible`, with a reason.
+  carries the earlier D1 gate findings on a retry. It sets each skill group's Count and each custom modifier,
+  each with its reason (D-293). It returns `done` or `infeasible`, with a reason.
 - **The D1 gate** is a fresh coordinator step after every D1 attempt. Route by its verdict file and D1's
   claim (gates.md's "The D1 gate's outcome", unchanged):
-  - compiled, V1, V2, floor and rolled skill pass, budget pass or unverified: step 8;
+  - compiled, V1, V2, floor and `rolledSkill` (the named damage source's part) pass, budget pass or
+    unverified: step 8;
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third failure
     escalates (§5);
   - any part but the budget `unverified` (only the budget may stay unverified, D-164): a failure, routed as a
     compile, V1 or V2 failure;
-  - only floor, budget or rolled skill failing, D1 having claimed `infeasible`: `infeasible`, back to
-    checkpoint 1 with the verdict as evidence; D1 having claimed `done`: D1 re-runs, up to 2 counted
+  - only floor, budget or `rolledSkill` failing, D1 having claimed `infeasible`: `infeasible`, back to the
+    verification gate with the verdict as evidence; D1 having claimed `done`: D1 re-runs, up to 2 counted
     retries, then `infeasible`;
   - a verdict with `"forced": "infeasible"` (FI-3): `infeasible`;
   - after a guided retry or an accepted re-run (§5), any failure: the gate escalates again.
   Log each gate attempt with the outcome its verdict file routes to; the run checker holds the log to the
   files.
-- **D2** adds the campaign stages; **the D2 gate** checks every stage and, when the compile, V1 and V2 pass,
-  runs the final compile with `buildName` in the same step. A failure (the final compile's included)
-  re-runs D2 with the verdict, up to 2 counted retries; the third escalates (§5). A pass goes to W1.
-- **Pricing.** Tell each coordinator step how to price (the D1 gate reads it from `run-log.json` itself): offline; stopped (once any `stages[]` entry's
-  `priceOutcomes` counts a `locked_out` or `rate_limited` call); or paced. Log each pricing step's outcome
-  counts as its `priceOutcomes` (`references/pricing.md`).
+- **D2** adds the campaign stages, with bridge skills while the named damage source is level-gated (D-301);
+  **the D2 gate** checks every stage and, when the compile, V1 and V2 pass, runs the final compile with
+  `buildName` in the same step. A failure (the final compile's included) re-runs D2 with the verdict, up to 2
+  counted retries; the third escalates (§5). A pass goes to W1.
+- **Pricing.** Tell each coordinator step how to price (the D1 gate reads it from `run-log.json` itself):
+  offline; stopped (once any `stages[]` entry's `priceOutcomes` counts a `locked_out` or `rate_limited` call);
+  or paced. With `--no-ninja`, add that there are no currency rates. Log each pricing step's outcome counts as
+  its `priceOutcomes` (`references/pricing.md`).
 
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
@@ -212,14 +292,14 @@ the stage, the attempts and the verdict file, and ask:
 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt, uncounted, with the
    verdict and the user's guidance (`code: "user-guidance"`) in `findings`, then its gate. If the gate fails,
    whatever part fails, it escalates again.
-3. **back to checkpoint 1**, the verdict file as that concept's evidence.
+3. **back to the verification gate** (the choice `verification`), the verdict file as that card's evidence.
 4. **stop**: the run ends `escalated`.
 
-## 6. Write, verify and checkpoint 2 (steps 10 to 16)
+## 6. Write, verify and the final gate (steps 10 to 16)
 
 - **W1** writes `guide.md`, the reader layer, and `audit.md`, the audit layer beside it (D-276, D-278): its
   header's `writes` are both. Its header's `accepted` carries every accepted gate finding; its prompt names
-  the last D1 gate verdict file (its budget totals and rolled-skill figures).
+  the last D1 gate verdict file (its budget totals and the named source's figures).
 - **Step 11, the full pass.** Start the three lenses in parallel, `check: "full"`; each checks every claim
   of `plan.json` and `guide.md` in its lens, with no sampling. Write each report to `reports/v4-<lens>.json`.
 - **Step 12, the fix round**, once, only when a report has an `unresolved` finding (D-264). Send each
@@ -262,9 +342,9 @@ the stage, the attempts and the verdict file, and ask:
 
   Drop every other line and row: one from an earlier cycle is stale.
 - **Step 15.** Run the run checker (§7).
-- **Step 16, checkpoint 2.** Show the guide's path, the PoB file (the D2 gate verdict's `finalCompile`),
-  the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run ends
-  `completed`), **ask for changes**, or anything else (the run ends `not-accepted`, with the user's note).
+- **Step 16, the final gate** (once checkpoint 2). Show the guide's path, the PoB file (the D2 gate verdict's
+  `finalCompile`), the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run
+  ends `completed`), **ask for changes**, or anything else (the run ends `not-accepted`, with the user's note).
   Asking for changes is a revision (D-236): map each request to D1, D2 or W1 by step 12's owners (the
   guide's text is W1's; an endgame stage, its ledger entries and prices D1's; a campaign stage D2's), run
   that chain as step 12 does (claims in place, the gates only after a recompile), with the requests as
@@ -283,16 +363,19 @@ the stage, the attempts and the verdict file, and ask:
 
 ## References
 
-- `references/run-folder.md`: creating the run folder, the layout and who writes what, the PoB file name,
-  what the run checker checks.
+- `references/run-folder.md`: creating the run folder, the slug, the layout and who writes what, the PoB file
+  name, what the run checker checks.
 - `references/run-log.md`: every run-log field, and a first write.
 - `references/task-header.md`: the header every agent prompt starts with.
-- `references/checkpoints.md`: checkpoints 1 and 2, the unsaved-build and escalation questions,
-  revisions, pre-supplied answers.
+- `references/checkpoints.md`: the brainstorm, verification and final gates, the unsaved-build and escalation
+  questions, revisions, pre-supplied answers.
 - `references/gates.md`: the gates, their verdict files, and what the run checker recomputes.
 - `references/pricing.md`: the pricing procedure, outcome classification and the budget thresholds.
-- `references/offline-and-test.md`: offline mode, the test config and fault directives.
+- `references/offline-and-test.md`: offline mode, `--no-ninja`, the test config and fault directives.
 - `references/source-markers.md`: tags, citations and markers; the claim rules; the V4 report.
 - `references/lookups.md`: the lookup tools, `mcp__pob2__check_model_coverage`'s statuses, hand calculations.
-- `references/stages/`: one stage reference per step.
+- `references/patterns.md`: the pattern library, the build shapes and brainstorm questions every researcher
+  reads first (C-53).
+- `references/stages/`: one stage reference per step, `references/stages/R1a-assemble.md` among them.
+- `templates/card-template.md`: a candidate card, its brainstorm and verification halves (C-52).
 - `scripts/check-run.mjs`: the run checker.

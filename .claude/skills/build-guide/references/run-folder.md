@@ -2,11 +2,11 @@
 
 Every run of the build-guide skill works inside one run folder, which the server creates. This page is
 the layout, who writes each file, how the PoB file is named, and what the run checker holds a run folder
-to (slice 03 §2 and FR-W7, as amendment 1 changes them; spine C-34, C-36).
+to (slice 03 §2 and FR-W7, as amendments 1 and 3 change them; spine C-34, C-36, C-52).
 
 ## Creating it
 
-After the roll check, the runner's first server write is `mcp__pob2__guide_run {new_run: <slug>}` (D-207,
+After the brief check, the runner's first server write is `mcp__pob2__guide_run {new_run: <slug>}` (D-207,
 D-216). It makes no engine call, and replies with three lines:
 
 ```
@@ -18,13 +18,21 @@ loadedBuildUnsaved: true | false
 - `runFolder` is the absolute path. Every step and every agent uses it; no agent needs the guides root.
 - `runFolderRel` is `<slug>/<YYYY-MM-DD>-<n>`, the run folder relative to the guides root. A plan's
   `plan_path` for `mcp__pob2__compile_plan` and `mcp__pob2__guide_run {validate}` is
-  `<runFolderRel>/plan.json`, or `<runFolderRel>/concepts/<id>/plan.json` for a concept skeleton.
+  `<runFolderRel>/plan.json`, `<runFolderRel>/concepts/<id>/plan.json` for a card's skeleton, or
+  `<runFolderRel>/probes/<id>/<n>/plan.json` for one of its probes.
 - `loadedBuildUnsaved` says whether the engine's loaded build has unsaved changes. The first compile
   replaces that build, so when it is `true` the runner asks the user first (D-210, `checkpoints.md`).
 
-**The slug** is `<ascendancy>-<skill>` in lower case, with each run of characters outside `[a-z0-9]`
-replaced by one `-` and no `-` at either end: Titan / Blood Hunt gives `titan-blood-hunt`. The server
-takes at most 64 characters. Each run gets a new dated folder and never writes into an earlier run's
+**The slug** comes from the brief (D-285), in lower case, with each run of characters outside `[a-z0-9]`
+replaced by one `-` and no `-` at either end; the server takes at most 64 characters:
+
+- the brief names an ascendancy and a skill: `<ascendancy>-<skill>` (Titan / Blood Hunt gives
+  `titan-blood-hunt`);
+- an ascendancy and no skill: `<ascendancy>-open` (`titan-open`);
+- a skill and no ascendancy: `open-<skill>` (`open-blood-hunt`);
+- neither: `open-<first playstyle tag>` (`open-minion`), or `open` for a brief with no playstyle tag.
+
+The card the user finalizes is recorded in the run log, not in the folder name. Each run gets a new dated folder and never writes into an earlier run's
 folder (D-153).
 
 ## Layout and ownership
@@ -32,9 +40,12 @@ folder (D-153).
 | Path in the run folder | Written by (only) | Content |
 |---|---|---|
 | `run-log.json` | the runner | the run log (`run-log.md`) |
-| `research/p<k>-r1a-<n>.md` | R1a agent `n` of research round `k` | its sections, with source markers (`source-markers.md`) |
-| `concepts/<id>/plan.json` | the R1b step for concept `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
+| `research/p<k>-r1a-<n>.md` | R1a agent `n` of brainstorm round `k` | its sections, with source markers (`source-markers.md`) |
+| `cards/<id>.md` | R1a (the brainstorm half), then R1b (the verification half) | a candidate card (`templates/card-template.md`, C-52) |
+| `cards.md` | the R1a-assemble step | the deck: the dealt cards by round, then "Not dealt" (D-287) |
+| `concepts/<id>/plan.json` | the R1b step for card `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
 | `concepts/<id>/compile-record.json`, `concepts/<id>/compiled-build.xml` | `mcp__pob2__compile_plan`, measure-only (D-208) | the skeleton's compile record (C-33) and compiled XML |
+| `probes/<id>/<n>/plan.json`, and its record and XML | the R1b step for card `<id>`; `mcp__pob2__compile_plan`, measure-only | a probe variant, one stage, `n` from 1 to 4 (D-292, D-331, D-338) |
 | `dossier.md` | the R1b-assemble step | the dossier (slice 03 §7.2) |
 | `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
 | `compile-record.json`, `compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` |
@@ -43,7 +54,10 @@ folder (D-153).
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate | its verdict (`gates.md`) |
 | `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged | the V4 full pass and re-check reports (`source-markers.md`) |
 
-- Concept ids are `c1`, `c2`, … in proposal order, unique within the run across research rounds.
+- Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b`
+  and `c` when it starts them, so parallel researchers never collide and ids stay unique across rounds
+  (D-319). A step's `concept`, a gate file's `<concept>` and `concepts/<id>/` use the card id. (Runs before
+  amendment 3 used concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate` or `D2-gate`; `<attempt>` counts from 1 per (stage,
   concept), as the header and the run log's `stages[]` do; `<lens>` is `ledger`, `sources` or `prose`.
 - A revision's verification rewrites the V4 reports; the run log's order says which re-check belongs to the
@@ -82,7 +96,7 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   equals the record's (D-205). One fixed-form verdict line per endgame rung in `Survival by stage`, each number
   equal to the record's value rounded at the written number's last significant digit ("2,740" matches 2,736):
   the level, the four resistances, the physical max hit and its hit, the least other max hit and the largest
-  other hit, and the rolled-skill figure the D1 gate's verdict names. Every campaign reward choice the
+  other hit, and the named damage source's figure the D1 gate's verdict names. Every campaign reward choice the
   campaign passes is picked, the same pick on every stage after it, the endgame stages included, and the
   guide's `Campaign route and rewards` names each pick by its first line (D-265).
 - **The audit layer** (D-278). `audit.md` beside a current guide, with its six H2s in order.
@@ -103,7 +117,8 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   by the server's evaluator, equals the record's value to 2 decimals.
 - **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor (at each rung's area
   level, 69 for entering maps), the budgets (20 divines for the budget variant, 5 for entering maps) and the
-  rolled skill, its figure's stat set equal to `skills.main.statSet`. The checker fails a verdict that
+  named damage source (the `rolledSkill` part), its figure's stat set equal to `skills.main.statSet`. The
+  checker fails a verdict that
   differs from its own, and, once a guide exists, any failure no accepted finding covers.
 - **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;
   each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
@@ -112,7 +127,8 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   re-ran in the fix round (D-264), else of each lens that raised a finding and the sources lens; a claims-only
   owner only before any gate of its round and never directly before a gate (a claims-only D1 may be followed
   by a D2 that recompiles, and its D2 gate); escalations only from the gates, each naming its verdict file; a `rule` on every
-  pre-supplied or default answer; and `completed` only after checkpoint 2's accept.
+  pre-supplied or default answer; and `completed` only after the final gate's accept (checkpoint 2's, in a
+  schema-2 log).
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after
   the last D2 gate (a claims-only D1 or D2 leaves it current).

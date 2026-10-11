@@ -1,10 +1,11 @@
-# Checkpoints, questions and escalations
+# Gates, questions and escalations
 
-The runner stops for the user at two checkpoints and at two kinds of question (slice 03 §10, §5.4, as
-amendment 1 changes them; D-125, D-157, D-210, D-235, D-236). Each is asked with AskUserQuestion; if the
-choices exceed one question's option limit, split them across two questions. In offline test mode the
-test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
-the run log's `checkpoints[]` (`answer`, `answeredBy`, and `rule` for a pre-supplied or default answer).
+The runner stops for the user at three gates, one per phase (`brainstorm`, `verification` and `final`), and at
+two kinds of question (slice 03 §10, §5.4, as amendments 1 and 3 change them; D-125, D-157, D-210, D-235,
+D-236, D-287, D-288). Each is asked with AskUserQuestion; if the choices exceed one question's option limit,
+split them across questions. In offline test mode the test config answers instead (`offline-and-test.md`), and
+only there (A-28). Every answer is recorded in the run log's `checkpoints[]` under the gate's or question's name
+(`answer`, `answeredBy`, and `rule` for a pre-supplied or default answer; `run-log.md`).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -19,26 +20,50 @@ Say which build it is when the reply names it, and that the user can save it fir
 With a test config, `answers.unsavedBuild` answers it; with none there, the answer is `stop`
 (`answeredBy: "default"`).
 
-## Checkpoint 1: pick a concept
+## The brainstorm gate: pick cards to verify
 
-Shown after every research round, and after a design that was `infeasible` or an escalation sent the run
-back here.
+Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoint `brainstorm`.
 
-- **Show** R1b-assemble's comparison, one line per concept of the run (every round, not only the last): its
-  synergy, numbers from its skeleton's record, key prices (dated, or `unavailable`), risks, what PoB can't
-  verify, and its status (`viable`, `failed`, `not-carried`). Give the dossier's path. After an
-  `infeasible` design or an escalation, show that concept's evidence: its last verdict file. With no viable
-  concept, show each concept's last verdict and why it fails (D-141).
-- **Ask**: pick a concept (a failed one may be picked anyway), ask for more, or stop.
-  - **pick**: the design (steps 6 to 9) runs for that concept.
-  - **ask for more** (D-235): a new research round of up to 3 concepts, with the user's note. Its
-    `firstId` is one more than the highest concept id so far. Only this answer starts a round; the runner
-    never starts one on its own.
+- **Show** the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
+  line each (its id, title, identity, playstyle tags, links confirmed, under-played label and evidence), and
+  the "Not dealt" list, each with the link no lookup confirmed. A card whose damage source isn't a skill is
+  marked "can't be finalized yet" (D-303).
+- **Ask** with AskUserQuestion in `multiSelect` mode: up to 4 cards a question and up to 3 questions, plus one
+  question for brainstorm more or stop. With more than 12 cards to offer, offer the latest round's first; the
+  user can name any other card id, a held-back one included, in the free-text answer.
+  - **verify** 1–3 cards: the union of the selections; more than 3 is asked again. Recorded as
+    `pick:<id>[,<id>…]`. They go to R1b as a new verification round (SKILL.md step 3).
+  - **brainstorm more** (D-235, D-287): a new brainstorm round with the user's note, `k` one more than the
+    last. Only this answer, here or at the verification gate, starts a brainstorm round; the runner never
+    starts one on its own. Recorded as `more`.
   - **stop**: the run ends `stopped`.
 
-## Checkpoint 2: the guide
+## The verification gate: finalize one card
 
-Shown after the run checker (step 15).
+Renamed from checkpoint 1 (D-287). Shown after every verification round's R1b-assemble, and after a design
+that was `infeasible` or an escalation sent the run back here. Recorded as checkpoint `verification`.
+
+- **Show** R1b-assemble's comparison, one line per card verified in the run (every verification round, not
+  only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
+  figure, `Life` and `TotalEHP`, D-294), key prices (dated, or `unavailable`), risks, what PoB can't verify,
+  and its status (`viable`, `failed`). Give the dossier's path. After an `infeasible` design or an escalation,
+  show that card's evidence: its last verdict file. With no viable card, show each card's last verdict and why
+  it fails (D-141).
+- **Ask**: finalize one card, verify other cards, brainstorm more, or stop.
+  - **finalize** (`pick:<id>`): a failed card may be finalized anyway; a card whose damage source isn't a
+    skill can't be yet (D-303). The card's identity `{className, ascendancy, skill}` becomes the run's `roll`
+    (D-286), and the design (steps 6 to 9) runs for it.
+  - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet): a new
+    verification round (step 3), without a brainstorm.
+  - **brainstorm more** (`more`, with the user's note): a new brainstorm round (step 2a).
+  - **stop**: the run ends `stopped`.
+
+Every route back from the design comes here: an `infeasible` design (D-141), an escalation's option 3, and
+FI-3.
+
+## The final gate: the guide
+
+Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). Recorded as checkpoint `final`.
 
 - **Show** the guide's path; the PoB file (the D2 gate verdict's `finalCompile.pobFile`); the gate
   verdicts; the known issues (the open V4 findings and the accepted gate findings); the run checker's
@@ -74,31 +99,37 @@ choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the que
 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt with the verdict and the
    user's guidance in `findings`, then its gate. That attempt counts against no cap, and if the gate fails,
    whatever part fails, it escalates again.
-3. **back to checkpoint 1**, with the verdict file as that concept's evidence.
+3. **back to the verification gate** (choice `verification`, which replaces `checkpoint-1`, D-289), with the
+   verdict file as that card's evidence.
 4. **stop**: the run ends `escalated`.
 
 With a test config, `answers.escalation[]` answers each escalation in turn; with none left, the answer is
 `stop` (`answeredBy: "default"`), so the run ends `escalated`.
 
-## Pre-supplied answers (offline test mode only)
+## Pre-supplied answers (offline test mode only; D-288, D-323)
 
 | Question | Test config answer | Meaning |
 |---|---|---|
 | unsaved build | `answers.unsavedBuild`: `proceed` or `stop` | none given: `stop`, `default` |
-| checkpoint 1 | `answers.checkpoint1[]`, one per visit: `first-viable`, `pick:<id>`, `more` or `stop` | `first-viable` is the first `viable` concept not yet designed in this run, else `stop` |
-| checkpoint 2 | `answers.checkpoint2[]`, one per visit: `accept`, `not-accept` or `revise:<text>` | |
-| escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `checkpoint-1` or `stop` | none left: `stop`, `default` |
+| brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` dealt cards in `cards.md` not verified yet, else `stop` |
+| verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>`, `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, else `stop` |
+| final gate | `answers.final[]`, one per visit: `accept`, `not-accept` or `revise:<text>` | |
+| escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` | none left: `stop`, `default` |
+
+`answers.checkpoint1` and `answers.checkpoint2` are retired with the run log's schema 3 (D-323): a test config
+that holds them, or the escalation answer `checkpoint-1`, is malformed. A brainstorm `more` from the test config
+carries no note.
 
 **A pre-supplied answer still prints the display** (D-265). The test config replaces only the question:
-show everything the checkpoint shows the user, then the answer it resolved to. At checkpoint 1 that is
-R1b-assemble's comparison lines, each concept's status and the dossier's path, on every visit; on a revisit
-after an `infeasible` design or an escalation, that concept's evidence (its last verdict file); with no
-viable concept, each concept's last verdict. At checkpoint 2 and at an escalation, the same holds for their
-displays.
+show everything the gate shows the user, then the answer it resolved to. At the brainstorm gate that is the
+brief and the deck, on every visit. At the verification gate that is R1b-assemble's comparison lines, each
+card's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an
+escalation, that card's evidence (its last verdict file); with no viable card, each card's last verdict. At
+the final gate and at an escalation, the same holds for their displays.
 
-When `checkpoint1` or `checkpoint2` answers run out, the run ends `stopped` (recorded as answer `stop`,
-`answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it resolved
-to (`first-viable` → `pick:c3`). Either way the entry's `rule` keeps how the answer was reached: the test
-config's answer exactly as written (`"rule": "first-viable"`), or the default that applied
-(`"rule": "no checkpoint1 answer left: stop"`). The guide quotes the rule that picked its concept
-(`run-log.md`).
+When the `brainstorm`, `verification` or `final` answers run out, the run ends `stopped` (recorded as answer
+`stop`, `answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it
+resolved to (`first-viable` → `pick:r1-a-2`, `first-n:2` → `pick:r1-a-1,r1-a-2`). Either way the entry's
+`rule` keeps how the answer was reached: the test config's answer exactly as written
+(`"rule": "first-viable"`), or the default that applied (`"rule": "no verification answer left: stop"`). The
+guide's `audit.md` quotes the rule that finalized its card (`run-log.md`).

@@ -833,6 +833,7 @@ export class PoBLuaApiClient {
   /**
    * C-38: per line, whether PoB applies an item's, a passive node's or a gem's lines (`API/Coverage.lua`);
    * reads only. `sourceNames` and `sourceTemplates` are the server's scan of PoB's source (D-226, D-243).
+   * The reply's `flags` name what PoB doesn't model, beside the statuses (WU-54; D-300, D-336).
    */
   async checkCoverage(params: ActionParams<"check_coverage">): Promise<ActionReply<"check_coverage">["result"]> {
     const res = await this.request("check_coverage", params);

@@ -18,6 +18,11 @@
  * and names PoB builds by concatenation count as read (D-243). The read kind (AC-K14's last clause, AC-B3) is the
  * generic engine-kind check over the `check_model_coverage` samples in `engineKinds.test.ts`; the static
  * part below checks those samples exist.
+ *
+ * WU-54 (D-300, D-336): the flags beside the statuses. AC-K50 (`mapped but unread`, `stat not mapped`) and
+ * AC-K53…AC-K56 each check a named example through the tool's text, then the whole set through the action
+ * against a Lua query of PoB's own data (every gem, every support or meta gem, every passive node). AC-K57
+ * checks that no status or count moves and that build mode reports the flags single-source calls give.
  */
 import fs from 'fs';
 import path from 'path';
@@ -809,6 +814,640 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
     async () => {
       const text = await okTool({ item_text: AMULET });
       expect(text).toMatch(/^- possibly unread: .*This is advisory: PoB may still read the name through a name it computes another way, so confirm it by measurement/m);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // WU-54 (D-300, D-336): flags beside the statuses, AC-K50 and AC-K53…AC-K57
+
+  /** One flag of the tool's text. */
+  interface Flag {
+    flag: string;
+    source: string;
+    line?: string;
+    note: string;
+  }
+
+  /** The text's flag section: `- [<flag>] <source>`, then `  line: <line>` for a line's flag, then the note. */
+  function parseFlags(text: string): Flag[] {
+    const lines = text.split('\n');
+    const start = lines.findIndex((l) => /^Flags \(\d+\): /.test(l));
+    if (start < 0) return [];
+    const count = Number(/^Flags \((\d+)\)/.exec(lines[start])![1]);
+    const out: Flag[] = [];
+    let current: Flag | undefined;
+    for (const line of lines.slice(start + 1)) {
+      let m: RegExpExecArray | null;
+      if ((m = /^- \[([^\]]+)\] (.*)$/.exec(line))) {
+        current = { flag: m[1], source: m[2], note: '' };
+        out.push(current);
+      } else if (current && current.note === '' && current.line === undefined && (m = /^ {2}line: (.*)$/.exec(line))) {
+        current.line = m[1];
+      } else if (current && current.note === '' && (m = /^ {2}(\S.*)$/.exec(line))) {
+        current.note = m[1];
+      } else {
+        break;
+      }
+    }
+    expect(out).toHaveLength(count);
+    return out;
+  }
+
+  const ofFlag = (flags: Flag[], name: string) => flags.filter((x) => x.flag === name);
+  const flagKey = (x: { flag: string; source: string; line?: string; note: string }) =>
+    JSON.stringify([x.flag, x.source, x.line ?? null, x.note]);
+  const tallyKeys = (keys: string[]) => {
+    const t: Record<string, number> = {};
+    for (const k of keys) t[k] = (t[k] ?? 0) + 1;
+    return t;
+  };
+
+  /** The check_coverage action with the real scan, through the bridge (C-5 validated). */
+  async function scannedAction(params: Record<string, unknown>) {
+    return coverageAction({ sourceNames: [...scan.names], sourceTemplates: scan.templates, ...params });
+  }
+
+  /** Every gem name (its lowest id with a granted effect, as the lookup resolves names) and its kind. */
+  async function gemCatalogue() {
+    return arr(
+      await luaQuery<Array<{ name: string; support: boolean; meta: boolean; energy: boolean; additional: boolean }>>(`
+        local byName = {}
+        for id, gem in pairs(data.gems) do
+          if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+            if not byName[gem.name] or id < byName[gem.name].id then byName[gem.name] = { id = id, gem = gem } end
+          end
+        end
+        local out = {}
+        for name, rec in pairs(byName) do
+          local gem = rec.gem
+          local effects = { gem.grantedEffect }
+          for _, e in ipairs(gem.additionalGrantedEffects or {}) do table.insert(effects, e) end
+          local meta, energy = false, false
+          for _, e in ipairs(effects) do
+            local t = e.skillTypes or {}
+            if t[SkillType.Meta] then meta = true end
+            if t[SkillType.Meta] and t[SkillType.GeneratesEnergy] then energy = true end
+          end
+          table.insert(out, { name = name, support = gem.grantedEffect.support == true, meta = meta, energy = energy,
+            additional = gem.additionalGrantedEffectId1 ~= nil })
+        end
+        table.sort(out, function(a, b) return a.name < b.name end)
+        return out`),
+    );
+  }
+
+  /** A Lua chunk prelude: `want` (the gems as checked) and `gemNamed(name)` (lowest id, as the lookup). */
+  const wantPrelude = (gems: Array<{ name: string; level: number; quality: number }>) => `
+    local want = require('dkjson').decode(${JSON.stringify(JSON.stringify(gems))})
+    local byName = {}
+    for id, gem in pairs(data.gems) do
+      if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+        if not byName[gem.name] or id < byName[gem.name].id then byName[gem.name] = { id = id, gem = gem } end
+      end
+    end
+    local function gemNamed(name) return byName[name].gem end
+    local function effectsOf(gem)
+      local effects = { gem.grantedEffect }
+      for _, e in ipairs(gem.additionalGrantedEffects or {}) do table.insert(effects, e) end
+      return effects
+    end
+    local function labelOf(ge, ss, i)
+      if type(ss.label) == 'string' and ss.label ~= '' then return ss.label end
+      return (ge.name ~= '' and ge.name) or ('Stat set ' .. i)
+    end`;
+
+  /** Whether `name` from `pos` fits the template parts from `k`, a `*` part being empty or a `known` name. */
+  function fitsWith(known: (n: string) => boolean, name: string, parts: string[], k = 0, pos = 0): boolean {
+    if (k === parts.length) return pos === name.length;
+    if (parts[k] === '*') {
+      for (let end = pos; end <= name.length; end++) {
+        const run = name.slice(pos, end);
+        if ((run === '' || known(run)) && fitsWith(known, name, parts, k + 1, end)) return true;
+      }
+      return false;
+    }
+    return name.startsWith(parts[k], pos) && fitsWith(known, name, parts, k + 1, pos + parts[k].length);
+  }
+
+  /**
+   * D-336's strict reading: a scanned name or a skill-data tag name exactly; a compound "X:Y" whose parts
+   * are read; or a whole template fit. D-243's suffix rule doesn't apply.
+   */
+  function strictlyRead(tagNames: Set<string>, name: string): boolean {
+    const known = (n: string) => scan.names.has(n) || tagNames.has(n);
+    if (known(name)) return true;
+    if (name.includes(':')) return name.split(':').filter(Boolean).every((p) => strictlyRead(tagNames, p));
+    return scan.templates
+      .filter((t) => /[^*]/.test(t))
+      .some((t) => fitsWith(known, name, t.split(/(\*+)/).filter((x) => x !== '').map((x) => (x.startsWith('*') ? '*' : x))));
+  }
+
+  /** Every string a mod tag in the loaded skill data names (any tag field but `type`). */
+  async function skillDataTagNames(): Promise<Set<string>> {
+    const names = await luaQuery<string[]>(`
+      local names = {}
+      local function tags(mod)
+        if type(mod) ~= 'table' then return end
+        for _, tag in ipairs(mod) do
+          if type(tag) == 'table' then
+            for k, v in pairs(tag) do
+              if k ~= 'type' and type(v) == 'string' then names[v] = true end
+              if k ~= 'type' and type(v) == 'table' then
+                for _, s in ipairs(v) do if type(s) == 'string' then names[s] = true end end
+              end
+            end
+          end
+        end
+        if type(mod.value) == 'table' and type(mod.value.mod) == 'table' then tags(mod.value.mod) end
+      end
+      local function list(l) for _, mod in ipairs(type(l) == 'table' and l or {}) do tags(mod) end end
+      for _, skill in pairs(data.skills) do
+        list(skill.baseMods)
+        for _, ss in ipairs(skill.statSets or {}) do
+          for _, entry in pairs(ss.statMap or {}) do list(entry) end
+          list(ss.baseMods)
+        end
+      end
+      for _, entry in pairs(build.data.skillStatMap) do list(entry) end
+      local out = {}
+      for n in pairs(names) do table.insert(out, n) end
+      table.sort(out)
+      return out`);
+    return new Set(arr(names));
+  }
+
+  it(
+    'AC-K50 (mapped but unread): Aftershock I flags its AftershockChance line; Mirage Archer\'s "cannot consume Charges" line is read through skill-data condition tags',
+    async () => {
+      const aftershock = await okTool({ gems: ['Aftershock I'] });
+      const line = 'Supported skills have 25% chance to cause an additional Aftershock';
+      const flags = ofFlag(parseFlags(aftershock), 'mapped but unread');
+      expect(flags.map((x) => ({ source: x.source, line: x.line }))).toEqual([{ source: 'Gem Aftershock I / Aftershock I', line }]);
+      expect(flags[0].note).toContain('AftershockChance');
+      // D-243's suffix rule reads it (it ends with the template literal "Chance"); the strict reading doesn't.
+      const tagNames = await skillDataTagNames();
+      expect(readByName(scan, 'AftershockChance')).toBe(true);
+      expect(strictlyRead(tagNames, 'AftershockChance')).toBe(false);
+      // The line's status is unchanged: fully parsed, as AC-K13's rule rates a mapped stat.
+      expect(parseCoverage(aftershock).entries.find((e) => e.line === line)?.status).toBe('fully parsed');
+
+      const mirage = await okTool({ gems: ['Mirage Archer'] });
+      const charges = parseCoverage(mirage).entries.find((e) => e.line === 'Socketed Skills cannot consume Charges');
+      expect(charges?.status).toBe('fully parsed');
+      expect(ofFlag(parseFlags(mirage), 'mapped but unread').filter((x) => x.line === 'Socketed Skills cannot consume Charges')).toEqual([]);
+      expect(tagNames.has('CannotConsumeCharges')).toBe(true);
+      expect(scan.names.has('CannotConsumeCharges')).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K50 (mapped but unread): over every gem, the flagged lines equal the mapped lines whose stat map yields a mod name the strict reading finds unread (Lua query)',
+    async () => {
+      const catalogue = await gemCatalogue();
+      expect(catalogue.length).toBeGreaterThan(900);
+      const result = await scannedAction({ gems: catalogue.map((g) => g.name) });
+      const checked = arr(result.gems).map((g) => ({ name: g.name, level: g.level, quality: g.quality }));
+      expect(checked).toHaveLength(catalogue.length);
+      const mapped = arr(
+        await luaQuery<Array<{ source: string; line: string; names: string[] | Record<string, never> }>>(`
+          ${wantPrelude(checked)}
+          local function names(list, acc)
+            for _, mod in ipairs(list) do
+              if type(mod) == 'table' then
+                if type(mod.name) == 'string' then table.insert(acc, mod.name) end
+                if type(mod.value) == 'table' and type(mod.value.mod) == 'table' then names({ mod.value.mod }, acc) end
+              end
+            end
+            return acc
+          end
+          local out = {}
+          for _, w in ipairs(want) do
+            local gem = gemNamed(w.name)
+            for _, ge in ipairs(effectsOf(gem)) do
+              for i, ss in ipairs(ge.statSets or {}) do
+                local lines, lineMap = data.describeStats(calcLib.buildSkillInstanceStats({ level = w.level, quality = w.quality }, ge, ss), ss.statDescriptionScope)
+                for _, line in ipairs(lines) do
+                  local stat = lineMap[line]
+                  local entry = stat and ((ss.statMap and ss.statMap[stat]) or build.data.skillStatMap[stat])
+                  if entry then
+                    table.insert(out, { source = 'Gem ' .. gem.name .. ' / ' .. labelOf(ge, ss, i),
+                      line = (line:gsub('%s*\\n%s*', ' ')), names = names(entry, {}) })
+                  end
+                end
+              end
+            end
+          end
+          return out`),
+      );
+      expect(mapped.length).toBeGreaterThan(1000);
+      const tagNames = await skillDataTagNames();
+      const expected: string[] = [];
+      const unreadOf = new Map<string, string[]>();
+      for (const m of mapped) {
+        const unread = [...new Set(arr(m.names).filter((n) => !strictlyRead(tagNames, n)))];
+        if (unread.length === 0) continue;
+        const key = JSON.stringify([m.source, m.line]);
+        expected.push(key);
+        unreadOf.set(key, unread);
+      }
+      const flagged = arr(result.flags).filter((x) => x.flag === 'mapped but unread');
+      const actual = flagged.map((x) => JSON.stringify([x.source, x.line]));
+      expect(tallyKeys(actual)).toEqual(tallyKeys(expected));
+      // Each note names the unread mod names.
+      for (const x of flagged) {
+        for (const n of unreadOf.get(JSON.stringify([x.source, x.line])) ?? []) expect({ line: x.line, note: x.note }).toEqual({ line: x.line, note: expect.stringContaining(n) });
+      }
+      // No status moved: the gem entries are still AC-K13's two statuses.
+      expect(arr(result.entries).every((e) => e.status === 'fully parsed' || e.status === UNMODELLED)).toBe(true);
+      console.error(`[modelCoverage] AC-K50 mapped but unread: ${expected.length} lines over ${new Set(flagged.map((x) => x.source.replace(/ \/ .*$/, ''))).size} gems`);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K50 (stat not mapped): Mirage Archer reports triggered_by_lingering_mirage, which ends its false all-clear',
+    async () => {
+      const text = await okTool({ gems: ['Mirage Archer'] });
+      // Every described line is fully parsed: without the flag this would be an all-clear.
+      expect(parseCoverage(text).entries.every((e) => e.status === 'fully parsed')).toBe(true);
+      const flags = ofFlag(parseFlags(text), 'stat not mapped');
+      expect(flags.every((x) => x.source === 'Gem Mirage Archer' && x.line === undefined)).toBe(true);
+      expect(flags.map((x) => x.note)).toContain('PoB has no stat map for triggered_by_lingering_mirage; what it drives may not be modelled.');
+      // Display-only stats are left out (Mirage Archer's quality_display_lingering_mirage_is_gem).
+      expect(flags.some((x) => x.note.includes('quality_display_'))).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K50 (stat not mapped): over every support or meta gem, the flagged (gem, stat) pairs equal a Lua query\'s by the rule',
+    async () => {
+      const catalogue = (await gemCatalogue()).filter((g) => g.support || g.meta);
+      const result = await scannedAction({ gems: catalogue.map((g) => g.name) });
+      const checked = arr(result.gems).map((g) => ({ name: g.name, level: g.level, quality: g.quality }));
+      const expected = arr(
+        await luaQuery<string[]>(`
+          ${wantPrelude(checked)}
+          local function same(a, b)
+            if #a ~= #b then return false end
+            for i = 1, #a do if a[i] ~= b[i] then return false end end
+            return true
+          end
+          local out, seen = {}, {}
+          for _, w in ipairs(want) do
+            local gem = gemNamed(w.name)
+            for _, ge in ipairs(effectsOf(gem)) do
+              for _, ss in ipairs(ge.statSets or {}) do
+                local stats = calcLib.buildSkillInstanceStats({ level = w.level, quality = w.quality }, ge, ss)
+                local full = data.describeStats(stats, ss.statDescriptionScope)
+                for stat, v in pairs(stats) do
+                  if type(v) == 'number' and v ~= 0 and not ((ss.statMap and ss.statMap[stat]) or build.data.skillStatMap[stat])
+                      and not stat:find('^display_') and not stat:find('^quality_display_') then
+                    local without = {}
+                    for k, x in pairs(stats) do if k ~= stat then without[k] = x end end
+                    local key = gem.name .. '|' .. stat
+                    if not seen[key] and same(full, data.describeStats(without, ss.statDescriptionScope)) then
+                      seen[key] = true
+                      table.insert(out, key)
+                    end
+                  end
+                end
+              end
+            end
+          end
+          table.sort(out)
+          return out`),
+      );
+      const actual = arr(result.flags)
+        .filter((x) => x.flag === 'stat not mapped')
+        .map((x) => {
+          expect(x.line).toBeUndefined();
+          const m = /^PoB has no stat map for (.+); what it drives may not be modelled\.$/.exec(x.note);
+          expect(m).not.toBeNull();
+          return `${x.source.replace(/^Gem /, '')}|${m![1]}`;
+        })
+        .sort();
+      expect(actual).toEqual(expected);
+      expect(expected).toContain('Mirage Archer|triggered_by_lingering_mirage');
+      // Gems that are neither support nor meta get none.
+      const active = await scannedAction({ gems: ['Fireball', 'Gas Grenade', 'Snipe'] });
+      expect(arr(active.flags).filter((x) => x.flag === 'stat not mapped')).toEqual([]);
+      console.error(`[modelCoverage] AC-K50 stat not mapped: ${expected.length} pairs over ${new Set(expected.map((k) => k.split('|')[0])).size} gems`);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K53: Cast on Critical reports one energy not modelled flag and keeps its statuses; over every meta gem and Trail of Caltrops, exactly the Meta + GeneratesEnergy gems are flagged; no scanned file names GeneratesEnergy',
+    async () => {
+      const text = await okTool({ gems: ['Cast on Critical'] });
+      expect(ofFlag(parseFlags(text), 'energy not modelled')).toEqual([
+        { flag: 'energy not modelled', source: 'Gem Cast on Critical', note: expect.stringContaining('Energy') },
+      ]);
+      const entries = parseCoverage(text).entries;
+      expect(entries).toHaveLength(5);
+      expect(entries.every((e) => e.status === UNMODELLED)).toBe(true);
+
+      const catalogue = await gemCatalogue();
+      const metas = catalogue.filter((g) => g.meta);
+      expect(metas).toHaveLength(29);
+      const caltrops = catalogue.find((g) => g.name === 'Trail of Caltrops');
+      expect(caltrops).toMatchObject({ meta: false });
+      const result = await scannedAction({ gems: [...metas.map((g) => g.name), 'Trail of Caltrops'] });
+      const flagged = arr(result.flags)
+        .filter((x) => x.flag === 'energy not modelled')
+        .map((x) => {
+          expect(x.line).toBeUndefined();
+          return x.source.replace(/^Gem /, '');
+        })
+        .sort();
+      const expected = catalogue.filter((g) => g.energy).map((g) => g.name).sort();
+      expect(flagged).toEqual(expected);
+      expect(expected).toHaveLength(16);
+      expect(expected).toEqual(expect.arrayContaining(['Cast on Critical', 'Cast on Melee Kill', 'Spellslinger', 'Barrier Invocation']));
+      expect(expected).not.toContain('Mirage Archer');
+      expect(expected).not.toContain('Trail of Caltrops');
+
+      expect((await pobSourceNames(POB_SRC)).has('GeneratesEnergy')).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K54: Paquate\'s Pact reports level from support naming Twisted Pact and its checked level; over every support gem with a granted effect, one flag per defined, non-support, visible granted skill',
+    async () => {
+      const text = await okTool({ gems: ["Paquate's Pact"] });
+      const level = Number(/Paquate's Pact at gem level (\d+)/.exec(text)![1]);
+      expect(level).toBe(1);
+      const flags = ofFlag(parseFlags(text), 'level from support');
+      expect(flags).toHaveLength(1);
+      expect(flags[0]).toMatchObject({ source: "Gem Paquate's Pact" });
+      expect(flags[0].line).toBeUndefined();
+      expect(flags[0].note).toContain('Twisted Pact');
+      expect(flags[0].note).toContain(`level, ${level} `);
+      // Twisted Pact's lines keep their statuses: the marked ones are PoB's red-tooltip lines (AC-K13's rule).
+      const cov = parseCoverage(text);
+      expect(cov.entries.some((e) => e.source === "Gem Paquate's Pact / Twisted Pact")).toBe(true);
+      const pob = await luaQuery<{ red: string[] | Record<string, never> }>(redLinesQuery("Paquate's Pact"));
+      expect(cov.entries.filter((e) => e.status === UNMODELLED).map((e) => `${e.source} | ${e.line}`)).toEqual(arr(pob.red));
+
+      const supports = (await gemCatalogue()).filter((g) => g.support && g.additional);
+      const result = await scannedAction({ gems: [...supports.map((g) => g.name), 'Pounce', 'Mirage Archer'] });
+      const levels = new Map(arr(result.gems).map((g) => [g.name, g.level]));
+      const expected = arr(
+        await luaQuery<string[]>(`
+          local out = {}
+          for _, name in ipairs(${luaStrings(supports.map((g) => g.name))}) do
+            local gem
+            for id, g in pairs(data.gems) do
+              if type(g) == 'table' and g.name == name and g.grantedEffect and (not gem or id < gem.id) then gem = g end
+            end
+            local i = 1
+            while gem['additionalGrantedEffectId' .. i] do
+              local id = gem['additionalGrantedEffectId' .. i]
+              local e = data.skills[id]
+              if e and not e.support and not e.hideFromSideBar then
+                table.insert(out, name .. '|' .. ((e.name ~= '' and e.name) or id))
+              end
+              i = i + 1
+            end
+          end
+          table.sort(out)
+          return out`),
+      );
+      const actual = arr(result.flags)
+        .filter((x) => x.flag === 'level from support')
+        .map((x) => {
+          const gem = x.source.replace(/^Gem /, '');
+          const m = /^PoB computes (.+), the skill this support grants, at the support gem's level, (\d+) /.exec(x.note);
+          expect(m).not.toBeNull();
+          expect({ gem, level: Number(m![2]) }).toEqual({ gem, level: levels.get(gem) });
+          return `${gem}|${m![1]}`;
+        })
+        .sort();
+      expect(actual).toEqual(expected);
+      expect(expected).toHaveLength(52);
+      expect(actual.filter((k) => k.startsWith('Empowered Sparks I|'))).toHaveLength(1);
+      expect(actual.filter((k) => k.startsWith('Concussive Runes|'))).toEqual([]);
+      expect(actual.filter((k) => k.startsWith('Pounce|') || k.startsWith('Mirage Archer|'))).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K55: Concussive Runes reports granted skill undefined naming ConcussiveRunesPlayer; over every gem with an additional granted effect, exactly the undefined ids are flagged; Supporting Fire and Skeletal Brute show the flag without a flagged line',
+    async () => {
+      const text = await okTool({ gems: ['Concussive Runes'] });
+      const flags = ofFlag(parseFlags(text), 'granted skill undefined');
+      expect(flags).toHaveLength(1);
+      expect(flags[0]).toMatchObject({ source: 'Gem Concussive Runes' });
+      expect(flags[0].line).toBeUndefined();
+      expect(flags[0].note).toContain('ConcussiveRunesPlayer');
+      const entries = parseCoverage(text).entries;
+      expect(entries.map((e) => e.line)).toEqual(['Supported Skills Trigger a Runic Shockwave on Heavy Stunning an enemy']);
+      const pob = await luaQuery<{ red: string[] | Record<string, never> }>(redLinesQuery('Concussive Runes'));
+      expect(entries.filter((e) => e.status === UNMODELLED).map((e) => `${e.source} | ${e.line}`)).toEqual(arr(pob.red));
+
+      const withAdditional = (await gemCatalogue()).filter((g) => g.additional);
+      expect(withAdditional.length).toBe(156);
+      const result = await scannedAction({ gems: withAdditional.map((g) => g.name) });
+      const expected = arr(
+        await luaQuery<string[]>(`
+          local out = {}
+          for _, name in ipairs(${luaStrings(withAdditional.map((g) => g.name))}) do
+            local gem
+            for id, g in pairs(data.gems) do
+              if type(g) == 'table' and g.name == name and g.grantedEffect and (not gem or id < gem.id) then gem = g end
+            end
+            local i = 1
+            while gem['additionalGrantedEffectId' .. i] do
+              local id = gem['additionalGrantedEffectId' .. i]
+              if not data.skills[id] then table.insert(out, name .. '|' .. id) end
+              i = i + 1
+            end
+          end
+          table.sort(out)
+          return out`),
+      );
+      const actual = arr(result.flags)
+        .filter((x) => x.flag === 'granted skill undefined')
+        .map((x) => {
+          const gem = x.source.replace(/^Gem /, '');
+          const m = /^This gem grants (\S+), which PoB has no skill data for/.exec(x.note);
+          expect(m).not.toBeNull();
+          return `${gem}|${m![1]}`;
+        })
+        .sort();
+      expect(actual).toEqual(expected);
+      expect(expected.map((k) => k.split('|')[0]).sort()).toEqual(
+        ['Concussive Runes', 'Skeletal Arsonist', 'Skeletal Brute', 'Skeletal Frost Mage', 'Skeletal Reaver', 'Skeletal Sniper', 'Skeletal Storm Mage', 'Supporting Fire'].sort(),
+      );
+
+      // The flag shows where no line would: Supporting Fire's lines are all fully parsed; Skeletal Brute has none.
+      const fire = await okTool({ gems: ['Supporting Fire'] });
+      const fireEntries = parseCoverage(fire).entries;
+      expect(fireEntries).toHaveLength(2);
+      expect(fireEntries.every((e) => e.status === 'fully parsed')).toBe(true);
+      expect(ofFlag(parseFlags(fire), 'granted skill undefined').map((x) => x.source)).toEqual(['Gem Supporting Fire']);
+      const brute = await okTool({ gems: ['Skeletal Brute'] });
+      expect(parseCoverage(brute).entries).toEqual([]);
+      expect(ofFlag(parseFlags(brute), 'granted skill undefined').map((x) => x.source)).toEqual(['Gem Skeletal Brute']);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K56: Gem Studded flags its three colour lines support colour tie and keeps every status; over every passive node, exactly the lines on a MostNumerous…SocketedSupports condition are flagged; the flag is static',
+    async () => {
+      const ids = arr(
+        await luaQuery<number[]>(`
+          local ids = {}
+          for id, node in pairs(build.spec.nodes) do if node.name == 'Gem Studded' then table.insert(ids, id) end end
+          table.sort(ids)
+          return ids`),
+      );
+      expect(ids).toHaveLength(1);
+      const source = `Node ${ids[0]} Gem Studded`;
+      const text = await okTool({ nodes: ['Gem Studded'] });
+      const colours = [
+        'Red: Hits against you have no Critical Damage Bonus',
+        'Blue: Skills have 30% less cost',
+        'Green: 40% less Movement Speed Penalty from using Skills while Moving',
+      ];
+      const flags = ofFlag(parseFlags(text), 'support colour tie');
+      expect(flags.map((x) => ({ source: x.source, line: x.line }))).toEqual(colours.map((line) => ({ source, line })));
+      for (const x of flags) expect(x.note).toMatch(/red, then green, then blue/);
+      // Every line keeps the status PoB's parse gives it; the first line has no flag.
+      const cov = parseCoverage(text);
+      const first = 'For each colour of Socketed Support Gem that is most numerous, gain:';
+      expect(cov.entries.map((e) => e.line)).toEqual([first, ...colours]);
+      const pob = await parses([first, ...colours]);
+      cov.entries.forEach((e, i) => expect({ line: e.line, status: e.status }).toEqual({ line: e.line, status: deriveStatus(pob[i], scan) }));
+
+      // Over every node: the flagged lines are those whose parse has a Condition tag on a MostNumerous one.
+      const census = await luaQuery<{ ids: number[]; tie: string[] | Record<string, never>; majority: string[] | Record<string, never> }>(`
+        local ids, tie, majority = {}, {}, {}
+        local TIE = { MostNumerousRedSocketedSupports = true, MostNumerousGreenSocketedSupports = true, MostNumerousBlueSocketedSupports = true }
+        for id, node in pairs(build.spec.nodes) do
+          if node.sd and #node.sd > 0 then table.insert(ids, id) end
+          for _, sd in ipairs(node.sd or {}) do
+            for line in tostring(sd):gmatch('[^\\n]+') do
+              for _, mod in ipairs((modLib.parseMod(line)) or {}) do
+                for _, tag in ipairs(mod) do
+                  if type(tag) == 'table' and tag.type == 'Condition' and type(tag.var) == 'string' then
+                    if TIE[tag.var] then table.insert(tie, 'Node ' .. id .. ' ' .. node.name .. ' | ' .. line) end
+                    if tag.var:match('^Majority.*SocketedSupports$') then table.insert(majority, 'Node ' .. id .. ' ' .. node.name .. ' | ' .. line) end
+                  end
+                end
+              end
+            end
+          end
+        end
+        table.sort(ids)
+        table.sort(tie)
+        table.sort(majority)
+        return { ids = ids, tie = tie, majority = majority }`);
+      expect(arr(census.ids).length).toBeGreaterThan(1000);
+      const all = await coverageAction({ nodes: arr(census.ids) });
+      const flagged = arr(all.flags)
+        .filter((x) => x.flag === 'support colour tie')
+        .map((x) => `${x.source} | ${x.line}`)
+        .sort();
+      expect(flagged).toEqual(arr(census.tie));
+      expect(flagged).toEqual(colours.map((line) => `${source} | ${line}`).sort());
+      // Crystallised Immunities' strict-majority lines aren't flagged.
+      const majority = arr(census.majority);
+      expect(majority.length).toBe(3);
+      expect(majority.every((m) => m.includes('Crystallised Immunities'))).toBe(true);
+      for (const m of majority) expect(flagged).not.toContain(m);
+
+      // Static: the golden build's socketed supports don't tie, and the flags are reported all the same.
+      const counts = await luaQuery<{ R: number; G: number; B: number }>(`
+        local m = build.calcsTab.mainEnv.modDB.multipliers
+        return { R = m.RedSupportGems or 0, G = m.GreenSupportGems or 0, B = m.BlueSupportGems or 0 }`);
+      const top = Math.max(counts.R, counts.G, counts.B);
+      expect([counts.R, counts.G, counts.B].filter((n) => n === top)).toHaveLength(1);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K57: a flag changes no status or count; build mode reports the flags single-source calls give, after a group with Cast on Critical, Paquate\'s Pact and Concussive Runes is added',
+    async () => {
+      // No status moves: the gem lines keep PoB's red-tooltip rule, the node lines PoB's parse, and the
+      // counts cover the entries.
+      const gems = ['Cast on Critical', "Paquate's Pact", 'Concussive Runes', 'Mirage Archer', 'Aftershock I'];
+      const text = await okTool({ gems, nodes: ['Gem Studded'] });
+      const cov = parseCoverage(text);
+      expect(parseFlags(text).length).toBeGreaterThan(0);
+      expect(cov.total).toBe(cov.entries.length);
+      expect(Object.values(cov.counts).reduce((a, b) => a + b, 0)).toBe(cov.total);
+      for (const name of gems) {
+        const pob = await luaQuery<{ red: string[] | Record<string, never> }>(redLinesQuery(name));
+        const marked = cov.entries.filter((e) => e.source.startsWith(`Gem ${name} / `) && e.status === UNMODELLED).map((e) => `${e.source} | ${e.line}`);
+        expect({ name, marked }).toEqual({ name, marked: arr(pob.red) });
+      }
+      const nodeEntries = cov.entries.filter((e) => e.source.startsWith('Node '));
+      const pob = await parses(nodeEntries.map((e) => e.line));
+      nodeEntries.forEach((e, i) => expect({ line: e.line, status: e.status }).toEqual({ line: e.line, status: deriveStatus(pob[i], scan) }));
+
+      try {
+        const created = await f.call('create_socket_group', { label: 'WU-54 flags' });
+        expect(created.isError).toBe(false);
+        const group = Number(/Socket group (\d+) created/.exec(created.text)![1]);
+        for (const [gem_name, level] of [['Cast on Critical', 20], ["Paquate's Pact", 1], ['Concussive Runes', 1]] as const) {
+          const added = await f.call('add_gem', { group_index: group, gem_name, level });
+          expect({ gem_name, isError: added.isError }).toEqual({ gem_name, isError: false });
+        }
+
+        const build = await okTool({ build: true });
+        const buildFlags = parseFlags(build);
+        expect(parseCoverage(build).entries.filter((e) => e.status === 'fully parsed')).toEqual([]);
+
+        // Single-source calls over what build mode checks (AC-K14's set).
+        const what = await luaQuery<{
+          items: Array<{ source: string; raw: string }> | Record<string, never>;
+          nodes: number[] | Record<string, never>;
+          gems: string[] | Record<string, never>;
+        }>(`
+          local items, nodes, gems, seen = {}, {}, {}, {}
+          for slotName, slot in pairs(build.itemsTab.activeItemSet) do
+            local item = type(slot) == 'table' and (slot.selItemId or 0) > 0 and build.itemsTab.items[slot.selItemId]
+            if item then table.insert(items, { source = 'Item ' .. slotName .. ': ' .. item.name, raw = item:BuildRaw() }) end
+          end
+          for nodeId, itemId in pairs(build.spec.jewels) do
+            local item = itemId > 0 and build.spec.allocNodes[nodeId] and build.itemsTab.items[itemId]
+            if item then table.insert(items, { source = 'Jewel socket ' .. nodeId .. ': ' .. item.name, raw = item:BuildRaw() }) end
+          end
+          for id in pairs(build.spec.allocNodes) do table.insert(nodes, id) end
+          table.sort(nodes)
+          for _, group in ipairs(build.skillsTab.socketGroupList) do
+            for _, inst in ipairs(group.gemList) do
+              if inst.gemData and inst.gemData.grantedEffect and not seen[inst.gemData.name] then
+                seen[inst.gemData.name] = true
+                table.insert(gems, inst.gemData.name)
+              end
+            end
+          end
+          return { items = items, nodes = nodes, gems = gems }`);
+        const single: string[] = [];
+        for (const item of arr(what.items)) {
+          for (const x of parseFlags(await okTool({ item_text: item.raw }))) single.push(flagKey({ ...x, source: item.source }));
+        }
+        for (const x of parseFlags(await okTool({ nodes: arr(what.nodes).map(String) }))) single.push(flagKey(x));
+        for (const x of parseFlags(await okTool({ gems: arr(what.gems) }))) single.push(flagKey(x));
+        expect(tallyKeys(buildFlags.map(flagKey))).toEqual(tallyKeys(single));
+
+        // The added gems' flags are among them.
+        expect(buildFlags.some((x) => x.flag === 'energy not modelled' && x.source === 'Gem Cast on Critical')).toBe(true);
+        expect(buildFlags.some((x) => x.flag === 'level from support' && x.source === "Gem Paquate's Pact")).toBe(true);
+        expect(buildFlags.some((x) => x.flag === 'granted skill undefined' && x.source === 'Gem Concussive Runes')).toBe(true);
+      } finally {
+        const reload = await f.call('lua_load_build', { build_name: 'grenadator.xml' });
+        expect(reload.isError).toBe(false);
+      }
     },
     ENGINE_TIMEOUT,
   );

@@ -16,6 +16,9 @@
  * AC-K46 (WU-32, contract part): `check_coverage` without `sourceNames` replies `ok:false`, and with
  * `sourceNames: []` it rates `+30 to maximum Life` `possibly unread`, so Lua uses the names it is passed.
  *
+ * WU-54 (AC-B4): `check_coverage`'s reply carries `flags`; its case raises every flag kind, and an empty
+ * flag list (`[]`) still matches the schema.
+ *
  * AC-K38 (WU-36, contract part): on a new Warrior/Titan build, `update_tree_delta` with the 8 Titan notables
  * replies with `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (C-48), the last
  * equal to a Lua count of the allocated Titan nodes (the start node excluded). That case runs on its own
@@ -210,19 +213,31 @@ const CASES: Record<ActionName, Case> = {
   lookup_game_data: { params: { mode: 'gem', query: 'Blood Hunt', level: 20, quality: 0 } },
   // C-38 (WU-32): an item with every line status, a joined node line and a gem with unmodelled lines, so
   // `remainder`, `unread`, `joinedWith`, `nodeId` and `stat` are all in the reply; the real scan (D-243).
-  check_coverage: {
-    setup: async () => {
-      const scan = await pobSourceScan(resolvePobSrc(process.env));
-      return {
-        itemText: COVERAGE_AMULET,
-        nodes: ['38570'],
-        gems: ['Blood Hunt'],
-        sourceNames: [...scan.names],
-        sourceTemplates: scan.templates,
-      };
-    },
-  },
+  // WU-54: plus a node and gems that raise every flag, so `flags` holds each kind, with and without `line`.
+  check_coverage: { setup: async () => coverageParams() },
 };
+
+/** The flag kinds of WU-54 (D-300, D-336). */
+const COVERAGE_FLAG_NAMES = [
+  'mapped but unread',
+  'stat not mapped',
+  'energy not modelled',
+  'level from support',
+  'granted skill undefined',
+  'support colour tie',
+];
+
+/** `check_coverage`'s contract params: every status, a join, and every flag kind, with the real scan. */
+async function coverageParams(): Promise<Json> {
+  const scan = await pobSourceScan(resolvePobSrc(process.env));
+  return {
+    itemText: COVERAGE_AMULET,
+    nodes: ['38570', 'Gem Studded'],
+    gems: ['Blood Hunt', 'Aftershock I', 'Mirage Archer', 'Cast on Critical', "Paquate's Pact", 'Concussive Runes'],
+    sourceNames: [...scan.names],
+    sourceTemplates: scan.templates,
+  };
+}
 
 /** A golden attribute node set to Strength (the first of its `<AttributeOverride strNodes>`). */
 const GOLDEN_STR_NODE = (/<AttributeOverride\b[^>]*\sstrNodes="(\d+)/.exec(GOLDEN) as RegExpExecArray)[1];
@@ -357,6 +372,33 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       ENGINE_TIMEOUT,
     );
   }
+
+  it(
+    'AC-B4 (WU-54): check_coverage replies carry flags of every kind, line flags with `line`, and an empty flag list encodes as []',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const reply = await engine.request('check_coverage', await coverageParams(), { timeoutMs: 120_000 });
+      expect(reply).toMatchObject({ ok: true });
+      const parsed = replySchemas.check_coverage!.safeParse(reply);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      const flags = reply.result.flags as Array<{ flag: string; source: string; note: string; line?: string }>;
+      expect([...new Set(flags.map((x) => x.flag))].sort()).toEqual([...COVERAGE_FLAG_NAMES].sort());
+      const lineFlags = new Set(['mapped but unread', 'support colour tie']);
+      for (const x of flags) expect({ flag: x.flag, hasLine: typeof x.line === 'string' }).toEqual({ flag: x.flag, hasLine: lineFlags.has(x.flag) });
+
+      // An item with no flagged line: an empty Lua table, which dkjson sends as [], still matches.
+      const scan = await pobSourceScan(resolvePobSrc(process.env));
+      const plain = await engine.request(
+        'check_coverage',
+        { itemText: COVERAGE_AMULET, sourceNames: [...scan.names], sourceTemplates: scan.templates },
+        { timeoutMs: 120_000 },
+      );
+      expect(plain.result.flags).toEqual([]);
+      const plainParsed = replySchemas.check_coverage!.safeParse(plain);
+      expect(plainParsed.success ? [] : plainParsed.error.issues).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
 
   it(
     'AC-K46: check_coverage without sourceNames replies ok:false (the possibly-unread rule is never skipped)',

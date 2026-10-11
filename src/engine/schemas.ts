@@ -840,6 +840,34 @@ export const coverageEntrySchema = z
   .passthrough();
 export type CoverageEntry = z.infer<typeof coverageEntrySchema>;
 
+/**
+ * C-38's flags (WU-54; D-300, D-336): what PoB doesn't model, reported beside the statuses and never as
+ * one, so no status or count changes.
+ */
+export const COVERAGE_FLAGS = [
+  'mapped but unread',
+  'stat not mapped',
+  'energy not modelled',
+  'level from support',
+  'granted skill undefined',
+  'support colour tie',
+] as const;
+export type CoverageFlagName = (typeof COVERAGE_FLAGS)[number];
+
+/**
+ * One flag. A flag about a gem has source `Gem <name>` and no `line`; a line's flag carries the line and
+ * its entry's source (`Gem <name> / <stat set>`, `Node <id> <name>`, or an item's).
+ */
+export const coverageFlagSchema = z
+  .object({
+    flag: z.enum(COVERAGE_FLAGS),
+    source: z.string(),
+    note: z.string(),
+    line: optString,
+  })
+  .passthrough();
+export type CoverageFlag = z.infer<typeof coverageFlagSchema>;
+
 export const checkCoverageReply = baseReply.extend({
   result: z
     .object({
@@ -853,6 +881,8 @@ export const checkCoverageReply = baseReply.extend({
         z.object({ name: z.string(), level: z.number().int(), quality: z.number().int(), fromBuild: z.boolean() }).passthrough(),
       ),
       checked: z.object({ items: z.number().int(), nodes: z.number().int(), gems: z.number().int() }).passthrough(),
+      /** Every flag of every checked item, node and gem, in the order checked (WU-54). */
+      flags: luaArray(coverageFlagSchema),
     })
     .passthrough(),
 });

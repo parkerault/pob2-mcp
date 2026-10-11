@@ -11,9 +11,19 @@
  * (PoB's red-tooltip rule, D-123). A partly parsed line applies nothing: PoB drops a line with a
  * remainder. Build mode also checks the jewels in allocated tree sockets (D-242) and lists only lines
  * that aren't fully parsed; its counts cover every line.
+ *
+ * Flags (WU-54; D-300, D-336) name what PoB doesn't model, beside the statuses and never as one: they
+ * change no status or count. Every mode lists every flag, build mode included, as `- [<flag>] <source>`,
+ * then `  line: <line>` for a line's flag, then the note indented.
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
-import { COVERAGE_STATUSES, type CheckCoverageResult, type CoverageEntry, type CoverageStatus } from "../engine/schemas.js";
+import {
+  COVERAGE_STATUSES,
+  type CheckCoverageResult,
+  type CoverageEntry,
+  type CoverageFlag,
+  type CoverageStatus,
+} from "../engine/schemas.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
@@ -113,6 +123,14 @@ export function renderEntry(entry: CoverageEntry): string[] {
   return lines;
 }
 
+/** One flag: `- [<flag>] <source>`, then its line if it has one, then the note. */
+export function renderFlag(flag: CoverageFlag): string[] {
+  const lines = [`- [${flag.flag}] ${flag.source}`];
+  if (flag.line !== undefined) lines.push(`  line: ${flag.line}`);
+  lines.push(`  ${flag.note}`);
+  return lines;
+}
+
 function render(req: Request, result: CheckCoverageResult): string {
   const total = COVERAGE_STATUSES.reduce((n, s) => n + result.counts[s], 0);
   const counted = COVERAGE_STATUSES.filter((s) => result.counts[s] > 0).map((s) => `${result.counts[s]} ${s}`);
@@ -128,13 +146,20 @@ function render(req: Request, result: CheckCoverageResult): string {
   }
   const listed = req.build ? result.entries.filter((e) => e.status !== "fully parsed") : result.entries;
   if (req.build) lines.push("Build mode lists only the lines that aren't fully parsed; the counts cover every line.");
-  if (total === 0) lines.push("No lines to check: the input has no mod lines.");
-  else if (listed.length === 0) lines.push("Every checked line is fully parsed.");
+  const flags = result.flags;
+  const flagged = flags.length > 0 ? " The flags below name what PoB doesn't model." : "";
+  if (total === 0) lines.push(`No lines to check: the input has no mod lines.${flagged}`);
+  else if (listed.length === 0) lines.push(`Every checked line is fully parsed.${flagged}`);
 
   const shown = COVERAGE_STATUSES.filter((s) => s !== "fully parsed" && listed.some((e) => e.status === s));
   if (shown.length > 0) {
     lines.push("", "Statuses:");
     for (const s of shown) lines.push(`- ${s}: ${STATUS_NOTES[s]}`);
+  }
+
+  if (flags.length > 0) {
+    lines.push("", `Flags (${flags.length}): what PoB doesn't model. A flag changes no status or count.`);
+    for (const flag of flags) lines.push(...renderFlag(flag));
   }
 
   let source: string | undefined;

@@ -1072,17 +1072,32 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const text = await okTool({ gems: ['Mirage Archer'] });
       // Every described line is fully parsed: without the flag this would be an all-clear.
       expect(parseCoverage(text).entries.every((e) => e.status === 'fully parsed')).toBe(true);
+      // One flag for the gem, no line; its note lists the stat ids sorted, triggered_by_lingering_mirage among them.
       const flags = ofFlag(parseFlags(text), 'stat not mapped');
-      expect(flags.every((x) => x.source === 'Gem Mirage Archer' && x.line === undefined)).toBe(true);
-      expect(flags.map((x) => x.note)).toContain('PoB has no stat map for triggered_by_lingering_mirage; what it drives may not be modelled.');
+      expect(flags).toHaveLength(1);
+      expect(flags[0].source).toBe('Gem Mirage Archer');
+      expect(flags[0].line).toBeUndefined();
+      const ids = unmappedIds(flags[0].note);
+      expect(ids).toContain('triggered_by_lingering_mirage');
+      expect(ids).toEqual([...ids].sort());
+      expect(flags[0].note).toContain("PoB may derive some of these from the gem's skill types.");
       // Display-only stats are left out (Mirage Archer's quality_display_lingering_mirage_is_gem).
-      expect(flags.some((x) => x.note.includes('quality_display_'))).toBe(false);
+      expect(ids.some((id) => id.startsWith('quality_display_') || id.startsWith('display_'))).toBe(false);
     },
     ENGINE_TIMEOUT,
   );
 
+  /** The stat ids a `stat not mapped` note lists. */
+  function unmappedIds(note: string): string[] {
+    const m = /^PoB has no stat map for (.+); what (it|they) drives? may not be modelled\. PoB may derive (it|some of these) from the gem's skill types\.$/.exec(note);
+    expect({ note, matches: m !== null }).toEqual({ note, matches: true });
+    const ids = m![1].split(', ');
+    expect({ note, wording: [m![2], m![3]] }).toEqual({ note, wording: ids.length === 1 ? ['it', 'it'] : ['they', 'some of these'] });
+    return ids;
+  }
+
   it(
-    'AC-K50 (stat not mapped): over every support or meta gem, the flagged (gem, stat) pairs equal a Lua query\'s by the rule',
+    'AC-K50 (stat not mapped): over every support or meta gem, one flag per gem whose sorted stat ids equal a Lua query\'s by the rule',
     async () => {
       const catalogue = (await gemCatalogue()).filter((g) => g.support || g.meta);
       const result = await scannedAction({ gems: catalogue.map((g) => g.name) });
@@ -1120,21 +1135,27 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
           table.sort(out)
           return out`),
       );
-      const actual = arr(result.flags)
-        .filter((x) => x.flag === 'stat not mapped')
-        .map((x) => {
-          expect(x.line).toBeUndefined();
-          const m = /^PoB has no stat map for (.+); what it drives may not be modelled\.$/.exec(x.note);
-          expect(m).not.toBeNull();
-          return `${x.source.replace(/^Gem /, '')}|${m![1]}`;
-        })
-        .sort();
-      expect(actual).toEqual(expected);
-      expect(expected).toContain('Mirage Archer|triggered_by_lingering_mirage');
+      // The Lua query's pairs, as gem -> its stat ids sorted.
+      const expectedByGem: Record<string, string[]> = {};
+      for (const key of expected) {
+        const [gem, stat] = key.split('|');
+        (expectedByGem[gem] ??= []).push(stat);
+      }
+      for (const gem of Object.keys(expectedByGem)) expectedByGem[gem].sort();
+      const flagged = arr(result.flags).filter((x) => x.flag === 'stat not mapped');
+      const actualByGem: Record<string, string[]> = {};
+      for (const x of flagged) {
+        expect(x.line).toBeUndefined();
+        const gem = x.source.replace(/^Gem /, '');
+        expect({ gem, repeated: gem in actualByGem }).toEqual({ gem, repeated: false });
+        actualByGem[gem] = unmappedIds(x.note);
+      }
+      expect(actualByGem).toEqual(expectedByGem);
+      expect(actualByGem['Mirage Archer']).toContain('triggered_by_lingering_mirage');
       // Gems that are neither support nor meta get none.
       const active = await scannedAction({ gems: ['Fireball', 'Gas Grenade', 'Snipe'] });
       expect(arr(active.flags).filter((x) => x.flag === 'stat not mapped')).toEqual([]);
-      console.error(`[modelCoverage] AC-K50 stat not mapped: ${expected.length} pairs over ${new Set(expected.map((k) => k.split('|')[0])).size} gems`);
+      console.error(`[modelCoverage] AC-K50 stat not mapped: ${flagged.length} flags (one per gem) listing ${expected.length} stats`);
     },
     ENGINE_TIMEOUT,
   );
@@ -1392,6 +1413,9 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const nodeEntries = cov.entries.filter((e) => e.source.startsWith('Node '));
       const pob = await parses(nodeEntries.map((e) => e.line));
       nodeEntries.forEach((e, i) => expect({ line: e.line, status: e.status }).toEqual({ line: e.line, status: deriveStatus(pob[i], scan) }));
+
+      const golden = parseFlags(await okTool({ build: true }));
+      console.error(`[modelCoverage] AC-K57 golden build mode: ${golden.length} flags (${golden.map((x) => `${x.flag} ${x.source}`).join('; ')})`);
 
       try {
         const created = await f.call('create_socket_group', { label: 'WU-54 flags' });

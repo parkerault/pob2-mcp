@@ -1076,17 +1076,21 @@ Cross-checks compare against PoB's own data and functions, never against the too
       describer, `Modules/StatDescriber.lua`);
     - it isn't display-only. A display-only stat's id starts `display_` or `quality_display_`.
 
-    One flag per gem and stat, source `Gem <name>`, with no `line`. The note is "PoB has no stat map for
-    <stat>; what it drives may not be modelled."
-    - `{gems:["Mirage Archer"]}` reports it, naming `triggered_by_lingering_mirage`. This ends the false
-      all-clear.
-    - One call covers every support or meta gem (Lua query). It flags exactly the (gem, stat) pairs that a
-      Lua query gives by the rule above. That is 318 pairs over 115 gems at the pin, at the default levels.
+    At most one flag per gem, source `Gem <name>`, with no `line` (D-336, which also bars cutting stats by
+    hand lists or id prefixes beyond the display-only rule). Its note lists every qualifying stat id of the
+    gem, sorted: "PoB has no stat map for <ids>; what they drive may not be modelled. PoB may derive some
+    of these from the gem's skill types." With one id, the note reads "what it drives" and "may derive it".
+    - `{gems:["Mirage Archer"]}` reports one such flag, and its note names `triggered_by_lingering_mirage`.
+      This ends the false all-clear.
+    - One call covers every support or meta gem (Lua query). Its flags equal, as gem → sorted stat ids,
+      the Lua query's pairs grouped by gem. That is 115 flags at the pin, listing 318 stats, at the
+      default levels.
 
 AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has one shape:
 - **Beside the status, never a status.** `check_coverage`'s reply gains `flags[]`, each
-  `{flag, source, note, line?}`. A flag about a gem has source `Gem <name>`. A line's flag carries the
-  line and its entry's source: `Gem <name> / <stat set>`, `Node <id> <name>`, or an item's.
+  `{flag, source, note, line?}`. A flag about a gem has source `Gem <name>`; `stat not mapped` is one per
+  gem. A line's flag carries the line and its entry's source: `Gem <name> / <stat set>`,
+  `Node <id> <name>`, or an item's.
 - **Shown in every mode.** The text lists each flag as `[<flag>] <source>`, then its line if it has one,
   then the note. Build mode lists every flag too, although it hides fully parsed lines.
 - **Notes.** Where a criterion says a note names something, the test finds that text in the note.

@@ -46,9 +46,9 @@
 --   mapped but unread     a gem line's stat has a stat map yielding a mod name PoB reads nowhere, by a
 --                         strict reading: a scanned name exactly, a string a mod tag in the skill data names,
 --                         a compound "X:Y" of read parts, or a whole template fit (no D-243 suffix rule)
---   stat not mapped       a support or meta gem's stat, non-zero, with no stat map and in no described line
---                         (removing it leaves the described lines unchanged); display_ and
---                         quality_display_ stats left out
+--   stat not mapped       a support or meta gem's stats, non-zero, with no stat map and in no described line
+--                         (removing one leaves the described lines unchanged); display_ and
+--                         quality_display_ stats left out. One flag per gem, its note listing the ids sorted
 --   energy not modelled   a gem with a granted effect of skill types Meta and GeneratesEnergy (PoB models
 --                         no Energy)
 --   level from support    a support gem's granted skill, which PoB computes at the support gem's level
@@ -665,10 +665,15 @@ function M.checkGem(gem, level, quality, add, flag, reader)
       end
     end
   end
-  for _, stat in ipairs(unmapped) do
+  -- One flag per gem (D-336), its stat ids sorted.
+  if #unmapped > 0 then
+    table.sort(unmapped)
+    local one = #unmapped == 1
     flag({
       flag = NOT_MAPPED, source = 'Gem ' .. gem.name,
-      note = string.format('PoB has no stat map for %s; what it drives may not be modelled.', stat),
+      note = string.format('PoB has no stat map for %s; what %s may not be modelled. PoB may derive %s from the '
+        .. 'gem\'s skill types.', table.concat(unmapped, ', '), one and 'it drives' or 'they drive',
+        one and 'it' or 'some of these'),
     })
   end
 end

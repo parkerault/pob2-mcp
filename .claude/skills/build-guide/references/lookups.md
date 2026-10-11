@@ -54,6 +54,15 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 | **possibly unread** | parsed, but a mod it makes is named nowhere in PoB's calculation code | **advisory** (D-243, D-226): confirm before hand-calculating (below) |
 | possibly unmodelled; check config | a gem line PoB's own tooltip marks unsupported | the effect may live in a config option (D-123); look for it before hand-calculating |
 
+**Flags** (WU-54; D-300, D-336). They're listed beside the statuses, in every mode, and change no status. Each
+names something PoB doesn't model, so treat it as a hand calculation, or as Count:
+- `mapped but unread`: a gem line's stat maps to a mod PoB reads nowhere, so the line may change nothing.
+- `stat not mapped`: a support or meta gem's stats with no stat map and no tooltip line (one flag per gem).
+- `energy not modelled`: an Energy meta gem. PoB can't tell how often it triggers.
+- `level from support`: PoB computes the skill a support grants at the support gem's level.
+- `granted skill undefined`: the gem grants a skill PoB has no data for, so PoB never computes it.
+- `support colour tie`: a Gem Studded colour line. On a tie, PoB applies only one colour.
+
 **Confirm a `possibly unread` line by measurement** (D-243). Add a temporary stage to `plan.json` (or to
 the concept's skeleton) that copies the stage under test without that line, compile measure-only with
 `stages` naming the two stages, and compare their outputs in the record. Remove the temporary stage before

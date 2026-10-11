@@ -16,6 +16,9 @@
  * Amendment 1: the deleted workflow path stays deleted (S1); one full V4 pass, one fix round and one re-check
  * (S2, Q4); the retries (S6, Q2); S7's four kept fixes, `compile_plan`'s text aside (its unit test is in
  * `tests/unit/compileAllocation.test.ts`).
+ *
+ * Amendment 3's content (WU-56): the card template (AC-W27, §7.5), the pattern library (AC-W28, §7.6) and
+ * R1b's advisory checklist with its probe budget (AC-W29, §7.7).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -53,6 +56,13 @@ function frontmatter(text: string): Record<string, string> | null {
   }
   return out;
 }
+
+/**
+ * Shared references that ship before SKILL.md lists them. WU-56 adds the pattern library (C-53), which the
+ * R1a researchers read; SKILL.md is WU-62's and WU-57's (spine §8's serialized wiring), and WU-57 lists the
+ * library there. The second AC-W1 check fails once SKILL.md lists an entry, so the exemption can't outlive it.
+ */
+const AWAITING_SKILL_WIRING = ['references/patterns.md'];
 
 /** Every `references/…`, `templates/…` and `scripts/…` path the text mentions, as written. */
 function mentionedPaths(text: string): string[] {
@@ -130,8 +140,16 @@ describe('AC-W1: the build-guide skill', () => {
     const shipped = fs
       .readdirSync(path.join(SKILL_DIR, 'references'), { withFileTypes: true })
       .filter((e) => e.isFile())
-      .map((e) => `references/${e.name}`);
+      .map((e) => `references/${e.name}`)
+      .filter((ref) => !AWAITING_SKILL_WIRING.includes(ref));
     for (const ref of shipped) expect({ ref, listed: text.includes(ref) }).toEqual({ ref, listed: true });
+  });
+
+  it('a reference awaiting its SKILL.md wiring is exempt only until SKILL.md lists it', () => {
+    // When SKILL.md names it, drop it from AWAITING_SKILL_WIRING in the same commit.
+    for (const ref of AWAITING_SKILL_WIRING) {
+      expect({ ref, ships: fs.existsSync(path.join(SKILL_DIR, ref)), listed: text.includes(ref) }).toEqual({ ref, ships: true, listed: false });
+    }
   });
 
   it('finds paths the way the existence check reads them', () => {
@@ -1326,5 +1344,239 @@ describe('D-265: the small items', () => {
     expect(r1b).toMatch(/\*\*FI-1\*\* \(`\.claude\/skills\/build-guide\/references\/offline-and-test\.md`\): step 2, in the attempt's first compile, the bootstrap, which always runs then \(D-265\)/);
     expect(r1b).not.toMatch(/before the last compile and never in the bootstrap|right before the last compile, add/);
     expect(ref('offline-and-test.md')).toContain('| FI-1 | the R1b step, before the attempt\'s first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) |');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-56 (amendment 3's N-5): the card template (C-52), the pattern library (C-53) and R1b's advisory
+// checklist with its probe budget (D-292). Slice 03 §7.5–§7.7; AC-W27…AC-W29.
+// ---------------------------------------------------------------------------------------------------
+
+/** §7.6 (C-53): how PoB follows a link, in the six labels. */
+const POB_LABELS = ['modelled', 'Count', 'custom modifier', 'config stand-in', 'hand calculation', 'not modelled'];
+
+/** The H3 sections between a heading at `start` and the next heading of level `level` or above. */
+function sections(text: string, start: number, level: number): { title: string; body: string }[] {
+  const hs = headings(text);
+  const lines = text.split(/\r?\n/);
+  const end = hs.find((h) => h.line > start && h.level <= level)?.line ?? lines.length;
+  const h3 = hs.filter((h) => h.level === level + 1 && h.line > start && h.line < end);
+  return h3.map((h, i) => ({ title: h.title, body: lines.slice(h.line + 1, (h3[i + 1]?.line ?? end)).join('\n') }));
+}
+
+describe('AC-W27: the card template holds both halves of §7.5 and the six status words (C-52, D-291)', () => {
+  const file = path.join(SKILL_DIR, 'templates', 'card-template.md');
+  const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const hs = headings(text);
+  /** §7.5: each half's parts, in order, and what each must ask for. */
+  const HALVES: [string, [string, string[]][]][] = [
+    [
+      'Brainstorm half',
+      [
+        ['Identity', ['Class:', 'Ascendancy:', 'Named damage source:']],
+        ['Pitch', ['Title: <at most 60 characters', 'Playstyle: <tags', '<Line 1', '<Line 2']],
+        ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by']],
+        ['Enabler', ['<The item, node or gem>', 'arrives at level', 'by <how to get it', 'Dormant until then:']],
+        ['Links', ['| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', ...POB_LABELS, 'PG ids', '"from a Hit"', '"you use yourself"']],
+        ['Evidence', ['Popularity:', "the skill's share", "the ascendancy's share", 'poe.ninja', 'Combination:', 'at what level', 'Reference build:', 'no player evidence']],
+        ['Risks so far', ['Payoff thieves:', 'Placement limits:', 'Exposed phase:', 'Resistant bosses:']],
+      ],
+    ],
+    [
+      'Verification half',
+      [
+        ['Verified', ['`Life`', '`EnergyShield`', '`Missing<Elem>Resist`', '`<Type>MaximumHitTaken`', '`TotalEHP`', 'Modelled DPS:']],
+        ['Estimates', ['Count:', 'Custom modifier:', 'because <the reason>', 'Computed with a custom modifier present:', 'Clear:', 'Boss:', 'never summed']],
+        ['Checklist results', ['verified \\| estimate \\| risk \\| not checked']],
+        ['Fallback ladder', ['1. ', '2. ']],
+        ['Key item prices', ['dated YYYY-MM-DD', 'unavailable (<note>)']],
+      ],
+    ],
+  ];
+
+  it("has the two halves as its H2s, in order, each with §7.5's parts as H3s in order", () => {
+    expect(fs.existsSync(file)).toBe(true);
+    expect(hs.filter((h) => h.level === 1).length).toBe(1);
+    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(HALVES.map(([half]) => half));
+    for (const [half, parts] of HALVES) {
+      const at = hs.find((h) => h.level === 2 && h.title === half)!;
+      expect({ half, parts: sections(text, at.line, 2).map((s) => s.title) }).toEqual({ half, parts: parts.map(([p]) => p) });
+    }
+  });
+
+  it('asks each part for its fields', () => {
+    for (const [half, parts] of HALVES) {
+      const at = hs.find((h) => h.level === 2 && h.title === half)!;
+      const bodies = new Map(sections(text, at.line, 2).map((s) => [s.title, s.body]));
+      for (const [part, fields] of parts) {
+        for (const field of fields) {
+          expect({ half, part, field, present: (bodies.get(part) ?? '').includes(field) }).toEqual({ half, part, field, present: true });
+        }
+      }
+    }
+  });
+
+  it("lists the eight checks of §7.7 under Checklist results, and marks a card whose damage source isn't a skill (D-303, D-334)", () => {
+    const at = hs.find((h) => h.title === 'Checklist results')!;
+    const rows = text.split(/\r?\n/).slice(at.line).filter((l) => /^\| [1-8] \|/.test(l));
+    expect(rows.map((r) => Number(r.split('|')[1]))).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(text).toMatch(/Can't be finalized yet: its damage source isn't a skill/);
+    expect(text).toMatch(/Not compiled: its damage source isn't a skill/i);
+  });
+
+  it('carries the six status words (D-291)', () => {
+    for (const word of ['confirmed in game text', 'modelled in PoB', 'estimate (', 'players use it (poe.ninja)', 'not checked yet', 'needs in-game testing']) {
+      expect({ word, present: text.includes(word) }).toEqual({ word, present: true });
+    }
+  });
+});
+
+describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
+  const file = path.join(SKILL_DIR, 'references', 'patterns.md');
+  const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const hs = headings(text);
+  /** The work-log's ten families ("Off-meta builds 7–30"), in its order. */
+  const FAMILIES = [
+    'Loops and relays',
+    'State consumers (builder and finisher)',
+    'Resource conversions',
+    'Stat bridges',
+    'Copies and rate',
+    'Levels, quality and tags',
+    'Conditions',
+    'Item and slot tricks',
+    'Actors',
+    'Tree',
+  ];
+  /** Each entry's fields, in order: name and shape, search step, how PoB follows it, examples, cautions. */
+  const FIELDS = ['Shape', 'Search', 'PoB', 'Examples', 'Cautions'];
+  const entries = () =>
+    hs
+      .filter((h) => h.level === 2 && /^\d+\. /.test(h.title))
+      .flatMap((family) => sections(text, family.line, 2).map((s) => ({ family: family.title, ...s })));
+  /** The `[key]: <path>` definitions under Sources. */
+  const sources = () => new Map([...text.matchAll(/^\[([a-z0-9-]+)\]: (\S+)/gm)].map((m) => [m[1], m[2]]));
+
+  it('opens with the brainstorm questions, the work-log\'s ten', () => {
+    expect(fs.existsSync(file)).toBe(true);
+    const h2 = hs.filter((h) => h.level === 2);
+    expect(h2[0].title).toBe('Brainstorm questions');
+    const lines = text.split(/\r?\n/);
+    const before = lines.slice(0, h2[0].line).join('\n');
+    expect(before.split(/\s+/).filter(Boolean).length).toBeLessThan(60);
+    const questions = lines.slice(h2[0].line, h2[1].line).filter((l) => /^\d+\. /.test(l));
+    expect(questions.length).toBe(10);
+    const section = folded(lines.slice(h2[0].line, h2[1].line).join('\n'));
+    for (const q of [
+      'What is the damage source, what does it read, and which slot carries it?',
+      'Fix the payoff first, then judge each piece by whether it feeds it.',
+      'What does the payoff consume or require, and can the skill create it?',
+      'The enabler: name it, the level it arrives at, and how to get it',
+      'Which routine action already produces the resource it needs?',
+      "Read the skill's own text for payout conditions, ramps and hidden scaling.",
+      'Tag audit: which +level sources and supports can reach it?',
+      "Search other skills' text for the main skill's tags, and pair-test the planned skills.",
+      'Give it the standard kit before calling it weak.',
+      'How does the required state fail? Plan one fix per failure.',
+    ]) {
+      expect({ q, present: section.includes(q) }).toEqual({ q, present: true });
+    }
+  });
+
+  it('holds the ten families, in order, and defines the six labels', () => {
+    expect(hs.filter((h) => h.level === 2 && /^\d+\. /.test(h.title)).map((h) => h.title)).toEqual(FAMILIES.map((f, i) => `${i + 1}. ${f}`));
+    for (const label of POB_LABELS) expect({ label, defined: text.includes(`**${label}**`) }).toEqual({ label, defined: true });
+  });
+
+  it('gives every entry its name and shape, search step, how PoB follows it (one of the six labels), examples and cautions', () => {
+    const all = entries();
+    expect(all.length).toBeGreaterThan(30);
+    for (const { family, title, body } of all) {
+      const at = FIELDS.map((f) => body.search(new RegExp(`^- \\*\\*${f}:\\*\\* \\S`, 'm')));
+      expect({ family, title, fields: at.every((i) => i >= 0), inOrder: [...at].sort((x, y) => x - y).join() === at.join() }).toEqual({ family, title, fields: true, inOrder: true });
+      const pob = folded(/^- \*\*PoB:\*\* ([\s\S]*?)(?=^- \*\*Examples:)/m.exec(body)![1]);
+      const labelled = POB_LABELS.some((l) => new RegExp(`\\b${l}\\b`).test(pob));
+      expect({ title, pob, labelled }).toEqual({ title, pob, labelled: true });
+    }
+  });
+
+  it('rests every entry on a study or the work-log: each example cites a defined source, and every source exists', () => {
+    const defined = sources();
+    expect(defined.size).toBeGreaterThan(10);
+    for (const [key, rel] of defined) {
+      expect({ key, exists: fs.existsSync(path.resolve(path.dirname(file), rel)) }).toEqual({ key, exists: true });
+    }
+    for (const { title, body } of entries()) {
+      const examples = /^- \*\*Examples:\*\* ([\s\S]*?)(?=^- \*\*Cautions:)/m.exec(body)![1];
+      const cited = [...examples.matchAll(/\[([a-z0-9-]+)\](?!:)/g)].map((m) => m[1]);
+      expect({ title, cites: cited.length > 0, undefinedKeys: cited.filter((k) => !defined.has(k)) }).toEqual({ title, cites: true, undefinedKeys: [] });
+    }
+  });
+
+  it('cites only PoB gaps that pob-gaps.md lists', () => {
+    const gaps = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'pob-gaps.md'), 'utf8');
+    const cited = new Set([...text.matchAll(/\bPG-(\d+)\b/g)].map((m) => m[1]));
+    expect(cited.size).toBeGreaterThan(10);
+    for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
+  });
+
+  it('is at most 6,000 words, so a researcher reads it whole (D-325)', () => {
+    const words = text.split(/\s+/).filter(Boolean).length;
+    expect(words).toBeGreaterThan(1000);
+    expect(words).toBeLessThanOrEqual(6000);
+  });
+});
+
+describe('AC-W29: R1b lists the advisory checklist of §7.7 and its probe budget (D-292, D-331)', () => {
+  const text = fs.readFileSync(path.join(STAGES_DIR, 'R1b.md'), 'utf8');
+  const hs = headings(text);
+  const at = hs.find((h) => h.level === 2 && h.title.startsWith('Verification checklist'));
+  const lines = text.split(/\r?\n/);
+  const section = at ? lines.slice(at.line, hs.find((h) => h.line > at.line && h.level <= 2)!.line).join('\n') : '';
+
+  it('has the checklist between Work and Writes', () => {
+    expect(at).toBeDefined();
+    const h2 = hs.filter((h) => h.level === 2).map((h) => h.title);
+    expect(h2.indexOf('Work')).toBeLessThan(h2.indexOf(at!.title));
+    expect(h2.indexOf(at!.title)).toBeLessThan(h2.indexOf('Writes'));
+  });
+
+  it('lists the eight checks of §7.7, numbered in order: four read-only, then four from compile variants', () => {
+    const checks = [
+      'Pillars',
+      "The enabler's conditions",
+      'Attribute requirements',
+      "Risks PoB can't show",
+      'A dead-slot audit',
+      'Condition on and off',
+      'Encounter mods',
+      'A skill-shape probe',
+    ];
+    const found = checks.map((c, i) => section.search(new RegExp(`^${i + 1}\\. \\*\\*${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm')));
+    for (const [i, pos] of found.entries()) expect({ check: checks[i], pos: pos >= 0 }).toEqual({ check: checks[i], pos: true });
+    expect([...found].sort((x, y) => x - y)).toEqual(found);
+    const variants = section.indexOf('**From compile variants');
+    expect(found[3]).toBeLessThan(variants);
+    expect(found[4]).toBeGreaterThan(variants);
+    const flat = folded(section);
+    for (const part of ['base damage, type-specific scaling, duration, and 100% application', 'reservation of at least 1 minus the threshold', 'for the defining items and every gem', 'payoff thieves', 'placement and targeting limits', 'the exposed phase', 'cooldown dead windows on interruptible casts', 'hidden clauses', 'A change below 1%', 'activation or the payload', 'realistic uptime', 'scenario config', 'projectile speed up and down']) {
+      expect({ part, present: flat.includes(part) }).toEqual({ part, present: true });
+    }
+  });
+
+  it('reports each check as verified, estimate, risk or not checked, and none is a gate or starts a fix round', () => {
+    const flat = folded(section);
+    expect(flat).toContain('verified, estimate, risk, not checked');
+    expect(flat).toMatch(/None is a gate: a result never changes the verdict, and none starts a fix round/);
+  });
+
+  it('budgets up to 4 one-stage measure-only probe variants per card, run in the order above, each its own plan (D-331)', () => {
+    const flat = folded(section);
+    expect(flat).toMatch(/Up to 4 probe variants per card, beyond the attempt's two compiles, run in the order above/);
+    expect(flat).toMatch(/one-stage, measure-only compile/);
+    expect(flat).toContain('`mcp__pob2__compile_plan {plan_path: "<runFolderRel>/probes/<card-id>/<n>/plan.json", measure_only: true}`');
+    expect(flat).toMatch(/A probe that doesn't fit the budget, or whose compile fails, is reported `not checked`/);
+    // A card whose damage source isn't a skill gets only the read-only checks (D-334).
+    expect(flat).toMatch(/run checks 1–4 from the card and the lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill"/);
   });
 });

@@ -25,7 +25,8 @@ failed attempt re-runs with your verdict as findings, at most 2 counted retries;
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
-trade site's limits are shared with the user's account) is spent on an item validation would reject.
+trade site's limits are shared with the user's account) is spent on an item validation would reject. The
+verification checklist's probe variants (below) come on top: up to 4 per card (D-292).
 
 1. **Tree targets.** From the proposal, list the ascendancy nodes, notables and keystones the concept rests
    on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own
@@ -98,7 +99,8 @@ trade site's limits are shared with the user's account) is spent on an item vali
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. It writes
    `concepts/<id>/compile-record.json` and `concepts/<id>/compiled-build.xml` beside the plan and
    nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
-   verdict. The runner re-runs the step with them as findings.
+   verdict. The runner re-runs the step with them as findings. If it succeeds, run the verification
+   checklist (below) before the verdict.
 9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json` (`.claude/skills/build-guide/references/gates.md`),
    written last, whatever happened:
 
@@ -124,10 +126,63 @@ trade site's limits are shared with the user's account) is spent on an item vali
 A `possibly unread` line the concept depends on goes under what PoB can't verify; D1 confirms it by
 measurement (`.claude/skills/build-guide/references/lookups.md`), not R1b.
 
+## Verification checklist (advisory, D-292)
+
+Slice 03 §7.7. Run these eight checks on the card's skeleton after the last compile (step 8) and before
+the verdict file (step 9). Write each result into the card's `Checklist results` table
+(`.claude/skills/build-guide/templates/card-template.md`): one of the four words **verified, estimate,
+risk, not checked**, and one line of detail. None is a gate: a result never changes the verdict, and none
+starts a fix round or a retry. If the last compile failed, every check is `not checked`.
+
+**From the plan and the record (no extra compile):**
+
+1. **Pillars** for ailments and damage over time: base damage, type-specific scaling, duration, and 100%
+   application. A pillar with no source is a `risk`.
+2. **The enabler's conditions** at the target level, in numbers, and what they force out of the build
+   (Minion Pact needs a minion with at least your maximum life, so your own life is held under it). A forced
+   condition gets a permanence check: reservation of at least 1 minus the threshold (life at 75% needs 25%
+   reserved).
+3. **Attribute requirements** at the target level, for the defining items and every gem
+   (`mcp__pob2__lookup_game_data {mode: "gem", query}` gives a gem's requirements by level), including after
+   a swap that removes a supplier.
+4. **Risks PoB can't show:** payoff thieves (from the lookup's hit-making children of the build's
+   skills, D-299: triggered and granted skills, minions), placement and targeting limits, the exposed
+   phase, cooldown dead windows on interruptible casts, and hidden clauses on links ("from a Hit", "you use
+   yourself"), stated as theory. Each is `risk` or `not checked`, never `verified`.
+
+**From compile variants (probes).** The mutating tools are `mutate` tools you don't hold (D-231), so each
+probe is a copy of the skeleton plan with one change, written to `probes/<card-id>/<n>/plan.json` (D-331;
+`n` counts from 1 in run order) and compiled measure-only as one stage:
+`mcp__pob2__compile_plan {plan_path: "<runFolderRel>/probes/<card-id>/<n>/plan.json", measure_only: true}`.
+Compare its record with the skeleton's.
+
+5. **A dead-slot audit:** remove one support or source, the one most likely dead (the chain doesn't name
+   it, or it touches only the activation), and compare. A change below 1% is a `risk`. Say for each support
+   whether it touches the activation or the payload.
+6. **Condition on and off:** remove the earned config entry the payoff rests on and compare. Report the
+   figure at a realistic uptime, on × uptime + off × (1 − uptime), as an `estimate` with the uptime's
+   reason.
+7. **Encounter mods:** add the waystone's monster elemental resistance (`data/enemies/waystones.json`,
+   `mods.monster-elemental-resistance`) to the enemy's resistance against the damage source's element, in
+   the scenario config. Without a compile, read whether the boss resists that element
+   (`data/enemies/arbiter-of-divinity.json`, `res.<element>`).
+8. **A skill-shape probe,** only where the skill's text suggests one, such as projectile speed up and down
+   for damage that grows with travel.
+
+**The probe budget.** Up to 4 probe variants per card, beyond the attempt's two compiles, run in the order
+above (5, 6, 7, 8): each a one-stage, measure-only compile, within NFR-21's per-request limit. A probe that
+doesn't fit the budget, or whose compile fails, is reported `not checked`, and it never fails the step.
+Probes don't count in the verdict's `compiles`.
+
+A card whose damage source isn't a skill (D-334) has no skeleton: run checks 1–4 from the card and the
+lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill" in its
+verification half.
+
 ## Writes
 
 `concepts/<id>/plan.json` and the verdict file `reports/gates/R1b-<id>-a<attempt>.json`. The server writes
-the record and the XML beside the plan.
+the record and the XML beside the plan. The checklist adds each probe's `probes/<card-id>/<n>/plan.json`
+(the server writes its record beside it) and the card's `Checklist results`.
 
 ## Returns
 

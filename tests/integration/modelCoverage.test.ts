@@ -865,7 +865,12 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
 
   /** The check_coverage action with the real scan, through the bridge (C-5 validated). */
   async function scannedAction(params: Record<string, unknown>) {
-    return coverageAction({ sourceNames: [...scan.names], sourceTemplates: scan.templates, ...params });
+    return coverageAction({
+      sourceNames: [...scan.names],
+      sourceTemplates: scan.templates,
+      sourceCallNames: scan.skillCallNames,
+      ...params,
+    });
   }
 
   /** Every gem name (its lowest id with a granted effect, as the lookup resolves names) and its kind. */
@@ -930,23 +935,34 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
     return name.startsWith(parts[k], pos) && fitsWith(known, name, parts, k + 1, pos + parts[k].length);
   }
 
-  /**
-   * D-336's strict reading: a scanned name or a skill-data tag name exactly; a compound "X:Y" whose parts
-   * are read; or a whole template fit. D-243's suffix rule doesn't apply.
-   */
-  function strictlyRead(tagNames: Set<string>, name: string): boolean {
-    const known = (n: string) => scan.names.has(n) || tagNames.has(n);
-    if (known(name)) return true;
-    if (name.includes(':')) return name.split(':').filter(Boolean).every((p) => strictlyRead(tagNames, p));
-    return scan.templates
-      .filter((t) => /[^*]/.test(t))
-      .some((t) => fitsWith(known, name, t.split(/(\*+)/).filter((x) => x !== '').map((x) => (x.startsWith('*') ? '*' : x))));
+  /** The names the loaded game data reads (D-336): skill-data tag strings, minion limits, skill names. */
+  interface DataNames {
+    tags: Set<string>;
+    limits: Set<string>;
+    skills: Set<string>;
   }
 
-  /** Every string a mod tag in the loaded skill data names (any tag field but `type`). */
-  async function skillDataTagNames(): Promise<Set<string>> {
-    const names = await luaQuery<string[]>(`
-      local names = {}
+  /**
+   * D-336's strict reading: exactly a scanned name, a skill-data mod-list read literal, a skill-data tag
+   * name or a minion limit; a compound "X:Y" whose parts are read; or else a whole template fit whose
+   * `*` is empty, such a name or a skill name without whitespace. D-243's suffix rule doesn't apply.
+   */
+  function strictlyRead(data: DataNames, name: string): boolean {
+    const calls = new Set(scan.skillCallNames);
+    const known = (n: string) => scan.names.has(n) || calls.has(n) || data.tags.has(n) || data.limits.has(n);
+    if (known(name)) return true;
+    if (name.includes(':') && name.split(':').filter(Boolean).every((p) => strictlyRead(data, p))) return true;
+    const wild = (n: string) => known(n) || data.skills.has(n);
+    return scan.templates
+      .filter((t) => /[^*]/.test(t))
+      .some((t) => fitsWith(wild, name, t.split(/(\*+)/).filter((x) => x !== '').map((x) => (x.startsWith('*') ? '*' : x))));
+  }
+
+  /** Every string a mod tag in the loaded skill data names (any tag field but `type`), every minion
+   * limit, and every skill name with its whitespace removed. */
+  async function skillDataNames(): Promise<DataNames> {
+    const out = await luaQuery<{ tags: string[]; limits: string[]; skills: string[] }>(`
+      local names, limits, skills = {}, {}, {}
       local function tags(mod)
         if type(mod) ~= 'table' then return end
         for _, tag in ipairs(mod) do
@@ -968,13 +984,15 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
           for _, entry in pairs(ss.statMap or {}) do list(entry) end
           list(ss.baseMods)
         end
+        if type(skill.name) == 'string' and skill.name ~= '' then skills[(skill.name:gsub('%s+', ''))] = true end
       end
       for _, entry in pairs(build.data.skillStatMap) do list(entry) end
-      local out = {}
-      for n in pairs(names) do table.insert(out, n) end
-      table.sort(out)
-      return out`);
-    return new Set(arr(names));
+      for _, set in ipairs({ data.minions or {}, data.spectres or {} }) do
+        for _, m in pairs(set) do if type(m) == 'table' and type(m.limit) == 'string' then limits[m.limit] = true end end
+      end
+      local function keys(t) local o = {} for k in pairs(t) do table.insert(o, k) end table.sort(o) return o end
+      return { tags = keys(names), limits = keys(limits), skills = keys(skills) }`);
+    return { tags: new Set(arr(out.tags)), limits: new Set(arr(out.limits)), skills: new Set(arr(out.skills)) };
   }
 
   it(
@@ -985,10 +1003,11 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const flags = ofFlag(parseFlags(aftershock), 'mapped but unread');
       expect(flags.map((x) => ({ source: x.source, line: x.line }))).toEqual([{ source: 'Gem Aftershock I / Aftershock I', line }]);
       expect(flags[0].note).toContain('AftershockChance');
-      // D-243's suffix rule reads it (it ends with the template literal "Chance"); the strict reading doesn't.
-      const tagNames = await skillDataTagNames();
+      // D-243's suffix rule reads it (it ends with the template literal "Chance"); the strict reading doesn't:
+      // "aftershock" appears in no file of Modules/ or Classes/, and Data/SkillStatMap.lua:2706 only maps it.
+      const dataNames = await skillDataNames();
       expect(readByName(scan, 'AftershockChance')).toBe(true);
-      expect(strictlyRead(tagNames, 'AftershockChance')).toBe(false);
+      expect(strictlyRead(dataNames, 'AftershockChance')).toBe(false);
       // The line's status is unchanged: fully parsed, as AC-K13's rule rates a mapped stat.
       expect(parseCoverage(aftershock).entries.find((e) => e.line === line)?.status).toBe('fully parsed');
 
@@ -996,8 +1015,52 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       const charges = parseCoverage(mirage).entries.find((e) => e.line === 'Socketed Skills cannot consume Charges');
       expect(charges?.status).toBe('fully parsed');
       expect(ofFlag(parseFlags(mirage), 'mapped but unread').filter((x) => x.line === 'Socketed Skills cannot consume Charges')).toEqual([]);
-      expect(tagNames.has('CannotConsumeCharges')).toBe(true);
+      // Read through a condition tag: Data/Skills/act_dex.lua:222 (Barrage) tests var "CannotConsumeCharges".
+      expect(dataNames.tags.has('CannotConsumeCharges')).toBe(true);
       expect(scan.names.has('CannotConsumeCharges')).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K50 (mapped but unread, literal): PoB reads Raise Zombie\'s limit, Flameblast\'s stage cap and Flicker Strike\'s extra strikes, so none is flagged',
+    async () => {
+      // Each gem's line for the stat below, and the mod name its stat map gives (Lua query).
+      const cases = [
+        // Data/Minions.lua:29 gives Raised Zombie `limit = "ActiveZombieLimit"`; Modules/CalcPerform.lua:1298-1303
+        // sums the minion data's limit by name.
+        { gem: 'Raise Zombie', stat: 'base_number_of_zombies_allowed', mod: 'ActiveZombieLimit' },
+        // Modules/CalcActiveSkill.lua:866-869 builds "Multiplier:"..name:gsub("%s+", "").."MaxStages".
+        { gem: 'Flameblast', stat: 'flameblast_maximum_stages', mod: 'Multiplier:FlameblastMaxStages' },
+        // Data/Skills/act_int.lua:8673: skillModList:Sum("BASE", cfg, "AdditionalFlickersPerPowerCharge").
+        { gem: 'Flicker Strike', stat: 'flicker_strike_additional_flickers_from_power_charges', mod: 'AdditionalFlickersPerPowerCharge' },
+      ];
+      const dataNames = await skillDataNames();
+      for (const c of cases) {
+        const text = await okTool({ gems: [c.gem] });
+        const result = await scannedAction({ gems: [c.gem] });
+        const line = arr(result.entries).find((e) => e.stat === c.stat);
+        expect({ gem: c.gem, found: line !== undefined }).toEqual({ gem: c.gem, found: true });
+        const flagged = arr(result.flags).filter((x) => x.flag === 'mapped but unread' && x.line === line!.line);
+        expect({ gem: c.gem, flagged }).toEqual({ gem: c.gem, flagged: [] });
+        // The text agrees.
+        expect(ofFlag(parseFlags(text), 'mapped but unread').filter((x) => x.line === line!.line)).toEqual([]);
+        const mods = arr(
+          await luaQuery<string[]>(`
+            local out = {}
+            for _, mod in ipairs(build.data.skillStatMap[${JSON.stringify(c.stat)}] or {}) do table.insert(out, mod.name) end
+            for _, skill in pairs(data.skills) do
+              for _, ss in ipairs(skill.statSets or {}) do
+                for _, mod in ipairs((ss.statMap or {})[${JSON.stringify(c.stat)}] or {}) do table.insert(out, mod.name) end
+              end
+            end
+            return out`),
+        );
+        expect({ gem: c.gem, mods }).toEqual({ gem: c.gem, mods: expect.arrayContaining([c.mod]) });
+        expect({ mod: c.mod, read: strictlyRead(dataNames, c.mod) }).toEqual({ mod: c.mod, read: true });
+        // The suffix-free scan alone doesn't read it: the strict reading's additions do.
+        expect({ mod: c.mod, scanned: scan.names.has(c.mod) }).toEqual({ mod: c.mod, scanned: false });
+      }
     },
     ENGINE_TIMEOUT,
   );
@@ -1042,11 +1105,11 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
           return out`),
       );
       expect(mapped.length).toBeGreaterThan(1000);
-      const tagNames = await skillDataTagNames();
+      const dataNames = await skillDataNames();
       const expected: string[] = [];
       const unreadOf = new Map<string, string[]>();
       for (const m of mapped) {
-        const unread = [...new Set(arr(m.names).filter((n) => !strictlyRead(tagNames, n)))];
+        const unread = [...new Set(arr(m.names).filter((n) => !strictlyRead(dataNames, n)))];
         if (unread.length === 0) continue;
         const key = JSON.stringify([m.source, m.line]);
         expected.push(key);
@@ -1061,7 +1124,9 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       }
       // No status moved: the gem entries are still AC-K13's two statuses.
       expect(arr(result.entries).every((e) => e.status === 'fully parsed' || e.status === UNMODELLED)).toBe(true);
-      console.error(`[modelCoverage] AC-K50 mapped but unread: ${expected.length} lines over ${new Set(flagged.map((x) => x.source.replace(/ \/ .*$/, ''))).size} gems`);
+      // The count at the pin (default levels, or the golden build's for its gems).
+      expect(expected).toHaveLength(23);
+      expect(expected).toContain(JSON.stringify(['Gem Aftershock I / Aftershock I', 'Supported skills have 25% chance to cause an additional Aftershock']));
     },
     ENGINE_TIMEOUT,
   );
@@ -1155,7 +1220,9 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
       // Gems that are neither support nor meta get none.
       const active = await scannedAction({ gems: ['Fireball', 'Gas Grenade', 'Snipe'] });
       expect(arr(active.flags).filter((x) => x.flag === 'stat not mapped')).toEqual([]);
-      console.error(`[modelCoverage] AC-K50 stat not mapped: ${flagged.length} flags (one per gem) listing ${expected.length} stats`);
+      // The counts at the pin: one flag per gem, listing every qualifying stat.
+      expect(flagged).toHaveLength(115);
+      expect(expected).toHaveLength(318);
     },
     ENGINE_TIMEOUT,
   );
@@ -1165,7 +1232,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
     async () => {
       const text = await okTool({ gems: ['Cast on Critical'] });
       expect(ofFlag(parseFlags(text), 'energy not modelled')).toEqual([
-        { flag: 'energy not modelled', source: 'Gem Cast on Critical', note: expect.stringContaining('Energy') },
+        { flag: 'energy not modelled', source: 'Gem Cast on Critical', note: "PoB doesn't model Energy; any trigger rate it shows isn't based on Energy." },
       ]);
       const entries = parseCoverage(text).entries;
       expect(entries).toHaveLength(5);
@@ -1230,7 +1297,7 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
               local id = gem['additionalGrantedEffectId' .. i]
               local e = data.skills[id]
               if e and not e.support and not e.hideFromSideBar then
-                table.insert(out, name .. '|' .. ((e.name ~= '' and e.name) or id))
+                table.insert(out, name .. '|' .. ((e.name ~= '' and e.name) or id) .. '|' .. id .. '|' .. (e.hasGlobalEffect and 'global' or '-'))
               end
               i = i + 1
             end
@@ -1242,15 +1309,20 @@ engineDescribe('K2: check_model_coverage on the golden build (WU-32, C-38)', () 
         .filter((x) => x.flag === 'level from support')
         .map((x) => {
           const gem = x.source.replace(/^Gem /, '');
-          const m = /^PoB computes (.+), the skill this support grants, at the support gem's level, (\d+) /.exec(x.note);
-          expect(m).not.toBeNull();
-          expect({ gem, level: Number(m![2]) }).toEqual({ gem, level: levels.get(gem) });
-          return `${gem}|${m![1]}`;
+          const m = /^PoB computes (.+) \((\S+)\), the skill this support grants, at the support gem's level, (\d+) \(Modules\/CalcSetup\.lua:1851-1876\)\. The game may use another level\.( PoB computes it only when it is enabled in the skill's options\.)?$/.exec(x.note);
+          expect({ note: x.note, matches: m !== null }).toEqual({ note: x.note, matches: true });
+          expect({ gem, level: Number(m![3]) }).toEqual({ gem, level: levels.get(gem) });
+          return `${gem}|${m![1]}|${m![2]}|${m![4] ? 'global' : '-'}`;
         })
         .sort();
       expect(actual).toEqual(expected);
       expect(expected).toHaveLength(52);
-      expect(actual.filter((k) => k.startsWith('Empowered Sparks I|'))).toHaveLength(1);
+      // Empowered Sparks I grants two skills named Empowered Sparks; the flag names the visible one.
+      // TriggeredSparkEmpowerPlayer is hideFromSideBar, which CalcSetup.lua:1855 skips.
+      expect(actual.filter((k) => k.startsWith('Empowered Sparks I|'))).toEqual(['Empowered Sparks I|Empowered Sparks|TriggeredEmpoweredSparkPlayer|-']);
+      // A granted skill with a global effect is computed only when its enableGlobal switch is on
+      // (CalcSetup.lua:1855): Morrigan's Insight's Nature's Exchange, the one such skill at the pin.
+      expect(actual.filter((k) => k.endsWith('|global'))).toEqual(["Morrigan's Insight|Nature's Exchange|TriggeredMorrigansInsightPlayer|global"]);
       expect(actual.filter((k) => k.startsWith('Concussive Runes|'))).toEqual([]);
       expect(actual.filter((k) => k.startsWith('Pounce|') || k.startsWith('Mirage Archer|'))).toEqual([]);
     },

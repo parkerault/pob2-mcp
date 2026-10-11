@@ -58,8 +58,9 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 names something PoB doesn't model, so treat it as a hand calculation, or as Count:
 - `mapped but unread`: a gem line's stat maps to a mod PoB reads nowhere, so the line may change nothing.
 - `stat not mapped`: a support or meta gem's stats with no stat map and no tooltip line (one flag per gem).
-- `energy not modelled`: an Energy meta gem. PoB can't tell how often it triggers.
-- `level from support`: PoB computes the skill a support grants at the support gem's level.
+- `energy not modelled`: an Energy meta gem. PoB doesn't model Energy; any trigger rate it shows isn't based on Energy.
+- `level from support`: PoB computes the skill a support grants at the support gem's level (a skill with a global effect
+  only when it is enabled in the skill's options).
 - `granted skill undefined`: the gem grants a skill PoB has no data for, so PoB never computes it.
 - `support colour tie`: a Gem Studded colour line. On a tie, PoB applies only one colour.
 

@@ -14,6 +14,12 @@
  *   digits, `_` and `:`) are kept. Comments are skipped here.
  * Each `check_coverage` request carries them to Lua as `sourceNames` and `sourceTemplates`.
  *
+ * It also reads every `.lua` file directly under `Data/Skills/` for `skillCallNames` (D-336, WU-54): the
+ * string literals passed to a mod-list read in a skill's own functions, such as
+ * `activeSkill.skillModList:Sum("BASE", activeSkill.skillCfg, "AdditionalFlickersPerPowerCharge")`
+ * (`Data/Skills/act_int.lua:8673`). The requests carry them as `sourceCallNames`; only the
+ * `mapped but unread` flag reads them, so no line status depends on them.
+ *
  * The scan runs once per server process, lazily on the first call, and is memoized per source directory:
  * a second call returns the same objects, and an engine restart doesn't repeat it. A failed scan isn't
  * memoized, so the next call tries again.
@@ -26,12 +32,48 @@ export const SCANNED_DIRS = ["Modules", "Classes"] as const;
 /** The one file left out: the parser names every mod it can produce, so it would hide them all. */
 export const EXCLUDED_FILE = path.join("Modules", "ModParser.lua");
 
+/** The skill-data directory scanned for mod-list reads, relative to PoB's `src/`. */
+export const SKILL_DATA_DIR = path.join("Data", "Skills");
+
 /** The scan's result. */
 export interface PobSourceScan {
   /** Every distinct identifier. */
   names: Set<string>;
   /** Every distinct concatenation template (`*` marks non-literal operands), sorted. */
   templates: string[];
+  /** Every distinct string literal passed to a mod-list read in `Data/Skills/` (D-336), sorted. */
+  skillCallNames: string[];
+}
+
+/** The mod-list methods that read mods by name; `NewMod` adds one, so it isn't here. */
+const READ_METHODS = ["Sum", "More", "Flag", "Override", "Max", "Min", "List", "Tabulate", "HasMod"];
+const READ_CALL = new RegExp(`:(?:${READ_METHODS.join("|")})\\s*\\(`, "g");
+
+/**
+ * The string literals passed to a mod-list read (`:Sum(`, `:Flag(`, `:List(`, …) in Lua source: every
+ * quoted literal between the call's `(` and its matching `)`. Comments aren't skipped; skill data has
+ * none that hold such a call.
+ */
+export function modListCallLiterals(text: string): string[] {
+  const out = new Set<string>();
+  for (const match of text.matchAll(READ_CALL)) {
+    let i = (match.index ?? 0) + match[0].length;
+    let depth = 1;
+    while (i < text.length && depth > 0) {
+      const c = text[i];
+      if (c === '"' || c === "'") {
+        let j = i + 1;
+        while (j < text.length && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
+        out.add(text.slice(i + 1, j));
+        i = j + 1;
+        continue;
+      }
+      if (c === "(") depth++;
+      else if (c === ")") depth--;
+      i++;
+    }
+  }
+  return [...out];
 }
 
 const IDENTIFIER = /[A-Za-z_][A-Za-z0-9_]*/g;
@@ -206,7 +248,16 @@ async function scan(pobSrc: string): Promise<PobSourceScan> {
       for (const template of concatTemplates(text)) templates.add(template);
     }
   }
-  return { names, templates: [...templates].sort() };
+  const skillCallNames = new Set<string>();
+  const skillFiles = (await fs.promises.readdir(path.join(pobSrc, SKILL_DATA_DIR), { withFileTypes: true }))
+    .filter((e) => e.isFile() && e.name.endsWith(".lua"))
+    .map((e) => e.name)
+    .sort();
+  for (const file of skillFiles) {
+    const text = await fs.promises.readFile(path.join(pobSrc, SKILL_DATA_DIR, file), "utf8");
+    for (const literal of modListCallLiterals(text)) skillCallNames.add(literal);
+  }
+  return { names, templates: [...templates].sort(), skillCallNames: [...skillCallNames].sort() };
 }
 
 /**

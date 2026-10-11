@@ -1407,7 +1407,7 @@ export interface ActionParamsMap {
   /**
    * C-38: one or more of `itemText`, `nodes` (ids or exact names) and `gems` (names), or `build: true`
    * alone; `sourceNames` (required) is the server's name scan of PoB's source (D-226), `sourceTemplates`
-   * its concatenation templates (D-243).
+   * its concatenation templates (D-243), `sourceCallNames` its skill-data mod-list read literals (D-336).
    */
   check_coverage: {
     itemText?: string;
@@ -1416,6 +1416,8 @@ export interface ActionParamsMap {
     build?: boolean;
     sourceNames: string[];
     sourceTemplates?: string[];
+    /** WU-54 (D-336): the string literals of mod-list reads in `Data/Skills/`, for `mapped but unread` only. */
+    sourceCallNames?: string[];
   };
   /**
    * C-39: `id` is the source for `copy` and the target for `rename` and `select`; `title` is the new title,

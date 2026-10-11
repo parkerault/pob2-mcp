@@ -1,7 +1,7 @@
 -- API/Coverage.lua
 -- Whether PoB applies each line of an item, a passive node or a gem (C-38, WU-32):
 --
---   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames, sourceTemplates?}
+--   check_coverage  {itemText?, nodes?, gems?, build?, sourceNames, sourceTemplates?, sourceCallNames?}
 --     itemText   one item, as add_item takes it: its enchant, rune, implicit and explicit lines of the
 --                selected variant (the lines Item.lua's BuildModList applies or drops), rated as PoB applies
 --                them: parsed at range 1 as ParseRaw does, then re-parsed at the line's range as
@@ -16,6 +16,8 @@
 --                Modules/ModParser.lua (the server's name scan, D-226)
 --     sourceTemplates  the same files' concatenation templates (D-243): each a `..` chain's string literals,
 --                with `*` for each run of other operands, such as "*ConvertTo*" or "*CostEfficiency"
+--     sourceCallNames  the string literals passed to mod-list reads in Data/Skills/*.lua (D-336); only the
+--                `mapped but unread` flag reads them
 --   -> {counts, entries[], gems[], checked, flags[]}, each entry {kind, source, line, status, remainder?,
 --      joinedWith?, unread?, stat?, nodeId?}, each flag {flag, source, note, line?}
 --
@@ -44,15 +46,18 @@
 -- status or count changes. A flag about a gem has source "Gem <name>"; a line's flag carries the line and
 -- its entry's source.
 --   mapped but unread     a gem line's stat has a stat map yielding a mod name PoB reads nowhere, by a
---                         strict reading: a scanned name exactly, a string a mod tag in the skill data names,
---                         a compound "X:Y" of read parts, or a whole template fit (no D-243 suffix rule)
+--                         strict reading: exactly a scanned name, a skill-data mod-list read literal
+--                         (`sourceCallNames`), a string a mod tag in the skill data names, or a minion
+--                         limit; a compound "X:Y" of read parts; or else a whole template fit whose `*`
+--                         is empty, such a name or a skill name without whitespace (no D-243 suffix rule)
 --   stat not mapped       a support or meta gem's stats, non-zero, with no stat map and in no described line
 --                         (removing one leaves the described lines unchanged); display_ and
 --                         quality_display_ stats left out. One flag per gem, its note listing the ids sorted
 --   energy not modelled   a gem with a granted effect of skill types Meta and GeneratesEnergy (PoB models
---                         no Energy)
+--                         no Energy; any trigger rate it shows isn't based on Energy)
 --   level from support    a support gem's granted skill, which PoB computes at the support gem's level
---                         (CalcSetup.lua:1851-1876): defined, not a support, not hideFromSideBar
+--                         (CalcSetup.lua:1851-1876): defined, not a support, not hideFromSideBar; a
+--                         global-effect skill's note adds that PoB computes it only when it is enabled
 --   granted skill undefined  an additionalGrantedEffectId<n> with no data.skills entry (Data.lua:987-998)
 --   support colour tie    an item or node line whose parse has a Condition tag on
 --                         MostNumerous<Red|Green|Blue>SocketedSupports (CalcSetup.lua:2155-2162's if/elseif)
@@ -131,10 +136,14 @@ local WILD = {}
 
 -- The scan as Lua reads it: the name set, the compiled templates, and the template literals of 6 or more
 -- characters that start with a capital (the D-243 fragments a computed name may end with).
-function M.reader(sourceNames, sourceTemplates)
+function M.reader(sourceNames, sourceTemplates, sourceCallNames)
   local names = {}
   for _, name in ipairs(sourceNames or {}) do
     if type(name) == 'string' then names[name] = true end
+  end
+  local callNames = {}
+  for _, name in ipairs(type(sourceCallNames) == 'table' and sourceCallNames or {}) do
+    if type(name) == 'string' then callNames[name] = true end
   end
   local templates, fragments, seen = {}, {}, {}
   for _, text in ipairs(type(sourceTemplates) == 'table' and sourceTemplates or {}) do
@@ -158,7 +167,7 @@ function M.reader(sourceNames, sourceTemplates)
       table.insert(templates, parts)
     end
   end
-  return { names = names, templates = templates, fragments = fragments }
+  return { names = names, templates = templates, fragments = fragments, callNames = callNames }
 end
 
 -- Whether `name` from `pos` matches the template parts from `k`: a literal exactly, a wildcard by an empty
@@ -234,12 +243,27 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- The strict reading (`mapped but unread`, D-336)
 
--- Every string a mod tag in the loaded skill data names (any tag field but `type`: `var`, `limitVar`,
--- `scalar`, `stat`, …), over every skill's stat maps and base mods and the global stat map. PoB reads these
--- names when it evaluates the tags (a Condition tag's `var` X reads "Condition:X"). Memoized per data table.
-local tagNamesData, tagNamesSet
-local function skillDataTagNames(d)
-  if tagNamesData == d then return tagNamesSet end
+-- The names the loaded game data reads, memoized per data table:
+--   tags     every string a mod tag in the skill data names (any tag field but `type`: `var`, `limitVar`,
+--            `scalar`, `stat`, …), over every skill's stat maps and base mods and the global stat map. PoB
+--            reads these names when it evaluates the tags (a Condition tag's `var` X reads "Condition:X")
+--   limits   every minion's and spectre's `limit` (Data/Minions.lua), which CalcPerform.lua:1298-1303 reads
+--   skills   every skill's name with its whitespace removed, as CalcActiveSkill.lua:866-869 builds a name
+--            from one ("Multiplier:"..name:gsub("%s+", "").."MaxStages"): a template's `*` may be one
+local dataNamesFor, dataNamesSets
+local function skillDataNames(d)
+  if dataNamesFor == d then return dataNamesSets end
+  local limits, skills = {}, {}
+  for _, list in ipairs({ d.minions or {}, d.spectres or {} }) do
+    for _, minion in pairs(list) do
+      if type(minion) == 'table' and type(minion.limit) == 'string' then limits[minion.limit] = true end
+    end
+  end
+  for _, skill in pairs(d.skills or {}) do
+    if type(skill) == 'table' and type(skill.name) == 'string' and skill.name ~= '' then
+      skills[(skill.name:gsub('%s+', ''))] = true
+    end
+  end
   local names = {}
   local function fromMod(mod)
     if type(mod) ~= 'table' then return end
@@ -268,30 +292,42 @@ local function skillDataTagNames(d)
     end
   end
   for _, entry in pairs(d.skillStatMap or {}) do fromList(entry) end
-  tagNamesData, tagNamesSet = d, names
-  return names
+  dataNamesFor, dataNamesSets = d, { tags = names, limits = limits, skills = skills }
+  return dataNamesSets
 end
 
--- The strict name set: the scanned names, then the skill data's tag names.
+-- The strict reading's sets: `names`, a name read exactly (the scanned names, the skill-data mod-list
+-- read literals of `sourceCallNames`, the tag names and the minion limits); `wild`, what a template's `*`
+-- may be (those, plus the skill names).
 local function strictNames(reader, d)
   if not reader.strict then
-    local tagNames = skillDataTagNames(d)
-    reader.strict = setmetatable({}, { __index = function(_, k) return reader.names[k] or tagNames[k] end })
+    local data = skillDataNames(d)
+    local calls = reader.callNames
+    local names = setmetatable({}, { __index = function(_, k)
+      return reader.names[k] or calls[k] or data.tags[k] or data.limits[k] or nil
+    end })
+    local wild = setmetatable({}, { __index = function(_, k) return names[k] or data.skills[k] or nil end })
+    reader.strict = { names = names, wild = wild }
   end
   return reader.strict
 end
 
 -- Whether PoB reads a mod name, strictly: a name in the strict set, a compound "X:Y" whose parts are read,
--- or a whole template fit. Unlike `named`, a name ending with a template literal doesn't count.
-local function strictlyNamed(reader, names, name)
-  if names[name] then return true end
+-- or else a whole template fit (every fixed part matches; each `*` is empty or a `wild` name). Unlike
+-- `named`, a name ending with a template literal doesn't count.
+local function strictlyNamed(reader, strict, name)
+  if strict.names[name] then return true end
   if name:find(':', 1, true) then
+    local all = true
     for part in name:gmatch('[^:]+') do
-      if not strictlyNamed(reader, names, part) then return false end
+      if not strictlyNamed(reader, strict, part) then
+        all = false
+        break
+      end
     end
-    return true
+    if all then return true end
   end
-  return matchesTemplate(reader, name, names)
+  return matchesTemplate(reader, name, strict.wild)
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -587,8 +623,7 @@ local function gemFlags(gem, level, flag)
     if hasSkillType(effect, SkillType and SkillType.Meta) and hasSkillType(effect, SkillType and SkillType.GeneratesEnergy) then
       flag({
         flag = ENERGY, source = source,
-        note = 'PoB doesn\'t model Energy, so it can\'t tell how often this gem triggers its socketed skills. '
-          .. 'A config option won\'t fix that; work the rate out by hand.',
+        note = 'PoB doesn\'t model Energy; any trigger rate it shows isn\'t based on Energy.',
       })
       break
     end
@@ -597,10 +632,13 @@ local function gemFlags(gem, level, flag)
     for _, effect in ipairs(gem.additionalGrantedEffects or {}) do
       if type(effect) == 'table' and not effect.support and not effect.hideFromSideBar then
         local skill = (type(effect.name) == 'string' and effect.name ~= '') and effect.name or tostring(effect.id)
+        -- CalcSetup.lua:1855 also needs a global-effect skill's enableGlobal<n> switch to be on.
+        local switch = effect.hasGlobalEffect and ' PoB computes it only when it is enabled in the skill\'s options.' or ''
         flag({
           flag = SUPPORT_LEVEL, source = source,
-          note = string.format('PoB computes %s, the skill this support grants, at the support gem\'s level, %d '
-            .. '(Modules/CalcSetup.lua:1851-1876). The game may use another level.', skill, level),
+          note = string.format('PoB computes %s (%s), the skill this support grants, at the support gem\'s level, '
+            .. '%d (Modules/CalcSetup.lua:1851-1876). The game may use another level.%s', skill, tostring(effect.id),
+            level, switch),
         })
       end
     end
@@ -706,7 +744,7 @@ local function scanReader(params)
   if type(params.sourceNames) ~= 'table' then
     fail('check_coverage needs sourceNames (the server\'s name scan of PoB\'s Modules/ and Classes/)')
   end
-  return M.reader(params.sourceNames, params.sourceTemplates)
+  return M.reader(params.sourceNames, params.sourceTemplates, params.sourceCallNames)
 end
 
 local function nonEmptyList(v)

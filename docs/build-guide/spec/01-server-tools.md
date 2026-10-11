@@ -1054,9 +1054,16 @@ Cross-checks compare against PoB's own data and functions, never against the too
     - a string that a mod tag in the loaded skill data names: any tag field except `type` (`var`,
       `limitVar`, `scalar`, `stat` and so on), in every skill's stat maps and base mods and in the global
       stat map;
+    - a minion's or spectre's `limit` in the loaded data (`Data/Minions.lua`), which
+      `Modules/CalcPerform.lua:1298-1303` reads;
+    - a string literal passed to a mod-list read (`:Sum`, `:Flag`, `:More`, `:Override`, `:Max`, `:Min`,
+      `:List`, `:Tabulate`, `:HasMod`) in `Data/Skills/*.lua`. The server's scan collects these, and each
+      request carries them as `sourceCallNames`;
     - a compound `X:Y` whose parts are read;
-    - a whole fit to a concatenation template: every fixed part matches, and each `*` is empty or a read
-      name. D-243's suffix rule doesn't apply.
+    - else, whether or not it holds a `:`, a whole fit to a concatenation template. Every fixed part
+      matches, and each `*` is empty, a name read as above, or a skill's name with its whitespace removed
+      (as `Modules/CalcActiveSkill.lua:866-869` builds `"Multiplier:"..name:gsub("%s+", "").."MaxStages"`).
+      D-243's suffix rule doesn't apply.
 
     The flag carries its line and that entry's source, and its note names the unread mod names. Line
     statuses, D-243's included, don't change (AC-K57).
@@ -1064,9 +1071,12 @@ Cross-checks compare against PoB's own data and functions, never against the too
       Aftershock", naming `AftershockChance`.
     - `{gems:["Mirage Archer"]}` doesn't flag "Socketed Skills cannot consume Charges". Its mod,
       `Condition:CannotConsumeCharges`, is read: condition tags in skill data name `CannotConsumeCharges`.
+    - PoB reads these, so none is flagged: Raise Zombie's limit line (`ActiveZombieLimit`, a minion limit),
+      Flameblast's stage line (`Multiplier:FlameblastMaxStages`, a template fit) and Flicker Strike's extra
+      strikes (`AdditionalFlickersPerPowerCharge`, `Data/Skills/act_int.lua:8673`).
     - One call covers every gem (Lua query). It flags exactly the lines that the rule above, applied in the
       test, gives for each gem's mapped lines and mod names, which a Lua query lists at the gem's checked
-      level and quality. That is 38 lines at the pin at the default levels.
+      level and quality. That is 23 lines at the pin at the default levels.
   - **`stat not mapped`** (PG-4, PG-49). A stat of a support or meta gem that PoB can't act on, and whose
     effect its tooltip check never sees. A support or meta gem is one whose own effect is a support, or
     that has a granted effect of skill type `Meta`. The stat qualifies when all of these hold:
@@ -1098,8 +1108,8 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
 - **AC-K53 (C-38 energy-based meta gems; PG-9).** PoB doesn't model Energy, so it can't tell how often an
   energy-based meta gem triggers its socketed skills.
   - `{gems:["Cast on Critical"]}` reports one flag `energy not modelled`, source `Gem Cast on Critical`,
-    with no `line`. The gem's five lines keep their status, `possibly unmodelled; check config` (AC-K13's
-    rule).
+    with no `line`. Its note is exactly "PoB doesn't model Energy; any trigger rate it shows isn't based on
+    Energy." The gem's five lines keep their status, `possibly unmodelled; check config` (AC-K13's rule).
   - One call covers every gem with a granted effect of skill type `Meta` (Lua query; 29 at the pin), plus
     Trail of Caltrops. It flags exactly the gems with a granted effect whose `skillTypes` hold both
     `SkillType.Meta` and `SkillType.GeneratesEnergy` (`Data/Global.lua:467, :526`). That is 16 at the pin,
@@ -1115,10 +1125,14 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
     `gems[]` level). Twisted Pact's lines (`Gem Paquate's Pact / Twisted Pact`) keep their statuses.
   - One call covers every support gem with an `additionalGrantedEffectId1` (Lua query). It gives one
     `level from support` flag per granted effect that PoB makes an active skill (`CalcSetup.lua:1855`):
-    one with a `data.skills` entry, not itself a support, and not `hideFromSideBar`. The flagged
-    (gem, skill name) pairs equal the Lua query's, 52 at the pin.
-  - Edge cases: Empowered Sparks I gets exactly one flag, for its visible skill and not its hidden one.
-    Concussive Runes gets none, because its granted skill is undefined (AC-K55).
+    one with a `data.skills` entry, not itself a support, and not `hideFromSideBar`. Each note names the
+    skill and its id. The flagged (gem, skill name, id) triples equal the Lua query's, 52 at the pin.
+  - A granted skill with a global effect is computed only when its switch is on (`CalcSetup.lua:1855`), so
+    its note adds "PoB computes it only when it is enabled in the skill's options." At the pin that is
+    Morrigan's Insight's Nature's Exchange alone.
+  - Edge cases: Empowered Sparks I gets exactly one flag, naming its visible skill
+    (`TriggeredEmpoweredSparkPlayer`) and not its hidden one (`TriggeredSparkEmpowerPlayer`). Concussive
+    Runes gets none, because its granted skill is undefined (AC-K55).
   - A gem that isn't a support gets no flag for its own granted skills: Pounce (Predator's Mark, Summon
     Wolf) and Mirage Archer.
 - **AC-K55 (C-38 granted skills with no definition; PG-10).** PoB drops a granted effect id that has no

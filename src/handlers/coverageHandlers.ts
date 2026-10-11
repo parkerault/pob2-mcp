@@ -189,6 +189,7 @@ export async function handleCheckModelCoverage(context: CoverageContext, args: C
       ...(req.build ? { build: true } : {}),
       sourceNames: [...scan.names],
       sourceTemplates: scan.templates,
+      sourceCallNames: scan.skillCallNames,
     });
     return { content: [{ type: "text" as const, text: render(req, result) }] };
   });

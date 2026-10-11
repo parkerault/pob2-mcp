@@ -236,6 +236,7 @@ async function coverageParams(): Promise<Json> {
     gems: ['Blood Hunt', 'Aftershock I', 'Mirage Archer', 'Cast on Critical', "Paquate's Pact", 'Concussive Runes'],
     sourceNames: [...scan.names],
     sourceTemplates: scan.templates,
+    sourceCallNames: scan.skillCallNames,
   };
 }
 

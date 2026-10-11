@@ -24,7 +24,7 @@ findings.
 ## Work
 
 1. **FI-2** (only when the header's `faults` holds it): before anything else, set the first endgame stage's
-   (the first stage with a `variant`) `level` to `1` in `plan.json`, and the `(L<n>)` in its
+   (the ladder's first rung: `m`, else `b`) `level` to `1` in `plan.json`, and the `(L<n>)` in its
    `loadoutName` to `(L1)`, so the plan stays valid. Don't undo it in this attempt.
 2. **The final re-price pass** (§9), online only, and only while pricing hasn't stopped: call each
    `prices[]` entry that is `unavailable` because of a rate limit (note `rate-limited`) once more, and
@@ -35,7 +35,7 @@ findings.
    `compile-error`, the error line as the message, the plan stage it names as `stage`); then every other
    part is `unverified`, and you write the verdict file.
 4. **Read the record** (`compile-record.json`, C-33) and fill each part (`gates.md`). "Endgame stages" are
-   the plan's stages with a `variant`. Once the compile ran, every part but the budget is `pass` or `fail`:
+   the plan's stages with a `variant`: the rungs `m`, `b` and `n`, each gated the same way (D-281). Once the compile ran, every part but the budget is `pass` or `fail`:
    only the budget may stay `unverified` (D-164).
    - **v1, v2**: `fail` when any endgame stage's `v1` or `v2` verdict in the record has a finding. Each
      record finding becomes a gate finding with its record `code`, part `v1` or `v2`, and the plan stage.
@@ -50,19 +50,23 @@ findings.
      402.000003 gives 402; else `reference-hit-ledger-<type>`); and each is below the record's
      `<Type>MaximumHitTaken` (else `max-hit-<type>`). The hit is the variant's (D-254): its scenario entry cites
      `enemies/map-monsters.json#damage.by-level[<area level>]` at the variant's area level (79 for the budget
-     variant, `enemies/waystones.json#area-level.max` for the non-budget one), and its ledger entry's value is
+     variant, `enemies/waystones.json#area-level.max` for the non-budget one, and 69 for the entering-maps
+     rung: `enemies/waystones.json#area-level.offset` plus 5, D-281, D-327), and its ledger entry's value is
      that damage × (1 + the top of the increased-damage modifier / 100), × the top of the extra-damage modifier
      / 100 for an element (else `reference-hit-ledger-<type>`). `<type>` is lower case (`physical`, `chaos`). The
      other codes: `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`,
      `missing-chaos-resist`. `chaos-exception` and `near-ceiling` are information on a passing part, never
      a failure.
-   - **budget** (D-219, D-249): the budget variant's filled slots **and tree jewels**, each mapped to its
-     `prices[].id`. Online, convert with `mcp__pob2__get_currency_rates` (a divine counts 1) and total,
-     rounded to 2 decimals: at most 20 divines `pass`; above 20 and at most 22 `pass` with a `near-ceiling`
-     finding (the guide must say "near the ceiling"); above 22 `fail` (`over-budget`). Any slot or jewel
-     price `unavailable`, or a currency without a rate: `unverified` (code `unverified`), and the total is
-     `null`. Offline, every price is unavailable, so the budget is `unverified` and no rate is fetched.
-     The non-budget variant's total is reported against the ~200-divine reference, never gated.
+   - **budget** (D-219, D-249, D-281): for the budget variant and for the entering-maps rung, the stage's
+     filled slots **and tree jewels**, each mapped to its `prices[].id`. Online, convert with
+     `mcp__pob2__get_currency_rates` (a divine counts 1) and total, rounded to 2 decimals: at most 20 divines
+     `pass`; above 20 and at most 22 `pass` with a `near-ceiling` finding (the guide must say "near the
+     ceiling"); above 22 `fail` (`over-budget`). The entering-maps rung's budget is 5 divines: at most 5
+     `pass`; above 5 and at most 5.5 `pass` with a `near-ceiling` finding; above 5.5 `fail`
+     (`over-budget`). Any slot or jewel price `unavailable`, or a currency without a rate: `unverified`
+     (code `unverified`), and the total is `null`. Offline, every price is unavailable, so the budget is
+     `unverified` and no rate is fetched. The non-budget variant's total is reported against the
+     ~200-divine reference, never gated.
    - **rolledSkill** (D-122, D-217): per endgame stage, the `skills.rolledGroup` group's role is `clear` or
      `single_target` (else `rolled-role`), and its figure is the largest among the stage's groups with that
      role (else `rolled-not-largest`). Compare one record field for every group of that role
@@ -106,10 +110,11 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
 - `findings`: `{part, code, stage, message, accepted?}`, the message citing record fields and C1/E1 keys
   (`b.MissingColdResist 12`, `enemies/map-monsters.json#damage.by-level[79]`). A check that rests on an M
   or L fact says so (A-29).
-- `basis`: only what the plan and the record don't say (`gates.md`): every budget slot and tree jewel with
-  its `priceId`, the rates, each budget total (`null` when unverified) and the non-budget totals; per
-  endgame stage, the figure of every group of the rolled group's role, with no value. The run checker
-  takes every number from the record.
+- `basis`: only what the plan and the record don't say (`gates.md`): every slot and tree jewel of the
+  entering-maps and budget stages with its `priceId`, the rates, each of their totals (`null` when
+  unverified) and the non-budget totals; per endgame stage, the figure of every group of the rolled group's
+  role, with no value. The run checker takes every number from the record, and W1 quotes the totals and the
+  figures.
 - `faultsApplied`: `[{"id": "FI-2", "observed": "<the V1 finding it caused>"}]`, and for FI-3
   `{"id": "FI-3", "observed": "gate run as usual; outcome forced to infeasible"}`, for each directive the
   header held.

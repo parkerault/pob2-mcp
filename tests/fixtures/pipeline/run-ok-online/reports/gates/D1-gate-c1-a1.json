@@ -16,6 +16,12 @@
       "code": "near-ceiling",
       "stage": "b",
       "message": "stage b totals 21.5 divines: over 20, within 22; the guide says near the ceiling"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "m",
+      "message": "MissingChaosResist 65 on stage m, kept by its chaosResistException: no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs"
     }
   ],
   "basis": {
@@ -35,6 +41,31 @@
         }
       ],
       "slots": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "priceId": "m-weapon"
+        },
+        {
+          "stage": "m",
+          "slot": "Body Armour",
+          "priceId": "m-body"
+        },
+        {
+          "stage": "m",
+          "slot": "Helmet",
+          "priceId": "m-helmet"
+        },
+        {
+          "stage": "m",
+          "slot": "Boots",
+          "priceId": "m-boots"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 1",
+          "priceId": "m-ring1"
+        },
         {
           "stage": "b",
           "slot": "Weapon 1",
@@ -73,6 +104,10 @@
       ],
       "totals": [
         {
+          "stage": "m",
+          "divines": 4.4
+        },
+        {
           "stage": "b",
           "divines": 21.5
         }
@@ -86,6 +121,19 @@
       ]
     },
     "rolledSkill": [
+      {
+        "stage": "m",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
       {
         "stage": "b",
         "figures": [

@@ -32,8 +32,9 @@ is the price's `date`.
 ## Order (D-133)
 
 1. R1b prices each concept's key items.
-2. D1 prices every filled slot **and every tree jewel** (D-249) of both endgame variants, with rares as
-   affix-target searches (`mcp__pob2__search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
+2. D1 prices every filled slot **and every tree jewel** (D-249) of the three endgame rungs, entering maps,
+   budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), with rares as affix-target
+   searches (`mcp__pob2__search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
    slots holding identical item text, which may share one.
 3. D2 prices the campaign uniques.
 
@@ -83,7 +84,7 @@ Before the D1 budget verdict is final, the D1 gate step calls each rate-limited 
 `plan.json` once more and updates it; a refusal leaves it `unavailable`. The pass is skipped once pricing
 has stopped, and in offline mode.
 
-## Divines and the budget (D-116, D-117, D-219)
+## Divines and the budget (D-116, D-117, D-219, D-281)
 
 Totals convert with `mcp__pob2__get_currency_rates`. The D1 gate records the rates it used (`gates.md`). If the
 rates are unavailable, totals are `unverified`.
@@ -91,6 +92,8 @@ rates are unavailable, totals are `unverified`.
 - Budget variant, slots and tree jewels together (D-249), the total rounded to 2 decimals: **at most 20
   divines passes; above 20 and at most 22 passes, and the guide says "near the ceiling"; above 22
   fails.**
+- Entering-maps rung, the same way: **at most 5 divines passes; above 5 and at most 5.5 passes, and the
+  guide says "near the ceiling"; above 5.5 fails.**
 - Non-budget variant: reported against the ~200-divine reference, never gated.
 - A variant with any `unavailable` slot price can't be claimed to be under budget; the guide and
   checkpoint 2 say so (D-164).

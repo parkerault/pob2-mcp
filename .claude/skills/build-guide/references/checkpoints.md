@@ -65,9 +65,10 @@ choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the que
 
 1. **accept**: the verdict's failing findings are accepted. A gate finding equal to an accepted one, **same
    plan stage, part and `code`**, fails no gate afterwards, whichever gate reports it: every later header's
-   `accepted` carries them. The guide lists each under its H3 `Known issues` in "Confidence and what PoB
-   can't model", one line per finding: a plain sentence the reader can act on, then its gate (`D1-gate` or
-   `D2-gate`), `code` and plan stage in parentheses (D-265); the run checker looks for them there. After the D1 gate the run goes on as if it passed;
+   `accepted` carries them. The guide lists each under its H3 `Known issues` in "What PoB can't show", one
+   line per finding: a plain sentence the reader can act on, with no id; `audit.md`'s `Known issues` table
+   gives its row, with its `code`, its gate (`D1-gate` or `D2-gate`) and its plan stage (D-265, D-276); the
+   run checker looks for them there. After the D1 gate the run goes on as if it passed;
    after the D2 gate, the D2 gate runs once more, uncounted, with them in `accepted`, so it runs the final
    compile. **Not offered when the failure is a compile error**: nothing compiled to continue from.
 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt with the verdict and the

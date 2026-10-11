@@ -6,13 +6,17 @@
 // It checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
 // applies. It checks the artifacts rather than self-reports:
 //  - the layout (slice 03 §2), the source markers (§7.3), the dossier's and the guide's sections (§7.2, §8);
+//  - amendment 2's guards on the reader layer (D-276, D-283): the 3,000-word cap, the 14 H2s, no marker,
+//    confidence label or finding id in guide.md, one fixed-form verdict line per endgame rung compared with the
+//    record, reward picks by name, Known issues by sentence with their ids in audit.md, whose six H2s it checks
+//    too (§7.8, D-278); and the entering-maps rung's floor and 5-divine budget (D-281);
 //  - the final record against the plan (`planSha1`, or after claims-only edits its `buildSha1`, computed with
 //    the server's compiled projection, D-264, D-266), its PoB file (the decoded import code, one tree set per
 //    plan stage) and its ledger (re-evaluated with the server's own compiled evaluator);
 //  - the D1 gate, recomputed from the plan and the record: the floor, the budget, and the rolled skill with
 //    its figure's stat set;
 //  - every V4 finding open after the re-check listed under the guide's `Known issues`, and every campaign
-//    reward choice the campaign passes picked in the plan and cited in the guide (D-265);
+//    reward choice the campaign passes picked in the plan and named in the guide (D-265);
 //  - the run log (schema version 2) and the control flow it records, which stands in for the workflow
 //    harness tests amendment 1 deleted: steps in a legal order, the retry caps (S6 honoured), one full V4
 //    pass and at most one re-check per cycle, escalations only from the gates, and the rule on every
@@ -48,28 +52,48 @@ const BUILD_HASH_MODULE = path.join(REPO, 'build', 'plan', 'buildHash.js');
 // Contracts (slice 03 and amendment 1; spine C-30, C-31, C-33, D-219, D-234)
 // ---------------------------------------------------------------------------------------------------
 
-/** §8: the guide's H2s, in order. */
+/** §8, the reader layer (D-276): the guide's 14 H2s, in order. */
 export const GUIDE_H2 = [
-  'Versions, prices and import code',
-  'Summary',
-  'How it works',
+  'At a glance',
+  'Your PoB file',
+  'Survival by stage',
+  'Gem and ascendancy timing',
+  'Priorities',
   'Leveling',
-  'Campaign rewards',
-  'Endgame: budget variant',
-  'Endgame: non-budget variant',
-  'Rotation',
-  'Defences and resistances',
-  'FAQ and common mistakes',
-  "Confidence and what PoB can't model",
+  'Campaign route and rewards',
+  'Endgame: entering maps',
+  'Endgame: budget',
+  'Endgame: non-budget',
+  'How to play it',
+  "What PoB can't show",
+  'FAQ',
   'Changelog',
-  'Sources',
 ];
+/** §7.8, the audit layer (D-278): audit.md's H2s, in order. */
+export const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
 /** §7.2: the dossier's H2s, in order. */
 export const DOSSIER_H2 = ['Roll and mode', 'Mechanics', 'Synergy search', 'Config gaps', 'Concepts', 'Not carried'];
-const VARIANT_H2 = { budget: 'Endgame: budget variant', 'non-budget': 'Endgame: non-budget variant' };
-const CONFIDENCE_H2 = "Confidence and what PoB can't model";
-/** Amendment 1 Q1: the one heading for accepted gate findings and the open V4 findings. */
+/** The endgame ladder's rungs in order (D-281, D-282): `m`, `b`, `n`. */
+const RUNGS = ['entering-maps', 'budget', 'non-budget'];
+/** Each rung's guide H2, which holds the H3 `Checks` (§8). */
+const VARIANT_H2 = { 'entering-maps': 'Endgame: entering maps', budget: 'Endgame: budget', 'non-budget': 'Endgame: non-budget' };
+/** Each rung's label in its verdict line (D-283). */
+const VARIANT_LABEL = { 'entering-maps': 'Entering maps', budget: 'Budget', 'non-budget': 'Non-budget' };
+/** The H2 whose first fenced block is the import code, and which says when the run was offline (§8). */
+const PRIMER_H2 = 'Your PoB file';
+/** The H2 that holds one fixed-form verdict line per endgame rung (D-283). */
+const SURVIVAL_H2 = 'Survival by stage';
+/** The H2 that names every campaign reward pick (D-265 c, D-283). */
+const REWARDS_H2 = 'Campaign route and rewards';
+/** The H2 that ends with the H3 `Known issues` (D-276). */
+const SHOW_H2 = "What PoB can't show";
+/** The one heading for accepted gate findings and the open V4 findings: an H3 in the guide, an H2 in audit.md. */
 const KNOWN_ISSUES = 'Known issues';
+/** D-283: the guide's word cap, not counting the H1, the import code or the Known issues list. */
+const WORD_CAP = 3000;
+/** D-276, D-283: what marks pipeline text in the reader layer: a footnote marker, a confidence label, a V4 finding id. */
+const CONFIDENCE_LABEL = /\b[Cc]onfidence\s*:?\s*[HML]\b/;
+const FINDING_ID = /\bv4-(?:ledger|sources|prose)-\d+\b/;
 
 const SOURCE_KINDS = ['pob-computed', 'pob-data', 'external', 'judgment', 'external-unavailable'];
 const EXTERNAL_UNAVAILABLE_REF = 'external source unavailable (offline run)';
@@ -92,7 +116,8 @@ const LENSES = ['ledger', 'sources', 'prose'];
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 const CHOICES = ['accept', 'retry', 'checkpoint-1', 'stop'];
 const OWNERS = ['W1', 'D1', 'D2'];
-const ARTIFACTS = ['plan.json', 'guide.md'];
+/** §7.4: V4 checks the plan and the guide, and the prose lens reads "why this concept" in audit.md (D-279). */
+const ARTIFACTS = ['plan.json', 'guide.md', 'audit.md'];
 const PARTS = ['pass', 'fail', 'unverified'];
 const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
@@ -118,7 +143,7 @@ const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', 
  * D-265 (a): the steps that write each V4-checked artifact (the runner's step-14 edit adds only `Known issues`
  * lines, which hold no claim or marker).
  */
-const ARTIFACT_WRITERS = { 'plan.json': ['D1', 'D1-gate', 'D2'], 'guide.md': ['W1'] };
+const ARTIFACT_WRITERS = { 'plan.json': ['D1', 'D1-gate', 'D2'], 'guide.md': ['W1'], 'audit.md': ['W1'] };
 /** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
 const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate'];
 /** The steps that concern no one concept. */
@@ -142,9 +167,12 @@ const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
 /** Findings that report on a passing part (../references/gates.md): never failures. */
 const INFO_CODES = ['chaos-exception', 'near-ceiling'];
 
-/** D-219: at most 20 divines passes; above 20 up to 22 passes with a "near the ceiling" note; above 22 fails. */
-const BUDGET_CEILING = 20;
-const BUDGET_TOLERANCE = 22;
+/**
+ * The gated budgets: D-219's budget variant (at most 20 divines passes; above 20 up to 22 passes with a "near the
+ * ceiling" note; above 22 fails) and D-281's entering-maps rung (5, and 5.5 with the note). The non-budget
+ * variant is reported against its reference, never gated.
+ */
+const BUDGETS = { budget: { ceiling: 20, tolerance: 22, why: 'D-219' }, 'entering-maps': { ceiling: 5, tolerance: 5.5, why: 'D-281' } };
 const NEAR_CEILING = 'near the ceiling';
 
 // ---------------------------------------------------------------------------------------------------
@@ -166,12 +194,39 @@ const hasWord = (text, word) =>
 const norm = (s) => String(s).replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 /** Whitespace collapsed and one closing period dropped: how a reader sentence and its Known issues line compare. */
 const collapse = (s) => String(s).replace(/\s+/g, ' ').trim().replace(/\.$/, '');
-/** D-265 (d): the text of a Known issues line `- <reader> (<id>)` (a period after the parentheses allowed), or null. */
-function readerText(line, id) {
-  const m = new RegExp(`^\\s*[-*]\\s+(.*\\S)\\s+\\(${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)\\.?\\s*$`).exec(line);
-  return m ? collapse(m[1]) : null;
-}
 const list = (v) => (Array.isArray(v) ? v.filter(isObj) : []);
+
+/**
+ * D-283: whether a number written in the guide ("2,740", "about 400", "438.55") matches `value`: the written
+ * number equals the value rounded at the written number's own last significant digit, so "2,740" matches 2,736
+ * and "400" matches 401.996. A whole number's last significant digit is its last non-zero one (0 rounds to units);
+ * a decimal's is its last decimal place.
+ */
+export function matchesWritten(written, value) {
+  const text = String(written).replace(/,/g, '').replace(/[−–]/g, '-');
+  if (!/^-?\d+(\.\d+)?$/.test(text) || !isNum(value)) return false;
+  const n = Number(text);
+  const decimals = (text.split('.')[1] ?? '').length;
+  let unit = 10 ** -decimals;
+  if (decimals === 0 && n !== 0) {
+    const zeros = /0*$/.exec(text.replace(/^-/, ''))[0].length;
+    unit = 10 ** zeros;
+  }
+  const rounded = Math.sign(value) * Math.round(Math.abs(value) / unit) * unit;
+  return Math.abs(rounded - n) < unit * 1e-6;
+}
+
+/**
+ * D-283: the guide's words, not counting the H1, the import code or the Known issues list. A word is a run of
+ * non-space characters that holds a letter or a digit, so table rules, list bullets and emphasis marks don't count.
+ */
+export function countWords(lines, skip = () => false) {
+  let words = 0;
+  lines.forEach((line, i) => {
+    if (!skip(i)) words += line.split(/\s+/).filter((t) => /[\p{L}\p{N}]/u.test(t)).length;
+  });
+  return words;
+}
 
 /** §2's slug: `<ascendancy>-<skill>` in lower case, each run outside [a-z0-9] one `-`, trimmed of `-`. */
 export function slugOf(ascendancy, skill) {
@@ -295,10 +350,14 @@ function factValue(file, id) {
   const data = dataFiles.get(file);
   return isObj(data) && isObj(data.facts) && isObj(data.facts[id]) ? data.facts[id].value : undefined;
 }
-/** D-254: a variant's area level: T15 (`area-level.offset` + 15) for the budget variant, `area-level.max` otherwise. */
+/**
+ * D-254, D-281, D-327: a rung's area level: T5 (`area-level.offset` + 5) for the entering-maps rung, T15
+ * (`area-level.offset` + 15) for the budget variant, `area-level.max` for the non-budget variant.
+ */
 function areaLevelOf(variant) {
-  const v = factValue('enemies/waystones.json', variant === 'budget' ? 'area-level.offset' : 'area-level.max');
-  return isNum(v) ? (variant === 'budget' ? v + 15 : v) : undefined;
+  const tier = { 'entering-maps': 5, budget: 15 }[variant];
+  const v = factValue('enemies/waystones.json', tier !== undefined ? 'area-level.offset' : 'area-level.max');
+  return isNum(v) ? (tier !== undefined ? v + tier : v) : undefined;
 }
 function resolveFact(file, key) {
   if (!dataFiles.has(file)) {
@@ -382,13 +441,13 @@ export async function checkRun(runFolder) {
   const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
 
   // ---- Layout (§2) -----------------------------------------------------------------------------
-  const KNOWN_TOP = ['run-log.json', 'research', 'concepts', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'reports'];
+  const KNOWN_TOP = ['run-log.json', 'research', 'concepts', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports'];
   for (const name of fs.readdirSync(runFolder)) {
     if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2); agents write only the files §2 names`);
   }
   if (completed) {
-    for (const rel of ['plan.json', 'compile-record.json', 'dossier.md', 'guide.md']) {
-      if (!exists(rel)) fail('layout', `${rel} is missing; a completed run has plan.json, compile-record.json, dossier.md and guide.md (§2)`);
+    for (const rel of ['plan.json', 'compile-record.json', 'dossier.md', 'guide.md', 'audit.md']) {
+      if (!exists(rel)) fail('layout', `${rel} is missing; a completed run has plan.json, compile-record.json, dossier.md, guide.md and audit.md (§2)`);
     }
   }
   const researchFiles = listDir('research');
@@ -685,7 +744,8 @@ export async function checkRun(runFolder) {
   }
 
   // ---- The control flow, read from the log and tied to the verdict files it routed on --------------------
-  const firstEndgame = planStages.find((s) => s.variant !== undefined)?.id ?? null;
+  // FI-2 breaks the first endgame stage: the ladder's first rung (`m` when the plan has one), then plan order.
+  const firstEndgame = [...endgame].sort((a, b) => RUNGS.indexOf(a.variant) - RUNGS.indexOf(b.variant))[0]?.id ?? null;
   checkFlow(log, fail, {
     verdict: (s) => gateReports.get(`reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`),
     /** The plan stage a fault directive breaks (offline-and-test.md): FI-1 the concept's skeleton, FI-2 the first endgame stage. */
@@ -711,8 +771,11 @@ export async function checkRun(runFolder) {
     }
   }
 
-  // ---- Guide (§8) ------------------------------------------------------------------------------
+  // ---- Guide (§8: the reader layer, D-276) and the audit layer (§7.8, D-278) ------------------------
+  // The guide renders the plan: it carries no markers, so the plan's claims hold its sources (claims.guide
+  // stays empty, and an accepted-offline finding can name only a plan claim).
   let guide = null;
+  let audit = null;
   if (guideText !== null) {
     guide = parseMarkdown(guideText);
     const h1 = guide.headings.filter((h) => h.level === 1);
@@ -721,6 +784,7 @@ export async function checkRun(runFolder) {
     else if (!norm(h1[0].title).includes(norm(roll.ascendancy ?? '')) || !norm(h1[0].title).includes(norm(roll.skill ?? ''))) {
       fail('guide-sections', `guide.md's H1 "${h1[0].title}" doesn't name the roll ${roll.ascendancy} / ${roll.skill}`);
     }
+    // (b) The reader layer's 14 H2s, in order, and no other (D-276, D-283).
     const titles = guide.h2.map((h) => h.title);
     if (show(titles) !== show(GUIDE_H2)) {
       const missing = GUIDE_H2.filter((t) => !titles.includes(t));
@@ -732,17 +796,23 @@ export async function checkRun(runFolder) {
       const h = h2Named(guide, title);
       if (h && !h3sUnder(guide, h).some((x) => x.title === 'Checks')) fail('guide-sections', `guide.md's "${title}" has no H3 "Checks" (§8)`);
     }
-    const versions = h2Named(guide, GUIDE_H2[0]);
-    if (versions && offline && !/offline/i.test(sectionText(guide, versions))) {
-      fail('guide-sections', `guide.md's "${GUIDE_H2[0]}" doesn't say the run was offline (§8)`);
+    const showH2 = h2Named(guide, SHOW_H2);
+    const showH3 = showH2 ? h3sUnder(guide, showH2) : [];
+    if (showH2 && showH3[showH3.length - 1]?.title !== KNOWN_ISSUES) {
+      fail('guide-sections', `guide.md's "${SHOW_H2}" doesn't end with the H3 "${KNOWN_ISSUES}" (§8, D-276)`);
+    }
+    const primer = h2Named(guide, PRIMER_H2);
+    if (primer && offline && !/offline/i.test(sectionText(guide, primer))) {
+      fail('guide-sections', `guide.md's "${PRIMER_H2}" doesn't say the run was offline (§8)`);
     }
 
-    // (h) The import code equals the record's (D-205).
-    if (versions) {
-      const { start, end } = guide.sectionOf(versions);
-      const block = guide.fences.find((f) => f.start > start && f.start < end);
-      if (!block) fail('import-code', `guide.md's "${GUIDE_H2[0]}" has no fenced import code (§8)`);
-      else if (isObj(record) && block.content.trim() !== String(record.importCode ?? '').trim()) {
+    // (h) The import code, the first fenced block of "Your PoB file", equals the record's (D-205).
+    let importBlock = null;
+    if (primer) {
+      const { start, end } = guide.sectionOf(primer);
+      importBlock = guide.fences.find((f) => f.start > start && f.start < end) ?? null;
+      if (!importBlock) fail('import-code', `guide.md's "${PRIMER_H2}" has no fenced import code (§8)`);
+      else if (isObj(record) && importBlock.content.trim() !== String(record.importCode ?? '').trim()) {
         fail('import-code', "guide.md's import code differs from compile-record.json's importCode (D-205)");
       }
     }
@@ -757,50 +827,48 @@ export async function checkRun(runFolder) {
       }
     }
 
-    // (l) Known issues (Q1): every accepted gate finding, with its gate, and every V4 finding open after the
-    // re-check, by id, each on its own line under the one H3 in "Confidence and what PoB can't model". An open
-    // finding's line is `- <reader> (<id>)`, its text the finding's `reader` sentence (D-265 d); an accepted gate
-    // finding's line names its code and gate.
-    const conf = h2Named(guide, CONFIDENCE_H2);
-    const kiH3 = conf ? h3sUnder(guide, conf).find((h) => h.title === KNOWN_ISSUES) : null;
-    if (kiH3) {
-      // D-265: the list is this cycle's alone (the runner replaces it whole at step 14): every line is an accepted
-      // gate finding's or an open finding's, and `None.` stands only when nothing is open or accepted.
-      const { start } = guide.sectionOf(kiH3);
-      sectionText(guide, kiH3).split('\n').forEach((raw, k) => {
-        const line = raw.trim();
-        if (line === '') return;
-        const where = `guide.md:${start + k + 2}`;
-        if (line === 'None.') {
-          if (accepted.length + open.length > 0) fail('known-issues', `${where}: ${KNOWN_ISSUES} says "None.", but ${open.length} V4 finding(s) are open and ${accepted.length} gate finding(s) accepted (D-265)`);
-        } else if (!accepted.some((a) => hasWord(line, a.code) && hasWord(line, a.gate)) && !open.some((f) => hasWord(line, f.id))) {
-          fail('known-issues', `${where}: ${KNOWN_ISSUES} lists ${show(line.length > 80 ? `${line.slice(0, 77)}...` : line)}, which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole list at step 14 (D-265)`);
-        }
-      });
-    }
-    if (accepted.length > 0 || open.length > 0) {
-      const h3 = kiH3;
-      const lines = h3 ? sectionText(guide, h3).split('\n') : [];
-      if (!h3) {
-        fail('known-issues', `${accepted.length} accepted gate finding(s) and ${open.length} open V4 finding(s), but guide.md has no "${KNOWN_ISSUES}" H3 under "${CONFIDENCE_H2}" (amendment 1 Q1)`);
-      } else {
-        for (const a of accepted) {
-          if (!lines.some((l) => hasWord(l, a.code) && hasWord(l, a.gate))) {
-            fail('known-issues', `guide.md's ${KNOWN_ISSUES} has no line naming accepted finding ${a.code} with its gate ${a.gate}${a.stage ? ` (stage ${a.stage})` : ''}`);
-          }
-        }
-        for (const f of open) {
-          const listing = lines.filter((l) => hasWord(l, f.id));
-          if (listing.length === 0) {
-            fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but guide.md's ${KNOWN_ISSUES} doesn't list it as "- <its reader sentence> (${f.id})" (S2, D-265)`);
-          } else if (typeof f.reader === 'string' && f.reader.trim() !== '' && !listing.some((l) => readerText(l, f.id) === collapse(f.reader))) {
-            fail('known-issues', `guide.md's ${KNOWN_ISSUES} lists V4 ${f.lens} finding ${show(f.id)}, but not as "- ${f.reader.trim()} (${f.id})": its line's text is the finding's reader sentence, word for word (D-265)`);
-          }
-        }
-      }
+    // (v) The word cap: at most 3,000 words, the H1, the import code and the Known issues list not counted (D-283).
+    const kiH3 = showH3.find((h) => h.title === KNOWN_ISSUES) ?? null;
+    const ki = kiH3 ? guide.sectionOf(kiH3) : null;
+    const words = countWords(guide.lines, (i) =>
+      h1.some((h) => h.line === i) || (importBlock !== null && i >= importBlock.start && i <= importBlock.end) || (ki !== null && i > ki.start && i < ki.end));
+    if (words > WORD_CAP) {
+      fail('word-cap', `guide.md has ${words} words, over the ${WORD_CAP}-word cap (the H1, the import code and the Known issues list not counted; D-276, D-283)`);
     }
 
-    claims.guide = markdownClaims(guide, 'guide.md', planScope(plan));
+    // (w) No pipeline text: no footnote marker, confidence label or finding id, anywhere outside the import code.
+    const fenced = new Set(guide.fences.flatMap((f) => Array.from({ length: f.end - f.start + 1 }, (_, k) => f.start + k)));
+    guide.lines.forEach((line, i) => {
+      if (fenced.has(i)) return;
+      const label = CONFIDENCE_LABEL.exec(line)?.[0];
+      const id = FINDING_ID.exec(line)?.[0];
+      const what = line.includes('[^') ? 'a footnote marker "[^"' : label ? `the confidence label "${label}"` : id ? `the finding id "${id}"` : null;
+      if (what) fail('guide-markers', `guide.md:${i + 1} carries ${what}; the guide renders the plan with no markers, confidence labels or finding ids, and the plan's claims carry the sources (D-276, D-283)`);
+    });
+  }
+
+  // The audit layer (§7.8, D-278): W1 writes audit.md beside the guide, with its six H2s.
+  const auditText = readText('audit.md');
+  if (guideText !== null) {
+    if (auditText === null) fail('audit-sections', "guide.md exists, but audit.md doesn't; W1 writes the audit layer beside the guide (§7.8, D-278)");
+    else {
+      audit = parseMarkdown(auditText);
+      const titles = audit.h2.map((h) => h.title);
+      if (show(titles) !== show(AUDIT_H2)) {
+        const missing = AUDIT_H2.filter((t) => !titles.includes(t));
+        const extra = titles.filter((t) => !AUDIT_H2.includes(t));
+        const why = missing.length > 0 ? `missing ${show(missing)}` : extra.length > 0 ? `unexpected ${show(extra)}` : 'out of order';
+        fail('audit-sections', `audit.md's H2s are ${why}; §7.8 wants ${show(AUDIT_H2)} in that order (D-278)`);
+      }
+    }
+  }
+
+  if (guide !== null) {
+    // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
+    const guideD1 = guideConcept !== null ? gateFor('D1-gate', guideConcept, guideBefore) : undefined;
+    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, fail);
+    // (l) Known issues by sentence in the guide, with each finding's id in audit.md (D-276, D-283).
+    checkKnownIssues(guide, audit, accepted, open, fail);
   }
 
   // ---- Campaign rewards (D-265 c): every reward choice the campaign passes is picked, and the guide says so ----
@@ -998,9 +1066,8 @@ function rewardChoices() {
 /**
  * D-265 (c): D2 picks every reward choice the campaign passes, and the endgame stages carry the picks. Every stage
  * at or after the choice's quest, the endgame stages included, lists its option with one of its values, the same
- * one on each (the player picks once, and the record's numbers include the reward); the guide's Campaign rewards
- * cites the pick, `data | campaign/progress.json#q.<key>.options[<i>]`. A choice no campaign stage reaches needs
- * no pick.
+ * one on each (the player picks once, and the record's numbers include the reward); the guide's `Campaign route
+ * and rewards` names the pick by its first line (D-283). A choice no campaign stage reaches needs no pick.
  */
 function checkRewardPicks(planStages, campaign, guide, fail) {
   const { order, choices } = rewardChoices();
@@ -1019,15 +1086,171 @@ function checkRewardPicks(planStages, campaign, guide, fail) {
       continue;
     }
     if (!guide) continue;
-    const key = `${c.quest}.options[${c.options.indexOf(values[0])}]`;
-    const h2 = h2Named(guide, 'Campaign rewards');
-    const end = h2 ? guide.sectionOf(h2).end : -1;
-    const citing = new Set(guide.definitions.filter((d) => {
-      const p = parseDefinition(d.body);
-      return p.kind === 'data' && p.file === 'campaign/progress.json' && p.key === key;
-    }).map((d) => d.id));
-    if (!h2 || !guide.markers.some((m) => m.line > h2.line && m.line < end && citing.has(m.id))) {
-      fail('campaign-rewards', `the plan picks ${show(values[0])} for ${c.quest}, but guide.md's "Campaign rewards" cites no "data | campaign/progress.json#${key}" for it; W1 writes every pick there (D-265)`);
+    // D-283: by name. The pick's first line (an option may run over several) appears in the section.
+    const first = String(values[0]).split('\n')[0].trim();
+    const h2 = h2Named(guide, REWARDS_H2);
+    if (!h2 || !norm(sectionText(guide, h2)).includes(norm(first))) {
+      fail('campaign-rewards', `the plan picks ${show(values[0])} for ${c.quest}, but guide.md's "${REWARDS_H2}" doesn't name it by its first line "${first}"; W1 writes every pick there (D-265, D-283)`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The reader layer's number check and its Known issues (D-276, D-283)
+// ---------------------------------------------------------------------------------------------------
+
+/** D-283: the verdict line's fixed form, as the guide template gives it. */
+const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.';
+const NUM = '[−-]?\\d[\\d,]*(?:\\.\\d+)?';
+const VERDICT_LINE = new RegExp(
+  `^[-*] \\*\\*(Entering maps|Budget|Non-budget) \\(L(\\d+)\\): (solid|watch|risky)\\.\\*\\* Resistances (${NUM})/(${NUM})/(${NUM})/(${NUM})% at [−-]60%\\. ` +
+    `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS\\.$`,
+);
+const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
+
+/**
+ * D-283's one number check: each endgame rung has one verdict line in `Survival by stage`, found by its label,
+ * in the fixed form, and each written part matches the record by the rounding rule (`matchesWritten`): the level
+ * the stage's `level`; the resistances `FireResist`, `ColdResist`, `LightningResist`, `ChaosResist`; the
+ * physical max hit `PhysicalMaximumHitTaken` against `hit_<stage>_physical`; the other max hit the least of the
+ * four other `<Type>MaximumHitTaken` against the largest of the four other hits; the DPS the rolled-skill
+ * figure the D1 gate's verdict names. The verdict word stays judgment.
+ */
+function checkVerdictLines(guide, endgame, record, d1rep, fail) {
+  const h2 = h2Named(guide, SURVIVAL_H2);
+  if (!h2) return;
+  const { start, end } = guide.sectionOf(h2);
+  const lines = guide.lines.slice(start + 1, end).map((text, k) => ({ text: text.trim(), n: start + k + 2 }));
+  const where = `guide.md's "${SURVIVAL_H2}"`;
+  const labels = new Set(endgame.map((s) => VARIANT_LABEL[s.variant]).filter(Boolean));
+  for (const label of Object.values(VARIANT_LABEL)) {
+    if (!labels.has(label) && lines.some((l) => l.text.startsWith(`- **${label} (L`))) fail('verdict-line', `${where} has a verdict line for the ${label} rung, but the plan has no such rung (D-283)`);
+  }
+  for (const s of endgame) {
+    const label = VARIANT_LABEL[s.variant];
+    if (!label) continue;
+    const mine = lines.filter((l) => l.text.startsWith(`- **${label} (L`));
+    if (mine.length === 0) {
+      fail('verdict-line', `${where} has no verdict line for the ${label} rung, stage ${s.id}: "${VERDICT_FORM}" (D-283)`);
+      continue;
+    }
+    if (mine.length > 1) fail('verdict-line', `${where} has ${mine.length} verdict lines for the ${label} rung; one per rung (D-283)`);
+    const at = `guide.md:${mine[0].n}`;
+    const m = VERDICT_LINE.exec(mine[0].text);
+    if (!m) {
+      fail('verdict-line', `${at}: the ${label} verdict line isn't in the fixed form "${VERDICT_FORM}" (D-283)`);
+      continue;
+    }
+    if (Number(m[2]) !== s.level) fail('verdict-line', `${at}: the ${label} verdict line says level ${m[2]}, but stage ${s.id}'s level is ${show(s.level)} (D-283)`);
+    const st = isObj(record?.stages) ? record.stages[s.id] : undefined;
+    const out = isObj(st?.outputs) ? st.outputs : null;
+    if (!out) {
+      fail('verdict-line', `${at}: the record holds no outputs for stage ${s.id}, so its ${label} verdict line can't be compared (D-283)`);
+      continue;
+    }
+    const hit = (t) => record.ledger?.[`hit_${s.id}_${t}`]?.value;
+    const least = (xs) => (xs.every(isNum) ? Math.min(...xs) : undefined);
+    const most = (xs) => (xs.every(isNum) ? Math.max(...xs) : undefined);
+    const parts = [
+      ['fire resistance', m[4], out.FireResist, `${s.id}.FireResist`],
+      ['cold resistance', m[5], out.ColdResist, `${s.id}.ColdResist`],
+      ['lightning resistance', m[6], out.LightningResist, `${s.id}.LightningResist`],
+      ['chaos resistance', m[7], out.ChaosResist, `${s.id}.ChaosResist`],
+      ['physical max hit', m[8], out.PhysicalMaximumHitTaken, `${s.id}.PhysicalMaximumHitTaken`],
+      ['physical hit', m[9], hit('physical'), `the ledger's hit_${s.id}_physical`],
+      ['elemental or chaos max hit', m[10], least(OTHER_TYPES.map((t) => out[`${t}MaximumHitTaken`])), `the least of ${s.id}'s ${OTHER_TYPES.map((t) => `${t}MaximumHitTaken`).join(', ')}`],
+      ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t.toLowerCase()))), `the largest of the ledger's ${OTHER_TYPES.map((t) => `hit_${s.id}_${t.toLowerCase()}`).join(', ')}`],
+    ];
+    // The DPS is the rolled-skill figure the D1 gate's verdict names for the stage's rolled group (§5.3).
+    const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
+    const sk = /^g(\d+)s(\d+)p(\d+)\.(\w+)$/.exec(String(fig ?? ''));
+    const lg = /^ledger:(\w+)$/.exec(String(fig ?? ''));
+    const dps = sk ? st.skillOutputs?.[String(fig).split('.')[0]]?.fields?.[sk[4]] : lg ? record.ledger?.[lg[1]]?.value : undefined;
+    if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no rolled-skill figure for stage ${s.id}, so the ${label} verdict line's DPS can't be compared (D-283)`);
+    else parts.push(['DPS', m[13], dps, `the rolled-skill figure ${s.id}.${fig}`]);
+    for (const [part, written, value, from] of parts) {
+      if (!isNum(value)) fail('verdict-line', `${at}: the ${label} verdict line's ${part} can't be compared: the record has no value for ${from} (D-283)`);
+      else if (!matchesWritten(written, value)) {
+        fail('verdict-line', `${at}: the ${label} verdict line says ${part} ${written}, but ${from} is ${value}, which doesn't round to it at that number's last significant digit (D-283)`);
+      }
+    }
+  }
+}
+
+/** The non-empty lines of a section, trimmed, with their 1-based line numbers. */
+function sectionLines(md, heading) {
+  const { start, end } = md.sectionOf(heading);
+  return md.lines.slice(start + 1, end).map((raw, k) => ({ raw: raw.trim(), n: start + k + 2 })).filter((l) => l.raw !== '');
+}
+/** An audit row's stage cell for a finding about no one stage. */
+const NO_STAGE = ['', '—', '-', '–'];
+
+/**
+ * D-276, D-278, D-283: Known issues by sentence. The guide's H3 `Known issues`, the last part of `What PoB can't
+ * show`, lists one plain sentence per finding (`- <sentence>`), with no id; audit.md's `Known issues` table holds
+ * each finding's row `| <id> | <lens or gate> | <stage> | <the sentence the guide prints> |`: an open V4 finding
+ * by its id and lens, its sentence its `reader`; an accepted gate finding by its code, gate and plan stage (W1
+ * writes its sentence). Both lists hold this cycle's findings alone (the runner replaces them whole at step 14,
+ * D-265), and `None.` only when nothing is open or accepted.
+ */
+function checkKnownIssues(guide, audit, accepted, open, fail) {
+  const total = accepted.length + open.length;
+  const showH2 = h2Named(guide, SHOW_H2);
+  const kiH3 = showH2 ? h3sUnder(guide, showH2).find((h) => h.title === KNOWN_ISSUES) : null;
+  const kiH2 = audit ? h2Named(audit, KNOWN_ISSUES) : null;
+  if (total > 0 && !kiH3) fail('known-issues', `${accepted.length} accepted gate finding(s) and ${open.length} open V4 finding(s), but guide.md has no "${KNOWN_ISSUES}" H3 under "${SHOW_H2}" (D-276)`);
+  if (total > 0 && audit && !kiH2) fail('known-issues', `${accepted.length} accepted gate finding(s) and ${open.length} open V4 finding(s), but audit.md has no "${KNOWN_ISSUES}" H2 to hold their ids (D-278)`);
+  const items = (kiH3 ? sectionLines(guide, kiH3) : []).map((l) => ({ ...l, text: l.raw === 'None.' ? l.raw : l.raw.replace(/^[-*]\s+/, '') }));
+  const rows = [];
+  for (const l of kiH2 ? sectionLines(audit, kiH2) : []) {
+    if (l.raw === 'None.') {
+      if (total > 0) fail('known-issues', `audit.md:${l.n}: ${KNOWN_ISSUES} says "None.", but ${open.length} V4 finding(s) are open and ${accepted.length} gate finding(s) accepted (D-265)`);
+      continue;
+    }
+    const cells = l.raw.startsWith('|') ? l.raw.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()) : null;
+    if (cells && (cells.every((c) => /^:?-+:?$/.test(c)) || cells[0] === 'Id')) continue;
+    if (!cells || cells.length !== 4) {
+      fail('known-issues', `audit.md:${l.n}: ${KNOWN_ISSUES} holds ${show(l.raw)}, which isn't a row "| <id> | <lens or gate> | <stage> | <the sentence the guide prints> |" (§7.8)`);
+      continue;
+    }
+    const cell = (c) => c.replace(/`/g, '');
+    rows.push({ id: cell(cells[0]), from: cell(cells[1]), stage: NO_STAGE.includes(cells[2]) ? null : cell(cells[2]), sentence: cells[3], n: l.n });
+  }
+  const used = new Set();
+  const sentences = [];
+  const listed = (sentence) => items.some((l) => collapse(l.text) === collapse(sentence));
+  for (const f of open) {
+    const row = rows.find((r) => r.id === f.id);
+    const reader = typeof f.reader === 'string' && f.reader.trim() !== '' ? f.reader.trim() : null;
+    if (!row) fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but audit.md's ${KNOWN_ISSUES} has no row "| ${f.id} | ${f.lens} | — | <its reader sentence> |" (D-276, D-278)`);
+    else {
+      used.add(row);
+      if (row.from !== f.lens) fail('known-issues', `audit.md:${row.n}: the ${KNOWN_ISSUES} row for ${show(f.id)} names ${show(row.from)}, not its lens ${f.lens} (§7.8)`);
+      if (reader && collapse(row.sentence) !== collapse(reader)) fail('known-issues', `audit.md:${row.n}: the ${KNOWN_ISSUES} row for ${show(f.id)} gives ${show(row.sentence)}, not the finding's reader sentence ${show(reader)} (D-265, §7.8)`);
+    }
+    if (reader) {
+      sentences.push(collapse(reader));
+      if (!listed(reader)) fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but guide.md's ${KNOWN_ISSUES} doesn't list its reader sentence, word for word, as "- ${reader}" (D-265, D-276)`);
+    }
+  }
+  for (const a of accepted) {
+    const row = rows.find((r) => r.id === a.code && r.from === a.gate && r.stage === (a.stage ?? null));
+    if (!row) {
+      fail('known-issues', `audit.md's ${KNOWN_ISSUES} has no row for accepted finding ${a.code} with its gate ${a.gate}${a.stage ? ` (stage ${a.stage})` : ''}: "| ${a.code} | ${a.gate} | ${a.stage ?? '—'} | <the sentence the guide prints> |" (D-276)`);
+      continue;
+    }
+    used.add(row);
+    sentences.push(collapse(row.sentence));
+    if (!listed(row.sentence)) fail('known-issues', `guide.md's ${KNOWN_ISSUES} doesn't print ${show(row.sentence)}, the sentence audit.md gives accepted finding ${a.code} (${a.gate}${a.stage ? `, stage ${a.stage}` : ''}) (D-276)`);
+  }
+  for (const r of rows) {
+    if (!used.has(r)) fail('known-issues', `audit.md:${r.n}: ${KNOWN_ISSUES} has a row for ${show(r.id)} (${r.from}), which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole table at step 14 (D-265)`);
+  }
+  for (const l of items) {
+    if (l.text === 'None.') {
+      if (total > 0) fail('known-issues', `guide.md:${l.n}: ${KNOWN_ISSUES} says "None.", but ${open.length} V4 finding(s) are open and ${accepted.length} gate finding(s) accepted (D-265)`);
+    } else if (!sentences.includes(collapse(l.text))) {
+      fail('known-issues', `guide.md:${l.n}: ${KNOWN_ISSUES} lists ${show(l.raw.length > 80 ? `${l.raw.slice(0, 77)}...` : l.raw)}, which is the sentence of no finding open after this cycle's re-check and of no accepted gate finding; the runner replaces the whole list at step 14 (D-265)`);
     }
   }
 }
@@ -1698,8 +1921,10 @@ function recomputeFloor(endgame, record, guide, fail) {
 }
 
 /**
- * Budget (D-116, D-164, D-219, D-249) from the plan's prices, the gate's map from filled slots and tree
- * jewels to price entries, and its recorded rates. Totals are compared rounded to 2 decimals.
+ * Budget (D-116, D-164, D-219, D-249, D-281) from the plan's prices, the gate's map from filled slots and tree
+ * jewels to price entries, and its recorded rates, for each gated rung: the budget variant (20 divines, 22 with
+ * "near the ceiling") and the entering-maps rung (5, 5.5 with "near the ceiling"). Totals are compared rounded to
+ * 2 decimals.
  */
 function recomputeBudget(endgame, plan, rep, guide, fail) {
   const failures = [];
@@ -1708,7 +1933,8 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
   const rates = new Map(list(b.rates).map((r) => [String(r.currency).toLowerCase(), r.divines]));
   const prices = new Map(list(plan.prices).map((p) => [p.id, p]));
   let unverified = false;
-  for (const s of endgame.filter((x) => x.variant === 'budget')) {
+  for (const s of endgame.filter((x) => Object.prototype.hasOwnProperty.call(BUDGETS, x.variant))) {
+    const { ceiling, tolerance, why } = BUDGETS[s.variant];
     const filled = [
       ...list(s.items?.slots).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
       ...list(s.items?.treeJewels).map((j) => ({ what: `tree jewel in node ${j.node}`, jewel: j.node, text: j.text })),
@@ -1720,12 +1946,12 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
       const map = maps.find((x) => x.stage === s.id && (it.slot !== undefined ? x.slot === it.slot : x.jewel === it.jewel));
       const price = map ? prices.get(map.priceId) : undefined;
       if (!price) {
-        fail('budget', `budget stage ${s.id}'s filled ${it.what} maps to no prices[] entry${map ? ` (the gate names ${show(map.priceId)})` : ''}; every filled slot and tree jewel is priced (§5.3, D-249)`);
+        fail('budget', `${s.variant} stage ${s.id}'s filled ${it.what} maps to no prices[] entry${map ? ` (the gate names ${show(map.priceId)})` : ''}; every filled slot and tree jewel is priced (§5.3, D-249)`);
         stageUnverified = true;
         continue;
       }
       if (used.has(map.priceId) && used.get(map.priceId).text !== it.text) {
-        fail('budget', `budget stage ${s.id}'s ${it.what} and ${used.get(map.priceId).what} share price entry ${show(map.priceId)} but hold different items; each has its own entry unless the item text is identical`);
+        fail('budget', `${s.variant} stage ${s.id}'s ${it.what} and ${used.get(map.priceId).what} share price entry ${show(map.priceId)} but hold different items; each has its own entry unless the item text is identical`);
       }
       if (!used.has(map.priceId)) used.set(map.priceId, it);
       if (price.status !== 'ok' || !isNum(price.amount)) {
@@ -1742,11 +1968,11 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
     }
     const mine = stageUnverified ? null : round2(total);
     if (mine === null) unverified = true;
-    else if (mine > BUDGET_TOLERANCE) failures.push(failure('budget', s.id, 'over-budget', `stage ${s.id} totals ${mine} divines, above ${BUDGET_TOLERANCE} (D-219)`));
-    else if (mine > BUDGET_CEILING) {
-      const text = checksText(guide, 'budget');
+    else if (mine > tolerance) failures.push(failure('budget', s.id, 'over-budget', `stage ${s.id} totals ${mine} divines, above ${tolerance} (${why})`));
+    else if (mine > ceiling) {
+      const text = checksText(guide, s.variant);
       if (guide && !(text !== null && norm(text).includes(NEAR_CEILING))) {
-        fail('budget', `budget stage ${s.id} totals ${mine} divines, over ${BUDGET_CEILING}, but the guide's budget Checks lack "${NEAR_CEILING}" (D-219)`);
+        fail('budget', `${s.variant} stage ${s.id} totals ${mine} divines, over ${ceiling}, but the guide's "${VARIANT_H2[s.variant]}" Checks lack "${NEAR_CEILING}" (${why})`);
       }
     }
   }

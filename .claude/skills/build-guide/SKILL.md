@@ -19,7 +19,8 @@ spine C-36).
   (`references/pricing.md`). Web research uses only poe2db.tw, maxroll.gg, game8.co, poe-vault.com and
   patch-note mirrors, and none at all in offline mode.
 - **Write only inside the run folder.** You write `run-log.json`, the V4 reports under `reports/`, and the
-  open findings into `guide.md`'s `Known issues` (step 14). Each agent writes only its header's `writes`.
+  open findings into the `Known issues` of `guide.md` and `audit.md` (step 14). Each agent writes only its
+  header's `writes`.
   The PoB file reaches the builds folder only through the final compile.
 - **Your pob2 tools** are `mcp__pob2__get_classes` and `mcp__pob2__lookup_game_data` for the roll check, and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, every engine change and every price call is a
@@ -29,7 +30,7 @@ spine C-36).
 - **Read only what routes the run:** the gate verdict files under `reports/gates/`, your own
   `run-log.json`, the test config, the agents' returns and the verifiers' reports. Never read `plan.json`, a
   compile record, `dossier.md` or `guide.md` (one final record was 268 KB), with Read or with Bash; step 14
-  reads only the `Known issues` lines it edits.
+  reads only the `Known issues` lines it edits, in `guide.md` and `audit.md`.
 - **Your Bash reads, and runs the run checker; nothing else** (D-265). The whole list:
   - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is
     fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
@@ -45,7 +46,7 @@ spine C-36).
 |---|---|
 | `build-guide-researcher` | R1a: lookup-only research, up to 3 in parallel |
 | `build-guide-coordinator` | R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (and its final compile); the only type that compiles or prices |
-| `build-guide-writer` | W1: writes `guide.md` |
+| `build-guide-writer` | W1: writes `guide.md` and `audit.md` |
 | `build-guide-verifier` | V4: every claim true, one lens each (`ledger`, `sources`, `prose`), a full pass or a re-check; it can't write |
 
 ## Calling an agent
@@ -95,11 +96,11 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) | one verdict line; route by §4 |
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
 | 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
-| 10 | W1, the guide | `build-guide-writer` | `guide.md` | at most 8 lines |
+| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
 | 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
-| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues` | — |
+| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
 
@@ -216,8 +217,9 @@ the stage, the attempts and the verdict file, and ask:
 
 ## 6. Write, verify and checkpoint 2 (steps 10 to 16)
 
-- **W1** writes `guide.md`. Its header's `accepted` carries every accepted gate finding; its prompt names
-  the last D1 gate verdict file (its budget totals).
+- **W1** writes `guide.md`, the reader layer, and `audit.md`, the audit layer beside it (D-276, D-278): its
+  header's `writes` are both. Its header's `accepted` carries every accepted gate finding; its prompt names
+  the last D1 gate verdict file (its budget totals and rolled-skill figures).
 - **Step 11, the full pass.** Start the three lenses in parallel, `check: "full"`; each checks every claim
   of `plan.json` and `guide.md` in its lens, with no sampling. Write each report to `reports/v4-<lens>.json`.
 - **Step 12, the fix round**, once, only when a report has an `unresolved` finding (D-264). Send each
@@ -248,14 +250,17 @@ the stage, the attempts and the verdict file, and ask:
   runs**, even when it raised nothing, since an edited claim may cite something new. Write each report to
   `reports/v4-<lens>-recheck.json`. Either way there is no further round: what stays open is a known issue.
 - **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. Read `guide.md` from the
-  `known-issues-line` W1 returned last (W1 returns it on its first write and on every patch; no Grep: if the
-  line isn't the `### Known issues` heading, Read the guide in parts until you find it) down to the next
-  heading, and **replace the whole list** under `### Known issues` with Edit, every cycle (D-265): first W1's
-  lines for the accepted gate findings (each names its gate, `D1-gate` or `D2-gate`), as W1 wrote them; then
-  one line per open finding, `- <reader> (<id>)`, the finding's `reader` sentence exactly as its report gives
-  it, then its id in parentheses; or, with neither, the one line `None.`. Drop every other line: a line from
-  an earlier cycle is stale.
+  `unresolved` in the full pass and not reported `fixed` by a re-check. **Replace both lists whole** with
+  Edit, every cycle (D-265, D-276), reading only the lines you edit, from the line numbers W1 returned last
+  (W1 returns them on its first write and on every patch; no Grep: if a line isn't the heading, Read the file
+  in parts until you find it), down to the next heading or the end of the file:
+  - in `guide.md`, under `### Known issues`: first W1's lines for the accepted gate findings, as W1 wrote
+    them; then one line per open finding, `- <reader>`, the finding's `reader` sentence exactly as its report
+    gives it, with no id; or, with neither, the one line `None.`;
+  - in `audit.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then one
+    row per open finding, `| <id> | <lens> | — | <reader> |`; or, with neither, the one line `None.`.
+
+  Drop every other line and row: one from an earlier cycle is stale.
 - **Step 15.** Run the run checker (§7).
 - **Step 16, checkpoint 2.** Show the guide's path, the PoB file (the D2 gate verdict's `finalCompile`),
   the gate verdicts, the known issues and the checker's result, and ask: **accept** (the run ends
@@ -272,8 +277,8 @@ the stage, the attempts and the verdict file, and ask:
 2. Run the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`: at step 15,
    and once more after the last log write of every run. It checks the artifacts, recomputes the D1 gate
    from the record, and checks the run's control flow from the log (`references/run-folder.md`).
-3. Tell the user: the run folder, the guide, the PoB file, where its import code is (the guide's first
-   section, and `compile-record.json`), the final status, the known issues, and the checker's result
+3. Tell the user: the run folder, the guide, the PoB file, where its import code is (the guide's `Your PoB
+   file`, and `compile-record.json`), the final status, the known issues, and the checker's result
    (each violation it printed, if any).
 
 ## References

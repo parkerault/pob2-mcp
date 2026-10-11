@@ -39,12 +39,13 @@ names exactly.
 |---|---|---|
 | `R1b` | `compiled` | the skeleton compiled with no compile error (C-36) |
 | `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill` | see below |
-| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192); the final compile then succeeded |
+| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192: the campaign track, then the endgame ladder `m` → `b` → `n`, each rung's respec and gold cost checked, D-282); the final compile then succeeded |
 
 ## The D1 gate's parts (slice 03 §5.3)
 
 The D1 gate compiles `plan.json` measure-only and reads the record. "Endgame stages" are the plan's
-stages with a `variant`.
+stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), budget (`b`) and non-budget
+(`n`), each gated the same way (D-281).
 
 - **floor** (the survival floor; D-118, D-119, D-234). Per endgame stage, at the Endgame resistance
   penalty (−60%):
@@ -65,7 +66,9 @@ stages with a `variant`.
     decimals, then rounded up (D-256; 96.4789 gives 97, and 402.000003 gives 402). `<Type>MaximumHitTaken`
     is greater than the hit. The hit is the variant's: its scenario entry cites
     `enemies/map-monsters.json#damage.by-level[<area level>]` at the variant's area level (79 for the budget
-    variant's T15, `enemies/waystones.json#area-level.max` for the non-budget one), and the ledger entry's
+    variant's T15, `enemies/waystones.json#area-level.max` for the non-budget one, and 69 for the
+    entering-maps rung's T5: `enemies/waystones.json#area-level.offset` plus 5, D-281, D-327), and the ledger
+    entry's
     value is that damage × (1 + the top of `mods.increased-monster-damage` / 100), × the top of
     `mods.extra-damage-as-element` / 100 for an element.
 
@@ -73,8 +76,8 @@ stages with a `variant`.
   `Checks` holds both the exception's full `reason` text and the stage's uncapped chaos resistance
   (the record's `ChaosResist`) as a number with `%`, for example "Chaos resistance stays at 28% because
   no slot can carry chaos resistance without dropping a core item or breaking the budget".
-- **budget** (D-116, D-147, D-164, D-219, D-249), for the budget variant: every filled slot **and every
-  tree jewel** (`items.treeJewels`) has a `prices[]` entry, converted to divines with
+- **budget** (D-116, D-147, D-164, D-219, D-249, D-281), for the budget variant and the entering-maps rung:
+  every filled slot **and every tree jewel** (`items.treeJewels`) has a `prices[]` entry, converted to divines with
   `mcp__pob2__get_currency_rates`' rates. Each filled slot or jewel has its own entry, except slots holding
   identical item text (two identical rings may share one, and each counts). Totals are compared **rounded
   to 2 decimals**.
@@ -82,8 +85,10 @@ stages with a `variant`.
   - total **> 20 and ≤ 22: pass, with a "near the ceiling" note** the guide's budget `Checks` must carry
     in those words;
   - total **> 22: fail**;
+  - the entering-maps rung's budget is **5 divines**: **≤ 5 pass; > 5 and ≤ 5.5 pass with "near the
+    ceiling"** in its `Checks`; **> 5.5 fail** (D-281);
   - any slot price `unavailable`, or a currency without a rate: **unverified**, which doesn't fail the
-    gate, and the guide can't claim the variant is under budget.
+    gate, and the guide can't claim the stage is within its budget. Offline, both are unverified.
   The non-budget total is reported against the ~200-divine reference (D-117), never gated.
 - **rolledSkill** (D-122, D-148, D-217). In each endgame stage, the rolled skill's group
   (`skills.rolledGroup`) has role `clear` or `single_target`, never `utility` or `leveling`, and its
@@ -118,10 +123,12 @@ rates, and each endgame stage's figures, from here; it fills every number from t
 ```
 
 - `budget.slots`: one entry for every filled slot (`{stage, slot, priceId}`) and every tree jewel
-  (`{stage, jewel: <node id>, priceId}`) of every budget-variant stage, naming a `prices[].id`; `rates`, the
+  (`{stage, jewel: <node id>, priceId}`) of every budget-variant and entering-maps stage, naming a
+  `prices[].id`; `rates`, the
   rates used (`divines` is what one unit of the currency is worth; a divine counts 1).
-- `budget.totals` (each budget stage's total, `null` when unverified) and `budget.nonBudget` are what W1
-  quotes in the guide; the run checker computes its own total from the prices and rates.
+- `budget.totals` (each budget-variant and entering-maps stage's total, `null` when unverified) and
+  `budget.nonBudget` are what W1 quotes in the guide; the run checker computes its own total from the prices
+  and rates.
 - `rolledSkill`: per endgame stage, one figure for **every** group of the rolled group's role: the record
   field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record.
 - Findings with codes `chaos-exception` and `near-ceiling` report on a passing part: they are never
@@ -140,8 +147,8 @@ The run checker recomputes these parts and names each failure by these codes, so
 | floor | `max-hit-<type>` (`max-hit-physical`, …) | `<Type>MaximumHitTaken` isn't above that reference hit |
 | floor | `reference-hit-missing-<type>` | the stage has no positive `enemy<Type>Damage` hit of that type |
 | floor | `reference-hit-ledger-<type>` | the hit isn't the ceiling of its ledger entry `hit_<stage id>_<type>` (D-256), or the record has no value for it, or the hit isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers (D-254) |
-| budget | `over-budget` | the total is above 22 divines |
-| budget | `near-ceiling` | above 20, at most 22: a finding on a passing budget |
+| budget | `over-budget` | the total is above 22 divines (above 5.5 for the entering-maps rung) |
+| budget | `near-ceiling` | above 20, at most 22 (above 5, at most 5.5 for the entering-maps rung): a finding on a passing budget |
 | budget | `unverified` | an unavailable price or a missing rate |
 | rolledSkill | `rolled-role` | the rolled group's role isn't `clear` or `single_target` |
 | rolledSkill | `rolled-not-largest` | another group of that role has the larger figure |

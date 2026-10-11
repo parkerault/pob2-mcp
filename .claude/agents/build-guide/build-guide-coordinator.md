@@ -67,7 +67,7 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 
 | Stage | Stage reference | Does |
 |---|---|---|
-| `D1` | `.claude/skills/build-guide/references/stages/D1.md` | the two endgame variants in `plan.json`, every slot and tree jewel priced, measured measure-only |
+| `D1` | `.claude/skills/build-guide/references/stages/D1.md` | the three endgame rungs in `plan.json` (entering maps, budget, non-budget), every slot and tree jewel priced, measured measure-only |
 | `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict file on the compile, V1, V2, the survival floor, the budget and the rolled skill |
 | `D2` | `.claude/skills/build-guide/references/stages/D2.md` | the campaign stages, planned backward from the endgame, campaign uniques priced |
 | `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the final compile with the header's `buildName`, in the same step |
@@ -81,10 +81,11 @@ The rules every design step keeps:
   stage. Chaos stays uncapped only through the stage's `chaosResistException {reason, tag}`, and only when
   capping it is infeasible. Max hit taken beats five waystone-scaled reference hits (physical, fire,
   cold, lightning, chaos), each derived by a ledger entry `hit_<stage id>_<type>` (D-254).
-- **The budget** (D-219, D-249): every filled slot and tree jewel of the budget variant priced, each with
-  its own entry unless the item text is identical. At most 20 divines passes; above 20 and at most 22
-  passes "near the ceiling"; above 22 fails, rounded to 2 decimals; an unavailable price makes it
-  unverified. The non-budget total is reported against about 200 divines, never gated.
+- **The budget** (D-219, D-249, D-281): every filled slot and tree jewel of the budget variant and the
+  entering-maps rung priced, each with its own entry unless the item text is identical. For the budget
+  variant, at most 20 divines passes; above 20 and at most 22 passes "near the ceiling"; above 22 fails;
+  for the entering-maps rung the same at 5 and 5.5; totals rounded to 2 decimals; an unavailable price makes
+  it unverified. The non-budget total is reported against about 200 divines, never gated.
 - **The rolled skill** is the main damage source of its role (`clear` or `single_target`), never a token
   role (D-122, D-217), and D1 sets `skills.main.statSet` to the stat set of the figure the gate compares
   (amendment 1 S7).

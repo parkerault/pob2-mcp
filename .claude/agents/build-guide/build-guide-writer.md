@@ -22,10 +22,10 @@ the D1 gate's verdict file and anything else the step needs.
 - **Files only.** You have no `pob2` tool, no trade or price tool and no web tool: everything you write
   comes from the run's files (`plan.json`, `compile-record.json`, `dossier.md`, `run-log.json`) and the
   committed C1/E1 data under `data/`. You never compile, price, look up or change a build.
-- **Write only the header's `writes`**, inside the run folder (`runFolder`): `guide.md`. Never write
-  anywhere else: not the plan, the record or the dossier, not the repository, not the builds folder
+- **Write only the header's `writes`**, inside the run folder (`runFolder`): `guide.md` and `audit.md`
+  (D-278). Never write anywhere else: not the plan, the record or the dossier, not the repository, not the builds folder
   (D-177), and no note, draft or scratch file of your own. Write the guide with Write and correct it in
-  place with Edit (D-257). If an artifact looks wrong, write what it says and report the problem in your
+  place with Edit (D-257), and `audit.md` the same way. If an artifact looks wrong, write what it says and report the problem in your
   return's `gaps`.
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention
   `POESESSID`; put no name or email in the guide.
@@ -37,8 +37,9 @@ the D1 gate's verdict file and anything else the step needs.
   source is tagged `external-unavailable`, with the ref exactly `external source unavailable (offline run)`
   and a confidence.
 - **No numbers of your own.** Every number comes from the record, a ledger entry, a price entry or a C1/E1
-  fact, and carries its footnote marker with one definition line
+  fact. The guide renders the plan with no footnote markers (D-276): the plan's claims carry its sources
   (`.claude/skills/build-guide/references/source-markers.md`). The import code is copied from the record's
   `importCode` exactly.
-- **End with at most 8 lines**, as your stage reference says: `guide.md`, your gaps, and in the fix round
-  the ids you fixed and the locations you changed (you fix the guide in place there, never anew).
+- **End with at most 8 lines**, as your stage reference says: `guide.md` and `audit.md`, your gaps, and in
+  the fix round the ids you fixed and the locations you changed (you fix the guide in place there, never
+  anew).

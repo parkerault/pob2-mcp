@@ -19,6 +19,9 @@
  *
  * Amendment 3's content (WU-56): the card template (AC-W27, §7.5), the pattern library (AC-W28, §7.6) and
  * R1b's advisory checklist with its probe budget (AC-W29, §7.7).
+ * Amendment 2 (WU-62, D-276…D-283): AC-W11 takes the reader layer's 14 H2s; the audit template (§7.8); W1's
+ * reader-layer rules (first-person advice, each caveat once, not a tutorial, the cap); V4's editor lens; the
+ * entering-maps rung `m` in D1, D2, the D1 gate and gates.md.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -523,22 +526,29 @@ describe('WU-44: the dossier template (§7.2)', () => {
 
 const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1'];
 const GUIDE_TEMPLATE = path.join(SKILL_DIR, 'templates', 'guide-template.md');
-/** §8: the guide's H2s, in order. */
+const AUDIT_TEMPLATE = path.join(SKILL_DIR, 'templates', 'audit-template.md');
+/** §8's target, the reader layer (WU-62, D-276): the guide's 14 H2s, in order. */
 const GUIDE_H2 = [
-  'Versions, prices and import code',
-  'Summary',
-  'How it works',
+  'At a glance',
+  'Your PoB file',
+  'Survival by stage',
+  'Gem and ascendancy timing',
+  'Priorities',
   'Leveling',
-  'Campaign rewards',
-  'Endgame: budget variant',
-  'Endgame: non-budget variant',
-  'Rotation',
-  'Defences and resistances',
-  'FAQ and common mistakes',
-  "Confidence and what PoB can't model",
+  'Campaign route and rewards',
+  'Endgame: entering maps',
+  'Endgame: budget',
+  'Endgame: non-budget',
+  'How to play it',
+  "What PoB can't show",
+  'FAQ',
   'Changelog',
-  'Sources',
 ];
+/** §7.8, the audit layer (WU-62, D-278): audit.md's H2s, in order. */
+const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
+const ENDGAME_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
+/** D-283: the verdict line's fixed form, as §8's target gives it. */
+const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.';
 const readStage = (stage: string) => fs.readFileSync(path.join(STAGES_DIR, `${stage}.md`), 'utf8');
 /** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
@@ -571,9 +581,9 @@ describe('WU-45: the design stage references', () => {
     expect(text).toMatch(/Only when capping it is \*\*infeasible\*\*/);
   });
 
-  it('D1 prices every slot and tree jewel of both variants, with its own entry unless the text is identical (D-249)', () => {
+  it('D1 prices every slot and tree jewel of every rung, m-, b- and n-, with its own entry unless the text is identical (D-249, D-281)', () => {
     const text = folded(readStage('D1'));
-    expect(text).toMatch(/One `prices\[\]` entry per filled slot and tree jewel of \*\*both\*\* variants \(D-249\)/);
+    expect(text).toMatch(/One `prices\[\]` entry per filled slot and tree jewel of \*\*every\*\* rung \(D-249, D-281\), ids `m-<slot>`, `b-<slot>` and `n-<slot>`/);
     expect(text).toContain('Two slots share an entry only when their item text is identical');
     expect(text).toContain('Rares are affix-target searches (`mcp__pob2__search_trade_items` with `mods`)');
   });
@@ -675,28 +685,28 @@ describe('WU-45: the design stage references', () => {
     expect(folded(readStage('D2'))).toMatch(/when it is `unverified`, D2 keeps it so, and records every campaign price under it/);
   });
 
-  it("W1 takes the league from plan.json, lists an endgame respec, and names the hits as waystone-scaled with their ledger markers", () => {
+  it("W1 takes the league from plan.json, and lists a rung's respec from the rung before it on the ladder (D-282)", () => {
     const text = folded(readStage('W1'));
     expect(text).toMatch(/\*\*The league\*\* is `plan\.json`'s `league`: `unverified` there means/);
-    expect(text).toContain('a "Respec from the campaign" line lists the dropped nodes and the gold cost');
-    expect(text).toMatch(/the waystone-scaled hit .* each with the marker of its ledger entry \(`ledger \| hit_<stage id>_<type>`\)/);
-    expect(text).toMatch(/say "capped" of chaos only when it is/);
+    expect(text).toContain('Where a stage has a `respec` (from the rung before it on the ladder, D-282), a respec line gives the dropped nodes and the gold cost');
   });
 
-  it("W1 and the template quote a reference hit as its ledger value, not the scenario's whole number (D-256)", () => {
-    expect(folded(readStage('W1'))).toMatch(/Quote the hit as that entry's value in the record's `ledger` \(438\.55\), not the scenario's whole number \(439\), which is that value rounded up for PoB \(D-256\)/);
+  it("W1 rounds a reference hit from its ledger value, never as the scenario's whole number, and audit.md keeps the value (D-256 as D-276 amends it)", () => {
+    expect(folded(readStage('W1'))).toMatch(/Quote a reference hit rounded from its ledger value \(`audit\.md` keeps the value itself\), never as the scenario's whole number \(439\), which is that value rounded up for PoB \(D-256\)/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
-    const hitLines = template.split(/\r?\n/).filter((l) => l.includes('**Max hit taken**'));
-    expect(hitLines).toHaveLength(2);
-    for (const l of hitLines) expect(l).toContain("against <the hit's value in compile-record.json's ledger, not the scenario's whole number>");
+    const verdicts = template.split(/\r?\n/).filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
+    expect(verdicts).toHaveLength(3);
+    for (const l of verdicts) expect(l).toContain('Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>.');
+    expect(fs.readFileSync(AUDIT_TEMPLATE, 'utf8')).toContain("**Reference hits:** <per endgame rung, each `hit_<stage>_<type>` ledger value, and the whole number its scenario gives PoB>");
   });
 
-  it("V4's ledger lens wants the scenario hit at its ledger value's ceiling, and the guide's hit at the ledger value (D-256)", () => {
+  it("V4's ledger lens wants the scenario hit at its ledger value's ceiling, and leaves the guide's numbers to the prose lens and the checker (D-256, D-279)", () => {
     const text = folded(readStage('V4'));
     expect(text).toMatch(/with those inputs and that formula and no other input/);
     expect(text).toMatch(/equal to its \*\*ceiling\*\*: the record value rounded to 2 decimals, then up to a whole number, because PoB takes these options as whole numbers \(D-256; 96\.4789 gives 97, and 402\.000003 gives 402\)/);
     expect(text).toContain('A whole-number scenario value is right, not a mismatch.');
-    expect(text).toContain("A reference hit's number in the guide is its ledger value, not the scenario's ceiling (D-256).");
+    expect(text).toContain("The guide's numbers aren't this lens's (D-279): the `prose` lens reads them, and the run checker compares each verdict line with the record.");
+    expect(text).not.toMatch(/For every guide number that cites an entry/);
     expect(text).not.toMatch(/equal to it rounded to 2 decimals/);
   });
 
@@ -713,7 +723,7 @@ describe('WU-45: the design stage references', () => {
     expect(text).toContain('Giant\'s Blood, Instruments of Power or Lord of the Wilds');
     expect(text).toContain('check Weapon 2 and Weapon 2 Swap');
     expect(text).toMatch(/\*\*one line\*\* holds both the record's `ChaosResist` .* as a number with `%`, and the exception's `reason` copied in full/);
-    expect(text).toMatch(/budget `Checks` say \*\*near the ceiling\*\*, in those words/);
+    expect(text).toMatch(/When the entering-maps total is over 5 and at most 5\.5, or the budget total over 20 and at most 22, that `Checks` says \*\*near the ceiling\*\*, in those words/);
     expect(text).toContain('copied character for character from the record\'s `importCode`');
     expect(text).toMatch(/H3 per campaign stage .* titled with its loadout name \*\*exactly\*\* as the record's/);
   });
@@ -734,7 +744,7 @@ describe('WU-45: the writer and the coordinator (AC-W5 extended)', () => {
     const body = folded(def('build-guide-writer').body);
     expect(body).toMatch(/no note, draft or scratch file of your own\. Write the guide with Write and correct it in place with Edit \(D-257\)/);
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/`guide\.md` only, and no other file: no notes, drafts or scratch files, in the run folder or anywhere else/);
+    expect(w1).toMatch(/`guide\.md` and `audit\.md` only, and no other file: no notes, drafts or scratch files, in the run folder or anywhere else/);
     expect(w1).toMatch(/to correct it afterwards, fix it in place with Edit rather than writing it again \(D-257\)/);
   });
 
@@ -752,11 +762,22 @@ describe('WU-45: the writer and the coordinator (AC-W5 extended)', () => {
   });
 });
 
-describe('AC-W11: the guide template (§8)', () => {
+describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader layer (§8)', () => {
   const text = fs.existsSync(GUIDE_TEMPLATE) ? fs.readFileSync(GUIDE_TEMPLATE, 'utf8') : '';
   const hs = headings(text);
+  const lines = text.split(/\r?\n/);
+  const under = (title: string, level = 3) => {
+    const h2 = hs.find((h) => h.level === 2 && h.title === title)!;
+    const next = hs.find((h) => h.line > h2.line && h.level <= 2);
+    return hs.filter((h) => h.level === level && h.line > h2.line && h.line < (next?.line ?? lines.length)).map((h) => h.title);
+  };
+  const sectionOf = (title: string) => {
+    const h = hs.find((x) => x.title === title)!;
+    const next = hs.find((x) => x.line > h.line && x.level <= h.level);
+    return lines.slice(h.line, next?.line ?? lines.length);
+  };
 
-  it("has §8's H2s in order, the same list the run checker holds, under one H1 naming the roll", () => {
+  it("has the reader layer's 14 H2s in order, the same list the run checker holds, under one H1 naming the roll", () => {
     expect(hs.filter((h) => h.level === 1).map((h) => h.title)).toEqual(['<Ascendancy> / <Skill>: <concept title>']);
     expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(GUIDE_H2);
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
@@ -767,85 +788,120 @@ describe('AC-W11: the guide template (§8)', () => {
     expect(items).toEqual(GUIDE_H2);
   });
 
-  it('has the H3 Checks under both endgame H2s, and only Checks there', () => {
-    for (const title of ['Endgame: budget variant', 'Endgame: non-budget variant']) {
-      const h2 = hs.find((h) => h.level === 2 && h.title === title)!;
-      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
-      expect(hs.filter((h) => h.level === 3 && h.line > h2.line && h.line < next.line).map((h) => h.title)).toEqual(['Checks']);
-    }
+  it('has the H3 Checks under each endgame rung, and only Checks there', () => {
+    for (const title of ENDGAME_H2) expect({ title, h3: under(title) }).toEqual({ title, h3: ['Checks'] });
   });
 
-  it('gives Leveling one H3 per campaign stage, titled with the record\'s loadout name, and the one Known issues H3 under Confidence (Q1)', () => {
-    const under = (title: string) => {
-      const h2 = hs.find((h) => h.level === 2 && h.title === title)!;
-      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
-      return hs.filter((h) => h.level === 3 && h.line > h2.line && h.line < next.line).map((h) => h.title);
-    };
+  it("gives Leveling one H3 per campaign stage, titled with the record's loadout name, and ends What PoB can't show with the H3 Known issues", () => {
     expect(under('Leveling')).toEqual(['<loadoutName of the first campaign stage, exactly as compile-record.json has it>']);
-    expect(under("Confidence and what PoB can't model")).toEqual(['Known issues']);
+    expect(under("What PoB can't show")).toEqual(['Known issues']);
     expect(text).not.toContain('Accepted failures');
   });
 
-  it('puts the import code in a fenced block in the first section, and the record\'s PoB-file notes there', () => {
-    const lines = text.split(/\r?\n/);
-    const first = hs.find((h) => h.title === GUIDE_H2[0])!;
-    const second = hs.find((h) => h.title === GUIDE_H2[1])!;
-    const section = lines.slice(first.line, second.line).join('\n');
+  it('carries no markers, Sources, confidence labels or audit material: those are audit.md\'s (D-276, D-278)', () => {
+    expect(text).not.toMatch(/\[\^/);
+    expect(hs.map((h) => h.title)).not.toContain('Sources');
+    expect(text).not.toMatch(/\bconfidence:? [HML]\b/);
+    for (const gone of ['| Entry | Claim | Value | Formula, in words |', 'Why this concept', 'Defences and resistances', 'How it works']) expect({ gone, present: text.includes(gone) }).toEqual({ gone, present: false });
+  });
+
+  it('states the rules every section keeps: a game guide that renders the plan, first-person advice, each caveat once, not a tutorial, and the cap', () => {
+    const comment = folded(/<!--([\s\S]*?)-->/.exec(text)![1]);
+    expect(comment).toContain('It is a game guide, not a design document.');
+    expect(comment).toMatch(/The guide renders the plan and the record: every fact and number is one they hold, rounded as a guide rounds it/);
+    expect(comment).toMatch(/Advice is in the first person \("I", "my"\)/);
+    expect(comment).toMatch(/Each caveat appears once, where the reader acts on it/);
+    expect(comment).toMatch(/No markers, confidence labels, finding ids or pipeline words, and no stage ids outside loadout names/);
+    expect(comment).toMatch(/Not a tutorial: .* If it would read as true word for word in a guide for another skill on another class, cut it/);
+    expect(comment).toMatch(/At most 3,000 words, the H1, the import code and the Known issues list not counted\. The word counts below are each section's budget, about 2,840 in all/);
+  });
+
+  it('puts the import code in the first fenced block of Your PoB file, with the loadout line, the stat-examples line, the versions, the offline line and the PoB notes (§8 row 2)', () => {
+    const section = sectionOf('Your PoB file').join('\n');
     expect(section).toMatch(/```\n<importCode, copied exactly from compile-record\.json>\n```/);
+    expect(section).toContain('Its loadouts, in order:');
+    expect(section).toContain('The items are stat examples: match the affixes, not the item.');
+    expect(section).toContain('offline: Made offline, so no prices were checked.');
     for (const note of ['versionNotes', 'loadoutWarnings', 'saveWarnings']) expect(section).toContain(note);
     expect(section).toContain('check Weapon 2 and Weapon 2 Swap');
-    expect(section).toMatch(/offline: prices are unavailable and no external source was consulted/);
   });
 
-  const checksOf = (variant: string) => {
-    const lines = text.split(/\r?\n/);
-    const h2 = hs.find((h) => h.title === variant)!;
-    const checks = hs.find((h) => h.level === 3 && h.title === 'Checks' && h.line > h2.line)!;
-    const next = hs.find((h) => h.line > checks.line && h.level <= 3)!;
-    return lines.slice(checks.line, next.line);
-  };
-
-  it('carries the D-234 chaos line, the D-219 near-the-ceiling line and the D-164 unavailable line in the budget Checks', () => {
-    const section = checksOf('Endgame: budget variant');
-    expect(section.some((l) => l.includes('near the ceiling'))).toBe(true);
-    expect(section.some((l) => /can't be claimed to be under 20 divines/.test(l))).toBe(true);
+  it("gives Survival by stage one verdict line per endgame rung in the fixed form the run checker holds (D-283)", () => {
+    const section = sectionOf('Survival by stage');
+    const forms = section.filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
+    const fixed = (label: string) => VERDICT_FORM.replace('<Entering maps|Budget|Non-budget>', label);
+    expect(forms).toEqual(['Entering maps', 'Budget', 'Non-budget'].map(fixed));
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    expect(checker).toContain(`const VERDICT_FORM = '${VERDICT_FORM}';`);
   });
 
-  it.each(['Endgame: budget variant', 'Endgame: non-budget variant'])(
-    '%s Checks: chaos "capped" only without an exception, the exception line otherwise, and the waystone-scaled hits with ledger markers',
-    (variant) => {
-      const section = checksOf(variant);
-      const floor = section.find((l) => l.includes('**Survival floor**'))!;
-      expect(floor).not.toMatch(/chaos/i);
-      expect(section.some((l) => /\[only when the stage has no chaosResistException\] Chaos resistance <n>%, capped\./.test(l))).toBe(true);
-      expect(section.some((l) => /\[only when the stage has a chaosResistException; one line, the reason in full\] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>\./.test(l))).toBe(true);
-      const hits = section.find((l) => l.includes('**Max hit taken**'))!;
-      expect(hits).toMatch(/waystone-scaled reference hits .*top of each waystone damage modifier's range/);
-      const ids = [...hits.matchAll(/\[\^([^\]]+)\]/g)].map((m) => m[1]);
-      expect(ids.length).toBe(2);
-      for (const id of ids) expect(text).toMatch(new RegExp(`^\\[\\^${id}\\]: ledger \\| hit_[bn]_(physical|fire)$`, 'm'));
-    },
-  );
+  it("puts in each rung's Checks only what the verdict line doesn't: the chaos exception, the budget line, and the Arbiter for b and n (D-281)", () => {
+    const checks = (title: string) => {
+      const all = sectionOf(title);
+      return all.slice(all.findIndex((l) => l === '### Checks'));
+    };
+    const chaos = "[only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.";
+    for (const title of ENDGAME_H2) expect({ title, chaos: checks(title).some((l) => l.includes(chaos)) }).toEqual({ title, chaos: true });
+    const m = checks('Endgame: entering maps').join('\n');
+    expect(m).toContain('Budget: <total> divines against the 5-divine ceiling.');
+    expect(m).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
+    expect(m).toContain("so this rung can't be claimed to fit 5 divines");
+    expect(m).not.toMatch(/Arbiter|Mapping/);
+    const b = checks('Endgame: budget').join('\n');
+    expect(b).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
+    expect(b).toContain("so this variant can't be claimed to be under 20 divines");
+    for (const title of ['Endgame: budget', 'Endgame: non-budget']) expect({ title, arbiter: checks(title).some((l) => l.includes('The Arbiter of Divinity')) }).toEqual({ title, arbiter: true });
+    // Each rung's H2 opens with its one "Move here when" line.
+    for (const title of ENDGAME_H2) expect({ title, move: sectionOf(title).filter((l) => l.startsWith('Move here when')).length }).toEqual({ title, move: 1 });
+  });
 
-  it('gives both endgame variants a "Respec from the campaign" line (D-144)', () => {
-    for (const variant of ['Endgame: budget variant', 'Endgame: non-budget variant']) {
-      const lines = text.split(/\r?\n/);
-      const h2 = hs.find((h) => h.title === variant)!;
-      const next = hs.find((h) => h.line > h2.line && h.level <= 2)!;
-      expect(lines.slice(h2.line, next.line).some((l) => /\[only when the stage has a respec\] \*\*Respec from the campaign:\*\* drop <the dropped nodes> \(about <gold cost> gold\)/.test(l))).toBe(true);
+  it("gives entering maps a numbered buy order within 5 divines, and the budget variant a slot table naming an affix's source where it limits the base (D-277)", () => {
+    expect(sectionOf('Endgame: entering maps').join('\n')).toMatch(/the buy order within 5 divines:>\s+1\. <the first buy>/);
+    const b = sectionOf('Endgame: budget').join('\n');
+    expect(b).toContain('| Slot | Target | Fallback |');
+    expect(b).toContain('where an affix\'s source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")');
+  });
+
+  it('marks the optional items (D-277), and has no section for what is held back', () => {
+    for (const optional of ['| [optional] <when> | Hold:', '| [optional] <when> | Save:', '[optional] Buy <item> now; it works at <loadout name>.', '[optional] <a rotation clause, when the stage\'s damage is a combo>.', '[optional] <the item or node> stays dormant until', '[optional, up to 4, each confirmed by item text, gem text or PoB] **Trap:**', '[optional, up to 2] **<X or Y?>**']) {
+      expect({ optional, present: text.includes(optional) }).toEqual({ optional, present: true });
     }
+    expect(sectionOf('Priorities').join('\n')).toMatch(/\*\*When you're short:\*\* short on <spirit \| mana \| an attribute>\? I drop <first>, then <second>/);
+    expect(sectionOf("What PoB can't show").join('\n')).toContain('The headline figures assume <the plan\'s config they rest on: charges, stacks, counts>.');
+    expect(text).not.toMatch(/[Cc]rafting|[Aa]tlas|regex/);
   });
 
-  it('defines every marker once, under Sources, the last heading', () => {
-    const lines = text.split(/\r?\n/);
-    const defs = lines.map((l, i) => (/^\[\^[^\]\s]+\]:/.test(l) ? i : -1)).filter((i) => i >= 0);
-    expect(defs.length).toBeGreaterThan(5);
-    const last = hs[hs.length - 1];
-    expect(last.title).toBe('Sources');
-    for (const i of defs) expect(i).toBeGreaterThan(last.line);
-    const ids = defs.map((i) => /^\[\^([^\]\s]+)\]:/.exec(lines[i])![1]);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const m of text.matchAll(/\[\^([^\]\s]+)\](?!:)/g)) expect({ marker: m[1], defined: ids.includes(m[1]) }).toEqual({ marker: m[1], defined: true });
+  it("names each campaign reward pick by its first line, as the run checker looks for it (D-265 c, D-283)", () => {
+    expect(sectionOf('Campaign route and rewards').join('\n')).toContain('take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.');
+  });
+});
+
+describe('§7.8 (WU-62, D-278): the audit template', () => {
+  const text = fs.existsSync(AUDIT_TEMPLATE) ? fs.readFileSync(AUDIT_TEMPLATE, 'utf8') : '';
+  const hs = headings(text);
+
+  it("has §7.8's six H2s in order, the same list the run checker holds", () => {
+    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(AUDIT_H2);
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    const listed = /export const AUDIT_H2 = (\[[^\]]*\]);/.exec(checker);
+    expect(listed).not.toBeNull();
+    expect([...listed![1].matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2])).toEqual(AUDIT_H2);
+  });
+
+  it('holds the ledger table, the stage detail, the coverage flags, the inputs by confidence, why this concept and the budget totals', () => {
+    expect(text).toContain('| Entry | Claim | Value | Formula, in words |');
+    for (const part of ['**Resistances by stage:**', '**Reference hits:**', '**Mana and leech:**', '**The Arbiter of Divinity:**', '**Mapping:**', 'mcp__pob2__check_model_coverage', '**M:**', '**L:**', '**The D1 gate\'s budget:**']) {
+      expect({ part, present: text.includes(part) }).toEqual({ part, present: true });
+    }
+    const why = text.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
+    expect(why).toContain("run-log.json's checkpoint 1 entry that picked it records");
+    expect(why).toContain("the test config picked it at checkpoint 1 by the rule `<the entry's rule, exactly>`");
+  });
+
+  it("gives Known issues the table the run checker reads: each finding's id, its lens or gate, its stage and the sentence the guide prints", () => {
+    expect(text).toContain('| Id | Lens or gate | Stage | Sentence in the guide |');
+    expect(text).toContain('| <an open V4 finding\'s id> | <its lens: ledger, sources or prose> | — | <its reader sentence, word for word> |');
+    expect(text).toContain('| <an accepted gate finding\'s code> | <D1-gate or D2-gate> | <its plan stage, or —> | <the sentence you wrote for it in the guide> |');
   });
 });
 
@@ -910,8 +966,10 @@ describe('V4: one full pass, then a re-check of only its findings and the change
     expect(text).toMatch(/There is no further round: what stays open becomes a known issue in the guide/);
   });
 
-  it("the sources lens reports a number or mechanic statement without a marker (V3's check moved here, S2)", () => {
-    expect(v4()).toMatch(/\*\*Unsourced claims\.\*\* Every number and every mechanic statement in `guide\.md` carries a marker, and every plan claim a `source`; one without is an `unresolved` finding/);
+  it("the sources lens reports a plan claim without a source, and has no guide side: the guide carries no markers (D-276, D-279)", () => {
+    expect(v4()).toMatch(/\*\*Unsourced claims\.\*\* Every plan claim has a `source`; one without is an `unresolved` finding \(issue `no source`\)/);
+    expect(v4()).toMatch(/The guide carries no markers, so this lens has no guide side: the plan's claims carry the guide's sources \(D-276, D-279\)/);
+    expect(v4()).not.toMatch(/`data \| <file>#<key>` in markdown|guide\.md \[\^<id>\]/);
   });
 
   it("V4's ledger lens re-derives every ledger entry, and the five waystone-scaled hits from their facts (D-254, A-P11)", () => {
@@ -948,12 +1006,14 @@ describe('V4: one full pass, then a re-check of only its findings and the change
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     const listed = (re: RegExp) => [...re.exec(checker)![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
     expect(listed(/const OWNERS = \[([^\]]*)\]/)).toEqual(['W1', 'D1', 'D2']);
-    expect(listed(/const ARTIFACTS = \[([^\]]*)\]/)).toEqual(['plan.json', 'guide.md']);
-    expect(v4()).toMatch(/The \*\*owner\*\* is the step that wrote the claim: `W1` for `guide\.md`; `D1` for an endgame stage .*; `D2` for a campaign stage/);
+    // The prose lens checks "why this concept" in audit.md (D-279), so a finding may name it, owner W1.
+    expect(listed(/const ARTIFACTS = \[([^\]]*)\]/)).toEqual(['plan.json', 'guide.md', 'audit.md']);
+    expect(v4()).toMatch(/The \*\*owner\*\* is the step that wrote the claim: `W1` for `guide\.md` and `audit\.md`; `D1` for an endgame stage .*; `D2` for a campaign stage/);
     const markers = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'));
     expect(markers).toContain('"check": "full"');
     expect(markers).not.toMatch(/"coverage"|"pass": 1|Counting claims/);
-    expect(markers).toMatch(/only in the V4 `sources` report, its `location` naming that claim/);
+    // D-276: the guide carries no markers, so an accepted-offline location names a plan claim only.
+    expect(markers).toMatch(/only in the V4 `sources` report, its `location` naming that plan claim \(`stages\[<i>\]\.claims\[<k>\]`\)/);
   });
 });
 
@@ -1028,12 +1088,13 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/then the full V4 pass, the fix round, the re-check and the known issues again/);
   });
 
-  it('Q1: W1 always writes the one Known issues H3 with the accepted gate findings, and the runner adds the open findings', () => {
+  it("Q1 as D-276 moves it: W1 always ends What PoB can't show with the one Known issues H3 and its accepted gate findings, and the runner adds the open findings", () => {
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/Its last part is always the H3 `Known issues` \(amendment 1 Q1\)\. It lists each finding of the header's `accepted` on its own line/);
-    expect(w1).toMatch(/after the V4 checks the runner replaces the whole list with your accepted-finding lines and one line per finding they left open, or `None\.` \(SKILL\.md step 14\)/);
+    expect(w1).toMatch(/\*\*What PoB can't show\*\*: .* Its last part is always the H3 `Known issues`/);
+    expect(w1).toMatch(/You write each accepted gate finding: its sentence in the guide, and its row in `audit\.md`, with its code as the id, its gate \(`D1-gate` or `D2-gate`\) and its plan stage/);
+    expect(w1).toMatch(/With none, each list holds the one line `None\.`/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
-    expect(template).toMatch(/### Known issues\n\n\[always this H3/);
+    expect(template).toMatch(/### Known issues\n\n\[always this H3, the last part of this section \(D-276\)/);
   });
 });
 
@@ -1084,7 +1145,9 @@ describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2
     const markers = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'));
     expect(markers).toMatch(/1\. \*\*Supported in every part\.\*\* The source supports all of the claim/);
     expect(markers).toMatch(/2\. \*\*It cites each fact it rests on\.\*\* A claim resting on two facts .* carries a marker, or a ledger entry, for each/);
-    expect(markers).toMatch(/3\. \*\*It carries its source's caveats\.\*\* A source of confidence M or L, a fact whose `note` records a dispute, a `judgment`, or a mechanic no lookup confirmed is stated with that caveat wherever the claim appears/);
+    // D-279: rule 3 becomes "once in the guide, and never later stated as settled".
+    expect(markers).toMatch(/3\. \*\*It carries its source's caveats\.\*\* A source of confidence M or L, a fact whose `note` records a dispute, a `judgment`, or a mechanic no lookup confirmed is stated with that caveat\. In the guide the caveat appears once, where the reader acts on it, and is never later stated as settled \(D-279\)/);
+    expect(markers).not.toMatch(/wherever the claim appears/);
     expect(folded(readStage('V4'))).toMatch(/\*\*The claim rules\*\* \(`source-markers\.md`, S7\)\. Check every claim in your lens against all three/);
   });
 });
@@ -1137,23 +1200,24 @@ describe('WU-47 fixes: what the runner does', () => {
 });
 
 describe('WU-47 fixes: the stage references\' general rules', () => {
-  it('v4-prose-8: W1 and the template say only what the run log\'s picking checkpoint records, quoting a pre-supplied rule; V4 checks it', () => {
+  it("v4-prose-8, as D-278 moves it to audit.md's Run notes: W1 and the audit template say only what the run log's picking checkpoint records, quoting a pre-supplied rule; V4 checks it", () => {
     const w1 = folded(readStage('W1'));
     expect(w1).not.toMatch(/the mechanics, why it won\)/);
     expect(w1).toMatch(/`checkpoints\[\]`: checkpoint 1's entry that picked this concept, which is the only record of why it was picked/);
-    expect(w1).toMatch(/\*\*Why this concept\*\*, in Summary, says only what `run-log\.json`'s checkpoint 1 entry whose `answer` picked the concept .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
-    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    expect(w1).toMatch(/\*\*Why this concept\*\*, in `Run notes`, says only what `run-log\.json`'s checkpoint 1 entry whose `answer` picked the concept .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
+    const template = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
     const why = template.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("run-log.json's checkpoints[] entry that picked it");
-    expect(why).toContain("the test config picked it by the rule `<the entry's rule, exactly>`");
+    expect(why).toContain("run-log.json's checkpoint 1 entry that picked it records");
+    expect(why).toContain("the test config picked it at checkpoint 1 by the rule `<the entry's rule, exactly>`");
     expect(why).not.toMatch(/why it won|why each lost/);
+    expect(fs.readFileSync(GUIDE_TEMPLATE, 'utf8')).not.toContain('Why this concept');
     // The run log records the rule (S4 keeps it), and V4's prose lens checks the sentence against it.
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |');
     expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:c2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
     const v4 = folded(readStage('V4'));
-    expect(v4).toMatch(/\*\*Why this concept\*\* \(Summary\): check it against `run-log\.json`'s last checkpoint 1 entry whose `answer` is `pick:<the guide's concept>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(owner `W1`\)/);
+    expect(v4).toMatch(/\*\*why this concept\*\*, in `audit\.md`'s `Run notes`: check it against `run-log\.json`'s last checkpoint 1 entry whose `answer` is `pick:<the guide's concept>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(artifact `audit\.md`, owner `W1`\)/);
   });
 
   it('D-260: W1 returns no import code', () => {
@@ -1163,10 +1227,11 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     expect(returns).not.toMatch(/"importCode"/);
   });
 
-  it('W1 keeps a hedge wherever it repeats a claim, and calls a mechanic reliable only with a source in the build', () => {
+  it('W1 states each caveat once, never later as settled (D-279), and calls a mechanic reliable only with a source in the build', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/State a mechanic as reliable only when the build has a source for it/);
-    expect(w1).toMatch(/keeps its hedge everywhere the guide repeats it/);
+    expect(w1).toMatch(/\*\*Each caveat once\*\* \(D-279\)\. A caveat .* appears once, where the reader acts on it, usually in `What PoB can't show` by the figure it qualifies\. A later mention doesn't hedge it again, and never states it as settled/);
+    expect(w1).not.toMatch(/Keep every hedge|keeps its hedge everywhere/);
   });
 
   it('D1 quotes no suggest_supports gain as a number', () => {
@@ -1310,42 +1375,42 @@ describe('D-265: the small items', () => {
     expect(text).toMatch(/At checkpoint 1 that is R1b-assemble's comparison lines, each concept's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an escalation, that concept's evidence \(its last verdict file\)/);
   });
 
-  it('(c) D2 picks every campaign reward choice into config.scenario with a one-line reason; W1 and the template write the picks under Campaign rewards', () => {
+  it('(c) D2 picks every campaign reward choice into config.scenario with a one-line reason, on every rung too; W1 and the template name the picks under Campaign route and rewards (D-283)', () => {
     const d2 = folded(readStage('D2'));
     expect(d2).toMatch(/\*\*Reward choices\*\* \(D-265\): pick every campaign reward choice C1 lists, each a quest with a `q\.<key>\.options` fact in `data\/campaign\/progress\.json`/);
-    expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* stage at or after the quest, the same pick on each, the endgame stages `b` and `n` included/);
-    expect(folded(readStage('D1'))).toMatch(/\*\*Campaign reward picks\*\* \(D-265\): the endgame stages carry the campaign's reward picks\. For every reward choice a campaign stage picks .* `b` and `n` list the same entry, the same pick/);
+    expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* stage at or after the quest, the same pick on each, the endgame stages `m`, `b` and `n` included/);
+    expect(folded(readStage('D1'))).toMatch(/\*\*Campaign reward picks\*\* \(D-265\): the endgame stages carry the campaign's reward picks\. For every reward choice a campaign stage picks .* `m`, `b` and `n` list the same entry, the same pick/);
     expect(d2).toMatch(/Each reward pick of step 6 has one claim, on the first stage that lists it: the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
-    expect(folded(readStage('W1'))).toMatch(/\*\*Campaign rewards\*\* \(D-265\): one line per quest reward the campaign passes, in campaign order\. For each reward choice the plan picks .* with a marker defined as `data \| campaign\/progress\.json#q\.<key>\.options\[<i>\]`\. Never list a choice's options without its pick/);
+    expect(folded(readStage('W1'))).toMatch(/\*\*Campaign route and rewards\*\* \(D-265, D-283\): the reward quests in route order\. For each reward choice the plan picks .* name the quest, then the picked option by its first line exactly as the fact lists it \(the run checker looks for it there\), then the reason the plan's claim gives\. Never list a choice's options without its pick/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
-    expect(template).toContain("- <quest and act, a reward choice>: take <the option the plan picks>, because <the one-line reason its claim gives>.[^c2]");
-    expect(template).toContain('[^c2]: data | campaign/progress.json#<progress key>.options[<the picked option\'s index>]');
+    expect(template).toContain('- <Act and quest, a reward choice>: take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.');
+    expect(template).not.toMatch(/\[\^c2\]/);
     // The plan field is the existing scenario list, as the plan reference says.
     expect(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'plan-reference.md'), 'utf8')).toMatch(/A reward choice \(a quest whose C1 data has `q\.<key>\.options`\) defaults to Nothing; once the stage's `progress` is at or after its quest, list the pick here/);
   });
 
-  it("(d) every unresolved V4 finding carries a reader sentence; the runner writes each open one as `- <reader> (<id>)` at step 14, from W1's known-issues-line", () => {
+  it("(d), as D-276 changes it: every unresolved V4 finding carries a reader sentence; the runner writes each open one as `- <reader>` in the guide and its row in audit.md at step 14, from W1's two lines", () => {
     const v4 = folded(readStage('V4'));
     expect(v4).toMatch(/\*\*`reader`\*\* \(D-265\) is one plain sentence the guide's reader can act on, what is wrong in the guide and what is true instead, with no pipeline words/);
     expect(v4).toMatch(/Every `unresolved` finding has its `reader` sentence: only those can become known issues\. A `fixed` or `accepted-offline` finding needs none/);
     expect(readStage('V4')).toMatch(/"reader": "[^"]+",\n\s+"owner": "D1", "status": "unresolved"/);
     const markers = ref('source-markers.md');
-    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json` or `guide\.md`\), `location`, `claim`, `issue`, `evidence`, `reader` \(only when `unresolved`\), `owner`/);
+    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json`, `guide\.md`, or `audit\.md` for the prose lens's check of "why this concept"\), `location`, `claim`, `issue`, `evidence`, `reader` \(only when `unresolved`\), `owner`/);
     expect(markers).toMatch(/the run checker fails an `unresolved` finding without it\. A `fixed` or `accepted-offline` finding needs none/);
-    expect(markers).toMatch(/The runner replaces the guide's `Known issues` list every cycle: W1's accepted-gate-finding lines, then every open finding as `- <reader> \(<id>\)`, its `reader` sentence as the report gives it, then its id in parentheses \(SKILL\.md step 14, D-265\)\. The run checker finds each line by its id, requires its text to be the finding's `reader` sentence, and fails any other line/);
+    expect(markers).toMatch(/The runner replaces both Known issues lists every cycle \(SKILL\.md step 14, D-265, D-276\): in the guide, W1's accepted-gate-finding sentences, then every open finding as `- <reader>`, its `reader` sentence as the report gives it, with no id; in `audit\.md`'s table, W1's accepted rows, then every open finding's row `\| <id> \| <lens> \| — \| <reader> \|`\. The run checker finds each open finding's sentence in the guide, by sentence, and its id in `audit\.md`, and fails any other line or row/);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
-    expect(skill).toMatch(/Read `guide\.md` from the `known-issues-line` W1 returned last \(W1 returns it on its first write and on every patch;/);
-    // Item 5 of the d264 review: the runner replaces the whole list every cycle, so no stale line survives.
-    expect(skill).toMatch(/\*\*replace the whole list\*\* under `### Known issues` with Edit, every cycle \(D-265\): first W1's lines for the accepted gate findings .* then one line per open finding, `- <reader> \(<id>\)`, the finding's `reader` sentence exactly as its report gives it, then its id in parentheses; or, with neither, the one line `None\.`\. Drop every other line: a line from an earlier cycle is stale/);
-    expect(folded(readStage('W1'))).toMatch(/Leave the lines under `### Known issues` to the runner's step 14, which replaces them whole, except to add a line for a gate finding newly in `accepted`/);
-    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues` | — |");
+    expect(skill).toMatch(/\*\*Replace both lists whole\*\* with Edit, every cycle \(D-265, D-276\), reading only the lines you edit, from the line numbers W1 returned last/);
+    expect(skill).toMatch(/in `guide\.md`, under `### Known issues`: first W1's lines for the accepted gate findings, as W1 wrote them; then one line per open finding, `- <reader>`, the finding's `reader` sentence exactly as its report gives it, with no id; or, with neither, the one line `None\.`/);
+    expect(skill).toMatch(/in `audit\.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then one row per open finding, `\| <id> \| <lens> \| — \| <reader> \|`; or, with neither, the one line `None\.`/);
+    expect(skill).toMatch(/Drop every other line and row: one from an earlier cycle is stale/);
+    expect(folded(readStage('W1'))).toMatch(/Leave the lines under the guide's `### Known issues` and the rows of `audit\.md`'s `Known issues` to the runner's step 14, which replaces them whole, except to add a gate finding newly in `accepted`/);
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |");
     expect(skill).not.toMatch(/known-issues`|W1 runs once more/);
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/`known-issues-line: <n>`, the line number of the `### Known issues` heading in the guide as you leave it, on your first write and on every patch/);
-    expect(w1).toMatch(/You write each accepted gate finding, with its gate, code and plan stage in the parentheses/);
+    expect(w1).toMatch(/`known-issues-line: <n>`, the line number of the guide's `### Known issues` heading, and `audit-known-issues-line: <n>`, that of `audit\.md`'s `## Known issues`, both as you leave the files, on your first write and on every patch/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
-    expect(template).toMatch(/\[added by the runner at step 14\] - <the finding's reader sentence, word for word: "[^"]+"> \(<V4 finding id>\)/);
-    expect(template).not.toMatch(/\(V4 <lens>, <artifact> <location>\)/);
+    expect(template).toMatch(/\[added by the runner at step 14\] - <the finding's reader sentence, word for word: "[^"]+">\n/);
+    expect(template).not.toMatch(/\(<V4 finding id>\)|\(V4 <lens>, <artifact> <location>\)/);
     expect(ref('run-log.md')).not.toMatch(/known-issues/);
   });
 
@@ -1628,5 +1693,138 @@ describe('AC-W29: R1b lists the advisory checklist of §7.7 and its probe budget
     expect(flat).toMatch(/A probe that doesn't fit the budget, or whose compile fails, is reported `not checked`/);
     // A card whose damage source isn't a skill gets only the read-only checks (D-334).
     expect(flat).toMatch(/run checks 1–4 from the card and the lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill"/);
+// WU-62 (amendment 2, D-276…D-283): the reader layer, the audit layer, the editor lens and the entering-maps
+// rung in D1, D2 and the gates
+// ---------------------------------------------------------------------------------------------------
+
+describe('WU-62: W1 writes the reader layer and the audit layer (D-276, D-278, D-280)', () => {
+  const w1 = () => folded(readStage('W1'));
+
+  it("W1 writes guide.md and audit.md, from both templates, and returns both Known issues lines; the header, SKILL.md and the layout say so", () => {
+    expect(w1()).toContain('`writes: ["guide.md", "audit.md"]`');
+    expect(w1()).toContain('`.claude/skills/build-guide/templates/audit-template.md`');
+    expect(fs.existsSync(AUDIT_TEMPLATE)).toBe(true);
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |");
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toContain("W1's are `guide.md` and `audit.md` (D-278)");
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')).toContain('| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |');
+    const writer = folded(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-writer.md'), 'utf8'))!.body);
+    expect(writer).toMatch(/\*\*Write only the header's `writes`\*\*, inside the run folder \(`runFolder`\): `guide\.md` and `audit\.md` \(D-278\)/);
+    expect(writer).toMatch(/The guide renders the plan with no footnote markers \(D-276\)/);
+    expect(writer).not.toMatch(/carries its footnote marker/);
+  });
+
+  it('W1 keeps the guide a game guide: it renders the plan, advice is first person, no pipeline text, the cap (D-276, D-283)', () => {
+    const text = w1();
+    expect(text).toMatch(/The guide renders the plan: you add no fact or number of your own \(D-276\)/);
+    expect(text).toMatch(/\*\*The cap\.\*\* At most 3,000 words, the H1, the import code and the Known issues list not counted \(D-283\)/);
+    expect(text).toMatch(/\*\*No pipeline text\*\* \(D-276\)\. No footnote markers \(`\[\^…\]`\), no confidence labels \("confidence L"\), no finding ids, no pipeline words \(lens, finding, owner, claim, location\) and no stage ids outside the loadout names/);
+    expect(text).toMatch(/Advice is in the first person \("I drop Herald of Ash first", "my support order"\): that is its label, and it isn't verified, but a number inside it is still the plan's or the record's, and it never asserts a fact the plan lacks/);
+    expect(text).toMatch(/\*\*Held back:\*\* crafting recipes, an atlas section, affix tier labels, trade links and a vendor search regex/);
+  });
+
+  it('W1 states the not-a-tutorial rule with the swap test (D-280)', () => {
+    expect(w1()).toMatch(/\*\*Not a tutorial\*\* \(D-280\)\. A sentence that explains how the game or PoB works stays only when it names something this build uses, needs or avoids .* and it changes what the reader does with this build\. The swap test: if the sentence would read as true and useful, word for word, in a guide for another skill on another class, cut it/);
+  });
+
+  it("W1 writes one fixed-form verdict line per rung, each number the record's rounded at its last significant digit (D-283)", () => {
+    const text = w1();
+    expect(text).toMatch(/`Survival by stage` has one line per endgame rung in the template's fixed form, word for word but the placeholders, and the run checker compares each number with the record/);
+    expect(text).toMatch(/"at least <n> elemental or chaos against about <hit>": the least of the four other `<Type>MaximumHitTaken`, against the largest of the four other `hit_<stage>_<type>` ledger values/);
+    expect(text).toMatch(/"<Skill> about <n> DPS": the rolled-skill figure the D1 gate's verdict names for the stage/);
+    expect(text).toMatch(/Round each number as a guide does, at its last significant digit: 2,736 is "2,740" or "2,700", 401\.996 is "about 400"/);
+  });
+
+  it('W1 uses the optional items only where the build has them (D-277), and m gets no Arbiter or mapping signals (D-281)', () => {
+    const text = w1();
+    expect(text).toMatch(/\*\*Optional items\*\* \(D-277\), only where the build has them, never invented to fill a slot: a fallback D1 or D2 already weighed; a threshold trigger, when the plan has one \(else a first-person judgment trigger, "when you can afford it"\); up to 4 traps/);
+    expect(text).toMatch(/for `b` and `n` only, \*\*the Arbiter of Divinity\*\* .* `m` gets neither/);
+    expect(text).toMatch(/entering maps' total against 5 divines, the budget variant's against 20/);
+  });
+
+  it("W1 writes audit.md's six parts, the reference hits' ledger values among them (D-278)", () => {
+    expect(w1()).toMatch(/Write `audit\.md` from its template \(§7\.8, D-278\), with its six H2s in order: `Hand calculations` .* `Stage detail` .* each reference hit's ledger value, .* `What PoB doesn't model` .* `Inputs by confidence` .* `Run notes` and `Known issues`/);
+  });
+});
+
+describe('WU-62: V4 reads the guide like an editor (D-279)', () => {
+  const v4 = () => folded(readStage('V4'));
+
+  it('the prose lens flags a fact or number not in the plan, the record or audit.md, advice asserting a fact, tutorial text, and a caveat repeated or later settled', () => {
+    const text = v4();
+    expect(text).toMatch(/## Lens `prose`: the guide read like an editor/);
+    expect(text).toMatch(/Read `guide\.md` section by section, against the plan, the record and `audit\.md`/);
+    expect(text).toMatch(/1\. \*\*A fact or number not in them\.\*\* A statement of fact, or a number, that the plan .* the record or `audit\.md` doesn't hold, that contradicts them, or that states them more strongly/);
+    expect(text).toMatch(/2\. \*\*Advice that asserts a fact\.\*\* First-person advice \("I", "my"\) is advice and isn't verified; but advice that asserts a fact the plan lacks .* is a finding/);
+    expect(text).toMatch(/3\. \*\*Tutorial text\*\* \(D-280\)/);
+    expect(text).toMatch(/4\. \*\*A caveat repeated, or later stated as settled\*\* \(D-279\)/);
+  });
+
+  it('it keeps the gated statements, checks why this concept in audit.md, and never flags a missing optional item (D-277)', () => {
+    const text = v4();
+    for (const gated of ['**the rolled skill is the main damage source** (D-122)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)', "**why this concept**, in `audit.md`'s `Run notes`"]) {
+      expect({ gated, kept: text.includes(gated) }).toEqual({ gated, kept: true });
+    }
+    expect(text).toMatch(/\*\*Never flag a missing optional item\*\* \(D-277\): a fallback, a threshold trigger \(a first-person judgment trigger is fine, and a trigger's form isn't checked\), a trap, an either\/or pick, a hold or save row, a rotation clause/);
+  });
+
+  it('the sources lens checks the plan alone, and the ledger lens re-derives the entering-maps hits at area 69 (D-281, D-327)', () => {
+    const text = v4();
+    expect(text).toMatch(/Over every claim of `plan\.json` \(its `stages\[\]\.claims`, its ledger inputs' tags and its prices\)/);
+    expect(text).toMatch(/the entering-maps rung's is `enemies\/waystones\.json#area-level\.offset` plus 5 \(T5, area 69, D-281, D-327\)/);
+  });
+});
+
+describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282, D-327)', () => {
+  it('D1 writes the three rungs m, b, n in ladder order, gates m at area 69, prices its slots as m-<slot>, and gives it no Arbiter or mapping signals', () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*The three rungs\*\*, after any campaign stage, in ladder order: `m`, `b`, `n`\. Design `b` and `n` first, then `m` \(D-281\)/);
+    expect(readStage('D1')).toContain("| `id`, `variant` | `m`, `entering-maps` | `b`, `budget` | `n`, `non-budget` |");
+    expect(readStage('D1')).toContain("| `loadoutName` | `Entering maps (L<level>) {m}` | `Endgame budget (L<level>) {b}` | `Endgame non-budget (L<level>) {n}` |");
+    expect(text).toMatch(/gated at T5 \(area 69: `enemies\/waystones\.json#area-level\.offset` plus 5\)/);
+    expect(text).toMatch(/69 for the entering-maps rung's T5 \(`enemies\/waystones\.json#area-level\.offset` plus 5, D-281, D-327\)/);
+    expect(text).toContain('`hit_m_fire`');
+    expect(text).toMatch(/`m`'s total aims at 5 divines, `b`'s at 20/);
+    expect(text).toMatch(/Always, for `b` and `n` \(`m` gets neither, D-281\)/);
+    expect(text).toMatch(/\*\*One tree track\*\* \(D-282\): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`/);
+    expect(text).toMatch(/\*\*The buy order\.\*\* `m`'s claims give its buys in order, one claim per step with a short reason where it isn't obvious/);
+    expect(text).toContain('at `schemaVersion: 2`');
+  });
+
+  it("D1 writes claims only for what the guide states or a gate needs, and the optional traps, either/or picks and fallbacks (D-277, D-279)", () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*Claims\*\* \(D-279\)\. The guide renders the plan with no markers, so the plan's claims carry its sources\. A claim exists only for a fact the guide states or a gate needs/);
+    expect(text).toMatch(/Gem levels, stage levels, record numbers, ledger values and prices are held already: no claim restates them/);
+    expect(text).toMatch(/\*\*traps\*\*, up to 4: .* each sourced to item text, gem text or the record/);
+    expect(text).toMatch(/\*\*either\/or picks\*\*, up to 2: .* the deciding factor measured as a PoB damage or survival difference/);
+  });
+
+  it("D1 sources an affix's limit on its base with the lookup's mod base types and essences (D-277, C-37 as WU-60 builds it)", () => {
+    const text = folded(readStage('D1'));
+    expect(text).toMatch(/\*\*Affix sources\*\* \(D-277\)\. When an affix target can't roll on every base of its slot, say where it comes from/);
+    expect(text).toContain('`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`');
+    expect(text).toMatch(/under each `\[mod\]` hit, `Base types:` lists the bases that can roll it; and with `kind: "essence"`, each `\[essence\]` hit names an essence and the item types it applies that mod to/);
+    expect(text).toMatch(/Write affix targets as text: no tier labels and no trade links/);
+  });
+
+  it('D2 plans the campaign backward to m, on one ladder track, and carries the reward picks onto every rung (D-281, D-282)', () => {
+    const text = folded(readStage('D2'));
+    expect(text).toMatch(/Add the campaign stages to `plan\.json` before the endgame rungs `m`, `b` and `n`, in progression order\. The campaign's last stage leads into `m`/);
+    expect(text).toMatch(/The endgame is one track, the ladder: `m` continues from the last campaign stage, `b` from `m` and `n` from `b`, and V1 checks each rung's respec and its gold cost/);
+    expect(text).toMatch(/\*\*Claims\*\* \(D-279\)\. .* a claim exists only for a fact the guide states or a gate needs/);
+    expect(text).toMatch(/a hold row .* or a save row .*; a rotation clause for a stage whose damage is a combo/);
+  });
+
+  it("the D1 gate and gates.md gate m at area 69 and at 5 divines (5.5 with near the ceiling); FI-2 breaks the ladder's first rung", () => {
+    const gate = folded(readStage('D1-gate'));
+    const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
+    for (const text of [gate, gates]) expect(text).toMatch(/69 for the entering-maps rung/);
+    expect(gate).toMatch(/The entering-maps rung's budget is 5 divines: at most 5 `pass`; above 5 and at most 5\.5 `pass` with a `near-ceiling` finding; above 5\.5 `fail` \(`over-budget`\)/);
+    expect(gates).toMatch(/the entering-maps rung's budget is \*\*5 divines\*\*: \*\*≤ 5 pass; > 5 and ≤ 5\.5 pass with "near the ceiling"\*\* in its `Checks`; \*\*> 5\.5 fail\*\* \(D-281\)/);
+    expect(gate).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's \(the ladder's first rung: `m`, else `b`\) `level` to `1`/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8'))).toMatch(/Entering-maps rung, the same way: \*\*at most 5 divines passes; above 5 and at most 5\.5 passes, and the guide says "near the ceiling"; above 5\.5 fails\.\*\*/);
+    // The run checker holds the same budgets and area level.
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    expect(checker).toContain("'entering-maps': { ceiling: 5, tolerance: 5.5, why: 'D-281' }");
+    expect(checker).toContain("const tier = { 'entering-maps': 5, budget: 15 }[variant];");
   });
 });

@@ -19,8 +19,8 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
   `external source unavailable (offline run)` and a confidence (C-30). V4 accepts that tag (status
   `accepted-offline`) only when the run log's mode is `offline`; in any other run it is an `unresolved`
   finding, and the run checker fails it.
-- The guide's first section says the run was offline: prices are unavailable and no external source was
-  consulted.
+- The guide's `Your PoB file` says the run was offline and no price was checked (D-276); `audit.md`'s
+  `Inputs by confidence` lists the claims that would need an external source (D-278).
 
 ## The test config (`--test <path>`, offline only; A-28)
 

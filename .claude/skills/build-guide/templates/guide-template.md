@@ -1,192 +1,177 @@
 # <Ascendancy> / <Skill>: <concept title>
 
 <!--
-Template for guide.md (slice 03 section 8; the outline from the prior-art guides, external-game-data
-grounding section 5), written by W1 (.claude/skills/build-guide/references/stages/W1.md).
-Keep the H1 (it names the roll) and the thirteen H2 headings below exactly, in this order, and add no other
-H2. Under Leveling, one H3 per campaign stage, titled with its loadout name exactly as compile-record.json
-has it, in plan order, and no other H3. Under each Endgame H2, the H3 Checks. Every number comes from
-compile-record.json, a ledger entry, a price entry or a C1/E1 fact, and carries its footnote marker; every
-marker has exactly one definition line, under Sources, the last heading. Replace every <placeholder>, keep
-a line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
+Template for guide.md, the reader layer (slice 03 section 8; D-276, D-277, D-280), written by W1
+(.claude/skills/build-guide/references/stages/W1.md) with audit.md beside it (templates/audit-template.md).
+It is a game guide, not a design document.
+- Headings: keep the H1 (it names the roll) and the fourteen H2s below exactly, in this order, and add no other
+  H2. Under Leveling, one H3 per campaign stage, titled with its loadout name exactly as compile-record.json has
+  it, in plan order, and no other H3. Under each Endgame H2, the H3 Checks. What PoB can't show ends with the H3
+  Known issues.
+- The guide renders the plan and the record: every fact and number is one they hold, rounded as a guide rounds
+  it ("about 2,740"). Advice is in the first person ("I", "my"). Each caveat appears once, where the reader acts
+  on it. No markers, confidence labels, finding ids or pipeline words, and no stage ids outside loadout names.
+- Not a tutorial: a sentence about how the game or PoB works stays only when it names this build's skill,
+  supports, nodes, key items, an attribute or level requirement, or a plan number, and changes what the reader
+  does. If it would read as true word for word in a guide for another skill on another class, cut it.
+- At most 3,000 words, the H1, the import code and the Known issues list not counted. The word counts below are
+  each section's budget, about 2,840 in all.
+- Ledger tables, per-loadout numbers, coverage flags, confidence levels and why this concept was picked go in
+  audit.md, never here.
+Replace every <placeholder>. Keep a line marked [only when ...] only when it applies, and a line marked
+[optional] only where the build has it; drop the mark. Delete this comment.
 -->
 
-## Versions, prices and import code
+## At a glance
 
-- Engine data: PoB2 <pobTag> (commit <pobCommit>), targeting game patch <enginePatch>. Prices and boss data: patch <externalPatch>.
-- Date: <YYYY-MM-DD>. League: <league | none: an offline run>.
-  [only when the league couldn't be verified] League: unverified: the trade site couldn't be reached when the endgame was priced, so no league was confirmed.
-- Mode: <online: prices are dated trade listings | offline: prices are unavailable and no external source was consulted>.
-- [only when compile-record.json has versionNotes] The engine differs from what the plan was written against: <each versionNotes line>.
-- PoB file: `<the file name of the record's pobFile.path>`, in your Path of Building (PoE2) builds folder. Each guide stage is a loadout in it (switch loadouts at the top of PoB2), and the file is saved in auto-level mode at level <the highest stage's level>, so each loadout shows its stage at its own level.
-- Import code (PoB2: Import/Export Build, then Import from code):
+<About 150 words. What the build does and how it kills: <Skill>, its payoff, and the item, node or support that makes it work.>
+
+- **Pros:** <what it does well>.
+- **Cons:** <what it struggles with>.
+- **Difficulty:** <easy | medium | hard>, because <why>.
+
+## Your PoB file
+
+Import this code in PoB2 (Import/Export Build, then Import from code):
 
 ```
 <importCode, copied exactly from compile-record.json>
 ```
 
-- [only when compile-record.json has loadoutWarnings] Switching loadouts in PoB2 can drop an off-hand: <each loadoutWarnings line>. After you switch, check Weapon 2 and Weapon 2 Swap, and re-equip the planned off-hand if PoB2 removed it.
-- [only when compile-record.json has saveWarnings] Saving the file in PoB2 drops some config options: <each saveWarnings line>. After saving, set them again in those stages' configuration.
+The file is `<the file name of the record's pobFile.path>`. Its loadouts, in order: <first loadout name> → <next loadout name> at <its trigger> → … → <the entering-maps loadout name> when <its trigger> → <the budget loadout name> when <its trigger> → <the non-budget loadout name> when <its trigger>. The items are stat examples: match the affixes, not the item. Engine: PoB2 <pobTag> (patch <enginePatch>); boss data <externalPatch>. <online: Prices are from the <league> league, checked <date>. | offline: Made offline, so no prices were checked.>
 
-## Summary
+- [only when the league couldn't be verified] The league couldn't be verified: the trade site couldn't be reached when the endgame was priced.
+- [only when compile-record.json has versionNotes] <each versionNotes line, in plain words>.
+- [only when compile-record.json has loadoutWarnings] Switching loadouts can drop <the off-hand>: after you switch, check Weapon 2 and Weapon 2 Swap and re-equip it.
+- [only when compile-record.json has saveWarnings] Saving the file in PoB2 drops <the options> from <the loadouts>: set them again after you save.
 
-<The concept in two sentences: what the build does and how it kills.> <Skill> is the main damage source because <the mechanic that makes it work>.[^s1]
+## Survival by stage
 
-- **Pros:** <what it does well>.
-- **Cons:** <what it struggles with>.
-- **Difficulty:** <easy | medium | hard>, because <why>.
-- **Why this concept:** <only what run-log.json's checkpoints[] entry that picked it records: "the user picked it at checkpoint 1"; or, for a pre-supplied or default answer, "the test config picked it by the rule `<the entry's rule, exactly>`". No other reason>. The dossier (`dossier.md`) keeps the other concepts and their results.
+<A one-line legend: solid, watch and risky against the reference hits.>
 
-## How it works
+- **Acts 1–2: <solid | watch | risky>.** <the gap that matters, with its number and what closes it>.
+- **Acts 3–4: <solid | watch | risky>.** <…>.
+- **Interludes and Epilogue: <solid | watch | risky>.** <…>.
 
-<The mechanics: the skill, its stat sets, the supports, the ascendancy nodes and keystones the build rests on, each claim with its marker.>[^m1]
+[one line per endgame rung, in this fixed form, word for word but the placeholders; the run checker compares each number with the record by rounding it at its own last digit (D-283)]
+- **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
+- **Budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
+- **Non-budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.
 
-Hand calculations (the ledger), for what PoB doesn't model:
+## Gem and ascendancy timing
 
-| Entry | Claim | Value | Formula, in words |
-|---|---|---|---|
-| `<ledger id>` | <the entry's claim> | <its value in compile-record.json's ledger>[^l1] | <the formula in words, with each input's source> |
+| When | Change |
+|---|---|
+| <level, quest or trial> | <the uncut-gem step, or the trial and the ascendancy node it buys> |
+| [optional] <when> | Hold: <a gem kept at a lower level, or an investment delayed>, because <why>. |
+| [optional] <when> | Save: <what to stockpile before a swap>. |
+
+## Priorities
+
+- **Supports:** my order is <support>, <support>, ….
+- **Links and quality:** <…>.
+- **Stats:** <the stat priority, in order>.
+- **Weapon swap:** <the rule of thumb>.
+- **When you're short:** short on <spirit | mana | an attribute>? I drop <first>, then <second> (<the record's numbers>).
+- [optional] Buy <item> now; it works at <loadout name>.
 
 ## Leveling
 
-<How to use this section: the leveling skill until <Skill>'s level requirement, then <Skill>; each stage below is a loadout in the PoB file.>
-
 ### <loadoutName of the first campaign stage, exactly as compile-record.json has it>
 
-- **Levels:** <from> to <to>.
-- **Skills:** <skill> (gem level <n>) with <supports>: <k> sockets. <the other groups the same way>
-- **Tree:** add <n> points: <the nodes, in the order to take them>.
-- [only when the stage has a respec] **Respec:** drop <the dropped nodes> (about <gold cost> gold).[^r1]
-- **Ascendancy:** <the pick, and the trial that grants it>.
-- **Gear:** <slot>: <item>, <amount currency, dated YYYY-MM-DD | unavailable (<the note>)>.[^p1]
-- **Swap when:** <the trigger for the next stage>.
-- **PoB numbers (this loadout):** Life <n>, <Skill> <field> <n>, resistances fire/cold/lightning/chaos <n>/<n>/<n>/<n>%.[^n1]
+<At most 110 words. Setup: <skill> with <supports>. Tree: add <nodes>, with why. Attributes: <have> of the <need> <attribute> <gem or item> needs. Gear: <the target> [optional: , or <the fallback> D1 or D2 weighed]. Swap to the next loadout when <trigger>.>
+[only when the stage has a respec] Respec: drop <the nodes> for about <gold cost> gold.
+[optional] <a rotation clause, when the stage's damage is a combo>.
+[optional] <the item or node> stays dormant until <loadout name or level>.
 
-## Campaign rewards
+## Campaign route and rewards
 
-<Every quest reward the campaign passes, in campaign order. A reward choice names the option to take and why: the plan's pick and its claim's reason (D-265). Never list a choice's options without the pick.>
+- <Act and quest>: <the reward, and what it does for this build>.
+- <Act and quest, a reward choice>: take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.
+- <A currency habit that serves this build>.
 
-- <quest and act>: <the reward>.[^c1]
-- <quest and act, a reward choice>: take <the option the plan picks>, because <the one-line reason its claim gives>.[^c2]
+## Endgame: entering maps
 
-## Endgame: budget variant
+Move here when <the trigger>.
 
-<What this variant is for: T15 maps (area 79) without dying often, as cheaply as possible, at most about 20 divines.>
+<About 250 words. The changes from the Epilogue, then the buy order within 5 divines:>
 
-- **Level and ascendancy:** character level <n>, <n> ascendancy points: <the nodes>.[^e1]
-- [only when the stage has a respec] **Respec from the campaign:** drop <the dropped nodes> (about <gold cost> gold).[^r2]
-- **Gear by slot** (each price dated, or unavailable with why):
+1. <the first buy>: <a short reason where it isn't obvious>.
+2. <…>.
 
-| Slot | Item | Price |
-|---|---|---|
-| <slot> | <unique name, or the rare's affix targets> | <amount currency, YYYY-MM-DD, league | unavailable (<note>)>[^p2] |
-
-- **Stat priorities:** <offence first or defence first, in order>.
-- **Gem links:** <skill> (gem level <n>, quality <q>) with <supports>; <the other groups>.
-- **Tree:** <the keystones and notables, and what each buys>.
-- **Earned config** (what PoB assumes you keep up):
-
-| Option | Value | Producer | Uptime |
-|---|---|---|---|
-| <option> | <value> | <producer kind and name> | <how it is kept up> |
+[optional] <a fallback D1 weighed, where one exists>.
 
 ### Checks
 
-- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f1]
-  [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
-  [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- **Max hit taken** against the waystone-scaled reference hits (T15 monster damage at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <the hit's value in compile-record.json's ledger, not the scenario's whole number>[^h1]; fire <FireMaximumHitTaken> against <its ledger value>[^h2], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
-- **Budget:** <total> divines against the 20-divine ceiling: the slot and tree-jewel prices above, converted at the rates the D1 gate recorded.
+- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
+- Budget: <total> divines against the 5-divine ceiling.
+  [only when the total is over 5 and at most 5.5] <total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.
+  [only when any price is unavailable] Prices are unavailable (<why>), so this rung can't be claimed to fit 5 divines.
+
+## Endgame: budget
+
+Move here when <the trigger: the key item, or a rare with a stat floor>.
+
+<About 330 words. The buy order, each step with a short reason where it isn't obvious:>
+
+1. <…>.
+
+| Slot | Target | Fallback |
+|---|---|---|
+| <slot> | <the affix targets, as text; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <the affix to give up first, or empty> |
+
+- **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
+- **Tree:** <the keystones and notables, each with what it buys>.
+- [only when the stage has a respec] **Respec from the entering-maps loadout:** drop <the nodes> for about <gold cost> gold.
+
+### Checks
+
+- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
+- Budget: <total> divines against 20.
   [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
-- **The Arbiter of Divinity** (reported, not gated): its hits against your max hit taken, and a time to kill of <low> to <high> under the three fight-life assumptions, confidence L.[^a1]
-- **Mapping signals:** movement speed <n>; clicks per pack <n>; the clear skill's hit against T15 monster life.[^k1]
+- The Arbiter of Divinity: <its hits against your max hit taken>; it takes about <low> to <high> seconds to kill.
+- Mapping: <movement speed>; <clicks per pack>; <the clear skill's hit against a T15 monster's life>.
 
-## Endgame: non-budget variant
+## Endgame: non-budget
 
-<What this variant is for: as strong as possible around the ~200-divine reference, T16 up to area 82 with heavily modded waystones.>
+Move here when <the trigger>.
 
-- **Level and ascendancy:** character level <n>, <n> ascendancy points: <the nodes>.[^e2]
-- [only when the stage has a respec] **Respec from the campaign:** drop <the dropped nodes> (about <gold cost> gold).[^r3]
-- **Gear by slot:**
+<About 180 words. The upgrade order from the budget variant:> 1. <the upgrade with the most gain per divine>; 2. <…>. <Affix sources as in the budget variant.>
 
-| Slot | Item | Price |
-|---|---|---|
-| <slot> | <item> | <amount currency, YYYY-MM-DD, league | unavailable (<note>)>[^p3] |
-
-- **Stat priorities**, **gem links**, **tree** and **earned config**: <as for the budget variant>.
-- **Upgrade order from the budget variant:** 1. <the upgrade with the most gain per divine>; 2. <…>.
+[only when the stage has a respec] Respec from the budget loadout: drop <the nodes> for about <gold cost> gold.
 
 ### Checks
 
-- **Survival floor**, at the Endgame −60% resistance penalty: fire <n>%, cold <n>% and lightning <n>% resistance, capped.[^f3]
-  [only when the stage has no chaosResistException] Chaos resistance <n>%, capped.
-  [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- **Max hit taken** against the waystone-scaled reference hits (monster damage at the variant's top area level, at the top of each waystone damage modifier's range): physical <PhysicalMaximumHitTaken> against <the hit's value in compile-record.json's ledger, not the scenario's whole number>[^h3]; fire <FireMaximumHitTaken> against <its ledger value>[^h4], and the same for cold, lightning and chaos, each with its own ledger entry's marker.
-- **Total:** <total> divines against the ~200-divine reference (a reference, not a cap).
+- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
+- Total: <total> divines against the ~200-divine reference, which is no cap.
   [only when any price is unavailable] Prices are unavailable (<why>), so this total isn't known.
-- **The Arbiter of Divinity:** <as for the budget variant>.[^a2]
-- **Mapping signals:** <as for the budget variant, at areas 80 to 82: a stated judgment>.
+- The Arbiter of Divinity: <as for the budget variant>.
+- Mapping: <as for the budget variant, at areas 80 to 82>.
 
-## Rotation
+## How to play it
 
-- **Clear:** 1. <step>; 2. <step>.
-- **Single target:** 1. <step>; 2. <step>.
-- [only when <Skill> isn't the clear skill] <Skill> is the single-target skill here because <why it can't clear>.
+- **Clear:** <…>.
+- **Single target:** <…>.
+- [only when <Skill> isn't the clear skill] <Skill> is the single-target skill because <why it can't clear>.
+- [optional, up to 4, each confirmed by item text, gem text or PoB] **Trap:** <an interaction that breaks or kills the build>.
 
-## Defences and resistances
+## What PoB can't show
 
-<How resistances climb as the campaign penalties grow to −60%: where each gap is closed, by which item or reward.>
+<About 200 words. Each caveat once, by the figure it qualifies: what PoB doesn't model or assumes there, and how I read that figure.>
 
-| Stage | Penalty | Fire | Cold | Lightning | Chaos |
-|---|---|---|---|---|---|
-| <loadout name> | <penalty>% | <n>% | <n>% | <n>% | <n>% |
-
-## FAQ and common mistakes
-
-- **<A question a newcomer asks>** <The answer.>
-- **Never** <a hard warning, and why>.
-- [only when compile-record.json has loadoutWarnings] **After switching loadouts in PoB2,** check Weapon 2 and Weapon 2 Swap and re-equip the planned off-hand.
-- [only when compile-record.json has saveWarnings] **After saving the file in PoB2,** set the dropped options again in the stages named above.
-
-## Confidence and what PoB can't model
-
-- **What PoB doesn't model here** (check_model_coverage): <each line, and how the guide handles it>.
-- **Hand calculations:** <the ledger entries above, and what each assumes>.
-- **Medium and low-confidence inputs:** <each M or L input and the check that rests on it>.
-- [only in an offline run] **Claims that need an external source** (external source unavailable in this offline run): <each>.
+The headline figures assume <the plan's config they rest on: charges, stacks, counts>.
 
 ### Known issues
 
-[always this H3, the last part of this section (amendment 1 Q1). W1 writes one line per gate finding the user accepted at an escalation, or the one line "None." when there is none; after the V4 checks the runner replaces the list with those lines and one line per finding they left open, or "None." (step 14). Each line is one plain sentence the reader can act on, then the finding's id in parentheses (D-265).] - <What is wrong, in plain words, and what is true instead> (<gate: D1-gate or D2-gate> <code>, stage <plan stage>).
-[added by the runner at step 14] - <the finding's reader sentence, word for word: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance."> (<V4 finding id>)
+[always this H3, the last part of this section (D-276). W1 writes one plain sentence per gate finding the user accepted at an escalation, or the one line "None."; after the V4 checks the runner replaces the list with those lines and each open finding's reader sentence, or "None." (SKILL.md step 14). No ids here: each finding's id goes in audit.md's Known issues table. The list is outside the word cap.] - <What is wrong, in plain words, and what is true instead.>
+[added by the runner at step 14] - <the finding's reader sentence, word for word: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance.">
+
+## FAQ
+
+- **<A question a player asks>** <The answer.>
+- [optional, up to 2] **<X or Y?>** <the deciding factor, as a PoB damage or survival difference>[online: , and the price difference].
 
 ## Changelog
 
 - <YYYY-MM-DD>: first version (<online | offline> run).
-
-## Sources
-
-[^s1]: pob-data | lookup_game_data gem "<Skill>" | patch: <enginePatch>
-[^m1]: pob-data | lookup_game_data mechanic "<keyword>" | patch: <enginePatch>
-[^l1]: ledger | <ledger id>
-[^r1]: judgment | <why the respec costs about that much> | confidence: L
-[^p1]: price | <priceId>
-[^n1]: pob-computed | <stageId>.Life
-[^c1]: data | campaign/progress.json#<progress key>.reward
-[^c2]: data | campaign/progress.json#<progress key>.options[<the picked option's index>]
-[^e1]: pob-computed | b.Life
-[^p2]: price | <priceId>
-[^f1]: pob-computed | b.MissingColdResist
-[^r2]: judgment | <why the respec costs about that much> | confidence: L
-[^h1]: ledger | hit_b_physical
-[^h2]: ledger | hit_b_fire
-[^a1]: ledger | <the Arbiter time-to-kill ledger id>
-[^k1]: data | enemies/map-monsters.json#life.by-level[79]
-[^e2]: pob-computed | n.Life
-[^p3]: price | <priceId>
-[^f3]: pob-computed | n.MissingColdResist
-[^r3]: judgment | <why the respec costs about that much> | confidence: L
-[^h3]: ledger | hit_n_physical
-[^h4]: ledger | hit_n_fire
-[^a2]: ledger | <the Arbiter time-to-kill ledger id>

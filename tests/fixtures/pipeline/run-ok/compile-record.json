@@ -1,13 +1,14 @@
 {
   "recordVersion": 1,
-  "planSchemaVersion": 1,
-  "planSha1": "283dcf2a497f726d8e9eac35e431c335dbcffaee",
-  "buildSha1": "eaeddc04b4dbd35d9de5440c135b07a7e38462f9",
+  "planSchemaVersion": 2,
+  "planSha1": "df40b4a1116599e99cabe677a86a986cc1197024",
+  "buildSha1": "baa7bf530188b132844cb5aa5b923d048b1b133a",
   "compiledAt": "2026-10-08T11:02:00.000Z",
   "mode": "final",
   "stagesCompiled": [
     "1",
     "2",
+    "m",
     "b",
     "n"
   ],
@@ -20,10 +21,10 @@
   "pobFile": {
     "location": "builds",
     "path": "titan-blood-hunt-2026-10-08-1.xml",
-    "sha1": "f4b3ea82707736aabdefe1d7928dca73ddf32772",
-    "bytes": 598
+    "sha1": "d2f3fa68c7a42b572ee158d2d3a581901c39b300",
+    "bytes": 697
   },
-  "importCode": "eJy1kk9Lw0AQxc_JpxjmlBxq_mihhd0UFRUhqNCoR9luxri42S2bTRCC311SlCo9qsc3D97vwTy2ems1DOQ6ZQ3H7ChFICNtrUzD8b66nC1wVYTsTviX2-ezXunJyYswYDsBmgbSHJdzBC9cQ_7hKyt9yhCkFl13I1ri-CicU9YhiE6Sqc_3TqW8MAitUGZt5Sv5K2f7LccMkwlUOSIQ0quB1luSHE-wCIOATQK88po4nkoPGUTlIoYxe0fwjuhbk_lnk-uaY_6jwXTJEIytqeO4Ax4m5xCVx2kMY_6n0RembkRLsOnrhjxE5XJibP6FYayZ7TnzGEbzSw5LpscUIUsOxvEBO6W6mA==",
+  "importCode": "eJy1kk9Lw0AQxc_NpxjmlBxq_kikhWyKiooQtNCoR9luxriY7IbNJgjB7y5blCo9Wo9vBt7vPWay1XvbwEiml1oxjE8iBFJCV1LVDB_K6_kCV7mXrbl9vX-5GGTjNknuzbKdgIZGahguUwTLTU328dsreo4RRMP7_o63xPCJGyO1QeC9IFVd7jeltFwhtFyqjRZvZG-MHjqGMYYOVBoi4MLKkTYdCYYp5t5sljkBVtqGGJ4LCzH4xSKAKf5AsIboR5L0K8ltxTD5lcBNYgSlK-oZ7oCHzgn4xWkUwJQc1fpKWTJS1dDyrge_OEsDmNojI6qatwTboarJgl8sXY3tvzCUVvM9x3VRf-Rkobt97mXhwf99AqX32ZQ=",
   "savedLevel": {
     "level": 95,
     "autoMode": true
@@ -119,6 +120,70 @@
         "pass": true,
         "findings": [],
         "notes": []
+      }
+    },
+    "m": {
+      "loadoutName": "Entering maps (L65) {m}",
+      "level": 65,
+      "elapsedMs": 900,
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 299,
+        "enemyFireDamage": 72,
+        "enemyColdDamage": 72,
+        "enemyLightningDamage": 72,
+        "enemyChaosDamage": 72
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "outputs": {
+        "Life": 2600,
+        "TotalDPS": 9000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 65,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 10,
+        "PhysicalMaximumHitTaken": 2900,
+        "FireMaximumHitTaken": 5400,
+        "ColdMaximumHitTaken": 5300,
+        "LightningMaximumHitTaken": 5200,
+        "ChaosMaximumHitTaken": 1900
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 9000,
+            "AverageHit": 2100
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 4000,
+            "AverageHit": 1500
+          }
+        }
       }
     },
     "b": {
@@ -293,6 +358,26 @@
     },
     "hit_n_chaos": {
       "value": 105.25219599609245,
+      "error": null
+    },
+    "hit_m_physical": {
+      "value": 298.0959924316352,
+      "error": null
+    },
+    "hit_m_fire": {
+      "value": 71.54303818359244,
+      "error": null
+    },
+    "hit_m_cold": {
+      "value": 71.54303818359244,
+      "error": null
+    },
+    "hit_m_lightning": {
+      "value": 71.54303818359244,
+      "error": null
+    },
+    "hit_m_chaos": {
+      "value": 71.54303818359244,
       "error": null
     }
   },

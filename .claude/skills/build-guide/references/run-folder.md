@@ -38,7 +38,8 @@ folder (D-153).
 | `dossier.md` | the R1b-assemble step | the dossier (slice 03 §7.2) |
 | `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
 | `compile-record.json`, `compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` |
-| `guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide (slice 03 §8) |
+| `guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276) |
+| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate | its verdict (`gates.md`) |
 | `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged | the V4 full pass and re-check reports (`source-markers.md`) |
 
@@ -71,16 +72,27 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
 `build/plan/buildHash.js` (D-266). Each violation is one stderr line
 `check-run: [<rule>] <message>`.
 
-- **The artifacts.** This layout. The dossier's H2s; the guide's H2s, its `Checks` H3s, and its Leveling H3s
-  equal to the record's loadout names. Every marker resolves and parses as a C-30 tag. Offline, every price
-  is `unavailable` and no step priced. The guide's import code equals the record's (D-205), and every
-  finding open after the re-check is under `Known issues`, by id, its line's text the finding's `reader`
-  sentence (D-265), with every accepted gate finding, and no other line: no stale line from an earlier cycle,
-  and `None.` only when nothing is open or accepted. Every `unresolved` V4 finding has its `reader`. Every
-  campaign reward choice the campaign passes is picked, the same pick on every stage after it, the endgame
-  stages included, and the guide's Campaign rewards cites each pick (D-265). A V4 report superseded by one that
-  checked every claim again (a full re-check after a gate re-ran, or a revision's full pass) is held to the
-  artifact as it was: once a step wrote that artifact after it, its locations aren't checked.
+- **The artifacts.** This layout. The dossier's H2s. Every dossier and research marker resolves and parses
+  as a C-30 tag. Offline, every price is `unavailable` and no step priced.
+- **The reader layer** (D-276, D-283). The guide's 14 H2s in order, its `Checks` H3s, `What PoB can't show`
+  ending with the H3 `Known issues`, and its Leveling H3s equal to the record's loadout names. At most 3,000
+  words, a word being a run of non-space characters holding a letter or a digit, the H1, the import code and
+  the Known issues list not counted. No footnote marker (`[^`), confidence label (`confidence L`) or finding id
+  (`v4-prose-1`) anywhere outside the import code. The import code, the first fenced block of `Your PoB file`,
+  equals the record's (D-205). One fixed-form verdict line per endgame rung in `Survival by stage`, each number
+  equal to the record's value rounded at the written number's last significant digit ("2,740" matches 2,736):
+  the level, the four resistances, the physical max hit and its hit, the least other max hit and the largest
+  other hit, and the rolled-skill figure the D1 gate's verdict names. Every campaign reward choice the
+  campaign passes is picked, the same pick on every stage after it, the endgame stages included, and the
+  guide's `Campaign route and rewards` names each pick by its first line (D-265).
+- **The audit layer** (D-278). `audit.md` beside a current guide, with its six H2s in order.
+- **Known issues, by sentence** (D-265, D-276). Every finding open after the re-check is under the guide's
+  `Known issues` as its `reader` sentence, word for word, and in `audit.md`'s table as its row; every accepted
+  gate finding has its row (code, gate, plan stage) and its sentence in the guide; no other line or row: no
+  stale one from an earlier cycle, and `None.` only when nothing is open or accepted. Every `unresolved` V4
+  finding has its `reader`. A V4 report superseded by one that checked every claim again (a full re-check
+  after a gate re-ran, or a revision's full pass) is held to the artifact as it was: once a step wrote that
+  artifact after it, its locations aren't checked.
 - **The final record.** V1 and V2 pass for every stage, accepted findings aside. `sha1(plan.json)` equals the
   record's `planSha1`, unless claims-only owners (`claims-edited`, D-264) edited the plan after the final
   compile: then the record must still be that compile's (final, its PoB file the one the last D2 gate named),
@@ -89,7 +101,8 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   A record without `buildSha1` (from before D-266) is a violation only then. The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
   plan stage, titled by the record's loadout names (D-215). Every ledger entry, re-evaluated over the record
   by the server's evaluator, equals the record's value to 2 decimals.
-- **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor, the budget and the
+- **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor (at each rung's area
+  level, 69 for entering maps), the budgets (20 divines for the budget variant, 5 for entering maps) and the
   rolled skill, its figure's stat set equal to `skills.main.statSet`. The checker fails a verdict that
   differs from its own, and, once a guide exists, any failure no accepted finding covers.
 - **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;

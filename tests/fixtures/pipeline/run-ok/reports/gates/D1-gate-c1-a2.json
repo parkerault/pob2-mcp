@@ -16,12 +16,43 @@
       "code": "chaos-exception",
       "stage": "b",
       "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "m",
+      "message": "MissingChaosResist 65 on stage m, kept by its chaosResistException: no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs"
     }
   ],
   "basis": {
     "budget": {
       "rates": [],
       "slots": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "priceId": "m-weapon"
+        },
+        {
+          "stage": "m",
+          "slot": "Body Armour",
+          "priceId": "m-body"
+        },
+        {
+          "stage": "m",
+          "slot": "Helmet",
+          "priceId": "m-helmet"
+        },
+        {
+          "stage": "m",
+          "slot": "Boots",
+          "priceId": "m-boots"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 1",
+          "priceId": "m-ring1"
+        },
         {
           "stage": "b",
           "slot": "Weapon 1",
@@ -60,6 +91,10 @@
       ],
       "totals": [
         {
+          "stage": "m",
+          "divines": null
+        },
+        {
           "stage": "b",
           "divines": null
         }
@@ -73,6 +108,19 @@
       ]
     },
     "rolledSkill": [
+      {
+        "stage": "m",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
       {
         "stage": "b",
         "figures": [

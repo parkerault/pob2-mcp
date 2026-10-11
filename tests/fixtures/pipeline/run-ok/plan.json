@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "roll": {
     "className": "Warrior",
     "ascendancy": "Titan",
@@ -255,6 +255,288 @@
             "kind": "pob-data",
             "ref": "lookup_game_data gem \"Rolling Slam\"",
             "patch": "0.5.4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "m",
+      "loadoutName": "Entering maps (L65) {m}",
+      "level": 65,
+      "progress": "endgame",
+      "variant": "entering-maps",
+      "ascendancyPoints": 6,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a character that has finished the campaign and runs T1 to T5 maps sits near level 65",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the campaign's uncut gems reach level 16 by its end",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the campaign's trials grant six ascendancy points",
+          "confidence": "M"
+        }
+      },
+      "chaosResistException": {
+        "reason": "no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every affordable slot that can roll chaos resistance holds a fire, cold or lightning resistance the floor needs",
+          "confidence": "M"
+        }
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nKeen Spike\nWar Spear\n+40% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nWorn Shell\nRusted Cuirass\n+50 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nDull Crown\nIron Cap\n+40 to maximum Life\n+30% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nMud Track\nRough Greaves\n+20% increased Movement Speed\n+30% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nTwin Loop\nIron Ring\n+20% to Fire Resistance\n+20% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyPhysicalDamage",
+            "value": 299,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[69]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyFireDamage",
+            "value": 72,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[69]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyColdDamage",
+            "value": 72,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[69]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyLightningDamage",
+            "value": 72,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[69]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyChaosDamage",
+            "value": 72,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[69]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "m-floor",
+          "text": "The entering-maps rung's fire, cold and lightning resistances, as PoB computes them at the endgame penalty.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "m.MissingFireResist"
+          }
+        },
+        {
+          "id": "m-budget",
+          "text": "Players usually finish the campaign with 5 to 10 divines.",
+          "source": {
+            "kind": "external-unavailable",
+            "ref": "external source unavailable (offline run)",
+            "confidence": "M"
+          }
+        },
+        {
+          "id": "m-boots",
+          "text": "Buy the boots first: they carry the only lightning resistance on the rung.",
+          "source": {
+            "kind": "judgment",
+            "ref": "the boots are the rung's one lightning resistance",
+            "confidence": "M"
           }
         }
       ]
@@ -1236,6 +1518,190 @@
           }
         }
       ]
+    },
+    {
+      "id": "hit_m_physical",
+      "claim": "Stage m's waystone-scaled physical reference hit at area 69, at the top of each waystone damage modifier's range",
+      "formula": "base * (1 + increased / 100)",
+      "inputs": [
+        {
+          "name": "base",
+          "value": 240.39999389648,
+          "tag": {
+            "kind": "pob-data",
+            "ref": "Data/Misc.lua:9",
+            "patch": "0.5.4",
+            "confidence": "H"
+          }
+        },
+        {
+          "name": "increased",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hit_m_fire",
+      "claim": "Stage m's waystone-scaled fire reference hit at area 69, at the top of each waystone damage modifier's range",
+      "formula": "base * (1 + increased / 100) * extra / 100",
+      "inputs": [
+        {
+          "name": "base",
+          "value": 240.39999389648,
+          "tag": {
+            "kind": "pob-data",
+            "ref": "Data/Misc.lua:9",
+            "patch": "0.5.4",
+            "confidence": "H"
+          }
+        },
+        {
+          "name": "increased",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        },
+        {
+          "name": "extra",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hit_m_cold",
+      "claim": "Stage m's waystone-scaled cold reference hit at area 69, at the top of each waystone damage modifier's range",
+      "formula": "base * (1 + increased / 100) * extra / 100",
+      "inputs": [
+        {
+          "name": "base",
+          "value": 240.39999389648,
+          "tag": {
+            "kind": "pob-data",
+            "ref": "Data/Misc.lua:9",
+            "patch": "0.5.4",
+            "confidence": "H"
+          }
+        },
+        {
+          "name": "increased",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        },
+        {
+          "name": "extra",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hit_m_lightning",
+      "claim": "Stage m's waystone-scaled lightning reference hit at area 69, at the top of each waystone damage modifier's range",
+      "formula": "base * (1 + increased / 100) * extra / 100",
+      "inputs": [
+        {
+          "name": "base",
+          "value": 240.39999389648,
+          "tag": {
+            "kind": "pob-data",
+            "ref": "Data/Misc.lua:9",
+            "patch": "0.5.4",
+            "confidence": "H"
+          }
+        },
+        {
+          "name": "increased",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        },
+        {
+          "name": "extra",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hit_m_chaos",
+      "claim": "Stage m's waystone-scaled chaos reference hit at area 69, at the top of each waystone damage modifier's range",
+      "formula": "base * (1 + increased / 100) * extra / 100",
+      "inputs": [
+        {
+          "name": "base",
+          "value": 240.39999389648,
+          "tag": {
+            "kind": "pob-data",
+            "ref": "Data/Misc.lua:9",
+            "patch": "0.5.4",
+            "confidence": "H"
+          }
+        },
+        {
+          "name": "increased",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        },
+        {
+          "name": "extra",
+          "value": 24,
+          "tag": {
+            "kind": "external",
+            "ref": "https://poe2db.tw/us/Waystones",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        }
+      ]
     }
   ],
   "prices": [
@@ -1500,6 +1966,111 @@
             "option": "online"
           },
           "type": "non-budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-weapon",
+      "item": "entering-maps Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-body",
+      "item": "entering-maps Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-helmet",
+      "item": "entering-maps Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-boots",
+      "item": "entering-maps Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-ring1",
+      "item": "entering-maps Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Ring 1"
         },
         "sort": {
           "price": "asc"

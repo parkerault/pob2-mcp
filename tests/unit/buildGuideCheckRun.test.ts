@@ -12,6 +12,10 @@
  *   harness tests (the accepted cost of S1), each with a violating copy: steps in a legal order; the caps
  *   (R1b at most 3 counted attempts, each gate at most 2 counted retries, S6 honoured); one full V4 pass and at
  *   most one re-check per cycle; escalations only from the gates; the rule on pre-supplied and default answers.
+ * - Amendment 2's guards (WU-62, D-276…D-283): the reader layer's 14 H2s (b), the 3,000-word cap (v), no
+ *   marker, confidence label or finding id in guide.md (w), one fixed-form verdict line per endgame rung
+ *   matched to the record (x), the entering-maps rung's floor and 5-divine budget (y), audit.md's H2s (z),
+ *   Known issues by sentence with the ids in audit.md (l), and reward picks by name.
  *
  * Check (t) loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
  */
@@ -80,6 +84,16 @@ function editPlan(dir: string, edit: (p: Json) => void): void {
 }
 const editLog = (dir: string, edit: (l: Json) => void) => editJson(dir, 'run-log.json', edit);
 const stageB = (plan: Json) => plan.stages.find((s: Json) => s.id === 'b');
+const stageM = (plan: Json) => plan.stages.find((s: Json) => s.id === 'm');
+/** run-ok's open prose finding's reader sentence: the guide's one Known issues line, and its audit.md row's sentence. */
+const PROSE_READER = 'The How to play it section is wrong to call Rolling Slam your clear skill: Blood Hunt does the clearing damage, so lead packs with Blood Hunt.';
+/** The head of audit.md's Known issues table (§7.8). */
+const AUDIT_KI_HEAD = '| Id | Lens or gate | Stage | Sentence in the guide |\n|---|---|---|---|\n';
+/** Replaces run-ok's one open finding in both Known issues lists with `None.`, as step 14 does when nothing is open. */
+function noneOpen(dir: string): void {
+  editText(dir, 'guide.md', replace(`- ${PROSE_READER}\n`, 'None.\n'));
+  editText(dir, 'audit.md', (t) => t.replace(/\| Id \|[^\n]*\n\|---[^\n]*\n\| v4-prose-1 \|[^\n]*\n/, 'None.\n'));
+}
 const step = (stage: string, concept: string | null, attempt: number, outcome: string, extra: Json = {}) => ({ stage, ...(concept ? { concept } : {}), attempt, outcome, ...extra });
 
 function passes(dir: string): void {
@@ -127,9 +141,10 @@ describe('AC-W2: the passing fixtures, in the slim shape (amendment 1 §4)', () 
     ]);
     expect(readJson(dir, 'reports/v4-prose-recheck.json').findings).toEqual([expect.objectContaining({ id: 'v4-prose-1', status: 'unresolved' })]);
     const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
-    // D-265 (d): the runner writes it at step 14 as the finding's reader sentence, then the id in parentheses.
+    // D-276: the runner writes it at step 14 as the finding's reader sentence alone; its id goes to audit.md.
     const reader = readJson(dir, 'reports/v4-prose-recheck.json').findings[0].reader;
-    expect(guide).toContain(`### Known issues\n\n- ${reader} (v4-prose-1)\n`);
+    expect(guide).toContain(`### Known issues\n\n- ${reader}\n`);
+    expect(fs.readFileSync(path.join(dir, 'audit.md'), 'utf8')).toContain(`| v4-prose-1 | prose | — | ${reader} |`);
   });
 
   it('run-ok is an offline run with an endgame stage whose chaos resistance stays uncapped by its exception, stated in the guide (D-234)', () => {
@@ -144,21 +159,23 @@ describe('AC-W2: the passing fixtures, in the slim shape (amendment 1 §4)', () 
     expect(guide).toContain(b.chaosResistException.reason);
   });
 
-  it('run-ok-online is an online run with ok prices totalling over 20 and at most 22 divines, the near-the-ceiling note, and its priced steps\' priceOutcomes (D-219, Q5)', () => {
+  it('run-ok-online is an online run with ok prices, the budget variant over 20 and at most 22 divines with the near-the-ceiling note, the entering-maps rung within 5, and its priced steps\' priceOutcomes (D-219, D-281, Q5)', () => {
     const dir = path.join(FIXTURES, 'run-ok-online');
     const plan = readJson(dir, 'plan.json');
     const gate = readJson(dir, 'reports/gates/D1-gate-c1-a1.json');
     const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
     const rates = new Map<string, number>(gate.basis.budget.rates.map((r: Json) => [r.currency, r.divines]));
     const prices = new Map<string, Json>(plan.prices.map((p: Json) => [p.id, p]));
-    const total = gate.basis.budget.slots.reduce((sum: number, s: Json) => {
+    const total = (stage: string) => gate.basis.budget.slots.filter((s: Json) => s.stage === stage).reduce((sum: number, s: Json) => {
       const p = prices.get(s.priceId)!;
       expect(p.status).toBe('ok');
       return sum + p.amount * rates.get(p.currency)!;
     }, 0);
-    expect(total).toBeGreaterThan(20);
-    expect(total).toBeLessThanOrEqual(22);
+    expect(total('b')).toBeGreaterThan(20);
+    expect(total('b')).toBeLessThanOrEqual(22);
     expect(guide).toContain('near the ceiling');
+    expect(total('m')).toBeGreaterThan(0);
+    expect(total('m')).toBeLessThanOrEqual(5);
     const log = readJson(dir, 'run-log.json');
     expect(log.stages.find((s: Json) => s.stage === 'D1').priceOutcomes).toEqual({ ok: 13, would_wait: 1 });
   });
@@ -186,6 +203,20 @@ describe('AC-W2: the passing fixtures, in the slim shape (amendment 1 §4)', () 
       // PoB types these options countAllowZero, and the bridge refuses a fraction.
       const hits = (JSON.parse(text).stages as Json[]).flatMap((s) => (s.config.scenario as Json[]).filter((o) => /^enemy\w+Damage$/.test(o.option)));
       for (const o of hits) expect({ plan: path.relative(FIXTURES, p), option: o.option, whole: Number.isInteger(o.value) }).toEqual({ plan: path.relative(FIXTURES, p), option: o.option, whole: true });
+    }
+  });
+
+  it('run-ok and run-ok-online are schema-2 plans whose ladder starts at the entering-maps rung m, with audit.md beside the guide (D-278, D-281)', () => {
+    for (const run of ['run-ok', 'run-ok-online']) {
+      const dir = path.join(FIXTURES, run);
+      const plan = readJson(dir, 'plan.json');
+      expect({ run, version: plan.schemaVersion }).toEqual({ run, version: 2 });
+      expect((plan.stages as Json[]).filter((s) => s.variant !== undefined).map((s) => `${s.id}:${s.variant}`)).toEqual(['m:entering-maps', 'b:budget', 'n:non-budget']);
+      // The rung is gated at area level 69 (T5): its hits cite the damage there, through the ledger entries hit_m_<type>.
+      const m = (plan.stages as Json[]).find((s) => s.id === 'm')!;
+      for (const o of (m.config.scenario as Json[]).filter((x) => /^enemy\w+Damage$/.test(x.option))) expect(o.source.key).toBe('damage.by-level[69]');
+      expect((plan.prices as Json[]).filter((x) => x.id.startsWith('m-')).length).toBe(m.items.slots.length);
+      expect(fs.existsSync(path.join(dir, 'audit.md'))).toBe(true);
     }
   });
 
@@ -247,30 +278,33 @@ const broken: BrokenCase[] = [
   { name: '(a) a stray file in the run folder', fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'gen.py'), ''), rule: 'layout', says: /gen\.py isn't part of the run-folder layout/ },
   { name: "(a) a report named the old way (V3, or a V4 report with a pass number)", fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'reports', 'v3-c1-p1.json'), '{}'), rule: 'layout', says: /reports\/v3-c1-p1\.json isn't named v4-<lens>\.json or v4-<lens>-recheck\.json/ },
   // (b)
-  { name: '(b) a §8 H2 is missing', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Rotation\n', '')), rule: 'guide-sections', says: /missing \["Rotation"\]/ },
+  { name: '(b) one of the reader layer\'s 14 H2s is missing (D-276)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## How to play it\n', '')), rule: 'guide-sections', says: /missing \["How to play it"\]/ },
   {
-    name: '(b) §8 H2s out of order',
+    name: '(b) the reader layer\'s H2s out of order',
     fixture: 'run-ok',
-    edit: (d) => editText(d, 'guide.md', (t) => t.replace('## Summary', '## @@').replace('## How it works', '## Summary').replace('## @@', '## How it works')),
+    edit: (d) => editText(d, 'guide.md', (t) => t.replace('## Priorities', '## @@').replace('## Gem and ascendancy timing', '## Priorities').replace('## @@', '## Gem and ascendancy timing')),
     rule: 'guide-sections',
     says: /out of order/,
   },
+  { name: '(b) an old-style H2 the reader layer dropped (Sources)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Changelog\n', '## Sources\n\n## Changelog\n')), rule: 'guide-sections', says: /unexpected \["Sources"\]/ },
+  { name: "(b) What PoB can't show doesn't end with the H3 Known issues", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('### Known issues\n', '### Known issues\n\n### Later\n')), rule: 'guide-sections', says: /"What PoB can't show" doesn't end with the H3 "Known issues"/ },
   // (c)
   { name: "(c) a Leveling H3 differs from the record's loadout name", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('### Act 2 (L30) {2}', '### Act 2 (L31) {2}')), rule: 'leveling', says: /Leveling H3s are .*"Act 2 \(L31\) \{2\}".*the record's campaign loadouts.*"Act 2 \(L30\) \{2\}"/ },
   // (d)
-  { name: '(d) a marker has no definition', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Rolling Slam clears.[^g1]', 'Rolling Slam clears.[^g1][^nope]')), rule: 'markers', says: /marker \[\^nope\] has no definition/ },
-  { name: '(d) a price definition names no prices[] entry', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('[^g6]: price | b-helmet', '[^g6]: price | no-such-price')), rule: 'markers', says: /price "no-such-price" names no prices\[\] entry/ },
-  { name: '(d) a ledger definition names no ledger entry', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('[^g7]: ledger | ttk_arbiter', '[^g7]: ledger | no_such_entry')), rule: 'markers', says: /ledger "no_such_entry" names no ledger entry/ },
-  { name: '(d) a data definition names no C1/E1 fact', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('#resistance-penalty.act2', '#resistance-penalty.act9')), rule: 'markers', says: /names no C1\/E1 fact/ },
+  // D-276: guide.md carries no markers; the dossier and the research files keep theirs, and the plan's claims carry the guide's sources.
+  { name: '(d) a dossier marker has no definition', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('for extra damage.[^d1]', 'for extra damage.[^d1][^nope]')), rule: 'markers', says: /dossier\.md:\d+: marker \[\^nope\] has no definition/ },
+  { name: '(d) a price definition names no prices[] entry', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('[^d4]: price | c1-weapon', '[^d4]: price | no-such-price')), rule: 'markers', says: /price "no-such-price" names no prices\[\] entry/ },
+  { name: '(d) a ledger definition names no ledger entry', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('[^d3]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^d3]: ledger | no_such_entry')), rule: 'markers', says: /ledger "no_such_entry" names no ledger entry/ },
+  { name: '(d) a data definition names no C1/E1 fact', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('[^d3]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^d3]: data | campaign/limits.json#resistance-penalty.act9')), rule: 'markers', says: /names no C1\/E1 fact/ },
   // (e)
-  { name: '(e) an external tag has no accessed', fixture: 'run-ok-online', edit: (d) => editText(d, 'guide.md', replace('blood-hunt-titan | accessed: 2026-10-08 |', 'blood-hunt-titan |')), rule: 'source-tags', says: /an external tag has no accessed date/ },
+  { name: "(e) an external tag has no accessed (a plan claim's)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => delete stageB(p).claims.find((c: Json) => c.id === 'b-meta').source.accessed), rule: 'source-tags', says: /an external tag has no accessed date/ },
   // (f)
-  { name: '(f) a judgment tag has no confidence', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('no Blood Loss stack option | confidence: L', 'no Blood Loss stack option')), rule: 'source-tags', says: /a judgment tag has no confidence/ },
+  { name: "(f) a judgment tag has no confidence (a plan claim's)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageM(p).claims.find((c: Json) => c.id === 'm-boots').source.confidence), rule: 'source-tags', says: /a judgment tag has no confidence/ },
   // (g)
   {
     name: '(g) an external-unavailable tag in an online run',
     fixture: 'run-ok-online',
-    edit: (d) => editText(d, 'guide.md', replace('[^g10]: judgment | PoB has no Blood Loss stack option | confidence: L', '[^g10]: external-unavailable | external source unavailable (offline run) | confidence: L')),
+    edit: (d) => editPlan(d, (p) => (stageM(p).claims.find((c: Json) => c.id === 'm-budget').source = { kind: 'external-unavailable', ref: 'external source unavailable (offline run)', confidence: 'M' })),
     rule: 'offline-tag',
     says: /external-unavailable tag in a "online" run/,
   },
@@ -292,7 +326,8 @@ const broken: BrokenCase[] = [
   },
   { name: '(k) an offline run has a price call (priceOutcomes, Q5)', fixture: 'run-ok', edit: (d) => editLog(d, (l) => (l.stages.find((s: Json) => s.stage === 'D1').priceOutcomes = { ok: 1 })), rule: 'offline-prices', says: /an offline run made 1 price call/ },
   // (l)
-  { name: '(l) a finding open after the re-check is missing from Known issues', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n')), rule: 'known-issues', says: /V4 prose finding "v4-prose-1" .* is open after the re-check, but guide\.md's Known issues doesn't list it/ },
+  { name: "(l) a finding open after the re-check is missing from the guide's Known issues (by sentence)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, 'None.\n')), rule: 'known-issues', says: /V4 prose finding "v4-prose-1" .* is open after the re-check, but guide\.md's Known issues doesn't list its reader sentence, word for word/ },
+  { name: "(l) an open finding's id is missing from audit.md's Known issues", fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace(`| v4-prose-1 | prose | — | ${PROSE_READER} |\n`, '')), rule: 'known-issues', says: /V4 prose finding "v4-prose-1" .* is open after the re-check, but audit\.md's Known issues has no row "\| v4-prose-1 \| prose \| — \| <its reader sentence> \|"/ },
   // (n)
   { name: '(n) a V4 finding misses a field', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources.json', (r) => delete r.findings[0].evidence), rule: 'report-shape', says: /v4-sources\.json: findings\[0\] has no evidence/ },
   { name: '(n) verdict pass alongside an unresolved finding', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources.json', (r) => (r.findings[0].status = 'unresolved')), rule: 'report-shape', says: /says verdict "pass" alongside 1 unresolved finding/ },
@@ -301,7 +336,7 @@ const broken: BrokenCase[] = [
   // (o)
   { name: '(o) floor: pass, but the record has MissingColdResist above 0', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*MissingColdResist is 5/ },
   { name: '(o) MissingChaosResist above 0 and the chaosResistException removed (D-234)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).chaosResistException), rule: 'floor', says: /MissingChaosResist is 47 and it has no chaosResistException/ },
-  { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /no line of the guide's "Endgame: budget variant" Checks states its full reason .* with the uncapped value 28% \(D-234\)/ },
+  { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /no line of the guide's "Endgame: budget" Checks states its full reason .* with the uncapped value 28% \(D-234\)/ },
   { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% (47% under its cap) because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
   { name: '(o) an endgame stage lacks its waystone-scaled chaos reference hit (D-254)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).config.scenario = stageB(p).config.scenario.filter((o: Json) => o.option !== 'enemyChaosDamage'))), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b has no waystone-scaled Chaos reference hit \(enemyChaosDamage\)/ },
   { name: "(o) a reference hit isn't the ceiling of its ledger entry's value (D-254, D-256)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 324.19000244141)), rule: 'floor', says: /stage b's enemyPhysicalDamage 402 isn't 325, the ceiling of its ledger entry hit_b_physical's value 324\.19000244141 rounded to 2 decimals \(D-256\)/ },
@@ -320,14 +355,38 @@ const broken: BrokenCase[] = [
   // (s)
   { name: "(s) the import code isn't the PoB file's (its sha1 differs from the record's pobFile)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.pobFile.sha1 = 'a9993e364706816aba3e25717850c26c9cd0d89d')), rule: 'pob-file', says: /the decoded importCode's sha1 is [0-9a-f]{40}, but the record's PoB file "titan-blood-hunt-2026-10-08-1\.xml" has sha1 "a9993e36/ },
   { name: "(s) the import code doesn't decode", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.importCode = 'eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001')), rule: 'pob-file', says: /importCode doesn't decode as a PoB code/ },
-  { name: '(s) the loadout count differs from the plan stages: one tree set missing (D-215)', fixture: 'run-ok', edit: (d) => recode(d, specs(['Act 1 (L8) {1}', 'Act 2 (L30) {2}', 'Endgame budget (L90) {b}'])), rule: 'pob-file', says: /holds 3 tree set\(s\), but the record compiled 4 stage\(s\); the file holds one loadout per stage \(D-215\)/ },
-  { name: "(s) a tree set isn't titled by its stage's loadout name (a Default left behind)", fixture: 'run-ok', edit: (d) => recode(d, specs(['Default', 'Act 2 (L30) {2}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}'])), rule: 'pob-file', says: /tree sets are titled \["Default",.*the record's loadout names, in plan order, are \["Act 1 \(L8\) \{1\}"/ },
+  { name: '(s) the loadout count differs from the plan stages: one tree set missing (D-215)', fixture: 'run-ok', edit: (d) => recode(d, specs(['Act 1 (L8) {1}', 'Act 2 (L30) {2}', 'Entering maps (L65) {m}', 'Endgame budget (L90) {b}'])), rule: 'pob-file', says: /holds 4 tree set\(s\), but the record compiled 5 stage\(s\); the file holds one loadout per stage \(D-215\)/ },
+  { name: "(s) a tree set isn't titled by its stage's loadout name (a Default left behind)", fixture: 'run-ok', edit: (d) => recode(d, specs(['Default', 'Act 2 (L30) {2}', 'Entering maps (L65) {m}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}'])), rule: 'pob-file', says: /tree sets are titled \["Default",.*the record's loadout names, in plan order, are \["Act 1 \(L8\) \{1\}"/ },
   // (t)
   { name: "(t) a ledger entry doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.ttk_arbiter.value = 161)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 160, but the final record has 161 \(compared to 2 decimals\)/ },
   { name: "(t) a doubled ledger formula (FI-4's edit) doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 320, but the final record has 160/ },
   // (u)
   { name: "(u) the rolled figure's stat set isn't skills.main.statSet (S7)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.main.statSet = 2)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's rolled figure g1s1p1\.TotalDPS isn't the main skill's stat set g1s1p2 \(skills\.main\)/ },
   { name: '(u) an endgame stage sets no skills.main.statSet (S7)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).skills.main.statSet), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b sets no skills\.main\.statSet/ },
+  // (v), amendment 2 (D-283)
+  { name: '(v) guide.md over 3,000 words', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Changelog\n', `${'word '.repeat(3000)}\n\n## Changelog\n`)), rule: 'word-cap', says: /guide\.md has \d+ words, over the 3000-word cap \(the H1, the import code and the Known issues list not counted/ },
+  // (w)
+  { name: '(w) a footnote marker in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('one button for rares;', 'one button for rares;[^g1]')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
+  { name: '(w) a confidence label in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('I read it as a ceiling.', 'I read it as a ceiling (confidence L).')), rule: 'guide-markers', says: /carries the confidence label "confidence L"/ },
+  { name: '(w) a finding id in guide.md (the old Known issues form)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, `- ${PROSE_READER} (v4-prose-1)\n`)), rule: 'guide-markers', says: /carries the finding id "v4-prose-1"/ },
+  // (x)
+  { name: "(x) a rung's verdict line is missing", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', (t) => t.replace(/- \*\*Budget \(L90\)[^\n]*\n/, '')), rule: 'verdict-line', says: /"Survival by stage" has no verdict line for the Budget rung, stage b/ },
+  { name: '(x) a verdict line not in the fixed form', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('75/75/75/28% at −60%.', '75/75/75/28% at the endgame penalty.')), rule: 'verdict-line', says: /the Budget verdict line isn't in the fixed form/ },
+  { name: "(x) a verdict line's level differs from the stage's", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('**Budget (L90): solid.**', '**Budget (L91): solid.**')), rule: 'verdict-line', says: /the Budget verdict line says level 91, but stage b's level is 90/ },
+  { name: "(x) a verdict line's resistance is wrong", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('75/75/75/28%', '75/75/75/29%')), rule: 'verdict-line', says: /the Budget verdict line says chaos resistance 29, but b\.ChaosResist is 28/ },
+  { name: "(x) a verdict line's max hit is wrong", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Max hit 5,100 physical', 'Max hit 6,100 physical')), rule: 'verdict-line', says: /the Budget verdict line says physical max hit 6,100, but b\.PhysicalMaximumHitTaken is 5100/ },
+  { name: "(x) a verdict line's other max hit is the largest, not the least", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('at least 3,000 elemental', 'at least 9,800 elemental')), rule: 'verdict-line', says: /says elemental or chaos max hit 9,800, but the least of b's FireMaximumHitTaken, ColdMaximumHitTaken, LightningMaximumHitTaken, ChaosMaximumHitTaken is 3000/ },
+  { name: "(x) a verdict line's hit is mis-rounded", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 400,', 'physical against about 410,')), rule: 'verdict-line', says: /the Budget verdict line says physical hit 410, but the ledger's hit_b_physical is 401\.99/ },
+  { name: "(x) a verdict line quotes the scenario's whole number, not its ledger hit rounded", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 300,', 'physical against about 299,')), rule: 'verdict-line', says: /the Entering maps verdict line says physical hit 299, but the ledger's hit_m_physical is 298\.09/ },
+  { name: "(x) a verdict line's DPS isn't the D1 gate's rolled figure", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but the rolled-skill figure b\.g1s1p1\.TotalDPS is 50000/ },
+  // (y)
+  { name: "(y) the entering-maps rung's budget above 5.5 divines", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 3.2)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage m totals 5\.6 divines, above 5\.5 \(D-281\)/ },
+  { name: '(y) the entering-maps rung above 5 divines without "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 2.8)), rule: 'budget', says: /entering-maps stage m totals 5\.2 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/ },
+  { name: "(y) the entering-maps rung's floor: a resistance below its cap", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*stage m MissingColdResist is 5/ },
+  { name: "(y) the entering-maps rung's floor: a hit cited at another area level than 69 (D-327)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageM(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').source.key = 'damage.by-level[79]')), rule: 'floor', says: /stage m's enemyFireDamage cites "enemies\/map-monsters\.json#damage\.by-level\[79\]"; the entering-maps variant's area level is 69/ },
+  // (z)
+  { name: '(z) audit.md is missing one of its H2s', fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace('## Run notes\n', '')), rule: 'audit-sections', says: /audit\.md's H2s are missing \["Run notes"\]/ },
+  { name: '(z) audit.md is missing beside a current guide', fixture: 'run-ok', edit: (d) => fs.rmSync(path.join(d, 'audit.md')), rule: 'audit-sections', says: /guide\.md exists, but audit\.md doesn't/ },
 ];
 
 describe('AC-W2: each broken copy exits non-zero, naming the broken rule', () => {
@@ -349,11 +408,116 @@ describe('AC-W2: each broken copy exits non-zero, naming the broken rule', () =>
 });
 
 // ---------------------------------------------------------------------------------------------------
+// Amendment 2's guards (WU-62): the word cap, the verdict line's rounding rule, the entering-maps rung
+// ---------------------------------------------------------------------------------------------------
+
+/** D-283's word: a run of non-space characters that holds a letter or a digit. */
+const wordsIn = (text: string) => text.split(/\s+/).filter((t) => /[\p{L}\p{N}]/u.test(t)).length;
+
+describe('D-283: the guide has at most 3,000 words, the H1, the import code and the Known issues list not counted (v)', () => {
+  /** run-ok's guide padded with filler words in its FAQ until the counted words reach `total`. */
+  const padTo = (total: number) => {
+    const dir = copyOf('run-ok');
+    const text = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
+    const lines = text.split('\n');
+    const code = text.indexOf('```\n') >= 0 ? /```\n([^\n]*)\n```/.exec(text)![1] : '';
+    const counted = lines.filter((l) => !l.startsWith('# ') && l !== code && l !== `- ${PROSE_READER}`).join('\n');
+    const pad = total - wordsIn(counted);
+    expect(pad).toBeGreaterThan(0);
+    editText(dir, 'guide.md', replace('## Changelog\n', `${'filler '.repeat(pad)}\n\n## Changelog\n`));
+    return dir;
+  };
+
+  it('passes a guide of exactly 3,000 counted words, and fails one word more', () => {
+    passes(padTo(3000));
+    expect(failing(padTo(3001))).toMatch(/\[word-cap\] guide\.md has 3001 words, over the 3000-word cap/);
+  });
+});
+
+describe("D-283: the verdict line's numbers match the record by the rounding rule (x)", () => {
+  it('matches a number at its own last significant digit: "5,100" matches 5,136 but not 5,150; "about 400" matches 401.996', () => {
+    const near = copyOf('run-ok');
+    editJson(near, 'compile-record.json', (r) => (r.stages.b.outputs.PhysicalMaximumHitTaken = 5136));
+    passes(near);
+    const off = copyOf('run-ok');
+    editJson(off, 'compile-record.json', (r) => (r.stages.b.outputs.PhysicalMaximumHitTaken = 5150));
+    expect(failing(off)).toMatch(/\[verdict-line\] guide\.md:\d+: the Budget verdict line says physical max hit 5,100, but b\.PhysicalMaximumHitTaken is 5150/);
+    // The fixture's budget hit: the ledger value 401.9956…, written "about 400".
+    expect(readJson(path.join(FIXTURES, 'run-ok'), 'compile-record.json').ledger.hit_b_physical.value).toBeCloseTo(401.9956, 4);
+    expect(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'guide.md'), 'utf8')).toContain('Max hit 5,100 physical against about 400,');
+  });
+
+  it("fails a verdict line for a rung the plan doesn't have, and a rung with two lines", () => {
+    const extra = copyOf('run-ok');
+    editPlan(extra, (p) => (p.stages = p.stages.filter((s: Json) => s.id !== 'm')));
+    expect(failing(extra)).toMatch(/\[verdict-line\] guide\.md's "Survival by stage" has a verdict line for the Entering maps rung, but the plan has no such rung/);
+    const twice = copyOf('run-ok');
+    editText(twice, 'guide.md', (t) => t.replace(/(- \*\*Budget \(L90\)[^\n]*\n)/, '$1$1'));
+    expect(failing(twice)).toMatch(/\[verdict-line\] guide\.md's "Survival by stage" has 2 verdict lines for the Budget rung; one per rung/);
+  });
+});
+
+describe("D-281: the entering-maps rung m is gated like b: its floor at area 69, its budget 5 divines (5.5 with \"near the ceiling\")", () => {
+  const withWeapon = (amount: number) => {
+    const dir = copyOf('run-ok-online');
+    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = amount));
+    return dir;
+  };
+  const note = (dir: string) => editText(dir, 'guide.md', replace('- Budget: 4.4 divines against the 5-divine ceiling.', '- Budget: 5.5 divines against 5, near the ceiling: within the 5.5-divine tolerance.'));
+
+  it('passes up to 5, and up to 5.5 with "near the ceiling" in its Checks; above 5.5 fails', () => {
+    passes(withWeapon(2.6)); // 5.0 divines
+    const near = withWeapon(3.1); // 5.5 divines
+    expect(failing(near)).toMatch(/\[budget\] entering-maps stage m totals 5\.5 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/);
+    note(near);
+    passes(near);
+    const over = withWeapon(3.11); // 5.51 divines
+    note(over);
+    expect(failing(over)).toMatch(/\[budget\] .*stage m totals 5\.51 divines, above 5\.5 \(D-281\)/);
+  });
+
+  it("is unverified offline, which doesn't fail the gate (run-ok)", () => {
+    const plan = readJson(path.join(FIXTURES, 'run-ok'), 'plan.json');
+    expect((plan.prices as Json[]).filter((p) => p.id.startsWith('m-')).every((p) => p.status === 'unavailable')).toBe(true);
+    passes(copyOf('run-ok'));
+  });
+
+  it("holds m's chaos exception to one line of its own Checks (D-234)", () => {
+    const dir = copyOf('run-ok');
+    editText(dir, 'guide.md', replace('Chaos resistance stays at 10% because', 'Chaos resistance stays low because'));
+    expect(failing(dir)).toMatch(/\[floor\] stage m keeps chaos resistance uncapped by its exception, but no line of the guide's "Endgame: entering maps" Checks states its full reason .* with the uncapped value 10% \(D-234\)/);
+  });
+
+  it('FI-2 breaks the first rung of the ladder, m, wherever the plan lists it: its attempt-1 failure there runs free', () => {
+    const dir = copyOf('run-ok');
+    // The plan lists b before m; the ladder still starts at m (D-282), and FI-2's finding is on m.
+    editPlan(dir, (p) => {
+      const m = p.stages.splice(p.stages.findIndex((s: Json) => s.id === 'm'), 1)[0];
+      p.stages.splice(p.stages.findIndex((s: Json) => s.id === 'b') + 1, 0, m);
+    });
+    // The sources lens's accepted-offline locations follow the claims to their new stage indices.
+    editJson(dir, 'reports/v4-sources.json', (r) => {
+      r.findings[0].location = 'stages[2].claims[5]';
+      r.findings[1].location = 'stages[3].claims[1]';
+    });
+    const tree = { part: 'v1', code: 'tree-disconnected', stage: 'n', message: 'stage n: node 123 not connected' };
+    for (const a of [2, 3]) d1Verdict(dir, a, tree);
+    d1Verdict(dir, 4, null);
+    editLog(dir, (l) => {
+      const i = l.stages.findIndex((s: Json) => s.stage === 'D1-gate' && s.attempt === 2);
+      l.stages.splice(i, 1, step('D1-gate', 'c1', 2, 'fail'), step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'fail'), step('D1', 'c1', 4, 'done'), step('D1-gate', 'c1', 4, 'pass'));
+    });
+    // Attempt 1 is free, so attempts 2 and 3 are the chain's 2 counted retries.
+    passes(dir);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
 // Known issues (S2, Q1): what is open after the re-check
 // ---------------------------------------------------------------------------------------------------
 
-describe('S2, Q1: every finding open after the re-check is listed under Known issues', () => {
-  const dropListing = (dir: string) => editText(dir, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+describe('S2, Q1, D-276: every finding open after the re-check is listed under Known issues, by sentence, with its id in audit.md', () => {
+  const dropListing = noneOpen;
 
   it('needs no listing for a finding the re-check reports fixed', () => {
     const dir = copyOf('run-ok');
@@ -371,7 +535,7 @@ describe('S2, Q1: every finding open after the re-check is listed under Known is
       r.findings = [{ ...r.findings[0], id: 'v4-prose-2', location: 'Summary, line 13' }];
     });
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[known-issues\] V4 prose finding "v4-prose-2" .*is open after the re-check/);
+    expect(stderr).toMatch(/\[known-issues\] V4 prose finding "v4-prose-2" .*is open after the re-check, but audit\.md's Known issues has no row/);
     expect(stderr).not.toMatch(/"v4-prose-1"/);
     dropListing(dir);
     expect(failing(dir)).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1"/);
@@ -386,8 +550,16 @@ describe('S2, Q1: every finding open after the re-check is listed under Known is
 
   it('fails when the guide has no Known issues H3 at all', () => {
     const dir = copyOf('run-ok');
-    editText(dir, 'guide.md', (t) => t.replace(/### Known issues\n\n- [^\n]*\(v4-prose-1\)\n/, ''));
-    expect(failing(dir)).toMatch(/\[known-issues\] 0 accepted gate finding\(s\) and 1 open V4 finding\(s\), but guide\.md has no "Known issues" H3 under "Confidence and what PoB can't model"/);
+    editText(dir, 'guide.md', replace(`### Known issues\n\n- ${PROSE_READER}\n`, ''));
+    expect(failing(dir)).toMatch(/\[known-issues\] 0 accepted gate finding\(s\) and 1 open V4 finding\(s\), but guide\.md has no "Known issues" H3 under "What PoB can't show"/);
+  });
+
+  it("fails an audit.md row whose sentence isn't the finding's reader sentence, or whose lens is another", () => {
+    const dir = copyOf('run-ok');
+    editText(dir, 'audit.md', replace(`| v4-prose-1 | prose | — | ${PROSE_READER} |`, '| v4-prose-1 | sources | — | Rotation is wrong. |'));
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-prose-1" names "sources", not its lens prose/);
+    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-prose-1" gives "Rotation is wrong\.", not the finding's reader sentence/);
   });
 });
 
@@ -399,12 +571,14 @@ describe('C-30, §7.4: accepted-offline is only the sources lens\'s word on a cl
   });
 
   it('fails a sources finding accepted-offline whose location names no external-unavailable claim', () => {
-    for (const [location, why] of [
-      ['guide.md [^g1]', /names a [a-z-]+ claim/],
-      ['Summary, line 3', /names no claim/],
+    for (const [artifact, location, why] of [
+      ['plan.json', 'stages[3].claims[0]', /names a pob-computed claim/],
+      ['plan.json', 'Summary, line 3', /names no claim/],
+      // D-276: the guide carries no markers, so the sources lens has no guide side: no guide location is a claim.
+      ['guide.md', 'guide.md [^g9]', /names no claim/],
     ] as const) {
       const dir = copyOf('run-ok');
-      editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[1].location = location));
+      editJson(dir, 'reports/v4-sources.json', (r) => Object.assign(r.findings[1], { artifact, location }));
       const stderr = failing(dir);
       expect(stderr).toMatch(/\[report-shape\] reports\/v4-sources\.json: findings\[1\] is accepted-offline/);
       expect(stderr).toMatch(why);
@@ -421,9 +595,10 @@ const lastD1 = 'reports/gates/D1-gate-c1-a2.json';
 /**
  * run-ok whose D1 gate escalated on `finding` instead of passing at attempt 2: attempt 1 failed free (FI-2,
  * attempt 1 only), attempts 2 and 3 failed counted, attempt 4 escalated, and the user accepted it. With
- * `listing`, the guide's Known issues lists it.
+ * `listing`, the guide's Known issues prints that sentence, and audit.md's table holds the finding's row (D-276):
+ * `row` overrides the row's id, gate and stage cells.
  */
-function acceptedRun(finding: Json, listing: string | null, choice = 'accept'): string {
+function acceptedRun(finding: Json, listing: string | null, choice = 'accept', row: string | null = null): string {
   const dir = copyOf('run-ok');
   const passing = readJson(dir, lastD1);
   for (const a of [2, 3, 4]) writeJson(dir, `reports/gates/D1-gate-c1-a${a}.json`, { ...passing, attempt: a, verdict: { ...passing.verdict, [finding.part]: 'fail' }, findings: [...passing.findings, finding] });
@@ -433,9 +608,13 @@ function acceptedRun(finding: Json, listing: string | null, choice = 'accept'): 
     l.escalations.push({ stage: 'D1-gate', concept: 'c1', verdict: 'reports/gates/D1-gate-c1-a4.json', choice });
     l.checkpoints.splice(1, 0, { checkpoint: 'escalation', visit: 1, answer: choice, answeredBy: 'pre-supplied', rule: choice });
   });
-  if (listing !== null) editText(dir, 'guide.md', replace('### Known issues\n\n', `### Known issues\n\n- ${listing}\n`));
+  if (listing !== null) {
+    editText(dir, 'guide.md', replace('### Known issues\n\n', `### Known issues\n\n- ${listing}\n`));
+    editText(dir, 'audit.md', replace(AUDIT_KI_HEAD, `${AUDIT_KI_HEAD}| ${row ?? `${finding.code} | D1-gate | ${finding.stage}`} | ${listing} |\n`));
+  }
   return dir;
 }
+const LEVEL_POINTS_SENTENCE = 'The budget variant spends more passive points than level 90 allows, so PoB2 shows it over the limit.';
 const levelPoints = { part: 'v1', code: 'level-points', stage: 'b', message: 'stage b spends too many points' };
 const v1Fail = (code: string) => ({ pass: false, findings: [{ code, message: `${code} (FI-2)` }], notes: [] });
 
@@ -486,13 +665,13 @@ describe('§5.3: once a guide exists, a failing gate part no accepted finding co
 
 describe('§5.4: an accepted gate finding covers equal ones (same plan stage, part and code), and is a known issue', () => {
   it('a V1 finding accepted at the D1 gate covers the final record\'s equal V1 finding', () => {
-    const dir = acceptedRun(levelPoints, 'The budget variant spends more passive points than level 90 allows (D1-gate level-points, stage b).');
+    const dir = acceptedRun(levelPoints, LEVEL_POINTS_SENTENCE);
     editJson(dir, 'compile-record.json', (r) => (r.stages.b.v1 = v1Fail('level-points')));
     passes(dir);
   });
 
   it('does not cover the same code on another plan stage', () => {
-    const dir = acceptedRun(levelPoints, 'The budget variant spends more passive points than level 90 allows (D1-gate level-points, stage b).');
+    const dir = acceptedRun(levelPoints, LEVEL_POINTS_SENTENCE);
     editJson(dir, 'compile-record.json', (r) => {
       r.stages.b.v1 = v1Fail('level-points');
       r.stages.n.v1 = v1Fail('level-points');
@@ -502,12 +681,20 @@ describe('§5.4: an accepted gate finding covers equal ones (same plan stage, pa
     expect(stderr).not.toMatch(/stage b fails V1/);
   });
 
-  it('requires the guide to list the accepted finding with its gate on one line under Known issues', () => {
-    expect(failing(acceptedRun(levelPoints, 'The budget variant spends too many passive points (level-points).'))).toMatch(/\[known-issues\] guide\.md's Known issues has no line naming accepted finding level-points with its gate D1-gate \(stage b\)/);
+  it("requires audit.md's Known issues to hold the accepted finding's row with its gate and stage, and the guide to print its sentence (D-276)", () => {
+    // The row names another plan stage: it isn't this finding's.
+    expect(failing(acceptedRun(levelPoints, LEVEL_POINTS_SENTENCE, 'accept', 'level-points | D1-gate | n'))).toMatch(/\[known-issues\] audit\.md's Known issues has no row for accepted finding level-points with its gate D1-gate \(stage b\): "\| level-points \| D1-gate \| b \| <the sentence the guide prints> \|"/);
+    // The guide prints another sentence than the row gives.
+    const dir = acceptedRun(levelPoints, LEVEL_POINTS_SENTENCE);
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.v1 = v1Fail('level-points')));
+    editText(dir, 'guide.md', replace(`- ${LEVEL_POINTS_SENTENCE}\n`, '- The budget variant spends too many points.\n'));
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[known-issues\] guide\.md's Known issues doesn't print "The budget variant spends more passive points than level 90 allows, so PoB2 shows it over the limit\.", the sentence audit\.md gives accepted finding level-points \(D1-gate, stage b\)/);
+    expect(stderr).toMatch(/\[known-issues\] guide\.md:\d+: Known issues lists "- The budget variant spends too many points\.", which is the sentence of no finding/);
   });
 
   it('finds the accepted findings in the verdict file the escalation names, not in the log', () => {
-    const dir = acceptedRun(levelPoints, 'The budget variant spends more passive points than level 90 allows (D1-gate level-points, stage b).');
+    const dir = acceptedRun(levelPoints, LEVEL_POINTS_SENTENCE);
     editJson(dir, 'compile-record.json', (r) => (r.stages.b.v1 = v1Fail('level-points')));
     editLog(dir, (l) => (l.escalations[0].verdict = 'reports/gates/D1-gate-c1-a9.json'));
     const stderr = failing(dir);
@@ -624,7 +811,7 @@ describe('S4, Q5: the slim run log and its per-step price outcomes', () => {
   });
 });
 
-describe("checkpoints[]: a pre-supplied or default answer records its rule, which the guide's pick reason quotes", () => {
+describe("checkpoints[]: a pre-supplied or default answer records its rule, which audit.md's Run notes quote as why this concept (D-278)", () => {
   const withCheckpoint = (fixture: 'run-ok' | 'run-ok-online', edit: (c: Json) => void) => {
     const dir = copyOf(fixture);
     editLog(dir, (l) => edit(l.checkpoints[0]));
@@ -836,8 +1023,8 @@ describe('flow invariant 3: one full V4 pass and at most one re-check per cycle 
       r.findings = [];
       r.verdict = 'pass';
     });
-    // Step 14 replaces the list: with nothing open after the revision's pass, it says None.
-    editText(dir, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+    // Step 14 replaces the lists: with nothing open after the revision's pass, both say None.
+    noneOpen(dir);
     passes(dir);
   });
 
@@ -942,7 +1129,7 @@ describe('review 2 (MED): the stat-set check (S7) holds the rolled skill to the 
         p.ledger.push({ id: 'bh_b', claim: 'Blood Hunt DPS on b', formula: 'b.g1s1p1.TotalDPS', inputs: [] });
       });
       editJson(dir, 'compile-record.json', (r) => (r.ledger.bh_b = { value: 50000, error: null }));
-      editJson(dir, lastD1, (r) => (r.basis.rolledSkill[0].figures[0].figure = 'ledger:bh_b'));
+      editJson(dir, lastD1, (r) => (r.basis.rolledSkill.find((x: Json) => x.stage === 'b').figures[0].figure = 'ledger:bh_b'));
       return dir;
     };
     expect(failing(withLedgerFigure(2))).toMatch(/\[rolled-skill\] .*\(rolled-stat-set, stage b\): stage b's rolled figure ledger:bh_b reads b\.g1s1p1, not the main skill's stat set b\.g1s1p2 \(skills\.main\)/);
@@ -1303,7 +1490,7 @@ describe("D-265 (a): a superseded full-pass report is held to the plan it was wr
       fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
       editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
     }
-    // Written before the fix round: stages[2].claims[5] was the external-unavailable claim; it is now a pob-computed one.
+    // Written before the fix round: stages[3].claims[5] was the external-unavailable claim; stages[2].claims[0] is a pob-computed one.
     editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
     restage(dir, 15, [
       step('D1', 'c1', 3, 'done'), step('D1-gate', 'c1', 3, 'pass'), step('D2-gate', 'c1', 2, 'pass'), step('W1', 'c1', 2, 'done'),
@@ -1365,9 +1552,10 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
     return dir;
   };
   /** Every stage at or after the quest, the endgame stages included, lists pick `i`. */
-  const pickEverywhere = (i: number) => (p: Json) => ['2', 'b', 'n'].forEach((id) => stage(p, id).config.scenario.push(pick(i)));
+  const pickEverywhere = (i: number) => (p: Json) => ['2', 'm', 'b', 'n'].forEach((id) => stage(p, id).config.scenario.push(pick(i)));
+  /** D-283: W1 names the pick by its first line, with no marker. */
   const writePick = (dir: string, i: number) =>
-    editText(dir, 'guide.md', (t) => t.replace('## Campaign rewards\n', `## Campaign rewards\n\n- Act 2, the Medallion: take ${values[i].split('\n')[0]}, because Blood Hunt's charms carry its flask sustain.[^cr1]\n`) + `[^cr1]: data | campaign/progress.json#${MEDALLION}.options[${i}]\n`);
+    editText(dir, 'guide.md', replace('## Campaign route and rewards\n', `## Campaign route and rewards\n\n- Act 2, the Medallion: take ${values[i].split('\n')[0]}; my charms carry the flask sustain.\n`));
 
   it('reads the choices from the C1 data, and run-ok, whose campaign ends before the first one, needs no pick', () => {
     expect(values.length).toBe(2);
@@ -1375,7 +1563,7 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
   });
 
   it('fails a stage past a reward choice the campaign makes that lists no pick', () => {
-    expect(failing(pastMedallion())).toMatch(/\[campaign-rewards\] stages 2, b, n pass q\.act-2-valley-of-the-titans-medallion, a reward choice the campaign makes, without picking it: list option "questAct 2Valley of the TitansMedallion" with one of the 2 values of data\/campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options in config\.scenario, on every stage at or after the quest, the endgame stages included \(D-265\)/);
+    expect(failing(pastMedallion())).toMatch(/\[campaign-rewards\] stages 2, m, b, n pass q\.act-2-valley-of-the-titans-medallion, a reward choice the campaign makes, without picking it: list option "questAct 2Valley of the TitansMedallion" with one of the 2 values of data\/campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options in config\.scenario, on every stage at or after the quest, the endgame stages included \(D-265\)/);
     // "None", PoB's default, is no pick.
     expect(failing(pastMedallion((p) => {
       pickEverywhere(0)(p);
@@ -1395,12 +1583,15 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
       stage(p, 'b').config.scenario.find((o: Json) => o.option === OPTION).value = values[0];
     });
     writePick(other, 1);
-    expect(failing(other)).toMatch(/\[campaign-rewards\] stages 2, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways; the player picks once, so every stage at or after the quest, the endgame stages included, lists the same pick \(D-265\)/);
+    expect(failing(other)).toMatch(/\[campaign-rewards\] stages 2, m, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways; the player picks once, so every stage at or after the quest, the endgame stages included, lists the same pick \(D-265\)/);
   });
 
-  it("fails a pick the guide's Campaign rewards doesn't cite, and passes once W1 writes it", () => {
+  it("fails a pick the guide's Campaign route and rewards doesn't name, and passes once W1 names it by its first line (D-283)", () => {
     const dir = pastMedallion(pickEverywhere(1));
-    expect(failing(dir)).toMatch(/\[campaign-rewards\] the plan picks .* for q\.act-2-valley-of-the-titans-medallion, but guide\.md's "Campaign rewards" cites no "data \| campaign\/progress\.json#q\.act-2-valley-of-the-titans-medallion\.options\[1\]" for it/);
+    expect(failing(dir)).toMatch(/\[campaign-rewards\] the plan picks .* for q\.act-2-valley-of-the-titans-medallion, but guide\.md's "Campaign route and rewards" doesn't name it by its first line "30% increased Charm Effect Duration"/);
+    // The other option's name is no pick of this one.
+    writePick(dir, 0);
+    expect(failing(dir)).toMatch(/\[campaign-rewards\] .*doesn't name it by its first line "30% increased Charm Effect Duration"/);
     writePick(dir, 1);
     passes(dir);
   });
@@ -1411,11 +1602,11 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
       stage(p, '1').progress = MEDALLION;
       stage(p, '1').config.scenario.push(pick(0));
     });
-    expect(failing(dir)).toMatch(/\[campaign-rewards\] stages 1, 2, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways/);
+    expect(failing(dir)).toMatch(/\[campaign-rewards\] stages 1, 2, m, b, n pick q\.act-2-valley-of-the-titans-medallion's reward 2 different ways/);
   });
 });
 
-describe("D-265 (d): every unresolved V4 finding carries a reader sentence, which the runner copies into Known issues as `- <reader> (<id>)`", () => {
+describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentence, which the runner copies into the guide's Known issues as `- <reader>`, its id into audit.md", () => {
   it('fails an unresolved V4 finding without its reader sentence (the report shape)', () => {
     const dir = copyOf('run-ok');
     editJson(dir, 'reports/v4-prose.json', (r) => delete r.findings[0].reader);
@@ -1433,38 +1624,46 @@ describe("D-265 (d): every unresolved V4 finding carries a reader sentence, whic
       r.findings[0].status = 'fixed';
       r.verdict = 'pass';
     });
-    editText(dir, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+    noneOpen(dir);
     passes(dir);
   });
 
-  it("matches an open finding's line by its id, and requires the line's text to be the finding's reader sentence", () => {
+  it("matches an open finding's guide line by its reader sentence, word for word, with no id; its id is audit.md's", () => {
     const dir = copyOf('run-ok');
     passes(dir);
-    // A trailing period after the parentheses is the same line.
-    editText(dir, 'guide.md', replace('Blood Hunt. (v4-prose-1)\n', 'Blood Hunt (v4-prose-1).\n'));
+    // Without its closing period, it is the same line.
+    editText(dir, 'guide.md', replace('so lead packs with Blood Hunt.\n', 'so lead packs with Blood Hunt\n'));
     passes(dir);
-    // Paraphrased, or in the old jargon form: listed by id, but not as the reader sentence.
-    editText(dir, 'guide.md', replace('so lead packs with Blood Hunt (v4-prose-1).', 'so open with Blood Hunt (v4-prose-1).'));
-    expect(failing(dir)).toMatch(/\[known-issues\] guide\.md's Known issues lists V4 prose finding "v4-prose-1", but not as "- The Rotation section is wrong .* \(v4-prose-1\)": its line's text is the finding's reader sentence, word for word \(D-265\)/);
+    // Paraphrased: not the reader sentence.
+    editText(dir, 'guide.md', replace('so lead packs with Blood Hunt\n', 'so open with Blood Hunt\n'));
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1" .* is open after the re-check, but guide\.md's Known issues doesn't list its reader sentence, word for word, as "- The How to play it section is wrong/);
+    expect(stderr).toMatch(/\[known-issues\] guide\.md:\d+: Known issues lists "- The How to play it section is wrong .*", which is the sentence of no finding open/);
+    // The old jargon form: an id and pipeline words, not the reader sentence.
     const jargon = copyOf('run-ok');
-    editText(jargon, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, '- `v4-prose-1` (V4 prose, guide.md Rotation, line 57): Rotation names Rolling Slam as the clear skill\n'));
-    expect(failing(jargon)).toMatch(/\[known-issues\] guide\.md's Known issues lists V4 prose finding "v4-prose-1", but not as/);
+    editText(jargon, 'guide.md', replace(`- ${PROSE_READER}\n`, '- `v4-prose-1` (V4 prose, guide.md How to play it, line 90): names Rolling Slam as the clear skill\n'));
+    const out = failing(jargon);
+    expect(out).toMatch(/\[guide-markers\] guide\.md:\d+ carries the finding id "v4-prose-1"/);
+    expect(out).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1" .* doesn't list its reader sentence/);
   });
 
-  it("item 5: the list is this cycle's alone: a stale line from an earlier cycle fails, and None. only stands with nothing open (the review's run-stale)", () => {
+  it("item 5: both lists are this cycle's alone: a stale line or row from an earlier cycle fails, and None. only stands with nothing open (the review's run-stale)", () => {
     const stale = copyOf('run-ok');
-    editText(stale, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\n- The budget fire hit is wrong: it is about 367, not 735. (v4-ledger-1)\n'));
-    expect(failing(stale)).toMatch(/\[known-issues\] guide\.md:73: Known issues lists "- The budget fire hit is wrong: it is about 367, not 735\. \(v4-ledger-1\)", which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole list at step 14 \(D-265\)/);
+    editText(stale, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\n- The budget fire hit is wrong: it is about 367, not 735.\n'));
+    expect(failing(stale)).toMatch(/\[known-issues\] guide\.md:98: Known issues lists "- The budget fire hit is wrong: it is about 367, not 735\.", which is the sentence of no finding open after this cycle's re-check and of no accepted gate finding; the runner replaces the whole list at step 14 \(D-265\)/);
+    const staleRow = copyOf('run-ok');
+    editText(staleRow, 'audit.md', replace(AUDIT_KI_HEAD, `${AUDIT_KI_HEAD}| v4-ledger-1 | ledger | — | The budget fire hit is wrong: it is about 367, not 735. |\n`));
+    expect(failing(staleRow)).toMatch(/\[known-issues\] audit\.md:\d+: Known issues has a row for "v4-ledger-1" \(ledger\), which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole table at step 14 \(D-265\)/);
     const none = copyOf('run-ok');
     editText(none, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\nNone.\n'));
-    expect(failing(none)).toMatch(/\[known-issues\] guide\.md:73: Known issues says "None\.", but 1 V4 finding\(s\) are open and 0 gate finding\(s\) accepted/);
-    // With nothing open, None. is the list.
+    expect(failing(none)).toMatch(/\[known-issues\] guide\.md:98: Known issues says "None\.", but 1 V4 finding\(s\) are open and 0 gate finding\(s\) accepted/);
+    // With nothing open, None. is each list.
     const fixed = copyOf('run-ok');
     editJson(fixed, 'reports/v4-prose-recheck.json', (r) => {
       r.findings[0].status = 'fixed';
       r.verdict = 'pass';
     });
-    editText(fixed, 'guide.md', (t) => t.replace(/- [^\n]*\(v4-prose-1\)\n/, 'None.\n'));
+    noneOpen(fixed);
     passes(fixed);
   });
 

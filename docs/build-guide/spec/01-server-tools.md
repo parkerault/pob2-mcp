@@ -1044,14 +1044,49 @@ Cross-checks compare against PoB's own data and functions, never against the too
 **K2 flags (WU-54)**: `tests/integration/modelCoverage.test.ts`, in-process, engine-required.
 *Target (WU-54, D-300):* not built.
 
-- **AC-K50 (C-38 mapped-but-unread stats).** `check_model_coverage {gems:["Mirage Archer"]}` flags its
-  stat that is mapped but read nowhere, ending its false all-clear (PG-49). The other four flags' criteria
-  are AC-K53…AC-K56, pinned by WU-54's first step (A-33).
+- **AC-K50 (C-38 gem stats PoB can't act on; D-336, PROPOSED).** Mirage Archer's false all-clear (PG-49)
+  comes from a stat with no stat map and no tooltip line (PG-4), not from a mapped stat. AC-K50 pins two
+  flags.
+  - **`mapped but unread`** (PG-24). A gem line's stat has a stat-map entry (the skill's own `statMap`,
+    else the global `data.skillStatMap`), and the entry yields a mod name that PoB reads nowhere. For this
+    flag only, a name is read when it is one of these:
+    - exactly a name the scan collected from `Modules/` and `Classes/`;
+    - a string that a mod tag in the loaded skill data names: any tag field except `type` (`var`,
+      `limitVar`, `scalar`, `stat` and so on), in every skill's stat maps and base mods and in the global
+      stat map;
+    - a compound `X:Y` whose parts are read;
+    - a whole fit to a concatenation template: every fixed part matches, and each `*` is empty or a read
+      name. D-243's suffix rule doesn't apply.
+
+    The flag carries its line and that entry's source, and its note names the unread mod names. Line
+    statuses, D-243's included, don't change (AC-K57).
+    - `{gems:["Aftershock I"]}` flags "Supported skills have 25% chance to cause an additional
+      Aftershock", naming `AftershockChance`.
+    - `{gems:["Mirage Archer"]}` doesn't flag "Socketed Skills cannot consume Charges". Its mod,
+      `Condition:CannotConsumeCharges`, is read: condition tags in skill data name `CannotConsumeCharges`.
+    - One call covers every gem (Lua query). It flags exactly the lines that the rule above, applied in the
+      test, gives for each gem's mapped lines and mod names, which a Lua query lists at the gem's checked
+      level and quality. That is 38 lines at the pin at the default levels.
+  - **`stat not mapped`** (PG-4, PG-49). A stat of a support or meta gem that PoB can't act on, and whose
+    effect its tooltip check never sees. A support or meta gem is one whose own effect is a support, or
+    that has a granted effect of skill type `Meta`. The stat qualifies when all of these hold:
+    - it is non-zero at the checked level and quality, in any of the gem's granted effects;
+    - it has no stat-map entry, global or the skill's own;
+    - it is in no described line: removing it leaves the stat set's described lines unchanged (PoB's
+      describer, `Modules/StatDescriber.lua`);
+    - it isn't display-only. A display-only stat's id starts `display_` or `quality_display_`.
+
+    One flag per gem and stat, source `Gem <name>`, with no `line`. The note is "PoB has no stat map for
+    <stat>; what it drives may not be modelled."
+    - `{gems:["Mirage Archer"]}` reports it, naming `triggered_by_lingering_mirage`. This ends the false
+      all-clear.
+    - One call covers every support or meta gem (Lua query). It flags exactly the (gem, stat) pairs that a
+      Lua query gives by the rule above. That is 318 pairs over 115 gems at the pin, at the default levels.
 
 AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has one shape:
 - **Beside the status, never a status.** `check_coverage`'s reply gains `flags[]`, each
-  `{flag, source, note, line?}`. `source` is `Gem <name>`, or a node's `Node <id> <name>`. `line` is set
-  when the flag belongs to one line.
+  `{flag, source, note, line?}`. A flag about a gem has source `Gem <name>`. A line's flag carries the
+  line and its entry's source: `Gem <name> / <stat set>`, `Node <id> <name>`, or an item's.
 - **Shown in every mode.** The text lists each flag as `[<flag>] <source>`, then its line if it has one,
   then the note. Build mode lists every flag too, although it hides fully parsed lines.
 - **Notes.** Where a criterion says a note names something, the test finds that text in the note.
@@ -1096,7 +1131,8 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
 - **AC-K56 (C-38 Gem Studded ties; PG-1).** PoB sets one `MostNumerous<colour>SocketedSupports` condition
   through an if/elseif (`Modules/CalcSetup.lua:2155-2162`). On a tie, only one colour applies: red, then
   green, then blue. The node's text gives each colour that is most numerous.
-  - `{nodes:["Gem Studded"]}` flags three of its lines `support colour tie`, each with its `line`:
+  - `{nodes:["Gem Studded"]}` flags three of its lines `support colour tie`, each with its `line` and
+    source `Node <id> Gem Studded`:
     - "Red: Hits against you have no Critical Damage Bonus";
     - "Blue: Skills have 30% less cost";
     - "Green: 40% less Movement Speed Penalty from using Skills while Moving".

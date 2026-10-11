@@ -2129,3 +2129,25 @@ The fixer closed the four findings:
 The rebase onto `92b0cc2`, which includes WU-54, was clean. On the rebased head, the shared-file suites (plan,
 compileCount, contract, engineKinds, toolHygiene, modelCoverage and static) passed 658 of 658. The lane was
 removed.
+
+### WU-53 merged at `25bde2a`; lookups.md touch-up
+
+The fixer closed all seven findings:
+- **Engine oracle.** The AC-K59, AC-K61 and AC-K62 checks now use PoB's `calcs.createActiveSkill` as the
+  oracle. It agreed with PoB's direct support test on all 268,191 (support, effect) pairs.
+- **Same-named gems.** A repeated name prints once as `×n`, and gems that all have exactly the queried name
+  each show their long lists. The Unleash support now shows `Can support (47 of 399)`.
+- **Unnamed effects** fall back to their first stat set's label: "Charged Mark", and "Beam" for Voltaic
+  Barrier.
+- **The description** is 1,894 characters.
+
+The rebase onto `d36dbea`, which includes WU-54, WU-55 and WU-62, was clean, and the README table was
+unchanged. The shared-file suites (lookup, modelCoverage, contract, engineKinds, toolHygiene and static)
+passed 605 of 605. The lane was removed.
+
+The coordinator's `2e5c413` fixes two stale passages in `references/lookups.md`:
+- the same-name rule, from WU-53;
+- the guide's renamed H2, "What PoB can't show", plus `audit.md`'s "What PoB doesn't model". This was WU-62's
+  low finding 4 (D-278).
+
+**Friction, again:** a stale `build/` in the integration worktree failed AC-G1 until `pnpm build` ran.

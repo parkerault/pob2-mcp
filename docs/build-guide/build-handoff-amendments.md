@@ -1,0 +1,212 @@
+# Build handoff: amendments 2 and 3 (M-14)
+
+Written 2026-10-10 by the coordinator session for the build fleet. Every build agent reads this file
+first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
+`build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
+
+## What to build
+
+- **Spec.** `docs/build-guide/spec/README.md` is the spine, v1.3:
+  - contracts C-30…C-54;
+  - decisions D-100…D-334;
+  - the autonomy envelope (§6) and milestones (§7), M-14 among them;
+  - the work-unit graph, its amendment lanes and the serialized-wiring rule (§8);
+  - guardrails (§9);
+  - the test strategy, with the cross-cutting ACs AC-B1…AC-B8 (§12).
+
+  The slice specs hold the work-unit blocks and acceptance criteria:
+  - `01-server-tools.md`: WU-50, WU-52, WU-53, WU-54, WU-60 (target ACs AC-K47…AC-K52);
+  - `02-plan-compiler.md`: WU-51, WU-55, WU-61 (AC-P51…AC-P59);
+  - `03-pipeline.md`: WU-56…WU-59, WU-62 (AC-W2 (v)…(ee), AC-W27…AC-W33, and the target clauses of AC-W5,
+    AC-W11 and AC-W14).
+
+  Text marked *Target (WU-nn, D-nnn)* is what you build. The as-built text beside it is what exists today.
+- **Background, not requirements:**
+  - the amendments: `spec/amendment-1-simplify.md`, `amendment-2-guide-style.md`, `amendment-3-open-builds.md`.
+    They record why; the spine and slices are binding.
+  - `docs/build-guide/worklog.md`, the section "Spec fold v1.3 (2026-10-10)": the gap resolutions F1–F27.
+  - `docs/build-guide/pob-gaps.md` (PG-n) and `docs/build-guide/studies/` (the 34 study reports).
+  - The stabilization spine `docs/stabilization/spec/README.md` ("stab") still binds wherever this spine
+    cites it.
+- **Ratified.** The user approved amendments 2 and 3 and the fold. Treat every PROPOSED decision
+  (D-317…D-334) as settled.
+- **Directive.** Build WU-50…WU-58 and WU-60…WU-62. WU-59, the offline run with an open brief, is the
+  coordinator's: it is recorded like WU-47, in an interactive session (D-263), after WU-58. WU-48 (the
+  live run) is not part of this build.
+- **Done means:** M-14's exit (spine §7) holds at the integration head. That includes:
+  - `mise run test` and `pnpm build` exiting 0 from a clean tree;
+  - both waiver files empty (AC-B2);
+  - unchanged dependencies (AC-B7).
+
+## Worktrees and branches
+
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/amend`, branch `build-guide/amendments`,
+  branched off this handoff's commit. Work lands here, unit by unit, in DAG order. The coordinator writes
+  the work-log `docs/build-guide/worklog.md` only here.
+- **Lane worktrees:** `/home/parker/projects/pob2-mcp-wt/bg-<nn>`, on branch `bg/wu-<nn>`, created off the
+  integration head current when the unit starts.
+  - A lane is rebased onto `build-guide/amendments`, then fast-forward merged, then removed.
+- **Never touched by the fleet:** the main checkout `/home/parker/projects/pob2-mcp` (branch
+  `build-guide/amendment-3`). The user's pob2 MCP server runs from its `build/`.
+- **Directory discipline.** `cd` to your worktree's absolute path at the start of every Bash call, because
+  subagent cwd drifts.
+- **Bootstrap a new worktree:**
+  ```
+  mise trust && pnpm install --frozen-lockfile && mise run pob:fetch
+  git config --worktree commit.gpgsign false
+  ```
+
+## Gate commands (from the worktree root)
+
+```
+cd <worktree> && rm -rf build coverage && pnpm exec jest --clearCache >/dev/null
+mise run test; echo "test rc=$?"     # builds, then the full Jest suite and the NFR --runInBand step
+pnpm build;    echo "build rc=$?"
+```
+
+A unit is done only when an independent verifier, never the doer, confirms the five unit-gate checks:
+
+1. Both exit codes are 0.
+2. Every AC the unit owns maps to a named passing test, or a recorded script check. That test or check
+   meets the fidelity rule: it asserts the spec, not the as-built, through the real code path.
+3. The code-diff review is clean.
+4. `tests/fixtures/tool-hygiene-allowlist.json` and `tests/static/poe1-cruft-waivers.json` are `[]`.
+5. No files changed outside the unit's `touches` (the spine §8 table plus the slice block), apart from its
+   implied scope and the serialized wiring files.
+
+A spike or content unit with no code (WU-50, WU-51, WU-56) gates on its script check or static tests and
+on `pnpm exec jest tests/static`. The full gate runs at the wave gate.
+
+**Timing ACs under load.** These can false-fail while several worktrees run suites at once:
+- this epic's NFR-20 and NFR-21 compile-time ACs;
+- stab AC-E8, AC-F3, AC-F10, AC-T22, AC-T34 and AC-T40.
+
+If one fails on time alone, re-run it in isolation. Record "tooling false-failure" only if that passes.
+
+## Wiring and counts (spine §8)
+
+- **Serialized files.** They are listed in spine §8. The amendment units add:
+  - `Lookup.lua`: WU-60, then WU-53;
+  - `src/plan/schema.ts`, `src/plan/checks/v1.ts` and `plan-reference.md`: WU-55 and WU-61;
+  - the skill's `SKILL.md`, `check-run.mjs`, `guide-template.md`, `build-guide-coordinator.md` and the
+    pipeline tests: WU-62, then WU-57, then WU-58.
+
+  Edit them in short wiring steps. The coordinator merges one unit at a time, in DAG order, and a lane
+  rebases before it merges.
+- **Engine wiring.** WU-53, WU-54, WU-55 and WU-60 each change an engine action's reply. Each one updates
+  that action's reply schema in `src/engine/schemas.ts`, its wrapper types in `src/pobLuaBridge.ts`, and its
+  case in `tests/integration/contract.test.ts` (AC-B3, AC-B4; AC-B5 for WU-55).
+- **The schema bump (D-320).** WU-55 and WU-61 both change the plan schema. Whichever merges first makes
+  §3.2's `schemaVersion` bump, and the second extends it. Validators accept versions 1 and 2 (D-332).
+- **Tool counts.** WU-52 is the only unit that adds tools: the poe.ninja tools in group `ninja`, their
+  number set by WU-50. It restates every count site in spine §1.3 and regenerates the README table with
+  `pnpm build && pnpm docs:tools --write`. Never hand-edit the table. The count without poe.ninja stays 83
+  (D-316).
+- **New Lua.** It goes in the module the unit names. `BuildOps.lua` edits stay inside the functions your
+  unit names.
+
+## Commits
+
+- Commit only inside your worktree, with `git -c commit.gpgsign=false commit …`. Pass
+  `-c commit.gpgsign=false` to `rebase`, `merge`, `cherry-pick` and `revert` too: a signing prompt hangs an
+  agent.
+- Messages are `<type>(WU-nn): <what>`, ending with the line
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Never push. The coordinator sign-rebases with the user present at the end (HG-8).
+
+## Hard rules (spine §9; breaking one is unrecoverable)
+
+- **Secrets.** Never read, print, grep, cat, source or copy any `.env`. Never set `POESESSID`. Worktrees
+  have no `.env`; don't copy one in.
+- **Network.**
+  - **Allowed:** GitHub (`mise run pob:fetch`) and the npm registry.
+  - **poe.ninja (D-297):** only the units whose block says so (WU-50 now; WU-52 to record fixtures). Every
+    request must follow these rules:
+    - send one request at a time, at least 3 s apart;
+    - on HTTP 429 or 5xx, stop and wait at least 60 s before one retry;
+    - cache every response in your temp dir, and never fetch a URL twice;
+    - use `curl` with the server's User-Agent `pob2-mcp-server/<package.json version>` (stab D-25), and no
+      cookie, name, email or other identifying header;
+    - fetch poe.ninja URLs only, and only ones reached from poe.ninja itself;
+    - keep the total small: a few dozen requests, not a crawl.
+  - **Forbidden:** pathofexile.com, and every other host, including through WebSearch and WebFetch. Links
+    found on poe.ninja that lead elsewhere (a GitHub repo, a forum thread) are recorded in your report, not
+    opened.
+  - **Tests** reach HTTP only through `fixtureFetch` and committed fixtures (D-34).
+  - Anything else that seems to need a live request is HG-1: stop and report.
+- **Filesystem.** Write only inside your worktree and temp dirs, made with `mktemp -d`. Never touch
+  `/mnt/c/...`, the user's builds and guides folders (HG-6). A probe that starts the server or the engine
+  runs from a temp cwd, with `POB_DIRECTORY`, `XDG_STATE_HOME` and `POB_GUIDES_DIRECTORY` pointed at temp
+  dirs. Don't use the session scratchpad, which other agents share.
+- **Identity.** No name or email in any request, fixture or file content, except git authorship.
+- **Dependencies.** No unit changes `package.json`'s dependency sections or `pnpm-lock.yaml` (HG-10, AC-B7).
+- **Agents.** You are a leaf worker:
+  - don't spawn subagents, and don't call the Workflow tool;
+  - never start a headless `claude -p` session (D-263);
+  - don't use the Serena MCP tools (its one shared instance points at the wrong checkout). Use Read, Grep
+    and Bash.
+- **The pob2 MCP tools** (`mcp__pob2__*`) run the user's server from the main checkout, not your lane's
+  code. Don't use them to test your unit. Test through Jest and temp-dir probes against your worktree's
+  build.
+
+## Known friction (from the M-10…M-12 build)
+
+- **Running tests.**
+  - `luajit` is on PATH only under mise. Run targeted suites as `mise exec -- pnpm exec jest <path>`, or run
+    `mise run test`.
+  - Long Jest runs need an explicit Bash timeout of up to 600000 ms, so they aren't backgrounded.
+  - A stale `build/` fails the README table test (AC-G1) after a rebase that adds tools: run `pnpm build`.
+- **Probing the engine.**
+  - `mise exec -C <dir>` changes cwd and breaks vendor-relative Lua scripts. Prefer driving the engine
+    through the server.
+  - In-process tests can't call `ctx.client.loadBuildXml` (EngineLoadGuardError). Reload through
+    `session.run` with kind `load`.
+- **Engine data quirks.**
+  - dkjson encodes an empty Lua table as `[]`, so a reply schema must accept `[]` for an empty map.
+  - Headless PoB's `GetTime()` returns 0. Time Lua work with `os.clock`.
+  - PoB's `SaveDB` attribute and element order varies between processes, so compare XML canonically.
+  - The WSL2 wall clock can step backwards. Measure durations with `performance.now()`.
+- **Harmless warnings.** `tsc -p tsconfig.test.json` reports TS6059 rootDir errors, and Jest prints "worker
+  process has failed to exit gracefully". Both predate this epic; ignore them.
+- **Tool quirks.**
+  - Write and Edit refuse a file you haven't Read first.
+  - The permission classifier has blocked `git rm`. Use plain `rm`, then `git add -A <path>`.
+- **Static tests.** `tests/static/buildGuidePipeline.test.ts` pins some skill and spec text word for word.
+  When you change pinned text, update the assertion in the same commit and say so in your report.
+
+## Autonomy
+
+- **Decide and record.** When the spec is silent on an implementation detail, make the smallest choice
+  consistent with the contracts and the conventions (spine §1.2). Report it under `deviations`, with a
+  one-line rationale. The coordinator folds these into the spine.
+- **Spec edits.** Don't edit the spec files, with one exception: a unit that A-33 names (WU-53, WU-54)
+  pins its criteria in its slice's §4 as its first step, then stops for the coordinator's review.
+  - A spike's settled values go in its report. The coordinator records them in the spine.
+- **The spec looks wrong.** If the real code or the pinned PoB2 makes an AC unachievable, implement the
+  closest faithful behaviour and report a deviation with `file:line` evidence. Report `blocked` instead if
+  the fix would change any of these:
+  - a tool contract, or the tool surface beyond C-37…C-54 (HG-12);
+  - a dependency (HG-10);
+  - the pin (HG-11).
+- **Stop conditions.** On a stop, report `blocked` with evidence. Independent lanes continue.
+  - A human gate fires: stab HG-1…HG-9, or spine HG-10…HG-22.
+  - The same gate failure signature comes back three times in a row (`blocked:loop`).
+  - A unit needs a file owned by a unit that hasn't merged yet.
+
+## Reporting (doers)
+
+End with a terse report, under 40 lines:
+- the head commit;
+- each owned AC, mapped to its test (file and test name) or script check;
+- the gate exit codes;
+- `deviations`, one line each, with rationale;
+- `friction`: tooling traps the next unit will hit;
+- `blocked`, with evidence, if any.
+
+No diffs, no logs.
+
+## Notification path
+
+Agent results return to the coordinator session. It records each verdict in the work-log the moment it's
+made, and surfaces any STOP to the user (in chat, plus a push notification). It writes a compact resume
+handoff before its context grows large.

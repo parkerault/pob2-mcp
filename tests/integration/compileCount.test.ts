@@ -279,9 +279,10 @@ engineDescribe('WU-55: Count and custom modifiers through compile_plan (D-293, D
       return out`);
     expect(custom).toEqual(['Life', 'Speed'].sort());
     // The saved XML keeps the option in stage 2's config set, so a reload reproduces the record.
+    // PoB's SaveDB writes attributes in any order, so each <Input> is read attribute by attribute.
     const xml = fs.readFileSync(path.join(r!.abs, 'compiled-build.xml'), 'utf8');
-    const escaped = lines.join('\n').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    expect(xml).toMatch(new RegExp(`<Input name="customMods" string="${escaped}"/>`));
+    const inputs = [...xml.matchAll(/<Input\b([^>]*?)\/>/g)].map((m) => Object.fromEntries([...m[1].matchAll(/(\w+)="([^"]*)"/g)].map((a) => [a[1], a[2]])));
+    expect(inputs.filter((a) => a.name === 'customMods').map((a) => a.string)).toEqual([lines.join('\n')]);
   }, ENGINE_TIMEOUT);
 
   it('AC-P55 (D-321): every figure of the stage measured with custom modifiers is marked, defences included; a ledger value reading it too', () => {

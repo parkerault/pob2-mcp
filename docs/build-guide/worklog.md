@@ -1943,3 +1943,19 @@ FINDINGS: 1 high, 2 medium and 2 low. Being fixed.
 - **Low:** the energy note's wording.
 - **Low:** the `level from support` note now says PoB computes a skill with a global effect only when it is
   enabled.
+
+### Coordinator session crash (2026-10-11), and recovery
+
+The coordinator's terminal (tmux) crashed, and every background agent stopped with it. The state, read from
+the lanes:
+- **WU-54:** the review fixes are committed (`e7844cd`), and the tree is clean.
+- **WU-55:** `e961892` and `a9591af`, tree clean, no report.
+- **WU-62:** `b7fcc43`, tree clean, no report.
+- **WU-53:** the spec commits, plus uncommitted code. Its doer was resumed from its saved transcript.
+
+The coordinator runs the full gate in the three clean lanes, one at a time. Jest's cache is shared, so no
+lane clears it while others run. After the gates, each lane goes to review: a lane that passes goes
+straight to its reviewer; a lane that fails goes back to its doer first.
+
+**Friction.** A long-lived coordinator session in tmux can die with the terminal. Lane worktrees and
+commits survive, but agent reports are lost unless the agent is resumed.

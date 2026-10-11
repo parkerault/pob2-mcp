@@ -2513,3 +2513,22 @@ Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides r
 - **Nit for the analysis:** the runner's Bash used `echo` beside `cat`/`jq` and the checker (`echo "rc=$?"`).
   `echo` writes nothing, but D-265's list doesn't name it.
 - **Next:** run A.
+
+### WU-59 run A: the gates printed no display (AC-W37 fails); WU-57 re-opened again
+
+- **Run A:** folder `open-explosive-concoction/2026-10-11-3`, transcript `17907107-…`.
+- **The gates.** The brainstorm gate (`first-n:2` → `pick:r1-a-1,r1-b-1`) and the verification gate
+  (`first-viable` → `pick:r1-a-1`) were both answered `pre-supplied`. The runner went straight from "assembling
+  the deck" to R1b, and from R1b-assemble to D1. It printed neither the deck nor the comparison lines.
+- **The rule it skipped.** `references/checkpoints.md` ("A pre-supplied answer still prints the display",
+  D-265 (b)) and AC-W37 require each gate visit to print its display, pre-supplied answers included. SKILL.md's
+  gate paragraphs (step 2c, step 5) don't repeat the rule; only the reference holds it.
+- **The deck itself is sound.**
+  - 7 dealt cards, 4 of them labelled under-played, and 2 not dealt (a missing source, a duplicate).
+  - Every card is Ranger Pathfinder, so the D-342 lock held for "any ascendancy".
+  - Every card says "no player evidence".
+- **Decision.** Run A continues untouched; the user doesn't type into it. Its design, guide, V4 and final-gate
+  evidence doesn't depend on this.
+- **The fix.** WU-57's doer puts the display rule in SKILL.md at every gate, in `amend`. The run worktree moves
+  only after run A ends, so run B, which has two brainstorm visits and several verification visits, carries
+  AC-W37's evidence at the fixed head. Run A's AC-W37 result is recorded as a fail at `30abc7a`.

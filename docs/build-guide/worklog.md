@@ -2020,3 +2020,13 @@ lost.
 - **Low:** `modListCallLiterals` gets a unit test, and AC-K53's opening is reworded.
 - **The reviewer's scope finding was wrong.** The coordinator had allowed `pobSourceNames.ts` and the test
   fake.
+
+### WU-54 merged at `92371c2`
+
+All four re-check findings were fixed. `mapped but unread` is 24 lines.
+- A skill name fills `*` only in templates PoB builds from `activeGrantedEffect.name` in a modList read.
+  The server finds them and passes them as `sourceSkillTemplates`.
+- There are now seven literal anchors with their PoB sources, and a new unit test,
+  `tests/unit/pobSourceNames.test.ts`.
+- Targeted suites: 315 of 315. The full gate passed at `819eb8e`; the wave gate re-runs it.
+- The lane was removed.

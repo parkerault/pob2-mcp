@@ -2151,3 +2151,36 @@ The coordinator's `2e5c413` fixes two stale passages in `references/lookups.md`:
   low finding 4 (D-278).
 
 **Friction, again:** a stale `build/` in the integration worktree failed AC-G1 until `pnpm build` ran.
+
+### Wave gate (waves A and B): PASS at `410c93f`
+
+An independent verifier ran the gate from a clean tree, with `build/`, `coverage/` and the Jest cache
+cleared and `POB_SKIP_ENGINE` unset.
+- `mise run test` rc=0: 122 of 122 suites and 1984 of 1984 tests, none skipped. The NFR step passed 2 of 2;
+  the fifteen-stage compile took 27.4 s.
+- `pnpm build` rc=0.
+- Both waiver files are `[]`, and `package.json` and the lockfile are unchanged since `acec4d1` (AC-B7).
+- The tool count is 84, and 83 with poe.ninja disabled (AC-G1, AC-E65, AC-T41, AC-T45).
+- **Absence checks.** Every AC of WU-53, WU-54, WU-55, WU-56, WU-60, WU-61 and WU-62 has a passing test,
+  and AC-P37 is in its narrowed form.
+
+### Spec fold v1.4 merged (`978e308`, `87ecc91`)
+
+- **New decision rows:**
+  - D-335, the user's;
+  - D-336…D-338, PROPOSED by the coordinator.
+- **Restated:** D-297 (economy endpoints only) and D-298 (judgment, no threshold).
+- **Withdrawn, as stubs:** C-54, WU-52, AC-K47…AC-K49, D-324, and AC-W5's poe.ninja clause.
+- **As-built:** WU-50, WU-51, WU-53, WU-54, WU-55, WU-56, WU-60, WU-61 and WU-62. The coordinator flipped
+  WU-53 and WU-55 after they merged during the fold.
+- **The conflict.** It was in slice 01's §5 test table, between WU-53's row and the fold's rows. The
+  coordinator kept both sides.
+- **For WU-57**, from the editor's report:
+  - the card template's "players use it (poe.ninja)" status word and Evidence fields predate D-335. AC-W27's
+    static test pins them, so WU-57 restates both;
+  - R1b's header `writes` gains the probe and card paths (D-338);
+  - the poe.ninja lines in `SKILL.md` and the coordinator agent are reworded (AC-W33).
+- **Static tests:** 233 of 233.
+
+**Next:** WU-57, the pipeline. Its dependencies are all merged: WU-55, WU-56 and WU-62. WU-50's edge is moot
+under D-335.

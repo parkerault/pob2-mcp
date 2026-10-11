@@ -1797,3 +1797,20 @@ D-293 and §3.6 step 9 keep Full DPS out of measure-only compiles "unless S-N2 s
 (measure-only and final) puts the named source's groups in Full DPS. Verification and finalization then
 report the same headline figure, and the compiler has no mode branch. Groups outside the named source stay
 out of Full DPS (D-306, narrowed). WU-55 builds it.
+
+### Review: WU-56
+
+FINDINGS: 2 medium and 6 low. Being fixed.
+- **Grounding.** All 60 entries were checked against their sources: 57 held, and 3 failed. The failures
+  were a misfit example (Time-Lost Emeralds), an ungrounded "Dazed" config, and a caution under the wrong
+  entry. One more holds but carried no citation.
+- **The AC-W1 exemption failed open.** It now expires once a WU-57 file exists.
+- **Test fidelity.** The AC-W27…AC-W29 assertions are tightened to the spec's named elements.
+- **For the next fold: an AC gap.**
+  - The checklist has R1b write `probes/<card-id>/<n>/` and the card's results. But R1b's header `writes`
+    don't list them, and the checker's layout list (`check-run.mjs:385`) rejects `probes/` and `cards/`.
+    Slice 03's run-folder table has the `probes/` row as a WU-57 target (`03-pipeline.md:98`), but no
+    AC-W2 clause makes the checker accept these paths.
+  - Proposed: AC-W2 (ff) (WU-58). The checker accepts `probes/<card-id>/<n>/` and `cards.md`, and rejects
+    other files there. The run log records each card's probe count, so D-292's cap of 4 can be audited.
+  - WU-57 adds the paths to R1b's header `writes`.

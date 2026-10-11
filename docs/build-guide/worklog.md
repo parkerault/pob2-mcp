@@ -2211,3 +2211,35 @@ under D-335.
   - run-log v3: the brief, the roll null until the verification gate, the gate names, R1a-assemble, the
     `verification` escalation, the answers `pick:`/`verify:`/`first-n`, and the `answers.*` test keys;
   - the checker's messages still say "rolled skill" and "checkpoint 1".
+
+### Review: WU-57
+
+FINDINGS: 2 medium and 5 low. The doer was resumed to fix them.
+
+**What held:** 456 of 456 tests; the checker reports `ok` on `run-ok`; WU-58's files are untouched; and every
+poe.ninja or popularity hit is either D-335's rule or the user's notes. All deviations were accepted.
+
+**The findings and their fixes:**
+- **Medium: a non-skill card showed as "failed".** It now has its own status, "can't be finalized yet: its
+  damage source isn't a skill" (D-303, D-334). It has no plan path and is not in D-141's failure list.
+- **Medium: nothing produced the deck's under-played cards.** Fixed by D-339 (PROPOSED by the coordinator,
+  2026-10-11):
+  - each R1a focus writes 3 cards, at least one of them on a library shape it judges under-played,
+    labelled `judgment`;
+  - R1a-assemble deals 6–9 cards and keeps at least two under-played cards in the deck, which accumulates
+    over rounds;
+  - a round under 6 cards is short, with the reason recorded in the run log, and the checker accepts it only
+    with a reason.
+- **Low: D-296's estimate label** on the verification gate's DPS.
+- **Low: D-340 (PROPOSED by the coordinator).** A compared field with a counted copy is read from
+  `countedSkillOutputs`; any other field comes from the raw per-copy `skillOutputs`, labelled "per copy" when
+  Count > 1.
+- **Low: stale `c1` ids** in the gate and source-marker examples. `D2-gate.md` was granted as a touch for
+  this.
+- **Low: AC-W31's test** now also asserts the three gate step rows.
+
+**For WU-58** (the reviewer's additions):
+- an R1b `not-a-skill` fail is terminal;
+- the slug comes from the brief;
+- the run log names the probe-count field;
+- `run-log.md`'s first write must match `SKILL.md`'s.

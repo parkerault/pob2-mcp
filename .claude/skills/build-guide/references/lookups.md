@@ -17,7 +17,9 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
       `(trigger)` marking those that trigger it. Example: Snipe is usable by Mirage Archer.
     - **Hit-making children.** Its granted and triggered skills and its minions' skills that make hits, for
       the payoff-thief check. Example: Bloodhound's Mark's `Blood Explosion (triggered)`.
-    - **With exactly one gem returned** (its exact name, or `max_results: 1`): a support's `Can support (<n>
+    - **With exactly one gem returned** (its exact name, or `max_results: 1`), or when every returned gem
+      has exactly the queried name (each is then shown in full, and a repeated name in a list prints once as
+      `<name> ×n`): a support's `Can support (<n>
       of <total> active gems)`, which names the gems it can't support (`all except …`) when it can support
       most; and an active gem's `Unlocked by another support:`, the supports it can take only after another
       support adds a skill type. Example: Whirling Assault lists `Ailith's Chimes: after … Culmination II …`.
@@ -90,7 +92,8 @@ names something PoB doesn't model, so treat it as a hand calculation, or as Coun
 the concept's skeleton) that copies the stage under test without that line, compile measure-only with
 `stages` naming the two stages, and compare their outputs in the record. Remove the temporary stage before
 the step ends; no second plan file goes in the run folder. If the numbers move, PoB reads the line: use its numbers. If they don't, the line is unmodelled: hand-calculate
-it in the ledger and say so in the guide's "Confidence and what PoB can't model". Only a coordinator step
+it in the ledger and say so in the guide's "What PoB can't show" and in `audit.md`'s "What PoB doesn't model"
+(D-278). Only a coordinator step
 compiles, so a researcher or verifier that meets such a line reports it for the coordinator instead of
 guessing.
 

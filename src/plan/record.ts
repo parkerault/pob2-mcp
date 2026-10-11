@@ -6,12 +6,20 @@
  * never by the record (D-211).
  *
  * V1 and V2 (WU-42, `src/plan/checks/`) fill `v1`, `v2`, `configEffective` and `pobWarnings`.
+ *
+ * **Version 2** (WU-55, D-293, D-294, D-321) adds, per stage, beside the raw figures, which stay as PoB
+ * measured them:
+ * - `countedOutputs` and `countedSkillOutputs`: the figures with their group's Count applied by PoB's own Full
+ *   DPS rule (`COUNT_RULE`, `countedFields`): hits × count, damage over time × count only when it stacks.
+ * - `customModsWritten` and the mark `computedWithCustomMods`: when true, every figure of the stage, defences
+ *   included, was computed with the plan's custom modifiers present. A ledger value that reads such a stage
+ *   carries the same mark.
  */
-import { isMultiSegmentRef, type StageOutputs } from './ledger.js';
-import type { Plan } from './schema.js';
+import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
+import type { Plan, Stage } from './schema.js';
 import type { SourceTag } from './sourceTag.js';
 
-export const RECORD_VERSION = 1;
+export const RECORD_VERSION = 2;
 /** The record's file name, beside the plan. */
 export const RECORD_FILE = 'compile-record.json';
 /** The measure-only compile's XML, beside the plan (A-P6). */
@@ -34,15 +42,119 @@ export interface Verdict {
   notes: Finding[];
 }
 
+/**
+ * How Count scales a figure in PoB's Full DPS (pin `Modules/Calcs.lua`, `calcFullDPS`), for the figures it
+ * merges per skill:
+ * - `count`: × the count. Hits (`out.TotalDPS * actor.count`, `:322`) and impale (`mergeStatsSpec`'s scaled
+ *   `ImpaleDPS`, `:198`).
+ * - `stacking-dot`: × the count only when the skill's damage over time stacks (PoB's `DotCanStack`), else as
+ *   measured (`out.TotalDot * actor.dotScale`, `:325-326`; `dotScale = dotCanStack and activeSkillCount or 1`,
+ *   `:367`, `:411`).
+ * - `once`: as measured. The ailments and ground effects are the best one of any skill, never multiplied
+ *   (`mode = "max"`, `:192-197`), and decay is added once (`:199`).
+ *
+ * A figure Full DPS doesn't merge per skill (`CombinedDPS`, `TotalDotDPS`, a defence, a crit chance) has no
+ * Count rule, so it isn't in the counted figures; the raw figure is the one to read.
+ */
+export type CountScale = 'count' | 'stacking-dot' | 'once';
+export const COUNT_RULE: ReadonlyMap<string, CountScale> = new Map<string, CountScale>([
+  ['TotalDPS', 'count'],
+  ['ImpaleDPS', 'count'],
+  ['TotalDot', 'stacking-dot'],
+  ['BleedDPS', 'once'],
+  ['CorruptingBloodDPS', 'once'],
+  ['IgniteDPS', 'once'],
+  ['BurningGroundDPS', 'once'],
+  ['PoisonDPS', 'once'],
+  ['CausticGroundDPS', 'once'],
+  ['DecayDPS', 'once'],
+]);
+
+/** A skill's figures with its group's Count applied (D-293, D-321). */
+export interface CountedFigures {
+  /** The group's count: the plan's `count`, 1 when it has none. */
+  count: number;
+  /** PoB's `DotCanStack` for the skill and stat set: whether Count multiplies its damage over time. */
+  dotCanStack: boolean;
+  /** Each figure with a Count rule (`COUNT_RULE`) that PoB measured, with the rule applied. */
+  fields: Record<string, number>;
+}
+
+/** The figures of `fields` that have a Count rule, with it applied for `count` copies (`COUNT_RULE`). */
+export function countedFields(fields: Readonly<Record<string, number>>, count: number, dotCanStack: boolean): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [field, value] of Object.entries(fields)) {
+    const rule = COUNT_RULE.get(field);
+    if (rule === undefined) continue;
+    out[field] = rule === 'count' || (rule === 'stacking-dot' && dotCanStack) ? value * count : value;
+  }
+  return out;
+}
+
+/** Whether each measured skill's damage over time stacks: the main skill's, and per breakdown key. */
+export interface DotStacking {
+  main: boolean;
+  skills: Readonly<Record<string, boolean>>;
+}
+
+/**
+ * D-293, D-321: a stage's counted figures. The main skill's (`outputs`) take the main group's count; each
+ * breakdown entry (`g<group>s<skill>p<statSet>`) takes its own group's.
+ */
+export function countedFigures(
+  stage: Pick<Stage, 'skills'>,
+  outputs: Readonly<Record<string, number>>,
+  skillOutputs: StageRecord['skillOutputs'],
+  dotCanStack: DotStacking,
+): Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs'> {
+  const countOf = (group: number) => stage.skills.groups[group - 1]?.count ?? 1;
+  const main = stage.skills.main.group;
+  const countedSkillOutputs: StageRecord['countedSkillOutputs'] = {};
+  for (const [key, entry] of Object.entries(skillOutputs)) {
+    const group = Number(/^g(\d+)s\d+p\d+$/.exec(key)?.[1] ?? 0);
+    const stacks = dotCanStack.skills[key] === true;
+    countedSkillOutputs[key] = {
+      skill: entry.skill,
+      statSetLabel: entry.statSetLabel,
+      count: countOf(group),
+      dotCanStack: stacks,
+      fields: countedFields(entry.fields, countOf(group), stacks),
+    };
+  }
+  return {
+    countedOutputs: { group: main, count: countOf(main), dotCanStack: dotCanStack.main, fields: countedFields(outputs, countOf(main), dotCanStack.main) },
+    countedSkillOutputs,
+  };
+}
+
+/** Whether a ledger formula reads a figure of one of `stageIds` (D-321: its value carries their mark). */
+export function formulaReadsStages(formula: string, stageIds: ReadonlySet<string>): boolean {
+  const parsed = parseFormula(formula);
+  return parsed.ok && parsed.refs.some((r) => r.segments.length > 1 && stageIds.has(r.segments[0]));
+}
+
 export interface StageRecord {
   loadoutName: string;
   level: number;
   /** This stage's `compile_stage` request, in ms. */
   elapsedMs: number;
+  /** PoB's main output, as measured: the main skill's figures and the defences. */
   outputs: Record<string, number>;
+  /** D-293, D-321: the main skill's figures with the main group's Count applied (`countedFigures`). */
+  countedOutputs: CountedFigures & { group: number };
   skillOutputs: Record<string, { skill: string; statSetLabel: string; fields: Record<string, number> }>;
+  /** D-293, D-321: each `skillOutputs` entry, under the same key, with its group's Count applied. */
+  countedSkillOutputs: Record<string, CountedFigures & { skill: string; statSetLabel: string }>;
   /** Every option the stage lists, earned and scenario, as written into its config set (C-32). */
   configWritten: Record<string, ConfigValue>;
+  /** D-293: the lines written into PoB's `customMods` option, the stage's `config.customMods` texts in order. */
+  customModsWritten: string[];
+  /**
+   * D-293, D-321: the custom-modifier mark. True when the stage was measured with custom modifiers present,
+   * so every figure of it (`outputs`, defences included, `skillOutputs` and the counted figures) rests on
+   * them: an estimate, not PoB's model alone.
+   */
+  computedWithCustomMods: boolean;
   /** D-212: every option that affects the calculation, filled by V2 from the stage's config set. */
   configEffective: Record<
     string,
@@ -55,7 +167,8 @@ export interface StageRecord {
 }
 
 export interface CompileRecord {
-  recordVersion: 1;
+  /** 2 from WU-55 (D-321): the counted figures and the custom-modifier marks. */
+  recordVersion: 2;
   planSchemaVersion: number;
   planSha1: string;
   /**
@@ -87,7 +200,11 @@ export interface CompileRecord {
   activeLoadout: string;
   sets: { kind: SetKind; id: number; title: string; stages: string[] }[];
   stages: Record<string, StageRecord>;
-  ledger: Record<string, { value: number | null; error: string | null }>;
+  /**
+   * Each entry's value. `computedWithCustomMods` (D-321) is true when its formula reads a figure of a stage
+   * whose `computedWithCustomMods` is true.
+   */
+  ledger: Record<string, { value: number | null; error: string | null; computedWithCustomMods: boolean }>;
   /** `pob-computed` tags naming no record field. */
   unresolvedRefs: { where: string; ref: string }[];
   timing: { totalMs: number; checkMs: number; finishMs: number; exportMs: number };

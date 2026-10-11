@@ -776,6 +776,7 @@ export class PoBLuaApiClient {
     return res.config;
   }
 
+  /** A new socket group in the active skill set; `groupCount` (D-293) is the group's Count, its copies at once. */
   async createSocketGroup(params: ActionParams<"create_socket_group"> = {}): Promise<ActionReply<"create_socket_group">["socketGroup"]> {
     const res = await this.request("create_socket_group", params);
     return res.socketGroup;
@@ -921,7 +922,10 @@ export class PoBLuaApiClient {
     return res.result;
   }
 
-  /** Build and measure one stage: its set ids, PoB's allocation, its outputs and its breakdown. */
+  /**
+   * Build and measure one stage: its set ids, PoB's allocation, its outputs and its breakdown, and whether each
+   * measured skill's damage over time stacks (`dotCanStack`, D-293).
+   */
   async compileStage(params: ActionParams<"compile_stage">, opts?: RequestOptions): Promise<CompileStageResult> {
     const res = await this.request("compile_stage", params, opts);
     return res.result;

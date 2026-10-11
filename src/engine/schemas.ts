@@ -330,8 +330,14 @@ export type ConfigResult = z.infer<typeof configSchema>;
 /** `get_config` and `set_config` (the config after the change). */
 export const configReply = baseReply.extend({ config: configSchema });
 
+/**
+ * `create_socket_group`: the new group's index and label, whether it is in PoB's Full DPS, and its Count
+ * (`groupCount`, D-293), absent when none was given.
+ */
 export const createSocketGroupReply = baseReply.extend({
-  socketGroup: z.object({ index: z.number().int(), label: optString }).passthrough(),
+  socketGroup: z
+    .object({ index: z.number().int(), label: optString, includeInFullDPS: z.boolean(), groupCount: z.number().int().min(1).optional() })
+    .passthrough(),
 });
 
 export const addGemReply = baseReply.extend({
@@ -1020,6 +1026,9 @@ export const stageSkillOutputSchema = z
  * stage equipped when it created the set (`addedItems`); the stage's weapon-fit flags; the stored
  * values of its listed config options (`configInputs`), whether each keeps its value on a reload when
  * PoB's save leaves it out (`configSurvivesDrop`, D-248), and the V1 and V2 inputs (`checks`, WU-42).
+ * `configInputs` also holds `customMods` when the stage writes custom modifiers (D-293). `dotCanStack`
+ * (WU-55, D-293): whether the measured main skill's damage over time stacks (PoB's `DotCanStack`), and the
+ * same per breakdown key, so the record can apply Count by PoB's rule.
  */
 export const stageChecksSchema = z
   .object({
@@ -1100,6 +1109,7 @@ export const compileStageReply = baseReply.extend({
       weaponFlags: weaponFlagsSchema,
       configInputs: luaMap(z.union([z.boolean(), z.number(), z.string()])),
       configSurvivesDrop: luaMap(z.boolean()),
+      dotCanStack: z.object({ main: z.boolean(), skills: luaMap(z.boolean()) }).passthrough(),
       checks: stageChecksSchema,
     })
     .passthrough(),
@@ -1139,6 +1149,8 @@ export interface CompileCheckStage {
   groups: Array<{ gems: Array<{ name: string }> }>;
   main: { group: number; activeSkill: number; statSet?: number };
   config: Array<{ option: string; value: boolean | number | string }>;
+  /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */
+  customMods: string[];
 }
 
 /** A stage's item, skill or config set: `reuse` selects the set an earlier stage created. */
@@ -1168,12 +1180,18 @@ export interface CompileStageParams {
   groups: Array<{
     label?: string;
     enabled: boolean;
+    /** D-293, D-337: in PoB's Full DPS; the compiler sets it on the named source's group only. */
+    includeInFullDPS: boolean;
+    /** D-293: the group's Count (`groupCount`), set on the named source's group only. */
+    groupCount?: number;
     gems: Array<{ name: string; level: number; quality: number; enabled: boolean }>;
   }>;
   main: { group: number; activeSkill: number; statSet?: number };
   configSet: StageSetRef;
   /** Every listed option, earned and scenario: option → value. */
   config: Record<string, boolean | number | string>;
+  /** D-293: the custom modifier lines, written into PoB's `customMods` option after `config`, one line each. */
+  customMods: string[];
   /** The C-45 fields measured per active skill and stat set. */
   offenseFields: string[];
   /** The slots whose content the reply reports (`ITEM_SLOTS`). */
@@ -1354,7 +1372,7 @@ export interface ActionParamsMap {
    * default. An unknown key or a bad value fails the call and changes nothing.
    */
   set_config: Record<string, string | number | boolean>;
-  create_socket_group: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean };
+  create_socket_group: { label?: string; slot?: string; enabled?: boolean; includeInFullDPS?: boolean; groupCount?: number };
   /** `validateOnly`: resolve `gemName` only, change nothing (the reply's `gemIndex` is 0). */
   add_gem:
     | {

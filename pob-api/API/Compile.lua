@@ -15,7 +15,9 @@
 --     socket); an attribute choice on a node that isn't an attribute node, and an allocated attribute
 --     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket;
 --     an unknown config option or a bad value (BuildOps' own config check); a main group or main active
---     skill outside the stage's groups or their active skills.
+--     skill outside the stage's groups or their active skills; a custom modifier line (`customMods[]`,
+--     D-293) PoB can't parse whole, which PoB's customMods option would skip without a word
+--     (Modules/ConfigOptions.lua:2279-2297).
 --     It also reports (WU-42), for V2: `producers`, whether each `{kind, name}` producer the plan's earned
 --     config names exists in the game data (by kind: an item base or unique; a gem, as C-37's lookup finds
 --     it; a passive or ascendancy node; an active skill; a flask or charm base or unique), names compared
@@ -28,24 +30,30 @@
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}}}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
---                   useSecondWeaponSet, skillSet, groups[], main, configSet, config, offenseFields[],
---                   itemSlots[]}
+--                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[]}],
+--                   main, configSet, config, customMods[], offenseFields[], itemSlots[]}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
 --     tags and attribute choices (C-40), then the tree jewels. Item, skill and config sets: `reuse` names
 --     a set an earlier stage created, which is only selected (its content is the same); otherwise stage 1
 --     retitles set 1 of that type and every other stage creates a set (Sets.lua, C-39), and the content
 --     goes in: the items, the toggles (a toggle on an empty slot is skipped, for the checks to report)
---     and the second weapon set; every socket group, created with includeInFullDPS off, and its gems;
---     every listed config option. Then the main selection (after the second-weapon-set flag, which
+--     and the second weapon set; every socket group and its gems, each group with the includeInFullDPS and
+--     groupCount it is given (the compiler puts only the named source's group in Full DPS, with its Count:
+--     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
+--     PoB's customMods text option (D-293). Then the main selection (after the second-weapon-set flag, which
 --     doesn't move it), the level in manual mode, and the measurement: every finite number of the main
 --     output, the C-45 breakdown of every socket group (stats_breakdown, keyed g<group>s<skill>p<statSet>)
 --     and PoB's allocation after the import, with each node's weapon-set tag.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
---         configSurvivesDrop{option: boolean},
+--         configSurvivesDrop{option: boolean}, dotCanStack{main, skills{key: boolean}},
 --         checks{...}}
+--     `dotCanStack` (D-293) says whether each measured skill's damage over time stacks: PoB's DotCanStack,
+--     which CalcOffence sets on the measured main skill's stat-set flags (Modules/CalcOffence.lua:5964-5965,
+--     6011-6012) and calcFullDPS reads to decide whether Count multiplies the DoT (Modules/Calcs.lua:367, 411).
+--     `main` is the stage's main skill; `skills` is keyed as `skillOutputs`, read after each breakdown rebuild.
 --     `checks` (WU-42) are the V1 and V2 inputs, read right after the measurement: PassiveSpec:CountAllocNodes'
 --     counts, `ExtraPoints` and `PassivePointsToWeaponSetPoints`, Str/Dex/Int and ReqStr/ReqDex/ReqInt with
 --     the item or gem each requirement comes from, every gem's tier, kind (skill, support, or spirit: it
@@ -56,7 +64,8 @@
 --     and `shownOptions`, the conditional config options PoB shows for the stage (D-250).
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
---     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options, and
+--     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options (and
+--     of customMods when the stage writes custom modifiers, so the saved file is checked for them too), and
 --     `configSurvivesDrop` says, per option, whether a reload gives it the same value when PoB's save
 --     leaves it out (D-248: the new set's default is that value, or no default or placeholder replaces it).
 --     Weapon-fit flags (WU-41 review): whether an off-hand fits (a Focus with a Staff, a second weapon with
@@ -289,6 +298,16 @@ end
 -- so the stage build checks them.
 local OFF_HAND = { ['Weapon 2'] = true, ['Weapon 2 Swap'] = true }
 
+-- Whether PoB's customMods option adds `line` as modifiers (D-293): as its apply does, the line is stripped of
+-- colour codes and of spaces and '?' at either end, and kept only when modLib.parseMod parses all of it
+-- (Modules/ConfigOptions.lua:2281-2285).
+local function parses_whole(line)
+  if type(modLib) ~= 'table' or type(modLib.parseMod) ~= 'function' then fail("PoB's modifier parser is not available") end
+  local stripped = StripEscapes(tostring(line)):gsub('^[%s?]+', ''):gsub('[%s?]+$', '')
+  local mods, extra = modLib.parseMod(stripped)
+  return mods ~= nil and not extra
+end
+
 local function check_stage(tree, roll, st, defect)
   check_tree(tree, roll, st, defect)
   for _, j in ipairs(list(st.jewels)) do
@@ -345,6 +364,12 @@ local function check_stage(tree, roll, st, defect)
     else
       local ok, why = BuildOps.config_value(option, entry.value)
       if not ok then defect(why) end
+    end
+  end
+  for i, line in ipairs(list(st.customMods)) do
+    if not parses_whole(line) then
+      defect(('config.customMods[%d]: PoB can not parse "%s" whole as a modifier, so its customMods option would '
+        .. 'skip it and add nothing'):format(i - 1, tostring(line)))
     end
   end
 end
@@ -624,12 +649,15 @@ local function plans_off_hand(st)
   return false
 end
 
+-- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337), before any
+-- calculation of the stage; a reused set already holds them, as it holds its groups.
 local function build_skills(st)
   local id, fresh = stage_set('skill', st.skillSet, st.first)
   if fresh then
     for gi, group in ipairs(list(st.groups)) do
       local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
-        label = group.label, enabled = group.enabled ~= false, includeInFullDPS = false,
+        label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
+        groupCount = group.groupCount,
       }))
       for _, gem in ipairs(list(group.gems)) do
         must(('adding gem "%s" to group %d'):format(tostring(gem.name), gi), BuildOps.add_gem({
@@ -655,32 +683,81 @@ local function select_main(st)
   end
 end
 
+-- PoB's text option that holds custom modifiers, one per line (Modules/ConfigOptions.lua:2279).
+local CUSTOM_MODS = 'customMods'
+
+-- The stage's custom modifier lines as PoB's customMods text: one line per entry, in order; nil for none.
+local function custom_mods_text(st)
+  local lines = {}
+  for _, line in ipairs(list(st.customMods)) do lines[#lines + 1] = tostring(line) end
+  if #lines == 0 then return nil end
+  return table.concat(lines, '\n')
+end
+
+-- A new config set gets the listed options, then the custom modifier lines (D-293) in a write of their own.
 local function build_config(st)
   local id, fresh = stage_set('config', st.configSet, st.first)
   if fresh and type(st.config) == 'table' and next(st.config) ~= nil then
     must('writing the config options', BuildOps.set_config(st.config))
   end
+  local custom = custom_mods_text(st)
+  if fresh and custom ~= nil then
+    must('writing the custom modifiers', BuildOps.set_config({ [CUSTOM_MODS] = custom }))
+  end
   return id
 end
 
--- C-45's breakdown of every socket group: g<group>s<skill>p<statSet> -> {skill, statSetLabel, fields}.
+-- Whether the last calculation's main skill stacks its damage over time (D-293): PoB's DotCanStack, which
+-- CalcOffence sets on that skill's stat-set flags (MAIN mode: activeEffect.statSet.skillFlags,
+-- Modules/CalcOffence.lua:390-394, 5964-5965) and calcFullDPS reads (Modules/Calcs.lua:367).
+local function main_dot_can_stack()
+  local env = build.calcsTab.mainEnv
+  local skill = env and env.player and env.player.mainSkill
+  local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
+  return statSet ~= nil and type(statSet.skillFlags) == 'table' and statSet.skillFlags.DotCanStack == true
+end
+
+-- C-45's breakdown of every socket group: g<group>s<skill>p<statSet> -> {skill, statSetLabel, fields}; and,
+-- under the same keys, whether each skill and stat set's damage over time stacks (D-293). stats_breakdown
+-- measures each one as the main selection through BuildOps.get_main_output, so while it runs that function
+-- is wrapped to read the flag after each of its rebuilds; the wrapper is removed however the breakdown ends.
 local function skill_outputs(fields)
-  local out = {}
-  for gi = 1, #(build.skillsTab.socketGroupList or {}) do
-    local res = must('measuring socket group ' .. gi, BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
-    for _, skill in ipairs(res.skills or {}) do
-      for _, set in ipairs(skill.statSets or {}) do
-        local numbers = {}
-        for k, v in pairs(set.output or {}) do
-          if finite(v) then numbers[k] = v end
+  local out, stacks = {}, {}
+  local own = BuildOps.get_main_output
+  BuildOps.get_main_output = function(...)
+    local output, err = own(...)
+    local gi = build.mainSocketGroup
+    local group = build.skillsTab.socketGroupList[gi]
+    local env = build.calcsTab.mainEnv
+    local skill = env and env.player and env.player.mainSkill
+    local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
+    if group and statSet and skill.socketGroup == group then
+      stacks[('g%ds%dp%d'):format(gi, group.mainActiveSkill or 1, statSet.index or 1)] = main_dot_can_stack()
+    end
+    return output, err
+  end
+  local ok, err = pcall(function()
+    for gi = 1, #(build.skillsTab.socketGroupList or {}) do
+      local res = must('measuring socket group ' .. gi, BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
+      for _, skill in ipairs(res.skills or {}) do
+        for _, set in ipairs(skill.statSets or {}) do
+          local numbers = {}
+          for k, v in pairs(set.output or {}) do
+            if finite(v) then numbers[k] = v end
+          end
+          out[('g%ds%dp%d'):format(gi, skill.index, set.index)] = {
+            skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
+          }
         end
-        out[('g%ds%dp%d'):format(gi, skill.index, set.index)] = {
-          skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
-        }
       end
     end
-  end
-  return out
+  end)
+  BuildOps.get_main_output = own
+  if not ok then error(err, 0) end
+  -- Only the measured keys: the wrapper also saw the rebuilds that put the stage's own selection back.
+  local measured = {}
+  for key in pairs(out) do measured[key] = stacks[key] == true end
+  return out, measured
 end
 
 local function allocation()
@@ -958,13 +1035,18 @@ function M.compile_stage(st)
       return id
     end)
     local output = must('measuring the stage', rebuild())
+    local mainStacks = main_dot_can_stack()
     local outputs = {}
     for k, v in pairs(output) do
       if type(k) == 'string' and finite(v) then outputs[k] = v end
     end
     local configInputs, configSurvivesDrop = {}, {}
     local cs = build.configTab.configSets[configSetId]
-    for option in pairs(type(st.config) == 'table' and st.config or {}) do
+    local stored = {}
+    for option in pairs(type(st.config) == 'table' and st.config or {}) do stored[#stored + 1] = option end
+    -- The custom modifiers' option too (D-293), so the saved file is checked for it like a listed option.
+    if custom_mods_text(st) ~= nil then stored[#stored + 1] = CUSTOM_MODS end
+    for _, option in ipairs(stored) do
       local v = cs and cs.input[option]
       if type(v) == 'boolean' or type(v) == 'string' or finite(v) then
         configInputs[option] = v
@@ -973,18 +1055,21 @@ function M.compile_stage(st)
     end
     -- The V1/V2 inputs, before the breakdown changes the main selection and restores it.
     local checks = stage_checks(st, output, configSetId, defer)
+    local alloc = allocation()
+    local skills, skillStacks = skill_outputs(list(st.offenseFields))
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
-      allocation = allocation(),
+      allocation = alloc,
       outputs = outputs,
-      skillOutputs = skill_outputs(list(st.offenseFields)),
+      skillOutputs = skills,
       skippedToggles = skipped,
       items = set_items(itemsTab.itemSets[itemSetId], list(st.itemSlots)),
       addedItems = added,
       weaponFlags = weapon_flags(),
       configInputs = configInputs,
       configSurvivesDrop = configSurvivesDrop,
+      dotCanStack = { main = mainStacks, skills = skillStacks },
       checks = checks,
     }
   end)

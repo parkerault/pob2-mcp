@@ -1288,16 +1288,27 @@ end
 -- Skill/Gem Creation and Modification API
 
 -- Create a new socket group
--- params: { label?: string, slot?: string, enabled?: boolean, includeInFullDPS?: boolean }
+-- params: { label?: string, slot?: string, enabled?: boolean, includeInFullDPS?: boolean, groupCount?: number }
+-- `groupCount` (D-293) is the group's Count, how many copies act at once: PoB multiplies the group's
+-- contribution to Full DPS by it (Modules/Calcs.lua calcFullDPS, through calcs.getActiveSkillCount) and saves
+-- it as the group's `groupCount` (Classes/SkillsTab.lua:470). Without it the group has none, as in PoB.
 function M.create_socket_group(params)
   if not build or not build.skillsTab then return nil, 'skills not initialized' end
   if type(params) ~= 'table' then params = {} end
+  local groupCount = nil
+  if params.groupCount ~= nil then
+    groupCount = tonumber(params.groupCount)
+    if not groupCount or groupCount ~= math.floor(groupCount) or groupCount < 1 or groupCount == math.huge then
+      return nil, ('groupCount must be a whole number of at least 1, not %s'):format(tostring(params.groupCount))
+    end
+  end
 
   local socketGroup = {
     label = params.label or '',
     slot = params.slot,
     enabled = params.enabled ~= false,
     includeInFullDPS = params.includeInFullDPS == true,
+    groupCount = groupCount,
     gemList = {},
     mainActiveSkill = 1,
     mainActiveSkillCalcs = 1,
@@ -1320,7 +1331,8 @@ function M.create_socket_group(params)
   build.buildFlag = true
   M.get_main_output()
 
-  return { index = index, label = socketGroup.label }
+  return { index = index, label = socketGroup.label, includeInFullDPS = socketGroup.includeInFullDPS,
+    groupCount = socketGroup.groupCount }
 end
 
 -- The most gem-name suggestions an unknown name gets (D-50).

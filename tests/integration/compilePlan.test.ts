@@ -210,8 +210,14 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     // Every stage holds the same weapon-fit flags and keeps its config through a PoB2 save: no warnings.
     expect(record.loadoutWarnings).toEqual([]);
     expect(record.saveWarnings).toEqual([]);
-    // Every socket group goes in with Full DPS off (WU-30: Full DPS is the axis that eats the time margin).
-    expect(xml).not.toContain('includeInFullDPS="true"');
+    // Only the named source's group (rolledGroup, group 1 in both stages) goes in with Full DPS on, with its Count;
+    // every other group stays out (D-293, D-337 narrowing D-306; WU-51 measured it within the time margin).
+    // Each stage has its own skill set, so the file holds two groups in Full DPS.
+    expect((xml.match(/includeInFullDPS="true"/g) ?? []).length).toBe(2);
+    for (const tag of xml.match(/<Skill\b[^>]*>/g) ?? []) {
+      const named = tag.includes('label="Boneshatter"');
+      expect({ tag, full: /includeInFullDPS="true"/.test(tag), count: /groupCount="1"/.test(tag) }).toEqual({ tag, full: named, count: named });
+    }
     // The engine now holds the compiled build, saved: nothing unsaved.
     expect(f.session.loaded?.path).toBe('m11-two-stage.xml');
     expect(f.session.isDirty()).toBe(false);
@@ -474,7 +480,7 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     const record = recordOf(r);
     const o1 = record.stages['1'].outputs;
     const o2 = record.stages['2'].outputs;
-    expect(record.ledger.dps_ratio).toEqual({ value: o2.CombinedDPS / o1.CombinedDPS, error: null });
+    expect(record.ledger.dps_ratio).toEqual({ value: o2.CombinedDPS / o1.CombinedDPS, error: null, computedWithCustomMods: false });
     expect(record.ledger.life_gain_pct.value).toBeCloseTo(((o2.Life - o1.Life) / o1.Life) * 100, 10);
     expect(record.ledger.no_output.value).toBeNull();
     expect(record.ledger.no_output.error).toMatch(/^unknown-output at column 0: "2\.NoSuchOutput"/);

@@ -7,8 +7,9 @@
  * 6 socket groups of 6 gems per stage; unlike WU-30's 36 config writes per stage it writes 11, the options
  * with a C1/E1 source, which costs the same single config write per stage) takes at most 100 s of wall time
  * (NFR-20), and every stage's
- * `compile_stage` request under 20 s (NFR-21). The compiled file has 15 loadouts and no socket group in
- * Full DPS (WU-30: with every group in Full DPS a contended stage took 25.5 s).
+ * `compile_stage` request under 20 s (NFR-21). The compiled file has 15 loadouts, and only the named source's
+ * group (each stage's `rolledGroup`) is in Full DPS, with its Count; every other group stays out (D-293, D-337,
+ * which narrow D-306: WU-51 measured Full DPS on the named groups at ×1.14 of the whole call).
  *
  * This file runs alone: `jest.config.cjs` leaves it out of the parallel run, and `mise run test` runs it in
  * its own `--runInBand` step after `pnpm test` (C-19), so other suites don't compete with its 100 s threshold.
@@ -46,7 +47,7 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
 
   afterAll(async () => f?.close(), 60_000);
 
-  it('AC-P37: compiles in at most 100 s, every stage request under 20 s, 15 loadouts and nothing in Full DPS', async () => {
+  it('AC-P37: compiles in at most 100 s, every stage request under 20 s, 15 loadouts and only the named source\'s groups in Full DPS', async () => {
     const run = await f.call('guide_run', { new_run: 'nfr-fifteen-stage' });
     expect(run.isError).toBe(false);
     const planPath = /^plan_path for this run: (\S+)$/m.exec(run.text)![1];
@@ -80,7 +81,31 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
 
     const xml = fs.readFileSync(path.join(f.builds, 'nfr-fifteen-stage.xml'), 'utf8');
     expect((xml.match(/<Spec\b/g) ?? []).length).toBe(15);
-    expect(xml).not.toContain('includeInFullDPS="true"');
+    // D-293, D-337 (D-306 narrowed): per stage, its rolledGroup is in Full DPS with its groupCount; no other group is.
+    const plan = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as {
+      stages: { id: string; skills: { rolledGroup?: number; groups: { count?: number }[] } }[];
+    };
+    const sets = new Map<string, string[]>();
+    for (const m of xml.matchAll(/<SkillSet\b([^>]*)>([\s\S]*?)<\/SkillSet>/g)) {
+      sets.set(/\btitle="([^"]*)"/.exec(m[1])![1], [...m[2].matchAll(/<Skill\b([^>]*?)\/?>/g)].map((s) => s[1]));
+    }
+    let named = 0;
+    for (const stage of plan.stages) {
+      const title = record.sets.find((s) => s.kind === 'skill' && s.stages.includes(stage.id))!.title;
+      const groups = sets.get(title)!;
+      expect({ stage: stage.id, groups: groups.length }).toEqual({ stage: stage.id, groups: stage.skills.groups.length });
+      groups.forEach((attrs, k) => {
+        const isNamed = k + 1 === stage.skills.rolledGroup;
+        if (isNamed) named += 1;
+        expect({ stage: stage.id, group: k + 1, full: /\bincludeInFullDPS="(\w+)"/.exec(attrs)?.[1], count: /\bgroupCount="(\d+)"/.exec(attrs)?.[1] }).toEqual({
+          stage: stage.id,
+          group: k + 1,
+          full: isNamed ? 'true' : 'false',
+          count: isNamed ? String(stage.skills.groups[k].count ?? 1) : undefined,
+        });
+      });
+    }
+    expect(named).toBe(15);
   }, 150_000);
 
   it('WU-30 lever: with the rebuilds not deferred, every stage measures exactly the same outputs and breakdown', async () => {

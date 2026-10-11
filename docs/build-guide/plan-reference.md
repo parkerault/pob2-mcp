@@ -24,7 +24,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
 - **Older versions** (D-320, D-332). A version-1 plan still validates and compiles, with the version-1
   shape: it takes the defaults of what version 2 added, and each use of an addition errs at its own path,
   naming the version that added it. Version 2 added:
-  - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage.
+  - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
+  - a group's `count` and `countReason` (`stages[].skills.groups[]`, D-293); in a version-1 plan every group
+    counts as 1, and the keys are errors;
+  - `config.customMods` (D-293); a version-1 plan has no custom modifiers.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -36,7 +39,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors.
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
-node ids and tree connectivity, config option names and values, and the main skill's index (C-41 step 5).
+node ids and tree connectivity, config option names and values, the main skill's index, and that PoB parses
+each custom modifier line whole (C-41 step 5). A missing `countReason` or custom-modifier `reason` isn't a
+schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322).
 
 ## Terms
 
@@ -124,6 +129,46 @@ respec, or when `respec.dropped` isn't exactly the dropped set.
   order; within a rung, stages follow plan order. A rung the plan doesn't have is skipped, so without `m`,
   `b` continues from the last campaign stage. In a plan with no campaign stage, the first rung continues from
   none.
+
+### Count and custom modifiers (D-293)
+
+Two kinds of estimate cover what PoB doesn't model on its own. Each carries its reason, and the compile
+record marks what rests on it.
+
+- **Count.** A socket group's `count` is how many copies of it act at once, such as several totems or
+  minions each casting the skill. It is a whole number of at least 1, and 1 when absent. Above 1 the group
+  needs a `countReason` saying why that many act at once; without one, V1 reports `missing-reason` on the
+  stage.
+  - PoB applies Count only when it adds up Full DPS, and the compile record applies it by PoB's rule. Hits
+    are multiplied by the count. Damage over time is multiplied only when it stacks; the ailments count
+    once. The record keeps the raw figures and holds the counted ones beside them.
+  - The named source's group, `rolledGroup`, is put in PoB's Full DPS with its count. Every other group stays
+    out of Full DPS, and its count lives only in the plan and the record.
+- **Custom modifiers.** `config.customMods` lists hand-calculated effects, one PoB modifier line each, such
+  as `10% more Damage`. The compiler writes them into PoB's custom modifier box after the stage's config
+  options.
+  - A line PoB can't parse whole would add nothing, so it fails the compile.
+  - Each entry needs a `reason` saying what it stands for and how it was worked out; without one, V1
+    reports `missing-reason`.
+  - Every figure of a stage with custom modifiers, defences included, is marked in the compile record, and
+    so is every ledger value that reads one. Don't list `customMods` in `earned` or `scenario`.
+
+```json
+{
+  "label": "Ancestral Warrior Totem",
+  "enabled": true,
+  "role": "single_target",
+  "gems": [{ "name": "Ancestral Warrior Totem", "level": 10, "quality": 0, "enabled": true }],
+  "count": 2,
+  "countReason": "two totems are up at once: the stage's tree grants +1 to maximum number of Summoned Totems"
+}
+```
+
+```json
+"customMods": [
+  { "text": "10% more Damage", "reason": "<the effect PoB doesn't model, and how 10% was worked out from it>" }
+]
+```
 
 ### Shared sets (A-P2)
 
@@ -229,11 +274,13 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].gems[].level` | integer | yes | At least 1 | C-31, D-193 |
 | `stages[].skills.groups[].gems[].quality` | integer | yes | At least 0 | C-31 |
 | `stages[].skills.groups[].gems[].enabled` | boolean | yes | Whether the gem is enabled | C-31 |
+| `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). On the `rolledGroup` it is PoB's Count in Full DPS; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320 |
+| `stages[].skills.groups[].countReason` | string | no | Non-empty. Why `count` copies act at once; needed when `count` is above 1, else V1 reports `missing-reason`. Schema version 2 | D-293, D-322 |
 | `stages[].skills.main` | object | yes | The main skill selection | C-31, C-44 |
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group | C-31, C-44 |
 | `stages[].skills.main.statSet` | integer | no | At least 1. The active skill's stat set | C-44 |
-| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`. Set wherever the stage has the rolled skill; required on an endgame variant stage | D-217 |
+| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`. Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` | D-217, D-293, D-337 |
 | `stages[].config` | object | yes | The config set: earned player state and scenario inputs. Each option appears once across `earned` and `scenario`. Stages with deep-equal `config` share one set | C-32, A-P2 |
 | `stages[].config.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].config.earned` | object[] | yes | Earned player state: stacks, charges, conditions, each with what produces it | C-32, D-114 |
@@ -255,6 +302,9 @@ rule may require an optional key in some cases.
 | `stages[].config.scenario[].tag.accessed` | string | no | `YYYY-MM-DD`; required for `external` | C-30 |
 | `stages[].config.scenario[].tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].config.scenario[].tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
+| `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. In a version-2 plan, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
+| `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
+| `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason` | D-293, D-322 |
 | `stages[].claims` | object[] | yes | The stage's claims, each with its source | C-30, D-105 |
 | `stages[].claims[].id` | string | yes | Non-empty | C-30 |
 | `stages[].claims[].text` | string | yes | Non-empty. The claim as the guide states it | C-30 |

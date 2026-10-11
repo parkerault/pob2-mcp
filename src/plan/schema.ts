@@ -11,6 +11,11 @@
  * version-1 shape: it takes the defaults of what version 2 added and can't use it, so each use errs at its
  * own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
+ * **Count and custom modifiers** (D-293, version 2). A socket group's `count` (an integer of at least 1,
+ * default 1) is how many copies of it act at once, and `countReason` says why when it is above 1. A config's
+ * `customMods` are hand-calculated effects, each one PoB modifier line with its `reason`. A missing reason is
+ * a V1 finding (`missing-reason`, D-322), not a schema error: the schema checks only the shapes.
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -44,6 +49,8 @@ const STAGE_ID_RE = /^[A-Za-z0-9]+$/;
 const LEDGER_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PRICE_ID_RE = /^[A-Za-z0-9_-]+$/;
 const ENEMY_IS_BOSS = 'enemyIsBoss';
+/** PoB's text option the compiler writes `config.customMods` into, one line per entry (D-293). */
+const CUSTOM_MODS_OPTION = 'customMods';
 
 const text = (field: string) => z.string().min(1, { message: `${field} must not be empty` });
 const setTitle = text('setTitle').refine((s) => !/[{}]/.test(s), { message: 'setTitle must not contain braces' });
@@ -151,6 +158,9 @@ const skillsSchema = z
           enabled: z.boolean(),
           role: z.enum(['clear', 'single_target', 'utility', 'leveling']),
           gems: z.array(gemSchema).min(1, { message: 'a group holds at least one gem' }),
+          // D-293: how many copies of the group act at once (default 1); above 1, countReason says why.
+          count: z.number().int({ message: 'count is a whole number' }).min(1, { message: 'count is at least 1' }).optional(),
+          countReason: text('countReason').optional(),
         })
         .strict(),
     ),
@@ -191,11 +201,20 @@ const scenarioSchema = z
   })
   .strict();
 
+/** D-293: one hand-calculated effect, as one PoB modifier line, with why it is there. */
+const customModSchema = z
+  .object({
+    text: text('text').refine((s) => !/[\r\n]/.test(s), { message: 'text is one modifier line, with no line break' }),
+    reason: text('reason').optional(),
+  })
+  .strict();
+
 const configSchema = z
   .object({
     setTitle: setTitle.optional(),
     earned: z.array(earnedSchema),
     scenario: z.array(scenarioSchema),
+    customMods: z.array(customModSchema).optional(),
   })
   .strict()
   .superRefine((config, ctx) => {
@@ -363,13 +382,37 @@ interface VersionAddition {
   uses: (plan: z.infer<typeof planObject>) => (string | number)[][];
 }
 
-/** Every addition, by the version that made it (D-320). WU-55 adds `count`, `countReason` and `customMods` to version 2. */
+/** One path per socket group, in any stage, that sets `key`. */
+const groupKeyUses = (plan: z.infer<typeof planObject>, key: 'count' | 'countReason'): (string | number)[][] =>
+  plan.stages.flatMap((s, i) =>
+    s.skills.groups.flatMap((g, k) => (g[key] !== undefined ? [['stages', i, 'skills', 'groups', k, key]] : [])),
+  );
+
+/** Every addition, by the version that made it (D-320). */
 const VERSION_ADDITIONS: readonly VersionAddition[] = [
   {
     since: 2,
     what: 'the entering-maps variant (D-281)',
     before: 'no entering-maps stage',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.variant === 'entering-maps' ? [['stages', i, 'variant']] : [])),
+  },
+  {
+    since: 2,
+    what: "a group's count (D-293)",
+    before: 'a count of 1 for every group',
+    uses: (plan) => groupKeyUses(plan, 'count'),
+  },
+  {
+    since: 2,
+    what: "a group's countReason (D-293)",
+    before: 'no countReason',
+    uses: (plan) => groupKeyUses(plan, 'countReason'),
+  },
+  {
+    since: 2,
+    what: 'config.customMods (D-293)',
+    before: 'no custom modifiers',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.config.customMods !== undefined ? [['stages', i, 'config', 'customMods']] : [])),
   },
 ];
 
@@ -389,6 +432,24 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
           `whose plans have ${added.before} (D-320, D-332)`,
       );
     }
+  }
+
+  // D-293: from version 2, the compiler writes PoB's customMods option from config.customMods, each entry with
+  // its reason, so the option isn't listed as earned state or a scenario input as well.
+  if (plan.schemaVersion >= 2) {
+    plan.stages.forEach((s, i) => {
+      for (const list of ['earned', 'scenario'] as const) {
+        s.config[list].forEach((e, k) => {
+          if (e.option === CUSTOM_MODS_OPTION) {
+            issue(
+              ctx,
+              ['stages', i, 'config', list, k, 'option'],
+              `${CUSTOM_MODS_OPTION} is written from config.customMods, one entry per modifier line with its reason (D-293); list the lines there`,
+            );
+          }
+        });
+      }
+    });
   }
 
   // A-P1: stage ids are unique.

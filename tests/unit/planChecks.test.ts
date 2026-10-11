@@ -1,6 +1,7 @@
 /**
  * V1 and V2's rules without the engine (WU-42, slice 2 §3.7): the continuity predecessor and the endgame
- * ladder (WU-61, D-282; AC-P59), the entering-maps variant (WU-61, D-281; AC-P58), the resistance penalty at
+ * ladder (WU-61, D-282; AC-P59), the entering-maps variant (WU-61, D-281; AC-P58), Count and custom modifiers
+ * with their reasons (WU-55, D-293, D-322; AC-P51, AC-P52) and the record's Count rule, the resistance penalty at
  * a progress key (range-keyed interlude values), "on" and placeholder-driven (A-P5, D-212), the baseline
  * list's loader (D-230), and checks over hand-made stage inputs. The engine criteria (AC-P39…AC-P44,
  * AC-P50) are `tests/integration/planChecks.test.ts`.
@@ -16,6 +17,7 @@ import { checkV2, isOnFor, isPlaceholderDriven, producerKey } from '../../src/pl
 import { FactReader } from '../../src/plan/checks/facts';
 import { ConfigBaselineError, loadConfigBaseline, parseConfigBaseline } from '../../src/plan/checks/configBaseline';
 import { producersOf } from '../../src/plan/compiler';
+import { COUNT_RULE, countedFields, countedFigures, formulaReadsStages } from '../../src/plan/record';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { validatePlan, type PlanVariant, type Stage } from '../../src/plan/schema';
 import type { ConfigOptionDefault, StageChecks } from '../../src/engine/schemas';
@@ -496,5 +498,160 @@ describe('V2 over hand-made stage inputs', () => {
   it('producersOf lists each producer once, in plan order', () => {
     const [one, two] = stagesOf(fixture());
     expect(producersOf([one, two])).toEqual([{ kind: 'gem', name: 'Rage I' }]);
+  });
+});
+
+describe('AC-P51, AC-P52 (WU-55, D-293, D-322): Count and custom modifiers, their schema and their reasons', () => {
+  /** Validation errors as `path: message` pairs, without the reference data (the shapes only). */
+  const errorsOf = (plan: Json) => {
+    const v = validatePlan(JSON.stringify(plan));
+    return v.ok ? [] : v.errors;
+  };
+  /** V1's findings on stage 1 of `plan`, of the code WU-55 names. */
+  const reasonFindings = (plan: Json) => {
+    const [one] = stagesOf(plan);
+    const v1 = checkV1({ stage: one, predecessor: null, checks: checksFor(one), ref });
+    return { pass: v1.verdict.pass, findings: v1.verdict.findings.filter((f) => f.code === 'missing-reason') };
+  };
+
+  it('the fixture\'s stage 1 passes V1 with these hand-made inputs (the baseline for the cases below)', () => {
+    expect(reasonFindings(fixture())).toEqual({ pass: true, findings: [] });
+  });
+
+  it('AC-P51: a group with count above 1 and no countReason is a V1 finding, missing-reason, so v1.pass is false; not a schema error', () => {
+    const plan = fixture();
+    plan.stages[0].skills.groups[1].count = 3;
+    expect(errorsOf(plan)).toEqual([]);
+    const { pass, findings } = reasonFindings(plan);
+    expect(pass).toBe(false);
+    expect(findings).toEqual([
+      { code: 'missing-reason', message: expect.stringContaining('skill group 2 (Rolling Slam) has count 3 but no countReason'), data: { path: 'skills.groups[1].countReason', group: 2, count: 3 } },
+    ]);
+  });
+
+  it('AC-P51: with a countReason there is no finding; a group without count counts as 1 and needs none, and so does count 1', () => {
+    const plan = fixture();
+    Object.assign(plan.stages[0].skills.groups[1], { count: 3, countReason: 'three totems are up at once' });
+    expect(reasonFindings(plan)).toEqual({ pass: true, findings: [] });
+    const one = fixture();
+    one.stages[0].skills.groups[0].count = 1;
+    expect(reasonFindings(one)).toEqual({ pass: true, findings: [] });
+    // Without count, the group's figures take a count of 1 (record.ts, countedFigures).
+    const [stage] = stagesOf(fixture());
+    const c = countedFigures(stage, { TotalDPS: 10 }, { g2s1p1: { skill: 'Rolling Slam', statSetLabel: 'Slam', fields: { TotalDPS: 5 } } }, { main: false, skills: {} });
+    expect(c.countedOutputs).toEqual({ group: 1, count: 1, dotCanStack: false, fields: { TotalDPS: 10 } });
+    expect(c.countedSkillOutputs.g2s1p1).toMatchObject({ count: 1, fields: { TotalDPS: 5 } });
+  });
+
+  it('AC-P51: a count of 0, or one that isn\'t an integer, is a schema error at its path', () => {
+    for (const bad of [0, 1.5, -2, '2']) {
+      const plan = fixture();
+      plan.stages[0].skills.groups[0].count = bad;
+      expect({ bad, paths: errorsOf(plan).map((e) => e.path) }).toEqual({ bad, paths: ['stages[0].skills.groups[0].count'] });
+    }
+    const plan = fixture();
+    plan.stages[0].skills.groups[0].countReason = '';
+    expect(errorsOf(plan).map((e) => e.path)).toEqual(['stages[0].skills.groups[0].countReason']);
+  });
+
+  it('AC-P52: a customMods entry without a reason is a V1 finding; with one, none; a plan without customMods is valid', () => {
+    expect(fixture().stages[0].config.customMods).toBeUndefined();
+    expect(errorsOf(fixture())).toEqual([]);
+    const plan = fixture();
+    plan.stages[0].config.customMods = [{ text: '10% more Damage', reason: 'an effect PoB doesn\'t model' }, { text: '+20 to maximum Life' }];
+    expect(errorsOf(plan)).toEqual([]);
+    const { pass, findings } = reasonFindings(plan);
+    expect(pass).toBe(false);
+    expect(findings).toEqual([
+      { code: 'missing-reason', message: expect.stringContaining('custom modifier 2 ("+20 to maximum Life") has no reason'), data: { path: 'config.customMods[1].reason', text: '+20 to maximum Life' } },
+    ]);
+    plan.stages[0].config.customMods[1].reason = 'a hand-calculated flat life';
+    expect(reasonFindings(plan)).toEqual({ pass: true, findings: [] });
+    // An empty list is no custom modifier at all.
+    plan.stages[0].config.customMods = [];
+    expect(errorsOf(plan)).toEqual([]);
+    expect(reasonFindings(plan)).toEqual({ pass: true, findings: [] });
+  });
+
+  it('AC-P52: an entry\'s text is one non-empty line, its reason non-empty, and it has no other key; customMods isn\'t an earned or scenario option in version 2', () => {
+    const paths = (edit: (p: Json) => void) => {
+      const plan = fixture();
+      edit(plan);
+      return errorsOf(plan).map((e) => e.path);
+    };
+    expect(paths((p) => (p.stages[0].config.customMods = [{ text: '10% more Damage\n+20 to maximum Life', reason: 'r' }]))).toEqual(['stages[0].config.customMods[0].text']);
+    expect(paths((p) => (p.stages[0].config.customMods = [{ text: '', reason: 'r' }]))).toEqual(['stages[0].config.customMods[0].text']);
+    expect(paths((p) => (p.stages[0].config.customMods = [{ text: 'x', reason: '' }]))).toEqual(['stages[0].config.customMods[0].reason']);
+    expect(paths((p) => (p.stages[0].config.customMods = [{ text: 'x', reason: 'r', source: 'y' }]))).toEqual(['stages[0].config.customMods[0]']);
+    const at = fixture().stages[1].config.earned.length;
+    expect(paths((p) => p.stages[1].config.earned.push({ option: 'customMods', value: '10% more Damage', producer: { kind: 'gem', name: 'Rage I' }, uptime: 'u' }))).toEqual([
+      `stages[1].config.earned[${at}].option`,
+    ]);
+    // A version-1 plan keeps its own shape (D-332), where such an option is an ordinary one.
+    expect(paths((p) => {
+      p.schemaVersion = 1;
+      p.stages[1].config.earned.push({ option: 'customMods', value: '10% more Damage', producer: { kind: 'gem', name: 'Rage I' }, uptime: 'u' });
+    })).toEqual([]);
+  });
+
+  it('D-320, D-332: count, countReason and customMods are version 2: in a version-1 plan each use is an error at its path, naming the version', () => {
+    const plan = fixture();
+    plan.schemaVersion = 1;
+    Object.assign(plan.stages[0].skills.groups[1], { count: 2, countReason: 'two copies' });
+    plan.stages[1].skills.groups[0].count = 1;
+    plan.stages[1].config.customMods = [];
+    const errors = errorsOf(plan);
+    expect(errors.map((e) => e.path).sort()).toEqual([
+      'stages[0].skills.groups[1].count',
+      'stages[0].skills.groups[1].countReason',
+      'stages[1].config.customMods',
+      'stages[1].skills.groups[0].count',
+    ]);
+    for (const e of errors) expect(e.message).toMatch(/needs schemaVersion 2 or later; this plan declares schemaVersion 1/);
+    // Without them the version-1 plan is valid, every group counting 1.
+    expect(errorsOf({ ...fixture(), schemaVersion: 1 })).toEqual([]);
+  });
+});
+
+describe('WU-55 (D-293, D-321): the record\'s Count rule and custom-modifier marks, as pure functions', () => {
+  it('countedFields: hits and impale × count; damage over time × count only when it stacks; the best ailment once; no other figure', () => {
+    const fields = { TotalDPS: 100, ImpaleDPS: 10, TotalDot: 40, IgniteDPS: 7, PoisonDPS: 3, BleedDPS: 2, DecayDPS: 5, CombinedDPS: 157, Speed: 1.5, CritChance: 5 };
+    expect(countedFields(fields, 3, false)).toEqual({ TotalDPS: 300, ImpaleDPS: 30, TotalDot: 40, IgniteDPS: 7, PoisonDPS: 3, BleedDPS: 2, DecayDPS: 5 });
+    expect(countedFields(fields, 3, true)).toEqual({ TotalDPS: 300, ImpaleDPS: 30, TotalDot: 120, IgniteDPS: 7, PoisonDPS: 3, BleedDPS: 2, DecayDPS: 5 });
+    expect(countedFields(fields, 1, true)).toEqual({ TotalDPS: 100, ImpaleDPS: 10, TotalDot: 40, IgniteDPS: 7, PoisonDPS: 3, BleedDPS: 2, DecayDPS: 5 });
+    // An inherited property name is no rule.
+    expect(countedFields({ constructor: 1, toString: 2 } as unknown as Record<string, number>, 2, false)).toEqual({});
+    expect([...COUNT_RULE.keys()].sort()).toEqual(
+      ['BleedDPS', 'BurningGroundDPS', 'CausticGroundDPS', 'CorruptingBloodDPS', 'DecayDPS', 'IgniteDPS', 'ImpaleDPS', 'PoisonDPS', 'TotalDPS', 'TotalDot'],
+    );
+  });
+
+  it('countedFigures: each breakdown key takes its own group\'s count and stacking flag; the main figures take the main group\'s', () => {
+    const plan = fixture();
+    Object.assign(plan.stages[0].skills.groups[0], { count: 2, countReason: 'r' });
+    Object.assign(plan.stages[0].skills.groups[1], { count: 5, countReason: 'r' });
+    const [one] = stagesOf(plan);
+    const entry = (fields: Record<string, number>) => ({ skill: 's', statSetLabel: 'l', fields });
+    const c = countedFigures(
+      one,
+      { TotalDPS: 10, TotalDot: 4, Life: 300 },
+      { g1s1p1: entry({ TotalDPS: 10, TotalDot: 4 }), g2s1p1: entry({ TotalDPS: 6, TotalDot: 2 }), g2s1p2: entry({ TotalDot: 2 }) },
+      { main: true, skills: { g1s1p1: true, g2s1p2: true } },
+    );
+    expect(c.countedOutputs).toEqual({ group: 1, count: 2, dotCanStack: true, fields: { TotalDPS: 20, TotalDot: 8 } });
+    expect(c.countedSkillOutputs).toEqual({
+      g1s1p1: { skill: 's', statSetLabel: 'l', count: 2, dotCanStack: true, fields: { TotalDPS: 20, TotalDot: 8 } },
+      g2s1p1: { skill: 's', statSetLabel: 'l', count: 5, dotCanStack: false, fields: { TotalDPS: 30, TotalDot: 2 } },
+      g2s1p2: { skill: 's', statSetLabel: 'l', count: 5, dotCanStack: true, fields: { TotalDot: 10 } },
+    });
+  });
+
+  it('formulaReadsStages: a formula reads a stage through a main-output or breakdown reference, never through an input', () => {
+    const marked = new Set(['2']);
+    expect(formulaReadsStages('(2.Life − 1.Life) ÷ 1.Life × per_cent', marked)).toBe(true);
+    expect(formulaReadsStages('2.g1s1p1.TotalDPS', marked)).toBe(true);
+    expect(formulaReadsStages('1.TotalDPS * x', marked)).toBe(false);
+    expect(formulaReadsStages('1 +', marked)).toBe(false);
+    expect(formulaReadsStages('2.Life', new Set())).toBe(false);
   });
 });

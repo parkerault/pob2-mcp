@@ -19,6 +19,7 @@
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
+ * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. One finding per group or entry; `data.path` is the missing field's path in the stage |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -458,6 +459,32 @@ function checkContinuity(stage: Stage, predecessor: Stage | null, findings: Find
   }
 }
 
+/**
+ * D-293, D-322: Count above 1 and every custom modifier are hand-made estimates, so each carries its reason.
+ * A group without `count` counts as 1 and needs none.
+ */
+export function checkReasons(stage: Pick<Stage, 'skills' | 'config'>, findings: Finding[]): void {
+  stage.skills.groups.forEach((g, k) => {
+    const count = g.count ?? 1;
+    if (count > 1 && g.countReason === undefined) {
+      findings.push({
+        code: 'missing-reason',
+        message: `skill group ${k + 1}${g.label !== undefined ? ` (${g.label})` : ''} has count ${count} but no countReason: say why ${count} copies act at once (D-293)`,
+        data: { path: `skills.groups[${k}].countReason`, group: k + 1, count },
+      });
+    }
+  });
+  (stage.config.customMods ?? []).forEach((m, k) => {
+    if (m.reason === undefined) {
+      findings.push({
+        code: 'missing-reason',
+        message: `custom modifier ${k + 1} ("${m.text}") has no reason: say what it stands for and how it was calculated (D-293)`,
+        data: { path: `config.customMods[${k}].reason`, text: m.text },
+      });
+    }
+  });
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -472,5 +499,6 @@ export function checkV1(input: V1Input): V1Result {
   checkResistancePenalty(stage, facts, findings, notes);
   const pobWarnings = checkWarnings(checks, martyrSpent, findings);
   checkContinuity(stage, input.predecessor, findings);
+  checkReasons(stage, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

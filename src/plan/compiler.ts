@@ -14,7 +14,10 @@
  *  6. `new_build` replaces the engine's build (D-210);
  *  7. one `compile_stage` per stage builds and measures it; PoB's allocation is compared with the plan's
  *     (`compareAllocation`, D-213), and so are the items its item set holds (`compareItems`): PoB
- *     unequips an off-hand that doesn't fit without a word, so any difference is an error;
+ *     unequips an off-hand that doesn't fit without a word, so any difference is an error. The named
+ *     source's group (`rolledGroup`) is created in PoB's Full DPS with its Count (`groupCount`), and every
+ *     other group out of it, in both modes (D-293, D-337); the custom modifiers go into PoB's `customMods`
+ *     option after the listed config options (D-293);
  *  8. `compile_finish` checks the loadouts, selects the highest stage's and saves its level in auto mode;
  *     every item set is compared with the plan again;
  *  9. the build is exported, every listed config option PoB's save left out is put back into its set and
@@ -22,7 +25,8 @@
  * 10. final: the builds-folder file through C-17, then its write-ledger entry; measure-only: the XML
  *     beside the plan;
  * 11. V1 and V2 check every compiled stage (`src/plan/checks/`, D-192), the ledger formulas are evaluated and
- *     the record is written beside the plan.
+ *     the record is written beside the plan, with each figure's Count applied beside the raw one and the
+ *     custom-modifier marks (`record.ts`, D-321).
  * Any failure up to step 9 writes nothing. Steps 1–5 leave the engine's build as it was.
  *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
@@ -57,6 +61,8 @@ import {
   MEASURE_ONLY_XML_FILE,
   RECORD_FILE,
   RECORD_VERSION,
+  countedFigures,
+  formulaReadsStages,
   recordText,
   unresolvedRefs,
   versionNotes,
@@ -364,7 +370,13 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
     groups: stage.skills.groups.map((g) => ({ gems: g.gems.map((gem) => ({ name: gem.name })) })),
     main: stage.skills.main,
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
+    customMods: customModLines(stage),
   };
+}
+
+/** D-293: a stage's custom modifier lines, `config.customMods` texts in plan order (none for a version-1 plan). */
+export function customModLines(stage: Pick<Stage, 'config'>): string[] {
+  return (stage.config.customMods ?? []).map((m) => m.text);
 }
 
 /** The stage PoB saves the build at: the highest level, the last among ties (A-P9). */
@@ -581,14 +593,22 @@ export function stageParams(
     toggles: stage.items.toggles.map((t) => ({ slot: t.slot, active: t.active })),
     useSecondWeaponSet: stage.items.useSecondWeaponSet,
     skillSet: refs.skill,
-    groups: stage.skills.groups.map((g) => ({
-      ...(g.label !== undefined ? { label: g.label } : {}),
-      enabled: g.enabled,
-      gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
-    })),
+    groups: stage.skills.groups.map((g, k) => {
+      // D-293, D-337: the named source's group (rolledGroup, D-295) is in PoB's Full DPS with its Count in
+      // every compile, so the file shows the reader that Full DPS; every other group stays out (D-306).
+      const named = stage.skills.rolledGroup === k + 1;
+      return {
+        ...(g.label !== undefined ? { label: g.label } : {}),
+        enabled: g.enabled,
+        includeInFullDPS: named,
+        ...(named ? { groupCount: g.count ?? 1 } : {}),
+        gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
+      };
+    }),
     main: stage.skills.main,
     configSet: refs.config,
     config: stageConfig(stage),
+    customMods: customModLines(stage),
     offenseFields: [...offenseFields],
     itemSlots: [...ITEM_SLOTS],
   };
@@ -788,15 +808,25 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   // 11. The ledger and the record.
   const numbers: Record<string, StageOutputs> = {};
   const stages: Record<string, StageRecord> = {};
+  /** D-321: the stages measured with custom modifiers present, whose figures carry the mark. */
+  const marked = new Set<string>();
   for (const { stage, reply, elapsedMs, checked } of results) {
     numbers[stage.id] = { outputs: reply.outputs, skillOutputs: reply.skillOutputs };
+    // D-293, D-321: the raw figures stay as measured; the counted ones beside them apply each group's Count.
+    const counted = countedFigures(stage, reply.outputs, reply.skillOutputs, reply.dotCanStack);
+    const customModsWritten = customModLines(stage);
+    if (customModsWritten.length > 0) marked.add(stage.id);
     stages[stage.id] = {
       loadoutName: stage.loadoutName,
       level: stage.level,
       elapsedMs,
       outputs: reply.outputs,
+      countedOutputs: counted.countedOutputs,
       skillOutputs: reply.skillOutputs,
+      countedSkillOutputs: counted.countedSkillOutputs,
       configWritten: stageConfig(stage),
+      customModsWritten,
+      computedWithCustomMods: customModsWritten.length > 0,
       configEffective: checked.configEffective,
       pobWarnings: checked.pobWarnings,
       v1: checked.v1,
@@ -805,8 +835,13 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   }
   const ledger: CompileRecord['ledger'] = {};
   const evaluated = evaluateLedger(plan.ledger, { stageIds: plan.stages.map((s) => s.id), stages: numbers });
+  const formulas = new Map(plan.ledger.map((e) => [e.id, e.formula]));
   for (const [id, res] of Object.entries(evaluated)) {
-    ledger[id] = { value: res.value, error: res.error ? ledgerErrorText(res.error) : null };
+    ledger[id] = {
+      value: res.value,
+      error: res.error ? ledgerErrorText(res.error) : null,
+      computedWithCustomMods: formulaReadsStages(formulas.get(id) ?? '', marked),
+    };
   }
   const engine = { pobTag: env.engine.pobTag, pobCommit: env.engine.pobCommit, treeVersion: check.treeVersion };
   const sets: CompileRecord['sets'] = results.map((r) => ({

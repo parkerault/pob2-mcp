@@ -31,6 +31,10 @@
  * WU-41 (C-41, AC-B4, AC-P38): the compiler's three actions (`API/Compile.lua`). `compile_check` checks the
  * two-stage fixture's stage 1 on the golden build; `compile_stage` builds that stage on a new Warrior/Titan
  * build; `compile_finish` runs after it. A failing stage is `ok:false` naming the stage, never an exception.
+ *
+ * WU-55 (D-293, AC-B4): `create_socket_group` takes `groupCount` and replies with it; `compile_stage`'s params
+ * carry each group's Full DPS flag and Count and the custom modifiers, and its reply `dotCanStack` (the case
+ * above checks it against the schema); `compile_check` reports a custom modifier line PoB can't parse.
  */
 import fs from 'fs';
 import path from 'path';
@@ -538,6 +542,33 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       const finish = await engine.request('compile_finish', { stages: [], active: 'Nowhere {9}', level: 5 }, { timeoutMs: 120_000 });
       expect(finish.ok).toBe(false);
       expect(String(finish.error)).toMatch(/untitled|loadouts/);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (WU-55, D-293): create_socket_group sets groupCount and replies with it, a bad one is ok:false; compile_check reports an unparseable custom modifier',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const made = await engine.request('create_socket_group', { label: 'wu55', includeInFullDPS: true, groupCount: 3 }, { timeoutMs: 120_000 });
+      expect(replySchemas.create_socket_group!.safeParse(made).success).toBe(true);
+      expect(made.socketGroup).toMatchObject({ label: 'wu55', includeInFullDPS: true, groupCount: 3 });
+      const tag = /<Skill\b[^>]*\blabel="wu55"[^>]*>/.exec((await call('export_build_xml')).xml as string)![0];
+      expect(tag).toMatch(/\bgroupCount="3"/);
+      expect(tag).toMatch(/\bincludeInFullDPS="true"/);
+      const plain = await call('create_socket_group', { label: 'wu55-plain' });
+      expect(plain.socketGroup.includeInFullDPS).toBe(false);
+      expect(plain.socketGroup.groupCount).toBeUndefined();
+      const bad = await engine.request('create_socket_group', { groupCount: 1.5 }, { timeoutMs: 120_000 });
+      expect(bad.ok).toBe(false);
+      expect(String(bad.error)).toContain('groupCount');
+
+      const stage = { ...(checkStageOf(TWO_STAGE.stages[0]) as unknown as Json), customMods: ['+10 to maximum Life', 'not a modifier line at all'] };
+      const checked = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [stage] }, { timeoutMs: 120_000 });
+      expect(replySchemas.compile_check!.safeParse(checked).success).toBe(true);
+      expect(checked.result.defects).toEqual([
+        'stage 1: config.customMods[1]: PoB can not parse "not a modifier line at all" whole as a modifier, so its customMods option would skip it and add nothing',
+      ]);
     },
     ENGINE_TIMEOUT,
   );

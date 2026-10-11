@@ -1634,3 +1634,25 @@ WU-30…WU-62:
 - WU-56 (the pattern library and card template, N-5);
 - WU-60 (amendment 2's lookup work), with WU-53 after it on `Lookup.lua`;
 - WU-54 (coverage flags, N-3).
+
+## 2026-10-10: amendments 2 and 3, build start (M-14)
+
+- **Spec:** the spine v1.3 at `7e2ea82`. The user approved implementation ("Go ahead", 2026-10-10).
+- **Handoff:** `docs/build-guide/build-handoff-amendments.md` (`acec4d1`).
+- **Scope:** WU-50…WU-58 and WU-60…WU-62. WU-59, the offline run with an open brief, is the coordinator's,
+  after WU-58. WU-48, the live run, waits for M-14.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/amend`, branch `build-guide/amendments`, off
+  `acec4d1`. Lanes are `pob2-mcp-wt/bg-<nn>` on `bg/wu-<nn>`. The main checkout is untouched until the end,
+  because the user's pob2 server runs from its `build/`.
+- **Orchestration,** as for M-10…M-12: one background doer per unit, a read-only reviewer per unit (small units
+  may share one), and an independent verifier per wave gate. No Workflow.
+- **poe.ninja.** WU-50 queries it politely under the handoff's rules (D-297). It caches every raw response in
+  `pob2-mcp-wt/ninja-cache/`, so WU-52 builds its fixtures without refetching.
+
+## 2026-10-10: wave A (WU-50, WU-51, WU-54, WU-56, WU-60, WU-61)
+
+The spine's amendment lanes name six independent units. The earlier "next step" list left out WU-61, but it
+starts with the others (spine §8). All six started off `acec4d1`.
+- WU-54 begins with A-33's step: it pins its flags' criteria, from AC-K53 upward, and stops for the
+  coordinator's review.
+- WU-51 records the load average with each timing run, because the other lanes load the machine.

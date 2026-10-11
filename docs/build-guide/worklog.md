@@ -2088,3 +2088,31 @@ One deviation was accepted: the nine sections that had no budget placeholder car
 which W1 deletes. Static and checker suites at the merge: 421 of 421. The lane was removed.
 
 WU-57 can start once WU-55 merges (its last hard dependency; WU-50's is moot under D-335).
+
+### Review: WU-53, and the fold-2 lane
+
+**WU-53: FINDINGS, 7 low.** A fresh fixer is working on them.
+- **Checked against PoB's own engine.** The reviewer built skills with `calcs.createActiveSkill`, using real
+  support lists and PoB's one-per-family rule:
+  - unlocks matched for 24 gems, among them Whirling Assault's "Ailith's Chimes: after … Culmination II";
+  - `Can support` matched for six supports, including the complement form;
+  - "usable by", Gemling quality and children also matched.
+- **Size and speed.** The largest single-gem reply is 8,407 characters (Vulnerability, 174 unlock lines).
+  The slowest single gem takes 0.55 s in Lua.
+- **The fixes:**
+  - test the `(none)` form;
+  - mark AC-K61's 6,435 as informational (6,339 by name);
+  - replace the copied test oracles with `createActiveSkill`;
+  - print repeated gem names once with `×n`, and show the long lists for every gem with exactly the queried
+    name (the Unleash support was unreachable);
+  - one stale `patterns.md` line;
+  - move three dropped description facts into the parameter descriptions;
+  - label unnamed effects by their first stat set, as PoB's tooltip does (Charged Mark, Voltaic Barrier).
+
+**Fold-2 lane** (`bg/fold-2`, off `92b0cc2`). A spec editor folds D-335…D-337 into the spec, plus the
+built facts of WU-50, WU-51, WU-54, WU-56, WU-60, WU-61 and WU-62, and WU-55's record fields and C-41 error
+class. It also writes D-338, PROPOSED by the coordinator:
+- R1b's probe paths go in its header `writes`, which WU-57 does;
+- a new AC-W2 (ff) for WU-58: the checker accepts `probes/` and `cards.md`, and the run log counts probes.
+
+The spine becomes v1.4. WU-57 starts after this fold and WU-55 merge.

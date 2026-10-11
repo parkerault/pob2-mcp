@@ -1469,8 +1469,8 @@ and its file is shown to the user with item 1's approval.
          `/mnt` denied.
 
        The kept evidence is each session's transcript with its subagent transcripts (D-267).
-    2. **P1, the start-up probes**, in a session with the Agent tool denied: three invalid briefs and two
-       refused test configs (AC-W47, AC-W48).
+    2. **P1, the start-up probes**, in a session with the Agent tool denied: four invalid briefs, a free-text
+       brief that stops at its first agent step, and two refused test configs (AC-W47, AC-W48).
     3. **Run A, the open brief:** `/build-guide Explosive Concoction, any ascendancy --offline --test A.json`.
        - Answers: `brainstorm` `["first-n:2"]`; `verification` `["first-viable"]`; `final`
          `["revise:<R>", "accept"]`.
@@ -1951,15 +1951,22 @@ subagents') or the coordinator's review. Numbers come from the run folder, never
   - The route around such a card (never retried, its status "can't be finalized yet", never finalized) is the
     checker's (AC-W2, WU-58): no test answer can pick such a card in a run.
   - Evidence: P2's run folder, transcript.
-- **AC-W47 (P1: invalid briefs; D-238, D-258, D-285).** In P1, with the Agent tool denied:
+- **AC-W47 (P1: the brief check; D-238, D-258, D-285, D-342, D-343, D-344).** In P1, with the Agent tool
+  denied:
   - `/build-guide Pathfinder "Explosive Concotion" --offline` stops, listing the closest active gem names in
     the lookup's order, Explosive Concoction among them;
   - `/build-guide "Pathfindr" "Explosive Concoction" --offline` stops, listing the closest ascendancies from
     `get_classes`, Pathfinder among them;
-  - `/build-guide a Fork build, any ascendancy --offline`, a free-text brief, stops and says Fork is a support
-    gem;
-  - each stops before any agent runs, and none creates a folder under the guides root.
-  - Evidence: transcript, the guides root's listing.
+  - `/build-guide Pathfinder Fork --offline`, the fixed roll, stops and says Fork is a support gem: the fixed
+    roll's second name is always `skill` (D-343, D-258);
+  - `/build-guide Titan "Explosive Concoction" --offline` stops at the brief check and names the Pathfinder
+    node that grants the skill, node 38004 (the ascendancy lock, D-342);
+  - each of these four stops at the brief check, before any agent runs, and creates no folder under the
+    guides root;
+  - `/build-guide a Fork build, any ascendancy --offline`, a free-text brief, puts Fork in `around` and says
+    it is a support gem (D-343). It writes its run folder and a run log with `around: "Fork"`, then stops at
+    the first agent step with `status: "stopped"` (D-344), and no agent runs.
+  - Evidence: transcript, the guides root's listing, the free-text brief's run folder.
 - **AC-W48 (P1: refused test configs; A-28, D-157, D-323; AC-W4 restated).**
   - `/build-guide Explosive Concoction, any ascendancy --test A.json`, without `--offline`: the run log exists,
     with `schemaVersion: 3`, `mode: "online"` and `testConfig: "refused"`; the reply says the file was

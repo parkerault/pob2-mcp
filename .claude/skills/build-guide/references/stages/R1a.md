@@ -1,7 +1,7 @@
 # R1a: brainstorm (`build-guide-researcher`)
 
 Slice 03 §5.2 (the brainstorm phase) and §7.5; spine C-36, C-51, C-52, C-53, D-287, D-290, D-298, D-319, D-335,
-D-339, D-342. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
+D-339, D-342, D-343. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
 research file (the dossier's mechanics, synergy search and config gaps) and 3 **cards**, each the brainstorm
 half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
 picks the cards to verify at the brainstorm gate, and R1b compiles them (`R1b.md`).
@@ -28,7 +28,8 @@ Each focus starts from the brief's fixed pieces (D-287):
 The brief's other fields steer every focus: `playstyle` (each card's tags, from the same vocabulary),
 `budget`, `around`, `like` (a reference build and what to change), `notes`, and `popularity` (the user's own
 notes on what players run, each card's only player evidence). A fixed roll (a brief naming `ascendancy` and
-`skill`) fixes every card's identity: its named damage source is that skill.
+`skill`) fixes every card's identity: its named damage source is that skill. A support gem in `around` is the
+build's subject (D-343): each card's named damage source is an active skill it can support.
 
 **The ascendancy lock** (D-342). Check every skill a card names, its named damage source and each skill in
 its chain and links, before you write that card; when the brief names a skill, check it before any card:

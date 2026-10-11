@@ -574,6 +574,42 @@ describe('AC-W2 (aa): the run log is schema 3, or schema 2 for a recorded run; i
   });
 });
 
+describe('D-344: a run stopped at its first agent step, with no Agent tool, before any agent ran (SKILL.md §1)', () => {
+  /**
+   * The free-text Fork brief's folder as P1 leaves it (AC-W47, D-343): steps 1 to 4 ran, so the folder holds the run
+   * log alone, with Fork in `around`, `status: "stopped"` and no `stages[]` entry.
+   */
+  function stoppedBeforeAgents(): string {
+    const dir = path.join(TMP, `stopped-${++copies}`);
+    writeJson(dir, 'run-log.json', {
+      schemaVersion: 3,
+      runFolder: '/tmp/pob2-guides/open/2026-10-11-1',
+      slug: 'open',
+      brief: { around: 'Fork', notes: 'any ascendancy' },
+      roll: null,
+      status: 'stopped',
+      mode: 'offline',
+      testConfig: 'none',
+      stages: [],
+      checkpoints: [],
+      escalations: [],
+      faults: [],
+      outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
+    });
+    return dir;
+  }
+
+  it('passes the run log alone, stopped with no stage, its brief holding the support gem in around', () => {
+    passes(stoppedBeforeAgents());
+  });
+
+  it('fails the same log ending completed, which needs the design, the guide and its checks', () => {
+    const dir = stoppedBeforeAgents();
+    editLog(dir, (l) => (l.status = 'completed'));
+    expect(failing(dir)).toMatch(/\[verification\] run-log\.json: status is "completed", but the run doesn't end with a full V4 pass/);
+  });
+});
+
 describe('AC-W2 (bb): the caps, per brainstorm round and per verification round (D-287, NFR-23)', () => {
   it('fails a brainstorm round with more than 3 R1a entries', () => {
     const dir = copyOf('run-ok');

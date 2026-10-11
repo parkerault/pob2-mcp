@@ -129,7 +129,9 @@ re-check, and never escalates; only the D1 and D2 gates escalate.
 
 `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. The free text is the **brief**: what the
 user wants, in their words. The fixed roll `/build-guide <ascendancy> <skill>` still works, multi-word names
-quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`.
+quoted (`/build-guide Titan "Blood Hunt"`): it is the brief `{ascendancy, skill}`. A brief that is exactly an
+ascendancy and one gem name, with nothing else, is the fixed roll, and its second name is always `skill`
+(D-343).
 
 - `--offline` starts offline mode (`references/offline-and-test.md`): no web, no prices.
 - `--test <path>` is a test config. It is accepted only with `--offline` (`testConfig: "accepted"`);
@@ -148,7 +150,7 @@ text doesn't give, and never invent one:
 | `skill` | an active skill gem, the named damage source | Blood Hunt |
 | `playstyle` | tags from the vocabulary below, plus free text | `melee`, `tanky`, "slow and heavy" |
 | `budget` | `budget` or `non-budget` (the endgame variants), or a figure in divines | `budget` |
-| `around` | an item or mechanic to build around | "Melting Maelstrom", "block" |
+| `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |
 | `like` | a reference build and what to change | "like the Eraser, but not Gemling" |
 | `notes` | anything else | |
 | `popularity` | the user's own notes on what players run, which cards cite as user-supplied | "Blood Hunt Titans are rare this league" |
@@ -160,6 +162,8 @@ text doesn't give, and never invent one:
   (`references/patterns.md`) and the coordinator's judgment of what is under-played.
 - **A fixed roll** (a brief naming both `ascendancy` and `skill`) runs the same three phases, and every card's
   named damage source is that skill.
+- **A support gem** the free text names as the build's subject goes in `around`, never in `skill` (D-343):
+  only an active gem is a `skill`. Step 1's gem lookup tells them apart.
 - **Player evidence** comes only from `popularity`: no tool supplies it (D-335).
 
 In this order, before any agent runs:
@@ -170,6 +174,11 @@ In this order, before any agent runs:
      class.
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
+   - a gem the free text names as the build's subject (D-343): look it up this way before you place it. Only
+     an active gem goes in `skill`. A support gem goes in `around`, and the run goes on: say it is a support
+     gem, and that the researchers will look for skills it can support. The fixed roll's second name is
+     always `skill`, so there a support gem fails: `/build-guide Pathfinder Fork` stops with "Fork is a
+     support gem".
    - both, once each passes: **the ascendancy lock** (D-342). Call `mcp__pob2__search_tree_nodes {query:
      "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind:
      "unique"}`. The ascendancy can't use the skill, and the check fails, when a node grants it (its stats
@@ -181,10 +190,10 @@ In this order, before any agent runs:
      nothing matched, `mcp__pob2__lookup_game_data` says "Nothing matched …", then lists up to 5 names under
      `Closest active gem names (…):` and up to 3 under `Closest support gem names (…):`, each line
      `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem
-     is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say it
-     is a support. A failed lock gives its reason instead: the nodes that grant the skill, each with its id
-     and ascendancy, so a re-run names one of those ascendancies or none. Create no run folder and write
-     nothing.
+     is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say
+     "<name> is a support gem". A failed lock gives its reason instead: the nodes that grant the skill, each
+     with its id and ascendancy, so a re-run names one of those ascendancies or none. Create no run folder
+     and write nothing.
    - Use the names exactly as the tools gave them from here on. The run's `roll`,
      `{className, ascendancy, skill}`, is set only at the verification gate, from the card the user
      finalizes (D-286).
@@ -199,6 +208,11 @@ In this order, before any agent runs:
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).
+
+Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
+them. **No Agent tool** (D-344): if the Agent tool isn't available when the first agent step is due, the run
+stops there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (§7), and give the
+reason in your reply, as for a refused test config (`stopped: the Agent tool isn't available`).
 
 ## 2. Brainstorm (steps 2a to 2c)
 

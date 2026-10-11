@@ -27,6 +27,9 @@
  * rule (AC-W33); AC-W27's strings and AC-W14's re-check rule as D-335 and D-264 restate them.
  * WU-63 (D-342): a skill a passive-tree node grants locks the cards to the node's ascendancy; R1a, R1a-assemble and
  * R1b each run the "Grants Skill:" search, and R1b fails a card that breaks the lock, `wrong-ascendancy`.
+ * WU-57 re-opened (D-343, D-344): a support gem a free-text brief names goes in `around`, while the fixed roll's
+ * second name is always `skill`; steps 1 to 4 run before any agent, and a missing Agent tool stops the run at its
+ * first agent step. AC-W47 pins the P1 probes for both.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -2236,5 +2239,51 @@ describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to t
     const gate = ref('checkpoints.md');
     expect(gate).toMatch(/A card whose R1b verdict's finding is `wrong-ascendancy` \(D-342\) is `failed`, shown with that reason/);
     expect(gate).toMatch(/A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even anyway: the build it describes can't exist \(D-342\)\. Refuse such an answer and ask again\. A test config that pre-supplies one has given an illegal answer: the run ends `stopped`, recorded as answer `stop` with the test config's `pick:<id>` as its `rule`/);
+  });
+});
+
+describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a missing Agent tool', () => {
+  const raw = () => fs.readFileSync(SKILL_MD, 'utf8');
+  const slice = () => folded(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', '03-pipeline.md'), 'utf8'));
+
+  it("D-343: the brief's `around` holds a support gem the free text names as the build's subject; only an active gem is a `skill`, and the fixed roll's second name is always `skill`", () => {
+    const text = raw();
+    const brief = text.slice(text.indexOf('**The brief**'), text.indexOf('In this order, before any agent runs'));
+    expect(brief).toContain('| `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |');
+    expect(brief).toContain('| `skill` | an active skill gem, the named damage source | Blood Hunt |');
+    expect(folded(brief)).toMatch(/- \*\*A support gem\*\* the free text names as the build's subject goes in `around`, never in `skill` \(D-343\): only an active gem is a `skill`\. Step 1's gem lookup tells them apart\./);
+    expect(folded(text)).toMatch(/A brief that is exactly an ascendancy and one gem name, with nothing else, is the fixed roll, and its second name is always `skill` \(D-343\)\./);
+  });
+
+  it('D-343: the brief check looks a free-text gem up before placing it, and a support gem in the fixed roll still fails (D-258)', () => {
+    const flat = folded(raw());
+    const check = flat.slice(flat.indexOf('1. **Brief check**'), flat.indexOf('2. **Run folder.**'));
+    expect(check).toMatch(/- a gem the free text names as the build's subject \(D-343\): look it up this way before you place it\. Only an active gem goes in `skill`\. A support gem goes in `around`, and the run goes on: say it is a support gem, and that the researchers will look for skills it can support\. The fixed roll's second name is always `skill`, so there a support gem fails: `\/build-guide Pathfinder Fork` stops with "Fork is a support gem"\./);
+    expect(check).toMatch(/for a support gem, say "<name> is a support gem"/);
+    // The rule sits in the brief check, after the skill's own check and before the ascendancy lock.
+    expect(check.indexOf('- `skill`: call')).toBeGreaterThan(-1);
+    expect(check.indexOf('- `skill`: call')).toBeLessThan(check.indexOf("- a gem the free text names as the build's subject"));
+    expect(check.indexOf("- a gem the free text names as the build's subject")).toBeLessThan(check.indexOf('- both, once each passes'));
+    expect(folded(readStage('R1a'))).toMatch(/A support gem in `around` is the build's subject \(D-343\): each card's named damage source is an active skill it can support\./);
+  });
+
+  it('D-344: steps 1 to 4 run before any agent, whatever tools the session has; a missing Agent tool stops the run at its first agent step', () => {
+    const text = raw();
+    const at = text.indexOf('4. **Unsaved build**');
+    const rule = folded(text.slice(at, text.indexOf('## 2. Brainstorm')));
+    expect(at).toBeGreaterThan(0);
+    expect(rule).toMatch(/Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before them\./);
+    expect(rule).toMatch(/\*\*No Agent tool\*\* \(D-344\): if the Agent tool isn't available when the first agent step is due, the run stops there, and no agent runs\. Set `status: "stopped"` with no `stages\[\]` entry, finish \(§7\), and give the reason in your reply/);
+  });
+
+  it('AC-W47 pins the P1 probes: Pathfinder Fork and Titan "Explosive Concoction" stop at the brief check, and the free-text Fork brief runs steps 1 to 4, then stops', () => {
+    const s = slice();
+    const ac = s.slice(s.indexOf('- **AC-W47'), s.indexOf('- **AC-W48'));
+    expect(ac).toMatch(/^- \*\*AC-W47 \(P1: the brief check; D-238, D-258, D-285, D-342, D-343, D-344\)\.\*\*/);
+    expect(ac).toMatch(/`\/build-guide Pathfinder Fork --offline`, the fixed roll, stops and says Fork is a support gem: the fixed roll's second name is always `skill` \(D-343, D-258\)/);
+    expect(ac).toMatch(/`\/build-guide Titan "Explosive Concoction" --offline` stops at the brief check and names the Pathfinder node that grants the skill, node 38004 \(the ascendancy lock, D-342\)/);
+    expect(ac).toMatch(/each of these four stops at the brief check, before any agent runs, and creates no folder under the guides root/);
+    expect(ac).toMatch(/`\/build-guide a Fork build, any ascendancy --offline`, a free-text brief, puts Fork in `around` and says it is a support gem \(D-343\)\. It writes its run folder and a run log with `around: "Fork"`, then stops at the first agent step with `status: "stopped"` \(D-344\), and no agent runs\./);
+    expect(ac).not.toMatch(/none creates a folder/);
   });
 });

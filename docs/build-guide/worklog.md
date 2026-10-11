@@ -2255,3 +2255,34 @@ All seven review findings are fixed.
 - Static and checker suites at the merge: 462 of 462. The lane was removed.
 
 WU-58 started off `66362d0`, carrying WU-57's "for WU-58" list and the reviewer's additions.
+
+### WU-58 built (`eb32044`); WU-59 prep with the user's brief
+
+**WU-58.**
+- Gate: rc=0/0, with 2076 tests.
+- AC-W2 (aa)…(ff) are covered in `buildGuideCheckRun.test.ts`, and 12 mutation checks confirm the tests
+  bite. The checker exits 0 on `run-ok`, `run-ok-online`, `run-escalated` and `run-ok-v2`.
+- Deviations, in review:
+  - `playstyle` is a list of strings;
+  - each R1b entry carries a `probes` count;
+  - `run-ok-v2` is the old `run-ok`, because WU-47's recorded runs predate WU-62's guide format;
+  - Effective HP is optional in schema 2;
+  - card ids use researcher letters a–c only.
+- Two pinned static assertions moved: the verdict-line form is now plain equality, and the rule sentence
+  uses `pick:r1-a-2`.
+
+**WU-59's brief (the user, 2026-10-11).** The skill is **Explosive Concoction**, with any ascendancy. At the
+pin it is an ascendancy skill:
+- its gem is `SkillGemAscendancyExplosiveConcoction`, with `fromTree = true`;
+- only the Pathfinder node "Grants Skill: Explosive Concoction" grants it (`TreeData/0_5/tree.lua:86216`).
+
+A correct brainstorm therefore narrows to Pathfinder and says why. No study and no pattern-library entry
+mentions the skill.
+
+**WU-59 prep** (lane `bg/wu-59`) has started. It pins the criteria (A-33) and designs:
+- run A (the open brief);
+- run B (the failure routes);
+- the P1 and P2 probes;
+- the faults that drive WU-47's exception E4 paths: D-264's claims-only path, D-265 (b)–(e) and D-266.
+
+It also builds `/tmp/m14.*` in the shape of `/tmp/m12b.B0zi`.

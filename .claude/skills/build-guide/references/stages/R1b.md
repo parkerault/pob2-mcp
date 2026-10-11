@@ -159,13 +159,14 @@ Compare its record with the skeleton's.
 5. **A dead-slot audit:** remove one support or source, the one most likely dead (the chain doesn't name
    it, or it touches only the activation), and compare. A change below 1% is a `risk`. Say for each support
    whether it touches the activation or the payload.
-6. **Condition on and off:** remove the earned config entry the payoff rests on and compare. Report the
-   figure at a realistic uptime, on × uptime + off × (1 − uptime), as an `estimate` with the uptime's
+6. **Condition on and off:** toggle the earned config entry the payoff rests on off, and compare. Report
+   the figure at a realistic uptime, on × uptime + off × (1 − uptime), as an `estimate` with the uptime's
    reason.
-7. **Encounter mods:** add the waystone's monster elemental resistance (`data/enemies/waystones.json`,
-   `mods.monster-elemental-resistance`) to the enemy's resistance against the damage source's element, in
-   the scenario config. Without a compile, read whether the boss resists that element
-   (`data/enemies/arbiter-of-divinity.json`, `res.<element>`).
+7. **Encounter mods:** in the scenario config, add the top of the waystone's monster elemental resistance
+   range (`enemies/waystones.json#mods.monster-elemental-resistance`, its `max`, as D1 takes the top of
+   each waystone modifier) to the enemy's resistance against the damage source's element. Without a
+   compile, read whether the bosses resist that element (`enemies/arbiter-of-divinity.json#res.<element>`),
+   and report each that does as a `risk`.
 8. **A skill-shape probe,** only where the skill's text suggests one, such as projectile speed up and down
    for damage that grows with travel.
 

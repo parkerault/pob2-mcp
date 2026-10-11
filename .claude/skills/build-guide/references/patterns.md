@@ -40,14 +40,16 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   its damage); **custom modifier** (a hand-calculated line PoB applies as a modifier); **config stand-in** (a
   config option stands for the mechanic); **hand calculation** (a ledger entry); **not modelled**. PG-n is
   an entry in [pob-gaps]. "Not established" means no study checked it: count it not modelled until
-  coverage shows the line applies. **Examples:** builds, each citing its study. **Cautions:** what went
-  wrong, or what to check first.
+  coverage shows the line applies. **Examples:** one to three builds, each citing its study. **Cautions:**
+  what went wrong, or what to check first.
 - **Lookups in short form.** `mechanic "<phrase>" (<kind>)` is `mcp__pob2__lookup_game_data {mode:
   "mechanic", query, kind}`; "gem lookup" and "unique lookup" are its other modes; `tree "<text>"` is
   `mcp__pob2__search_tree_nodes {query}` (`{ascendancy}` for its nodes); coverage is
   `mcp__pob2__check_model_coverage`. Mechanic search is a substring match capped at 20–30 results (PG-48),
   so keep phrases narrow and set `kind`. It can't see Gemling quality effects (PG-46) or item-base
   implicits until D-299's lookup additions land.
+- **Maintenance.** After each study the user supplies, the coordinator proposes entries and the user
+  approves them (§7.6, C-53).
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog].
@@ -61,8 +63,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Search:** from the damage source's gem text, one narrow mechanic search per noun (`mechanic "mana
   spent" (unique)`, "corpse", "Ice Crystal"); check who supplies and consumes it, and whether the text treats
   "you" and "other" differently. Re-run on the next bottleneck.
-- **PoB:** hits are usually modelled; links often not modelled: energy-based meta gems have no trigger rate
-  (PG-9), so the rate is a hand calculation.
+- **PoB:** not modelled for most links: energy-based meta gems have no trigger rate (PG-9), so the rate is a
+  hand calculation; each skill's own hit is usually modelled.
 - **Examples:** The Eraser: the chaos ignite charges Cast on Elemental Ailment, which casts a level-1
   Contagion to spread it [eraser]. Melting Maelstrom: Decompose spends the mana the flask pays out as
   damage [maelstrom].
@@ -109,7 +111,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Shape:** a consume support on an on-kill skill works in packs and idles on bosses, so the boss keeps the
   state a single-target payoff needs.
 - **Search:** list the on-kill skills (Heralds) and the supports they take with `mechanic "Consume" (gem)`.
-- **PoB:** Biting Frost's more damage against frozen enemies is modelled; the gating is not modelled.
+- **PoB:** modelled for Biting Frost's more damage against frozen enemies; the kill gating is not modelled.
 - **Examples:** Eventide Petals: Biting Frost II on the Heralds; bosses stay frozen for Heavy Frost
   [eventide].
 - **Cautions:** run the payoff-thief audit.
@@ -120,7 +122,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   apply it, so the first re-applies.
 - **Search:** from the debuff (`mechanic "fully broken" (gem)`), pair an applier with a consumer that cannot
   apply it; check the cap.
-- **PoB:** Uruk's Smelting's damage taken is not modelled [mirage-sniper]: hand calculation.
+- **PoB:** hand calculation: Uruk's Smelting's damage taken is not modelled [mirage-sniper].
 - **Examples:** Bone Cage: Uruk's Smelting on Vines, +5% physical taken per break up to 20%; Exploit
   Weakness consumes it [bone-cage].
 - **Cautions:** a 0.4 source; re-check the numbers.
@@ -155,8 +157,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   event; a "builds X but cannot cause X" support keeps it for the finisher.
 - **Search:** `mechanic "cannot cause" (gem)`, "instead of"; check the lock's required types against the
   builder (gem lookup).
-- **PoB:** the payoff may be its own stat set; the state is a config stand-in where an option exists (Heavy
-  Stunned, PG-32); who spends it first is not modelled.
+- **PoB:** config stand-in for the state where an option exists (Heavy Stunned, PG-32); who spends it first is
+  not modelled. The payoff may be its own stat set.
 - **Examples:** Wing Blast: Brink on Wind Blast; grenades failed because Brink supports Melee only
   [wing-blast]. Crossbow Titan: Pin II keeps the surges from taking the heavy stuns [crossbow].
 - **Cautions:** run the payoff-thief audit.
@@ -177,7 +179,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Shape:** list the states the build always applies, then collect "against X enemies" modifiers.
 - **Search:** the skeleton's guaranteed states (Frozen, Cursed, Heavy Stunned); `mechanic "against <state>"
   (passive)`, then unique and mod.
-- **PoB:** config stand-in where the option exists (Heavy Stunned, Dazed, Isolated); else not modelled.
+- **PoB:** config stand-in where the option exists (Heavy Stunned, Isolated); else not modelled.
 - **Examples:** Fangs of Frost: Exploit the Elements and Honourless against frozen enemies [fangs]. Ancestral
   Cry: Sine Aequo's 41% threshold keeps "against heavy stunned" on [ancestral-cry].
 - **Cautions:** a consumer added later removes the state [fangs].
@@ -252,7 +254,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** a forced-condition enabler's other line produces the resource its payoffs cost.
 - **Search:** read the enabler's other lines against the payoffs' costs.
-- **PoB:** low life from reservation is modelled [stormcaller]; the spirit line is not established.
+- **PoB:** modelled for low life from reservation [stormcaller]; the spirit line is not established, so not
+  modelled until coverage shows otherwise.
 - **Examples:** Gathering Storm: Beidat's Will reserves 25% of life and grants spirit per 25 life, paying
   for Direstrike II [gathering-storm].
 - **Cautions:** "funds itself" is the study's inference.
@@ -277,7 +280,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **PoB:** modelled: Projectile Acceleration III; scope bridges not established.
 - **Examples:** Widowhail and Twister: projectile speed becomes damage [widowhail] [twister]. Empyrean:
   Trenchtimbre makes minion attack speed yours [empyrean].
-- **Cautions:** Twister's speed source, Primal Bounty, is not modelled (PG-16).
+- **Cautions:** Twister's speed source, Primal Bounty, is not modelled (PG-16), and The Mhacha's Gift lags the
+  game (PG-44).
 
 ### Pivot and broadcast bridges
 
@@ -380,7 +384,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   skill is fed by its cheapest one (a proc farm).
 - **Search:** cooldown above use time: `mechanic "Cooldown Recovery" (passive)`; `mechanic "when you use a"
   (passive)`, then rank that kind's skills by cost.
-- **PoB:** Archon of Undeath is not modelled (PG-11): Count about 2.5, hand-derived.
+- **PoB:** Count about 2.5, hand-derived: Archon of Undeath is not modelled (PG-11).
 - **Examples:** Supporting Fire: Archon's 200% more command cooldown recovery, proc-farmed [supporting-fire].
   Varashta: Archon feeds the ramp [varashta].
 - **Cautions:** the 2.5 holds only while the cooldown limits; the proc spam is the creator's claim.
@@ -462,7 +466,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** a support adds a skill type another support requires.
 - **Search:** read the wanted support's required types; find supports adding them (D-299 once built).
-- **PoB:** the unlocked effect is not modelled until coverage shows otherwise (not established).
+- **PoB:** not modelled until coverage shows otherwise, for the unlocked effect (not established).
 - **Examples:** Flicker Monk: Culmination II lets Ailith's Chimes support Whirling Assault [flicker].
 - **Cautions:** "infinite power charges" is the creator's word.
 
@@ -512,7 +516,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Search:** `mechanic "for each type of" (passive)`, from an item granting several types.
 - **PoB:** config stand-in: tick all three ground boxes (PG-35).
 - **Examples:** Twister: The Taming feeds Harness the Elements and Trinity [twister].
-- **Cautions:** The Mhacha's Gift lags the game (PG-44).
+- **Cautions:** Trinity wants the three elements kept balanced [twister].
 
 ### Drawback cancellation and offload
 
@@ -554,7 +558,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** an implicit skill on a base can be the main skill, free to cast and scaled by +levels.
 - **Search:** item-base implicits (unsearchable until D-299, PG-48); the skill's roll range.
-- **PoB:** Enervating Nova's edge bonus is unmapped (PG-26): hand calculation.
+- **PoB:** hand calculation: Enervating Nova's edge bonus is unmapped (PG-26).
 - **Examples:** Enervating Nova on a Paralysing Staff [enervating].
 - **Cautions:** a wide roll favours min-or-max and luck.
 
@@ -570,7 +574,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** the second weapon set does a non-damage job: casts a buff, primes a resource, unlocks a skill.
 - **Search:** skills needing another weapon (gem lookup); items that prime the resource (unique).
-- **PoB:** Gem Studded counts every set's supports [hotg]; a buff cast at set 2's level is not modelled.
+- **PoB:** not modelled: a buff cast from set 2 at its higher level (the level carrying over is unverified: the
+  creator hedges) [ancestral-cry]; Gem Studded counts every set's supports [hotg].
 - **Examples:** HotG: Fury of the King primes Glory [hotg]. Wing Blast: the builder on set 2 [wing-blast].
 - **Cautions:** a swap ritual is input demand.
 
@@ -648,10 +653,9 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 ### Radius jewel instead of an anoint
 
 - **Shape:** a radius jewel reaches a notable without the anoint or a path.
-- **Search:** before an anoint, check a From Nothing or Time-Lost jewel reaches it.
+- **Search:** before an anoint, check whether a radius jewel such as From Nothing reaches the notable.
 - **PoB:** modelled.
-- **Examples:** Twister: From Nothing near CI for Heavy Frost [twister]. Mirage Sniper: Time-Lost Emeralds
-  [mirage-sniper].
+- **Examples:** Twister: From Nothing near CI reaches Heavy Frost [twister].
 - **Cautions:** From Nothing's radius belongs to one named node.
 
 ## Sources

@@ -60,9 +60,15 @@ function frontmatter(text: string): Record<string, string> | null {
 /**
  * Shared references that ship before SKILL.md lists them. WU-56 adds the pattern library (C-53), which the
  * R1a researchers read; SKILL.md is WU-62's and WU-57's (spine §8's serialized wiring), and WU-57 lists the
- * library there. The second AC-W1 check fails once SKILL.md lists an entry, so the exemption can't outlive it.
+ * library there. The exemption expires two ways: a check fails once SKILL.md lists an entry, and another fails
+ * once WU-57 has landed while the list is non-empty.
  */
 const AWAITING_SKILL_WIRING = ['references/patterns.md'];
+/**
+ * WU-57's marker: `references/stages/R1a-assemble.md`, which slice 03 assigns only to WU-57 (its touches:
+ * "references/stages/R1a-assemble.md (new)"; AC-W31 requires it). Once it exists, nothing may await wiring.
+ */
+const WU57_ONLY_FILE = 'references/stages/R1a-assemble.md';
 
 /** Every `references/…`, `templates/…` and `scripts/…` path the text mentions, as written. */
 function mentionedPaths(text: string): string[] {
@@ -150,6 +156,11 @@ describe('AC-W1: the build-guide skill', () => {
     for (const ref of AWAITING_SKILL_WIRING) {
       expect({ ref, ships: fs.existsSync(path.join(SKILL_DIR, ref)), listed: text.includes(ref) }).toEqual({ ref, ships: true, listed: false });
     }
+  });
+
+  it(`the exemption expires with WU-57: once ${WU57_ONLY_FILE} exists, no reference awaits SKILL.md`, () => {
+    const landed = fs.existsSync(path.join(SKILL_DIR, WU57_ONLY_FILE));
+    expect({ landed, awaiting: landed ? AWAITING_SKILL_WIRING : [] }).toEqual({ landed, awaiting: [] });
   });
 
   it('finds paths the way the existence check reads them', () => {
@@ -1418,8 +1429,23 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
 
   it("lists the eight checks of §7.7 under Checklist results, and marks a card whose damage source isn't a skill (D-303, D-334)", () => {
     const at = hs.find((h) => h.title === 'Checklist results')!;
-    const rows = text.split(/\r?\n/).slice(at.line).filter((l) => /^\| [1-8] \|/.test(l));
-    expect(rows.map((r) => Number(r.split('|')[1]))).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    const rows = text
+      .split(/\r?\n/)
+      .slice(at.line)
+      .filter((l) => /^\| [1-8] \|/.test(l))
+      .map((l) => l.split('|').map((c) => c.trim()));
+    expect(rows.map((r) => [Number(r[1]), r[2]])).toEqual(
+      [
+        'Pillars for ailments and damage over time',
+        "Enabler's conditions at the target level",
+        'Attribute requirements at the target level',
+        "Risks PoB can't show",
+        'Dead-slot audit',
+        'Condition on and off',
+        'Encounter mods',
+        'Skill-shape probe',
+      ].map((name, i) => [i + 1, name]),
+    );
     expect(text).toMatch(/Can't be finalized yet: its damage source isn't a skill/);
     expect(text).toMatch(/Not compiled: its damage source isn't a skill/i);
   });
@@ -1483,6 +1509,13 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
     }
   });
 
+  it('states its rules: shapes only, each use re-checked against game data; one to three examples; the maintenance rule (§7.6)', () => {
+    const flat = folded(text);
+    expect(flat).toMatch(/\*\*Shapes only\.\*\* Re-check every use against current game data with a lookup/);
+    expect(flat).toMatch(/\*\*Examples:\*\* one to three builds, each citing its study/);
+    expect(flat).toMatch(/\*\*Maintenance\.\*\* After each study the user supplies, the coordinator proposes entries and the user approves them/);
+  });
+
   it('holds the ten families, in order, and defines the six labels', () => {
     expect(hs.filter((h) => h.level === 2 && /^\d+\. /.test(h.title)).map((h) => h.title)).toEqual(FAMILIES.map((f, i) => `${i + 1}. ${f}`));
     for (const label of POB_LABELS) expect({ label, defined: text.includes(`**${label}**`) }).toEqual({ label, defined: true });
@@ -1495,7 +1528,8 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
       const at = FIELDS.map((f) => body.search(new RegExp(`^- \\*\\*${f}:\\*\\* \\S`, 'm')));
       expect({ family, title, fields: at.every((i) => i >= 0), inOrder: [...at].sort((x, y) => x - y).join() === at.join() }).toEqual({ family, title, fields: true, inOrder: true });
       const pob = folded(/^- \*\*PoB:\*\* ([\s\S]*?)(?=^- \*\*Examples:)/m.exec(body)![1]);
-      const labelled = POB_LABELS.some((l) => new RegExp(`\\b${l}\\b`).test(pob));
+      // The field leads with its label, so a passing "modelled" elsewhere in the sentence doesn't count.
+      const labelled = new RegExp(`^(?:${POB_LABELS.join('|')})\\b`).test(pob);
       expect({ title, pob, labelled }).toEqual({ title, pob, labelled: true });
     }
   });
@@ -1509,7 +1543,8 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
     for (const { title, body } of entries()) {
       const examples = /^- \*\*Examples:\*\* ([\s\S]*?)(?=^- \*\*Cautions:)/m.exec(body)![1];
       const cited = [...examples.matchAll(/\[([a-z0-9-]+)\](?!:)/g)].map((m) => m[1]);
-      expect({ title, cites: cited.length > 0, undefinedKeys: cited.filter((k) => !defined.has(k)) }).toEqual({ title, cites: true, undefinedKeys: [] });
+      const builds = new Set(cited).size;
+      expect({ title, oneToThree: builds >= 1 && builds <= 3, undefinedKeys: cited.filter((k) => !defined.has(k)) }).toEqual({ title, oneToThree: true, undefinedKeys: [] });
     }
   });
 
@@ -1558,9 +1593,24 @@ describe('AC-W29: R1b lists the advisory checklist of §7.7 and its probe budget
     const variants = section.indexOf('**From compile variants');
     expect(found[3]).toBeLessThan(variants);
     expect(found[4]).toBeGreaterThan(variants);
-    const flat = folded(section);
-    for (const part of ['base damage, type-specific scaling, duration, and 100% application', 'reservation of at least 1 minus the threshold', 'for the defining items and every gem', 'payoff thieves', 'placement and targeting limits', 'the exposed phase', 'cooldown dead windows on interruptible casts', 'hidden clauses', 'A change below 1%', 'activation or the payload', 'realistic uptime', 'scenario config', 'projectile speed up and down']) {
-      expect({ part, present: flat.includes(part) }).toEqual({ part, present: true });
+    // Each check's own item must say what §7.7 asks of it.
+    const item = (n: number) => folded(section.slice(found[n - 1], n < 8 ? found[n] : undefined).split(/\n\s*\n/)[0]);
+    const parts: [number, (string | RegExp)[]][] = [
+      [1, ['base damage, type-specific scaling, duration, and 100% application']],
+      [2, ['at the target level, in numbers', 'what they force out of the build', 'reservation of at least 1 minus the threshold']],
+      [3, ['at the target level, for the defining items and every gem']],
+      [4, ["hit-making children", 'placement and targeting limits', 'the exposed phase', 'cooldown dead windows on interruptible casts', 'hidden clauses', 'stated as theory']],
+      [5, ['remove one support or source', 'A change below 1%', 'activation or the payload']],
+      [6, [/toggle the earned config entry/, 'realistic uptime']],
+      [7, ['in the scenario config', /top of the waystone's monster elemental resistance range \(`enemies\/waystones\.json#mods\.monster-elemental-resistance`, its `max`/, /whether the bosses resist that element \(`enemies\/arbiter-of-divinity\.json#res\.<element>`\)/]],
+      [8, ["where the skill's text suggests one", 'projectile speed up and down']],
+    ];
+    for (const [n, wants] of parts) {
+      const text8 = item(n);
+      for (const want of wants) {
+        const present = typeof want === 'string' ? text8.includes(want) : want.test(text8);
+        expect({ check: n, want: String(want), present }).toEqual({ check: n, want: String(want), present: true });
+      }
     }
   });
 

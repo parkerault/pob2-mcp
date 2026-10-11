@@ -1847,3 +1847,16 @@ All eight review findings were fixed: 212 static tests pass, and `patterns.md` i
 finding was wrong: "Dazed" is grounded. The crossbow study's line 51 records PoB's `conditionEnemyDazed`
 option, at `ConfigOptions.lua:1684`, so it was restored with a `[crossbow]` citation. Static tests at
 the integration head: 212 of 212. The lane was removed.
+
+### WU-60 merged at `fdcf6a7`; WU-53 started
+
+- **The fixes.** Base types now come only from the tables PoB rolls on a base: the item's own affix table,
+  `Corruption`, and tagged `Desecrated` mods. Exclusive mods, IncursionLimb mods and untagged Desecrated
+  mods carry a `notRolled` reason instead.
+- **Tests.** Literal expectations were added: IncreasedLife3's line, JewelBleedingEffect's "2 of 4 bases",
+  two Exclusive mods, and both Greater Essence of Haste hits.
+- **Results.** `lookupGameData` 27 of 27. Contract, engineKinds, toolHygiene and static: 489 of 489. The
+  wave gate runs the full suite.
+- **WU-53** started off `fdcf6a7` with A-33's step: it pins its criteria from AC-K58 upward, and settles
+  the "Culmination II, then Ailith's Chimes" example. The description has 23 characters left, so WU-53
+  reports how its additions will fit.

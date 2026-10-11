@@ -1814,3 +1814,29 @@ FINDINGS: 2 medium and 6 low. Being fixed.
   - Proposed: AC-W2 (ff) (WU-58). The checker accepts `probes/<card-id>/<n>/` and `cards.md`, and rejects
     other files there. The run log records each card's probe count, so D-292's cap of 4 can be audited.
   - WU-57 adds the paths to R1b's header `writes`.
+
+### Merges and wave B start
+
+**Merged** (fast-forward, each lane rebased first; the gate runs at the wave gate):
+- WU-61 at `74c5745`;
+- WU-51 at `9f74ad9`;
+- WU-50's report at `d16c16c`.
+
+Their lanes were removed.
+
+**Review of WU-60: FINDINGS, being fixed.**
+- **High.** `Exclusive` mods were given rollable bases from their tag weights. PoB uses that table only
+  as the essence fallback (`ItemsTab.lua:3076`; the coordinator checked it). 243 such mods have weights.
+  Only the item's own affix table, `Corruption` and `Desecrated` are weighed now.
+- **Medium.** The format and essence tests copied the implementation's rules. Literal expectations are
+  being added.
+- **Low.** `lookups.md` wording, and an essence suggesting itself as the closest name.
+- **For the fold.** WU-60 touched three serialized files outside its touches: `toolSchemas.ts`'s `kind`
+  enum, the README row and `tool-calls.json`. That conflicts with nothing, now that WU-52 is withdrawn.
+  §2.2's header and AC-K4 need the `essence` kind and the name-match rule.
+
+**Wave B started** off `d16c16c`:
+- WU-55 (Count and custom modifiers). It extends version 2's `VERSION_ADDITIONS` and builds D-337.
+- WU-62 (amendment 2's pipeline). It carries the WU-61 reviewer's notes on fixtures and `check-run.mjs`.
+
+WU-53 starts once WU-60 merges.

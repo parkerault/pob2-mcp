@@ -2684,3 +2684,16 @@ After run A (296M cache read, 1.78M output), the user compared the output with F
     - PoB2 v0.23.1 enforces one exit per start neither in the UI code nor on import; a headless probe confirms
       import. The user says the UI blocks it; a newer PoB2 may differ.
     - The fix goes in `pob-api/API/Compile.lua:182-285` and in `find_path_to_node`.
+
+### Amendment 4 drafted (PROPOSED), for the user's approval
+
+`spec/amendment-4-cost-and-scope.md` (about 3,200 words) holds proposals D-351…D-361, work units WU-64…WU-72,
+milestone M-15, and AC-W51…W58, AC-P60…P67 and AC-K66. It has six open questions:
+- Q1: the support-socket thresholds and their source;
+- Q2: the clear-speed rule;
+- Q3: whether a revision counts against the 1M;
+- Q4: 150M cache read as a reported target;
+- Q5: anoints on `b` and `n`;
+- Q6: dropping runs B and P2.
+
+The coordinator read the draft in full and found no blocker; it goes to the user as written.

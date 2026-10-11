@@ -2494,3 +2494,22 @@ and P1 then re-runs from the start on the fixed head.
 - check 7 is the free-text Fork brief.
 
 P1 then re-runs from the start.
+
+### WU-59 P1 (second attempt, at `30abc7a`): all seven checks pass
+
+Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides root.
+
+| # | Brief | Outcome |
+|---|---|---|
+| 1 | `Pathfinder "Explosive Concotion"` | stops; lists the lookup's active names in order, Explosive Concoction first; no folder |
+| 2 | `"Pathfindr" "Explosive Concoction"` | stops; names Pathfinder from `get_classes`; no folder |
+| 3 | `Pathfinder Fork` | stops: "Fork is a support gem"; no folder |
+| 4 | free text, `--test A.json`, online | `open-explosive-concoction/…-1`: `mode: "online"`, `testConfig: "refused"`, `stopped`, no stages; checker ok |
+| 5 | free text, `--offline --test M.json` | `…-2`: `testConfig: "refused"`, `stopped`; the reply names the retired keys; checker ok |
+| 6 | `Titan "Explosive Concoction"` | runs the lock lookups; stops naming node 38004 and Pathfinder; no folder |
+| 7 | `a Fork build, any ascendancy` | says Fork is a support gem; `open/…-1` with `brief: {around: "Fork"}`, `stopped`, no stages; checker ok |
+
+- **No agent ran**, and no web or `/mnt` call was made. The m14 worktree's `git status --porcelain` is empty.
+- **Nit for the analysis:** the runner's Bash used `echo` beside `cat`/`jq` and the checker (`echo "rc=$?"`).
+  `echo` writes nothing, but D-265's list doesn't name it.
+- **Next:** run A.

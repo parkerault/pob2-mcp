@@ -2399,3 +2399,29 @@ regress. The pinned tree has 54 tree-granted skills, each granted by a single as
   - an order assertion (the lock comes before FI-1);
   - a consistent `wrong-ascendancy` fixture card;
   - a pre-supplied pick of a locked card ends the run `stopped`.
+
+### WU-63 merged at `e62799b`; the run worktree is ready
+
+The fixes cover every review item:
+- the lock checks every skill a card names;
+- it applies only when every source is an ascendancy node and no unique grants the skill;
+- a self-contradicting brief stops at step 1's brief check, with `search_tree_nodes` added to the runner
+  (FR-W3 and AC-W34 updated);
+- an order assertion and a consistent Explosive Concoction-on-Warrior fixture card.
+
+**Deviations accepted:**
+- the unique search uses the mechanic-mode query on the skill name, because The Covenant's line is
+  "Grants Skill: Level (1-20) Life Remnants";
+- a pre-supplied pick of any card the gate can't finalize ends the run `stopped`;
+- R1b runs the lock first for every card.
+
+**Left for fold v1.5:** FR-W2's text on the roll check.
+
+**Checks at `e62799b`:** static and checker suites 543 of 543, and the checker exits 0 on all four good
+fixtures.
+
+**The run worktree.** `m14` is moved to `e62799b` and built. `/tmp/m14.zfPx/README.md` gains a sixth P1
+command, `/build-guide Titan "Explosive Concoction" --offline`, which should stop at the brief check. It is
+evidence for D-342, to fold into AC-W47.
+
+**Waiting on the user** to start the WU-59 sessions.

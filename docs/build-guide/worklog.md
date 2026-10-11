@@ -1959,3 +1959,28 @@ straight to its reviewer; a lane that fails goes back to its doer first.
 
 **Friction.** A long-lived coordinator session in tmux can die with the terminal. Lane worktrees and
 commits survive, but agent reports are lost unless the agent is resumed.
+
+### Recovery gates and wave B reviews
+
+**Gates in the clean lanes,** run by the coordinator one after another, with no Jest cache clear:
+- **WU-55** (`a9591af`): rc=0/0 (1869 tests, then the NFR step).
+- **WU-62** (`b7fcc43`): rc=0/0 (1901 tests).
+- **WU-54** (`e7844cd`): test rc=1. One suite failed to compile: a `PobSourceScan` fake in
+  `passiveUpgradesBound.test.ts` lacks the new `skillCallNames` field. The doer was resumed to fix it.
+
+**Rebased onto `b6771e6`:**
+- **WU-55:** clean, now `8f6ede8`. Plan and static suites: 299 of 299.
+- **WU-62:** it conflicted with WU-56 in `tests/static/buildGuidePipeline.test.ts`, where both had added
+  blocks at the end. The coordinator kept both sides and restored the closing lines the merge had dropped
+  (`517f892`). Static and checker suites: 417 of 417.
+
+**WU-53** (`495968a`): built and rebased; gate rc=1/0. The only failure was AC-E8, the bridge cold start
+(5,415 ms against its 5 s limit). It passes alone in 4,552 ms: a tooling false-failure.
+- The description is 1,859 characters.
+- Deviations:
+  - same-named gems count separately, so a long list can repeat a name;
+  - the complement form prints "all" when no gem is excluded;
+  - the 6,435 unlock pairs are recorded as a count only, because computing them takes about 29 s.
+
+**Reviews running:** WU-55, WU-62 and WU-53. WU-55's and WU-62's doer reports were lost in the crash, so
+their reviewers also build the AC maps.

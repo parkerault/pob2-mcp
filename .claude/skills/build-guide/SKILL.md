@@ -251,7 +251,8 @@ In this order, before any agent runs:
   verdict as its evidence (D-141), and a card that can't be finalized yet with its status, not as a failure.
   Ask:
   - **finalize** one card (a failed one may be picked anyway; one that can't be finalized yet can't be,
-    D-303): its identity becomes the run's `roll`, which you record in the run log, and the design (steps 6
+    D-303; nor can a `wrong-ascendancy` card, failed or not, since the build it describes can't exist,
+    D-342): its identity becomes the run's `roll`, which you record in the run log, and the design (steps 6
     to 9) runs for it;
   - **verify other cards** from the deck (1–3): a new verification round (step 3), without a brainstorm;
   - **brainstorm more**, with the user's note: brainstorm round `k + 1` (step 2a);

@@ -1863,6 +1863,7 @@ function checkFlow(log, fail, ctx) {
       const r = r1bSeen.get(id);
       if (r === undefined) illegal(`follows the verification gate answered ${show(a)}, but no R1b verified ${id} in the run; the gate finalizes a verified card (D-287)`);
       else if (r.terminal === 'not-a-skill') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
+      else if (r.terminal === 'wrong-ascendancy') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s ascendancy doesn't own the passive-tree node that grants its skill (its R1b ended wrong-ascendancy), so the build it describes can't exist and it can't be finalized (D-342)`);
       if (s.stage !== 'D1') illegal(`follows the verification gate answered ${show(a)}, which finalizes ${id}: its design (D1) comes next, not ${s.stage}`);
       finalized = id;
       return undefined;
@@ -2234,7 +2235,7 @@ const TERMINAL_R1B = ['not-a-skill', 'wrong-ascendancy'];
  * An R1b verdict that compiled nothing (`compiles: 0`) and failed with a terminal code, which it returns (else
  * null). `not-a-skill` (D-334): the card's damage source isn't a skill, so no retry can compile it, and the card
  * can't be finalized yet (D-303). `wrong-ascendancy` (D-342): the card's ascendancy doesn't own the passive-tree
- * node that grants its skill, so no retry can change its identity; the card is a plain failure.
+ * node that grants its skill, so no retry can change its identity; the card is failed, and can't be finalized.
  */
 function terminalR1b(rep) {
   if (!isObj(rep) || !isObj(rep.verdict) || rep.verdict.compiled !== 'fail' || rep.compiles !== 0) return null;

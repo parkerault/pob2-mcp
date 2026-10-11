@@ -63,7 +63,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   two together. An R1b `fail` whose verdict's finding is `not-a-skill` with `compiles: 0` is final: its card's
   damage source isn't a skill and no retry can compile it, so it never re-runs (D-334). So is one whose
   finding is `wrong-ascendancy` with `compiles: 0`: the card's ascendancy doesn't own the passive-tree node
-  that grants its skill, and no retry can change the card's identity (D-342). That card is `failed`.
+  that grants its skill, and no retry can change the card's identity (D-342). That card is `failed`, and the
+  verification gate can't finalize it.
 - **`probes`**, on every R1b entry: how many probe variants that attempt ran, its return's `probes <n>`
   (`stages/R1b.md`): every probe run, a probe whose compile failed included, since each leaves its folder
   `probes/<card-id>/<n>/`. `0` when none (a failed attempt runs none: the checklist runs only after the last

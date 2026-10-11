@@ -1008,7 +1008,7 @@ describe("D-334: an R1b failure whose card's damage source isn't a skill is term
   });
 });
 
-describe("D-342: an R1b failure whose card's ascendancy doesn't own the node that grants its skill is terminal, a plain failure", () => {
+describe("D-342: an R1b failure whose card's ascendancy doesn't own the node that grants its skill is terminal, and the card can't be finalized", () => {
   /** run-escalated with r1-c-1 failed by R1b's ascendancy lock (stages/R1b.md): no compile, one wrong-ascendancy finding. */
   function wrongAscendancy(): string {
     const dir = copyOf('run-escalated');
@@ -1028,6 +1028,12 @@ describe("D-342: an R1b failure whose card's ascendancy doesn't own the node tha
     writeJson(retry, 'reports/gates/R1b-r1-c-1-a2.json', { ...readJson(retry, 'reports/gates/R1b-r1-c-1-a1.json'), attempt: 2 });
     editLog(retry, (l) => l.stages.splice(6, 0, step('R1b', 'r1-c-1', 2, 'fail', { probes: 0 })));
     expect(failing(retry)).toMatch(/\[order\] .*\(R1b r1-c-1 attempt 2\): runs R1b for r1-c-1 again, but its last attempt ended wrong-ascendancy with no compile: its ascendancy doesn't own the passive-tree node that grants its skill, so no retry can change it \(D-342\)/);
+  });
+
+  it('fails the verification gate finalizing the wrong-ascendancy card, even as a failed card picked anyway', () => {
+    const finalize = wrongAscendancy();
+    editLog(finalize, (l) => (l.checkpoints[1].answer = l.checkpoints[1].rule = 'pick:r1-c-1'));
+    expect(failing(finalize)).toMatch(/\[order\] .*: follows the verification gate answered "pick:r1-c-1", but r1-c-1's ascendancy doesn't own the passive-tree node that grants its skill \(its R1b ended wrong-ascendancy\), so the build it describes can't exist and it can't be finalized \(D-342\)/);
   });
 
   it('is terminal only with compiles 0: a wrong-ascendancy finding after a compile still re-runs first', () => {

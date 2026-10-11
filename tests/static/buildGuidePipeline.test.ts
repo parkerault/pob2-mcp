@@ -2197,9 +2197,12 @@ describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to t
     expect(r1b).toMatch(/It is terminal: the runner never re-runs it, since no retry can change the card's identity\. Unlike a card whose damage source isn't a skill, it is a plain failure: its status is `failed`, and it counts among the failed cards when none is viable \(D-141\)/);
   });
 
-  it('SKILL.md never retries a wrong-ascendancy card, the run log calls it final, and the verification gate shows it failed with its reason', () => {
+  it('SKILL.md never retries a wrong-ascendancy card, the run log calls it final, and the verification gate shows it failed with its reason and never finalizes it', () => {
     expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/its verdict's `wrong-ascendancy` finding is never retried, and the card is `failed`/);
     expect(ref('run-log.md')).toMatch(/So is one whose finding is `wrong-ascendancy` with `compiles: 0`: .* \(D-342\)\. That card is `failed`/);
     expect(ref('checkpoints.md')).toMatch(/A card whose R1b verdict's finding is `wrong-ascendancy` \(D-342\) is `failed`, shown with that reason/);
+    // The verification gate never finalizes it, not even as a failed card picked anyway (D-342).
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/nor can a `wrong-ascendancy` card, failed or not, since the build it describes can't exist, D-342/);
+    expect(ref('checkpoints.md')).toMatch(/A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even anyway: the build it describes can't exist \(D-342\)\. Refuse that answer and ask again/);
   });
 });

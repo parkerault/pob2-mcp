@@ -596,18 +596,18 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lookup_game_data",
-      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` (default: the gem's natural max level; a gem without that level is shown at its default, with a note) and `gem_quality` (default 0), the \"At +20% Quality\" lines, the requirements at every gem level (character level, and each attribute the gem needs), and for a support the skill types it supports and can't support (PoB's type expressions, in which AND, OR and NOT combine the types before them). mode 'unique': uniques whose name or any variant's mod line contains `query` (legacy \"Pre x.y\" variants are skipped), optionally only of item type `slot` (such as Gloves, Spear or Jewel; at least one of the two is needed). Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description and stat-set line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line and essence mod line (or essence name) containing `query`, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it, and an essence hit names its item types. `kind` lists only gem, unique, passive, mod or essence hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30): exact name matches first, then by name; mechanic hits by kind (in that order), then by name. When nothing matches, the closest names of the kind searched are listed (fewest edits from the query, then by name): in gem mode up to 5 active gems, then up to 3 supports; otherwise up to 5. A query over 100 characters gets none.",
+      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. When exactly one gem is returned, a support also lists the active gems it can support, and an active gem the supports it gains when another support adds skill types. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, where '…' matches any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed.",
       inputSchema: {
         type: "object",
         properties: {
           mode: {
             type: "string",
             enum: ["gem", "unique", "mechanic"],
-            description: "What to look up: 'gem', 'unique' or 'mechanic'",
+            description: "What to look up: 'gem', 'unique' or 'mechanic'. A support's supported and excluded skill types are PoB's type expressions, in which AND, OR and NOT combine the types before them",
           },
           query: {
             type: "string",
-            description: "Case-insensitive text to find (required for gem and mechanic modes)",
+            description: "Case-insensitive text to find (required for gem and mechanic modes). In mechanic mode, '…' or '...' matches any text within a line, so 'cannot … but' finds lines with 'cannot' and then 'but'. When nothing matches, the closest names of the kind searched are listed (fewest edits from the query, then by name): in gem mode up to 5 active gems, then up to 3 supports; otherwise up to 5. A query over 100 characters gets none",
           },
           gem_level: {
             type: "integer",
@@ -626,13 +626,13 @@ export function getLuaToolSchemas(): any[] {
           },
           kind: {
             type: "string",
-            enum: ["gem", "unique", "passive", "mod", "essence"],
+            enum: ["gem", "unique", "passive", "mod", "essence", "base"],
             description: "Mechanic mode: list only this kind of hit (the header still counts every kind)",
           },
           max_results: {
             type: "integer",
             minimum: 1,
-            description: "Maximum results to return (default 20, max 30)",
+            description: "Maximum results to return (default 20, max 30). Results are sorted, then cut: exact name matches first, then by name; mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name",
           },
         },
         required: ["mode"],

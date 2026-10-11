@@ -27,6 +27,11 @@
  * base types come from PoB's own items: every base of `data.itemBaseLists` made into a real item, asked
  * `item:GetModSpawnWeight(mod)`, within the item's own affix table (`item.affixes`) for a crafting mod.
  * Essence hits (kind `essence`) are recomputed from `data.essences` and the mods they name.
+ *
+ * AC-K58…AC-K65 (WU-53, D-299): amendment 3's lookup additions. The expected values are recomputed with
+ * PoB's own functions and data: `calcLib.canGrantedEffectSupportActiveSkill` for "usable by", a support's
+ * reach and the unlocks; `altQualityStats` through the describer for the Gemling lines; the granted
+ * effects, minion lists and hit flags for the children; `data.itemBaseLists` for the base implicits.
  */
 import fs from 'fs';
 import path from 'path';
@@ -35,7 +40,7 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { TOOL_META } from '../../src/server/toolMeta';
-import type { LookupGameDataResult, LookupHit } from '../../src/engine/schemas';
+import type { LookupGameDataResult, LookupGem, LookupHit } from '../../src/engine/schemas';
 import { renderHit } from '../../src/handlers/lookupHandlers';
 
 /**
@@ -246,6 +251,24 @@ describe('AC-K6: lookup_game_data is a read tool with an ok sample per mode (sta
         return s.args.mode;
       });
     expect([...new Set(modes)].sort()).toEqual(['gem', 'mechanic', 'unique']);
+  });
+});
+
+describe('AC-K63: the build-guide skill lists the seven named phrase searches (static)', () => {
+  it('AC-K63: lookups.md names each named search as a query, in backticks', () => {
+    const file = path.resolve(__dirname, '..', '..', '.claude', 'skills', 'build-guide', 'references', 'lookups.md');
+    const text = fs.readFileSync(file, 'utf8');
+    for (const query of [
+      'also apply to',
+      'while already at maximum',
+      'per 100 maximum',
+      'for each type of',
+      'cannot … but',
+      'instead of you',
+      'your … shatter',
+    ]) {
+      expect({ query, listed: text.includes(`\`${query}\``) }).toEqual({ query, listed: true });
+    }
   });
 });
 
@@ -727,10 +750,10 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const all = full.results as LookupHit[];
       const count = (k: string) => all.filter((h) => h.kind === k).length;
       expect(full.total).toBe(all.length);
-      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence') });
+      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base') });
       expect(count('unique')).toBeGreaterThan(0);
-      // WU-60: the essence hits are counted too, last.
-      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod, ${count('essence')} essence.`;
+      // WU-60: the essence hits are counted too; WU-53 (AC-K60): then the base hits, last.
+      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod, ${count('essence')} essence, ${count('base')} base.`;
 
       const plain = await okTool({ mode: 'mechanic', query });
       expect(plain.split('\n')).toContain(header);
@@ -781,7 +804,8 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
 
   /** Whether a full Lua list is in §2.2's order. */
   function expectOrdered(mode: 'gem' | 'unique' | 'mechanic', query: string, results: LookupGameDataResult['results']): void {
-    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4, essence: 5 };
+    // WU-60: essence hits last; WU-53 (AC-K60): base hits after them.
+    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4, essence: 5, base: 6 };
     const exact = (r: { name: string }) => r.name.toLowerCase() === query.toLowerCase();
     const idOf = (r: { kind: string; id: string }) => (r.kind === 'passive' ? Number(r.id) : r.id);
     for (let i = 1; i < results.length; i++) {
@@ -989,7 +1013,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
-    "D-258: mechanic mode with no match lists the 5 closest names of the gems, uniques, passives, mods and essences (WU-60) it searches, or of `kind`",
+    "D-258: mechanic mode with no match lists the 5 closest names of the gems, uniques, passives, mods, essences (WU-60) and bases (WU-53) it searches, or of `kind`",
     async () => {
       const passives = (
         await luaQuery<Array<{ name: string; ascendancy?: string }>>(`
@@ -1026,9 +1050,23 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
           end
           return out`)
       ).map((name): Candidate => ({ name, kind: 'essence' }));
+      // WU-53 (AC-K60): the bases of PoB's base lists that have an implicit line, labelled with their type.
+      const bases = (
+        await luaQuery<Array<{ name: string; type: string }>>(`
+          local out = {}
+          for _, list in pairs(data.itemBaseLists) do
+            for _, entry in ipairs(list) do
+              if type(entry.base.implicit) == 'string' and entry.base.implicit:find('[^\\n]') then
+                table.insert(out, { name = entry.name, type = entry.base.type })
+              end
+            end
+          end
+          return out`)
+      ).map((b): Candidate => ({ name: b.name, kind: 'base', detail: b.type }));
       expect(passives.length).toBeGreaterThan(0);
       expect(mods.length).toBeGreaterThan(0);
       expect(essences.length).toBeGreaterThan(0);
+      expect(bases.length).toBeGreaterThan(0);
       const label = (c: Candidate) => `- ${c.name} (${[c.kind, c.detail].filter(Boolean).join(', ')})`;
 
       // "Crushing Impact" is no line's text, but it is one edit from the Titan notable's name.
@@ -1040,9 +1078,9 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(text).toContain('Closest passive names (fewest edits from the query, then by name):');
       expect(suggestionLines(text)).toEqual(onlyPassives.map(label));
 
-      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods, ...essences]);
+      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods, ...essences, ...bases]);
       const all = await okTool({ mode: 'mechanic', query: 'zzzz qqqq' });
-      expect(all).toContain('Closest gem, unique, passive, mod and essence names (fewest edits from the query, then by name):');
+      expect(all).toContain('Closest gem, unique, passive, mod, essence and base names (fewest edits from the query, then by name):');
       expect(suggestionLines(all)).toEqual(every.map(label));
 
       // WU-60: with kind essence, only essence names; a misspelt essence is one edit from its name.
@@ -1306,7 +1344,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(full.kinds?.essence).toBe(want.length);
       const k = full.kinds!;
       const plain = await okTool({ mode: 'mechanic', query: name });
-      expect(plain.split('\n')).toContain(`${all.length} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence.`);
+      expect(plain.split('\n')).toContain(`${all.length} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base.`);
 
       // By mod text: the line of the mod it grants on the most item types finds an essence hit naming this essence.
       const widest = [...mods].sort((a, b) => b.types.length - a.types.length)[0];
@@ -1365,6 +1403,656 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(delirium).toContain('Nothing matched "Essence of Delirium", kind essence.');
       expect(suggestionLines(delirium).length).toBeGreaterThan(0);
       expect(suggestionLines(delirium)).not.toContain('- Essence of Delirium (essence)');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // WU-53 (D-299, AC-K58…AC-K65): amendment 3's lookup additions. Every expected value is recomputed
+  // from PoB's data and functions (Lua queries), never from the tool's output.
+
+  /**
+   * Lua helpers for the shared rule: a gem's granted effects (its own, then its additional ones), the ones
+   * PoB makes active skills (not a support, not hideFromSideBar; CalcSetup.lua:1855), and PoB's own
+   * `calcLib.canGrantedEffectSupportActiveSkill` on an active skill built from one of them.
+   */
+  const RULE_LUA = `
+    local function isSupportGem(gem) return gem.gemType == 'Support' or (type(gem.tags) == 'table' and gem.tags.support == true) end
+    local function effectsOf(gem)
+      local out = { gem.grantedEffect }
+      for _, e in ipairs(gem.additionalGrantedEffects or {}) do table.insert(out, e) end
+      return out
+    end
+    local function isActive(e) return type(e) == 'table' and not e.support and not e.hideFromSideBar end
+    local function activeEffects(gem)
+      local out = {}
+      for _, e in ipairs(effectsOf(gem)) do if isActive(e) then table.insert(out, e) end end
+      return out
+    end
+    local function skillOf(e, gem)
+      local p = {}
+      p.enemy = { player = p }
+      return { activeEffect = { grantedEffect = e, gemData = gem }, skillTypes = copyTable(e.skillTypes or {}),
+        minionSkillTypes = e.minionSkillTypes and copyTable(e.minionSkillTypes) or nil, actor = p }
+    end
+    local function can(sup, sk) return calcLib.canGrantedEffectSupportActiveSkill(sup, sk) and true or false end
+    local function canAny(sup, gem)
+      for _, e in ipairs(activeEffects(gem)) do if can(sup, skillOf(e, gem)) then return true end end
+      return false
+    end
+    local function allGems()
+      local out = {}
+      for id, g in pairs(data.gems) do
+        if type(g) == 'table' and type(g.name) == 'string' and g.grantedEffect then table.insert(out, { id = id, name = g.name, gem = g }) end
+      end
+      table.sort(out, function(a, b) if a.name ~= b.name then return a.name < b.name end return a.id < b.id end)
+      return out
+    end
+    local function gemNamed(name)
+      for _, e in ipairs(allGems()) do if e.name == name then return e.gem, e.id end end
+    end
+    local function oneLine(s) return (tostring(s):gsub('%s*\\n%s*', ' ')) end
+    local function typeNames(set)
+      local out = {}
+      for t, on in pairs(set or {}) do if on then table.insert(out, SkillTypeName[t] or tostring(t)) end end
+      table.sort(out)
+      return out
+    end
+  `;
+
+  /** The `## <name>` block of a gem-mode reply (the first one with that name). */
+  function gemBlockOf(text: string, name: string): string {
+    const block = blocks(text).find((b) => b.split('\n')[0] === `## ${name}`);
+    if (!block) throw new Error(`no gem block for ${name}`);
+    return block;
+  }
+
+  /** The line of a block that starts with `prefix`, without the prefix; undefined when absent. */
+  function lineWith(block: string, prefix: string): string | undefined {
+    const line = block.split('\n').find((l) => l.startsWith(prefix));
+    return line === undefined ? undefined : line.slice(prefix.length);
+  }
+
+  /** The lines right under `header` that start with `prefix` (without it), up to the first that doesn't. */
+  function listUnder(block: string, header: string, prefix: string): string[] | undefined {
+    const lines = block.split('\n');
+    const at = lines.indexOf(header);
+    if (at < 0) return undefined;
+    const out: string[] = [];
+    for (const line of lines.slice(at + 1)) {
+      if (!line.startsWith(prefix)) break;
+      out.push(line.slice(prefix.length));
+    }
+    return out;
+  }
+
+  const GEMLING_HEADER = "At +20% Quality, with the Gemling Legionnaire's Advanced Thaumaturgy:";
+
+  /** The every-gem sweep: the Lua action's gem results for a, e, i, o, u and y (maxResults 10000), by id. */
+  let sweepCache: Map<string, LookupGem> | undefined;
+  async function sweep(): Promise<Map<string, LookupGem>> {
+    if (sweepCache) return sweepCache;
+    const byId = new Map<string, LookupGem>();
+    for (const q of ['a', 'e', 'i', 'o', 'u', 'y']) {
+      const r = await lookupAction({ mode: 'gem', query: q, maxResults: 10000 });
+      for (const g of r.results as LookupGem[]) byId.set(g.id, g);
+    }
+    // Together they return every gem with a granted effect.
+    const ids = await luaQuery<string[]>(`${RULE_LUA}
+      local out = {}
+      for _, e in ipairs(allGems()) do table.insert(out, e.id) end
+      return out`);
+    expect([...byId.keys()].sort(byteCmp)).toEqual([...ids].sort(byteCmp));
+    sweepCache = byId;
+    return byId;
+  }
+
+  it(
+    "AC-K58 (Gemling quality): labelled Gemling lines for Hammer of the Gods, Blood Hunt and Snipe; Advanced Thaumaturgy is the only node granting them; the every-gem sweep equals PoB's altQualityStats described at value × 20 (257 gems); mechanic mode finds quality and Gemling lines",
+    async () => {
+      const hotg = gemBlockOf(await okTool({ mode: 'gem', query: 'Hammer of the Gods' }), 'Hammer of the Gods');
+      expect(listUnder(hotg, GEMLING_HEADER, '  - ')).toEqual(['50% chance to not consume Glory']);
+      expect(parseGem(hotg).quality).not.toContain('50% chance to not consume Glory');
+      const blood = gemBlockOf(await okTool({ mode: 'gem', query: 'Blood Hunt' }), 'Blood Hunt');
+      expect(listUnder(blood, GEMLING_HEADER, '  - ')).toEqual(['Enemies lose Life equal to +4% of Consumed Blood Loss']);
+      const snipe = gemBlockOf(await okTool({ mode: 'gem', query: 'Snipe', max_results: 1 }), 'Snipe');
+      expect(listUnder(snipe, GEMLING_HEADER, '  - ')).toEqual(['20% more Attack Speed', '20% longer Perfect Timing window']);
+
+      // The node whose line sets GemlingQuality: Advanced Thaumaturgy (Gemling Legionnaire) only.
+      const nodes = await luaQuery<Array<{ id: number; name: string; asc?: string }>>(`
+        local out = {}
+        for id, node in pairs(build.spec.tree.nodes) do
+          for _, line in ipairs(node.sd or {}) do
+            if line == 'Gem Quality grants Socketed Skills an additional effect' then
+              table.insert(out, { id = id, name = node.name, asc = node.ascendancyName })
+            end
+          end
+        end
+        return out`);
+      expect(nodes).toEqual([{ id: 14429, name: 'Advanced Thaumaturgy', asc: 'Gemling Legionnaire' }]);
+
+      // The every-gem sweep against PoB's own describer.
+      const want = await luaQuery<Record<string, { lines: string[] | Record<string, never>; has: boolean; empty: string[] | Record<string, never> }>>(`${RULE_LUA}
+        local out = {}
+        for _, e in ipairs(allGems()) do
+          local lines, has, empty = {}, false, {}
+          for _, ge in ipairs(effectsOf(e.gem)) do
+            if type(ge.altQualityStats) == 'table' and #ge.altQualityStats > 0 then has = true end
+            if type(ge.statSets) == 'table' then
+              for _, q in ipairs(ge.altQualityStats or {}) do
+                local ss = ge.statSets[((q[3] or {})[1] or 0) + 1] or ge.statSets[1]
+                local described = data.describeStats({ [q[1]] = q[2] * 20 }, ss.statDescriptionScope, true) or {}
+                local n = 0
+                for _, line in ipairs(described) do if line then n = n + 1; table.insert(lines, oneLine(line)) end end
+                if n == 0 then table.insert(empty, q[1]) end
+              end
+            end
+          end
+          out[e.id] = { lines = lines, has = has, empty = empty }
+        end
+        return out`);
+      const gems = await sweep();
+      let withGemling = 0;
+      const emptyIn: string[] = [];
+      for (const [id, gem] of gems) {
+        const w = want[id];
+        expect({ id, lines: gem.gemlingLines, has: gem.hasGemling }).toEqual({ id, lines: arr(w.lines), has: w.has });
+        if (w.has) withGemling += 1;
+        if (arr(w.empty).length > 0) emptyIn.push(gem.name);
+      }
+      expect(withGemling).toBe(257);
+      expect(emptyIn.sort(byteCmp)).toEqual(['Detonate Living', 'Flash Grenade', 'Fortifying Cry', 'Siege Cascade']);
+      // A gem whose Gemling entries all describe to no line says so.
+      const silent = [...gems.values()].find((g) => g.hasGemling && g.gemlingLines.length === 0);
+      if (silent) {
+        const text = await okTool({ mode: 'gem', query: silent.name, max_results: 30 });
+        expect(listUnder(gemBlockOf(text, silent.name), GEMLING_HEADER, '  ')).toEqual(['(no described line)']);
+      }
+      // A gem without an entry has no header.
+      expect(gemBlockOf(await okTool({ mode: 'gem', query: "Ailith's Chimes" }), "Ailith's Chimes")).not.toContain(GEMLING_HEADER);
+
+      // Mechanic mode searches the quality and Gemling lines.
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'not consume Glory', kind: 'gem', max_results: 30 }))).toContain(
+        '[gem] Hammer of the Gods (Gemling quality): 50% chance to not consume Glory',
+      );
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'metres to explosion radius', kind: 'gem', max_results: 30 }))).toContain(
+        '[gem] Blood Hunt (quality): +0.4 metres to explosion radius',
+      );
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K59 (\"usable by\"): Snipe's skill types and its meta gems; Fireball, Spark and Whirling Assault; the every-gem sweep equals PoB's support test of each meta gem's support effect; supports get neither line",
+    async () => {
+      const snipe = gemBlockOf(await okTool({ mode: 'gem', query: 'Snipe', max_results: 1 }), 'Snipe');
+      expect(lineWith(snipe, 'Skill types: ')).toBe(
+        'Area, Attack, Barrageable, Bow, Channel, Cold, MirageArcherCanUse, PerfectTiming, Projectile, ProjectilesFromUser, RangedAttack, SkillConsumesFreeze',
+      );
+      expect(lineWith(snipe, 'Usable by: ')).toBe('Animus Splinters; Mirage Archer; Mirage Deadeye');
+      const fireball = lineWith(gemBlockOf(await okTool({ mode: 'gem', query: 'Fireball' }), 'Fireball'), 'Usable by: ')!.split('; ');
+      const spark = lineWith(gemBlockOf(await okTool({ mode: 'gem', query: 'Spark', max_results: 1 }), 'Spark'), 'Usable by: ')!.split('; ');
+      expect(fireball).toContain('Fire Spell on Hit (trigger)');
+      expect(fireball.some((m) => m.startsWith("Thundergod's Wrath"))).toBe(false);
+      expect(spark).toContain("Thundergod's Wrath (trigger)");
+      expect(spark.some((m) => m.startsWith('Fire Spell on Hit'))).toBe(false);
+      for (const list of [fireball, spark]) {
+        expect(list).toContain('Cast on Critical (trigger)');
+        expect(list).toContain('Spell Totem');
+      }
+      expect(lineWith(gemBlockOf(await okTool({ mode: 'gem', query: 'Whirling Assault' }), 'Whirling Assault'), 'Usable by: ')).toBe(
+        'Animus Splinters; Hollow Form',
+      );
+
+      // The every-gem sweep: PoB's own support test, each meta gem's support effect against the gem's active effects.
+      const want = await luaQuery<{
+        metas: number;
+        oneSupportEach: boolean;
+        gems: Record<string, { active: boolean; types: string[] | Record<string, never>; usable: string[] | Record<string, never>; extra: Array<string[] | false> | Record<string, never> }>;
+      }>(`${RULE_LUA}
+        local metas, oneEach = {}, true
+        for _, e in ipairs(allGems()) do
+          local isMeta, sups = false, {}
+          for _, ge in ipairs(effectsOf(e.gem)) do
+            if type(ge.skillTypes) == 'table' and ge.skillTypes[SkillType.Meta] then isMeta = true end
+            if ge.support then table.insert(sups, ge) end
+          end
+          if isMeta then
+            if #sups ~= 1 then oneEach = false end
+            table.insert(metas, { name = e.name, sup = sups[1] })
+          end
+        end
+        local gems = {}
+        for _, e in ipairs(allGems()) do
+          local entry = { active = not isSupportGem(e.gem), types = {}, usable = {}, extra = {} }
+          if entry.active then
+            entry.types = typeNames(e.gem.grantedEffect.skillTypes)
+            for _, m in ipairs(metas) do
+              if m.sup and canAny(m.sup, e.gem) then table.insert(entry.usable, m.name .. (m.sup.isTrigger and ' (trigger)' or '')) end
+            end
+          end
+          for _, ge in ipairs(e.gem.additionalGrantedEffects or {}) do
+            if ge.statSets then table.insert(entry.extra, (not ge.support) and typeNames(ge.skillTypes) or false) end
+          end
+          gems[e.id] = entry
+        end
+        return { metas = #metas, oneSupportEach = oneEach, gems = gems }`);
+      expect({ metas: want.metas, oneSupportEach: want.oneSupportEach }).toEqual({ metas: 29, oneSupportEach: true });
+      let noMeta: LookupGem | undefined;
+      for (const [id, gem] of await sweep()) {
+        const w = want.gems[id];
+        if (w.active) {
+          const usable = (gem.usableBy ?? []).map((m) => `${m.name}${m.trigger ? ' (trigger)' : ''}`);
+          expect({ id, types: gem.skillTypes, usable }).toEqual({ id, types: arr(w.types), usable: arr(w.usable) });
+          if (usable.length === 0 && !noMeta) noMeta = gem;
+        } else {
+          expect({ id, types: gem.skillTypes, usable: gem.usableBy }).toEqual({ id, types: undefined, usable: undefined });
+        }
+        const extra = arr(w.extra).map((t) => (t === false ? undefined : arr(t)));
+        expect({ id, extra: gem.additional.map((a) => a.skillTypes) }).toEqual({ id, extra });
+      }
+      // A support's block has neither line; an active gem with no meta gem says so.
+      const ailith = gemBlockOf(await okTool({ mode: 'gem', query: "Ailith's Chimes" }), "Ailith's Chimes");
+      expect([lineWith(ailith, 'Skill types: '), lineWith(ailith, 'Usable by: ')]).toEqual([undefined, undefined]);
+      expect(noMeta).toBeDefined();
+      const lone = await okTool({ mode: 'gem', query: noMeta!.name, max_results: 30 });
+      expect(blocks(lone).filter((b) => b.split('\n')[0] === `## ${noMeta!.name}`).some((b) => lineWith(b, 'Usable by: ') === '(no meta gem)')).toBe(true);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K60 (item-base implicits): kind base finds Absent Amulet\'s Cast on Critical variant and Solar Amulet\'s Spirit; for Spirit, Grants Skill and Resistance the base hits equal the lines of PoB\'s base lists; closest base names; the kind error and the header name base',
+    async () => {
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'Cast on Critical', kind: 'base', max_results: 30 }))).toContain(
+        '[base] Absent Amulet (Amulet; variant Cast on Critical): Grants Skill: Level (1-20) Cast on Critical',
+      );
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'Spirit', kind: 'base', max_results: 30 }))).toContain(
+        '[base] Solar Amulet (Amulet): +(10-15) to Spirit',
+      );
+
+      // PoB's base lists, each base name once, with its implicit lines (the variant tag removed).
+      const bases = await luaQuery<Array<{ name: string; type: string; lines: Array<{ line: string; variants?: string[] }> }>>(`
+        local out, seen = {}, {}
+        for listName, list in pairs(data.itemBaseLists) do
+          for _, entry in ipairs(list) do
+            local b = entry.base
+            if not seen[entry.name] and type(b.implicit) == 'string' then
+              seen[entry.name] = true
+              local lines = {}
+              for raw in b.implicit:gmatch('[^\\n]+') do
+                local n, rest = raw:match('^{variant:(%d+)}(.*)$')
+                if n then table.insert(lines, { line = rest, variants = { b.variantList[tonumber(n)] } })
+                else table.insert(lines, { line = raw }) end
+              end
+              table.insert(out, { name = entry.name, type = b.type, lines = lines })
+            end
+          end
+        end
+        return out`);
+      expect(bases.length).toBe(501);
+      bases.sort((a, b) => byteCmp(a.name, b.name));
+      for (const query of ['Spirit', 'Grants Skill', 'Resistance']) {
+        const q = query.toLowerCase();
+        const want: string[] = [];
+        for (const b of bases) {
+          const byName = b.name.toLowerCase().includes(q);
+          for (const l of b.lines) {
+            if (byName || l.line.toLowerCase().includes(q)) {
+              const where = l.variants ? `${b.type}; variant ${l.variants[0]}` : b.type;
+              want.push(`[base] ${b.name} (${where}): ${l.line}`);
+            }
+          }
+        }
+        expect(want.length).toBeGreaterThan(0);
+        const full = await lookupAction({ mode: 'mechanic', query, maxResults: 100000 });
+        const got = (full.results as LookupHit[]).filter((h) => h.kind === 'base').map(renderHit);
+        expect({ query, got }).toEqual({ query, got: want });
+        expect(full.kinds?.base).toBe(want.length);
+        if (query === 'Spirit') {
+          const k = full.kinds!;
+          const all = full.results.length;
+          expect((await okTool({ mode: 'mechanic', query })).split('\n')).toContain(
+            `${all} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base.`,
+          );
+        }
+      }
+
+      const misspelt = await okTool({ mode: 'mechanic', query: 'Solar Amulett', kind: 'base' });
+      expect(misspelt).toContain('Nothing matched "Solar Amulett", kind base.');
+      expect(suggestionLines(misspelt)[0]).toBe('- Solar Amulet (base, Amulet)');
+      const bad = await tool({ mode: 'mechanic', query: 'Spirit', kind: 'nonsense' });
+      expect(bad.isError).toBe(true);
+      expect(bad.text).toContain('base');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /**
+   * AC-K61's rule, applied in Lua to one active gem: each support X that can support none of its active
+   * effects, with the supports Y that unlock it on one effect E (Y can support E, adds skill types and
+   * shares no gem family with X; with Y's types X can; with Y's and X's types both still can).
+   */
+  async function unlocksOf(name: string): Promise<string[]> {
+    const got = await luaQuery<string[]>(`${RULE_LUA}
+      local gem = gemNamed(${JSON.stringify(name)})
+      local supports, adders = {}, {}
+      for _, e in ipairs(allGems()) do
+        if isSupportGem(e.gem) then
+          table.insert(supports, e)
+          if #(e.gem.grantedEffect.addSkillTypes or {}) > 0 then table.insert(adders, e) end
+        end
+      end
+      local function family(a, b)
+        for _, f in ipairs(a.gemFamily or {}) do for _, g in ipairs(b.gemFamily or {}) do if f == g then return true end end end
+        return false
+      end
+      local out = {}
+      for _, x in ipairs(supports) do
+        local xe = x.gem.grantedEffect
+        if not canAny(xe, gem) then
+          local after = {}
+          for _, y in ipairs(adders) do
+            local ye = y.gem.grantedEffect
+            if y.id ~= x.id and not family(xe, ye) then
+              for _, e in ipairs(activeEffects(gem)) do
+                local sk = skillOf(e, gem)
+                if can(ye, sk) then
+                  for _, t in ipairs(ye.addSkillTypes) do sk.skillTypes[t] = true end
+                  if can(xe, sk) then
+                    for _, t in ipairs(xe.addSkillTypes or {}) do sk.skillTypes[t] = true end
+                    if can(ye, sk) and can(xe, sk) then table.insert(after, y.name) break end
+                  end
+                end
+              end
+            end
+          end
+          if #after > 0 then table.insert(out, x.name .. ': after ' .. table.concat(after, '; ')) end
+        end
+      end
+      return out`);
+    return arr(got as string[] | Record<string, never>);
+  }
+
+  const UNLOCKED = 'Unlocked by another support:';
+
+  it(
+    "AC-K61 (type-granting unlocks): Whirling Assault lists Ailith's Chimes after Culmination II among 29 lines; Gas Grenade's Nova Projectiles II isn't unlocked by its own family; the lines equal the rule for six gems",
+    async () => {
+      const wa = gemBlockOf(await okTool({ mode: 'gem', query: 'Whirling Assault' }), 'Whirling Assault');
+      const waLines = listUnder(wa, UNLOCKED, '- ')!;
+      expect(waLines).toContain("Ailith's Chimes: after Combo Finisher I; Combo Finisher II; Culmination I; Culmination II; Vruun's Inevitability");
+      expect(waLines).toHaveLength(29);
+      // The example's facts, from PoB's data.
+      const facts = await luaQuery<{ types: string[]; req: string[]; adds: boolean; c2: boolean; ac: boolean }>(`${RULE_LUA}
+        local wa = gemNamed('Whirling Assault')
+        local ac, c2 = gemNamed("Ailith's Chimes").grantedEffect, gemNamed('Culmination II').grantedEffect
+        local req = {}
+        for _, t in ipairs(ac.requireSkillTypes) do table.insert(req, SkillTypeName[t]) end
+        local adds = false
+        for _, t in ipairs(c2.addSkillTypes) do if t == SkillType.ComboStacking then adds = true end end
+        return { types = typeNames(wa.grantedEffect.skillTypes), req = req, adds = adds, c2 = canAny(c2, wa), ac = canAny(ac, wa) }`);
+      expect(facts).toEqual({ types: ['Area', 'Attack', 'Melee', 'MeleeSingleTarget'], req: ['ComboStacking'], adds: true, c2: true, ac: false });
+
+      // Family: on Gas Grenade, the type checks let Nova Projectiles I unlock II, but the two share a family.
+      const nova = await luaQuery<{ typesPass: boolean; family: boolean }>(`${RULE_LUA}
+        local gg = gemNamed('Gas Grenade')
+        local y, x = gemNamed('Nova Projectiles I').grantedEffect, gemNamed('Nova Projectiles II').grantedEffect
+        local pass = false
+        for _, e in ipairs(activeEffects(gg)) do
+          local sk = skillOf(e, gg)
+          if not canAny(x, gg) and can(y, sk) then
+            for _, t in ipairs(y.addSkillTypes) do sk.skillTypes[t] = true end
+            if can(x, sk) then pass = true end
+          end
+        end
+        local fam = false
+        for _, f in ipairs(x.gemFamily or {}) do for _, g in ipairs(y.gemFamily or {}) do if f == g then fam = true end end end
+        return { typesPass = pass, family = fam }`);
+      expect(nova).toEqual({ typesPass: true, family: true });
+      const gg = listUnder(gemBlockOf(await okTool({ mode: 'gem', query: 'Gas Grenade' }), 'Gas Grenade'), UNLOCKED, '- ')!;
+      expect(gg.find((l) => l.startsWith('Nova Projectiles II: ') && l.includes('Nova Projectiles I;'))).toBeUndefined();
+      expect(gg.find((l) => l.startsWith('Nova Projectiles II: ') && l.endsWith('Nova Projectiles I'))).toBeUndefined();
+
+      // The rule check.
+      for (const [name, extra] of [
+        ['Whirling Assault', {}],
+        ['Snipe', { max_results: 1 }],
+        ['Fireball', {}],
+        ['Gas Grenade', {}],
+        ['Raise Zombie', {}],
+        ['Cast on Critical', {}],
+      ] as const) {
+        const block = gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name);
+        const lines = listUnder(block, UNLOCKED, '- ')!;
+        const want = await unlocksOf(name);
+        if (want.length === 0) expect(listUnder(block, UNLOCKED, '  ')).toEqual(['(none)']);
+        expect({ name, lines }).toEqual({ name, lines: want });
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /** AC-K62's gems, in Lua: the active gems a support can support with their own types, and the total. */
+  async function reachOf(name: string): Promise<{ yes: string[]; no: string[]; total: number }> {
+    const r = await luaQuery<{ yes: string[] | Record<string, never>; no: string[] | Record<string, never>; total: number }>(`${RULE_LUA}
+      local sup = gemNamed(${JSON.stringify(name)}).grantedEffect
+      local yes, no, total = {}, {}, 0
+      for _, e in ipairs(allGems()) do
+        if not isSupportGem(e.gem) then
+          total = total + 1
+          table.insert(canAny(sup, e.gem) and yes or no, e.name)
+        end
+      end
+      return { yes = yes, no = no, total = total }`);
+    return { yes: arr(r.yes), no: arr(r.no), total: r.total };
+  }
+
+  it(
+    "AC-K62 (what a support can ride): Ailith's Chimes and Culmination II in the list form, Uhtred's Exodus in the complement form; five supports equal PoB's support test; several gems get the note instead",
+    async () => {
+      const line = async (name: string, extra: Record<string, unknown> = {}) =>
+        lineWith(gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name), 'Can support (');
+      expect(await line("Ailith's Chimes")).toBe('2 of 399 active gems): Mantra of Destruction; Tempest Bell');
+      const culm = (await line('Culmination II'))!;
+      expect(culm.startsWith('93 of 399 active gems): ')).toBe(true);
+      expect(culm).not.toContain('all except');
+      expect(culm.slice('93 of 399 active gems): '.length).split('; ')).toContain('Whirling Assault');
+      expect(await line("Uhtred's Exodus")).toBe('398 of 399 active gems): all except Abyssal Apparition');
+
+      for (const [name, extra] of [
+        ["Ailith's Chimes", {}],
+        ['Culmination II', {}],
+        ["Uhtred's Exodus", {}],
+        ["Paquate's Pact", {}],
+        ['Living Lightning', { max_results: 1 }],
+      ] as const) {
+        const want = await reachOf(name);
+        expect(want.total).toBe(399);
+        const got = (await line(name, extra))!;
+        const head = `${want.yes.length} of ${want.total} active gems): `;
+        expect({ name, head: got.startsWith(head) }).toEqual({ name, head: true });
+        const rest = got.slice(head.length);
+        if (want.yes.length * 2 > want.total) {
+          expect({ name, rest }).toEqual({ name, rest: `all except ${want.no.join('; ')}` });
+        } else {
+          expect({ name, rest }).toEqual({ name, rest: want.yes.length > 0 ? want.yes.join('; ') : '(none)' });
+        }
+      }
+
+      // Several gems returned: neither long list, and the note says how to get them.
+      const several = await okTool({ mode: 'gem', query: 'Culmination' });
+      expect(blocks(several).map((b) => b.split('\n')[0])).toEqual(['## Culmination I', '## Culmination II']);
+      expect(several).not.toContain('Can support (');
+      expect(several).not.toContain(UNLOCKED);
+      const note = several.split('\n').find((l) => l.startsWith('Several gems are returned'));
+      expect(note).toBeDefined();
+      expect(note).toContain('exact name');
+      expect(note).toContain('max_results 1');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K63 (named phrase searches): gaps match the parts in order; "cannot … but" and "your … shatter" equal their filtered full lists; the five plain phrases each hit; a query of gaps alone is an error',
+    async () => {
+      for (const [query, first, re] of [
+        ['cannot … but', 'cannot', /cannot.*but/i],
+        ['your … shatter', 'shatter', /your.*shatter/i],
+      ] as const) {
+        const gap = await lookupAction({ mode: 'mechanic', query, maxResults: 100000 });
+        const base = await lookupAction({ mode: 'mechanic', query: first, maxResults: 100000 });
+        const want = (base.results as LookupHit[]).filter((h) => re.test(h.line)).map(renderHit);
+        expect(want.length).toBeGreaterThan(0);
+        expect({ query, got: (gap.results as LookupHit[]).map(renderHit) }).toEqual({ query, got: want });
+        const count = (k: string) => (base.results as LookupHit[]).filter((h) => h.kind === k && re.test(h.line)).length;
+        expect(gap.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base') });
+      }
+      const dots = await lookupAction({ mode: 'mechanic', query: 'cannot ... but', maxResults: 100000 });
+      const ellipsis = await lookupAction({ mode: 'mechanic', query: 'cannot … but', maxResults: 100000 });
+      expect((dots.results as LookupHit[]).map(renderHit)).toEqual((ellipsis.results as LookupHit[]).map(renderHit));
+
+      const cannot = (ellipsis.results as LookupHit[]).map(renderHit);
+      expect(cannot.some((l) => l.startsWith('[gem] Combo Finisher I: ') && /cannot be used until enough Combo/.test(l))).toBe(true);
+      expect(cannot).toContain("[unique] Lavianga's Spirits (Flask): This Flask cannot be Used but applies its Effect constantly");
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'your … shatter', kind: 'unique', max_results: 30 }))).toContain(
+        '[unique] Polcirkeln (Ring): Enemies Chilled by your Hits can be Shattered as though Frozen',
+      );
+
+      for (const phrase of ['also apply to', 'while already at maximum', 'per 100 maximum', 'for each type of', 'instead of you']) {
+        const full = await lookupAction({ mode: 'mechanic', query: phrase, maxResults: 100000 });
+        expect({ phrase, hits: full.results.length > 0 }).toEqual({ phrase, hits: true });
+        for (const h of full.results as LookupHit[]) expect(h.line.toLowerCase()).toContain(phrase);
+      }
+
+      for (const query of ['…', '...', ' … ... ']) {
+        const out = await tool({ mode: 'mechanic', query });
+        expect({ query, isError: out.isError }).toEqual({ query, isError: true });
+        expect(out.text).toContain('mechanic mode needs a query');
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K64 (hit-making children): Bloodhound's Mark, Pounce, Living Lightning, Artillery Ballista and Raise Zombie name theirs; Snipe and Mirage Archer have none; the every-gem sweep equals PoB's data by the rule (94 of 126 effects; 121 gems)",
+    async () => {
+      const children = async (name: string, extra: Record<string, unknown> = {}) =>
+        listUnder(gemBlockOf(await okTool({ mode: 'gem', query: name, ...extra }), name), 'Hit-making children:', '')!.filter(
+          (l) => l.startsWith('- ') || l === '  (none)',
+        );
+      expect(await children("Bloodhound's Mark")).toEqual(['- Blood Explosion (triggered)']);
+      expect(await children('Pounce')).toEqual(['- Basic Attack (minion Wolf Companion)', '- Leap Slam (minion Wolf Companion)']);
+      expect(await children('Living Lightning', { max_results: 1 })).toEqual(['- Zap (minion Living Lightning)']);
+      expect(await children('Artillery Ballista')).toEqual(['- Ballista Bolt (granted)']);
+      expect(await children('Raise Zombie')).toEqual(['- Basic Attack (minion Raised Zombie)']);
+      expect(await children('Snipe', { max_results: 1 })).toEqual(['  (none)']);
+      expect(await children('Mirage Archer')).toEqual(['  (none)']);
+
+      const want = await luaQuery<{ other: number; hit: number; gems: Record<string, string[] | Record<string, never>> }>(`${RULE_LUA}
+        local function hits(e)
+          local t = e.skillTypes or {}
+          if t[SkillType.Attack] or t[SkillType.Damage] or t[SkillType.Projectile] then return true end
+          for _, ss in ipairs(e.statSets or {}) do if ss.baseFlags and ss.baseFlags.hit then return true end end
+          return false
+        end
+        local other, hit, gems = 0, 0, {}
+        for _, g in ipairs(allGems()) do
+          local out, seen = {}, {}
+          local function add(s) if not seen[s] then seen[s] = true table.insert(out, s) end end
+          for i, e in ipairs(g.gem.additionalGrantedEffects or {}) do
+            if isActive(e) then
+              other = other + 1
+              if hits(e) then
+                hit = hit + 1
+                local t = e.skillTypes or {}
+                local name = (e.name and e.name ~= '') and e.name or ('Granted effect ' .. (i + 1))
+                add('- ' .. name .. ' (' .. ((t[SkillType.Triggered] or t[SkillType.InbuiltTrigger]) and 'triggered' or 'granted') .. ')')
+              end
+            end
+          end
+          for _, e in ipairs(effectsOf(g.gem)) do
+            if isActive(e) then
+              for _, m in ipairs(e.minionList or {}) do
+                local md = data.minions[m]
+                if md then
+                  for _, sid in ipairs(md.skillList or {}) do
+                    local s = data.skills[sid]
+                    if s and hits(s) then add('- ' .. s.name .. ' (minion ' .. md.name .. ')') end
+                  end
+                end
+              end
+            end
+          end
+          gems[g.id] = out
+        end
+        return { other = other, hit = hit, gems = gems }`);
+      expect({ other: want.other, hit: want.hit }).toEqual({ other: 126, hit: 94 });
+      let withChild = 0;
+      for (const [id, gem] of await sweep()) {
+        const got = gem.children.map((c) => `- ${c.name} (${c.kind === 'minion' ? `minion ${c.minion}` : c.kind})`);
+        expect({ id, got }).toEqual({ id, got: arr(want.gems[id]) });
+        if (got.length > 0) withChild += 1;
+      }
+      expect(withChild).toBe(121);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K65 (stat sets named): mechanic gem hits name the stat set's number (Blood Hunt's Explosion, Wing Blast's Shockwave, Bloodhound's Mark's Blood Explosion); every stat-set hit for Explosion names a stat set whose lines hold it",
+    async () => {
+      const hits = async (query: string) => hitLines(await okTool({ mode: 'mechanic', query, kind: 'gem', max_results: 30 }));
+      expect(await hits('Consumed Blood Loss')).toContain('[gem] Blood Hunt (stat set 2: Explosion): Enemies lose Life equal to 25% of Consumed Blood Loss');
+      expect(await hits('originating from a Unique enemy')).toContain(
+        '[gem] Wing Blast (stat set 2: Shockwave): 50% more damage with Hits for Shockwaves originating from a Unique enemy',
+      );
+      expect(await hits('Heavy Stun buildup caused by Blood Loss')).toContain(
+        "[gem] Bloodhound's Mark / Blood Explosion (stat set 1: Blood Explosion): Gains up to 100% more damage and 100% more area of effect based on the percentage of target's Heavy Stun buildup caused by Blood Loss",
+      );
+
+      const full = await lookupAction({ mode: 'mechanic', query: 'Explosion', kind: 'gem', maxResults: 100000 });
+      const named = (full.results as LookupHit[])
+        .map((h) => ({ h, m: /^(.*?)(?: \/ (.*))? \(stat set (\d+): (.*)\)$/.exec(h.source) }))
+        .filter((x) => x.m !== null);
+      expect(named.length).toBeGreaterThan(10);
+      const checks = named.map(({ h, m }) => ({ id: h.id, gem: m![1], effect: m![2] ?? null, index: Number(m![3]), label: m![4], line: h.line }));
+      const verdicts = await luaQuery<boolean[]>(`${RULE_LUA}
+        local checks = require('dkjson').decode([==[${JSON.stringify(checks)}]==])
+        local function defaultLevel(gem)
+          local ge, natural = gem.grantedEffect, tonumber(gem.naturalMaxLevel) or 1
+          if ge.levels[natural] then return natural end
+          local best
+          for l in pairs(ge.levels) do if type(l) == 'number' and l <= natural and (not best or l > best) then best = l end end
+          if best then return best end
+          for l in pairs(ge.levels) do if type(l) == 'number' and (not best or l < best) then best = l end end
+          return best
+        end
+        local out = {}
+        for i, c in ipairs(checks) do
+          local gem = data.gems[c.id]
+          local effect
+          if c.effect == nil then effect = gem.grantedEffect else
+            for j, e in ipairs(gem.additionalGrantedEffects or {}) do
+              local name = (e.name and e.name ~= '') and e.name or ('Granted effect ' .. (j + 1))
+              if name == c.effect then effect = e end
+            end
+          end
+          local ok = false
+          local ss = effect and effect.statSets and effect.statSets[c.index]
+          if ss and gem.name == c.gem then
+            local label = (type(ss.label) == 'string' and ss.label ~= '') and ss.label or ((effect.name ~= '' and effect.name) or ('Stat set ' .. c.index))
+            if label == c.label then
+              local stats = calcLib.buildSkillInstanceStats({ level = defaultLevel(gem), quality = 0 }, effect, ss)
+              for _, line in ipairs(data.describeStats(stats, ss.statDescriptionScope) or {}) do
+                if oneLine(line) == c.line then ok = true end
+              end
+            end
+          end
+          out[i] = ok
+        end
+        return out`);
+      expect(checks.filter((_, i) => !verdicts[i])).toEqual([]);
     },
     ENGINE_TIMEOUT,
   );

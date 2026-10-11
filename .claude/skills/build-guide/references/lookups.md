@@ -10,15 +10,37 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
   - `{mode: "gem", query}`: each gem's kind (`active` or `support`), description, weapon, every stat set
     ("skill part") with its **base attack damage and base critical hit chance** (D-241) and PoB's tooltip
     lines at `gem_level` and `gem_quality`, the quality lines, the requirements at every gem level
-    (D-228), and for a support what it can and can't support.
+    (D-228), and for a support what it can and can't support. Amendment 3's additions (D-299):
+    - **Gemling quality.** Under `At +20% Quality, with the Gemling Legionnaire's Advanced Thaumaturgy:`,
+      the extra quality lines PoB applies only with that node (PG-46).
+    - **Usable by.** An active gem's `Skill types:` and `Usable by:`, the meta gems that can socket it,
+      `(trigger)` marking those that trigger it. Example: Snipe is usable by Mirage Archer.
+    - **Hit-making children.** Its granted and triggered skills and its minions' skills that make hits, for
+      the payoff-thief check. Example: Bloodhound's Mark's `Blood Explosion (triggered)`.
+    - **With exactly one gem returned** (its exact name, or `max_results: 1`): a support's `Can support (<n>
+      of <total> active gems)`, which names the gems it can't support (`all except …`) when it can support
+      most; and an active gem's `Unlocked by another support:`, the supports it can take only after another
+      support adds a skill type. Example: Whirling Assault lists `Ailith's Chimes: after … Culmination II …`.
   - `{mode: "unique", query, slot?}`: with **several matches, each is shown in brief** (name, type,
     base, up to 5 matched lines with their variant); **full item text, ready for a plan's item slot, comes
     only when exactly one unique is returned** (D-239). Look a unique up by its exact name (or with
     `max_results: 1`) to get its text.
   - `{mode: "mechanic", query, kind?}`: keyword hits across gems, uniques, passives (ascendancy included),
-    item mods and essences. **`kind` (`gem`, `unique`, `passive`, `mod` or `essence`) lists one kind
-    only**; the header still counts every kind's hits (D-240). Use it when a broad query fills every slot
-    with one kind.
+    item mods, essences and item-base implicits. **`kind` (`gem`, `unique`, `passive`, `mod`, `essence`
+    or `base`) lists one kind only**; the header still counts every kind's hits (D-240). Use it when a
+    broad query fills every slot with one kind. Amendment 3's additions (D-299):
+    - **Stat sets by number.** A gem hit from a stat set names it as gem mode numbers it, the number a
+      plan's `skills.main.statSet` takes: `[gem] Blood Hunt (stat set 2: Explosion): …`. A hit from
+      another granted effect reads `<gem> / <effect> (stat set <n>: <label>)`.
+    - **Quality lines** are hits too: `<gem> (quality)` and `<gem> (Gemling quality)`.
+    - **Item-base implicits** are `[base]` hits, naming a variant when the line has one:
+      `[base] Absent Amulet (Amulet; variant Cast on Critical): Grants Skill: Level (1-20) Cast on
+      Critical`. A base's name matches every line of it.
+    - **Gaps.** `…` (or `...`) in the query matches any text within one line.
+  - **The named phrase searches** (D-299). Run these as mechanic queries when a concept leans on a hidden
+    interaction; each finds a wording family the pattern library uses: `also apply to`,
+    `while already at maximum`, `per 100 maximum`, `for each type of`, `cannot … but`, `instead of you`
+    and `your … shatter`.
   - **A mod hit's base types** (D-277). Under each `[mod]` hit, `Base types:` lists the bases that can
     roll that mod (PoB gives it a non-zero spawn weight), as PoB's own base types, separated by `;`:
     - `Gloves (all)`: every base of that item type;

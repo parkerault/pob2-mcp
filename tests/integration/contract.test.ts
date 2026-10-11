@@ -521,6 +521,55 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
   );
 
   it(
+    "AC-B4 (C-37, WU-53): lookup_game_data's gem replies with skill types, usable-by, Gemling lines, children, a support's reach and an active gem's unlocks, and mechanic replies with base hits and gaps, match the schema",
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const replies: Array<{ params: Json; reply: Json }> = [];
+      for (const params of [
+        // One active gem (its unlocks), one support (the list form), one in the complement form, and several.
+        { mode: 'gem', query: 'Whirling Assault' },
+        { mode: 'gem', query: "Ailith's Chimes" },
+        { mode: 'gem', query: "Uhtred's Exodus" },
+        { mode: 'gem', query: 'Culmination' },
+        // Children of every kind, and Gemling lines.
+        { mode: 'gem', query: 'Pounce' },
+        { mode: 'gem', query: "Bloodhound's Mark" },
+        { mode: 'gem', query: 'Hammer of the Gods' },
+        // Base hits with and without a variant, the base count, and a gap query.
+        { mode: 'mechanic', query: 'Cast on Critical', maxResults: 30 },
+        { mode: 'mechanic', query: 'Spirit', kind: 'base', maxResults: 30 },
+        { mode: 'mechanic', query: 'cannot … but', maxResults: 30 },
+      ] as Json[]) {
+        const reply = await engine.request('lookup_game_data', params, { timeoutMs: 120_000 });
+        expect({ params, ok: reply.ok }).toEqual({ params, ok: true });
+        const parsed = replySchemas.lookup_game_data!.safeParse(reply);
+        expect({ params, issues: parsed.success ? [] : parsed.error.issues }).toEqual({ params, issues: [] });
+        replies.push({ params, reply });
+      }
+      const gem = (i: number) => replies[i].reply.result.results[0] as Json;
+      expect(Array.isArray(gem(0).unlocks) && gem(0).unlocks.length > 0).toBe(true);
+      expect(gem(0).canSupport).toBeUndefined();
+      expect(gem(1).canSupport).toMatchObject({ except: false, count: 2 });
+      expect(gem(2).canSupport).toMatchObject({ except: true });
+      for (const g of replies[3].reply.result.results as Json[]) {
+        expect({ name: g.name, reach: g.canSupport, unlocks: g.unlocks }).toEqual({ name: g.name, reach: undefined, unlocks: undefined });
+      }
+      expect((gem(4).children as Json[]).every((c) => c.kind === 'minion' && typeof c.minion === 'string')).toBe(true);
+      expect((gem(5).children as Json[]).map((c) => c.kind)).toEqual(['triggered']);
+      expect(gem(6).hasGemling).toBe(true);
+      expect(gem(6).gemlingLines.length).toBeGreaterThan(0);
+      expect(Array.isArray(gem(0).usableBy) && Array.isArray(gem(0).skillTypes)).toBe(true);
+      // An empty list is sent as `[]` (a support has no children here).
+      expect(gem(1).children).toEqual([]);
+      const bases = replies.slice(7, 9).flatMap((r) => r.reply.result.results as Json[]).filter((h) => h.kind === 'base');
+      expect(bases.some((b) => Array.isArray(b.baseVariants))).toBe(true);
+      expect(bases.some((b) => b.baseVariants === undefined && typeof b.itemType === 'string')).toBe(true);
+      expect(typeof replies[7].reply.result.kinds.base).toBe('number');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'AC-B4 (C-41): the compile actions report a defect or a failing stage as data or ok:false, never an exception',
     async () => {
       await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });

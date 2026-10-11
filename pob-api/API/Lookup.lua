@@ -5,23 +5,29 @@
 --     gem       data.gems names -> PoB's Tier (D-258), description, weapon, per stat set its base attack
 --               damage and crit chance and its lines from PoB's stat describer (at `level`, default the
 --               gem's natural max level; see defaultLevel; a returned gem without `level` is shown at its
---               default), the +20% quality lines, support rules, and the requirements at every gem level
+--               default), the +20% quality lines and the Gemling ones (`altQualityStats`), support rules,
+--               the requirements at every gem level, and (WU-53, D-299) an active gem's skill types and
+--               the meta gems that can use it, and every gem's hit-making children. With exactly one gem
+--               returned, a support lists the active gems it can support and an active gem the supports
+--               another support unlocks (D-239's one-result rule)
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
---     mechanic  gem descriptions and stat-set lines, unique mod lines (every variant's), passive `sd`
---               lines, data.itemMods text and the essences' mod lines (or names) -> one hit per matching
---               line; a mod hit carries the base types that can roll it (WU-60, D-277); `kind` keeps one
---               kind, and `kinds` counts every kind's hits (D-240)
+--     mechanic  gem descriptions, stat-set lines (naming the stat set's number), quality and Gemling
+--               quality lines, unique mod lines (every variant's), passive `sd` lines, data.itemMods text,
+--               the essences' mod lines (or names) and the item bases' implicit lines (or names) -> one hit
+--               per matching line; a mod hit carries the base types that can roll it (WU-60, D-277); `kind`
+--               keeps one kind, and `kinds` counts every kind's hits (D-240). A query may hold gaps, `…` or
+--               `...`, each matching any text within the line (WU-53)
 --
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
--- unique, passive, mod, essence), then by name, then by id, then by line. `total` counts every match.
+-- unique, passive, mod, essence, base), then by name, then by id, then by line. `total` counts every match.
 --
 -- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258): in gem
 -- mode up to 5 active gems, then up to 3 supports (D-258a); in unique mode up to 5 unique names, of `slot`
--- when given; in mechanic mode up to 5 names of the gems, uniques, passives, mods and essences searched, of
--- `kind` when given. Each group is ranked by edit distance to the query (see editDistance), then by name,
+-- when given; in mechanic mode up to 5 names of the gems, uniques, passives, mods, essences and bases
+-- searched, of `kind` when given. Each group is ranked by edit distance to the query (see editDistance), then by name,
 -- then by kind and detail. A query longer than MAX_SUGGESTION_QUERY characters gets none (the cost grows
 -- with its length); the reply says so with `suggestionsSkipped`.
 --
@@ -125,12 +131,13 @@ function M.describeStatSet(grantedEffect, statSet, level, quality)
 end
 
 -- The "At +20% Quality" lines of one granted effect (SkillsTab's tooltip: each qualityStats entry
--- described alone at value x 20, in its stat set's scope).
-local function qualityLines(grantedEffect)
+-- described alone at value x 20, in its stat set's scope). `key` 'altQualityStats' gives the Gemling
+-- ones, which PoB lists the same way when the build has GemlingQuality (SkillsTab.lua:893-910).
+local function qualityLines(grantedEffect, key)
   local d = gameData()
   local out = {}
   if type(grantedEffect.statSets) ~= 'table' then return out end
-  for _, q in ipairs(grantedEffect.qualityStats or {}) do
+  for _, q in ipairs(grantedEffect[key or 'qualityStats'] or {}) do
     if q[1] and q[2] then
       local setIndexes = type(q[3]) == 'table' and q[3] or {}
       local statSet = grantedEffect.statSets[(setIndexes[1] or 0) + 1] or grantedEffect.statSets[1]
@@ -265,8 +272,237 @@ local function levelSpan(ge)
   return levels[1] or 1, levels[#levels] or 1
 end
 
--- A requested gem level the gem lacks shows the gem at its default level, with a note saying so.
-local function gemResult(id, gem, levelParam, quality)
+-- ---------------------------------------------------------------------------------------------------
+-- Amendment 3's gem additions (WU-53, D-299)
+
+-- A gem's quality lines (`qualityStats`) or Gemling lines (`altQualityStats`), over its granted effects in
+-- the block's order; also whether any effect has such an entry (a Gemling entry may describe to no line).
+local function gemQualityLines(gem, key)
+  local out, any = {}, false
+  for _, effect in ipairs(M.gemEffects(gem)) do
+    if type(effect[key]) == 'table' and #effect[key] > 0 then any = true end
+    for _, line in ipairs(qualityLines(effect, key)) do table.insert(out, line) end
+  end
+  return out, any
+end
+
+-- The SkillType names a granted effect's `skillTypes` holds, sorted by name.
+local function skillTypeSet(grantedEffect)
+  local out = {}
+  for t, on in pairs(grantedEffect.skillTypes or {}) do
+    if on then table.insert(out, SkillTypeName and SkillTypeName[t] or tostring(t)) end
+  end
+  table.sort(out)
+  return out
+end
+
+-- An effect PoB makes an active skill: not a support and not hidden from the sidebar (CalcSetup.lua:1855).
+local function isActiveEffect(effect)
+  return type(effect) == 'table' and not effect.support and not effect.hideFromSideBar
+end
+
+local function activeEffectsOf(gem)
+  local out = {}
+  for _, effect in ipairs(M.gemEffects(gem)) do
+    if isActiveEffect(effect) then table.insert(out, effect) end
+  end
+  return out
+end
+
+-- The active skill PoB's calcLib.canGrantedEffectSupportActiveSkill reads (CalcTools.lua:85-110): the
+-- effect and its gem, a copy of its skill types and minion skill types, and a player actor (its enemy's
+-- player is itself, as for the player's own skills).
+local function activeSkillOf(effect, gem)
+  local player = {}
+  player.enemy = { player = player }
+  return {
+    activeEffect = { grantedEffect = effect, gemData = gem },
+    skillTypes = copyTable(effect.skillTypes or {}),
+    minionSkillTypes = effect.minionSkillTypes and copyTable(effect.minionSkillTypes) or nil,
+    actor = player,
+  }
+end
+
+-- PoB's own support test.
+local function canSupport(supportEffect, activeSkill)
+  if type(supportEffect.requireSkillTypes) ~= 'table' or type(supportEffect.excludeSkillTypes) ~= 'table' then
+    return false
+  end
+  return calcLib.canGrantedEffectSupportActiveSkill(supportEffect, activeSkill) and true or false
+end
+
+-- Whether a support effect can support one of a gem's active effects, with their own types.
+local function supportsAnyOf(supportEffect, gem, effects)
+  for _, effect in ipairs(effects) do
+    if canSupport(supportEffect, activeSkillOf(effect, gem)) then return true end
+  end
+  return false
+end
+
+local gemIndexCache = setmetatable({}, { __mode = 'k' })
+
+local function byNameThenId(a, b)
+  if a.name ~= b.name then return a.name < b.name end
+  return a.id < b.id
+end
+
+-- The game data's active gems (with their active effects), support gems, the supports that add skill
+-- types, and the meta gems (a granted effect of skill type Meta) with their support effect; each sorted by
+-- name, then id.
+local function gemIndex()
+  local d = gameData()
+  if gemIndexCache[d] then return gemIndexCache[d] end
+  local index = { actives = {}, supports = {}, adders = {}, metas = {} }
+  for id, gem in pairs(d.gems) do
+    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+      local entry = { id = id, name = gem.name, gem = gem }
+      if isSupportGem(gem) then
+        table.insert(index.supports, entry)
+        if #(gem.grantedEffect.addSkillTypes or {}) > 0 then table.insert(index.adders, entry) end
+      else
+        entry.effects = activeEffectsOf(gem)
+        table.insert(index.actives, entry)
+      end
+      local isMeta, supportEffect = false, nil
+      for _, effect in ipairs(M.gemEffects(gem)) do
+        if type(effect.skillTypes) == 'table' and effect.skillTypes[SkillType.Meta] then isMeta = true end
+        if effect.support and not supportEffect then supportEffect = effect end
+      end
+      if isMeta and supportEffect then
+        table.insert(index.metas, { id = id, name = gem.name, effect = supportEffect, trigger = supportEffect.isTrigger == true })
+      end
+    end
+  end
+  for _, list in pairs(index) do table.sort(list, byNameThenId) end
+  gemIndexCache[d] = index
+  return index
+end
+
+-- "Usable by": the meta gems whose support effect can support one of the gem's active effects.
+local function usableBy(gem, effects)
+  local out = {}
+  for _, meta in ipairs(gemIndex().metas) do
+    if supportsAnyOf(meta.effect, gem, effects) then table.insert(out, { name = meta.name, trigger = meta.trigger }) end
+  end
+  return out
+end
+
+-- What a support can ride: the active gems it can support with their own types. When they are more than
+-- half of all active gems, the reply names the ones it can't (`except`), to stay short.
+local function supportReach(gem)
+  local index = gemIndex()
+  local yes, no = {}, {}
+  for _, active in ipairs(index.actives) do
+    table.insert(supportsAnyOf(gem.grantedEffect, active.gem, active.effects) and yes or no, active.name)
+  end
+  local total = #index.actives
+  if #yes * 2 > total then return { count = #yes, total = total, except = true, names = no } end
+  return { count = #yes, total = total, except = false, names = yes }
+end
+
+local function sharesFamily(a, b)
+  for _, family in ipairs(a.gemFamily or {}) do
+    for _, other in ipairs(b.gemFamily or {}) do
+      if family == other then return true end
+    end
+  end
+  return false
+end
+
+local function addTypes(activeSkill, types)
+  for _, t in ipairs(types or {}) do activeSkill.skillTypes[t] = true end
+end
+
+-- Type-granting unlocks: the supports X that can't support any of the gem's active effects, each with the
+-- supports Y that unlock it on one effect E, as PoB decides (CalcActiveSkill.lua:182-212; one support per
+-- gem family, CalcSetup.lua:517-527): Y can support E, adds skill types and shares no family with X; with
+-- Y's added types X can support E; with Y's and X's added types both still can. One helper, no chains.
+local function supportUnlocks(gem, effects)
+  local index = gemIndex()
+  local out = {}
+  for _, x in ipairs(index.supports) do
+    local xEffect = x.gem.grantedEffect
+    if not supportsAnyOf(xEffect, gem, effects) then
+      local after = {}
+      for _, y in ipairs(index.adders) do
+        local yEffect = y.gem.grantedEffect
+        if y ~= x and not sharesFamily(xEffect, yEffect) then
+          for _, effect in ipairs(effects) do
+            local skill = activeSkillOf(effect, gem)
+            if canSupport(yEffect, skill) then
+              addTypes(skill, yEffect.addSkillTypes)
+              if canSupport(xEffect, skill) then
+                addTypes(skill, xEffect.addSkillTypes)
+                if canSupport(yEffect, skill) and canSupport(xEffect, skill) then
+                  table.insert(after, y.name)
+                  break
+                end
+              end
+            end
+          end
+        end
+      end
+      if #after > 0 then table.insert(out, { name = x.name, after = after }) end
+    end
+  end
+  return out
+end
+
+-- A granted effect makes hits by PoB's rule (CalcActiveSkill.lua:176): a stat set's `baseFlags.hit`, or the
+-- Attack, Damage or Projectile skill type.
+local function makesHits(effect)
+  local types = effect.skillTypes or {}
+  if types[SkillType.Attack] or types[SkillType.Damage] or types[SkillType.Projectile] then return true end
+  for _, statSet in ipairs(effect.statSets or {}) do
+    if type(statSet.baseFlags) == 'table' and statSet.baseFlags.hit then return true end
+  end
+  return false
+end
+
+-- The name a gem block gives its i-th other granted effect (its `Also grants:` line).
+local function otherEffectName(effect, i)
+  return (effect.name and effect.name ~= '') and effect.name or ('Granted effect ' .. (i + 1))
+end
+
+-- A gem's hit-making children: its other granted effects that PoB makes active skills (`triggered` with the
+-- Triggered or InbuiltTrigger type, else `granted`), then, for each granted effect PoB makes an active skill,
+-- its minions' skills (CalcActiveSkill.lua:900-919). Only those that make hits; each (name, kind, minion) once.
+local function hitChildren(gem)
+  local d = gameData()
+  local out, seen = {}, {}
+  local function add(name, kind, minion)
+    local key = name .. '\0' .. kind .. '\0' .. (minion or '')
+    if seen[key] then return end
+    seen[key] = true
+    table.insert(out, { name = name, kind = kind, minion = minion })
+  end
+  for i, effect in ipairs(gem.additionalGrantedEffects or {}) do
+    if isActiveEffect(effect) and makesHits(effect) then
+      local types = effect.skillTypes or {}
+      add(otherEffectName(effect, i), (types[SkillType.Triggered] or types[SkillType.InbuiltTrigger]) and 'triggered' or 'granted')
+    end
+  end
+  for _, effect in ipairs(M.gemEffects(gem)) do
+    if isActiveEffect(effect) then
+      for _, minionId in ipairs(effect.minionList or {}) do
+        local minion = d.minions and d.minions[minionId]
+        if type(minion) == 'table' then
+          for _, skillId in ipairs(minion.skillList or {}) do
+            local skill = d.skills[skillId]
+            if type(skill) == 'table' and type(skill.name) == 'string' and makesHits(skill) then
+              add(skill.name, 'minion', tostring(minion.name))
+            end
+          end
+        end
+      end
+    end
+  end
+  return out
+end
+
+-- A requested gem level the gem lacks shows the gem at its default level, with a note saying so. `single`
+-- (exactly one gem returned) adds the long lists: a support's reach, an active gem's unlocks (WU-53).
+local function gemResult(id, gem, levelParam, quality, single)
   local ge = gem.grantedEffect
   local level = levelParam or M.defaultLevel(gem)
   local levelNote
@@ -293,18 +529,31 @@ local function gemResult(id, gem, levelParam, quality)
     quality = quality,
     statSets = effectBlock(ge, level, quality),
     additional = {},
-    qualityLines = qualityLines(ge),
+    qualityLines = gemQualityLines(gem, 'qualityStats'),
     requirements = gemRequirements(gem),
+    -- WU-53: a skill's hit-making children, for the payoff-thief check.
+    children = hitChildren(gem),
   }
+  -- WU-53 (PG-46): the Gemling quality lines, labelled; `hasGemling` when any effect has such an entry.
+  result.gemlingLines, result.hasGemling = gemQualityLines(gem, 'altQualityStats')
   for i, effect in ipairs(gem.additionalGrantedEffects or {}) do
     if effect and effect.statSets then
       table.insert(result.additional, {
-        name = (effect.name and effect.name ~= '') and effect.name or ('Granted effect ' .. (i + 1)),
+        name = otherEffectName(effect, i),
         support = effect.support == true,
+        skillTypes = not effect.support and skillTypeSet(effect) or nil,
         statSets = effectBlock(effect, level, quality),
       })
-      for _, line in ipairs(qualityLines(effect)) do table.insert(result.qualityLines, line) end
     end
+  end
+  if result.gemKind == 'active' then
+    -- WU-53 ("usable by"): the gem's skill types and the meta gems that accept it.
+    local effects = activeEffectsOf(gem)
+    result.skillTypes = skillTypeSet(ge)
+    result.usableBy = usableBy(gem, effects)
+    if single then result.unlocks = supportUnlocks(gem, effects) end
+  elseif single then
+    result.canSupport = supportReach(gem)
   end
   if support then
     result.supports = skillTypeNames(ge.requireSkillTypes)
@@ -337,7 +586,7 @@ local function lookupGems(query, level, quality, maxResults)
   end
   local results = {}
   for i, m in ipairs(shown) do
-    results[i] = gemResult(m.id, m.gem, level, quality)
+    results[i] = gemResult(m.id, m.gem, level, quality, #shown == 1)
   end
   return results, #matches
 end
@@ -609,14 +858,14 @@ end
 -- Essence hits: one per line of each mod an essence grants, naming the item types it grants that mod on
 -- (sorted) and, when PoB's data has it, the mod's affix type. The mod is found as PoB's crafting finds it,
 -- in the Item mods, else the Exclusive ones (ItemsTab.lua:3076); one found in neither (a passive grant)
--- has no text, and PoB skips it too. A hit matches when its line or its essence's name has the query.
-local function collectEssenceHits(hits, query)
+-- has no text, and PoB skips it too. A hit matches when its line or its essence's name matches.
+local function collectEssenceHits(hits, match)
   local d = gameData()
   local itemMods, exclusive = d.itemMods.Item or {}, d.itemMods.Exclusive or {}
   for _, key in ipairs(sortedKeys(d.essences)) do
     local essence = d.essences[key]
     if type(essence) == 'table' and type(essence.name) == 'string' and type(essence.mods) == 'table' then
-      local byName = contains(essence.name, query)
+      local byName = match(essence.name)
       local itemTypesOf, modIds = {}, {}
       for _, itemType in ipairs(sortedKeys(essence.mods)) do
         local modId = essence.mods[itemType]
@@ -637,7 +886,7 @@ local function collectEssenceHits(hits, query)
             if type(line) == 'string' then
               n = n + 1
               local flat = oneLine(line)
-              if byName or contains(flat, query) then
+              if byName or match(flat) then
                 table.insert(hits, {
                   kind = 'essence', id = key .. '/' .. modId, name = essence.name, order = n,
                   source = essence.name .. ' (' .. where .. ')', line = flat,
@@ -672,9 +921,110 @@ local function addEssenceNames(add)
 end
 
 -- ---------------------------------------------------------------------------------------------------
+-- Item-base implicits (WU-53, D-299; PG-48)
+--
+-- Every base in PoB's base lists (data.itemBaseLists, as the mod base types use them; hidden bases left
+-- out), each name once, with its implicit lines (`implicit`, split at "\n" as Item.lua:85 splits it). A
+-- line's leading `{variant:<n>}` tag is removed, and the variant is named from the base's `variantList`.
+
+local baseImplicitsCache = setmetatable({}, { __mode = 'k' })
+
+local function baseImplicits()
+  local d = gameData()
+  if baseImplicitsCache[d] then return baseImplicitsCache[d] end
+  local out, seen = {}, {}
+  for _, listName in ipairs(sortedKeys(d.itemBaseLists or {})) do
+    for _, entry in ipairs(d.itemBaseLists[listName]) do
+      local base = entry.base
+      if not seen[entry.name] and type(base) == 'table' and type(base.implicit) == 'string' then
+        seen[entry.name] = true
+        local lines = {}
+        for raw in base.implicit:gmatch('[^\n]+') do
+          local line, variants = raw, nil
+          while true do
+            local tag, rest = line:match('^{([^}]*)}(.*)$')
+            if not tag then break end
+            local list = tag:match('^variant:(.*)$')
+            if list then
+              variants = {}
+              for n in list:gmatch('%d+') do
+                local name = type(base.variantList) == 'table' and base.variantList[tonumber(n)] or nil
+                table.insert(variants, name or ('#' .. n))
+              end
+            end
+            line = rest
+          end
+          if line ~= '' then table.insert(lines, { line = line, variants = variants }) end
+        end
+        if #lines > 0 then table.insert(out, { name = entry.name, type = base.type, lines = lines }) end
+      end
+    end
+  end
+  table.sort(out, function(a, b) return a.name < b.name end)
+  baseImplicitsCache[d] = out
+  return out
+end
+
+-- Base hits: one per implicit line that matches, or every line of a base whose name matches.
+local function collectBaseHits(hits, match)
+  for _, base in ipairs(baseImplicits()) do
+    local byName = match(base.name)
+    for n, entry in ipairs(base.lines) do
+      if byName or match(entry.line) then
+        local where = tostring(base.type)
+        if entry.variants then
+          where = where .. '; ' .. (#entry.variants == 1 and 'variant ' or 'variants ') .. table.concat(entry.variants, ', ')
+        end
+        table.insert(hits, {
+          kind = 'base', id = base.name, name = base.name, order = n,
+          source = base.name .. ' (' .. where .. ')', line = entry.line,
+          itemType = base.type, baseVariants = entry.variants,
+        })
+      end
+    end
+  end
+end
+
+-- The names of the bases with an implicit line, for the closest names of mechanic mode (D-258).
+local function addBaseNames(add)
+  for _, base in ipairs(baseImplicits()) do add(base.name, 'base', base.type) end
+end
+
+-- A mechanic query's matcher (WU-53): `…` or `...` is a gap matching any text within the line. A line
+-- matches when the parts between the gaps, trimmed, appear in it in order without overlapping
+-- (case-insensitive). Nil for a query of gaps alone.
+function M.matcher(needle)
+  local GAP = '\0'
+  local s = needle:gsub('…', GAP)
+  s = s:gsub('%.%.%.', GAP)
+  if not s:find(GAP, 1, true) then
+    return function(text) return contains(text, needle) end
+  end
+  local parts, from = {}, 1
+  while true do
+    local at = s:find(GAP, from, true)
+    local part = s:sub(from, at and at - 1 or -1):match('^%s*(.-)%s*$')
+    if part ~= '' then table.insert(parts, part) end
+    if not at then break end
+    from = at + 1
+  end
+  if #parts == 0 then return nil end
+  return function(text)
+    if type(text) ~= 'string' then return false end
+    local t, pos = text:lower(), 1
+    for _, part in ipairs(parts) do
+      local _, e = t:find(part, pos, true)
+      if not e then return false end
+      pos = e + 1
+    end
+    return true
+  end
+end
+
+-- ---------------------------------------------------------------------------------------------------
 -- Mechanics
 
-local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5 }
+local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5, base = 6 }
 
 local function treeNodes()
   if _G.build and build.spec and build.spec.tree and build.spec.tree.nodes then return build.spec.tree.nodes end
@@ -685,7 +1035,7 @@ local function treeNodes()
 end
 
 -- A mod table entry's text lines (its array part); a rune entry nests one mod per item class.
-local function collectModHits(hits, tableName, entryId, entry, query)
+local function collectModHits(hits, tableName, entryId, entry, match)
   if type(entry) ~= 'table' then return end
   if type(entry[1]) == 'string' then
     local n = 0
@@ -693,7 +1043,7 @@ local function collectModHits(hits, tableName, entryId, entry, query)
       if type(line) == 'string' then
         n = n + 1
         local flat = oneLine(line)
-        if contains(flat, query) then
+        if match(flat) then
           table.insert(hits, {
             kind = 'mod', id = tableName .. '/' .. entryId, name = entryId, order = n,
             source = entryId .. ' (' .. tableName .. ' mods)', line = flat, table = tableName,
@@ -706,37 +1056,42 @@ local function collectModHits(hits, tableName, entryId, entry, query)
   end
   for _, sub in ipairs(sortedKeys(entry)) do
     if type(entry[sub]) == 'table' and type(entry[sub][1]) == 'string' then
-      collectModHits(hits, tableName, entryId .. ' (' .. tostring(sub) .. ')', entry[sub], query)
+      collectModHits(hits, tableName, entryId .. ' (' .. tostring(sub) .. ')', entry[sub], match)
     end
   end
 end
 
-local KINDS_TEXT = 'gem, unique, passive, mod or essence'
+local KINDS_TEXT = 'gem, unique, passive, mod, essence or base'
 
-local function lookupMechanics(query, kind, maxResults)
+-- `match` is the query's matcher (M.matcher).
+local function lookupMechanics(match, kind, maxResults)
   local d = gameData()
   local hits = {}
 
-  -- Gems: the description, then every stat set's lines at the gem's default level, quality 0.
+  -- Gems: the description, then every stat set's lines at the gem's default level, quality 0, each source
+  -- naming the stat set's number as gem mode does (WU-53); then the quality and Gemling quality lines.
   for id, gem in pairs(d.gems) do
     if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
       local n = 0
       local function add(source, line)
         n = n + 1
-        if contains(line, query) then
+        if match(line) then
           table.insert(hits, { kind = 'gem', id = id, name = gem.name, order = n, source = source, line = line })
         end
       end
       local ge = gem.grantedEffect
       if ge.description then add(gem.name, oneLine(ge.description)) end
       local level = M.defaultLevel(gem)
-      for _, effect in ipairs(M.gemEffects(gem)) do
+      for e, effect in ipairs(M.gemEffects(gem)) do
+        local owner = e == 1 and gem.name or (gem.name .. ' / ' .. otherEffectName(effect, e - 1))
         for i, statSet in ipairs(effect.statSets or {}) do
           local label = statSetLabel(effect, statSet, i)
           local lines = M.describeStatSet(effect, statSet, level, 0)
-          for _, line in ipairs(lines) do add(gem.name .. ' (' .. label .. ')', line) end
+          for _, line in ipairs(lines) do add(string.format('%s (stat set %d: %s)', owner, i, label), line) end
         end
       end
+      for _, line in ipairs((gemQualityLines(gem, 'qualityStats'))) do add(gem.name .. ' (quality)', line) end
+      for _, line in ipairs((gemQualityLines(gem, 'altQualityStats'))) do add(gem.name .. ' (Gemling quality)', line) end
     end
   end
 
@@ -744,7 +1099,7 @@ local function lookupMechanics(query, kind, maxResults)
   for key, item in pairs(uniqueList()) do
     local name = item.title or item.name or key
     for n, entry in ipairs(uniqueModLines(item)) do
-      if contains(entry.line, query) then
+      if match(entry.line) then
         local where = tostring(item.type)
         if entry.variants then where = where .. '; ' .. variantNote(entry.variants) end
         table.insert(hits, {
@@ -761,7 +1116,7 @@ local function lookupMechanics(query, kind, maxResults)
       for n, stat in ipairs(node.sd) do
         if type(stat) == 'string' then
           local line = oneLine(stat)
-          if contains(line, query) then
+          if match(line) then
             local name = node.name or ('Node ' .. tostring(id))
             local where = node.ascendancyName and (node.ascendancyName .. ', node ' .. tostring(id)) or ('node ' .. tostring(id))
             table.insert(hits, {
@@ -780,13 +1135,16 @@ local function lookupMechanics(query, kind, maxResults)
     local mods = d.itemMods[tableName]
     if type(mods) == 'table' then
       for _, entryId in ipairs(sortedKeys(mods)) do
-        collectModHits(hits, tableName, tostring(entryId), mods[entryId], query)
+        collectModHits(hits, tableName, tostring(entryId), mods[entryId], match)
       end
     end
   end
 
   -- Essences: every essence's mod lines, or all of them when its name matches (WU-60).
-  collectEssenceHits(hits, query)
+  collectEssenceHits(hits, match)
+
+  -- Bases: every base's implicit lines, or all of them when its name matches (WU-53).
+  collectBaseHits(hits, match)
 
   table.sort(hits, function(a, b)
     if a.kind ~= b.kind then return KIND_RANK[a.kind] < KIND_RANK[b.kind] end
@@ -795,7 +1153,7 @@ local function lookupMechanics(query, kind, maxResults)
     return a.order < b.order
   end)
   -- Every kind's hit count, then (with `kind`) only that kind's hits are listed and cut.
-  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0, essence = 0 }
+  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0, essence = 0, base = 0 }
   local listed = {}
   for _, hit in ipairs(hits) do
     kinds[hit.kind] = kinds[hit.kind] + 1
@@ -909,6 +1267,7 @@ local function suggestionCandidates(mode, filter)
     if not kind or kind == 'passive' then addPassiveNames(add) end
     if not kind or kind == 'mod' then addModNames(add) end
     if not kind or kind == 'essence' then addEssenceNames(add) end
+    if not kind or kind == 'base' then addBaseNames(add) end
   end
   return list
 end
@@ -972,13 +1331,14 @@ function M.lookup_game_data(params)
     results, total = lookupUniques(needle, slot, maxResults)
     filter = slot and resolveSlot(slot) or nil
   else
-    if not needle then fail('mechanic mode needs a query') end
+    local match = needle and M.matcher(needle) or nil
+    if not match then fail('mechanic mode needs a query') end
     local kind = trimmed(params.kind)
     if kind then
       kind = kind:lower()
       if not KIND_RANK[kind] then fail('unknown kind "' .. tostring(params.kind) .. '"; use ' .. KINDS_TEXT) end
     end
-    results, total, kinds = lookupMechanics(needle, kind, maxResults)
+    results, total, kinds = lookupMechanics(match, kind, maxResults)
     filter = kind
   end
   -- D-258: a query that matched nothing gets the closest names of the kind searched, unless it is too long.

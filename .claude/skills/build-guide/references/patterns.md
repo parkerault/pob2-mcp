@@ -46,8 +46,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   "mechanic", query, kind}`; "gem lookup" and "unique lookup" are its other modes; `tree "<text>"` is
   `mcp__pob2__search_tree_nodes {query}` (`{ascendancy}` for its nodes); coverage is
   `mcp__pob2__check_model_coverage`. Mechanic search is a substring match capped at 20–30 results (PG-48),
-  so keep phrases narrow and set `kind`. It can't see Gemling quality effects (PG-46) or item-base
-  implicits until D-299's lookup additions land.
+  so keep phrases narrow and set `kind`; `…` in a phrase matches any text. It searches Gemling quality
+  lines and item-base implicits (`kind` `base`) too (D-299).
 - **Maintenance.** After each study the user supplies, the coordinator proposes entries and the user
   approves them (§7.6, C-53).
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
@@ -189,7 +189,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** an independent hit source spends the state, or takes the event, before the finisher does.
 - **Search:** list every hit-making child: triggered skills, minions, ascendancy procs, explosions, item
-  effects (D-299's hit-making children once built); check the lock reaches each.
+  effects (a gem lookup's `Hit-making children:`, D-299); check the lock reaches each.
 - **PoB:** not modelled: a risk, never a number.
 - **Examples:** Wing Blast: gloves, stags, wolves and curse explosions stole the stun [wing-blast]. Fangs:
   Elemental Sundering consumed the freeze Honourless needed [fangs]. Flicker: Charged Staff spends Flicker's
@@ -361,8 +361,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 - **Shape:** copies or helpers fire the damage source again; instances up at once = duration ÷ cooldown,
   or the limit.
-- **Search:** meta gems accepting the skill (D-299's "usable by"; today `mechanic "ranged attack" (gem)`
-  finds Mirage Archer); `mechanic "Repeat" (gem)`, "fired at".
+- **Search:** meta gems accepting the skill (the gem lookup's `Usable by:`, D-299: Snipe lists Mirage
+  Archer); `mechanic "Repeat" (gem)`, "fired at".
 - **PoB:** Count: mirages (PG-4), Spell Cascade (PG-6), mimics (PG-14), Now and Again (PG-15), aftershocks
   (PG-24); Tornado Shot's copies are zero (PG-21).
 - **Examples:** Mirage Sniper: about 6 Mirage Archers fire Snipe [mirage-sniper]. Enervating Nova: Spell
@@ -448,7 +448,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 ### Quality as a stat line
 
 - **Shape:** quality grants a second effect (Gemling, or a gem's own line), so quality scales.
-- **Search:** each gem's quality lines (gem lookup; Gemling lines unseen until D-299, PG-46).
+- **Search:** each gem's quality lines, Gemling lines labelled (gem lookup, D-299; PG-46).
 - **PoB:** modelled where mapped (47 of 244 Gemling stats aren't, PG-31); Gem Studded ties give one colour
   (PG-1).
 - **Examples:** Stormcaller: +1 arrow per 10% quality [stormcaller]. HotG: Glory retention [hotg].
@@ -558,7 +558,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 ### Skill granted by an item base
 
 - **Shape:** an implicit skill on a base can be the main skill, free to cast and scaled by +levels.
-- **Search:** item-base implicits (unsearchable until D-299, PG-48); the skill's roll range.
+- **Search:** item-base implicits (`mechanic "<skill>" (base)`, D-299); the skill's roll range.
 - **PoB:** hand calculation: Enervating Nova's edge bonus is unmapped (PG-26).
 - **Examples:** Enervating Nova on a Paralysing Staff [enervating].
 - **Cautions:** a wide roll favours min-or-max and luck.

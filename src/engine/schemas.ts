@@ -682,12 +682,46 @@ export const lookupGemSchema = z
     levelNote: optString,
     quality: z.number().int(),
     statSets: luaArray(lookupStatSetSchema),
-    /** The gem's additional granted effects, in PoB's tooltip order. */
+    /** The gem's additional granted effects, in PoB's tooltip order; a non-support one names its skill types (WU-53). */
     additional: luaArray(
-      z.object({ name: z.string(), support: z.boolean(), statSets: luaArray(lookupStatSetSchema) }).passthrough(),
+      z
+        .object({
+          name: z.string(),
+          support: z.boolean(),
+          skillTypes: luaArray(z.string()).optional(),
+          statSets: luaArray(lookupStatSetSchema),
+        })
+        .passthrough(),
     ),
     /** "At +20% Quality" lines. */
     qualityLines: luaArray(z.string()),
+    /**
+     * WU-53 (PG-46): the Gemling quality lines (`altQualityStats`, described as the quality lines are);
+     * `hasGemling` when any granted effect has such an entry, though it may describe to no line.
+     */
+    gemlingLines: luaArray(z.string()),
+    hasGemling: z.boolean(),
+    /** WU-53: an active gem's skill types (its granted effect's), sorted by name. */
+    skillTypes: luaArray(z.string()).optional(),
+    /** WU-53: an active gem's "usable by": the meta gems whose support effect can support it. */
+    usableBy: luaArray(z.object({ name: z.string(), trigger: z.boolean() }).passthrough()).optional(),
+    /** WU-53: the gem's hit-making children: granted or triggered skills, and minions' skills. */
+    children: luaArray(
+      z.object({ name: z.string(), kind: z.enum(['granted', 'triggered', 'minion']), minion: optString }).passthrough(),
+    ),
+    /**
+     * WU-53, only when exactly one support gem is returned: the active gems it can support. `count` of
+     * `total`; `names` are those gems, or with `except` (over half of them) the ones it can't support.
+     */
+    canSupport: z
+      .object({ count: z.number().int(), total: z.number().int(), except: z.boolean(), names: luaArray(z.string()) })
+      .passthrough()
+      .optional(),
+    /**
+     * WU-53, only when exactly one active gem is returned: each support it can't support that another support
+     * (`after`) unlocks by adding skill types.
+     */
+    unlocks: luaArray(z.object({ name: z.string(), after: luaArray(z.string()) }).passthrough()).optional(),
     /** Supports only: PoB's `requireSkillTypes` / `excludeSkillTypes`, as SkillType names. */
     supports: luaArray(z.string()).optional(),
     cannotSupport: luaArray(z.string()).optional(),
@@ -742,7 +776,7 @@ export const lookupBaseTypeSchema = z
 /** A mechanic hit: one matching line and where it came from. */
 export const lookupHitSchema = z
   .object({
-    kind: z.enum(['gem', 'unique', 'passive', 'mod', 'essence']),
+    kind: z.enum(['gem', 'unique', 'passive', 'mod', 'essence', 'base']),
     id: z.string(),
     name: z.string(),
     source: z.string(),
@@ -766,6 +800,9 @@ export const lookupHitSchema = z
     itemTypes: luaArray(z.string()).optional(),
     modId: optString,
     affix: optString,
+    /** A base hit (WU-53): the base's item type, and the variants its line belongs to. */
+    itemType: optString,
+    baseVariants: luaArray(z.string()).optional(),
   })
   .passthrough();
 
@@ -784,7 +821,7 @@ export const lookupGameDataReply = baseReply.extend({
       mode: z.enum(['gem', 'unique', 'mechanic']),
       /** Every match before the cut (in mechanic mode, of the requested `kind`). */
       total: z.number().int(),
-      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240; `essence`, WU-60). */
+      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240; `essence`, WU-60; `base`, WU-53). */
       kinds: z
         .object({
           gem: z.number().int(),
@@ -792,6 +829,7 @@ export const lookupGameDataReply = baseReply.extend({
           passive: z.number().int(),
           mod: z.number().int(),
           essence: z.number().int(),
+          base: z.number().int(),
         })
         .optional(),
       results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
@@ -1411,7 +1449,8 @@ export interface ActionParamsMap {
   trade_query_options: { slot: string };
   /**
    * C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both;
-   * `kind` (mechanic mode, D-240; `essence`, WU-60) keeps one kind of hit.
+   * `kind` (mechanic mode, D-240; `essence`, WU-60; `base`, WU-53) keeps one kind of hit. A mechanic query
+   * may hold gaps, `…` or `...` (WU-53).
    */
   lookup_game_data: {
     mode: 'gem' | 'unique' | 'mechanic';
@@ -1419,7 +1458,7 @@ export interface ActionParamsMap {
     level?: number;
     quality?: number;
     slot?: string;
-    kind?: 'gem' | 'unique' | 'passive' | 'mod' | 'essence';
+    kind?: 'gem' | 'unique' | 'passive' | 'mod' | 'essence' | 'base';
     maxResults?: number;
   };
   /**

@@ -7,9 +7,16 @@
  *   Quality" lines, support rules and per-level requirements (D-228);
  * - unique: uniques by name, mod line (any non-legacy variant's) or item type (`slot`): name, base, type
  *   and the matched lines; the `BuildRaw()` text for `add_item` only when one unique is returned (D-239);
- * - mechanic: one hit per matching gem, unique, passive, mod or essence line, optionally of one `kind`, with
- *   every kind's hit total in the header (D-240). A mod hit is followed by the base types that can roll it,
- *   and an essence hit names the item types the essence grants its mod on (WU-60, D-277).
+ * - mechanic: one hit per matching gem, unique, passive, mod, essence or base line, optionally of one `kind`,
+ *   with every kind's hit total in the header (D-240). A mod hit is followed by the base types that can roll
+ *   it, and an essence hit names the item types the essence grants its mod on (WU-60, D-277).
+ *
+ * WU-53 (D-299), amendment 3's additions: gem blocks show the Gemling quality lines (labelled), an active
+ * gem's skill types and the meta gems that can use it ("usable by"), and every gem's hit-making children.
+ * With exactly one gem returned, a support shows the active gems it can support (the complement when it can
+ * support most of them) and an active gem the supports another support unlocks. Mechanic mode searches
+ * quality, Gemling and item-base implicit lines (kind `base`), names a gem hit's stat set by number, and
+ * takes gaps (`…` or `...`) in the query.
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
@@ -41,8 +48,8 @@ export interface LookupGameDataArgs {
 
 const MODES = ["gem", "unique", "mechanic"] as const;
 type Mode = (typeof MODES)[number];
-/** Mechanic mode's `kind` filter (D-240; `essence`, WU-60). */
-const HIT_KINDS = ["gem", "unique", "passive", "mod", "essence"] as const;
+/** Mechanic mode's `kind` filter (D-240; `essence`, WU-60; `base`, WU-53). */
+const HIT_KINDS = ["gem", "unique", "passive", "mod", "essence", "base"] as const;
 type HitKind = (typeof HIT_KINDS)[number];
 
 export const LOOKUP_DEFAULT_RESULTS = 20;
@@ -71,8 +78,31 @@ function resultLimit(value: unknown): number {
   return Math.min(Math.floor(n), LOOKUP_MAX_RESULTS);
 }
 
+/** WU-53 (AC-K58): the header of a gem's Gemling quality lines. */
+export const GEMLING_HEADER = "At +20% Quality, with the Gemling Legionnaire's Advanced Thaumaturgy:";
+
+/** WU-53: the line a gem-mode reply with several gems gets, since the long lists come only for one gem. */
+export const SEVERAL_GEMS_NOTE =
+  "Several gems are returned, so the active gems a support can support and the supports another support unlocks are left out; look a gem up by its exact name (or with max_results 1) for them.";
+
 /** §2.2's span wording, `gem levels 1–<n>`, also for a single-level gem. */
 const levelsLabel = (n: number) => `gem levels 1–${n}`;
+
+/** WU-53: gem-name lists are separated by `; `, since some gem names contain a comma. */
+const NAME_SEPARATOR = "; ";
+
+/** WU-53 (AC-K62): the active gems a support can support, or the ones it can't when it can support most. */
+function canSupportLine(reach: NonNullable<LookupGem["canSupport"]>): string {
+  const head = `Can support (${reach.count} of ${reach.total} active gems): `;
+  if (reach.except) return head + (reach.names.length > 0 ? `all except ${reach.names.join(NAME_SEPARATOR)}` : "all");
+  return head + (reach.names.length > 0 ? reach.names.join(NAME_SEPARATOR) : "(none)");
+}
+
+/** WU-53 (AC-K64): one hit-making child. */
+function childLine(child: LookupGem["children"][number]): string {
+  const label = child.kind === "minion" ? `minion ${child.minion ?? ""}` : child.kind;
+  return `- ${child.name} (${label})`;
+}
 
 function renderGem(gem: LookupGem): string[] {
   const lines: string[] = [`## ${gem.name}`];
@@ -81,6 +111,12 @@ function renderGem(gem: LookupGem): string[] {
   lines.push(`Kind: ${kindBits}${gem.tags ? `; tags: ${gem.tags}` : ""}`);
   if (gem.tier !== undefined) lines.push(`Tier: ${gem.tier}`);
   if (gem.weapon) lines.push(`Weapon: ${gem.weapon}`);
+  // WU-53 (AC-K59): an active gem's skill types and the meta gems that can use it.
+  if (gem.skillTypes) lines.push(`Skill types: ${gem.skillTypes.join(", ")}`);
+  if (gem.usableBy) {
+    const metas = gem.usableBy.map((m) => `${m.name}${m.trigger ? " (trigger)" : ""}`);
+    lines.push(`Usable by: ${metas.length > 0 ? metas.join(NAME_SEPARATOR) : "(no meta gem)"}`);
+  }
   if (gem.description) lines.push(`Description: ${gem.description}`);
   lines.push(`Stat sets at gem level ${gem.level}, quality ${gem.quality}%:`);
   if (gem.levelNote) lines.push(`Note: ${gem.levelNote}.`);
@@ -96,15 +132,33 @@ function renderGem(gem: LookupGem): string[] {
   renderSets(gem.statSets);
   for (const extra of gem.additional) {
     lines.push(`Also grants: ${extra.name}${extra.support ? " (support effect)" : ""}`);
+    if (extra.skillTypes) lines.push(`Skill types: ${extra.skillTypes.join(", ")}`);
     renderSets(extra.statSets);
   }
   lines.push("At +20% Quality:");
   if (gem.qualityLines.length === 0) lines.push("  (no quality effects)");
   for (const line of gem.qualityLines) lines.push(`  - ${line}`);
+  // WU-53 (AC-K58, PG-46): the Gemling quality lines, which PoB applies only with Advanced Thaumaturgy.
+  if (gem.hasGemling) {
+    lines.push(GEMLING_HEADER);
+    if (gem.gemlingLines.length === 0) lines.push("  (no described line)");
+    for (const line of gem.gemlingLines) lines.push(`  - ${line}`);
+  }
   if (gem.supports !== undefined) {
     lines.push(`Supports: ${gem.supports.length > 0 ? gem.supports.join(", ") : "(any skill type)"}`);
     lines.push(`Can't support: ${gem.cannotSupport && gem.cannotSupport.length > 0 ? gem.cannotSupport.join(", ") : "(none)"}`);
   }
+  // WU-53 (AC-K62, AC-K61): the long lists, only when this gem is the one returned.
+  if (gem.canSupport) lines.push(canSupportLine(gem.canSupport));
+  if (gem.unlocks) {
+    lines.push("Unlocked by another support:");
+    if (gem.unlocks.length === 0) lines.push("  (none)");
+    for (const u of gem.unlocks) lines.push(`- ${u.name}: after ${u.after.join(NAME_SEPARATOR)}`);
+  }
+  // WU-53 (AC-K64): the hit-making children, for the payoff-thief check.
+  lines.push("Hit-making children:");
+  if (gem.children.length === 0) lines.push("  (none)");
+  for (const child of gem.children) lines.push(childLine(child));
   const req = gem.requirements;
   const span = levelsLabel(req.maxLevel);
   lines.push(`Requires level (${span}): ${req.levels.join(", ")}`);
@@ -202,7 +256,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /** What the closest names are names of (D-258): the kind the request searched. */
 function suggestionNoun(req: Request): string {
   if (req.mode === "unique") return req.slot ? `unique names of item type ${req.slot}` : "unique names";
-  return req.kind ? `${req.kind} names` : "gem, unique, passive, mod and essence names";
+  return req.kind ? `${req.kind} names` : "gem, unique, passive, mod, essence and base names";
 }
 
 const SUGGESTION_ORDER = "(fewest edits from the query, then by name)";
@@ -236,10 +290,10 @@ function render(req: Request, result: LookupGameDataResult): string {
   const kinds = result.kinds;
   if (req.mode === "mechanic" && kinds) {
     // D-240: every kind's hit total, whatever `kind` lists.
-    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod + kinds.essence;
+    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod + kinds.essence + kinds.base;
     if (all > 0) {
       lines.push(
-        `${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod, ${kinds.essence} essence.`,
+        `${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod, ${kinds.essence} essence, ${kinds.base} base.`,
       );
     }
   }
@@ -257,7 +311,7 @@ function render(req: Request, result: LookupGameDataResult): string {
   const noun = req.mode === "mechanic" ? ["hit", "hits"] : ["match", "matches"];
   const order =
     req.mode === "mechanic"
-      ? "sorted by kind (gem, unique, passive, mod, essence), then by name"
+      ? "sorted by kind (gem, unique, passive, mod, essence, base), then by name"
       : "exact name matches first, then by name";
   if (shown < result.total) {
     const more = [
@@ -272,6 +326,7 @@ function render(req: Request, result: LookupGameDataResult): string {
     const kindNote = req.mode === "mechanic" && req.kind ? ` ${req.kind}` : "";
     lines.push(`Found ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}).`);
   }
+  if (req.mode === "gem" && shown > 1) lines.push(SEVERAL_GEMS_NOTE);
   if (req.mode === "unique" && shown > 1) {
     lines.push("Several uniques are returned, so each is shown in brief; look one up by its exact name (or with max_results 1) for its full item text, ready for add_item.");
   }
@@ -306,7 +361,7 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
     const quality = m === "gem" ? wholeNumber(args.gemQuality, "gem_quality", 0, 20) : undefined;
     const kindText = m === "mechanic" ? text(args.kind)?.toLowerCase() : undefined;
     if (kindText !== undefined && !(HIT_KINDS as readonly string[]).includes(kindText)) {
-      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive, mod or essence`);
+      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive, mod, essence or base`);
     }
     const kind = kindText as HitKind | undefined;
     const maxResults = resultLimit(args.maxResults);

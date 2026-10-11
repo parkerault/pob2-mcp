@@ -1883,3 +1883,36 @@ the integration head: 212 of 212. The lane was removed.
   - No hand list or id-prefix cut is used beyond `display_`.
 - `check_model_coverage`'s description and `references/lookups.md` gain a short account of the flags.
   The coordinator allowed both edits.
+
+### WU-53: criteria review (A-33)
+
+**The pinned criteria** (`883ea19`): AC-K58…AC-K65.
+- AC-K58: Gemling quality effects.
+- AC-K59: "usable by", with skill types and the meta gems that accept a gem.
+- AC-K60: item-base implicits, as a sixth mechanic kind, `base`.
+- AC-K61: type-granting unlocks.
+- AC-K62: what a support can ride.
+- AC-K63: phrase searches, with `…` gaps.
+- AC-K64: hit-making children.
+- AC-K65: stat-set numbers on mechanic hits.
+
+Every example was probed at the pin. **The amendment's example holds as a pair on a skill.** On Whirling
+Assault, Culmination II adds `ComboStacking`, which Ailith's Chimes requires (`sup_dex.lua:121`,
+`:1634-1635`). The rule follows PoB's own re-check after added types (`CalcActiveSkill.lua:182-212`) and its
+one-per-family rule (`CalcSetup.lua:517-527`).
+
+**Approved.** One change: AC-K62 prints the complement when a support supports more than half of all active
+gems. Uhtred's Exodus would otherwise list 398 names; it now reads "398 of 399 active gems: all except Abyssal
+Apparition".
+
+**Touches granted:**
+- `toolSchemas.ts`: the `kind` enum, and the description trimmed by moving detail into the parameter
+  descriptions. The description is 1,859 of 2,048 characters, and its first sentence is unchanged.
+- `tool-calls.json`: three samples.
+- `patterns.md`: short edits where it says these lookups are coming.
+
+**Not pinned, accepted:**
+- unlocks for a support with no skill given;
+- chains of helpers;
+- children outside gem data, such as ascendancy procs, item effects and Mirage Archer's mirages (PG-4);
+- "trigger gems" beyond the meta gems.

@@ -187,7 +187,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `lua_reload_build` | core | Reload the current build from disk, picking up any changes made in PoB GUI or via direct XML editing. |
 | `search_tree_nodes` | core | Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. |
 | `list_gems` | core | List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). |
-| `lookup_game_data` | core | Look up the pinned Path of Building's own game data: gems, uniques, passives and item mods. |
+| `lookup_game_data` | core | Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. |
 | `check_model_coverage` | core | Check, line by line, whether the pinned Path of Building applies an item's, a passive node's or a gem's lines, so you know which parts of a build its numbers leave out. |
 | `get_classes` | core | List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). |
 | `import_build` | core | Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). |

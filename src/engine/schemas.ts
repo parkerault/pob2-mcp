@@ -718,10 +718,25 @@ export const lookupUniqueSchema = z
   })
   .passthrough();
 
+/**
+ * A base type that can roll a mod (WU-60, D-277): one of PoB's base lists (`data.itemBaseLists`, such as
+ * `Gloves: Energy Shield`), or with `itemType` a whole item type all of whose bases can (when it has more
+ * than one list). `count` and `total` count bases; `names` lists the bases that can when not all can.
+ */
+export const lookupBaseTypeSchema = z
+  .object({
+    name: z.string(),
+    itemType: z.boolean().optional(),
+    count: z.number().int(),
+    total: z.number().int(),
+    names: luaArray(z.string()).optional(),
+  })
+  .passthrough();
+
 /** A mechanic hit: one matching line and where it came from. */
 export const lookupHitSchema = z
   .object({
-    kind: z.enum(['gem', 'unique', 'passive', 'mod']),
+    kind: z.enum(['gem', 'unique', 'passive', 'mod', 'essence']),
     id: z.string(),
     name: z.string(),
     source: z.string(),
@@ -731,6 +746,15 @@ export const lookupHitSchema = z
     table: optString,
     /** A unique hit from a variant other than the selected one. */
     variants: lookupVariantsSchema.optional(),
+    /**
+     * A mod hit: the base types that can roll it (non-zero spawn weight; WU-60, D-277), empty when none can;
+     * absent for a mod without spawn weights (a rune's).
+     */
+    baseTypes: luaArray(lookupBaseTypeSchema).optional(),
+    /** An essence hit (WU-60): the item types the essence grants the mod on, the mod's id and affix type. */
+    itemTypes: luaArray(z.string()).optional(),
+    modId: optString,
+    affix: optString,
   })
   .passthrough();
 
@@ -749,8 +773,16 @@ export const lookupGameDataReply = baseReply.extend({
       mode: z.enum(['gem', 'unique', 'mechanic']),
       /** Every match before the cut (in mechanic mode, of the requested `kind`). */
       total: z.number().int(),
-      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240). */
-      kinds: z.object({ gem: z.number().int(), unique: z.number().int(), passive: z.number().int(), mod: z.number().int() }).optional(),
+      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240; `essence`, WU-60). */
+      kinds: z
+        .object({
+          gem: z.number().int(),
+          unique: z.number().int(),
+          passive: z.number().int(),
+          mod: z.number().int(),
+          essence: z.number().int(),
+        })
+        .optional(),
       results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
       /**
        * Only when nothing matched: the closest names of the kind searched, closest first (D-258). Gem mode: up
@@ -766,6 +798,7 @@ export type LookupGameDataResult = z.infer<typeof lookupGameDataReply>['result']
 export type LookupGem = z.infer<typeof lookupGemSchema>;
 export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
 export type LookupHit = z.infer<typeof lookupHitSchema>;
+export type LookupBaseType = z.infer<typeof lookupBaseTypeSchema>;
 export type LookupSuggestion = z.infer<typeof lookupSuggestionSchema>;
 
 // ---------------------------------------------------------------------------------------------------
@@ -1325,7 +1358,7 @@ export interface ActionParamsMap {
   trade_query_options: { slot: string };
   /**
    * C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both;
-   * `kind` (mechanic mode, D-240) keeps one kind of hit.
+   * `kind` (mechanic mode, D-240; `essence`, WU-60) keeps one kind of hit.
    */
   lookup_game_data: {
     mode: 'gem' | 'unique' | 'mechanic';
@@ -1333,7 +1366,7 @@ export interface ActionParamsMap {
     level?: number;
     quality?: number;
     slot?: string;
-    kind?: 'gem' | 'unique' | 'passive' | 'mod';
+    kind?: 'gem' | 'unique' | 'passive' | 'mod' | 'essence';
     maxResults?: number;
   };
   /**

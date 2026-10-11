@@ -433,6 +433,44 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
   );
 
   it(
+    "AC-B4 (C-37, WU-60): lookup_game_data's mechanic replies with mod base types, an empty base-type list and essence hits match the schema",
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const replies: Array<{ params: Json; reply: Json }> = [];
+      for (const params of [
+        // A desecrated mod that only some gloves can roll, and broad mods whose item types collapse.
+        { mode: 'mechanic', query: 'Arcane Surge', kind: 'mod', maxResults: 30 },
+        { mode: 'mechanic', query: 'maximum Life', kind: 'mod', maxResults: 30 },
+        // Essence hits, by name and by mod text, and the per-kind totals with `essence`.
+        { mode: 'mechanic', query: 'Essence of Haste', kind: 'essence', maxResults: 30 },
+        { mode: 'mechanic', query: 'increased Movement Speed', maxResults: 30 },
+      ] as Json[]) {
+        const reply = await engine.request('lookup_game_data', params, { timeoutMs: 120_000 });
+        expect({ params, ok: reply.ok }).toEqual({ params, ok: true });
+        const parsed = replySchemas.lookup_game_data!.safeParse(reply);
+        expect({ params, issues: parsed.success ? [] : parsed.error.issues }).toEqual({ params, issues: [] });
+        expect(typeof reply.result.kinds.essence).toBe('number');
+        replies.push({ params, reply });
+      }
+      const hits = replies.flatMap((r) => r.reply.result.results as Json[]);
+      const mods = hits.filter((h) => h.kind === 'mod');
+      expect(mods.length).toBeGreaterThan(0);
+      // A rune's mod has no spawn weights, so no base types; every other mod hit has a list.
+      for (const m of mods) expect({ id: m.id, list: Array.isArray(m.baseTypes) }).toEqual({ id: m.id, list: m.table !== 'Runes' });
+      expect(mods.some((m) => m.table === 'Runes')).toBe(true);
+      const weighted = mods.filter((m) => m.table !== 'Runes');
+      // Some mod has base types, some (a unique-only mod) has none: the empty list is sent as `[]`.
+      expect(weighted.some((m) => m.baseTypes.length > 0 && m.baseTypes[0].count > 0)).toBe(true);
+      expect(weighted.some((m) => m.baseTypes.length === 0)).toBe(true);
+      expect(weighted.some((m) => (m.baseTypes as Json[]).some((b) => b.itemType === true))).toBe(true);
+      const essences = hits.filter((h) => h.kind === 'essence');
+      expect(essences.length).toBeGreaterThan(0);
+      for (const e of essences) expect(e.itemTypes.length).toBeGreaterThan(0);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'AC-B4 (C-41): the compile actions report a defect or a failing stage as data or ok:false, never an exception',
     async () => {
       await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });

@@ -15,9 +15,26 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
     base, up to 5 matched lines with their variant); **full item text, ready for a plan's item slot, comes
     only when exactly one unique is returned** (D-239). Look a unique up by its exact name (or with
     `max_results: 1`) to get its text.
-  - `{mode: "mechanic", query, kind?}`: keyword hits across gems, uniques, passives (ascendancy included)
-    and item mods. **`kind` (`gem`, `unique`, `passive` or `mod`) lists one kind only**; the header still
-    counts every kind's hits (D-240). Use it when a broad query fills every slot with one kind.
+  - `{mode: "mechanic", query, kind?}`: keyword hits across gems, uniques, passives (ascendancy included),
+    item mods and essences. **`kind` (`gem`, `unique`, `passive`, `mod` or `essence`) lists one kind
+    only**; the header still counts every kind's hits (D-240). Use it when a broad query fills every slot
+    with one kind.
+  - **A mod hit's base types** (D-277). Under each `[mod]` hit, `Base types:` lists the bases that can
+    roll that mod (PoB gives it a non-zero spawn weight), as PoB's own base types, separated by `;`:
+    - `Gloves (all)`: every base of that item type;
+    - `Gloves: Energy Shield`: every base of one of PoB's base types (item type, then defence);
+    - `Staff (8 of 14 bases: …)`: only the named bases of that base type;
+    - `none (no base has a spawn weight for it)`: the mod never rolls on an item. It comes from a unique,
+      an essence or another source.
+
+    A rune's mod has no line. Desecrated mods (table `Desecrated`) are often limited to a defence type.
+  - **Essences** (D-277). An `[essence]` hit names the essence, the item types it applies that mod to,
+    and whether the mod is a prefix or a suffix. Example: `[essence] Greater Essence of Haste (Bow,
+    Crossbow; Suffix): (14-16)% increased Attack Speed`. A hit matches on the mod line or on the
+    essence's name, so `{query: "Essence of Haste", kind: "essence"}` lists every tier.
+  - **Sourcing an affix's limit on its base** (D1, amendment 2): look the affix up with `kind: "mod"`
+    and `kind: "essence"`. When its base types (or an essence's item types) narrow the base, the guide
+    says so. Example: "Arcane Surge on Crit is desecrated, so the gloves need energy shield".
   - `max_results` defaults to 20 and is capped at 30 (D-225).
 - `mcp__pob2__check_model_coverage` (C-38): per line of an item, a node or a gem, whether PoB applies it.
 - `mcp__pob2__search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`.

@@ -49,6 +49,8 @@
   { "tool": "lookup_game_data", "args": { "mode": "unique", "query": "Atziri's Acuity" }, "expect": "ok" },
   { "tool": "lookup_game_data", "args": { "mode": "mechanic", "query": "Crushing Blow" }, "expect": "ok" },
   { "tool": "lookup_game_data", "args": { "mode": "mechanic", "query": "Bleeding", "kind": "unique" }, "expect": "ok" },
+  { "tool": "lookup_game_data", "args": { "mode": "mechanic", "query": "Arcane Surge", "kind": "mod" }, "expect": "ok" },
+  { "tool": "lookup_game_data", "args": { "mode": "mechanic", "query": "Essence of Haste", "kind": "essence" }, "expect": "ok" },
   { "tool": "lookup_game_data", "args": { "mode": "unique", "slot": "Jewel" }, "expect": "ok" },
   { "tool": "lookup_game_data", "args": { "mode": "unique", "slot": "Nonsense" }, "expect": "error",
     "reason": "Nonsense is not an item type PoB has uniques for (C-37: the error lists the valid types)" },

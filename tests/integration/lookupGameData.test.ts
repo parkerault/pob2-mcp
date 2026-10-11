@@ -19,8 +19,14 @@
  *
  * D-258 (amends C-37, WU-47): gem blocks show PoB's `Tier` (a Lua query of `data.gems`), and a query that
  * matches nothing lists the 5 closest names of the kind searched. The expected names are recomputed here
- * from PoB's own name lists (Lua queries of `data.gems`, `main.uniqueDB`, the build's tree and
- * `data.itemMods`) with this file's own edit distance (`osa`), never from the tool's output.
+ * from PoB's own name lists (Lua queries of `data.gems`, `main.uniqueDB`, the build's tree,
+ * `data.itemMods` and `data.essences`) with this file's own edit distance (`osa`), never from the tool's
+ * output.
+ *
+ * AC-K51 (WU-60, D-277): a mechanic mod hit is followed by the base types that can roll it. The expected
+ * base types come from PoB's own items: every base of `data.itemBaseLists` made into a real item, asked
+ * `item:GetModSpawnWeight(mod)`, within the item's own affix table (`item.affixes`) for a crafting mod.
+ * Essence hits (kind `essence`) are recomputed from `data.essences` and the mods they name.
  */
 import fs from 'fs';
 import path from 'path';
@@ -721,9 +727,10 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const all = full.results as LookupHit[];
       const count = (k: string) => all.filter((h) => h.kind === k).length;
       expect(full.total).toBe(all.length);
-      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod') });
+      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence') });
       expect(count('unique')).toBeGreaterThan(0);
-      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod.`;
+      // WU-60: the essence hits are counted too, last.
+      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod, ${count('essence')} essence.`;
 
       const plain = await okTool({ mode: 'mechanic', query });
       expect(plain.split('\n')).toContain(header);
@@ -774,7 +781,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
 
   /** Whether a full Lua list is in §2.2's order. */
   function expectOrdered(mode: 'gem' | 'unique' | 'mechanic', query: string, results: LookupGameDataResult['results']): void {
-    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4 };
+    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4, essence: 5 };
     const exact = (r: { name: string }) => r.name.toLowerCase() === query.toLowerCase();
     const idOf = (r: { kind: string; id: string }) => (r.kind === 'passive' ? Number(r.id) : r.id);
     for (let i = 1; i < results.length; i++) {
@@ -982,7 +989,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   );
 
   it(
-    "D-258: mechanic mode with no match lists the 5 closest names of the gems, uniques, passives and mods it searches, or of `kind`",
+    "D-258: mechanic mode with no match lists the 5 closest names of the gems, uniques, passives, mods and essences (WU-60) it searches, or of `kind`",
     async () => {
       const passives = (
         await luaQuery<Array<{ name: string; ascendancy?: string }>>(`
@@ -1006,8 +1013,15 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
           end
           return out`)
       ).map((m): Candidate => ({ name: m.name, kind: 'mod', detail: m.table }));
+      const essences = (
+        await luaQuery<string[]>(`
+          local out = {}
+          for _, essence in pairs(data.essences) do table.insert(out, essence.name) end
+          return out`)
+      ).map((name): Candidate => ({ name, kind: 'essence' }));
       expect(passives.length).toBeGreaterThan(0);
       expect(mods.length).toBeGreaterThan(0);
+      expect(essences.length).toBeGreaterThan(0);
       const label = (c: Candidate) => `- ${c.name} (${[c.kind, c.detail].filter(Boolean).join(', ')})`;
 
       // "Crushing Impact" is no line's text, but it is one edit from the Titan notable's name.
@@ -1019,10 +1033,19 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(text).toContain('Closest passive names (fewest edits from the query, then by name):');
       expect(suggestionLines(text)).toEqual(onlyPassives.map(label));
 
-      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods]);
+      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods, ...essences]);
       const all = await okTool({ mode: 'mechanic', query: 'zzzz qqqq' });
-      expect(all).toContain('Closest gem, unique, passive and mod names (fewest edits from the query, then by name):');
+      expect(all).toContain('Closest gem, unique, passive, mod and essence names (fewest edits from the query, then by name):');
       expect(suggestionLines(all)).toEqual(every.map(label));
+
+      // WU-60: with kind essence, only essence names; a misspelt essence is one edit from its name.
+      const misspelt = 'Esence of Haste';
+      const onlyEssences = closest(misspelt, essences);
+      expect(onlyEssences[0]).toMatchObject({ name: 'Essence of Haste', distance: 1 });
+      const essenceText = await okTool({ mode: 'mechanic', query: misspelt, kind: 'essence' });
+      expect(essenceText).toContain(`Nothing matched "${misspelt}", kind essence.`);
+      expect(essenceText).toContain('Closest essence names (fewest edits from the query, then by name):');
+      expect(suggestionLines(essenceText)).toEqual(onlyEssences.map(label));
     },
     ENGINE_TIMEOUT,
   );
@@ -1053,6 +1076,227 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const over = await okTool({ mode: 'gem', query: 'z'.repeat(101) });
       expect(suggestionLines(over)).toEqual([]);
       expect(over).toContain('The query is 101 characters long, over the 100 that closest names are listed for.');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // WU-60 (D-277, AC-K51): a mod hit's base types, and the essences as hits.
+
+  /** The line under a mod hit that lists its base types (the format WU-60 sets). */
+  const BASE_TYPES_PREFIX = '  Base types: ';
+
+  /** The base types under the `[mod] <id> (<table> mods): …` hit, split at `; `; undefined without the hit or the line. */
+  function baseTypesOf(text: string, table: string, id: string): string[] | undefined {
+    const lines = text.split('\n');
+    const i = lines.findIndex((l) => l.startsWith(`[mod] ${id} (${table} mods): `));
+    if (i < 0 || !lines[i + 1]?.startsWith(BASE_TYPES_PREFIX)) return undefined;
+    return lines[i + 1].slice(BASE_TYPES_PREFIX.length).split('; ');
+  }
+
+  /** One of PoB's base lists (`data.itemBaseLists`), as PoB's own items answer for one mod. */
+  interface PobList {
+    name: string;
+    type: string;
+    subType?: string;
+    bases: string[];
+    /** The bases whose item PoB gives the mod a non-zero spawn weight (within its affix table, below). */
+    can: string[] | Record<string, never>;
+    /** The bases with energy shield (`base.armour.EnergyShield`). */
+    energyShield: string[] | Record<string, never>;
+    /** The bases with Runic Ward (`base.armour.Ward`). */
+    ward: string[] | Record<string, never>;
+  }
+
+  /**
+   * PoB's own answer for one mod: every base of PoB's base lists made into a real item (`new("Item", …)`),
+   * and whether `item:GetModSpawnWeight(mod) > 0`. A mod of a table some item takes its affixes from
+   * (`item.affixes`: Item, Flask, Charm, Jewel) counts only on those items, as PoB's crafting lists do;
+   * `byTags` counts the bases ignoring that, to show where it matters.
+   */
+  const pobBaseLists = (table: string, id: string) =>
+    luaQuery<{ text: string; lists: PobList[]; byTags: number }>(`
+      local tbl = data.itemMods[${JSON.stringify(table)}]
+      local mod = tbl[${JSON.stringify(id)}]
+      _G.__wu60Items = _G.__wu60Items or {}
+      local entries, affixTables = {}, {}
+      for listName, list in pairs(data.itemBaseLists) do
+        for _, entry in ipairs(list) do
+          local item = _G.__wu60Items[entry.name] or new('Item', 'Rarity: Rare\\nProbe\\n' .. entry.name)
+          _G.__wu60Items[entry.name] = item
+          affixTables[item.affixes] = true
+          table.insert(entries, { list = listName, name = entry.name, item = item })
+        end
+      end
+      local lists, byName, byTags = {}, {}, 0
+      for _, e in ipairs(entries) do
+        local l = byName[e.list]
+        if not l then
+          l = { name = e.list, type = e.item.base.type, subType = e.item.base.subType, bases = {}, can = {}, energyShield = {}, ward = {} }
+          byName[e.list] = l
+          table.insert(lists, l)
+        end
+        table.insert(l.bases, e.name)
+        local weighted = e.item:GetModSpawnWeight(mod) > 0
+        if weighted then byTags = byTags + 1 end
+        if weighted and (not affixTables[tbl] or e.item.affixes == tbl) then table.insert(l.can, e.name) end
+        if ((e.item.base.armour or {}).EnergyShield or 0) > 0 then table.insert(l.energyShield, e.name) end
+        if ((e.item.base.armour or {}).Ward or 0) > 0 then table.insert(l.ward, e.name) end
+      end
+      return { text = mod[1], lists = lists, byTags = byTags }`);
+
+  /**
+   * The base types §2.2's target (WU-60) lists, from PoB's lists: by item type, then by list name (byte
+   * order); `<type> (all)` when every base of a type with several lists can roll it, else each list with a
+   * base that can, with `(<n> of <m> bases: <names>)` when only some can; `none (…)` when no base can.
+   */
+  function expectedBaseTypes(lists: PobList[]): string[] {
+    const byType = new Map<string, PobList[]>();
+    for (const l of lists) byType.set(l.type, [...(byType.get(l.type) ?? []), l]);
+    const out: string[] = [];
+    for (const type of [...byType.keys()].sort(byteCmp)) {
+      const ofType = byType.get(type)!.sort((a, b) => byteCmp(a.name, b.name));
+      const can = ofType.reduce((n, l) => n + arr(l.can).length, 0);
+      const total = ofType.reduce((n, l) => n + l.bases.length, 0);
+      if (can > 0 && can === total && ofType.length > 1) {
+        out.push(`${type} (all)`);
+        continue;
+      }
+      for (const l of ofType) {
+        const names = [...arr(l.can)].sort(byteCmp);
+        if (names.length === 0) continue;
+        out.push(names.length < l.bases.length ? `${l.name} (${names.length} of ${l.bases.length} bases: ${names.join(', ')})` : l.name);
+      }
+    }
+    return out.length > 0 ? out : ['none (no base has a spawn weight for it)'];
+  }
+
+  it(
+    'AC-K51: the mod hit for Arcane Surge on Crit (ModVeiled.lua:163) lists only gloves with energy shield, exactly the base types whose bases PoB gives it a non-zero spawn weight',
+    async () => {
+      const id = 'AbyssModGlovesKurgalSuffixArcaneSurgeOnCriticalHit';
+      const pob = await pobBaseLists('Desecrated', id);
+      expect(pob.text).toContain('Arcane Surge when you deal a Critical Hit');
+      const text = await okTool({ mode: 'mechanic', query: pob.text, kind: 'mod', max_results: 30 });
+      const listed = baseTypesOf(text, 'Desecrated', id);
+      expect(listed).toEqual(expectedBaseTypes(pob.lists));
+
+      // Only gloves with energy shield: each listed base type is one of PoB's Gloves lists whose subtype has
+      // Energy Shield, every one of them is listed, and the armour, evasion and armour/evasion gloves are not.
+      const byName = new Map(pob.lists.map((l) => [l.name, l]));
+      const gloves = pob.lists.filter((l) => l.type === 'Gloves');
+      const withEnergyShield = gloves.filter((l) => (l.subType ?? '').includes('Energy Shield')).map((l) => l.name);
+      expect(withEnergyShield.length).toBeGreaterThan(0);
+      expect(gloves.length).toBeGreaterThan(withEnergyShield.length);
+      expect([...listed!].sort(byteCmp)).toEqual(withEnergyShield.sort(byteCmp));
+      for (const name of listed!) {
+        const l = byName.get(name)!;
+        expect({ name, type: l.type }).toEqual({ name, type: 'Gloves' });
+        // Each base has energy shield, except PoB's Runeforged bases of these lists, whose defence is Runic Ward.
+        const es = new Set(arr(l.energyShield));
+        const ward = new Set(arr(l.ward));
+        const other = l.bases.filter((b) => !es.has(b) && !(ward.has(b) && b.startsWith('Runeforged ')));
+        expect({ name, other }).toEqual({ name, other: [] });
+        expect(es.size).toBeGreaterThan(0);
+      }
+
+      // The reply carries the same as data.
+      const raw = await lookupAction({ mode: 'mechanic', query: pob.text, kind: 'mod', maxResults: 30 });
+      const hit = (raw.results as LookupHit[]).find((h) => h.id === `Desecrated/${id}`);
+      expect(hit?.baseTypes?.map((b) => b.name)).toEqual(listed);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K51 (format): a mod hit's base types equal PoB's own items' spawn weights: whole item types collapse to '(all)', a partly covered list names its bases, an affix table's mod counts only on its items, and a mod no base can roll says none",
+    async () => {
+      const cases: Array<{ table: string; id: string; shows: RegExp }> = [
+        // A life affix: whole item types, and single-list types by name.
+        { table: 'Item', id: 'IncreasedLife3', shows: /^Body Armour \(all\)$/ },
+        // A staff affix only some staves can roll (their `no_<element>_spell_mods` tags).
+        { table: 'Item', id: 'GlobalLightningSpellGemsLevelTwoHandWeapon1', shows: /^Staff \(\d+ of \d+ bases: / },
+        // A jewel affix of two of the four jewel bases.
+        { table: 'Jewel', id: 'JewelBleedingEffect', shows: /^Jewel \(2 of 4 bases: / },
+        // A charm affix: only charms take their affixes from the Charm table.
+        { table: 'Charm', id: 'FlaskChanceRechargeOnKill2', shows: /^Charm$/ },
+        // A corruption on boots of every kind.
+        { table: 'Corruption', id: 'CorruptionMovementVelocity1', shows: /^Boots \(all\)$/ },
+        // A unique's mod: no base can roll it.
+        { table: 'Exclusive', id: 'UniqueMutatedVaalArcaneSurgeEffect', shows: /^none \(no base has a spawn weight for it\)$/ },
+      ];
+      for (const { table, id, shows } of cases) {
+        const pob = await pobBaseLists(table, id);
+        const text = await okTool({ mode: 'mechanic', query: pob.text, kind: 'mod', max_results: 30 });
+        const listed = baseTypesOf(text, table, id);
+        expect({ table, id, listed }).toEqual({ table, id, listed: expectedBaseTypes(pob.lists) });
+        expect({ table, id, shows: listed!.some((b) => shows.test(b)) }).toEqual({ table, id, shows: true });
+        if (table === 'Charm') {
+          // By tags alone the charm mod would roll on other bases too; PoB's crafting offers it on charms only.
+          const can = pob.lists.reduce((n, l) => n + arr(l.can).length, 0);
+          expect(pob.byTags).toBeGreaterThan(can);
+        }
+      }
+      // A rune's mod has no spawn weights: its hit has no base-types line.
+      const runes = await lookupAction({ mode: 'mechanic', query: 'Arcane Surge', kind: 'mod', maxResults: 30 });
+      const rune = (runes.results as LookupHit[]).find((h) => h.table === 'Runes');
+      expect(rune).toBeDefined();
+      expect(rune!.baseTypes).toBeUndefined();
+      const runeText = (await okTool({ mode: 'mechanic', query: 'Arcane Surge', kind: 'mod', max_results: 30 })).split('\n');
+      const at = runeText.indexOf(renderHit(rune!));
+      expect(at).toBeGreaterThanOrEqual(0);
+      expect(runeText[at + 1]?.startsWith(BASE_TYPES_PREFIX) ?? false).toBe(false);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K51: an essence query returns essence hits: \"Greater Essence of Haste\" lists each mod PoB's essence table grants with its item types and affix type; a query of one of its mod lines finds it; the header counts essence hits",
+    async () => {
+      const name = 'Greater Essence of Haste';
+      const pob = await luaQuery<Array<{ id: string; types: string[]; lines: string[]; affix?: string }>>(`
+        local essence
+        for _, e in pairs(data.essences) do if e.name == ${JSON.stringify(name)} then essence = e end end
+        local byId, out = {}, {}
+        for itemType, modId in pairs(essence.mods) do
+          local mod = data.itemMods.Item[modId] or data.itemMods.Exclusive[modId]
+          if mod then
+            if not byId[modId] then
+              byId[modId] = { id = modId, types = {}, lines = {}, affix = mod.type }
+              for _, line in ipairs(mod) do table.insert(byId[modId].lines, line) end
+              table.insert(out, byId[modId])
+            end
+            table.insert(byId[modId].types, itemType)
+          end
+        end
+        return out`);
+      expect(pob.length).toBeGreaterThan(0);
+      const mods = [...pob].sort((a, b) => byteCmp(a.id, b.id));
+      const source = (m: (typeof pob)[number]) => `${name} (${[...m.types].sort(byteCmp).join(', ')}${m.affix ? `; ${m.affix}` : ''})`;
+      const want = mods.flatMap((m) => m.lines.map((line) => `[essence] ${source(m)}: ${line}`));
+
+      // By name: every line of every mod the essence grants.
+      const text = await okTool({ mode: 'mechanic', query: name, kind: 'essence', max_results: 30 });
+      expect(hitLines(text)).toEqual(want);
+
+      // Without kind, the header counts them as essence hits.
+      const full = await lookupAction({ mode: 'mechanic', query: name, maxResults: 10000 });
+      const all = full.results as LookupHit[];
+      expect(all.filter((h) => h.kind === 'essence').map(renderHit)).toEqual(want);
+      expect(full.kinds?.essence).toBe(want.length);
+      const k = full.kinds!;
+      const plain = await okTool({ mode: 'mechanic', query: name });
+      expect(plain.split('\n')).toContain(`${all.length} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence.`);
+
+      // By mod text: the line of the mod it grants on the most item types finds an essence hit naming this essence.
+      const widest = [...mods].sort((a, b) => b.types.length - a.types.length)[0];
+      const line = widest.lines[0];
+      const byText = hitLines(await okTool({ mode: 'mechanic', query: line, kind: 'essence', max_results: 30 }));
+      expect(byText).toContain(`[essence] ${source(widest)}: ${line}`);
+      for (const l of byText) {
+        expect(l.startsWith('[essence] ')).toBe(true);
+        expect(l.toLowerCase()).toContain(line.toLowerCase());
+      }
     },
     ENGINE_TIMEOUT,
   );

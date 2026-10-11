@@ -821,7 +821,10 @@ export class PoBLuaApiClient {
     return res.results;
   }
 
-  /** C-37: PoB2's loaded gem, unique, passive and mod data (`API/Lookup.lua`); reads only. */
+  /**
+   * C-37: PoB2's loaded gem, unique, passive, mod and essence data (`API/Lookup.lua`); reads only. A mechanic
+   * mod hit carries its `baseTypes`, and essence hits are kind `essence` (WU-60, D-277).
+   */
   async lookupGameData(params: ActionParams<"lookup_game_data">): Promise<ActionReply<"lookup_game_data">["result"]> {
     const res = await this.request("lookup_game_data", params);
     return res.result;

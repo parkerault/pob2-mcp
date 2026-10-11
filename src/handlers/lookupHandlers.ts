@@ -7,8 +7,9 @@
  *   Quality" lines, support rules and per-level requirements (D-228);
  * - unique: uniques by name, mod line (any non-legacy variant's) or item type (`slot`): name, base, type
  *   and the matched lines; the `BuildRaw()` text for `add_item` only when one unique is returned (D-239);
- * - mechanic: one hit per matching gem, unique, passive or mod line, optionally of one `kind`, with every
- *   kind's hit total in the header (D-240).
+ * - mechanic: one hit per matching gem, unique, passive, mod or essence line, optionally of one `kind`, with
+ *   every kind's hit total in the header (D-240). A mod hit is followed by the base types that can roll it,
+ *   and an essence hit names the item types the essence grants its mod on (WU-60, D-277).
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
@@ -16,7 +17,14 @@
  * to rank names against gets a note instead.
  */
 import type { LuaHandlerContext } from "./luaHandlers.js";
-import type { LookupGameDataResult, LookupGem, LookupHit, LookupSuggestion, LookupUnique } from "../engine/schemas.js";
+import type {
+  LookupBaseType,
+  LookupGameDataResult,
+  LookupGem,
+  LookupHit,
+  LookupSuggestion,
+  LookupUnique,
+} from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 
 export type LookupContext = Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient">;
@@ -33,8 +41,8 @@ export interface LookupGameDataArgs {
 
 const MODES = ["gem", "unique", "mechanic"] as const;
 type Mode = (typeof MODES)[number];
-/** Mechanic mode's `kind` filter (D-240). */
-const HIT_KINDS = ["gem", "unique", "passive", "mod"] as const;
+/** Mechanic mode's `kind` filter (D-240; `essence`, WU-60). */
+const HIT_KINDS = ["gem", "unique", "passive", "mod", "essence"] as const;
 type HitKind = (typeof HIT_KINDS)[number];
 
 export const LOOKUP_DEFAULT_RESULTS = 20;
@@ -153,6 +161,25 @@ export function renderHit(hit: LookupHit): string {
   return `[${hit.kind}] ${hit.source}: ${hit.line}`;
 }
 
+/** The line under a mod hit that lists its base types (WU-60, D-277). */
+export const BASE_TYPES_PREFIX = "  Base types: ";
+
+/**
+ * A mod hit's base types, the ones with a non-zero spawn weight for it (WU-60, D-277), separated by `; `:
+ * `<item type> (all)` when every base of an item type with several base lists can roll it, else each of
+ * PoB's base lists that has a base that can, as `<list>` or, when only some of its bases can,
+ * `<list> (<n> of <m> bases: <names>)`.
+ */
+export function renderBaseTypes(baseTypes: LookupBaseType[]): string {
+  if (baseTypes.length === 0) return `${BASE_TYPES_PREFIX}none (no base has a spawn weight for it)`;
+  const parts = baseTypes.map((b) => {
+    if (b.itemType) return `${b.name} (all)`;
+    if (b.count < b.total) return `${b.name} (${b.count} of ${b.total} bases: ${(b.names ?? []).join(", ")})`;
+    return b.name;
+  });
+  return `${BASE_TYPES_PREFIX}${parts.join("; ")}`;
+}
+
 interface Request {
   mode: Mode;
   query?: string;
@@ -174,7 +201,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /** What the closest names are names of (D-258): the kind the request searched. */
 function suggestionNoun(req: Request): string {
   if (req.mode === "unique") return req.slot ? `unique names of item type ${req.slot}` : "unique names";
-  return req.kind ? `${req.kind} names` : "gem, unique, passive and mod names";
+  return req.kind ? `${req.kind} names` : "gem, unique, passive, mod and essence names";
 }
 
 const SUGGESTION_ORDER = "(fewest edits from the query, then by name)";
@@ -208,9 +235,11 @@ function render(req: Request, result: LookupGameDataResult): string {
   const kinds = result.kinds;
   if (req.mode === "mechanic" && kinds) {
     // D-240: every kind's hit total, whatever `kind` lists.
-    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod;
+    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod + kinds.essence;
     if (all > 0) {
-      lines.push(`${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod.`);
+      lines.push(
+        `${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod, ${kinds.essence} essence.`,
+      );
     }
   }
   if (shown === 0) {
@@ -227,7 +256,7 @@ function render(req: Request, result: LookupGameDataResult): string {
   const noun = req.mode === "mechanic" ? ["hit", "hits"] : ["match", "matches"];
   const order =
     req.mode === "mechanic"
-      ? "sorted by kind (gem, unique, passive, mod), then by name"
+      ? "sorted by kind (gem, unique, passive, mod, essence), then by name"
       : "exact name matches first, then by name";
   if (shown < result.total) {
     const more = [
@@ -247,7 +276,12 @@ function render(req: Request, result: LookupGameDataResult): string {
   }
   lines.push("");
   if (req.mode === "mechanic") {
-    for (const r of result.results) lines.push(renderHit(r as LookupHit));
+    for (const r of result.results) {
+      const hit = r as LookupHit;
+      lines.push(renderHit(hit));
+      // WU-60 (D-277): the base types that can roll a mod, on the line under it.
+      if (hit.kind === "mod" && hit.baseTypes) lines.push(renderBaseTypes(hit.baseTypes));
+    }
   } else {
     for (const r of result.results) {
       lines.push(...(req.mode === "gem" ? renderGem(r as LookupGem) : renderUnique(r as LookupUnique)), "");
@@ -271,7 +305,7 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
     const quality = m === "gem" ? wholeNumber(args.gemQuality, "gem_quality", 0, 20) : undefined;
     const kindText = m === "mechanic" ? text(args.kind)?.toLowerCase() : undefined;
     if (kindText !== undefined && !(HIT_KINDS as readonly string[]).includes(kindText)) {
-      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive or mod`);
+      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive, mod or essence`);
     }
     const kind = kindText as HitKind | undefined;
     const maxResults = resultLimit(args.maxResults);

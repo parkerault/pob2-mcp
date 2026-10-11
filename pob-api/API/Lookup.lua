@@ -10,19 +10,20 @@
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
 --     mechanic  gem descriptions and stat-set lines, unique mod lines (every variant's), passive `sd`
---               lines and data.itemMods text -> one hit per matching line; `kind` keeps one kind, and
---               `kinds` counts every kind's hits (D-240)
+--               lines, data.itemMods text and the essences' mod lines (or names) -> one hit per matching
+--               line; a mod hit carries the base types that can roll it (WU-60, D-277); `kind` keeps one
+--               kind, and `kinds` counts every kind's hits (D-240)
 --
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
 -- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
--- unique, passive, mod), then by name, then by id, then by line. `total` counts every match.
+-- unique, passive, mod, essence), then by name, then by id, then by line. `total` counts every match.
 --
 -- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258): in gem
 -- mode up to 5 active gems, then up to 3 supports (D-258a); in unique mode up to 5 unique names, of `slot`
--- when given; in mechanic mode up to 5 names of the gems, uniques, passives and mods searched, of `kind`
--- when given. Each group is ranked by edit distance to the query (see editDistance), then by name, then by
--- kind and detail. A query longer than MAX_SUGGESTION_QUERY characters gets none (the cost grows with its
--- length); the reply says so with `suggestionsSkipped`.
+-- when given; in mechanic mode up to 5 names of the gems, uniques, passives, mods and essences searched, of
+-- `kind` when given. Each group is ranked by edit distance to the query (see editDistance), then by name,
+-- then by kind and detail. A query longer than MAX_SUGGESTION_QUERY characters gets none (the cost grows
+-- with its length); the reply says so with `suggestionsSkipped`.
 --
 -- The gem helpers (findGem, gemEffects, defaultLevel, describeStatSet, statSetLabel) and lineIsSelected (a
 -- unique's or item's selected-variant test) are shared with other modules (API/Coverage.lua, WU-32).
@@ -475,9 +476,162 @@ local function lookupUniques(query, slot, maxResults)
 end
 
 -- ---------------------------------------------------------------------------------------------------
+-- Mod base types and essences (WU-60, D-277)
+--
+-- A mechanic mod hit lists the base types that can roll its mod, and the essences (data.essences) are
+-- searched as a fifth hit kind, `essence`, so D1 can source an affix's limit on its base (amendment 2).
+--
+-- Base types are PoB's own base lists (data.itemBaseLists: the item creator's "<type>: <subType>"
+-- groups, hidden bases left out). A base can roll a mod when PoB's ItemClass:GetModSpawnWeight gives it
+-- a non-zero weight (Classes/Item.lua:1377: the weight of the first of the mod's weightKey tags the base
+-- has, times its weightMultiplier). A mod of an item affix table (Item, Flask, Charm or Jewel) counts only
+-- on the bases whose items take their affixes from that table (Item.lua:840-842), as PoB's crafting lists
+-- do (ItemsTab.lua:3049); a mod of any other table (Desecrated, Corruption, Exclusive, ...) is weighed on
+-- every base, as PoB weighs its desecrated and corrupted lists (ItemsTab.lua:2718, :3146). A mod without
+-- `weightKey` (a rune's) has no base types.
+
+local baseIndexCache = setmetatable({}, { __mode = 'k' })
+local baseTypesCache = setmetatable({}, { __mode = 'k' })
+
+-- PoB's spawn weight of `mod` on `base` (ItemClass:GetModSpawnWeight reads only the item's base).
+local function spawnWeight(base, mod)
+  local Item = common.classes.Item
+  if not Item then
+    LoadModule('Classes/Item')
+    Item = common.classes.Item
+  end
+  return Item.GetModSpawnWeight({ base = base }, mod)
+end
+
+-- The affix table an item of `base` takes its affixes from (Item.lua:840-842).
+local function affixTableOf(d, base)
+  return (base.subType and d.itemMods[base.type .. base.subType]) or d.itemMods[base.type] or d.itemMods.Item
+end
+
+-- PoB's base lists, grouped by item type (sorted), each with its bases; and the set of affix tables.
+local function baseIndex(d)
+  if baseIndexCache[d] then return baseIndexCache[d] end
+  local types, byType, affixTables = {}, {}, {}
+  for _, listName in ipairs(sortedKeys(d.itemBaseLists)) do
+    for _, entry in ipairs(d.itemBaseLists[listName]) do
+      local base = entry.base
+      local itemType = byType[base.type]
+      if not itemType then
+        itemType = { name = base.type, lists = {}, byName = {} }
+        byType[base.type] = itemType
+        table.insert(types, itemType)
+      end
+      local list = itemType.byName[listName]
+      if not list then
+        list = { name = listName, bases = {} }
+        itemType.byName[listName] = list
+        table.insert(itemType.lists, list)
+      end
+      local affixes = affixTableOf(d, base)
+      affixTables[affixes] = true
+      table.insert(list.bases, { name = entry.name, base = base, affixes = affixes })
+    end
+  end
+  table.sort(types, function(a, b) return a.name < b.name end)
+  local index = { types = types, affixTables = affixTables }
+  baseIndexCache[d] = index
+  return index
+end
+
+-- The base types that can roll `mod`, an entry of the mod table `modTable`, by item type, then by base
+-- list name. An item type all of whose bases can roll it is one entry `{name = <item type>, itemType =
+-- true, count, total}` when it has more than one base list; otherwise each base list with a base that
+-- can is `{name = <list name>, count, total}`, with `names` (those bases, sorted) when not all of them
+-- can. `count` and `total` count bases. Empty when no base can; nil for a mod without spawn weights.
+function M.modBaseTypes(mod, modTable)
+  if type(mod) ~= 'table' or type(mod.weightKey) ~= 'table' then return nil end
+  if baseTypesCache[mod] then return baseTypesCache[mod] end
+  local index = baseIndex(gameData())
+  local only = modTable and index.affixTables[modTable] and modTable or nil
+  local out = {}
+  for _, itemType in ipairs(index.types) do
+    local entries, count, total = {}, 0, 0
+    for _, list in ipairs(itemType.lists) do
+      local names = {}
+      for _, b in ipairs(list.bases) do
+        if (not only or b.affixes == only) and spawnWeight(b.base, mod) > 0 then table.insert(names, b.name) end
+      end
+      count, total = count + #names, total + #list.bases
+      if #names > 0 then
+        table.sort(names)
+        table.insert(entries, {
+          name = list.name, count = #names, total = #list.bases, names = #names < #list.bases and names or nil,
+        })
+      end
+    end
+    if count == total and count > 0 and #itemType.lists > 1 then
+      table.insert(out, { name = itemType.name, itemType = true, count = count, total = total })
+    else
+      for _, e in ipairs(entries) do table.insert(out, e) end
+    end
+  end
+  baseTypesCache[mod] = out
+  return out
+end
+
+-- Essence hits: one per line of each mod an essence grants, naming the item types it grants that mod on
+-- (sorted) and, when PoB's data has it, the mod's affix type. The mod is found as PoB's crafting finds it,
+-- in the Item mods, else the Exclusive ones (ItemsTab.lua:3076); one found in neither (a passive grant)
+-- has no text, and PoB skips it too. A hit matches when its line or its essence's name has the query.
+local function collectEssenceHits(hits, query)
+  local d = gameData()
+  local itemMods, exclusive = d.itemMods.Item or {}, d.itemMods.Exclusive or {}
+  for _, key in ipairs(sortedKeys(d.essences)) do
+    local essence = d.essences[key]
+    if type(essence) == 'table' and type(essence.name) == 'string' and type(essence.mods) == 'table' then
+      local byName = contains(essence.name, query)
+      local itemTypesOf, modIds = {}, {}
+      for _, itemType in ipairs(sortedKeys(essence.mods)) do
+        local modId = essence.mods[itemType]
+        if not itemTypesOf[modId] then
+          itemTypesOf[modId] = {}
+          table.insert(modIds, modId)
+        end
+        table.insert(itemTypesOf[modId], itemType)
+      end
+      table.sort(modIds)
+      for _, modId in ipairs(modIds) do
+        local mod = itemMods[modId] or exclusive[modId]
+        if type(mod) == 'table' then
+          local itemTypes = itemTypesOf[modId]
+          local where = table.concat(itemTypes, ', ') .. (type(mod.type) == 'string' and ('; ' .. mod.type) or '')
+          local n = 0
+          for _, line in ipairs(mod) do
+            if type(line) == 'string' then
+              n = n + 1
+              local flat = oneLine(line)
+              if byName or contains(flat, query) then
+                table.insert(hits, {
+                  kind = 'essence', id = key .. '/' .. modId, name = essence.name, order = n,
+                  source = essence.name .. ' (' .. where .. ')', line = flat,
+                  itemTypes = itemTypes, modId = modId, affix = type(mod.type) == 'string' and mod.type or nil,
+                })
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- The essences' names, for the closest names of mechanic mode (D-258).
+local function addEssenceNames(add)
+  local d = gameData()
+  for _, key in ipairs(sortedKeys(d.essences)) do
+    if type(d.essences[key]) == 'table' then add(d.essences[key].name, 'essence') end
+  end
+end
+
+-- ---------------------------------------------------------------------------------------------------
 -- Mechanics
 
-local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4 }
+local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5 }
 
 local function treeNodes()
   if _G.build and build.spec and build.spec.tree and build.spec.tree.nodes then return build.spec.tree.nodes end
@@ -500,6 +654,7 @@ local function collectModHits(hits, tableName, entryId, entry, query)
           table.insert(hits, {
             kind = 'mod', id = tableName .. '/' .. entryId, name = entryId, order = n,
             source = entryId .. ' (' .. tableName .. ' mods)', line = flat, table = tableName,
+            mod = entry, -- for its base types (WU-60); dropped before the reply
           })
         end
       end
@@ -513,7 +668,7 @@ local function collectModHits(hits, tableName, entryId, entry, query)
   end
 end
 
-local KINDS_TEXT = 'gem, unique, passive or mod'
+local KINDS_TEXT = 'gem, unique, passive, mod or essence'
 
 local function lookupMechanics(query, kind, maxResults)
   local d = gameData()
@@ -587,6 +742,9 @@ local function lookupMechanics(query, kind, maxResults)
     end
   end
 
+  -- Essences: every essence's mod lines, or all of them when its name matches (WU-60).
+  collectEssenceHits(hits, query)
+
   table.sort(hits, function(a, b)
     if a.kind ~= b.kind then return KIND_RANK[a.kind] < KIND_RANK[b.kind] end
     if a.name ~= b.name then return a.name < b.name end
@@ -594,7 +752,7 @@ local function lookupMechanics(query, kind, maxResults)
     return a.order < b.order
   end)
   -- Every kind's hit count, then (with `kind`) only that kind's hits are listed and cut.
-  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0 }
+  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0, essence = 0 }
   local listed = {}
   for _, hit in ipairs(hits) do
     kinds[hit.kind] = kinds[hit.kind] + 1
@@ -604,6 +762,8 @@ local function lookupMechanics(query, kind, maxResults)
   for _, hit in ipairs(results) do
     hit.order = nil
     if hit.kind == 'passive' then hit.id = tostring(hit.nodeId) end
+    if hit.kind == 'mod' then hit.baseTypes = M.modBaseTypes(hit.mod, d.itemMods[hit.table]) end
+    hit.mod = nil
   end
   return results, #listed, kinds
 end
@@ -705,6 +865,7 @@ local function suggestionCandidates(mode, filter)
     if not kind or kind == 'unique' then addUniqueNames(add) end
     if not kind or kind == 'passive' then addPassiveNames(add) end
     if not kind or kind == 'mod' then addModNames(add) end
+    if not kind or kind == 'essence' then addEssenceNames(add) end
   end
   return list
 end

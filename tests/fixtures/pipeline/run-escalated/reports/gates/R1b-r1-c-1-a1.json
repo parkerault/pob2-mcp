@@ -1,0 +1,20 @@
+{
+  "stage": "R1b",
+  "concept": "r1-c-1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "fail"
+  },
+  "findings": [
+    {
+      "part": "compiled",
+      "code": "not-a-skill",
+      "message": "not compiled: its damage source isn't a skill (D-334)"
+    }
+  ],
+  "errors": [],
+  "compiles": 0,
+  "recordPath": null,
+  "faultsApplied": [],
+  "leagueUnverified": false
+}

@@ -1,0 +1,165 @@
+{
+  "stage": "D1-gate",
+  "concept": "r1-a-1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "fail",
+    "v2": "pass",
+    "floor": "pass",
+    "budget": "unverified",
+    "rolledSkill": "pass"
+  },
+  "findings": [
+    {
+      "part": "v1",
+      "code": "level-points",
+      "stage": "m",
+      "message": "stage m spends 70 passive points, but level 1 grants 0 (FI-2)"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "b",
+      "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "m",
+      "message": "MissingChaosResist 65 on stage m, kept by its chaosResistException: no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs"
+    }
+  ],
+  "basis": {
+    "budget": {
+      "rates": [],
+      "slots": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "priceId": "m-weapon"
+        },
+        {
+          "stage": "m",
+          "slot": "Body Armour",
+          "priceId": "m-body"
+        },
+        {
+          "stage": "m",
+          "slot": "Helmet",
+          "priceId": "m-helmet"
+        },
+        {
+          "stage": "m",
+          "slot": "Boots",
+          "priceId": "m-boots"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 1",
+          "priceId": "m-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "priceId": "b-weapon"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "priceId": "b-body"
+        },
+        {
+          "stage": "b",
+          "slot": "Helmet",
+          "priceId": "b-helmet"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "priceId": "b-boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "priceId": "b-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "priceId": "b-ring2"
+        },
+        {
+          "stage": "b",
+          "jewel": 1001,
+          "priceId": "b-jewel"
+        }
+      ],
+      "totals": [
+        {
+          "stage": "m",
+          "divines": null
+        },
+        {
+          "stage": "b",
+          "divines": null
+        }
+      ],
+      "nonBudget": [
+        {
+          "stage": "n",
+          "divines": null,
+          "reference": 200
+        }
+      ]
+    },
+    "rolledSkill": [
+      {
+        "stage": "m",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "b",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "n",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      }
+    ]
+  },
+  "recordPath": "compile-record.json",
+  "faultsApplied": [
+    {
+      "id": "FI-2",
+      "observed": "V1 level-points on stage m at level 1"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "stage": "V4",
   "lens": "prose",
   "check": "full",
-  "concept": "c1",
+  "concept": "r1-a-1",
   "mode": "offline",
   "findings": [
     {

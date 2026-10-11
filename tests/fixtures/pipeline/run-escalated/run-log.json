@@ -1,8 +1,16 @@
 {
-  "schemaVersion": 2,
-  "runFolder": "/tmp/pob2-guides/titan-blood-hunt/2026-10-08-1",
-  "slug": "titan-blood-hunt",
+  "schemaVersion": 3,
+  "runFolder": "/tmp/pob2-guides/open-melee/2026-10-08-1",
+  "slug": "open-melee",
+  "brief": {
+    "playstyle": [
+      "melee",
+      "tanky"
+    ],
+    "budget": "budget"
+  },
   "roll": {
+    "className": "Warrior",
     "ascendancy": "Titan",
     "skill": "Blood Hunt"
   },
@@ -21,16 +29,29 @@
       "outcome": "done"
     },
     {
-      "stage": "R1b",
-      "concept": "c1",
+      "stage": "R1a",
       "attempt": 1,
-      "outcome": "pass"
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a-assemble",
+      "attempt": 1,
+      "outcome": "done",
+      "shortReason": "5 of 9 cards passed the sniff test"
     },
     {
       "stage": "R1b",
-      "concept": "c2",
+      "concept": "r1-a-1",
       "attempt": 1,
-      "outcome": "pass"
+      "outcome": "pass",
+      "probes": 1
+    },
+    {
+      "stage": "R1b",
+      "concept": "r1-c-1",
+      "attempt": 1,
+      "outcome": "fail",
+      "probes": 0
     },
     {
       "stage": "R1b-assemble",
@@ -39,48 +60,55 @@
     },
     {
       "stage": "D1",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 1,
       "outcome": "done"
     },
     {
       "stage": "D1-gate",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 1,
       "outcome": "fail"
     },
     {
       "stage": "D1",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 2,
       "outcome": "done"
     },
     {
       "stage": "D1-gate",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 2,
       "outcome": "fail"
     },
     {
       "stage": "D1",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 3,
       "outcome": "done"
     },
     {
       "stage": "D1-gate",
-      "concept": "c1",
+      "concept": "r1-a-1",
       "attempt": 3,
       "outcome": "escalated"
     }
   ],
   "checkpoints": [
     {
-      "checkpoint": 1,
+      "checkpoint": "brainstorm",
       "visit": 1,
-      "answer": "pick:c1",
+      "answer": "pick:r1-a-1,r1-c-1",
       "answeredBy": "pre-supplied",
-      "rule": "pick:c1"
+      "rule": "pick:r1-a-1,r1-c-1"
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1,
+      "answer": "pick:r1-a-1",
+      "answeredBy": "pre-supplied",
+      "rule": "first-viable"
     },
     {
       "checkpoint": "escalation",
@@ -93,8 +121,8 @@
   "escalations": [
     {
       "stage": "D1-gate",
-      "concept": "c1",
-      "verdict": "reports/gates/D1-gate-c1-a3.json",
+      "concept": "r1-a-1",
+      "verdict": "reports/gates/D1-gate-r1-a-1-a3.json",
       "choice": "stop"
     }
   ],
@@ -103,12 +131,12 @@
       "id": "FI-2",
       "target": {
         "concepts": [
-          "c1"
+          "r1-a-1"
         ],
         "persistent": true
       },
       "applied": 3,
-      "observed": "each of c1's D1 gate attempts found V1 level-points on stage b"
+      "observed": "each of r1-a-1's D1 gate attempts found V1 level-points on stage b"
     }
   ],
   "outputs": {

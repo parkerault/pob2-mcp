@@ -1,9 +1,0 @@
-{
-  "stage": "R1b",
-  "concept": "c2",
-  "attempt": 1,
-  "verdict": {
-    "compiled": "pass"
-  },
-  "findings": []
-}

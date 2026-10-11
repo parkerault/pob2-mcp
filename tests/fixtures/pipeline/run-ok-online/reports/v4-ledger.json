@@ -2,7 +2,7 @@
   "stage": "V4",
   "lens": "ledger",
   "check": "full",
-  "concept": "c1",
+  "concept": "r1-a-1",
   "mode": "online",
   "findings": [],
   "verdict": "pass"

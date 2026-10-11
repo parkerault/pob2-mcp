@@ -23,9 +23,9 @@ The file is `titan-blood-hunt-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (
 Solid: survives the reference hits with room. Watch: survives them, with one weak spot. Risky: one hit can kill.
 
 - **Acts 1–2: watch.** Fire, cold and lightning sit 15 short of the cap at Act 2.
-- **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS.
-- **Budget (L90): solid.** Resistances 75/75/75/28% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS.
-- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 140,000 DPS.
+- **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS. Effective HP about 18,400.
+- **Budget (L90): solid.** Resistances 75/75/75/28% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
+- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 140,000 DPS. Effective HP about 52,300.
 
 ## Gem and ascendancy timing
 

@@ -529,10 +529,8 @@ const GUIDE_H2 = [
 /** §7.8, the audit layer (WU-62, D-278): audit.md's H2s, in order. */
 const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
 const ENDGAME_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
-/** D-283: the verdict line's fixed form, as WU-62 built it and the run checker holds it today. */
-const VERDICT_FORM_D283 = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS.';
-/** D-294 (WU-57): the verdict line ends "Effective HP about <n>.", checked against `TotalEHP` (§8's target). */
-const VERDICT_FORM = `${VERDICT_FORM_D283} Effective HP about <n>.`;
+/** D-283, D-294: the verdict line's fixed form, ending "Effective HP about <n>.", checked against `TotalEHP`. */
+const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.';
 const readStage = (stage: string) => fs.readFileSync(path.join(STAGES_DIR, `${stage}.md`), 'utf8');
 /** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
@@ -845,11 +843,9 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     const forms = section.filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
     const fixed = (label: string) => VERDICT_FORM.replace('<Entering maps|Budget|Non-budget>', label);
     expect(forms).toEqual(['Entering maps', 'Budget', 'Non-budget'].map(fixed));
-    // The run checker gains the EHP part with WU-58 (AC-W2 (dd)), which follows WU-57 on this file (D-317).
-    // Until then it holds D-283's form; once its form names Effective HP, it must be the template's.
+    // The run checker holds the template's form, Effective HP included (AC-W2 (dd), WU-58).
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    const held = /const VERDICT_FORM = '([^']*)';/.exec(checker)![1];
-    expect(held).toBe(held.includes('Effective HP') ? VERDICT_FORM : VERDICT_FORM_D283);
+    expect(/const VERDICT_FORM = '([^']*)';/.exec(checker)![1]).toBe(VERDICT_FORM);
   });
 
   it("puts in each rung's Checks only what the verdict line doesn't: the chaos exception, the budget line, and the Arbiter for b and n (D-281)", () => {
@@ -1237,7 +1233,7 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     // The run log records the rule (S4 keeps it), and V4's prose lens checks the sentence against it.
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |');
-    expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:c2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
+    expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:r1-a-2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
     const v4 = folded(readStage('V4'));
     expect(v4).toMatch(/\*\*why this concept\*\*, in `audit\.md`'s `Run notes`: check it against `run-log\.json`'s last verification gate entry whose `answer` is `pick:<the guide's card>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(artifact `audit\.md`, owner `W1`\)/);

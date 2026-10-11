@@ -14,13 +14,13 @@
 
 ## Stage detail
 
-| Loadout | Life | Blood Hunt DPS | Fire / cold / lightning / chaos |
-|---|---|---|---|
-| Act 1 (L8) {1} | 310 | — | 55/55/55/0% |
-| Act 2 (L30) {2} | 900 | 1,900 | 60/60/60/0% |
-| Entering maps (L65) {m} | 2,600 | 9,000 | 75/75/75/10% |
-| Endgame budget (L90) {b} | 4,200 | 50,000 | 75/75/75/28% |
-| Endgame non-budget (L95) {n} | 5,600 | 140,000 | 75/75/75/75% |
+| Loadout | Life | Blood Hunt DPS | Fire / cold / lightning / chaos | Effective HP |
+|---|---|---|---|---|
+| Act 1 (L8) {1} | 310 | — | 55/55/55/0% | 1,900 |
+| Act 2 (L30) {2} | 900 | 1,900 | 60/60/60/0% | 6,200 |
+| Entering maps (L65) {m} | 2,600 | 9,000 | 75/75/75/10% | 18,400 |
+| Endgame budget (L90) {b} | 4,200 | 50,000 | 75/75/75/28% | 31,500 |
+| Endgame non-budget (L95) {n} | 5,600 | 140,000 | 75/75/75/75% | 52,300 |
 
 ## What PoB doesn't model
 
@@ -34,7 +34,7 @@
 
 ## Run notes
 
-- Why this concept: the test config picked it at checkpoint 1 by the rule `first-viable`.
+- Why this concept: the test config picked it at the verification gate by the rule `first-viable`.
 - The D1 gate's budget totals: unavailable for `m` and `b` (offline run); no rates were fetched.
 
 ## Known issues

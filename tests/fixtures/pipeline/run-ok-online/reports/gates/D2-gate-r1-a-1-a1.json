@@ -1,0 +1,17 @@
+{
+  "stage": "D2-gate",
+  "concept": "r1-a-1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "finalCompile": {
+    "compiled": true,
+    "errors": [],
+    "recordPath": "compile-record.json",
+    "pobFile": "titan-open-2026-10-08-1.xml"
+  }
+}

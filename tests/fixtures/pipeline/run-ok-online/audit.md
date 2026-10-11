@@ -28,7 +28,7 @@
 
 ## Run notes
 
-- Why this concept: the user picked it at checkpoint 1.
+- Why this concept: the user finalized it at the verification gate.
 - The D1 gate's budget totals: `m` 4.4 divines, `b` 21.5 divines (near the ceiling); `n` 172 against the 200-divine reference. Rates: an exalted 0.01 divines, a chaos 0.05.
 
 ## Known issues

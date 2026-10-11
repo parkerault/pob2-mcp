@@ -1,8 +1,8 @@
 {
-  "recordVersion": 1,
+  "recordVersion": 2,
   "planSchemaVersion": 2,
-  "planSha1": "416d06ea34adc8495e79e1d9d6ac9dbe8ee98458",
-  "buildSha1": "6bdb7649bc6742bbb1dfd867710d63f49a4ebd37",
+  "planSha1": "acb618efd6e482032a073f20c75592a82c96e299",
+  "buildSha1": "1752f77ead656104c9b39c46c73e9397f9de9165",
   "compiledAt": "2026-10-08T11:02:00.000Z",
   "mode": "final",
   "stagesCompiled": [
@@ -18,9 +18,11 @@
     "treeVersion": "0_5"
   },
   "versionNotes": [],
+  "loadoutWarnings": [],
+  "saveWarnings": [],
   "pobFile": {
     "location": "builds",
-    "path": "titan-blood-hunt-2026-10-08-1.xml",
+    "path": "titan-open-2026-10-08-1.xml",
     "sha1": "d2f3fa68c7a42b572ee158d2d3a581901c39b300",
     "bytes": 697
   },
@@ -46,7 +48,17 @@
         "FireResist": 55,
         "ColdResist": 55,
         "LightningResist": 55,
-        "ChaosResist": 0
+        "ChaosResist": 0,
+        "EnergyShield": 0,
+        "TotalEHP": 1900
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 140
+        }
       },
       "skillOutputs": {
         "g1s1p1": {
@@ -57,10 +69,23 @@
           }
         }
       },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 140
+          }
+        }
+      },
       "configWritten": {
         "enemyIsBoss": "None",
         "resistancePenalty": 0
       },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -91,7 +116,17 @@
         "FireResist": 60,
         "ColdResist": 60,
         "LightningResist": 60,
-        "ChaosResist": 0
+        "ChaosResist": 0,
+        "EnergyShield": 0,
+        "TotalEHP": 6200
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 1900
+        }
       },
       "skillOutputs": {
         "g1s1p1": {
@@ -102,10 +137,23 @@
           }
         }
       },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 1900
+          }
+        }
+      },
       "configWritten": {
         "enemyIsBoss": "None",
         "resistancePenalty": -10
       },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -135,6 +183,8 @@
         "enemyLightningDamage": 72,
         "enemyChaosDamage": 72
       },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -165,7 +215,17 @@
         "FireMaximumHitTaken": 5400,
         "ColdMaximumHitTaken": 5300,
         "LightningMaximumHitTaken": 5200,
-        "ChaosMaximumHitTaken": 1900
+        "ChaosMaximumHitTaken": 1900,
+        "EnergyShield": 0,
+        "TotalEHP": 18400
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 9000
+        }
       },
       "skillOutputs": {
         "g1s1p1": {
@@ -182,6 +242,26 @@
           "fields": {
             "TotalDPS": 4000,
             "AverageHit": 1500
+          }
+        }
+      },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 9000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 4000
           }
         }
       }
@@ -205,7 +285,17 @@
         "FireMaximumHitTaken": 9800,
         "ColdMaximumHitTaken": 9700,
         "LightningMaximumHitTaken": 9600,
-        "ChaosMaximumHitTaken": 3000
+        "ChaosMaximumHitTaken": 3000,
+        "EnergyShield": 0,
+        "TotalEHP": 31500
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 50000
+        }
       },
       "skillOutputs": {
         "g1s1p1": {
@@ -225,6 +315,26 @@
           }
         }
       },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 50000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 21000
+          }
+        }
+      },
       "configWritten": {
         "enemyIsBoss": "None",
         "resistancePenalty": -60,
@@ -234,6 +344,8 @@
         "enemyLightningDamage": 97,
         "enemyChaosDamage": 97
       },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -256,7 +368,7 @@
       "elapsedMs": 900,
       "outputs": {
         "Life": 5600,
-        "TotalDPS": 140000,
+        "TotalDPS": 50000,
         "MissingFireResist": 0,
         "MissingColdResist": 0,
         "MissingLightningResist": 0,
@@ -269,14 +381,24 @@
         "FireMaximumHitTaken": 14800,
         "ColdMaximumHitTaken": 14700,
         "LightningMaximumHitTaken": 14600,
-        "ChaosMaximumHitTaken": 7000
+        "ChaosMaximumHitTaken": 7000,
+        "EnergyShield": 120,
+        "TotalEHP": 52300
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 2,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 100000
+        }
       },
       "skillOutputs": {
         "g1s1p1": {
           "skill": "Blood Hunt",
           "statSetLabel": "Lunge",
           "fields": {
-            "TotalDPS": 140000,
+            "TotalDPS": 50000,
             "AverageHit": 33000
           }
         },
@@ -289,6 +411,26 @@
           }
         }
       },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 2,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 100000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 60000
+          }
+        }
+      },
       "configWritten": {
         "enemyIsBoss": "None",
         "resistancePenalty": -60,
@@ -298,6 +440,8 @@
         "enemyLightningDamage": 106,
         "enemyChaosDamage": 106
       },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
       "configEffective": {},
       "pobWarnings": {
         "kept": [],
@@ -318,67 +462,83 @@
   "ledger": {
     "ttk_arbiter": {
       "value": 160,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_b_physical": {
       "value": 401.9956030273484,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_b_fire": {
       "value": 96.47894472656363,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_b_cold": {
       "value": 96.47894472656363,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_b_lightning": {
       "value": 96.47894472656363,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_b_chaos": {
       "value": 96.47894472656363,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_n_physical": {
       "value": 438.5508166503852,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_n_fire": {
       "value": 105.25219599609245,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_n_cold": {
       "value": 105.25219599609245,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_n_lightning": {
       "value": 105.25219599609245,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_n_chaos": {
       "value": 105.25219599609245,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_m_physical": {
       "value": 298.0959924316352,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_m_fire": {
       "value": 71.54303818359244,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_m_cold": {
       "value": 71.54303818359244,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_m_lightning": {
       "value": 71.54303818359244,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     },
     "hit_m_chaos": {
       "value": 71.54303818359244,
-      "error": null
+      "error": null,
+      "computedWithCustomMods": false
     }
   },
   "unresolvedRefs": [],

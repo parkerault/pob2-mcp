@@ -967,7 +967,9 @@
                 "quality": 0,
                 "enabled": true
               }
-            ]
+            ],
+            "count": 2,
+            "countReason": "fixture value: two copies act at once, so the D1 gate compares the figure × 2 (D-293, D-340)"
           },
           {
             "label": "Rolling Slam",

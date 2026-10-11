@@ -16,16 +16,16 @@ Import this code in PoB2 (Import/Export Build, then Import from code):
 eJy1kk9Lw0AQxc_NpxjmlBxq_kikhWyKiooQtNCoR9luxriY7IbNJgjB7y5blCo9Wo9vBt7vPWay1XvbwEiml1oxjE8iBFJCV1LVDB_K6_kCV7mXrbl9vX-5GGTjNknuzbKdgIZGahguUwTLTU328dsreo4RRMP7_o63xPCJGyO1QeC9IFVd7jeltFwhtFyqjRZvZG-MHjqGMYYOVBoi4MLKkTYdCYYp5t5sljkBVtqGGJ4LCzH4xSKAKf5AsIboR5L0K8ltxTD5lcBNYgSlK-oZ7oCHzgn4xWkUwJQc1fpKWTJS1dDyrge_OEsDmNojI6qatwTboarJgl8sXY3tvzCUVvM9x3VRf-Rkobt97mXhwf99AqX32ZQ=
 ```
 
-The file is `titan-blood-hunt-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Prices are from the Forbidden Rites league, checked 2026-10-08.
+The file is `titan-open-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Prices are from the Forbidden Rites league, checked 2026-10-08.
 
 ## Survival by stage
 
 Solid: survives the reference hits with room. Watch: survives them, with one weak spot. Risky: one hit can kill.
 
 - **Acts 1–2: watch.** Fire, cold and lightning sit 15 short of the cap at Act 2.
-- **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS.
-- **Budget (L90): solid.** Resistances 75/75/75/75% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS.
-- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 140,000 DPS.
+- **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS. Effective HP about 18,400.
+- **Budget (L90): solid.** Resistances 75/75/75/75% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
+- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 100,000 DPS. Effective HP about 52,300.
 
 ## Gem and ascendancy timing
 

@@ -1305,15 +1305,21 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
   - **Rule check.** For Whirling Assault, `{query:"Snipe", max_results:1}`, Fireball, Gas Grenade, Raise
     Zombie and Cast on Critical, the lines equal a Lua query that applies the rule with PoB's function.
     Over every active gem the rule gives 6,435 (gem, X) pairs at the pin; a gem lookup lists one gem's.
-- **AC-K62 (C-37 what a support can ride).** With exactly one support gem returned, its block gains
-  `Can support (<n> active gems): <names>`. It lists every active gem with an active effect that the
-  support's own effect can support (the shared rule), or reads `Can support: (no active gem)`.
-  - `{mode:"gem", query:"Ailith's Chimes"}`: `Can support (2 active gems): Mantra of Destruction; Tempest
-    Bell`. Whirling Assault is reached only through AC-K61.
-  - `{query:"Culmination II"}`: 93 active gems, Whirling Assault among them.
-  - `{query:"Uhtred's Exodus"}`: 398 of the 399 active gems, all but Abyssal Apparition.
+- **AC-K62 (C-37 what a support can ride).** With exactly one support gem returned, its block gains one
+  `Can support` line. Its gems are every active gem with an active effect that the support's own effect can
+  support (the shared rule); n counts them, of the total active gems.
+  - **The list form**, when n is at most half the total: `Can support (<n> of <total> active gems):
+    <names>`, or `Can support (0 of <total> active gems): (none)`.
+  - **The complement form**, when n is more than half the total, to keep the reply short: `Can support
+    (<n> of <total> active gems): all except <names>`, naming the active gems it can't support.
+  - `{mode:"gem", query:"Ailith's Chimes"}`: `Can support (2 of 399 active gems): Mantra of Destruction;
+    Tempest Bell`. Whirling Assault is reached only through AC-K61.
+  - `{query:"Culmination II"}`: the list form, 93 of 399, Whirling Assault among them.
+  - `{query:"Uhtred's Exodus"}`: the complement form, `Can support (398 of 399 active gems): all except
+    Abyssal Apparition`.
   - For Ailith's Chimes, Culmination II, Uhtred's Exodus, Paquate's Pact and
-    `{query:"Living Lightning", max_results:1}`, the names equal a Lua query's.
+    `{query:"Living Lightning", max_results:1}`, the gems equal a Lua query's: the named gems in the list
+    form, all active gems but the named ones in the complement form.
   - `{query:"Culmination"}` returns Culmination I and Culmination II. Neither block has a `Can support`
     line, and the several-gems line is present.
 - **AC-K63 (C-37 named phrase searches).** Mechanic mode's `query` may hold gaps, written `…` or `...`.

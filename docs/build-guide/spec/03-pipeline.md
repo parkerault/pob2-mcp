@@ -1,6 +1,7 @@
 # Slice 03: Pipeline — the build-guide skill, its runner and agents, the offline run, the alpha
 
-**Status: fold applied 2026-10-10; fold v1.4 applied 2026-10-11.** This slice folds in the build's pipeline
+**Status: fold applied 2026-10-10; fold v1.4 applied 2026-10-11; WU-59's criteria pinned 2026-10-11
+(AC-W34…AC-W50, A-33).** This slice folds in the build's pipeline
 decisions (D-239…D-266 and D-305…D-314 where they touch the pipeline), amendment 1 (built: D-267…D-275),
 amendment 2 (approved 2026-10-09, built by WU-62: D-276…D-284), amendment 3 (approved 2026-10-10; its
 content built by WU-56, its pipeline **not built**: D-285…D-304), the fold's own resolutions (D-315…D-334,
@@ -8,7 +9,7 @@ A-33, HG-22), and v1.4's D-335 (no player-evidence tools) and D-338 (R1b's probe
 amendments stay as the rationale record; the spine and this slice are authoritative.
 
 Part of the [spec spine](README.md) ("spine"). It covers work units WU-43…WU-47, WU-56 and WU-62 (built),
-WU-48 (the human alpha) and WU-57…WU-59 (not built), and acceptance criteria AC-W1…AC-W33 with AC-W2 (a)…(ff)
+WU-48 (the human alpha) and WU-57…WU-59 (not built), and acceptance criteria AC-W1…AC-W50 with AC-W2 (a)…(ff)
 (AC-W3, AC-W6…W10, AC-W13, AC-W24 and AC-W25 withdrawn by D-267), plus the WU-48 checklist. Requirements
 trace to the spine's contracts and decisions (C-30…C-54, C-54 withdrawn, D-100…D-338, A-20…A-33), the
 design rows they lift, the platform
@@ -1435,21 +1436,66 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-59: Offline end-to-end run with an open brief, recorded
 - kind: build (recorded run)
-- status: not built (target)
+- status: not built (target). Its criteria are pinned (A-33): AC-W34…AC-W50.
 - depends-on: [WU-51, WU-53…WU-58, WU-60…WU-62] (WU-50 done, WU-52 withdrawn, D-335)
 - role: build coordinator, with an independent verifier checking the record
 - touches: [the work-log only; temp dirs and a worktree. Failures re-open the owning unit]
 - produces: [the M-14 record]
 - consumes: [everything in this slice]
-- acceptance: [pinned at the unit's first step (A-33). They include the coordinator's guide review with
-  amendment 2's style rules (the reader layer's rules, each caveat once, the not-a-tutorial rule; D-276,
-  D-280), and a run through the paths WU-47 left to tests and review demos: D-264's claims-only path,
-  D-265 (b)–(e) and D-266 (WU-47's exception E4)]
+- acceptance: [AC-W34, AC-W35, AC-W36, AC-W37, AC-W38, AC-W39, AC-W40, AC-W41, AC-W42, AC-W43, AC-W44,
+  AC-W45, AC-W46, AC-W47, AC-W48, AC-W49, AC-W50. They include the coordinator's guide review with amendment
+  2's style rules (the reader layer's rules, each caveat once, the not-a-tutorial rule; D-276, D-280; AC-W42,
+  AC-W43), and a run through the paths WU-47 left to tests and review demos: D-264's claims-only path,
+  D-265 (b)–(e) and D-266 (WU-47's exception E4; AC-W44)]
 - milestone: M-14
-- summary: Amendment 3's N-8: WU-47's recorded procedure, with an open brief in place of a roll. The brief,
-  the test answers and the faults are chosen when the unit starts. Its first step pins its acceptance
-  criteria in this slice from the amendment's text, and the coordinator reviews them before the run
-  (A-33). Its record, with every unit above merged, is M-14's exit (D-315).
+- summary: Amendment 3's N-8: WU-47's recorded procedure (D-274), with an open brief in place of a roll. Its
+  record, with every unit above merged, is M-14's exit (D-315).
+  - **The brief** (the user, 2026-10-11): the skill Explosive Concoction, with any ascendancy. At the pin it
+    is an ascendancy skill. Its gem, `SkillGemAscendancyExplosiveConcoction`, is `fromTree`, and only the
+    Pathfinder node "Explosive Concoction" grants it (node 38004, an option of the multiple-choice notable
+    "Brew Concoction", 57141; `TreeData/0_5/tree.lua:86216`). So a correct brainstorm narrows to the
+    Ranger's Pathfinder and says why.
+  - **The procedure:**
+    1. **Setup**, as WU-47's steps 1 to 3:
+       - a worktree at the gated integration head, bootstrapped and built;
+       - temp dirs for the builds folder, the state dir, the guides root and the server's cwd;
+       - an MCP config that registers this server as `pob2`, started from the temp cwd with those dirs,
+         `POE_TRADE_DISABLED=true`, `POE_NINJA_DISABLED=true`,
+         `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2` and no `POESESSID`. P2 gets a server of its own,
+         with its own temp dirs;
+       - interactive sessions the user starts in the worktree (D-263), on Opus (D-275), with
+         `--strict-mcp-config`, WebSearch and WebFetch denied, reading any `.env` denied and editing under
+         `/mnt` denied.
+
+       The kept evidence is each session's transcript with its subagent transcripts (D-267).
+    2. **P1, the start-up probes**, in a session with the Agent tool denied: three invalid briefs and two
+       refused test configs (AC-W47, AC-W48).
+    3. **Run A, the open brief:** `/build-guide Explosive Concoction, any ascendancy --offline --test A.json`.
+       - Answers: `brainstorm` `["first-n:2"]`; `verification` `["first-viable"]`; `final`
+         `["revise:<R>", "accept"]`.
+       - `<R>` asks for a claims-only change to an endgame stage, so the revision runs D1 without a compile,
+         then W1, then the checks again (D-264, D-266): "In plan.json's budget rung, an endgame stage, add
+         one claim stating how many Mana Flask charges each Explosive Concoction throw uses, sourced from the
+         gem's own data, and say it once in the guide where the reader manages flasks. This is a
+         claims-only change: change no gear, gem, tree, config or ledger formula."
+       - Faults: FI-1 `{concepts: "all", persistent: false}`, so each picked card's first R1b attempt fails
+         and re-runs free; FI-2 `{concepts: "all", persistent: false}`, so the D1 gate's first attempt fails
+         V1 and D1 re-runs free.
+    4. **Run B, the failure routes:** the same brief, with `--test B.json`.
+       - Answers: `brainstorm` `["more", "pick:r1-a-1,r2-a-1"]`, a second brainstorm round, then the first
+         card of each round's first researcher (ids that exist whatever the deck deals);
+         `verification` `["pick:r1-a-1", "pick:r2-a-1"]`; no `final` or `escalation` answer.
+       - Faults: FI-1 `{concepts: "all", persistent: true}` (no viable card); FI-3 `{concepts: ["r1-a-1"]}`
+         (`r1-a-1` infeasible, back to the verification gate); FI-2 `{concepts: ["r2-a-1"], persistent:
+         true}` (a D1 gate escalation, answered by the default `stop`).
+    5. **P2, a card whose damage source isn't a skill:** a launcher session starts one R1b step with the
+       Agent tool, as `build-guide-coordinator`, on a seeded run folder. Its card `r1-b-1` names Melting
+       Maelstrom's mana nova (PG-19) as its damage source (AC-W46). No run can be steered to such a card:
+       the test config picks cards by id or by position, and a brief that names a skill holds such a card
+       back (D-334).
+    6. **Checks and review:** the coordinator records AC-W34…AC-W50, and an independent verifier re-checks
+       the record. A *(quality)* clause is handled as WU-47's are: one coordinator re-run of that run, then
+       a finding against the owning unit's prompts.
 
 ### WU-62: The guide style — the reader layer, the audit layer and the guards
 - kind: build
@@ -1677,7 +1723,7 @@ and its file is shown to the user with item 1's approval.
   against §8's table and records, per H2, whether it is present and complete. It also records whether a
   reader could follow it from level 1 to an endgame variant (the quality bar). Any `incomplete`
   re-opens WU-45. (The review of amendment 2's style rules is a WU-59 criterion, pinned at that unit's
-  start: A-33.)
+  start: AC-W42, A-33.)
 - **AC-W26 (start-up refusals; D-238, D-210).** Recorded probes in the M-12 environment.
   - **Invalid roll.** `/build-guide Titan "No Such Skill" --offline` and
     `/build-guide "No Such Ascendancy" "Blood Hunt" --offline` each stop before any agent runs. Each
@@ -1725,6 +1771,219 @@ and its file is shown to the user with item 1's approval.
   definitions say: never contact pathofexile.com or poe.ninja yourself, and there are no poe.ninja tools
   beyond the currency rates; no researcher's allowlist names a group-`ninja` tool; R-3 holds for C and P.
 
+**Offline end-to-end run with an open brief (WU-59; pinned at its first step, A-33).** Recorded checks on the
+sessions of WU-59's procedure (§12: P1, run A, run B, P2), re-checked by an independent verifier. Each
+criterion ends with its evidence: the run folder, the run checker, the transcripts (each session's and its
+subagents') or the coordinator's review. Numbers come from the run folder, never from a transcript's prose.
+*(quality)* marks a quality clause, handled as WU-47's are (§12, WU-47).
+
+- **AC-W34 (run A: the brief; C-51, D-285, D-289).**
+  - `run-log.json` has `schemaVersion: 3`, `mode: "offline"` and `testConfig: "accepted"`. Its `brief` has
+    `skill: "Explosive Concoction"`, no `ascendancy`, and in any other field only text the command gave.
+  - The slug is `open-explosive-concoction`. `roll` is `null` until the verification gate's pick, and then
+    `{className: "Ranger", ascendancy: "Pathfinder", skill: "Explosive Concoction"}`.
+  - Before `guide_run {new_run}`, the runner checked the skill with `lookup_game_data {mode: "gem"}`. Its only
+    `pob2` calls in the run are that check, `get_classes` and `guide_run {new_run}` (FR-W3).
+  - Evidence: run folder, transcript.
+- **AC-W35 (run A: the deck narrows to Pathfinder, with the reason; D-286, D-287).** *(quality)*
+  - Every card `cards.md` deals has the identity Ranger, Pathfinder, Explosive Concoction.
+  - Each dealt card gives the reason: its Enabler or links table names the Pathfinder node that grants the
+    skill ("Grants Skill: Explosive Concoction", node 38004, an option of "Brew Concoction"), with the lookup
+    that returned that text and the status `confirmed in game text`.
+  - No card naming another ascendancy is dealt: such a card is under "Not dealt", with the check that held it
+    back.
+  - Evidence: run folder (`cards.md`, `cards/`).
+- **AC-W36 (run A: the deck; D-287, D-298, D-335, D-339).**
+  - One brainstorm round: at most 3 R1a entries, each with its research file and 3 cards,
+    `cards/r1-<letter>-<n>.md`, whose brainstorm half follows the card template; then one R1a-assemble.
+  - `cards.md` deals 6–9 cards, at least two of them labelled `under-played (judgment: …)`, each with the
+    `Under-played (judgment)` line in its pitch. Otherwise the R1a-assemble entry has a `shortReason`, and the
+    brainstorm gate shows it (D-339).
+  - Every card's Evidence says "no player evidence": the brief has no `popularity` notes (D-335).
+  - Every "Not dealt" line names what held its card back.
+  - Evidence: run folder, run checker (the deck rules).
+- **AC-W37 (runs A and B: each gate shows what is and isn't verified; D-265 (b), D-296).** In the
+  transcript, every gate visit prints its display before the answer it resolved to, pre-supplied and default
+  answers included:
+  - the brainstorm gate: the parsed brief; each dealt card not verified yet, with its links confirmed (`n of
+    m`) and any under-played label; and "Not dealt", each card with the link no lookup confirmed or the check
+    that failed;
+  - the verification gate: each verified card's status (`viable`, `failed`, or "can't be finalized yet"), its
+    Count-scaled figure, `Life` and `TotalEHP` from its record, the figure labelled `estimate` where its
+    Count is above 1 or a custom modifier is present, its risks and what PoB can't verify, and the dossier's
+    path. With no viable card, each failed card's last verdict; on a revisit after `infeasible`, that card's
+    last verdict file;
+  - the final gate: the guide, the PoB file, the gate verdicts, the known issues, the checker's result, that
+    the guide is from an offline run, and that no rung can be claimed under budget while its prices are
+    `unavailable` (D-164);
+  - an escalation: the stage, the attempts and the verdict file.
+  - Evidence: transcript.
+- **AC-W38 (run A: verification within budget; D-272, D-292, D-331, D-338).** For each card `first-n:2`
+  resolved to:
+  - R1b attempt 1 fails on FI-1: its verdict names `FI-1 Unknown Gem`, lists FI-1 in `faultsApplied` and has
+    `compiles: 1`. Attempt 2 runs uncounted and compiles, with `compiles` at most 2.
+  - The card's verification half replaces every `Not checked yet.` line: Verified (`Life`, `EnergyShield`,
+    the four resistances, each max hit, `TotalEHP`, and the Count-scaled figure with its group and stat set),
+    Estimates, the eight checklist rows each `verified`, `estimate`, `risk` or `not checked`, a fallback
+    ladder, and key-item prices `unavailable` (offline run).
+  - Its probes are `probes/<id>/<n>/`, `n` from 1 to at most 4, each a one-stage plan with its measure-only
+    record and XML beside it. The `probes` of its R1b entries add up to that number, and no probe wrote a PoB
+    file. A probe whose compile failed is reported `not checked`.
+  - `dossier.md` holds both cards, with `TotalEHP` among their key numbers.
+  - Evidence: run folder, run checker (the layout and the probe count, AC-W2 (ff)).
+- **AC-W39 (run A: Count and figure × count where they apply; D-293, D-294, D-296, D-321, D-340).**
+  - Every plan group with `count` above 1 has a `countReason`, and every `config.customMods` entry has a
+    `reason`: the final record's V1 passes, so there is no `missing-reason` finding.
+  - The last D1 gate's `basis.rolledSkill` reads each figure Count-scaled, from `countedSkillOutputs`, where
+    the field has a counted copy (D-340), and the checker's recompute agrees (AC-W2 (ee)).
+  - Each rung's verdict line quotes the named damage source's Count-scaled figure and ends "Effective HP about
+    <n>.", matching `TotalEHP` (AC-W2 (dd)).
+  - `What PoB can't show` lists each Count above 1 and each custom modifier with its reason, and the guide
+    calls any figure resting on them an estimate. With Count 1 on every group and no custom modifier, the
+    first three clauses hold alone; the review records which case held.
+  - Evidence: run folder, run checker, review.
+- **AC-W40 (run A: the finalization; D-267, D-272, D-287, D-301).**
+  - The verification gate's answer is `pick:<id>` with `rule: "first-viable"`: the first viable card. The
+    run's `roll` becomes its identity.
+  - `stages[]` after the pick: D1; the D1 gate, whose attempt 1 fails V1 on the stage FI-2 edited
+    (`faultsApplied` names FI-2); D1 again, uncounted; the D1 gate passing within 2 counted retries
+    *(quality)*; D2; the D2 gate with the final compile; W1; the three V4 lenses; the fix round and re-check
+    when a finding is open (§5.5); then the revision and its verification (AC-W44 (a)).
+  - D2 plans a bridge skill for each campaign stage before the first stage that allocates the Pathfinder
+    node granting Explosive Concoction, and the guide's Leveling says what waits on that node (D-301).
+    *(quality)*
+  - Both final gate visits are `pre-supplied`, each with its `rule`, and `status` is `completed`.
+    *(quality)*
+  - `faults[]`: FI-1 applied twice (once per verified card), FI-2 once.
+  - Evidence: run folder, transcript.
+- **AC-W41 (run A: the artifacts; AC-W17 restated).**
+  - `check-run.mjs` exits 0 on run A's folder after the run's last log write.
+  - `guide_run {validate: <runFolderRel>/plan.json}` returns no error, and the final record's V1 and V2
+    verdicts pass for every stage.
+  - The temp builds folder holds exactly one file: the record's PoB path, named after `buildName`.
+  - The import code round-trips: `encode_build_code` on that file equals the record's `importCode` and the
+    guide's code, and decoding it gives one loadout per plan stage, each tree set titled by its stage's
+    loadout name (D-180, D-215).
+  - Every compiled card skeleton and probe has its record and XML beside its plan, and none wrote a PoB file
+    (measure-only, D-208).
+  - Evidence: run checker, a temp-dir probe of the worktree's server, run folder.
+- **AC-W42 (run A: the reader layer; D-276…D-283, D-280).**
+  - The checker's guards pass (AC-W41): the 14 H2s, at most 3,000 words, no markers, the verdict lines, the
+    reward picks by name, and Known issues by sentence.
+  - Each H2 of `guide.md` has at most 1.5 times its §8 word budget, and each Leveling H3 at most 110 words,
+    counted as the checker counts words (the import code and the Known issues list not counted). The review
+    records each count. *(quality)*
+  - Each caveat appears once, where the reader acts on it, and is never later stated as settled (D-279). The
+    review lists every caveat with its line. *(quality)*
+  - Not a tutorial (D-280): every sentence about how the game or PoB works names something this build uses,
+    needs or avoids, and changes what the reader does. The review lists each sentence that fails the swap
+    test, and there is none. *(quality)*
+  - Advice is in the first person, numbers are rounded as a guide rounds them, and there are no pipeline
+    words (D-276). *(quality)*
+  - Evidence: run checker, review.
+- **AC-W43 (the coordinator's guide review; A-28; AC-W22 restated).** *(quality)*
+  - The coordinator reads run A's `guide.md` against §8's table and records, per H2, whether it is present
+    and complete.
+  - It records whether a reader can follow the guide from level 1 to an endgame variant. That includes the
+    bridge skills before Explosive Concoction arrives, the ascendancy trial and node that grant it, the switch
+    to it, the named damage source as the main damage in `At a glance` and `How to play it` (D-295), and each
+    rung's gate in, buy order and checks.
+  - An `incomplete` re-opens the unit that owns that section's prompts: WU-62 for amendment 2's sections,
+    WU-57 for amendment 3's additions.
+  - Evidence: review.
+- **AC-W44 (WU-47's exception E4, in a run).**
+  - (a) **D-264's claims-only path**, in run A.
+    - The revision: the final gate's first answer is `revise:<R>` (§12, WU-59). The runner sends it to D1
+      as `findings` with `code: "user-request"`. D1 returns `recompiled: no` and is logged `claims-edited`.
+      W1 follows with no gate between, then a full pass of the three lenses.
+    - A fix round in either cycle whose owners didn't recompile logs its D1 and D2 `claims-edited` and runs
+      no gate, and its re-check runs each lens that raised a finding plus the sources lens, and no other
+      *(quality: whether the findings need no build change)*.
+    - The run checker holds both (FR-W7 (4)).
+  - (b) **D-265 (b)**: AC-W37, in both runs, including run B's no-viable view and its revisit after FI-3
+    (WU-47's failing clause).
+  - (c) **D-265 (c)**: run A's plan picks every campaign reward choice the campaign passes, with the same
+    pick on every later stage, the endgame stages included, and `Campaign route and rewards` names each pick.
+    Evidence: the checker's reward rule, and the review.
+  - (d) **D-265 (d)**: after each cycle's step 14 (the first cycle's, and the revision's):
+    - the guide's `Known issues` holds W1's lines for the accepted gate findings, then each open finding's
+      `reader` sentence word for word, with no id and no line from the other cycle, or `None.`;
+    - `audit.md`'s table has each open finding's id;
+    - the transcript shows the runner replacing both lists with Edit, each cycle.
+  - (e) **D-265 (e)**: every Bash command in the runner transcripts of P1, run A and run B is either one of
+    `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq` (alone, piped into one another, or after a `cd`), with
+    no redirection, `tee`, writing flag or command substitution; or the run checker. No agent ran Bash.
+  - (f) **D-266**:
+    - run A's checker exits 0 with the revision's `claims-edited` D1 after the final compile: the record is
+      still the last D2 gate's, and the plan's build projection hashes to the record's `buildSha1`;
+    - on a copy of run A's folder whose `plan.json` has one equipped item's text changed (a build change made
+      without a compile), the checker exits 1 with a `[record-plan]` violation.
+  - Evidence: run folder, run checker, transcript.
+- **AC-W45 (run B: the failure routes; D-141, D-235, D-236, D-272, D-287).**
+  - `status: "escalated"`.
+  - The brainstorm gate's visit 1 is `more` (`pre-supplied`, with its `rule`). Then a second brainstorm round:
+    at most 3 R1a entries and one R1a-assemble, cards `cards/r2-<letter>-<n>.md`, and `## Round 2` in
+    `cards.md`. Visit 2 is `pick:r1-a-1,r2-a-1`.
+  - One verification round: each picked card has 3 counted R1b attempts, each failing on FI-1 (persistent)
+    with a verdict naming `FI-1 Unknown Gem`, and ends `failed`. No faulted attempt leaves a compile record.
+  - The verification gate's visit 1 is the no-viable view, each card with its last verdict, then
+    `pick:r1-a-1`: a failed card finalized anyway. D1 and the D1 gate run for it. The gate's verdict has
+    `"forced": "infeasible"` and `FI-3 (injected)`, and the run goes back to the verification gate. Visit 2
+    shows `r1-a-1`'s evidence, then answers `pick:r2-a-1`.
+  - `r2-a-1`'s D1 gate has 3 attempts, each with a V1 finding from FI-2 (persistent, counted), then one
+    escalation. `escalations[]` holds `choice: "stop"` naming the third attempt's verdict file, and its
+    `checkpoints[]` entry has `answeredBy: "default"` with its `rule`. No D2, W1 or V4 step ran.
+  - `faults[]`: FI-1 applied 6 times, FI-3 once, FI-2 3 times.
+  - No file in the temp builds folder comes from run B, and `check-run.mjs` exits 0 on its folder.
+  - Evidence: run folder, run checker, transcript.
+- **AC-W46 (P2: a card whose damage source isn't a skill; D-303, D-334).** One `build-guide-coordinator`
+  R1b step, started with the Agent tool on P2's seeded run folder for card `r1-b-1` (Melting Maelstrom's
+  mana nova):
+  - it writes `reports/gates/R1b-r1-b-1-a1.json` with `verdict.compiled: "fail"`, one finding with code
+    `not-a-skill`, `compiles: 0` and `recordPath: null`;
+  - it writes nothing under `concepts/r1-b-1/` or `probes/r1-b-1/`, and its transcript has no
+    `compile_plan` call;
+  - it fills the card's verification half: "not compiled: its damage source isn't a skill", checks 1–4 with
+    results from the card and lookups, and checks 5–8 `not checked`.
+  - The route around such a card (never retried, its status "can't be finalized yet", never finalized) is the
+    checker's (AC-W2, WU-58): no test answer can pick such a card in a run.
+  - Evidence: P2's run folder, transcript.
+- **AC-W47 (P1: invalid briefs; D-238, D-258, D-285).** In P1, with the Agent tool denied:
+  - `/build-guide Pathfinder "Explosive Concotion" --offline` stops, listing the closest active gem names in
+    the lookup's order, Explosive Concoction among them;
+  - `/build-guide "Pathfindr" "Explosive Concoction" --offline` stops, listing the closest ascendancies from
+    `get_classes`, Pathfinder among them;
+  - `/build-guide a Fork build, any ascendancy --offline`, a free-text brief, stops and says Fork is a support
+    gem;
+  - each stops before any agent runs, and none creates a folder under the guides root.
+  - Evidence: transcript, the guides root's listing.
+- **AC-W48 (P1: refused test configs; A-28, D-157, D-323; AC-W4 restated).**
+  - `/build-guide Explosive Concoction, any ascendancy --test A.json`, without `--offline`: the run log exists,
+    with `schemaVersion: 3`, `mode: "online"` and `testConfig: "refused"`; the reply says the file was
+    refused; no checkpoint is `pre-supplied`; and no `research/` or `cards/` file exists.
+  - `/build-guide Explosive Concoction, any ascendancy --offline --test M.json`, a config holding the
+    retired keys `checkpoint1` and `checkpoint2`: `testConfig: "refused"`, `status: "stopped"`, the reply
+    names what is wrong, and no `research/` or `cards/` file exists.
+  - Evidence: run folders, transcript.
+- **AC-W49 (runs A and B: NFR-22 and NFR-23, read as D-270 says, from run log 3).**
+  - NFR-22: no `stages[]` entry has `priceOutcomes`, and every `prices[]` entry of every plan, skeleton and
+    probe is `unavailable` with note `offline run`.
+  - NFR-23, from `stages[]`: per brainstorm round, at most 3 R1a entries and one R1a-assemble, dealing 6–9
+    cards or with a `shortReason`; per verification round, at most 3 cards in R1b; three lenses per V4 pass;
+    at most 2 counted retries per gate and 3 counted R1b attempts per card (S6); and each card's `probes` at
+    most 4 in all.
+  - From the transcripts: at most 3 agents in flight, and no coordinator step overlapping another agent.
+  - Evidence: run folder, run checker, transcript.
+- **AC-W50 (all sessions: no network, and the write roots; D-177, D-181, D-201; AC-W16 and AC-W20
+  restated).**
+  - The recorded server env shows the procedure's settings, without secrets.
+  - The transcripts, subagents included, hold no WebSearch, WebFetch or P-tool call, and no `/mnt/` path in
+    any tool call.
+  - `git status --porcelain` in the worktree is empty before and after the sessions.
+  - Every file created under a temp guides root is inside a run folder of P1, run A or run B, or P2's seeded
+    folder. The temp builds folder holds only run A's PoB file.
+  - Evidence: the environment's files, transcripts.
+
 ## 14. Test strategy (this slice)
 
 | AC | Class | Runs in |
@@ -1738,10 +1997,11 @@ and its file is shown to the user with item 1's approval.
 | AC-W30…W33 (target) | static (pipeline files) | `mise run test` |
 | AC-W2 (v)…(z) (WU-62, built) | unit (the run checker, rebuilt fixtures) | `mise run test` |
 | AC-W2 (aa)…(ff) (target) | unit (the run checker, rebuilt fixtures) | `mise run test` |
-| WU-59's criteria (target) | pipeline run (recorded; pinned at the unit's start) | WU-59 |
+| AC-W34…W50 (WU-59, target; pinned at its start, A-33) | pipeline run (recorded; independent verifier) | WU-59 |
 
 The checker's control-flow cases over fixture logs exercise every failure route deterministically and
-offline, in place of the deleted workflow harness; run B of WU-47 drives every failure route live (D-267).
+offline, in place of the deleted workflow harness; run B of WU-47 drives every failure route live (D-267),
+and WU-59's run B the amended ones (AC-W45).
 The recorded runs prove that the real agents, tools and allowlists behave the same way. No test or run in
 this slice contacts pathofexile.com, poe.ninja or D-171's hosts before M-13 (D-34, D-181); there are no
 poe.ninja tools to test (D-335).
@@ -1774,7 +2034,7 @@ The last two rows of the first fold came after it: `--no-ninja` (D-333) and a no
 | F1 | Amendment 2 was approved but not built | **D-317:** folded as target design, its pipeline work in WU-62, which merges before WU-57 and WU-58 | §8, §12 |
 | F4 | No milestone for the new units; whether amendment 3's live run is WU-48 | **D-315 (the user):** milestone M-14, "open builds offline", exits when WU-50…WU-62 are merged and WU-59 is recorded as WU-47 was; WU-48 is the live run, depends on M-14 and exercises the amended pipeline, its trade gate unchanged | §12 |
 | F6 | How parallel researchers name cards without collisions across rounds; whether the research files stay | **D-319:** card ids `r<round>-<researcher letter>-<n>` at `cards/<id>.md`, lettered by the runner; `research/p<k>-r1a-<n>.md` stays, and WU-57 removes it with a decision row only if it finds the files unused | §2, §5.1 |
-| F12, F20 | No acceptance criteria for WU-59 (amendment 3's "like WU-47") or for the D-122 wording test | **A-33:** each unit's first step pins its criteria in this slice from the amendment's text, and the coordinator reviews them before any work; "like WU-47" means WU-47's recorded procedure with an open brief | WU-59, AC-W32 |
+| F12, F20 | No acceptance criteria for WU-59 (amendment 3's "like WU-47") or for the D-122 wording test | **A-33:** each unit's first step pins its criteria in this slice from the amendment's text, and the coordinator reviews them before any work; "like WU-47" means WU-47's recorded procedure with an open brief | WU-59 (AC-W34…AC-W50), AC-W32 |
 | F13 | The final gate's test answers | **D-323:** `answers.brainstorm`, `answers.verification` and `answers.final`; `checkpoint1` and `checkpoint2` retire with run log v3 | §11.2 |
 | F14, F15 | Who sets the popularity threshold for a deck's under-played cards; the poe.ninja tools' details | *Withdrawn → D-335:* D-324 made both outputs of spike WU-50, which found poe.ninja's builds API closed to third parties. There are no tools and no threshold; the under-played cards are the coordinator's judgment from the pattern library (D-298 restated) | §4, §5.2 |
 | F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test | §7.6, AC-W28 |

@@ -1,15 +1,17 @@
 # Slice 03: Pipeline — the build-guide skill, its runner and agents, the offline run, the alpha
 
-**Status: fold applied 2026-10-10.** This slice folds in the build's pipeline decisions (D-239…D-266 and
-D-305…D-314 where they touch the pipeline), amendment 1 (built: D-267…D-275), amendment 2 (approved
-2026-10-09, **not built**: D-276…D-284), amendment 3 (approved 2026-10-10, **not built**: D-285…D-304) and
-the fold's own resolutions (D-315…D-334, A-33, HG-22). The amendments stay as the rationale record; the
-spine and this slice are authoritative.
+**Status: fold applied 2026-10-10; fold v1.4 applied 2026-10-11.** This slice folds in the build's pipeline
+decisions (D-239…D-266 and D-305…D-314 where they touch the pipeline), amendment 1 (built: D-267…D-275),
+amendment 2 (approved 2026-10-09, built by WU-62: D-276…D-284), amendment 3 (approved 2026-10-10; its
+content built by WU-56, its pipeline **not built**: D-285…D-304), the fold's own resolutions (D-315…D-334,
+A-33, HG-22), and v1.4's D-335 (no player-evidence tools) and D-338 (R1b's probe and card writes). The
+amendments stay as the rationale record; the spine and this slice are authoritative.
 
-Part of the [spec spine](README.md) ("spine"). It covers work units WU-43…WU-47 (built), WU-48 (the human
-alpha) and WU-56…WU-59 and WU-62 (not built), and acceptance criteria AC-W1…AC-W33 (AC-W3, AC-W6…W10,
-AC-W13, AC-W24 and AC-W25 withdrawn by D-267), plus the WU-48 checklist. Requirements trace to the spine's
-contracts and decisions (C-30…C-54, D-100…D-334, A-20…A-33), the design rows they lift, the platform
+Part of the [spec spine](README.md) ("spine"). It covers work units WU-43…WU-47, WU-56 and WU-62 (built),
+WU-48 (the human alpha) and WU-57…WU-59 (not built), and acceptance criteria AC-W1…AC-W33 with AC-W2 (a)…(ff)
+(AC-W3, AC-W6…W10, AC-W13, AC-W24 and AC-W25 withdrawn by D-267), plus the WU-48 checklist. Requirements
+trace to the spine's contracts and decisions (C-30…C-54, C-54 withdrawn, D-100…D-338, A-20…A-33), the
+design rows they lift, the platform
 grounding ("platform §") and ext §5 (the prior-art guide outline). `../worklog.md:n` cites the build's
 work-log. §15 lists the open items and how each was settled. Prompt wording is tuned on real runs; this
 slice fixes the contracts and required behaviours, not the prose of prompts.
@@ -54,14 +56,14 @@ slice fixes the contracts and required behaviours, not the prose of prompts.
   - C-42 `encode_build_code`;
   - the dated price outputs (C-49, WU-49), whose errors start with a stable `[trade:<kind>]` prefix
     (D-218), and the limiter's `would_wait`/`locked_out` answers (C-11).
-  - *Target (WU-52, WU-53, WU-54, WU-60; D-297, D-299, D-300, D-277):* the poe.ninja tools for popularity
-    and the build index (C-54), and the lookup and coverage additions (C-37, C-38), among them a mod hit
-    that lists the base types that can roll it and a searchable essence table.
+  - since WU-60 and WU-54 (D-277, D-300, D-336): a mod hit that lists the base types that can roll it,
+    essences as a mechanic kind (C-37), and the coverage flags (C-38). *Target (WU-53, D-299):* the lookup
+    additions. There are no poe.ninja tools beyond `get_currency_rates` (C-54 withdrawn, D-335).
 
   The registration names the server `pob2` (stab D-16), so allowlists name `mcp__pob2__<tool>`.
 - **Tool groups** (stab C-1): `POE_TRADE_DISABLED=true` hides group `trade` and `POE_NINJA_DISABLED=true`
-  hides group `ninja`, so in M-12 the price tools don't exist for anyone.
-  *Target (WU-52, D-297):* the new poe.ninja tools join group `ninja`, so the same flag hides them.
+  hides group `ninja`, so in M-12 the price tools don't exist for anyone. Group `ninja` holds only
+  `get_currency_rates`: D-335 withdrew the poe.ninja tools (C-54).
 - **Kind `read` is not "writes nothing"** (`src/server/toolMeta.ts`): `lua_save_build`, `export_build`
   and `save_config_preset` are `read` but write into the builds folder or the state dir, and
   `guide_run`'s `new_run` mode creates a folder. Allowlists are therefore enumerated sets (§4), never
@@ -92,10 +94,10 @@ run gets a new dated folder and never writes into an earlier run's (D-153).
 | `guide.md` | W1; the runner replaces its `Known issues` list (step 14, D-265) | §8 |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate (D-267) | its verdict (§5.3) |
 | `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged (D-267) | the V4 full pass and re-check reports (§7.4) |
-| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table (step 14) | *Target (WU-62, D-278):* the audit layer (§7.8) |
+| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table (step 14) | the audit layer (§7.8; D-278, WU-62) |
 | `cards/<id>.md` | R1a (the brainstorm half), then R1b (the verification half) | *Target (WU-57, D-291):* a candidate card (§7.5) |
 | `cards.md` | R1a-assemble | *Target (WU-57, D-287):* the dealt deck, plus "Not dealt" (§7.5) |
-| `probes/<card-id>/<n>/` | R1b | *Target (WU-57, D-292, D-331):* a probe variant's one-stage plan; `compile_plan` writes its measure-only record and XML beside it (§7.7) |
+| `probes/<card-id>/<n>/` | R1b | *Target (WU-57, D-292, D-331, D-338):* a probe variant's one-stage plan; `compile_plan` writes its measure-only record and XML beside it (§7.7). R1b's checklist already writes it (WU-56); WU-57 names it in R1b's header `writes`, and WU-58's checker accepts it (AC-W2 (ff)) |
 
 - **Concept ids** are `c1`, `c2`, … in proposal order (researcher order, then each file's proposals in file
   order), unique within the run across research rounds.
@@ -108,7 +110,9 @@ run gets a new dated folder and never writes into an earlier run's (D-153).
 - A revision's verification rewrites the V4 reports; the run log's order says which re-check belongs to the
   last full pass.
 - **Nothing else goes in the run folder**, and the run checker fails a stray file. No agent writes outside
-  it (D-177), and agents running in parallel write different files (C-36).
+  it (D-177), and agents running in parallel write different files (C-36). As built, the checker's layout
+  list (`KNOWN_TOP` in `check-run.mjs`) doesn't hold `cards/`, `cards.md` or `probes/` yet: AC-W2 (ff)
+  adds them with WU-58 (D-338).
 - **The PoB file.** Only the final compile writes one, through C-17 (D-208); its `build_name` is
   `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments joined with `-`, so every run writes a new
   file (D-113, D-199). Every earlier compile, the concept skeletons' included, is measure-only. A re-compile
@@ -144,16 +148,19 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   | `around` | an item or mechanic to build around: "Melting Maelstrom", "block" |
   | `like` | a reference build and what to change: "like the Eraser, but not Gemling" |
   | `notes` | anything else |
+  | `popularity` (D-335) | the user's own notes on what players run: "Blood Hunt Titans are rare this league" |
 
   - **Playstyle vocabulary**, which cards use too: delivery `melee`, `ranged-attack`, `spell`, `minion`,
     `totem-trap`, `mixed`; buttons `one-button`, `few-buttons`, `combo`; focus `clear`, `boss`,
     `balanced`; defence `tanky`, `balanced`, `glass`; pace `fast`, `steady`.
   - A randomizer roll is the brief `{ascendancy, skill}`. An empty brief means "surprise me": the
-    brainstorm seeds from the pattern library's families and, with poe.ninja on, from skills few characters
-    play.
-  - `--no-ninja`: the run calls no tool in group `ninja`, neither C-54's poe.ninja tools nor
-    `get_currency_rates`, so price totals in divines are `unverified` (pricing's path when rates are missing),
-    and the cards say "no player evidence" (D-297, D-333).
+    brainstorm seeds from the pattern library's families, and from what the coordinator judges
+    under-played (`judgment`, D-298 as D-335 restates it), or the user's `popularity` notes when the brief
+    has them.
+  - **Player evidence** (D-335). No tool supplies it: poe.ninja's terms close its builds API. A card cites
+    the brief's `popularity` notes as user-supplied, or says "no player evidence".
+  - `--no-ninja`: the run calls no tool in group `ninja`, whose one tool is `get_currency_rates`, so price
+    totals in divines are `unverified` (pricing's path when rates are missing) (D-297, D-333, D-335).
 - **FR-W2 (start).** In this order, before any agent runs:
   1. **Roll check** (D-238, D-258). `get_classes` must list the ascendancy (case-insensitively); the runner
      notes its class. `lookup_game_data {mode: "gem", query: <skill>}` must give a result headed
@@ -180,8 +187,8 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   `pob2` tool except `get_classes` and `lookup_game_data` for the roll check and `guide_run {new_run}`.
   Lookups (the tools in L, §4) may also be called by the R1a researchers, the V4 verifiers and coordinator
   steps. Every engine-changing and trade call is made by a coordinator step, and no coordinator step
-  overlaps any other agent.
-  *Target (WU-57, D-297):* the researchers and coordinator steps may also call the poe.ninja tools (N, §4).
+  overlaps any other agent. No agent calls a poe.ninja tool beyond the coordinator's `get_currency_rates`
+  (D-335; the researchers' poe.ninja tools of D-297 are withdrawn).
 - **FR-W4 (Agent calls; D-267).**
   - One Agent call per step, its `subagent_type` one of the four build-guide types (§4). A default agent
     would see every tool.
@@ -250,23 +257,26 @@ verifiers' reports and runs the run checker. The agents research, design, compil
      recompiled ran after the last D2 gate (a claims-only D1 or D2 leaves it current). A guide, V4 reports or
      a record from an earlier cycle or concept aren't held to the current plan.
 
-  *Target (WU-62, D-283, D-281):* amendment 2's deterministic guards (§8's target): the 3,000-word cap; the
-  new headings, `audit.md`'s included; no markers in `guide.md`; one fixed-form verdict line per endgame
-  rung, compared with the record; reward picks by name; Known issues by sentence, with each id in
-  `audit.md`; the entering-maps rung's floor and its budget of 5 divines (5.5 with "near the ceiling").
-  *Target (WU-58, D-287, D-289, D-294, D-326):* run log v3 (§6); brainstorm and verification rounds and their
-  caps; the renamed answers; the verdict line's "Effective HP about <n>." against `TotalEHP`; the D1 gate
-  recompute reads figure × count. The checker accepts run logs of schema 2 and 3; schema 2 only so recorded
-  runs (WU-47's) still check.
+  Since WU-62 (D-283, D-281), also amendment 2's deterministic guards (§8): the 3,000-word cap; the reader
+  layer's headings, `audit.md`'s included; no markers in `guide.md` outside the import code's fence; one
+  fixed-form verdict line per endgame rung, compared with the record; reward picks by name; Known issues by
+  sentence, with each id in `audit.md`; the entering-maps rung's floor at area 69 and its budget of 5
+  divines (5.5 with "near the ceiling"), the first rung taken by rung order.
+  *Target (WU-58, D-287, D-289, D-294, D-326, D-338):* run log v3 (§6); brainstorm and verification rounds
+  and their caps; the renamed answers; the verdict line's "Effective HP about <n>." against `TotalEHP`; the
+  D1 gate recompute reads figure × count; the layout's `cards/`, `cards.md` and `probes/`, with each card's
+  probe count. The checker accepts run logs of schema 2 and 3; schema 2 only so recorded runs (WU-47's)
+  still check.
 
 ## 4. Agent definitions and tool allowlists (D-130, D-142, D-178, A-24, D-267)
 
 Four definitions in `.claude/agents/build-guide/` (D-267). Each holds its role: the allowlist and the
 standing rules (write only inside the run folder; never read `.env`; web only on D-171's hosts, never
 pathofexile.com or poe.ninja; offline-mode rules, §11.1). Stage instructions live in the stage references.
-*Target (WU-57, D-297):* the poe.ninja rule becomes "never contact pathofexile.com or poe.ninja yourself;
-poe.ninja only through the server's poe.ninja tools", in `SKILL.md` and in the researcher's and the
-coordinator's definitions.
+*Target (WU-57, D-335):* the poe.ninja rule reads "never contact pathofexile.com or poe.ninja yourself;
+there are no poe.ninja tools beyond the currency rates", in `SKILL.md` and in the researcher's and the
+coordinator's definitions. (As merged, `SKILL.md` says trade and poe.ninja are reached only through the
+server's price tools, and the coordinator's definition only through `get_currency_rates`.)
 
 **Tool sets** (server `pob2`):
 - **L, lookups:** `lookup_game_data`, `check_model_coverage`, `search_tree_nodes`, `list_gems`,
@@ -278,17 +288,17 @@ coordinator's definitions.
 - **C, compile:** `compile_plan`, `guide_run`, `encode_build_code`.
 - **P, prices:** `get_item_price`, `search_trade_items`, `search_stats`, `get_leagues`,
   `trade_query_options` (group `trade`), `get_currency_rates` (group `ninja`).
-- *Target (WU-52, WU-57; C-54, D-297):* **N, poe.ninja:** the popularity and build-index tools of group
-  `ninja`, named by spike WU-50 (D-324). They are not price tools; prices stay with P.
+- **N, poe.ninja:** *withdrawn → D-335.* The popularity and build-index tools of C-54 aren't built: there is
+  no set N, and group `ninja`'s one tool, `get_currency_rates`, stays in P.
 
 **Who calls what** (C-36 as corrected by D-231; D-130). Lookups (L) may be called by the R1a researchers,
 the V4 verifiers and the coordinator. Engine-mutating calls and all trade calls are made only by the
-coordinator. *Target (WU-57, D-297):* N by the researchers and the coordinator.
+coordinator, and so is every poe.ninja call (`get_currency_rates`, D-335).
 
 | Type | Runs | File tools | `pob2` tools | Web |
 |---|---|---|---|---|
-| `build-guide-researcher` | R1a | Read, Glob, Grep, Write | ⊆ L; *target (WU-57, D-297):* ⊆ L ∪ N | WebSearch, WebFetch |
-| `build-guide-coordinator` | R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (with the final compile); *target (WU-57, D-287):* R1a-assemble | Read, Glob, Grep, Write, Edit | ⊆ L ∪ B ∪ C ∪ P; *target (WU-57, D-297):* also N | WebSearch, WebFetch |
+| `build-guide-researcher` | R1a | Read, Glob, Grep, Write | ⊆ L | WebSearch, WebFetch |
+| `build-guide-coordinator` | R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (with the final compile); *target (WU-57, D-287):* R1a-assemble | Read, Glob, Grep, Write, Edit | ⊆ L ∪ B ∪ C ∪ P | WebSearch, WebFetch |
 | `build-guide-writer` | W1 | Read, Glob, Grep, Write, Edit (D-257) | none | none |
 | `build-guide-verifier` | V4 lenses | Read, Glob, Grep | ⊆ L | WebFetch |
 
@@ -303,9 +313,9 @@ ToolSearch, so ToolSearch joins no row.
   is allowed, HG-10).
 - **R-2.** Each type's tools are a subset of its row above.
 - **R-3.** Only `build-guide-coordinator` names a tool in C or P: only the coordinator compiles and prices
-  (D-130, D-178). *Target (WU-57, D-297):* the researchers may name N tools; C and P stay the coordinator's.
+  (D-130, D-178), and only it calls poe.ninja (`get_currency_rates`, D-335).
 - **R-4.** No definition names Bash, Agent, Skill, Workflow or NotebookEdit, or any `pob2` tool outside
-  L ∪ B ∪ C ∪ P (*target (WU-57, D-297):* L ∪ B ∪ C ∪ P ∪ N). So no `mutate`, `lifecycle` or other `load`
+  L ∪ B ∪ C ∪ P. So no `mutate`, `lifecycle` or other `load`
   tool and no file-writing tool: the plan is the source of truth and the compiler builds from it (D-113,
   D-155); the compiled build stays loaded for B's reads (D-191).
 - **R-5.** The verifier can't write: it returns its report as JSON, which the runner writes unchanged
@@ -337,7 +347,7 @@ prompt contradicts it.
 | `changed` | a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed, or `"all"` when a gate re-ran in the fix round (D-264) |
 | `accepted` | gate findings the user accepted at an escalation, from its verdict file (§5.4) |
 | `faults` | offline test mode only: this step's fault directives (§11.3) |
-| `writes` | the run-folder paths this step may write; nothing else. *Target (WU-62, D-278):* W1's include `audit.md` |
+| `writes` | the run-folder paths this step may write; nothing else. W1's include `audit.md` (D-278, WU-62). *Target (WU-57, D-338):* R1b's include its probes, `probes/<card-id>/<n>/`, and its card, `cards/<id>.md` |
 | `reference` | the step's stage reference, under `references/stages/` |
 
 Rules: a step writes only the paths in `writes`, all inside the run folder (D-177), and steps running in
@@ -362,11 +372,11 @@ no `pass` field (D-267).
 | 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) | one verdict line; routed by §5.3 |
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
 | 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
-| 10 | W1, the guide | `build-guide-writer` | `guide.md` | at most 8 lines, with its `known-issues-line` |
+| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` (D-278) | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
 | 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; the runner writes `reports/v4-<lens>.json` | its report |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
 | 13 | V4 re-check | `build-guide-verifier`, in parallel (§5.5) | none; the runner writes `reports/v4-<lens>-recheck.json` | its report; no further round |
-| 14 | Known issues | the runner | the `Known issues` list in `guide.md` | — |
+| 14 | Known issues | the runner | the `Known issues` list in `guide.md` (reader sentences) and the `Known issues` table in `audit.md` (ids) | — |
 | 15 | Run checker | the runner (Bash) | — | its result, shown at step 16 |
 | 16 | Checkpoint 2 (§10) | the runner | log | asks the user: accept, ask for changes (a revision, §5.6), or anything else |
 
@@ -410,10 +420,11 @@ re-check, and never escalates; only the D1 and D2 gates escalate (D-268).
 **Design** (steps 6 to 9; §5.3). `buildName` is `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments
 joined with `-`.
 - **D1** writes `plan.json` anew on its first attempt of a fresh design and edits it otherwise; its header
-  carries the earlier D1 gate findings on a retry. It writes the endgame stages of both variants, each with
+  carries the earlier D1 gate findings on a retry. It writes the endgame stages of the three rungs, `m`, `b`
+  and `n` (D-281; WU-62 added `m`, designed after `b` and `n`), each with
   its `level`, per-gem levels and `ascendancyPoints` with a source or rationale (D-193), a `role` on every
   skill group and `skills.rolledGroup` (D-217), `skills.main` on the rolled group with `skills.main.statSet`
-  (D-273); it prices every slot and tree jewel of both variants (§9) and compiles measure-only as often as it
+  (D-273); it prices every slot and tree jewel of every rung (§9) and compiles measure-only as often as it
   needs. It never takes a league a skeleton marks unverified: with no league known, it writes
   `"league": "unverified"` and makes every price `unavailable` (D-313). It returns `done` or `infeasible`,
   with a reason.
@@ -427,8 +438,8 @@ joined with `-`.
   entry's `priceOutcomes` counts a `locked_out` or `rate_limited` call); or paced. The D1 gate reads it from
   `run-log.json` itself.
 
-*Target (WU-57; D-287…D-292, D-298):* **three phases, each ending at a gate the user answers.** A fixed roll
-runs the same three phases, and every card's skill is the rolled skill.
+*Target (WU-57; D-287…D-292, D-298, D-335, D-338):* **three phases, each ending at a gate the user
+answers.** A fixed roll runs the same three phases, and every card's skill is the rolled skill.
 - **Brainstorm.** R1a: three researchers, each reading the pattern library (§7.6) first and writing 2–3
   cards' brainstorm halves (§7.5). The foci stay mechanics, items and tree, each starting from the brief's
   fixed pieces:
@@ -437,19 +448,20 @@ runs the same three phases, and every card's skill is the rolled skill.
   |---|---|---|---|
   | names a skill | from the skill, as today | from `around`, or from uniques that change how a skill plays | from the ascendancy's nodes |
   | names no skill | from the library's families and the playstyle tags | (same) | (same) |
-  | names no ascendancy | (as above) | (same) | from ascendancies that suit the playstyle, and under-played ones when poe.ninja is on |
+  | names no ascendancy | (as above) | (same) | from ascendancies that suit the playstyle, and ones the coordinator judges under-played (`judgment`), or the user's `popularity` notes (D-298, D-335) |
 
   Then **R1a-assemble**, a coordinator step, deals the deck: it reads the card files, merges duplicates,
   checks each card's identity `{className, ascendancy, skill}` as the roll check does (`get_classes`, then
   `lookup_game_data` with `Kind: active`, or for a non-skill damage source a lookup by its kind; D-286, D-334), and applies the sniff test: a card is dealt only when a
   lookup confirms every load-bearing link in game text, and otherwise goes under "Not dealt", naming the
   unconfirmed link (the user can still ask for it at the gate). It writes `cards.md`, one line per dealt card.
-  A round deals 6–9 cards; with poe.ninja on, each deck holds at least two below a popularity threshold that
-  spike WU-50 sets (D-298, D-324). A later round reads `cards.md` and adds only new cards. Then the brainstorm
-  gate (§10).
+  A round deals 6–9 cards, and each deck holds at least two that the coordinator judges under-played, from
+  the pattern library, labelled `judgment`; there is no popularity threshold (D-298, as D-335 restates it).
+  A later round reads `cards.md` and adds only new cards. Then the brainstorm gate (§10).
 - **Verification.** R1b for each picked card, one at a time, at most 3 per verification round: the card's
   identity is the skeleton's `roll`; it runs the advisory checklist and up to 4 probe variants (§7.7) and
-  writes the card's verification half. Then R1b-assemble (`dossier.md` and the comparison; its key numbers
+  writes the card's verification half. Its header's `writes` name `probes/<card-id>/<n>/` and
+  `cards/<id>.md` (D-338). Then R1b-assemble (`dossier.md` and the comparison; its key numbers
   add `TotalEHP`, D-294), then the verification gate (§10), where the picked card's identity becomes the
   run's `roll`.
 - **Finalization.** D1 through the final gate, as above, plus D1's Count and custom-modifier work (D-293):
@@ -490,8 +502,9 @@ gate's file and recomputes it, so the field names are a contract.
 | `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill` | below |
 | `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192); the final compile then succeeded |
 
-*Target (WU-61, D-282):* V1's tree continuity follows one ladder track: the entering-maps rung `m` from the
-last campaign stage, `b` from `m`, `n` from `b`, with each rung's respec and gold cost checked.
+V1's tree continuity follows one ladder track (WU-61, D-282): the entering-maps rung `m` from the last
+campaign stage, `b` from `m`, `n` from `b`, by rung whatever the plan order, with each rung's
+`respec.dropped` checked (its gold cost only by its schema, A-32).
 
 **The D1 gate's parts.** The D1 gate compiles `plan.json` measure-only and reads the record. "Endgame
 stages" are the plan's stages with a `variant`.
@@ -512,10 +525,9 @@ stages" are the plan's stages with a `variant`.
     plus 15) and `enemies/waystones.json#area-level.max` (82) for the non-budget one. PoB takes these options
     as whole numbers, so each scenario value is `ceil(round2(value))` of its entry's value: 96.4789 gives 97,
     and 402.000003 gives 402. `<Type>MaximumHitTaken` must be greater than the hit.
-  - *Target (WU-62, D-281, D-327):* the entering-maps rung `m` is gated the same way at area level 69
-    (`area-level.offset` 64, plus 5, T5), with waystone-scaled hits in `hit_m_<type>` (D-254). Its hits are
-    tied to that area level as D-256 ties each stage's hits; only that tie is the coordinator's inference
-    (D-327).
+  - The entering-maps rung `m` is gated the same way at area level 69 (`area-level.offset` 64, plus 5, T5),
+    with waystone-scaled hits in `hit_m_<type>` (D-254; WU-62). Its hits are tied to that area level as
+    D-256 ties each stage's hits; only that tie is the coordinator's inference (D-327).
 - **budget** (D-116, D-147, D-164, D-219, D-249). For the budget variant, every filled slot **and every
   tree jewel** has a `prices[]` entry, converted to divines with `get_currency_rates`' rates. Each filled
   slot or jewel has its own entry, except slots holding identical item text. Totals are compared rounded to
@@ -524,8 +536,8 @@ stages" are the plan's stages with a `variant`.
   price `unavailable`, or a currency without a rate, is `unverified`, which doesn't fail the gate, and the
   guide can't claim the variant is under budget. The non-budget total is reported against the ~200-divine
   reference (D-117), never gated.
-  *Target (WU-62, D-281):* `m`'s budget is 5 divines: at most 5 passes, at most 5.5 passes with "near the
-  ceiling"; offline it is `unverified`.
+  `m`'s budget is 5 divines (D-281, WU-62): at most 5 passes, at most 5.5 passes with "near the ceiling";
+  offline it is `unverified`.
 - **rolledSkill** (D-122, D-148, D-217, D-273). In each endgame stage the rolled skill's group
   (`skills.rolledGroup`) has role `clear` or `single_target`, never `utility` or `leveling`, and its figure
   is the largest among the stage's groups with that role. A figure is a record `skillOutputs` field
@@ -537,9 +549,9 @@ stages" are the plan's stages with a `variant`.
   *Target (WU-57, D-295, D-294, D-321):* the group holds the build's **named damage source**, whose own
   hits, ailments and projectiles count when another skill fires, spreads or copies them; `rolledGroup` keeps
   its name. The compared figure is the named source's figure × its Count, from the record's Count-scaled
-  field beside the raw figure (WU-55 names the field). The headline becomes that Count-scaled figure, with
-  `TotalEHP` beside it (D-294); the user sees the same number as PoB's Full DPS, which the delivered file
-  sets up on the named source's groups only (D-293).
+  field beside the raw figure (`countedSkillOutputs[g<g>s<s>p<p>].fields`, WU-55; C-33). The headline
+  becomes that Count-scaled figure, with `TotalEHP` beside it (D-294); the user sees the same number as
+  PoB's Full DPS, which every compile sets up on the named source's groups only (D-293, D-337).
 
 **The basis.** The D1 gate's file also carries `basis`, only what the plan and the record don't say. The
 checker recomputes the floor from the plan and the record alone; it reads the budget's slot→price map with
@@ -622,10 +634,9 @@ AskUserQuestion:
 
 1. **accept** (not offered for a compile failure: nothing compiled to continue from). The verdict's failing
    findings are accepted: every later header's `accepted` carries them, and an equal finding (same plan
-   stage, part and code) fails no later gate. W1 lists each under `Known issues` as a plain sentence the
-   reader can act on, then its gate (`D1-gate` or `D2-gate`), code and plan stage in parentheses (D-265).
-   *Target (WU-62, D-276, D-283):* the guide's line is the reader sentence only; its gate, code and plan
-   stage go to `audit.md`'s `Known issues` table.
+   stage, part and code) fails no later gate. W1 lists each under the guide's `Known issues` as a plain
+   sentence the reader can act on, and nothing more; its gate (`D1-gate` or `D2-gate`), code and plan stage
+   go to `audit.md`'s `Known issues` table (D-265, D-276, D-283; WU-62).
    After the D1 gate the run goes on as if it passed; after the D2 gate, the D2 gate runs once more,
    uncounted, with them in `accepted`, so it runs the final compile.
 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt, uncounted, with the
@@ -670,15 +681,18 @@ In offline test mode `answers.escalation[]` answers each escalation in turn; wit
   runs**, even when it raised nothing, since an edited claim may cite something new (D-264). The runner
   writes each report to `reports/v4-<lens>-recheck.json`. There is no further round: what stays open is a
   known issue.
-- **Step 14, known issues** (D-265 d). A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. The runner reads `guide.md` from the
-  `known-issues-line` W1 returned last down to the next heading, and **replaces the whole list** under
-  `### Known issues` with Edit, every cycle: first W1's lines for the accepted gate findings, as W1 wrote
-  them; then one line per open finding, `- <reader> (<id>)`, the finding's `reader` sentence exactly as its
-  report gives it, then its id in parentheses; or, with neither, the one line `None.`. Every other line is
-  dropped: a line from an earlier cycle is stale.
-  *Target (WU-62, D-276, D-278):* the list sits under `What PoB can't show`; each guide line is the reader
-  sentence alone; the ids move to `audit.md`'s `Known issues` table, which the runner fills.
+- **Step 14, known issues** (D-265 d, D-276, D-278; WU-62). A finding is open when it is `unresolved` in
+  its lens's re-check, or `unresolved` in the full pass and not reported `fixed` by a re-check. The runner
+  reads only the lines it edits, from the `known-issues-line` and `audit-known-issues-line` W1 returned last
+  down to the next heading, and **replaces both lists whole** with Edit, every cycle:
+  - in `guide.md`, under `### Known issues` (the last part of `What PoB can't show`): first W1's lines for
+    the accepted gate findings, as W1 wrote them; then one line per open finding, `- <reader>`, the
+    finding's `reader` sentence exactly as its report gives it, with no id; or, with neither, the one line
+    `None.`;
+  - in `audit.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then
+    one row per open finding, `| <id> | <lens> | — | <reader> |`; or, with neither, the one line `None.`.
+
+  Every other line and row is dropped: one from an earlier cycle is stale.
 
 ### 5.6 Revisions (D-236, D-268)
 
@@ -749,7 +763,7 @@ round, three lenses per pass and at most 2 counted retries per gate, read from `
 at most 3 agents in flight, read from the session's transcript. NFR-22 (no 429s, no lock-outs): no
 `priceOutcomes` counts a `rate_limited` or `locked_out` call (D-270).
 
-*Target (WU-58, D-289, D-286, D-287, D-323, D-326):* **schema version 3.**
+*Target (WU-58, D-289, D-286, D-287, D-323, D-326, D-338):* **schema version 3.**
 - `schemaVersion: 3`, and a `brief` field holding the parsed brief (C-51).
 - `roll` is `{className, ascendancy, skill}`, like the plan's, and `null` until the verification gate's
   pick.
@@ -760,6 +774,8 @@ at most 3 agents in flight, read from the session's transcript. NFR-22 (no 429s,
   opens a verification round without a brainstorm.
 - NFR-23 per brainstorm round: at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards; per
   verification round: at most 3 cards compiled.
+- Each card's probe count, so D-292's cap of 4 probes per card can be audited (D-338; WU-58 names the
+  field).
 - The checker accepts schema 2 and 3; schema 2 only so recorded runs (WU-47's) still check.
 
 ## 7. Stage artifact formats
@@ -779,8 +795,8 @@ at most 3 agents in flight, read from the session's transcript. NFR-22 (no 429s,
 - *Target (WU-55, D-293):* a skill group's `count` (default 1) with a `countReason` when above 1, and
   `config.customMods: [{text, reason}]`, a hand-calculated effect beside the `earned` and `scenario`
   entries.
-- *Target (WU-61, D-281):* `variant: "entering-maps"` for the rung `m`, with loadout
-  `Entering maps (L<level>) {m}`.
+- `variant: "entering-maps"` for the rung `m`, with loadout `Entering maps (L<level>) {m}` (D-281; WU-61,
+  WU-62), in a plan of `schemaVersion` 2 (D-332).
 
 ### 7.2 Dossier `dossier.md` (D-269)
 
@@ -805,7 +821,7 @@ The dossier isn't verified after checkpoint 1: it serves the pick, and the guide
 verification halves R1b writes; its key numbers add `TotalEHP`. Amendment 3 names no change to the
 dossier's H2s.
 
-### 7.3 Source markers in markdown (C-30 in `dossier.md`, `guide.md` and the research files)
+### 7.3 Source markers in markdown (C-30 in `dossier.md` and the research files; none in `guide.md` since WU-62)
 
 A claim carries one or more footnote markers `[^<id>]`. Each id has exactly one definition line:
 `[^<id>]: <kind> | <ref> [| accessed: YYYY-MM-DD] [| patch: <p>] [| confidence: H|M|L]`, where `kind` is
@@ -813,9 +829,9 @@ one of C-30's five kinds (`pob-computed`, `pob-data`, `external`, `judgment`, `e
 C-30's required fields; or `ledger | <ledgerId>`; or `data | <file>#<key>`, a C1/E1 fact with `<file>`
 relative to `data/` (D-232); or `price | <priceId>`, a plan price entry named by its `prices[].id` (D-237).
 In the plan, the same citations are `ledger:<id>`, `data:<file>#<key>` and `price:<id>` (C-30).
-Definitions sit under the file's last heading (`Sources` in the guide). In `guide.md` they resolve against
-`plan.json`; in the dossier and research files, against any plan of the run. Research markers are
-`p<k>r<n>-<m>`, so the dossier can copy them unchanged.
+Definitions sit under the file's last heading, and resolve against any plan of the run. Research markers
+are `p<k>r<n>-<m>`, so the dossier can copy them unchanged. (Before WU-62 the guide carried markers too,
+defined under its `Sources` H2 and resolved against `plan.json`.)
 
 **The claim rules** (D-273). Every step that writes a claim keeps them, and the V4 lenses check every claim
 against them:
@@ -824,12 +840,13 @@ against them:
    or goes.
 2. **It cites each fact it rests on**, with a marker or a ledger entry for each.
 3. **It carries its source's caveats** (confidence M or L, a disputed fact, a `judgment`, a mechanic no
-   lookup confirmed) wherever the claim appears, never stated as settled.
-   *Target (WU-62, D-279):* once in the guide, and never later stated as settled.
+   lookup confirmed), and in the guide each caveat appears once, where the reader acts on it, and is never
+   later stated as settled (D-279; WU-62).
 
-A number or a mechanic stated without a marker is a claim without a source: the V4 sources lens reports it.
-*Target (WU-62, D-276):* `guide.md` carries no markers; markers stay in the dossier and the research files,
-and the plan's claims carry the guide's sources.
+Since WU-62 (D-276), `guide.md` carries no markers: markers stay in the dossier and the research files,
+and the plan's claims carry the guide's sources. In the dossier and the research files, a number or a
+mechanic stated without a marker is a claim without a source; in the plan, a claim without a `source` is
+the V4 sources lens's finding.
 
 ### 7.4 Verifier reports (V4; D-268)
 
@@ -841,9 +858,10 @@ reader?, owner, status}], verdict}`.
 
 - `lens` is `ledger`, `sources` or `prose`; `check` is `full` or `recheck`, as the header says; `mode` is the
   run log's.
-- Each finding's `artifact` is `plan.json` or `guide.md`: the dossier isn't verified (D-269). `location`
-  never quotes the artifact (`stages[<i>].claims[<k>]`, `ledger[<i>] (<id>)`, `guide.md [^<id>]`, or
-  `<H2 title>, line <n>`). `owner` is `D1`, `D2` or `W1` (§5.5).
+- Each finding's `artifact` is `plan.json`, `guide.md`, or `audit.md` for the prose lens's check of its
+  `Run notes`: the dossier isn't verified (D-269). `location` never quotes the artifact
+  (`stages[<i>].claims[<k>]`, `ledger[<i>] (<id>)`, or `<H2 title>, line <n>`). `owner` is `D1`, `D2` or
+  `W1` (§5.5; `W1` for `guide.md` and `audit.md`).
 - `status` is `unresolved`, `accepted-offline` (only the sources lens, only for an `external-unavailable`
   claim in an offline run, C-30) or, in a re-check, `fixed`.
 - `reader` (D-265) is on every `unresolved` finding: one plain sentence the guide's reader can act on, with
@@ -851,39 +869,41 @@ reader?, owner, status}], verdict}`.
 - `verdict` is `pass` exactly when no finding is `unresolved`. There are no coverage counts and no V3
   report (D-268).
 
-**The lenses**, one fresh verifier each, every claim of `plan.json` and `guide.md` in a full pass, with no
-sampling. Each also checks the claim rules (§7.3) and what PoB applies (a partly parsed line applies none of
-itself; `possibly unread` is advisory until a measurement confirms it, D-243).
+**The lenses** (as built by WU-62, D-279; `references/stages/V4.md`), one fresh verifier each, with no
+sampling: in a full pass the `ledger` and `sources` lenses cover every claim, ledger entry and price of
+`plan.json` (the guide carries no markers, so its facts are the plan's), and the `prose` lens every section
+of `guide.md` and `audit.md`'s `Run notes`. A plan claim exists only where the guide states a fact or a gate
+needs one. Each lens also checks the claim rules (§7.3) and what PoB applies (a partly parsed line applies
+none of itself; `possibly unread` is advisory until a measurement confirms it, D-243).
 - **`ledger`:** re-derives every ledger entry from the final record (C-33) and the entry's tagged inputs,
-  comparing it with the record's value to 2 decimals; re-derives every endgame stage's five reference hits
-  from the facts themselves (D-254, D-256), the entry `hit_<stage id>_<type>` and its scenario ceiling
-  included; and compares every guide number that cites an entry with the record's value as the guide rounds
-  it.
+  comparing it with the record's value to 2 decimals; and re-derives every endgame stage's five reference
+  hits from the facts themselves (D-254, D-256), `m`'s at area level 69 included, the entry
+  `hit_<stage id>_<type>` and its scenario ceiling included. The guide's numbers aren't this lens's: the
+  `prose` lens reads them, and the checker compares each verdict line with the record.
 - **`sources`:** online, opens every `external` source on D-171's hosts (offline, an `external` claim is a
   finding); checks every `data` claim against its fact and the fact's stored citation, without fetching
   that URL offline (D-232); re-checks every `pob-data` claim with the lookups; checks each `price` claim
   against its `prices[]` entry (D-237; V4 has no trade tool); checks each `pob-computed` claim against the
   final record; reports each `external-unavailable` claim (`accepted-offline` offline, `unresolved` online);
-  and reports every number or mechanic statement without a source.
-- **`prose`:** reads `guide.md` section by section against §8: mechanics claims supported by their sources;
-  the rolled skill as the main damage source in `Summary` and `Rotation`, with why when it isn't the clear
-  skill (D-122, D-148); budget statements (D-164, D-219); the chaos line (D-234); the offline line (D-201);
-  and "why this concept" against `run-log.json`'s checkpoint-1 entry that picked it, its `answeredBy` and its
-  `rule`.
+  and reports every plan claim without a `source`. It has no guide side.
+- **`prose`:** reads `guide.md` like an editor, section by section, against the plan, the record and
+  `audit.md` and against §8's sections, and flags: a fact or number they don't hold, that contradicts them,
+  or that states them more strongly; first-person advice that asserts a fact the plan lacks; tutorial text
+  (D-280); a caveat repeated or later stated as settled (D-279). It keeps the gated statements' checks: the rolled skill as
+  the main damage source in `At a glance` and `How to play it`, with why when it isn't the clear skill
+  (D-122, D-148); the budget lines against 5 and 20 divines (D-164, D-219, D-281); the chaos line (D-234);
+  the offline line (D-201); and "why this concept" in `audit.md`'s `Run notes` against `run-log.json`'s
+  checkpoint-1 entry that picked it, its `answeredBy` and its `rule`. It never flags a missing optional item
+  (D-277).
 
-*Target (WU-62, D-279):* claims exist only where the guide states a fact or a gate needs one; the sources
-lens loses the guide side (the plan holds the claims); the ledger lens loses its guide-number step; the
-prose lens reads `guide.md` like an editor against the plan, the record and `audit.md`, flagging a fact or
-number not in them, contradicting them or stated more strongly, first-person advice that asserts a fact the
-plan lacks, tutorial text (§8's target), and a caveat repeated or later stated as settled. It keeps the
-gated statements' checks, checks "why this concept" in `audit.md`, and never flags a missing optional item.
 *Target (WU-57, D-296):* a DPS figure that rests on Count or a hand calculation, and any figure the record
 marks as computed with a custom modifier, is an estimate, not checked for exactness; every interaction the
 guide states must exist in game text.
 
 ### 7.5 Cards and the deck (C-52)
 
-*Target (WU-56, WU-57; D-286, D-287, D-291, D-303).* The template is `templates/card-template.md`. R1a fills
+The template `templates/card-template.md` is built (WU-56, merge `228bec1`; D-291): two H2s, `Brainstorm
+half` and `Verification half`, each with fixed H3s. *Target (WU-57; D-286, D-287, D-303, D-335):* R1a fills
 the brainstorm half (about 250–400 words); R1b fills the verification half.
 
 - **Brainstorm half:**
@@ -895,9 +915,9 @@ the brainstorm half (about 250–400 words); R1b fills the verification half.
     then.
   - **Links table:** per link, the confirming game text and the lookup that found it; how PoB follows it
     (§7.6's labels, with PG ids); any hidden clauses, stated as theory ("from a Hit", "you use yourself").
-  - **Evidence:** poe.ninja popularity of the skill and the ascendancy; how many characters use the
-    combination, and at what level; a reference build, if there is one. With `--no-ninja`: "no player
-    evidence".
+  - **Evidence** (D-335): the brief's `popularity` notes, cited as user-supplied, where they speak to this
+    card's skill, ascendancy or combination, or else "no player evidence"; a reference build, if there is
+    one. No tool supplies player evidence.
   - **Risks so far:** payoff thieves, placement limits, the exposed phase, resistant bosses.
 - **Verification half:**
   - **Verified:** defences from PoB (life, energy shield, resistances, max hit, `TotalEHP`) and the modelled
@@ -906,7 +926,12 @@ the brainstorm half (about 250–400 words); R1b fills the verification half.
     modifier present; clear and boss figures kept separate.
   - **Checklist results** (§7.7), **a fallback ladder** and **key item prices**.
 - **Status words**, used everywhere on the card: confirmed in game text; modelled in PoB; estimate (with the
-  reason); players use it (poe.ninja); not checked yet; needs in-game testing.
+  reason); players use it (the user's notes, D-335); not checked yet; needs in-game testing.
+- **The merged template against D-335.** `templates/card-template.md` still names poe.ninja: its fourth
+  status word is "players use it (poe.ninja): characters run it", and its `Evidence` H3 asks for "the
+  skill's share and the ascendancy's share of characters, from poe.ninja" and "how many characters use it,
+  at what level", each "| no player evidence". AC-W27's static test pins those strings. WU-57 restates
+  both to this section (the user's notes, cited as user-supplied, or "no player evidence").
 - **Damage sources that aren't skills** (D-303, HG-21), such as a flask nova, may be dealt and verified,
   but the card is marked "can't be finalized yet": finalizing one waits on a plan field for an item-effect
   damage source and its hand calculation. Its identity's `skill` names the damage source, checked at deck
@@ -917,8 +942,12 @@ the brainstorm half (about 250–400 words); R1b fills the verification half.
 
 ### 7.6 The pattern library `references/patterns.md` (C-53)
 
-*Target (WU-56, D-290).* Built from the ten pattern families of the work-log's "Off-meta builds 7–30", the
-earlier studies, and the brainstorm questions from its "Process heuristics, by phase", which open the file.
+Built (WU-56, merge `228bec1`; D-290) from the ten pattern families of the work-log's "Off-meta builds
+7–30", the earlier studies, and the brainstorm questions from its "Process heuristics, by phase", which open
+the file. v1 holds 60 entries in ten families, 5,642 words at the merge; its review checked all 60 against
+their sources. Until WU-57 lists it in `SKILL.md`, the static test's `AWAITING_SKILL_WIRING` entry exempts
+it from AC-W1's "lists every shared reference" rule; the exemption expires once WU-57's
+`references/stages/R1a-assemble.md` exists, so it can't outlive WU-57 (accepted deviation).
 - **Each entry:** name and shape (one general sentence that applies to any skill); search step (the starting
   point, the lookup or phrase search, and what to check); how PoB follows it (modelled, Count, custom
   modifier, config stand-in, hand calculation, or not modelled, citing PG ids); one to three example builds,
@@ -929,8 +958,10 @@ earlier studies, and the brainstorm questions from its "Process heuristics, by p
 
 ### 7.7 The verification checklist (advisory)
 
-*Target (WU-56, WU-57; D-292).* R1b runs these checks and writes each result into the card as verified,
-estimate, risk or not checked. None is a gate, and none starts a fix round.
+The checklist's text is built (WU-56; D-292): `references/stages/R1b.md`'s H2 `Verification checklist
+(advisory, D-292)`, between `Work` and `Writes`. *Target (WU-57):* R1b runs these checks on a picked card
+and writes each result into the card as verified, estimate, risk or not checked. None is a gate, and none
+starts a fix round.
 - **From the plan and the record (no extra compile):**
   1. pillars for ailments and damage over time: base, type-specific scaling, duration, 100% application;
   2. the enabler's conditions at the target level, in numbers, and what they force out of the build; a
@@ -947,13 +978,19 @@ estimate, risk or not checked. None is a gate, and none starts a fix round.
   8. skill-shape probes where the skill's text suggests one, such as projectile speed up and down.
 - **The compile budget:** R1b's two compiles per attempt, plus up to 4 probe variants per card, run in the
   order above. A probe that doesn't fit is reported as not checked. Each probe is a one-stage compile,
-  within NFR-21's per-request limit.
+  within NFR-21's per-request limit, and doesn't count in the verdict's `compiles`.
+- **Where the results go** (D-338). As built, R1b's reference writes each probe's plan at
+  `probes/<card-id>/<n>/plan.json` (`n` from 1 in run order; the server writes its record beside it) and
+  the card's `Checklist results`, but R1b's header `writes` don't name them yet and the checker rejects
+  them. *Target:* WU-57 adds both to R1b's header `writes`; WU-58's checker accepts them (AC-W2 (ff)), and
+  the run log records each card's probe count, so the cap of 4 can be audited.
 
 ### 7.8 The audit layer `audit.md`
 
-*Target (WU-62, D-278).* A separate file in the run folder, not an appendix to the guide; no human is
-expected to read it, so the guide's word cap and no-marker rule apply to all of `guide.md`. W1 writes it from
-`templates/audit-template.md` and patches it with Edit; the runner fills its `Known issues` table at step 14.
+Built (WU-62, merge `14f3553`; D-278). A separate file in the run folder, not an appendix to the guide; no
+human is expected to read it, so the guide's word cap and no-marker rule apply to all of `guide.md`. W1
+writes it from `templates/audit-template.md` and patches it with Edit; the runner fills its `Known issues`
+table at step 14. The checker requires these H2s in order once a guide exists (AC-W2 (z)).
 
 | `audit.md` H2 | Holds |
 |---|---|
@@ -966,28 +1003,13 @@ expected to read it, so the guide's word cap and no-marker rule apply to all of 
 
 ## 8. Guide template (W1; ext §5, the design's quality bar)
 
-`templates/guide-template.md`, as built. `guide.md` has one H1 naming the roll and the concept, then these
-13 H2s in order, and no other H2:
-
-| H2 | Must contain |
-|---|---|
-| `Versions, prices and import code` | the engine data version (pin tag, commit and targeted game patch) and, separately, the patch of the prices and boss data (D-107); the date; the league (none offline; "unverified" when the trade site couldn't be reached, D-313); the mode, and in offline mode that prices are unavailable and no external source was consulted; the record's `versionNotes`, if any; the PoB file name, that each stage is a loadout and that the file is in auto-level mode (D-138, D-149); the import code in a fenced block, equal to the final record's `importCode` (D-145, D-205); the record's `loadoutWarnings` and `saveWarnings` with what to do about them (D-310, D-248) |
-| `Summary` | the concept, why the rolled skill is the main damage source, pros, cons, difficulty; "why this concept" only as the run log records the pick (the user picked it, or the test config picked it by the entry's `rule`, quoted exactly); that the dossier keeps the other concepts |
-| `How it works` | the mechanics with sources; the ledger table: each entry's claim, its value from the record, its formula in words (D-106) |
-| `Leveling` | one H3 per campaign stage in plan order, titled with its loadout name exactly as the record has it, and no other H3. Each gives the level range, skills and supports with socket counts, tree points to add and any respec with its gold cost (D-144), the ascendancy pick, gear with a dated price or `unavailable`, the swap trigger, and the loadout's PoB numbers |
-| `Campaign rewards` | every quest reward the campaign passes, in campaign order; each reward choice names the plan's pick and the reason its claim gives, never the options without the pick (D-265 c) |
-| `Endgame: budget variant` | the character level and ascendancy points (D-193); any respec from the campaign; gear by slot with dated prices (`price` markers, D-237); stat priorities; gem links with gem levels; the tree; earned config with its producer and uptime (D-114); an H3 `Checks`: the survival floor (all four resistances gated; an uncapped chaos value on one line with its exception's full reason, D-234), max hit taken against each reference hit at its ledger value (D-254, D-256), the budget total against 20 divines with `near the ceiling` when it is over 20 and at most 22 (D-219) or the D-164 statement, the Arbiter's hits and time-to-kill range (D-116, A-30), the mapping signals (D-121, D-132) |
-| `Endgame: non-budget variant` | the same, with the total against the ~200-divine reference (D-117), plus the upgrade order from the budget variant |
-| `Rotation` | clear and single target (D-120); if the rolled skill isn't the clear skill, why (D-148) |
-| `Defences and resistances` | how resistances climb through the campaign penalties to −60% (D-118), with a per-stage table |
-| `FAQ and common mistakes` | newcomer questions and hard warnings, with the loadout and save warnings' actions |
-| `Confidence and what PoB can't model` | C-38's flags and how the guide handles each, the hand calculations, the M and L inputs (A-29); in offline mode, the `external-unavailable` claims; then, as its last part, the H3 `Known issues` (D-268): W1 writes one line per accepted gate finding, or `None.`, and the runner replaces the list after verification (§5.5) |
-| `Changelog` | dated entries |
-| `Sources` | the footnote definitions (§7.3) |
-
-*Target (WU-62; D-276, D-277, D-280, D-281):* **the reader layer.** `guide.md` becomes about 2,840 words,
-capped at 3,000 (the H1, the import code and the Known issues list not counted), and renders the plan: no
-markers, and no fact or number of its own. Everything kept for agents moves to `audit.md` (§7.8).
+`templates/guide-template.md`, as built by WU-62 (merge `14f3553`; D-276, D-277, D-280, D-281): **the reader
+layer.** `guide.md` has one H1 naming the roll and the concept, then the 14 H2s of the table below, in order,
+and no other H2. It is about 2,840 words, capped at 3,000 (the H1, the import code and the Known issues list
+not counted), and renders the plan: no markers, and no fact or number of its own. Everything kept for
+agents is in `audit.md` (§7.8). Before WU-62 the guide had 13 H2s (`Versions, prices and import code`,
+`Summary`, `How it works`, …, `Confidence and what PoB can't model`, `Changelog`, `Sources`) with source
+markers; the template, the checker and the pipeline fixtures no longer use them.
 - **Rules for every section.** A fact is a plain statement of something the plan or the record holds.
   Advice is in the first person ("I", "my"), which labels it, and isn't verified. Each caveat appears once,
   where the reader acts on it, and is never later hedged again or stated as settled. No pipeline text: no
@@ -1005,6 +1027,10 @@ markers, and no fact or number of its own. Everything kept for agents moves to `
   a missing one: fallbacks (from alternatives D1 and D2 already weighed), threshold triggers (otherwise a
   first-person judgment trigger), traps, either/or picks, hold and save rows, rotation clauses; and, from
   amendment 3, Leveling's "dormant until" lines and Priorities' "buy now, works at stage X" (D-301).
+- **Word budgets in the template** (accepted deviation). Each section states its budget from the table
+  below: in its prose placeholder ("About <n> words."), or, for the nine sections that have no prose
+  placeholder, as a note line `[About <n> words.]`, which W1 deletes with the template's other notes. A
+  static test reads the table from this section and holds the template to it.
 
 | # | H2 | Words | Holds |
 |---|---|---|---|
@@ -1050,11 +1076,10 @@ lists each Count and custom modifier with its reason, rendered from the plan.
 ## 9. Pricing procedure (T1; `references/pricing.md`; D-133, D-160, D-164, D-169, D-202, D-218)
 
 - **Who.** Only coordinator steps price, with P's tools and C-49's dated outputs (D-112, D-178).
-  *Target (WU-57, D-297):* the poe.ninja tools of N are not price tools; prices stay with P.
 - **Order** (D-133): R1b prices concept key items; D1 prices every filled slot **and every tree jewel**
-  (D-249) of both variants, with rares as affix-target searches (`search_trade_items` with `mods`), each
-  with its own entry unless slots hold identical item text; D2 prices campaign uniques.
-  *Target (WU-62, D-281):* D1 also prices the entering-maps rung's slots as `m-<slot>` entries.
+  (D-249) of every rung, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`,
+  D-281; WU-62), with rares as affix-target searches (`search_trade_items` with `mods`), each with its own
+  entry unless slots hold identical item text; D2 prices campaign uniques.
 - **Record** each result in that plan's `prices[]` with its id (what a `price:<id>` claim cites, D-237),
   date (the result's `Checked:` line, C-49), league, query and status (D-169). An `unavailable` entry has
   `amount` and `currency` null and a `note` giving the reason (`offline run`, `rate-limited`,
@@ -1148,10 +1173,10 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
   consulted.
 
 M-12 also removes those tools from the environment (spine §9), so the rule is enforced, not just followed.
-*Target (WU-57, D-297, D-333):* `--offline` also turns off the poe.ninja tools of N. `--no-ninja`: the run
-calls no tool in group `ninja`, neither C-54's poe.ninja tools nor `get_currency_rates`, so price totals in
-divines are `unverified` (pricing's path when rates are missing), and the cards say "no player evidence"
-(D-297, D-333).
+*Target (WU-57, D-333, D-335):* `--no-ninja`: the run calls no tool in group `ninja`, whose one tool is
+`get_currency_rates`, so price totals in divines are `unverified` (pricing's path when rates are missing).
+Cards say "no player evidence" in every run, offline or not, unless the brief carries the user's
+`popularity` notes (D-335).
 
 ### 11.2 Test config (offline mode only; A-28)
 
@@ -1204,8 +1229,8 @@ The seeded V4 checks FI-4 (a ledger formula wrapped as `(<formula>) * 2`) and FI
 
 **Shared files.** `SKILL.md`, `scripts/check-run.mjs`, `tests/static/buildGuidePipeline.test.ts`,
 `tests/unit/buildGuideCheckRun.test.ts` and `.claude/agents/build-guide/build-guide-coordinator.md` are
-shared: units editing them merge one at a time. Of the not-built units, WU-62 merges before WU-57, and
-WU-57 before WU-58 (D-317). Every not-built unit belongs to milestone M-14, "open builds offline" (D-315).
+shared: units editing them merge one at a time. WU-62 merged before WU-57, and WU-57 merges before WU-58
+(D-317). Every amendment unit belongs to milestone M-14, "open builds offline" (D-315).
 
 ### WU-43: The skill, shared references, run log and checker
 - kind: build
@@ -1325,8 +1350,9 @@ WU-57 before WU-58 (D-317). Every not-built unit belongs to milestone M-14, "ope
 **WU-48 checklist.** Each item is recorded pass or fail, with a note. Item 11 is set up before item 3,
 and its file is shown to the user with item 1's approval.
 1. **Approval.** HG-14's approval is recorded in the work-log before anything starts: live trade through
-   the server, web research on D-171's hosts, writes to the real guides and builds folders. poe.ninja,
-   reached only through the server's tools, needs no approval (D-297); trade keeps D-182's.
+   the server, web research on D-171's hosts, writes to the real guides and builds folders. poe.ninja's
+   economy endpoints, reached only through `get_currency_rates`, need no approval (D-297, D-335); trade keeps
+   D-182's.
 2. **Server.** The user's registered `pob2` server runs the commit under test, with trade enabled. The
    cookie is the user's own, and no agent handles it.
 3. **Run.** In a session in the repo, `/build-guide Titan "Blood Hunt"` (online, no test config; the old
@@ -1358,7 +1384,7 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-56: Content — the pattern library, the card template and the checklist
 - kind: build
-- status: not built (target)
+- status: built (merge `228bec1`)
 - depends-on: []
 - role: pipeline author
 - touches: [`.claude/skills/build-guide/references/patterns.md` (new), `.claude/skills/build-guide/templates/card-template.md` (new), `.claude/skills/build-guide/references/stages/R1b.md` (the checklist), `tests/static/buildGuidePipeline.test.ts`]
@@ -1367,31 +1393,42 @@ and its file is shown to the user with item 1's approval.
 - acceptance: [AC-W27, AC-W28, AC-W29]
 - milestone: M-14
 - summary: Amendment 3's N-5. The content the brainstorm and verification phases read. Independent of the
-  other units; WU-57 builds on it.
+  other units; WU-57 builds on it. As merged: `patterns.md` 5,642 words, 60 entries in ten families; static
+  tests 212 of 212.
+  - **Deviation accepted:** an `AWAITING_SKILL_WIRING` entry in the static test exempts `patterns.md` from
+    AC-W1's "lists every shared reference" rule until `SKILL.md` lists it; the exemption expires once
+    WU-57's `references/stages/R1a-assemble.md` exists (its review made it fail closed).
+  - **Its review** checked all 60 entries against their sources (three fixed; "Dazed" restored with a
+    `[crossbow]` citation, `ConfigOptions.lua:1684`) and tightened AC-W27…AC-W29's assertions to the named
+    elements. Its fold item is D-338: R1b's checklist writes probes and the card's results that R1b's header
+    and the checker don't admit yet.
+  - **Against D-335:** the merged template still carries poe.ninja player evidence (§7.5); WU-57 restates
+    it.
 
 ### WU-57: The pipeline — brief, three phases, cards, Count and the named damage source
 - kind: build
 - status: not built (target)
-- depends-on: [WU-50, WU-55, WU-56, WU-62; soft: WU-52 (WU-57 uses offline stubs of the poe.ninja tools until WU-52 merges)]
+- depends-on: [WU-55, WU-56, WU-62]
 - role: pipeline author
-- touches: [`SKILL.md` (invocation, steps, hosts and routes); `references/stages/R1a.md` (foci, cards, the library); `references/stages/R1a-assemble.md` (new); `references/stages/R1b.md` (the card's identity, the checklist, the probe budget); `references/stages/R1b-assemble.md` (`TotalEHP` in the key numbers); `templates/guide-template.md` and `references/stages/W1.md` (the verdict line's EHP); `references/checkpoints.md`; `references/offline-and-test.md`; `references/gates.md` and `references/stages/D1-gate.md` (figure × count); `references/stages/D1.md`, `D2.md`; the agent definitions, including `build-guide-verifier.md`'s re-check line, which still states the rule from before D-264 (AC-W14); the "rolled skill" wording across the skill; `tests/static/buildGuidePipeline.test.ts`, including its check of that line]
-- produces: [the brief and invocation (FR-W1, C-51); the three phases and gates (§5.2, §10); R1a-assemble and the deck (§7.5); the card halves; the checklist run (§7.7); the named damage source and figure × count in the D1 gate (§5.3); D1's Count and custom-modifier work; D2's bridge skills; the poe.ninja rules (§4, FR-W3); the renamed routes and test answers (§11.2)]
-- consumes: [C-51, C-52, C-53, C-54 (names and threshold from WU-50, the tools from WU-52), C-33's Count-scaled fields and custom-modifier marks (WU-55), D-285…D-301]
-- acceptance: [AC-W30, AC-W31, AC-W32, AC-W33, AC-W14 (the re-check rule), AC-W5's target clause]
+- touches: [`SKILL.md` (invocation, steps, hosts and routes, and listing `references/patterns.md`); `references/stages/R1a.md` (foci, cards, the library); `references/stages/R1a-assemble.md` (new); `references/stages/R1b.md` (the card's identity, the checklist, the probe budget, and its header `writes`: `probes/<card-id>/<n>/` and `cards/<id>.md`, D-338); `references/stages/R1b-assemble.md` (`TotalEHP` in the key numbers); `templates/card-template.md` (the Evidence fields and the fourth status word, D-335); `templates/guide-template.md` and `references/stages/W1.md` (the verdict line's EHP); `references/checkpoints.md`; `references/offline-and-test.md`; `references/gates.md` and `references/stages/D1-gate.md` (figure × count); `references/stages/D1.md`, `D2.md`; the agent definitions, including `build-guide-verifier.md`'s re-check line, which still states the rule from before D-264 (AC-W14); the "rolled skill" wording across the skill; `tests/static/buildGuidePipeline.test.ts`, including its check of that line, AC-W27's card-template strings and the `AWAITING_SKILL_WIRING` entry it drops]
+- produces: [the brief and invocation, with the `popularity` field (FR-W1, C-51, D-335); the three phases and gates (§5.2, §10); R1a-assemble and the deck, with the under-played cards by judgment (§7.5, D-298); the card halves; the checklist run (§7.7) and R1b's `writes` (D-338); the named damage source and figure × count in the D1 gate (§5.3); D1's Count and custom-modifier work; D2's bridge skills; the poe.ninja rule (§4, FR-W3): never contact pathofexile.com or poe.ninja yourself, and there are no poe.ninja tools beyond the currency rates (D-335); the renamed routes and test answers (§11.2)]
+- consumes: [C-51, C-52, C-53, C-33's Count-scaled fields and custom-modifier marks (WU-55), D-285…D-301, D-335, D-338]
+- acceptance: [AC-W30, AC-W31, AC-W32, AC-W33, AC-W14 (the re-check rule), AC-W27 as D-335 restates its strings]
 - milestone: M-14
-- summary: Amendment 3's N-6. Merges after WU-62, whose verdict line it extends, and before WU-58. It needs
-  WU-50's tool names and popularity threshold (D-298, D-324), and WU-57 uses offline stubs of the poe.ninja
-  tools until WU-52 merges (amendment 3's N-6: "N-1's tool names (stubbed offline until then)").
+- summary: Amendment 3's N-6. Merges after WU-62, whose verdict line it extends, and before WU-58. It no
+  longer depends on WU-50 or WU-52: D-335 withdrew the poe.ninja tools and the popularity threshold, so
+  there is nothing to stub. Its known follow-ups from the merged units: the card template's poe.ninja
+  strings (§7.5), R1b's header `writes` (D-338), and listing `patterns.md` in `SKILL.md`.
 
 ### WU-58: The checker and run log v3
 - kind: build
 - status: not built (target)
 - depends-on: [WU-57]
 - role: pipeline author + test infra
-- touches: [`scripts/check-run.mjs` (the run-log fields, roll and brief, the escalation answer, checkpoints, the flow with picks, mores, brainstorm and verification rounds, card ids and the caps, the rolled-skill recompute with Count, the verdict line's EHP); `references/run-log.md`; `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/` (`run-ok`, `run-ok-online`, `run-escalated` rebuilt)]
+- touches: [`scripts/check-run.mjs` (the run-log fields, roll and brief, the escalation answer, checkpoints, the flow with picks, mores, brainstorm and verification rounds, card ids and the caps, the rolled-skill recompute with Count, the verdict line's EHP, and the layout's `cards/`, `cards.md` and `probes/`, D-338); `references/run-log.md` (each card's probe count, D-338); `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/` (`run-ok`, `run-ok-online`, `run-escalated` rebuilt)]
 - produces: [run log v3 (§6), the v3 checks (FR-W7's target)]
-- consumes: [D-287, D-289, D-294, D-326]
-- acceptance: [AC-W2 (aa)…(ee)]
+- consumes: [D-287, D-289, D-294, D-326, D-338]
+- acceptance: [AC-W2 (aa)…(ff)]
 - milestone: M-14
 - summary: Amendment 3's N-7. The checker accepts schema 2 and 3 logs; schema 2 only so recorded runs
   still check.
@@ -1399,7 +1436,7 @@ and its file is shown to the user with item 1's approval.
 ### WU-59: Offline end-to-end run with an open brief, recorded
 - kind: build (recorded run)
 - status: not built (target)
-- depends-on: [WU-50…WU-58, WU-60…WU-62]
+- depends-on: [WU-51, WU-53…WU-58, WU-60…WU-62] (WU-50 done, WU-52 withdrawn, D-335)
 - role: build coordinator, with an independent verifier checking the record
 - touches: [the work-log only; temp dirs and a worktree. Failures re-open the owning unit]
 - produces: [the M-14 record]
@@ -1416,8 +1453,8 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-62: The guide style — the reader layer, the audit layer and the guards
 - kind: build
-- status: not built (target)
-- depends-on: [WU-61]. Soft: if WU-60 has merged, D1 uses its affix sources (a mod's base types, essences)
+- status: built (merge `14f3553`)
+- depends-on: [WU-61]. Soft: WU-60 merged first, so D1 uses its affix sources (a mod's base types, essences)
 - role: pipeline author + test infra
 - touches: [`templates/guide-template.md` (rewritten); `templates/audit-template.md` (new); `references/stages/W1.md`, `V4.md`, `D1.md`, `D2.md`, `D1-gate.md`; `references/gates.md`; `references/source-markers.md`; `SKILL.md` steps 10 and 14; `references/run-folder.md`; `references/task-header.md`; `scripts/check-run.mjs` (the guards); `tests/static/buildGuidePipeline.test.ts`; `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/run-ok` and `run-ok-online` (a new-style `guide.md` plus `audit.md`)]
 - produces: [the reader layer (§8's target), `audit.md` (§7.8), the editor lens (§7.4's target), the entering-maps rung in D1, D2 and the gates (§5.3), the checker's guards (FR-W7's target)]
@@ -1425,7 +1462,18 @@ and its file is shown to the user with item 1's approval.
 - acceptance: [AC-W2 (v)…(z) and the amended (b) and (l), AC-W11 (G1's H2s)]
 - milestone: M-14
 - summary: Amendment 2's pipeline work (its G8). Merges before WU-57 and WU-58, which edit its verdict line
-  (D-317).
+  (D-317). As merged: static and checker suites 421 of 421; the checker exits 0 on the three good
+  fixtures; the fixtures with an `m` rung are at plan version 2; `areaLevelOf` maps `entering-maps` to 69;
+  the first rung is taken by rung order. Its review added every section's word budget from §8's table, the
+  FAQ's "3–5 questions" rule, a fence guard that exempts only the import code, and a fault string naming
+  stage `m`.
+  - **Deviation accepted:** the nine sections with no prose placeholder carry `[About <n> words.]` note
+    lines, which W1 deletes (§8).
+  - **Out-of-touch edits accepted** for consistency: `references/pricing.md`, `references/checkpoints.md`,
+    `references/offline-and-test.md`, and the writer and coordinator agents.
+  - Left open by its review: `references/lookups.md` (now line 71) still points at the removed H2
+    "Confidence and what PoB can't model"; the coordinator fixes it after WU-53 merges, since WU-53 also
+    edits that file.
 
 ## 13. Acceptance criteria
 
@@ -1491,18 +1539,23 @@ and its file is shown to the user with item 1's approval.
     cycle, escalations only from the gates, routing by the verdict file, what is current); D-264's
     claims-only round with D-266's `buildSha1`; D-265 (a), (c) and (d).
   - `--partial` is a usage error (exit 2).
-  - *Target (WU-62, D-283, D-281):* new broken copies: (v) `guide.md` over 3,000 words (the H1, the import
-    code and the Known issues list not counted); (w) a marker in `guide.md` (`[^`, `confidence H|M|L`, or a
-    finding id); (x) a rung's verdict line missing, or a part not matching the record by the rounding rule;
-    (y) `m`'s budget above 5.5, or above 5 without "near the ceiling", and `m`'s floor; (z) `audit.md`
-    missing one of its H2s. Amended: (b) checks the reader layer's 14 H2s; (l) checks Known issues by
-    sentence, with the id in `audit.md`; reward picks are checked by name.
-  - *Target (WU-58, D-287, D-289, D-294, D-326):* (aa) a run log whose `schemaVersion` is neither 2 nor 3, or
-    a schema-3 log whose `roll` is set before the verification pick; (bb) the caps: a brainstorm round with
+  - Since WU-62 (D-283, D-281; behaviour tests in `buildGuideCheckRun.test.ts`), new broken copies: (v)
+    `guide.md` over 3,000 words (the H1, the import code and the Known issues list not counted); (w) a
+    marker in `guide.md` (`[^`, `confidence H|M|L`, or a finding id), outside the import code's fence only;
+    (x) a rung's verdict line missing, or a part not matching the record by the rounding rule; (y) `m`'s
+    budget above 5.5, or above 5 without "near the ceiling", and `m`'s floor; (z) `audit.md` missing one
+    of its H2s. Amended: (b) checks the reader layer's 14 H2s; (l) checks Known issues by sentence, with
+    the id in `audit.md`; reward picks are checked by name.
+  - *Target (WU-58, D-287, D-289, D-294, D-326, D-338):* (aa) a run log whose `schemaVersion` is neither 2
+    nor 3, or a schema-3 log whose `roll` is set before the verification pick; (bb) the caps: a brainstorm round with
     more than 3 R1a entries or more than one R1a-assemble, a verification round compiling more than 3
     cards, while a second verification round from one deck passes; (cc) the escalation answer
     `checkpoint-1` (now `verification`); (dd) the verdict line's "Effective HP about <n>." missing, wrong or
-    mis-rounded against `TotalEHP`; (ee) the D1 gate recompute reads figure × count.
+    mis-rounded against `TotalEHP`; (ee) the D1 gate recompute reads figure × count; (ff) (D-338) the
+    layout: the checker accepts `probes/<card-id>/<n>/` (a probe's `plan.json`, with the record and XML
+    the server writes beside it), the cards (`cards/<id>.md`, which §2 names too) and `cards.md`, and
+    rejects any other file there; and the run log records each card's probe count, so D-292's cap of 4
+    probes per card can be audited.
 - **AC-W3.** *Withdrawn → D-267:* the workflow harness test; amendment 1 deleted the harness.
 - **AC-W23 (WU-43; positive allowlist probe, run early).** Met at WU-43 and kept as recorded
   (`../worklog.md:257-260`): a recorded headless `claude -p` probe with a strict MCP config that registers
@@ -1520,9 +1573,9 @@ and its file is shown to the user with item 1's approval.
   `TOOL_META`. L and B hold only group-`core`, kind-`read` tools, and none of them is `lua_save_build`,
   `export_build` or `save_config_preset`. R-6: every Agent call `SKILL.md` names gives a `subagent_type`,
   one of the four types.
-  *Target (WU-57, D-297):* the test also knows the set N, the poe.ninja tools of group `ninja` (C-54): the
-  researcher's and the coordinator's `tools:` lines may name N tools (R-2…R-4 as their targets amend them),
-  and N's members exist in `TOOL_META` once WU-52 has merged.
+  *Withdrawn → D-335:* the target clause for a set N of poe.ninja tools that the researcher's and the
+  coordinator's `tools:` lines could name. There is no set N; R-2…R-4 as built already confine group
+  `ninja`'s one tool, `get_currency_rates`, to the coordinator's P.
 - **AC-W6.** *Withdrawn → D-267:* the research-workflow harness test.
 - **AC-W7.** *Withdrawn → D-267:* the research-workflow harness test of R1b failures.
 
@@ -1531,11 +1584,12 @@ and its file is shown to the user with item 1's approval.
 - **AC-W8.** *Withdrawn → D-267:* the design-workflow harness test of the happy path.
 - **AC-W9.** *Withdrawn → D-267:* the design-workflow harness test of the D1 gate table.
 - **AC-W10.** *Withdrawn → D-267:* the design-workflow harness test of the D2 gate and FI-2/FI-3.
-- **AC-W11 (WU-45; changed by D-268).** Static: `templates/guide-template.md` has §8's H2s in order, the
-  same list the run checker holds, under one H1 naming the roll; the H3 `Checks` under both endgame H2s; and
-  `### Known issues` as the last part of `Confidence and what PoB can't model`, replacing `Accepted
-  failures`. The writer definition satisfies §4 (AC-W5 extended).
-  *Target (WU-62, D-276):* the template has the reader layer's 14 H2s.
+- **AC-W11 (WU-45; changed by D-268; amended by WU-62, D-276).** Static: `templates/guide-template.md` has
+  §8's 14 H2s of the reader layer in order, the same list the run checker holds, under one H1 naming the
+  roll; the H3 `Checks` under each of the three endgame H2s; and `### Known issues` as the last part of
+  `What PoB can't show`. Each section states §8's word budget (the test reads §8's table from this slice).
+  The writer definition satisfies §4 (AC-W5 extended). (Before WU-62: 13 H2s, with `Known issues` ending
+  `Confidence and what PoB can't model`.)
 - **AC-W24.** *Withdrawn → D-267:* the harness test of the workflow's resume paths.
 
 **The verifier (WU-46)**
@@ -1635,10 +1689,12 @@ and its file is shown to the user with item 1's approval.
       `answeredBy: "default"`, and `status: "stopped"`.
     - No `research/` file and no `compile-record.json` exist.
 
-**Content (WU-56; target, D-290, D-291, D-292)**
+**Content (WU-56; built, merge `228bec1`; D-290, D-291, D-292)**
 
 - **AC-W27 (WU-56).** Static: `templates/card-template.md` holds both halves' fields (§7.5) and the six
-  status words.
+  status words. As built, the test pins the Evidence fields' poe.ninja strings and the status word
+  "players use it (poe.ninja)". *Target (WU-57, D-335):* the template and the test take §7.5's restated
+  Evidence (the user's `popularity` notes or "no player evidence") and "players use it (the user's notes)".
 - **AC-W28 (WU-56).** Static: each `references/patterns.md` entry has its name and shape, search step, how
   PoB follows it (one of the six labels), examples and cautions; the brainstorm questions open the file; and
   the file is at most 6,000 words (D-325).
@@ -1646,18 +1702,18 @@ and its file is shown to the user with item 1's approval.
   "verified, estimate, risk, not checked", and the probe budget of up to 4 one-stage measure-only variants
   per card, in order.
 
-**The pipeline (WU-57; target, D-285, D-287, D-295, D-297)**
+**The pipeline (WU-57; target, D-285, D-287, D-295, D-297, D-335)**
 
 - **AC-W30 (WU-57).** Static: `SKILL.md` gives the invocation
-  `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]` and the seven brief fields, and still
-  accepts `<ascendancy> <skill>`.
+  `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]` and the eight brief fields (the seven
+  of D-285 and D-335's `popularity`), and still accepts `<ascendancy> <skill>`.
 - **AC-W31 (WU-57).** Static: `SKILL.md` names the gates `brainstorm`, `verification` and `final` and the step
   `R1a-assemble` (type `build-guide-coordinator`), and `references/stages/R1a-assemble.md` exists.
 - **AC-W32 (WU-57).** Static: the stage references use D-122's wording, "named damage source". The exact
   assertion is pinned at the unit's first step (A-33).
-- **AC-W33 (WU-57).** Static: `SKILL.md` and the researcher's and coordinator's definitions say poe.ninja is
-  reached only through the server's poe.ninja tools; the researcher's allowlist may name them; R-3 holds for
-  C and P.
+- **AC-W33 (WU-57; restated by D-335).** Static: `SKILL.md` and the researcher's and coordinator's
+  definitions say: never contact pathofexile.com or poe.ninja yourself, and there are no poe.ninja tools
+  beyond the currency rates; no researcher's allowlist names a group-`ninja` tool; R-3 holds for C and P.
 
 ## 14. Test strategy (this slice)
 
@@ -1668,15 +1724,17 @@ and its file is shown to the user with item 1's approval.
 | AC-W23 | recorded probe, early in the unit | WU-43 |
 | AC-W4, W15…W22, W26 | pipeline run (recorded; independent verifier) | WU-47 |
 | WU-48 checklist | human (HG-14) | the user |
-| AC-W27…W33 (target) | static (pipeline files) | `mise run test` |
-| AC-W2 (v)…(ee) (target) | unit (the run checker, rebuilt fixtures) | `mise run test` |
+| AC-W27…W29 (WU-56, built) | static (pipeline files) | `mise run test` |
+| AC-W30…W33 (target) | static (pipeline files) | `mise run test` |
+| AC-W2 (v)…(z) (WU-62, built) | unit (the run checker, rebuilt fixtures) | `mise run test` |
+| AC-W2 (aa)…(ff) (target) | unit (the run checker, rebuilt fixtures) | `mise run test` |
 | WU-59's criteria (target) | pipeline run (recorded; pinned at the unit's start) | WU-59 |
 
 The checker's control-flow cases over fixture logs exercise every failure route deterministically and
 offline, in place of the deleted workflow harness; run B of WU-47 drives every failure route live (D-267).
 The recorded runs prove that the real agents, tools and allowlists behave the same way. No test or run in
-this slice contacts pathofexile.com, poe.ninja or D-171's hosts before M-13 (D-34, D-181); the poe.ninja
-tools' tests use committed fixtures (D-297).
+this slice contacts pathofexile.com, poe.ninja or D-171's hosts before M-13 (D-34, D-181); there are no
+poe.ninja tools to test (D-335).
 
 ## 15. Open items and their resolutions
 
@@ -1698,7 +1756,8 @@ recorded exception) on 2026-10-08. D-231 also corrects C-36's wording on who may
 
 **The fold's gaps** (the F-n ids of the work-log's "Spec fold v1.3 (2026-10-10)"), as settled on
 2026-10-10: F4 by the user, the rest by the coordinator (PROPOSED, binding until the user overrides them).
-The last two rows came after the fold: `--no-ninja` (D-333) and a non-skill card's identity (D-334).
+The last two rows of the first fold came after it: `--no-ninja` (D-333) and a non-skill card's identity
+(D-334). The rows after them come from fold v1.4 (2026-10-11).
 
 | Id | Gap | Settled as | Applied in |
 |---|---|---|---|
@@ -1707,7 +1766,7 @@ The last two rows came after the fold: `--no-ninja` (D-333) and a non-skill card
 | F6 | How parallel researchers name cards without collisions across rounds; whether the research files stay | **D-319:** card ids `r<round>-<researcher letter>-<n>` at `cards/<id>.md`, lettered by the runner; `research/p<k>-r1a-<n>.md` stays, and WU-57 removes it with a decision row only if it finds the files unused | §2, §5.1 |
 | F12, F20 | No acceptance criteria for WU-59 (amendment 3's "like WU-47") or for the D-122 wording test | **A-33:** each unit's first step pins its criteria in this slice from the amendment's text, and the coordinator reviews them before any work; "like WU-47" means WU-47's recorded procedure with an open brief | WU-59, AC-W32 |
 | F13 | The final gate's test answers | **D-323:** `answers.brainstorm`, `answers.verification` and `answers.final`; `checkpoint1` and `checkpoint2` retire with run log v3 | §11.2 |
-| F14, F15 | Who sets the popularity threshold for a deck's under-played cards; the poe.ninja tools' details | **D-324:** outputs of spike WU-50, the tools' details into C-54 and the threshold as a decision row | §4, §5.2 |
+| F14, F15 | Who sets the popularity threshold for a deck's under-played cards; the poe.ninja tools' details | *Withdrawn → D-335:* D-324 made both outputs of spike WU-50, which found poe.ninja's builds API closed to third parties. There are no tools and no threshold; the under-played cards are the coordinator's judgment from the pattern library (D-298 restated) | §4, §5.2 |
 | F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test | §7.6, AC-W28 |
 | F17 | Whether the checker still accepts schema-2 logs after v3 | **D-326:** both; schema 2 only so recorded runs (WU-47's) still check | FR-W7, §6, AC-W2 (aa) |
 | F19 | Amendment 2's trade-link field | **HG-22** (PROPOSED by the coordinator): if the price tool returns a link, the user decides at WU-48 whether to add the field | WU-48 item 12 |
@@ -1715,3 +1774,5 @@ The last two rows came after the fold: `--no-ninja` (D-333) and a non-skill card
 | F27 | Where probe variants live | **D-331:** `probes/<card-id>/<n>/` in the run folder | §2, §7.7 |
 | — | Whether `--no-ninja` also stops `get_currency_rates`, which totals budgets in divines | **D-333:** yes; the run calls no tool in group `ninja`, and price totals are then `unverified` (`references/pricing.md:88-89`) | FR-W1, §11.1 |
 | — | How a card whose damage source isn't a skill passes the identity check at deck assembly, which needs a gem lookup showing `Kind: active` (amendment 3 says such a card can be dealt and verified, D-303) | Settled by D-334 (PROPOSED by the coordinator, 2026-10-10): checked by a lookup of the source's kind; read-only checks only until HG-21 | C-52, §5.2, §7.5 |
+| — | poe.ninja's terms close its builds, profiles and character API to third parties (spike WU-50), so no player-evidence tool can be built | **D-335 (the user, 2026-10-10):** no player-evidence tools; cards cite the brief's `popularity` notes as user-supplied, or say "no player evidence"; the under-played cards are the coordinator's `judgment`; poe.ninja only through its economy endpoints | FR-W1, FR-W3, §4, §5.2, §7.5, §9, §11.1, AC-W5, AC-W27, AC-W30, AC-W33 |
+| — | R1b's checklist writes probes and the card's results, but R1b's header `writes` don't name them and the checker rejects them | **D-338** (PROPOSED by the coordinator, 2026-10-10): WU-57 adds the paths to R1b's `writes`; WU-58 meets AC-W2 (ff) and logs each card's probe count | §2, §5.1, §5.2, §7.7, AC-W2 (ff) |

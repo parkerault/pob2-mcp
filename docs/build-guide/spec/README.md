@@ -1,14 +1,23 @@
 # Build-guide workflow: spec spine
 
-**Status:** v1.3, 2026-10-10. v1.2 (2026-10-08) folded the adversarial spec review's fixes and the
-coordinator's resolutions (D-210…D-238, A-31, A-32). v1.3 folds:
+**Status:** v1.4, 2026-10-11. v1.2 (2026-10-08) folded the adversarial spec review's fixes and the
+coordinator's resolutions (D-210…D-238, A-31, A-32). v1.3 (2026-10-10) folded:
 - the decisions made during the build, D-239…D-266 (C-33 gains `buildSha1`), and the work-log's unnumbered
   ones, D-305…D-314;
 - amendment 1 (built; D-267…D-275);
-- amendment 2 (approved 2026-10-09, **not built**; D-276…D-284);
-- amendment 3 (approved 2026-10-10, **not built**; D-285…D-304);
+- amendment 2 (approved 2026-10-09; D-276…D-284);
+- amendment 3 (approved 2026-10-10; D-285…D-304);
 - the resolutions of the fold's open points (2026-10-10): the user's rulings D-315 (M-14) and D-316 (no
   numeric tool cap), and the coordinator's PROPOSED D-317…D-334, A-33 and HG-22.
+
+v1.4 folds the decisions and build facts of the amendments' waves A and B (work-log, from "2026-10-10:
+amendments 2 and 3, build start"):
+- the user's D-335 (no player-evidence tools: poe.ninja's terms close its builds API), which withdraws C-54,
+  WU-52 and D-324;
+- the coordinator's PROPOSED D-336 (coverage flags), D-337 (Full DPS in every compile) and D-338 (R1b's
+  probe and card writes);
+- as built: WU-54, WU-56, WU-60, WU-61 and WU-62, and the spikes WU-50 (blocked) and WU-51; WU-55's
+  record fields and error class, still target until it merges.
 
 The amendment files stay as the rationale record; this spine and its slices are authoritative.
 
@@ -25,8 +34,10 @@ The amendment files stay as the rationale record; this spine and its slices are 
   ("review Sn"), folded in as D-210…D-221 and C-50, and the coordinator's binding resolutions of the
   slice writers' open items (2026-10-07), folded in as D-222…D-238, A-31 and A-32;
 - the work-log [`../worklog.md`](../worklog.md) ("WL:n"): the decisions made during the build, folded in
-  as D-239…D-266 and D-305…D-314; its section "Spec fold v1.3 (2026-10-10)" defines the fold's gap ids
-  F1…F27 ("F-n");
+  as D-239…D-266 and D-305…D-314, and, from its section "2026-10-10: amendments 2 and 3, build start" on,
+  as D-335…D-338; its section "Spec fold v1.3 (2026-10-10)" defines the fold's gap ids F1…F27 ("F-n");
+- the spike reports [`../spikes/WU-50-poe-ninja.md`](../spikes/WU-50-poe-ninja.md) (S-N1) and
+  [`../spikes/WU-51-full-dps.md`](../spikes/WU-51-full-dps.md) (S-N2);
 - the user-approved amendments, folded in and kept as the rationale record:
   [`amendment-1-simplify.md`](amendment-1-simplify.md) (D-267…D-275),
   [`amendment-2-guide-style.md`](amendment-2-guide-style.md) (D-276…D-284) and
@@ -35,25 +46,25 @@ The amendment files stay as the rationale record; this spine and its slices are 
   gets wrong or doesn't model, which amendment 3 and C-53 cite;
 - the resolutions of the fold's open points (2026-10-10): D-315…D-334, A-33 and HG-22.
 
-This spine is the single source of truth for what crosses slices: the contracts (C-30…C-54, plus the
-amended stabilization contracts in §3.1), the decision log (D-100…D-334), the autonomy envelope
-(A-20…A-33, HG-10…HG-22), the milestones (M-10…M-14), the work-unit DAG (WU-30…WU-62), the guardrails,
+This spine is the single source of truth for what crosses slices: the contracts (C-30…C-54, C-54
+withdrawn, plus the amended stabilization contracts in §3.1), the decision log (D-100…D-338), the autonomy
+envelope (A-20…A-33, HG-10…HG-22), the milestones (M-10…M-14), the work-unit DAG (WU-30…WU-62), the guardrails,
 the risks (R-20…R-39) and the cross-cutting acceptance criteria (AC-B). The stabilization spine
 (`docs/stabilization/spec/README.md`, "stab spine") stays in force wherever this spine doesn't amend it.
 No ID here collides with it. When a slice and this spine disagree, this spine wins; fold fixes back here.
 
 | Slice spec | Scope | Work units | AC prefix |
 |---|---|---|---|
-| `01-server-tools.md` | K1 lookups, K2 coverage, M1 breakdown and the skill-part fix, M2 ranker amendments, L1 set and tree-state authoring, the existing defects, T1 dated price outputs; *target:* the poe.ninja tools (C-54), the lookup and coverage additions (D-277, D-299, D-300) | WU-31…WU-36, WU-49 (built); WU-50, WU-52, WU-53, WU-54, WU-60 (target, D-318) | AC-K |
-| `02-plan-compiler.md` | The compile-time spike, the guides-folder root, the P1 plan schema, the C1/E1 data files, the import-code encoder, the P2 compiler and ledger (`compile_plan`'s measure-only and final modes, the write ledger), `guide_run` (the run-folder and validate modes), the V1/V2 checks; *target:* Count and custom modifiers (D-293), the entering-maps rung and the ladder track (D-281, D-282) | WU-30, WU-37…WU-42 (built); WU-51, WU-55, WU-61 (target) | AC-P |
-| `03-pipeline.md` | The skill, its runner and four agent types (D-267), V4 and the fix round, the guide template, the run log, the pricing procedure, the offline mode and the offline end-to-end run, the alpha; *target:* the brief, the three phases and gates, cards, the pattern library, the verification checklist (amendment 3), the guide style and audit layer (amendment 2) | WU-43…WU-47 (built), WU-48 (human); WU-56…WU-59, WU-62 (target) | AC-W |
+| `01-server-tools.md` | K1 lookups, K2 coverage, M1 breakdown and the skill-part fix, M2 ranker amendments, L1 set and tree-state authoring, the existing defects, T1 dated price outputs, a mod's base types and essence hits (D-277), the coverage flags (D-300, D-336); *target:* the lookup additions (D-299). The poe.ninja tools (C-54) are withdrawn (D-335) | WU-31…WU-36, WU-49, WU-54, WU-60 (built); WU-50 (done, blocked by poe.ninja's terms); WU-52 (withdrawn, D-335); WU-53 (target, D-318) | AC-K |
+| `02-plan-compiler.md` | The compile-time spike, the guides-folder root, the P1 plan schema, the C1/E1 data files, the import-code encoder, the P2 compiler and ledger (`compile_plan`'s measure-only and final modes, the write ledger), `guide_run` (the run-folder and validate modes), the V1/V2 checks, the entering-maps rung and the ladder track (D-281, D-282); *target:* Count and custom modifiers (D-293, D-337) | WU-30, WU-37…WU-42, WU-61 (built); WU-51 (done); WU-55 (target) | AC-P |
+| `03-pipeline.md` | The skill, its runner and four agent types (D-267), V4 and the fix round, the guide's reader layer and the audit layer (amendment 2), the run log, the pricing procedure, the offline mode and the offline end-to-end run, the pattern library, the card template and the checklist's text, the alpha; *target:* the brief, the three phases and gates, cards, the verification checklist's run (amendment 3) | WU-43…WU-47, WU-56, WU-62 (built), WU-48 (human); WU-57…WU-59 (target) | AC-W |
 | this spine | Cross-cutting criteria | — | AC-B |
 
 **Reading rule for build agents.** Read the stab spine's §2.2 conventions, this spine, then your unit's
 slice spec. Cite IDs in commits and the work-log. Anything no contract or decision settles is either a
 proceed-on assumption (§6.2) or a human-decision gate (§6.3). Never invent a third category. A passage
-marked *target* describes approved behaviour that isn't built yet (amendments 2 and 3, WU-50…WU-62); until
-its unit merges, the as-built behaviour stated beside it holds.
+marked *target* describes approved behaviour that isn't built yet (the amendment units not yet merged:
+WU-53, WU-55, WU-57…WU-59); until its unit merges, the as-built behaviour stated beside it holds.
 
 **Capability glossary** (the design's IDs): K1 game-data lookup · K2 model-coverage detection · M1
 offense breakdown and skill-part selection · M2 ranker amendments · L1 set and state authoring · P1
@@ -132,7 +143,8 @@ redefined; §3 tags every contract this epic relies on or changes.
   `tests/integration/gemCorruption.test.ts:306, :310, :326`; `scripts/fresh-clone-check.mjs:10, :19, :27`
   (it derives the ninja-less count); the comment at `scripts/fresh-clone-check.sh:12`;
   `tests/mcp/toolDisposition.test.ts:36-40`, whose `build-guide` lane counts this epic's new tools from
-  `BUILD_GUIDE_NEW`; and the README's two tool-count sentences, `README.md:21, :60` (D-305).
+  `BUILD_GUIDE_NEW`; and the README's two tool-count sentences, `README.md:21, :60` (D-305). They stay
+  at 84 and 83: D-335 withdrew the poe.ninja tools (C-54), so no amendment unit moves them.
 - **Golden values no change may move:** 109 `PlayerStat` pairs survive save and reload
   (`tests/integration/golden.test.ts`); `golden-stat-fields.json`; CombinedDPS 104489.78
   (`engineTree.test.ts:86`); Life 2,977 (`fresh-clone-check.mjs:123`).
@@ -148,12 +160,14 @@ redefined; §3 tags every contract this epic relies on or changes.
 - **Amended or scoped here:** D-77 and D-78 (by D-143, C-47); C-1 and the D-64/D-91 counts (D-174);
   D-65's text (D-198); D-3/D-30 (D-168, D-203); D-42/D-88 path confinement (D-177); C-16 and C-19,
   additively (D-211, review S17). D-34 (no live network from agents or tests) and stab HG-1 (a live request
-  to pathofexile.com or poe.ninja needs the user) are amended by D-297 for poe.ninja only: polite poe.ninja
-  requests are allowed in development and in runs, while pathofexile.com and any request that carries a
-  cookie or personal data stay gated, and tests stay offline. Stab HG-3 (tool-set changes need the user)
-  is resolved for the tools gap 23 names (D-173), for `guide_run` inside D-173's cap (cap lifted, D-316;
-  D-216), for C-49's additive price outputs and error prefix by D-202 and D-218 once ratified, and for
-  C-54's poe.ninja tools by D-316, since the user approved amendment 3, which adds them.
+  to pathofexile.com or poe.ninja needs the user) are amended by D-297, as D-335 restates it, for
+  poe.ninja's documented economy endpoints only: polite requests to them are allowed in development and in
+  runs (C-12's currency rates), its builds, profiles and character API is never used, pathofexile.com and
+  any request that carries a cookie or personal data stay gated, and tests stay offline. Stab HG-3
+  (tool-set changes need the user) is resolved for the tools gap 23 names (D-173), for `guide_run` inside
+  D-173's cap (cap lifted, D-316; D-216), and for C-49's additive price outputs and error prefix by D-202
+  and D-218 once ratified. D-316 also resolved it for C-54's poe.ninja tools, which D-335 withdrew, so it
+  now covers no new tool.
 
 ## 2. Problem and goals
 
@@ -171,7 +185,7 @@ ascendancy notables carry a line PoB ignores (pin §D), so hand calculations are
 | G-10 | The server exposes PoB2's loaded game data, per-skill and per-skill-part numbers, and what PoB can't model (K1, K2, M1, M2) | AC-K |
 | G-11 | The server can author every piece of a stage's state: sets, loadouts, weapon-set passives, attribute choices, tree jewels, flask toggles, a consistent main skill (L1) | AC-K |
 | G-12 | A plan compiles into one PoB2 file with a loadout per stage, a compile record, a re-evaluated ledger, an import code, and V1/V2 verdicts (P1, P2, C1, E1, V1, V2) | AC-P, NFR-20, NFR-21 |
-| G-13 | The pipeline produces the dossier, plan, record and guide, every claim tagged with its source and checked by V4, with the findings still open stated in the guide (R1, D1, D2, W1, V4, O1; D-268). *Target (WU-62, WU-57; D-276, D-278, D-287):* the guide renders the plan without markers, the plan's claims carrying the sources, with `audit.md` beside it; the brainstorm adds the cards and the deck | AC-W, M-12 |
+| G-13 | The pipeline produces the dossier, plan, record and guide, every claim tagged with its source and checked by V4, with the findings still open stated in the guide (R1, D1, D2, W1, V4, O1; D-268). Since WU-62 (D-276, D-278), the guide renders the plan without markers, the plan's claims carrying the sources, with `audit.md` beside it. *Target (WU-57, D-287):* the brainstorm adds the cards and the deck | AC-W, M-12 |
 | G-14 | The Titan / Blood Hunt guide is one the user can actually level and map with | M-13 sign-off |
 | G-15 | Nothing existing regresses: tool contracts, golden values, the offline rules | AC-B |
 
@@ -184,9 +198,9 @@ The summaries are binding; the slice named in §3.2 carries the full detail.
 
 | ID | Boundary | Status | Delta and backward-compatibility impact |
 |---|---|---|---|
-| C-1 | MCP tool surface | modified | The tool set is stab §4's table plus C-37…C-42 and C-50: **84 tools, 83 with `POE_NINJA_DISABLED=true`**; all seven new tools are group `core` (D-216). Corrects C-1's stale "76" (it has been 77 since D-91). Existing tools change only as C-43…C-49 say. *Target (WU-52, D-316):* the poe.ninja tools (C-54) join group `ninja`, one per distinct query shape; S-N1 (WU-50) settles their number, and WU-52 restates both counts (the count without poe.ninja stays 83). **Compat:** additive; nothing removed or renamed |
-| D-64, D-91 | Count assertions (§1.3 sites) | modified | Each literal moves to the new total in the merge that adds a tool (§7 wiring rule). Today: 84 and 83; WU-52 moves them again (D-316) |
-| C-2, C-5 | Wire protocol v2; reply schemas | modified (D-222) | **New Lua actions** behind C-37…C-41. **Existing actions, additive:** `search_nodes` adds `ascendancy?` (with it, `keyword` is optional) and sorts before the cap; `get_stats` adds `breakdown?` and, only with it, a `breakdown` reply field; `set_level` adds `autoMode?` (default false, D-196); `set_tree` adds `weaponSets?` and `attributeChoices?`; `update_tree_delta`'s reply adds `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed`, which the TS side already reads (D-194), and it refuses an add that would re-tag an allocated node (D-308); `set_main_selection`'s reply adds an optional `statSet` (D-309); `check_coverage` adds `sourceTemplates?` (D-243). *Target:* `create_socket_group` adds `groupCount` (D-293); `lookup_game_data` and `check_coverage` gain the additions of D-277, D-299 and D-300. **Renamed:** `set_main_selection`'s `skillPart` param becomes `statSet` (D-195). **Compat:** every change is additive except that rename, which is internal: only `set_main_skill` calls the action |
+| C-1 | MCP tool surface | modified | The tool set is stab §4's table plus C-37…C-42 and C-50: **84 tools, 83 with `POE_NINJA_DISABLED=true`**; all seven new tools are group `core` (D-216). Corrects C-1's stale "76" (it has been 77 since D-91). Existing tools change only as C-43…C-49 say. No poe.ninja tool is added: D-335 withdrew C-54, so group `ninja` keeps its one tool, `get_currency_rates`, and both counts stay 84 and 83. **Compat:** additive; nothing removed or renamed |
+| D-64, D-91 | Count assertions (§1.3 sites) | modified | Each literal moves to the new total in the merge that adds a tool (§7 wiring rule). 84 and 83 since WU-41; no amendment unit moves them (D-335) |
+| C-2, C-5 | Wire protocol v2; reply schemas | modified (D-222) | **New Lua actions** behind C-37…C-41. **Existing actions, additive:** `search_nodes` adds `ascendancy?` (with it, `keyword` is optional) and sorts before the cap; `get_stats` adds `breakdown?` and, only with it, a `breakdown` reply field; `set_level` adds `autoMode?` (default false, D-196); `set_tree` adds `weaponSets?` and `attributeChoices?`; `update_tree_delta`'s reply adds `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed`, which the TS side already reads (D-194), and it refuses an add that would re-tag an allocated node (D-308); `set_main_selection`'s reply adds an optional `statSet` (D-309); `check_coverage` adds `sourceTemplates?` (D-243). Since WU-60 (D-277), `lookup_game_data`'s mechanic reply carries a mod hit's base types (`baseTypes`, `notRolled`) and essence hits, and `kinds` counts `essence`; since WU-54 (D-300, D-336), `check_coverage` takes `sourceCallNames?` and `sourceSkillTemplates?` and replies with `flags[]`. *Target:* `create_socket_group` adds `groupCount` (D-293, WU-55); `lookup_game_data` gains D-299's additions (WU-53). **Renamed:** `set_main_selection`'s `skillPart` param becomes `statSet` (D-195). **Compat:** every change is additive except that rename, which is internal: only `set_main_skill` calls the action |
 | C-3 | Engine session | existing | New engine tools run in `session.run` by kind; `guide_run`'s run-folder mode runs outside it (D-216). `compile_plan` holds one lock for the whole call (D-156). A crash mid-compile runs C-3's recovery and fails the call (D-165). The compile's `new_build` drops the recovery snapshot (§1.1), so recovery takes the no-snapshot path: the next `read` or `mutate` call fails with "the loaded build could not be restored", and a later compile succeeds |
 | C-4 | Bridge client | existing | Its 30 s per-request timeout bounds each compile stage request (NFR-21) |
 | C-6 | PoB pin | existing | v0.23.1, game 0.5.4 data. Unchanged (HG-11) |
@@ -221,8 +235,8 @@ carries one (D-105): `{kind, ref, accessed?, patch?, confidence?}`.
   reports any number or mechanic claim without a source; V4 checks that claims are true (D-179, D-268).
   V4 accepts `external-unavailable` only when the run log records offline mode; in any other run it is a
   finding.
-- *Target (WU-62, D-276):* `guide.md` carries no markers: it renders the plan, whose claims carry the
-  sources. Markers stay in the dossier and the research files.
+- Since WU-62 (D-276), `guide.md` carries no markers: it renders the plan, whose claims carry the sources.
+  Markers stay in the dossier and the research files.
 - Offline, V4 checks a `data:` claim against the data-file fact and the citation stored there, without
   fetching the fact's URL (D-232).
 
@@ -230,8 +244,10 @@ carries one (D-105): `{kind, ref, accessed?, patch?, confidence?}`.
 - `plan.json` in a run folder (C-34), JSON, validated by zod inside `compile_plan` and `guide_run`'s
   validate mode (D-167, D-216). `schemaVersion` is an integer; both accept only versions they know and
   otherwise fail naming them. A schema error names its JSON path and nothing is compiled (D-163).
-  *Target (WU-55, WU-61, D-332):* after the bump the versions they know are 1 and 2; a version-1 plan
-  defaults the new fields (`count` 1, no `customMods`, no `entering-maps` variant).
+  Since WU-61 (D-320, D-332), the versions they know are 1 and 2. A version-1 plan keeps version 1's shape:
+  it defaults what version 2 added (no `entering-maps` variant; *target, WU-55:* `count` 1, no
+  `customMods`), and a version-1 plan that uses a version-2 field is an error at that field's path, naming
+  the version that added it.
 - **Required top level:** `schemaVersion`; `roll` (class, ascendancy, rolled skill; *target:* the card's
   identity, `skill` its named damage source, fixed for the run at the verification pick, D-286, D-295);
   `versions` (the PoB pin tag and commit, the tree version, the game patch the engine data targets, and
@@ -256,12 +272,12 @@ carries one (D-105): `{kind, ref, accessed?, patch?, confidence?}`.
     `countReason` (needed when `count` isn't 1; its absence is a V1 finding, D-322);
   - `config` (C-32) and `claims` (C-30-tagged). A campaign reward pick is listed on every stage at or after
     its quest, the endgame stages included (D-265 c).
-- **Endgame variant stages** also require `variant` (`budget` or `non-budget`; *target* also
+- **Endgame variant stages** also require `variant` (`budget`, `non-budget`, or since WU-61
   `entering-maps`, D-281), per-gem levels, `ascendancyPoints` and `skills.rolledGroup` (D-217). D1 chooses
   these and the stage's `level` per variant, each with a source or a rationale; the schema fixes no values
   (D-193).
-- *Target:* one `schemaVersion` bump covers `count`, `countReason`, `customMods` and `entering-maps`
-  (D-320).
+- One `schemaVersion` bump, to 2, covers `entering-maps`, `count`, `countReason` and `customMods` (D-320):
+  WU-61 made it with `entering-maps`, and WU-55 (*target*) extends the same version with the other three.
 - `ledger[]` entries are `{id, claim, formula, inputs}` (C-33). `prices[]` entries are `{id, item,
   query, amount, currency, date, league, status, note?}`, where `id` is what a `price:<id>` claim cites
   (D-237), `status` is `ok` or `unavailable` (D-164, D-169), and an `unavailable` entry's `note` gives
@@ -322,11 +338,25 @@ carries one (D-105): `{kind, ref, accessed?, patch?, confidence?}`.
     `mainOutput` field names plus C-45's per-skill and per-stat-set fields), the effective config values
     with their origin and class (D-212), and the V1 and V2 verdicts with their findings (D-192);
   - per ledger entry, its re-evaluated value.
-- *Target (WU-55, D-293, D-321):* the raw figures stay as they are; new fields beside them hold each
-  figure × the group's `count` (hits multiplied, damage over time only when it stacks, as PoB's
-  `Modules/Calcs.lua:342-411`), and a mark flags every figure computed while a custom modifier was present,
-  defences included. `recordVersion` bumps. The headline and the verdict line read the named source's
-  Count-scaled figure, with `TotalEHP` beside it (D-294). WU-55 names the fields here when it merges.
+- *Target (WU-55, D-293, D-321):* `recordVersion: 2`. The raw `outputs` and `skillOutputs` stay as PoB
+  measured them, and these fields sit beside them (the fields WU-55 names, work-log "Review: WU-55"):
+  - per stage, `countedOutputs {group, count, dotCanStack, fields}` (the main skill's figures with the main
+    group's Count) and `countedSkillOutputs[g<g>s<s>p<p>] {skill, statSetLabel, count, dotCanStack,
+    fields}` (each `skillOutputs` entry under the same key, with its group's Count);
+  - the counted `fields` hold `TotalDPS` and `ImpaleDPS` × count, `TotalDot` × count only when
+    `dotCanStack` is true, and the ailment and ground DPS figures unchanged, by PoB's own Full DPS rule
+    (`Modules/Calcs.lua:342-411`). A figure Full DPS doesn't merge per skill has no counted copy;
+  - PoB's raw `FullDPS` and `FullDotDPS` already include Count (PoB applies `groupCount` there), so nothing
+    multiplies them again;
+  - per stage, `customModsWritten: string[]` (the lines written into PoB's `customMods` option) and
+    `computedWithCustomMods`, the mark: true when the stage's written config holds that option with text
+    (from `customMods`, or a version-1 plan's earned or scenario entry for it), so every figure of the
+    stage, defences included, was computed with a custom modifier present; per ledger entry,
+    `computedWithCustomMods`, true when its formula reads such a stage.
+
+  The headline and the verdict line read the named source's Count-scaled figure,
+  `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.TotalDPS`, with `TotalEHP`
+  beside it (D-294).
 - **Ledger formulas** (in the plan) are arithmetic over numbers, `+ − × ÷`, parentheses and named
   references. A reference is either `<stageId>.<outputName>` from this record or an input declared in
   the entry with its C-30 tag. A small evaluator in `src/` computes them: no `eval`, no dependency
@@ -347,8 +377,10 @@ creation, slice 3 the layout inside a run).
   (includes the import code), `run-log.json` (D-158, D-270). Concept skeletons live in `concepts/<id>/`,
   research files in `research/`, gate verdicts (written by the gate steps) and V4 reports (written by the
   runner) in `reports/` (D-267); each compiled plan gets its record beside it, and a measure-only compile
-  also its compiled XML (D-208). *Target:* `audit.md` (D-278); the cards `cards/<id>.md` and the deck
-  `cards.md` (D-287, D-319); probe variants in `probes/<card-id>/<n>/` (D-331).
+  also its compiled XML (D-208). Since WU-62, `audit.md` (D-278). *Target:* the cards `cards/<id>.md`
+  and the deck `cards.md` (D-287, D-319); probe variants in `probes/<card-id>/<n>/` (D-331), which R1b's
+  checklist already writes (WU-56), and which R1b's header and the checker admit from WU-57 and WU-58
+  (D-338).
 - **Slug** (*target*, D-285): from the brief, e.g. `titan-blood-hunt`, `titan-open` or
   `open-<first playstyle tag>`; the picked card is recorded in the run log, not in the folder name. As
   built, it is `<ascendancy>-<skill>`.
@@ -387,11 +419,11 @@ step's agent type (`build-guide-researcher`, `-coordinator`, `-writer` or `-veri
 | R1b | Coordinator, one concept at a time, ≤ 3 per round | concept proposals | per concept: a skeleton plan, its measure-only compile record and XML (D-208), key-item prices (T1), its verdict file | each skeleton compiles; after 2 counted retries the concept is `failed` (D-272) |
 | R1b-assemble | Coordinator | research files, skeletons, verdicts | `dossier.md` (its one writer; not verified, D-269) and the checkpoint-1 comparison | — |
 | Checkpoint 1 | Runner, asking the user (offline mode: a pre-supplied answer, A-28) | the comparison, the dossier | the chosen concept | the user picks one, asks for more (a new research round of up to 3 concepts, started only by the user, D-235), or stops (D-157) |
-| D1 | Coordinator | chosen concept, dossier, C1/E1 | `plan.json` endgame stages for both variants (*target:* also `m`, D-281), every slot priced, `skills.main.statSet` (D-273) | — |
+| D1 | Coordinator | chosen concept, dossier, C1/E1 | `plan.json` endgame stages for the rungs `m`, `b` and `n` (D-281), every slot priced, `skills.main.statSet` (D-273) | — |
 | D1 gate | Fresh coordinator | `plan.json`, the record | the final re-price pass, a measure-only compile, its verdict file | compile, V1 and V2; the survival floor (all four resistances capped, chaos only by a recorded exception, D-234; five reference hits, D-254, D-256); the budget (D-219, D-249); the rolled skill (D-217, D-273); else D-141 and D-272 |
 | D2 | Coordinator | the D1 plan | the campaign stages and the reward picks in `plan.json` (D-265) | — |
 | D2 gate | Fresh coordinator | `plan.json` | a measure-only compile; on a V1/V2 pass the final compile (the PoB file, and the record with `importCode`); its verdict file | compile, V1 and V2 for every stage |
-| W1 | Writer agent | plan, final record, ledger, dossier, template | `guide.md` with the import code (*target:* and `audit.md`, D-278) | — |
+| W1 | Writer agent | plan, final record, ledger, dossier, templates | `guide.md` with the import code, and `audit.md` (D-278) | — |
 | V4 | Verifier agents, three lenses in parallel | plan, final record, guide, data files, lookup tools, sources | nothing: each returns its report, which the runner writes (D-267) | one full pass, one fix round, one re-check; findings still open become known issues in the guide (D-268, D-264) |
 | Checker | Runner | the run folder | — | its result is shown at checkpoint 2 |
 | Checkpoint 2 | Runner, asking the user (offline mode: a pre-supplied answer, A-28) | guide, PoB file, gate verdicts, known issues, the checker's result | — | the user accepts, or asks for changes, which re-run the owning step's chain and the verification, uncounted (D-236, D-268); any other answer ends the run `not-accepted` |
@@ -403,7 +435,8 @@ step's agent type (`build-guide-researcher`, `-coordinator`, `-writer` or `-veri
   `cards.md` (6–9 dealt per round); then the **brainstorm gate**: verify 1–3 cards, brainstorm more, or
   stop.
 - **Verification:** R1b per picked card, at most 3 per verification round, with the advisory checklist and
-  up to 4 one-stage probe variants (D-292); R1b-assemble; then the **verification gate**, which replaces
+  up to 4 one-stage probe variants (D-292), its header's `writes` naming the probes and the card (D-338);
+  R1b-assemble; then the **verification gate**, which replaces
   checkpoint 1: finalize one card (a failed one may be picked), verify other cards from the deck, brainstorm
   more, or stop.
 - **Finalization:** D1 through the **final gate** (checkpoint 2), as in the table.
@@ -412,8 +445,8 @@ step's agent type (`build-guide-researcher`, `-coordinator`, `-writer` or `-veri
 
 Each step writes only its own outputs, and parallel agents never write the same file. Engine-changing
 calls and every trade call are made only by the one coordinator; lookups (`read`-kind tools) may also be
-called by the R1a research agents and the V4 agents (D-130, D-231). *Target:* the R1a researchers and the
-coordinator may also call the poe.ninja tools (C-54, D-297).
+called by the R1a research agents and the V4 agents (D-130, D-231). No agent calls a poe.ninja tool beyond
+the coordinator's `get_currency_rates`: D-335 withdrew the player-evidence tools (C-54).
 
 - **Agent calls** (D-267). At most 3 agents run at once, and a coordinator step never overlaps another
   agent. An agent writes only its task header's `writes` and returns at most 8 lines; a gate step writes its
@@ -438,14 +471,14 @@ coordinator may also call the poe.ninja tools (C-54, D-297).
   with `note: "offline run"` (D-164), and the plan's `league` is null, the one case C-31 allows (D-233); a
   claim that would need an external source is tagged `external-unavailable` (C-30), which V4 accepts only in
   this mode; a claim copied from C1/E1 cites `data:<file>#<key>`, which V4 checks against the data file
-  (D-232). *Target:* `--no-ninja` turns off only the tools of group `ninja`: C-54's and `get_currency_rates`
-  (D-333).
+  (D-232). *Target:* `--no-ninja` turns off group `ninja`, whose one tool is `get_currency_rates` (D-333,
+  D-335).
 - **Pre-supplied checkpoint answers** (A-28). The skill accepts them only in offline mode, uses them in
   place of asking the user, and records each answer in the run log with the `rule` that produced it
   (D-270). Outside offline mode it refuses them and asks the user (D-157). *Target:* the answers are
   `answers.brainstorm`, `answers.verification` and `answers.final` (D-288, D-323).
 
-**C-51 Build brief and invocation** (new; *target*, WU-57; slice 3; D-285, D-286).
+**C-51 Build brief and invocation** (new; *target*, WU-57; slice 3; D-285, D-286, D-335).
 - **Invocation:** `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. The runner (the
   user's session following `SKILL.md`) parses the free text into the brief before any run folder exists, so
   its named fields are checked before any agent runs, and the brainstorm gate echoes it at its top.
@@ -453,20 +486,21 @@ coordinator may also call the poe.ninja tools (C-54, D-297).
   PROPOSED by the coordinator, 2026-10-10. `/build-guide <ascendancy> <skill>` still works.
 - **Fields, all optional:** `ascendancy`; `skill`; `playstyle` (tags from the vocabulary below, plus free
   text); `budget` (`budget`, `non-budget`, or a figure in divines); `around` (an item or mechanic to build
-  around); `like` (a reference build and what to change); `notes`. A randomizer roll is
-  `{ascendancy, skill}`; an empty brief means "surprise me".
+  around); `like` (a reference build and what to change); `notes`; and, by D-335, `popularity`: the user's
+  own notes on what players run, which cards cite as user-supplied (no tool supplies player evidence). A
+  randomizer roll is `{ascendancy, skill}`; an empty brief means "surprise me".
 - **Playstyle vocabulary** (cards use the same tags): delivery `melee`, `ranged-attack`, `spell`, `minion`,
   `totem-trap`, `mixed`; buttons `one-button`, `few-buttons`, `combo`; focus `clear`, `boss`, `balanced`;
   defence `tanky`, `balanced`, `glass`; pace `fast`, `steady`.
 - **Checks:** named fields are checked as D-238 checks a roll; a failure stops before any run folder
   exists.
 - **Slug:** from the brief (C-34).
-- **`--no-ninja`:** the run calls no tool in group `ninja`, neither C-54's poe.ninja tools nor
-  `get_currency_rates`, so price totals in divines are `unverified` (pricing's path when rates are missing),
-  and the cards say "no player evidence" (D-297, D-333).
+- **`--no-ninja`:** the run calls no tool in group `ninja`, whose one tool is `get_currency_rates`, so
+  price totals in divines are `unverified` (pricing's path when rates are missing) (D-297, D-333, D-335).
+  Cards say "no player evidence" in every run unless the brief carries `popularity` (D-335).
 
-**C-52 Candidate cards and the deck** (new; *target*, WU-56, WU-57; slice 3; D-286, D-287, D-291, D-292,
-D-319, D-331).
+**C-52 Candidate cards and the deck** (new; the template built by WU-56, the cards *target*, WU-57; slice 3;
+D-286, D-287, D-291, D-292, D-319, D-331, D-335, D-338).
 - **Identity:** `{className, ascendancy, skill}`, `skill` being the named damage source (D-295). It is
   checked at deck assembly (`get_classes`, then a gem lookup showing `Kind: active`, or for a non-skill source a
   lookup by its kind, D-334), and it is the card's
@@ -475,23 +509,30 @@ D-319, D-331).
   researchers when it starts them, so parallel researchers never collide. Each card follows
   `templates/card-template.md`:
   - the brainstorm half (R1a; about 250–400 words): identity, pitch, chain, enabler, a links table (each
-    link's confirming game text and lookup, how PoB follows it, hidden clauses as theory), evidence, risks;
+    link's confirming game text and lookup, how PoB follows it, hidden clauses as theory), evidence (the
+    brief's `popularity` notes, cited as user-supplied, or "no player evidence", D-335), risks;
   - the verification half (R1b): verified defences (life, energy shield, resistances, max hit, effective
     HP) and modelled DPS; estimates (each Count and custom modifier with its reason, every figure computed
     with a custom modifier, clear and boss figures separate); checklist results; a fallback ladder;
     key-item prices.
 - **Status words:** confirmed in game text; modelled in PoB; estimate (with the reason); players use it
-  (poe.ninja); not checked yet; needs in-game testing.
+  (the user's notes, D-335); not checked yet; needs in-game testing. The merged template
+  (`templates/card-template.md`) still says "players use it (poe.ninja)" and draws its Evidence fields from
+  poe.ninja; WU-57 brings it, and AC-W27's test, to D-335.
 - **The deck:** `cards.md` (R1a-assemble) holds one line per dealt card, plus "Not dealt", which names each
   held-back card's unconfirmed link. A later round adds only new cards.
-- **Probe variants:** `probes/<card-id>/<n>/` (D-331).
+- **Probe variants:** `probes/<card-id>/<n>/` (D-331). R1b writes them and the card's results, so its
+  header's `writes` name them (D-338).
 - **Non-skill damage sources:** a card whose damage source isn't a skill (a flask nova) can be dealt and
   verified, and is marked "can't be finalized yet"; finalizing it is deferred (D-303, HG-21). Its identity's
   `skill` names the damage source and is checked by a lookup of its kind, and verification runs only the
   checklist's read-only checks, with no skeleton or probe compile (D-334).
 
-**C-53 Pattern library** (new; *target*, WU-56; slice 3; D-290, D-325).
-- **File:** `.claude/skills/build-guide/references/patterns.md`, opening with the brainstorm questions.
+**C-53 Pattern library** (new; built by WU-56, merge `228bec1`; slice 3; D-290, D-325).
+- **File:** `.claude/skills/build-guide/references/patterns.md`, opening with the brainstorm questions. v1
+  holds 60 entries in ten families, 5,642 words at the merge. `SKILL.md` lists it from WU-57; until then
+  the static test's `AWAITING_SKILL_WIRING` entry exempts it from AC-W1's listing rule, an exemption that
+  expires once WU-57's `references/stages/R1a-assemble.md` exists.
 - **Each entry:** a name and shape (one general sentence true of any skill); a search step; how PoB follows
   it (modelled, Count, custom modifier, config stand-in, hand calculation or not modelled, citing PG ids);
   one to three examples; cautions.
@@ -500,17 +541,17 @@ D-319, D-331).
 - **Maintenance:** the coordinator proposes entries after each user-supplied study, and the user approves
   them.
 
-**New and modified tools.** Every new tool is group `core`, except the poe.ninja tools (C-54, group
-`ninja`, D-297); modified tools keep their groups. Inputs and outputs are at the level the seams need;
+**New and modified tools.** Every new tool is group `core` (the poe.ninja tools of C-54 were withdrawn,
+D-335); modified tools keep their groups. Inputs and outputs are at the level the seams need;
 slice 1 or 2 carries argument types, wording and samples.
 
 | ID | Tool | Status | Kind | Input | Output and compatibility |
 |---|---|---|---|---|---|
-| C-37 | `lookup_game_data` | new | read | `mode` (`gem`, `unique` or `mechanic`), `query`, mode filters (gem level and quality; unique slot), `max_results` (default 20, cap 30, D-225) | **gem:** PoB's tier (D-258); description; stat sets ("skill parts") with tooltip lines from PoB's stat describer; quality effects; weapon requirement; the level requirement per gem level and the attribute requirements (D-228); for supports, what they can and can't support. **unique:** matches by name, mod text or slot, each as item text ready for `add_item`. **mechanic:** keyword hits across gems, uniques, passives (ascendancy included) and mods, each with its kind and matching line. **No match (D-258):** "nothing matched", then the closest names of the kind searched, by edit distance to the query, then by name: in gem mode up to 5 active gems, then up to 3 supports (D-258a); otherwise up to 5; none for a query over 100 characters (slice 01 §2.2). **Unique mode, more than one unique** (D-239): compact entries (name, type, base, at most 5 matched lines, then `(and <n> more matching lines)`); the full text only for a single result. **Mechanic mode** takes an optional `kind` and its header counts each kind's hits (D-240). **Stat sets** show `Attack Damage: <n>% of base` and `Critical Hit Chance: <n.nn>%` (D-241). *Target:* a mod hit's base types and essence search (D-277, WU-60); D-299's additions (WU-53) |
-| C-38 | `check_model_coverage` | new | read | one or more of `item_text`, `nodes` (ids or names), `gems`; or `build: true` for the loaded build | Per line, one status: fully parsed, partly parsed (with the remainder), unparsed, parsed to nothing (an empty mod list), possibly unread (a heuristic: spike S-b's by-name scan, D-226). A line is re-parsed alone, then with PoB's two-line join, before it is called unparsed (pin §B3). Per gem: skill stats possibly unmodelled (PoB's own red-tooltip rule, pin §B4), marked "check config" (D-123). Build mode also checks jewels in allocated tree sockets (D-242). The name scan also collects PoB's concatenation templates, so names PoB builds by `..` count as read (D-243). *Target (WU-54):* D-300's flags |
+| C-37 | `lookup_game_data` | new | read | `mode` (`gem`, `unique` or `mechanic`), `query`, mode filters (gem level and quality; unique slot), `max_results` (default 20, cap 30, D-225) | **gem:** PoB's tier (D-258); description; stat sets ("skill parts") with tooltip lines from PoB's stat describer; quality effects; weapon requirement; the level requirement per gem level and the attribute requirements (D-228); for supports, what they can and can't support. **unique:** matches by name, mod text or slot, each as item text ready for `add_item`. **mechanic:** keyword hits across gems, uniques, passives (ascendancy included) and mods, each with its kind and matching line. **No match (D-258):** "nothing matched", then the closest names of the kind searched, by edit distance to the query, then by name: in gem mode up to 5 active gems, then up to 3 supports (D-258a); otherwise up to 5; none for a query over 100 characters (slice 01 §2.2). **Unique mode, more than one unique** (D-239): compact entries (name, type, base, at most 5 matched lines, then `(and <n> more matching lines)`); the full text only for a single result. **Mechanic mode** takes an optional `kind` and its header counts each kind's hits (D-240). **Stat sets** show `Attack Damage: <n>% of base` and `Critical Hit Chance: <n.nn>%` (D-241). **Mod base types and essences** (WU-60, D-277; built): a mod hit is followed by `  Base types: …`, the bases whose spawn weight for it is non-zero, weighed only on the tables PoB rolls on a base (the item's own affix table, `Corruption`, and `Desecrated` mods with a desecrated tag); a mod of any other table gets `none (<the notRolled reason>)`. Essences are a fifth hit kind, `essence`, `[essence] <essence> (<item types>; <affix type>): <line>`, matched by its line or by the essence's name. *Target:* D-299's additions (WU-53) |
+| C-38 | `check_model_coverage` | new | read | one or more of `item_text`, `nodes` (ids or names), `gems`; or `build: true` for the loaded build | Per line, one status: fully parsed, partly parsed (with the remainder), unparsed, parsed to nothing (an empty mod list), possibly unread (a heuristic: spike S-b's by-name scan, D-226). A line is re-parsed alone, then with PoB's two-line join, before it is called unparsed (pin §B3). Per gem: skill stats possibly unmodelled (PoB's own red-tooltip rule, pin §B4), marked "check config" (D-123). Build mode also checks jewels in allocated tree sockets (D-242). The name scan also collects PoB's concatenation templates, so names PoB builds by `..` count as read (D-243). **Flags** (WU-54, D-300, D-336; built): a `flags[]` list beside the statuses, each `{flag, source, note, line?}`, changing no status and no count, listed in every mode: `mapped but unread`, `stat not mapped` (one per gem), `energy not modelled`, `level from support`, `granted skill undefined` and `support colour tie` (slice 01 §2.4) |
 | C-39 | `manage_sets` | new | mutate | `set_type` (`item`, `skill`, `config`, `loadout`); `action` (`list`, `create`, `copy`, `rename`, `select`; loadouts list and select only); `id`, `title`; `use_second_weapon_set` for item sets | The sets of that type with ids, titles and the active one; for skill sets, the group at the build-wide main index; loadouts as `SyncLoadouts` lists them. Never calls `CopyLoadout`. A title's `{id}` list must match `[A-Za-z0-9,]` with no spaces. No delete (new ids are `#sets+1`, pin §C). A title holds at most one `{…}` tag, at its end, of non-empty ids; an untitled copy drops the tag (D-245). `list` runs as kind `read` (D-244) |
 | C-40 | `set_tree_state` | new | mutate | On the active spec: `weapon_set_nodes` (allocated nodes tagged weapon set 1 or 2), `attribute_choices` (attribute node → strength, dexterity or intelligence) | The spec's tags and choices after the change, and the resulting attributes |
-| C-41 | `compile_plan` | new | load (D-191) | `plan_path` (relative to the guides root); `build_name` (target in the builds folder, D-199; not used with `measure_only`); `stages` (optional subset, measure-only mode only, D-156; its semantics follow WU-30); `measure_only` (optional, D-208). Two modes, measure-only and final: run-folder creation and validation are `guide_run`'s (C-50, D-216) | Text summary: per stage the loadout, level, V1/V2 verdicts and ledger values, plus the paths written; the record itself is the file (C-33). The PoB file is saved in auto-level mode at the highest stage's level (D-138, D-149). The first stage reuses the new build's tree spec 1 and set 1 of each type, retitled, so the file holds one loadout per stage and nothing titled `Default` (D-215). The call replaces the engine's loaded build (D-191, D-210). It sends one engine request per stage plus a fixed overhead of five (D-221). **Measure-only mode:** compiles and measures in the engine as usual, then writes the compile record and the compiled XML beside the plan only; nothing goes to the builds folder or the write ledger. **Final mode:** an existing target is overwritten only under the write ledger's rule (D-211). **Errors** (`isError`): schema errors by JSON path (D-163); per-stage compile errors (unknown gem, item text that doesn't parse, unknown node, a node PoB's weapon-set connectivity rule leaves unconnected, broken weapon-set or attribute choice, an allocation PoB changed on import, D-213) with no PoB file written (D-162); an existing target with no write-ledger entry from this run (C-17's "already exists" wording), or one whose sha1 changed since this run's entry (C-17's changed-on-disk wording; D-211); a guides root overlapping the builds folder (D-220). **As built:** every socket group is created with `includeInFullDPS` off (D-306); off-hands are checked per stage, any dropped item is an error, and `loadoutWarnings` are recorded (D-310); config options PoB's save drops are restored in the written file (D-248); the text prints every V1/V2 finding up to 200 over all stages, then points to the record (D-273). *Target (WU-55, D-293):* `customMods` written after the config options; the final file sets `groupCount` and `includeInFullDPS` on the named source's groups only, PoB computing Full DPS there only if S-N2 (WU-51) shows it fits NFR-21, else the flags are written at export |
+| C-41 | `compile_plan` | new | load (D-191) | `plan_path` (relative to the guides root); `build_name` (target in the builds folder, D-199; not used with `measure_only`); `stages` (optional subset, measure-only mode only, D-156; its semantics follow WU-30); `measure_only` (optional, D-208). Two modes, measure-only and final: run-folder creation and validation are `guide_run`'s (C-50, D-216) | Text summary: per stage the loadout, level, V1/V2 verdicts and ledger values, plus the paths written; the record itself is the file (C-33). The PoB file is saved in auto-level mode at the highest stage's level (D-138, D-149). The first stage reuses the new build's tree spec 1 and set 1 of each type, retitled, so the file holds one loadout per stage and nothing titled `Default` (D-215). The call replaces the engine's loaded build (D-191, D-210). It sends one engine request per stage plus a fixed overhead of five (D-221). **Measure-only mode:** compiles and measures in the engine as usual, then writes the compile record and the compiled XML beside the plan only; nothing goes to the builds folder or the write ledger. **Final mode:** an existing target is overwritten only under the write ledger's rule (D-211). **Errors** (`isError`): schema errors by JSON path (D-163); per-stage compile errors (unknown gem, item text that doesn't parse, unknown node, a node PoB's weapon-set connectivity rule leaves unconnected, broken weapon-set or attribute choice, an allocation PoB changed on import, D-213) with no PoB file written (D-162); an existing target with no write-ledger entry from this run (C-17's "already exists" wording), or one whose sha1 changed since this run's entry (C-17's changed-on-disk wording; D-211); a guides root overlapping the builds folder (D-220). *Target (WU-55, D-293):* also a `compile_check` defect, a custom-modifier line PoB can't parse whole. **As built:** every socket group is created with `includeInFullDPS` off (D-306); off-hands are checked per stage, any dropped item is an error, and `loadoutWarnings` are recorded (D-310); config options PoB's save drops are restored in the written file (D-248); the text prints every V1/V2 finding up to 200 over all stages, then points to the record (D-273). *Target (WU-55, D-293, D-337):* `customMods` written after the config options, in a write of their own; every compile, measure-only included, creates the named source's groups (each stage's `rolledGroup`) with `includeInFullDPS` on and `groupCount` set to their `count`, so PoB computes Full DPS for them; every other group stays out (D-306, narrowed). S-N2 (WU-51) measured this at ×1.14 of the whole call |
 | C-42 | `encode_build_code` | new | none | `build_name` (a builds-folder file, resolved as other build-file tools do, D-52) | The PoB2 import code: the inverse of `decodePobCode` (`buildCode.ts:71-105`). Decoding it reproduces the file's sets, loadouts, level mode and stage count (D-180) |
 | C-43 | `search_tree_nodes` | modified | read | adds `ascendancy` (a name); `query` becomes optional when `ascendancy` is given | Every node of that ascendancy, notables included. `node_type:'any'` matches every type; results are sorted before the cap (D-175). **Compat:** callers now get correct results where they got none or an arbitrary subset |
 | C-44 | `set_main_skill` | modified | mutate | documents `skill_part` (the 1-based stat set of the main active skill) | Selects PoB2's stat set, `srcInstance.statSet[grantedEffectId] = i` (pin `Modules/Build.lua:375-381`), which the build XML keeps (D-195). **Compat:** the undocumented argument used to write PoE1's `skillPart` |
@@ -520,7 +561,7 @@ slice 1 or 2 carries argument types, wording and samples.
 | C-48 | `update_tree_delta` | existing (defect fixed) | mutate | unchanged | Does what its description says: auto-paths added nodes along PoB's own path and enforces the 8-point ascendancy cap, returning the fields the TS side already reads (D-194). Points are counted as PoB's `CountAllocNodes` counts them (D-307). An add that would change an allocated node's weapon-set tag is refused after a dry run, with the build unchanged (D-308). **Compat:** calls that relied on no auto-path now get connected trees |
 | C-49 | `get_item_price`, `search_trade_items`; `get_leagues` (error prefix only) | modified (D-202, D-218) | none | unchanged; no batch mode: each call prices one item, and the rate limiter paces within its existing windows (C-11, D-160, D-224) | T1: every price result states its date and league (`get_item_price` names the league but gives no date today, recon §1). Every error that a `TradeError` (C-10) causes in these three tools reads `Error: [trade:<kind>] Failed to <action>: <message>`, where `<kind>` is the error's `TradeErrorKind` unchanged (`src/trade/errors.ts`: `would_wait`, `locked_out`, `rate_limited` for a 429 from the trade site, `http`, `no_session`, …); the pipeline classifies pricing outcomes by it (D-218). Other errors get no prefix, and `find_upgrades` keeps C-14's own wording. Nothing is cached (D-46); prices are kept in the plan (D-169). **Compat:** added output fields and an error prefix; group `trade`, unchanged; defaults otherwise unchanged |
 | C-50 | `guide_run` | new (D-216) | read; a call carrying `new_run` is routed as `none` | exactly one of `new_run` (a slug, D-207) and `validate` (a `plan_path` relative to the guides root), plus optional `stages` with `validate` | **Run-folder mode** (`new_run`): creates `<root>/<slug>/<YYYY-MM-DD>-<n>/` with the next free `<n>` and returns its absolute path, its root-relative path `<slug>/<YYYY-MM-DD>-<n>` (the run's `plan_path` is that plus `/plan.json`), and `loadedBuildUnsaved`: whether the engine's loaded build has unsaved changes that the next compile would discard (D-210). It reads no plan, takes no session lock and never starts the engine. **Validate mode:** the schema check (D-163) and `compile_check`, the compiler's read-only preflight (D-213, D-221), so unknown gems, nodes, item bases and config options are found without compiling, and unknown producers are listed (D-167); the export and `revision` are unchanged. **Errors** (`isError`): a slug that isn't one safe path segment, or a guides root overlapping the builds folder (D-220), with nothing created; schema errors by JSON path; preflight defects per stage. **Kind:** the router's `engineKindFor` routes every call but a validate call without `new_run` as `none` (D-244). **Compat:** new tool, group `core` |
-| C-54 | poe.ninja tools (popularity, build index) | new; *target*, WU-50, WU-52 (D-297, D-316, D-324) | set by S-N1 | set by S-N1 | Group `ninja`, hidden by `POE_NINJA_DISABLED`; one tool per distinct query shape. Only these server tools reach poe.ninja, through one client, cache, rate limiter and user agent: serial requests, back-off on HTTP 429, a per-league cache. Uses: popularity by skill and by ascendancy, the build index (characters using a combination, and their levels), peers. Callers: the R1a researchers and the coordinator. Names, arguments, outputs, kinds, cache lifetime and back-off are S-N1's (WU-50) outputs, recorded here when it merges. Tests use committed fixtures (D-34). **Compat:** new tools; WU-52 restates the counts (D-316) |
+| C-54 | *Withdrawn → D-335:* poe.ninja tools for popularity and the build index | withdrawn | — | — | poe.ninja's terms close its builds, profiles and character API to third-party use (spike WU-50), and every use C-54 named (popularity, the build index, peers) came from it. No tool is added; group `ninja` keeps only `get_currency_rates` (C-12), and the counts stay 84 and 83 |
 
 ## 4. Data and state model (deltas)
 
@@ -535,10 +576,11 @@ slice 1 or 2 carries argument types, wording and samples.
 | Engine build after a compile | engine and C-3's `loaded` record | until the next load | `compile_plan` (kind `load`), which replaces the user's loaded build; `guide_run`'s run-folder reply says whether that build has unsaved changes (D-210) | under the mutex; revision and snapshot per C-3 |
 | Prices | `plan.json` `prices[]` | per run | coordinator | no server cache (D-46, D-169) |
 | Run log `run-log.json` | run folder | durable | the runner only (D-267) | rewritten whole after every step; schema version 2 (D-270), *target* 3 (D-289); the checker accepts both (D-326) |
-| `audit.md` (*target*) | run folder | durable | W1; the runner fills its Known issues table (D-278) | written after the guide, never in parallel with it |
+| `audit.md` | run folder | durable | W1; the runner fills its Known issues table (D-278) | written after the guide, never in parallel with it |
 | Cards and the deck (*target*) | run folder: `cards/<id>.md`, `cards.md` | durable | R1a (brainstorm half), R1b (verification half), R1a-assemble (`cards.md`) (D-287, D-291) | ids `r<round>-<researcher letter>-<n>`, so parallel researchers write disjoint files (D-319) |
-| Pattern library `references/patterns.md` (*target*) | repo, in the skill | versioned with the repo | the coordinator proposes entries, the user approves them (D-290) | read-only at runtime |
-| poe.ninja cache (*target*) | the server's memory | per league, for the lifetime S-N1 sets (D-324) | the poe.ninja tools (C-54, D-297) | one client and one rate limiter, serial requests |
+| Probe variants (*target*) | run folder: `probes/<card-id>/<n>/` | durable | R1b (the plan); `compile_plan` (its measure-only record and XML) (D-331, D-338) | one card at a time, so no two steps write one probe |
+| Pattern library `references/patterns.md` | repo, in the skill | versioned with the repo | the coordinator proposes entries, the user approves them (D-290) | read-only at runtime |
+| poe.ninja cache | *Withdrawn → D-335:* no poe.ninja tool is added, so there is no cache beyond C-12's currency rates | — | — | — |
 
 **Migration:** none. Everything is new; the guides root is created by the first run, and the write
 ledger by the first final compile.
@@ -551,13 +593,15 @@ D-222…D-238 the coordinator's resolutions of the slice writers' open items, bo
 D-239…D-266 are the coordinator's and the user's decisions during the build, with their final wording
 (work-log). D-267…D-275 lift amendment 1's items, D-276…D-284 amendment 2's, D-285…D-304 amendment 3's
 (each row names its source). D-305…D-314 lift the work-log's unnumbered coordinator decisions.
-D-315…D-334 resolve the fold's open points (2026-10-10). **Status:** *settled* = a ratified design row or
-a user decision; *accepted* = a gap item the user accepted on 2026-10-07; *deferred* = a named gate
+D-315…D-334 resolve the fold's open points (2026-10-10). D-335…D-338 are the decisions of the amendments'
+build, waves A and B (2026-10-10 and 2026-10-11), folded in v1.4. **Status:** *settled* = a ratified design
+row or a user decision; *accepted* = a gap item the user accepted on 2026-10-07; *deferred* = a named gate
 (HG-15, HG-19…HG-22); **PROPOSED** = this spine's, overridable at ratification; *review fix* and
 *resolution* = binding, overridable at ratification; **PROPOSED, pending the user** = a question put to
-the user, proceeded on until answered; **PROPOSED by the coordinator, 2026-10-10** = binding until the user
-overrides it. Each row also says *built*, or **target** (approved, not built, with its work units), or
-*superseded by D-n* (kept so the id stays readable). Proceed on all of them; don't relitigate. Rationale
+the user, proceeded on until answered; **PROPOSED by the coordinator, 2026-10-10** (or **2026-10-11**) =
+binding until the user overrides it. Each row also says *built*, or **target** (approved, not built, with
+its work units), or *superseded by D-n* or *withdrawn → D-n* (kept so the id stays readable). Proceed on
+all of them; don't relitigate. Rationale
 for lifted rows is in the source row or the amendment.
 
 | ID | Decision | Status; divergence |
@@ -574,7 +618,7 @@ for lifted rows is in the source row or the amendment.
 | D-109 | The player is in a trade league. Buyable uniques are allowed in campaign presets, hard-to-get drops are not; availability is judged from dated listings; rares are affix targets | settled |
 | D-110 | The leveling skill may differ from the main skill; a conventional leveling build carries until the main skill's level requirement | settled |
 | D-111 | Budget ceilings are real prices, checked on the trade site at generation and dated | settled |
-| D-112 | Trade and poe.ninja only through the server, from one coordinator, within a per-guide search budget (paced, D-133). Web research is allowed (D-171) | settled; **amended by D-297** (target: poe.ninja through server tools, researchers included) |
+| D-112 | Trade and poe.ninja only through the server, from one coordinator, within a per-guide search budget (paced, D-133). Web research is allowed (D-171) | settled; **amended by D-297, as D-335 restates it**: poe.ninja only through the server's `get_currency_rates`, from the coordinator; no researcher calls poe.ninja |
 | D-113 | The plan is the source of truth. The compiler builds the PoB file and a compile record from it; the guide's numbers come from the record, the ledger, dated prices and E1. The PoB file is a new file, never written over an existing one | settled |
 | D-114 | Two config classes: earned player state names its producer and the guide explains uptime; scenario inputs name their E1 or C1 source. The compiler writes every relevant value; a default audit flags unjustified default-on values (C-32) | settled |
 | D-115 | No encounter input; "as strong as possible" within budget, which applies to the non-budget variant (D-147) | settled |
@@ -592,7 +636,7 @@ for lifted rows is in the source row or the amendment.
 | D-127 | First run capped at 3 concepts and 3 verify lenses, measured, then the envelope is set (HG-15). Each stage retries at most twice after a failed check, then escalates | settled (user); **amended by D-268, D-272**: the retry cap and escalation apply to the gates only |
 | D-128 | Plan format: a schema validated by P2. Refined to JSON with zod by D-167 | settled |
 | D-129 | The pipeline is a skill plus two saved workflows split at checkpoint 1; the skill holds the hand-off | settled; **superseded by D-267** |
-| D-130 | Engine concurrency: every step that changes the loaded build or calls trade runs through one coordinator. Lookups take the session lock and only queue. A per-agent inline server is deferred (HG-15) | settled; amended by D-297 (target: researchers may call the poe.ninja tools) |
+| D-130 | Engine concurrency: every step that changes the loaded build or calls trade runs through one coordinator. Lookups take the session lock and only queue. A per-agent inline server is deferred (HG-15) | settled; D-297's amendment (researchers may call the poe.ninja tools) is withdrawn by D-335 |
 | D-131 | Campaign data: PoB's `Data/QuestRewards.lua` and `Data/WorldAreas.lua`, plus external sources for interlude levels (dynamic, +8). An uncut skill gem of level N cuts a skill of tier ≤ N. `plan_leveling`'s data is not reused | settled |
 | D-132 | Mapping strength is a hand calculation: the clear skill's hit against PoB's monster life at the area level (area 79: 24,852), times waystone life modifiers and rarity and variety multipliers. For areas 80–82 it is a stated judgment | settled; see A-27 |
 | D-133 | Pricing is paced, not capped, in priority order: concept key items, each variant's full slot list (rares as affix-target searches), then campaign uniques. Each price is dated and names its league. Its "cached within a run" is replaced by D-169 | settled |
@@ -620,7 +664,7 @@ for lifted rows is in the source row or the amendment.
 | D-156 | One `compile_plan` call holds the session lock and sends one engine request per stage, each under its 30 s timeout; `stages` compiles a subset. WU-30 measures first | accepted; **amended by D-221** (plus a fixed overhead of five requests) and D-229 (the 20 s margin) |
 | D-157 | Checkpoint 1: the skill shows the concepts as a short comparison (synergy, numbers, key prices, risks, what PoB can't verify) and asks with AskUserQuestion: pick one, ask for more, or stop | accepted; amended by D-287 (target: the verification gate) |
 | D-158 | Each run writes `run-log.json`: stage times, agent counts, retries, price searches used | accepted; **replaced by D-270**, which D-289 amends (target) |
-| D-159 | A 15-stage plan compiles in ≤ 100 s on this machine; WU-30 sets the real figure; a miss is HG-13 | accepted; refined by D-229 (WU-30's pass mark); unchanged by D-293: Full DPS stays out of measure compiles unless S-N2 (WU-51) shows it is cheap (D-293) |
+| D-159 | A 15-stage plan compiles in ≤ 100 s on this machine; WU-30 sets the real figure; a miss is HG-13 | accepted; refined by D-229 (WU-30's pass mark); S-N2 (WU-51) measured Full DPS on the named groups within it (at most 31.92 s for 15 stages), so every compile computes it (D-337) |
 | D-160 | Pricing stays inside every rate-limit window the server tracks and never triggers a 429; measured, not capped | accepted |
 | D-161 | The first run uses at most 3 concepts and 3 verify lenses; the run log records actuals | accepted; the concept cap is per research round (D-235); amended by D-270 (actuals read from `stages[]` and the transcript), D-287 (target: per brainstorm and per verification round) |
 | D-162 | Compiling is all-or-nothing per call: an error in any stage writes no PoB file and is returned per stage | accepted |
@@ -639,11 +683,11 @@ for lifted rows is in the source row or the amendment.
 | D-175 | Existing defects fixed in slice 1: `update_tree_delta` (D-194); the `set_main_selection` Lua action behind `set_main_skill` writes `skillPart` (D-195); the two `search_tree_nodes` bugs (C-43); D-65's stale text (D-198) | accepted |
 | D-176 | A `read` tool leaves the exported build and `revision` unchanged, so lookups and measurements of a non-main skill part restore the exact prior state, and a test proves it | accepted |
 | D-177 | The server writes only to the builds folder (via `buildFileWriter`), the state dir and the guides folder; the guides folder joins the allowed roots with the same no-traversal, no-symlink rules; agents write only into the current run folder | accepted; **extends D-42/D-88**, which confine path arguments to the builds folder and state dir, because plans and records must live outside both (D-126, D-18) |
-| D-178 | Secrets and identity rules unchanged: never read `.env`, no identity in requests, trade only through the server. Research agents get no trade tools; only the coordinator prices | accepted; amended by D-297 (target: researchers get the poe.ninja tools, never trade tools) |
+| D-178 | Secrets and identity rules unchanged: never read `.env`, no identity in requests, trade only through the server. Research agents get no trade tools; only the coordinator prices | accepted; D-297's amendment (researchers get the poe.ninja tools) is withdrawn by D-335 |
 | D-179 | V4 re-derives every ledger entry, opens the source of every `external` claim, and re-checks PoB-data claims with the lookup tools: all of them in endgame sections, at least 1 in 5 elsewhere. The guide passes only with no unresolved finding | accepted; **amended by D-268** (no sampling; open findings become known issues), D-279 and D-296 (target) |
 | D-180 | `encode_build_code` output decodes to XML whose sets, loadouts, level mode and stage count match the compiled file | accepted |
-| D-181 | No live requests during the build: tests and agents stay offline (D-34). M-12's run has trade and poe.ninja disabled; prices show `unavailable` | accepted; **amended by D-297** for poe.ninja only: development agents may make polite poe.ninja requests; tests stay offline |
-| D-182 | The live alpha run needs the user's approval, asked at the start of M-13 | accepted; HG-14; **amended by D-297** (target): it covers trade only |
+| D-181 | No live requests during the build: tests and agents stay offline (D-34). M-12's run has trade and poe.ninja disabled; prices show `unavailable` | accepted; **amended by D-297, as D-335 restates it**: development agents may make polite requests to poe.ninja's documented economy endpoints only; tests stay offline |
+| D-182 | The live alpha run needs the user's approval, asked at the start of M-13 | accepted; HG-14; **amended by D-297**: it covers trade only, since poe.ninja is reached only through its economy endpoints (D-335) |
 | D-183 | The build's human gates are §6.3's | accepted |
 | D-184 | The risk register is §9's | accepted |
 | D-185 | Plugin packaging, the pin upgrade, unique-jewel trade rows and per-agent engines stay named gates | accepted; HG-15 |
@@ -658,7 +702,7 @@ for lifted rows is in the source row or the amendment.
 | D-198 | D-65's text is corrected: crash recovery restores with `keepLevel: true` (`src/engine/session.ts:555-558`), so an auto-mode level (D-149) survives a restore. The coordinator applies this and C-1's count to the stab spine's text at ratification; no work unit does | PROPOSED |
 | D-199 | `compile_plan` writes to `build_name` in the builds folder. An existing file is refused unless this run wrote it and nobody changed it since, which the server's write ledger decides (a re-compile within the run, D-153, D-211); C-17's changed-on-disk guard still applies. This keeps D-113's "never over an existing file" | PROPOSED; **amended by D-211:** the exemption first came from a compile record in the run folder; it now comes from the write ledger, never from the record |
 | D-200 | Run-folder names: `plan.json`, `compile-record.json` (gap 5), `run-log.json` (gap 8), `guide.md` (design), and `dossier.md` (the formalizer's name for the research dossier). Compile outputs go beside the compiled plan, so concept skeletons in sub-folders get their own records | PROPOSED |
-| D-201 | M-12 runs fully offline, in the pipeline's offline mode (C-36): no trade, no poe.ninja, no WebSearch, no WebFetch. Research uses only the server's lookup tools (and the committed C1/E1 files); a claim that would need an external source is tagged "external source unavailable (offline run)" (`external-unavailable`, C-30), and V4 accepts that tag only in offline mode. Web research on D-171's hosts happens only in M-13, under the user's approval (HG-14). This keeps the build's host rule (GitHub and the npm registry only). Replaces the former HG-17 | PROPOSED; **amended by D-297** for poe.ninja only: the build's host rule gains poe.ninja at a polite rate; offline mode still turns poe.ninja off |
+| D-201 | M-12 runs fully offline, in the pipeline's offline mode (C-36): no trade, no poe.ninja, no WebSearch, no WebFetch. Research uses only the server's lookup tools (and the committed C1/E1 files); a claim that would need an external source is tagged "external source unavailable (offline run)" (`external-unavailable`, C-30), and V4 accepts that tag only in offline mode. Web research on D-171's hosts happens only in M-13, under the user's approval (HG-14). This keeps the build's host rule (GitHub and the npm registry only). Replaces the former HG-17 | PROPOSED; **amended by D-297, as D-335 restates it**: the build's host rule gains poe.ninja's documented economy endpoints at a polite rate; offline mode still turns poe.ninja off |
 | D-202 | T1 (dated pricing) belongs to slice 1 (WU-49, C-49): the price-check outputs add the date and league (`get_item_price` gives no date today), plus any batch-pricing mode the pipeline needs, all within the rate limiter's existing windows (C-11, D-160). There is no server cache (D-46 stays); prices are recorded in the plan (D-169, gap 19). The pricing procedure (D-133 priority, D-160 pace, D-164 unavailable) stays a shared reference in the skill (WU-43). The ratified slicing names no T1 unit; this places it | PROPOSED; D-224 settles that no batch mode is needed |
 | D-203 | D-3 and D-30 stay binding for the advice tools and for the files the advice-threshold scan covers. V1, V2 and the data loaders live outside them (`src/plan/`, `data/`) | PROPOSED |
 | D-204 | C1 and E1 values come only from the pinned PoB data and `docs/design/grounding/2026-10-07-external-game-data.md` (accessed 2026-10-07), each with its source, patch and confidence. No web fetch during the build | PROPOSED |
@@ -687,7 +731,7 @@ for lifted rows is in the source row or the amendment.
 | D-228 | `lookup_game_data`'s gem mode also gives the gem's level requirement per gem level and its attribute requirements, which D2 and V1 need | resolution |
 | D-229 | **WU-30's pass mark** (HG-13's margin): every per-stage engine request finishes in under 20 s, a third below the 30 s request timeout (`POB_TIMEOUT_MS`), and a 15-stage plan compiles in at most 100 s in total. A miss is HG-13 | resolution; refines D-159, NFR-21; amends D-156 (the 20 s margin); unchanged by D-293 |
 | D-230 | **Baseline config options.** C-32's scenario inputs gain a `baseline` subclass: default-on options that model a neutral state, such as full life or mana. Such an option may stay at its default only if the committed `data/config-baseline.json` lists it with a one-line rationale; the default audit accepts listed options; any other default-on option is justified as earned state or a scenario input, or set explicitly | resolution; **amended by D-250, D-252** |
-| D-231 | Lookups (`read`-kind tools) may be called by the R1a research agents and the V4 agents. Engine-changing calls and every trade call are made only by the coordinator. C-36's wording is corrected to match D-130 | resolution; amended by D-297 (target) |
+| D-231 | Lookups (`read`-kind tools) may be called by the R1a research agents and the V4 agents. Engine-changing calls and every trade call are made only by the coordinator. C-36's wording is corrected to match D-130 | resolution; D-297's amendment (the researchers' poe.ninja tools) is withdrawn by D-335 |
 | D-232 | Offline, V4 checks a claim derived from C1/E1 against the data-file fact and the citation stored there; the claim cites the fact as `data:<file>#<key>` (C-30). Fetching the fact's external URL isn't required offline | resolution |
 | D-233 | The plan's `league` may be null only when every price is `unavailable` because the run is offline, i.e. with `note: "offline run"`; the schema enforces this conditionally | resolution; an online run that can't reach trade writes `"unverified"` (D-313, D-330) |
 | D-234 | The survival floor (D-118) gates fire, cold, lightning **and chaos** resistance at their caps. Chaos may stay uncapped on an endgame variant stage only when that is absolutely necessary, and only through the stage's recorded exception, `chaosResistException: {reason, tag}` (C-31): the reason names what makes the cap infeasible (for example Chaos Inoculation, or no slot that can carry chaos resistance without dropping a core item or breaking the budget). With the exception, the floor passes with a finding and the guide's `Checks` states the uncapped value and the reason; without it, `MissingChaosResist` above 0 fails the floor | settled (user, 2026-10-08: "only leave chaos res uncapped if it's absolutely necessary") |
@@ -696,10 +740,10 @@ for lifted rows is in the source row or the amendment.
 | D-237 | A price claim cites `price:<id>`, where `<id>` is a `prices[].id`: the plan's price entry, which holds the date, league and query. `prices[]` entries gain an `id` | resolution |
 | D-238 | Before any agent runs, the skill checks the roll: the ascendancy exists (`get_classes`) and the main skill is an active skill gem (a gem lookup). If either check fails, it stops and lists the closest valid names; no run folder is created | resolution; amended by D-258 (closest names), D-285, D-286 (target) |
 | D-239 | `lookup_game_data`'s unique mode (C-37): when more than one unique is returned, each is a compact entry: name, type, base and at most 5 matched lines, each naming its variants when it comes from a variant other than the selected one, then `(and <n> more matching lines)`. The full `BuildRaw()` text comes only when exactly one unique is returned. Legacy "Pre x.y" variants are skipped. Basis: `{slot:"Jewel"}` printed about 100 KB | resolution (coordinator, 2026-10-08, WL:71-73); built |
-| D-240 | `lookup_game_data`'s mechanic mode takes an optional `kind` (`gem`, `unique`, `passive` or `mod`), and its header gives each kind's hit total. Basis: broad queries filled every slot with gems | resolution (WL:74-75); built |
+| D-240 | `lookup_game_data`'s mechanic mode takes an optional `kind` (`gem`, `unique`, `passive` or `mod`), and its header gives each kind's hit total. Basis: broad queries filled every slot with gems | resolution (WL:74-75); built; extended by WU-60 (D-277): a fifth kind, `essence`, counted in the header |
 | D-241 | In gem mode each stat set shows `Attack Damage: <n>% of base` and `Critical Hit Chance: <n.nn>%` where PoB's gem tooltip does. The values come from PoB's merge of the effect's level and the stat set's level (`CalcActiveSkill.lua:792-797`); the "of base" wording differs slightly from PoB's per-stat-set tooltip (`GemTooltip.lua:217-221`) | resolution (WL:76-77, :114-117); built |
 | D-242 | `check_model_coverage`'s build mode also checks jewels in allocated tree sockets, sourced `Jewel socket <nodeId>: <name>` | resolution (WL:172-173); built |
-| D-243 | The name scan also collects PoB's `..` concatenation templates, sent to Lua as `sourceTemplates`. A mod name counts as read when it ends in a template literal of 6 or more characters starting with a capital, or matches a template whose `*` parts are each empty or a scanned name. `possibly unread` is advisory: the pipeline confirms it by measurement before a hand calculation | resolution (WL:174-177); built; **amends D-226** |
+| D-243 | The name scan also collects PoB's `..` concatenation templates, sent to Lua as `sourceTemplates`. A mod name counts as read when it ends in a template literal of 6 or more characters starting with a capital, or matches a template whose `*` parts are each empty or a scanned name. `possibly unread` is advisory: the pipeline confirms it by measurement before a hand calculation | resolution (WL:174-177); built; **amends D-226**; the suffix rule doesn't apply to D-336's `mapped but unread` flag |
 | D-244 | `manage_sets {action:"list"}` runs as kind `read` through the router's per-call kind rules, `engineKindFor` (`src/server/toolRouter.ts`), which also hold `guide_run`'s rule (D-216) | resolution (WL:178-179); built; **amends D-190** (C-8) |
 | D-245 | A set title (C-39) carries at most one `{…}` tag, at its end, of non-empty comma-separated ids of `[A-Za-z0-9]`. An untitled copy drops the source's tag: `S {1}` gives `S (Copy)` | resolution (WL:180-181); built |
 | D-246 | `get_passive_upgrades` bounds its own output within C-1's 5000 characters, so no can't-measure line is cut: ranked entries lose their stat bullets first, then the lowest-ranked entries go, the longer ranking first. It returns `refit`, so notices the session prepends can't push lines past the cut | resolution (WL:182-183, :232-233); built |
@@ -732,37 +776,37 @@ for lifted rows is in the source row or the amendment.
 | D-273 | **Four kept fixes** (amendment 1 S7). (1) D1 sets `skills.main.statSet`; on each stage with a `rolledGroup`, `main.group` is that group, and the rolled figure is the main skill's stat set (`g<main.group>s<main.activeSkill>p<main.statSet>`, directly or in every breakdown field its ledger formula reads). (2) `compile_plan` prints every V1/V2 finding, up to 200 over all stages, then one line pointing to the record. (3) Stage references name tools `mcp__pob2__…`. (4) Three claim rules: a claim is supported in every part, cites each fact it rests on, and carries its source's caveats | settled (user, 2026-10-08); built; amends D-217 (`main.group` is `rolledGroup`); (2) as built (the amendment said "every finding"); amended by D-279 (rule 3) and D-294 (the headline), target |
 | D-274 | WU-47 is rewritten for the single path (amendment 1 S8): run A, run B, probes P1 and P2, and the AC changes in slice 3 | settled (user, 2026-10-08); done |
 | D-275 | The M-12 re-run uses Opus, the user's default model (amendment 1 S9) | settled (user, 2026-10-08); done; supersedes the earlier Sonnet choice (WL:406-409) |
-| D-276 | **The reader layer** (amendment 2 G1). `guide.md` is a game guide of 14 H2s (slice 3 §8), about 2,840 words, capped at 3,000. It renders the plan and the record, with no markers and no fact or number of its own; advice is in the first person; each caveat appears once; there is no pipeline text; numbers are rounded as a guide rounds them ("about 440"); affix targets are text. Known issues sit under `What PoB can't show`, as reader sentences | settled (user, 2026-10-09); **target**, WU-62; **amends D-105, C-30**, D-256's quoting, D-265 (d), D-268's Q1 |
-| D-277 | **Optional guide items** (amendment 2's revision): used where the build has them, never required, and the prose lens doesn't flag a missing one: fallbacks (from alternatives D1 or D2 already weighed), threshold triggers (otherwise a first-person judgment trigger), up to 4 sourced traps, up to 2 either/or picks, hold and save rows, and rotation clauses. Only these are optional. The revision's other additions are section content (slice 3 §8): the loadout ladder line with each rung's trigger, the "when you're short" line, the entering-maps buy order, the config assumptions behind the headline, and an affix's source where it limits the base. To source affix limits, the lookup lists a mod's base types and searches essences | settled (user, 2026-10-09); **target**, WU-60, WU-62 |
-| D-278 | **The audit layer** (amendment 2 G2): `audit.md` in the run folder, written and patched by W1, its Known issues table filled by the runner. H2s: `Hand calculations`, `Stage detail`, `What PoB doesn't model`, `Inputs by confidence`, `Run notes`, `Known issues` | settled (user, 2026-10-09); **target**, WU-62; amends C-34, C-36 |
-| D-279 | **Claims and the editor lens** (amendment 2 G3). The plan holds the facts and is verified as before; a claim exists only for a fact the guide states or a gate needs, and first-person advice needs none. The prose lens reads `guide.md` like an editor against the plan, the record and `audit.md`, and never flags a missing optional item. Claim rule 3 becomes: a caveat appears once in the guide and is never later stated as settled | settled (user, 2026-10-09); **target**, WU-62; **amends D-179, D-268, D-273** |
-| D-280 | **Not a tutorial** (amendment 2 G4): a sentence about how the game or PoB works stays only when it names something this build uses, needs or avoids, and changes what the reader does; the swap test cuts what would read as true in any other guide | settled (user, 2026-10-09); **target**, WU-62 |
-| D-281 | **The entering-maps rung `m`** (amendment 2 G5, Q1): a third endgame stage, `variant: "entering-maps"`, between the campaign's end and `b`; area level 69 (T5); gated like `b` (the survival floor, the main damage rule), with a budget of 5 divines (≤ 5 passes, ≤ 5.5 passes with "near the ceiling", `unverified` offline); no Arbiter report or mapping signals. D1 designs it after `b` and `n`; D2 plans backward to it | settled (user, 2026-10-09); **target**, WU-61, WU-62; **amends D-116, D-117, D-147, D-219, D-254**; refined by D-320, D-327 |
-| D-282 | **One endgame tree track** (amendment 2 G5, Q3): `m` continues from the last campaign stage, `b` from `m`, `n` from `b`; V1 checks each rung's respec and gold cost | settled (user, 2026-10-09); **target**, WU-61; **amends D-144**; replaces slice 2's A-P3 |
-| D-283 | **The checker's guards** (amendment 2 G6): `guide.md` has at most 3,000 words (the H1, the import code and the Known issues list not counted); G1's headings in order; no markers in `guide.md`; its import code equals the record's; one fixed-form verdict line per endgame rung, compared part by part with the record; reward picks by name; Known issues by sentence, with their ids in `audit.md` | settled (user, 2026-10-09); **target**, WU-62; amends D-271; amended by D-294 |
+| D-276 | **The reader layer** (amendment 2 G1). `guide.md` is a game guide of 14 H2s (slice 3 §8), about 2,840 words, capped at 3,000. It renders the plan and the record, with no markers and no fact or number of its own; advice is in the first person; each caveat appears once; there is no pipeline text; numbers are rounded as a guide rounds them ("about 440"); affix targets are text. Known issues sit under `What PoB can't show`, as reader sentences | settled (user, 2026-10-09); built, WU-62 (merge `14f3553`); **amends D-105, C-30**, D-256's quoting, D-265 (d), D-268's Q1 |
+| D-277 | **Optional guide items** (amendment 2's revision): used where the build has them, never required, and the prose lens doesn't flag a missing one: fallbacks (from alternatives D1 or D2 already weighed), threshold triggers (otherwise a first-person judgment trigger), up to 4 sourced traps, up to 2 either/or picks, hold and save rows, and rotation clauses. Only these are optional. The revision's other additions are section content (slice 3 §8): the loadout ladder line with each rung's trigger, the "when you're short" line, the entering-maps buy order, the config assumptions behind the headline, and an affix's source where it limits the base. To source affix limits, the lookup lists a mod's base types and searches essences | settled (user, 2026-10-09); built, WU-60 (the lookup: merge `fdcf6a7`) and WU-62 (the guide items: merge `14f3553`) |
+| D-278 | **The audit layer** (amendment 2 G2): `audit.md` in the run folder, written and patched by W1, its Known issues table filled by the runner. H2s: `Hand calculations`, `Stage detail`, `What PoB doesn't model`, `Inputs by confidence`, `Run notes`, `Known issues` | settled (user, 2026-10-09); built, WU-62; amends C-34, C-36 |
+| D-279 | **Claims and the editor lens** (amendment 2 G3). The plan holds the facts and is verified as before; a claim exists only for a fact the guide states or a gate needs, and first-person advice needs none. The prose lens reads `guide.md` like an editor against the plan, the record and `audit.md`, and never flags a missing optional item. Claim rule 3 becomes: a caveat appears once in the guide and is never later stated as settled | settled (user, 2026-10-09); built, WU-62; **amends D-179, D-268, D-273** |
+| D-280 | **Not a tutorial** (amendment 2 G4): a sentence about how the game or PoB works stays only when it names something this build uses, needs or avoids, and changes what the reader does; the swap test cuts what would read as true in any other guide | settled (user, 2026-10-09); built, WU-62 |
+| D-281 | **The entering-maps rung `m`** (amendment 2 G5, Q1): a third endgame stage, `variant: "entering-maps"`, between the campaign's end and `b`; area level 69 (T5); gated like `b` (the survival floor, the main damage rule), with a budget of 5 divines (≤ 5 passes, ≤ 5.5 passes with "near the ceiling", `unverified` offline); no Arbiter report or mapping signals. D1 designs it after `b` and `n`; D2 plans backward to it | settled (user, 2026-10-09); built, WU-61 (merge `74c5745`) and WU-62; **amends D-116, D-117, D-147, D-219, D-254**; refined by D-320, D-327 |
+| D-282 | **One endgame tree track** (amendment 2 G5, Q3): `m` continues from the last campaign stage, `b` from `m`, `n` from `b`; V1 checks each rung's respec and gold cost. As built (WU-61): the track goes by rung, `m` → `b` → `n`, whatever the plan order (plan order only within a rung; a rung the plan lacks is skipped); the first rung follows the last campaign stage in the plan, wherever the rung is listed; V1 checks each rung's `respec.dropped` against the rung before it, and the gold cost gets only its schema check, since it carries a `judgment` tag (A-32) | settled (user, 2026-10-09); built, WU-61 (merge `74c5745`; no fixture verdict moved); **amends D-144**; replaces slice 2's A-P3 |
+| D-283 | **The checker's guards** (amendment 2 G6): `guide.md` has at most 3,000 words (the H1, the import code and the Known issues list not counted); G1's headings in order; no markers in `guide.md`; its import code equals the record's; one fixed-form verdict line per endgame rung, compared part by part with the record; reward picks by name; Known issues by sentence, with their ids in `audit.md` | settled (user, 2026-10-09); built, WU-62; amends D-271; amended by D-294 (target) |
 | D-284 | The vendor search regex is deferred (amendment 2 Q6) | deferred (HG-19) |
-| D-285 | **The brief** (amendment 3 O1, Q1, Q2; C-51): seven optional fields (`ascendancy`, `skill`, `playstyle`, `budget`, `around`, `like`, `notes`); the playstyle vocabulary's five axes plus free text; an empty brief means "surprise me". The invocation is `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`; the runner parses the brief before any run folder exists, and the brainstorm gate echoes it (amendment 3 says "the coordinator parses"; the runner reading is PROPOSED by the coordinator, 2026-10-10, C-51); `/build-guide <ascendancy> <skill>` still works. Named fields are checked as D-238 checks a roll. The slug comes from the brief | settled (user, 2026-10-10); **target**, WU-57; amends D-101's input, D-238 |
+| D-285 | **The brief** (amendment 3 O1, Q1, Q2; C-51): seven optional fields (`ascendancy`, `skill`, `playstyle`, `budget`, `around`, `like`, `notes`); the playstyle vocabulary's five axes plus free text; an empty brief means "surprise me". The invocation is `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`; the runner parses the brief before any run folder exists, and the brainstorm gate echoes it (amendment 3 says "the coordinator parses"; the runner reading is PROPOSED by the coordinator, 2026-10-10, C-51); `/build-guide <ascendancy> <skill>` still works. Named fields are checked as D-238 checks a roll. The slug comes from the brief | settled (user, 2026-10-10); **target**, WU-57; amends D-101's input, D-238; amended by D-335 (an eighth optional field, `popularity`) |
 | D-286 | **Each card's identity** is `{className, ascendancy, skill}`, `skill` being the named damage source, checked at deck assembly. It is the card's skeleton `roll`, and the verification pick makes it the run's `roll`, which the run log holds null until then (amendment 3 O1) | settled (user, 2026-10-10); **target**, WU-57; amends C-31's `roll`, D-238 |
 | D-287 | **Three phases, three gates** (amendment 3 O2, Q3). Brainstorm: three researchers write 2–3 cards each; R1a-assemble merges them, checks their identities, deals a card only when a lookup confirms every load-bearing link in game text, and writes `cards.md` (6–9 dealt per round); the brainstorm gate (verify 1–3 cards, brainstorm more, or stop). Verification: R1b per picked card, at most 3 per verification round, with the checklist; R1b-assemble; the verification gate (finalize one, verify other cards, brainstorm more, or stop). Finalization: D1 through the final gate. Only the user starts a round. Every route back to checkpoint 1 goes to the verification gate | settled (user, 2026-10-10); **target**, WU-57; **amends D-124, D-125, D-141, D-157, D-161, D-235, D-236**, NFR-23 |
 | D-288 | Offline test answers for the new gates; A-28's coordinator also answers the brainstorm gate (amendment 3 O2) | settled (user, 2026-10-10); **target**, WU-57; amends A-28; amended by D-323 (the answer keys) |
 | D-289 | **The run log, schema version 3**: `brief`; `roll` as D-286 says; gate names `brainstorm`, `verification` and `final`, alongside `unsaved-build` and `escalation`; card ids; verification rounds; the escalation choice `verification` replaces `checkpoint-1` (amendment 3 O2) | settled (user, 2026-10-10); **target**, WU-58; **amends D-270, D-271**; amended by D-323; refined by D-326 |
-| D-290 | **The pattern library** `references/patterns.md` (C-53): shapes only, each entry with a search step, how PoB follows it, examples and cautions; every researcher reads it first; the coordinator proposes entries after each user-supplied study, and the user approves them (amendment 3 O3, Q6) | settled (user, 2026-10-10); **target**, WU-56; refined by D-325 |
-| D-291 | **The candidate card** (C-52; amendment 3 O4): `templates/card-template.md`; R1a fills the brainstorm half, R1b the verification half; the status words are confirmed in game text, modelled in PoB, estimate, players use it, not checked yet, and needs in-game testing | settled (user, 2026-10-10); **target**, WU-56, WU-57 |
-| D-292 | **The verification checklist is advisory** (amendment 3 O5): R1b reports each check as verified, estimate, risk or not checked; none is a gate or starts a fix round. A check that needs a toggle runs as a plan variant, compiled measure-only as one stage, up to 4 per card beyond R1b's two compiles | settled (user, 2026-10-10); **target**, WU-56, WU-57; amends D-311 |
-| D-293 | **Count and custom modifiers** (amendment 3 O6, Q7). A skill group's `count` (default 1) and `countReason`; `config.customMods: [{text, reason}]`, written to PoB's `customMods` option after the config writes. The record applies Count itself (hits × count, damage over time only when it stacks) and marks every figure computed with a custom modifier present. The delivered file sets `groupCount` and `includeInFullDPS` on the named source's groups only. Full DPS stays out of measure compiles unless S-N2 (WU-51) shows it is cheap | settled (user, 2026-10-10); **target**, WU-51, WU-55; amends C-31, C-32, C-33, C-41, D-306; refined by D-320, D-321, D-322 |
+| D-290 | **The pattern library** `references/patterns.md` (C-53): shapes only, each entry with a search step, how PoB follows it, examples and cautions; every researcher reads it first; the coordinator proposes entries after each user-supplied study, and the user approves them (amendment 3 O3, Q6) | settled (user, 2026-10-10); built, WU-56 (merge `228bec1`); refined by D-325 |
+| D-291 | **The candidate card** (C-52; amendment 3 O4): `templates/card-template.md`; R1a fills the brainstorm half, R1b the verification half; the status words are confirmed in game text, modelled in PoB, estimate, players use it, not checked yet, and needs in-game testing | settled (user, 2026-10-10); the template built, WU-56; the cards **target**, WU-57; amended by D-335 ("players use it" cites the user's notes, never poe.ninja) |
+| D-292 | **The verification checklist is advisory** (amendment 3 O5): R1b reports each check as verified, estimate, risk or not checked; none is a gate or starts a fix round. A check that needs a toggle runs as a plan variant, compiled measure-only as one stage, up to 4 per card beyond R1b's two compiles | settled (user, 2026-10-10); the checklist's text built, WU-56 (`references/stages/R1b.md`); its run **target**, WU-57; amends D-311; refined by D-338 |
+| D-293 | **Count and custom modifiers** (amendment 3 O6, Q7). A skill group's `count` (default 1) and `countReason`; `config.customMods: [{text, reason}]`, written to PoB's `customMods` option after the config writes. The record applies Count itself (hits × count, damage over time only when it stacks) and marks every figure computed with a custom modifier present. The delivered file sets `groupCount` and `includeInFullDPS` on the named source's groups only. Full DPS stays out of measure compiles unless S-N2 (WU-51) shows it is cheap | settled (user, 2026-10-10); WU-51 done; **target**, WU-55; amends C-31, C-32, C-33, C-41, D-306; refined by D-320, D-321, D-322; its measure-compile clause settled by D-337 (S-N2 showed it cheap: every compile computes Full DPS for the named groups) |
 | D-294 | **The headline and EHP** (amendment 3 O6, Q7, Q8). The headline is the named source's main stat-set figure × its Count; clear and boss figures stay separate. `TotalEHP` is shown beside max hit, never alone, and max hit stays the basis of the survival verdict. The verdict line quotes the Count-scaled figure and ends `Effective HP about <n>.`, checked against `TotalEHP`; R1b-assemble's key numbers add `TotalEHP` | settled (user, 2026-10-10); **target**, WU-55, WU-57, WU-58; **amends D-273, D-283**; refined by D-321 |
 | D-295 | **The damage rule.** D-122 becomes: "The build's named damage source is the main source of damage, never a token role." For a fixed skill that skill is the named source, and its own hits, ailments and projectiles count when another skill fires, spreads or copies them (the user, 2026-10-10). D-148 becomes: "The named damage source should be the clear skill. It takes the single-target role only when it can't clear, and the guide says so." `rolledGroup` keeps its name, meaning the group of the named source | settled (user, 2026-10-10); **target**, WU-57; **amends D-122, D-148, D-217** |
 | D-296 | **PoB's role.** PoB keeps its job for defences and the delivered file. A DPS figure that rests on Count or a hand calculation is a labelled estimate, not verified for exactness. The finished guide still checks that every stated interaction exists in game text | settled (user, 2026-10-10, WL:1395-1399); **target**, WU-57; amends D-106, D-179 |
-| D-297 | **poe.ninja on by default** (amendment 3 O7; C-54). Only through server tools in group `ninja` (one client, cache, rate limiter and user agent), for popularity, the build index and peers; the researchers and the coordinator may call them. Off switches: `--no-ninja`, `--offline` and `POE_NINJA_DISABLED`. Serial requests, back-off on 429, a per-league cache. Only requests that need PII or a cookie need explicit approval, so poe.ninja needs none and D-182 covers trade only. Development agents may call poe.ninja politely; tests stay offline (D-34). So D-297 also amends stab D-34 and stab HG-1, D-181 and D-201, for poe.ninja only: polite poe.ninja requests are allowed in development and in runs, while pathofexile.com and any request that carries a cookie or personal data stay gated. The project `CLAUDE.md` line "No agent or test makes requests to … poe.ninja" is reworded by the coordinator in the fold commit, not by a unit (amendment 3 O7) | settled (user, 2026-10-10); **target**, WU-50, WU-52, WU-57 (the development allowance is in force now); **amends D-112, D-130, D-178, D-181, D-182, D-201, D-231**, stab D-34, stab HG-1, HG-14; refined by D-333 |
-| D-298 | With poe.ninja on, each deck holds at least two cards below a popularity threshold (amendment 3 Q5) | settled (user, 2026-10-10); **target**, WU-57; the threshold is D-324's |
-| D-299 | **Lookup additions** (C-37; amendment 3 O8): Gemling quality effects (`altQualityStats`, labelled); "usable by"; item-base implicits; type-granting unlocks; what a support can ride; named phrase searches; a skill's hit-making children; stat sets | settled (user, 2026-10-10); **target**, WU-53 |
-| D-300 | **Coverage flags** (C-38; amendment 3 O8): energy-based meta gems; skills granted by a support; granted skills with no definition; stats mapped but read nowhere (ending Mirage Archer's false all-clear); Gem Studded ties | settled (user, 2026-10-10); **target**, WU-54 |
+| D-297 | **poe.ninja, economy endpoints only** (amendment 3 O7, **restated by D-335**). poe.ninja is used only through its documented economy endpoints: C-12's currency rates (`get_currency_rates`, group `ninja`, called by coordinator steps), and polite development queries (serial requests, back-off on HTTP 429, nothing fetched twice that a cache could hold). Its builds, profiles and character API is never used, by any agent or tool, in development or in runs. Off switches for `get_currency_rates`: `--no-ninja`, `--offline` and `POE_NINJA_DISABLED`. Only requests that need PII or a cookie need explicit approval, so these need none and D-182 covers trade only; tests stay offline (D-34). So D-297 also amends stab D-34 and stab HG-1, D-181 and D-201, for poe.ninja's economy endpoints only, while pathofexile.com and any request that carries a cookie or personal data stay gated. The project `CLAUDE.md` names the economy endpoints only and says the builds API is closed by poe.ninja's terms (reworded with D-335). *As first settled,* it added server tools for popularity, the build index and peers, which the researchers and the coordinator could call (C-54); D-335 withdrew them | settled (user, 2026-10-10); restated by D-335 (the user, 2026-10-10); in force; **amends D-112, D-181, D-182, D-201**, stab D-34, stab HG-1, HG-14; its amendments of D-130, D-178 and D-231 withdrawn by D-335; refined by D-333 |
+| D-298 | **Under-played cards** (amendment 3 Q5, **restated by D-335**): each deck holds at least two cards that the coordinator judges under-played, from the pattern library, labelled `judgment`. There is no popularity threshold. *As first settled:* with poe.ninja on, at least two cards below a popularity threshold that D-324 would set | settled (user, 2026-10-10); restated by D-335 (the user, 2026-10-10); **target**, WU-57 |
+| D-299 | **Lookup additions** (C-37; amendment 3 O8): Gemling quality effects (`altQualityStats`, labelled); "usable by"; item-base implicits; type-granting unlocks; what a support can ride; named phrase searches; a skill's hit-making children; stat sets | settled (user, 2026-10-10); **target**, WU-53 (its criteria AC-K58…AC-K65 pinned on its lane) |
+| D-300 | **Coverage flags** (C-38; amendment 3 O8): energy-based meta gems; skills granted by a support; granted skills with no definition; stats mapped but read nowhere (ending Mirage Archer's false all-clear); Gem Studded ties | settled (user, 2026-10-10); built, WU-54 (merge `92371c2`); refined by D-336 |
 | D-301 | **Campaign additions** (amendment 3 O9): D2 plans bridge skills while the named source is level-gated, and banks the enabler in hold and save rows; W1's Leveling says what is dormant until the enabler arrives, and Priorities marks early pillars "buy now, works at stage X". Optional items | settled (user, 2026-10-10); **target**, WU-57 |
 | D-302 | **Won't do** (amendment 3 O11): no interaction database or graph; no hunting for undocumented interactions; no modelling of mechanics in Lua beyond Count and custom modifiers, and no patching of `vendor/`; no scoring candidates by formula; no required gates from the checklist | settled (user, 2026-10-10) |
 | D-303 | A card whose damage source isn't a skill (a flask nova) can be dealt and verified, marked "can't be finalized yet"; finalizing it is deferred (amendment 3 Q4) | deferred (HG-21) |
 | D-304 | Rolls above the data range (PG-41) are deferred (amendment 3 O8) | deferred (HG-20) |
 | D-305 | The count sites (§1.3) include `tests/mcp/toolDisposition.test.ts`, whose `build-guide` lane counts this epic's tools from `BUILD_GUIDE_NEW`, and the README's two tool-count sentences (`README.md:21, :60`) | resolution (coordinator, 2026-10-08, WL:78-81); built |
-| D-306 | The compiler creates every socket group with `includeInFullDPS` off, and deferred rebuilds must give per-stage outputs equal to the eager path. Basis: WU-30's run with Full DPS on took 160.68 s | resolution (WL:82-84, :194, :234-236); built; amended by D-293 (target: the delivered file's named groups) |
+| D-306 | The compiler creates every socket group with `includeInFullDPS` off, and deferred rebuilds must give per-stage outputs equal to the eager path. Basis: WU-30's run with Full DPS on took 160.68 s | resolution (WL:82-84, :194, :234-236); built; **narrowed by D-337** (target, WU-55): it holds for every group outside the named source, whose groups go in Full DPS in every compile |
 | D-307 | Ascendancy points (C-48, and C-47's remaining points) are counted as PoB's `PassiveSpec:CountAllocNodes` counts them: multiple-choice options and free-allocate nodes are excluded | resolution (WL:186-188); built; amends D-194, D-227 |
 | D-308 | `update_tree_delta` refuses any add that would change an allocated node's weapon-set tag, after a dry run and with the build unchanged, and keeps attribute choices | resolution (WL:149-151); built; amends D-194 |
 | D-309 | `set_main_selection`'s reply gains an optional `statSet` | resolution (WL:189); built |
@@ -771,26 +815,30 @@ for lifted rows is in the source row or the amendment.
 | D-312 | **Gate findings** are equal when their plan stage, part and code are. The checker takes the concept from the gate files, and fails a completed run on any recomputed or reported gate failure that no accepted finding covers. `chaos-exception` and `near-ceiling` findings report on a passing part and never fail | resolution (WL:310-312, :355-356, :399-402); built; its V3/V4 equality part is superseded by D-268 |
 | D-313 | **An unverified league.** When an online run can't reach the trade site, R1b marks `leagueUnverified`; D1 never inherits a guessed league (never Standard), writes `"league": "unverified"` with every price `unavailable` (note `trade unreachable`), and the guide says the league couldn't be verified | resolution (WL:278, :358); built; kept by D-330 |
 | D-314 | Trial 3 is available from `q.act-4-abandoned-prison-goddess-of-justice`, at confidence L (the grounding's 60+ Barya route) | resolution (coordinator, 2026-10-08, WL:133-134); built (C1 data) |
-| D-315 | **M-14, open builds offline** (§7): amendments 2 and 3 are built (WU-50…WU-62) and WU-59 is recorded as WU-47 was. Amendment 3's live-run row is WU-48: WU-48 depends on M-14, so the live alpha exercises the amended pipeline. Its trade approval (D-182, HG-14) is unchanged | settled (user, 2026-10-10); **target**, WU-50…WU-62, then WU-48 |
-| D-316 | **No numeric tool cap.** D-173's "at most 8 new tools, total under 86" and NFR-24 are retired; D-173's principle stays: extend existing tools where natural, and group new ones. The poe.ninja tools join group `ninja`, one tool per distinct query shape, and S-N1 (WU-50) settles their number and shapes. AC-B1 states today's counts, and WU-52 restates them. D-316 also resolves stab HG-3 (tool-set changes need the user) for C-54's tools, since the user approved amendment 3, which adds them | settled (user, 2026-10-10); in force now, and **target**, WU-52 (which restates the counts); **amends D-173**; withdraws NFR-24 |
-| D-317 | Amendment 2 is folded as target design and built as WU-60 (the lookup), WU-61 (the plan schema and V1) and WU-62 (the pipeline). WU-62 merges before WU-57 and WU-58, which edit its verdict line. WU-60 merges before WU-53, since both edit `pob-api/API/Lookup.lua` | PROPOSED by the coordinator, 2026-10-10; **target**, WU-60, WU-61, WU-62 |
-| D-318 | Slice 1 hosts WU-50, WU-52, WU-53 and WU-54, with AC-K criteria; amendment 3 named only slices 2 and 3 | PROPOSED by the coordinator, 2026-10-10; **target**, WU-50, WU-52, WU-53, WU-54 |
-| D-319 | Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`), in `cards/<id>.md`; the runner letters the researchers when it starts them, so parallel researchers never collide. `research/p<k>-r1a-<n>.md` stays; if WU-57 finds the research files unused, it removes them and records a decision row | PROPOSED by the coordinator, 2026-10-10; **target**, WU-56, WU-57 |
-| D-320 | One plan `schemaVersion` bump covers `count` (an integer of at least 1, default 1), `countReason`, `customMods` (optional) and the `entering-maps` variant. The first of WU-61 and WU-55 to merge makes the bump; the second extends the same, unreleased version. Each updates the plan reference and the worked example in the same unit | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55, WU-61; refines D-281, D-293; refined by D-332 |
-| D-321 | The record keeps the raw figures as they are; new fields beside them hold each figure × count, and a mark flags each figure computed with custom modifiers. `recordVersion` bumps. The verdict line and the headline read the named source's Count-scaled figure, with `TotalEHP` beside it. WU-55 names the exact fields in C-33's text | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55; refines D-293, D-294 |
-| D-322 | A missing `countReason` (when `count` isn't 1) and a `customMods` entry without a reason are V1 findings, so the stage's `v1.pass` is false; they are not schema errors | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55; refines D-293 |
+| D-315 | **M-14, open builds offline** (§7): amendments 2 and 3 are built (WU-50…WU-62; WU-52 withdrawn by D-335, and WU-50 done as the record of the block) and WU-59 is recorded as WU-47 was. Amendment 3's live-run row is WU-48: WU-48 depends on M-14, so the live alpha exercises the amended pipeline. Its trade approval (D-182, HG-14) is unchanged | settled (user, 2026-10-10); WU-50, WU-51, WU-54, WU-56, WU-60, WU-61, WU-62 done; **target**, WU-53, WU-55, WU-57…WU-59, then WU-48 |
+| D-316 | **No numeric tool cap.** D-173's "at most 8 new tools, total under 86" and NFR-24 are retired; D-173's principle stays: extend existing tools where natural, and group new ones. The lifted cap stays, but D-335 withdrew the poe.ninja tools it was lifted for, so it now applies to no new poe.ninja tool: AC-B1's counts stay 84 and 83, and no unit restates them. D-316's resolution of stab HG-3 (tool-set changes need the user) for C-54's tools covers no tool now | settled (user, 2026-10-10); in force; **amends D-173**; withdraws NFR-24; its WU-52 part withdrawn by D-335 |
+| D-317 | Amendment 2 is folded as target design and built as WU-60 (the lookup), WU-61 (the plan schema and V1) and WU-62 (the pipeline). WU-62 merges before WU-57 and WU-58, which edit its verdict line. WU-60 merges before WU-53, since both edit `pob-api/API/Lookup.lua` | PROPOSED by the coordinator, 2026-10-10; built: WU-60, WU-61 and WU-62 merged in this order, before WU-53, WU-57 and WU-58 |
+| D-318 | Slice 1 hosts WU-50, WU-52, WU-53 and WU-54, with AC-K criteria; amendment 3 named only slices 2 and 3 | PROPOSED by the coordinator, 2026-10-10; WU-54 built, WU-50 done (blocked), WU-52 withdrawn (D-335), WU-53 **target** |
+| D-319 | Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`), in `cards/<id>.md`; the runner letters the researchers when it starts them, so parallel researchers never collide. `research/p<k>-r1a-<n>.md` stays; if WU-57 finds the research files unused, it removes them and records a decision row | PROPOSED by the coordinator, 2026-10-10; the card template's id form built, WU-56; **target**, WU-57 |
+| D-320 | One plan `schemaVersion` bump covers `count` (an integer of at least 1, default 1), `countReason`, `customMods` (optional) and the `entering-maps` variant. The first of WU-61 and WU-55 to merge makes the bump; the second extends the same, unreleased version. Each updates the plan reference and the worked example in the same unit. WU-61 merged first and made the bump, to 2, with `entering-maps`; WU-55 adds its three fields to version 2's `VERSION_ADDITIONS` (`src/plan/schema.ts`) | PROPOSED by the coordinator, 2026-10-10; built, WU-61 (the bump); **target**, WU-55 (its fields); refines D-281, D-293; refined by D-332 |
+| D-321 | The record keeps the raw figures as they are; new fields beside them hold each figure × count, and a mark flags each figure computed with custom modifiers. `recordVersion` bumps. The verdict line and the headline read the named source's Count-scaled figure, with `TotalEHP` beside it. WU-55 names the exact fields in C-33's text: `recordVersion: 2`, `countedOutputs`, `countedSkillOutputs`, `customModsWritten` and `computedWithCustomMods` (C-33) | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55; refines D-293, D-294 |
+| D-322 | A missing `countReason` (when `count` isn't 1) and a `customMods` entry without a reason are V1 findings, so the stage's `v1.pass` is false; they are not schema errors. WU-55 names the code `missing-reason`, its `data.path` the missing field's path | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55; refines D-293 |
 | D-323 | The test config's answers are `answers.brainstorm`, `answers.verification` and `answers.final`; `checkpoint1` and `checkpoint2` are retired in run-log v3 | PROPOSED by the coordinator, 2026-10-10; **target**, WU-57, WU-58; amends D-288, D-289 |
-| D-324 | S-N1 (WU-50) produces the poe.ninja tools' names, arguments, outputs, kinds, cache lifetime and back-off, recorded in C-54 when it merges. It also sets D-298's popularity threshold from the data, recorded as a decision row | PROPOSED by the coordinator, 2026-10-10; **target**, WU-50, WU-52 |
-| D-325 | The pattern library's cap is 6,000 words, counted by AC-W28's static test (the run checker reads run folders, not the skill's files) | PROPOSED by the coordinator, 2026-10-10; **target**, WU-56; refines D-290 |
+| D-324 | *Withdrawn → D-335:* S-N1 (WU-50) was to produce the poe.ninja tools' names, arguments, outputs, kinds, cache lifetime and back-off, and D-298's popularity threshold. poe.ninja's terms close the API they rest on, so there are no tools and no threshold | withdrawn (D-335) |
+| D-325 | The pattern library's cap is 6,000 words, counted by AC-W28's static test (the run checker reads run folders, not the skill's files) | PROPOSED by the coordinator, 2026-10-10; built, WU-56 (5,642 words at the merge); refines D-290 |
 | D-326 | The checker accepts run logs of schema versions 2 and 3; version 2 only so that recorded runs (WU-47's) still check | PROPOSED by the coordinator, 2026-10-10; **target**, WU-58; refines D-289; amends D-271 |
-| D-327 | The entering-maps rung's reference hits are tied to its area level, 69 (D-281), as D-256 ties each stage's hits to its area level. Only that tie is the coordinator's inference: amendment 2 states the rung's area level, its waystone-scaled hits (D-254) and its ledger entries `hit_m_<type>`, but not the tie | PROPOSED by the coordinator, 2026-10-10; **target**, WU-62; refines D-281 |
+| D-327 | The entering-maps rung's reference hits are tied to its area level, 69 (D-281), as D-256 ties each stage's hits to its area level. Only that tie is the coordinator's inference: amendment 2 states the rung's area level, its waystone-scaled hits (D-254) and its ledger entries `hit_m_<type>`, but not the tie | PROPOSED by the coordinator, 2026-10-10; built, WU-62; refines D-281 |
 | D-328 | `buildSha1` (D-266) tracks build content. Sources and tags are citations, so a change to `config.scenario[].source` or `respec.goldCost.source` alone leaves it unchanged, by design | PROPOSED by the coordinator, 2026-10-10; built (it describes the built projection); clarifies D-266 |
-| D-329 | S-N2 (WU-51) measures the fifteen-stage fixture | PROPOSED by the coordinator, 2026-10-10; **target**, WU-51 |
+| D-329 | S-N2 (WU-51) measures the fifteen-stage fixture | PROPOSED by the coordinator, 2026-10-10; done, WU-51 (merge `9f74ad9`) |
 | D-330 | `"league": "unverified"` (D-313) stays the convention for an online run that can't reach the trade site; offline, `league` is null (D-233) | PROPOSED by the coordinator (F26, corrected to the code), 2026-10-10; built (`references/stages/D1.md:43-51`; keeps D-313) |
-| D-331 | Probe variants (D-292) live at `probes/<card-id>/<n>/` in the run folder | PROPOSED by the coordinator, 2026-10-10; **target**, WU-57 |
-| D-332 | **Version-1 plans stay accepted.** After the bump (D-320), the plan validators (`compile_plan` and `guide_run`'s validate mode) accept plan `schemaVersion` 1 and 2, so C-31's "only versions they know" means {1, 2}. A version-1 plan defaults the new fields: `count` 1, no `customMods`, no `entering-maps` variant. So recorded runs' plans still validate and compile | PROPOSED by the coordinator, 2026-10-10; **target**, WU-55, WU-61; refines D-320 |
-| D-333 | **`--no-ninja`** means the run calls no tool in group `ninja`: neither C-54's poe.ninja tools nor `get_currency_rates`. Price totals in divines are then `unverified`, pricing's existing path when rates are missing (`references/pricing.md:88-89`), and the cards say "no player evidence" | PROPOSED by the coordinator, 2026-10-10; **target**, WU-57; refines D-297 |
+| D-331 | Probe variants (D-292) live at `probes/<card-id>/<n>/` in the run folder | PROPOSED by the coordinator, 2026-10-10; R1b's checklist writes them (WU-56); **target**, WU-57, WU-58 (D-338) |
+| D-332 | **Version-1 plans stay accepted.** After the bump (D-320), the plan validators (`compile_plan` and `guide_run`'s validate mode) accept plan `schemaVersion` 1 and 2, so C-31's "only versions they know" means {1, 2}. A version-1 plan defaults the new fields: `count` 1, no `customMods`, no `entering-maps` variant. So recorded runs' plans still validate and compile. As built (WU-61): a version-1 plan keeps version 1's shape, so a version-1 plan that uses a version-2 field is an error at that field's path, naming the version that added it (an `entering-maps` variant now; from WU-55 an explicit `count`, `countReason` or `customMods` too) | PROPOSED by the coordinator, 2026-10-10; built, WU-61; **target**, WU-55 (its fields); refines D-320 |
+| D-333 | **`--no-ninja`** means the run calls no tool in group `ninja`, whose one tool, after D-335, is `get_currency_rates`. Price totals in divines are then `unverified`, pricing's existing path when rates are missing (`references/pricing.md:88-89`). (It first named C-54's tools too, and tied the cards' "no player evidence" to the switch; D-335 makes that the cards' wording in every run without the user's notes) | PROPOSED by the coordinator, 2026-10-10; **target**, WU-57; refines D-297; amended by D-335 |
 | D-334 | **A card whose damage source isn't a skill** (D-303): its identity's `skill` names the damage source (an item, a passive or a modifier, D-295), and deck assembly checks it with `lookup_game_data` by that kind instead of requiring `Kind: active`. In verification it gets only the checklist's read-only checks (D-292): no skeleton or probe compile until HG-21's plan field exists. The card says so: "not compiled: its damage source isn't a skill" | PROPOSED by the coordinator, 2026-10-10; **target**, WU-57; refines D-303 |
+| D-335 | **No player-evidence tools.** Spike WU-50 found that poe.ninja's API Reference closes the builds and profiles API, and every other non-economy endpoint (character, Path of Building, authentication), to third-party use, for server load and the privacy of players who hide their characters (`spikes/WU-50-poe-ninja.md` §3.1). Every player-evidence use rested on it. The user chose "No tool; your notes" (options A plus B): (a) C-54's tools and their unit WU-52 are withdrawn, with AC-K47…AC-K49 and D-324; the count sites stay at 84, and 83 with poe.ninja disabled; (b) cards say "no player evidence" unless the brief carries the user's own popularity notes (C-51's `popularity` field), which a card cites as user-supplied; (c) D-298's under-played cards become the coordinator's judgment from the pattern library, labelled `judgment`, with no threshold; (d) D-297 is restated: poe.ninja only through its documented economy endpoints, for C-12's currency rates and polite development queries, never its builds, profiles or character API, by any agent or tool, in development or in runs; (e) `--no-ninja` (D-333) still turns off `get_currency_rates`; (f) WU-57 no longer depends on WU-50 or WU-52; WU-50's report is kept as the record of the block (`d16c16c`); (g) the project `CLAUDE.md` names the economy endpoints only. Rejected: an economy-only signal (the stash overview's `listingCount`, which measures market supply, not players) and GGG's official API (an application to GGG, gated by HG-1) | settled (user, 2026-10-10; WL:1705-1722); in force; **withdraws C-54, WU-52, AC-K47…AC-K49, D-324**; **restates D-297, D-298**; amends C-51, C-52, D-285, D-291, D-315, D-316, D-333 |
+| D-336 | **Coverage flags** (C-38, refining D-300). AC-K50's one flag becomes two, since amendment 3 misread Mirage Archer's gap: its only mapped-but-unread line, "cannot consume Charges" (`Condition:CannotConsumeCharges`), is read in the skill data (`Data/Skills/act_dex.lua:222`), and the real gap is the stat `triggered_by_lingering_mirage`, with no stat map and no described line (PG-4). (a) **`mapped but unread`** (PG-24): a gem line's stat maps to a mod name PoB reads nowhere. For this flag a name is read when it is exactly a scanned name; a string a mod tag in the loaded skill data names (any field but `type`); a minion's or spectre's `limit` (`CalcPerform.lua:1298-1303`); a string literal passed to a mod-list read in `Data/Skills/*.lua` (the scan's `sourceCallNames`); a compound `X:Y` of read parts; or a whole fit to a concatenation template, each `*` empty or a read name, D-243's suffix rule not applying. A `*` may also be a skill's name without whitespace, but only in the templates PoB builds from `activeGrantedEffect.name` inside a mod-list read (the scan's `sourceSkillTemplates`: `Multiplier:*MaxStages` and `Multiplier:*MinimumStage` at the pin, `CalcActiveSkill.lua:866-869`). 24 lines at the pin. (b) **`stat not mapped`** (PG-4, PG-49): a support or meta gem's non-zero stats with no stat map (global or the skill's own), in no described line (removing one leaves the described lines unchanged), and not display-only (`display_`, `quality_display_`); **one flag per gem** (the per-stat flag was noisy: 19 on the golden build, 12 of them Pounce's), its note listing the ids sorted and saying PoB may derive some from the gem's skill types; no hand list or other id-prefix cut. 115 gems, 318 stats at the pin; Mirage Archer reports it, ending its false all-clear. (c) Flags sit in a `flags[]` list beside the statuses (`{flag, source, note, line?}`), never as a status, so no count and no C-47 output changes; every mode lists every flag. The criteria are AC-K50 and AC-K53…AC-K57 | PROPOSED by the coordinator, 2026-10-10 (the criteria review); extended 2026-10-10 (one flag per gem) and 2026-10-11 (the skill-name templates, WU-54's re-check); built, WU-54 (merge `92371c2`); refines D-300 |
+| D-337 | **Full DPS in every compile.** S-N2 (WU-51) measured the fifteen-stage fixture with `includeInFullDPS` on for each stage's `rolledGroup` only: ×1.14 on the whole call (median), at most 3.08 s per stage request and 31.92 s per call in three quiet runs, within NFR-20 and NFR-21. That is cheap, so every compile, measure-only included, creates the named source's groups with `includeInFullDPS` on and their `groupCount`, and PoB computes Full DPS for them; the flags are not left to the export. Verification and finalization then report the same headline figure, and the compiler has no mode branch. Groups outside the named source stay out of Full DPS (D-306, narrowed) | PROPOSED by the coordinator, 2026-10-10; WU-51 done (merge `9f74ad9`); **target**, WU-55; settles D-293's measure-compile clause; narrows D-306; amends §3.6 step 9 (slice 02) |
+| D-338 | **R1b's probe and card writes.** R1b's checklist (WU-56, `references/stages/R1b.md`) writes each probe's plan at `probes/<card-id>/<n>/` (the server writes its measure-only record and XML beside it) and the card's results into `cards/<id>.md`, but R1b's header `writes` don't name them and the checker's layout list rejects `probes/` and `cards/`. WU-57 adds those paths to R1b's header `writes`. WU-58 meets the new clause AC-W2 (ff): the checker accepts `probes/<card-id>/<n>/`, the cards and `cards.md`, and rejects other files there; and the run log records each card's probe count, so D-292's cap of 4 probes per card can be audited | PROPOSED by the coordinator, 2026-10-10 (the WU-56 review's fold item); **target**, WU-57, WU-58; refines D-292, D-331 |
 
 ## 6. Autonomy envelope
 
@@ -816,21 +864,22 @@ Everything in §5 and every contract in §3. The stab spine's §6 decisions and 
 | A-30 | The Arbiter of Divinity's in-fight life is unpublished. E1's profile records three inputs for it, each labelled confidence L: the datamined base stats (poe2db's life 246,035 plus 24,603 energy shield at level 79, which is not the fight value); ext §4's extrapolated estimate (about 8M, from the Arbiter of Ash's about 34× fight-to-base ratio), with that method; and the user's community report (about twice the quest version's life, design row 16). The guide reports time-to-kill as a range under those assumptions | The Arbiter check is report-only (D-116); ext §4; design row 16 | A sourced in-fight figure replaces the range in E1, with its citation |
 | A-31 | Spirit-gem availability isn't grounded beyond the Act 3 reward, so V1 notes Spirit gems instead of checking them | coordinator resolution (2026-10-07); C1 has no Spirit-gem table | A sourced table is added to C1, and V1 checks it |
 | A-32 | Respec gold costs have no source, so `respec.goldCost` carries `judgment` tags | coordinator resolution (2026-10-07); no grounding row | A sourced cost table is added to C1 |
-| A-33 | Where amendment 3 gives no acceptance criteria (WU-53's lookup additions, WU-54's flags other than Mirage Archer's, WU-59's run, and AC-W32's D-122 wording test), each unit's first step pins its criteria in its slice spec from the amendment's text, and the coordinator reviews them before any code is written. "Like WU-47" (WU-59) means WU-47's recorded procedure, with an open brief in place of a roll; the brief, the test answers and the faults are chosen when the unit starts. WU-59's criteria include the coordinator's guide review with amendment 2's style rules (the reader layer's rules, each caveat once, the not-a-tutorial rule; moved from AC-W22's target clause) and a run through the paths WU-47 left to tests and review demos: D-264's claims-only path, D-265 (b)–(e) and D-266 (WU-47's exception E4, which named WU-48 before M-14 put WU-59 first). The same step settles the example "Culmination II, then Ailith's Chimes" (amendment 3 O8) | coordinator resolution (2026-10-10, PROPOSED); the amendment names the features but no checks | The user supplies the criteria |
+| A-33 | Where amendment 3 gives no acceptance criteria (WU-53's lookup additions, WU-54's flags other than Mirage Archer's, WU-59's run, and AC-W32's D-122 wording test), each unit's first step pins its criteria in its slice spec from the amendment's text, and the coordinator reviews them before any code is written. "Like WU-47" (WU-59) means WU-47's recorded procedure, with an open brief in place of a roll; the brief, the test answers and the faults are chosen when the unit starts. WU-59's criteria include the coordinator's guide review with amendment 2's style rules (the reader layer's rules, each caveat once, the not-a-tutorial rule; moved from AC-W22's target clause) and a run through the paths WU-47 left to tests and review demos: D-264's claims-only path, D-265 (b)–(e) and D-266 (WU-47's exception E4, which named WU-48 before M-14 put WU-59 first). The same step settles the example "Culmination II, then Ailith's Chimes" (amendment 3 O8) | coordinator resolution (2026-10-10, PROPOSED); the amendment names the features but no checks. Applied so far: WU-54 pinned AC-K53…AC-K57, and WU-53 pinned AC-K58…AC-K65 on its lane, each reviewed before code | The user supplies the criteria |
 
 ### 6.3 Human-decision gates (stop and escalate, `blocked:needs-human`)
 
-The stab spine's HG-1…HG-9 stay in force. In particular HG-1, which D-297 narrows to a live request to
-pathofexile.com or any request that carries a cookie or personal data (polite poe.ninja requests need no
-approval), HG-6 (the user's builds folder; it now covers the user's guides folder too) and HG-8 (signing).
+The stab spine's HG-1…HG-9 stay in force. In particular HG-1, which D-297 (as D-335 restates it) narrows to
+a live request to pathofexile.com or any request that carries a cookie or personal data (polite requests to
+poe.ninja's documented economy endpoints need no approval; its builds, profiles and character API is never
+used), HG-6 (the user's builds folder; it now covers the user's guides folder too) and HG-8 (signing).
 
 | ID | Condition | Why a human | Unblocks with |
 |---|---|---|---|
 | HG-10 | Any dependency change (`package.json`, lockfile) | gap 33; stab §8 dependency rule | The user's decision |
 | HG-11 | Any change to `pob-pin.json` | Golden values move; D-140 waits for the next PoB2 release | The user, after a PoB2 release |
-| HG-12 | Any tool-set or tool-contract change beyond C-37…C-54 and D-143/D-174/D-175/D-202/D-216: a new tool outside C-54's poe.ninja tools (whose number S-N1 settles, D-316), exposing auto-level mode on `set_character_level`, retyping `search_tree_nodes` node types, … | UX scope; token cost (D-173, as amended by D-316) | The user's decision |
+| HG-12 | Any tool-set or tool-contract change beyond C-37…C-50 and D-143/D-174/D-175/D-202/D-216: any new tool, a poe.ninja one included (C-54 is withdrawn, D-335), exposing auto-level mode on `set_character_level`, retyping `search_tree_nodes` node types, … | UX scope; token cost (D-173, as amended by D-316); poe.ninja's terms (D-335) | The user's decision |
 | HG-13 | WU-30 finds a 15-stage plan compiles in more than 100 s, or one stage's engine request takes 20 s or more, a third below the 30 s timeout (D-229) | gap 9 | The user picks a new budget or approach |
-| HG-14 | Starting the live alpha run (M-13): live trade requests through the server, web research on D-171's hosts, writes to the real guides and builds folders. poe.ninja requests need no approval (D-297); the live run follows M-14 (D-315) | gap 32; shared rate limits; the user's folders | The user's approval, asked at the start of M-13 |
+| HG-14 | Starting the live alpha run (M-13): live trade requests through the server, web research on D-171's hosts, writes to the real guides and builds folders. poe.ninja's economy endpoints need no approval (D-297, D-335); the live run follows M-14 (D-315) | gap 32; shared rate limits; the user's folders | The user's approval, asked at the start of M-13 |
 | HG-15 | The deferred items: plugin packaging (D-136; when the tooling is feature-complete and stable); unique-jewel trade rows (D-137); per-agent inline engines (D-130; needs a probe); the pin upgrade (D-140); and two post-alpha reviews: the cost envelope (D-127) and a checkpoint after D1 (D-134) | Product scope | The user, after M-13 |
 | HG-16 | *Withdrawn → D-207:* how the skill learns the guides root. The server creates the run folder and returns its path | — | — |
 | HG-17 | *Withdrawn → D-201:* web hosts during M-12's run. M-12 runs fully offline; web research happens only in M-13 (HG-14) | — | — |
@@ -843,8 +892,8 @@ approval), HG-6 (the user's builds folder; it now covers the user's guides folde
 ## 7. Milestones and alpha definition
 
 - **M-10, Server tools:** WU-31…WU-36 and WU-49. Exit: every AC-K of its units green (AC-K1…AC-K46);
-  AC-B1…AC-B5 and AC-B7 green at the last merge. (AC-B6 belongs to WU-37, under M-11.) The target ACs
-  (AC-K47…AC-K52) belong to M-14.
+  AC-B1…AC-B5 and AC-B7 green at the last merge. (AC-B6 belongs to WU-37, under M-11.) The amendment ACs
+  (AC-K50…AC-K65; AC-K47…AC-K49 withdrawn by D-335) belong to M-14.
 - **M-11, Plan compiler:** WU-30, WU-37…WU-42. Exit: every AC-P of its units green (AC-P1…AC-P50;
   AC-P51…AC-P59 belong to M-14), including a hand-written two-stage fixture plan (`tests/fixtures/plans/`)
   that compiles into a PoB2 file with one loadout per stage and nothing titled `Default` (D-215), reloads
@@ -858,16 +907,20 @@ approval), HG-6 (the user's builds folder; it now covers the user's guides folde
   coordinator (A-28), V1/V2 and the gates passing, V4 run with every open finding a known issue (D-268), and
   NFR-22 and NFR-23 read as D-270 says. **Status:** met on 2026-10-09 with recorded exceptions E1–E4, closed
   by the user's direction without a re-run (WL:799-826).
-- **M-14, Open builds offline** (D-315; reached before M-13): WU-50…WU-62, amendments 2 and 3. Exit, the
-  user's ruling (D-315): amendments 2 and 3 are built (WU-60…WU-62 for amendment 2, WU-50…WU-59 for
-  amendment 3), and their offline run with an open brief, WU-59, is recorded (like WU-47, amendment 3's N-8;
-  A-33). Also, PROPOSED by the coordinator (2026-10-10): the target ACs (AC-K47…AC-K52, AC-P51…AC-P59,
-  AC-W2 (v)…(ee) with its amended (b) and (l), AC-W27…AC-W33, the target clauses of AC-W5 and AC-W11, and
-  AC-W14 as reworded to D-264's re-check rule) and AC-B1…AC-B8 are green at the last merge, AC-B1 at the
-  counts WU-52 restates (D-316).
+- **M-14, Open builds offline** (D-315; reached before M-13): WU-50…WU-62, amendments 2 and 3, WU-52
+  withdrawn (D-335). Exit, the user's ruling (D-315): amendments 2 and 3 are built (WU-60…WU-62 for
+  amendment 2, WU-50, WU-51 and WU-53…WU-59 for amendment 3), and their offline run with an open brief,
+  WU-59, is recorded (like WU-47, amendment 3's N-8; A-33). Also, PROPOSED by the coordinator (2026-10-10;
+  restated 2026-10-11 for D-335 and D-338): the amendment ACs as they now stand are green at the last merge:
+  - slice 01: AC-K50, AC-K51, AC-K52, AC-K53…AC-K57 and AC-K58…AC-K65 (AC-K47…AC-K49 withdrawn, D-335);
+  - slice 02: AC-P51…AC-P59;
+  - slice 03: AC-W2 (v)…(ff) with its amended (b) and (l), AC-W27…AC-W33, AC-W11's reader-layer clause,
+    and AC-W14 as reworded to D-264's re-check rule (AC-W5's target clause is withdrawn, D-335);
+  - AC-B1…AC-B8, AC-B1 at 84 and 83 (D-335).
 - **M-13, Alpha.** Reached when all of these hold (D-151):
   1. the M-10…M-12 and M-14 exits hold, and `mise run test` and `pnpm build` exit 0 (D-315);
-  2. HG-14 was approved before the run started (trade; poe.ninja needs no approval, D-297);
+  2. HG-14 was approved before the run started (trade; poe.ninja's economy endpoints need no approval,
+     D-297, D-335);
   3. the live Titan / Blood Hunt run (WU-48), on the amended pipeline, produced its run folder with V1/V2
      and the gates passing, V4 run with every open finding a known issue, one loadout per stage in the PoB
      file, and an import code that round-trips (D-268, D-315);
@@ -904,25 +957,24 @@ each unit's main files beyond its implied scope.
 | WU-47 | **Built.** Offline end-to-end pipeline run, recorded on the single path, interactive, on Opus (D-181, D-201, A-28, D-263, D-274, D-275) | 03 | WU-44, WU-46 | none in the repo beyond the work-log; failures re-open the owning unit | M-12 |
 | WU-48 | **Human:** the live Titan / Blood Hunt run on the amended pipeline, and the user's sign-off (D-315) | 03 | M-14 (WU-59); HG-14 | the user's guides and builds folders (coordinator and user only) | M-13 |
 | WU-49 | **Built.** T1: dated price outputs on `get_item_price` and `search_trade_items` (date and league), no batch mode (D-224), the `[trade:<kind>]` error prefix on those two and `get_leagues` (D-218), within the limiter's existing windows (C-49, D-202) | 01 | — | `src/handlers/tradeHandlers.ts`; the trade fixtures in `tests/fixtures/` | M-10 |
-| WU-50 | **Target.** S-N1 spike: ground poe.ninja's PoE2 popularity and build-index API (endpoints, response shape, rate limits, terms), politely, serially and cached; settle the poe.ninja tools' number, names and shapes and the deck's popularity threshold (D-316, D-324) | 01 | — | `docs/build-guide/spikes/WU-50-poe-ninja.md` (new); polite requests to poe.ninja only (§9) | M-14 |
-| WU-51 | **Target.** S-N2 spike: Full DPS compile cost with only the named groups included, on the fifteen-stage fixture (D-293, D-329) | 02 | — | `docs/build-guide/spikes/WU-51-full-dps.md` (new); probes only in temp dirs | M-14 |
-| WU-52 | **Target.** N-1: the poe.ninja tools (C-54) in group `ninja`, their client's rate limiter and cache, fixtures, the README tool table (D-297, D-316) | 01 | WU-50 | new handler and client files, `src/server/toolSchemas.ts`, `toolMeta.ts`, `toolRouter.ts`, `tests/fixtures/` (poe.ninja fixtures), count sites (§1.3), README table | M-14 |
+| WU-50 | **Done** (`d16c16c`): S-N1 spike, blocked by poe.ninja's terms. Its report finds the builds and profiles API, and every other non-economy endpoint, closed to third-party use, so no tool and no threshold was settled; the user's D-335 resolves it, and the report stays as the record of the block. Five requests, all to public pages, none to an API endpoint | 01 | — | `docs/build-guide/spikes/WU-50-poe-ninja.md` (new); polite requests to poe.ninja only (§9) | M-14 |
+| WU-51 | **Done** (`9f74ad9`). S-N2 spike: Full DPS compile cost with only the named groups included, on the fifteen-stage fixture (D-293, D-329): ×1.14, at most 3.08 s per stage, within NFR-21, so every compile computes it (D-337) | 02 | — | `docs/build-guide/spikes/WU-51-full-dps.md` (new); probes only in temp dirs | M-14 |
+| WU-52 | *Withdrawn → D-335:* N-1, the poe.ninja tools (C-54) | 01 | — | *withdrawn → D-335* | — |
 | WU-53 | **Target.** N-2: lookup additions (C-37, D-299), with engine tests | 01 | WU-60 (`Lookup.lua`, D-317) | `pob-api/API/Lookup.lua`, `src/handlers/lookupHandlers.ts`, `.claude/skills/build-guide/references/lookups.md`, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts` | M-14 |
-| WU-54 | **Target.** N-3: coverage flags (C-38, D-300), with engine tests | 01 | — | `pob-api/API/Coverage.lua`, `src/handlers/coverageHandlers.ts`, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts` | M-14 |
-| WU-55 | **Target.** N-4: plan schema and compiler: `count`, `countReason`, `customMods`; figure × count and custom-modifier marks in the record; `groupCount`; `includeInFullDPS` on the named groups at the final compile; the plan checks; `plan-reference.md` (D-293, D-320…D-322) | 02 | WU-51; after WU-61 if it merges first (D-320) | `src/plan/schema.ts`, `compiler.ts`, `record.ts`, `checks/`, `pob-api/API/Compile.lua`, `BuildOps.lua` (`create_socket_group`), `docs/build-guide/plan-reference.md`, `tests/unit/planChecks.test.ts`, the compiler's engine tests, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts` | M-14 |
-| WU-56 | **Target.** N-5: content: `references/patterns.md` v1, `templates/card-template.md`, the checklist in `references/stages/R1b.md` (D-290, D-291, D-292) | 03 | — | those three files | M-14 |
-| WU-57 | **Target.** N-6: the pipeline: the brief, the three phases and gates, R1a-assemble, cards, the checklist and probe budget, Count in D1, the named damage source wording, the poe.ninja rewording (D-285…D-301, D-319, D-323) | 03 | WU-50, WU-55, WU-56, WU-62; soft: WU-52 (WU-57 uses offline stubs of the poe.ninja tools until WU-52 merges) | `.claude/skills/build-guide/` (`SKILL.md`, stage references, `references/`, templates), `.claude/agents/build-guide/` (the verifier's re-check line included, AC-W14), `tests/static/buildGuidePipeline.test.ts` | M-14 |
+| WU-54 | **Built** (`92371c2`). N-3: coverage flags (C-38, D-300, D-336), with engine tests | 01 | — | `pob-api/API/Coverage.lua`, `src/handlers/coverageHandlers.ts`, `src/engine/pobSourceNames.ts` (the call names and skill-name templates), `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts`; allowed by the coordinator: `check_model_coverage`'s description, `references/lookups.md`, the scan fake in `passiveUpgradesBound.test.ts` | M-14 |
+| WU-55 | **Target.** N-4: plan schema and compiler: `count`, `countReason`, `customMods`; figure × count and custom-modifier marks in the record; `groupCount`; `includeInFullDPS` on the named groups in every compile (D-337); the plan checks; `plan-reference.md` (D-293, D-320…D-322) | 02 | WU-51 (done); WU-61 (merged: WU-55 extends its version bump, D-320) | `src/plan/schema.ts`, `compiler.ts`, `record.ts`, `checks/`, `pob-api/API/Compile.lua`, `BuildOps.lua` (`create_socket_group`), `docs/build-guide/plan-reference.md`, `tests/unit/planChecks.test.ts`, the compiler's engine tests, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts` | M-14 |
+| WU-56 | **Built** (`228bec1`). N-5: content: `references/patterns.md` v1, `templates/card-template.md`, the checklist in `references/stages/R1b.md` (D-290, D-291, D-292) | 03 | — | those three files, and `tests/static/buildGuidePipeline.test.ts` | M-14 |
+| WU-57 | **Target.** N-6: the pipeline: the brief, the three phases and gates, R1a-assemble, cards, the checklist and probe budget (R1b's `writes`, D-338), Count in D1, the named damage source wording, and the poe.ninja rule: never contact pathofexile.com or poe.ninja yourself; there are no poe.ninja tools beyond the currency rates (D-285…D-301, D-319, D-323, D-335) | 03 | WU-55, WU-56, WU-62 | `.claude/skills/build-guide/` (`SKILL.md`, stage references, `references/`, templates), `.claude/agents/build-guide/` (the verifier's re-check line included, AC-W14), `tests/static/buildGuidePipeline.test.ts` | M-14 |
 | WU-58 | **Target.** N-7: the run checker and the run log v3 (D-289, D-294, D-323, D-326) | 03 | WU-57 | `scripts/check-run.mjs`, `references/run-log.md`, `tests/unit/buildGuideCheckRun.test.ts`, `tests/fixtures/pipeline/` | M-14 |
-| WU-59 | **Target.** N-8: the offline end-to-end run with an open brief, recorded as WU-47 was (A-33) | 03 | WU-50…WU-58, WU-60…WU-62 | none in the repo beyond the work-log | M-14 |
-| WU-60 | **Target.** Amendment 2's lookup: a mod hit lists the base types that can roll it (non-zero spawn weights), and the essence table is searchable (D-277) | 01 | — | `pob-api/API/Lookup.lua`, the lookup handler, `.claude/skills/build-guide/references/lookups.md`, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts` | M-14 |
-| WU-61 | **Target.** Amendment 2's plan changes: the `entering-maps` variant and the ladder track in V1 (D-281, D-282, D-320) | 02 | — | `src/plan/schema.ts`, `src/plan/checks/v1.ts`, `docs/build-guide/plan-reference.md`, `tests/unit/planChecks.test.ts` | M-14 |
-| WU-62 | **Target.** Amendment 2's pipeline: the guide template and `audit.md`, W1, V4's lenses, D1's `m` rung, D2, the gates, the checker's guards (D-276…D-283) | 03 | WU-61 | `.claude/skills/build-guide/` (templates, `audit-template.md` new, stage references, `references/`, `SKILL.md`, `scripts/check-run.mjs`), the pipeline tests and fixtures | M-14 |
+| WU-59 | **Target.** N-8: the offline end-to-end run with an open brief, recorded as WU-47 was (A-33) | 03 | WU-51, WU-53…WU-58, WU-60…WU-62 | none in the repo beyond the work-log | M-14 |
+| WU-60 | **Built** (`fdcf6a7`). Amendment 2's lookup: a mod hit lists the base types that can roll it (non-zero spawn weights, only on the tables PoB rolls), and essences are a fifth mechanic kind (D-277) | 01 | — | `pob-api/API/Lookup.lua`, the lookup handler, `.claude/skills/build-guide/references/lookups.md`, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `contract.test.ts`; serialized, beyond its touches: `toolSchemas.ts`' `kind` enum, the README row, `tool-calls.json` | M-14 |
+| WU-61 | **Built** (`74c5745`). Amendment 2's plan changes: the `entering-maps` variant, plan `schemaVersion` 2, and the ladder track in V1 (D-281, D-282, D-320, D-332) | 02 | — | `src/plan/schema.ts`, `src/plan/checks/v1.ts`, `docs/build-guide/plan-reference.md`, `tests/unit/planChecks.test.ts` | M-14 |
+| WU-62 | **Built** (`14f3553`). Amendment 2's pipeline: the guide template and `audit.md`, W1, V4's lenses, D1's `m` rung, D2, the gates, the checker's guards (D-276…D-283) | 03 | WU-61 | `.claude/skills/build-guide/` (templates, `audit-template.md` new, stage references, `references/`, `SKILL.md`, `scripts/check-run.mjs`), the pipeline tests and fixtures | M-14 |
 
 **Critical path** (by unit count): WU-31 → WU-32 → WU-35 (or WU-36) → WU-41 → WU-43 → WU-44 → WU-45 →
-WU-46 → WU-47, all built. From there (D-315): WU-61 → WU-62 → WU-57 → WU-58 → WU-59 (M-14) → WU-48
-(M-13). WU-51 → WU-55 and WU-56 also feed WU-57. WU-50 feeds WU-57 (the tool names and the popularity
-threshold, D-298, D-324) and WU-52; WU-52 feeds WU-59, and WU-57 uses offline stubs of the poe.ninja tools
-until WU-52 merges.
+WU-46 → WU-47, all built. From there (D-315): WU-61 → WU-62 (both built) → WU-57 → WU-58 → WU-59 (M-14)
+→ WU-48 (M-13). WU-51 (done) → WU-55 and WU-56 (built) also feed WU-57. WU-50 feeds nothing: its report
+records the block, and D-335 withdrew WU-52 and the popularity threshold (D-324).
 
 **Parallel lanes:** the first wave is WU-30, WU-31, WU-33, WU-37, WU-38, WU-40 and WU-49. Then WU-32
 (after WU-31) and WU-39 (after WU-38); then WU-34, WU-35 and WU-36 (after WU-32). All join at WU-41
@@ -931,12 +983,12 @@ because WU-43's early allowlist probe (AC-W23) calls `lookup_game_data`. After W
 alongside WU-43 → WU-44. In slice 3, WU-44 → WU-45 → WU-46 ran in series, because they share
 `SKILL.md`, `build-guide-coordinator.md` and the pipeline tests.
 
-**Amendment lanes** (target, M-14): WU-50, WU-51, WU-54, WU-56, WU-60 and WU-61 are independent and start
-together. Then WU-52 (after WU-50), WU-53 (after WU-60: both edit `Lookup.lua`, D-317), WU-55 (after
-WU-51) and WU-62 (after WU-61). WU-55 and WU-61 both change the plan schema: whichever merges second
-extends the first's version bump (D-320). WU-57 waits for WU-50, WU-55, WU-56 and WU-62 (it edits WU-62's
-verdict line and template, D-317); WU-52 is a soft edge: WU-57 uses offline stubs of the poe.ninja tools
-until WU-52 merges. WU-58 follows WU-57; WU-59 runs last.
+**Amendment lanes** (M-14): wave A was WU-50, WU-51, WU-54, WU-56, WU-60 and WU-61, independent and started
+together; wave B was WU-53 (after WU-60: both edit `Lookup.lua`, D-317), WU-55 (after WU-51) and WU-62
+(after WU-61). WU-55 and WU-61 both change the plan schema: WU-61 merged first and made the version bump,
+which WU-55 extends (D-320). WU-57 waits for WU-55, WU-56 and WU-62 (it edits WU-62's verdict line and
+template, D-317); it no longer depends on WU-50 or WU-52 (D-335). WU-58 follows WU-57; WU-59 runs last.
+Built or done: WU-50, WU-51, WU-54, WU-56, WU-60, WU-61, WU-62. Withdrawn: WU-52.
 
 **Serialized-wiring rule** (as stab §8). These files are shared:
 - `src/server/toolSchemas.ts`, `toolMeta.ts`, `toolRouter.ts`; the README tool table (always regenerated
@@ -961,8 +1013,9 @@ Edits to these are short wiring steps, merged one unit at a time in DAG order; c
 before merging. The tool-adding units are WU-31, WU-32, WU-35, WU-36, WU-40 and WU-41; WU-41 adds two
 (`compile_plan` and `guide_run`). Each one moves every count site from its rebased base by its own new
 tools (+1 each) in the same merge, and regenerates the README table. After WU-41: 84, and 83 without
-poe.ninja. WU-52 adds the poe.ninja tools (group `ninja`, their number from WU-50) and restates every
-count site in its merge; the count without poe.ninja stays 83 (D-316). WU-49 changes three existing trade
+poe.ninja. No amendment unit adds a tool: WU-52, which would have added the poe.ninja tools, is withdrawn
+(D-335), so the counts stay 84 and 83. WU-60 and WU-53 change `lookup_game_data`'s `kind` enum and
+description and regenerate the README table, adding no tool. WU-49 changes three existing trade
 tools (the two price tools' outputs, and the error prefix on those and `get_leagues`) and adds none, so it
 moves no count and changes no tool schema (D-224); any `tool-calls.json` sample it adds is serialized like
 the others, and it regenerates the README table if a description changes. New Lua goes in new modules
@@ -982,10 +1035,12 @@ existing tests of modules it changes.
 - **Secrets and identity.** Never read, print, grep, cat, source or copy `.env`; never set `POESESSID`;
   worktrees have no `.env`. No name or email in any request, fixture or file content except git
   authorship. The User-Agent is D-25's.
-- **Network during the build.** GitHub (`mise run pob:fetch`) and the npm registry, and poe.ninja at a
-  polite rate (serial requests, cached; WU-50 grounds its API) (D-297). Never pathofexile.com, a request
-  carrying a cookie or personal data, or any other host (D-34, HG-1 and D-201, as D-297 amends them). Tests
-  reach HTTP only through `fixtureFetch` (D-34 unchanged for tests).
+- **Network during the build.** GitHub (`mise run pob:fetch`) and the npm registry, and poe.ninja's
+  documented economy endpoints at a polite rate (serial requests, back-off on HTTP 429, nothing fetched
+  twice that a cache could hold) (D-297, as D-335 restates it). Never poe.ninja's builds, profiles or
+  character API, which its terms close to third parties (D-335); never pathofexile.com, a request carrying
+  a cookie or personal data, or any other host (D-34, HG-1 and D-201, as D-297 amends them). Tests reach
+  HTTP only through `fixtureFetch` (D-34 unchanged for tests).
 - **No headless sessions** for pipeline runs: they are interactive sessions the user starts (D-263).
 - **Filesystem.** Write only inside your worktree and temp dirs. Never touch `/mnt/c/...`: the user's
   builds folder and the default guides folder are there (HG-6). Probes that start the server or engine
@@ -997,7 +1052,8 @@ existing tests of modules it changes.
   user's registered `pob2` server.
 - **Pipeline runtime rules** (M-13 and after): trade and poe.ninja only through the server, from the one
   coordinator (D-112, D-130); research and V4 agents get lookup tools only, never trade or mutating
-  tools (D-178, D-231, A-24), and *target* the researchers also get the poe.ninja tools (D-297); agents
+  tools (D-178, D-231, A-24), and no agent gets a poe.ninja tool beyond the coordinator's
+  `get_currency_rates` (D-335); agents
   write only in the current run folder (D-177); the R1b compile and the D1 and D2 gates retry at most
   twice, then the gates escalate, and verification never escalates (D-127, D-268, D-272); fan-out ≤ 3
   (D-161, D-267); fetching patch notes from pathofexile.com needs the user (D-139).
@@ -1018,17 +1074,17 @@ existing tests of modules it changes.
 | R-24 | Trade limits shared with the user's account | medium / high | Paced pricing (D-160); one coordinator; prices kept in the plan; HG-14 |
 | R-25 | 1.0 on 2026-12-11 ends both leagues: a guide lives about nine weeks; the pin is 0.5.4 while live is 0.5.5 | certain / medium | D-107's version statements; D-139 regeneration; HG-11 |
 | R-26 | *Closed → D-267:* the Workflow tool is unavailable, or can't pause for a pick. There is no Workflow path | — | — |
-| R-27 | Tool-surface token cost | certain / low | Extend existing tools where natural and group new ones (D-173, D-316); 7 new tools so far (D-216); the poe.ninja tools in group `ninja`, hidden by `POE_NINJA_DISABLED` (D-297) |
+| R-27 | Tool-surface token cost | certain / low | Extend existing tools where natural and group new ones (D-173, D-316); 7 new tools (D-216), and no poe.ninja tool added (D-335) |
 | R-28 | Regressions in existing tools from `BuildOps.lua` edits (rankers, tree, main skill) | medium / high | AC-B3, AC-B5; contract tests; AC-E39 kept; existing tool tests stay |
 | R-29 | `{id}` loadout hazards: `CopyLoadout` crashes; `#sets+1` ids collide after a delete | certain / medium | No `CopyLoadout` (D-103); no delete in C-39; `SyncLoadouts` before lookups |
 | R-30 | The guides folder sits on case-insensitive drvfs (`/mnt/c`); traversal and symlink escapes | medium / medium | C-34's resolve-and-contain rule; AC-B8 tests with symlinks and `..` |
 | R-31 | Low-confidence enemy data (Arbiter fight life, interlude levels) misleads | high / medium | Confidence stated (C-35); time-to-kill reported as a range, never gated (D-116, A-30) |
-| R-32 | PoB's Full DPS mode breaks the compile limits: 160.68 s for 15 stages with every group on, one stage 25.50 s, against NFR-20 and NFR-21 | high / high (PROPOSED) | The record applies Count itself; Full DPS stays out of measure compiles; S-N2 (WU-51) measures named groups only, and else the flags are written at export only (D-293, D-306) |
+| R-32 | PoB's Full DPS mode breaks the compile limits: 160.68 s for 15 stages with every group on, one stage 25.50 s, against NFR-20 and NFR-21 | high / high (PROPOSED); mitigated by S-N2 | The record applies Count itself; only the named source's groups go in Full DPS (D-293, D-306 narrowed). S-N2 (WU-51) measured that at ×1.14 of the whole call, at most 3.08 s per stage and 31.92 s per call quiet, so every compile computes it (D-337); with every group on, through the real compiler, 61–67 s, so R-32's 160.68 s came from WU-30's emulation under load |
 | R-33 | Count also multiplies reservation (skills reserved per copy, totems with Ancestral Bond) and scales Umbral Well buffs | medium / medium (PROPOSED) | D1 checks reservation and buffs after setting Count on such a group (D-293) |
 | R-34 | Effective HP misleads: it depends on the assumed enemy damage and misses defences PoB doesn't model | medium / medium (PROPOSED) | Shown beside max hit, never alone; max hit stays the basis of the survival verdict; figures computed with custom modifiers are marked (D-294) |
-| R-35 | poe.ninja's PoE2 API shape, rate limits and terms are ungrounded, and no poe.ninja rate limiter exists today | medium / medium (PROPOSED) | S-N1 (WU-50) first; one client, cache and rate limiter; serial requests, back-off on 429; `--no-ninja` and `POE_NINJA_DISABLED`; tests offline (D-297, D-324) |
+| R-35 | poe.ninja's terms and limits. Realized: S-N1 (WU-50) found its builds, profiles and character API closed to third parties, so no player evidence can come from it; its guidelines publish no rate limit and block misbehaving clients, and the stabilization grounding had already quoted the clause (`docs/stabilization/grounding/ctx-external.md:182-183`) | certain / medium (realized) | D-335: no player-evidence tools; only the documented economy endpoints (C-12's currency rates, polite development queries: serial, back-off on 429, cached); `--no-ninja`, `--offline` and `POE_NINJA_DISABLED`; tests offline (D-34, D-297) |
 | R-36 | Amendment 2's lighter verification loses precision: V4's comparison of guide numbers with the record becomes prose-lens judgment, except the verdict lines; "each caveat once" undoes claim rule 3; the headline quotes PoB's figure for the stat set the file opens on | certain / medium (PROPOSED) | The checker's fixed-form verdict lines (D-283); the user's review at the final gate |
-| R-37 | The entering-maps rung is more than an enum value: the checker keys area level and budget on `'budget'`, the ladder track can move fixture verdicts, and D1 designs a third rung | medium / medium (PROPOSED) | WU-61's and WU-62's tests; rebuilt pipeline fixtures (D-281, D-282) |
+| R-37 | The entering-maps rung is more than an enum value: the checker keys area level and budget on `'budget'`, the ladder track can move fixture verdicts, and D1 designs a third rung | medium / medium (PROPOSED); mitigated | WU-61's and WU-62's tests; rebuilt pipeline fixtures (D-281, D-282). Built: no fixture verdict moved with the ladder track, and the checker maps `entering-maps` to area 69 and takes the first rung by rung order |
 | R-38 | Trial 1's progress key lets an end-of-Act-1 stage spend 2 ascendancy points, with no level check to catch it (WL:201-202) | medium / low (PROPOSED) | None recorded; open |
 | R-39 | V1's `resistance-penalty` accepts only the two boundary values (D-251), so a stage in an area-60 interlude zone before the first interlude key is an edge case (WL:338-339) | low / low (PROPOSED) | None recorded; open |
 
@@ -1041,8 +1097,8 @@ existing tests of modules it changes.
 - **Data.** No migration. New `data/` in the repo; the guides root is created by the first run; the state
   dir gains the write ledger at the first final compile (D-211). The run log moved from schema version 1
   to 2 (D-270) and moves to 3 with WU-58 (D-289); the checker accepts versions 2 and 3, so recorded runs
-  still check (D-326). The plan's `schemaVersion` and the record's `recordVersion` each bump once with the
-  amendment units (D-320, D-321), and version-1 plans stay accepted (D-332).
+  still check (D-326). The plan's `schemaVersion` moved to 2 with WU-61 (D-320), and the record's
+  `recordVersion` moves to 2 with WU-55 (D-321); version-1 plans stay accepted (D-332).
 - **Pipeline files.** `.claude/workflows/`, the workflow harness, `references/fallback.md` and the
   provenance agent were deleted by amendment 1 (D-267).
 - **Stabilization docs.** C-1's count and D-65's text are corrected in the stab spine by the coordinator
@@ -1058,7 +1114,7 @@ This epic adds:
 | Class | Where | Covers | Runs in |
 |---|---|---|---|
 | Plan fixtures | `tests/fixtures/plans/` with engine-required tests | C-31…C-33, C-41, C-50: the two-stage plan (M-11), schema and per-stage errors, idempotence, the write ledger | `mise run test`; the fifteen-stage NFR test in its separate `--runInBand` step (C-19) |
-| Static (pipeline files) | `tests/static/` over `.claude/skills/build-guide/` and `.claude/agents/build-guide/` | the skill names the four agent types and every step's type (D-267); allowlists name no trade or mutating tool outside the coordinator (D-178); *target:* the researchers may name the poe.ninja tools (D-297) | `mise run test` |
+| Static (pipeline files) | `tests/static/` over `.claude/skills/build-guide/` and `.claude/agents/build-guide/` | the skill names the four agent types and every step's type (D-267); allowlists name no trade or mutating tool outside the coordinator (D-178), and no poe.ninja tool beyond the coordinator's `get_currency_rates` (D-335) | `mise run test` |
 | Pipeline run | WU-47, recorded in the work-log with the run-folder listing; *target:* WU-59, recorded the same way with an open brief (A-33) | C-36 end to end, offline | the coordinator; an independent verifier checks the record |
 | Human | WU-48 | the live run and play-test | the user |
 
@@ -1073,8 +1129,8 @@ README table test, the static scans, the ranker tests (AC-E39 order), and the fr
 - **AC-B1 (tool surface).** After WU-41, `tools/list` returns 84 tools with every group enabled and 83
   with `POE_NINJA_DISABLED=true`; the set equals `tool-disposition.json`'s non-delete, non-pending names;
   the README table has 84 rows equal to `pnpm docs:tools` output. At each earlier tool-adding merge the
-  same holds for that merge's count. *Target:* WU-52 restates both counts with S-N1's number of poe.ninja
-  tools; the count with `POE_NINJA_DISABLED=true` stays 83 (D-316).
+  same holds for that merge's count. The counts stay 84 and 83 through M-14: D-335 withdrew the poe.ninja
+  tools (C-54, WU-52), so no unit restates them.
 - **AC-B2 (hygiene).** At every unit gate, `tool-hygiene-allowlist.json` and `poe1-cruft-waivers.json`
   are `[]`. Every new tool has at least one `expect:"ok"` sample, a description of ≤ 2048 chars, and
   passes the output-text checks. The cruft, advice-threshold, `deletedPlumbing` and dead-module scans

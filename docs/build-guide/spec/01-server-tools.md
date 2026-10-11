@@ -1,23 +1,25 @@
 # Slice 01: Server tools (lookups, coverage, measurement, rankers, set and tree-state authoring, dated prices)
 
-Part of the [spec spine](README.md). It covers work units WU-31…WU-36 and WU-49 (built), and WU-50, WU-52,
-WU-53, WU-54 and WU-60 (not built), and acceptance criteria AC-K1…AC-K52. The spine wins any disagreement;
-fold fixes back into it. The adversarial review's fixes for this slice (D-218) and the coordinator's
-resolutions of its open items (D-222…D-228) are folded in under their spine IDs. The build's decisions
-D-239…D-247, D-307…D-309 and the amendments' D-277, D-297, D-299, D-300 are folded in under their spine
-IDs (fold applied 2026-10-10). This slice hosts amendment 3's server units, WU-50, WU-52, WU-53 and WU-54
-(D-318), and amendment 2's lookup unit, WU-60 (D-317).
+Part of the [spec spine](README.md). It covers work units WU-31…WU-36, WU-49, WU-54 and WU-60 (built),
+WU-50 (done: blocked by poe.ninja's terms), WU-52 (withdrawn, D-335) and WU-53 (not built), and acceptance
+criteria AC-K1…AC-K65 (AC-K47…AC-K49 withdrawn by D-335; AC-K58…AC-K65 are WU-53's, pinned on its lane and
+merged with it). The spine wins any disagreement; fold fixes back into it. The adversarial review's fixes
+for this slice (D-218) and the coordinator's resolutions of its open items (D-222…D-228) are folded in
+under their spine IDs. The build's decisions D-239…D-247, D-307…D-309 and the amendments' D-277, D-297,
+D-299, D-300 are folded in under their spine IDs (fold applied 2026-10-10), and so are D-335 and D-336 with
+WU-54's and WU-60's as-built facts (fold v1.4, 2026-10-11). This slice hosts amendment 3's server units,
+WU-50, WU-52, WU-53 and WU-54 (D-318), and amendment 2's lookup unit, WU-60 (D-317).
 
-**Target design.** Amendments 2 and 3 are approved but not built. Text that describes behaviour not built
-yet carries a one-line *Target (WU-nn, D-nnn)* marker, and the as-built behaviour stands beside it until
-that unit merges.
+**Target design.** WU-53 is approved but not built. Text that describes behaviour not built yet carries a
+one-line *Target (WU-nn, D-nnn)* marker, and the as-built behaviour stands beside it until that unit
+merges.
 
 This slice delivers goals G-10 and G-11, plus T1. It gives the pipeline the server tools it needs before a
 plan can be compiled:
-- **K1** reads PoB2's loaded gem, unique, passive and mod data, and lists an ascendancy's nodes. *Target:*
-  a mod's base types and the essences (WU-60), and amendment 3's lookup additions (WU-53; §2.2).
-- **K2** says, per line, whether PoB applies it, and which skill stats PoB probably ignores. *Target:*
-  flags for more of what PoB doesn't model (WU-54; §2.4).
+- **K1** reads PoB2's loaded gem, unique, passive and mod data, and lists an ascendancy's nodes; a mod's
+  base types and the essences (WU-60). *Target:* amendment 3's lookup additions (WU-53; §2.2).
+- **K2** says, per line, whether PoB applies it, and which skill stats PoB probably ignores, with flags for
+  more of what PoB doesn't model (WU-54; §2.4).
 - **M1** measures offense per active skill and per stat set (PoB2's "skill part"), and makes
   `set_main_skill` select the stat set instead of writing PoE1's `skillPart`.
 - **M2** makes both rankers list what PoB can't measure.
@@ -26,8 +28,8 @@ plan can be compiled:
 - **T1** puts the date and league on price results, and a stable error-kind prefix on trade-tool errors
   (D-218).
 - It also fixes the `update_tree_delta` defect and the two `search_tree_nodes` bugs.
-- **N1** (*target*, WU-50, WU-52; D-297) adds poe.ninja popularity and build-index tools in group `ninja`
-  (C-54, §2.10).
+- **N1**, *withdrawn → D-335:* the poe.ninja popularity and build-index tools (C-54, §2.10). Spike WU-50
+  found the API they rest on closed to third parties.
 
 Throughout, a `read` tool never changes the build (D-176), and nothing caches a price (D-46).
 
@@ -49,7 +51,7 @@ cited as "pin §"). `vendor/` is `vendor/PathOfBuilding-PoE2/src` at v0.23.1.
 | `set_tree`, `update_tree_delta` (`BuildOps.lua:126-162, :259-281`); handler `luaHandlers.ts:533-582` | `reimport_nodes` preserves weapon-set tags (`allocMode`) and attribute choices (`hashOverrides`), but nothing sets them. Lua doesn't auto-path and doesn't cap ascendancy points. The handler renders `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed`, which Lua never sends | WU-36 (C-40, C-48) |
 | `add_item` (`toolSchemas.ts:552-569`); `add_item_text` (`BuildOps.lua:577-622`) | The enum is `ITEM_SLOTS` (`toolSchemas.ts:22-26`). `create_socket_group` (`:641`) and `setup_skill_with_gems` (`:846`) share it, and AC-E38 pins both. A tree socket's slot is `Jewel <nodeId>`, which writes `spec.jewels` (`vendor/Classes/ItemSlotControl.lua:74-86`) | WU-36 (C-46) |
 | `get_item_price` (`tradeHandlers.ts:265-339`); `search_trade_items` (`:89-200`) | Both name the league; neither gives a date. Each makes 1 search and 1 fetch through the limiter (C-11), which refuses any wait over 30 s as `would_wait` and names the wait. A failure is a `TradeError` with a `kind` (`src/trade/errors.ts:7-19`), but `wrapHandler` re-throws only its message (`src/utils/errorHandling.ts:25-35`), so the caller sees `Error: Failed to <action>: <message>` (`toolRouter.ts:189-192`) and the kind is lost | WU-49 (C-49, D-218) |
-| poe.ninja client `src/services/poeNinjaClient.ts`; the currency cache `src/trade/currency.ts`; group `ninja` (`toolMeta.ts:138-139, :147`) | Fetches only the currency exchange overview, for C-12's currency rates (`get_currency_rates` and the price tools' normalization), with conditional requests and a 60-minute cache per league (`currency.ts:97-98`). No rate limiter. `POE_NINJA_DISABLED` hides group `ninja` (only `get_currency_rates` today) and is checked at `currency.ts:127` | WU-52 (C-54; *target*, D-297) |
+| poe.ninja client `src/services/poeNinjaClient.ts`; the currency cache `src/trade/currency.ts`; group `ninja` (`toolMeta.ts:138-139, :147`) | Fetches only the currency exchange overview, for C-12's currency rates (`get_currency_rates` and the price tools' normalization), with conditional requests and a 60-minute cache per league (`currency.ts:97-98`). No rate limiter. `POE_NINJA_DISABLED` hides group `ninja` (only `get_currency_rates`) and is checked at `currency.ts:127` | unchanged: C-54 and WU-52 are withdrawn (D-335) |
 
 **Pin facts relied on** (pin §B2–§D, re-probed for this slice):
 - **Tree.** Titan has 17 nodes with `ascendancyName == "Titan"`, 8 of them notables. The tree has 19
@@ -83,17 +85,16 @@ bridge actions that the spine delegates to this slice.
 
 | Lua action | Module | Params (camelCase) | Reply | WU |
 |---|---|---|---|---|
-| `lookup_game_data` (new) | `pob-api/API/Lookup.lua` | `mode`, `query?`, `level?`, `quality?`, `slot?`, `kind?` (mechanic mode, D-240), `maxResults?` | `{result:{mode, total, results[]}}`, carrying what §2.2 renders; mechanic mode adds `kinds`, every kind's hit total (D-240) | WU-31 |
+| `lookup_game_data` (new) | `pob-api/API/Lookup.lua` | `mode`, `query?`, `level?`, `quality?`, `slot?`, `kind?` (mechanic mode, D-240; `essence` since WU-60), `maxResults?` | `{result:{mode, total, results[]}}`, carrying what §2.2 renders; mechanic mode adds `kinds`, every kind's hit total (D-240), `essence` included. Since WU-60 (D-277), a mod hit adds `baseTypes[]` (`{name, count, total, itemType?, names?}`) and `notRolled?`, and an essence hit `itemTypes[]`, `modId` and `affix?` | WU-31; WU-60 |
 | `search_nodes` | `BuildOps.lua` | adds `ascendancy?`; with it, `keyword` is optional | same shape; sorted before the cap | WU-31 |
-| `check_coverage` (new) | `pob-api/API/Coverage.lua` | `itemText?`, `nodes?`, `gems?`, `build?`; `sourceNames` (required: the server's name scan, §2.4); `sourceTemplates?` (the scan's concatenation templates, D-243) | `{result:{counts, entries[], gems[], checked}}`: `counts` per status over every checked line; each entry `{kind, source, line, status, remainder?, joinedWith?, unread?, stat?, nodeId?}` (`kind` is `item`, `node` or `gem`; `unread` names the mods the name scan didn't find; `stat` is a gem line's stat id; `nodeId` a node line's node); each of `gems[]` `{name, level, quality, fromBuild}`, the level and quality it was checked at; `checked` `{items, nodes, gems}` (`src/engine/schemas.ts:785-821`) | WU-32 |
+| `check_coverage` (new) | `pob-api/API/Coverage.lua` | `itemText?`, `nodes?`, `gems?`, `build?`; `sourceNames` (required: the server's name scan, §2.4); `sourceTemplates?` (the scan's concatenation templates, D-243); since WU-54, `sourceCallNames?` and `sourceSkillTemplates?` (D-336, §2.4) | `{result:{counts, entries[], gems[], checked, flags[]}}`: `counts` per status over every checked line; each entry `{kind, source, line, status, remainder?, joinedWith?, unread?, stat?, nodeId?}` (`kind` is `item`, `node` or `gem`; `unread` names the mods the name scan didn't find; `stat` is a gem line's stat id; `nodeId` a node line's node); each of `gems[]` `{name, level, quality, fromBuild}`, the level and quality it was checked at; `checked` `{items, nodes, gems}`; since WU-54, each of `flags[]` `{flag, source, note, line?}` (D-300, D-336) | WU-32; WU-54 |
 | `get_stats` | `BuildOps.lua` | adds `breakdown?: {groupIndex?, fields}` | unchanged without `breakdown`. With it, adds `breakdown: {groupIndex, label, skills:[{index, name, grantedEffectId, statSets:[{index, label, output}]}]}` | WU-33 |
 | `set_main_selection` | `BuildOps.lua` | `skillPart` is renamed `statSet` (only `set_main_skill` calls it) | adds an optional `statSet` `{index, label, count, skill, grantedEffectId}`, present when the request has `statSet` (D-309) | WU-33 |
 | `manage_sets` (new) | `pob-api/API/Sets.lua` | `setType`, `action`, `id?`, `title?`, `useSecondWeaponSet?` | `{result:{setType, activeId?, sets[], loadouts?}}` | WU-35 |
 | `set_level` | `BuildOps.lua` | adds `autoMode?` (default false) | unchanged | WU-35 |
 | `set_tree` | `BuildOps.lua` | adds `weaponSets?: {[nodeId]: 1\|2}`, which replaces the preserved tags, and `attributeChoices?: {[nodeId]: "strength"\|"dexterity"\|"intelligence"}`, which is applied over the preserved choices. Without either, `set_tree` behaves as today (AC-E29) | unchanged | WU-36 |
 | `update_tree_delta` | `BuildOps.lua` | unchanged | adds `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (already read at `pobLuaBridge.ts:858` and `luaHandlers.ts:616-617, :640`), the points counted as PoB's `CountAllocNodes` counts them (D-307). Refuses, after a dry run and with the build unchanged, an add that would change an allocated node's weapon-set tag; nodes allocated before the call keep their attribute choices (D-308) | WU-36 |
-| `lookup_game_data` (*target*) | `pob-api/API/Lookup.lua` | set by the unit | *Target (WU-60, D-277):* a mod hit's base types and essence hits. *Target (WU-53, D-299):* amendment 3's additions (§2.2). Formats set by each unit | WU-60, WU-53 |
-| `check_coverage` (*target*) | `pob-api/API/Coverage.lua` | unchanged | *Target (WU-54, D-300):* entries gain the new flags (§2.4); their names are set by the unit | WU-54 |
+| `lookup_game_data` (*target*) | `pob-api/API/Lookup.lua` | set by the unit | *Target (WU-53, D-299):* amendment 3's additions (§2.2), in the formats its criteria pin | WU-53 |
 
 **Compatibility.** The spine's C-2/C-5 row is a modified contract that lists these changes (D-222). Every
 change is additive except `set_main_selection`'s `skillPart` → `statSet` rename, which is internal: only
@@ -153,14 +154,41 @@ says how to get one's full text (its exact name, or `max_results` 1). Printing e
 `{slot:"Jewel"}` about 100 KB (`lookupHandlers.ts:123-150`, `Lookup.lua:420-464`).
 
 **mechanic mode** searches gem descriptions and stat-set lines, unique mod lines, every passive's `sd`
-lines (ascendancy nodes included) and the text of `data.itemMods`. Each hit is one line,
-`[<kind>] <source>: <line>`, where kind is `gem`, `unique`, `passive` or `mod`. Passive hits name their
-ascendancy; mod hits name their table.
+lines (ascendancy nodes included), the text of `data.itemMods` and, since WU-60, the essences' mod lines.
+Each hit is one line, `[<kind>] <source>: <line>`, where kind is `gem`, `unique`, `passive`, `mod` or
+`essence`, sorted in that order. Passive hits name their ascendancy; mod hits name their table
+(`[mod] IncreasedLife3 (Item mods): +(30-39) to maximum Life`). A hit's line contains the query, except an
+essence hit's (below).
 
 **`kind` (D-240).** With `kind`, only that kind's hits are listed. When there are hits, the header gives
-every kind's total whatever `kind` lists, as `<n> hits: <g> gem, <u> unique, <p> passive, <m> mod.`; when
-hits are cut, the "Showing the first N of M" line suggests `kind` (`lookupHandlers.ts:205-240`). Broad
-queries had filled every slot with gems.
+every kind's total whatever `kind` lists, as `<n> hits: <g> gem, <u> unique, <p> passive, <m> mod, <e>
+essence.`; when hits are cut, the "Showing the first N of M" line suggests `kind`
+(`lookupHandlers.ts:236-270`). Broad queries had filled every slot with gems.
+
+**Mod base types and essences (WU-60, D-277; built, merge `fdcf6a7`).** So D1 can source an affix's limit
+on its base (amendment 2, `amendment-2-guide-style.md:365`):
+- **Base types.** Under each mod hit, one line `  Base types: <list>`: the bases in PoB's base lists
+  (`data.itemBaseLists`, hidden bases left out) whose spawn weight for the mod is non-zero
+  (`ItemClass:GetModSpawnWeight`, `Classes/Item.lua:1377`), separated by `; `. An item type all of whose
+  bases can roll it, when it has several base lists, is `<item type> (all)`; otherwise each base list with a
+  base that can is `<list>`, or `<list> (<n> of <m> bases: <names>)` when only some can
+  (`Jewel (2 of 4 bases: Diamond, Ruby)`). With no such base: `none (no base has a spawn weight for it)`.
+- **Only the tables PoB rolls on a base.** A mod of an item affix table (`Item`, `Flask`, `Charm`, `Jewel`)
+  counts only on the bases whose items take their affixes from that table (`Item.lua:840-842`); a
+  `Corruption` mod, and a `Desecrated` mod with a desecrated tag (`ulaman_mod`, `amanamu_mod`, `kurgal_mod`,
+  `unveiled_mod`), are weighed on the item as PoB's lists weigh them (`ItemsTab.lua:2717-2718`,
+  `:3129-3146`). Every other table, whatever its weights say, gets a `notRolled` reason and the line
+  `none (<reason>)`: `Exclusive` (uniques' and essences' fixed mods, read only as the essence fallback,
+  `ItemsTab.lua:3076`; 243 of them have tag weights), `IncursionLimb`, and an untagged `Desecrated` mod.
+  A mod without spawn weights (a rune's) gets no line.
+- **Essences** are a fifth hit kind, `essence`: one hit per line of each mod an essence grants,
+  `[essence] <essence> (<item types it grants the mod on, sorted, separated by ", ">[; <affix type>]): <line>`
+  (`[essence] Greater Essence of Haste (Bow, Crossbow; Suffix): (14-16)% increased Attack Speed`). The mod is
+  found as PoB's crafting finds it, in the `Item` mods, else the `Exclusive` ones; one in neither (a
+  passive grant, such as Essence of Delirium's) has no text and no hit, and its essence isn't suggested.
+  **An essence hit matches when its line or its essence's name contains the query**, so a hit found by the
+  essence's name need not contain the query.
+- `kind: "essence"` keeps only essence hits; the closest names of mechanic mode include essence names.
 
 **Errors:** an unknown `mode`; a missing required `query`; unique mode with neither `query` nor `slot`; an
 unknown `slot`, answered with the valid types; an unknown `kind`; a `gem_level` that no returned gem has (a
@@ -175,9 +203,9 @@ matched …" and lists names of the kind searched, closest first:
   could hold no active gem ("Ruthlss" is closest to five supports), and the invalid-roll refusal needs skill
   names;
 - unique mode: up to 5 unique names, only of `slot`'s type when it is given, each labelled with its type;
-- mechanic mode: up to 5 names of the sources it searches (gems, uniques, passives and `data.itemMods`
-  entries), only of `kind` when it is given, each labelled with its kind and, where there is one, a
-  unique's type, a passive's ascendancy or a mod's table.
+- mechanic mode: up to 5 names of the sources it searches (gems, uniques, passives, `data.itemMods`
+  entries and, since WU-60, essences with a hit), only of `kind` when it is given, each labelled with its
+  kind and, where there is one, a unique's type, a passive's ascendancy or a mod's table.
 
 Each name appears once per label. Each group is ranked by the optimal string alignment distance from the
 query: the fewest insertions, deletions, substitutions and swaps of two adjacent characters (each costing 1),
@@ -191,10 +219,6 @@ build-guide skill's invalid-roll refusal can quote them (D-238, AC-W26).
 characters gets names. A longer one gets "Nothing matched …" and one line instead: `The query is <n>
 characters long, over the 100 that closest names are listed for.` The reply then carries
 `suggestionsSkipped` in place of `suggestions`.
-
-*Target (WU-60, D-277):* a mod hit lists the base types that can roll it (those with a non-zero spawn
-weight), and the essence table becomes searchable, so D1 can source an affix's limit on its base
-(amendment 2, `amendment-2-guide-style.md:365`). WU-60 sets the format; AC-K51 checks it.
 
 *Target (WU-53, D-299):* amendment 3's additions, which the brainstorm's researchers (R1a) and R1b's
 advisory verification checklist (D-292) read (`amendment-3-open-builds.md:423-441`):
@@ -255,11 +279,20 @@ applies or drops), ranged as PoB ranges them; a node's `sd` lines.
   chain's string literals, with `*` for each run of other operands (`source.name.."ConvertTo"..target.name`
   gives `*ConvertTo*`). Only chains whose literals could be part of a mod name (letters, digits, `_` and
   `:`) are kept, and comments are skipped (`pobSourceNames.ts:1-20`).
+- **For the flags (WU-54, D-336).** It also reads every `.lua` file directly under `Data/Skills/` for
+  `skillCallNames`: the string literals passed to a mod-list read (`:Sum`, `:Flag`, `:More`, `:Override`,
+  `:Max`, `:Min`, `:List`, `:Tabulate`, `:HasMod`) in a skill's own functions, such as
+  `AdditionalFlickersPerPowerCharge` (`Data/Skills/act_int.lua:8673`). And it keeps `skillNameTemplates`:
+  the templates of the mod-list reads in `Modules/` and `Classes/` that build a name from
+  `activeGrantedEffect.name` (`Multiplier:*MaxStages` and `Multiplier:*MinimumStage` at the pin,
+  `Modules/CalcActiveSkill.lua:866-869`). Only the `mapped but unread` flag reads these two, so no line
+  status depends on them (`pobSourceNames.ts:1-31`).
 - **When.** Once per server process: lazily, on the first `check_model_coverage` call, then memoized.
   An engine restart doesn't repeat it.
-- **How Lua gets it.** **[slice]** Each `check_coverage` request carries the names as `sourceNames` and
-  the templates as `sourceTemplates`, so an engine restarted by the session needs no extra step. A request
-  without `sourceNames` fails, rather than silently skipping the rule.
+- **How Lua gets it.** **[slice]** Each `check_coverage` request carries the names as `sourceNames`, the
+  templates as `sourceTemplates`, and since WU-54 the call names as `sourceCallNames` and the skill-name
+  templates as `sourceSkillTemplates`, so an engine restarted by the session needs no extra step. A
+  request without `sourceNames` fails, rather than silently skipping the rule.
 - **Which names are read (D-243).** Lua builds a set from the names per request. A mod name (a nested
   `value.mod` one included) is read when it is in that set; when it is a compound `Condition:X` whose parts
   are read; when it is, or ends with, a template literal of 6 or more characters that starts with a
@@ -282,19 +315,39 @@ config.
 or `Gem <name> / <stat set>`; a jewel in a tree socket is `Jewel socket <nodeId>: <name>` (D-242).
 **[slice]** Build mode lists only entries that aren't `fully parsed`, but its counts cover every line.
 
-*Target (WU-54, D-300):* new flags for what PoB doesn't model (`amendment-3-open-builds.md:443-451`;
-PG ids in [`../pob-gaps.md`](../pob-gaps.md)), beside `checkGem`'s existing flag for a gem stat with no
-stat-map entry:
-- energy-based meta gems: the trigger rate isn't modelled (PG-9);
-- skills granted by a support: the level comes from the support (PG-2);
-- granted skills with no definition (PG-10);
-- stats that are mapped but read nowhere, such as Mirage Archer and aftershock chance (PG-4, PG-24). This
-  ends Mirage Archer's false all-clear (PG-49; AC-K50);
-- Gem Studded ties (PG-1).
+**Flags (WU-54, D-300, D-336; built, merge `92371c2`).** Flags name what PoB doesn't model
+(`amendment-3-open-builds.md:443-451`; PG ids in [`../pob-gaps.md`](../pob-gaps.md)). They sit in a
+`flags[]` list beside the statuses, each `{flag, source, note, line?}`, never as a status, so no status, no
+count and no C-47 output changes (AC-K57). A flag about a gem has source `Gem <name>` and no `line`; a
+line's flag carries the line and its entry's source (`Gem <name> / <stat set>`, `Node <id> <name>`, or an
+item's). The text lists every flag in every mode, build mode included, after the counts and the status
+legend and before the entries: `Flags (<n>): what PoB doesn't model. A flag changes no status or count.`,
+then per flag `- [<flag>] <source>`, `  line: <line>` when it has one, and the note indented
+(`coverageHandlers.ts:126-162`). The six flags, each pinned by its criterion in §4:
 
-Their status names or wording are open: WU-54's first step pins them, with a test example per flag, and
-the coordinator reviews them before any code is written (A-33). Rolls above PoB's data range (PG-41) stay
-deferred (HG-20, D-304).
+| Flag | Per | When | Criterion |
+|---|---|---|---|
+| `mapped but unread` | gem line | the line's stat has a stat map (the skill's own `statMap`, else `data.skillStatMap`) that yields a mod name PoB reads nowhere, by the strict reading below (PG-24) | AC-K50 |
+| `stat not mapped` | gem, one flag | a support or meta gem has non-zero stats with no stat map, global or its own, in no described line, and not display-only (PG-4, PG-49); the note lists the ids sorted and says PoB may derive some from the gem's skill types | AC-K50 |
+| `energy not modelled` | gem | a granted effect has skill types `Meta` and `GeneratesEnergy`: PoB models no Energy, so any trigger rate it shows isn't based on Energy (PG-9) | AC-K53 |
+| `level from support` | support gem's granted skill | PoB computes a skill a support grants at the support gem's level (`CalcSetup.lua:1851-1876`); a global-effect skill's note adds that PoB computes it only when it is enabled (PG-2) | AC-K54 |
+| `granted skill undefined` | gem | an `additionalGrantedEffectId<n>` has no `data.skills` entry, so PoB never computes it (`Data.lua:987-998`; PG-10) | AC-K55 |
+| `support colour tie` | item or node line | its parse has a `Condition` on `MostNumerous<Red\|Green\|Blue>SocketedSupports`, which PoB sets through an if/elseif, so on a tie only one colour applies (`CalcSetup.lua:2155-2162`; PG-1); static, whatever the build's colours | AC-K56 |
+
+**`mapped but unread`'s strict reading (D-336).** For this flag only, a mod name is read when it is exactly
+a scanned name; a string a mod tag in the loaded skill data names (any tag field but `type`, in every
+skill's stat maps and base mods and the global stat map); a minion's or spectre's `limit` in the loaded
+data (`Modules/CalcPerform.lua:1298-1303`); a `sourceCallNames` literal; a compound `X:Y` whose parts are
+read; or else a whole fit to a concatenation template, every fixed part matching and each `*` empty or a
+name read as above. In a `sourceSkillTemplates` template, a `*` may also be a skill's name without
+whitespace. D-243's suffix rule doesn't apply, and line statuses, D-243's included, are unchanged. This
+replaces AC-K50's first reading: Mirage Archer's "cannot consume Charges" is read in skill data
+(`Data/Skills/act_dex.lua:222`), and its real gap is the unmapped stat `triggered_by_lingering_mirage`,
+which `stat not mapped` reports. At the pin: 24 `mapped but unread` lines; 115 `stat not mapped` flags
+over 318 stats; 16 energy gems; 52 `level from support` flags; 8 undefined granted skills; 3 Gem Studded
+lines. Scanning everything takes about 0.19 s.
+
+Rolls above PoB's data range (PG-41) stay deferred (HG-20, D-304).
 
 **Errors:** no input; `build` combined with another input; an unknown gem or node (named); item text that
 doesn't construct.
@@ -473,53 +526,37 @@ relies on (C-11). A batch call would need a call deadline, which D-22/D-47 give 
 backgrounding. Input schemas are unchanged, and error answers change only by the prefix above; the
 pipeline records errors as `unavailable` (D-164).
 
-### 2.10 C-54 poe.ninja tools (new, group `ninja`)
+### 2.10 C-54 poe.ninja tools (withdrawn → D-335)
 
-*Target (WU-50, WU-52; D-297, D-298).* As built, the server reaches poe.ninja only for C-12's currency
-rates (`get_currency_rates`, group `ninja`), through `src/services/poeNinjaClient.ts`, with no rate limiter
-(§1); of the pipeline's agents, only coordinator steps call that tool. The design below comes from
-amendment 3 (`amendment-3-open-builds.md:373-419`).
-
-- **Uses.** Popularity: the share of characters by skill and by ascendancy. The build index: the
-  characters using a combination, and their levels. Peers: what similar characters run. Prices stay as
-  today (C-12).
-- **Access.** Only server tools reach poe.ninja: one client, one cache, one rate limiter, one user agent.
-  Agents never fetch poe.ninja directly. The new tools join group `ninja` (`toolMeta.ts:138-139`), so
-  `POE_NINJA_DISABLED=true` hides them, as it hides `get_currency_rates` (C-1). There is one tool per
-  distinct query shape, with no numeric cap (D-316).
-- **Callers.** The researchers and the coordinator (D-297, which widens D-231's tool rights; slice 03).
-  With poe.ninja on, each dealt deck of candidate builds holds at least two cards below a popularity
-  threshold, which WU-50 sets from the data and records as a decision row (D-298, D-324).
-- **Politeness.** Serial requests, back-off on HTTP 429, and a cache per league whose lifetime WU-50 sets.
-  Currency rates use 60 minutes (`currency.ts:97-98`).
-- **Approval.** poe.ninja requests carry no cookie and no PII, so they need no approval (D-297). Trade keeps
-  its rules, and D-182's live-run approval covers trade only.
-- **Off switches.** `POE_NINJA_DISABLED`, the server's hard off; the run's `--no-ninja` and `--offline`
-  (slice 03).
-- **Open until WU-50 merges.** The tools' names, arguments, outputs and engine kinds, the cache lifetime
-  and the back-off are outputs of WU-50's report, recorded here when it merges (D-324).
-- **Tests stay offline (D-34).** HTTP goes only through `fixtureFetch`, with committed fixtures for the new
-  endpoints (AC-K48).
+*Withdrawn → D-335.* Amendment 3 (`amendment-3-open-builds.md:373-419`) asked for server tools in group
+`ninja` for popularity (the share of characters by skill and by ascendancy), the build index (the
+characters using a combination, and their levels) and peers. Spike WU-50 found that poe.ninja's API
+Reference closes the builds and profiles API, and every other non-economy endpoint, to third-party use
+(`../spikes/WU-50-poe-ninja.md` §3.1), and every one of those uses rests on it. The user withdrew the
+tools (D-335). What stays:
+- the server reaches poe.ninja only for C-12's currency rates (`get_currency_rates`, group `ninja`),
+  through `src/services/poeNinjaClient.ts`, with conditional requests and a 60-minute cache per league
+  (`currency.ts:97-98`); of the pipeline's agents, only coordinator steps call it;
+- `POE_NINJA_DISABLED` hides group `ninja`, and the run's `--no-ninja` and `--offline` turn it off (slice 03);
+- the counts stay 84, and 83 with poe.ninja disabled (AC-B1);
+- tests stay offline (D-34): HTTP goes only through `fixtureFetch`.
 
 ## 3. Work units
 
-The serialized-wiring rule applies (spine §8). Each tool-adding unit here (WU-31, WU-32, WU-35, WU-36,
-and the target WU-52), in its own merge: moves every count site (spine §1.3) up by its own new tools (+1
-each) from its rebased base; adds a `tool-disposition.json` entry (`bucket:"new"`) and `expect:"ok"`
-samples in `tool-calls.json` (state-changing arguments for `mutate`); and runs `pnpm build && pnpm
-docs:tools --write`. A unit that changes an existing description regenerates the table too. WU-31,
-WU-32, WU-35 and WU-36 added four of the epic's 7 new tools; with slice 2's, the total is 84, or 83
-without poe.ninja (spine C-1).
-
-*Target (WU-52, D-297):* WU-52 adds k poe.ninja tools in group `ninja`, k ≥ 1, one per distinct query
-shape; WU-50 settles k. The total becomes 84 + k, still 83 with `POE_NINJA_DISABLED=true`, and WU-52
-restates AC-B1's counts. There is no numeric tool cap: D-173's "at most 8 new tools, total under 86" is
-lifted and NFR-24 withdrawn (D-316). D-173's principle stays: extend existing tools where natural, and
-group new ones.
+The serialized-wiring rule applies (spine §8). Each tool-adding unit here (WU-31, WU-32, WU-35 and
+WU-36), in its own merge: moves every count site (spine §1.3) up by its own new tools (+1 each) from its
+rebased base; adds a `tool-disposition.json` entry (`bucket:"new"`) and `expect:"ok"` samples in
+`tool-calls.json` (state-changing arguments for `mutate`); and runs `pnpm build && pnpm docs:tools
+--write`. A unit that changes an existing description regenerates the table too. WU-31, WU-32, WU-35 and
+WU-36 added four of the epic's 7 new tools; with slice 2's, the total is 84, or 83 without poe.ninja (spine
+C-1). No amendment unit adds a tool: WU-52's poe.ninja tools are withdrawn (D-335). There is no numeric
+tool cap: D-173's "at most 8 new tools, total under 86" is lifted and NFR-24 withdrawn (D-316); D-173's
+principle stays: extend existing tools where natural, and group new ones.
 
 Status lines give the merge commits on the integration branch (the build's work-log,
-[`../worklog.md`](../worklog.md)). Units WU-50, WU-52, WU-53, WU-54 and WU-60 are amendment 2's and 3's,
-not built; their milestone is M-14 ("open builds offline", D-315).
+[`../worklog.md`](../worklog.md)). Units WU-50, WU-52, WU-53, WU-54 and WU-60 are amendment 2's and 3's;
+their milestone is M-14 ("open builds offline", D-315). WU-54 and WU-60 are built, WU-50 is done (blocked),
+WU-52 is withdrawn, and WU-53 is not built.
 
 ### WU-31: K1 lookups and the `search_tree_nodes` fixes
 - kind: build
@@ -625,7 +662,14 @@ not built; their milestone is M-14 ("open builds offline", D-315).
 
 ### WU-50: Spike: poe.ninja's PoE2 popularity and build-index API (S-N1)
 - kind: spike
-- status: not built
+- status: done, blocked (report merged at `d16c16c`). The terms forbid this use: poe.ninja's API
+  Reference says the builds and profiles API, "and every other non-economy endpoint (character, Path of
+  Building, authentication), are internal. They are undocumented, unsupported, and not available for
+  third-party use". The spike's stop condition fired, so no builds, character or API endpoint was called
+  (5 requests, all to public pages: `/`, `/docs`, `/docs/api`, `/poe1/data`, `/privacy`; serial, at least
+  3.5 s apart, D-25's User-Agent, no cookie). Its report gives a decision line for each item below, the
+  tools and the threshold "not settled: blocked" (AC-K52 met). The user's D-335 resolves it, and the report
+  stays as the record of the block
 - depends-on: []
 - role: backend-dev
 - touches: [`docs/build-guide/spikes/WU-50-poe-ninja.md` (new)]. Requests to poe.ninja are polite, serial
@@ -638,25 +682,15 @@ not built; their milestone is M-14 ("open builds offline", D-315).
 - consumes: [D-297's development allowance; the existing client's conventions (`poeNinjaClient.ts`)]
 - acceptance: [AC-K52]
 - milestone: M-14
-- summary: Ground the API before any tool is designed on it (R-35: its shape, limits and terms are
-  ungrounded today). Nothing in `src/` changes.
+- summary: Ground the API before any tool is designed on it (R-35). Nothing in `src/` changes. The
+  coordinator's error, recorded in the work-log: the stabilization grounding had already quoted the clause
+  (`docs/stabilization/grounding/ctx-external.md:182-183`), and amendment 3 didn't cite it.
 
 ### WU-52: N1 poe.ninja tools (N-1)
-- kind: build
-- status: not built
-- depends-on: [WU-50]
-- role: backend-dev
-- touches: [the poe.ninja client and its new rate limiter (`src/services/`), the new handlers
-  (`src/handlers/`), `toolSchemas.ts`, `toolMeta.ts` (group `ninja`), `toolRouter.ts`, fixtures for the
-  new endpoints, `tests/fixtures/tool-calls.json`, `tests/fixtures/tool-disposition.json`, count sites,
-  README table]
-- produces: [C-54's tools]
-- consumes: [WU-50's report; C-1 (tool groups and their env flags); C-12 (the existing client and cache)]
-- acceptance: [AC-K47, AC-K48, AC-K49, AC-B1, AC-B2]
-- milestone: M-14
-- summary: Implement §2.10 with WU-50's names and shapes. It moves every count site by k and restates
-  AC-B1's counts with WU-50's number. Slice 03's pipeline (WU-57) uses the tool names, stubbed offline
-  until this merges.
+*Withdrawn → D-335:* the poe.ninja tools of C-54 (§2.10), their client's rate limiter and cache, their
+fixtures and the count restatement. Its touches (the client, handlers and wiring files, the poe.ninja
+fixtures, the count sites and the README table) are withdrawn with it, and so are its acceptance criteria,
+AC-K47…AC-K49. Nothing was built.
 
 ### WU-53: K1 lookup additions (N-2)
 - kind: build
@@ -677,35 +711,49 @@ not built; their milestone is M-14 ("open builds offline", D-315).
 
 ### WU-54: K2 coverage flags (N-3)
 - kind: build
-- status: not built
+- status: built (merge `92371c2`; criteria `b09a783`, AC-K50 restated `44d4028`)
 - depends-on: []
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Coverage.lua`, `src/handlers/coverageHandlers.ts`,
   `tests/integration/modelCoverage.test.ts`, `src/engine/schemas.ts`, `src/pobLuaBridge.ts`,
-  `tests/integration/contract.test.ts` (the amended action's reply schema, wrapper types and contract case)]
-- produces: [C-38's new flags (§2.4's *Target (WU-54, D-300)*)]
+  `tests/integration/contract.test.ts` (the amended action's reply schema, wrapper types and contract
+  case); allowed by the coordinator: `src/engine/pobSourceNames.ts` (the call names and skill-name
+  templates) with `tests/unit/pobSourceNames.test.ts` (new), the scan fake in
+  `tests/unit/passiveUpgradesBound.test.ts`, `check_model_coverage`'s description in `toolSchemas.ts`, and
+  `.claude/skills/build-guide/references/lookups.md` (a short account of the flags)]
+- produces: [C-38's flags (§2.4), D-336]
 - consumes: [C-38 as built]
 - acceptance: [AC-K50; AC-K53…AC-K57, pinned by the unit's first step and reviewed by the coordinator
   before any code is written (A-33); AC-B3, AC-B4]
 - milestone: M-14
-- summary: Add the flags, with engine tests.
+- summary: Add the flags, with engine tests. **Deviations accepted:** a line flag carries its entry's full
+  source; the names skill data reads are collected at run time from the loaded tags; every string field of
+  a tag counts as read; a stat counts as described when removing it changes PoB's described lines; one
+  `stat not mapped` flag per gem (D-336). Its review found 14 of the first 38 `mapped but unread` lines
+  false (minion limits, stage-cap templates, skill-data mod-list literals), all fixed; the skill-name
+  wildcard is limited to `sourceSkillTemplates` after the re-check. No regression: the old and new
+  `Coverage.lua` give byte-identical statuses and counts over every node, all 961 gems and the golden build.
 
 ### WU-60: K1 mod base types and essences (amendment 2)
 - kind: build
-- status: not built
+- status: built (merge `fdcf6a7`)
 - depends-on: []
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Lookup.lua`, `src/handlers/lookupHandlers.ts`,
   `.claude/skills/build-guide/references/lookups.md`, `tests/integration/lookupGameData.test.ts`,
   `src/engine/schemas.ts`, `src/pobLuaBridge.ts`, `tests/integration/contract.test.ts` (the amended action's
-  reply schema, wrapper types and contract case)]
-- produces: [C-37's mod base types and essence hits (§2.2's *Target (WU-60, D-277)*)]
+  reply schema, wrapper types and contract case); serialized wiring beyond these, accepted:
+  `toolSchemas.ts`' `kind` enum, the README row and `tests/fixtures/tool-calls.json`]
+- produces: [C-37's mod base types and essence hits (§2.2, "Mod base types and essences")]
 - consumes: [C-37 as built]
-- acceptance: [AC-K51, AC-B3, AC-B4]
+- acceptance: [AC-K51, AC-K4 as amended (the `essence` kind), AC-B3, AC-B4]
 - milestone: M-14
-- summary: A mod hit lists the base types with a non-zero spawn weight for it, and the essence table is
-  searchable, so D1 can source an affix's limit on its base (amendment 2's affix sources, which WU-62 may
-  use). WU-53 follows it, because both edit `Lookup.lua` (D-317).
+- summary: A mod hit lists the base types with a non-zero spawn weight for it, only on the tables PoB rolls
+  on a base, and essences are a fifth mechanic kind, so D1 can source an affix's limit on its base
+  (amendment 2's affix sources, which WU-62 uses). Its review moved `Exclusive` mods from tag-weighted base
+  types to a `notRolled` reason, since PoB reads that table only as the essence fallback
+  (`ItemsTab.lua:3076`), and added literal test expectations. WU-53 follows it, because both edit
+  `Lookup.lua` (D-317).
 
 ## 4. Acceptance criteria
 
@@ -739,12 +787,14 @@ Cross-checks compare against PoB's own data and functions, never against the too
   - `query:"Aggravate Bleeding"` includes Saitha's Spear and The Smiling Knight (pin §D);
     `{query:"Blood Loss", slot:"Gloves"}` returns only `Gloves`; `slot:"Nonsense"` → `isError` listing the
     types.
-- **AC-K4 (C-37 mechanic).** `query:"Crushing Blow"` includes `[passive] Crushing Impacts`, naming Titan,
-  with "Your Hits are Crushing Blows". `query:"Blood Loss"` with `max_results:30` includes a `gem` hit for
-  Blood Hunt and a `unique` hit for Atziri's Acuity. Every hit's kind is gem, unique, passive or mod, and
-  every line contains the query (case-insensitive). **`kind` (D-240):**
-  - for `query:"Bleeding"`, the header line `<n> hits: <g> gem, <u> unique, <p> passive, <m> mod.` gives the
-    per-kind totals of the Lua action's full list (`maxResults:10000`), with or without `kind`;
+- **AC-K4 (C-37 mechanic; amended by WU-60).** `query:"Crushing Blow"` includes `[passive] Crushing
+  Impacts`, naming Titan, with "Your Hits are Crushing Blows". `query:"Blood Loss"` with `max_results:30`
+  includes a `gem` hit for Blood Hunt and a `unique` hit for Atziri's Acuity. Every hit's kind is gem,
+  unique, passive, mod or essence, and every line contains the query (case-insensitive), except an essence
+  hit, which also matches when its essence's name contains the query (§2.2; AC-K51). **`kind` (D-240):**
+  - for `query:"Bleeding"`, the header line `<n> hits: <g> gem, <u> unique, <p> passive, <m> mod, <e>
+    essence.` gives the per-kind totals of the Lua action's full list (`maxResults:10000`), with or without
+    `kind`;
   - with `kind:"unique", max_results:30`, the hits are the first min(30, u) of that list's unique hits, in
     its order; `kind:"nonsense"` → `isError`;
   - `{query:"Crushing Impact", kind:"passive"}` matches nothing and lists only passive closest names,
@@ -1022,7 +1072,8 @@ Cross-checks compare against PoB's own data and functions, never against the too
     message starts `[trade:<kind>] Failed to `. A stub that throws a plain `Error` gives no `[trade:`
     prefix.
 
-**S-N1 (WU-50)**: script check. *Target (WU-50, D-324):* not built.
+**S-N1 (WU-50)**: script check. Met: the report's §6 checks each item, and every item has its decision
+line, the tools and the threshold "not settled: blocked" (D-335).
 
 - **AC-K52 (WU-50, D-324; R-35).** Script check. The report at the WU-50 path
   (`docs/build-guide/spikes/WU-50-poe-ninja.md`) covers each item under WU-50's `produces`: the endpoints,
@@ -1030,18 +1081,14 @@ Cross-checks compare against PoB's own data and functions, never against the too
   names, arguments, outputs, engine kinds, cache lifetime and back-off; and the popularity threshold for
   D-298, with a decision line for each.
 
-**N1 (WU-52)**: in-process, `fixtureFetch`, no engine; WU-52 names the test file.
-*Target (WU-52, D-297):* not built.
+**N1 (WU-52)**: *withdrawn → D-335*, with the tools.
 
-- **AC-K47 (C-54 group).** With `POE_NINJA_DISABLED=true`, `tools/list` holds none of the new tools;
-  otherwise they are listed in group `ninja`.
-- **AC-K48 (C-54 offline tests).** Their tests reach HTTP only through `fixtureFetch`, with committed
-  fixtures for the new endpoints (D-34).
-- **AC-K49 (C-54 politeness).** Requests are serial, an HTTP 429 gets back-off, and a cache per league
-  keeps results for WU-50's cache lifetime. The numbers come from WU-50's report.
+- **AC-K47.** *Withdrawn → D-335:* C-54's tools in group `ninja`, hidden by `POE_NINJA_DISABLED`.
+- **AC-K48.** *Withdrawn → D-335:* C-54's offline tests through `fixtureFetch`.
+- **AC-K49.** *Withdrawn → D-335:* C-54's politeness: serial requests, back-off on 429, a per-league cache.
 
-**K2 flags (WU-54)**: `tests/integration/modelCoverage.test.ts`, in-process, engine-required.
-*Target (WU-54, D-300):* not built.
+**K2 flags (WU-54)**: `tests/integration/modelCoverage.test.ts`, in-process, engine-required. Built
+(merge `92371c2`; D-300, D-336).
 
 - **AC-K50 (C-38 gem stats PoB can't act on; D-336, PROPOSED).** Mirage Archer's false all-clear (PG-49)
   comes from a stat with no stat map and no tooltip line (PG-4), not from a mapped stat. AC-K50 pins two
@@ -1177,7 +1224,7 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
     build mode lists no fully parsed line.
 
 **K1 base types and essences (WU-60)**: `tests/integration/lookupGameData.test.ts`, in-process,
-engine-required. *Target (WU-60, D-277):* not built.
+engine-required. Built (merge `fdcf6a7`; D-277).
 
 - **AC-K51 (C-37 mod base types, essences).** The mod hit for Arcane Surge on Crit lists only gloves with
   energy shield (`vendor/Data/ModVeiled.lua:163`). An essence query returns an essence hit.
@@ -1411,11 +1458,11 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
 | AC-K39…K41 | in-process, `fixtureFetch`, no engine | `tests/mcp/datedPrices.test.ts` |
 | AC-K42 | stdio end-to-end (`spawnServer`), engine-required | `tests/e2e/serverTools.test.ts` |
 | AC-K43 | in-process, `fixtureFetch`, no engine; direct handler calls with a stub trade client | `tests/mcp/tradeErrorPrefix.test.ts` |
-| AC-K47…K49 (*target*, WU-52) | in-process, `fixtureFetch`, no engine | named by WU-52 |
-| AC-K50, AC-K53…K57 (*target*, WU-54) | in-process, engine-required | `tests/integration/modelCoverage.test.ts` |
-| AC-K51 (*target*, WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
-| AC-K58…K65 (*target*, WU-53) | in-process, engine-required; AC-K63's `lookups.md` check static; the new samples also in `engineKinds.test.ts` (AC-K6) | `tests/integration/lookupGameData.test.ts` |
-| AC-K52 (*target*, WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
+| AC-K47…K49 | *withdrawn → D-335* | — |
+| AC-K50, AC-K53…K57 (WU-54) | in-process, engine-required; the scan's call literals also unit | `tests/integration/modelCoverage.test.ts`; `tests/unit/pobSourceNames.test.ts` |
+| AC-K51 (WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
+| AC-K58…K65 (WU-53) | in-process, engine-required; AC-K63's `lookups.md` check static; the new samples also in `engineKinds.test.ts` (AC-K6) | `tests/integration/lookupGameData.test.ts` |
+| AC-K52 (WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
 
 **Kind checks.** `engineKinds.test.ts` runs every new `ok` sample from §3. The `read` samples (the
 three lookup modes, both coverage samples, G's breakdown, the ascendancy search, `include_ascendancy`,
@@ -1427,9 +1474,9 @@ entries. WU-32 owns `items/coverage-amulet.txt` and `tests/e2e/serverTools.test.
 check WU-35 and WU-36 extend; both therefore depend on WU-32. WU-36 owns `items/jewel.txt` and
 `$JEWEL_TEXT`, which it adds to the `PLACEHOLDERS` maps of `engineKinds.test.ts` and
 `toolHygiene.test.ts`. Both files are serialized wiring shared with WU-40 (spine §8). WU-49 owns
-`trade2/search-empty.*`. WU-31, WU-32, WU-35 and WU-36 each moved the count sites by +1. *Target:* WU-52
-owns its new endpoints' fixtures and moves the count sites by k. WU-60 and WU-53 both edit `Lookup.lua`
-and `lookupGameData.test.ts`, so WU-53 follows WU-60 (D-317).
+`trade2/search-empty.*`. WU-31, WU-32, WU-35 and WU-36 each moved the count sites by +1; no amendment unit
+moves them (WU-52 withdrawn, D-335). WU-60 and WU-53 both edit `Lookup.lua` and `lookupGameData.test.ts`,
+so WU-53 follows WU-60 (D-317).
 
 **Regression guard.** Every unit gate keeps green, unchanged except for count literals: the stabilization
 ACs AC-E16, AC-E28, AC-E29, AC-E32, AC-E35, AC-E38, AC-E39 and AC-E41; AC-T19 (`get_item_price`'s
@@ -1443,8 +1490,10 @@ primary-currency normalization); the golden tests (AC-B5); and the hygiene and s
 error's text gains the `[trade:<kind>] ` prefix after `Error: ` (D-218); its message is otherwise
 unchanged. Set titles are stricter (D-245), `get_passive_upgrades` may leave out ranked entries' stat
 lines to keep its can't-measure section whole (D-246), and `update_tree_delta` refuses an add that would
-untag a weapon-set branch (D-308). The target units only add: new tools in group `ninja` (WU-52), new
-lookup output (WU-53, WU-60) and new coverage flags (WU-54). Rollback is a revert of the unit's merge.
+untag a weapon-set branch (D-308). The amendment units only add output: a mod's base types and essence hits
+(WU-60, built; `kind` gains `essence`), coverage flags beside the statuses (WU-54, built), and the lookup
+additions (WU-53, target). No tool is added in group `ninja` (D-335). Rollback is a revert of the unit's
+merge.
 
 **Choices made here** (the [slice] marks; fold into the spine at ratification):
 - **Accepted by the coordinator (2026-10-07), now spine decisions:**
@@ -1480,18 +1529,24 @@ lookup output (WU-53, WU-60) and new coverage flags (WU-54). Rollback is a rever
   - ascendancy points counted as `CountAllocNodes` counts them (D-307);
   - `update_tree_delta`'s refusal of an add that would change a weapon-set tag (D-308);
   - `set_main_selection`'s optional `statSet` reply (D-309).
+- **Settled by the amendments' build (2026-10-10 and 2026-10-11, fold v1.4):**
+  - a mod's base types only on the tables PoB rolls on a base, other tables a `notRolled` reason, and
+    essences as a fifth mechanic kind matched by line or name (WU-60, D-277; §2.2);
+  - the coverage flags in a `flags[]` list beside the statuses, two flags in place of AC-K50's one, one
+    `stat not mapped` flag per gem, and `mapped but unread`'s strict reading with the skill-name templates
+    (WU-54, D-336; §2.4);
+  - no poe.ninja tools (D-335; §2.10).
 
 **Former spine nits, settled 2026-10-07.** The spine's C-2/C-5 row is a modified contract listing §2.1's
 changes (D-222). WU-36 edits `add_item`'s enum, never the shared `ITEM_SLOTS` (D-223).
 
-**Open** (all target; each has a settled route):
+**Open** (target; it has a settled route):
 - WU-53's output formats and checkable criteria, for each lookup addition. The unit's first step pins them
   in §2.2 and §4 from amendment 3's text, and the coordinator reviews them before any code is written
-  (A-33);
-- the status names or wording, and a test example, of the four WU-54 flags other than the Mirage Archer
-  one (AC-K50). The same first-step rule applies (A-33);
-- C-54's tool names, arguments, outputs, engine kinds, cache lifetime and back-off, and the popularity
-  threshold: outputs of WU-50's report, recorded in §2.10 and the decision log when it merges (D-324).
+  (A-33). Done on its lane as AC-K58…AC-K65, which merge with it.
+
+**Closed by the build:** the WU-54 flags' names and examples (AC-K53…AC-K57, D-336); C-54's tool details
+and the popularity threshold, withdrawn with the tools (D-335, D-324 withdrawn).
 
 **Settled earlier.** The two former open items:
 - `include_ascendancy` marks notables beyond the build's remaining ascendancy points and never hides them

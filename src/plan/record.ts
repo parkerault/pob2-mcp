@@ -348,11 +348,15 @@ export function clearSpeedOf(input: {
 }
 
 /** The clear skill (D-353): the first enabled `clear` group, else the main group; null for neither. */
-export function clearGroupOf(stage: Pick<Stage, 'skills'>): { group: number; activeSkill: number } | null {
+export function clearGroupOf(
+  stage: Pick<Stage, 'skills'>,
+): { group: number; activeSkill: number; statSet: number } | null {
   const k = stage.skills.groups.findIndex((g) => g.enabled && g.role === 'clear');
-  if (k >= 0) return { group: k + 1, activeSkill: 1 };
+  if (k >= 0) return { group: k + 1, activeSkill: 1, statSet: 1 };
   const main = stage.skills.main;
-  return stage.skills.groups[main.group - 1] ? { group: main.group, activeSkill: main.activeSkill } : null;
+  return stage.skills.groups[main.group - 1]
+    ? { group: main.group, activeSkill: main.activeSkill, statSet: main.statSet ?? 1 }
+    : null;
 }
 
 /** The names of the clear skill's group's enabled gems, the skill and its supports, whose texts it reads. */
@@ -363,8 +367,9 @@ export function clearGemNames(stage: Pick<Stage, 'skills'>): string[] {
 }
 
 /**
- * The clear skill's breakdown entry. D-363: its first stat set, the one PoB selects by default, so the measure
- * doesn't depend on a stat set whose radius PoB resolves in hash order (Earthquake's Aftershock).
+ * The clear skill's breakdown entry. D-363: the stat set the plan's main selection names when the clear skill is
+ * the main skill, else its first stat set, the one PoB selects by default, so the measure doesn't depend on a
+ * stat set whose radius PoB resolves in hash order (Earthquake's Aftershock).
  */
 export function clearEntryOf(
   stage: Pick<Stage, 'skills'>,
@@ -372,7 +377,7 @@ export function clearEntryOf(
 ): { group: number; key: string; skill: string; fields: Record<string, number> } | null {
   const clear = clearGroupOf(stage);
   if (clear === null) return null;
-  const key = `g${clear.group}s${clear.activeSkill}p1`;
+  const key = `g${clear.group}s${clear.activeSkill}p${clear.statSet}`;
   const e = skillOutputs[key];
   return e === undefined ? null : { group: clear.group, key, skill: e.skill, fields: e.fields };
 }

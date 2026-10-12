@@ -5,7 +5,7 @@
  * verdict at a ratio of exactly 1, and the reference hits from the committed data.
  */
 import { describe, expect, it } from '@jest/globals';
-import { arbiterMeasure, clearBand, clearSpeedOf, explodesOnDeath } from '../../src/plan/record';
+import { arbiterMeasure, clearBand, clearEntryOf, clearSpeedOf, explodesOnDeath } from '../../src/plan/record';
 import { hitCeiling, referenceHits, rungAreaLevel, withReferenceHits } from '../../src/plan/compiler';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import type { Stage } from '../../src/plan/schema';
@@ -40,6 +40,34 @@ describe('D-353: clearSpeed', () => {
     ]) {
       expect({ text, hit: explodesOnDeath(text) }).toEqual({ text, hit: false });
     }
+  });
+});
+
+describe('D-363: the clear skill\'s stat set', () => {
+  const outputs = {
+    g1s1p1: { skill: 'Stampede: Footsteps', fields: { AreaOfEffectRadiusMetres: 1.2 } },
+    g1s1p2: { skill: 'Stampede: Slam', fields: { AreaOfEffectRadiusMetres: 3.2 } },
+    g2s1p1: { skill: 'Earthquake: Impact', fields: { AreaOfEffectRadiusMetres: 1.8 } },
+  };
+  const gem = (name: string) => ({ name, enabled: true });
+  const stage = (main: { group: number; activeSkill: number; statSet?: number }, clearRole = false) =>
+    ({
+      skills: {
+        main,
+        groups: [
+          { enabled: true, gems: [gem('Stampede')] },
+          { enabled: true, gems: [gem('Earthquake')], ...(clearRole ? { role: 'clear' } : {}) },
+        ],
+      },
+    }) as unknown as Pick<Stage, 'skills'>;
+
+  it('reads the stat set the main selection names when the clear skill is the main skill', () => {
+    expect(clearEntryOf(stage({ group: 1, activeSkill: 1, statSet: 2 }), outputs as never)?.key).toBe('g1s1p2');
+  });
+
+  it('reads the first stat set when the main selection names none, or when a clear group is set', () => {
+    expect(clearEntryOf(stage({ group: 1, activeSkill: 1 }), outputs as never)?.key).toBe('g1s1p1');
+    expect(clearEntryOf(stage({ group: 1, activeSkill: 1, statSet: 2 }, true), outputs as never)?.key).toBe('g2s1p1');
   });
 });
 

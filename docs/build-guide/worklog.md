@@ -3116,3 +3116,22 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - A, the scripts: `--snapshot`, `--changed`, `render-audit.mjs`, `run-log.mjs`, their `SKILL.md` wiring,
       and AC-W54's listing clause;
     - B, the checker's rules and the fixtures.
+- **WU-71 A: built** (`470984b`; the doer used 346K tokens). Static and unit suites 1278 of 1278, build rc=0, and
+  `SKILL.md` stays at 221 lines.
+  - **The command forms:**
+    - `check-run.mjs <folder> --snapshot <n>` refuses an existing round;
+    - `check-run.mjs <folder> --changed <n>` prints only the two line forms;
+    - `render-audit.mjs <folder>`;
+    - `run-log.mjs <folder> <init|stage|checkpoint|escalation|set> '<json>'`.
+  - **Choices:**
+    - movement speed from `outputs.EffectiveMovementSpeedMod`;
+    - `b-anoint` as a basis slot entry, stated in `D1-gate.md`;
+    - the coverage flags from the record's `customModsWritten` and `pobWarnings.kept`;
+    - `--changed` finds a claim's cited values by its source: ledger entries through the evaluator over the
+      current formulas, price entries, and `pob-computed` fields both raw and counted.
+  - **Deviations:**
+    - the audit re-renders before every W1 of a fix round or revision;
+    - the Estimates come from the evaluator, not the record's stored ledger;
+    - null renders as "unknown" or "not measured";
+    - the layout accepts `rounds/<n>/`.
+  - **WU-71 B started:** the checker's rules and the fixtures.

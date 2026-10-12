@@ -2777,3 +2777,25 @@ The coordinator read the draft in full and found no blocker; it goes to the user
       `agent.name`;
     - `/exit` writes a `cost-state` entry, the `/usage` ledger, into the transcript.
   - **Next:** the user runs the control session (about 3 minutes); then the doer is resumed with its paths.
+- **WU-65: built** (head `54d1ee6`, 4 commits; the doer used 433K tokens, Opus). The doer reports `mise run test`
+  rc=0 (124 suites, 2139 tests) and `pnpm build` rc=0.
+  - **Key-figure line:** DPS, life, ES, EHP, the four resistances and the V1/V2 finding counts. Endgame stages add
+    clear speed; `b` and `n` add the Arbiter verdict with the worst hit and ratio.
+  - **Deviations claimed:**
+    - the clear skill's choice and the radius source;
+    - the mixed Arbiter hit split evenly;
+    - filled reference hits as scenario entries, so they reach `configWritten` and V2;
+    - `skillOutputs` gains `AreaOfEffectRadiusMetres`;
+    - `compile_check` gains `describeGems`, `anoints` and `gemTexts`;
+    - `checks.nodeNames` gains item-granted notables;
+    - `v1.ts` unchanged.
+  - **Outside `touches`:** `compileAllocation.test.ts`, `buildGuideCheckRun.test.ts` (dropped the "ledger formula
+    is a build change" row) and 16 pipeline fixture records with `buildSha1` recomputed.
+  - **Friction for later units:**
+    - `check-run.mjs` loads `build/plan/buildHash.js`, but its comment and failure text at :1143-1153 describe the
+      old projection;
+    - :1308 reads reference hits from ledger `hit_*` entries, where it should read `configWritten`. Both are
+      WU-71's.
+  - **A possible defect:** Earthquake's Aftershock measured 1.8 m on some runs and 2.7 m on others. The reviewer
+    checks whether the area measure is deterministic.
+  - **Review and gate:** dispatched to an independent reviewer.

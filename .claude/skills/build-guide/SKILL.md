@@ -7,7 +7,7 @@ description: Build a Path of Exile 2 guide (level 1 through the campaign to two 
 
 You are the **runner**: you start the run, call one agent per step with the Agent tool, ask the user at the
 gates, keep the run log and run the run checker. Agents research, design, compile, write and check, and
-the verifier writes its own reports (slice 03 of `docs/build-guide/spec/`, as its amendments 1 to 3 change
+the verifier writes its own reports (slice 03 of `docs/build-guide/spec/`, as its amendments 1 to 4 change
 it; spine C-36, C-51, C-52).
 
 The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (researchers write
@@ -84,7 +84,8 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1 r1-a-2 attempt
   read that file to route.
 - **A missing return.** An agent that returns without its file (a gate step without its verdict file, a
   verifier without a report) is re-run once, uncounted, its attempt logged `missing`. A second miss ends
-  the run `stopped`, naming the step.
+  the run `stopped`, naming the step. A verifier that returns `exists: reports/V4-<n>.md` wrote nothing,
+  since it never overwrites a report: that is a missing return, re-run with the next free `<n>`.
 - **The run log.** Rewrite `run-log.json` whole after every step, gate and question
   (`references/run-log.md`), so an interrupted run still leaves one.
 
@@ -383,8 +384,8 @@ display, whoever answers (Hard rules): show the stage, the attempts and the verd
   values changed since `rounds/<n>/`, and the guide's changed H2s, one per line. Then start one verifier,
   `check: "recheck"`, `writes: ["reports/V4-<n+1>.md"]`, `findings` the ids of report `<n>`'s `unresolved`
   findings, and `changed` the lines the checker printed, as printed. It re-checks only those, whether or not
-  an owner recompiled: no re-check covers every claim (D-352). There is no further round: what stays open is
-  a known issue.
+  an owner recompiled: no re-check covers every claim (D-352). After a fix round's re-check there is no
+  further round: what stays open is a known issue; after a revision's, steps 12 to 16 follow (step 16).
 - **Step 14, known issues.** The open findings are the `unresolved` findings of the last report, the
   `reports/V4-<n>.md` with the highest `<n>`: a re-check reports again every finding still open. **Replace
   both lists whole** with Edit, every cycle (D-265, D-276), reading only the lines you edit, from the line

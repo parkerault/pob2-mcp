@@ -999,7 +999,7 @@ describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only -
     const text = v4();
     expect(text).toMatch(/V4 runs once more as a \*\*re-check\*\* \(step 13\) of only what `check-run\.mjs --changed <n>` lists: the claims whose text, source or cited record values changed since the runner's copy in `rounds\/<n>\/`, and the guide's changed H2s\. \*\*A revision runs no full pass\*\*/);
     expect(text).toMatch(/`changed`: a re-check only: the lines `check-run\.mjs --changed <n-1>` printed, as printed, one item each, `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>`\. Locations, never text/);
-    expect(text).toMatch(/`## Checked` lists every item of `changed`, as the header gives it\. Nothing else: the rest was checked before\. This is also a revision's check: a revision runs no full pass\. There is no further round/);
+    expect(text).toMatch(/`## Checked` lists every item of `changed`, as the header gives it\. Nothing else: the rest was checked before\. This is also a revision's check: a revision runs no full pass\. After a fix round's re-check there is no further round/);
     const s = skill();
     expect(s).toMatch(/\*\*Step 13, the re-check\.\*\* Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`, `<n>` the round copy's number: it prints the claims whose text, source or cited record values changed since `rounds\/<n>\/`, and the guide's changed H2s, one per line\. Then start one verifier, `check: "recheck"`, `writes: \["reports\/V4-<n\+1>\.md"\]`, `findings` the ids of report `<n>`'s `unresolved` findings, and `changed` the lines the checker printed, as printed\. It re-checks only those, whether or not an owner recompiled: no re-check covers every claim \(D-352\)/);
     expect(s).toMatch(/First have the plan, record and guide copied to `rounds\/<n>\/`, `<n>` that report's number \(A-34's round copy: you never read them\)/);
@@ -1053,7 +1053,7 @@ describe("AC-W59's static clause (WU-69, D-352): V4.md defines the triage", () =
     const text = v4();
     expect(text).toMatch(/### Triage \(D-352\) Triage every finding before you write it: - \*\*Mark it `hinge: yes` or `hinge: no`\.\*\* `yes` when what it is about is a hinge fact, whose being wrong would make the build fail at its rung: a `hinge` claim, a guide sentence stating one, or a gated statement \(the guide can't drop those\)\. `no` for everything else/);
     expect(text).toMatch(/- \*\*A `hinge: no` finding is fixed by removing or narrowing the statement, never by new research or a recompile\.\*\* Its `issue` says which\. Don't research a non-hinge statement yourself either/);
-    expect(text).toMatch(/- \*\*A difference under 5% in an estimate is no finding\.\*\* An estimate is a figure resting on Count, a hand calculation or a ledger entry, one the record marks `computedWithCustomMods`, or one the guide states as "about"\. Within 5% of what you derive .* report nothing/);
+    expect(text).toMatch(/- \*\*A difference under 5% in an estimate is no finding\.\*\* An estimate is a figure resting on Count, a hand calculation or a ledger entry, one the record marks `computedWithCustomMods`, or one the guide states as "about"\. Within 5% of the plan's or record's value .* report nothing/);
     expect(text).toMatch(/`hinge`: `yes` or `no` \(triage\)/);
   });
 
@@ -1102,7 +1102,11 @@ describe('V4: what the one pass checks, and the re-check (S2, S3, D-352)', () =>
     expect(text).toMatch(/\*\*`check: "recheck"`\*\*: check only 1\. each finding in the header's `findings`: read it in `reports\/V4-<n-1>\.md` and report it again under the same `id`/);
     expect(text).toMatch(/`fixed` when it now holds, or when its claim is gone and the guide no longer states it; `unresolved` when it doesn't\. When nothing in `changed` touches it, nothing changed it: report it `unresolved` again, as it was, without checking it/);
     expect(text).toMatch(/2\. each item of `changed`: a claim as the full pass checks a claim of its kind, an H2 as the editor read checks it/);
-    expect(text).toMatch(/There is no further round: what stays open becomes a known issue in the guide/);
+    expect(text).toMatch(/After a fix round's re-check there is no further round: what stays open becomes a known issue in the guide\. After a revision's re-check, a fix round and its re-check may follow, as after the full pass/);
+    // D-365: guide figures against the record's measured values only; the ledger's values are the checker's.
+    expect(text).toMatch(/Compare a guide figure only with the record's measured values \(its stats, `measures` and key figures\), .* never with a ledger value, which is the run checker's `\[ledger\]` \(D-365\)/);
+    expect(text).toMatch(/Never its `ledger` values: after a ledger-only fix, which recompiles nothing, they are stale, and the run checker's `\[ledger\]` owns them, over the plan's current formulas \(D-365\)/);
+    expect(text).toMatch(/the hits come in stage order: the first is `stages\[0\]`'s, and a hit's place in that order is the `<i>` of a `location`/);
   });
 
   it('by source kind: an unsourced claim is a finding; external sources online only; data claims without a fetch offline; prices against their entries', () => {
@@ -1202,7 +1206,8 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when the report has an `unresolved` finding \(D-264, D-352\)\./);
     expect(text).toMatch(/Then send each `unresolved` finding to its `owner`: D1, D2 or W1/);
     expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`/);
-    expect(text).toMatch(/There is no further round: what stays open is a known issue/);
+    expect(text).toMatch(/After a fix round's re-check there is no further round: what stays open is a known issue; after a revision's, steps 12 to 16 follow \(step 16\)/);
+    expect(text).toMatch(/A verifier that returns `exists: reports\/V4-<n>\.md` wrote nothing, since it never overwrites a report: that is a missing return, re-run with the next free `<n>`/);
     expect(text).toMatch(/\*\*Step 14, known issues\.\*\* The open findings are the `unresolved` findings of the last report, the `reports\/V4-<n>\.md` with the highest `<n>`: a re-check reports again every finding still open/);
     expect(text).toMatch(/Verification never re-checks beyond the one re-check after a fix round or a revision, and never escalates; only the D1 and D2 gates escalate/);
   });
@@ -1472,7 +1477,8 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
     expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited claims in place and compiled nothing, so no gate of its own follows it \(D-264\)/);
     expect(ref('run-log.md')).toMatch(/its build projection's sha1 equals the record's `buildSha1`, D-266/);
     expect(ref('task-header.md')).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round/);
-    expect(ref('run-folder.md')).toMatch(/of all three lenses if and only if a gate re-ran in the fix round \(D-264\), else of each lens that raised a finding and the sources lens/);
+    expect(ref('run-folder.md')).toMatch(/one full V4 pass per guide, and at most one re-check per fix round or revision, covering only what `check-run\.mjs --changed <n>` lists \(D-352\)/);
+    expect(ref('run-folder.md')).not.toMatch(/v4-prose-1|all three lenses/);
   });
 });
 

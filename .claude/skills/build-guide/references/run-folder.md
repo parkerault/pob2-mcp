@@ -93,7 +93,7 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   ending with the H3 `Known issues`, and its Leveling H3s equal to the record's loadout names. At most 3,000
   words, a word being a run of non-space characters holding a letter or a digit, the H1, the import code and
   the Known issues list not counted. No footnote marker (`[^`), confidence label (`confidence L`) or finding id
-  (`v4-prose-1`) anywhere outside the import code. The import code, the first fenced block of `Your PoB file`,
+  (`v4-<n>-<k>`) anywhere outside the import code. The import code, the first fenced block of `Your PoB file`,
   equals the record's (D-205). One fixed-form verdict line per endgame rung in `Survival by stage`, each number
   equal to the record's value rounded at the written number's last significant digit ("2,740" matches 2,736):
   the level, the four resistances, the physical max hit and its hit, the least other max hit and the largest
@@ -124,8 +124,8 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
 - **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;
   each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
   counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
-  one full V4 pass and at most one re-check per verification cycle, of all three lenses if and only if a gate
-  re-ran in the fix round (D-264), else of each lens that raised a finding and the sources lens; a claims-only
+  one full V4 pass per guide, and at most one re-check per fix round or revision, covering only what
+  `check-run.mjs --changed <n>` lists (D-352); a claims-only
   owner only before any gate of its round and never directly before a gate (a claims-only D1 may be followed
   by a D2 that recompiles, and its D2 gate); escalations only from the gates, each naming its verdict file; a `rule` on every
   pre-supplied or default answer; and `completed` only after the final gate's accept (checkpoint 2's, in a

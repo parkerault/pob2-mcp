@@ -3185,3 +3185,9 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   Lane `bg-71` removed. **WU-65…WU-71 are all merged.**
 - **The wave gate:** the run worktree `m15`, detached at the integration head, is bootstrapped and gated from
   scratch by an independent verifier. It then serves as WU-72's run worktree.
+- **WU-72's environment:** `/tmp/m15.C1xp`, built from run A's (`/tmp/m14.zfPx`).
+  - `start.sh runL` runs with telemetry (the WU-64 receiver, copied in, on 127.0.0.1:4318, writing
+    `telemetry/events.jsonl`); `runL-plain` runs without it.
+  - `mcp/` is the isolated `pob2` from the `m15` worktree, with trade and poe.ninja off.
+  - `cfg/L.json` holds run A's answers plus `design: ["accept"]`, and `faults: []`.
+  - The README holds the user's instructions, with the new scripts on the approve list.

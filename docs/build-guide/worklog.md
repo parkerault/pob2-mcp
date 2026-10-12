@@ -2947,3 +2947,9 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - ids match `v4-\d+-\d+`;
     - FI-4's doubled formula goes to `[ledger]`.
   - **Review:** dispatched.
+- **WU-66, D-364 applied** (head `5a75aef`, rebased cleanly on `06c7fe0`; the doer's total use was 335K
+  tokens).
+  - `one-exit-per-tree` is dropped.
+  - A new test: a connected loop through two exits of the Mercenary start (59779 - 97 - 59915) passes.
+  - The gate passed: 126 suites, 2166 tests, build rc=0.
+  - **Review:** dispatched, with the full gate.

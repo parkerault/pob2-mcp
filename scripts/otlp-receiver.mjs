@@ -138,8 +138,9 @@ export function startReceiver({ out, port = 4318, host = '127.0.0.1', log = (m) 
         return reply(400, {});
       }
       let got = { lines: [], dropped: 0 };
-      if (req.url.startsWith('/v1/logs')) got = logsToLines(body);
-      else if (req.url.startsWith('/v1/metrics')) got = metricsToLines(body);
+      // By body shape, so a bare endpoint path works as well as /v1/logs and /v1/metrics.
+      if (Array.isArray(body.resourceLogs)) got = logsToLines(body);
+      else if (Array.isArray(body.resourceMetrics)) got = metricsToLines(body);
       if (got.lines.length) fs.appendFileSync(out, got.lines.map((l) => `${JSON.stringify(l)}\n`).join(''));
       for (const l of got.lines) counts[l.kind === 'event' ? 'events' : 'metrics']++;
       counts.dropped += got.dropped;

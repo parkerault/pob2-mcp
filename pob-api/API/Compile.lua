@@ -53,8 +53,7 @@
 --     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
 --     PoB's customMods text option (D-293). Then the main selection (after the second-weapon-set flag, which
 --     doesn't move it), the level in manual mode, and the measurement: every finite number of the main
---     output, the C-45 breakdown of every socket group (stats_breakdown, keyed g<group>s<skill>p<statSet>;
---     a stat set whose base radius PoB resolves in hash order gives its own stat map's radius, D-363)
+--     output, the C-45 breakdown of every socket group (stats_breakdown, keyed g<group>s<skill>p<statSet>)
 --     and PoB's allocation after the import, with each node's weapon-set tag.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
@@ -824,75 +823,12 @@ local function main_dot_can_stack()
   return statSet ~= nil and type(statSet.skillFlags) == 'table' and statSet.skillFlags.DotCanStack == true
 end
 
--- The base radius a stat of value `value` gets through stat map entry `map`, as mergeStatSet computes a mapped
--- value (Modules/CalcActiveSkill.lua:100-117); nil when the entry sends nothing to skill("radius").
-local function radius_from(map, value)
-  local function is_radius(mod)
-    return type(mod) == 'table' and mod.name == 'SkillData' and type(mod.value) == 'table' and mod.value.key == 'radius'
-  end
-  for _, modOrGroup in ipairs(type(map) == 'table' and map or {}) do
-    if modOrGroup.name then
-      if is_radius(modOrGroup) then return map.value or value * (map.mult or 1) / (map.div or 1) + (map.base or 0) end
-    else
-      for _, mod in ipairs(modOrGroup) do
-        if is_radius(mod) then
-          return modOrGroup.value or value * (modOrGroup.mult or 1) / (modOrGroup.div or 1) + (modOrGroup.base or 0)
-        end
-      end
-    end
-  end
-  return nil
-end
-
--- D-363: the area of a stat set whose base radius PoB resolves in hash order, measured from its own stat map.
--- PoB maps each stat of the stat set through the set's stat map, which falls back to Data/SkillStatMap.lua,
--- in pairs() order (Modules/CalcActiveSkill.lua:97), and the last skill("radius") wins (:895-896). When two
--- stats send different values there (Earthquake's Aftershock: its own map the tertiary radius, the global map
--- the base radius), PoB's figure changes with LuaJIT's per-process string hash. Such a set is measured by the
--- one stat its own map sends to the radius (the global map doesn't), with PoB's area modifiers as
--- calcAreaOfEffect applies them (Modules/CalcOffence.lua:161-163, 432-436). Returns the radius in PoB's units
--- (tenths of a metre), or nil: every other stat set keeps PoB's own figure.
-local function own_map_radius(skill, output)
-  local effect = skill.activeEffect
-  -- MAIN mode's selection: activeEffect.statSet is {index, statSet, skillFlags} (Modules/CalcActiveSkill.lua:170-174).
-  local set, ge, data_ = effect.statSet.statSet, effect.grantedEffect, skill.skillData
-  if type(set) ~= 'table' or type(set.statMap) ~= 'table' or type(ge) ~= 'table' or type(data_) ~= 'table'
-    or data_.radiusIsWeaponRange or type(skill.skillModList) ~= 'table' or type(output) ~= 'table'
-    or not finite(output.AreaOfEffectMod) then
-    return nil
-  end
-  local env = build.calcsTab.mainEnv
-  local ok, stats = pcall(calcLib.buildSkillInstanceStats, effect, ge, set, env and env.useAltGemQualityStats)
-  if not ok or type(stats) ~= 'table' then return nil end
-  local extra = skill.skillModList:List(skill.skillCfg, 'ExtraSkillStat')
-  if extra[1] then
-    for _, stat in pairs(extra) do stats[stat.key] = (stats[stat.key] or 0) + stat.value end
-  end
-  -- The distinct radii the set's stats map to, and those of its own map (the global map sends the stat elsewhere).
-  local radii, owned = {}, {}
-  for stat, value in pairs(stats) do
-    local r = radius_from(set.statMap[stat], value)
-    if r ~= nil then
-      radii[r] = true
-      if radius_from(data.skillStatMap[stat], value) == nil then owned[r] = true end
-    end
-  end
-  local distinct, own, owns = 0, nil, 0
-  for _ in pairs(radii) do distinct = distinct + 1 end
-  for r in pairs(owned) do own, owns = r, owns + 1 end
-  if distinct < 2 or owns ~= 1 then return nil end
-  local base = own + (data_.radiusExtra or 0) + skill.skillModList:Sum('BASE', skill.skillCfg, 'AreaOfEffect')
-  return math.floor(base * math.floor(100 * math.sqrt(output.AreaOfEffectMod)) / 100)
-end
-
 -- C-45's breakdown of every socket group: g<group>s<skill>p<statSet> -> {skill, statSetLabel, fields}; and,
 -- under the same keys, whether each skill and stat set's damage over time stacks (D-293). stats_breakdown
 -- measures each one as the main selection through BuildOps.get_main_output, so while it runs that function
 -- is wrapped to read the flag after each of its rebuilds; the wrapper is removed however the breakdown ends.
--- The wrapper also reads a stat set's own-map radius (D-363, own_map_radius), which replaces PoB's
--- AreaOfEffectRadius and AreaOfEffectRadiusMetres in that set's fields.
 local function skill_outputs(fields)
-  local out, stacks, radii = {}, {}, {}
+  local out, stacks = {}, {}
   local own = BuildOps.get_main_output
   BuildOps.get_main_output = function(...)
     local output, err = own(...)
@@ -902,9 +838,7 @@ local function skill_outputs(fields)
     local skill = env and env.player and env.player.mainSkill
     local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
     if group and statSet and skill.socketGroup == group then
-      local key = ('g%ds%dp%d'):format(gi, group.mainActiveSkill or 1, statSet.index or 1)
-      stacks[key] = main_dot_can_stack()
-      radii[key] = own_map_radius(skill, output)
+      stacks[('g%ds%dp%d'):format(gi, group.mainActiveSkill or 1, statSet.index or 1)] = main_dot_can_stack()
     end
     return output, err
   end
@@ -926,11 +860,6 @@ local function skill_outputs(fields)
   end)
   BuildOps.get_main_output = own
   if not ok then error(err, 0) end
-  for key, radius in pairs(radii) do
-    local fields_ = out[key] and out[key].fields
-    if fields_ and fields_.AreaOfEffectRadius ~= nil then fields_.AreaOfEffectRadius = radius end
-    if fields_ and fields_.AreaOfEffectRadiusMetres ~= nil then fields_.AreaOfEffectRadiusMetres = radius / 10 end
-  end
   -- Only the measured keys: the wrapper also saw the rebuilds that put the stage's own selection back.
   local measured = {}
   for key in pairs(out) do measured[key] = stacks[key] == true end

@@ -363,8 +363,8 @@ export function clearGemNames(stage: Pick<Stage, 'skills'>): string[] {
 }
 
 /**
- * The clear skill's breakdown entry: of the active skill's stat sets, the one with the largest area (its
- * explosion, say), the first among ties.
+ * The clear skill's breakdown entry. D-363: its first stat set, the one PoB selects by default, so the measure
+ * doesn't depend on a stat set whose radius PoB resolves in hash order (Earthquake's Aftershock).
  */
 export function clearEntryOf(
   stage: Pick<Stage, 'skills'>,
@@ -372,17 +372,9 @@ export function clearEntryOf(
 ): { group: number; key: string; skill: string; fields: Record<string, number> } | null {
   const clear = clearGroupOf(stage);
   if (clear === null) return null;
-  const prefix = `g${clear.group}s${clear.activeSkill}p`;
-  const radius = (f: Record<string, number>) => f.AreaOfEffectRadiusMetres ?? 0;
-  let best: { group: number; key: string; skill: string; fields: Record<string, number> } | null = null;
-  const keys = Object.keys(skillOutputs)
-    .filter((k) => k.startsWith(prefix) && /^\d+$/.test(k.slice(prefix.length)))
-    .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
-  for (const key of keys) {
-    const e = skillOutputs[key];
-    if (best === null || radius(e.fields) > radius(best.fields)) best = { group: clear.group, key, skill: e.skill, fields: e.fields };
-  }
-  return best;
+  const key = `g${clear.group}s${clear.activeSkill}p1`;
+  const e = skillOutputs[key];
+  return e === undefined ? null : { group: clear.group, key, skill: e.skill, fields: e.fields };
 }
 
 /**

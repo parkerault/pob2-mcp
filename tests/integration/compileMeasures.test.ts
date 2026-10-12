@@ -18,6 +18,8 @@
  *   (below 2 m slow, below 4 m medium, else fast) and the steps (on-death text one faster, a use over 1 second one
  *   slower), a stage per band and per step; a stage without reference hits gets D-256's whole numbers at its
  *   rung's area level, and one that lists a hit keeps it.
+ * - D-363: `clearSpeed` reads the clear skill's first stat set: Earthquake's Impact, not its Aftershock, whose
+ *   radius PoB resolves in hash order.
  * - AC-P64 (D-356): `compile_plan`'s reply has a key-figure line after each stage's line.
  */
 import fs from 'fs';
@@ -93,15 +95,18 @@ function ladderPlan(): Json {
     tag: judgment('test: a hit the plan states'),
   });
   add(n);
-  const cs = endgameStage(plan, 'cs', 'budget', 80, 'Stampede');
-  cs.config.customMods = [{ text: '80% reduced Area of Effect', reason: 'test: an area under 2 m' }];
-  add(cs);
-  add(endgameStage(plan, 'cm', 'budget', 80, 'Stampede'));
+  // Stampede's first stat set, Footsteps, has a base radius of 12 (1.2 m): slow as it is, medium with 250% increased
+  // area (2.2 m), fast with 1100% (4.1 m).
+  add(endgameStage(plan, 'cs', 'budget', 80, 'Stampede'));
+  const cm = endgameStage(plan, 'cm', 'budget', 80, 'Stampede');
+  cm.config.customMods = [{ text: '250% increased Area of Effect', reason: 'test: an area from 2 m to below 4 m' }];
+  add(cm);
   const cf = endgameStage(plan, 'cf', 'budget', 80, 'Stampede');
-  cf.config.customMods = [{ text: '100% increased Area of Effect', reason: 'test: an area past 4 m' }];
+  cf.config.customMods = [{ text: '1100% increased Area of Effect', reason: 'test: an area of 4 m or more' }];
   add(cf);
   add(endgameStage(plan, 'cd', 'budget', 80, 'Contagion'));
   add(endgameStage(plan, 'cl', 'budget', 80, 'Leap Slam'));
+  add(endgameStage(plan, 'ce', 'budget', 80, 'Earthquake'));
   return plan;
 }
 
@@ -240,7 +245,7 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
   });
 
   it('AC-P63 (D-353, D-294): dps is the named source\'s Count-scaled TotalDPS and ehp is TotalEHP, on every endgame stage', () => {
-    for (const id of ['m', 'b', 'bplain', 'bs', 'n', 'cs', 'cm', 'cf', 'cd', 'cl']) {
+    for (const id of ['m', 'b', 'bplain', 'bs', 'n', 'cs', 'cm', 'cf', 'cd', 'cl', 'ce']) {
       const s = record.stages[id];
       // Stage 2's main selection: group 1 (Boneshatter, the rolled group), active skill 1, stat set 1.
       expect({ id, dps: s.measures!.dps, ehp: s.measures!.ehp }).toEqual({
@@ -253,19 +258,18 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
   });
 
   it('AC-P63 (D-353): clearSpeed follows the band of the clear skill\'s area and steps a band for on-death text and a long use', () => {
-    const radius = (id: string) => {
-      const s = record.stages[id];
-      return Math.max(0, ...Object.entries(s.skillOutputs).filter(([k]) => /^g2s1p\d+$/.test(k)).map(([, e]) => e.fields.AreaOfEffectRadiusMetres ?? 0));
-    };
+    // D-363: the clear skill's first stat set (group 2, active skill 1).
+    const radius = (id: string) => record.stages[id].skillOutputs.g2s1p1.fields.AreaOfEffectRadiusMetres ?? 0;
     const band = (r: number) => (r < 2 ? 'slow' : r < 4 ? 'medium' : 'fast');
     const rows = ['cs', 'cm', 'cf', 'cd', 'cl'].map((id) => {
       const c = record.stages[id].measures!.clearSpeed;
       return { id, skill: c.skill, radius: c.radiusMetres, band: c.band, onDeath: c.onDeath, longUse: c.longUse, speed: c.speed, rough: c.rough };
     });
     for (const r of rows) expect({ id: r.id, radius: r.radius, band: r.band }).toEqual({ id: r.id, radius: radius(r.id), band: band(radius(r.id)) });
+    for (const id of ['cs', 'cm', 'cf', 'cd', 'cl']) expect({ id, key: record.stages[id].measures!.clearSpeed.key }).toEqual({ id, key: 'g2s1p1' });
     expect(rows).toEqual([
-      // A band each, with no step, by Stampede's slam: with 80% reduced area (under 2 m), as it is (2 to 4 m), and
-      // with 100% increased area (past 4 m).
+      // A band each, with no step, by Stampede's Footsteps: as it is (under 2 m), with 250% increased area (2 m to
+      // below 4 m), and with 1100% increased area (4 m or more).
       { id: 'cs', skill: 'Stampede', radius: expect.any(Number), band: 'slow', onDeath: false, longUse: false, speed: 'slow', rough: true },
       { id: 'cm', skill: 'Stampede', radius: expect.any(Number), band: 'medium', onDeath: false, longUse: false, speed: 'medium', rough: true },
       { id: 'cf', skill: 'Stampede', radius: expect.any(Number), band: 'fast', onDeath: false, longUse: false, speed: 'fast', rough: true },
@@ -276,6 +280,14 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
     const speedOf = (id: string) => record.stages[id].skillOutputs[record.stages[id].measures!.clearSpeed.key!].fields.Speed;
     expect(speedOf('cl')).toBeLessThan(1);
     for (const id of ['cs', 'cm', 'cf', 'cd']) expect({ id, slow: speedOf(id) < 1 }).toEqual({ id, slow: false });
+  });
+
+  it("D-363: an Earthquake clear stage reads its first stat set, Impact: its own 18 base radius, 1.8 m, slow", () => {
+    const s = record.stages.ce;
+    const c = s.measures!.clearSpeed;
+    // Impact's base radius is 18 (Data/Skills/act_str.lua), and the stage has no area modifiers: 1.8 m.
+    expect({ label: s.skillOutputs.g2s1p1.statSetLabel, radius: s.skillOutputs.g2s1p1.fields.AreaOfEffectRadiusMetres }).toEqual({ label: 'Impact', radius: 1.8 });
+    expect({ skill: c.skill, key: c.key, radius: c.radiusMetres, band: c.band }).toEqual({ skill: 'Earthquake', key: 'g2s1p1', radius: 1.8, band: 'slow' });
   });
 
   it("AC-P63 (D-353, D-254, D-256): an endgame stage without reference hits gets D-256's whole numbers at its rung's area level; a hit the plan lists stays", () => {

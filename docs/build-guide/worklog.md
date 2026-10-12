@@ -2967,3 +2967,25 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   D-352, the record's ledger values are stale. So V4 compares guide figures only with the record's measured
   values (stats, `measures`, key figures). Figures that come from the ledger belong to the checker's `[ledger]`,
   over the plan's current formulas. WU-71 must make `[ledger]` cover the guide's ledger-cited figures.
+- **WU-69 fixes** (`5922583`; the doer's total was 296K tokens): `run-folder.md` restated; D-365 in `V4.md`
+  (guide figures only against measured values); the nits. Static and unit suites 1194 of 1194. The coordinator
+  read the diff and confirmed that every stage has a `claims` array (`schema.ts:278`), so the Grep order gives
+  `<i>`.
+- **WU-69 merged** at `8a62dbb`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
+  `bg-69` removed.
+- **WU-70 runs as two doers in series in lane `bg-70`** (off `8a62dbb`), to keep each context lean, which is
+  R-42 and the point of amendment 4:
+  - **A, control flow:**
+    - `SKILL.md`: the design gate, D1's two steps, the round copy (A-34), the per-step card, halving it;
+    - `D1-build.md` and `D1-finish.md` from `D1.md`;
+    - `D1-gate.md` (A-35's display);
+    - `checkpoints.md`, `run-log.md`, `offline-and-test.md` and `task-header.md`;
+    - batching in the agent definitions;
+    - AC-W60 static, and AC-W59 static for D1.
+  - **B, content:**
+    - `D2.md` (D-354's campaign, AC-W59 static for D2);
+    - `W1.md`, `R1b-assemble.md` (D-355's table) and the templates;
+    - excerpts and D-351's claim rule in the remaining stage references;
+    - AC-W53.
+
+  One review covers both.

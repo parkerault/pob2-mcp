@@ -40,7 +40,7 @@ as D-295 words it). Each step below is a short card: read a reference only where
   - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, with `--changed <n>`
     for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34);
   - the audit render, `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder>` (D-355);
-  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356).
+  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356).
 
   Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
   client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing else that writes, moves or deletes a file. Write

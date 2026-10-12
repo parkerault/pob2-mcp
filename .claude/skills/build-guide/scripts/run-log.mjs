@@ -7,6 +7,13 @@
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation '{"stage", "concept", "verdict", "choice", "guidance"?}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set '{"status"?, "roll"?, "outputs"?, "faults"?}'
 //
+// `-` in place of the JSON reads the entry from stdin, as a quoted heredoc gives it, so a text with an apostrophe
+// (a brief's notes, a `revise:` text, a retry's guidance, a final-gate note) needs no shell quoting:
+//
+//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
+//   {"stage", …}
+//   JSON
+//
 // `init` writes the first log (schema 3, `runFolder` the folder given, no roll, empty lists) and never overwrites
 // one; `stage`, `checkpoint` and `escalation` append one entry to `stages[]`, `checkpoints[]` or `escalations[]`;
 // `set` replaces those top-level fields. Each entry has exactly the fields of ../references/run-log.md's entry
@@ -145,12 +152,12 @@ function main(argv) {
   const args = argv.slice(2);
   const kinds = ['init', 'stage', 'checkpoint', 'escalation', 'set'];
   if (args.length !== 3 || !kinds.includes(args[1])) {
-    process.stderr.write(`usage: node run-log.mjs <runFolder> <${kinds.join('|')}> '<json>'\n`);
+    process.stderr.write(`usage: node run-log.mjs <runFolder> <${kinds.join('|')}> '<json>' | -  (- reads the JSON from stdin)\n`);
     return 2;
   }
   let entry;
   try {
-    entry = JSON.parse(args[2]);
+    entry = JSON.parse(args[2] === '-' ? fs.readFileSync(0, 'utf8') : args[2]);
   } catch (e) {
     process.stderr.write(`run-log: the entry isn't JSON: ${e.message}\n`);
     return 1;

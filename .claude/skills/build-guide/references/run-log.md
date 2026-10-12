@@ -145,15 +145,26 @@ Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends
 
 ## Writing it (D-356)
 
-One call per write, the entry as JSON in single quotes, its fields exactly as above, `<runFolder>` the absolute
-path `mcp__pob2__guide_run {new_run}` returned:
+One call per write, the entry as JSON on stdin (`-` in place of the JSON argument) through a quoted heredoc, so
+an apostrophe in a brief's notes, a `revise:` text, a retry's guidance or a final-gate note needs no escaping;
+its fields exactly as above, `<runFolder>` the absolute path `mcp__pob2__guide_run {new_run}` returned:
 
 ```
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> init '{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted"}'
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage '{"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}'
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint '{"checkpoint": "design", "visit": 1, "answer": "accept", "answeredBy": "user"}'
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation '{"stage": "D1-gate", "concept": "r1-a-2", "verdict": "reports/gates/D1-gate-r1-a-2-a3.json", "choice": "stop"}'
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set '{"status": "completed", "outputs": {"plan": "plan.json", "record": "compile-record.json", "dossier": "dossier.md", "guide": "guide.md", "pobFile": "<the D2 gate's pobFile>"}}'
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> init - <<'JSON'
+{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted"}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
+{"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
+{"checkpoint": "design", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user"}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation - <<'JSON'
+{"stage": "D1-gate", "concept": "r1-a-2", "verdict": "reports/gates/D1-gate-r1-a-2-a3.json", "choice": "stop"}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set - <<'JSON'
+{"status": "completed", "outputs": {"plan": "plan.json", "record": "compile-record.json", "dossier": "dossier.md", "guide": "guide.md", "pobFile": "<the D2 gate's pobFile>"}}
+JSON
 ```
 
 - `init` writes the first log (below): `runFolder` the folder given, `roll` null, the lists empty and every

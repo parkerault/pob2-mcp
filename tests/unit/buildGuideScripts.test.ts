@@ -5,8 +5,8 @@
  * - `scripts/render-audit.mjs <runFolder>` (D-355) renders `audit.md` in the form of `templates/audit-template.md`
  *   from the plan, the final compile record and the D1 gate's last verdict file, and a re-render keeps the rows W1
  *   added under `Known issues`;
- * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356) writes the run log in `references/run-log.md`'s entry
- *   form, appending one entry per call, and refuses an entry outside that form.
+ * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356), or `-` for the JSON on stdin, writes the run log in
+ *   `references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form.
  *
  * `--snapshot` and `--changed` (A-34, D-352) are `check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
  * The render loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
@@ -27,7 +27,11 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guide-scripts-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
 function run(script: string, ...args: string[]) {
-  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+  return runWith(undefined, script, ...args);
+}
+/** `run` with `input` on the child's stdin, as a heredoc gives it. */
+function runWith(input: string | undefined, script: string, ...args: string[]) {
+  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 let folders = 0;
@@ -308,14 +312,28 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
 
   it("accepts run-log.md's example calls, and init writes its first-write example", () => {
     const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
-    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (\w+) '(.*)'$/gm)].map((m) => [m[1], m[2]]);
+    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (\w+) - <<'JSON'\n(.*)\nJSON$/gm)].map((m) => [m[1], `${m[2]}\n`]);
     expect(calls.map(([kind]) => kind)).toEqual(['init', 'stage', 'checkpoint', 'escalation', 'set']);
     const dir = folder();
-    for (const [kind, json] of calls) expect({ kind, ...run(RUN_LOG, dir, kind, json) }).toMatchObject({ kind, code: 0, stderr: '' });
+    for (const [kind, json] of calls) expect({ kind, ...runWith(json, RUN_LOG, dir, kind, '-') }).toMatchObject({ kind, code: 0, stderr: '' });
     const first = folder();
-    expect(run(RUN_LOG, first, 'init', calls[0][1]).code).toBe(0);
+    expect(runWith(calls[0][1], RUN_LOG, first, 'init', '-').code).toBe(0);
     const example = JSON.parse(/## A first write[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]) as Json;
     expect(readJson(first, 'run-log.json')).toEqual({ ...example, runFolder: first });
+  });
+
+  it("reads the entry from stdin for -, as a quoted heredoc gives it: a text with an apostrophe needs no shell quoting", () => {
+    const dir = started();
+    const answer = "revise:the build's helmet costs too much; keep Blood Hunt's leap";
+    expect(runWith(`${JSON.stringify({ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' })}\n`, RUN_LOG, dir, 'checkpoint', '-')).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
+    expect(readJson(dir, 'run-log.json').checkpoints).toEqual([{ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' }]);
+    // Through a real shell heredoc too, the form references/run-log.md gives.
+    const sh = spawnSync('/bin/sh', ['-c', `"${process.execPath}" "${RUN_LOG}" "${dir}" escalation - <<'JSON'\n{"stage": "D1-gate", "concept": "${CARD}", "verdict": "reports/gates/D1-gate-${CARD}-a1.json", "choice": "retry", "guidance": "don't drop the helmet's life"}\nJSON\n`], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+    expect({ code: sh.status, stdout: sh.stdout, stderr: sh.stderr }).toEqual({ code: 0, stdout: 'run-log: wrote escalations[0]\n', stderr: '' });
+    expect(readJson(dir, 'run-log.json').escalations[0].guidance).toBe("don't drop the helmet's life");
+    // An empty stdin is no JSON, and nothing is written.
+    expect(runWith('', RUN_LOG, dir, 'stage', '-')).toMatchObject({ code: 1, stdout: '' });
+    expect(readJson(dir, 'run-log.json').stages).toEqual([]);
   });
 
   it('refuses before the first write, a schema-2 log, a non-JSON entry and a bad command line', () => {

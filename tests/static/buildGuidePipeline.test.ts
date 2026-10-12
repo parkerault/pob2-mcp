@@ -1336,7 +1336,7 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> '<json>'` \(D-356\)\. Nothing else/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\)\. Nothing else/);
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
@@ -2737,7 +2737,8 @@ describe('WU-71 (D-355, D-356): the audit render and the run-log script, wired i
     const log = ref('run-log.md');
     expect(log).toMatch(/Only the runner writes it, and only through `scripts\/run-log\.mjs` \(D-356, "Writing it" below\), never with Write or Edit/);
     expect(log).not.toMatch(/rewrites it whole/);
-    for (const kind of ['init', 'stage', 'checkpoint', 'escalation', 'set']) expect(log).toContain(`node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> ${kind} '{`);
+    for (const kind of ['init', 'stage', 'checkpoint', 'escalation', 'set']) expect(log).toContain(`node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> ${kind} - <<'JSON' {`);
+    expect(log).not.toMatch(/run-log\.mjs <runFolder> \w+ '\{/);
   });
 });
 

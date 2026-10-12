@@ -580,7 +580,8 @@ function itemGrantedSkills(items: Stage['items']): Set<string> {
  * like the interlude's penalty); an item-granted skill's follow its item's sockets and a gem's its own, so
  * neither is checked. Neither the plan's groups nor PoB's gem list say where a group's skill comes from (PoB's
  * own granted groups, `group.source`, are left out of the gem list), so a group's skill is its first non-support
- * gem, and the group is tree-granted by elimination: the skill is tier 0, which no uncut gem engraves (C1's
+ * gem, and the group is tree-granted by elimination: the skill is tier 0 in PoB's data (an unknown tier is never
+ * flagged), which no uncut gem engraves (C1's
  * `skill-tiers`), and no `Grants Skill:` line of the stage's item texts names it. One finding per group over the
  * ceiling, counting every support the group holds; the verdict rests on the estimate, so it is noted (A-29).
  */
@@ -599,7 +600,7 @@ export function checkSupportSockets(
   for (const gem of checks.gems) groups.set(gem.group, [...(groups.get(gem.group) ?? []), gem]);
   for (const [group, gems] of [...groups].sort(([a], [b]) => a - b)) {
     const skill = gems.filter((g) => g.kind !== 'support').sort((a, b) => a.index - b.index)[0];
-    if (skill === undefined || (skill.tier ?? 0) > 0 || byItem.has(skill.name.toLowerCase())) continue;
+    if (skill === undefined || skill.tier !== 0 || byItem.has(skill.name.toLowerCase())) continue;
     facts.rely('support-sockets', table);
     const supports = gems.filter((g) => g.kind === 'support').length;
     if (supports <= ceiling) continue;
@@ -608,7 +609,8 @@ export function checkSupportSockets(
       message:
         `${skill.name} (skill group ${group}) is a tree-granted skill (tier 0, and no item of the stage grants it) with ` +
         `${supports} supports, above the estimated ceiling of ${ceiling} at level ${stage.level} ` +
-        `(${C1.gems}#${TREE_GRANTED_SUPPORTS}, confidence ${table.fact.confidence}, D-359): a skill a passive grants takes no Jeweller's Orb`,
+        `(${C1.gems}#${TREE_GRANTED_SUPPORTS}, confidence ${table.fact.confidence}, D-359): a skill a passive grants takes no Jeweller's Orb. ` +
+        `If an item grants it, its item text lacks the \`Grants Skill:\` line`,
       data: { group, skill: skill.name, supports, ceiling, level: stage.level, fact: TREE_GRANTED_SUPPORTS },
     });
   }

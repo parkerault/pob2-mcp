@@ -459,6 +459,11 @@ describe('AC-P66 (WU-67, D-359): support-sockets over the estimated table', () =
     expect(without.notes.filter((n) => n.code === 'support-sockets')).toEqual([]);
     expect(without.pass).toBe(true);
   });
+
+  it('never a skill whose tier PoB\'s data doesn\'t give, however many supports', () => {
+    const unknown = group(1, 'Some Skill', 0, 6).map((g) => (g.kind === 'support' ? g : { ...g, tier: undefined }));
+    expect(flagged(run(39, unknown))).toEqual([]);
+  });
 });
 
 describe('V2 over hand-made stage inputs', () => {

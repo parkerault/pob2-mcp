@@ -2824,3 +2824,12 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   the fix should be the cheapest one. The radius is read from the clear skill's first stat set, which is
   deterministic for Earthquake's Impact. One ordinary engine test; no general rule and no multi-start test. The
   fixer was redirected, and slice 02's text was changed to match.
+- **The WU-65 fixer's first pass came back before the redirect reached it.** At `1d90384` it holds:
+  - a general own-stat-map radius rule in `Compile.lua` (:829-929), replacing the radius fields in
+    `skillOutputs`;
+  - a six-engine-start test that failed on the unfixed code and passed 7 of 7 with the fix;
+  - the three nits, with `CompileResult.mains` added so every stage's DPS goes through `headlineDps`.
+
+  The gate passed: 125 suites, 2140 tests, build rc=0. The redirect then resumed it: it replaces the rule with the
+  first stat set and swaps in one plain test. That leaves PoB's own outputs untouched and the code smaller.
+  - **For the fold:** slice 02:792's `producer-absent` text for passives should gain "or a notable an item grants".

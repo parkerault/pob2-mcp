@@ -2799,3 +2799,24 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - **A possible defect:** Earthquake's Aftershock measured 1.8 m on some runs and 2.7 m on others. The reviewer
     checks whether the area measure is deterministic.
   - **Review and gate:** dispatched to an independent reviewer.
+- **WU-65 review: FAIL, one blocker** (reviewer 229K tokens, Opus). The gate passes from clean: 124 suites, 2139
+  tests, NFR 2 of 2, build rc=0. Waivers are `[]` and the dependencies unchanged. The ACs map to faithful tests,
+  scope is met, and every deviation is accepted.
+  - **The blocker: `clearSpeed` isn't reproducible for Earthquake.** `record.ts:383` takes the largest-area stat
+    set. In PoB2, two radius stats of Aftershock's stat set map to `skill("radius")`:
+    - its own map, 18 (`Data/Skills/act_str.lua:4212`);
+    - the global base map, 27 (`Data/SkillStatMap.lua:633`).
+
+    They are applied in `pairs()` order (`CalcActiveSkill.lua:97`), the last winning (`:895-896`). LuaJIT seeds
+    its string hash per process, so it read 2.7 m in 3 engine starts and 1.8 m in 5. A scan of the pinned data
+    finds only this collision.
+  - **Nits:**
+    - `compiler.ts:536`: two DPS code paths;
+    - `v2.ts:13`: the `producer-absent` text omits item-granted notables;
+    - `Compile.lua:549`: a comment.
+    - The reviewer's 4.0 m nit is rejected: the user's Q2 says "4 m or more fast", as built. Slice 02's text is
+      tightened to match.
+- **D-363 (the coordinator's decision, PROPOSED):** the area is measured deterministically. A stat set whose
+  radius PoB2 resolves in hash order is read by its own stat map, which here is also the smaller, cautious
+  radius. An engine test asserts the value over several engine starts. The doer's context was over 400K, so a
+  fresh fixer gets the blocker and the nits.

@@ -2854,3 +2854,22 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 - **Wave 2:** lanes `bg-66` (WU-66, `tree-shape` and the path tools; HG-12 granted) and `bg-68` (WU-68,
   `guide_run`'s views), both off `b3a4e05`. Serialized: `Compile.lua` and `v1.ts` go to WU-66, then WU-67;
   `planHandlers.ts` to WU-68.
+- **WU-68: built** (head `c444ebd`; the doer used 196K tokens). The doer reports the gate passing: 124 suites,
+  2,154 tests, build rc=0; the counts stay 84/83.
+  - **The views:**
+    - `{view: {plan, stage}}` gives a header, the record's current/stale status, the key-figure line and the stage
+      as compact JSON, 11.7–16.0 KB on the fifteen-stage fixture;
+    - `{view: {plan, claims: true}}` gives one line per claim, 1.6 KB, capped at 50,000 characters at a stage
+      boundary.
+  - **Deviations:**
+    - `toolRouter.ts`: a call with `view` is kind `none`;
+    - the views skip the schema check;
+    - the stage view has a status line;
+    - the description's first sentence changed.
+  - **Friction for WU-69:** the verifier has no `guide_run` today. A per-tool allowlist would also give it
+    `new_run` and `validate`, and `validate` starts the engine. `buildGuidePipeline.test.ts` keeps `guide_run`
+    coordinator-only. The claims view prints ledger ids, not values.
+  - **Friction for WU-70:**
+    - the stage JSON isn't the file's own formatting, so anchoring an Edit still needs Read or Grep;
+    - views take no lock, so they can be batched.
+  - **Review:** dispatched.

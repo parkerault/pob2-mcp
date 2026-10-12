@@ -447,7 +447,7 @@ neither has an anoint; a claim's `kind` and an endgame stage's anoint are shown 
       "level": 5,
       "progress": "q.act-1-clearfell-beira",
       "tree": {
-        "nodes": [3936, 46325, 13397, 38646],
+        "nodes": [3936, 46325, 13397, 33556],
         "ascendancyNodes": [],
         "weaponSetNodes": { "set1": [], "set2": [] },
         "attributeChoices": [{ "node": 13397, "attribute": "strength" }]
@@ -563,7 +563,7 @@ neither has an anoint; a claim's `kind` and an endgame stage's anoint are shown 
       "level": 14,
       "progress": "q.act-1-ogham-manor-candlemass",
       "tree": {
-        "nodes": [3936, 46325, 13397, 38646, 33556, 55473, 39581, 6839, 5710, 1913, 4665, 61534, 7721],
+        "nodes": [3936, 46325, 13397, 33556, 55473, 39581, 6839, 5710, 43164, 6529, 32416, 53443, 59767],
         "ascendancyNodes": [],
         "weaponSetNodes": { "set1": [], "set2": [] },
         "attributeChoices": [{ "node": 13397, "attribute": "strength" }]

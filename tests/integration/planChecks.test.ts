@@ -406,7 +406,8 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
   it('AC-P40 weapon-set-points: stage 1 tags more set1 nodes than its weapon-set points', async () => {
     const plan = fixturePlan();
     const s = plan.stages[0];
-    s.tree.weaponSetNodes.set1 = [38646];
+    // 33556, a leaf of stage 1's tree.
+    s.tree.weaponSetNodes.set1 = [33556];
     const { record } = await measure(plan, ['1']);
     const [, , , , ws1] = await luaQuery<number[]>('return { build.spec:CountAllocNodes() }');
     expect(ws1).toBe(1);
@@ -595,7 +596,8 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
   it('AC-P40 pob-warning filter: set2 with fewer tagged nodes than set1 is no finding; PoB\'s line is in pobWarnings.filtered', async () => {
     const plan = fixturePlan();
     const s = plan.stages[1];
-    s.tree.weaponSetNodes.set1 = [7721];
+    // 32416 (Sturdy Metal), a leaf of stage 2's tree.
+    s.tree.weaponSetNodes.set1 = [32416];
     const { record } = await measure(plan, ['2']);
     const [, , , , ws1, ws2] = await luaQuery<number[]>('return { build.spec:CountAllocNodes() }');
     expect([ws1, ws2]).toEqual([1, 0]);
@@ -856,12 +858,16 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
   }, ENGINE_TIMEOUT);
 
   it('AC-P43 (A-29): an endgame stage with 124 regular points passes, with a note naming passive-points.martyr (M)', async () => {
-    // 124 connected regular nodes from the Warrior's start (breadth first, ascendancy and jewel sockets left out).
+    // 124 connected regular nodes off the Warrior start's exit 3936, the fixture's (breadth first; ascendancy
+    // nodes, masteries, jewel sockets and the start's other exits left out, so the tree leaves its start by one
+    // exit, D-360).
     const tree = await luaQuery<{ nodes: number[]; attributes: number[] }>(String.raw`
       local tree = main:LoadTree(latestTreeVersion)
       local nodes, start = tree.nodes, nil
       for _, c in pairs(tree.classes) do if c.name == 'Warrior' then start = c.startNodeId end end
-      local picked, attributes, seen, queue, qi = {}, {}, { [start] = true }, { start }, 1
+      local seen = { [start] = true }
+      for _, o in ipairs(nodes[start].linkedId) do seen[o] = true end
+      local picked, attributes, queue, qi = { 3936 }, {}, { 3936 }, 1
       while qi <= #queue and #picked < 124 do
         local id = queue[qi]; qi = qi + 1
         local links = {}
@@ -870,7 +876,8 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
         for _, o in ipairs(links) do
           local n = nodes[o]
           if n and not seen[o] and #picked < 124 and not n.ascendancyName and n.type ~= 'ClassStart'
-              and n.type ~= 'AscendClassStart' and not n.isMultipleChoiceOption and n.type ~= 'Socket' and not n.containJewelSocket then
+              and n.type ~= 'AscendClassStart' and n.type ~= 'Mastery' and not n.isMultipleChoiceOption and n.type ~= 'Socket'
+              and not n.containJewelSocket then
             seen[o] = true
             queue[#queue + 1] = o
             picked[#picked + 1] = o

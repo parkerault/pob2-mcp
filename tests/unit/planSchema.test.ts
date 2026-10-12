@@ -489,7 +489,7 @@ describe('C-31 rules beyond the AC-P10 table', () => {
   it('a set2 node also in set1, an attribute choice off the tree, a repeated slot, a jewel off the tree', () => {
     const p = fixture();
     const s = p.stages[1];
-    s.tree.weaponSetNodes = { set1: [7721], set2: [7721] };
+    s.tree.weaponSetNodes = { set1: [32416], set2: [32416] };
     s.tree.attributeChoices.push({ node: 5, attribute: 'dexterity' });
     s.items.slots.push({ slot: 'Boots', text: 'Rarity: Normal\nRough Greaves' });
     s.items.treeJewels.push({ node: 6, text: 'Rarity: Normal\nRuby' });

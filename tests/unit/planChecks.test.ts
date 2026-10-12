@@ -176,10 +176,10 @@ describe('AC-P59 (WU-61, D-282): tree-continuity along the ladder, through check
   it('AC-P59: b dropping a node of m is a finding on b against m; m dropping a campaign node is a finding on m against stage 2', () => {
     const plan = ladderPlan();
     drop(plan, 'b', 900001);
-    drop(plan, 'm', 7721);
-    expect(continuity(plan)).toEqual({ ...none, m: [{ predecessor: '2', dropped: [7721] }], b: [{ predecessor: 'm', dropped: [900001] }] });
+    drop(plan, 'm', 32416);
+    expect(continuity(plan)).toEqual({ ...none, m: [{ predecessor: '2', dropped: [32416] }], b: [{ predecessor: 'm', dropped: [900001] }] });
     respec(plan, 'b', [900001]);
-    respec(plan, 'm', [7721]);
+    respec(plan, 'm', [32416]);
     expect(continuity(plan)).toEqual(none);
   });
 

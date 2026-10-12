@@ -2873,3 +2873,19 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - the stage JSON isn't the file's own formatting, so anchoring an Edit still needs Read or Grep;
     - views take no lock, so they can be batched.
   - **Review:** dispatched.
+- **WU-68 review: PASS** (reviewer 138K tokens). No blocker and no should-fix. Its own gate: 124 suites, 2,154
+  tests, NFR 2 of 2, build rc=0.
+  - **Confirmed:**
+    - the tests are faithful: the real router and a real measure-only compile; all 16 replies are at most 25,000
+      bytes;
+    - the byte bound is sound;
+    - C-50's routing holds;
+    - path traversal is contained: absolute paths, `..`, symlinks out and a directory are all refused.
+  - **Every deviation is accepted.**
+  - **Nits:**
+    - the 50,000-character cap is a rule of thumb;
+    - the stage view is uncapped;
+    - *for the fold:* C-50's kind sentence should gain "or `view`" (`toolRouter.ts:142`).
+  - The reviewer wrote a gate log into the session scratchpad. The coordinator deleted it.
+- **WU-68 merged** at `d761f63`. At the merged head: build rc=0, static and unit suites 1190 of 1190. Lane
+  `bg-68` removed. **WU-69 is next** (V4: one pass); WU-66 is still building.

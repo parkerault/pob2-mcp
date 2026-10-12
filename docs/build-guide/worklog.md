@@ -3076,3 +3076,28 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - **Cost:** V4 doesn't check `reason` claims, and they count toward AC-W58's 56.
   - **The rejected alternative:** node names in `guide_run`'s stage view. That's more code for the same result.
 - **WU-70 review:** one reviewer for parts A and B.
+- **WU-70 review: FAIL on one should-fix** (S1). Static and unit suites 1252 of 1252; the reviewer confirmed that
+  49 of part B's tests fail against part A's text. No blocker, and every deviation is accepted.
+  - **S1:** D1-finish after D1-build (in a fix round, or a design `revise:`) isn't told what moved. It may return
+    `build:` again and loop, a changed slot keeps its old price, the log has no outcome, and the design card has
+    no route for a `build:` return.
+  - **Nits:**
+    - N1: W1 reads `plan.json` whole, stage by stage; the views are enough now that D-366's claims name the path;
+    - N2: the default `stop` is missing from `SKILL.md`;
+    - N3: wording;
+    - N4: the verifier's `exists:` re-run rule was dropped, so a re-run would stop the run;
+    - N5: a stale template example;
+    - N6: D1-gate's bare D-numbers;
+    - N7: `rounds/<n>/` is missing from the layout.
+  - **N8, open:** `buildSha1` includes `prices`, so a price fix recompiles and re-runs the D1 gate, D2 gate and
+    W1 chain. That's conservative, and it matters only online, since offline runs have no prices. It's left as
+    built; revisit if the live run (M-13) shows the cost.
+  - **For WU-71, beyond the doers' lists:**
+    - D2's `design`-visit rule applies to the design phase only;
+    - handle S1's D1-finish;
+    - `b-anoint` in `basis` is undefined;
+    - the dossier is ten columns;
+    - the audit render writes `None.` under Known issues and keeps W1's accepted-finding rows on a re-render;
+    - re-render after every final compile;
+    - `SKILL.md` is capped at 221 lines.
+  - **The fixes** went to part B's doer (333K, under the limit).

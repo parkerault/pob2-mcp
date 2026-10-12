@@ -2839,3 +2839,18 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     commit `70110aa` (two lines, two unit tests) reads the main selection's `statSet` when the clear skill is the
     main skill, else stat set 1. Slice 02's text matches.
   - **Narrow re-review:** the reviewer was resumed on `54d1ee6..70110aa`, with the full gate.
+- **WU-65 re-review: PASS** (the reviewer's total use was 252K tokens).
+  - **Gate from clean:** 124 suites, 2142 tests, NFR 2 of 2, build rc=0.
+  - **Confirmed:**
+    - the blocker is gone, and the Earthquake test is deterministic;
+    - `Compile.lua` differs from `54d1ee6` only by a comment;
+    - the reverted code is gone;
+    - nits 1–3 are done;
+    - the Stampede fixture change and `CompileResult.mains` are accepted.
+  - **One should-fix:** a `clear`-role group that is the main group ignored the main selection's stat set. The
+    coordinator fixed it in `b3a4e05`, with a unit test (the unit suite passes 10 of 10).
+- **WU-65 merged** at `b3a4e05`, fast-forward after a rebase. At the merged head: `pnpm build` rc=0, static and
+  unit suites 1190 of 1190. Lane `bg-65` removed.
+- **Wave 2:** lanes `bg-66` (WU-66, `tree-shape` and the path tools; HG-12 granted) and `bg-68` (WU-68,
+  `guide_run`'s views), both off `b3a4e05`. Serialized: `Compile.lua` and `v1.ts` go to WU-66, then WU-67;
+  `planHandlers.ts` to WU-68.

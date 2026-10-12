@@ -128,6 +128,7 @@ export class TreeService {
       if (rn.isMastery) node.isMastery = true;
       if (rn.isJewelSocket) node.isJewelSocket = true;
       if (rn.isAscendancyStart) node.isAscendancyStart = true;
+      if (Array.isArray(rn.classesStart) && rn.classesStart.length > 0) node.isClassStart = true;
       if (rn.ascendancyName) node.ascendancyName = rn.ascendancyName;
       node.out = [];
       node.in = [];
@@ -289,6 +290,51 @@ export class TreeService {
     };
   }
 
+  /**
+   * D-360 (WU-66): the steps a path may take, so the path tools keep the tree valid in shape (one start exit per
+   * tree, one tree per start, an alternate start only while its node is allocated, one ascendancy tree). PoB's
+   * own pathing never passes through a start either (PassiveSpec:BuildPathFromNode); PoB2 v0.23.1 doesn't count
+   * exits, so the rule is ours. A start is open when it is allocated: a class start, or an ascendancy node with
+   * main-tree links (an alternate start: Path of the Sorceress, 12795, links the Sorceress start's exits 4739 and
+   * 44871); its exits are its main-tree links, and it holds a tree once one of them is allocated. A step from
+   * `fromId` to `toId`:
+   * - never enters a start: allocated starts are where the search begins, and a path never passes through an
+   *   unallocated one;
+   * - leaves a start for the main tree only from an open start that holds no tree;
+   * - from the main tree, never enters an open start's exit (the tree would hold two exits) or an ascendancy
+   *   node (it would be cut off from the ascendancy start).
+   */
+  private treeStepRule(allocatedNodes: Set<string>, treeData: PassiveTreeData): (fromId: string, toId: string) => boolean {
+    const nodes = treeData.nodes;
+    const isStart = (n: PassiveTreeNode) => n.isClassStart === true || n.isAscendancyStart === true;
+    const isMain = (n: PassiveTreeNode) => n.ascendancyName === undefined && !isStart(n);
+    const exitsOf = new Map<string, string[]>();
+    const openExit = new Set<string>();
+    for (const id of allocatedNodes) {
+      const n = nodes.get(id);
+      if (!n || !(n.isClassStart === true || n.ascendancyName !== undefined)) continue;
+      const exits = [...(n.out || []), ...(n.in || [])].filter((o) => {
+        const other = nodes.get(o);
+        return other !== undefined && isMain(other);
+      });
+      if (exits.length === 0) continue;
+      exitsOf.set(id, exits);
+      for (const e of exits) openExit.add(e);
+    }
+    const holdsTree = (id: string) => exitsOf.get(id)!.some((e) => allocatedNodes.has(e));
+    return (fromId, toId) => {
+      const from = nodes.get(fromId);
+      const to = nodes.get(toId);
+      if (!from || !to) return true;
+      if (isStart(to)) return false;
+      if (isMain(to)) {
+        if (!isMain(from)) return exitsOf.has(fromId) && !holdsTree(fromId);
+        return !openExit.has(toId);
+      }
+      return !isMain(from);
+    };
+  }
+
   findNearbyNodes(
     allocatedNodes: Set<string>,
     treeData: PassiveTreeData,
@@ -315,6 +361,7 @@ export class TreeService {
     }
 
     const filterLower = filter?.toLowerCase();
+    const step = this.treeStepRule(allocatedNodes, treeData);
 
     let head = 0;
     while (head < queue.length) {
@@ -330,6 +377,7 @@ export class TreeService {
       const neighbors = [...(currentNode.out || []), ...(currentNode.in || [])];
       for (const neighborId of neighbors) {
         if (visited.has(neighborId)) continue;
+        if (!step(currentId, neighborId)) continue;
         visited.add(neighborId);
 
         const neighborDist = dist + 1;
@@ -371,6 +419,7 @@ export class TreeService {
     const visited = new Set<string>();
     const previous = new Map<string, string | null>();
     const queue: string[] = [];
+    const step = this.treeStepRule(allocatedNodes, treeData);
 
     for (const nodeId of allocatedNodes) {
       if (treeData.nodes.has(nodeId)) {
@@ -393,6 +442,7 @@ export class TreeService {
       const neighbors = [...(currentNode.out || []), ...(currentNode.in || [])];
       for (const neighborId of neighbors) {
         if (visited.has(neighborId)) continue;
+        if (!step(currentId, neighborId)) continue;
         visited.add(neighborId);
         previous.set(neighborId, currentId);
         queue.push(neighborId);

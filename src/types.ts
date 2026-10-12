@@ -9,6 +9,8 @@ export interface PassiveTreeNode {
   isMastery?: boolean;
   isJewelSocket?: boolean;
   isAscendancyStart?: boolean;
+  /** A class start node (tree.json `classesStart`): the start of the classes it names (D-360). */
+  isClassStart?: boolean;
   ascendancyName?: string;
   group?: number;
   orbit?: number;

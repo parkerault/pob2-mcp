@@ -3148,3 +3148,21 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - **Not checked:** that a full pass's `## Checked` lists every hinge claim, and the D1 gate's `design` field.
   - **Review:** one reviewer for parts A and B. It is focused on whether the checker would reject a valid real
     run, and on rules stricter than the spec.
+- **WU-71 review: PASS, with 2 should-fixes and 4 nits.** Static and unit suites 1300 of 1300; the four fixtures
+  rc=0.
+  - **The real-run simulation.** The reviewer rebuilt a run-A-like log only through `run-log.mjs`, by
+    `run-log.md`'s call forms. The checker took it, with four fix-round and revision variants. The
+    `render-audit.mjs` re-render reproduced the fixture's `audit.md` byte for byte. The V4 report, dossier and
+    verdict-line forms pass. All writes stay in the run folder, and nothing touches the network.
+  - **Every deviation is accepted.**
+  - **Should-fix 1:** the verdict-line DPS is checked against the gate's `basis.rolledSkill` (`:1435`), but W1
+    writes `measures.dps`.
+  - **Should-fix 2:** `[ledger]` (`:1270`) requires a ledger claim to state the entry's value, which D1-finish isn't
+    told; a true claim stating an input fails. Both would reject a valid run.
+  - **Nits:**
+    - exact apostrophe and dash characters;
+    - HTML comments in the dossier;
+    - `--snapshot` partial rounds and an uncaught throw;
+    - a stray `run-log.json.tmp`;
+    - apostrophes breaking `run-log.mjs`'s single-quoted JSON, so it reads stdin with a heredoc.
+  - **Fixes:** dispatched to a fresh fixer, since part B's doer ended at 680K.

@@ -2,9 +2,9 @@
 
 Every claim shows its source (D-105, C-30): the plan's claims carry their tags, and the guide renders the
 plan with no markers at all (D-276). This page is how a claim is tagged in the plan and in the research
-markdown (slice 03 §7.3), the three rules every claim keeps, and the V4 report shape (§7.4, as amendments 1
-and 2 change it). The run checker checks that every marker resolves and parses as a tag, and that `guide.md`
-carries none; the V4 verifiers check that every claim is true.
+markdown (slice 03 §7.3), the three rules every claim keeps, and the V4 report (§7.4, as amendment 4
+changes it, D-352). The run checker checks that every marker resolves and parses as a tag, and that
+`guide.md` carries none; the V4 verifier checks that every hinge claim is true.
 
 ## Source tags (C-30)
 
@@ -72,8 +72,8 @@ entry or fact, in any plan of the run (concept skeletons included).
 
 ## The claim rules
 
-Every step that writes a claim keeps these three rules, and the V4 lenses check every claim against them
-(amendment 1 S7):
+Every step that writes a claim keeps these three rules, and V4 checks every hinge claim against them
+(amendment 1 S7, D-352):
 
 1. **Supported in every part.** The source supports all of the claim: each number, each mechanic and each
    qualifier ("always", "on hit", "against bosses"). A part its source doesn't support gets its own source,
@@ -85,55 +85,73 @@ Every step that writes a claim keeps these three rules, and the V4 lenses check 
    appears once, where the reader acts on it, and is never later stated as settled (D-279).
 
 A plan claim without a `source`, or a research or dossier claim without a marker, is a claim without a source:
-the V4 `sources` lens reports a plan claim's. A fact the guide states that no plan claim, record field, ledger
-entry or price holds is the `prose` lens's finding.
+V4 reports a plan claim's. A fact the guide states that no plan claim, record field, ledger entry or price
+holds is a V4 finding of its editor read.
 
 ## The V4 report
 
-The verifiers can't write (R-5): a report is the verifier's return, and the runner writes it unchanged to
-`reports/v4-<lens>.json` (the full pass, `check: "full"`) or `reports/v4-<lens>-recheck.json` (the re-check,
-`check: "recheck"`).
+One verifier, one pass, no lenses (D-352). Each pass writes its own report, `reports/V4-<n>.md`, with its
+one Write, and never overwrites one: `<n>` is one more than the last report's, 1 for the run's first. The
+full pass checks every hinge claim and every H2 of `guide.md`; a re-check, after the fix round or a
+revision, checks only what `check-run.mjs --changed <n-1>` printed, against the round copy `rounds/<n-1>/`.
+The report is markdown, read by line; `stages/V4.md` (Writes) gives it with an example:
 
-```json
-{
-  "stage": "V4",
-  "lens": "sources",
-  "check": "full",
-  "concept": "r1-a-2",
-  "mode": "offline",
-  "findings": [
-    { "id": "v4-sources-1", "artifact": "plan.json", "location": "stages[2].claims[5]",
-      "claim": "…", "issue": "tagged external-unavailable", "evidence": "the run log's mode is offline",
-      "owner": "D1", "status": "accepted-offline" }
-  ],
-  "verdict": "pass"
-}
+```markdown
+# V4-<n>: <full pass, or re-check of rounds/<n-1>>
+
+- check: <full or recheck>
+- concept: <card id>
+- mode: <offline or online, the run log's>
+- verdict: <pass or fail>
+
+## Checked
+
+- claim stages[<i>].claims[<k>] (<claim id>)
+- section <H2 title>
+
+## Findings
+
+### v4-<n>-<k>
+
+- status: <unresolved, accepted-offline, or fixed in a re-check>
+- hinge: <yes or no>
+- owner: <D1, D2 or W1>
+- artifact: <plan.json or guide.md>
+- location: <stages[<i>].claims[<k>] (<claim id>), or <H2 title>, line <n>>
+- claim: <the claim's text, or the guide's sentence>
+- issue: <what is wrong>
+- evidence: <what was looked up or derived, with the numbers>
+- reader: <one plain sentence for the guide's reader; an unresolved finding only>
 ```
 
-- `stage` is `V4`; `lens` is `ledger`, `sources` or `prose`; `check` is `full` or `recheck`, as the header
-  says; `mode` is the run log's. The dossier isn't verified: it serves the verification gate's pick, and the
-  guide can't cite it (amendment 1 S3).
-- Each finding has `id`, `artifact` (`plan.json`, `guide.md`, or `audit.md` for the prose lens's check of
-  "why this concept"), `location`, `claim`, `issue`, `evidence`, `reader` (only when `unresolved`), `owner`
-  (`W1`, `D1` or `D2`: the step that wrote the claim) and `status`: `unresolved`, `accepted-offline`, or in a re-check `fixed` (a finding of the header's `findings`
-  that now holds).
+- Each field is one `- <key>: <value>` line with its value on that line, in this order. `## Findings` holds
+  one H3 per finding, its id, or the one line `None.`.
+- `## Checked` lists what the pass checked: in the full pass, every hinge claim and every H2 of `guide.md`;
+  in a re-check, every line `--changed` printed, as printed. The run checker fails a re-check that misses one,
+  and an overwritten report.
+- `hinge` is the triage (`stages/V4.md`): a `hinge: no` finding is fixed by removing or narrowing the
+  statement, never by new research or a recompile, and a difference under 5% in an estimate is no finding.
+- `owner` is the step that wrote it: `W1` for `guide.md`; for a plan claim, `D1` on an endgame stage and `D2`
+  on a campaign stage. The dossier isn't verified: it serves the verification gate's pick, and the guide
+  can't cite it (amendment 1 S3).
+- `status` is `unresolved`, `accepted-offline`, or in a re-check `fixed` (a finding of the header's
+  `findings` that now holds). A re-check reports again, under its id, every finding still open: one nothing
+  changed stays `unresolved` as it was.
 - `reader` (D-265) is one plain sentence the guide's reader can act on: what is wrong in the guide and what
   is true instead, in the guide's words, with no pipeline words (lens, finding, owner, claim, location) and
   no JSON path: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance." Only an
   `unresolved` finding can become a known issue, so only it carries one; the run checker fails an
   `unresolved` finding without it. A `fixed` or `accepted-offline` finding needs none.
 - `verdict` is `pass` exactly when no finding is `unresolved`.
-- `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), and only in the
-  V4 `sources` report, its `location` naming that plan claim (`stages[<i>].claims[<k>]`).
-  In an online run such a claim is `unresolved`. The run checker resolves the location and fails any other
-  `accepted-offline`.
-- **Open findings.** A finding is open after the re-check when its lens's re-check reports it
-  `unresolved`, or when the full pass reports it `unresolved` and no re-check reports it `fixed`. The runner
-  replaces both Known issues lists every cycle (SKILL.md step 14, D-265, D-276): in the guide, W1's
-  accepted-gate-finding sentences, then every open finding as `- <reader>`, its `reader` sentence as the report
-  gives it, with no id; in `audit.md`'s table, W1's accepted rows, then every open finding's row
-  `| <id> | <lens> | — | <reader> |`. The run checker finds each open finding's sentence in the guide, by
-  sentence, and its id in `audit.md`, and fails any other line or row.
-- A superseded report (a later report of its lens ran after it) is checked against the artifact as it was
-  when it was written: once a step wrote that artifact after it, the run checker doesn't resolve its
-  locations (D-265).
+- `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), its `location`
+  naming that plan claim (`stages[<i>].claims[<k>] (<claim id>)`). In an online run such a claim is
+  `unresolved`. The run checker resolves the location and fails any other `accepted-offline`.
+- **Open findings.** The findings open after the checks are the `unresolved` findings of the last report,
+  the `reports/V4-<n>.md` with the highest `<n>`. The runner replaces both Known issues lists every cycle
+  (SKILL.md step 14, D-265, D-276): in the guide, W1's accepted-gate-finding sentences, then every open
+  finding as `- <reader>`, its `reader` sentence as the report gives it, with no id; in `audit.md`'s table,
+  W1's accepted rows, then every open finding's row `| <id> | V4 | — | <reader> |`. The run checker finds
+  each open finding's sentence in the guide, by sentence, and its id in `audit.md`, and fails any other line
+  or row.
+- A superseded report (a later report ran after it) is checked against the artifact as it was when it was
+  written: once a step wrote that artifact after it, the run checker doesn't resolve its locations (D-265).

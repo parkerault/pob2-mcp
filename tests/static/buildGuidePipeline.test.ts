@@ -30,6 +30,9 @@
  * WU-57 re-opened (D-343, D-344): a support gem a free-text brief names goes in `around`, while the fixed roll's
  * second name is always `skill`; steps 1 to 4 run before any agent, and a missing Agent tool stops the run at its
  * first agent step. AC-W47 pins the P1 probes for both.
+ * Amendment 4 (WU-69, D-352): AC-W52, V4 as one pass with no lenses that re-checks only `check-run.mjs
+ * --changed <n>`'s set and writes its own kept `reports/V4-<n>.md` (the verifier gains Write, R-5 as amended);
+ * and AC-W59's static clause that `V4.md` defines the triage.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -131,7 +134,7 @@ describe('AC-W1: the build-guide skill', () => {
     const at = text.indexOf("The verifier's prompt is always exactly this");
     expect(at).toBeGreaterThan(0);
     const block = /````\n([\s\S]*?)\n````/.exec(text.slice(at))![1].split('\n');
-    expect(block).toEqual(['```json', '<the task header: stage V4, its lens and check>', '```', 'Read .claude/skills/build-guide/references/stages/V4.md and do that step.']);
+    expect(block).toEqual(['```json', '<the task header: stage V4, its check and writes>', '```', 'Read .claude/skills/build-guide/references/stages/V4.md and do that step.']);
   });
 
   it('mentions only references/, templates/ and scripts/ paths that exist', () => {
@@ -199,13 +202,14 @@ const ROWS: Record<string, { file: string[]; pob2: string[]; web: string[] }> = 
   'build-guide-researcher': { file: ['Read', 'Glob', 'Grep', 'Write'], pob2: L, web: ['WebSearch', 'WebFetch'] },
   'build-guide-coordinator': { file: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], pob2: [...L, ...B, ...C, ...P], web: ['WebSearch', 'WebFetch'] },
   'build-guide-writer': { file: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], pob2: [], web: [] },
-  'build-guide-verifier': { file: ['Read', 'Glob', 'Grep'], pob2: L, web: ['WebFetch'] },
+  // R-5 as D-352 amends it (WU-69): the verifier writes its own report, so it gains Write, to reports/ only.
+  'build-guide-verifier': { file: ['Read', 'Glob', 'Grep', 'Write'], pob2: L, web: ['WebFetch'] },
 };
 /** R-4: tools no definition names. */
 const NEVER = ['Bash', 'Agent', 'Skill', 'Workflow', 'NotebookEdit'];
-/** R-5: V4 can't write. */
-const NO_WRITE = ['build-guide-verifier'];
-const WRITE_TOOLS = ['Write', 'Edit', 'NotebookEdit'];
+/** R-5 (as D-352 amends it): V4 writes only its own report, with Write; it can't edit what it checks. */
+const NO_EDIT = ['build-guide-verifier'];
+const EDIT_TOOLS = ['Edit', 'NotebookEdit'];
 const POB2 = 'mcp__pob2__';
 
 interface Definition {
@@ -257,8 +261,8 @@ function violations(stem: string, text: string): string[] {
     if (!Object.prototype.hasOwnProperty.call(TOOL_META, t)) out.push(`R-4: ${POB2}${t} isn't a tool of the server (TOOL_META)`);
   }
   for (const t of def.tools.filter((n) => n.startsWith('mcp__') && !n.startsWith(POB2))) out.push(`R-4: ${t} isn't a pob2 tool`);
-  // R-5: V4 can't write.
-  if (NO_WRITE.includes(stem)) for (const t of def.tools.filter((n) => WRITE_TOOLS.includes(n))) out.push(`R-5: ${stem} names ${t}`);
+  // R-5: V4 can't edit what it checks (D-352: its one Write is its report).
+  if (NO_EDIT.includes(stem)) for (const t of def.tools.filter((n) => EDIT_TOOLS.includes(n))) out.push(`R-5: ${stem} names ${t}`);
   return out;
 }
 
@@ -346,9 +350,10 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
     expect(violations('build-guide-coordinator', def('build-guide-coordinator', `Read, ${POB2}no_such_tool`))).toEqual(
       expect.arrayContaining([`R-4: ${POB2}no_such_tool isn't a tool of the server (TOOL_META)`]),
     );
-    expect(violations('build-guide-verifier', def('build-guide-verifier', 'Read, Write'))).toEqual([
-      "R-2: Write isn't in build-guide-verifier's row",
-      'R-5: build-guide-verifier names Write',
+    expect(violations('build-guide-verifier', def('build-guide-verifier', 'Read, Write'))).toEqual([]);
+    expect(violations('build-guide-verifier', def('build-guide-verifier', 'Read, Edit'))).toEqual([
+      "R-2: Edit isn't in build-guide-verifier's row",
+      'R-5: build-guide-verifier names Edit',
     ]);
   });
 });
@@ -687,14 +692,12 @@ describe('WU-45: the design stage references', () => {
     expect(fs.readFileSync(AUDIT_TEMPLATE, 'utf8')).toContain("**Reference hits:** <per endgame rung, each `hit_<stage>_<type>` ledger value, and the whole number its scenario gives PoB>");
   });
 
-  it("V4's ledger lens wants the scenario hit at its ledger value's ceiling, and leaves the guide's numbers to the prose lens and the checker (D-256, D-279)", () => {
+  it("V4 leaves the ledger's arithmetic and the reference hits to the run checker, and checks only that a hinge claim's entry models it (D-352, as WU-69 builds it)", () => {
     const text = folded(readStage('V4'));
-    expect(text).toMatch(/with those inputs and that formula and no other input/);
-    expect(text).toMatch(/equal to its \*\*ceiling\*\*: the record value rounded to 2 decimals, then up to a whole number, because PoB takes these options as whole numbers \(D-256; 96\.4789 gives 97, and 402\.000003 gives 402\)/);
-    expect(text).toContain('A whole-number scenario value is right, not a mismatch.');
-    expect(text).toContain("The guide's numbers aren't this lens's (D-279): the `prose` lens reads them, and the run checker compares each verdict line with the record.");
-    expect(text).not.toMatch(/For every guide number that cites an entry/);
-    expect(text).not.toMatch(/equal to it rounded to 2 decimals/);
+    expect(text).toMatch(/The ledger's arithmetic is the run checker's, which re-evaluates every formula against the record: you check only that the entry a hinge claim cites models what the claim says/);
+    expect(text).toMatch(/\*\*`ledger`\*\* \(`ledger:<id>`\): the entry models what the claim says: .* Don't evaluate the formula: the run checker re-evaluates every entry against the record/);
+    // The ledger lens's re-derivations are gone: no formula evaluation, no reference-hit derivation.
+    expect(text).not.toMatch(/evaluate its `formula` yourself|re-derive the five waystone-scaled hits|equal to its \*\*ceiling\*\*/);
   });
 
   it('the D1 gate applies FI-2 and FI-3 as §11.3 says', () => {
@@ -924,38 +927,146 @@ describe('§7.8 (WU-62, D-278): the audit template', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------
-// AC-W14 and V4 (amendment 1 S2, S3): the verifier definition, and the V4 stage reference's full pass and
-// re-check
+// AC-W14 and V4 (amendment 1 S2, S3; amendment 4 D-352, WU-69): the verifier definition, and the V4 stage
+// reference's one pass, re-check, triage and kept reports
 // ---------------------------------------------------------------------------------------------------
 
-describe('AC-W14: the verifier definition (§4, R-3…R-5, D-178)', () => {
+const VERIFIER_MD = path.join(AGENTS_DIR, 'build-guide-verifier.md');
+
+/**
+ * The V4 report's form (§7.4 as WU-69 builds it): the first fenced `markdown` block of a file, read by line, as
+ * the runner and the run checker read a report. Header keys are the `- <key>:` lines between the H1 and the
+ * first H2; finding keys those under the first H3.
+ */
+function reportForm(text: string): { h1: string; header: string[]; h2: string[]; finding: string[] } | null {
+  const m = /```markdown\n([\s\S]*?)\n```/.exec(text);
+  if (!m) return null;
+  const lines = m[1].split('\n');
+  const key = (l: string) => /^- ([a-z]+): /.exec(l)?.[1];
+  const firstH2 = lines.findIndex((l) => l.startsWith('## '));
+  const firstH3 = lines.findIndex((l) => l.startsWith('### '));
+  return {
+    h1: lines[0],
+    header: lines.slice(1, firstH2).map(key).filter((k): k is string => k !== undefined),
+    h2: lines.filter((l) => l.startsWith('## ')).map((l) => l.slice(3)),
+    finding: firstH3 < 0 ? [] : lines.slice(firstH3 + 1).map(key).filter((k): k is string => k !== undefined),
+  };
+}
+
+describe('AC-W14: the verifier definition (§4, R-3…R-5, D-178; R-5 as D-352 amends it)', () => {
   const def = (stem: string) => readDefinition(fs.readFileSync(path.join(AGENTS_DIR, `${stem}.md`), 'utf8'))!;
 
-  it('the verifier has Read, Glob, Grep, WebFetch and the lookups L only: no Write, Edit or Bash, no C or P tool', () => {
+  it('the verifier has Read, Glob, Grep, Write, WebFetch and the lookups L only: no Edit or Bash, no guide_run or other C or P tool', () => {
     const { tools } = def('build-guide-verifier');
-    expect(tools).toEqual(['Read', 'Glob', 'Grep', 'WebFetch', ...L.map((t) => POB2 + t)]);
+    expect(tools).toEqual(['Read', 'Glob', 'Grep', 'Write', 'WebFetch', ...L.map((t) => POB2 + t)]);
     for (const t of tools) {
-      expect(['Write', 'Edit', 'NotebookEdit', 'Bash', 'WebSearch']).not.toContain(t);
+      expect(['Edit', 'NotebookEdit', 'Bash', 'WebSearch']).not.toContain(t);
       expect([...B, ...C, ...P].map((n) => POB2 + n)).not.toContain(t);
     }
   });
 
-  it('states that its report is its return and that it writes nothing (R-5), the C-30 offline rule, and its two checks', () => {
+  it('states that it writes only its own report under reports/ (R-5 as D-352 amends it), the C-30 offline rule, and its two checks', () => {
     const body = folded(def('build-guide-verifier').body);
-    expect(body).toMatch(/Your report is your return, and the runner writes it to `reports\/` \(R-5\)/);
+    expect(body).toMatch(/\*\*You write one file: your report\*\* \(R-5 as D-352 amends it\)\. Write only `reports\/V4-<n>\.md` in the run folder \(`runFolder`\), the one path your header's `writes` names, with Write, and never over an existing report: if it exists, write nothing and return `exists: reports\/V4-<n>\.md`\. You have no Edit, and you never change any other file/);
+    expect(body).not.toMatch(/the runner writes it|You have no write or edit tool/);
     expect(body).toMatch(/Fresh and independent\*\* \(D-142\)/);
     expect(body).toMatch(/`external-unavailable` is `accepted-offline` only in an offline run; in an online run it is `unresolved` \(C-30\)/);
     expect(body).toMatch(/without fetching that citation's URL \(D-232\)/);
-    // AC-W14 as D-264 changes it: all three lenses after a gate re-ran, else each raising lens and sources always.
-    expect(body).toMatch(/once as a full pass over every claim, then once as a re-check under D-264's rule \(`\.claude\/skills\/build-guide\/SKILL\.md` step 13\): all three lenses when a gate re-ran in the fix round, otherwise each lens that raised a finding and the sources lens always/);
-    expect(body).not.toMatch(/then, for a lens that raised a finding, once as a re-check/);
-    // SKILL.md's step 13 and V4.md state the same rule.
-    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round |');
-    expect(folded(readStage('V4'))).toMatch(/all three lenses when a gate re-ran in the fix round, otherwise each lens that raised a finding and the sources lens always/);
+    // AC-W14 as D-352 changes it: one full pass, then one re-check of only `--changed`'s set.
+    expect(body).toMatch(/You run once as the full pass, then once as a re-check after the fix round or a revision, of only what `check-run\.mjs --changed <n>` lists \(`\.claude\/skills\/build-guide\/SKILL\.md` steps 11 and 13\); a revision runs no full pass/);
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 13 | V4 re-check | `build-guide-verifier`, one: only what `check-run.mjs --changed <n>` lists | its own report, `reports/V4-<n>.md` |');
   });
 });
 
-describe('V4: one full pass, then a re-check of only its findings and the changed locations (S2, S3)', () => {
+describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only --changed\'s set, and keeps reports/V4-<n>.md', () => {
+  const v4 = () => folded(readStage('V4'));
+  const verifier = () => folded(fs.readFileSync(VERIFIER_MD, 'utf8'));
+  const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+
+  it('V4.md and the verifier define one pass with no lenses: every hinge claim against its source, and the guide read as an editor', () => {
+    expect(v4()).toMatch(/\*\*One verifier checks the run in one pass, with no lenses:\*\* every hinge claim of `plan\.json` against its source, and `guide\.md` read like an editor against the plan and the final compile record/);
+    expect(verifier()).toMatch(/\*\*One verifier, one pass, no lenses\*\* \(D-352\): you check every hinge claim of the plan .* against its source, and read the guide as an editor against the plan and the record/);
+    // No lens survives: no lens section, header field, lens name or lens-numbered finding id.
+    for (const [name, text] of [['V4.md', v4()], ['build-guide-verifier.md', verifier()]]) {
+      expect({ name, lenses: text.match(/Lens `|`lens`|one lens|three lenses|`(?:ledger|sources|prose)` lens|v4-(?:ledger|sources|prose)/g) ?? [] }).toEqual({ name, lenses: [] });
+    }
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 11 | V4, one full pass | `build-guide-verifier`, one, no lenses | its own report, `reports/V4-<n>.md` |');
+    expect(skill()).toMatch(/\*\*Step 11, the full pass\.\*\* Start one verifier \(D-352\), `check: "full"`, `findings: \[\]` and `writes: \["reports\/V4-<n>\.md"\]`/);
+    expect(skill()).toMatch(/One pass with no lenses: it checks every hinge claim of `plan\.json` against its source and reads every H2 of `guide\.md` as an editor, with no sampling; the ledger's arithmetic is the run checker's/);
+  });
+
+  it("the re-check covers only the set check-run.mjs --changed <n> lists against rounds/<n>/, and a revision runs no full pass", () => {
+    const text = v4();
+    expect(text).toMatch(/V4 runs once more as a \*\*re-check\*\* \(step 13\) of only what `check-run\.mjs --changed <n>` lists: the claims whose text, source or cited record values changed since the runner's copy in `rounds\/<n>\/`, and the guide's changed H2s\. \*\*A revision runs no full pass\*\*/);
+    expect(text).toMatch(/`changed`: a re-check only: the lines `check-run\.mjs --changed <n-1>` printed, as printed, one item each, `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>`\. Locations, never text/);
+    expect(text).toMatch(/`## Checked` lists every item of `changed`, as the header gives it\. Nothing else: the rest was checked before\. This is also a revision's check: a revision runs no full pass\. There is no further round/);
+    const s = skill();
+    expect(s).toMatch(/\*\*Step 13, the re-check\.\*\* Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`, `<n>` the round copy's number: it prints the claims whose text, source or cited record values changed since `rounds\/<n>\/`, and the guide's changed H2s, one per line\. Then start one verifier, `check: "recheck"`, `writes: \["reports\/V4-<n\+1>\.md"\]`, `findings` the ids of report `<n>`'s `unresolved` findings, and `changed` the lines the checker printed, as printed\. It re-checks only those, whether or not an owner recompiled: no re-check covers every claim \(D-352\)/);
+    expect(s).toMatch(/First have the plan, record and guide copied to `rounds\/<n>\/`, `<n>` that report's number \(A-34's round copy: you never read them\)/);
+    // The revision (§5.6 as D-352 amends it): the copy, the owners' chain, then the re-check in the full pass's place.
+    expect(s).toMatch(/Have the plan, record and guide copied to `rounds\/<n>\/`, `<n>` the last report's number, as step 12 does; run that chain as step 12 does \(claims in place, the gates only after a recompile\), with the requests as `findings` \(`code: "user-request"`\); then step 13's re-check over `--changed <n>`, in the full pass's place: \*\*a revision runs no full pass\*\* \(D-352\)/);
+    expect(s).not.toMatch(/then steps 11 to 16 again|all three lenses|`changed: "all"`, and check every claim|sources lens always runs/);
+    // The runner's Bash list takes the re-check's set (FR-W5 as D-352 amends it).
+    expect(s).toMatch(/- the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, and with `--changed <n>` for a re-check's set \(step 13\)\./);
+  });
+
+  it('each pass writes its own reports/V4-<n>.md and never overwrites one; the runner writes no V4 report', () => {
+    expect(v4()).toMatch(/## Writes `reports\/V4-<n>\.md`, the one file your header's `writes` names, with one Write, and nothing else \(D-352\)\. \*\*Never overwrite a report:\*\* first Glob `reports\/V4-\*\.md`; if your file exists, write nothing and return `exists: reports\/V4-<n>\.md`/);
+    expect(v4()).toMatch(/`writes`: `\["reports\/V4-<n>\.md"\]`, your report and the one file you write\. `<n>` is this pass's number, one more than the last report's \(1 for the run's first\)/);
+    expect(skill()).toMatch(/The verifier writes its own report, `reports\/V4-<n>\.md`, and never overwrites one \(R-5 as D-352 amends it\)/);
+    expect(skill()).toMatch(/`<n>` is always one more than the highest `reports\/V4-<n>\.md` the run folder holds \(`ls <runFolder>\/reports`\), 1 for the run's first/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8'))).toContain('| `reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) |');
+    for (const [name, text] of [['SKILL.md', skill()], ['V4.md', v4()], ['run-folder.md', fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')], ['source-markers.md', fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8')]]) {
+      expect({ name, old: text.match(/reports\/v4-<lens>|v4-<lens>-recheck|write that JSON unchanged/g) ?? [] }).toEqual({ name, old: [] });
+    }
+  });
+
+  it("the report's form is one, in V4.md's example and source-markers.md's skeleton: its H1, four header lines, Checked and Findings, and each finding's fields in order with its hinge mark", () => {
+    const example = reportForm(readStage('V4'));
+    const skeleton = reportForm(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'));
+    expect(example).not.toBeNull();
+    expect(skeleton).not.toBeNull();
+    for (const form of [example!, skeleton!]) {
+      expect(form.header).toEqual(['check', 'concept', 'mode', 'verdict']);
+      expect(form.h2).toEqual(['Checked', 'Findings']);
+      expect(form.finding).toEqual(['status', 'hinge', 'owner', 'artifact', 'location', 'claim', 'issue', 'evidence', 'reader']);
+    }
+    expect(example!.h1).toBe('# V4-2: re-check of rounds/1');
+    expect(skeleton!.h1).toBe('# V4-<n>: <full pass, or re-check of rounds/<n-1>>');
+    const text = v4();
+    expect(text).toMatch(/The H1 is `# V4-<n>: full pass` or `# V4-<n>: re-check of rounds\/<n-1>`/);
+    expect(text).toMatch(/One per false or unsupported claim or guide sentence, numbered `v4-<n>-<k>` \(this pass `<n>`, `<k>` from 1\)/);
+    expect(text).toMatch(/`## Checked` lists each hinge claim, `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)`, and each H2, `section <H2 title>`/);
+    // The return is at most 8 lines now that the verifier writes its own report.
+    const returns = readStage('V4').slice(readStage('V4').indexOf('## Returns'), readStage('V4').indexOf('## Fault directives'));
+    expect(returns).toMatch(/At most 8 lines/);
+    expect(returns).toContain('wrote: reports/V4-<n>.md');
+  });
+});
+
+describe("AC-W59's static clause (WU-69, D-352): V4.md defines the triage", () => {
+  const v4 = () => folded(readStage('V4'));
+
+  it('V4.md marks each finding hinge or not; a non-hinge finding is removed or narrowed, never researched or recompiled; under 5% in an estimate is no finding', () => {
+    const titles = headings(readStage('V4')).filter((h) => h.level === 3).map((h) => h.title);
+    expect(titles).toContain('Triage (D-352)');
+    const text = v4();
+    expect(text).toMatch(/### Triage \(D-352\) Triage every finding before you write it: - \*\*Mark it `hinge: yes` or `hinge: no`\.\*\* `yes` when what it is about is a hinge fact, whose being wrong would make the build fail at its rung: a `hinge` claim, a guide sentence stating one, or a gated statement \(the guide can't drop those\)\. `no` for everything else/);
+    expect(text).toMatch(/- \*\*A `hinge: no` finding is fixed by removing or narrowing the statement, never by new research or a recompile\.\*\* Its `issue` says which\. Don't research a non-hinge statement yourself either/);
+    expect(text).toMatch(/- \*\*A difference under 5% in an estimate is no finding\.\*\* An estimate is a figure resting on Count, a hand calculation or a ledger entry, one the record marks `computedWithCustomMods`, or one the guide states as "about"\. Within 5% of what you derive .* report nothing/);
+    expect(text).toMatch(/`hinge`: `yes` or `no` \(triage\)/);
+  });
+
+  it('SKILL.md routes a hinge: no finding to removal, and the fix round recompiles only for gear, tree, gems or config; a ledger edit needs no gate', () => {
+    const text = folded(fs.readFileSync(SKILL_MD, 'utf8'));
+    expect(text).toMatch(/A finding marked `hinge: no` is fixed by removing or narrowing the statement, never by new research or a recompile/);
+    expect(text).toMatch(/It recompiles only when a finding needs a build change: gear, tree, gems or config\. A change to a ledger entry's formula or inputs, like a claim edit, needs no recompile and no gate: the run checker re-evaluates the ledger/);
+    const markers = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'));
+    expect(markers).toMatch(/`hinge` is the triage \(`stages\/V4\.md`\): a `hinge: no` finding is fixed by removing or narrowing the statement, never by new research or a recompile, and a difference under 5% in an estimate is no finding/);
+  });
+});
+
+describe('V4: what the one pass checks, and the re-check (S2, S3, D-352)', () => {
   const v4 = () => folded(readStage('V4'));
 
   it('V4.md exists, with the parts the stages README names, and every repository path it mentions exists', () => {
@@ -964,7 +1075,7 @@ describe('V4: one full pass, then a re-check of only its findings and the change
       expect({ part, present: titles.some((t) => t.startsWith(part)) }).toEqual({ part, present: true });
     }
     let checked = 0;
-    for (const file of [path.join(STAGES_DIR, 'V4.md'), path.join(AGENTS_DIR, 'build-guide-verifier.md')]) {
+    for (const file of [path.join(STAGES_DIR, 'V4.md'), VERIFIER_MD]) {
       for (const p of repoPaths(fs.readFileSync(file, 'utf8'))) {
         const cut = p.search(/[<*]/);
         const fixed = cut < 0 ? p : p.slice(0, p.lastIndexOf('/', cut) + 1);
@@ -975,44 +1086,32 @@ describe('V4: one full pass, then a re-check of only its findings and the change
     expect(checked).toBeGreaterThan(5);
   });
 
-  it('a full pass checks every claim of the plan and the guide, with no sampling; the dossier is not verified (S3)', () => {
+  it('the full pass checks every hinge claim and every H2 of the guide, with no sampling; a reason claim is the editor read\'s; the dossier is not verified (S3)', () => {
     const text = v4();
-    expect(text).toMatch(/\*\*`check: "full"`\*\*: do your lens's work below over \*\*every\*\* claim of `plan\.json` and `guide\.md`, with no sampling/);
-    expect(text).toMatch(/re-check \*\*every\*\* one with the lookup tools/);
+    expect(text).toMatch(/\*\*`check: "full"`\*\*: every hinge claim of `plan\.json` and every H2 of `guide\.md`, with no sampling/);
+    expect(text).toMatch(/\*\*Every hinge claim, against its source\.\*\* A claim with `kind: "hinge"` states a fact whose being wrong would make the build fail at its rung \(D-351\); a claim with no `kind` is checked as one/);
+    expect(text).toMatch(/\*\*A `reason` claim\*\* rests on a measurement the compile made, and isn't checked against its source/);
     expect(text).not.toMatch(/1 in 5|recheckedOther|\bcoverage\b/);
     expect(text).toMatch(/The dossier isn't checked: it serves the verification gate's pick, and the guide can't cite it \(S3\)/);
+    // The plan is read by its claims, never whole (D-356's cost; the verifier has no guide_run).
+    expect(text).toMatch(/The plan can pass 90K tokens: never Read it whole\. Grep it for `"claims"` with line numbers, and Read each stage's `claims` array from there to its closing `\]`/);
   });
 
-  it('a re-check checks only its findings, each again under its id as fixed or unresolved, and the changed locations; no further round', () => {
+  it('a re-check reports each open finding again under its id, fixed or unresolved, checks only the changed set, and starts no further round', () => {
     const text = v4();
-    expect(text).toMatch(/\*\*`check: "recheck"`\*\*: check only 1\. each finding in the header's `findings`: report it again under the same `id`, with `status: "fixed"` when the claim now holds .* or `unresolved` when it doesn't; and 2\. the claims at the header's `changed` locations, in your lens only/);
+    expect(text).toMatch(/\*\*`check: "recheck"`\*\*: check only 1\. each finding in the header's `findings`: read it in `reports\/V4-<n-1>\.md` and report it again under the same `id`/);
+    expect(text).toMatch(/`fixed` when it now holds, or when its claim is gone and the guide no longer states it; `unresolved` when it doesn't\. When nothing in `changed` touches it, nothing changed it: report it `unresolved` again, as it was, without checking it/);
+    expect(text).toMatch(/2\. each item of `changed`: a claim as the full pass checks a claim of its kind, an H2 as the editor read checks it/);
     expect(text).toMatch(/There is no further round: what stays open becomes a known issue in the guide/);
   });
 
-  it("the sources lens reports a plan claim without a source, and has no guide side: the guide carries no markers (D-276, D-279)", () => {
-    expect(v4()).toMatch(/\*\*Unsourced claims\.\*\* Every plan claim has a `source`; one without is an `unresolved` finding \(issue `no source`\)/);
-    expect(v4()).toMatch(/The guide carries no markers, so this lens has no guide side: the plan's claims carry the guide's sources \(D-276, D-279\)/);
-    expect(v4()).not.toMatch(/`data \| <file>#<key>` in markdown|guide\.md \[\^<id>\]/);
-  });
-
-  it("V4's ledger lens re-derives every ledger entry, and the five waystone-scaled hits from their facts (D-254, A-P11)", () => {
+  it('by source kind: an unsourced claim is a finding; external sources online only; data claims without a fetch offline; prices against their entries', () => {
     const text = v4();
-    expect(text).toMatch(/For \*\*every\*\* entry of `plan\.json`'s `ledger\[\]`, evaluate its `formula` yourself/);
-    expect(text).toMatch(/re-derive the five waystone-scaled hits from the facts themselves/);
-    expect(text).toContain('`enemies/map-monsters.json#damage.by-level[<area level>]`');
-    expect(text).toContain('`enemies/waystones.json#mods.increased-monster-damage`');
-    expect(text).toContain('`enemies/waystones.json#mods.extra-damage-as-element`');
-    expect(text).toContain('physical = `base × (1 + increased / 100)`');
-    expect(text).toContain('`base × (1 + increased / 100) × extra / 100`');
-    expect(text).toContain('the ledger entry `hit_<stage id>_<type>`');
-  });
-
-  it("V4's sources lens opens every external source online and none offline, checks every data claim without a fetch offline, and prices against their entries", () => {
-    const text = v4();
-    expect(text).toMatch(/open \*\*every\*\* source with WebFetch, only on D-171's hosts/);
+    expect(text).toMatch(/9\. \*\*No `source`\*\*: an `unresolved` finding, issue `no source`/);
+    expect(text).toMatch(/online, open the source with WebFetch, only on D-171's hosts/);
     expect(text).toMatch(/Offline, open nothing/);
     expect(text).toMatch(/\*\*offline you don't fetch it\*\* \(D-232\)/);
-    expect(text).toMatch(/check the claim's amount, currency, date and league against it/);
+    expect(text).toMatch(/check the claim's amount, currency, date and league against the `prices\[\]` entry/);
     expect(text).toMatch(/`accepted-offline` when the run log's mode is `offline`, `unresolved` otherwise \(C-30\)/);
     expect(text).toMatch(/`issue` exactly `tagged external-unavailable` and `location` the claim's/);
   });
@@ -1025,18 +1124,19 @@ describe('V4: one full pass, then a re-check of only its findings and the change
     expect(text).toMatch(/never guess the number yourself/);
   });
 
-  it("V4's owners and artifacts are the run checker's, and source-markers.md gives the report's shape with check and no coverage", () => {
+  it("V4's owners are the run checker's and its artifacts among them, and source-markers.md gives the report's form with no coverage counts", () => {
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     const listed = (re: RegExp) => [...re.exec(checker)![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
     expect(listed(/const OWNERS = \[([^\]]*)\]/)).toEqual(['W1', 'D1', 'D2']);
-    // The prose lens checks "why this concept" in audit.md (D-279), so a finding may name it, owner W1.
-    expect(listed(/const ARTIFACTS = \[([^\]]*)\]/)).toEqual(['plan.json', 'guide.md', 'audit.md']);
-    expect(v4()).toMatch(/The \*\*owner\*\* is the step that wrote the claim: `W1` for `guide\.md` and `audit\.md`; `D1` for an endgame stage .*; `D2` for a campaign stage/);
+    // D-355 renders audit.md by script with no Run notes, so V4 names only the plan and the guide.
+    expect(listed(/const ARTIFACTS = \[([^\]]*)\]/)).toEqual(expect.arrayContaining(['plan.json', 'guide.md']));
+    expect(v4()).toMatch(/- `artifact`: `plan\.json` or `guide\.md`;/);
+    expect(v4()).toMatch(/`owner`: the step that wrote it: `W1` for `guide\.md`; for a plan claim, `D1` when its stage is an endgame stage \(one with a `variant`: `m`, `b` or `n`\) and `D2` when it is a campaign stage/);
     const markers = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'source-markers.md'), 'utf8'));
-    expect(markers).toContain('"check": "full"');
+    expect(markers).toContain('- check: <full or recheck>');
     expect(markers).not.toMatch(/"coverage"|"pass": 1|Counting claims/);
     // D-276: the guide carries no markers, so an accepted-offline location names a plan claim only.
-    expect(markers).toMatch(/only in the V4 `sources` report, its `location` naming that plan claim \(`stages\[<i>\]\.claims\[<k>\]`\)/);
+    expect(markers).toMatch(/`accepted-offline` is only for an `external-unavailable` claim in an offline run \(C-30\), its `location` naming that plan claim \(`stages\[<i>\]\.claims\[<k>\] \(<claim id>\)`\)/);
   });
 });
 
@@ -1076,13 +1176,13 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
     expect(text).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed/);
   });
 
-  it('every stage reference but V4 returns at most 8 lines; V4 returns its report, which the runner writes (R-5)', () => {
-    for (const stage of ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D1', 'D1-gate', 'D2', 'D2-gate', 'W1']) {
+  it('every stage reference returns at most 8 lines; V4 too, since it writes its own report (R-5 as D-352 amends it)', () => {
+    for (const stage of ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D1', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V4']) {
       const text = readStage(stage);
       const returns = text.slice(text.indexOf('## Returns'), text.indexOf('## Fault directives'));
       expect({ stage, eight: /At most 8 lines/.test(returns) }).toEqual({ stage, eight: true });
     }
-    expect(folded(readStage('V4'))).toMatch(/the runner writes it to `reports\/v4-<lens>\.json` \(or `reports\/v4-<lens>-recheck\.json`\) unchanged \(R-5\)/);
+    expect(folded(readStage('V4'))).toMatch(/`reports\/V4-<n>\.md`, the one file your header's `writes` names, with one Write/);
   });
 
   it('the gate steps write their own verdict files (§3), and the D2 gate runs its final compile in the same step', () => {
@@ -1096,19 +1196,20 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
 describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the rest as known issues', () => {
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
 
-  it('SKILL.md runs one full pass, one fix round routed to the owners, a re-check of the raising lenses, then the known issues', () => {
+  it('SKILL.md runs one full pass, one fix round routed to the owners, one re-check of the changed set, then the known issues (as D-352 amends S2)', () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Step 11, the full pass\.\*\* Start the three lenses in parallel, `check: "full"`/);
-    expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when a report has an `unresolved` finding \(D-264\)\. Send each finding to its `owner`: D1, D2 or W1/);
-    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* When a gate re-ran in the fix round \(an owner recompiled\), the plan and the guide's numbers are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does\. Otherwise \(claims only\) each lens that raised a finding runs once, in parallel/);
-    expect(text).toMatch(/Either way there is no further round: what stays open is a known issue/);
-    expect(text).toMatch(/\*\*Step 14, known issues\.\*\* A finding is open when it is `unresolved` in its lens's re-check, or `unresolved` in the full pass and not reported `fixed` by a re-check/);
-    expect(text).toMatch(/Verification never runs a lens again for its findings beyond the one re-check, and never escalates; only the D1 and D2 gates escalate/);
+    expect(text).toMatch(/\*\*Step 11, the full pass\.\*\* Start one verifier \(D-352\), `check: "full"`/);
+    expect(text).toMatch(/\*\*Step 12, the fix round\*\*, once, only when the report has an `unresolved` finding \(D-264, D-352\)\./);
+    expect(text).toMatch(/Then send each `unresolved` finding to its `owner`: D1, D2 or W1/);
+    expect(text).toMatch(/\*\*Step 13, the re-check\.\*\* Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`/);
+    expect(text).toMatch(/There is no further round: what stays open is a known issue/);
+    expect(text).toMatch(/\*\*Step 14, known issues\.\*\* The open findings are the `unresolved` findings of the last report, the `reports\/V4-<n>\.md` with the highest `<n>`: a re-check reports again every finding still open/);
+    expect(text).toMatch(/Verification never re-checks beyond the one re-check after a fix round or a revision, and never escalates; only the D1 and D2 gates escalate/);
   });
 
-  it('Q4: a checkpoint-2 revision maps each request to its owner, runs that chain, then the full pass and the same cycle again', () => {
-    expect(skill()).toMatch(/run that chain as step 12 does \(claims in place, the gates only after a recompile\), with the requests as `findings` \(`code: "user-request"`\), then steps 11 to 16 again\. A revision counts against no cap/);
-    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/then the full V4 pass, the fix round, the re-check and the known issues again/);
+  it('Q4, as D-352 amends it: a checkpoint-2 revision maps each request to its owner, runs that chain, then the re-check in the full pass\'s place and the same cycle', () => {
+    expect(skill()).toMatch(/run that chain as step 12 does \(claims in place, the gates only after a recompile\), with the requests as `findings` \(`code: "user-request"`\); then step 13's re-check over `--changed <n>`, in the full pass's place: \*\*a revision runs no full pass\*\* \(D-352\)\. Steps 12 to 16 then follow as after a full pass\. A revision counts against no cap/);
+    // checkpoints.md's revision line is WU-70's to restate (it owns checkpoints.md in M-15).
   });
 
   it("Q1 as D-276 moves it: W1 always ends What PoB can't show with the one Known issues H3 and its accepted gate findings, and the runner adds the open findings", () => {
@@ -1171,7 +1272,8 @@ describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2
     // D-279: rule 3 becomes "once in the guide, and never later stated as settled".
     expect(markers).toMatch(/3\. \*\*It carries its source's caveats\.\*\* A source of confidence M or L, a fact whose `note` records a dispute, a `judgment`, or a mechanic no lookup confirmed is stated with that caveat\. In the guide the caveat appears once, where the reader acts on it, and is never later stated as settled \(D-279\)/);
     expect(markers).not.toMatch(/wherever the claim appears/);
-    expect(folded(readStage('V4'))).toMatch(/\*\*The claim rules\*\* \(`source-markers\.md`, S7\)\. Check every claim in your lens against all three/);
+    expect(folded(readStage('V4'))).toMatch(/### The claim rules Every hinge claim keeps all three \(`source-markers\.md`, S7\); a claim that breaks one is a finding/);
+    expect(markers).toMatch(/the V4 verifier checks that every hinge claim is true/);
   });
 });
 
@@ -1185,7 +1287,7 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e): the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, and the run checker; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`\./);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, and with `--changed <n>` for a re-check's set \(step 13\)\./);
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every file with Write \(or Edit\), never with Bash or a script\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
@@ -1235,13 +1337,13 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     expect(why).toContain("the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`");
     expect(why).not.toMatch(/why it won|why each lost/);
     expect(fs.readFileSync(GUIDE_TEMPLATE, 'utf8')).not.toContain('Why this concept');
-    // The run log records the rule (S4 keeps it), and V4's prose lens checks the sentence against it.
+    // The run log records the rule (S4 keeps it). D-355 renders audit.md by script, with no Run notes, so V4's
+    // one pass (D-352) no longer reads it.
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |');
     expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:r1-a-2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
-    const v4 = folded(readStage('V4'));
-    expect(v4).toMatch(/\*\*why this concept\*\*, in `audit\.md`'s `Run notes`: check it against `run-log\.json`'s last verification gate entry whose `answer` is `pick:<the guide's card>`.* quotes the entry's `rule` exactly\. A reason the entry doesn't record, a different rule, or a pick attributed to the wrong answerer is a finding \(artifact `audit\.md`, owner `W1`\)/);
+    expect(readStage('V4')).not.toMatch(/audit\.md|Run notes/);
   });
 
   it('D-260: W1 returns no import code', () => {
@@ -1307,10 +1409,11 @@ describe('Review of bg/amend-1: the references', () => {
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'))).toMatch(/A gate attempt's outcome is the one its verdict file routes to/);
   });
 
-  it('6, as D-264 changes it: a fix round in which a gate re-ran re-checks all three lenses (changed: "all"); W1 always patches in place', () => {
-    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round \|/);
+  it('6, as D-264 and D-352 change it: a fix round in which a gate re-ran re-checks only --changed\'s set; W1 always patches in place', () => {
+    expect(skill()).toMatch(/\| 13 \| V4 re-check \| `build-guide-verifier`, one: only what `check-run\.mjs --changed <n>` lists \|/);
     expect(skill()).toMatch(/W1 still patches the guide in place, its header's `changed` `"all"`/);
-    expect(folded(readStage('V4'))).toMatch(/With `changed: "all"` \(a gate re-ran in the fix round: an owner recompiled, D-264\), that is every claim of the new `plan\.json` and `guide\.md` in your lens, as a full pass checks them/);
+    expect(skill()).toMatch(/It re-checks only those, whether or not an owner recompiled: no re-check covers every claim \(D-352\)/);
+    expect(folded(readStage('V4'))).not.toMatch(/`changed: "all"`/);
     expect(folded(readStage('W1'))).toMatch(/\*\*The fix round and revisions\*\* \(D-264\)\. You never write the guide anew: fix it in place with Edit/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/or `"all"` when a gate re-ran in the fix round \(an owner recompiled/);
   });
@@ -1345,13 +1448,13 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
   const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
 
-  it('SKILL.md step 12: owners fix claims in place, recompile only for gear, tree, gems, config, scenario or a ledger formula, and say whether they recompiled', () => {
+  it('SKILL.md step 12, as D-352 amends it: owners fix claims in place, recompile only for gear, tree, gems or config (a ledger edit needs none), and say whether they recompiled', () => {
     const text = skill();
-    expect(text).toMatch(/Each owner fixes, in place with Edit, every claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source\. It recompiles only when a finding needs a build change: gear, tree, gems, config, scenario or a ledger formula\. It returns the ids it fixed, the locations it changed and whether it recompiled/);
+    expect(text).toMatch(/Each owner fixes, in place with Edit, every claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source\. It recompiles only when a finding needs a build change: gear, tree, gems or config\. A change to a ledger entry's formula or inputs, like a claim edit, needs no recompile and no gate: the run checker re-evaluates the ledger\. It returns the ids it fixed, the locations it changed and whether it recompiled/);
     expect(text).toMatch(/\*\*No owner recompiled\*\* \(claims only\): no gate runs; D1 → W1, D2 → W1, D1 → D2 → W1 or W1 alone\. Log each D1 or D2 of the round with outcome `claims-edited`/);
     expect(text).toMatch(/\*\*An owner recompiled:\*\* its gates run as now: \*\*D1\*\* → D1 gate → D2 gate → W1; \*\*D2\*\* → D2 gate → W1/);
     expect(text).toMatch(/W1 always runs last: it fixes its own findings and patches the guide in place wherever it repeats a claim another owner changed/);
-    expect(text).toContain('| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |');
+    expect(text).toContain('| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place, a `hinge: no` statement removed or narrowed; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |');
   });
 
   it('D1 and D2: edit in place, recompile only for a build change, otherwise validate once and leave the final record; return recompiled', () => {
@@ -1377,9 +1480,10 @@ describe('Review of bg/d264: the references say what the checker now holds', () 
   const skill = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
   const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
 
-  it('item 4: after a claims-only round the sources lens always re-checks the changed locations (SKILL.md step 13, V4.md)', () => {
-    expect(skill()).toMatch(/Otherwise \(claims only\) each lens that raised a finding runs once, in parallel, with its own open findings in `findings` and the owners' changed locations in `changed`, and checks only those; the \*\*sources lens always runs\*\*, even when it raised nothing, since an edited claim may cite something new/);
-    expect(folded(readStage('V4'))).toMatch(/After a claims-only round the `sources` lens always runs, even with no finding of its own, and checks every citation at a changed location, since an edited claim may cite something new \(D-264\); the other lenses run only when they raised a finding/);
+  it('item 4, as D-352 replaces it: an edited claim\'s new source is re-checked because --changed lists a claim whose source changed (SKILL.md step 13, V4.md)', () => {
+    expect(skill()).toMatch(/it prints the claims whose text, source or cited record values changed since `rounds\/<n>\/`/);
+    expect(folded(readStage('V4'))).toMatch(/2\. each item of `changed`: a claim as the full pass checks a claim of its kind/);
+    expect(skill()).not.toMatch(/sources lens always runs/);
   });
 
   it("item 6: each owner is logged by what it did, and a claims-only D1 may precede a D2 that recompiles and its gate", () => {
@@ -1416,17 +1520,17 @@ describe('D-265: the small items', () => {
 
   it("(d), as D-276 changes it: every unresolved V4 finding carries a reader sentence; the runner writes each open one as `- <reader>` in the guide and its row in audit.md at step 14, from W1's two lines", () => {
     const v4 = folded(readStage('V4'));
-    expect(v4).toMatch(/\*\*`reader`\*\* \(D-265\) is one plain sentence the guide's reader can act on, what is wrong in the guide and what is true instead, with no pipeline words/);
-    expect(v4).toMatch(/Every `unresolved` finding has its `reader` sentence: only those can become known issues\. A `fixed` or `accepted-offline` finding needs none/);
-    expect(readStage('V4')).toMatch(/"reader": "[^"]+",\n\s+"owner": "D1", "status": "unresolved"/);
+    expect(v4).toMatch(/`reader`, on every `unresolved` finding and only there \(D-265\): one plain sentence the guide's reader can act on, what is wrong in the guide and what is true instead, with no pipeline words/);
+    expect(v4).toMatch(/A `fixed` or `accepted-offline` finding has no `reader`/);
+    expect(readStage('V4')).toMatch(/### v4-1-3\n\n- status: unresolved\n[\s\S]*?\n- reader: [^\n]+\n```/);
     const markers = ref('source-markers.md');
-    expect(markers).toMatch(/Each finding has `id`, `artifact` \(`plan\.json`, `guide\.md`, or `audit\.md` for the prose lens's check of "why this concept"\), `location`, `claim`, `issue`, `evidence`, `reader` \(only when `unresolved`\), `owner`/);
+    expect(markers).toMatch(/Only an `unresolved` finding can become a known issue, so only it carries one/);
     expect(markers).toMatch(/the run checker fails an `unresolved` finding without it\. A `fixed` or `accepted-offline` finding needs none/);
-    expect(markers).toMatch(/The runner replaces both Known issues lists every cycle \(SKILL\.md step 14, D-265, D-276\): in the guide, W1's accepted-gate-finding sentences, then every open finding as `- <reader>`, its `reader` sentence as the report gives it, with no id; in `audit\.md`'s table, W1's accepted rows, then every open finding's row `\| <id> \| <lens> \| — \| <reader> \|`\. The run checker finds each open finding's sentence in the guide, by sentence, and its id in `audit\.md`, and fails any other line or row/);
+    expect(markers).toMatch(/The runner replaces both Known issues lists every cycle \(SKILL\.md step 14, D-265, D-276\): in the guide, W1's accepted-gate-finding sentences, then every open finding as `- <reader>`, its `reader` sentence as the report gives it, with no id; in `audit\.md`'s table, W1's accepted rows, then every open finding's row `\| <id> \| V4 \| — \| <reader> \|`\. The run checker finds each open finding's sentence in the guide, by sentence, and its id in `audit\.md`, and fails any other line or row/);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/\*\*Replace both lists whole\*\* with Edit, every cycle \(D-265, D-276\), reading only the lines you edit, from the line numbers W1 returned last/);
     expect(skill).toMatch(/in `guide\.md`, under `### Known issues`: first W1's lines for the accepted gate findings, as W1 wrote them; then one line per open finding, `- <reader>`, the finding's `reader` sentence exactly as its report gives it, with no id; or, with neither, the one line `None\.`/);
-    expect(skill).toMatch(/in `audit\.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then one row per open finding, `\| <id> \| <lens> \| — \| <reader> \|`; or, with neither, the one line `None\.`/);
+    expect(skill).toMatch(/in `audit\.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then one row per open finding, `\| <id> \| V4 \| — \| <reader> \|`; or, with neither, the one line `None\.`/);
     expect(skill).toMatch(/Drop every other line and row: one from an earlier cycle is stale/);
     expect(folded(readStage('W1'))).toMatch(/Leave the lines under the guide's `### Known issues` and the rows of `audit\.md`'s `Known issues` to the runner's step 14, which replaces them whole, except to add a gate finding newly in `accepted`/);
     expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |");
@@ -1782,31 +1886,30 @@ describe('WU-62: W1 writes the reader layer and the audit layer (D-276, D-278, D
   });
 });
 
-describe('WU-62: V4 reads the guide like an editor (D-279)', () => {
+describe('WU-62: V4 reads the guide like an editor (D-279), in its one pass (D-352)', () => {
   const v4 = () => folded(readStage('V4'));
 
-  it('the prose lens flags a fact or number not in the plan, the record or audit.md, advice asserting a fact, tutorial text, and a caveat repeated or later settled', () => {
+  it('the editor read flags a fact or number not in the plan or the record, advice asserting a fact, tutorial text, and a caveat repeated or later settled', () => {
     const text = v4();
-    expect(text).toMatch(/## Lens `prose`: the guide read like an editor/);
-    expect(text).toMatch(/Read `guide\.md` section by section, against the plan, the record and `audit\.md`/);
-    expect(text).toMatch(/1\. \*\*A fact or number not in them\.\*\* A statement of fact, or a number, that the plan .* the record or `audit\.md` doesn't hold, that contradicts them, or that states them more strongly/);
+    expect(text).toMatch(/### The editor read of `guide\.md` \(D-279\) Read each H2 against the plan \(its claims, stages, ledger and prices\) and the record/);
+    expect(text).toMatch(/1\. \*\*A fact or number not in them\*\*: one the plan or the record doesn't hold, that contradicts them, or that states them more strongly/);
     expect(text).toMatch(/2\. \*\*Advice that asserts a fact\.\*\* First-person advice \("I", "my"\) is advice and isn't verified; but advice that asserts a fact the plan lacks .* is a finding/);
     expect(text).toMatch(/3\. \*\*Tutorial text\*\* \(D-280\)/);
     expect(text).toMatch(/4\. \*\*A caveat repeated, or later stated as settled\*\* \(D-279\)/);
   });
 
-  it('it keeps the gated statements, checks why this concept in audit.md, and never flags a missing optional item (D-277)', () => {
+  it('it keeps the gated statements, and never flags a missing optional item (D-277); audit.md is rendered by script, so it isn\'t read (D-355)', () => {
     const text = v4();
-    for (const gated of ['**the named damage source is the main source of damage** (D-122, as D-295 words it)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)', "**why this concept**, in `audit.md`'s `Run notes`"]) {
+    for (const gated of ['**the named damage source is the main source of damage** (D-122, as D-295 words it)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)']) {
       expect({ gated, kept: text.includes(gated) }).toEqual({ gated, kept: true });
     }
     expect(text).toMatch(/\*\*Never flag a missing optional item\*\* \(D-277\): a fallback, a threshold trigger \(a first-person judgment trigger is fine, and a trigger's form isn't checked\), a trap, an either\/or pick, a hold or save row, a rotation clause/);
   });
 
-  it('the sources lens checks the plan alone, and the ledger lens re-derives the entering-maps hits at area 69 (D-281, D-327)', () => {
+  it('the sources are checked on the plan\'s hinge claims alone; the reference hits are the compiler\'s and the checker\'s, not V4\'s (D-352, D-353)', () => {
     const text = v4();
-    expect(text).toMatch(/Over every claim of `plan\.json` \(its `stages\[\]\.claims`, its ledger inputs' tags and its prices\)/);
-    expect(text).toMatch(/the entering-maps rung's is `enemies\/waystones\.json#area-level\.offset` plus 5 \(T5, area 69, D-281, D-327\)/);
+    expect(text).toMatch(/### By source kind 1\. \*\*`external`\*\*/);
+    expect(text).not.toMatch(/area-level\.offset|hit_<stage id>_<type>/);
   });
 });
 
@@ -2128,7 +2231,7 @@ describe("WU-57: Count in D1 and the D1 gate's figure × count, D2's bridge skil
   });
 
   it('V4 holds a Count, hand-calculated or custom-modifier figure to being labelled an estimate, and every interaction to game text (D-296)', () => {
-    expect(folded(readStage('V4'))).toMatch(/\*\*estimates\*\* \(D-296\): .* a figure that rests on Count or a hand calculation, or that the record marks `computedWithCustomMods`, is stated as an estimate, never as exact; .* every interaction the guide states must still exist in game text/);
+    expect(folded(readStage('V4'))).toMatch(/\*\*estimates\*\* \(D-296\): .* a figure that rests on Count or a hand calculation, or that the record marks `computedWithCustomMods`, is stated as an estimate, never as exact; every interaction the guide states must still exist in game text/);
   });
 });
 

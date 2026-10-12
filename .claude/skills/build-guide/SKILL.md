@@ -6,9 +6,9 @@ description: Build a Path of Exile 2 guide (level 1 through the campaign to two 
 # build-guide
 
 You are the **runner**: you start the run, call one agent per step with the Agent tool, ask the user at the
-gates, keep the run log, write the verifiers' reports and run the run checker. Agents research, design,
-compile, write and check (slice 03 of `docs/build-guide/spec/`, as its amendments 1 to 3 change it; spine C-36,
-C-51, C-52).
+gates, keep the run log and run the run checker. Agents research, design, compile, write and check, and
+the verifier writes its own reports (slice 03 of `docs/build-guide/spec/`, as its amendments 1 to 3 change
+it; spine C-36, C-51, C-52).
 
 The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (researchers write
 candidate cards and a coordinator step deals the deck; gate `brainstorm`), the verification (the picked cards
@@ -26,8 +26,8 @@ never a token role (D-122 as D-295 words it); the card the user finalizes gives 
   says "no player evidence". Trade and the currency rates are reached only through the server's price tools,
   only by coordinator steps (`references/pricing.md`). Web research uses only poe2db.tw, maxroll.gg, game8.co,
   poe-vault.com and patch-note mirrors, and none at all in offline mode.
-- **Write only inside the run folder.** You write `run-log.json`, the V4 reports under `reports/`, and the
-  open findings into the `Known issues` of `guide.md` and `audit.md` (step 14). Each agent writes only its
+- **Write only inside the run folder.** You write `run-log.json` and the open findings into the `Known
+  issues` of `guide.md` and `audit.md` (step 14). Each agent writes only its
   header's `writes`.
   The PoB file reaches the builds folder only through the final compile.
 - **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and
@@ -50,7 +50,8 @@ never a token role (D-122 as D-295 words it); the card the user finalizes gives 
     fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
     `-delete` where the tool writes with it), and no command substitution (`$(…)`, backticks) feeding
     another tool;
-  - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`.
+  - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, and with
+    `--changed <n>` for a re-check's set (step 13).
 
   Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
   client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing that writes, moves or deletes a file. Write every
@@ -61,7 +62,7 @@ never a token role (D-122 as D-295 words it); the card the user finalizes gives 
 | `build-guide-researcher` | R1a: lookup-only brainstorm, up to 3 in parallel |
 | `build-guide-coordinator` | R1a-assemble, R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (and its final compile); the only type that compiles or prices |
 | `build-guide-writer` | W1: writes `guide.md` and `audit.md` |
-| `build-guide-verifier` | V4: every claim true, one lens each (`ledger`, `sources`, `prose`), a full pass or a re-check; it can't write |
+| `build-guide-verifier` | V4: one pass, no lenses, over the hinge claims and the guide, or a re-check of what changed; it writes only its own report, `reports/V4-<n>.md` |
 
 ## Calling an agent
 
@@ -75,12 +76,12 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1 r1-a-2 attempt
   naming its stage reference: `Read .claude/skills/build-guide/references/stages/<stage>.md and do that
   step.` Add only what the stage reference lists under "Prompt".
 - **In flight:** at most 3 agents at once, and a coordinator step never overlaps another agent (FR-W3: one
-  engine, one coordinator). R1a's researchers and the V4 lenses run in parallel with
-  `run_in_background: true`; every other step runs alone.
+  engine, one coordinator). R1a's researchers run in parallel with `run_in_background: true`; every other
+  step runs alone.
 - **Returns.** An agent writes its header's `writes` and returns at most 8 lines: what it wrote and the
   outcome. A gate step's verdict is its own file under `reports/gates/`: read that file to route. The
-  verifier can't write (R-5): it returns its report as JSON, and you write that JSON unchanged with Write
-  to `reports/v4-<lens>.json`, or `reports/v4-<lens>-recheck.json` for a re-check.
+  verifier writes its own report, `reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it):
+  read that file to route.
 - **A missing return.** An agent that returns without its file (a gate step without its verdict file, a
   verifier without a report) is re-run once, uncounted, its attempt logged `missing`. A second miss ends
   the run `stopped`, naming the step.
@@ -92,7 +93,7 @@ producing step wrote (R-5, D-142):
 
 ````
 ```json
-<the task header: stage V4, its lens and check>
+<the task header: stage V4, its check and writes>
 ```
 Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 ````
@@ -116,9 +117,9 @@ to 16 are the finalization.
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
 | 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
 | 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
-| 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; you write `reports/v4-<lens>.json` | its report |
-| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
-| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round | none; you write `reports/v4-<lens>-recheck.json` | its report; no further round |
+| 11 | V4, one full pass | `build-guide-verifier`, one, no lenses | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict |
+| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place, a `hinge: no` statement removed or narrowed; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
+| 13 | V4 re-check | `build-guide-verifier`, one: only what `check-run.mjs --changed <n>` lists | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict; no further round |
 | 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
 | 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
 | 16 | The final gate (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
@@ -126,8 +127,8 @@ to 16 are the finalization.
 **Retries, in full.** The R1b compile, the D1 gate and the D2 gate allow 2 counted retries each. These
 attempts count against no cap: an attempt failed by a fault directive that applies to attempt 1 only (a
 persistent directive's failed attempts do count: S6), a guided retry, the fix round and a revision, and the
-re-run after a missing return. Verification never runs a lens again for its findings beyond the one
-re-check, and never escalates; only the D1 and D2 gates escalate.
+re-run after a missing return. Verification never re-checks beyond the one re-check after a fix round or a
+revision, and never escalates; only the D1 and D2 gates escalate.
 
 ## 1. Start (FR-W1, FR-W2; C-51)
 
@@ -347,15 +348,23 @@ display, whoever answers (Hard rules): show the stage, the attempts and the verd
 - **W1** writes `guide.md`, the reader layer, and `audit.md`, the audit layer beside it (D-276, D-278): its
   header's `writes` are both. Its header's `accepted` carries every accepted gate finding; its prompt names
   the last D1 gate verdict file (its budget totals and the named source's figures).
-- **Step 11, the full pass.** Start the three lenses in parallel, `check: "full"`; each checks every claim
-  of `plan.json` and `guide.md` in its lens, with no sampling. Write each report to `reports/v4-<lens>.json`.
-- **Step 12, the fix round**, once, only when a report has an `unresolved` finding (D-264). Send each
-  finding to its `owner`: D1, D2 or W1. Each owner fixes, in place with Edit, every claim the issue touches,
-  not only the flagged location: the claim's wording, citation, caveat or source. It recompiles only when a
-  finding needs a build change: gear, tree, gems, config, scenario or a ledger formula. It returns the ids it
-  fixed, the locations it changed and whether it recompiled. The earliest owner runs first (D1, then D2), and
-  W1 always runs last: it fixes its own findings and patches the guide in place wherever it repeats a claim
-  another owner changed (their locations in its header's `changed`).
+- **Step 11, the full pass.** Start one verifier (D-352), `check: "full"`, `findings: []` and `writes:
+  ["reports/V4-<n>.md"]`. `<n>` is always one more than the highest `reports/V4-<n>.md` the run folder holds
+  (`ls <runFolder>/reports`), 1 for the run's first. One pass with no lenses: it checks every hinge claim of
+  `plan.json` against its source and reads every H2 of `guide.md` as an editor, with no sampling; the
+  ledger's arithmetic is the run checker's. It writes its report itself and never overwrites one; read the
+  report to route.
+- **Step 12, the fix round**, once, only when the report has an `unresolved` finding (D-264, D-352). First
+  have the plan, record and guide copied to `rounds/<n>/`, `<n>` that report's number (A-34's round copy:
+  you never read them). Then send each `unresolved` finding to its `owner`: D1, D2 or W1. A finding marked
+  `hinge: no` is fixed by removing or narrowing the statement, never by new research or a recompile. Each
+  owner fixes, in place with Edit, every claim the issue touches, not only the flagged location: the
+  claim's wording, citation, caveat or source. It recompiles only when a finding needs a build change: gear,
+  tree, gems or config. A change to a ledger entry's formula or inputs, like a claim edit, needs no
+  recompile and no gate: the run checker re-evaluates the ledger. It returns the ids it fixed, the locations
+  it changed and whether it recompiled. The earliest owner runs first (D1, then D2), and W1 always runs
+  last: it fixes its own findings and patches the guide in place wherever it repeats a claim another owner
+  changed (their locations in its header's `changed`).
   - **No owner recompiled** (claims only): no gate runs; D1 → W1, D2 → W1, D1 → D2 → W1 or W1 alone. Log each
     D1 or D2 of the round with outcome `claims-edited`. The final record and the PoB file stay the last D2
     gate's.
@@ -369,23 +378,23 @@ display, whoever answers (Hard rules): show the stage, the attempts and the verd
 
   The round is uncounted; the gates in it keep their 2 counted retries, and an escalation in it is a gate
   escalation.
-- **Step 13, the re-check.** When a gate re-ran in the fix round (an owner recompiled), the plan and the
-  guide's numbers are new: all three lenses run once more, in parallel, with `check: "recheck"`, their own
-  open findings in `findings` and `changed: "all"`, and check every claim, as a full pass does. Otherwise
-  (claims only) each lens that raised a finding runs once, in parallel, with its own open findings in
-  `findings` and the owners' changed locations in `changed`, and checks only those; the **sources lens always
-  runs**, even when it raised nothing, since an edited claim may cite something new. Write each report to
-  `reports/v4-<lens>-recheck.json`. Either way there is no further round: what stays open is a known issue.
-- **Step 14, known issues.** A finding is open when it is `unresolved` in its lens's re-check, or
-  `unresolved` in the full pass and not reported `fixed` by a re-check. **Replace both lists whole** with
-  Edit, every cycle (D-265, D-276), reading only the lines you edit, from the line numbers W1 returned last
-  (W1 returns them on its first write and on every patch; no Grep: if a line isn't the heading, Read the file
-  in parts until you find it), down to the next heading or the end of the file:
+- **Step 13, the re-check.** Run `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
+  --changed <n>`, `<n>` the round copy's number: it prints the claims whose text, source or cited record
+  values changed since `rounds/<n>/`, and the guide's changed H2s, one per line. Then start one verifier,
+  `check: "recheck"`, `writes: ["reports/V4-<n+1>.md"]`, `findings` the ids of report `<n>`'s `unresolved`
+  findings, and `changed` the lines the checker printed, as printed. It re-checks only those, whether or not
+  an owner recompiled: no re-check covers every claim (D-352). There is no further round: what stays open is
+  a known issue.
+- **Step 14, known issues.** The open findings are the `unresolved` findings of the last report, the
+  `reports/V4-<n>.md` with the highest `<n>`: a re-check reports again every finding still open. **Replace
+  both lists whole** with Edit, every cycle (D-265, D-276), reading only the lines you edit, from the line
+  numbers W1 returned last (W1 returns them on its first write and on every patch; no Grep: if a line isn't
+  the heading, Read the file in parts until you find it), down to the next heading or the end of the file:
   - in `guide.md`, under `### Known issues`: first W1's lines for the accepted gate findings, as W1 wrote
     them; then one line per open finding, `- <reader>`, the finding's `reader` sentence exactly as its report
     gives it, with no id; or, with neither, the one line `None.`;
   - in `audit.md`, under `## Known issues`: the table head, W1's rows for the accepted gate findings, then one
-    row per open finding, `| <id> | <lens> | — | <reader> |`; or, with neither, the one line `None.`.
+    row per open finding, `| <id> | V4 | — | <reader> |`; or, with neither, the one line `None.`.
 
   Drop every other line and row: one from an earlier cycle is stale.
 - **Step 15.** Run the run checker (§7).
@@ -394,9 +403,12 @@ display, whoever answers (Hard rules): show the stage, the attempts and the verd
   verdicts, the known issues and the checker's result, and ask: **accept** (the run ends `completed`), **ask
   for changes**, or anything else (the run ends `not-accepted`, with the user's note).
   Asking for changes is a revision (D-236): map each request to D1, D2 or W1 by step 12's owners (the
-  guide's text is W1's; an endgame stage, its ledger entries and prices D1's; a campaign stage D2's), run
+  guide's text is W1's; an endgame stage, its ledger entries and prices D1's; a campaign stage D2's). Have
+  the plan, record and guide copied to `rounds/<n>/`, `<n>` the last report's number, as step 12 does; run
   that chain as step 12 does (claims in place, the gates only after a recompile), with the requests as
-  `findings` (`code: "user-request"`), then steps 11 to 16 again. A revision counts against no cap.
+  `findings` (`code: "user-request"`); then step 13's re-check over `--changed <n>`, in the full pass's
+  place: **a revision runs no full pass** (D-352). Steps 12 to 16 then follow as after a full pass. A
+  revision counts against no cap.
 
 ## 7. Finish
 

@@ -52,16 +52,17 @@ folder (D-153).
 | `guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276) |
 | `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate | its verdict (`gates.md`) |
-| `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged | the V4 full pass and re-check reports (`source-markers.md`) |
+| `reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) | the V4 full pass's or a re-check's report (`source-markers.md`, `stages/V4.md`) |
 
 - Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b`
   and `c` when it starts them, so parallel researchers never collide and ids stay unique across rounds
   (D-319). A step's `concept`, a gate file's `<concept>` and `concepts/<id>/` use the card id. (Runs before
   amendment 3 used concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate` or `D2-gate`; `<attempt>` counts from 1 per (stage,
-  concept), as the header and the run log's `stages[]` do; `<lens>` is `ledger`, `sources` or `prose`.
-- A revision's verification rewrites the V4 reports; the run log's order says which re-check belongs to the
-  last full pass.
+  concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the run's V4 passes
+  from 1, full pass and re-checks alike.
+- Every V4 report is kept: a re-check or a revision's check writes the next `<n>`, never over an earlier
+  report.
 - Nothing else goes in the run folder. No agent writes outside it (D-177), and agents running in
   parallel write different files (C-36).
 

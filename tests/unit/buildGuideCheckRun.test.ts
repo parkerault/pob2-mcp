@@ -559,7 +559,7 @@ const broken: BrokenCase[] = [
   { name: "(x) a verdict line's other max hit is the largest, not the least", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('at least 3,000 elemental', 'at least 9,800 elemental')), rule: 'verdict-line', says: /says elemental or chaos max hit 9,800, but the least of b's FireMaximumHitTaken, ColdMaximumHitTaken, LightningMaximumHitTaken, ChaosMaximumHitTaken is 3000/ },
   { name: "(x) a verdict line's hit is mis-rounded against the hit the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 400,', 'physical against about 410,')), rule: 'verdict-line', says: /the Budget verdict line says physical hit 410, but the hit the compiler wrote, b\.configWritten\.enemyPhysicalDamage is 402/ },
   { name: "(x) a verdict line's other hit isn't the largest the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('elemental or chaos against about 97.', 'elemental or chaos against about 72.')), rule: 'verdict-line', says: /the Budget verdict line says elemental or chaos hit 72, but the largest of the hits the compiler wrote, b\.configWritten's enemyFireDamage, enemyColdDamage, enemyLightningDamage, enemyChaosDamage is 97/ },
-  { name: "(x) a verdict line's DPS isn't the D1 gate's figure for the named damage source", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but the named damage source's figure × its Count 1, b\.countedSkillOutputs\.g1s1p1\.TotalDPS is 50000/ },
+  { name: "(x) a verdict line's DPS isn't the record's measures.dps", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but b\.measures\.dps \(the main group's TotalDPS × its Count\) is 50000/ },
   // (y)
   { name: "(y) the entering-maps rung's budget above 5.5 divines", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 3.2)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage m totals 5\.6 divines, above 5\.5 \(D-281\)/ },
   { name: '(y) the entering-maps rung above 5 divines without "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 2.8)), rule: 'budget', says: /entering-maps stage m totals 5\.2 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/ },
@@ -863,7 +863,29 @@ describe("AC-W2 (ee): the D1 gate's recompute and the verdict line read the name
   it("fails a verdict line quoting the per-copy figure where the record has the figure × Count", () => {
     const dir = copyOf('run-ok-online');
     editText(dir, 'guide.md', replace('Blood Hunt about 100,000 DPS.', 'Blood Hunt about 50,000 DPS.'));
-    expect(failing(dir)).toMatch(/\[verdict-line\] guide\.md:\d+: the Non-budget verdict line says DPS 50,000, but the named damage source's figure × its Count 2, n\.countedSkillOutputs\.g1s1p1\.TotalDPS is 100000/);
+    expect(failing(dir)).toMatch(/\[verdict-line\] guide\.md:\d+: the Non-budget verdict line says DPS 50,000, but n\.measures\.dps \(the main group's TotalDPS × its Count\) is 100000/);
+  });
+
+  it("reads the verdict line's DPS from measures.dps, not the gate's figure: a gate naming CombinedDPS passes, a DPS matching neither fails", () => {
+    const dir = copyOf('run-ok');
+    for (const f of fs.readdirSync(path.join(dir, 'reports/gates')).filter((f) => f.startsWith('D1-gate'))) {
+      editJson(dir, `reports/gates/${f}`, (r) => {
+        for (const b of r.basis.rolledSkill) for (const x of b.figures) x.figure = x.figure.replace('.TotalDPS', '.CombinedDPS');
+      });
+    }
+    editJson(dir, 'compile-record.json', (r) => {
+      for (const st of Object.values(r.stages as Json)) {
+        for (const k of ['skillOutputs', 'countedSkillOutputs']) {
+          for (const g of Object.values((st[k] ?? {}) as Json)) if (typeof g.fields?.TotalDPS === 'number') g.fields.CombinedDPS = g.fields.TotalDPS * 1.1;
+        }
+      }
+    });
+    expect(readJson(dir, lastD1).basis.rolledSkill.find((b: Json) => b.stage === 'b').figures[0].figure).toBe('g1s1p1.CombinedDPS');
+    passes(dir);
+    // 70,000 is neither measures.dps (50,000) nor the gate's CombinedDPS (55,000).
+    editText(dir, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 70,000 DPS'));
+    const stderr = failing(dir);
+    expect(lines(stderr, 'verdict-line')).toEqual([expect.stringMatching(/the Budget verdict line says DPS 70,000, but b\.measures\.dps \(the main group's TotalDPS × its Count\) is 50000/)]);
   });
 
   it('reads a figure with no counted copy raw, per copy: a record from before WU-55 (run-ok-v2), and the same field read raw when the counted copy is gone', () => {

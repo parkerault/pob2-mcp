@@ -1364,9 +1364,9 @@ const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
  * the stage's `level`; the resistances `FireResist`, `ColdResist`, `LightningResist`, `ChaosResist`; the
  * physical max hit `PhysicalMaximumHitTaken` against the hit the compiler wrote, `enemyPhysicalDamage` in the
  * record's `configWritten` (D-353); the other max hit the least of the four other `<Type>MaximumHitTaken` against
- * the largest of the four other hits written there; the DPS the named damage source's figure the D1 gate's verdict
- * names, × its Count where the record has a counted copy (D-294, D-340), a ledger figure's value its current
- * formula's (D-365); and the closing "Effective HP about <n>." the stage's `TotalEHP` (D-294), which a schema-3
+ * the largest of the four other hits written there; the DPS the stage's `measures.dps` (D-353), or, in a record
+ * from before it, the named damage source's figure the D1 gate's verdict names, × its Count where the record has
+ * a counted copy (D-294, D-340), a ledger figure's value its current formula's (D-365); and the closing "Effective HP about <n>." the stage's `TotalEHP` (D-294), which a schema-3
  * run's line always has. The entering-maps label stays judgment (solid, watch or risky); the budget and non-budget
  * labels are the record's `measures.arbiter` verdict (D-353, `arbiterLabel`).
  */
@@ -1430,14 +1430,20 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
       ['elemental or chaos max hit', m[10], least(OTHER_TYPES.map((t) => out[`${t}MaximumHitTaken`])), `the least of ${s.id}'s ${OTHER_TYPES.map((t) => `${t}MaximumHitTaken`).join(', ')}`],
       ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t))), `the largest of the hits the compiler wrote, ${s.id}.configWritten's ${OTHER_TYPES.map((t) => `enemy${t}Damage`).join(', ')}`],
     ];
-    // The DPS is the named damage source's figure the D1 gate's verdict names for the stage's rolledGroup (§5.3),
-    // × its Count where the record has a counted copy (D-294, D-340): the headline the PoB file shows.
-    const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
-    const lg = /^ledger:(\w+)$/.exec(String(fig ?? ''));
-    const read = lg ? { value: ledgerNow[lg[1]]?.value, counted: false } : figureOf(st, fig);
-    const named = read.counted ? `the named damage source's figure × its Count ${read.count}, ${s.id}.countedSkillOutputs.${fig}` : `the named damage source's figure ${s.id}.${fig}`;
-    if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no figure for stage ${s.id}'s named damage source, so the ${label} verdict line's DPS can't be compared (D-283)`);
-    else parts.push(['DPS', m[13], read.value, named]);
+    // The DPS is the record's measures.dps (D-353), the main group's counted TotalDPS, the figure W1 is told to
+    // write, whatever field or ledger figure the D1 gate names (the gate's own recompute reads that). A record
+    // from before D-353 has no measures, so its line is read against the gate's figure for the stage's
+    // rolledGroup (§5.3), × its Count where the record has a counted copy (D-294, D-340).
+    if (isObj(st?.measures)) {
+      parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's TotalDPS × its Count)`]);
+    } else {
+      const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
+      const lg = /^ledger:(\w+)$/.exec(String(fig ?? ''));
+      const read = lg ? { value: ledgerNow[lg[1]]?.value, counted: false } : figureOf(st, fig);
+      const named = read.counted ? `the named damage source's figure × its Count ${read.count}, ${s.id}.countedSkillOutputs.${fig}` : `the named damage source's figure ${s.id}.${fig}`;
+      if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no figure for stage ${s.id}'s named damage source, so the ${label} verdict line's DPS can't be compared (D-283)`);
+      else parts.push(['DPS', m[13], read.value, named]);
+    }
     if (m[14] !== undefined) parts.push(['Effective HP', m[14], out.TotalEHP, `${s.id}.TotalEHP`]);
     for (const [part, written, value, from] of parts) {
       if (!isNum(value)) fail('verdict-line', `${at}: the ${label} verdict line's ${part} can't be compared: the record has no value for ${from} (D-283)`);

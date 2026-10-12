@@ -551,12 +551,13 @@ export async function checkRun(runFolder) {
 
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
   const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
-  for (const name of fs.readdirSync(runFolder)) {
+  // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
+  for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
     if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2); agents write only the files §2 names`);
   }
   // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else.
   if (exists('rounds') && !isDir('rounds')) fail('layout', 'rounds is a file; §2 names the folder rounds/, of round copies rounds/<n>/ (A-34)');
-  for (const n of listDir('rounds')) {
+  for (const n of listDir('rounds').filter((x) => !ROUND_TMP.test(x))) {
     if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
     else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
   }
@@ -2913,21 +2914,35 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
 /** A-34: what `--snapshot <n>` copies into `rounds/<n>/`, and all that a round folder holds. */
 export const ROUND_FILES = ['plan.json', 'compile-record.json', 'guide.md'];
 const ROUND_N = /^[1-9]\d*$/;
+/** `--snapshot <n>`'s working folder `rounds/.<n>.tmp-XXXXXX`, renamed to `rounds/<n>/` once whole; the layout skips it. */
+const ROUND_TMP = /^\.[1-9]\d*\.tmp-\w{6}$/;
 
 /**
  * A-34: copies the plan, the record and the guide into `rounds/<n>/`, `<n>` the number of the V4 report the round
- * answers. It never overwrites a round, and copies nothing unless all three files exist. Returns null, or why not.
+ * answers. It never overwrites a round, and copies nothing unless all three files exist. The copy is made in a
+ * working folder inside `rounds/` and renamed to `<n>` once whole, so a copy failing midway leaves no round and can
+ * be made again. Returns null, or why not.
  */
 export function snapshotRound(runFolder, n) {
   const rounds = path.join(runFolder, 'rounds');
   const dir = path.join(rounds, String(n));
+  if (fs.existsSync(rounds) && !fs.statSync(rounds).isDirectory()) return 'rounds is a file; the round copies go in the folder rounds/ (A-34)';
   if (fs.existsSync(dir)) return `rounds/${n}/ exists; a round copy is never overwritten (A-34)`;
   const missing = ROUND_FILES.filter((f) => !fs.existsSync(path.join(runFolder, f)));
   if (missing.length > 0) return `the run folder has no ${missing.join(', ')}; the round copy holds ${ROUND_FILES.join(', ')} (A-34)`;
-  fs.mkdirSync(rounds, { recursive: true });
-  fs.mkdirSync(dir);
-  for (const f of ROUND_FILES) fs.copyFileSync(path.join(runFolder, f), path.join(dir, f), fs.constants.COPYFILE_EXCL);
-  return null;
+  let tmp = null;
+  try {
+    fs.mkdirSync(rounds, { recursive: true });
+    tmp = fs.mkdtempSync(path.join(rounds, `.${n}.tmp-`));
+    for (const f of ROUND_FILES) fs.copyFileSync(path.join(runFolder, f), path.join(tmp, f), fs.constants.COPYFILE_EXCL);
+    fs.renameSync(tmp, dir);
+    tmp = null;
+    return null;
+  } catch (e) {
+    return `the round copy rounds/${n}/ wasn't made (${e.code ?? e.message}); nothing was copied, so it can be made again (A-34)`;
+  } finally {
+    if (tmp !== null) fs.rmSync(tmp, { recursive: true, force: true });
+  }
 }
 
 /** JSON with sorted keys, so two values compare by content. */

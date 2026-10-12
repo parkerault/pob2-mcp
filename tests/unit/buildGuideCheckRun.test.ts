@@ -2981,4 +2981,31 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
       "check-run: [layout] rounds/latest isn't a round copy rounds/<n>/ (A-34)",
     ]);
   });
+
+  it('--snapshot fails cleanly (exit 1, one line, no stack): rounds a file, or a copy failing midway, which leaves no round and can be made again', () => {
+    const file = copyOf('run-ok');
+    fs.rmSync(path.join(file, 'rounds'), { recursive: true });
+    fs.writeFileSync(path.join(file, 'rounds'), '');
+    expect(runChecker(file, '--snapshot', '2')).toEqual({ code: 1, stdout: '', stderr: 'check-run: rounds is a file; the round copies go in the folder rounds/ (A-34)\n' });
+    // guide.md a folder: the plan and the record copy, then the guide fails, midway.
+    const dir = copyOf('run-ok');
+    const guide = fs.readFileSync(path.join(dir, 'guide.md'));
+    fs.rmSync(path.join(dir, 'guide.md'));
+    fs.mkdirSync(path.join(dir, 'guide.md'));
+    expect(runChecker(dir, '--snapshot', '2')).toEqual({ code: 1, stdout: '', stderr: "check-run: the round copy rounds/2/ wasn't made (EISDIR); nothing was copied, so it can be made again (A-34)\n" });
+    expect(fs.readdirSync(path.join(dir, 'rounds'))).toEqual(['1']);
+    fs.rmSync(path.join(dir, 'guide.md'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'guide.md'), guide);
+    expect(runChecker(dir, '--snapshot', '2').code).toBe(0);
+    // A working folder left by a copy cut short (a killed process) is no round copy, and the layout skips it.
+    fs.mkdirSync(path.join(dir, 'rounds', '.3.tmp-a1B2c3'));
+    fs.writeFileSync(path.join(dir, 'rounds', '.3.tmp-a1B2c3', 'plan.json'), '{}');
+    passes(dir);
+  });
+
+  it("the layout skips a run-log.json.tmp left by a run-log.mjs write cut short", () => {
+    const dir = copyOf('run-ok');
+    fs.writeFileSync(path.join(dir, 'run-log.json.tmp'), '{"schemaVersion": 3');
+    passes(dir);
+  });
 });

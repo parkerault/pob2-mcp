@@ -226,6 +226,17 @@ the Arbiter of Divinity's largest hit of each damage type and each mixed hit ove
 (`survives` below 1, else `one-shot`), and a rough `clearSpeed`. No ledger entry is needed for a reference
 hit, a kill time or hits to kill.
 
+`compile_plan`'s reply prints a key-figure line after each stage's line (D-356), so a compile needs no read of
+the record for these: the headline DPS (the named source's Count-scaled figure), life, energy shield, EHP, the
+fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame stage also
+the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. Numbers are rounded to
+whole numbers.
+
+```
+Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
+  Key figures: DPS 5; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
+```
+
 ### Shared sets (A-P2)
 
 The compiler gives every stage its own tree, titled `loadoutName`. Stages whose `items` (likewise

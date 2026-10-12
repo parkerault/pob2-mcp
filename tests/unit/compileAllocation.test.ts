@@ -214,7 +214,8 @@ describe('C-41, C-50: argument combinations and error lines', () => {
       unresolvedRefs: [],
       timing: { totalMs: 1000, checkMs: 0, finishMs: 0, exportMs: 0 },
     };
-    const text = renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false });
+    const mains = { b: { group: 1, activeSkill: 1 }, n: { group: 1, activeSkill: 1 } };
+    const text = renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false, mains });
     const lines = text.split('\n');
     // The stage line, then its key-figure line (D-356), then its findings.
     const after = (id: string) => {
@@ -261,7 +262,8 @@ describe('C-41, C-50: argument combinations and error lines', () => {
         savedLevel: { level: 10, autoMode: true as const }, activeLoadout: 'Stage 0 (L10) {s0}', sets: [], stages, ledger: {}, unresolvedRefs: [],
         timing: { totalMs: 1000, checkMs: 0, finishMs: 0, exportMs: 0 },
       };
-      return renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false });
+      const mains = Object.fromEntries(ids.map((id) => [id, { group: 1, activeSkill: 1 }]));
+      return renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false, mains });
     };
     const findingLines = (text: string) => text.split('\n').filter((l) => l.startsWith('  - '));
     // At the bound: every finding, across stages, and no pointer.

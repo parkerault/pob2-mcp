@@ -10,7 +10,7 @@
  * | Code | Finding when |
  * |---|---|
  * | `producer-unknown` | an earned entry is on and its producer doesn't exist in the game data (D-221) |
- * | `producer-absent` | the producer exists but isn't in the stage (item: an equipped item; gem: a gem of the skill set; passive: an allocated node, ascendancy included; skill: an active skill; flask or charm: equipped with its toggle on), names compared ignoring case |
+ * | `producer-absent` | the producer exists but isn't in the stage (item: an equipped item; gem: a gem of the skill set; passive: an allocated node, ascendancy included, or a notable an item grants, such as an anoint; skill: an active skill; flask or charm: equipped with its toggle on), names compared ignoring case |
  * | `source-unresolved` | a scenario entry's `source.file` isn't a loaded C1/E1 file, or its key doesn't resolve |
  * | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on in the stage's effective config and its quest comes after `progress` |
  * | `default-unlisted` | an option on by default, or placeholder-driven in the stage's config set, that the stage doesn't list and the baseline list doesn't cover: it doesn't name it; or it is conditional and PoB shows it for the stage (D-250); or the stage fights a boss and it is one of the enemy's level, armour, evasion, resistances or crit (D-252) |

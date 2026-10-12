@@ -390,7 +390,10 @@ export function clearEntryOf(
  * `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.TotalDPS`, else the main skill's
  * counted `TotalDPS`; null when PoB measured none.
  */
-export function headlineDps(stage: Pick<Stage, 'skills'>, rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs'>): number | null {
+export function headlineDps(
+  stage: { skills: Pick<Stage['skills'], 'main'> },
+  rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs'>,
+): number | null {
   const m = stage.skills.main;
   const key = `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`;
   const v = rec.countedSkillOutputs[key]?.fields.TotalDPS ?? rec.countedOutputs.fields.TotalDPS;

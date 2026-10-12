@@ -133,7 +133,7 @@ export function renderCompileText(result: CompileResult): string {
   for (const id of r.stagesCompiled) {
     const s = r.stages[id];
     lines.push(`Stage ${id} "${s.loadoutName}" level ${s.level}: ${verdictText('V1', s.v1)}, ${verdictText('V2', s.v2)}`);
-    lines.push(keyFigureLine(s));
+    lines.push(keyFigureLine(s, result.mains[id]));
     for (const f of [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])]) {
       if (printed < MAX_FINDINGS_PRINTED) {
         lines.push(`  - ${f.code}: ${f.message}`);

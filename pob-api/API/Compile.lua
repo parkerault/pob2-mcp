@@ -546,7 +546,8 @@ local function check_anoint(tree, st, defect)
 end
 
 -- The item text compile_stage equips in a slot: on the amulet, the stage's anoint as PoB's anoint dialog
--- writes it (ItemsTab:anointItem), one enchant line `Allocates <notable>` in place of any other.
+-- writes it (ItemsTab:anointItem), one enchant line `Allocates <notable>` first, in place of any other
+-- `Allocates` line; the amulet's other enchant lines stay, after it.
 local function anointed_text(st, it)
   if st.anoint == nil or tostring(it.slot) ~= ANOINT_SLOT then return it.text end
   local ok, item = pcall(construct, 'Item', tostring(it.text))

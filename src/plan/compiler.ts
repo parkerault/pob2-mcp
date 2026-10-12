@@ -72,6 +72,7 @@ import {
   clearGemNames,
   countedFigures,
   formulaReadsStages,
+  headlineDps,
   recordText,
   stageMeasures,
   unresolvedRefs,
@@ -140,6 +141,8 @@ export interface CompileResult {
   written: { builds: string[]; guides: string[] };
   /** The final compile replaced an existing builds-folder file (a backup was kept). */
   replacedFile: boolean;
+  /** Each compiled stage's main selection, by stage id: the key-figure line's headline source (D-356). */
+  mains: Record<string, Stage['skills']['main']>;
 }
 
 /** The set kinds a stage's content is grouped by (A-P2). */
@@ -529,11 +532,12 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * D-356 (amending D-273 (2)): a stage's key figures, the line `compile_plan` prints after the stage's line, so an
  * agent needn't read the record after a compile: the headline DPS (the named source's Count-scaled figure), life,
  * energy shield, EHP, the four resistances, the V1 and V2 finding counts, and on an endgame stage the Arbiter
- * verdict with its worst hit (`b`, `n`) and the rough clear speed (D-353).
+ * verdict with its worst hit (`b`, `n`) and the rough clear speed (D-353). Every stage's DPS is `headlineDps`
+ * of its main selection `main`, the figure an endgame stage's `measures.dps` holds.
  */
-export function keyFigureLine(rec: StageRecord): string {
+export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
-  const dps = rec.measures !== undefined ? rec.measures.dps : rec.countedOutputs.fields.TotalDPS;
+  const dps = headlineDps({ skills: { main } }, rec);
   const ehp = rec.measures !== undefined ? rec.measures.ehp : o.TotalEHP;
   const parts = [
     `DPS ${whole(dps)}`,
@@ -1059,7 +1063,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   };
   await writeBesidePlan(env.guidesDirectory, request.planPath, loaded, RECORD_FILE, recordText(record));
   written.guides.push(besideRel(RECORD_FILE));
-  return { planPath: request.planPath, record, written, replacedFile };
+  const mains = Object.fromEntries(results.map(({ stage }) => [stage.id, stage.skills.main]));
+  return { planPath: request.planPath, record, written, replacedFile, mains };
 }
 
 /**

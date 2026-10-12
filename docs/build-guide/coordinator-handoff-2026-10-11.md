@@ -79,14 +79,15 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
    - **The M-15 build: IN PROGRESS** (started 2026-10-11, after the user signed off every amendment 4 change; that
      settles HG-12 for WU-66). The work-log section "2026-10-11: M-15 build start" records every verdict. *Who acts:
      you, by the coordinator method.*
-     - **Merged on `build-guide/amendments`, each reviewed and passing:** WU-65, WU-68, WU-69, WU-66 and WU-67.
-     - **WU-70:** both parts built in lane `bg-70` (head `9caa7ad`); one independent review was running at this
-       update. On PASS, rebase and fast-forward it, then start WU-71.
-     - **WU-71, the checker and scripts:** comparable in size to WU-70, so run it as two doers in series. The
-       work-log's WU-69 and WU-70 entries list every format it must match (`--changed`, `--snapshot`,
-       `render-audit.mjs`, `run-log.mjs`, the `design` checkpoint, the D1-build, D1-finish, V4 and V4-recheck
-       stages, the dossier table, the survival label, the Checks block, `[ledger]` over the current formulas with
-       the guide's ledger figures (D-365), the `v4-<n>-<k>` ids, and AC-W2 (t) and FI-4's text).
+     - **Merged and gated:** WU-65…WU-71 are on `build-guide/amendments`, each reviewed. The M-15 wave gate
+       PASSed at `27b90fe`: 127 suites, 2283 tests, build rc=0, waivers `[]`, dependencies and `vendor/`
+       unchanged.
+     - **WU-72, the lean run, is ready.** *Who acts: the user.* Its environment is `/tmp/m15.C1xp` (its README
+       has the steps). Its worktree is `m15`, detached at `27b90fe` and built. `start.sh runL` runs with
+       telemetry, `runL-plain` without. When the user reports it done, have an independent verifier check the
+       record against AC-W56…AC-W58 (slice 03 §13) and the budgets (AC-W57: output at most 1M by WU-64's counter,
+       peak context per agent, cache read per step). The transcripts are under
+       `~/.claude/projects/-home-parker-projects-pob2-mcp-wt-m15/`.
      - **WU-64, the counter spike:** paused at "awaiting control" (lane `bg-64`, head `734764b`). The user runs
        `docs/build-guide/spikes/WU-64-control.md` in their own terminal and hands back `$D`, the transcript path
        and any `/usage` figures. Then resume a fresh doer (the first doer's agent is gone after a restart) to
@@ -148,8 +149,8 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `5a2407a` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes are
-  `bg-64` (WU-64, paused) and `bg-70` (WU-70, in review).
+- **Integration head:** `d748621` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes:
+  `bg-64` (WU-64, paused). Run worktrees: `m14` (`96b1785`) and `m15` (`27b90fe`, built).
 - **Live worktrees:**
   - `amend`, the integration worktree;
   - `m14`, detached at `96b1785` and built: the WU-59 run worktree.

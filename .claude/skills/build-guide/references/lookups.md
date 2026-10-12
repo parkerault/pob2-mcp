@@ -92,8 +92,8 @@ names something PoB doesn't model, so treat it as a hand calculation, or as Coun
 the concept's skeleton) that copies the stage under test without that line, compile measure-only with
 `stages` naming the two stages, and compare their outputs in the record. Remove the temporary stage before
 the step ends; no second plan file goes in the run folder. If the numbers move, PoB reads the line: use its numbers. If they don't, the line is unmodelled: hand-calculate
-it in the ledger and say so in the guide's "What PoB can't show" and in `audit.md`'s "What PoB doesn't model"
-(D-278). Only a coordinator step
+it in the ledger: the guide says so in "What PoB can't show", and `audit.md`'s render lists it under "What PoB
+doesn't model" (D-355). Only a coordinator step
 compiles, so a researcher or verifier that meets such a line reports it for the coordinator instead of
 guessing.
 

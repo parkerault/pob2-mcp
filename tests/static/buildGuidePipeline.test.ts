@@ -33,6 +33,10 @@
  * Amendment 4 (WU-69, D-352): AC-W52, V4 as one pass with no lenses that re-checks only `check-run.mjs
  * --changed <n>`'s set and writes its own kept `reports/V4-<n>.md` (the verifier gains Write, R-5 as amended);
  * and AC-W59's static clause that `V4.md` defines the triage.
+ * Amendment 4 (WU-70): D1 in two steps, the design gate and the round copy (part A); the lean campaign in D2 and
+ * the guide template, the anoint, the socket estimate, the survival label and the rendered Checks block, the
+ * dossier as the comparison table, D-351's claim rule and excerpts in the stage references (part B, AC-W53), and
+ * AC-W59's static clause for D1 and D2.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -372,23 +376,12 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const RESEARCH_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble'];
 const DOSSIER_TEMPLATE = path.join(SKILL_DIR, 'templates', 'dossier-template.md');
-/** §7.2: the dossier's H2s, in order. */
-const DOSSIER_H2 = ['Roll and mode', 'Mechanics', 'Synergy search', 'Config gaps', 'Concepts', 'Not carried'];
-/** C-36's seven proposal fields, then the R1b result (§7.2). */
-const CONCEPT_FIELDS = [
-  'Key uniques',
-  'Ascendancy nodes',
-  'Supports',
-  'Keystones',
-  'Feasibility read',
-  'Risks',
-  "What PoB can't verify",
-  'Skeleton',
-  'Compile',
-  'Record',
-  'Key numbers',
-  'Key-item prices',
-];
+/**
+ * §7.2 as D-355 reduces it (WU-70): the dossier is the verification gate's comparison table, one row per verified
+ * card, with these columns in order. The run checker's `DOSSIER_H2` still holds the six H2s of before until WU-71
+ * moves it to the table.
+ */
+const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
 
 /** Headings outside fenced blocks, with their line numbers. */
 function headings(text: string): { level: number; title: string; line: number }[] {
@@ -478,43 +471,43 @@ describe('WU-44: the research stage references', () => {
   });
 });
 
-describe('WU-44: the dossier template (§7.2)', () => {
+describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'s comparison table (§7.2)', () => {
   const text = fs.existsSync(DOSSIER_TEMPLATE) ? fs.readFileSync(DOSSIER_TEMPLATE, 'utf8') : '';
   const hs = headings(text);
+  const rows = text.split(/\r?\n/).filter((l) => l.startsWith('|'));
+  const cells = (row: string) => row.slice(1, -1).split('|').map((c) => c.trim());
 
-  it("has §7.2's H2s in order, the same list the run checker holds", () => {
-    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(DOSSIER_H2);
-    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    const listed = /export const DOSSIER_H2 = (\[[^\]]*\]);/.exec(checker);
-    expect(listed).not.toBeNull();
-    expect(JSON.parse(listed![1].replace(/'/g, '"'))).toEqual(DOSSIER_H2);
+  it('is one H1, the brief line and one table: no H2, no H3, no markers and no merged research', () => {
+    expect(hs.map((h) => h.level)).toEqual([1]);
+    expect(text).toMatch(/^Brief: <its fields as parsed/m);
+    expect(text).not.toMatch(/\[\^/);
+    for (const gone of ['Mechanics', 'Synergy search', 'Config gaps', 'Not carried', 'Feasibility read']) expect({ gone, present: text.includes(gone) }).toEqual({ gone, present: false });
   });
 
-  it('gives each concept an H3 "<id>: <title>" under Concepts with the seven proposal fields and the R1b result', () => {
-    const concepts = hs.find((h) => h.level === 2 && h.title === 'Concepts')!;
-    const next = hs.find((h) => h.line > concepts.line && h.level <= 2)!;
-    const h3 = hs.filter((h) => h.level === 3 && h.line > concepts.line && h.line < next.line);
-    expect(h3.length).toBeGreaterThan(0);
-    // D-319: a card id (`r1-a-2`); runs before amendment 3 used concept ids (`c1`).
-    for (const h of h3) expect(h.title).toMatch(/^r[1-9]\d*-[a-c]-[1-9]\d*: /);
-    const section = text.split(/\r?\n/).slice(concepts.line, next.line).join('\n');
-    for (const field of CONCEPT_FIELDS) expect({ field, present: section.includes(`- ${field}: `) }).toEqual({ field, present: true });
+  it('has the comparison columns in order, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
+    expect(cells(rows[0])).toEqual(DOSSIER_COLUMNS);
+    expect(cells(rows[1]).every((c) => /^-+$/.test(c))).toBe(true);
+    const body = rows.slice(2).map(cells);
+    for (const row of body) expect(row).toHaveLength(DOSSIER_COLUMNS.length);
+    // D-319: a card id (`r1-a-2`).
+    for (const row of body) expect(row[0]).toMatch(/^r[1-9]\d*-[a-c]-[1-9]\d*$/);
+    expect(body.map((r) => r[2].split(':')[0].replace(/ after .*/, ''))).toEqual(['viable', 'failed', "can't be finalized yet"]);
+    expect(body[1][2]).toMatch(/reports\/gates\/R1b-r1-b-1-a<N>\.json/);
+    // D-294, D-296: TotalEHP beside Life, and the figure labelled an estimate on Count or custom modifiers.
+    expect(body[0][4]).toMatch(/"estimate" when its group's Count is above 1 or the stage is computedWithCustomMods \(D-296\)/);
+    expect(body[0][6]).toBe('<TotalEHP>');
   });
 
-  it('states the league, and marks a fallback league unverified for D1', () => {
-    expect(text).toMatch(/League: <none \(offline\) \| <league>, from get_leagues \| <league>, unverified/);
+  it('marks a fallback league unverified for D1, in the card\'s row', () => {
+    expect(cells(rows[2])[8]).toBe('<none (offline) or <league> or <league>, unverified>');
   });
 
-  it('puts every footnote definition under the last heading, after Not carried', () => {
-    const lines = text.split(/\r?\n/);
-    const defs = lines.map((l, i) => (/^\[\^[^\]\s]+\]:/.test(l) ? i : -1)).filter((i) => i >= 0);
-    expect(defs.length).toBeGreaterThan(0);
-    const last = hs[hs.length - 1];
-    expect(last.title).toBe('Not carried');
-    for (const i of defs) expect(i).toBeGreaterThan(last.line);
-    for (const m of text.matchAll(/\[\^([^\]\s]+)\](?!:)/g)) {
-      expect({ marker: m[1], defined: lines.some((l) => l.startsWith(`[^${m[1]}]:`)) }).toEqual({ marker: m[1], defined: true });
-    }
+  it('R1b-assemble writes the table and reads the record by Grep; D1-build, D2 and W1 read the card and its row', () => {
+    const assemble = folded(readStage('R1b-assemble'));
+    expect(assemble).toMatch(/It writes `dossier\.md`, the verification gate's comparison table \(D-355\)/);
+    expect(assemble).toContain(`with its ten columns exactly, in order: ${DOSSIER_COLUMNS.map((c) => `\`${c}\``).join(', ')}. No H2, no H3, no markers`);
+    expect(assemble).toMatch(/its record's key numbers, by Grep, never the record whole/);
+    for (const stage of ['D1-build', 'D2', 'W1']) expect({ stage, row: folded(readStage(stage)).includes("row of `dossier.md`") || folded(readStage(stage)).includes("the card's row (Grep `^| <id> |`)") }).toEqual({ stage, row: true });
   });
 });
 
@@ -543,11 +536,16 @@ const GUIDE_H2 = [
   'FAQ',
   'Changelog',
 ];
-/** §7.8, the audit layer (WU-62, D-278): audit.md's H2s, in order. */
-const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
+/**
+ * §7.8, the audit layer, as D-355 renders it (WU-70): audit.md's H2s, in order. The run checker's `AUDIT_H2` still
+ * holds WU-62's list (`Hand calculations` … `Run notes`) until WU-71 renders and checks the new one.
+ */
+const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues'];
 const ENDGAME_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
 /** D-283, D-294: the verdict line's fixed form, ending "Effective HP about <n>.", checked against `TotalEHP`. */
 const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.';
+/** D-353: the survival label on the budget and non-budget rungs follows the record's `measures.arbiter` verdict. */
+const ARBITER_LABEL = "<survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>";
 const readStage = (stage: string) => fs.readFileSync(path.join(STAGES_DIR, `${stage}.md`), 'utf8');
 /** D1's two steps (WU-70, D-356): D1-build and D1-finish, read as one where a rule may sit in either. */
 const readD1 = () => `${readStage('D1-build')}\n\n${readStage('D1-finish')}`;
@@ -686,13 +684,18 @@ describe('WU-45: the design stage references', () => {
     expect(text).toContain('Where a stage has a `respec` (from the rung before it on the ladder, D-282), a respec line gives the dropped nodes and the gold cost');
   });
 
-  it("W1 rounds a reference hit from its ledger value, never as the scenario's whole number, and audit.md keeps the value (D-256 as D-276 amends it)", () => {
-    expect(folded(readStage('W1'))).toMatch(/Quote a reference hit rounded from its ledger value \(`audit\.md` keeps the value itself\), never as the scenario's whole number \(439\), which is that value rounded up for PoB \(D-256\)/);
+  it("W1 quotes a reference hit from the record's configWritten, rounded as a guide rounds, and no ledger value (D-353, D-256 as D-276 amends it)", () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/"Max hit <n> physical against about <hit>": the record's `PhysicalMaximumHitTaken`, against the stage's `enemyPhysicalDamage` in `configWritten`, the reference hit the compiler wrote/);
+    expect(w1).toMatch(/Round each number as a guide does, at its last significant digit: 2,736 is "2,740" or "2,700", 401\.996 is "about 400", a hit of 439 "about 440"/);
+    expect(w1).not.toMatch(/hit_<stage>|hit_\*|ledger value of/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     const verdicts = template.split(/\r?\n/).filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
     expect(verdicts).toHaveLength(3);
     for (const l of verdicts) expect(l).toContain('Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>.');
-    expect(fs.readFileSync(AUDIT_TEMPLATE, 'utf8')).toContain("**Reference hits:** <per endgame rung, each `hit_<stage>_<type>` ledger value, and the whole number its scenario gives PoB>");
+    const audit = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
+    expect(audit).toContain('| <on an endgame rung, its configWritten hits; — on a campaign stage> |');
+    expect(audit).not.toMatch(/hit_<stage>|lens: ledger, sources or prose/);
   });
 
   it("V4 leaves the ledger's arithmetic and the reference hits to the run checker, and checks only that a hinge claim's entry models it (D-352, as WU-69 builds it)", () => {
@@ -710,15 +713,19 @@ describe('WU-45: the design stage references', () => {
     expect(text).toContain('FI-3 (injected)');
   });
 
-  it('W1 surfaces the record\'s loadout, save and version notes, and states the D-234 and D-219 lines the checker reads', () => {
+  it('W1 surfaces the record\'s loadout, save and version notes, and copies the Checks block that holds the D-234 and D-219 lines the checker reads', () => {
     const text = folded(readStage('W1'));
     for (const field of ['versionNotes', 'loadoutWarnings', 'saveWarnings']) expect(text).toContain(`\`${field}\``);
     expect(text).toContain('Giant\'s Blood, Instruments of Power or Lord of the Wilds');
     expect(text).toContain('check Weapon 2 and Weapon 2 Swap');
-    expect(text).toMatch(/\*\*one line\*\* holds both the record's `ChaosResist` .* as a number with `%`, and the exception's `reason` copied in full/);
-    expect(text).toMatch(/When the entering-maps total is over 5 and at most 5\.5, or the budget total over 20 and at most 22, that `Checks` says \*\*near the ceiling\*\*, in those words/);
+    expect(text).toMatch(/The render already holds the chaos exception line \(D-234\), the budget line with "near the ceiling" where it applies \(D-164, D-219\), the Arbiter verdict on `b` and `n`, and the rough clear speed and movement speed; don't restate or reword them/);
     expect(text).toContain('copied character for character from the record\'s `importCode`');
     expect(text).toMatch(/H3 per campaign stage .* titled with its loadout name \*\*exactly\*\* as the record's/);
+    // The render's form: the audit template's Checks holds the lines W1 copies.
+    const audit = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
+    expect(audit).toContain("[only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.");
+    expect(audit).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
+    expect(audit).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
   });
 });
 
@@ -733,12 +740,13 @@ describe('WU-45: the writer and the coordinator (AC-W5 extended)', () => {
     expect(spec).toContain('| `build-guide-writer` | W1 | Read, Glob, Grep, Write, Edit (D-257) | none | none |');
   });
 
-  it('the writer fixes the guide in place and writes no other file (D-257)', () => {
+  it('the writer fixes the guide in place and writes no other file (D-257); in audit.md only its Known issues lines (D-355)', () => {
     const body = folded(def('build-guide-writer').body);
     expect(body).toMatch(/no note, draft or scratch file of your own\. Write the guide with Write and correct it in place with Edit \(D-257\)/);
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/`guide\.md` and `audit\.md` only, and no other file: no notes, drafts or scratch files, in the run folder or anywhere else/);
+    expect(w1).toMatch(/`guide\.md`, and in `audit\.md` only its `Known issues` lines; no other file: no notes, drafts or scratch files, in the run folder or anywhere else/);
     expect(w1).toMatch(/to correct it afterwards, fix it in place with Edit rather than writing it again \(D-257\)/);
+    expect(w1).toMatch(/Change `audit\.md` only with Edit, and only under `## Known issues`: the rest is the render's/);
   });
 
   it('the coordinator lists its design steps after its research steps, each with an existing stage reference', () => {
@@ -849,32 +857,51 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     expect(section).toContain('check Weapon 2 and Weapon 2 Swap');
   });
 
-  it("gives Survival by stage one verdict line per endgame rung in the fixed form the run checker holds (D-283)", () => {
+  it("gives Survival by stage one verdict line per endgame rung in the fixed form, and no campaign line (D-283, D-353, D-354)", () => {
     const section = sectionOf('Survival by stage');
     const forms = section.filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l));
-    const fixed = (label: string) => VERDICT_FORM.replace('<Entering maps|Budget|Non-budget>', label);
-    expect(forms).toEqual(['Entering maps', 'Budget', 'Non-budget'].map(fixed));
-    // The run checker holds the template's form, Effective HP included (AC-W2 (dd), WU-58).
+    const fixed = (label: string, verdict = '<solid|watch|risky>') => VERDICT_FORM.replace('<Entering maps|Budget|Non-budget>', label).replace('<solid|watch|risky>', verdict);
+    expect(forms).toEqual([fixed('Entering maps'), fixed('Budget', ARBITER_LABEL), fixed('Non-budget', ARBITER_LABEL)]);
+    expect(section.filter((l) => l.startsWith('- **')).length).toBe(3);
+    expect(section.join('\n')).not.toMatch(/Acts 1–2|Acts 3–4|Interludes and Epilogue/);
+    // The run checker holds the entering-maps form, Effective HP included (AC-W2 (dd), WU-58); the Arbiter label
+    // on b and n is WU-71's to add to it (AC-W55).
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     expect(/const VERDICT_FORM = '([^']*)';/.exec(checker)![1]).toBe(VERDICT_FORM);
   });
 
-  it("puts in each rung's Checks only what the verdict line doesn't: the chaos exception, the budget line, and the Arbiter for b and n (D-281)", () => {
+  it("puts in each rung's Checks only its block from audit.md, copied verbatim; the render's form holds the chaos exception, the budget line and the Arbiter for b and n (D-281, D-355)", () => {
     const checks = (title: string) => {
       const all = sectionOf(title);
-      return all.slice(all.findIndex((l) => l === '### Checks'));
+      return all.slice(all.findIndex((l) => l === '### Checks') + 1).filter((l) => l.trim() !== '');
     };
+    for (const title of ENDGAME_H2) {
+      const body = checks(title);
+      expect({ title, lines: body.length, copy: body[0].startsWith("[this rung's block from audit.md's Checks, copied verbatim:") }).toEqual({ title, lines: 1, copy: true });
+    }
+    expect(checks('Endgame: entering maps')[0]).not.toMatch(/Arbiter/);
+    for (const title of ['Endgame: budget', 'Endgame: non-budget']) expect({ title, arbiter: checks(title)[0].includes("the Arbiter of Divinity's verdict") }).toEqual({ title, arbiter: true });
+    expect(text).not.toMatch(/Mapping:|seconds to kill|clicks per pack/);
+    // The render's form, one H3 per rung under audit.md's Checks.
+    const audit = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
+    const auditHs = headings(audit);
+    const auditLines = audit.split(/\r?\n/);
+    const checksH2 = auditHs.find((h) => h.level === 2 && h.title === 'Checks')!;
+    const nextH2 = auditHs.find((h) => h.level === 2 && h.line > checksH2.line)!;
+    const rungs = auditHs.filter((h) => h.level === 3 && h.line > checksH2.line && h.line < nextH2.line);
+    expect(rungs.map((h) => h.title)).toEqual(['<the entering-maps loadout name, exactly as the record has it>', '<the budget loadout name>', '<the non-budget loadout name>']);
+    const block = (i: number) => auditLines.slice(rungs[i].line, i + 1 < rungs.length ? rungs[i + 1].line : nextH2.line).join('\n');
     const chaos = "[only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.";
-    for (const title of ENDGAME_H2) expect({ title, chaos: checks(title).some((l) => l.includes(chaos)) }).toEqual({ title, chaos: true });
-    const m = checks('Endgame: entering maps').join('\n');
-    expect(m).toContain('Budget: <total> divines against the 5-divine ceiling.');
-    expect(m).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
-    expect(m).toContain("so this rung can't be claimed to fit 5 divines");
-    expect(m).not.toMatch(/Arbiter|Mapping/);
-    const b = checks('Endgame: budget').join('\n');
-    expect(b).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
-    expect(b).toContain("so this variant can't be claimed to be under 20 divines");
-    for (const title of ['Endgame: budget', 'Endgame: non-budget']) expect({ title, arbiter: checks(title).some((l) => l.includes('The Arbiter of Divinity')) }).toEqual({ title, arbiter: true });
+    for (const i of [0, 1, 2]) expect({ i, chaos: block(i).includes(chaos), clear: block(i).includes('Clear speed:') }).toEqual({ i, chaos: true, clear: true });
+    expect(block(0)).toContain('Budget: <total> divines against the 5-divine ceiling.');
+    expect(block(0)).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
+    expect(block(0)).toContain("so this rung can't be claimed to fit 5 divines");
+    expect(block(0)).not.toMatch(/Arbiter/);
+    expect(block(1)).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
+    expect(block(1)).toContain("so this variant can't be claimed to be under 20 divines");
+    expect(block(1)).toContain('- The Arbiter of Divinity: <survives its hits; its worst, <the worst hit>, is <ratio> of your max hit | one-shot by its <the worst hit>, at <ratio> of your max hit>.');
+    expect(block(2)).toContain('Total: <total> divines against the ~200-divine reference, which is no cap.');
+    expect(block(2)).toContain('- The Arbiter of Divinity:');
     // Each rung's H2 opens with its one "Move here when" line.
     for (const title of ENDGAME_H2) expect({ title, move: sectionOf(title).filter((l) => l.startsWith('Move here when')).length }).toEqual({ title, move: 1 });
   });
@@ -886,13 +913,16 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     expect(b).toContain('where an affix\'s source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")');
   });
 
-  it('marks the optional items (D-277), and has no section for what is held back', () => {
-    for (const optional of ['| [optional] <when> | Hold:', '| [optional] <when> | Save:', '[optional] Buy <item> now; it works at <loadout name>.', '[optional] <a rotation clause, when the stage\'s damage is a combo>.', '[optional] <the item or node> stays dormant until', '[optional, up to 4, each confirmed by item text, gem text or PoB] **Trap:**', '[optional, up to 2] **<X or Y?>**']) {
+  it('marks the optional items (D-277), and has no section for what is held back; no banked enabler (D-354)', () => {
+    for (const optional of ['| [optional] <when> | Hold:', '| [optional] <when> | Save:', '[optional] <a rotation clause, when the stage\'s damage is a combo>.', '[optional, up to 4, each confirmed by item text, gem text or PoB] **Trap:**', '[optional, up to 2] **<X or Y?>**']) {
       expect({ optional, present: text.includes(optional) }).toEqual({ optional, present: true });
     }
+    expect(text).not.toMatch(/Buy <item> now; it works at|stays dormant until/);
     expect(sectionOf('Priorities').join('\n')).toMatch(/\*\*When you're short:\*\* short on <spirit \| mana \| an attribute>\? I drop <first>, then <second>/);
     expect(sectionOf("What PoB can't show").join('\n')).toContain('The headline figures assume <the plan\'s config they rest on: charges, stacks, counts>.');
-    expect(text).not.toMatch(/[Cc]rafting|[Aa]tlas|regex/);
+    // D-348: the comment states the rule; the sections give no crafting, atlas or regex advice.
+    expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/and no crafting: the reader buys gear on trade/);
+    expect(text.replace(/<!--[\s\S]*?-->/, '')).not.toMatch(/[Cc]rafting|[Aa]tlas|regex/);
   });
 
   it("names each campaign reward pick by its first line, as the run checker looks for it (D-265 c, D-283)", () => {
@@ -904,28 +934,26 @@ describe('§7.8 (WU-62, D-278): the audit template', () => {
   const text = fs.existsSync(AUDIT_TEMPLATE) ? fs.readFileSync(AUDIT_TEMPLATE, 'utf8') : '';
   const hs = headings(text);
 
-  it("has §7.8's six H2s in order, the same list the run checker holds", () => {
+  it("has §7.8's six H2s in order, as D-355 renders them (the run checker's AUDIT_H2 moves with WU-71)", () => {
     expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(AUDIT_H2);
-    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    const listed = /export const AUDIT_H2 = (\[[^\]]*\]);/.exec(checker);
-    expect(listed).not.toBeNull();
-    expect([...listed![1].matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2])).toEqual(AUDIT_H2);
+    const comment = folded(/<!--([\s\S]*?)-->/.exec(text)![1]);
+    expect(comment).toMatch(/No agent fills this template: the runner renders audit\.md with scripts\/render-audit\.mjs after the final compile/);
+    expect(comment).toMatch(/the run checker fails an audit\.md, or a guide Checks block, that differs from the render, Known issues aside/);
   });
 
-  it('holds the ledger table, the stage detail, the coverage flags, the inputs by confidence, why this concept and the budget totals', () => {
-    expect(text).toContain('| Entry | Claim | Value | Formula, in words |');
-    for (const part of ['**Resistances by stage:**', '**Reference hits:**', '**Mana and leech:**', '**The Arbiter of Divinity:**', '**Mapping:**', 'mcp__pob2__check_model_coverage', '**M:**', '**L:**', '**The D1 gate\'s budget:**']) {
+  it('holds the estimates, the stage table, the Checks blocks, the coverage flags and the inputs by confidence; no Run notes, kill time or mapping detail (D-355, D-353)', () => {
+    expect(text).toContain('| Entry | Claim | Value | Formula |');
+    for (const part of ['**Count:**', '**Custom modifier:**', '| Loadout | Level | Life | Named source DPS |', 'mcp__pob2__check_model_coverage', '**M:**', '**L:**']) {
       expect({ part, present: text.includes(part) }).toEqual({ part, present: true });
     }
-    const why = text.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("run-log.json's verification gate entry that finalized it records");
-    expect(why).toContain("the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`");
+    expect(text.replace(/<!--[\s\S]*?-->/, '')).not.toMatch(/Why this concept|Run notes|time to kill|fight-life|\*\*Mapping:\*\*|clicks per pack|hit_<stage>/);
   });
 
-  it("gives Known issues the table the run checker reads: each finding's id, its lens or gate, its stage and the sentence the guide prints", () => {
+  it("gives Known issues the table the run checker reads: each finding's id, its gate or V4, its stage and the sentence the guide prints", () => {
     expect(text).toContain('| Id | Lens or gate | Stage | Sentence in the guide |');
-    expect(text).toContain('| <an open V4 finding\'s id> | <its lens: ledger, sources or prose> | — | <its reader sentence, word for word> |');
-    expect(text).toContain('| <an accepted gate finding\'s code> | <D1-gate or D2-gate> | <its plan stage, or —> | <the sentence you wrote for it in the guide> |');
+    expect(text).toContain('| <an open V4 finding\'s id, v4-<n>-<k>> | V4 | — | <its reader sentence, word for word> |');
+    expect(text).toContain('| <an accepted gate finding\'s code> | <D1-gate or D2-gate> | <its plan stage, or —> | <the sentence W1 wrote for it in the guide> |');
+    expect(text).toMatch(/\[The render writes the one line "None\."\. W1 replaces it with the table head and one row per gate finding the user accepted at an escalation/);
   });
 });
 
@@ -1228,7 +1256,7 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/\*\*What PoB can't show\*\*: .* Its last part is always the H3 `Known issues`/);
     expect(w1).toMatch(/You write each accepted gate finding: its sentence in the guide, and its row in `audit\.md`, with its code as the id, its gate \(`D1-gate` or `D2-gate`\) and its plan stage/);
-    expect(w1).toMatch(/With none, each list holds the one line `None\.`/);
+    expect(w1).toMatch(/With none, the guide's list holds the one line `None\.`, and `audit\.md`'s stays as rendered/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toMatch(/### Known issues\n\n\[always this H3, the last part of this section \(D-276\)/);
   });
@@ -1337,20 +1365,14 @@ describe('WU-47 fixes: what the runner does', () => {
 });
 
 describe('WU-47 fixes: the stage references\' general rules', () => {
-  it("v4-prose-8, as D-278 moves it to audit.md's Run notes: W1 and the audit template say only what the run log's picking checkpoint records, quoting a pre-supplied rule; V4 checks it", () => {
+  it("v4-prose-8, as D-355 retires audit.md's Run notes: W1 and the audit template give no reason a card was picked; the run log keeps the rule", () => {
     const w1 = folded(readStage('W1'));
-    expect(w1).not.toMatch(/the mechanics, why it won\)/);
-    // D-287: the verification gate (checkpoint 1 renamed) is where the card is finalized.
-    expect(w1).toMatch(/`checkpoints\[\]`: the verification gate's entry that finalized this card, which is the only record of why it was picked/);
-    expect(w1).toMatch(/\*\*Why this concept\*\*, in `Run notes`, says only what `run-log\.json`'s verification gate entry whose `answer` finalized the card .* with `pre-supplied` or `default`, that the test config picked it, quoting the entry's `rule` exactly \(`first-viable`\)\. Give no reason the entry doesn't record, and never invent one\./);
+    expect(w1).not.toMatch(/the mechanics, why it won\)|Why this concept|Run notes/);
     const template = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
-    const why = template.split(/\r?\n/).find((l) => l.startsWith('- **Why this concept:**'))!;
-    expect(why).toContain("run-log.json's verification gate entry that finalized it records");
-    expect(why).toContain("the test config picked it at the verification gate by the rule `<the entry's rule, exactly>`");
-    expect(why).not.toMatch(/why it won|why each lost/);
+    expect(template).not.toMatch(/Why this concept|## Run notes|why it won|why each lost/);
+    expect(folded(template)).toMatch(/No Run notes, no hand-calculation prose, no kill time and no hits to kill \(D-353\)/);
     expect(fs.readFileSync(GUIDE_TEMPLATE, 'utf8')).not.toContain('Why this concept');
-    // The run log records the rule (S4 keeps it). D-355 renders audit.md by script, with no Run notes, so V4's
-    // one pass (D-352) no longer reads it.
+    // The run log records the rule (S4 keeps it); V4's one pass (D-352) doesn't read audit.md.
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
     expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |');
     expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:r1-a-2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
@@ -1365,10 +1387,10 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     expect(returns).not.toMatch(/"importCode"/);
   });
 
-  it('W1 states each caveat once, never later as settled (D-279), and calls a mechanic reliable only with a source in the build', () => {
+  it('W1 states each caveat the build hinges on once, never later as settled (D-279, D-351), and calls a mechanic reliable only with a source in the build', () => {
     const w1 = folded(readStage('W1'));
     expect(w1).toMatch(/State a mechanic as reliable only when the build has a source for it/);
-    expect(w1).toMatch(/\*\*Each caveat once\*\* \(D-279\)\. A caveat .* appears once, where the reader acts on it, usually in `What PoB can't show` by the figure it qualifies\. A later mention doesn't hedge it again, and never states it as settled/);
+    expect(w1).toMatch(/\*\*Each caveat once\*\* \(D-279, D-351\)\. A caveat the build hinges on .* appears once, where the reader acts on it, usually in `What PoB can't show` by the figure it qualifies\. A later mention doesn't hedge it again, and never states it as settled\. A minor caveat is cut, not hedged/);
     expect(w1).not.toMatch(/Keep every hedge|keeps its hedge everywhere/);
   });
 
@@ -1385,7 +1407,7 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
 
   it('R1a calls a node a notable only when the tool tags it so; R1b-assemble flags a payoff resting on an unconfirmed mechanic', () => {
     expect(folded(readStage('R1a'))).toMatch(/Call a node a notable or a keystone only when the tool tags it so \(`\[NOTABLE\]`, `\[KEYSTONE\]`\)/);
-    expect(folded(readStage('R1b-assemble'))).toMatch(/When the card's payoff rests on a mechanic no lookup confirmed, or that has no source in the card .* its `Risks` says so/);
+    expect(folded(readStage('R1b-assemble'))).toMatch(/When the card's payoff rests on a mechanic no lookup confirmed, or that has no source in the card .* its main risk says so/);
   });
 });
 
@@ -1474,12 +1496,8 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
       const text = folded(readStage(stage));
       expect({ stage, inPlace: /## The fix round and revisions \(D-264(, D-352)?\) With V4 findings or the user's requests in `findings`, you edit the plan in place/.test(text) }).toEqual({ stage, inPlace: true });
       expect({ stage, returns: /`recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed/.test(text) }).toEqual({ stage, returns: true });
-    }
-    // D1's rule as D-352 amends it is AC-W59's (WU-70); D2's below is D-264's until part B restates D2.md.
-    for (const stage of ['D2']) {
-      const text = folded(readStage(stage));
-      expect({ stage, rule: /\*\*Recompile only for a build change\.\*\* A fix changes the build when it changes gear .* the tree, the gems, the config \(earned or scenario.*\), or a ledger entry's formula or inputs/.test(text) }).toEqual({ stage, rule: true });
-      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* A claims-only edit changes only `stages\[\]\.claims` and `source` and `tag` fields; anything else, a ledger entry's `claim` text, a respec's note or a `chaosResistException`'s reason included, takes step 2's path\. After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan without its claims, sources and tags to equal the final record's `buildSha1` \(D-266\)/.test(text) }).toEqual({ stage, none: true });
+      // D-264's rule as D-352 amends it: the ledger is no build change (AC-W59, WU-70).
+      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* A claims-only edit changes only `stages\[\]\.claims`, `source` and `tag` fields and the `ledger`; anything else, a respec's note .*is a build change \(step 2\)\. After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan without its claims, sources, tags and ledger to equal the final record's `buildSha1` \(D-266, D-352\)/.test(text) }).toEqual({ stage, none: true });
     }
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/Recompile only when a fix changes the build .* Otherwise compile nothing, validate once, and leave the final record as it is\. Return `recompiled: yes` or `no`/);
   });
@@ -1526,7 +1544,7 @@ describe('D-265: the small items', () => {
     expect(d2).toMatch(/\*\*Reward choices\*\* \(D-265\): pick every campaign reward choice C1 lists, each a quest with a `q\.<key>\.options` fact in `data\/campaign\/progress\.json`/);
     expect(d2).toMatch(/List the pick in `config\.scenario` of \*\*every\*\* stage at or after the quest, the same pick on each, the endgame stages `m`, `b` and `n` included/);
     expect(folded(readD1())).toMatch(/\*\*Campaign reward picks\*\* \(D-265\): the endgame stages carry the campaign's reward picks\. For every reward choice a campaign stage picks .* `m`, `b` and `n` list the same entry, the same pick/);
-    expect(d2).toMatch(/Each reward pick of step 6 has one claim, on the first stage that lists it: the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
+    expect(d2).toMatch(/\*\*each reward pick\*\* of step 7, one claim on the first stage that lists it: the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
     expect(folded(readStage('W1'))).toMatch(/\*\*Campaign route and rewards\*\* \(D-265, D-283\): the reward quests in route order\. For each reward choice the plan picks .* name the quest, then the picked option by its first line exactly as the fact lists it \(the run checker looks for it there\), then the reason the plan's claim gives\. Never list a choice's options without its pick/);
     const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
     expect(template).toContain('- <Act and quest, a reward choice>: take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.');
@@ -1855,51 +1873,54 @@ describe('AC-W29: R1b lists the advisory checklist of §7.7 and its probe budget
 describe('WU-62: W1 writes the reader layer and the audit layer (D-276, D-278, D-280)', () => {
   const w1 = () => folded(readStage('W1'));
 
-  it("W1 writes guide.md and audit.md, from both templates, and returns both Known issues lines; the header, SKILL.md and the layout say so", () => {
+  it("W1 writes guide.md from its template, copies the Checks from the rendered audit.md, and returns both Known issues lines; the header, SKILL.md and the layout say so (D-355)", () => {
     expect(w1()).toContain('`writes: ["guide.md", "audit.md"]`');
-    expect(w1()).toContain('`.claude/skills/build-guide/templates/audit-template.md`');
+    expect(w1()).toContain('`.claude/skills/build-guide/templates/guide-template.md`');
+    expect(w1()).toMatch(/`audit\.md`, the audit layer no player is expected to read, is rendered by the runner with `scripts\/render-audit\.mjs` after the final compile \(D-355\): you copy each endgame rung's Checks block from it, and write in it only the accepted gate findings' rows under its `Known issues`/);
+    expect(w1()).not.toContain('templates/audit-template.md');
     expect(fs.existsSync(AUDIT_TEMPLATE)).toBe(true);
     expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain("| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |");
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toContain("W1's are `guide.md` and `audit.md` (D-278)");
-    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')).toContain('| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |');
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')).toContain("| `audit.md` | the runner, rendered by `scripts/render-audit.mjs` after the final compile (D-355); W1 adds the accepted gate findings' rows to its `Known issues`, and the runner fills that table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |");
     const writer = folded(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-writer.md'), 'utf8'))!.body);
     expect(writer).toMatch(/\*\*Write only the header's `writes`\*\*, inside the run folder \(`runFolder`\): `guide\.md` and `audit\.md` \(D-278\)/);
     expect(writer).toMatch(/The guide renders the plan with no footnote markers \(D-276\)/);
     expect(writer).not.toMatch(/carries its footnote marker/);
   });
 
-  it('W1 keeps the guide a game guide: it renders the plan, advice is first person, no pipeline text, the cap (D-276, D-283)', () => {
+  it('W1 keeps the guide a game guide: it renders the plan, advice is first person, no pipeline text, the cap, no crafting (D-276, D-283, D-348)', () => {
     const text = w1();
     expect(text).toMatch(/The guide renders the plan: you add no fact or number of your own \(D-276\)/);
     expect(text).toMatch(/\*\*The cap\.\*\* At most 3,000 words, the H1, the import code and the Known issues list not counted \(D-283\)/);
     expect(text).toMatch(/\*\*No pipeline text\*\* \(D-276\)\. No footnote markers \(`\[\^…\]`\), no confidence labels \("confidence L"\), no finding ids, no pipeline words \(lens, finding, owner, claim, location\) and no stage ids outside the loadout names/);
-    expect(text).toMatch(/Advice is in the first person \("I drop Herald of Ash first", "my support order"\): that is its label, and it isn't verified, but a number inside it is still the plan's or the record's, and it never asserts a fact the plan lacks/);
-    expect(text).toMatch(/\*\*Held back:\*\* crafting recipes, an atlas section, affix tier labels, trade links and a vendor search regex/);
+    expect(text).toMatch(/Advice is in the first person \("I drop Herald of Ash first", "my upgrade order"\): that is its label, and it isn't verified, but a number inside it is still the plan's or the record's, and it never asserts a fact the plan lacks/);
+    expect(text).toMatch(/\*\*Held back:\*\* crafting of any kind \(item bases, mod tiers, recipes; D-348\), an atlas section, affix tier labels, trade links and a vendor search regex/);
   });
 
   it('W1 states the not-a-tutorial rule with the swap test (D-280)', () => {
     expect(w1()).toMatch(/\*\*Not a tutorial\*\* \(D-280\)\. A sentence that explains how the game or PoB works stays only when it names something this build uses, needs or avoids .* and it changes what the reader does with this build\. The swap test: if the sentence would read as true and useful, word for word, in a guide for another skill on another class, cut it/);
   });
 
-  it("W1 writes one fixed-form verdict line per rung, each number the record's rounded at its last significant digit (D-283)", () => {
+  it("W1 writes one fixed-form verdict line per rung, each number the record's rounded at its last significant digit, and the label the Arbiter verdict on b and n (D-283, D-353)", () => {
     const text = w1();
-    expect(text).toMatch(/`Survival by stage` has one line per endgame rung in the template's fixed form, word for word but the placeholders, and the run checker compares each number with the record/);
-    expect(text).toMatch(/"at least <n> elemental or chaos against about <hit>": the least of the four other `<Type>MaximumHitTaken`, against the largest of the four other `hit_<stage>_<type>` ledger values/);
-    expect(text).toMatch(/"<Skill> about <n> DPS": the named damage source's Count-scaled figure the D1 gate's verdict names for the stage/);
-    // D-294: the line ends with the stage's TotalEHP, beside max hit, never the verdict's basis.
-    expect(text).toMatch(/"Effective HP about <n>\.", which ends the line: the stage's `TotalEHP` \(D-294\)\. It stands beside max hit, never alone, and max hit stays the basis of the verdict word/);
-    expect(text).toMatch(/Round each number as a guide does, at its last significant digit: 2,736 is "2,740" or "2,700", 401\.996 is "about 400"/);
+    expect(text).toMatch(/`Survival by stage` has a one-line legend and one line per endgame rung in the template's fixed form, word for word but the placeholders, and no campaign line \(D-354\)\. The run checker compares each number with the record/);
+    expect(text).toMatch(/"at least <n> elemental or chaos against about <hit>": the least of the four other `<Type>MaximumHitTaken`, against the largest of the stage's other four `enemy<Type>Damage` in `configWritten`/);
+    expect(text).toMatch(/"<Skill> about <n> DPS": the named damage source's Count-scaled figure, the record's `measures\.dps`/);
+    expect(text).toMatch(/"Effective HP about <n>\.", which ends the line: the stage's `measures\.ehp`, its `TotalEHP` \(D-294\)/);
+    expect(text).toMatch(/\*\*The label\*\* \(D-353\): on `b` and `n` it follows the record's `measures\.arbiter\.verdict`, never your judgment: `survives` is "survives the Arbiter's hits", and `one-shot` is "one-shot by the Arbiter's <the worst hit>"/);
+    expect(text).toMatch(/On `m`, which faces no Arbiter, the label \(`solid`, `watch`, `risky`\) is your judgment of its line's numbers/);
   });
 
-  it('W1 uses the optional items only where the build has them (D-277), and m gets no Arbiter or mapping signals (D-281)', () => {
+  it('W1 uses the optional items only where the build has them (D-277); m gets no Arbiter and no anoint, b and n theirs (D-281, D-358)', () => {
     const text = w1();
     expect(text).toMatch(/\*\*Optional items\*\* \(D-277\), only where the build has them, never invented to fill a slot: a fallback D1 or D2 already weighed; a threshold trigger, when the plan has one \(else a first-person judgment trigger, "when you can afford it"\); up to 4 traps/);
-    expect(text).toMatch(/for `b` and `n` only, \*\*the Arbiter of Divinity\*\* .* `m` gets neither/);
-    expect(text).toMatch(/entering maps' total against 5 divines, the budget variant's against 20/);
+    expect(text).not.toMatch(/dormant until|buy now, works at|mapping signals/);
+    expect(text).toMatch(/\*\*The anoint\*\* \(D-358\)\. On `b` and `n`, one line names the stage's `items\.anoint` notable, its recipe of three Distilled Emotions as the record's `anoint` names them, its price \(the `b-anoint` or `n-anoint` entry, or unavailable\) and the plan's `reason`\. `m` has no anoint: when `b` has one, one line tells a player who can afford it before maps to anoint the amulet with `b`'s notable/);
   });
 
-  it("W1 writes audit.md's six parts, the reference hits' ledger values among them (D-278)", () => {
-    expect(w1()).toMatch(/Write `audit\.md` from its template \(§7\.8, D-278\), with its six H2s in order: `Hand calculations` .* `Stage detail` .* each reference hit's ledger value, .* `What PoB doesn't model` .* `Inputs by confidence` .* `Run notes` and `Known issues`/);
+  it("W1 writes none of audit.md's rendered parts (D-355)", () => {
+    expect(w1()).not.toMatch(/Write `audit\.md` from its template|`Hand calculations`|`Run notes`/);
+    expect(w1()).toMatch(/Each rung's `### Checks` holds that rung's block from `audit\.md`'s `## Checks`, the H3 titled with its loadout name, copied verbatim: every line under that H3 to the next heading, and nothing else/);
   });
 });
 
@@ -1971,8 +1992,6 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     const text = folded(readStage('D2'));
     expect(text).toMatch(/Add the campaign stages to `plan\.json` before the endgame rungs `m`, `b` and `n`, in progression order\. The campaign's last stage leads into `m`/);
     expect(text).toMatch(/The endgame is one track, the ladder: `m` continues from the last campaign stage, `b` from `m` and `n` from `b`, and V1 checks each rung's respec and its gold cost/);
-    expect(text).toMatch(/\*\*Claims\*\* \(D-279\)\. .* a claim exists only for a fact the guide states or a gate needs/);
-    expect(text).toMatch(/a hold row .* or a save row .*; a rotation clause for a stage whose damage is a combo/);
   });
 
   it("the D1 gate and gates.md gate m at area 69 and at 5 divines (5.5 with near the ceiling); FI-2 breaks the ladder's first rung", () => {
@@ -2144,7 +2163,7 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
   });
 
   it("R1b-assemble's key numbers add TotalEHP, and the verification gate compares on it (D-294)", () => {
-    expect(folded(readStage('R1b-assemble'))).toMatch(/`Key numbers` \(from the record, with markers, `TotalEHP` among them, D-294\)/);
+    expect(folded(readStage('R1b-assemble'))).toMatch(/`TotalEHP` as `EHP` \(D-294\)/);
     expect(ref('checkpoints.md')).toMatch(/the named damage source's Count-scaled figure, `Life` and `TotalEHP`, D-294/);
   });
 });
@@ -2238,10 +2257,10 @@ describe("WU-57: Count in D1 and the D1 gate's figure × count, D2's bridge skil
     expect(fs.readFileSync(path.join(REPO, 'src', 'plan', 'record.ts'), 'utf8')).toContain('countedSkillOutputs');
   });
 
-  it('D2 plans bridge skills while the named source is level-gated, and banks the enabler (D-301)', () => {
+  it('D2 plans bridge skills while the named source is level-gated, and banks no enabler (D-301 as D-354 amends it)', () => {
     const text = folded(readStage('D2'));
-    expect(text).toMatch(/\*\*Skills and bridge skills\*\* \(D-110, D-301\)\. .* until then a \*\*bridge skill\*\* carries the campaign/);
-    expect(text).toMatch(/\*\*Bank the enabler\*\* \(D-301\): while the named source waits on an enabler, the hold and save rows say what to keep and stockpile for it/);
+    expect(text).toMatch(/\*\*Skills, bridge skills and the support gem order\*\* \(D-110\)\. .* until then a \*\*bridge skill\*\* carries the campaign/);
+    expect(text).not.toMatch(/[Bb]ank the enabler|dormant until|buy now, works at/);
   });
 
   it("the guide template's verdict line ends with Effective HP, and What PoB can't show lists each Count and custom modifier (D-294)", () => {
@@ -2267,12 +2286,10 @@ describe('WU-57 review: a card that can\'t be finalized yet, the estimate label,
     expect(assemble).toMatch(/A card that can't be finalized yet has no skeleton, record or prices to confirm: it compiled nothing \(D-334\), and it is never `failed`/);
     expect(assemble).toMatch(/It names no `concepts\/<id>\/` path: none exists/);
     expect(assemble).toContain(`r1-c-3 ${STATUS}`);
-    // The dossier template's entry for such a card: no skeleton or record path, its own status.
-    const dossier = fs.readFileSync(DOSSIER_TEMPLATE, 'utf8');
-    const entry = dossier.slice(dossier.indexOf('### r1-c-3:'), dossier.indexOf('## Not carried'));
-    expect(entry).toContain(`- Status: ${STATUS}`);
-    expect(entry).toContain('- Skeleton: none');
-    expect(entry).not.toMatch(/concepts\//);
+    // The dossier template's row for such a card: its own status, no numbers and no concepts/ path (D-355's table).
+    const row = fs.readFileSync(DOSSIER_TEMPLATE, 'utf8').split(/\r?\n/).find((l) => l.startsWith('| r1-c-3 |'))!;
+    expect(row).toContain(`| ${STATUS} |`);
+    expect(row).not.toMatch(/concepts\//);
     // The verification gate shows it as a status, never in D-141's failure list, and first-viable skips it.
     const gate = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'));
     expect(gate).toContain(`its status: \`viable\`, \`failed\`, or "${STATUS}"`);
@@ -2320,8 +2337,8 @@ describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to t
   it('R1a, R1a-assemble and R1b each run the "Grants Skill:" and unique searches for every skill the card names, and cite D-342', () => {
     for (const stage of ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble']) {
       const text = folded(readStage(stage));
-      const head = text.slice(0, text.indexOf('##'));
-      expect({ stage, cites: head.includes('D-342') }).toEqual({ stage, cites: true });
+      // D-356 drops the preambles' lists of bare D-numbers: the rule cites D-342 where it is stated.
+      expect({ stage, cites: text.includes('D-342') }).toEqual({ stage, cites: true });
       if (stage === 'R1b-assemble') continue;
       expect({ stage, search: text.includes(GRANTS), uniques: text.includes(UNIQUES), rule: RULE.test(text) }).toEqual({ stage, search: true, uniques: true, rule: true });
       expect({ stage, everySkill: /every skill (?:a|the) card names,? \(?its named damage source,? (?:and each skill in its chain and links|its chain and its links)/.test(text) }).toEqual({ stage, everySkill: true });
@@ -2528,14 +2545,14 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
   });
 });
 
-describe("WU-70 (AC-W59's static clause, D-352): D1-build and D1-finish recompile only for gear, tree, gems or config", () => {
-  it.each(['D1-build', 'D1-finish'])('%s: a ledger formula or input change needs no recompile, since buildSha1 leaves out the ledger', (stage) => {
+describe("WU-70 (AC-W59's static clause, D-352): D1-build, D1-finish and D2 recompile only for gear, tree, gems or config", () => {
+  it.each(['D1-build', 'D1-finish', 'D2'])('%s: a ledger formula or input change needs no recompile, since buildSha1 leaves out the ledger', (stage) => {
     const text = folded(readStage(stage));
     expect(text).toMatch(/## The fix round and revisions \(D-264, D-352\)/);
-    expect(text).toMatch(/\*\*Recompile only for a build change\*\*: gear \(an item, a tree jewel, a flask or charm(, the anoint, or a price entry)?\), the tree, the gems or the config \(earned or scenario\)/);
+    expect(text).toMatch(/\*\*Recompile only for a build change\*\*: gear \(an item, a tree jewel, a flask or charm(, the anoint, or a price entry|, or a price entry)?\), the tree, the gems or the config \(earned or scenario(, a reward pick included)?\)/);
     expect(text).toMatch(/A change to a ledger entry's formula(, inputs or claim text| or inputs) needs no recompile.*the record's `buildSha1` leaves out the ledger, and the run checker re-evaluates the plan's current ledger \(D-352\)/);
     // D-264's old rule counted a ledger formula as a build change.
-    expect(text).not.toMatch(/the config \(earned or scenario\), or a ledger entry's formula or inputs/);
+    expect(text).not.toMatch(/the config \(earned or scenario(, a reward pick included)?\), or a ledger entry's formula or inputs/);
   });
 
   it('D1-finish hands a build change it can\'t make to D1-build, and the runner runs D1-build, then D1-finish, then the gates', () => {
@@ -2562,8 +2579,11 @@ describe('WU-70 (AC-W53, D-356): the agent definitions batch independent calls',
   });
 });
 
-describe('WU-70 (AC-W53, D-356): the D1 steps and the D1 gate state their rules as excerpts, not whole files', () => {
-  it.each(['D1-build', 'D1-finish', 'D1-gate'])('%s sends no agent to read a shared reference or plan-reference.md whole', (stage) => {
+/** The stage references part B of WU-70 restates (D-356): each states its rules as excerpts. */
+const PART_B_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D2', 'D2-gate', 'W1'];
+
+describe('WU-70 (AC-W53, D-356): the stage references state their rules as excerpts, not whole files', () => {
+  it.each(['D1-build', 'D1-finish', 'D1-gate', ...PART_B_STAGES, 'V4'])('%s sends no agent to read a shared reference or plan-reference.md whole', (stage) => {
     const text = readStage(stage);
     const inputs = folded(text.slice(text.indexOf('## Inputs'), text.indexOf('## Work')));
     expect({ stage, wholeRefs: inputs.match(/`\.claude\/skills\/build-guide\/references\/(gates|pricing|source-markers|lookups)\.md`/g) ?? [] }).toEqual({ stage, wholeRefs: [] });
@@ -2672,5 +2692,121 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
       expect(text).toMatch(/v4-\d+-\d+/);
     }
     expect(ref('checkpoints.md')).not.toMatch(/then the full V4 pass/);
+  });
+});
+
+describe('WU-70 part B (AC-W53, D-356): the remaining stage references state their rules, not whole files or bare D-numbers', () => {
+  it.each(PART_B_STAGES)('%s points at no shared reference as a whole and opens with no list of bare D-numbers', (stage) => {
+    const text = readStage(stage);
+    expect({ stage, pointers: text.match(/\(`\.claude\/skills\/build-guide\/references\/(gates|pricing|source-markers|lookups)\.md`\)/g) ?? [] }).toEqual({ stage, pointers: [] });
+    expect({ stage, spine: /^Slice 03 .*spine [CD]-\d+/m.test(text) || /; spine [CD]-\d+/.test(text) }).toEqual({ stage, spine: false });
+  });
+
+  it('the coordinator steps state the pricing rules they need (ids, outcomes, offline) where they price', () => {
+    for (const stage of ['R1b', 'D2']) {
+      const text = folded(readStage(stage));
+      expect({ stage, classify: /Classify a failed call by its `\[trade:<kind>\]` prefix only: `would_wait` .*; `locked_out` or `rate_limited` \(stop pricing for the rest of the run/.test(text) }).toEqual({ stage, classify: true });
+      expect({ stage, entry: text.includes('`{id, item, query, amount, currency, date, league, status}`') }).toEqual({ stage, entry: true });
+    }
+  });
+
+  it('D2 and W1 read the plan by part, D2 through the views, and the C1 facts by key', () => {
+    const d2 = folded(readStage('D2'));
+    expect(d2).toContain('`mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` for `m`, `b` and `n`, batched');
+    expect(d2).toMatch(/the C1 facts by key, never a file whole \(Grep the key, then Read its fact\)/);
+    expect(d2).toMatch(/`docs\/build-guide\/plan-reference\.md` by section, never whole/);
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/`plan\.json` \(it can pass 90K tokens\): Grep `"loadoutName"` for each stage's line and Read each stage from there to the next/);
+    expect(w1).toMatch(/`compile-record\.json`, the final compile's record \(C-33\), by Grep/);
+  });
+});
+
+describe('WU-70 part B (AC-W53, D-354, D-346, D-348): D2 plans a lean campaign', () => {
+  const d2 = () => folded(readStage('D2'));
+
+  it('per act: the tree path order, the support gem order, a rough upgrade order, the build-specific mods and a target life', () => {
+    const text = d2();
+    expect(text).toMatch(/per act, D2 plans the tree path order, the support gem order, a rough upgrade order, the build-specific mods to target and a target life, and the loadouts themselves stay in the PoB file/);
+    expect(text).toMatch(/\*\*The support gem order\*\* \(D-354\)\. In each group, list the supports in the order a player adds them/);
+    expect(text).toMatch(/\*\*The tree path\*\* \(D-144, D-282, D-354\)\. .* then the stage's new nodes in the order a player takes them: that order is the tree path the guide states/);
+    expect(text).toMatch(/\*\*The rough upgrade order\*\*: list a stage's new or changed slots first in `items\.slots`, in the order a player should buy them/);
+    expect(text).toMatch(/\*\*The build-specific mods\*\* are a rare's mod lines: what this build's skills and stages use/);
+    expect(text).toMatch(/\*\*Target life\*\* \(D-354\)\. The stage's `Life` in the record, its key-figure line after the compile, is the target life the guide states/);
+  });
+
+  it('no resistance or defence planning in the campaign, no crafting, no banked enabler', () => {
+    const text = d2();
+    expect(text).toMatch(/The campaign gets no resistance, max-hit or EHP planning and no crafting: the player buys gear on trade/);
+    expect(text).toMatch(/Never pick a mod or an item for a resistance it lacks: the campaign plans no resistance/);
+    expect(text).not.toMatch(/Pick the option this build gains most from: a resistance it lacks|a big resistance step/);
+    expect(text).toMatch(/Pick the option this build gains most from: what its skills use, or the defence its endgame leans on/);
+    expect(text).toMatch(/\*\*No crafting\*\* \(D-348\): no item-base or mod-tier search, no crafting step\. The guide names the mods to buy on trade/);
+    expect(text).not.toMatch(/[Bb]ank the enabler|hold and save rows say/);
+  });
+
+  it("keeps a tree-granted group within D-359's estimated support count, and plans no Jeweller's Orbs for it", () => {
+    expect(d2()).toMatch(/\*\*Supports on a granted skill\*\* \(D-359\)\. A skill an item grants holds the supports its item's sockets allow\. A skill a passive grants \(the tree or the ascendancy\) holds at most the estimated count at the stage's level: 3 supports below level 40, 4 from 40, 5 from 60 \(`campaign\/gems\.json#support-sockets\.tree-granted`, a judgment of confidence L\)\. V1's `support-sockets` reports a group over it/);
+    expect(d2()).toMatch(/Jeweller's Orbs add sockets to an item, never to a skill a passive grants: plan none for it/);
+  });
+
+  it('writes claims only where the build hinges (D-351): hinge claims, and as reasons only the path and the reward picks', () => {
+    const text = d2();
+    expect(text).toMatch(/\*\*Claims\*\* \(D-351, as D-354 applies it to the campaign\)\. A claim is written only where the build hinges, and its `kind` says which\. What the compile proves carries no claim/);
+    expect(text).toMatch(/Superfluous content is removed, not claimed: no resistance, max-hit or EHP line for the campaign, no kill time, no minor pick/);
+    expect(text).toMatch(/`reason`, two kinds only, because the guide's writer has no tree tool and the plan holds no text but claims: \*\*the path\*\*/);
+    expect(text).not.toMatch(/a claim exists only for a fact the guide states or a gate needs/);
+    expect(folded(readStage('R1b'))).toMatch(/A claim is written only where the build hinges \(D-351\), with its `kind`, `hinge` .* or `reason`/);
+  });
+});
+
+describe('WU-70 part B (AC-W53, D-353, D-354, D-358, D-359): the guide template has the lean campaign, the anoint, the label and the Checks block', () => {
+  const text = fs.existsSync(GUIDE_TEMPLATE) ? fs.readFileSync(GUIDE_TEMPLATE, 'utf8') : '';
+  const body = text.replace(/<!--[\s\S]*?-->/, '');
+  const hs = headings(text);
+  const lines = text.split(/\r?\n/);
+  const sectionOf = (title: string) => {
+    const h = hs.find((x) => x.title === title)!;
+    const next = hs.find((x) => x.line > h.line && x.level <= h.level);
+    return lines.slice(h.line, next?.line ?? lines.length).join('\n');
+  };
+  const leveling = () => sectionOf('<loadoutName of the first campaign stage, exactly as compile-record.json has it>');
+
+  it("gives each campaign stage D-354's items, and no defences: the support order, the tree path, the upgrade order with mods to buy on trade, a target life", () => {
+    const stage = leveling();
+    expect(stage).toContain('Setup: <skill> with <supports, in the order to add them>.');
+    expect(stage).toContain("Tree: path to <the notables and keystones the stage's path claim names, in its order>.");
+    expect(stage).toContain('Gear, in my upgrade order: <the slot>, with <the build-specific mods to buy on trade>');
+    expect(stage).toContain("Target life: about <the record's Life for the stage>.");
+    for (const part of [stage, sectionOf('Campaign route and rewards')]) expect(part).not.toMatch(/[Rr]esist|[Mm]ax hit|Effective HP|EHP/);
+    expect(folded(sectionOf('Survival by stage'))).not.toMatch(/Acts? \d/);
+    expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/No resistances, max hits or EHP before the endgame, and no crafting: the reader buys gear on trade/);
+  });
+
+  it('has the anoint lines: b and n name the notable, its three Distilled Emotions and its price; m points ahead to the budget anoint (D-358)', () => {
+    for (const title of ['Endgame: budget', 'Endgame: non-budget']) {
+      expect({ title, anoint: /\*\*Anoint:\*\* <the notable>, from <its three Distilled Emotions[^>]*> \(<its price, or unavailable>\): <its reason, as the plan gives it>\./.test(sectionOf(title)) }).toEqual({ title, anoint: true });
+    }
+    const m = sectionOf('Endgame: entering maps');
+    expect(m).not.toContain('**Anoint:**');
+    expect(m).toContain("[only when the budget variant has an anoint; this rung has none (D-358)] If you can afford it before maps, anoint your amulet now with the budget variant's <notable> (<its three Distilled Emotions>).");
+  });
+
+  it("states the support-socket estimate once, in What PoB can't show, and never saves Jeweller's Orbs for a tree-granted skill (D-359)", () => {
+    const estimate = '3 supports below level 40, 4 from level 40 and 5 from level 60';
+    expect(body.split(estimate).length - 1).toBe(1);
+    expect(sectionOf("What PoB can't show")).toContain(`[only when a skill a passive grants holds supports; said once, here and nowhere else (D-359)] <The skill>'s support count is an estimate, as no source gives it: ${estimate}.`);
+    expect(body).not.toMatch(/Jeweller/);
+    expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/Never tell the reader to save or use Jeweller's Orbs for a skill a passive grants: they add sockets to items only \(D-359\)/);
+    expect(folded(readStage('W1'))).toMatch(/Never tell the reader to save or use Jeweller's Orbs for it: they add sockets to items only/);
+  });
+
+  it("labels b and n by the Arbiter verdict, copies each rung's Checks block, and has no kill time or hits to kill (D-353, D-355)", () => {
+    const survival = sectionOf('Survival by stage');
+    expect(survival).toContain(`- **Budget (L<level>): ${ARBITER_LABEL}.**`);
+    expect(survival).toContain(`- **Non-budget (L<level>): ${ARBITER_LABEL}.**`);
+    expect(folded(survival)).toMatch(/The budget and non-budget label follows the record's measures\.arbiter verdict \(D-353\): "survives the Arbiter's hits", or "one-shot by the Arbiter's <the worst hit>"/);
+    for (const title of ENDGAME_H2) expect({ title, copy: sectionOf(title).includes("[this rung's block from audit.md's Checks, copied verbatim:") }).toEqual({ title, copy: true });
+    expect(body).not.toMatch(/to kill|hits to kill|kill time|time-to-kill/);
+    expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/The endgame measures are the record's: DPS, Effective HP, the Arbiter verdict and a rough clear speed\. No kill time and no hits to kill anywhere \(D-353\)/);
   });
 });

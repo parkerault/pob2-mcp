@@ -1,7 +1,6 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
-Slice 03 §5.2 and §7.5; spine C-52, C-53, D-286, D-287, D-298, D-319, D-334, D-335, D-339, D-342. One step
-per brainstorm round, after the round's R1a researchers return. It turns their cards into the deck the user
+One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the deck the user
 picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when
 lookups confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices
 nothing and never edits a card.
@@ -14,10 +13,11 @@ nothing and never edits a card.
 - **Prompt:** a `json` block for the round: `round`, the parsed `brief`, the user's `note` (a later round),
   and `researchers`, each `{letter, focus, researchFile, cards, returned}`; `returned: false` means that
   researcher returned without its files, so its cards may be missing or partial.
-- **Read:** each card the prompt lists (`cards/r<k>-<letter>-<m>.md`, its brainstorm half); the card template
-  `.claude/skills/build-guide/templates/card-template.md`; the pattern library
-  `.claude/skills/build-guide/references/patterns.md`; `.claude/skills/build-guide/references/lookups.md`;
-  and `cards.md` when an earlier round wrote it.
+- **Read**, the independent reads in one response: each card the prompt lists (`cards/r<k>-<letter>-<m>.md`,
+  its brainstorm half); the card template `.claude/skills/build-guide/templates/card-template.md`; `cards.md`
+  when an earlier round wrote it; and, for step 4, the pattern library's entry for each shape a card's
+  under-played label names: Grep `^#` in `.claude/skills/build-guide/references/patterns.md` and Read those
+  entries only. The lookups each step needs are named in it, by their full names.
 
 ## Work
 

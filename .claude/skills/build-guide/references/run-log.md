@@ -97,8 +97,7 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   answer has no `rule`. The test config's answers are `answers.brainstorm`, `answers.verification`,
   `answers.design`, `answers.final`, `answers.escalation` and `answers.unsavedBuild` (D-323, D-362): a pre-supplied rule is one of their
   values, and `first-n:<n>` and `first-viable` resolve to the `pick:` they chose, or to `stop`. A default answer
-  is `stop`. `audit.md`'s Run notes quote the rule of the verification gate entry that finalized the guide's card
-  (`stages/W1.md`), and V4 checks it.
+  is `stop`. The entry that finalized the guide's card keeps its rule here; `audit.md` has no Run notes (D-355).
 - **`escalations[]`**: `stage` is `D1-gate` or `D2-gate`; `verdict` is the escalated attempt's verdict file,
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with

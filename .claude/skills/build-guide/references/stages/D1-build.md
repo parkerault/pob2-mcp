@@ -21,8 +21,8 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
     issue, evidence, owner}`).
 - **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it.
 - **Read**, the independent reads in one response:
-  - `dossier.md`: the card's H3 (`<id>: <title>`) with its R1b result, and the `Mechanics`, `Config gaps` and
-    `Roll and mode` sections (the league line). Grep `^#` for their lines, then Read those ranges;
+  - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its key
+    numbers, prices and league (D-355);
   - the card `cards/<id>.md` (its chain, enabler, links, checklist results and estimates), and its skeleton
     `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/concepts/<id>/plan.json",
     stage: "<stage id>"}}`, one call per stage, batched;

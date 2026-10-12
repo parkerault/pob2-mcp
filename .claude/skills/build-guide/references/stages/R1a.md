@@ -1,8 +1,7 @@
 # R1a: brainstorm (`build-guide-researcher`)
 
-Slice 03 §5.2 (the brainstorm phase) and §7.5; spine C-36, C-51, C-52, C-53, D-287, D-290, D-298, D-319, D-335,
-D-339, D-342, D-343. Three researchers run in parallel in each brainstorm round, each on its own focus. Each writes one
-research file (the dossier's mechanics, synergy search and config gaps) and 3 **cards**, each the brainstorm
+Three researchers run in parallel in each brainstorm round, each on its own focus (D-287). Each writes one
+research file (the mechanics, synergy search and config gaps that R1b reads) and 3 **cards**, each the brainstorm
 half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
 picks the cards to verify at the brainstorm gate, and R1b compiles them (`R1b.md`).
 
@@ -64,9 +63,10 @@ notes may inform it; cite them as the user's notes.
   note for the round.
 - **A re-run** (`attempt` 2: a researcher that returned without its files runs again once): your files may
   hold the dead attempt's partial work. Write them whole.
-- **A later round** (`k` ≥ 2): read `cards.md` in the run folder first, and `dossier.md` when it exists.
-  Write only cards the deck doesn't already hold, and follow the user's note. Add to Mechanics or Config gaps
-  only what is new.
+- **A later round** (`k` ≥ 2): read `cards.md` in the run folder first, and `dossier.md`, the verified cards'
+  comparison table, when it exists. Write only cards the deck doesn't already hold, and follow the user's note.
+  Add to Mechanics or Config gaps only what the earlier rounds' research files lack: Grep their `^#` headings
+  and Read only the sections you add to.
 
 ## Work, by focus
 
@@ -75,7 +75,7 @@ before anything else: its brainstorm questions open it, then the shapes, each wi
 follows it and its cautions. A shape is a starting point, never a fact: re-check every use against current
 game data with a lookup, and cite the lookup, not the library.
 
-Use the lookup tools (`.claude/skills/build-guide/references/lookups.md`), the data under `data/`, and,
+Use the lookup tools your agent definition lists (how to read their results is below), the data under `data/`, and,
 online only, the web on the allowed hosts (your agent definition). Look things up rather than recalling
 them: a game fact you didn't look up is a `judgment`, with a confidence.
 
@@ -119,7 +119,7 @@ By focus:
 
 ## Writes: the research file and the cards
 
-**The research file** holds what the dossier merges, with source markers:
+**The research file** holds what R1b reads for the mechanics, with source markers:
 
 ```
 # Research p<k>.<n>: <focus> for <the brief, in a few words>
@@ -133,9 +133,9 @@ By focus:
 [^p<k>r<n>-1]: pob-data | lookup_game_data gem "<skill>" | patch: <enginePatch>
 ```
 
-- **Markers.** Every claim carries a marker `[^p<k>r<n>-<m>]`, `m` counting from 1, so the ids stay unique
-  when the dossier copies them. Each id has exactly one definition line, and every definition sits under
-  `## Sources`, the file's last heading (`.claude/skills/build-guide/references/source-markers.md`). A
+- **Markers.** Every claim carries a marker `[^p<k>r<n>-<m>]`, `m` counting from 1, so the ids stay unique in
+  the run. Each id has exactly one definition line, `[^<id>]: <kind> | <ref> | <qualifiers>`, and every
+  definition sits under `## Sources`, the file's last heading, with no heading after it. A
   research file has no plan to cite, so use tags (`pob-data`, `judgment`, `external`,
   `external-unavailable`) and `data | <file>#<key>`, never `ledger` or `price`.
 

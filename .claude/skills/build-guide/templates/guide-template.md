@@ -2,7 +2,7 @@
 
 <!--
 Template for guide.md, the reader layer (slice 03 section 8; D-276, D-277, D-280), written by W1
-(.claude/skills/build-guide/references/stages/W1.md) with audit.md beside it (templates/audit-template.md).
+(.claude/skills/build-guide/references/stages/W1.md); audit.md beside it is the runner's render.
 It is a game guide, not a design document.
 - Headings: keep the H1 (it names the roll) and the fourteen H2s below exactly, in this order, and add no other
   H2. Under Leveling, one H3 per campaign stage, titled with its loadout name exactly as compile-record.json has
@@ -17,8 +17,16 @@ It is a game guide, not a design document.
 - At most 3,000 words, the H1, the import code and the Known issues list not counted. The word counts below are
   each section's budget, about 2,840 in all. Each section states its budget, as "About <n> words." in its prose
   placeholder or as a note of its own in square brackets; a Leveling H3 has at most 110.
-- Ledger tables, per-loadout numbers, coverage flags, confidence levels and why this concept was picked go in
-  audit.md, never here.
+- Ledger tables, per-loadout numbers, coverage flags and confidence levels are audit.md's, never here. audit.md
+  is rendered by script (templates/audit-template.md is its form): each rung's Checks is its block there,
+  copied verbatim.
+- The campaign (D-354): per act the support gem order, the tree path, a rough upgrade order with the
+  build-specific mods to buy on trade, and a target life. No resistances, max hits or EHP before the endgame,
+  and no crafting: the reader buys gear on trade.
+- The endgame measures are the record's: DPS, Effective HP, the Arbiter verdict and a rough clear speed. No kill
+  time and no hits to kill anywhere (D-353).
+- Never tell the reader to save or use Jeweller's Orbs for a skill a passive grants: they add sockets to items
+  only (D-359).
 Replace every <placeholder>. Keep a line marked [only when ...] only when it applies, and a line marked
 [optional] only where the build has it; drop the mark. Delete every line that is only a note in square brackets,
 such as [About 120 words.], and this comment.
@@ -53,16 +61,12 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 [About 130 words.]
 
-<A one-line legend: solid, watch and risky against the reference hits.>
+<A one-line legend: the entering-maps label is my judgment of its line against the map hits; the budget and non-budget labels are the Arbiter of Divinity's verdict.>
 
-- **Acts 1–2: <solid | watch | risky>.** <the gap that matters, with its number and what closes it>.
-- **Acts 3–4: <solid | watch | risky>.** <…>.
-- **Interludes and Epilogue: <solid | watch | risky>.** <…>.
-
-[one line per endgame rung, in this fixed form, word for word but the placeholders; the run checker compares each number with the record by rounding it at its own last digit (D-283). <Skill> is the named damage source and its DPS the Count-scaled headline figure; Effective HP is the stage's TotalEHP, beside max hit and never the basis of the verdict (D-294)]
+[one line per endgame rung, in this fixed form, word for word but the placeholders, and no campaign line (D-354); the run checker compares each number with the record by rounding it at its own last digit (D-283). The hits are the record's reference hits (configWritten). <Skill> is the named damage source and its DPS the Count-scaled headline figure; Effective HP is the stage's TotalEHP, beside max hit (D-294). The budget and non-budget label follows the record's measures.arbiter verdict (D-353): "survives the Arbiter's hits", or "one-shot by the Arbiter's <the worst hit>", the worst hit as audit.md's Checks names it]
 - **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
-- **Budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
-- **Non-budget (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
+- **Budget (L<level>): <survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
+- **Non-budget (L<level>): <survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.
 
 ## Gem and ascendancy timing
 
@@ -83,7 +87,6 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 - **Stats:** <the stat priority, in order>.
 - **Weapon swap:** <the rule of thumb>.
 - **When you're short:** short on <spirit | mana | an attribute>? I drop <first>, then <second> (<the record's numbers>).
-- [optional] Buy <item> now; it works at <loadout name>.
 
 ## Leveling
 
@@ -91,10 +94,9 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 ### <loadoutName of the first campaign stage, exactly as compile-record.json has it>
 
-<At most 110 words. Setup: <skill> with <supports>. Tree: add <nodes>, with why. Attributes: <have> of the <need> <attribute> <gem or item> needs. Gear: <the target> [optional: , or <the fallback> D1 or D2 weighed]. Swap to the next loadout when <trigger>.>
+<At most 110 words. Setup: <skill> with <supports, in the order to add them>. Tree: path to <the notables and keystones the stage's path claim names, in its order>. Attributes: <have> of the <need> <attribute> <gem or item> needs. Gear, in my upgrade order: <the slot>, with <the build-specific mods to buy on trade> [optional: , or <the fallback> D2 weighed]. Target life: about <the record's Life for the stage>. Swap to the next loadout when <trigger>.>
 [only when the stage has a respec] Respec: drop <the nodes> for about <gold cost> gold.
 [optional] <a rotation clause, when the stage's damage is a combo>.
-[optional] <the item or node> stays dormant until <loadout name or level>.
 
 ## Campaign route and rewards
 
@@ -113,14 +115,12 @@ Move here when <the trigger>.
 1. <the first buy>: <a short reason where it isn't obvious>.
 2. <…>.
 
+[only when the budget variant has an anoint; this rung has none (D-358)] If you can afford it before maps, anoint your amulet now with the budget variant's <notable> (<its three Distilled Emotions>).
 [optional] <a fallback D1 weighed, where one exists>.
 
 ### Checks
 
-- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Budget: <total> divines against the 5-divine ceiling.
-  [only when the total is over 5 and at most 5.5] <total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this rung can't be claimed to fit 5 divines.
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget against 5 divines, its rough clear speed and movement speed]
 
 ## Endgame: budget
 
@@ -136,16 +136,12 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
 - **Tree:** <the keystones and notables, each with what it buys>.
+- **Anoint:** <the notable>, from <its three Distilled Emotions, as the record names them> (<its price, or unavailable>): <its reason, as the plan gives it>.
 - [only when the stage has a respec] **Respec from the entering-maps loadout:** drop <the nodes> for about <gold cost> gold.
 
 ### Checks
 
-- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Budget: <total> divines against 20.
-  [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
-- The Arbiter of Divinity: <its hits against your max hit taken>; it takes about <low> to <high> seconds to kill.
-- Mapping: <movement speed>; <clicks per pack>; <the clear skill's hit against a T15 monster's life>.
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget against 20 divines, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
 
 ## Endgame: non-budget
 
@@ -153,15 +149,12 @@ Move here when <the trigger>.
 
 <About 180 words. The upgrade order from the budget variant:> 1. <the upgrade with the most gain per divine>; 2. <…>. <Affix sources as in the budget variant.>
 
+**Anoint:** <the notable>, from <its three Distilled Emotions> (<its price, or unavailable>): <its reason, as the plan gives it>.
 [only when the stage has a respec] Respec from the budget loadout: drop <the nodes> for about <gold cost> gold.
 
 ### Checks
 
-- [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Total: <total> divines against the ~200-divine reference, which is no cap.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this total isn't known.
-- The Arbiter of Divinity: <as for the budget variant>.
-- Mapping: <as for the budget variant, at areas 80 to 82>.
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its total against the ~200-divine reference, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
 
 ## How to play it
 
@@ -174,11 +167,13 @@ Move here when <the trigger>.
 
 ## What PoB can't show
 
-<About 200 words. Each caveat once, by the figure it qualifies: what PoB doesn't model or assumes there, and how I read that figure.>
+<About 200 words. Each caveat the build hinges on, once, by the figure it qualifies: what PoB doesn't model or assumes there, and how I read that figure. No minor caveat (D-351).>
 
 The headline figures assume <the plan's config they rest on: charges, stacks, counts>.
 
 [only when the plan has a Count above 1 or a custom modifier; one line each, rendered from the plan (D-294)] <The group> counts <n> copies because <its countReason>. | <The custom modifier's effect, in plain words> stands in for <its reason>.
+
+[only when a skill a passive grants holds supports; said once, here and nowhere else (D-359)] <The skill>'s support count is an estimate, as no source gives it: 3 supports below level 40, 4 from level 40 and 5 from level 60.
 
 ### Known issues
 

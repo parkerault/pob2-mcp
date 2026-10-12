@@ -1,8 +1,7 @@
 # D2-gate: check every stage, then the final compile (`build-guide-coordinator`)
 
-Slice 03 §5.3 step 4; spine C-17, C-33, D-113, D-192, D-199, D-205, D-208, D-211. A fresh coordinator step
-after every D2 attempt (and after a D1 gate in the fix round or a revision). It compiles the whole plan
-measure-only and checks that it compiled and that V1 (tree continuity included) and V2 pass for **every**
+A fresh coordinator step after every D2 attempt (and after a D1 gate in the fix round or a revision). It compiles the whole plan
+measure-only and checks that it compiled and that V1 (the tree's shape included, `tree-shape`) and V2 pass for **every**
 stage. When they do, it runs the final compile, the run's only write into the builds folder, in the same
 step. You check; you don't design. Fix nothing in the plan: a failure goes back to D2 as findings.
 
@@ -11,11 +10,11 @@ step. You check; you don't design. Fix nothing in the plan: a failure goes back 
 - **Header:** `stage: "D2-gate"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`,
   `compile: "final"`, `buildName`, `accepted` (findings the user accepted), `writes`: the verdict file
   `reports/gates/D2-gate-<concept>-a<attempt>.json`.
-- **Read:** `plan.json`; after each compile, `mcp__pob2__compile_plan`'s text (every V1 and V2 finding up to
-  200; when a line says how many more, Grep `compile-record.json`'s `stages.<id>.v1.findings` and
-  `stages.<id>.v2.findings` for them) and
-  `compile-record.json` (a large record: Read it in parts, or Grep the fields you need);
-  `.claude/skills/build-guide/references/gates.md`.
+- **Read:** nothing before the compile: you compile `plan.json` by its path and judge only what the compile
+  reports. After each compile, `mcp__pob2__compile_plan`'s text: each stage's line with its V1 and V2 verdict,
+  and every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
+  `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Never Read the record whole. The verdict
+  file's form is under "Writes" below.
 
 ## Work
 

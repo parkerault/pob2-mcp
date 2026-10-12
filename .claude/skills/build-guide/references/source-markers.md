@@ -37,11 +37,12 @@ item is in or out, requirements, gem and trial timing, reward picks, rules of th
 either/or pick's deciding factor and an affix's source where it limits the base. Gem levels, stage levels,
 record numbers, ledger values and prices are held already and need none, and so does first-person advice.
 
-## In markdown (`dossier.md`, `research/*.md`)
+## In markdown (`research/*.md`)
 
 `guide.md` carries **no markers** (D-276): it renders the plan, whose claims carry its sources, and the run
-checker fails a `[^`, a confidence label or a finding id anywhere in it. `audit.md` carries none either. In the
-dossier and the research files, a claim carries one or more footnote markers `[^<id>]`. Each id has **exactly
+checker fails a `[^`, a confidence label or a finding id anywhere in it. `audit.md` carries none either, nor
+does the dossier, a table of record numbers and price entries found by each row's card id (D-355). In the
+research files, a claim carries one or more footnote markers `[^<id>]`. Each id has **exactly
 one** definition line, and the definitions sit under the file's **last heading**:
 
 ```
@@ -56,9 +57,7 @@ For example:
 ```
 Blood Hunt consumes Blood Loss for a burst.[^d2] The skeleton keeps chaos resistance at 28%.[^d5]
 
-## Not carried
-
-None.
+## Sources
 
 [^d2]: pob-data | lookup_game_data gem "Blood Hunt" | patch: 0.5.4
 [^d5]: pob-computed | r1a2e.ChaosResist

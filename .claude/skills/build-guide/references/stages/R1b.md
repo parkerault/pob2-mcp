@@ -1,7 +1,6 @@
 # R1b: card skeleton, measure-only compile, key-item prices, the checklist (`build-guide-coordinator`)
 
-Slice 03 §5.2 (the verification phase) and §7.5, §7.7; spine C-36, C-52, D-208, D-286, D-292, D-334, D-338,
-D-342. One step per picked card, one at a time, at most 3 per verification round. It turns a card into an
+One step per picked card, one at a time, at most 3 per verification round. It turns a card into an
 endgame skeleton plan, compiles it measure-only, prices the card's key items, runs the advisory checklist with
 its probes, and writes the card's verification half. **Gate:** the skeleton compiled with no compile error.
 You write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
@@ -20,7 +19,8 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
   the skeleton's `rolledGroup`.
 - **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks) and the
-  round's research files for the mechanics; `docs/build-guide/plan-reference.md` (every field, and the worked example);
+  round's research files for the mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
+  `^#` for its headings and Read the worked example; when `validate` names a field, Grep that field's row);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs; `run-log.json`
   (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited`
   call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On
@@ -107,13 +107,15 @@ card whose damage source isn't a skill" below.
    - `config`: the earned states the card relies on, each that is on with its producer and uptime;
      `scenario` lists `enemyIsBoss` and the endgame resistance penalty, each from a data fact with its
      tag, as in the worked example.
-   - `claims` may stay empty; any claim carries a source. `ledger` is `[]`.
+   - `claims` may stay empty: the skeleton serves the verification gate, and the guide never cites it. A claim
+     is written only where the build hinges (D-351), with its `kind`, `hinge` (a fact whose being wrong would
+     make the build fail) or `reason` (a reason resting on a measurement), and a source. `ledger` is `[]`.
    - `prices`: offline, the key items' `unavailable` entries of step 6; online, `[]` for now.
 5. **Validate**: `mcp__pob2__guide_run {validate: "<runFolderRel>/concepts/<id>/plan.json"}`. Fix every error it
    reports (schema errors by JSON path; unknown gems with suggestions; item text; nodes and their
    connection; config options) and validate again, until it reports none. If one can't be fixed, stop
    before any price call and report it with `compiled: false`.
-6. **Prices** (`.claude/skills/build-guide/references/pricing.md`), one `prices[]` entry per key item
+6. **Prices**, one `prices[]` entry per key item
    (each key unique; a key base only where the card depends on it), with id `<id>-<item>` (e.g.
    `r1-a-2-weapon`):
    - **offline:** no price call. Each entry is `unavailable` with note `offline run`, `amount`,
@@ -122,8 +124,13 @@ card whose damage source isn't a skill" below.
    - **pricing stopped** (the prompt says so, or a `run-log.json` `stages[]` entry's `priceOutcomes` counts
      a `locked_out` or `rate_limited` call): no price call; each entry is `unavailable`, note `pricing stopped`.
    - **online:** reuse an entry with the same item, query and league from any plan of this run first;
-     otherwise one call per item, paced by order. Record each result's league and its `Checked:` date;
-     count every call by its outcome for your return.
+     otherwise one call per item (`mcp__pob2__get_item_price` for a unique), paced by order. An entry is
+     `{id, item, query, amount, currency, date, league, status}`: each result's league and its `Checked:` date;
+     `unavailable` has `amount` and `currency` null and a `note`. Classify a failed call by its
+     `[trade:<kind>]` prefix only: `would_wait` (price others, call it again later; its third refusal makes it
+     `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop pricing for the rest of the run:
+     every remaining item `unavailable`); any other kind, `unavailable`. Count every call by its outcome for
+     your return.
 7. **Validate again** once the prices are written (the schema checks them and the league), so the last
    compile compiles the priced plan and its record's `planSha1` is that plan's.
 8. **The last compile**, of the whole skeleton, measure-only and never with `build_name`:
@@ -132,8 +139,7 @@ card whose damage source isn't a skill" below.
    nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
    verdict. The runner re-runs the step with them as findings. If it succeeds, run the verification
    checklist (below), then write the card's verification half (below), before the verdict.
-9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json` (`.claude/skills/build-guide/references/gates.md`),
-   written last, whatever happened:
+9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json`, written last, whatever happened:
 
    ```json
    { "stage": "R1b", "concept": "r1-a-2", "attempt": 1, "verdict": { "compiled": "pass" }, "findings": [],
@@ -154,8 +160,8 @@ card whose damage source isn't a skill" below.
      applied FI-1, else `[]`.
    - `leagueUnverified`: `true` when trade couldn't be reached online and the league is a fallback (step 4).
 
-A `possibly unread` line the card depends on goes under what PoB can't verify; D1 confirms it by
-measurement (`.claude/skills/build-guide/references/lookups.md`), not R1b.
+A `possibly unread` line the card depends on goes under what PoB can't verify; D1-build confirms it by
+measurement (two stages, with and without the line, D-243), not R1b.
 
 ## Verification checklist (advisory, D-292)
 

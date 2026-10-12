@@ -87,7 +87,8 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      `<stageId>.<Field>`, `pob-data` with a lookup result, `judgment` with its reasoning and a confidence) or
      cites `ledger:<id>`, `price:<id>` or `data:<file>#<key>`. Its source supports every part of it, each
      number, mechanic and qualifier; it cites each fact it rests on; and it carries its source's caveats (a
-     confidence M or L, a disputed fact, a `judgment`).
+     confidence M or L, a disputed fact, a `judgment`). A `ledger:<id>` claim's numbers are the entry's value or
+     its inputs, an input as written or × 100 as a percentage.
    - **Affix sources** (D-277): for each rare affix target, look the affix up
      (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`; with `kind:
      "essence"`, each `[essence]` hit names an essence and the item types it applies to). When the base types

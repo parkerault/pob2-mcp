@@ -2618,6 +2618,7 @@ describe('WU-70 (AC-W53, D-356): the stage references state their rules as excer
     const finish = folded(readStage('D1-finish'));
     expect(finish).toMatch(/Classify a failed call by its `\[trade:<kind>\]` prefix only: `would_wait` .*; `locked_out` or `rate_limited` \(stop pricing for the rest of the run/);
     expect(finish).toMatch(/Its source supports every part of it, each number, mechanic and qualifier; it cites each fact it rests on; and it carries its source's caveats/);
+    expect(finish).toMatch(/A `ledger:<id>` claim's numbers are the entry's value or its inputs, an input as written or × 100 as a percentage\./);
   });
 });
 

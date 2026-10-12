@@ -1253,8 +1253,9 @@ export async function checkRun(runFolder) {
   if (recordCurrent && isObj(plan) && Array.isArray(plan.ledger) && isObj(finalRecord.stages)) {
     // (t) D-352, D-365: the ledger is the checker's. Every entry's current formula evaluates over the final record
     // with the server's own evaluator; an entry that doesn't evaluate fails. A claim citing an entry states its
-    // value: a claim with numbers holds one that matches it, at its own last significant digit or within 5%, an
-    // estimate's tolerance (D-352), so a formula changed under its claim (FI-4's doubling) fails here.
+    // value or its inputs: a claim with numbers holds one that matches the value, at its own last significant
+    // digit or within 5%, an estimate's tolerance (D-352), or equals one of the entry's current input values or
+    // that value × 100 (a percentage); so a formula changed under its claim (FI-4's doubling) fails here.
     if (ledgerModule === null) {
       fail('ledger', `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build) to evaluate the ledger`);
     } else {
@@ -1262,14 +1263,20 @@ export async function checkRun(runFolder) {
         const r = ledgerNow[e.id];
         if (!isNum(r?.value)) fail('ledger', `ledger entry ${e.id} doesn't evaluate over the final record: ${r?.error ?? 'its formula is missing'} (D-365)`);
       }
+      const entries = new Map(plan.ledger.filter((x) => isObj(x) && typeof x.id === 'string').map((x) => [x.id, x]));
+      const num = (w) => Number(w.replace(/,/g, '').replace(/−/g, '-'));
+      const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
       planStages.forEach((s, i) => list(s.claims).forEach((c, k) => {
         const id = /^ledger:(\S+)$/.exec(typeof c.source === 'string' ? c.source : '')?.[1];
         const value = id !== undefined ? ledgerNow[id]?.value : undefined;
         if (!isNum(value)) return;
+        const inputs = list(entries.get(id)?.inputs).filter((x) => isObj(x) && isNum(x.value));
         const written = [...String(c.text ?? '').matchAll(/[−-]?\d[\d,]*(?:\.\d+)?/g)].map((m) => m[0]);
-        const near = (w) => matchesWritten(w, value) || Math.abs(Number(w.replace(/,/g, '').replace(/−/g, '-')) - value) <= 0.05 * Math.abs(value);
-        if (written.length > 0 && !written.some(near)) {
-          fail('ledger', `plan.json stages[${i}].claims[${k}] (${c.id}) cites ledger:${id}, whose current formula gives ${round2(value)} over the final record, but the claim states ${written.join(', ')}; a claim citing a ledger entry states its value (D-365)`);
+        const near = (w) => matchesWritten(w, value) || Math.abs(num(w) - value) <= 0.05 * Math.abs(value);
+        const input = (w) => inputs.some((x) => same(num(w), x.value) || same(num(w), x.value * 100));
+        if (written.length > 0 && !written.some((w) => near(w) || input(w))) {
+          const ins = inputs.length > 0 ? ` and its inputs are ${inputs.map((x) => `${x.name} ${x.value}`).join(', ')}` : '';
+          fail('ledger', `plan.json stages[${i}].claims[${k}] (${c.id}) cites ledger:${id}, whose current formula gives ${round2(value)} over the final record${ins}, but the claim states ${written.join(', ')}; a claim citing a ledger entry states its value or its inputs (D-365)`);
         }
       }));
     }

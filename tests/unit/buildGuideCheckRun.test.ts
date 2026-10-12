@@ -539,7 +539,7 @@ const broken: BrokenCase[] = [
   { name: "(s) a tree set isn't titled by its stage's loadout name (a Default left behind)", fixture: 'run-ok', edit: (d) => recode(d, specs(['Default', 'Act 2 (L30) {2}', 'Entering maps (L65) {m}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}'])), rule: 'pob-file', says: /tree sets are titled \["Default",.*the record's loadout names, in plan order, are \["Act 1 \(L8\) \{1\}"/ },
   // (t)
   { name: "(t) a ledger entry that doesn't evaluate over the final record (D-365)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = 'b.NoSuchOutput * share / 100')), rule: 'ledger', says: /ledger entry bleed_bonus doesn't evaluate over the final record: / },
-  { name: "(t) a doubled ledger formula (FI-4's edit) under the claim citing it (D-365)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 15000 over the final record, but the claim states 7,500; a claim citing a ledger entry states its value \(D-365\)/ },
+  { name: "(t) a doubled ledger formula (FI-4's edit) under the claim citing it (D-365)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 15000 over the final record and its inputs are share 15, but the claim states 7,500; a claim citing a ledger entry states its value or its inputs \(D-365\)/ },
   // (u)
   { name: "(u) the named source's figure's stat set isn't skills.main.statSet (S7)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.main.statSet = 2)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's named damage source's figure g1s1p1\.TotalDPS isn't the main skill's stat set g1s1p2 \(skills\.main\)/ },
   { name: '(u) an endgame stage sets no skills.main.statSet (S7)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).skills.main.statSet), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b sets no skills\.main\.statSet/ },
@@ -2435,13 +2435,29 @@ describe("AC-W59 (D-352): a ledger-only edit after the final compile passes [rec
 
   it('fails a ledger edit that leaves its claim behind (FI-4 falls to [ledger], D-365), and passes [ledger] once the claim states the new value', () => {
     const dir = ledgerFix((p) => (p.ledger[0].inputs[0].value = 12), []);
-    expect(failing(dir)).toMatch(/\[ledger\] plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 6000 over the final record, but the claim states 7,500/);
+    expect(failing(dir)).toMatch(/\[ledger\] plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 6000 over the final record and its inputs are share 12, but the claim states 7,500/);
     // Within 5% is an estimate's tolerance (D-352): 6,200 against 6,000 passes.
     const near = ledgerFix((p) => {
       p.ledger[0].inputs[0].value = 12;
       stageB(p).claims[4].text = 'Consuming Blood Loss adds about 6,200 damage per second to Blood Hunt on the budget variant.';
     }, ['claim stages[3].claims[4] (b-bleed)']);
     passes(near);
+  });
+
+  it("passes a ledger claim stating the entry's input, or the input × 100 as a percentage, and FI-4's doubled formula still fails", () => {
+    const checked = ['claim stages[3].claims[4] (b-bleed)'];
+    passes(ledgerFix((p) => (stageB(p).claims[4].text = "Consuming Blood Loss adds 15% of Blood Hunt's DPS on the budget variant."), checked));
+    passes(ledgerFix((p) => {
+      p.ledger[0].formula = 'b.TotalDPS * share';
+      p.ledger[0].inputs[0].value = 0.15;
+      stageB(p).claims[4].text = "Consuming Blood Loss adds 15% of Blood Hunt's DPS on the budget variant.";
+    }, checked));
+    // A number that is neither the value nor an input still fails.
+    const off = ledgerFix((p) => (stageB(p).claims[4].text = "Consuming Blood Loss adds 25% of Blood Hunt's DPS on the budget variant."), checked);
+    expect(lines(failing(off), 'ledger')).toEqual([expect.stringMatching(/\(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 7500 over the final record and its inputs are share 15, but the claim states 25;/)]);
+    const fi4 = copyOf('run-ok');
+    editPlan(fi4, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`));
+    expect(failing(fi4)).toMatch(/\[ledger\] plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 15000 over the final record and its inputs are share 15, but the claim states 7,500/);
   });
 });
 

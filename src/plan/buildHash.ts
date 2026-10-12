@@ -1,9 +1,11 @@
 /**
  * D-266: the plan's build-affecting projection and its sha1, the compile record's `buildSha1` (C-33). The
- * projection is the plan with every `stages[].claims` and every `source` and `tag` field (at any depth)
- * removed, serialized canonically: object keys sorted, arrays in order, no whitespace. A claims-only edit in
- * the fix round (D-264: a claim's wording, citation, caveat or source) leaves it unchanged; a change to an
- * item, a gem, the tree, the config, a ledger entry or a price changes it.
+ * projection is the plan with every `stages[].claims`, every `source` and `tag` field (at any depth) and,
+ * since D-352, the plan's `ledger` removed, serialized canonically: object keys sorted, arrays in order, no
+ * whitespace. A claims-only edit in the fix round (D-264: a claim's wording, citation, caveat or source) and
+ * a ledger-only edit (D-352: an entry's claim, formula or inputs, an entry added or removed; the run checker
+ * re-evaluates the plan's current ledger itself) leave it unchanged; a change to an item, a gem, the tree, the
+ * config or a price changes it.
  *
  * The compiler writes it beside `planSha1`, and the build-guide run checker loads this module's compiled form
  * (`build/plan/buildHash.js`) to hold a plan edited after the final compile to it. It imports only
@@ -16,7 +18,10 @@ const SOURCE_KEYS = new Set(['source', 'tag']);
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** The plan without `stages[].claims` and without any `source` or `tag` field. */
+/** The plan's top-level fields that aren't build content: the ledger (D-352). */
+const NON_BUILD_KEYS = new Set(['ledger']);
+
+/** The plan without `ledger`, without `stages[].claims` and without any `source` or `tag` field. */
 export function buildProjection(plan: unknown): unknown {
   const strip = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(strip);
@@ -26,6 +31,7 @@ export function buildProjection(plan: unknown): unknown {
     return out;
   };
   const projected = strip(plan);
+  if (isRecord(projected)) for (const k of NON_BUILD_KEYS) delete projected[k];
   if (isRecord(projected) && Array.isArray(projected.stages)) {
     projected.stages = projected.stages.map((s) => {
       if (!isRecord(s)) return s;

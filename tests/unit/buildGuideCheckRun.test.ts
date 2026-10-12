@@ -2207,12 +2207,12 @@ describe('D-264: a claims-only fix round edits claims in place, runs no gate, an
     passes(dir);
   });
 
-  it('item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed a ledger formula (the review\'s run-gearswap)', () => {
+  // D-352 (WU-65): the projection leaves out the ledger, so a ledger formula edit is no build change here.
+  it('item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed the config (the review\'s run-gearswap)', () => {
     const swaps: [string, (p: Json) => void][] = [
       ['item', (p) => (stageB(p).items.slots.find((x: Json) => x.slot === 'Body Armour').text = "Rarity: Unique\nKaom's Heart\nClaimed Body\n+500 to maximum Life")],
       ['gem', (p) => stageB(p).skills.groups[0].gems.push({ name: 'Martial Tempo', level: 20, quality: 0, enabled: true })],
       ['tree', (p) => (stageB(p).tree.nodes = stageB(p).tree.nodes.slice(1))],
-      ['ledger', (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)],
       ['config', (p) => (stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value = 120)],
     ];
     for (const [what, swap] of swaps) {

@@ -2953,3 +2953,17 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - A new test: a connected loop through two exits of the Mercenary start (59779 - 97 - 59915) passes.
   - The gate passed: 126 suites, 2166 tests, build rc=0.
   - **Review:** dispatched, with the full gate.
+- **WU-69 review: PASS** (static and unit 1194 of 1194). Every deviation is accepted, including Grep for the
+  claims: `guide_run` also carries `new_run`, which would break the verifier's read-only rule.
+  - **One should-fix:** `run-folder.md:96` and `:127-128` still describe the lens re-check. No unit owns that
+    file, so the doer fixes it now.
+  - **Nits:** sent to the doer.
+  - **Cross-unit, for WU-71:**
+    - `check-run.mjs:103`'s id pattern and `:1387`'s lens column must accept `v4-<n>-<k>` and `V4`;
+    - checkpoints.md's revision line is unpinned until WU-70 restates it;
+    - until WU-71, the checker rejects `reports/V4-1.md` (`:795-797`). That's harmless, since nobody runs
+      before WU-72.
+- **D-365 (the coordinator's ruling, PROPOSED).** After a ledger-only fix, which skips the recompile under
+  D-352, the record's ledger values are stale. So V4 compares guide figures only with the record's measured
+  values (stats, `measures`, key figures). Figures that come from the ledger belong to the checker's `[ledger]`,
+  over the plan's current formulas. WU-71 must make `[ledger]` cover the guide's ledger-cited figures.

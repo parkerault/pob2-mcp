@@ -2735,3 +2735,15 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 - **For WU-71.** AC-W2 (t) and FI-4's doubled formula still describe `[ledger]` as it is built. Update them when
   WU-71 changes the check.
 - **Next:** the user compacts the context. Then the M-15 build starts, with WU-64 and WU-65 first.
+
+## 2026-10-11: M-15 build start (amendment 4)
+
+- **The user signed off every amendment 4 change** ("All amendment 4 changes are signed off on. Start the
+  implementation."). That settles HG-12 for D-360's changes to `find_path_to_node` and `get_nearby_nodes`:
+  WU-66 may change both tools' behaviour as D-360 states. Spec v1.5 (`ba9daf8`) is binding.
+- **The fleet's rules** (`build-handoff-amendments.md`) gain an M-15 section: spec v1.5, the directive
+  WU-64…WU-71, M-15's serialized files, no poe.ninja for any M-15 unit, and HG-12 granted for WU-66 only.
+- **Wave 1:** WU-64 (the output-counter spike) in lane `bg-64` and WU-65 (plan schema 3, the anoint, the
+  record's `measures`, the key-figure lines, `buildSha1` without the ledger) in lane `bg-65`, both off the
+  integration head. Before WU-64 starts, the coordinator asked the Claude Code guide agent which Claude Code
+  sources carry final output-token counts (telemetry, the status line), as the spike's candidate ground truth.

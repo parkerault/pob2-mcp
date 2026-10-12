@@ -351,9 +351,9 @@ export function clearSpeedOf(input: {
 export function clearGroupOf(
   stage: Pick<Stage, 'skills'>,
 ): { group: number; activeSkill: number; statSet: number } | null {
-  const k = stage.skills.groups.findIndex((g) => g.enabled && g.role === 'clear');
-  if (k >= 0) return { group: k + 1, activeSkill: 1, statSet: 1 };
   const main = stage.skills.main;
+  const k = stage.skills.groups.findIndex((g) => g.enabled && g.role === 'clear');
+  if (k >= 0 && k + 1 !== main.group) return { group: k + 1, activeSkill: 1, statSet: 1 };
   return stage.skills.groups[main.group - 1]
     ? { group: main.group, activeSkill: main.activeSkill, statSet: main.statSet ?? 1 }
     : null;

@@ -69,6 +69,13 @@ describe('D-363: the clear skill\'s stat set', () => {
     expect(clearEntryOf(stage({ group: 1, activeSkill: 1 }), outputs as never)?.key).toBe('g1s1p1');
     expect(clearEntryOf(stage({ group: 1, activeSkill: 1, statSet: 2 }, true), outputs as never)?.key).toBe('g2s1p1');
   });
+
+  it('reads the main selection\'s stat set when the clear group is the main group', () => {
+    expect(clearEntryOf(stage({ group: 2, activeSkill: 1, statSet: 1 }, true), outputs as never)?.key).toBe('g2s1p1');
+    const both = stage({ group: 1, activeSkill: 1, statSet: 2 });
+    (both.skills.groups[0] as { role?: string }).role = 'clear';
+    expect(clearEntryOf(both, outputs as never)?.key).toBe('g1s1p2');
+  });
 });
 
 describe('D-353: measures.arbiter', () => {

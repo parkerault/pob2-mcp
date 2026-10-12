@@ -3166,3 +3166,22 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - a stray `run-log.json.tmp`;
     - apostrophes breaking `run-log.mjs`'s single-quoted JSON, so it reads stdin with a heredoc.
   - **Fixes:** dispatched to a fresh fixer, since part B's doer ended at 680K.
+- **WU-71 fixes** (6 commits to `1e5fe7b`; the fixer used 166K tokens).
+  - The verdict-line DPS is checked against `measures.dps` (`:1445`). The gate's figure stays for its own
+    recompute and for records without `measures`.
+  - `[ledger]` also accepts a claim's number equal to an input or the input × 100 (`:1277`), with the rule in
+    `D1-finish.md:90`. FI-4 still fails.
+  - **Nits:**
+    - typography is normalised;
+    - HTML comments are skipped;
+    - `--snapshot` copies via a temp folder and renames it, exiting with one clean line;
+    - `run-log.json.tmp` is ignored;
+    - `run-log.mjs` reads `-` from stdin, and the examples are quoted heredocs.
+  - The coordinator also restated `W1.md:79`: the DPS line is `measures.dps`, whatever the gate names.
+- **WU-71 merged** at `d3d3cb8`. At the merged head:
+  - build rc=0, static and unit suites 1307 of 1307;
+  - the four pipeline fixtures rc=0.
+
+  Lane `bg-71` removed. **WU-65…WU-71 are all merged.**
+- **The wave gate:** the run worktree `m15`, detached at the integration head, is bootstrapped and gated from
+  scratch by an independent verifier. It then serves as WU-72's run worktree.

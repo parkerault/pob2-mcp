@@ -2889,3 +2889,34 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - The reviewer wrote a gate log into the session scratchpad. The coordinator deleted it.
 - **WU-68 merged** at `d761f63`. At the merged head: build rc=0, static and unit suites 1190 of 1190. Lane
   `bg-68` removed. **WU-69 is next** (V4: one pass); WU-66 is still building.
+- **WU-66: built** (head `5e8313d`, 3 commits). The doer reports the gate passing: 126 suites, 2154 tests, build
+  rc=0.
+  - **The finding:** `tree-shape`, one per broken rule. Its data is `{stage, rule, start, startName,
+    trees[{exits, nodes}]}`, with `rule` one of `one-tree-per-start`, `one-exit-per-tree`, `alternate-start` or
+    `ascendancy`. On run A's stage 2 it says the Ranger start (50459) holds 2 trees.
+  - **The path tools:**
+    - they never enter a start;
+    - they leave a start only while it holds no tree;
+    - they never step from the main tree onto an open start's exit or into an ascendancy node.
+  - **`compile_check`** replies with `trees[]`. AC-B4 is wired.
+  - **Deviations:**
+    - (1) PoB prunes a Sorceress tree without 12795, and an ascendancy node cut off from 1583, so D-213's
+      not-connected check refuses those plans before V1 runs. The tests assert that refusal and run
+      `checkTreeShape` on `compile_check`'s trees.
+    - (2) "One exit per tree" is applied literally, so a connected loop back to the start's other exit is a
+      finding.
+    - (3) No path runs through an unallocated 12795.
+    - (4) A Ranger tree that walks across the main tree onto 4739 without 12795 is valid.
+    - (5) Implied scope: `compiler.ts`, `types.ts` (`isClassStart`), the two-stage fixture's second Warrior
+      tree joined to the first, `plan-reference.md`, five tests.
+    - (6) The finding gains `data.rule`.
+  - **Friction:** the two-stage-count, off-hand-item and fifteen-stage fixtures still hold two Warrior trees, so
+    they give `tree-shape` findings. No test needs them clean. *For the fold:* `plan-reference.md`'s `tree.nodes`
+    row.
+- **D-364 (the coordinator's ruling on deviation 2, PROPOSED):**
+  - A tree is a connected group of allocated nodes, the start not counted, and a start holds at most one.
+  - A tree that touches two exits of its start through its own nodes is one tree, and legal. That follows the
+    user's I-3 words, "two **unconnected** start nodes"; in game, the second exit is a node adjacent to an
+    allocated one.
+  - V1 drops `one-exit-per-tree`. The path tools may stay conservative and never route a loop.
+  - Sent to the doer, with a rebase onto the integration head.

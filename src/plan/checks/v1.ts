@@ -21,6 +21,7 @@
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. One finding per group or entry; `data.path` is the missing field's path in the stage |
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
+ * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -555,6 +556,64 @@ export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[
   }
 }
 
+/** C1's estimated support ceiling for a tree-granted skill, keyed by character-level ranges (D-359). */
+const TREE_GRANTED_SUPPORTS = 'support-sockets.tree-granted';
+
+/** A `Grants Skill:` line of an item text, PoB's `{…}` tags and the level dropped: the skill's name. */
+const GRANTS_SKILL = /^(?:\{[^}]*\})*\s*Grants Skill:\s*(?:Level\s+\S+\s+)?(.+?)\s*$/i;
+
+/** The skills the stage's items and jewels grant, by their texts' `Grants Skill:` lines, lowercased. */
+function itemGrantedSkills(items: Stage['items']): Set<string> {
+  const out = new Set<string>();
+  for (const { text } of [...items.slots, ...items.treeJewels]) {
+    for (const line of text.split(/\r?\n/)) {
+      const m = GRANTS_SKILL.exec(line);
+      if (m) out.add(m[1].toLowerCase());
+    }
+  }
+  return out;
+}
+
+/**
+ * `support-sockets` (D-359, I-2). A skill a passive grants takes no Jeweller's Orb, so its supports follow
+ * character level by C1's estimated table (`support-sockets.tree-granted`, a `judgment` fact at L, read by range
+ * like the interlude's penalty); an item-granted skill's follow its item's sockets and a gem's its own, so
+ * neither is checked. Neither the plan's groups nor PoB's gem list say where a group's skill comes from (PoB's
+ * own granted groups, `group.source`, are left out of the gem list), so a group's skill is its first non-support
+ * gem, and the group is tree-granted by elimination: the skill is tier 0, which no uncut gem engraves (C1's
+ * `skill-tiers`), and no `Grants Skill:` line of the stage's item texts names it. One finding per group over the
+ * ceiling, counting every support the group holds; the verdict rests on the estimate, so it is noted (A-29).
+ */
+export function checkSupportSockets(
+  stage: Pick<Stage, 'level' | 'items'>,
+  checks: Pick<StageChecks, 'gems'>,
+  facts: FactReader,
+  findings: Finding[],
+): void {
+  const table = facts.fact(C1.gems, TREE_GRANTED_SUPPORTS);
+  if (table === null || typeof table.value !== 'object' || Array.isArray(table.value)) return;
+  const ceiling = valueInRange(table.value as Record<string, number | string>, stage.level);
+  if (ceiling === null) return;
+  const byItem = itemGrantedSkills(stage.items);
+  const groups = new Map<number, StageChecks['gems']>();
+  for (const gem of checks.gems) groups.set(gem.group, [...(groups.get(gem.group) ?? []), gem]);
+  for (const [group, gems] of [...groups].sort(([a], [b]) => a - b)) {
+    const skill = gems.filter((g) => g.kind !== 'support').sort((a, b) => a.index - b.index)[0];
+    if (skill === undefined || (skill.tier ?? 0) > 0 || byItem.has(skill.name.toLowerCase())) continue;
+    facts.rely('support-sockets', table);
+    const supports = gems.filter((g) => g.kind === 'support').length;
+    if (supports <= ceiling) continue;
+    findings.push({
+      code: 'support-sockets',
+      message:
+        `${skill.name} (skill group ${group}) is a tree-granted skill (tier 0, and no item of the stage grants it) with ` +
+        `${supports} supports, above the estimated ceiling of ${ceiling} at level ${stage.level} ` +
+        `(${C1.gems}#${TREE_GRANTED_SUPPORTS}, confidence ${table.fact.confidence}, D-359): a skill a passive grants takes no Jeweller's Orb`,
+      data: { group, skill: skill.name, supports, ceiling, level: stage.level, fact: TREE_GRANTED_SUPPORTS },
+    });
+  }
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -571,5 +630,6 @@ export function checkV1(input: V1Input): V1Result {
   checkContinuity(stage, input.predecessor, findings);
   checkReasons(stage, findings);
   checkTreeShape(input.trees, findings);
+  checkSupportSockets(stage, checks, facts, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

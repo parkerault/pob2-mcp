@@ -404,6 +404,63 @@ describe('V1 over hand-made stage inputs', () => {
   });
 });
 
+describe('AC-P66 (WU-67, D-359): support-sockets over the estimated table', () => {
+  const GEMS = readJson('campaign/gems.json');
+  const TABLE = GEMS.facts['support-sockets.tree-granted'];
+  // Stage 2 of the fixture, with a Wooden Club that grants Firebolt (an item-granted skill, tier 0 like the tree's).
+  const plan = fixture();
+  plan.stages[1].items.slots[0].text = 'Rarity: Normal\nWooden Club\n{crafted}Grants Skill: Level 11 Firebolt';
+  const [, base] = stagesOf(plan);
+  const gem = (group: number, index: number, name: string, tier: number, kind: 'skill' | 'support') =>
+    ({ group, index, name, level: 1, tier, kind, levelRequirement: 0 });
+  /** A group of `skill` (tier `tier`) and `n` supports. */
+  const group = (g: number, skill: string, tier: number, n: number): StageChecks['gems'] => [
+    gem(g, 1, skill, tier, 'skill'),
+    ...Array.from({ length: n }, (_, k) => gem(g, k + 2, `Support ${g}.${k + 1}`, 1, 'support')),
+  ];
+  const run = (level: number, gems: StageChecks['gems']) => {
+    const stage = { ...base, level };
+    return checkV1({ stage, predecessor: null, checks: checksFor(stage, { gems }), ref }).verdict;
+  };
+  const flagged = (v: ReturnType<typeof run>) => v.findings.filter((f) => f.code === 'support-sockets');
+
+  it('AC-P66: gems.json holds the estimated table, a judgment fact at L: 3 below level 40, 4 from 40, 5 from 60', () => {
+    expect(TABLE).toMatchObject({ value: { '1-39': 3, '40-59': 4, '60-100': 5 }, confidence: 'L' });
+    expect(GEMS.sources.find((s: Json) => s.id === TABLE.source)).toMatchObject({ kind: 'judgment', confidence: 'L' });
+  });
+
+  it.each([
+    [39, 3],
+    [40, 4],
+    [60, 5],
+  ])('AC-P66: at level %i a tree-granted group with one support over the ceiling (%i) is support-sockets; at the ceiling it passes', (level, ceiling) => {
+    const over = run(level, group(1, 'Explosive Concoction', 0, ceiling + 1));
+    expect(flagged(over).map((f) => f.data)).toEqual([
+      { group: 1, skill: 'Explosive Concoction', supports: ceiling + 1, ceiling, level, fact: 'support-sockets.tree-granted' },
+    ]);
+    expect(flagged(over)[0].message).toContain('campaign/gems.json#support-sockets.tree-granted');
+    expect(over.pass).toBe(false);
+    // The verdict rests on the L estimate, so it is noted (A-29).
+    expect(over.notes.filter((n) => n.code === 'support-sockets').map((n) => n.data)).toEqual([
+      { file: 'campaign/gems.json', fact: 'support-sockets.tree-granted', confidence: 'L' },
+    ]);
+    const at = run(level, group(1, 'Explosive Concoction', 0, ceiling));
+    expect(flagged(at)).toEqual([]);
+    expect(at.pass).toBe(true);
+  });
+
+  it('AC-P66: never an item-granted group (its item\'s Grants Skill line names it) or a gem\'s group, however many supports', () => {
+    const gems = [...group(1, 'Firebolt', 0, 6), ...group(2, 'Lightning Arrow', 1, 6), ...group(3, 'Explosive Concoction', 0, 4)];
+    const v = run(39, gems);
+    // Only the tree-granted group 3 is flagged; at the ceiling of 3, without it, nothing is, and nothing is noted.
+    expect(flagged(v).map((f) => f.data?.group)).toEqual([3]);
+    const without = run(39, gems.filter((g) => g.group !== 3));
+    expect(flagged(without)).toEqual([]);
+    expect(without.notes.filter((n) => n.code === 'support-sockets')).toEqual([]);
+    expect(without.pass).toBe(true);
+  });
+});
+
 describe('V2 over hand-made stage inputs', () => {
   const defaults: Record<string, ConfigOptionDefault> = {
     buffOnslaught: { type: 'check', apply: true, conditional: false },

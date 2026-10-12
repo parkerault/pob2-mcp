@@ -24,6 +24,12 @@
       "accessed": "2026-10-07",
       "patch": "0.5.5",
       "confidence": "H"
+    },
+    {
+      "id": "support-sockets-estimate",
+      "kind": "judgment",
+      "ref": "The user's estimate (amendment 4, Q1): no source has the support-socket thresholds for a skill a passive grants, and PoB2 has no rule. Jeweller's Orbs work on items that grant skills, not on skills granted by passives",
+      "confidence": "L"
     }
   ],
   "facts": {
@@ -244,6 +250,17 @@
       "patch": "0.5.5",
       "confidence": "H",
       "note": "support gem tiers"
+    },
+    "support-sockets.tree-granted": {
+      "value": {
+        "1-39": 3,
+        "40-59": 4,
+        "60-100": 5
+      },
+      "source": "support-sockets-estimate",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "an estimate (D-359): the most supports a skill granted by a passive (the tree or the ascendancy) holds, keyed by character level. 3 below level 40: Act 2 (area levels 16 to 31) into Act 3; 4 from level 40: Act 3's second half (to 45), Act 4 (46 to 53) and the interludes; 5 from level 60: the campaign's end (the interludes start at 54 to 56 and rise about 8). Area levels from campaign/areas.json. An item-granted skill's supports follow its item's sockets, and a gem's its own"
     }
   }
 }

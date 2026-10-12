@@ -1,0 +1,320 @@
+/**
+ * WU-71: the build-guide runner's two scripts, each spawned as a real `node` process on a temp run folder
+ * (tests/helpers/guideRunFolder.ts):
+ *
+ * - `scripts/render-audit.mjs <runFolder>` (D-355) renders `audit.md` in the form of `templates/audit-template.md`
+ *   from the plan, the final compile record and the D1 gate's last verdict file, and a re-render keeps the rows W1
+ *   added under `Known issues`;
+ * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356) writes the run log in `references/run-log.md`'s entry
+ *   form, appending one entry per call, and refuses an entry outside that form.
+ *
+ * `--snapshot` and `--changed` (A-34, D-352) are `check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
+ * The render loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
+ */
+import { describe, it, expect, afterAll } from '@jest/globals';
+import { spawnSync } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { CARD, GATE_FILE, editJson, readJson, writeGuideRun, type Json } from '../helpers/guideRunFolder';
+
+const REPO = path.resolve(__dirname, '..', '..');
+const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const RENDER = path.join(SKILL_DIR, 'scripts', 'render-audit.mjs');
+const RUN_LOG = path.join(SKILL_DIR, 'scripts', 'run-log.mjs');
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guide-scripts-'));
+
+afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
+
+function run(script: string, ...args: string[]) {
+  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+  return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+}
+let folders = 0;
+const folder = () => {
+  const dir = path.join(TMP, `run-${++folders}`);
+  fs.mkdirSync(dir);
+  return dir;
+};
+const guideRun = () => writeGuideRun(folder());
+const audit = (dir: string) => fs.readFileSync(path.join(dir, 'audit.md'), 'utf8');
+function render(dir: string): string {
+  const r = run(RENDER, dir);
+  expect({ code: r.code, stderr: r.stderr, stdout: r.stdout }).toEqual({ code: 0, stderr: '', stdout: `render-audit: wrote audit.md from plan.json, compile-record.json and ${GATE_FILE}\n` });
+  return audit(dir);
+}
+/** A markdown text's headings of one level, outside HTML comments. */
+const headings = (text: string, level: number) => text.replace(/<!--[\s\S]*?-->/g, '').split('\n').filter((l) => l.startsWith(`${'#'.repeat(level)} `)).map((l) => l.slice(level + 1));
+/** The lines under a heading, to the next heading of that level or higher. */
+function under(text: string, heading: string): string[] {
+  const lines = text.split('\n');
+  const at = lines.indexOf(heading);
+  const level = /^#+/.exec(heading)![0].length;
+  const end = lines.findIndex((l, i) => i > at && /^#+ /.test(l) && /^#+/.exec(l)![0].length <= level);
+  return lines.slice(at + 1, end < 0 ? undefined : end).filter((l) => l !== '');
+}
+
+/** The synthetic run's audit.md, as the render writes it (the template's form, every number the record's). */
+const RENDERED = `# Audit: Titan / Blood Hunt, Blood Hunt bleed burst
+
+## Estimates
+
+| Entry | Claim | Value | Formula |
+|---|---|---|---|
+| \`arbiter_margin\` | The Arbiter's slam over the budget variant's physical max hit | 0.19 | slam / b.PhysicalMaximumHitTaken |
+| \`campaign_life\` | Life gained from act 1 to maps | 1500.00 | m.Life - a1.Life |
+| \`clear_guess\` | Packs a minute | 24.00 | packs * 2 |
+
+- **Count:** Herald of Blood on stage b counts 3 copies: three exploding corpses per pack, as the gem text says.
+- **Custom modifier:** \`10% more Bleeding magnitude\` on stage b: Blood Loss stacks, which PoB has no option for. The figures of stage b are estimates (D-296).
+
+## Stage detail
+
+| Loadout | Level | Life | Named source DPS | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |
+|---|---|---|---|---|---|---|---|
+| Act 1 (L8) {a1} | 8 | 310 | 120.5 | 75/75/75/12% | 400 / 300 | — | 900 |
+| Entering maps (L65) {m} | 65 | 1810 | 21000 | 75/75/75/12% | 4200 / 3850 | 2500 / 3200 | 9100 |
+| Endgame budget (L90) {b} | 90 | 3400 | 98412.75 | 75/75/75/12% | 31000 / 9750 | 5200 / 3200 | 30100.5 |
+| Endgame non-budget (L95) {n} | 95 | 4100 | 250000 | 75/75/75/12% | 6000 / 8950 | 6100 / 3200 | 41000 |
+
+## Checks
+
+### Entering maps (L65) {m}
+
+- Chaos resistance stays at 12% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
+- Budget: 5.2 divines against the 5-divine ceiling.
+  5.2 divines is near the ceiling: over 5, within the 5.5-divine tolerance.
+- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+
+### Endgame budget (L90) {b}
+
+- Budget: unknown against 20.
+  Prices are unavailable (offline run), so this variant can't be claimed to be under 20 divines.
+- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.82 of your max hit.
+- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+
+### Endgame non-budget (L95) {n}
+
+- Total: unknown against the ~200-divine reference, which is no cap.
+  Prices are unavailable (offline run), so this total isn't known.
+- The Arbiter of Divinity: one-shot by its physical and lightning hit, at 1.13 of your max hit.
+- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+
+## What PoB doesn't model
+
+- Stage b: \`10% more Bleeding magnitude\`, hand-calculated as custom modifiers for effects PoB doesn't model, so its figures are estimates (D-296).
+- Stage n: PoB warns "You have too many passive points allocated".
+
+## Inputs by confidence
+
+- **M:** stage m's chaos resistance exception: no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs; \`b-why\` on stage b: Armour carries the physical hits.
+- **L:** \`m-clear\` on stage m: Blood Hunt clears a pack in one press; \`n-ext\` on stage n: The build is popular this league; input \`packs\` (12) of \`clear_guess\`: Packs a minute.
+- **Needs an external source** (external source unavailable in this offline run): \`n-ext\` on stage n: The build is popular this league.
+
+## Known issues
+
+None.
+`;
+
+describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templates/audit-template.md', () => {
+  const template = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'audit-template.md'), 'utf8');
+
+  it("renders the template's six H2s in order, one Checks H3 per endgame rung titled with its loadout name, and no Run notes", () => {
+    const text = render(guideRun());
+    expect(headings(text, 2)).toEqual(headings(template, 2));
+    expect(headings(text, 2)).toEqual(['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues']);
+    expect(headings(text, 3)).toEqual(['Entering maps (L65) {m}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}']);
+    expect(headings(text, 1)).toEqual(['Audit: Titan / Blood Hunt, Blood Hunt bleed burst']);
+    // The tables' heads are the template's, word for word.
+    for (const head of ['| Entry | Claim | Value | Formula |', '| Loadout | Level | Life | Named source DPS |']) {
+      expect(template).toContain(head);
+      expect(text).toContain(head);
+    }
+  });
+
+  it("writes the plan's and the record's values, the D1 gate's last basis (attempt 2, not 1) and the Checks block lines the template gives", () => {
+    expect(render(guideRun())).toBe(RENDERED);
+  });
+
+  it('renders the Checks lines that apply: prices known, near the ceiling, an unmeasured Arbiter, an online run', () => {
+    const dir = guideRun();
+    editJson(dir, GATE_FILE, (g) => {
+      g.basis.budget.totals = [{ stage: 'm', divines: 4.5 }, { stage: 'b', divines: 21.25 }];
+      g.basis.budget.nonBudget = [{ stage: 'n', divines: 160, reference: 200 }];
+    });
+    editJson(dir, 'plan.json', (p) => {
+      for (const id of ['b-anoint', 'n-weapon']) Object.assign(p.prices.find((x: Json) => x.id === id), { status: 'ok', amount: 300, currency: 'exalted', note: undefined });
+      delete p.stages[1].chaosResistException;
+    });
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.n.measures.arbiter = { verdict: null, worst: null, rows: [] };
+      delete r.stages.b.outputs.EffectiveMovementSpeedMod;
+    });
+    editJson(dir, 'run-log.json', (l) => {
+      l.mode = 'online';
+    });
+    const text = render(dir);
+    expect(under(text, '### Entering maps (L65) {m}')).toEqual([
+      '- Budget: 4.5 divines against the 5-divine ceiling.',
+      "- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.",
+    ]);
+    expect(under(text, '### Endgame budget (L90) {b}')).toEqual([
+      '- Budget: 21.25 divines against 20.',
+      '  21.25 divines is near the ceiling: over 20, within the 22-divine tolerance.',
+      '- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.82 of your max hit.',
+      "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: not measured.",
+    ]);
+    expect(under(text, '### Endgame non-budget (L95) {n}')).toEqual([
+      '- Total: 160 divines against the ~200-divine reference, which is no cap.',
+      '- The Arbiter of Divinity: not measured.',
+      "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.",
+    ]);
+    expect(text).not.toContain('Needs an external source');
+  });
+
+  it('keeps the rows W1 added under Known issues on a re-render, and follows the recompiled record everywhere else', () => {
+    const dir = guideRun();
+    render(dir);
+    const rows = ['| Id | Lens or gate | Stage | Sentence in the guide |', '|---|---|---|---|', '| chaos-exception | D1-gate | b | Chaos resistance stays low on the budget variant. |'];
+    fs.writeFileSync(path.join(dir, 'audit.md'), audit(dir).replace('## Known issues\n\nNone.\n', `## Known issues\n\n${rows.join('\n')}\n`));
+    // A fix round recompiles stage b; the D1 gate's next attempt writes a new basis.
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.b.outputs.TotalEHP = 28000;
+      r.stages.b.measures.ehp = 28000;
+      r.stages.b.outputs.PhysicalMaximumHitTaken = 30000;
+    });
+    const text = render(dir);
+    expect(under(text, '## Known issues')).toEqual(rows);
+    expect(text).toContain('| Endgame budget (L90) {b} | 90 | 3400 | 98412.75 | 75/75/75/12% | 30000 / 9750 | 5200 / 3200 | 28000 |');
+    expect(text).toContain('| `arbiter_margin` | The Arbiter\'s slam over the budget variant\'s physical max hit | 0.20 | slam / b.PhysicalMaximumHitTaken |');
+    // Known issues aside, the re-render is the fresh render of the same inputs.
+    const fresh = folder();
+    fs.cpSync(dir, fresh, { recursive: true });
+    fs.rmSync(path.join(fresh, 'audit.md'));
+    expect(text.replace(/## Known issues[\s\S]*$/, '')).toBe(render(fresh).replace(/## Known issues[\s\S]*$/, ''));
+    expect(under(audit(fresh), '## Known issues')).toEqual(['None.']);
+  });
+
+  it("shows a ledger-only edit's current formula and value without a recompile (D-365)", () => {
+    const dir = guideRun();
+    editJson(dir, 'plan.json', (p) => {
+      p.ledger.find((e: Json) => e.id === 'clear_guess').formula = 'packs * 3';
+    });
+    expect(render(dir)).toContain('| `clear_guess` | Packs a minute | 36.00 | packs * 3 |');
+  });
+
+  it("refuses without its inputs, writing nothing: no D1 gate in the log, a missing record; usage", () => {
+    const noGate = guideRun();
+    editJson(noGate, 'run-log.json', (l) => {
+      l.stages = l.stages.filter((s: Json) => s.stage !== 'D1-gate');
+    });
+    const r = run(RENDER, noGate);
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 1, stderr: "render-audit: run-log.json has no D1-gate entry; the render reads the D1 gate's last verdict file\n" });
+    const noRecord = guideRun();
+    fs.rmSync(path.join(noRecord, 'compile-record.json'));
+    expect(run(RENDER, noRecord)).toEqual({ code: 1, stdout: '', stderr: 'render-audit: compile-record.json is missing\n' });
+    for (const dir of [noGate, noRecord]) expect(fs.existsSync(path.join(dir, 'audit.md'))).toBe(false);
+    expect(run(RENDER).code).toBe(2);
+    expect(run(RENDER, noGate, '--force').code).toBe(2);
+  });
+});
+
+describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, in references/run-log.md's entry form", () => {
+  const log = (dir: string, kind: string, entry: Json) => run(RUN_LOG, dir, kind, JSON.stringify(entry));
+  const ok = (dir: string, kind: string, entry: Json, wrote: string) => expect(log(dir, kind, entry)).toEqual({ code: 0, stdout: `run-log: wrote ${wrote}\n`, stderr: '' });
+  const started = () => {
+    const dir = folder();
+    ok(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted' }, 'the first log');
+    return dir;
+  };
+
+  it("init writes run-log.md's first write, the run folder given, and never overwrites a log", () => {
+    const dir = started();
+    expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
+      schemaVersion: 3,
+      runFolder: dir,
+      slug: 'titan-blood-hunt',
+      brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },
+      roll: null,
+      status: 'running',
+      mode: 'offline',
+      testConfig: 'accepted',
+      stages: [],
+      checkpoints: [],
+      escalations: [],
+      faults: [],
+      outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
+    }, null, 2)}\n`);
+    const before = fs.readFileSync(path.join(dir, 'run-log.json'));
+    expect(log(dir, 'init', { slug: 'x', brief: {}, mode: 'online', testConfig: 'none' })).toEqual({ code: 1, stdout: '', stderr: 'run-log: run-log.json exists; init writes the first log only\n' });
+    expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
+  });
+
+  it('appends one entry per call, with the stage names D1-build, D1-finish, V4 and V4-recheck and the design checkpoint, in the entry form\'s field order', () => {
+    const dir = started();
+    ok(dir, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' }, 'stages[0]');
+    ok(dir, 'stage', { stage: 'R1b', concept: CARD, attempt: 1, outcome: 'pass', probes: 2 }, 'stages[1]');
+    ok(dir, 'stage', { stage: 'D1-build', concept: CARD, attempt: 1, outcome: 'done' }, 'stages[2]');
+    ok(dir, 'stage', { outcome: 'done', priceOutcomes: { ok: 3, would_wait: 1 }, attempt: 1, concept: CARD, stage: 'D1-finish' }, 'stages[3]');
+    ok(dir, 'stage', { stage: 'D1-gate', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[4]');
+    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' }, 'checkpoints[0]');
+    ok(dir, 'stage', { stage: 'D1-finish', concept: CARD, attempt: 2, outcome: 'claims-edited' }, 'stages[5]');
+    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 2, answer: 'accept', answeredBy: 'user' }, 'checkpoints[1]');
+    ok(dir, 'stage', { stage: 'V4', concept: CARD, attempt: 1, outcome: 'fail' }, 'stages[6]');
+    ok(dir, 'stage', { stage: 'V4-recheck', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[7]');
+    ok(dir, 'escalation', { stage: 'D2-gate', concept: CARD, verdict: `reports/gates/D2-gate-${CARD}-a3.json`, choice: 'retry', guidance: 'drop the second curse' }, 'escalations[0]');
+    ok(dir, 'set', { status: 'completed', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, outputs: { plan: 'plan.json', record: 'compile-record.json', dossier: 'dossier.md', guide: 'guide.md', pobFile: '/x/b.xml' } }, 'status, roll, outputs');
+    const l = readJson(dir, 'run-log.json');
+    expect(l.stages.map((s: Json) => s.stage)).toEqual(['R1a', 'R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D1-finish', 'V4', 'V4-recheck']);
+    expect(Object.keys(l.stages[3])).toEqual(['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes']);
+    expect(l.stages[3]).toEqual({ stage: 'D1-finish', concept: CARD, attempt: 1, outcome: 'done', priceOutcomes: { ok: 3, would_wait: 1 } });
+    expect(l.checkpoints).toEqual([
+      { checkpoint: 'design', visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' },
+      { checkpoint: 'design', visit: 2, answer: 'accept', answeredBy: 'user' },
+    ]);
+    expect(l.escalations).toEqual([{ stage: 'D2-gate', concept: CARD, verdict: `reports/gates/D2-gate-${CARD}-a3.json`, choice: 'retry', guidance: 'drop the second curse' }]);
+    expect({ status: l.status, roll: l.roll, pobFile: l.outputs.pobFile }).toEqual({ status: 'completed', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, pobFile: '/x/b.xml' });
+    expect(fs.existsSync(path.join(dir, 'run-log.json.tmp'))).toBe(false);
+  });
+
+  it('refuses an entry outside the form and writes nothing: the retired D1 and V4-<lens> names among them', () => {
+    const dir = started();
+    const before = fs.readFileSync(path.join(dir, 'run-log.json'));
+    const refused: [string, Json, RegExp][] = [
+      ['stage', { stage: 'D1', concept: CARD, attempt: 1, outcome: 'done' }, /stage "D1" isn't one of R1a, R1a-assemble, R1b, R1b-assemble, D1-build, D1-finish, D1-gate, D2, D2-gate, W1, V4, V4-recheck/],
+      ['stage', { stage: 'V4-ledger', concept: CARD, attempt: 1, outcome: 'pass' }, /stage "V4-ledger" isn't one of/],
+      ['stage', { stage: 'D1-build', concept: CARD, attempt: 1, outcome: 'claims-edited' }, /a D1-build entry's outcome is done, infeasible, missing, not "claims-edited"/],
+      ['stage', { stage: 'D1-build', concept: 'c1', attempt: 0, outcome: 'done' }, /concept "c1" isn't a card id .*; attempt 0 isn't a whole number from 1/],
+      ['stage', { stage: 'R1b', concept: CARD, attempt: 1, outcome: 'pass' }, /an R1b entry has probes/],
+      ['stage', { stage: 'W1', concept: CARD, attempt: 1, outcome: 'done', priceOutcomes: { ok: 1 } }, /priceOutcomes is only on R1b, D1-finish, D1-gate, D2/],
+      ['stage', { stage: 'W1', concept: CARD, attempt: 1, outcome: 'done', note: 'x' }, /"note" isn't a field of a stage entry/],
+      ['checkpoint', { checkpoint: 'design', visit: 1, answer: 'pick:r1-a-1', answeredBy: 'user' }, /"pick:r1-a-1" isn't an answer of the design checkpoint/],
+      ['checkpoint', { checkpoint: 'design', visit: 1, answer: 'accept', answeredBy: 'default', rule: 'no design answer left: stop' }, /a default answer is stop/],
+      ['checkpoint', { checkpoint: 'final', visit: 1, answer: 'accept', answeredBy: 'user', rule: 'accept' }, /a user's answer has no rule/],
+      ['checkpoint', { checkpoint: 2, visit: 1, answer: 'accept', answeredBy: 'user' }, /checkpoint 2 isn't one of brainstorm, verification, design, final, unsaved-build, escalation/],
+      ['escalation', { stage: 'D1-gate', concept: CARD, verdict: 'reports/gates/D2-gate-r1-a-1-a3.json', choice: 'retry' }, /verdict is the escalated attempt's file.*; guidance goes with retry/],
+      ['set', { status: 'done' }, /status is running, completed, not-accepted, stopped, escalated/],
+    ];
+    for (const [kind, entry, why] of refused) {
+      const r = log(dir, kind, entry);
+      expect({ kind, entry, code: r.code, stdout: r.stdout }).toEqual({ kind, entry, code: 1, stdout: '' });
+      expect(r.stderr).toMatch(new RegExp(`^run-log: ${kind} entry refused: `));
+      expect(r.stderr).toMatch(why);
+    }
+    expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
+    // A default answer at the design gate is stop, with its rule (D-362).
+    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
+  });
+
+  it('refuses before the first write, a schema-2 log, a non-JSON entry and a bad command line', () => {
+    const empty = folder();
+    expect(log(empty, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' })).toEqual({ code: 1, stdout: '', stderr: "run-log: run-log.json can't be read (ENOENT); write the first log with init\n" });
+    const old = folder();
+    fs.writeFileSync(path.join(old, 'run-log.json'), JSON.stringify({ schemaVersion: 2, stages: [] }));
+    expect(log(old, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' }).stderr).toBe("run-log: run-log.json isn't a schema-3 log; this script writes only schema 3\n");
+    expect(run(RUN_LOG, empty, 'stage', '{stage: R1a}').code).toBe(1);
+    expect(run(RUN_LOG, empty, 'append', '{}').code).toBe(2);
+    expect(run(RUN_LOG, empty, 'stage').code).toBe(2);
+    expect(fs.readdirSync(empty)).toEqual([]);
+  });
+});

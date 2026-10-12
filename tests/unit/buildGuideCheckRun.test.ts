@@ -38,6 +38,7 @@ import zlib from 'zlib';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { buildSha1 } from '../../src/plan/buildHash';
+import { writeGuideRun, editJson as editRunJson } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
@@ -2490,5 +2491,141 @@ describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentenc
     const dir = copyOf('run-ok');
     editLog(dir, (l) => l.stages.push(step('W1', CARD, 3, 'known-issues')));
     expect(failing(dir)).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${RUN_OK.length}\\]: outcome "known-issues" isn't one of`));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// WU-71 (A-34, D-352): the round copy and what changed since it
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --changed lists exactly what changed since it', () => {
+  /** A fresh synthetic run (tests/helpers/guideRunFolder.ts): a plan, its final record and a guide. */
+  const guideRun = () => {
+    const dir = path.join(TMP, `guide-run-${++copies}`);
+    fs.mkdirSync(dir);
+    return writeGuideRun(dir);
+  };
+  const snapshot = (dir: string, n: number) => {
+    const r = runChecker(dir, '--snapshot', String(n));
+    expect({ stderr: r.stderr, code: r.code, stdout: r.stdout }).toEqual({ stderr: '', code: 0, stdout: `check-run: copied plan.json, compile-record.json, guide.md to rounds/${n}/\n` });
+  };
+  /** The lines --changed prints; it prints nothing else and exits 0. */
+  const changed = (dir: string, n: number) => {
+    const r = runChecker(dir, '--changed', String(n));
+    expect({ stderr: r.stderr, code: r.code }).toEqual({ stderr: '', code: 0 });
+    expect(r.stdout === '' || r.stdout.endsWith('\n')).toBe(true);
+    return r.stdout.split('\n').filter((l) => l !== '');
+  };
+  const editGuide = (dir: string, from: string, to: string) => editText(dir, 'guide.md', replace(from, to));
+
+  it('--snapshot copies plan.json, compile-record.json and guide.md into rounds/<n>/, unread, and never overwrites a round', () => {
+    const dir = guideRun();
+    snapshot(dir, 1);
+    expect(fs.readdirSync(path.join(dir, 'rounds', '1')).sort()).toEqual(['compile-record.json', 'guide.md', 'plan.json']);
+    for (const f of ['plan.json', 'compile-record.json', 'guide.md']) {
+      expect(fs.readFileSync(path.join(dir, 'rounds', '1', f))).toEqual(fs.readFileSync(path.join(dir, f)));
+    }
+    const first = fs.readFileSync(path.join(dir, 'rounds', '1', 'plan.json'));
+    editRunJson(dir, 'plan.json', (p) => {
+      p.stages[0].claims[0].text = 'Life reaches about 320 by the end of act 1.';
+    });
+    // A second copy under the same number is refused, and the round keeps the first copy.
+    const again = runChecker(dir, '--snapshot', '1');
+    expect({ code: again.code, stdout: again.stdout }).toEqual({ code: 1, stdout: '' });
+    expect(again.stderr).toBe('check-run: rounds/1/ exists; a round copy is never overwritten (A-34)\n');
+    expect(fs.readFileSync(path.join(dir, 'rounds', '1', 'plan.json'))).toEqual(first);
+    // The next round takes the current files.
+    snapshot(dir, 2);
+    expect(fs.readFileSync(path.join(dir, 'rounds', '2', 'plan.json'))).toEqual(fs.readFileSync(path.join(dir, 'plan.json')));
+    // A run folder missing one of the three files gets no copy at all.
+    const partial = guideRun();
+    fs.rmSync(path.join(partial, 'guide.md'));
+    const r = runChecker(partial, '--snapshot', '1');
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 1, stderr: 'check-run: the run folder has no guide.md; the round copy holds plan.json, compile-record.json, guide.md (A-34)\n' });
+    expect(fs.existsSync(path.join(partial, 'rounds', '1'))).toBe(false);
+  });
+
+  it('after a claims-only edit, --changed lists exactly the edited claims, the claims citing an edited ledger entry, and the changed H2s', () => {
+    const dir = guideRun();
+    snapshot(dir, 1);
+    expect(changed(dir, 1)).toEqual([]);
+    editRunJson(dir, 'plan.json', (p) => {
+      p.stages[0].claims[0].text = 'Life reaches about 320 by the end of act 1.'; // its text
+      p.stages[1].claims[1].source.ref = 'its area covers most of a pack'; // its source
+      p.ledger.find((e: { id: string }) => e.id === 'clear_guess').formula = 'packs * 3'; // a ledger-only edit: n-packs cites it
+    });
+    editGuide(dir, 'Lead packs with Blood Hunt.', 'Lead packs with Blood Hunt, then slam the rare.');
+    expect(changed(dir, 1)).toEqual([
+      'claim stages[0].claims[0] (a1-life)',
+      'claim stages[1].claims[1] (m-clear)',
+      'claim stages[3].claims[1] (n-packs)',
+      'section How to play it',
+    ]);
+  });
+
+  it('after a recompile moving one stage, --changed lists exactly the claims citing its record values and the H2s that changed', () => {
+    const dir = guideRun();
+    snapshot(dir, 1);
+    // The recompile moves stage b only: its max hit, EHP and the named source's figure.
+    editRunJson(dir, 'compile-record.json', (r) => {
+      const b = r.stages.b;
+      b.outputs.PhysicalMaximumHitTaken = 29000;
+      b.outputs.TotalEHP = 28000;
+      b.skillOutputs.g1s1p1.fields.TotalDPS = 91000;
+      b.countedSkillOutputs.g1s1p1.fields.TotalDPS = 91000;
+      b.measures.ehp = 28000;
+      b.measures.dps = 91000;
+    });
+    editGuide(dir, 'Effective HP about 30,101.', 'Effective HP about 28,000.');
+    // b-margin cites a ledger entry reading b's max hit, b-ehp and b-dps cite b's fields; b-helmet (a price) and
+    // b-why (a judgment) cite nothing that moved, and no other stage moved.
+    expect(changed(dir, 1)).toEqual([
+      'claim stages[2].claims[0] (b-margin)',
+      'claim stages[2].claims[2] (b-ehp)',
+      'claim stages[2].claims[3] (b-dps)',
+      'section Endgame: budget',
+    ]);
+    // An edited price entry changes what its claim cites.
+    editRunJson(dir, 'plan.json', (p) => {
+      p.prices.find((x: { id: string }) => x.id === 'b-helmet').amount = 4;
+    });
+    expect(changed(dir, 1)).toContain('claim stages[2].claims[1] (b-helmet)');
+  });
+
+  it('matches claims by stage and id: a removed claim is not listed, a moved one unchanged is not, a new one is; likewise H2s', () => {
+    const dir = guideRun();
+    snapshot(dir, 1);
+    editRunJson(dir, 'plan.json', (p) => {
+      p.stages[3].claims.shift(); // n-ext goes, so n-packs moves to claims[0], unchanged
+      p.stages[3].claims.push({ id: 'n-new', text: 'The non-budget variant adds a second curse.', kind: 'reason', source: { kind: 'judgment', ref: 'one more curse slot', confidence: 'M' } });
+    });
+    editGuide(dir, '## Overview\n\nBlood Hunt bleeds packs and bursts bosses.\n\n', '');
+    editGuide(dir, '## Known issues', '## Gear checklist\n\n- A rare helmet.\n\n## Known issues');
+    expect(changed(dir, 1)).toEqual(['claim stages[3].claims[1] (n-new)', 'section Gear checklist']);
+  });
+
+  it('usage: --changed needs its round, and a flag takes a round number from 1; --partial stays a usage error', () => {
+    const dir = guideRun();
+    const missing = runChecker(dir, '--changed', '1');
+    expect({ code: missing.code, stdout: missing.stdout, stderr: missing.stderr }).toEqual({ code: 1, stdout: '', stderr: "check-run: rounds/1/ doesn't exist; make the round copy first (--snapshot 1, A-34)\n" });
+    for (const flags of [['--changed', '0'], ['--changed', 'x'], ['--snapshot'], ['--snapshot', '1', '2'], ['--partial'], ['--partial', '1']]) {
+      const r = runChecker(dir, ...flags);
+      expect({ flags, code: r.code, stderr: r.stderr }).toEqual({ flags, code: 2, stderr: 'usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>]\n' });
+    }
+    expect(fs.existsSync(path.join(dir, 'rounds'))).toBe(false);
+  });
+
+  it("the run folder's layout takes rounds/<n>/ holding the three files, and nothing else there", () => {
+    const dir = copyOf('run-ok');
+    const r = runChecker(dir, '--snapshot', '1');
+    expect(r.code).toBe(0);
+    passes(dir);
+    fs.writeFileSync(path.join(dir, 'rounds', '1', 'audit.md'), '# Audit\n');
+    fs.mkdirSync(path.join(dir, 'rounds', 'latest'));
+    const out = failing(dir);
+    expect(lines(out, 'layout')).toEqual([
+      'check-run: [layout] rounds/1/ holds ["audit.md","compile-record.json","guide.md","plan.json"]; a round copy holds exactly plan.json, compile-record.json, guide.md (A-34)',
+      "check-run: [layout] rounds/latest isn't a round copy rounds/<n>/ (A-34)",
+    ]);
   });
 });

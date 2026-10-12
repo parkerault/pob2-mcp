@@ -2,8 +2,16 @@
 // The build-guide run checker (slice 03 FR-W7, as amendments 1 to 3 change it).
 //
 //   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
+//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --snapshot <n>
+//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --changed <n>
 //
-// It checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
+// `--snapshot <n>` makes the round copy (A-34): plan.json, compile-record.json and guide.md into rounds/<n>/,
+// never over an existing round. `--changed <n>` prints what changed since rounds/<n>/ (D-352), one line each and
+// nothing else: `claim stages[<i>].claims[<k>] (<id>)` for a claim whose text, source or cited record values
+// changed, and `section <H2 title>` for a changed guide H2 (`changedSince` says what a source cites). Both exit
+// 0, or 1 with the reason on stderr.
+//
+// Without a flag, it checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
 // applies. It checks the artifacts rather than self-reports:
 //  - the layout (slice 03 §2): the cards `cards/<id>.md`, the deck `cards.md` and the probe variants
 //    `probes/<card-id>/<n>/` among it (D-338), each card's probes at most 4 (D-292); the deck's rounds of 6–9
@@ -514,9 +522,15 @@ export async function checkRun(runFolder) {
   const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
 
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
-  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports'];
+  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
   for (const name of fs.readdirSync(runFolder)) {
     if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2); agents write only the files §2 names`);
+  }
+  // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else.
+  if (exists('rounds') && !isDir('rounds')) fail('layout', 'rounds is a file; §2 names the folder rounds/, of round copies rounds/<n>/ (A-34)');
+  for (const n of listDir('rounds')) {
+    if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
+    else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
   }
   for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true]]) {
     if (exists(name) && isDir(name) !== dir) fail('layout', `${name} is a ${dir ? 'file' : 'folder'}; §2 names ${dir ? `the folder ${name}/` : `the file ${name}`}`);
@@ -2607,15 +2621,160 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
 }
 
 // ---------------------------------------------------------------------------------------------------
+// The round copy and what changed since it (A-34, D-352)
+// ---------------------------------------------------------------------------------------------------
+
+/** A-34: what `--snapshot <n>` copies into `rounds/<n>/`, and all that a round folder holds. */
+export const ROUND_FILES = ['plan.json', 'compile-record.json', 'guide.md'];
+const ROUND_N = /^[1-9]\d*$/;
+
+/**
+ * A-34: copies the plan, the record and the guide into `rounds/<n>/`, `<n>` the number of the V4 report the round
+ * answers. It never overwrites a round, and copies nothing unless all three files exist. Returns null, or why not.
+ */
+export function snapshotRound(runFolder, n) {
+  const rounds = path.join(runFolder, 'rounds');
+  const dir = path.join(rounds, String(n));
+  if (fs.existsSync(dir)) return `rounds/${n}/ exists; a round copy is never overwritten (A-34)`;
+  const missing = ROUND_FILES.filter((f) => !fs.existsSync(path.join(runFolder, f)));
+  if (missing.length > 0) return `the run folder has no ${missing.join(', ')}; the round copy holds ${ROUND_FILES.join(', ')} (A-34)`;
+  fs.mkdirSync(rounds, { recursive: true });
+  fs.mkdirSync(dir);
+  for (const f of ROUND_FILES) fs.copyFileSync(path.join(runFolder, f), path.join(dir, f), fs.constants.COPYFILE_EXCL);
+  return null;
+}
+
+/** JSON with sorted keys, so two values compare by content. */
+const canon = (v) => JSON.stringify(v, (_, x) => (isObj(x) ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]])) : x)) ?? 'null';
+
+/**
+ * The record values a claim's source cites (D-352), on one side of the comparison:
+ * - `ledger:<id>`: the entry (its claim, formula and inputs) and its value, the plan's current formula evaluated
+ *   over the record with the server's evaluator (D-365), so a ledger-only edit and a recompile both count;
+ * - `price:<id>`: the plan's price entry;
+ * - a `pob-computed` tag: the record field its ref names, `<stage>.<Field>` (`outputs`, and the main group's
+ *   counted copy) or `<stage>.g<g>s<s>p<p>.<Field>` (`skillOutputs`, and its counted copy, D-340);
+ * - anything else (`data:<file>#<key>`, the other tag kinds): nothing beyond the source itself.
+ */
+function citedValues(side, source) {
+  if (typeof source === 'string') {
+    const m = /^(ledger|price):(\S+)$/.exec(source);
+    if (m?.[1] === 'ledger') return { entry: list(side.plan?.ledger).find((e) => e.id === m[2]) ?? null, value: side.ledger[m[2]] ?? null };
+    if (m?.[1] === 'price') return { price: list(side.plan?.prices).find((p) => p.id === m[2]) ?? null };
+    return null;
+  }
+  if (!isObj(source) || source.kind !== 'pob-computed' || typeof source.ref !== 'string') return null;
+  const [stageId, ...rest] = source.ref.split('.');
+  const rec = isObj(side.record?.stages) && Object.prototype.hasOwnProperty.call(side.record.stages, stageId) ? side.record.stages[stageId] : null;
+  if (!isObj(rec)) return { missing: source.ref };
+  if (rest.length === 1) return { raw: rec.outputs?.[rest[0]] ?? null, counted: rec.countedOutputs?.fields?.[rest[0]] ?? null };
+  return { raw: rec.skillOutputs?.[rest[0]]?.fields?.[rest[1]] ?? null, counted: rec.countedSkillOutputs?.[rest[0]]?.fields?.[rest[1]] ?? null };
+}
+
+/** Each ledger entry's value: the plan's current formula over the record's stages (D-365), null when it errs. */
+function ledgerValues(ledgerModule, plan, record) {
+  if (!isObj(plan) || !Array.isArray(plan.ledger)) return {};
+  const stages = isObj(record?.stages) ? record.stages : {};
+  const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} }]));
+  const entries = plan.ledger.filter((e) => isObj(e) && typeof e.id === 'string' && typeof e.formula === 'string').map((e) => ({ id: e.id, formula: e.formula, inputs: list(e.inputs) }));
+  const results = ledgerModule.evaluateLedger(entries, { stageIds: list(plan.stages).map((s) => s.id), stages: numbers });
+  return Object.fromEntries(entries.map((e) => [e.id, results[e.id]?.value ?? null]));
+}
+
+/** Each H2 of a guide with its body (to the next H1 or H2), keyed by title and occurrence. */
+function h2Bodies(text) {
+  const md = parseMarkdown(text ?? '');
+  const seen = new Map();
+  return md.h2.map((h) => {
+    const at = (seen.get(h.title) ?? 0) + 1;
+    seen.set(h.title, at);
+    return { title: h.title, key: `${h.title}\u0000${at}`, body: sectionText(md, h).replace(/\s+$/, '') };
+  });
+}
+
+/**
+ * D-352: what changed since the round copy `rounds/<n>/`, as the lines `--changed <n>` prints, in plan order then
+ * guide order: `claim stages[<i>].claims[<k>] (<id>)` for each claim whose text, source or cited record values
+ * changed (a claim is matched by its stage id and claim id; a new one counts as changed), and `section <H2
+ * title>` for each guide H2 whose body changed or is new. Returns `{lines}`, or `{error}`.
+ */
+export async function changedSince(runFolder, n) {
+  const dir = path.join(runFolder, 'rounds', String(n));
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return { error: `rounds/${n}/ doesn't exist; make the round copy first (--snapshot ${n}, A-34)` };
+  const read = (base, f) => (fs.existsSync(path.join(base, f)) ? fs.readFileSync(path.join(base, f), 'utf8') : null);
+  const parse = (base, f) => {
+    try {
+      return JSON.parse(read(base, f) ?? 'null');
+    } catch {
+      return null;
+    }
+  };
+  const ledgerModule = await loadLedgerModule();
+  if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)` };
+  const side = (base) => {
+    const plan = parse(base, 'plan.json');
+    const record = parse(base, 'compile-record.json');
+    return { plan, record, guide: read(base, 'guide.md'), ledger: ledgerValues(ledgerModule, plan, record) };
+  };
+  const now = side(runFolder);
+  const then = side(dir);
+  if (!isObj(now.plan)) return { error: "plan.json is missing or isn't JSON" };
+  const claimsOf = (plan) => {
+    const out = [];
+    const seen = new Map();
+    list(plan?.stages).forEach((s, i) => list(s.claims).forEach((c, k) => {
+      const base = `${s.id}\u0000${c.id}`;
+      const at = (seen.get(base) ?? 0) + 1;
+      seen.set(base, at);
+      out.push({ i, k, claim: c, key: `${base}\u0000${at}` });
+    }));
+    return out;
+  };
+  const before = new Map(claimsOf(then.plan).map((c) => [c.key, c.claim]));
+  const lines = [];
+  for (const { i, k, claim, key } of claimsOf(now.plan)) {
+    const old = before.get(key);
+    const same = old !== undefined && old.text === claim.text && canon(old.source) === canon(claim.source)
+      && canon(citedValues(then, old.source)) === canon(citedValues(now, claim.source));
+    if (!same) lines.push(`claim stages[${i}].claims[${k}] (${claim.id})`);
+  }
+  const sections = new Map(h2Bodies(then.guide).map((h) => [h.key, h.body]));
+  for (const h of h2Bodies(now.guide)) if (sections.get(h.key) !== h.body) lines.push(`section ${h.title}`);
+  return { lines };
+}
+
+// ---------------------------------------------------------------------------------------------------
 // Command line
 // ---------------------------------------------------------------------------------------------------
 
 async function main(argv) {
   const args = argv.slice(2);
-  if (args.length !== 1 || args[0].startsWith('--')) {
-    process.stderr.write('usage: node check-run.mjs <runFolder>\n');
+  const usage = () => {
+    process.stderr.write('usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>]\n');
     return 2;
+  };
+  if (args.length === 0 || args[0].startsWith('--')) return usage();
+  if (args.length === 3 && ['--snapshot', '--changed'].includes(args[1]) && ROUND_N.test(args[2])) {
+    const folder = path.resolve(args[0]);
+    const n = Number(args[2]);
+    if (args[1] === '--snapshot') {
+      const why = snapshotRound(folder, n);
+      if (why !== null) {
+        process.stderr.write(`check-run: ${why}\n`);
+        return 1;
+      }
+      process.stdout.write(`check-run: copied ${ROUND_FILES.join(', ')} to rounds/${n}/\n`);
+      return 0;
+    }
+    const { lines, error } = await changedSince(folder, n);
+    if (error !== undefined) {
+      process.stderr.write(`check-run: ${error}\n`);
+      return 1;
+    }
+    for (const line of lines) process.stdout.write(`${line}\n`);
+    return 0;
   }
+  if (args.length !== 1) return usage();
   const folder = path.resolve(args[0]);
   const violations = await checkRun(folder);
   if (violations.length === 0) {

@@ -83,13 +83,16 @@ like any other: report it, never work around it.
 ## What the run checker checks
 
 `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>` checks what the folder holds, whatever
-the run's status; when a guide exists, every guide check applies (amendment 1 §4.2). It uses Node built-ins
-and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and build projection,
-`build/plan/buildHash.js` (D-266). Each violation is one stderr line
-`check-run: [<rule>] <message>`.
+the run's status; when a guide exists, every guide check applies (amendment 1 §4.2). It uses Node built-ins,
+the server's own compiled ledger evaluator, `build/plan/ledger.js`, and build projection,
+`build/plan/buildHash.js` (D-266), and the audit render `scripts/render-audit.mjs` (D-355). Each violation is
+one stderr line `check-run: [<rule>] <message>`.
 
-- **The artifacts.** This layout. The dossier's H2s. Every dossier and research marker resolves and parses
-  as a C-30 tag. Offline, every price is `unavailable` and no step priced.
+- **The artifacts.** This layout. Every plan claim, the skeletons' and probes' included, has its `kind`,
+  `hinge` or `reason` (D-351). The dossier is one H1, the `Brief:` line and one table with the comparison's ten
+  columns, one row per card R1b verified, with no H2, H3 or marker; a failed or not-yet-finalizable card has `—`
+  in its number, price and league cells (D-355). Every research marker resolves and parses as a C-30 tag.
+  Offline, every price is `unavailable` and no step priced.
 - **The reader layer** (D-276, D-283). The guide's 14 H2s in order, its `Checks` H3s, `What PoB can't show`
   ending with the H3 `Known issues`, and its Leveling H3s equal to the record's loadout names. At most 3,000
   words, a word being a run of non-space characters holding a letter or a digit, the H1, the import code and
@@ -98,39 +101,57 @@ and the server's own compiled ledger evaluator, `build/plan/ledger.js`, and buil
   equals the record's (D-205). One fixed-form verdict line per endgame rung in `Survival by stage`, each number
   equal to the record's value rounded at the written number's last significant digit ("2,740" matches 2,736):
   the level, the four resistances, the physical max hit and its hit, the least other max hit and the largest
-  other hit, and the named damage source's figure the D1 gate's verdict names. Every campaign reward choice the
-  campaign passes is picked, the same pick on every stage after it, the endgame stages included, and the
+  other hit (the hits the compiler wrote, the stage's `enemy<Type>Damage` in `configWritten`, D-353), and the
+  named damage source's figure the D1 gate's verdict names. The budget and non-budget labels are the record's
+  `measures.arbiter` verdict, in the template's words ("survives the Arbiter's hits", "one-shot by the Arbiter's
+  <type> hit", "not measured against the Arbiter"); the entering-maps label stays solid, watch or risky (D-353).
+  Each rung's `Checks` block is its block in the render, copied verbatim (D-355). Every campaign reward choice
+  the campaign passes is picked, the same pick on every stage after it, the endgame stages included, and the
   guide's `Campaign route and rewards` names each pick by its first line (D-265).
-- **The audit layer** (D-278). `audit.md` beside a current guide, with its six H2s in order.
-- **Known issues, by sentence** (D-265, D-276). Every finding open after the re-check is under the guide's
-  `Known issues` as its `reader` sentence, word for word, and in `audit.md`'s table as its row; every accepted
-  gate finding has its row (code, gate, plan stage) and its sentence in the guide; no other line or row: no
-  stale one from an earlier cycle, and `None.` only when nothing is open or accepted. Every `unresolved` V4
-  finding has its `reader`. A V4 report superseded by one that checked every claim again (a full re-check
-  after a gate re-ran, or a revision's full pass) is held to the artifact as it was: once a step wrote that
-  artifact after it, its locations aren't checked.
+- **The audit layer** (D-278, D-355). `audit.md` beside a current guide, with its six H2s in order, equal to what
+  `render-audit.mjs` renders from the current plan, final record and last D1 gate verdict file, `Known issues`
+  aside.
+- **The V4 reports** (D-352). One `reports/V4-<n>.md` per logged pass (`V4`, `V4-recheck`), numbered in run
+  order from 1 and never overwritten, in `stages/V4.md`'s form: its H1 the pass's kind, its four fields, its
+  `Checked` items and its findings (ids `v4-<n>-<k>`, fields in order, `reader` on each `unresolved` one, the
+  verdict the log's outcome). A re-check of `rounds/<n-1>/` reports again every finding the report before it
+  left open, and its `Checked` lists every item `--changed <n-1>` prints, as the files stood when it ran (the
+  next round copy, or the run folder; the step-14 Known issues lines aside). An `accepted-offline` finding names
+  a claim tagged external-unavailable in the plan as that report saw it: the round copy made after it, or the
+  current plan when no step wrote it since.
+- **Known issues, by sentence** (D-265, D-276). The open findings are the `unresolved` findings of the
+  highest-numbered report of the guide. Each is under the guide's `Known issues` as its `reader` sentence, word
+  for word, and in `audit.md`'s table as its row `| <id> | V4 | — | <reader> |`; every accepted gate finding has
+  its row (code, gate, plan stage) and its sentence in the guide; no other line or row: no stale one from an
+  earlier cycle, and `None.` only when nothing is open or accepted.
 - **The final record.** V1 and V2 pass for every stage, accepted findings aside. `sha1(plan.json)` equals the
   record's `planSha1`, unless claims-only owners (`claims-edited`, D-264) edited the plan after the final
   compile: then the record must still be that compile's (final, its PoB file the one the last D2 gate named),
-  and the sha1 of the plan's build-affecting part (everything but `stages[].claims` and the `source` and `tag`
-  fields, as the server's `build/plan/buildHash.js` computes it) must equal the record's `buildSha1` (D-266).
-  A record without `buildSha1` (from before D-266) is a violation only then. The decoded `importCode` matches the record's `pobFile` sha1, with one tree set per
-  plan stage, titled by the record's loadout names (D-215). Every ledger entry, re-evaluated over the record
-  by the server's evaluator, equals the record's value to 2 decimals.
+  and the sha1 of the plan's build-affecting part (everything but `stages[].claims`, the `ledger` and the
+  `source` and `tag` fields, as the server's `build/plan/buildHash.js` computes it) must equal the record's
+  `buildSha1` (D-266, D-352): a ledger-only edit passes, a gear edit fails. A record without `buildSha1` (from
+  before D-266) is a violation only then. The decoded `importCode` matches the record's `pobFile` sha1, with one
+  tree set per plan stage, titled by the record's loadout names (D-215). The ledger is the checker's (D-365):
+  every entry's current formula evaluates over the record with the server's evaluator, that value and not the
+  record's stored one is the entry's wherever the checker reads it, and a claim citing an entry states its
+  value (at its last significant digit, or within 5%).
 - **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor (at each rung's area
-  level, 69 for entering maps), the budgets (20 divines for the budget variant, 5 for entering maps) and the
+  level, 69 for entering maps, each reference hit the one the compiler wrote, D-254's formula rounded by D-256),
+  the budgets (20 divines for the budget variant, the anoint priced like a slot, 5 for entering maps) and the
   named damage source (the `rolledSkill` part), its figure's stat set equal to `skills.main.statSet`. The
-  checker fails a verdict that
-  differs from its own, and, once a guide exists, any failure no accepted finding covers.
-- **The run log and the control flow** (`run-log.md`): the fields and their values; steps in a legal order;
-  each gate attempt routed as its verdict file says; R1b at most 3 counted attempts and each gate at most 2
-  counted retries (S6 honoured: only an attempt-1 failure the verdict's `faultsApplied` explains is free);
-  one full V4 pass per guide, and at most one re-check per fix round or revision, covering only what
-  `check-run.mjs --changed <n>` lists (D-352); a claims-only
-  owner only before any gate of its round and never directly before a gate (a claims-only D1 may be followed
-  by a D2 that recompiles, and its D2 gate); escalations only from the gates, each naming its verdict file; a `rule` on every
-  pre-supplied or default answer; and `completed` only after the final gate's accept (checkpoint 2's, in a
-  schema-2 log).
+  checker fails a verdict that differs from its own, and, once a guide exists, any failure no accepted finding
+  covers.
+- **The run log and the control flow** (`run-log.md`): the fields and their values, the stage names `D1-build`,
+  `D1-finish`, `V4` and `V4-recheck`; steps in a legal order, each gate visit's answer followed; in the design
+  phase, D2 only after a `design` visit answered `accept` (D-362), a `revise:` running D1 again, its gate and the
+  design gate, and `verification` the verification gate; each gate attempt routed as its verdict file says; R1b
+  at most 3 counted attempts and each gate at most 2 counted retries (S6 honoured: only an attempt-1 failure the
+  verdict's `faultsApplied` explains is free); one full V4 pass per guide, and at most one re-check per fix
+  round or revision, covering only what `check-run.mjs --changed <n>` lists (D-352); a revision checked by a
+  re-check, never a full pass; a claims-only owner only before any gate of its round and never directly before
+  a gate (a claims-only D1 may be followed by a D2 that recompiles, and its D2 gate); escalations only from the
+  gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; and `completed` only
+  after the final gate's accept (checkpoint 2's, in a schema-2 log, whose D1 stays one step).
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after
   the last D2 gate (a claims-only D1 or D2 leaves it current).

@@ -191,7 +191,9 @@ The log before any agent runs (`SKILL.md` §1, step 3), as `init` writes it: the
 The run checker reads a `schemaVersion: 2` log only so recorded runs (WU-47's) still check (D-326). Never write
 one. It differs from schema 3 in these fields: no `brief`, and its slug is `<ascendancy>-<skill>` of its roll;
 `roll` is `{ascendancy, skill}`, set from the start; concept ids `c1`, `c2`, … in place of card ids, and no
-R1a-assemble, `probes` or `shortReason`; `checkpoint` `1` (the concept pick, answered `pick:<id>`, `more` or
-`stop`; its `more` answers start the research rounds, D-235) and `2` (the guide) in place of the three gates;
-and the escalation choice `checkpoint-1` in place of `verification`. Its guide's verdict lines may end at the
-DPS, before D-294's Effective HP.
+R1a-assemble, `probes` or `shortReason`; D1 as one step, `D1`, in place of D1-build and D1-finish (its V4 entries
+are `V4` and `V4-recheck`, each one report `reports/V4-<n>.md`, since the artifacts follow the current formats,
+D-341); `checkpoint` `1` (the concept pick, answered `pick:<id>`, `more` or `stop`; its `more` answers start the
+research rounds, D-235) and `2` (the guide) in place of the gates, with no design gate; and the escalation choice
+`checkpoint-1` in place of `verification`. Its guide's verdict lines may end at the DPS, before D-294's Effective
+HP.

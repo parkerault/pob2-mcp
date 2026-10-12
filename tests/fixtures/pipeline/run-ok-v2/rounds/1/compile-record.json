@@ -1,0 +1,331 @@
+{
+  "recordVersion": 1,
+  "planSchemaVersion": 3,
+  "planSha1": "d58b6a08d55ca9e49f9e5021948d59f87d2cc8da",
+  "buildSha1": "10ca2d7b16e165be43e25ee4ea9a41753ecc1e8a",
+  "compiledAt": "2026-10-08T11:02:00.000Z",
+  "mode": "final",
+  "stagesCompiled": [
+    "1",
+    "2",
+    "m",
+    "b",
+    "n"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "pobFile": {
+    "location": "builds",
+    "path": "titan-blood-hunt-2026-10-08-1.xml",
+    "sha1": "d2f3fa68c7a42b572ee158d2d3a581901c39b300",
+    "bytes": 697
+  },
+  "importCode": "eJy1kk9Lw0AQxc_NpxjmlBxq_kikhWyKiooQtNCoR9luxriY7IbNJgjB7y5blCo9Wo9vBt7vPWay1XvbwEiml1oxjE8iBFJCV1LVDB_K6_kCV7mXrbl9vX-5GGTjNknuzbKdgIZGahguUwTLTU328dsreo4RRMP7_o63xPCJGyO1QeC9IFVd7jeltFwhtFyqjRZvZG-MHjqGMYYOVBoi4MLKkTYdCYYp5t5sljkBVtqGGJ4LCzH4xSKAKf5AsIboR5L0K8ltxTD5lcBNYgSlK-oZ7oCHzgn4xWkUwJQc1fpKWTJS1dDyrge_OEsDmNojI6qatwTboarJgl8sXY3tvzCUVvM9x3VRf-Rkobt97mXhwf99AqX32ZQ=",
+  "savedLevel": {
+    "level": 95,
+    "autoMode": true
+  },
+  "activeLoadout": "Endgame non-budget (L95) {n}",
+  "sets": [],
+  "stages": {
+    "1": {
+      "loadoutName": "Act 1 (L8) {1}",
+      "level": 8,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 310,
+        "TotalDPS": 140,
+        "MissingFireResist": 20,
+        "MissingColdResist": 20,
+        "MissingLightningResist": 20,
+        "MissingChaosResist": 75,
+        "FireResist": 55,
+        "ColdResist": 55,
+        "LightningResist": 55,
+        "ChaosResist": 0
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 140
+          }
+        }
+      },
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": 0
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    },
+    "2": {
+      "loadoutName": "Act 2 (L30) {2}",
+      "level": 30,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 900,
+        "TotalDPS": 1900,
+        "MissingFireResist": 15,
+        "MissingColdResist": 15,
+        "MissingLightningResist": 15,
+        "MissingChaosResist": 75,
+        "FireResist": 60,
+        "ColdResist": 60,
+        "LightningResist": 60,
+        "ChaosResist": 0
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 1900
+          }
+        }
+      },
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -10
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    },
+    "m": {
+      "loadoutName": "Entering maps (L65) {m}",
+      "level": 65,
+      "elapsedMs": 900,
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 299,
+        "enemyFireDamage": 72,
+        "enemyColdDamage": 72,
+        "enemyLightningDamage": 72,
+        "enemyChaosDamage": 72
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "outputs": {
+        "Life": 2600,
+        "TotalDPS": 9000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 65,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 10,
+        "PhysicalMaximumHitTaken": 2900,
+        "FireMaximumHitTaken": 5400,
+        "ColdMaximumHitTaken": 5300,
+        "LightningMaximumHitTaken": 5200,
+        "ChaosMaximumHitTaken": 1900
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 9000,
+            "AverageHit": 2100
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 4000,
+            "AverageHit": 1500
+          }
+        }
+      }
+    },
+    "b": {
+      "loadoutName": "Endgame budget (L90) {b}",
+      "level": 90,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4200,
+        "TotalDPS": 50000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 47,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 28,
+        "PhysicalMaximumHitTaken": 5100,
+        "FireMaximumHitTaken": 9800,
+        "ColdMaximumHitTaken": 9700,
+        "LightningMaximumHitTaken": 9600,
+        "ChaosMaximumHitTaken": 3000
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 50000,
+            "AverageHit": 12000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 21000,
+            "AverageHit": 8000
+          }
+        }
+      },
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 402,
+        "enemyFireDamage": 97,
+        "enemyColdDamage": 97,
+        "enemyLightningDamage": 97,
+        "enemyChaosDamage": 97
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    },
+    "n": {
+      "loadoutName": "Endgame non-budget (L95) {n}",
+      "level": 95,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 5600,
+        "TotalDPS": 140000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 0,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 75,
+        "PhysicalMaximumHitTaken": 7400,
+        "FireMaximumHitTaken": 14800,
+        "ColdMaximumHitTaken": 14700,
+        "LightningMaximumHitTaken": 14600,
+        "ChaosMaximumHitTaken": 7000
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 140000,
+            "AverageHit": 33000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 60000,
+            "AverageHit": 21000
+          }
+        }
+      },
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 439,
+        "enemyFireDamage": 106,
+        "enemyColdDamage": 106,
+        "enemyLightningDamage": 106,
+        "enemyChaosDamage": 106
+      },
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    }
+  },
+  "ledger": {
+    "bleed_bonus": {
+      "value": 7500,
+      "formula": "b.TotalDPS * share / 100"
+    }
+  },
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 9000,
+    "checkMs": 300,
+    "finishMs": 200,
+    "exportMs": 400
+  }
+}

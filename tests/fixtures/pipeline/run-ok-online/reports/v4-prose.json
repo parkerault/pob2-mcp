@@ -1,9 +1,0 @@
-{
-  "stage": "V4",
-  "lens": "prose",
-  "check": "full",
-  "concept": "r1-a-1",
-  "mode": "online",
-  "findings": [],
-  "verdict": "pass"
-}

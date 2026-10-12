@@ -20,12 +20,11 @@ The file is `titan-blood-hunt-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (
 
 ## Survival by stage
 
-Solid: survives the reference hits with room. Watch: survives them, with one weak spot. Risky: one hit can kill.
+The entering-maps label is my judgment of its line against the map hits; the budget and non-budget labels are the Arbiter of Divinity's verdict.
 
-- **Acts 1–2: watch.** Fire, cold and lightning sit 15 short of the cap at Act 2.
 - **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS. Effective HP about 18,400.
-- **Budget (L90): solid.** Resistances 75/75/75/28% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
-- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 140,000 DPS. Effective HP about 52,300.
+- **Budget (L90): survives the Arbiter's hits.** Resistances 75/75/75/28% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 97. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
+- **Non-budget (L95): survives the Arbiter's hits.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 106. Blood Hunt about 140,000 DPS. Effective HP about 52,300.
 
 ## Gem and ascendancy timing
 
@@ -59,7 +58,9 @@ Move here when the campaign is done. Buy, in order: 1. the boots, for lightning 
 ### Checks
 
 - Chaos resistance stays at 10% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
-- Prices are unavailable in this offline run, so this rung can't be claimed to fit 5 divines.
+- Budget: unknown against the 5-divine ceiling.
+  Prices are unavailable (offline run), so this rung can't be claimed to fit 5 divines.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## Endgame: budget
 
@@ -70,11 +71,15 @@ Move here once you own both rings.
 | Weapon 1 | War Spear, increased physical damage | |
 | Body Armour | life, fire resistance | |
 
+- **Anoint:** Unbending, from Distilled Ire, Distilled Guilt and Distilled Greed (unavailable): about 6% more armour where the tree has none, measured against the plan without it.
+
 ### Checks
 
-- Chaos resistance stays at 28% (47% under its cap) because no slot can carry chaos resistance without dropping a core item or breaking the budget.
-- Prices are unavailable in this offline run, so this variant can't be claimed to be under 20 divines.
-- The Arbiter of Divinity takes about 160 seconds to kill.
+- Chaos resistance stays at 28% because no slot can carry chaos resistance without dropping a core item or breaking the budget.
+- Budget: unknown against 20.
+  Prices are unavailable (offline run), so this variant can't be claimed to be under 20 divines.
+- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.68 of your max hit.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## Endgame: non-budget
 
@@ -82,12 +87,14 @@ Move here when you can afford it. Upgrade the weapon first.
 
 ### Checks
 
-- The total against the ~200-divine reference is unknown: prices are unavailable offline.
-- The Arbiter of Divinity falls faster here.
+- Total: unknown against the ~200-divine reference, which is no cap.
+  Prices are unavailable (offline run), so this total isn't known.
+- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## How to play it
 
-Rolling Slam clears packs; Blood Hunt takes rares.
+Rolling Slam clears packs, and Blood Hunt takes the rares: lunge at each one twice.
 
 ## What PoB can't show
 

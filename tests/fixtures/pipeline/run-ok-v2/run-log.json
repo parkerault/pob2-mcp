@@ -80,19 +80,7 @@
       "outcome": "done"
     },
     {
-      "stage": "V4-ledger",
-      "concept": "c1",
-      "attempt": 1,
-      "outcome": "pass"
-    },
-    {
-      "stage": "V4-sources",
-      "concept": "c1",
-      "attempt": 1,
-      "outcome": "pass"
-    },
-    {
-      "stage": "V4-prose",
+      "stage": "V4",
       "concept": "c1",
       "attempt": 1,
       "outcome": "fail"
@@ -104,13 +92,7 @@
       "outcome": "done"
     },
     {
-      "stage": "V4-sources-recheck",
-      "concept": "c1",
-      "attempt": 1,
-      "outcome": "pass"
-    },
-    {
-      "stage": "V4-prose-recheck",
+      "stage": "V4-recheck",
       "concept": "c1",
       "attempt": 1,
       "outcome": "fail"

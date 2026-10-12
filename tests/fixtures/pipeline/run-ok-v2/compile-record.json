@@ -1,8 +1,8 @@
 {
   "recordVersion": 1,
-  "planSchemaVersion": 2,
-  "planSha1": "df40b4a1116599e99cabe677a86a986cc1197024",
-  "buildSha1": "8f04e2e255d7c0fb834fa0c31d4db72ac1decb32",
+  "planSchemaVersion": 3,
+  "planSha1": "d58b6a08d55ca9e49f9e5021948d59f87d2cc8da",
+  "buildSha1": "10ca2d7b16e165be43e25ee4ea9a41753ecc1e8a",
   "compiledAt": "2026-10-08T11:02:00.000Z",
   "mode": "final",
   "stagesCompiled": [
@@ -316,69 +316,9 @@
     }
   },
   "ledger": {
-    "ttk_arbiter": {
-      "value": 160,
-      "error": null
-    },
-    "hit_b_physical": {
-      "value": 401.9956030273484,
-      "error": null
-    },
-    "hit_b_fire": {
-      "value": 96.47894472656363,
-      "error": null
-    },
-    "hit_b_cold": {
-      "value": 96.47894472656363,
-      "error": null
-    },
-    "hit_b_lightning": {
-      "value": 96.47894472656363,
-      "error": null
-    },
-    "hit_b_chaos": {
-      "value": 96.47894472656363,
-      "error": null
-    },
-    "hit_n_physical": {
-      "value": 438.5508166503852,
-      "error": null
-    },
-    "hit_n_fire": {
-      "value": 105.25219599609245,
-      "error": null
-    },
-    "hit_n_cold": {
-      "value": 105.25219599609245,
-      "error": null
-    },
-    "hit_n_lightning": {
-      "value": 105.25219599609245,
-      "error": null
-    },
-    "hit_n_chaos": {
-      "value": 105.25219599609245,
-      "error": null
-    },
-    "hit_m_physical": {
-      "value": 298.0959924316352,
-      "error": null
-    },
-    "hit_m_fire": {
-      "value": 71.54303818359244,
-      "error": null
-    },
-    "hit_m_cold": {
-      "value": 71.54303818359244,
-      "error": null
-    },
-    "hit_m_lightning": {
-      "value": 71.54303818359244,
-      "error": null
-    },
-    "hit_m_chaos": {
-      "value": 71.54303818359244,
-      "error": null
+    "bleed_bonus": {
+      "value": 7500,
+      "formula": "b.TotalDPS * share / 100"
     }
   },
   "unresolvedRefs": [],

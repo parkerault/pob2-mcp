@@ -1,9 +1,0 @@
-{
-  "stage": "V4",
-  "lens": "ledger",
-  "check": "full",
-  "concept": "c1",
-  "mode": "offline",
-  "findings": [],
-  "verdict": "pass"
-}

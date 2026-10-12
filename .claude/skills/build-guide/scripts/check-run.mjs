@@ -13,45 +13,53 @@
 //
 // Without a flag, it checks what the run folder holds, whatever the run's status; once a guide exists, every guide check
 // applies. It checks the artifacts rather than self-reports:
-//  - the layout (slice 03 §2): the cards `cards/<id>.md`, the deck `cards.md` and the probe variants
-//    `probes/<card-id>/<n>/` among it (D-338), each card's probes at most 4 (D-292); the deck's rounds of 6–9
-//    dealt cards with at least two under-played ones, or the short round's reason (D-287, D-339); the source
-//    markers (§7.3), the dossier's and the guide's sections (§7.2, §8);
+//  - the layout (slice 03 §2): the cards `cards/<id>.md`, the deck `cards.md`, the probe variants
+//    `probes/<card-id>/<n>/` (D-338), the round copies `rounds/<n>/` (A-34) and the V4 reports
+//    `reports/V4-<n>.md` (D-352); each card's probes at most 4 (D-292); the deck's rounds of 6–9 dealt cards with
+//    at least two under-played ones, or the short round's reason (D-287, D-339); the source markers (§7.3); the
+//    dossier, one table of the verification gate's comparison (D-355); every plan claim's `kind` (D-351);
 //  - amendment 2's guards on the reader layer (D-276, D-283): the 3,000-word cap, the 14 H2s, no marker,
 //    confidence label or finding id in guide.md, one fixed-form verdict line per endgame rung compared with the
-//    record (its Effective HP against `TotalEHP`, D-294), reward picks by name, Known issues by sentence with
-//    their ids in audit.md, whose six H2s it checks too (§7.8, D-278); and the entering-maps rung's floor and
-//    5-divine budget (D-281);
+//    record (its hits the compiler wrote, D-353; its Effective HP against `TotalEHP`, D-294; on `b` and `n` its
+//    survival label the record's Arbiter verdict, D-353), reward picks by name, Known issues by sentence with
+//    their ids in audit.md; audit.md and each rung's Checks block equal to `render-audit.mjs`'s render, Known
+//    issues aside (D-355); and the entering-maps rung's floor and 5-divine budget (D-281);
 //  - the final record against the plan (`planSha1`, or after claims-only edits its `buildSha1`, computed with
-//    the server's compiled projection, D-264, D-266), its PoB file (the decoded import code, one tree set per
-//    plan stage) and its ledger (re-evaluated with the server's own compiled evaluator);
-//  - the D1 gate, recomputed from the plan and the record: the floor, the budget, and the named damage source
-//    (the part `rolledSkill`, D-295) with its figure's stat set, each figure read × its Count where the record
-//    has a counted copy (D-340);
-//  - every V4 finding open after the re-check listed under the guide's `Known issues`, and every campaign
-//    reward choice the campaign passes picked in the plan and named in the guide (D-265);
+//    the server's compiled projection, which leaves out the claims, the sources and the ledger, D-264, D-266,
+//    D-352), its PoB file (the decoded import code, one tree set per plan stage) and the ledger: the plan's
+//    current formulas, evaluated over the record with the server's own compiled evaluator, and the claims that
+//    cite them (D-365);
+//  - the D1 gate, recomputed from the plan and the record: the floor (the reference hits the compiler wrote,
+//    D-353), the budget, and the named damage source (the part `rolledSkill`, D-295) with its figure's stat
+//    set, each figure read × its Count where the record has a counted copy (D-340);
+//  - the V4 reports (D-352): one per pass, never overwritten; a re-check covers every item `--changed` lists;
+//    every finding open in the last report listed under the guide's `Known issues`, and every campaign reward
+//    choice the campaign passes picked in the plan and named in the guide (D-265);
 //  - the run log (schema version 3, D-289; schema 2 only so recorded runs still check, D-326) and the control
 //    flow it records, which stands in for the workflow harness tests amendment 1 deleted: steps in a legal
-//    order, each gate's answer followed (the brainstorm, verification and final gates, D-287), the caps per
-//    brainstorm and verification round, the retry caps (S6 honoured; an R1b `not-a-skill` or `wrong-ascendancy`
-//    failure is terminal, D-334, D-342), one full V4 pass and at most one re-check per cycle, escalations only
-//    from the gates, and the rule on every pre-supplied or default answer.
+//    order, each gate's answer followed (the brainstorm, verification, design and final gates, D-287, D-362),
+//    the caps per brainstorm and verification round, the retry caps (S6 honoured; an R1b `not-a-skill` or
+//    `wrong-ascendancy` failure is terminal, D-334, D-342), one full V4 pass per guide and at most one re-check
+//    per fix round or revision, escalations only from the gates, and the rule on every pre-supplied or default
+//    answer.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
-// type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it) and its build projection
-// `build/plan/buildHash.js` (D-266; it imports only crypto). No network.
+// type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
+// `build/plan/buildHash.js` (D-266; it imports only crypto) and the audit render beside this file,
+// `render-audit.mjs` (D-355). No network.
 //
 // Exit 0: every check passed (one line on stdout). Exit 1: each violation on stderr as
 // `check-run: [<rule>] <message>`. Exit 2: usage error.
 //
 // The shapes it reads are documented in ../references/ (run-folder.md, run-log.md, gates.md,
-// source-markers.md, pricing.md); keep them in step with this file.
+// source-markers.md, pricing.md, stages/V4.md) and ../templates/; keep them in step with this file.
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { loadAuditInputs, renderAudit, checksBlocks } from './render-audit.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
@@ -84,10 +92,12 @@ export const GUIDE_H2 = [
   'FAQ',
   'Changelog',
 ];
-/** §7.8, the audit layer (D-278): audit.md's H2s, in order. */
-export const AUDIT_H2 = ['Hand calculations', 'Stage detail', "What PoB doesn't model", 'Inputs by confidence', 'Run notes', 'Known issues'];
-/** §7.2: the dossier's H2s, in order. */
-export const DOSSIER_H2 = ['Roll and mode', 'Mechanics', 'Synergy search', 'Config gaps', 'Concepts', 'Not carried'];
+/** §7.8, the audit layer as `render-audit.mjs` renders it (D-278, D-355): audit.md's H2s, in order. */
+export const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues'];
+/** §7.2 as D-355 reduces it: the dossier's one table, the verification gate's comparison, these columns in order. */
+export const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
+/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its prices and its league. */
+const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Key prices', 'League'];
 /** The endgame ladder's rungs in order (D-281, D-282): `m`, `b`, `n`. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
 /** Each rung's guide H2, which holds the H3 `Checks` (§8). */
@@ -108,7 +118,8 @@ const KNOWN_ISSUES = 'Known issues';
 const WORD_CAP = 3000;
 /** D-276, D-283: what marks pipeline text in the reader layer: a footnote marker, a confidence label, a V4 finding id. */
 const CONFIDENCE_LABEL = /\b[Cc]onfidence\s*:?\s*[HML]\b/;
-const FINDING_ID = /\bv4-(?:ledger|sources|prose)-\d+\b/;
+/** D-352: a V4 finding id `v4-<n>-<k>`, `<n>` the report that raised it. */
+const FINDING_ID = /\bv4-\d+-\d+\b/;
 
 const SOURCE_KINDS = ['pob-computed', 'pob-data', 'external', 'judgment', 'external-unavailable'];
 const EXTERNAL_UNAVAILABLE_REF = 'external source unavailable (offline run)';
@@ -122,8 +133,8 @@ const TRADE_KINDS = [
 ];
 /** A `priceOutcomes` key: `ok`, `error` (no prefix) or a trade kind. */
 const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS];
-/** The steps that price (pricing.md): R1b, D1, the D1 gate's re-price pass and D2. */
-const PRICING_STAGES = ['R1b', 'D1', 'D1-gate', 'D2'];
+/** The steps that price (pricing.md): R1b, D1-finish (D1 in schema 2), the D1 gate's re-price pass and D2. */
+const PRICING_STAGES = { 2: ['R1b', 'D1', 'D1-gate', 'D2'], 3: ['R1b', 'D1-finish', 'D1-gate', 'D2'] };
 
 /** D-326: the run-log schema versions the checker reads: 3 (D-289), and 2 only so recorded runs still check. */
 const SCHEMA_VERSIONS = [2, 3];
@@ -136,9 +147,11 @@ const RUN_LOG_FIELDS = {
 const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity'];
 /** C-51: the playstyle vocabulary (delivery, buttons, focus, defence, pace), which cards use too. */
 const PLAYSTYLE_TAGS = ['melee', 'ranged-attack', 'spell', 'minion', 'totem-trap', 'mixed', 'one-button', 'few-buttons', 'combo', 'clear', 'boss', 'balanced', 'tanky', 'glass', 'fast', 'steady'];
-/** Schema 3's gates and questions (D-287, D-289); schema 2 named the pick and the guide checkpoints 1 and 2. */
-const CHECKPOINTS = { 2: [1, 2, 'unsaved-build', 'escalation'], 3: ['brainstorm', 'verification', 'final', 'unsaved-build', 'escalation'] };
-const LENSES = ['ledger', 'sources', 'prose'];
+/**
+ * Schema 3's gates and questions (D-287, D-289), the design gate among them (D-362); schema 2 named the pick and
+ * the guide checkpoints 1 and 2.
+ */
+const CHECKPOINTS = { 2: [1, 2, 'unsaved-build', 'escalation'], 3: ['brainstorm', 'verification', 'design', 'final', 'unsaved-build', 'escalation'] };
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 /** An escalation's choices (D-236): schema 3 goes back to the verification gate, schema 2 to checkpoint 1 (D-289). */
 const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'] };
@@ -154,8 +167,10 @@ const PROBE_CAP = 4;
 const DEAL = { min: 6, max: 9, underPlayed: 2 };
 const UNDER_PLAYED = /under-played \(judgment\b/i;
 const OWNERS = ['W1', 'D1', 'D2'];
-/** §7.4: V4 checks the plan and the guide, and the prose lens reads "why this concept" in audit.md (D-279). */
-const ARTIFACTS = ['plan.json', 'guide.md', 'audit.md'];
+/** stages/V4.md: V4 checks the plan's claims and the guide (D-352); audit.md is rendered, the checker's to hold. */
+const ARTIFACTS = ['plan.json', 'guide.md'];
+/** D-351: why a claim is written (plan schema 3). */
+const CLAIM_KINDS = ['hinge', 'reason'];
 const PARTS = ['pass', 'fail', 'unverified'];
 const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
@@ -164,27 +179,41 @@ const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'flo
  * follows it, the final record stays the last D2 gate's, and the re-check stays targeted.
  */
 const CLAIMS_EDITED = 'claims-edited';
-/** Each `stages[]` stage and the outcomes its entries may have (run-log.md); every step may miss its file. */
-const STAGE_OUTCOMES = {
+/**
+ * Each `stages[]` stage and the outcomes its entries may have (run-log.md); every step may miss its file. D1 is
+ * two steps, D1-build and D1-finish (D-356), and V4 one pass, `V4`, or a re-check, `V4-recheck` (D-352), each
+ * entry one report `reports/V4-<n>.md`. A schema-2 log keeps its one D1 step (D-326, D-341); its V4 entries are
+ * the current ones, since each is one report, an artifact held to the current format.
+ */
+const COMMON_OUTCOMES = {
   R1a: ['done'],
   'R1a-assemble': ['done'],
   R1b: ['pass', 'fail'],
   'R1b-assemble': ['done'],
-  D1: ['done', 'infeasible', CLAIMS_EDITED],
   'D1-gate': ['pass', 'fail', 'infeasible', 'escalated'],
   D2: ['done', CLAIMS_EDITED],
   'D2-gate': ['pass', 'fail', 'escalated'],
   W1: ['done'],
-  ...Object.fromEntries(LENSES.flatMap((l) => [[`V4-${l}`, ['pass', 'fail']], [`V4-${l}-recheck`, ['pass', 'fail']]])),
+  V4: ['pass', 'fail'],
+  'V4-recheck': ['pass', 'fail'],
+};
+const STAGE_OUTCOMES = {
+  2: { ...COMMON_OUTCOMES, D1: ['done', 'infeasible', CLAIMS_EDITED] },
+  3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED] },
 };
 const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED];
+/** The D1 steps: schema 3's two (D-356), schema 2's one. */
+const D1_STAGES = ['D1', 'D1-build', 'D1-finish'];
 /**
- * D-265 (a): the steps that write each V4-checked artifact (the runner's step-14 edit adds only `Known issues`
- * lines, which hold no claim or marker).
+ * The steps that write each artifact a V4 report locates its findings in (stages/V4.md). audit.md is written by
+ * the render script and W1's Known-issues rows (D-355), and the runner's step-14 edits add only `Known issues`
+ * lines, which hold no claim; V4 doesn't check it.
  */
-const ARTIFACT_WRITERS = { 'plan.json': ['D1', 'D1-gate', 'D2'], 'guide.md': ['W1'], 'audit.md': ['W1'] };
+const ARTIFACT_WRITERS = { 'plan.json': [...D1_STAGES, 'D1-gate', 'D2'], 'guide.md': ['W1'], 'audit.md': ['render-audit.mjs', 'W1'] };
 /** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
-const DESIGN_STAGES = ['D1', 'D1-gate', 'D2', 'D2-gate'];
+const DESIGN_STAGES = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate'];
+/** The producers whose run, unless it only edited claims (`claims-edited`), leaves the final record behind. */
+const PRODUCERS = [...D1_STAGES, 'D2'];
 /** The steps that concern no one concept or card. */
 const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
@@ -199,11 +228,10 @@ const ROUND_CAP = 3;
 const FAULT_STAGE = { 'FI-1': 'R1b', 'FI-2': 'D1-gate', 'FI-3': 'D1-gate' };
 
 const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
-const HIT_OPTION = /^enemy(Physical|Fire|Cold|Lightning|Chaos)Damage$/;
 /**
- * D-254: every endgame stage holds a waystone-scaled reference hit of each type, each derived by a ledger
- * entry. D-256: PoB takes these options as whole numbers, so the scenario value is the ledger value rounded
- * to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
+ * D-254: every endgame stage holds a waystone-scaled reference hit of each type, which the compiler writes into
+ * its config from the data when the plan omits it (D-353). D-256: PoB takes these options as whole numbers, so a
+ * hit is its formula's value rounded to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
  */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
 /** Findings that report on a passing part (../references/gates.md): never failures. */
@@ -633,12 +661,16 @@ export async function checkRun(runFolder) {
   }
   // A claims-only owner (D-264) compiles nothing, so it leaves the final record current.
   const lastFinalGate = lastAt((s) => s.stage === 'D2-gate' && s.outcome !== 'missing');
-  const recordCurrent = finalRecord !== null && !(lastAt((s) => (s.stage === 'D1' || s.stage === 'D2') && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
+  const recordCurrent = finalRecord !== null && !(lastAt((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
   /** The claims-only owner entries after the last D2 gate, whose edits the final record predates. */
-  const claimsOnlyAfterFinal = stages.slice(lastFinalGate + 1).filter((s) => (s.stage === 'D1' || s.stage === 'D2') && s.outcome === CLAIMS_EDITED);
+  const claimsOnlyAfterFinal = stages.slice(lastFinalGate + 1).filter((s) => PRODUCERS.includes(s.stage) && s.outcome === CLAIMS_EDITED);
   if (guideText !== null && isObj(record) && !finalRecord) {
     fail('layout', `guide.md exists, but compile-record.json is a ${show(record.mode)} record; W1 writes the guide from the final compile's record (§5.3)`);
   }
+  // D-352, D-365: each ledger entry's value is the plan's current formula over the record, by the server's own
+  // evaluator, wherever the checker reads one: never the record's stored value, which a ledger-only fix leaves stale.
+  const ledgerModule = await loadLedgerModule();
+  const ledgerNow = ledgerModule !== null && isObj(plan) && isObj(record) ? ledgerResults(ledgerModule, plan, record) : {};
 
   // ---- Outputs and the final record (§2, §4.1 outputs) --------------------------------------------
   if (completed && isObj(log.outputs)) {
@@ -710,7 +742,7 @@ export async function checkRun(runFolder) {
   });
   const runScope = { ledger: ledgerIds, prices: priceIds };
 
-  /** Claims of a plan: one per stages[].claims[] entry, with its kind and location. */
+  /** Claims of a plan: one per stages[].claims[] entry, with its source's kind and location. */
   const planClaims = (p, label) => {
     const out = [];
     if (!isObj(p) || !Array.isArray(p.stages)) return out;
@@ -719,15 +751,19 @@ export async function checkRun(runFolder) {
       (Array.isArray(s.claims) ? s.claims : []).forEach((c, k) => {
         const where = `${label} stages[${i}].claims[${k}]`;
         if (!isObj(c)) return;
+        // D-351: a claim is written only where the build hinges, and says which: `hinge` or `reason` (plan schema 3).
+        if (!CLAIM_KINDS.includes(c.kind)) {
+          fail('claim-kind', `${where} (${show(c.id)}) has kind ${show(c.kind)}; every claim is "hinge" (a fact whose being wrong would make the build fail at its rung) or "reason" (resting on a measurement), plan schema 3 (D-351)`);
+        }
         if (typeof c.source === 'string') {
           const m = /^(?:(ledger|price):(\S+)|data:([^#\s]+)#(\S+))$/.exec(c.source);
           if (!m) return fail('source-tags', `${where}: source ${show(c.source)} is neither a tag nor ledger:, price: or data:`);
           const cite = m[1] ? { kind: m[1], id: m[2] } : { kind: 'data', file: m[3], key: m[4] };
           checkCitation(where, cite, scope);
-          out.push({ kind: cite.kind, at: `stages[${i}].claims[${k}]` });
+          out.push({ kind: cite.kind, at: `stages[${i}].claims[${k}]`, id: c.id });
         } else {
           checkTag(where, c.source);
-          out.push({ kind: c.source?.kind, at: `stages[${i}].claims[${k}]` });
+          out.push({ kind: c.source?.kind, at: `stages[${i}].claims[${k}]`, id: c.id });
         }
       });
     });
@@ -768,23 +804,12 @@ export async function checkRun(runFolder) {
     if (text !== null) markdownClaims(parseMarkdown(text), `research/${f}`, runScope);
   }
 
-  // ---- Dossier (§7.2) --------------------------------------------------------------------------
+  // ---- Dossier (§7.2, as D-355 reduces it): the verification gate's comparison table -------------------
   const dossierText = readText('dossier.md');
   if (dossierText !== null) {
-    const md = parseMarkdown(dossierText);
-    const titles = md.h2.map((h) => h.title);
-    if (show(titles) !== show(DOSSIER_H2)) {
-      fail('dossier-sections', `dossier.md's H2s are ${show(titles)}; §7.2 wants ${show(DOSSIER_H2)} in that order`);
-    }
-    // Every concept R1b ran before the last assembly has its H3.
-    const conceptsH2 = h2Named(md, 'Concepts');
-    const h3 = conceptsH2 ? h3sUnder(md, conceptsH2).map((h) => h.title) : [];
     const lastAssembly = stages.reduce((at, s, i) => (s.stage === 'R1b-assemble' && s.outcome === 'done' ? i : at), -1);
-    const assembled = new Set(stages.slice(0, lastAssembly + 1).filter((s) => s.stage === 'R1b').map((s) => s.concept));
-    for (const c of assembled) {
-      if (!h3.some((t) => t.startsWith(`${c}: `))) fail('dossier-sections', `dossier.md's Concepts has no H3 "${c}: <title>" for concept ${c}, which R1b ran before the last assembly (§7.2)`);
-    }
-    markdownClaims(md, 'dossier.md', runScope);
+    const assembled = [...new Set(stages.slice(0, lastAssembly + 1).filter((s) => s.stage === 'R1b').map((s) => s.concept))];
+    checkDossier(dossierText, assembled, ID, fail);
   }
 
   // ---- Reports: the gate verdicts and the V4 reports (§2, gates.md, source-markers.md) ---------------
@@ -803,19 +828,28 @@ export async function checkRun(runFolder) {
   }
   const lastGate = (stage, concept) => gates.filter((g) => g.stage === stage && g.concept === concept).sort((a, b) => b.attempt - a.attempt)[0];
 
-  const v4 = { full: new Map(), recheck: new Map() };
+  // The V4 reports (D-352, stages/V4.md): reports/V4-<n>.md, one per logged pass (V4 or V4-recheck), numbered
+  // in run order from 1 and never overwritten. The k-th logged pass wrote report k.
+  const v4Entries = stages.map((s, i) => ({ s, i })).filter(({ s }) => (s.stage === 'V4' || s.stage === 'V4-recheck') && s.outcome !== 'missing');
+  const v4 = new Map();
   for (const f of listDir('reports')) {
     if (f === 'gates') continue;
-    const m = /^v4-(ledger|sources|prose)(-recheck)?\.json$/.exec(f);
-    if (!m) {
-      fail('layout', `reports/${f} isn't named v4-<lens>.json or v4-<lens>-recheck.json (§2)`);
+    const m = /^V4-([1-9]\d*)\.md$/.exec(f);
+    if (!m || isDir(`reports/${f}`)) {
+      fail('layout', `reports/${f} isn't a V4 report reports/V4-<n>.md, n from 1 (§2, D-352); a report named by its lens (v4-<lens>.json) is from before amendment 4`);
       continue;
     }
-    const r = { file: `reports/${f}`, lens: m[1], check: m[2] ? 'recheck' : 'full' };
-    r.report = readJson(r.file, 'report-shape');
-    if (isObj(r.report)) checkReportShape(r.report, r, mode, fail, schema);
-    v4[r.check].set(r.lens, r);
+    const n = Number(m[1]);
+    v4.set(n, { file: `reports/${f}`, n, entry: v4Entries[n - 1], report: parseV4Report(readText(`reports/${f}`)) });
   }
+  const v4Numbers = [...v4.keys()].sort((a, b) => a - b);
+  if (v4Numbers.some((n, k) => n !== k + 1)) fail('reports', `reports/ holds the V4 reports ${v4Numbers.map((n) => `V4-${n}.md`).join(', ')}; they are numbered from 1 in run order, with no gap (D-352)`);
+  if (v4Entries.length > v4.size) {
+    fail('reports', `run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck), but reports/ holds ${v4.size} V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)`);
+  } else if (v4.size > v4Entries.length) {
+    fail('reports', `reports/ holds ${v4.size} V4 report(s), but run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck); every report is a logged pass's (D-352)`);
+  }
+  for (const r of [...v4.values()].sort((a, b) => a.n - b.n)) r.parsed = checkV4Report(r, mode, fail, ID);
 
   // The concept designed last: the one whose D1 gate ran last (the log orders the files), or the only concept
   // with D1 gate reports. The gate file of a logged attempt is the one its log entry names.
@@ -833,16 +867,42 @@ export async function checkRun(runFolder) {
   // The concept the current guide is for: its last W1's.
   const guideConcept = guideText !== null ? (lastW1 >= 0 ? stages[lastW1].concept : designConcept) : null;
   const guideBefore = lastW1 >= 0 ? lastW1 : stages.length;
+  // The V4 reports of the current guide: the passes logged for its card after the last step about another card
+  // (an earlier design's reports aren't held to the current plan).
+  const lastOther = guideConcept === null ? stages.length : lastAt((s) => typeof s.concept === 'string' && s.concept !== guideConcept);
+  const guideReports = [...v4.values()].filter((r) => r.entry !== undefined && r.entry.i > lastOther && r.entry.s.concept === guideConcept).sort((a, b) => a.n - b.n);
   if (guideText !== null) {
     if (guideConcept === null || !gateFor('D1-gate', guideConcept, guideBefore)) fail('reports', 'guide.md exists, but no reports/gates/D1-gate-<concept>-a<n>.json does; W1 runs only after the D1 gate passed (§5.3)');
     else if (!gateFor('D2-gate', guideConcept, guideBefore)) fail('reports', `guide.md exists, but no reports/gates/D2-gate-${guideConcept}-a<n>.json does; W1 runs only after the D2 gate passed (§5.3)`);
-    for (const lens of LENSES) {
-      if (!v4.full.has(lens)) fail('reports', `guide.md exists, but reports/v4-${lens}.json doesn't; every guide gets one full pass of the three lenses (S2)`);
-    }
+    if (!guideReports.some((r) => r.parsed?.check === 'full')) fail('reports', `guide.md exists, but no V4 full pass of it does (a reports/V4-<n>.md "full pass" logged as V4 for ${guideConcept}); every guide gets one full pass (D-352)`);
   }
-  for (const r of [...v4.full.values(), ...v4.recheck.values()]) {
-    if (isObj(r.report) && guideConcept !== null && r.report.concept !== guideConcept) {
-      fail('reports', `${r.file} is about ${show(r.report.concept)}, but the guide's concept is ${guideConcept}`);
+  // A re-check (D-352, A-34): of the round copy rounds/<n-1>/, it reports again every finding the report before it
+  // left open, and its "## Checked" lists every item `--changed <n-1>` prints: the claims and guide H2s that changed
+  // since that copy, as they stood when it ran (rounds/<n>/ when a later round copied them, else the run folder,
+  // once no step wrote the plan, the record or the guide after it). The runner's step-14 Known issues lines are no
+  // change: they come after the re-check.
+  const PASS_WRITERS = [...DESIGN_STAGES, 'W1'];
+  for (const r of [...v4.values()].sort((a, b) => a.n - b.n)) {
+    if (r.parsed?.check !== 'recheck') continue;
+    const prev = v4.get(r.n - 1);
+    if (prev?.parsed) {
+      const ids = new Set(r.parsed.findings.map((f) => f.id));
+      for (const f of prev.parsed.findings.filter((x) => x.status === 'unresolved')) {
+        if (!ids.has(f.id)) fail('recheck', `${r.file} doesn't report ${prev.file}'s unresolved finding ${f.id} again; a re-check reports every finding still open under its id, fixed or unresolved (stages/V4.md)`);
+      }
+    }
+    if (!isDir(`rounds/${r.n - 1}`)) {
+      fail('recheck', `${r.file} is a re-check of rounds/${r.n - 1}, but rounds/${r.n - 1}/ doesn't exist; the runner makes the round copy (--snapshot ${r.n - 1}) before the fix round or revision (A-34)`);
+      continue;
+    }
+    let now = null;
+    if (isDir(`rounds/${r.n}`)) now = abs(`rounds/${r.n}`);
+    else if (r.entry && !stages.slice(r.entry.i + 1).some((s) => PASS_WRITERS.includes(s.stage) && s.outcome !== 'missing')) now = runFolder;
+    if (now === null || ledgerModule === null) continue;
+    const want = changedBetween(ledgerModule, abs(`rounds/${r.n - 1}`), now, { knownIssues: false });
+    const checked = new Set(r.parsed.checked);
+    for (const line of want) {
+      if (!checked.has(line)) fail('recheck', `${r.file}'s "## Checked" misses "${line}", which check-run.mjs --changed ${r.n - 1} lists (it changed since rounds/${r.n - 1}/); a re-check covers every item --changed lists (D-352)`);
     }
   }
 
@@ -914,24 +974,10 @@ export async function checkRun(runFolder) {
     }
   }
 
-  // ---- Open V4 findings (S2): the re-check's unresolved ones, and the full pass's it didn't fix -------
-  // A re-check report belongs to the last full pass only when the log runs it after that pass (a revision
-  // rewrites the full-pass reports, and may leave an earlier cycle's re-check report behind).
-  const lastRun = (stage) => lastAt((s) => s.stage === stage && s.outcome !== 'missing');
-  const open = [];
-  for (const lens of guideText !== null ? LENSES : []) {
-    const full = v4.full.get(lens);
-    if (!full || !isObj(full.report)) continue;
-    const re = lastRun(`V4-${lens}-recheck`) > lastRun(`V4-${lens}`) ? v4.recheck.get(lens) : undefined;
-    const reFindings = re && isObj(re.report) ? list(re.report.findings) : [];
-    const ids = new Set();
-    for (const f of [...reFindings, ...list(full.report.findings)]) {
-      if (f.status !== 'unresolved' || ids.has(f.id)) continue;
-      if (reFindings.some((g) => g.id === f.id && g.status === 'fixed')) continue;
-      ids.add(f.id);
-      open.push({ ...f, lens });
-    }
-  }
+  // ---- Open V4 findings (D-352): the unresolved findings of the guide's highest-numbered report ------------
+  // A re-check reports again every finding still open, so the last report holds them all (fix-round.md, step 14).
+  const lastReport = guideText !== null ? guideReports[guideReports.length - 1] : undefined;
+  const open = (lastReport?.parsed?.findings ?? []).filter((f) => f.status === 'unresolved').map((f) => ({ ...f, file: lastReport.file }));
 
   // ---- Guide (§8: the reader layer, D-276) and the audit layer (§7.8, D-278) ------------------------
   // The guide renders the plan: it carries no markers, so the plan's claims hold its sources (claims.guide
@@ -1009,10 +1055,13 @@ export async function checkRun(runFolder) {
     });
   }
 
-  // The audit layer (§7.8, D-278): W1 writes audit.md beside the guide, with its six H2s.
+  // The audit layer (§7.8, D-278, D-355): audit.md beside a current guide, with its six H2s, and equal to what
+  // render-audit.mjs renders from the current plan, final record and last D1 gate verdict file, Known issues aside
+  // (the render keeps the lines under them). The runner re-renders it before every W1, so it is never stale.
   const auditText = readText('audit.md');
+  let auditInputs = null;
   if (guideText !== null) {
-    if (auditText === null) fail('audit-sections', "guide.md exists, but audit.md doesn't; W1 writes the audit layer beside the guide (§7.8, D-278)");
+    if (auditText === null) fail('audit-sections', "guide.md exists, but audit.md doesn't; the runner renders it with scripts/render-audit.mjs before W1 (§7.8, D-355)");
     else {
       audit = parseMarkdown(auditText);
       const titles = audit.h2.map((h) => h.title);
@@ -1020,15 +1069,33 @@ export async function checkRun(runFolder) {
         const missing = AUDIT_H2.filter((t) => !titles.includes(t));
         const extra = titles.filter((t) => !AUDIT_H2.includes(t));
         const why = missing.length > 0 ? `missing ${show(missing)}` : extra.length > 0 ? `unexpected ${show(extra)}` : 'out of order';
-        fail('audit-sections', `audit.md's H2s are ${why}; §7.8 wants ${show(AUDIT_H2)} in that order (D-278)`);
+        fail('audit-sections', `audit.md's H2s are ${why}; §7.8 wants ${show(AUDIT_H2)} in that order (D-278, D-355)`);
+      }
+      try {
+        auditInputs = await loadAuditInputs(runFolder);
+      } catch (e) {
+        fail('audit-render', `audit.md can't be compared with its render: ${e.message} (D-355)`);
+      }
+      const diff = auditInputs !== null ? firstDifference(auditText.split(/\r?\n/), renderAudit(auditInputs).split('\n')) : null;
+      if (diff !== null) {
+        fail('audit-render', `audit.md:${diff.n} is ${show(diff.got)}, but render-audit.mjs renders ${show(diff.want)} from the current plan.json, compile-record.json and D1 gate verdict file: audit.md is the render, Known issues aside; the runner re-renders it before W1 (D-355)`);
       }
     }
   }
 
   if (guide !== null) {
+    // D-355: each rung's Checks block is its block in audit.md's render, which W1 copies verbatim.
+    for (const b of auditInputs !== null ? checksBlocks(auditInputs) : []) {
+      const text = checksText(guide, b.variant);
+      if (text === null) continue;
+      const diff = firstDifference(text.split('\n').filter((l) => l.trim() !== ''), b.lines.filter((l) => l.trim() !== ''), (l) => l.trim());
+      if (diff !== null) {
+        fail('checks-block', `guide.md's "${VARIANT_H2[b.variant]}" Checks, line ${diff.n} of the block, is ${show(diff.got)}, but its block in render-audit.mjs's render (audit.md's "### ${b.loadoutName}") has ${show(diff.want)}; W1 copies the block verbatim (D-355)`);
+      }
+    }
     // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
     const guideD1 = guideConcept !== null ? gateFor('D1-gate', guideConcept, guideBefore) : undefined;
-    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, fail, v3);
+    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, v3);
     // (l) Known issues by sentence in the guide, with each finding's id in audit.md (D-276, D-283).
     checkKnownIssues(guide, audit, accepted, open, fail);
   }
@@ -1036,26 +1103,22 @@ export async function checkRun(runFolder) {
   // ---- Campaign rewards (D-265 c): every reward choice the campaign passes is picked, and the guide says so ----
   if (isObj(plan) && campaign.length > 0) checkRewardPicks(planStages, campaign, guide, fail);
 
-  // accepted-offline (C-30, §7.4): only for a claim tagged external-unavailable, which the location names. A report
-  // superseded by one that checked every claim again (a full re-check after a fix round in which a gate re-ran, or a
-  // revision's full pass) is held to the artifact as it was when it was written (D-265 a): once a step wrote that
-  // artifact after the report's log entry, that version is gone, the location check skips it, and the later report
-  // is what counts. A claims-only round edits claims in place and moves none, so its locations still hold.
-  const changedSince = (artifact, at) => stages.slice(at + 1).some((s) => (ARTIFACT_WRITERS[artifact] ?? []).includes(s.stage));
-  for (const r of guideText !== null ? [...v4.full.values(), ...v4.recheck.values()] : []) {
-    if (!isObj(r.report)) continue;
-    const at = lastRun(r.check === 'recheck' ? `V4-${r.lens}-recheck` : `V4-${r.lens}`);
-    const later = lastRun(r.check === 'recheck' ? `V4-${r.lens}` : `V4-${r.lens}-recheck`);
-    const gateBetween = stages.slice(at + 1, later).some((s) => (s.stage === 'D1-gate' || s.stage === 'D2-gate') && s.outcome !== 'missing');
-    const superseded = at >= 0 && later > at && (r.check === 'recheck' || gateBetween);
-    list(r.report.findings).forEach((f, i) => {
-      if (f.status !== 'accepted-offline') return;
-      if (superseded && changedSince(f.artifact, at)) return;
-      const claim = claimAt(claims, f.artifact, f.location);
+  // accepted-offline (C-30, stages/V4.md): only for a claim tagged external-unavailable, which the location names. A
+  // report is held to the plan as it was when it ran (D-265 a): the round copy rounds/<n>/ made after it, or the
+  // current plan.json while no step has written it since; else its locations can't be checked.
+  for (const r of guideText !== null ? guideReports : []) {
+    const offlineFindings = (r.parsed?.findings ?? []).filter((f) => f.status === 'accepted-offline');
+    if (offlineFindings.length === 0) continue;
+    let planThen = null;
+    if (isDir(`rounds/${r.n}`)) planThen = readJson(`rounds/${r.n}/plan.json`);
+    else if (!stages.slice(r.entry.i + 1).some((s) => ARTIFACT_WRITERS['plan.json'].includes(s.stage) && s.outcome !== 'missing')) planThen = plan;
+    if (!isObj(planThen)) continue;
+    for (const f of offlineFindings) {
+      const claim = f.artifact === 'plan.json' ? claimAt(planThen, f.location) : null;
       if (!claim || claim.kind !== 'external-unavailable') {
-        fail('report-shape', `${r.file}: findings[${i}] is accepted-offline, but ${show(f.artifact)} ${show(f.location)} names ${claim ? `a ${claim.kind} claim` : 'no claim'}; only a claim tagged external-unavailable is accepted offline (C-30)`);
+        fail('report-shape', `${r.file}: ${f.id} is accepted-offline, but ${show(f.artifact)} ${show(f.location)} names ${claim ? `a ${claim.kind} claim` : 'no claim'}; only a claim tagged external-unavailable is accepted offline (C-30)`);
       }
-    });
+    }
   }
 
   // ---- The D1 gate, recomputed from the plan and the record (Q3; AC-W2 o, p, q, u) ------------------
@@ -1080,9 +1143,9 @@ export async function checkRun(runFolder) {
     const parts = {
       floor: recomputeFloor(endgame, record, guide, fail),
       budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, guide, fail),
-      rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, fail),
+      rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, ledgerNow, fail),
     };
-    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => s.stage === 'D1' && s.outcome !== CLAIMS_EDITED) < lastD1GateAt;
+    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => D1_STAGES.includes(s.stage) && s.outcome !== CLAIMS_EDITED) < lastD1GateAt;
     for (const [part, got] of Object.entries(parts)) {
       const openFailures = got.failures.filter((f) => !covered(f));
       const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
@@ -1134,7 +1197,8 @@ export async function checkRun(runFolder) {
       }
     }
   }
-  // D-264: a claims-only owner compiles nothing, so the record is still the final compile the last D2 gate ran.
+  // D-264: a claims-only owner (claims-edited) compiles nothing, so the record is still the final compile the last
+  // D2 gate ran, whatever the owner edited: claims, sources and the ledger (D-352).
   if (claimsOnlyAfterFinal.length > 0 && lastFinalGate >= 0) {
     const who = claimsOnlyAfterFinal.map(describe).join(', ');
     const gate = stages[lastFinalGate];
@@ -1150,12 +1214,13 @@ export async function checkRun(runFolder) {
     const planSha1 = sha1(fs.readFileSync(abs('plan.json')));
     if (claimsOnlyAfterFinal.length === 0) {
       if (finalRecord.planSha1 !== planSha1) {
-        fail('record-plan', `sha1(plan.json) is ${planSha1}, but the final record's planSha1 is ${show(finalRecord.planSha1)}: plan.json changed after the final compile`);
+        fail('record-plan', `sha1(plan.json) is ${planSha1}, but the final record's planSha1 is ${show(finalRecord.planSha1)}: plan.json changed after the final compile, and no claims-only owner (${CLAIMS_EDITED}) ran after it`);
       }
     } else if (isObj(plan)) {
-      // D-264, D-266: claims edited in place after the final compile change plan.json's sha1, never its build:
-      // the projection without stages[].claims and the source and tag fields is still the one the final compile
-      // built, its sha1 the record's buildSha1. A record without one predates D-266 and can't show it.
+      // D-264, D-266, D-352: claims and ledger entries edited in place after the final compile change plan.json's
+      // sha1, never its build: the projection without stages[].claims, the ledger and the source and tag fields
+      // (WU-65's src/plan/buildHash.ts) is still the one the final compile built, its sha1 the record's buildSha1.
+      // A record without one predates D-266 and can't show it.
       const who = claimsOnlyAfterFinal.map(describe).join(', ');
       const hash = await loadBuildHashModule();
       if (hash === null) {
@@ -1163,7 +1228,7 @@ export async function checkRun(runFolder) {
       } else if (typeof finalRecord.buildSha1 !== 'string') {
         fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but the final record has no buildSha1 to hold the plan's build to (D-266)`);
       } else if (hash.buildSha1(plan) !== finalRecord.buildSha1) {
-        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but plan.json's build changed: the sha1 of its build-affecting part (everything but stages[].claims and the source and tag fields) is ${hash.buildSha1(plan)}, and the final record's buildSha1 is ${show(finalRecord.buildSha1)}; only a recompile changes the build (D-264, D-266)`);
+        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but plan.json's build changed: the sha1 of its build-affecting part (everything but stages[].claims, the ledger and the source and tag fields) is ${hash.buildSha1(plan)}, and the final record's buildSha1 is ${show(finalRecord.buildSha1)}; only a recompile changes the build: gear, tree, gems or config (D-264, D-266, D-352)`);
       }
     }
   }
@@ -1186,23 +1251,27 @@ export async function checkRun(runFolder) {
     }
   }
   if (recordCurrent && isObj(plan) && Array.isArray(plan.ledger) && isObj(finalRecord.stages)) {
-    // (t) Every ledger entry re-evaluates over the record, with the server's own evaluator, to the record's value.
-    const ledgerModule = await loadLedgerModule();
+    // (t) D-352, D-365: the ledger is the checker's. Every entry's current formula evaluates over the final record
+    // with the server's own evaluator; an entry that doesn't evaluate fails. A claim citing an entry states its
+    // value: a claim with numbers holds one that matches it, at its own last significant digit or within 5%, an
+    // estimate's tolerance (D-352), so a formula changed under its claim (FI-4's doubling) fails here.
     if (ledgerModule === null) {
-      fail('ledger', `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build) to re-derive the ledger`);
+      fail('ledger', `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build) to evaluate the ledger`);
     } else {
-      const numbers = Object.fromEntries(Object.entries(finalRecord.stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} }]));
-      const entries = plan.ledger.filter((e) => isObj(e) && typeof e.id === 'string' && typeof e.formula === 'string').map((e) => ({ id: e.id, formula: e.formula, inputs: list(e.inputs) }));
-      const results = ledgerModule.evaluateLedger(entries, { stageIds: planStages.map((s) => s.id), stages: numbers });
-      for (const e of entries) {
-        const got = results[e.id]?.value ?? null;
-        const recorded = finalRecord.ledger?.[e.id]?.value ?? null;
-        const equal = got === null ? recorded === null : isNum(recorded) && round2(got) === round2(recorded);
-        if (!equal) {
-          const why = got === null ? `doesn't evaluate (${results[e.id]?.error?.message ?? 'no value'})` : `re-evaluates to ${got}`;
-          fail('ledger', `ledger entry ${e.id} ${why}, but the final record has ${show(recorded)} (compared to 2 decimals)`);
-        }
+      for (const e of plan.ledger.filter((x) => isObj(x) && typeof x.id === 'string')) {
+        const r = ledgerNow[e.id];
+        if (!isNum(r?.value)) fail('ledger', `ledger entry ${e.id} doesn't evaluate over the final record: ${r?.error ?? 'its formula is missing'} (D-365)`);
       }
+      planStages.forEach((s, i) => list(s.claims).forEach((c, k) => {
+        const id = /^ledger:(\S+)$/.exec(typeof c.source === 'string' ? c.source : '')?.[1];
+        const value = id !== undefined ? ledgerNow[id]?.value : undefined;
+        if (!isNum(value)) return;
+        const written = [...String(c.text ?? '').matchAll(/[−-]?\d[\d,]*(?:\.\d+)?/g)].map((m) => m[0]);
+        const near = (w) => matchesWritten(w, value) || Math.abs(Number(w.replace(/,/g, '').replace(/−/g, '-')) - value) <= 0.05 * Math.abs(value);
+        if (written.length > 0 && !written.some(near)) {
+          fail('ledger', `plan.json stages[${i}].claims[${k}] (${c.id}) cites ledger:${id}, whose current formula gives ${round2(value)} over the final record, but the claim states ${written.join(', ')}; a claim citing a ledger entry states its value (D-365)`);
+        }
+      }));
     }
   }
   return violations;
@@ -1264,11 +1333,26 @@ function checkRewardPicks(planStages, campaign, guide, fail) {
 
 /** D-283, D-294: the verdict line's fixed form, as the guide template gives it. */
 const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.';
+/** D-353: the survival label on the budget and non-budget rungs, in place of solid, watch or risky: the record's Arbiter verdict. */
+const ARBITER_LABEL = "<survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>";
+/** The verdict line's form on a rung: `m` keeps the judgment label; `b` and `n` carry the Arbiter's (D-353). */
+const verdictForm = (variant) => (variant === 'entering-maps' ? VERDICT_FORM : VERDICT_FORM.replace('<solid|watch|risky>', ARBITER_LABEL));
+
+/**
+ * D-353, templates/guide-template.md: the survival label `measures.arbiter` gives the budget and non-budget rungs:
+ * "survives the Arbiter's hits"; "one-shot by the Arbiter's <type> hit", `<type>` the worst hit's type, a mixed
+ * hit's types joined by " and "; "not measured against the Arbiter" for a null verdict.
+ */
+export function arbiterLabel(arbiter) {
+  if (!isObj(arbiter) || !['survives', 'one-shot'].includes(arbiter.verdict)) return 'not measured against the Arbiter';
+  if (arbiter.verdict === 'survives') return "survives the Arbiter's hits";
+  return isObj(arbiter.worst) && typeof arbiter.worst.type === 'string' ? `one-shot by the Arbiter's ${arbiter.worst.type.split('-').join(' and ')} hit` : 'not measured against the Arbiter';
+}
 /** D-326: a schema-2 run's guide predates D-294's Effective HP, so its verdict line may end at the DPS. */
 const EHP_PART = ' Effective HP about <n>.';
 const NUM = '[−-]?\\d[\\d,]*(?:\\.\\d+)?';
 const VERDICT_LINE = new RegExp(
-  `^[-*] \\*\\*(Entering maps|Budget|Non-budget) \\(L(\\d+)\\): (solid|watch|risky)\\.\\*\\* Resistances (${NUM})/(${NUM})/(${NUM})/(${NUM})% at [−-]60%\\. ` +
+  `^[-*] \\*\\*(Entering maps|Budget|Non-budget) \\(L(\\d+)\\): ([^*]+?)\\.\\*\\* Resistances (${NUM})/(${NUM})/(${NUM})/(${NUM})% at [−-]60%\\. ` +
     `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS\\.` +
     `(?: Effective HP about (${NUM})\\.)?$`,
 );
@@ -1278,13 +1362,15 @@ const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
  * D-283's one number check: each endgame rung has one verdict line in `Survival by stage`, found by its label,
  * in the fixed form, and each written part matches the record by the rounding rule (`matchesWritten`): the level
  * the stage's `level`; the resistances `FireResist`, `ColdResist`, `LightningResist`, `ChaosResist`; the
- * physical max hit `PhysicalMaximumHitTaken` against `hit_<stage>_physical`; the other max hit the least of the
- * four other `<Type>MaximumHitTaken` against the largest of the four other hits; the DPS the named damage
- * source's figure the D1 gate's verdict names, × its Count where the record has a counted copy (D-294, D-340);
- * and the closing "Effective HP about <n>." the stage's `TotalEHP` (D-294), which a schema-3 run's line always
- * has. The verdict word stays judgment.
+ * physical max hit `PhysicalMaximumHitTaken` against the hit the compiler wrote, `enemyPhysicalDamage` in the
+ * record's `configWritten` (D-353); the other max hit the least of the four other `<Type>MaximumHitTaken` against
+ * the largest of the four other hits written there; the DPS the named damage source's figure the D1 gate's verdict
+ * names, × its Count where the record has a counted copy (D-294, D-340), a ledger figure's value its current
+ * formula's (D-365); and the closing "Effective HP about <n>." the stage's `TotalEHP` (D-294), which a schema-3
+ * run's line always has. The entering-maps label stays judgment (solid, watch or risky); the budget and non-budget
+ * labels are the record's `measures.arbiter` verdict (D-353, `arbiterLabel`).
  */
-function checkVerdictLines(guide, endgame, record, d1rep, fail, v3) {
+function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
   const h2 = h2Named(guide, SURVIVAL_H2);
   if (!h2) return;
   const { start, end } = guide.sectionOf(h2);
@@ -1298,16 +1384,26 @@ function checkVerdictLines(guide, endgame, record, d1rep, fail, v3) {
     const label = VARIANT_LABEL[s.variant];
     if (!label) continue;
     const mine = lines.filter((l) => l.text.startsWith(`- **${label} (L`));
+    const form = verdictForm(s.variant);
     if (mine.length === 0) {
-      fail('verdict-line', `${where} has no verdict line for the ${label} rung, stage ${s.id}: "${VERDICT_FORM}" (D-283)`);
+      fail('verdict-line', `${where} has no verdict line for the ${label} rung, stage ${s.id}: "${form}" (D-283)`);
       continue;
     }
     if (mine.length > 1) fail('verdict-line', `${where} has ${mine.length} verdict lines for the ${label} rung; one per rung (D-283)`);
     const at = `guide.md:${mine[0].n}`;
     const m = VERDICT_LINE.exec(mine[0].text);
     if (!m) {
-      fail('verdict-line', `${at}: the ${label} verdict line isn't in the fixed form "${v3 ? VERDICT_FORM : VERDICT_FORM.replace(EHP_PART, '')}" (D-283${v3 ? ', D-294' : ''})`);
+      fail('verdict-line', `${at}: the ${label} verdict line isn't in the fixed form "${v3 ? form : form.replace(EHP_PART, '')}" (D-283${v3 ? ', D-294' : ''})`);
       continue;
+    }
+    // D-353: the survival label. The entering-maps rung's is judgment; the budget and non-budget rungs' is the
+    // record's Arbiter verdict, in the template's words.
+    const st0 = isObj(record?.stages) ? record.stages[s.id] : undefined;
+    if (s.variant === 'entering-maps') {
+      if (!['solid', 'watch', 'risky'].includes(m[3])) fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}; the entering-maps rung's label is solid, watch or risky (D-283)`);
+    } else if (m[3] !== arbiterLabel(st0?.measures?.arbiter)) {
+      const verdict = st0?.measures?.arbiter?.verdict;
+      fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s measures.arbiter verdict is ${show(verdict ?? null)}${verdict === 'one-shot' ? `, its worst hit ${show(st0.measures.arbiter.worst?.type)}` : ''}, so its label is ${show(arbiterLabel(st0?.measures?.arbiter))} (D-353)`);
     }
     if (v3 && m[14] === undefined) {
       fail('verdict-line', `${at}: the ${label} verdict line doesn't end with "Effective HP about <n>.", the stage's TotalEHP beside its max hit: "${VERDICT_FORM}" (D-294)`);
@@ -1319,7 +1415,9 @@ function checkVerdictLines(guide, endgame, record, d1rep, fail, v3) {
       fail('verdict-line', `${at}: the record holds no outputs for stage ${s.id}, so its ${label} verdict line can't be compared (D-283)`);
       continue;
     }
-    const hit = (t) => record.ledger?.[`hit_${s.id}_${t}`]?.value;
+    // D-353: the reference hits the compiler wrote into the stage's config, filling any the plan omits.
+    const written = isObj(st?.configWritten) ? st.configWritten : {};
+    const hit = (t) => written[`enemy${t}Damage`];
     const least = (xs) => (xs.every(isNum) ? Math.min(...xs) : undefined);
     const most = (xs) => (xs.every(isNum) ? Math.max(...xs) : undefined);
     const parts = [
@@ -1328,15 +1426,15 @@ function checkVerdictLines(guide, endgame, record, d1rep, fail, v3) {
       ['lightning resistance', m[6], out.LightningResist, `${s.id}.LightningResist`],
       ['chaos resistance', m[7], out.ChaosResist, `${s.id}.ChaosResist`],
       ['physical max hit', m[8], out.PhysicalMaximumHitTaken, `${s.id}.PhysicalMaximumHitTaken`],
-      ['physical hit', m[9], hit('physical'), `the ledger's hit_${s.id}_physical`],
+      ['physical hit', m[9], hit('Physical'), `the hit the compiler wrote, ${s.id}.configWritten.enemyPhysicalDamage`],
       ['elemental or chaos max hit', m[10], least(OTHER_TYPES.map((t) => out[`${t}MaximumHitTaken`])), `the least of ${s.id}'s ${OTHER_TYPES.map((t) => `${t}MaximumHitTaken`).join(', ')}`],
-      ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t.toLowerCase()))), `the largest of the ledger's ${OTHER_TYPES.map((t) => `hit_${s.id}_${t.toLowerCase()}`).join(', ')}`],
+      ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t))), `the largest of the hits the compiler wrote, ${s.id}.configWritten's ${OTHER_TYPES.map((t) => `enemy${t}Damage`).join(', ')}`],
     ];
     // The DPS is the named damage source's figure the D1 gate's verdict names for the stage's rolledGroup (§5.3),
     // × its Count where the record has a counted copy (D-294, D-340): the headline the PoB file shows.
     const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
     const lg = /^ledger:(\w+)$/.exec(String(fig ?? ''));
-    const read = lg ? { value: record.ledger?.[lg[1]]?.value, counted: false } : figureOf(st, fig);
+    const read = lg ? { value: ledgerNow[lg[1]]?.value, counted: false } : figureOf(st, fig);
     const named = read.counted ? `the named damage source's figure × its Count ${read.count}, ${s.id}.countedSkillOutputs.${fig}` : `the named damage source's figure ${s.id}.${fig}`;
     if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no figure for stage ${s.id}'s named damage source, so the ${label} verdict line's DPS can't be compared (D-283)`);
     else parts.push(['DPS', m[13], read.value, named]);
@@ -1362,7 +1460,7 @@ const NO_STAGE = ['', '—', '-', '–'];
  * D-276, D-278, D-283: Known issues by sentence. The guide's H3 `Known issues`, the last part of `What PoB can't
  * show`, lists one plain sentence per finding (`- <sentence>`), with no id; audit.md's `Known issues` table holds
  * each finding's row `| <id> | <lens or gate> | <stage> | <the sentence the guide prints> |`: an open V4 finding
- * by its id and lens, its sentence its `reader`; an accepted gate finding by its code, gate and plan stage (W1
+ * `| <id> | V4 | — | <its reader> |` (D-352); an accepted gate finding by its code, gate and plan stage (W1
  * writes its sentence). Both lists hold this cycle's findings alone (the runner replaces them whole at step 14,
  * D-265), and `None.` only when nothing is open or accepted.
  */
@@ -1395,15 +1493,15 @@ function checkKnownIssues(guide, audit, accepted, open, fail) {
   for (const f of open) {
     const row = rows.find((r) => r.id === f.id);
     const reader = typeof f.reader === 'string' && f.reader.trim() !== '' ? f.reader.trim() : null;
-    if (!row) fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but audit.md's ${KNOWN_ISSUES} has no row "| ${f.id} | ${f.lens} | — | <its reader sentence> |" (D-276, D-278)`);
+    if (!row) fail('known-issues', `V4 finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open in ${f.file}, the last report, but audit.md's ${KNOWN_ISSUES} has no row "| ${f.id} | V4 | — | <its reader sentence> |" (D-276, D-278, D-352)`);
     else {
       used.add(row);
-      if (row.from !== f.lens) fail('known-issues', `audit.md:${row.n}: the ${KNOWN_ISSUES} row for ${show(f.id)} names ${show(row.from)}, not its lens ${f.lens} (§7.8)`);
+      if (row.from !== 'V4') fail('known-issues', `audit.md:${row.n}: the ${KNOWN_ISSUES} row for ${show(f.id)} names ${show(row.from)}; an open V4 finding's row names V4 (§7.8, D-352)`);
       if (reader && collapse(row.sentence) !== collapse(reader)) fail('known-issues', `audit.md:${row.n}: the ${KNOWN_ISSUES} row for ${show(f.id)} gives ${show(row.sentence)}, not the finding's reader sentence ${show(reader)} (D-265, §7.8)`);
     }
     if (reader) {
       sentences.push(collapse(reader));
-      if (!listed(reader)) fail('known-issues', `V4 ${f.lens} finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open after the re-check, but guide.md's ${KNOWN_ISSUES} doesn't list its reader sentence, word for word, as "- ${reader}" (D-265, D-276)`);
+      if (!listed(reader)) fail('known-issues', `V4 finding ${show(f.id)} (${f.issue ?? 'no issue text'}) is open in ${f.file}, the last report, but guide.md's ${KNOWN_ISSUES} doesn't list its reader sentence, word for word, as "- ${reader}" (D-265, D-276)`);
     }
   }
   for (const a of accepted) {
@@ -1447,14 +1545,15 @@ function checkBrief(brief, bad) {
 }
 
 /**
- * Schema 3's gate answers (D-287, D-288, D-323): the answer recorded at each gate, and the test-config answer
- * (`answers.brainstorm`, `answers.verification`, `answers.final`, `answers.escalation`, `answers.unsavedBuild`)
- * a pre-supplied entry's `rule` records exactly as written.
+ * Schema 3's gate answers (D-287, D-288, D-323, D-362): the answer recorded at each gate, and the test-config
+ * answer (`answers.brainstorm`, `answers.verification`, `answers.design`, `answers.final`, `answers.escalation`,
+ * `answers.unsavedBuild`) a pre-supplied entry's `rule` records exactly as written.
  */
 const IDS = (n) => `${CARD_ID}(?:,${CARD_ID}){0,${n - 1}}`;
 const GATE_ANSWERS = {
   brainstorm: new RegExp(`^(?:pick:${IDS(3)}|more|stop)$`),
   verification: new RegExp(`^(?:pick:${CARD_ID}|verify:${IDS(3)}|more|stop)$`),
+  design: /^(?:accept|revise:.+|verification|stop)$/s,
   final: /^.+$/s,
   'unsaved-build': /^(?:proceed|stop)$/,
   escalation: /^(?:accept|retry:.+|verification|stop)$/s,
@@ -1462,6 +1561,7 @@ const GATE_ANSWERS = {
 const GATE_RULES = {
   brainstorm: new RegExp(`^(?:pick:${IDS(3)}|first-n:[1-3]|more|stop)$`),
   verification: new RegExp(`^(?:first-viable|pick:${CARD_ID}|verify:${IDS(3)}|more|stop)$`),
+  design: /^(?:accept|revise:.+|verification|stop)$/s,
   final: /^(?:accept|not-accept|revise:.+)$/s,
   'unsaved-build': /^(?:proceed|stop)$/,
   escalation: /^(?:accept|retry:.+|verification|stop)$/s,
@@ -1470,6 +1570,7 @@ const GATE_RULES = {
 const ANSWER_FORMS = {
   brainstorm: 'pick:<id>[,<id>…] (1–3 cards), more or stop',
   verification: 'pick:<id> (finalize one card), verify:<id>[,<id>…] (1–3 cards), more or stop',
+  design: 'accept, revise:<text>, verification or stop (D-362)',
   final: 'accept, revise:<text> or the user\'s note',
   'unsaved-build': 'proceed or stop',
   escalation: 'accept, retry:<guidance>, verification or stop',
@@ -1486,7 +1587,7 @@ function checkGateAnswer(c, at, bad) {
   if (new Set(ids).size !== ids.length) bad(at, `answers ${show(c.answer)}, which names a card twice`);
   if (typeof c.rule !== 'string' || c.rule.trim() === '') return;
   // D-323: the test config's keys and answers are schema 3's; checkpoint1, checkpoint2 and checkpoint-1 are retired.
-  if (/checkpoint-?[12]/.test(c.rule)) bad(at, `has rule ${show(c.rule)}, which names a retired test-config key or answer (checkpoint1, checkpoint2, checkpoint-1); schema 3's are answers.brainstorm, answers.verification, answers.final and the escalation answer "verification" (D-323)`);
+  if (/checkpoint-?[12]/.test(c.rule)) bad(at, `has rule ${show(c.rule)}, which names a retired test-config key or answer (checkpoint1, checkpoint2, checkpoint-1); schema 3's are answers.brainstorm, answers.verification, answers.design, answers.final and the escalation answer "verification" (D-323, D-362)`);
   if (c.answeredBy === 'default') {
     if (c.answer !== 'stop') bad(at, `is answered by default ${show(c.answer)}; with no test-config answer left, the default is "stop" (§11.2)`);
     return;
@@ -1570,8 +1671,15 @@ function checkRunLog(log, fail, schema) {
     if (!isObj(s)) return bad(at, 'is an object');
     // D-326: a probe count (D-338), a short round's reason (D-339) and R1a-assemble (D-287) are schema 3's.
     if (!v3) for (const [k, why] of [['probes', 'D-338'], ['shortReason', 'D-339']]) if (k in s) bad(at, `has ${k}, which schema 3 added (${why}); a schema-2 log has none (D-326)`);
-    const known = Object.keys(STAGE_OUTCOMES).filter((x) => v3 || x !== 'R1a-assemble');
-    if (!known.includes(s.stage)) return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}${!v3 && s.stage === 'R1a-assemble' ? "; R1a-assemble is schema 3's (D-287), and a schema-2 log has none (D-326)" : ''}`);
+    const outcomes = STAGE_OUTCOMES[v3 ? 3 : 2];
+    const known = Object.keys(outcomes).filter((x) => v3 || x !== 'R1a-assemble');
+    if (!known.includes(s.stage)) {
+      const why = !v3 && s.stage === 'R1a-assemble' ? "; R1a-assemble is schema 3's (D-287), and a schema-2 log has none (D-326)"
+        : v3 && s.stage === 'D1' ? '; D1 is two steps, D1-build then D1-finish (D-356)'
+          : /^V4-(ledger|sources|prose)/.test(String(s.stage)) ? '; V4 is one pass with no lenses, V4 or V4-recheck, each entry one report reports/V4-<n>.md (D-352)'
+            : !v3 && ['D1-build', 'D1-finish'].includes(s.stage) ? "; a schema-2 log's D1 is one step (D-326)" : '';
+      return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}${why}`);
+    }
     if (ROUND_STAGES.includes(s.stage) ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
       bad(at, ROUND_STAGES.includes(s.stage) ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}`);
     }
@@ -1590,12 +1698,12 @@ function checkRunLog(log, fail, schema) {
     if (!OUTCOMES.includes(s.outcome)) bad(at, `outcome ${show(s.outcome)} isn't one of ${OUTCOMES.join(', ')}`);
     else if (s.outcome === 'escalated' && !['D1-gate', 'D2-gate'].includes(s.stage)) {
       fail('escalation', `run-log.json ${at}: ${s.stage} is logged escalated; only the D1 and D2 gates escalate, and verification never does (S2)`);
-    } else if (s.outcome !== 'missing' && !STAGE_OUTCOMES[s.stage].includes(s.outcome)) {
-      bad(at, `a ${s.stage} entry's outcome is one of ${[...STAGE_OUTCOMES[s.stage], 'missing'].join(', ')}, not ${show(s.outcome)}`);
+    } else if (s.outcome !== 'missing' && !outcomes[s.stage].includes(s.outcome)) {
+      bad(at, `a ${s.stage} entry's outcome is one of ${[...outcomes[s.stage], 'missing'].join(', ')}, not ${show(s.outcome)}`);
     }
     if ('priceOutcomes' in s) {
       const p = s.priceOutcomes;
-      if (!PRICING_STAGES.includes(s.stage)) bad(at, `has priceOutcomes, but ${s.stage} doesn't price (pricing.md)`);
+      if (!PRICING_STAGES[v3 ? 3 : 2].includes(s.stage)) bad(at, `has priceOutcomes, but ${s.stage} doesn't price (pricing.md)`);
       if (!isObj(p) || !Object.entries(p).every(([k, n]) => PRICE_OUTCOMES.includes(k) && isInt(n))) {
         bad(`${at}.priceOutcomes`, `is {<outcome>: <count>}, each outcome ok, error or a [trade:<kind>] kind (D-218)`);
       } else {
@@ -1612,7 +1720,7 @@ function checkRunLog(log, fail, schema) {
     const at = `checkpoints[${i}]`;
     if (!isObj(c)) return bad(at, 'is an object');
     if (!CHECKPOINTS[v3 ? 3 : 2].includes(c.checkpoint)) {
-      bad(at, `checkpoint ${show(c.checkpoint)} isn't ${v3 ? '"brainstorm", "verification", "final", "unsaved-build" or "escalation" (D-289; schema 2\'s checkpoints 1 and 2 are the verification and final gates)' : '1, 2, "unsaved-build" or "escalation"'}`);
+      bad(at, `checkpoint ${show(c.checkpoint)} isn't ${v3 ? '"brainstorm", "verification", "design", "final", "unsaved-build" or "escalation" (D-289, D-362; schema 2\'s checkpoints 1 and 2 are the verification and final gates)' : '1, 2, "unsaved-build" or "escalation"'}`);
     }
     if (!isInt(c.visit, 1)) bad(at, 'visit is an integer from 1');
     else if (v3) {
@@ -1671,32 +1779,35 @@ function checkRunLog(log, fail, schema) {
 /** Whether a fault target names `concept`. */
 const targets = (target, concept) => isObj(target) && (target.concepts === 'all' || (Array.isArray(target.concepts) && target.concepts.includes(concept)));
 /** A step's family for the order rules: a V4 lens's full pass is `V4`, its re-check `V4r`. */
-const familyOf = (s) => (/^V4-\w+-recheck$/.test(s.stage) ? 'V4r' : /^V4-/.test(s.stage) ? 'V4' : s.stage);
-const lensOf = (s) => (/^V4-(ledger|sources|prose)/.exec(String(s.stage)) ?? [])[1];
+const familyOf = (s) => (s.stage === 'V4-recheck' ? 'V4r' : s.stage);
 const sameStep = (a, b) => a.stage === b.stage && (a.concept ?? null) === (b.concept ?? null);
 const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt ${s.attempt}`;
 
 /**
  * The run's control flow, read from `stages[]` with `checkpoints[]` and `escalations[]`. It stands in for the
  * workflow harness tests amendment 1 deleted (the accepted cost of S1):
- *  - `order`: the steps run in SKILL.md's order, each design through D1, its gate, D2, its gate and W1 for one
- *    card; attempts number every call; a missing return re-runs once, and a second miss ends the run. In a
- *    schema-3 log each gate visit has its answer, in order, and the next step is the one it leads to (D-287):
- *    the brainstorm gate's `pick:<ids>` a verification round of those cards, in that order; the verification
- *    gate's `pick:<id>` that card's design, `verify:<ids>` a verification round without a brainstorm; `more` a
- *    brainstorm round; `stop` the end of the run. The final gate's last answer gives the run's end status:
- *    `accept` completed, the default `stop` stopped, any other answer but `revise:<text>` not-accepted.
+ *  - `order`: the steps run in SKILL.md's order, each design through D1 (D1-build then D1-finish, D-356; one D1
+ *    step in a schema-2 log), its gate, the design gate (D-362), D2, its gate and W1 for one card; attempts number
+ *    every call; a missing return re-runs once, and a second miss ends the run. In a schema-3 log each gate visit
+ *    has its answer, in order, and the next step is the one it leads to (D-287): the brainstorm gate's
+ *    `pick:<ids>` a verification round of those cards, in that order; the verification gate's `pick:<id>` that
+ *    card's design, `verify:<ids>` a verification round without a brainstorm; the design gate's `accept` D2,
+ *    `revise:<text>` D1 again (D1-build, or D1-finish), then its gate and the design gate again, `verification` the
+ *    verification gate; `more` a brainstorm round; `stop` the end of the run. The final gate's last answer gives
+ *    the run's end status: `accept` completed, the default `stop` stopped, any other answer but `revise:<text>`
+ *    not-accepted.
+ *  - `design-gate`: in the design phase (before the design's guide is verified: not in a fix round or a revision),
+ *    D2 comes only after a design gate visit answered `accept`, which follows a passing D1 gate or an escalation
+ *    accepted there (D-362).
  *  - `caps`: per brainstorm round at most 3 R1a researchers and one R1a-assemble, per verification round at
  *    most 3 cards compiled (NFR-23, D-287; a schema-2 log's research round carries at most 3 concepts, D-235);
  *    R1b at most 3 counted attempts, none after a terminal `not-a-skill` or `wrong-ascendancy` failure (D-334,
- *    D-342); each gate at most 2
- *    counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a persistent fault's
- *    attempts count; a guided retry and an accepted re-run escalate again on failure).
- *  - `verification`: one full pass of the three lenses per cycle, at most one re-check after the fix round, of
- *    all three lenses if and only if a gate re-ran in the fix round (an owner recompiled), else of the lenses
- *    that raised a finding and the sources lens, which always re-checks the changed locations (D-264); a
- *    claims-only owner (`claims-edited`) runs only before any gate of its fix round or revision, and no gate
- *    follows it; a new cycle only for a revision the final gate asked for.
+ *    D-342); each gate at most 2 counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a
+ *    persistent fault's attempts count; a guided retry and an accepted re-run escalate again on failure).
+ *  - `verification` (D-352): one full V4 pass per guide; after it, one fix round only when it found something,
+ *    then one re-check (V4-recheck); a revision the final gate asked for starts with its owners and checks with a
+ *    re-check, never a full pass, and its re-check may have its own fix round and re-check. A claims-only owner
+ *    (`claims-edited`) runs only before any gate of its fix round or revision, and no gate follows it.
  *  - `escalation`: only gates escalate, each escalation logged once, in order, its choice the answer to its
  *    escalation question, and the choice followed.
  *  - `routing`: each gate attempt's logged outcome is the one its verdict file routes to (gates.md).
@@ -1714,6 +1825,12 @@ function checkFlow(log, fail, ctx) {
   const v3 = ctx.schema !== 2;
   /** The pick and the guide's gates: schema 3's verification and final gates were schema 2's checkpoints 1 and 2. */
   const G = v3 ? { pick: 'the verification gate', final: 'the final gate', finalKey: 'final' } : { pick: 'checkpoint 1', final: 'checkpoint 2', finalKey: 2 };
+  /** The step a D1 attempt starts with: D1-build (D-356), or a schema-2 log's one D1. */
+  const D1_START = v3 ? 'D1-build' : 'D1';
+  /** The step D1's fix-round or revision chain starts with: D1-finish first (fix-round.md), or schema 2's D1. */
+  const D1_OWNER = v3 ? 'D1-finish' : 'D1';
+  /** The D1 step that ends an attempt, after which its gate runs. */
+  const D1_END = v3 ? 'D1-finish' : 'D1';
 
   // Attempts number every call of a (stage, concept), from 1 (run-log.md).
   const counts = new Map();
@@ -1726,7 +1843,7 @@ function checkFlow(log, fail, ctx) {
   });
 
   // A missing return re-runs once, uncounted, within its block (the run of entries of its family: parallel
-  // researchers or lenses finish in any order); a second miss of the step ends the run stopped.
+  // researchers finish in any order); a second miss of the step ends the run stopped.
   const blockOf = (i) => {
     let start = i;
     while (start > 0 && familyOf(stages[start - 1]) === familyOf(stages[i])) start -= 1;
@@ -1770,9 +1887,10 @@ function checkFlow(log, fail, ctx) {
   const picks = v3 ? [] : checkpoints.filter((c) => c.checkpoint === 1 && typeof c.answer === 'string' && c.answer.startsWith('pick:')).map((c) => c.answer.slice(5));
   const mores = checkpoints.filter((c) => c.checkpoint === 1 && c.answer === 'more').length;
   const revises = checkpoints.filter((c) => c.checkpoint === G.finalKey && typeof c.answer === 'string' && c.answer.startsWith('revise')).length;
-  // Schema 3: each visit of the brainstorm and verification gates takes that gate's next answer, in order (D-289).
-  const answers = { brainstorm: checkpoints.filter((c) => c.checkpoint === 'brainstorm'), verification: checkpoints.filter((c) => c.checkpoint === 'verification') };
-  const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate' };
+  // Schema 3: each visit of the brainstorm, verification and design gates takes that gate's next answer, in order.
+  const GATES = ['brainstorm', 'verification', 'design'];
+  const answers = Object.fromEntries(GATES.map((g) => [g, checkpoints.filter((c) => c.checkpoint === g)]));
+  const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate', design: 'the design gate' };
 
   const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.outcome !== 'missing');
   let prev = null;
@@ -1790,16 +1908,25 @@ function checkFlow(log, fail, ctx) {
     return r !== undefined && !r.passed && !r.terminal && r.counted < R1B_ATTEMPTS;
   };
   const chains = new Map(); // `${gate}|${concept}` -> {counted, guided}
-  let design = null; // {concept, verified}
+  let design = null; // {concept, verified}: verified once the V4 checks of its guide ran (a fix round or revision)
   let designs = 0;
-  let cycle = null; // {full: 'none' | 'open' | 'done', lenses: Set, failed: Set, fix, recheck: 'none' | 'open' | 'done', rechecked: Set}
+  let d1 = null; // the D1 attempt in progress: {built: whether D1-build ran in it, infeasible: whether it claimed so}
+  /**
+   * The V4 checks of the current guide (D-352): `start` 'full' for a design's first guide, 'revision' for a
+   * revision's; `first` its first check ('none' or 'done': the full pass, or the revision's re-check) and whether
+   * that found anything; `fix` whether its fix round ran; `recheck` the fix round's re-check.
+   */
+  let cycle = null;
   let revisions = 0;
-  /** Schema 3: the gate a step ends at, when the step after it doesn't continue it (D-287). */
+  const newCycle = (start) => ({ start, first: 'none', failed: false, fix: false, recheck: 'none' });
+  /** Schema 3: the gate a step ends at, when the step after it doesn't continue it (D-287, D-362). */
   const gateAfter = (p, next) => {
     if (!v3 || !p) return null;
     if (p.stage === 'R1a-assemble' && next?.stage !== 'R1a-assemble') return 'brainstorm';
     if (p.stage === 'R1b-assemble') return 'verification';
     if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return 'verification';
+    // D-362: in the design phase, a passing D1 gate, or one whose escalation the user accepted, goes to the design gate.
+    if (p.stage === 'D1-gate' && design !== null && !design.verified && (p.outcome === 'pass' || (p.outcome === 'escalated' && lastEscalation?.choice === 'accept'))) return 'design';
     if (p.outcome === 'escalated' && lastEscalation?.choice === 'verification') return 'verification';
     return null;
   };
@@ -1810,27 +1937,6 @@ function checkFlow(log, fail, ctx) {
     return chains.get(key);
   };
   const freshChain = (gate, concept) => chains.set(`${gate}|${concept}`, { counted: 0, guided: false });
-  const closeBlocks = (i) => {
-    if (cycle?.full === 'open') {
-      cycle.full = 'done';
-      const missing = LENSES.filter((l) => !cycle.lenses.has(l));
-      if (missing.length > 0) fail('verification', `run-log.json stages[${i}]: the full V4 pass before it ran without ${missing.join(', ')}; it runs all three lenses, with no sampling (S2)`);
-    }
-    if (cycle?.recheck === 'open') {
-      cycle.recheck = 'done';
-      const missing = LENSES.filter((l) => !cycle.rechecked.has(l));
-      if (cycle.fixGate && missing.length > 0) {
-        fail('verification', `run-log.json stages[${i}]: a gate re-ran in the fix round (an owner recompiled), so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ${missing.join(', ')} (D-264)`);
-      }
-      // A claims-only round: each lens that raised a finding re-checks it, and the sources lens always re-checks
-      // the changed locations, whose citations may have changed (D-264).
-      const wanted = LENSES.filter((l) => cycle.failed.has(l) || l === 'sources');
-      const left = wanted.filter((l) => !cycle.rechecked.has(l));
-      if (!cycle.fixGate && left.length > 0) {
-        fail('verification', `run-log.json stages[${i}]: the claims-only fix round's re-check before it ran without ${left.join(', ')}; each lens that raised a finding re-checks it, and the sources lens always re-checks the changed locations (D-264)`);
-      }
-    }
-  };
   /** A fresh design of `concept`, from the pick that finalized it (schema 2: checkpoint 1's next pick). */
   const freshDesign = (s, i) => {
     designs += 1;
@@ -1849,21 +1955,40 @@ function checkFlow(log, fail, ctx) {
   };
   /**
    * Schema 3: the step after a gate visit follows that visit's answer, the gate's next one in checkpoints[]
-   * (D-287, D-289). `pick:<ids>` (brainstorm) and `verify:<ids>` open a verification round of those cards;
-   * `pick:<id>` (verification) finalizes a card verified in the run, whose design comes next; `more` opens a
-   * brainstorm round; `stop` ends the run.
+   * (D-287, D-289, D-362). `pick:<ids>` (brainstorm) and `verify:<ids>` open a verification round of those cards;
+   * `pick:<id>` (verification) finalizes a card verified in the run, whose design comes next; the design gate's
+   * `accept` is D2, `revise:<text>` D1 again, `verification` the verification gate; `more` opens a brainstorm
+   * round; `stop` ends the run. Returns the answer's kind, or undefined.
    */
   const followGate = (kind, s, i) => {
     const illegal = (why) => fail('order', `${at(i)}: ${why}`);
     const c = answers[kind].shift();
     const name = GATE_NAME[kind];
-    if (c === undefined) return illegal(`follows a visit of ${name}, but checkpoints[] records no ${kind} answer for it; each visit records its answer (D-289)`);
+    if (c === undefined) {
+      // D-362: in the design phase D2 comes only after the design gate's accept.
+      if (kind === 'design' && s.stage === 'D2') {
+        return fail('design-gate', `${at(i)}: reaches D2 without a design gate visit: checkpoints[] records no design answer after ${design?.concept ?? s.concept}'s D1 gate; in the design phase the design gate runs between the D1 gate and D2, whoever answers, and D2 comes only after its accept (D-362)`);
+      }
+      return illegal(`follows a visit of ${name}, but checkpoints[] records no ${kind} answer for it; each visit records its answer (D-289${kind === 'design' ? ', D-362' : ''})`);
+    }
     const a = String(c.answer);
     const m = /^(pick|verify):(.+)$/.exec(a);
     if (a === 'stop') return illegal(`follows ${name} answered "stop", which ends the run stopped`);
+    if (kind === 'design') {
+      if (a === 'accept') {
+        if (s.stage !== 'D2' || s.concept !== design?.concept) illegal(`follows the design gate answered "accept", which goes on to ${design?.concept ?? 'the card'}'s D2, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-362)`);
+        return 'accept';
+      }
+      if (a.startsWith('revise:')) {
+        if (!['D1-build', 'D1-finish'].includes(s.stage) || s.concept !== design?.concept) illegal(`follows the design gate answered ${show(a)}, which runs ${design?.concept ?? 'the card'}'s D1 again (D1-build, or D1-finish), not ${s.stage} (D-362)`);
+        return 'revise';
+      }
+      if (a === 'verification') return followGate('verification', s, i);
+      return illegal(`follows the design gate answered ${show(a)}, which isn't an answer of that gate`);
+    }
     if (a === 'more') {
       if (s.stage !== 'R1a') illegal(`follows ${name} answered "more", which starts a brainstorm round (R1a), not ${s.stage}`);
-      return undefined;
+      return 'more';
     }
     if (m && ((kind === 'brainstorm' && m[1] === 'pick') || (kind === 'verification' && m[1] === 'verify'))) {
       const ids = m[2].split(',');
@@ -1871,7 +1996,7 @@ function checkFlow(log, fail, ctx) {
       if (s.stage !== 'R1b') illegal(`follows ${name} answered ${show(a)}, which starts a verification round (R1b), not ${s.stage}`);
       vrounds += 1;
       vround = { n: vrounds, gate: `${name}'s ${show(a)}`, expected: ids, cards: [] };
-      return undefined;
+      return 'verify';
     }
     if (m && kind === 'verification' && m[1] === 'pick') {
       const id = m[2];
@@ -1879,22 +2004,22 @@ function checkFlow(log, fail, ctx) {
       if (r === undefined) illegal(`follows the verification gate answered ${show(a)}, but no R1b verified ${id} in the run; the gate finalizes a verified card (D-287)`);
       else if (r.terminal === 'not-a-skill') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
       else if (r.terminal === 'wrong-ascendancy') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s ascendancy doesn't own the passive-tree node that grants its skill (its R1b ended wrong-ascendancy), so the build it describes can't exist and it can't be finalized (D-342)`);
-      if (s.stage !== 'D1') illegal(`follows the verification gate answered ${show(a)}, which finalizes ${id}: its design (D1) comes next, not ${s.stage}`);
+      if (s.stage !== D1_START) illegal(`follows the verification gate answered ${show(a)}, which finalizes ${id}: its design (${D1_START}) comes next, not ${s.stage}`);
       finalized = id;
-      return undefined;
+      return 'pick';
     }
     return illegal(`follows ${name} answered ${show(a)}, which isn't an answer of that gate`);
   };
-  /** A producer after the V4 checks: the fix round when the full pass found something, else a revision. */
-  const afterVerification = (s, i, pf) => {
+  /** An owner after the V4 checks: the fix round when the last check found something and had none, else a revision. */
+  const afterVerification = (s, i) => {
     if (cycle === null || design === null || s.concept !== design.concept) {
       fail('order', `${at(i)}: follows the V4 checks of another design`);
       return;
     }
-    if (pf === 'V4' && cycle.failed.size > 0 && !cycle.fix) cycle.fix = true;
+    if (cycle.first === 'done' && cycle.failed && !cycle.fix) cycle.fix = true;
     else {
       revisions += 1;
-      cycle = { full: 'none', lenses: new Set(), failed: new Set(), fix: false, recheck: 'none', rechecked: new Set() };
+      cycle = newCycle('revision');
     }
     design.verified = true;
   };
@@ -1904,21 +2029,24 @@ function checkFlow(log, fail, ctx) {
     const pf = prev ? familyOf(prev.s) : 'start';
     const p = prev?.s;
     const same = p !== undefined && p.concept === s.concept;
-    if (f !== pf) closeBlocks(i);
     const illegal = (why) => fail('order', `${at(i)}: ${why}`);
     // After the V4 checks: a full pass or a re-check.
     const postVerify = pf === 'V4' || pf === 'V4r';
+    // A D1 attempt starts at D1-build, or in a fix round, a revision or a design-gate revise at D1-finish; the
+    // D1-build a D1-finish's `build:` return asks for continues its attempt (fix-round.md, D-356).
+    const startsD1 = D1_STAGES.includes(s.stage) && !(v3 && ((s.stage === 'D1-finish' && pf === 'D1-build' && same) || (s.stage === 'D1-build' && pf === 'D1-finish' && same && p.outcome === 'done')));
 
-    // What the previous step's outcome allows next: in a schema-3 log, a gate's answer (D-287).
+    // What the previous step's outcome allows next: in a schema-3 log, a gate's answer (D-287, D-362).
     const gate = gateAfter(p, s);
+    let via = null;
     if (gate !== null) {
-      followGate(gate, s, i);
+      via = followGate(gate, s, i) ?? null;
     } else if (p && p.outcome === 'escalated') {
       const e = lastEscalation;
       const choice = e?.choice;
       const ok =
         choice === 'accept' ? same && (p.stage === 'D1-gate' ? s.stage === 'D2' || (design?.verified && s.stage === 'D2-gate') : s.stage === 'D2-gate')
-          : choice === 'retry' ? same && s.stage === (p.stage === 'D1-gate' ? 'D1' : 'D2')
+          : choice === 'retry' ? same && s.stage === (p.stage === 'D1-gate' ? D1_START : 'D2')
             : choice === 'checkpoint-1' && !v3 ? s.stage === 'D1' || s.stage === 'R1a'
               : false;
       if (!ok) illegal(`follows ${p.stage} ${p.concept}'s escalation answered ${show(choice)}, which ${choice === 'stop' ? 'ends the run escalated' : `doesn't lead to ${s.stage}`} (D-236)`);
@@ -1937,27 +2065,33 @@ function checkFlow(log, fail, ctx) {
         R1b: ['R1b', 'R1b-assemble'],
         'R1b-assemble': ['R1a', 'D1'],
       };
+      // After the V4 checks, the owners (fix-round.md): D1 first (D1-finish), D2, then W1, which always runs last.
+      const owners = [D1_OWNER, 'D2', 'W1'];
+      // The guide's next check (D-352): its full pass, or for a revision its re-check; after a fix round, its re-check.
+      const nextCheck = cycle !== null && (cycle.first === 'done' ? cycle.fix : cycle.start === 'revision') ? 'V4r' : 'V4';
       const allowed = {
         ...research,
+        // D-356: D1-build, then D1-finish; a D1-finish that opened a fix-round or revision chain may hand its build
+        // findings to D1-build (`build:`), which D1-finish follows once more.
+        'D1-build': ['D1-finish'],
         // D-264: a claims-only D1 runs no gate; D2 (a claims-only one, or one that recompiles) or W1 follows.
-        D1: p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : ['D1-gate'],
-        'D1-gate': p?.outcome === 'pass' ? ['D2', ...(design?.verified ? ['D2-gate'] : [])] : p?.outcome === 'fail' ? ['D1'] : ['D1', 'R1a'],
+        [D1_END]: p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : v3 && !d1?.built ? ['D1-gate', 'D1-build'] : ['D1-gate'],
+        'D1-gate': p?.outcome === 'pass' ? ['D2', ...(design?.verified ? ['D2-gate'] : [])] : p?.outcome === 'fail' ? [D1_START] : [D1_START, 'R1a'],
         D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
         'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
-        W1: cycle?.fix && cycle.full === 'done' ? ['V4r'] : ['V4'],
-        V4: ['V4', 'D1', 'D2', 'W1'],
-        V4r: ['V4r', 'D1', 'D2', 'W1'],
+        W1: [nextCheck],
+        V4: ['V4', ...owners],
+        V4r: ['V4r', ...owners],
       }[pf] ?? [];
-      const want = f === 'V4' || f === 'V4r' ? f : s.stage;
-      if (!allowed.includes(want)) illegal(`can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}); SKILL.md's step list allows ${allowed.join(', ') || 'nothing'} next`);
-      const keepsConcept = ['D1', 'D1-gate', 'D2', 'D2-gate', 'W1'].includes(pf) || ((pf === 'V4' || pf === 'V4r') && f !== 'R1a');
+      if (!allowed.includes(f)) illegal(`can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck') || 'nothing'} next`);
+      const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'W1'].includes(pf) || ((pf === 'V4' || pf === 'V4r') && f !== 'R1a');
       if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !(pf === 'D1-gate' && p.outcome === 'infeasible') && !same) {
         illegal(`is about ${s.concept}, but the design before it is ${p.concept}'s; a design runs through D1, its gate, D2, its gate, W1 and V4 for one ${v3 ? 'card' : 'concept'}`);
       }
     }
     // D-264: a claims-only owner edits in place before any gate of its fix round or revision: right after the V4
     // checks, or (D2) right after a claims-only D1. Once a gate re-ran, the final record is gone, so D2 runs its gate.
-    if (s.outcome === CLAIMS_EDITED && !(postVerify || (s.stage === 'D2' && pf === 'D1' && p?.outcome === CLAIMS_EDITED))) {
+    if (s.outcome === CLAIMS_EDITED && !((postVerify && s.stage !== 'D1-build') || (s.stage === 'D2' && pf === D1_END && p?.outcome === CLAIMS_EDITED))) {
       illegal(`edits claims without a compile (${CLAIMS_EDITED}), which an owner does only in the fix round or a revision, before any gate of it re-runs (D-264)`);
     }
 
@@ -2022,15 +2156,23 @@ function checkFlow(log, fail, ctx) {
     }
 
     // Designs, chains and caps (gates.md; S6).
-    if (s.stage === 'D1') {
+    if (startsD1) {
+      d1 = { built: false, infeasible: false };
       if (pf === 'D1-gate' && p.outcome === 'fail' && same) {
         // a counted retry, or a free one after an attempt-1 fault
       } else if (pf === 'D1-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
         chain('D1-gate', s.concept).guided = true;
       } else if (postVerify) {
-        afterVerification(s, i, pf);
+        afterVerification(s, i);
+        freshChain('D1-gate', s.concept);
+      } else if (via === 'revise') {
+        // D-362: a design-gate revise counts against no cap; the D1 gate in it keeps its 2 counted retries.
         freshChain('D1-gate', s.concept);
       } else if (s.outcome !== CLAIMS_EDITED) freshDesign(s, i);
+    }
+    if (D1_STAGES.includes(s.stage) && d1 !== null) {
+      if (s.stage !== 'D1-finish') d1.built = true;
+      if (s.stage !== 'D1-finish' && s.outcome === 'infeasible') d1.infeasible = true;
     }
     if (s.stage === 'D2') {
       if (pf === 'D2-gate' && p.outcome === 'fail' && same) {
@@ -2038,18 +2180,14 @@ function checkFlow(log, fail, ctx) {
       } else if (pf === 'D2-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
         chain('D2-gate', s.concept).guided = true;
       } else {
-        if (postVerify) afterVerification(s, i, pf);
+        if (postVerify) afterVerification(s, i);
         freshChain('D2-gate', s.concept);
       }
     }
-    // Flow invariant 3 (D-264): a gate that re-runs in the fix round compiles a new plan and record (an owner
-    // recompiled), so the re-check is a full pass of all three lenses; a claims-only round runs no gate, and its
-    // re-check stays with the lenses that raised a finding.
-    if ((s.stage === 'D1-gate' || s.stage === 'D2-gate') && cycle?.fix && cycle.full === 'done' && cycle.recheck === 'none') cycle.fixGate = true;
     if (s.stage === 'D2-gate' && pf === 'D1-gate') freshChain('D2-gate', s.concept);
     if (s.stage === 'D2-gate' && pf === 'D2-gate' && p.outcome === 'escalated' && lastEscalation?.choice === 'accept') chain('D2-gate', s.concept).guided = true;
-    if (s.stage === 'W1' && postVerify) afterVerification(s, i, pf);
-    if (s.stage === 'W1' && pf === 'D2-gate' && cycle === null) cycle = { full: 'none', lenses: new Set(), failed: new Set(), fix: false, recheck: 'none', rechecked: new Set() };
+    if (s.stage === 'W1' && postVerify) afterVerification(s, i);
+    if (s.stage === 'W1' && pf === 'D2-gate' && cycle === null) cycle = newCycle('full');
     // Each gate attempt routes as its own verdict file says (gates.md's outcome tables).
     if (GATE_STAGES.includes(s.stage)) {
       const rep = ctx.verdict(s);
@@ -2059,7 +2197,8 @@ function checkFlow(log, fail, ctx) {
       if (!isObj(rep) || !isObj(rep.verdict)) fail('routing', `${at(i)}: has no verdict file ${file}; a gate step writes its own, and the runner routes on it (§3)`);
       else {
         const cls = gateClass(rep, s.stage, coveredSoFar);
-        const claimedInfeasible = p?.stage === 'D1' && p.concept === s.concept && p.outcome === 'infeasible';
+        // D-356: D1-build claims infeasible, and D1-finish runs before the gate all the same.
+        const claimedInfeasible = s.stage === 'D1-gate' && D1_STAGES.includes(p?.stage) && p.concept === s.concept && d1?.infeasible === true;
         const why = {
           pass: cls === 'pass' ? null : `its verdict ${describeClass(cls)}, which isn't a pass`,
           fail: cls === 'hard' || cls === 'soft' ? (guided ? 'a guided retry or an accepted re-run that fails escalates again' : null) : `its verdict ${describeClass(cls)}, which isn't a failure`,
@@ -2068,7 +2207,7 @@ function checkFlow(log, fail, ctx) {
             cls === 'forced' ? (forcedByFault(s) ? null : 'its verdict is forced infeasible, but no FI-3 directive targets this attempt')
               : cls !== 'soft' ? `its verdict ${describeClass(cls)}; infeasible is FI-3's forced verdict, or a floor, budget or named-damage-source (rolledSkill) failure`
                 : guided ? 'a guided retry that fails escalates again'
-                  : claimedInfeasible || counted >= GATE_RETRIES ? null : `D1 claimed done and the gate has ${counted} counted retr${counted === 1 ? 'y' : 'ies'}; a floor, budget or named-damage-source (rolledSkill) failure re-runs D1 until its 2 counted retries, unless D1 claimed infeasible`,
+                  : claimedInfeasible || counted >= GATE_RETRIES ? null : `${D1_START} claimed done and the gate has ${counted} counted retr${counted === 1 ? 'y' : 'ies'}; a floor, budget or named-damage-source (rolledSkill) failure re-runs D1 until its 2 counted retries, unless ${D1_START} claimed infeasible`,
         }[s.outcome];
         if (cls === 'forced' && s.outcome !== 'infeasible') fail('routing', `${at(i)}: is routed ${s.outcome}, but ${file} is forced infeasible (FI-3)`);
         else if (why) fail('routing', `${at(i)}: is routed ${s.outcome}, but ${s.outcome === 'pass' || s.outcome === 'fail' || s.outcome === 'escalated' || s.outcome === 'infeasible' ? why : 'that outcome'} (${file})`);
@@ -2097,38 +2236,41 @@ function checkFlow(log, fail, ctx) {
       }
     }
 
-    // Verification cycles (S2; Q4).
+    // The V4 checks (D-352): one full pass per guide; then, when it found something, one fix round and its
+    // re-check; a revision checks with a re-check, never a full pass, and its re-check may have its own fix round.
     if (f === 'V4') {
       if (cycle === null) illegal('runs a V4 pass with no guide written for this design');
+      else if (cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what check-run.mjs --changed lists (D-352)`);
+      else if (cycle.first === 'done') fail('verification', `${at(i)}: starts a second full V4 pass for one guide; after the fix round a re-check (V4-recheck) covers what changed, and a revision ${G.final} asked for checks with a re-check too (D-352)`);
       else {
-        if (cycle.full === 'done') fail('verification', `${at(i)}: starts a second full V4 pass in one cycle; after the fix round each lens that raised a finding re-checks it (step 13), and only a revision ${G.final} asked for starts a new cycle`);
-        if (cycle.full === 'open' && cycle.lenses.has(lensOf(s))) fail('verification', `${at(i)}: runs the ${lensOf(s)} lens twice in one full pass`);
-        cycle.full = 'open';
-        cycle.lenses.add(lensOf(s));
-        if (s.outcome === 'fail') cycle.failed.add(lensOf(s));
+        cycle.first = 'done';
+        cycle.failed = s.outcome === 'fail';
       }
     }
     if (f === 'V4r') {
-      if (!cycle || cycle.full !== 'done' || !cycle.fix) fail('verification', `${at(i)}: re-checks with no full pass and fix round before it in this cycle`);
-      else if (cycle.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check in one cycle; there is no further round, what stays open is a known issue (S2)`);
-      else {
-        if (!cycle.fixGate && !cycle.failed.has(lensOf(s)) && lensOf(s) !== 'sources') fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens, which raised no finding in the full pass; after a claims-only round only a lens that raised one re-checks, with the sources lens, unless a gate re-ran in the fix round (D-264)`);
-        if (cycle.rechecked.has(lensOf(s))) fail('verification', `${at(i)}: re-checks the ${lensOf(s)} lens twice`);
-        cycle.recheck = 'open';
-        cycle.rechecked.add(lensOf(s));
-      }
+      if (cycle !== null && cycle.start === 'revision' && cycle.first === 'none') {
+        cycle.first = 'done';
+        cycle.failed = s.outcome === 'fail';
+      } else if (!cycle || cycle.first !== 'done' || !cycle.fix) fail('verification', `${at(i)}: re-checks with no fix round or revision before it; a re-check follows the owners of a fix round (after a check that found something) or of a revision (D-352)`);
+      else if (cycle.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check after one fix round; there is no further round, what stays open is a known issue (D-352)`);
+      else cycle.recheck = 'done';
     }
     prev = { s, i };
   }
-  closeBlocks(stages.length);
 
   // Schema 3: a run that ends at a gate takes that visit's answer too; stop ends it stopped, and any other answer
-  // leaves a step to come, so the run is still running. No gate has an answer left over (D-287, D-289).
-  const end = gateAfter(prev?.s, undefined);
-  if (end !== null) {
+  // leaves a step to come, so the run is still running. No gate has an answer left over (D-287, D-289, D-362).
+  let end = gateAfter(prev?.s, undefined);
+  while (end !== null) {
     const c = answers[end].shift();
-    if (stages[stages.length - 1] === prev.s) {
-      const name = GATE_NAME[end];
+    const name = GATE_NAME[end];
+    const atEnd = stages[stages.length - 1] === prev.s;
+    // D-362: the design gate's "verification" goes on to the verification gate, which takes its own answer.
+    if (end === 'design' && c?.answer === 'verification') {
+      end = 'verification';
+      continue;
+    }
+    if (atEnd) {
       if (c === undefined && log.status !== 'running') fail('order', `run-log.json: the run ends at ${name} with no ${end} answer recorded, but its status is ${show(log.status)}; a run that stops there records the answer stop`);
       else if (c?.answer === 'stop' && log.status !== 'stopped') fail('order', `run-log.json: ${name} answered "stop", which ends the run stopped, but its status is ${show(log.status)}`);
       else if (c !== undefined && c.answer !== 'stop' && log.status !== 'running') fail('order', `run-log.json: ${name} answered ${show(c.answer)}, but no step follows it and the run ends ${show(log.status)}`);
@@ -2139,8 +2281,9 @@ function checkFlow(log, fail, ctx) {
     if (picked !== undefined && !r1bSeen.get(picked)?.terminal) {
       fail('order', `run-log.json: the verification gate's pre-supplied ${show(c.rule)} ended the run with "stop", but ${picked} can be finalized; a pre-supplied pick stops the run only when its card can't be (its R1b ended wrong-ascendancy or not-a-skill; D-303, D-342)`);
     }
+    end = null;
   }
-  for (const kind of v3 ? ['brainstorm', 'verification'] : []) {
+  for (const kind of v3 ? GATES : []) {
     if (answers[kind].length > 0) fail('order', `run-log.json: checkpoints[] records ${answers[kind].length} ${kind} answer(s) more than the run visits ${GATE_NAME[kind]}; each visit records one answer, in order (D-289)`);
   }
 
@@ -2182,8 +2325,8 @@ function checkFlow(log, fail, ctx) {
   } else if (log.status === 'not-accepted' && endsAs !== 'not-accepted') {
     fail('order', `run-log.json: status is "not-accepted", but ${G.final}'s last answer is ${show(lastAnswer)}; only an answer at ${G.final} other than accept, revise:<text> and the default stop ends a run not-accepted (checkpoints.md)`);
   }
-  if (log.status === 'completed' && !(cycle && cycle.full === 'done' && (cycle.failed.size === 0 || cycle.recheck === 'done'))) {
-    fail('verification', 'run-log.json: status is "completed", but the run doesn\'t end with a full V4 pass and, when it found anything, its re-check');
+  if (log.status === 'completed' && !(cycle && cycle.first === 'done' && (!cycle.failed || cycle.recheck === 'done'))) {
+    fail('verification', "run-log.json: status is \"completed\", but the run doesn't end with its guide's check (the full pass, or a revision's re-check) and, when that found anything, the fix round's re-check (D-352)");
   }
 }
 
@@ -2215,15 +2358,33 @@ function gateClass(rep, stage, covered) {
 }
 const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor, budget or named damage source (rolledSkill)', forced: 'is forced infeasible (FI-3)' })[cls];
 
-/** The claim a V4 finding's location names: a plan claim `stages[i].claims[k]`, or a guide `[^id]`. */
-function claimAt(claims, artifact, location) {
-  if (typeof location !== 'string') return null;
-  if (artifact === 'plan.json') {
-    const m = /stages\[\d+\]\.claims\[\d+\]/.exec(location);
-    return m ? (claims.plan.find((c) => c.at === m[0]) ?? null) : null;
+/**
+ * The plan claim a V4 finding's location names, `stages[<i>].claims[<k>] (<id>)` (stages/V4.md), with its source's
+ * kind; null when the location names none, or its id isn't that claim's.
+ */
+function claimAt(plan, location) {
+  const m = /^stages\[(\d+)\]\.claims\[(\d+)\](?: \((.+)\))?$/.exec(String(location ?? '').trim());
+  const c = m ? list(list(plan?.stages)[Number(m[1])]?.claims)[Number(m[2])] : undefined;
+  if (!isObj(c) || (m[3] !== undefined && c.id !== m[3])) return null;
+  const kind = typeof c.source === 'string' ? (/^(ledger|price|data):/.exec(c.source)?.[1] ?? null) : c.source?.kind;
+  return { id: c.id, kind };
+}
+
+/**
+ * The first line where `got` and `want` differ, each line compared by `key` (trailing whitespace dropped by
+ * default) and trailing blank lines ignored: `{n, got, want}`, `n` 1-based, or null when they are equal.
+ */
+function firstDifference(got, want, key = (l) => l.replace(/\s+$/, '')) {
+  const trim = (ls) => {
+    const out = ls.map(key);
+    while (out.length > 0 && out[out.length - 1] === '') out.pop();
+    return out;
+  };
+  const [a, b] = [trim(got), trim(want)];
+  for (let k = 0; k < Math.max(a.length, b.length); k += 1) {
+    if (a[k] !== b[k]) return { n: k + 1, got: a[k] ?? '<the end>', want: b[k] ?? '<the end>' };
   }
-  const m = /\[\^([^\]\s]+)\]/.exec(location);
-  return artifact === 'guide.md' && m ? (claims.guide.find((c) => c.id === m[1]) ?? null) : null;
+  return null;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -2329,37 +2490,156 @@ function checkDeck(text, stages, cardIds, fail) {
   }
 }
 
-function checkReportShape(rep, r, mode, fail, schema) {
-  const bad = (why) => fail('report-shape', `${r.file}: ${why}`);
-  if (rep.stage !== 'V4') bad(`stage is ${show(rep.stage)}; it is "V4"`);
-  if (rep.lens !== r.lens) bad(`lens is ${show(rep.lens)}; its name says "${r.lens}"`);
-  if (rep.check !== r.check) bad(`check is ${show(rep.check)}; its name says "${r.check}" (source-markers.md)`);
-  if (!new RegExp(`^${idSource(schema)}$`).test(rep.concept ?? '')) bad(`concept is ${show(rep.concept)}; it is the guide's ${schema === 2 ? 'concept' : 'card'}, ${idForm(schema)}`);
-  if (rep.mode !== mode) bad(`mode is ${show(rep.mode)}; the run is ${show(mode)}`);
-  if (!Array.isArray(rep.findings)) return bad('has no findings list (§7.4)');
-  if (!['pass', 'fail'].includes(rep.verdict)) bad(`verdict is ${show(rep.verdict)}; "pass" or "fail" (§7.4)`);
-  const statuses = r.check === 'recheck' ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
-  const ids = new Set();
-  let unresolved = 0;
-  rep.findings.forEach((f, i) => {
-    if (!isObj(f)) return bad(`findings[${i}] is an object`);
-    for (const k of ['id', 'artifact', 'location', 'claim', 'issue', 'evidence', 'owner', 'status']) {
-      if (!(k in f)) bad(`findings[${i}] has no ${k} (§7.4)`);
-    }
-    // D-265 (d): an unresolved finding (only it can become a known issue) has the plain sentence for the guide's
-    // reader, which the runner copies into Known issues; a fixed or accepted-offline one needs none.
-    if (f.status === 'unresolved' && (typeof f.reader !== 'string' || f.reader.trim() === '')) bad(`findings[${i}] is unresolved and has no reader: one plain sentence the guide's reader can act on (D-265)`);
-    if (ids.has(f.id)) bad(`findings[${i}] reuses the id ${show(f.id)}; each finding has its own`);
-    ids.add(f.id);
-    if (!statuses.includes(f.status)) bad(`findings[${i}].status is ${show(f.status)}; one of ${statuses.join(', ')}`);
-    if (f.status === 'accepted-offline' && mode !== 'offline') bad(`findings[${i}] is accepted-offline in an online run; only offline mode accepts external-unavailable (C-30)`);
-    if (f.status === 'accepted-offline' && r.lens !== 'sources') bad(`findings[${i}] is accepted-offline in a ${r.lens} lens report; only the V4 sources lens marks an external-unavailable claim accepted-offline (C-30, §7.4)`);
-    if ('artifact' in f && !ARTIFACTS.includes(f.artifact)) bad(`findings[${i}].artifact is ${show(f.artifact)}; V4 checks ${ARTIFACTS.join(' and ')} (the dossier isn't verified, S3)`);
-    if ('owner' in f && !OWNERS.includes(f.owner)) bad(`findings[${i}].owner is ${show(f.owner)}; one of ${OWNERS.join(', ')}`);
-    if (f.status === 'unresolved') unresolved += 1;
+/**
+ * D-355, templates/dossier-template.md: the dossier is the verification gate's comparison table: one H1, then a
+ * `Brief:` line, then one table with `DOSSIER_COLUMNS`, one row `| <id> | …` per card R1b verified before the last
+ * assembly, and no H2, H3 or marker. A failed or not-yet-finalizable card has `—` in its number, price and league
+ * cells.
+ */
+function checkDossier(text, assembled, ID, fail) {
+  const bad = (why) => fail('dossier-sections', `dossier.md${why}`);
+  const md = parseMarkdown(text);
+  const h1 = md.headings.filter((h) => h.level === 1);
+  if (h1.length !== 1) bad(` has ${h1.length} H1s; it has one, then the Brief: line and the comparison table (§7.2, D-355)`);
+  for (const h of md.headings.filter((x) => x.level > 1)) bad(`:${h.line + 1} has the heading ${show(h.title)}; the dossier is one table, with no H2 or H3 (§7.2, D-355)`);
+  if (md.markers.length > 0 || md.definitions.length > 0) bad(` carries source markers ([^…]); the dossier's numbers are the cards' records' and its prices their skeletons' entries, with no marker (D-355)`);
+  const body = md.lines.map((raw, i) => ({ raw: raw.trim(), n: i + 1 })).filter((l) => l.raw !== '' && !(h1[0] && l.n === h1[0].line + 1));
+  if (!body[0] || !body[0].raw.startsWith('Brief:')) bad(` doesn't start with the "Brief:" line after its H1 (templates/dossier-template.md)`);
+  const tables = [];
+  body.forEach((l, k) => {
+    if (!l.raw.startsWith('|')) return;
+    if (k === 0 || !body[k - 1].raw.startsWith('|') || body[k - 1].n !== l.n - 1) tables.push([]);
+    tables[tables.length - 1].push({ ...l, cells: l.raw.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()) });
   });
-  if (rep.verdict === 'pass' && unresolved > 0) bad(`says verdict "pass" alongside ${unresolved} unresolved finding(s); pass means none is unresolved (§7.4)`);
-  if (rep.verdict === 'fail' && unresolved === 0) bad('says verdict "fail" with no unresolved finding; pass means none is unresolved (§7.4)');
+  if (tables.length !== 1) {
+    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${DOSSIER_COLUMNS.join(' | ')} (D-355)`);
+    if (tables.length === 0) return;
+  }
+  const [head, rule, ...rows] = tables[0];
+  if (show(head.cells) !== show(DOSSIER_COLUMNS) || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
+    bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS)}, in that order (D-355)`);
+    return;
+  }
+  const seen = new Set();
+  for (const r of rows) {
+    const id = r.cells[0];
+    if (r.cells.length !== DOSSIER_COLUMNS.length || !ID.test(id)) {
+      bad(`:${r.n}: the row ${show(r.raw.length > 60 ? `${r.raw.slice(0, 57)}...` : r.raw)} isn't "| <id> | …" with ${DOSSIER_COLUMNS.length} cells`);
+      continue;
+    }
+    if (seen.has(id)) bad(`:${r.n}: ${id} has a second row; one row per verified card`);
+    seen.add(id);
+    if (!assembled.includes(id)) bad(`:${r.n}: has a row for ${id}, which no R1b verified before the last R1b-assemble; one row per verified card (D-355)`);
+    const status = r.cells[DOSSIER_COLUMNS.indexOf('Status')];
+    if (/^(failed|can't be finalized)/i.test(status)) {
+      const filled = DOSSIER_EMPTY_CELLS.filter((c) => r.cells[DOSSIER_COLUMNS.indexOf(c)] !== '—');
+      if (filled.length > 0) bad(`:${r.n}: ${id} is ${show(status.split(/[:;]/)[0])}, but its ${filled.join(', ')} cell(s) aren't "—"; a failed or not-yet-finalizable card has no numbers, prices or league (templates/dossier-template.md)`);
+    }
+  }
+  for (const id of assembled) if (!seen.has(id)) bad(` has no row "| ${id} | …" for ${id}, which R1b verified before the last R1b-assemble (§7.2, D-355)`);
+}
+
+/** stages/V4.md: a finding's fields, in order; an `unresolved` one adds `reader`. */
+const FINDING_FIELDS = ['status', 'hinge', 'owner', 'artifact', 'location', 'claim', 'issue', 'evidence'];
+/** A `## Checked` item, as `--changed` prints it (D-352). */
+const CHECKED_ITEM = /^(?:claim stages\[\d+\]\.claims\[\d+\] \(.+\)|section .+)$/;
+
+/**
+ * A V4 report, `reports/V4-<n>.md` (stages/V4.md), read by line: its H1, its `- <key>: <value>` fields, the items of
+ * `## Checked`, and `## Findings`, `None.` or one `### <id>` per finding with its fields in order. `errors` lists the
+ * lines outside the form.
+ */
+export function parseV4Report(text) {
+  const out = { h1: null, fields: {}, checked: null, findings: null, none: false, errors: [] };
+  let section = 'head';
+  let finding = null;
+  String(text ?? '').split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.replace(/\s+$/, '');
+    if (line.trim() === '') return;
+    const h = /^(#{1,6})\s+(.*?)$/.exec(line);
+    const kv = /^- ([a-z]+):\s?(.*)$/.exec(line);
+    if (h) {
+      const [level, title] = [h[1].length, h[2].trim()];
+      if (level === 1 && out.h1 === null && section === 'head') out.h1 = title;
+      else if (level === 2 && title === 'Checked' && out.checked === null) [out.checked, section] = [[], 'checked'];
+      else if (level === 2 && title === 'Findings' && out.findings === null) [out.findings, section, finding] = [[], 'findings', null];
+      else if (level === 3 && section === 'findings' && !out.none) {
+        finding = { id: title, fields: [], line: i + 1 };
+        out.findings.push(finding);
+      } else out.errors.push(`line ${i + 1}: the heading ${show(line)} isn't the form's (# V4-<n>: …, ## Checked, ## Findings, ### <id>)`);
+    } else if (section === 'head') {
+      if (kv && out.h1 !== null) out.fields[kv[1]] = kv[2].trim();
+      else out.errors.push(`line ${i + 1}: ${show(line)} isn't a "- <key>: <value>" line under the H1`);
+    } else if (section === 'checked') {
+      const item = /^- (.+)$/.exec(line);
+      if (item) out.checked.push(item[1].trim());
+      else if (line.trim() !== 'None.') out.errors.push(`line ${i + 1}: ${show(line)} isn't a "- <item>" line of ## Checked`);
+    } else if (finding === null) {
+      if (line.trim() === 'None.' && out.findings.length === 0) out.none = true;
+      else out.errors.push(`line ${i + 1}: ${show(line)} isn't "None." or a "### <id>" finding of ## Findings`);
+    } else if (kv) finding.fields.push([kv[1], kv[2].trim()]);
+    else out.errors.push(`line ${i + 1}: ${show(line)} isn't a "- <key>: <value>" line of finding ${finding.id}`);
+  });
+  return out;
+}
+
+/**
+ * A V4 report against stages/V4.md and the log entry that wrote it (`r.entry`, the n-th logged pass): the H1
+ * `# V4-<n>: full pass` (a V4 entry) or `# V4-<n>: re-check of rounds/<n-1>` (a V4-recheck entry); the fields
+ * `check`, `concept` (the entry's card), `mode` (the run's) and `verdict` (`pass` exactly when no finding is
+ * unresolved, the entry's outcome); `## Checked` items in `--changed`'s forms; each finding `v4-<n>-<k>` (a
+ * full pass's all its own `<n>`) with its fields in order, `reader` on an unresolved one only. Returns
+ * `{check, checked, findings}`, each finding its fields by name.
+ */
+function checkV4Report(r, mode, fail, ID) {
+  const bad = (why) => fail('report-shape', `${r.file}: ${why}`);
+  const rep = r.report;
+  for (const e of rep.errors) bad(e);
+  const h1 = /^V4-([1-9]\d*): (?:(full pass)|re-check of rounds\/([1-9]\d*))$/.exec(rep.h1 ?? '');
+  if (!h1 || Number(h1[1]) !== r.n || (h1[3] !== undefined && Number(h1[3]) !== r.n - 1)) {
+    bad(`its H1 is ${show(rep.h1)}; it is "# V4-${r.n}: full pass" or "# V4-${r.n}: re-check of rounds/${r.n - 1}" (stages/V4.md)`);
+  }
+  const check = h1 ? (h1[2] ? 'full' : 'recheck') : rep.fields.check;
+  if (rep.fields.check !== check || !['full', 'recheck'].includes(check)) bad(`check is ${show(rep.fields.check ?? null)}; it is "full" or "recheck", as its H1 says (stages/V4.md)`);
+  const entry = r.entry?.s;
+  if (entry !== undefined) {
+    const want = entry.stage === 'V4' ? 'full' : 'recheck';
+    if (check !== want) fail('reports', `${r.file} is a ${check === 'full' ? 'full pass' : 're-check'}, but the V4 pass it is, run-log.json's V4 entry ${r.n} (${describe(entry)}), is a ${want === 'full' ? 'full pass (V4)' : 're-check (V4-recheck)'}; each pass writes its own report and never overwrites one (D-352)`);
+    if (rep.fields.concept !== entry.concept) bad(`concept is ${show(rep.fields.concept ?? null)}, but the pass that wrote it, ${describe(entry)}, is about ${entry.concept}`);
+  } else if (!ID.test(rep.fields.concept ?? '')) bad(`concept is ${show(rep.fields.concept ?? null)}; it is the guide's card`);
+  if (rep.fields.mode !== mode) bad(`mode is ${show(rep.fields.mode ?? null)}; the run is ${show(mode)}`);
+  if (!['pass', 'fail'].includes(rep.fields.verdict)) bad(`verdict is ${show(rep.fields.verdict ?? null)}; "pass" or "fail" (stages/V4.md)`);
+  if (rep.checked === null) bad('has no "## Checked"; it lists what the pass checked (stages/V4.md)');
+  else for (const item of rep.checked) if (!CHECKED_ITEM.test(item)) bad(`## Checked lists ${show(item)}, which is neither "claim stages[<i>].claims[<k>] (<id>)" nor "section <H2 title>" (D-352)`);
+  if (rep.findings === null) bad('has no "## Findings"; it holds one "### <id>" per finding, or "None." (stages/V4.md)');
+  const statuses = check === 'recheck' ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
+  const ids = new Set();
+  const findings = [];
+  for (const f of rep.findings ?? []) {
+    const at = `finding ${f.id} (line ${f.line})`;
+    const fields = Object.fromEntries(f.fields);
+    const id = /^v4-([1-9]\d*)-([1-9]\d*)$/.exec(f.id);
+    if (!id || Number(id[1]) > r.n || (check === 'full' && Number(id[1]) !== r.n)) bad(`${at}: its id isn't v4-<n>-<k>, <n> this pass's (${r.n}) for a new finding or an earlier report's for one reported again (D-352)`);
+    if (ids.has(f.id)) bad(`${at} reuses its id; each finding has its own`);
+    ids.add(f.id);
+    const want = fields.status === 'unresolved' ? [...FINDING_FIELDS, 'reader'] : FINDING_FIELDS;
+    const keys = f.fields.map(([k]) => k);
+    if (show(keys) !== show(want)) bad(`${at} has the fields ${keys.join(', ')}; a${fields.status === 'unresolved' ? 'n unresolved' : ' fixed or accepted-offline'} finding has ${want.join(', ')}, in that order${fields.status === 'unresolved' ? ', reader the plain sentence the guide\'s reader can act on (D-265)' : ', and no reader'}`);
+    if (!statuses.includes(fields.status)) bad(`${at}: status is ${show(fields.status ?? null)}; one of ${statuses.join(', ')}${check === 'full' ? ' (only a re-check reports fixed)' : ''}`);
+    if (!['yes', 'no'].includes(fields.hinge)) bad(`${at}: hinge is ${show(fields.hinge ?? null)}; "yes" or "no", its triage (D-352)`);
+    if (!OWNERS.includes(fields.owner)) bad(`${at}: owner is ${show(fields.owner ?? null)}; one of ${OWNERS.join(', ')}`);
+    if (!ARTIFACTS.includes(fields.artifact)) bad(`${at}: artifact is ${show(fields.artifact ?? null)}; V4 checks ${ARTIFACTS.join(' and ')} (the dossier isn't verified, S3)`);
+    if (fields.status === 'unresolved' && (fields.reader ?? '') === '') bad(`${at} is unresolved and has no reader: one plain sentence the guide's reader can act on (D-265)`);
+    if (fields.status === 'accepted-offline' && mode !== 'offline') bad(`${at} is accepted-offline in an online run; only offline mode accepts external-unavailable (C-30)`);
+    findings.push({ id: f.id, ...fields });
+  }
+  const unresolved = findings.filter((f) => f.status === 'unresolved').length;
+  if (rep.fields.verdict === 'pass' && unresolved > 0) bad(`says verdict "pass" alongside ${unresolved} unresolved finding(s); pass means none is unresolved (stages/V4.md)`);
+  if (rep.fields.verdict === 'fail' && unresolved === 0) bad('says verdict "fail" with no unresolved finding; pass means none is unresolved (stages/V4.md)');
+  if (entry !== undefined && ['pass', 'fail'].includes(rep.fields.verdict) && entry.outcome !== rep.fields.verdict) {
+    fail('reports', `run-log.json logs ${describe(entry)} ${show(entry.outcome)}, but its report ${r.file} says verdict ${show(rep.fields.verdict)}; a V4 entry's outcome is its report's (run-log.md)`);
+  }
+  return { check, checked: rep.checked ?? [], findings };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -2384,9 +2664,10 @@ function statesPercent(line, value) {
 }
 
 /**
- * Survival floor (D-118, D-119, D-234, D-254, D-256), from the plan and the record alone: all four
- * resistances capped (chaos only by the exception); the five waystone-scaled reference hits present, each the
- * whole-number ceiling of its ledger entry; max hits above the hits.
+ * Survival floor (D-118, D-119, D-234, D-254, D-256, D-353), from the plan and the record alone: all four
+ * resistances capped (chaos only by the exception); the five waystone-scaled reference hits the compiler wrote
+ * into the stage's config (`configWritten`, filling any the plan omits), each D-254's formula at the rung's area
+ * level, rounded by D-256; max hits above the hits.
  */
 function recomputeFloor(endgame, record, guide, fail) {
   const failures = [];
@@ -2421,57 +2702,44 @@ function recomputeFloor(endgame, record, guide, fail) {
         }
       }
     }
-    // D-254, D-256: the five waystone-scaled reference hits, each the ceiling of its ledger entry's value
-    // rounded to 2 decimals (PoB's enemy<Type>Damage options take whole numbers).
-    const scenario = Array.isArray(s.config?.scenario) ? s.config.scenario.filter(isObj) : [];
+    // D-353: the five waystone-scaled reference hits, read from the record as the compiler wrote them. Each is
+    // D-254's formula at the rung's area level: the monster damage there × (1 + the top of the increased-damage
+    // modifier / 100), and × the top of the extra-damage-as-element modifier / 100 for an element or chaos, rounded
+    // to 2 decimals and then up to a whole number (D-256: PoB's enemy<Type>Damage options take whole numbers).
+    const written = isObj(record.stages[s.id]?.configWritten) ? record.stages[s.id].configWritten : {};
+    const level = areaLevelOf(s.variant);
+    const base = isNum(level) ? factValue('enemies/map-monsters.json', 'damage.by-level')?.[String(level)] : undefined;
+    const increased = factValue('enemies/waystones.json', 'mods.increased-monster-damage')?.max;
+    const extra = factValue('enemies/waystones.json', 'mods.extra-damage-as-element')?.max;
+    const hits = [];
     for (const type of HIT_TYPES) {
       const t = type.toLowerCase();
-      const opt = scenario.find((o) => o.option === `enemy${type}Damage` && isNum(o.value) && o.value > 0);
-      if (!opt) {
-        failures.push(failure('floor', s.id, `reference-hit-missing-${t}`, `stage ${s.id} has no waystone-scaled ${type} reference hit (enemy${type}Damage) (D-119, D-254)`));
+      const value = written[`enemy${type}Damage`];
+      if (!isNum(value) || value <= 0) {
+        failures.push(failure('floor', s.id, `reference-hit-missing-${t}`, `stage ${s.id}'s record has no waystone-scaled ${type} reference hit (configWritten.enemy${type}Damage); the compiler writes each one the plan omits (D-119, D-254, D-353)`));
         continue;
       }
-      const entry = `hit_${s.id}_${t}`;
-      const derived = record.ledger?.[entry]?.value;
-      if (!isNum(derived)) {
-        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} has no ledger entry ${entry} value in the record (D-254)`));
-      } else if (opt.value !== hitCeiling(derived)) {
-        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage ${opt.value} isn't ${hitCeiling(derived)}, the ceiling of its ledger entry ${entry}'s value ${derived} rounded to 2 decimals (D-256)`));
-      }
-      // D-254 at the stage's area level: the hit cites the monster damage at the variant's area level, and its
-      // ledger entry derives the hit from that damage and the tops of the waystone damage modifiers.
-      const level = areaLevelOf(s.variant);
-      const cited = /^damage\.by-level\[(\d+)\]$/.exec(String(opt.source?.key ?? ''));
-      if (!isNum(level)) continue;
-      if (opt.source?.file !== 'enemies/map-monsters.json' || !cited || Number(cited[1]) !== level) {
-        failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s enemy${type}Damage cites ${show(`${opt.source?.file}#${opt.source?.key}`)}; the ${s.variant} variant's area level is ${level}, so it cites enemies/map-monsters.json#damage.by-level[${level}] (D-254)`));
-        continue;
-      }
-      const base = factValue('enemies/map-monsters.json', 'damage.by-level')?.[String(level)];
-      const increased = factValue('enemies/waystones.json', 'mods.increased-monster-damage')?.max;
-      const extra = factValue('enemies/waystones.json', 'mods.extra-damage-as-element')?.max;
-      if (isNum(derived) && isNum(base) && isNum(increased) && isNum(extra)) {
+      hits.push({ type, value });
+      if (isNum(base) && isNum(increased) && isNum(extra)) {
         const expected = base * (1 + increased / 100) * (type === 'Physical' ? 1 : extra / 100);
-        if (Math.abs(derived - expected) > 0.005 + 1e-9 * Math.abs(expected)) {
-          failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s ledger entry ${entry} is ${derived}, but the damage at its area level ${level} (enemies/map-monsters.json#damage.by-level[${level}], ${base}) × (1 + ${increased} / 100)${type === 'Physical' ? '' : ` × ${extra} / 100`} is ${round2(expected)} (D-254)`));
+        if (value !== hitCeiling(expected)) {
+          failures.push(failure('floor', s.id, `reference-hit-ledger-${t}`, `stage ${s.id}'s recorded enemy${type}Damage ${value} isn't ${hitCeiling(expected)}: the damage at its area level ${level} (enemies/map-monsters.json#damage.by-level[${level}], ${base}) × (1 + ${increased} / 100)${type === 'Physical' ? '' : ` × ${extra} / 100`} is ${round2(expected)}, rounded to 2 decimals and then up (D-254, D-256, D-353)`));
         }
       }
     }
-    for (const opt of scenario) {
-      const m = HIT_OPTION.exec(opt.option ?? '');
-      if (!m || !isNum(opt.value) || opt.value <= 0) continue;
-      const code = `max-hit-${m[1].toLowerCase()}`;
-      const max = out[`${m[1]}MaximumHitTaken`];
-      if (!isNum(max)) failures.push(failure('floor', s.id, code, `stage ${s.id} has no ${m[1]}MaximumHitTaken in the record`));
-      else if (!(max > opt.value)) failures.push(failure('floor', s.id, code, `stage ${s.id} ${m[1]}MaximumHitTaken ${max} isn't above the ${opt.option} hit ${opt.value}`));
+    for (const { type, value } of hits) {
+      const code = `max-hit-${type.toLowerCase()}`;
+      const max = out[`${type}MaximumHitTaken`];
+      if (!isNum(max)) failures.push(failure('floor', s.id, code, `stage ${s.id} has no ${type}MaximumHitTaken in the record`));
+      else if (!(max > value)) failures.push(failure('floor', s.id, code, `stage ${s.id} ${type}MaximumHitTaken ${max} isn't above the enemy${type}Damage hit ${value}`));
     }
   }
   return { verdict: failures.length > 0 ? 'fail' : 'pass', failures };
 }
 
 /**
- * Budget (D-116, D-164, D-219, D-249, D-281) from the plan's prices, the gate's map from filled slots and tree
- * jewels to price entries, and its recorded rates, for each gated rung: the budget variant (20 divines, 22 with
+ * Budget (D-116, D-164, D-219, D-249, D-281) from the plan's prices, the gate's map from filled slots, tree
+ * jewels and the anoint (D-358) to price entries, and its recorded rates, for each gated rung: the budget variant (20 divines, 22 with
  * "near the ceiling") and the entering-maps rung (5, 5.5 with "near the ceiling"). Totals are compared rounded to
  * 2 decimals.
  */
@@ -2484,9 +2752,11 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
   let unverified = false;
   for (const s of endgame.filter((x) => Object.prototype.hasOwnProperty.call(BUDGETS, x.variant))) {
     const { ceiling, tolerance, why } = BUDGETS[s.variant];
+    // D-358: the anoint is priced like a slot, `{stage, slot: "Anoint", priceId}` in the gate's basis (D1-gate.md).
     const filled = [
       ...list(s.items?.slots).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
       ...list(s.items?.treeJewels).map((j) => ({ what: `tree jewel in node ${j.node}`, jewel: j.node, text: j.text })),
+      ...(isObj(s.items?.anoint) ? [{ what: `anoint (${s.items.anoint.notable})`, slot: 'Anoint', text: `anoint ${s.items.anoint.notable}` }] : []),
     ];
     let total = 0;
     let stageUnverified = false;
@@ -2535,7 +2805,7 @@ function recomputeBudget(endgame, plan, rep, guide, fail) {
  * (`countedSkillOutputs`, D-294, D-340), and a `skillOutputs` figure of its group is of the stage's
  * `skills.main.statSet`, the set the PoB file opens on.
  */
-function recomputeRolledSkill(endgame, plan, record, rep, fail) {
+function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
   const failures = [];
   const basis = list(rep.basis?.rolledSkill);
   const ledger = new Map(list(plan.ledger).map((e) => [e.id, e]));
@@ -2589,7 +2859,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, fail) {
           failures.push(failure('rolledSkill', s.id, 'rolled-stat-set', `stage ${s.id}'s named damage source's figure ${f.figure} isn't the main skill's stat set ${mainKey} (skills.main); the PoB file opens on that set, so the gate compares its figure (S7)`));
         }
       } else if (lg) {
-        value = record.ledger?.[lg[1]]?.value;
+        value = ledgerNow[lg[1]]?.value;
         // S7, inside a ledger figure: every breakdown field its formula reads is the main skill's stat set on this stage.
         if (n === rolled && isInt(main.statSet, 1)) {
           const refs = [...String(ledger.get(lg[1])?.formula ?? '').matchAll(/([A-Za-z0-9_]+)\.(g\d+s\d+p\d+)\.[A-Za-z_]\w*/g)];
@@ -2671,36 +2941,50 @@ function citedValues(side, source) {
   return { raw: rec.skillOutputs?.[rest[0]]?.fields?.[rest[1]] ?? null, counted: rec.countedSkillOutputs?.[rest[0]]?.fields?.[rest[1]] ?? null };
 }
 
-/** Each ledger entry's value: the plan's current formula over the record's stages (D-365), null when it errs. */
-function ledgerValues(ledgerModule, plan, record) {
+/**
+ * Each ledger entry's result, `{value, error}`: the plan's current formula over the record's stages, by the server's
+ * evaluator (D-365); `value` null when it errs.
+ */
+function ledgerResults(ledgerModule, plan, record) {
   if (!isObj(plan) || !Array.isArray(plan.ledger)) return {};
   const stages = isObj(record?.stages) ? record.stages : {};
   const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} }]));
   const entries = plan.ledger.filter((e) => isObj(e) && typeof e.id === 'string' && typeof e.formula === 'string').map((e) => ({ id: e.id, formula: e.formula, inputs: list(e.inputs) }));
   const results = ledgerModule.evaluateLedger(entries, { stageIds: list(plan.stages).map((s) => s.id), stages: numbers });
-  return Object.fromEntries(entries.map((e) => [e.id, results[e.id]?.value ?? null]));
+  return Object.fromEntries(entries.map((e) => [e.id, { value: isNum(results[e.id]?.value) ? results[e.id].value : null, error: results[e.id]?.error?.message ?? null }]));
 }
 
-/** Each H2 of a guide with its body (to the next H1 or H2), keyed by title and occurrence. */
-function h2Bodies(text) {
+/** Each ledger entry's value: the plan's current formula over the record's stages (D-365), null when it errs. */
+function ledgerValues(ledgerModule, plan, record) {
+  return Object.fromEntries(Object.entries(ledgerResults(ledgerModule, plan, record)).map(([id, r]) => [id, r.value]));
+}
+
+/**
+ * Each H2 of a guide with its body (to the next H1 or H2), keyed by title and occurrence. Without `knownIssues`, the
+ * lines of the H3 `Known issues` (the runner's step-14 list, D-265) are left out of its H2's body.
+ */
+function h2Bodies(text, { knownIssues = true } = {}) {
   const md = parseMarkdown(text ?? '');
   const seen = new Map();
   return md.h2.map((h) => {
     const at = (seen.get(h.title) ?? 0) + 1;
     seen.set(h.title, at);
-    return { title: h.title, key: `${h.title}\u0000${at}`, body: sectionText(md, h).replace(/\s+$/, '') };
+    const { start, end } = md.sectionOf(h);
+    const ki = knownIssues ? null : md.headings.find((x) => x.level === 3 && x.title === KNOWN_ISSUES && x.line > start && x.line < end);
+    const skip = ki ? md.sectionOf(ki) : { start: -1, end: -1 };
+    const body = md.lines.slice(start + 1, end).filter((_, k) => !(start + 1 + k > skip.start && start + 1 + k < skip.end)).join('\n');
+    return { title: h.title, key: `${h.title}\u0000${at}`, body: body.replace(/\s+$/, '') };
   });
 }
 
 /**
- * D-352: what changed since the round copy `rounds/<n>/`, as the lines `--changed <n>` prints, in plan order then
- * guide order: `claim stages[<i>].claims[<k>] (<id>)` for each claim whose text, source or cited record values
- * changed (a claim is matched by its stage id and claim id; a new one counts as changed), and `section <H2
- * title>` for each guide H2 whose body changed or is new. Returns `{lines}`, or `{error}`.
+ * D-352: what changed between two copies of the run's plan, record and guide (`thenDir`, `nowDir`), as the lines
+ * `--changed` prints, in plan order then guide order: `claim stages[<i>].claims[<k>] (<id>)` for each claim whose
+ * text, source or cited record values changed (a claim is matched by its stage id and claim id; a new one counts as
+ * changed), and `section <H2 title>` for each guide H2 whose body changed or is new. `knownIssues: false` leaves
+ * the guide's Known issues list out of the comparison.
  */
-export async function changedSince(runFolder, n) {
-  const dir = path.join(runFolder, 'rounds', String(n));
-  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return { error: `rounds/${n}/ doesn't exist; make the round copy first (--snapshot ${n}, A-34)` };
+function changedBetween(ledgerModule, thenDir, nowDir, options = {}) {
   const read = (base, f) => (fs.existsSync(path.join(base, f)) ? fs.readFileSync(path.join(base, f), 'utf8') : null);
   const parse = (base, f) => {
     try {
@@ -2709,16 +2993,13 @@ export async function changedSince(runFolder, n) {
       return null;
     }
   };
-  const ledgerModule = await loadLedgerModule();
-  if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)` };
   const side = (base) => {
     const plan = parse(base, 'plan.json');
     const record = parse(base, 'compile-record.json');
     return { plan, record, guide: read(base, 'guide.md'), ledger: ledgerValues(ledgerModule, plan, record) };
   };
-  const now = side(runFolder);
-  const then = side(dir);
-  if (!isObj(now.plan)) return { error: "plan.json is missing or isn't JSON" };
+  const now = side(nowDir);
+  const then = side(thenDir);
   const claimsOf = (plan) => {
     const out = [];
     const seen = new Map();
@@ -2738,9 +3019,26 @@ export async function changedSince(runFolder, n) {
       && canon(citedValues(then, old.source)) === canon(citedValues(now, claim.source));
     if (!same) lines.push(`claim stages[${i}].claims[${k}] (${claim.id})`);
   }
-  const sections = new Map(h2Bodies(then.guide).map((h) => [h.key, h.body]));
-  for (const h of h2Bodies(now.guide)) if (sections.get(h.key) !== h.body) lines.push(`section ${h.title}`);
-  return { lines };
+  const sections = new Map(h2Bodies(then.guide, options).map((h) => [h.key, h.body]));
+  for (const h of h2Bodies(now.guide, options)) if (sections.get(h.key) !== h.body) lines.push(`section ${h.title}`);
+  return lines;
+}
+
+/**
+ * D-352: what changed since the round copy `rounds/<n>/`, as the lines `--changed <n>` prints (`changedBetween`,
+ * the round copy against the run folder). Returns `{lines}`, or `{error}`.
+ */
+export async function changedSince(runFolder, n) {
+  const dir = path.join(runFolder, 'rounds', String(n));
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return { error: `rounds/${n}/ doesn't exist; make the round copy first (--snapshot ${n}, A-34)` };
+  const ledgerModule = await loadLedgerModule();
+  if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)` };
+  try {
+    if (!isObj(JSON.parse(fs.readFileSync(path.join(runFolder, 'plan.json'), 'utf8')))) throw new Error('not an object');
+  } catch {
+    return { error: "plan.json is missing or isn't JSON" };
+  }
+  return { lines: changedBetween(ledgerModule, dir, runFolder) };
 }
 
 // ---------------------------------------------------------------------------------------------------

@@ -1,9 +1,0 @@
-{
-  "stage": "V4",
-  "lens": "sources",
-  "check": "recheck",
-  "concept": "c1",
-  "mode": "offline",
-  "findings": [],
-  "verdict": "pass"
-}

@@ -62,6 +62,11 @@
           "stage": "b",
           "jewel": 1001,
           "priceId": "b-jewel"
+        },
+        {
+          "stage": "b",
+          "slot": "Anoint",
+          "priceId": "b-anoint"
         }
       ],
       "totals": [

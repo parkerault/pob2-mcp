@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "roll": {
     "className": "Warrior",
     "ascendancy": "Titan",
@@ -112,6 +112,7 @@
         {
           "id": "s1-beira",
           "text": "Beira's quest reward is +10% to Cold Resistance.",
+          "kind": "hinge",
           "source": {
             "kind": "pob-data",
             "ref": "Data/QuestRewards.lua:7",
@@ -121,6 +122,7 @@
         {
           "id": "s1-penalty",
           "text": "Act 1 has no elemental resistance penalty.",
+          "kind": "hinge",
           "source": "data:campaign/limits.json#resistance-penalty.act1"
         }
       ]
@@ -246,11 +248,13 @@
         {
           "id": "s2-penalty",
           "text": "Act 2 lowers elemental resistances by 10%.",
+          "kind": "hinge",
           "source": "data:campaign/limits.json#resistance-penalty.act2"
         },
         {
           "id": "s2-slam",
           "text": "Rolling Slam is a strike that hits twice.",
+          "kind": "hinge",
           "source": {
             "kind": "pob-data",
             "ref": "lookup_game_data gem \"Rolling Slam\"",
@@ -439,76 +443,6 @@
               "patch": "0.5.4",
               "confidence": "H"
             }
-          },
-          {
-            "option": "enemyPhysicalDamage",
-            "value": 299,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[69]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyFireDamage",
-            "value": 72,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[69]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyColdDamage",
-            "value": 72,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[69]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyLightningDamage",
-            "value": 72,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[69]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyChaosDamage",
-            "value": 72,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[69]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
           }
         ]
       },
@@ -516,6 +450,7 @@
         {
           "id": "m-floor",
           "text": "The entering-maps rung's fire, cold and lightning resistances, as PoB computes them at the endgame penalty.",
+          "kind": "reason",
           "source": {
             "kind": "pob-computed",
             "ref": "m.MissingFireResist"
@@ -524,6 +459,7 @@
         {
           "id": "m-budget",
           "text": "Players usually finish the campaign with 5 to 10 divines.",
+          "kind": "hinge",
           "source": {
             "kind": "external-unavailable",
             "ref": "external source unavailable (offline run)",
@@ -533,6 +469,7 @@
         {
           "id": "m-boots",
           "text": "Buy the boots first: they carry the only lightning resistance on the rung.",
+          "kind": "hinge",
           "source": {
             "kind": "judgment",
             "ref": "the boots are the rung's one lightning resistance",
@@ -645,7 +582,11 @@
           }
         ],
         "toggles": [],
-        "useSecondWeaponSet": false
+        "useSecondWeaponSet": false,
+        "anoint": {
+          "notable": "Unbending",
+          "reason": "about 6% more armour where the tree has none, measured against the plan without it"
+        }
       },
       "skills": {
         "groups": [
@@ -738,76 +679,6 @@
               "patch": "0.5.4",
               "confidence": "H"
             }
-          },
-          {
-            "option": "enemyPhysicalDamage",
-            "value": 402,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[79]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyFireDamage",
-            "value": 97,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[79]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyColdDamage",
-            "value": 97,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[79]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyLightningDamage",
-            "value": 97,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[79]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyChaosDamage",
-            "value": 97,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[79]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
           }
         ]
       },
@@ -815,6 +686,7 @@
         {
           "id": "b-life",
           "text": "The budget variant's maximum life, as PoB computes it at level 90.",
+          "kind": "reason",
           "source": {
             "kind": "pob-computed",
             "ref": "b.Life"
@@ -823,6 +695,7 @@
         {
           "id": "b-bloodloss",
           "text": "Blood Hunt consumes Blood Loss on the target for a burst.",
+          "kind": "hinge",
           "source": {
             "kind": "pob-data",
             "ref": "lookup_game_data gem \"Blood Hunt\"",
@@ -832,21 +705,25 @@
         {
           "id": "b-monster-life",
           "text": "A normal area-79 monster has 24,852 life.",
+          "kind": "hinge",
           "source": "data:enemies/map-monsters.json#life.by-level[79]"
         },
         {
           "id": "b-helmet-price",
           "text": "A life and cold-resistance helmet for the budget variant.",
+          "kind": "hinge",
           "source": "price:b-helmet"
         },
         {
-          "id": "b-ttk",
-          "text": "The Arbiter of Divinity takes about 160 seconds of single-target damage under the extrapolated life.",
-          "source": "ledger:ttk_arbiter"
+          "id": "b-bleed",
+          "text": "Consuming Blood Loss adds about 7,500 damage per second to Blood Hunt on the budget variant.",
+          "kind": "hinge",
+          "source": "ledger:bleed_bonus"
         },
         {
           "id": "b-meta",
           "text": "Spear builds clear T15 maps on a budget this league.",
+          "kind": "hinge",
           "source": {
             "kind": "external-unavailable",
             "ref": "external source unavailable (offline run)",
@@ -1039,76 +916,6 @@
               "patch": "0.5.4",
               "confidence": "H"
             }
-          },
-          {
-            "option": "enemyPhysicalDamage",
-            "value": 439,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[82]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyFireDamage",
-            "value": 106,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[82]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyColdDamage",
-            "value": 106,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[82]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyLightningDamage",
-            "value": 106,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[82]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
-          },
-          {
-            "option": "enemyChaosDamage",
-            "value": 106,
-            "source": {
-              "file": "enemies/map-monsters.json",
-              "key": "damage.by-level[82]"
-            },
-            "tag": {
-              "kind": "pob-data",
-              "ref": "Data/Misc.lua:9",
-              "patch": "0.5.4",
-              "confidence": "H"
-            }
           }
         ]
       },
@@ -1116,6 +923,7 @@
         {
           "id": "n-dps",
           "text": "The non-budget variant's damage, as PoB computes it at level 95.",
+          "kind": "reason",
           "source": {
             "kind": "pob-computed",
             "ref": "n.TotalDPS"
@@ -1124,6 +932,7 @@
         {
           "id": "n-herald",
           "text": "Herald of Blood reserves spirit.",
+          "kind": "hinge",
           "source": {
             "kind": "pob-data",
             "ref": "lookup_game_data gem \"Herald of Blood\"",
@@ -1135,570 +944,17 @@
   ],
   "ledger": [
     {
-      "id": "ttk_arbiter",
-      "claim": "The Arbiter of Divinity takes about N seconds of single-target damage.",
-      "formula": "arbiter_life ÷ b.TotalDPS",
+      "id": "bleed_bonus",
+      "claim": "The damage per second consuming Blood Loss adds to Blood Hunt on the budget variant, as a share of its DPS",
+      "formula": "b.TotalDPS * share / 100",
       "inputs": [
         {
-          "name": "arbiter_life",
-          "value": 8000000,
+          "name": "share",
+          "value": 15,
           "tag": {
             "kind": "judgment",
-            "ref": "The Arbiter of Ash's in-fight to base life ratio (about 34x) applied to the Arbiter of Divinity's base life",
-            "patch": "0.5.5",
+            "ref": "Blood Loss consumed on most lunges against a bleeding rare",
             "confidence": "L"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_b_physical",
-      "claim": "Stage b's waystone-scaled physical reference hit at area 79, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100)",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 324.19000244141,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_b_fire",
-      "claim": "Stage b's waystone-scaled fire reference hit at area 79, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 324.19000244141,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_b_cold",
-      "claim": "Stage b's waystone-scaled cold reference hit at area 79, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 324.19000244141,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_b_lightning",
-      "claim": "Stage b's waystone-scaled lightning reference hit at area 79, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 324.19000244141,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_b_chaos",
-      "claim": "Stage b's waystone-scaled chaos reference hit at area 79, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 324.19000244141,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_n_physical",
-      "claim": "Stage n's waystone-scaled physical reference hit at area 82, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100)",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 353.67001342773,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_n_fire",
-      "claim": "Stage n's waystone-scaled fire reference hit at area 82, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 353.67001342773,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_n_cold",
-      "claim": "Stage n's waystone-scaled cold reference hit at area 82, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 353.67001342773,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_n_lightning",
-      "claim": "Stage n's waystone-scaled lightning reference hit at area 82, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 353.67001342773,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_n_chaos",
-      "claim": "Stage n's waystone-scaled chaos reference hit at area 82, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 353.67001342773,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_m_physical",
-      "claim": "Stage m's waystone-scaled physical reference hit at area 69, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100)",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 240.39999389648,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_m_fire",
-      "claim": "Stage m's waystone-scaled fire reference hit at area 69, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 240.39999389648,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_m_cold",
-      "claim": "Stage m's waystone-scaled cold reference hit at area 69, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 240.39999389648,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_m_lightning",
-      "claim": "Stage m's waystone-scaled lightning reference hit at area 69, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 240.39999389648,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        }
-      ]
-    },
-    {
-      "id": "hit_m_chaos",
-      "claim": "Stage m's waystone-scaled chaos reference hit at area 69, at the top of each waystone damage modifier's range",
-      "formula": "base * (1 + increased / 100) * extra / 100",
-      "inputs": [
-        {
-          "name": "base",
-          "value": 240.39999389648,
-          "tag": {
-            "kind": "pob-data",
-            "ref": "Data/Misc.lua:9",
-            "patch": "0.5.4",
-            "confidence": "H"
-          }
-        },
-        {
-          "name": "increased",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
-          }
-        },
-        {
-          "name": "extra",
-          "value": 24,
-          "tag": {
-            "kind": "external",
-            "ref": "https://poe2db.tw/us/Waystones",
-            "accessed": "2026-10-07",
-            "patch": "0.5.5",
-            "confidence": "M"
           }
         }
       ]
@@ -2075,6 +1331,19 @@
         "sort": {
           "price": "asc"
         }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-anoint",
+      "item": "Distilled Ire, Distilled Guilt and Distilled Greed",
+      "query": {
+        "name": "Distilled Ire"
       },
       "amount": null,
       "currency": null,

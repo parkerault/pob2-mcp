@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "roll": {
     "className": "Warrior",
     "ascendancy": "Titan",
@@ -237,6 +237,7 @@
         {
           "id": "c1-dps",
           "text": "Blood Hunt bleed burst: the skeleton's damage.",
+          "kind": "reason",
           "source": {
             "kind": "pob-computed",
             "ref": "e.TotalDPS"

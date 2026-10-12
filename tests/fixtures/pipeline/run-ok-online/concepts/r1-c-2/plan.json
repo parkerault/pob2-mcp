@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "roll": {
     "className": "Warrior",
     "ascendancy": "Titan",
@@ -216,6 +216,7 @@
         {
           "id": "r1-c-2-dps",
           "text": "Blood Hunt with Titan slam notables: the skeleton's damage.",
+          "kind": "reason",
           "source": {
             "kind": "pob-computed",
             "ref": "r1c2e.TotalDPS"

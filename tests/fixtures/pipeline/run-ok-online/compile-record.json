@@ -1,8 +1,8 @@
 {
   "recordVersion": 2,
-  "planSchemaVersion": 2,
-  "planSha1": "acb618efd6e482032a073f20c75592a82c96e299",
-  "buildSha1": "ce7ffe128006561bb77309be95957f45004002e7",
+  "planSchemaVersion": 3,
+  "planSha1": "0f7709caa70f4aaac2649b0d016d809183352b72",
+  "buildSha1": "f69d7998daa4e24a18c15d528ce3f050c8f2ce85",
   "compiledAt": "2026-10-08T11:02:00.000Z",
   "mode": "final",
   "stagesCompiled": [
@@ -264,6 +264,22 @@
             "TotalDPS": 4000
           }
         }
+      },
+      "measures": {
+        "dps": 9000,
+        "ehp": 18400,
+        "clearSpeed": {
+          "speed": "slow",
+          "rough": true,
+          "group": 1,
+          "key": "g1s1p1",
+          "skill": "Blood Hunt",
+          "radiusMetres": 0,
+          "band": "slow",
+          "onDeath": false,
+          "usesPerSecond": null,
+          "longUse": false
+        }
       }
     },
     "b": {
@@ -360,6 +376,87 @@
         "pass": true,
         "findings": [],
         "notes": []
+      },
+      "measures": {
+        "dps": 50000,
+        "ehp": 31500,
+        "arbiter": {
+          "verdict": "survives",
+          "worst": {
+            "type": "physical",
+            "hitId": "extendo-spear-combo-slam-1",
+            "ratio": 0.6835294117647058
+          },
+          "rows": [
+            {
+              "type": "physical",
+              "mixed": false,
+              "hitId": "extendo-spear-combo-slam-1",
+              "hit": 3486,
+              "maxHit": 5100,
+              "ratio": 0.6835294117647058,
+              "verdict": "survives"
+            },
+            {
+              "type": "lightning",
+              "mixed": false,
+              "hitId": "volatile-explode",
+              "hit": 3969,
+              "maxHit": 9600,
+              "ratio": 0.4134375,
+              "verdict": "survives"
+            },
+            {
+              "type": "physical-lightning",
+              "mixed": true,
+              "hitId": "phase-2-triangulate-split",
+              "hit": 3486,
+              "maxHit": 6661.224489795918,
+              "ratio": 0.5233272058823529,
+              "verdict": "survives",
+              "parts": [
+                {
+                  "type": "physical",
+                  "hit": 1743,
+                  "maxHit": 5100,
+                  "ratio": 0.3417647058823529
+                },
+                {
+                  "type": "lightning",
+                  "hit": 1743,
+                  "maxHit": 9600,
+                  "ratio": 0.1815625
+                }
+              ]
+            }
+          ]
+        },
+        "clearSpeed": {
+          "speed": "slow",
+          "rough": true,
+          "group": 1,
+          "key": "g1s1p1",
+          "skill": "Blood Hunt",
+          "radiusMetres": 0,
+          "band": "slow",
+          "onDeath": false,
+          "usesPerSecond": null,
+          "longUse": false
+        }
+      },
+      "anoint": {
+        "notable": "Unbending",
+        "node": 4031,
+        "recipe": [
+          "Ire",
+          "Guilt",
+          "Greed"
+        ],
+        "emotions": [
+          "Distilled Ire",
+          "Distilled Guilt",
+          "Distilled Greed"
+        ]
       }
     },
     "n": {
@@ -456,89 +553,80 @@
         "pass": true,
         "findings": [],
         "notes": []
+      },
+      "measures": {
+        "dps": 100000,
+        "ehp": 52300,
+        "arbiter": {
+          "verdict": "survives",
+          "worst": {
+            "type": "physical",
+            "hitId": "extendo-spear-combo-slam-1",
+            "ratio": 0.4710810810810811
+          },
+          "rows": [
+            {
+              "type": "physical",
+              "mixed": false,
+              "hitId": "extendo-spear-combo-slam-1",
+              "hit": 3486,
+              "maxHit": 7400,
+              "ratio": 0.4710810810810811,
+              "verdict": "survives"
+            },
+            {
+              "type": "lightning",
+              "mixed": false,
+              "hitId": "volatile-explode",
+              "hit": 3969,
+              "maxHit": 14600,
+              "ratio": 0.27184931506849314,
+              "verdict": "survives"
+            },
+            {
+              "type": "physical-lightning",
+              "mixed": true,
+              "hitId": "phase-2-triangulate-split",
+              "hit": 3486,
+              "maxHit": 9821.81818181818,
+              "ratio": 0.3549241021843762,
+              "verdict": "survives",
+              "parts": [
+                {
+                  "type": "physical",
+                  "hit": 1743,
+                  "maxHit": 7400,
+                  "ratio": 0.23554054054054055
+                },
+                {
+                  "type": "lightning",
+                  "hit": 1743,
+                  "maxHit": 14600,
+                  "ratio": 0.11938356164383562
+                }
+              ]
+            }
+          ]
+        },
+        "clearSpeed": {
+          "speed": "slow",
+          "rough": true,
+          "group": 1,
+          "key": "g1s1p1",
+          "skill": "Blood Hunt",
+          "radiusMetres": 0,
+          "band": "slow",
+          "onDeath": false,
+          "usesPerSecond": null,
+          "longUse": false
+        }
       }
     }
   },
   "ledger": {
-    "ttk_arbiter": {
-      "value": 160,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_b_physical": {
-      "value": 401.9956030273484,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_b_fire": {
-      "value": 96.47894472656363,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_b_cold": {
-      "value": 96.47894472656363,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_b_lightning": {
-      "value": 96.47894472656363,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_b_chaos": {
-      "value": 96.47894472656363,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_n_physical": {
-      "value": 438.5508166503852,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_n_fire": {
-      "value": 105.25219599609245,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_n_cold": {
-      "value": 105.25219599609245,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_n_lightning": {
-      "value": 105.25219599609245,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_n_chaos": {
-      "value": 105.25219599609245,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_m_physical": {
-      "value": 298.0959924316352,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_m_fire": {
-      "value": 71.54303818359244,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_m_cold": {
-      "value": 71.54303818359244,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_m_lightning": {
-      "value": 71.54303818359244,
-      "error": null,
-      "computedWithCustomMods": false
-    },
-    "hit_m_chaos": {
-      "value": 71.54303818359244,
-      "error": null,
-      "computedWithCustomMods": false
+    "bleed_bonus": {
+      "value": 7500,
+      "formula": "b.TotalDPS * share / 100"
     }
   },
   "unresolvedRefs": [],

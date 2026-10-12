@@ -87,6 +87,11 @@
           "stage": "b",
           "jewel": 1001,
           "priceId": "b-jewel"
+        },
+        {
+          "stage": "b",
+          "slot": "Anoint",
+          "priceId": "b-anoint"
         }
       ],
       "totals": [
@@ -150,5 +155,46 @@
     ]
   },
   "recordPath": "compile-record.json",
-  "faultsApplied": []
+  "faultsApplied": [],
+  "design": {
+    "rungs": [
+      {
+        "stage": "m",
+        "dps": 9000,
+        "ehp": 18400,
+        "arbiter": null,
+        "clearSpeed": "medium",
+        "anoint": null,
+        "gear": "rare boots with lightning resistance; a life and cold-resistance helmet",
+        "gems": "Blood Hunt with Bloodlust and Brutality I",
+        "tree": "the life wheel by the Warrior start"
+      },
+      {
+        "stage": "b",
+        "dps": 50000,
+        "ehp": 31500,
+        "arbiter": "survives, worst physical 0.68",
+        "clearSpeed": "medium",
+        "anoint": "Unbending: Ire, Guilt, Greed",
+        "gear": "a War Spear with increased physical damage; a life and fire-resistance body",
+        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "tree": "Titan's slam notables; the life and armour wheels"
+      },
+      {
+        "stage": "n",
+        "dps": 140000,
+        "ehp": 52300,
+        "arbiter": "survives, worst physical 0.47",
+        "clearSpeed": "medium",
+        "anoint": null,
+        "gear": "a stronger War Spear and both rings",
+        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "tree": "Titan's slam notables; the life and armour wheels"
+      }
+    ],
+    "estimates": [
+      "b: Blood Loss stacks are a hand calculation (bleed_bonus)",
+      "clear speed is a rough estimate from the skill's area"
+    ]
+  }
 }

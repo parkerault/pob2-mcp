@@ -20,12 +20,11 @@ The file is `titan-open-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (L8) {1
 
 ## Survival by stage
 
-Solid: survives the reference hits with room. Watch: survives them, with one weak spot. Risky: one hit can kill.
+The entering-maps label is my judgment of its line against the map hits; the budget and non-budget labels are the Arbiter of Divinity's verdict.
 
-- **Acts 1–2: watch.** Fire, cold and lightning sit 15 short of the cap at Act 2.
 - **Entering maps (L65): watch.** Resistances 75/75/75/10% at −60%. Max hit 2,900 physical against about 300, and at least 1,900 elemental or chaos against about 72. Blood Hunt about 9,000 DPS. Effective HP about 18,400.
-- **Budget (L90): solid.** Resistances 75/75/75/75% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 96. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
-- **Non-budget (L95): solid.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 105. Blood Hunt about 100,000 DPS. Effective HP about 52,300.
+- **Budget (L90): survives the Arbiter's hits.** Resistances 75/75/75/75% at −60%. Max hit 5,100 physical against about 400, and at least 3,000 elemental or chaos against about 97. Blood Hunt about 50,000 DPS. Effective HP about 31,500.
+- **Non-budget (L95): survives the Arbiter's hits.** Resistances 75/75/75/75% at −60%. Max hit 7,400 physical against about 440, and at least 7,000 elemental or chaos against about 106. Blood Hunt about 100,000 DPS. Effective HP about 52,300.
 
 ## Gem and ascendancy timing
 
@@ -60,6 +59,7 @@ Move here when the campaign is done. Buy, in order: 1. the boots, for lightning 
 
 - Chaos resistance stays at 10% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
 - Budget: 4.4 divines against the 5-divine ceiling.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## Endgame: budget
 
@@ -70,10 +70,14 @@ Move here once you own both rings.
 | Weapon 1 | War Spear, increased physical damage | |
 | Body Armour | life, fire resistance | |
 
+- **Anoint:** Unbending, from Distilled Ire, Distilled Guilt and Distilled Greed (40 exalted): about 6% more armour where the tree has none, measured against the plan without it.
+
 ### Checks
 
-- Budget total: 21.5 divines against 20, near the ceiling: within the 22-divine tolerance.
-- The Arbiter of Divinity takes about 160 seconds to kill.
+- Budget: 21.9 divines against 20.
+  21.9 divines is near the ceiling: over 20, within the 22-divine tolerance.
+- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.68 of your max hit.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## Endgame: non-budget
 
@@ -81,8 +85,9 @@ Move here when you can afford it. Upgrade the weapon first.
 
 ### Checks
 
-- Total: 172 divines against the ~200-divine reference.
-- The Arbiter of Divinity falls faster here.
+- Total: 172 divines against the ~200-divine reference, which is no cap.
+- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.
+- Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## How to play it
 

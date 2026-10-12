@@ -1,22 +1,23 @@
 /**
- * AC-W2 (WU-43, as amendments 1 to 3 change it): the run checker
+ * AC-W2 (WU-43, as amendments 1 to 4 change it): the run checker
  * `.claude/skills/build-guide/scripts/check-run.mjs`, spawned as a real process with an explicit env. It passes
  * the fixture runs in `tests/fixtures/pipeline/` (run-ok, run-ok-online and run-escalated, schema-3 runs of the
- * amended pipeline, and run-ok-v2, a schema-2 run kept so recorded runs still check, D-326), with no
+ * amended pipeline, and run-ok-v2, a schema-2 log kept so recorded runs still check, D-326, D-341), with no
  * `--partial`, and fails each broken copy, naming the broken rule on stderr.
  *
- * - The artifacts: the layout (the cards, the deck and the probes among it, D-338), the markers, the guide, the
- *   D1 gate recomputed (Q3) with each figure × its Count (D-340), and §4.2's checks: (r) the record is of the
- *   plan, (s) the PoB file is the import code's, with one loadout per stage, (t) the ledger re-evaluates with the
- *   server's compiled evaluator, (u) the named source's figure's stat set is `skills.main.statSet` (S7), and (l)
- *   every finding open after the re-check is a known issue (S2, Q1).
+ * - The artifacts: the layout (the cards, the deck, the probes and the round copies among it, D-338, A-34), the
+ *   markers, the guide, the D1 gate recomputed (Q3) with each figure × its Count (D-340), and §4.2's checks: (r)
+ *   the record is of the plan, (s) the PoB file is the import code's, with one loadout per stage, (t) the ledger,
+ *   the plan's current formulas evaluated with the server's compiled evaluator (D-365), (u) the named source's
+ *   figure's stat set is `skills.main.statSet` (S7), and (l) every finding open in the last V4 report is a known
+ *   issue (D-352).
  * - The control flow, from the run log (schema 3, D-289): the invariants that stand in for the deleted workflow
  *   harness tests (the accepted cost of S1), each with a violating copy: steps in a legal order and each gate's
- *   answer followed (D-287); the caps (per brainstorm and verification round, R1b at most 3 counted attempts
- *   and none after a terminal not-a-skill or wrong-ascendancy failure (D-334, D-342), each gate at most 2
- *   counted retries, S6 honoured); one full
- *   V4 pass and at most one re-check per cycle; escalations only from the gates; the rule on pre-supplied and
- *   default answers.
+ *   answer followed (D-287), the design gate between the D1 gate and D2 (D-362); the caps (per brainstorm and
+ *   verification round, R1b at most 3 counted attempts and none after a terminal not-a-skill or wrong-ascendancy
+ *   failure (D-334, D-342), each gate at most 2 counted retries, S6 honoured); one full V4 pass per guide and at
+ *   most one re-check per fix round or revision (D-352); escalations only from the gates; the rule on pre-supplied
+ *   and default answers.
  * - Amendment 2's guards (WU-62, D-276…D-283): the reader layer's 14 H2s (b), the 3,000-word cap (v), no
  *   marker, confidence label or finding id in guide.md (w), one fixed-form verdict line per endgame rung
  *   matched to the record (x), the entering-maps rung's floor and 5-divine budget (y), audit.md's H2s (z),
@@ -25,8 +26,12 @@
  *   verification pick; (bb) the caps per brainstorm and verification round; (cc) the escalation answer
  *   `verification`; (dd) the verdict line's Effective HP; (ee) the D1 gate's figure × Count; (ff) the cards, the
  *   deck and the probes in the layout, with each card's probe count in the log.
+ * - Amendment 4's (WU-71, AC-W54, AC-W55, AC-W59, AC-W60): V4's numbered reports and the re-check of what
+ *   `--changed` lists; claim kinds; audit.md and the Checks blocks as `render-audit.mjs` renders them; the survival
+ *   label from `measures.arbiter`; the reference hits the compiler wrote; a ledger-only edit after the final
+ *   compile; the design gate; the dossier's table.
  *
- * Check (t) loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
+ * Checks (t), the render and `--changed` load the server's compiled `build/plan/`: `mise run test` builds first.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
@@ -42,6 +47,7 @@ import { writeGuideRun, editJson as editRunJson } from '../helpers/guideRunFolde
 
 const REPO = path.resolve(__dirname, '..', '..');
 const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const RENDER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'render-audit.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'check-run-'));
 /** The schema-3 runs of the amended pipeline. */
@@ -100,6 +106,59 @@ function editPlan(dir: string, edit: (p: Json) => void): void {
   });
 }
 const editLog = (dir: string, edit: (l: Json) => void) => editJson(dir, 'run-log.json', edit);
+/** The round copies a fixture holds (A-34): run-ok and run-ok-v2 have rounds/1/, the copy before their fix round. */
+const roundsOf = (dir: string) => (fs.existsSync(path.join(dir, 'rounds')) ? fs.readdirSync(path.join(dir, 'rounds')).map((n) => `rounds/${n}`) : []);
+/**
+ * Edits guide.md as it stood all along: the round copies' guides too, so the edit is no change since a round copy
+ * that a re-check missed (D-352). An edit that doesn't apply to a copy (a Known issues line, step 14's) leaves it.
+ */
+function editGuide(dir: string, edit: (t: string) => string): void {
+  editText(dir, 'guide.md', edit);
+  for (const r of roundsOf(dir)) {
+    const p = path.join(dir, r, 'guide.md');
+    try {
+      fs.writeFileSync(p, edit(fs.readFileSync(p, 'utf8')));
+    } catch {
+      // the copy predates the edited text
+    }
+  }
+}
+/** Edits plan.json as it stood all along (`editPlan`), the round copies' plans too. */
+function editPlanAll(dir: string, edit: (p: Json) => void): void {
+  editPlan(dir, edit);
+  for (const r of roundsOf(dir)) editJson(dir, `${r}/plan.json`, edit);
+}
+/**
+ * Re-renders audit.md as the runner does (render-audit.mjs, D-355), keeping its Known issues, and copies each rung's
+ * Checks block from the render into the guide, as W1 does: after a test changed what the render reads. With `all`,
+ * the round copies' guides take the blocks too, as if the change had been there all along.
+ */
+function rerender(dir: string, all = false): void {
+  const r = spawnSync(process.execPath, [RENDER, dir], { env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+  if (r.status !== 0) throw new Error(`render-audit.mjs failed: ${r.stderr}`);
+  const audit = fs.readFileSync(path.join(dir, 'audit.md'), 'utf8').split('\n');
+  const checksAt = audit.indexOf('## Checks');
+  const checksEnd = audit.findIndex((l, i) => i > checksAt && l.startsWith('## '));
+  const blocks: string[][] = [];
+  for (let i = checksAt + 1; i < checksEnd; i += 1) {
+    if (audit[i].startsWith('### ')) blocks.push([]);
+    else if (blocks.length > 0 && audit[i].trim() !== '') blocks[blocks.length - 1].push(audit[i]);
+  }
+  const plan = readJson(dir, 'plan.json');
+  const rungs = ['entering-maps', 'budget', 'non-budget'].filter((v) => (plan.stages as Json[]).some((s) => s.variant === v));
+  const h2 = { 'entering-maps': '## Endgame: entering maps', budget: '## Endgame: budget', 'non-budget': '## Endgame: non-budget' } as Record<string, string>;
+  for (const rel of ['guide.md', ...(all ? roundsOf(dir).map((r) => `${r}/guide.md`) : [])]) {
+    let guide = fs.readFileSync(path.join(dir, rel), 'utf8').split('\n');
+    rungs.forEach((v, k) => {
+      const at = guide.indexOf(h2[v]);
+      const h3 = guide.findIndex((l, i) => i > at && l === '### Checks');
+      let end = guide.findIndex((l, i) => i > h3 && /^#{1,3} /.test(l));
+      if (end < 0) end = guide.length;
+      guide = [...guide.slice(0, h3 + 1), '', ...blocks[k], '', ...guide.slice(end)];
+    });
+    fs.writeFileSync(path.join(dir, rel), guide.join('\n'));
+  }
+}
 const stageB = (plan: Json) => plan.stages.find((s: Json) => s.id === 'b');
 const stageM = (plan: Json) => plan.stages.find((s: Json) => s.id === 'm');
 /** run-ok's open prose finding's reader sentence: the guide's one Known issues line, and its audit.md row's sentence. */
@@ -109,7 +168,12 @@ const AUDIT_KI_HEAD = '| Id | Lens or gate | Stage | Sentence in the guide |\n|-
 /** Replaces run-ok's one open finding in both Known issues lists with `None.`, as step 14 does when nothing is open. */
 function noneOpen(dir: string): void {
   editText(dir, 'guide.md', replace(`- ${PROSE_READER}\n`, 'None.\n'));
-  editText(dir, 'audit.md', (t) => t.replace(/\| Id \|[^\n]*\n\|---[^\n]*\n\| v4-prose-1 \|[^\n]*\n/, 'None.\n'));
+  editText(dir, 'audit.md', (t) => t.replace(/\| Id \|[^\n]*\n\|---[^\n]*\n\| v4-1-1 \|[^\n]*\n/, 'None.\n'));
+}
+/** run-ok's re-check V4-2 with v4-1-1 reported fixed (no reader), its verdict and log entry passing. */
+function fixedInRecheck(dir: string): void {
+  editText(dir, 'reports/V4-2.md', (t) => t.replace('- verdict: fail', '- verdict: pass').replace('### v4-1-1\n\n- status: unresolved', '### v4-1-1\n\n- status: fixed').replace(/\n- reader: [^\n]*\n/, '\n'));
+  editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'V4-recheck').outcome = 'pass'));
 }
 const step = (stage: string, concept: string | null, attempt: number, outcome: string, extra: Json = {}) => ({ stage, ...(concept ? { concept } : {}), attempt, outcome, ...extra });
 
@@ -120,20 +184,21 @@ const skeletonStage = (id: string) => `${id.replace(/-/g, '')}e`;
 const fixtureLog = (f: Fixture) => readJson(path.join(FIXTURES, f), 'run-log.json');
 const indexOf = (f: Fixture, pred: (s: Json) => boolean) => (fixtureLog(f).stages as Json[]).findIndex(pred);
 const RUN_OK = {
-  d1: indexOf('run-ok', (s) => s.stage === 'D1'),
+  d1: indexOf('run-ok', (s) => s.stage === 'D1-build'),
   d2: indexOf('run-ok', (s) => s.stage === 'D2'),
-  v4: indexOf('run-ok', (s) => s.stage === 'V4-ledger'),
+  v4: indexOf('run-ok', (s) => s.stage === 'V4'),
   w1Fix: indexOf('run-ok', (s) => s.stage === 'W1' && s.attempt === 2),
   length: fixtureLog('run-ok').stages.length as number,
 };
 const ESCALATED = {
   r1bA: indexOf('run-escalated', (s) => s.stage === 'R1b' && s.concept === CARD),
   assemble: indexOf('run-escalated', (s) => s.stage === 'R1a-assemble'),
-  d1: indexOf('run-escalated', (s) => s.stage === 'D1'),
-  d1a3: indexOf('run-escalated', (s) => s.stage === 'D1' && s.attempt === 3),
+  d1: indexOf('run-escalated', (s) => s.stage === 'D1-build'),
+  d1a3: indexOf('run-escalated', (s) => s.stage === 'D1-build' && s.attempt === 3),
 };
 const ONLINE = {
-  d1: indexOf('run-ok-online', (s) => s.stage === 'D1'),
+  d1: indexOf('run-ok-online', (s) => s.stage === 'D1-build'),
+  d1finish: indexOf('run-ok-online', (s) => s.stage === 'D1-finish'),
   w1: indexOf('run-ok-online', (s) => s.stage === 'W1'),
 };
 /** A checkpoint's index in a log. */
@@ -151,12 +216,14 @@ function failing(dir: string): string {
 /** The broken rule's lines on stderr. */
 const lines = (stderr: string, rule: string) => stderr.split('\n').filter((l) => l.startsWith(`check-run: [${rule}] `));
 
-/** Writes a passing R1b verdict for each card and gives it the dossier's H3, so a verification round of them checks. */
+/** A dossier row for a verified card (D-355): the verification gate's comparison table. */
+const dossierRow = (id: string, round = 1) => `| ${id} | ${round} | viable | a verified card | Blood Hunt 50000 (g1s1p1.TotalDPS) | 4200 | 31500 | weapon: unavailable (offline run) | none (offline) | none found |`;
+/** Writes a passing R1b verdict for each card and gives it its dossier row, so a verification round of them checks. */
 function verified(dir: string, ids: string[]): void {
   for (const id of ids) {
     writeJson(dir, `reports/gates/R1b-${id}-a1.json`, { stage: 'R1b', concept: id, attempt: 1, verdict: { compiled: 'pass' }, findings: [], errors: [], compiles: 2, recordPath: `concepts/${id}/compile-record.json`, faultsApplied: [], leagueUnverified: false });
   }
-  editText(dir, 'dossier.md', replace('## Not carried', `${ids.map((id) => `### ${id}: a verified card\n\n- Status: viable.\n`).join('\n')}\n## Not carried`));
+  editText(dir, 'dossier.md', (t) => `${t.replace(/\n+$/, '')}\n${ids.map((id) => dossierRow(id)).join('\n')}\n`);
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -171,7 +238,7 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     expect(r.stdout).toMatch(/^check-run: ok: /);
   });
 
-  it.each(RUNS)('%s holds a schema-3 run log with its brief, V4 reports named v4-<lens>[-recheck].json and no V3 report', (fixture) => {
+  it.each(RUNS)('%s holds a schema-3 run log with its brief, the design gate among its checkpoints, and V4 reports named V4-<n>.md, one per logged pass (D-352, D-362)', (fixture) => {
     const dir = path.join(FIXTURES, fixture);
     const log = readJson(dir, 'run-log.json');
     expect(log.schemaVersion).toBe(3);
@@ -180,13 +247,15 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     for (const s of log.stages as Json[]) expect(Object.keys(s).filter((k) => !['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes', 'probes', 'shortReason'].includes(k))).toEqual([]);
     for (const c of log.checkpoints as Json[]) {
       expect(Object.keys(c).filter((k) => !['checkpoint', 'visit', 'answer', 'answeredBy', 'rule'].includes(k))).toEqual([]);
-      expect(['brainstorm', 'verification', 'final', 'unsaved-build', 'escalation']).toContain(c.checkpoint);
+      expect(['brainstorm', 'verification', 'design', 'final', 'unsaved-build', 'escalation']).toContain(c.checkpoint);
     }
+    for (const s of log.stages as Json[]) expect(['D1', 'V4-ledger', 'V4-sources', 'V4-prose']).not.toContain(s.stage);
     const reports = fs.existsSync(path.join(dir, 'reports')) ? fs.readdirSync(path.join(dir, 'reports')).filter((f) => f !== 'gates') : [];
-    for (const f of reports) expect(f).toMatch(/^v4-(ledger|sources|prose)(-recheck)?\.json$/);
+    for (const f of reports) expect(f).toMatch(/^V4-[1-9]\d*\.md$/);
+    expect(reports.length).toBe((log.stages as Json[]).filter((s) => ['V4', 'V4-recheck'].includes(s.stage)).length);
   });
 
-  it("run-ok is an offline fixed roll whose brainstorm deals 7 cards, first-n:2 verifies two, first-viable finalizes one, and whose free FI-2 failure, W1 fix round and prose re-check leave one known issue in the guide", () => {
+  it("run-ok is an offline fixed roll whose brainstorm deals 7 cards, first-n:2 verifies two, first-viable finalizes one, the design gate accepts it, and whose free FI-2 failure, W1 fix round and re-check leave one known issue in the guide", () => {
     const dir = path.join(FIXTURES, 'run-ok');
     const log = readJson(dir, 'run-log.json');
     expect(log.brief).toEqual({ ascendancy: 'Titan', skill: 'Blood Hunt' });
@@ -194,18 +263,23 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     expect(log.faults).toEqual([expect.objectContaining({ id: 'FI-2', target: { concepts: 'all', persistent: false } })]);
     expect(log.stages.map((s: Json) => `${s.stage}:${s.outcome}`)).toEqual([
       'R1a:done', 'R1a:done', 'R1a:done', 'R1a-assemble:done', 'R1b:pass', 'R1b:pass', 'R1b-assemble:done',
-      'D1:done', 'D1-gate:fail', 'D1:done', 'D1-gate:pass', 'D2:done', 'D2-gate:pass', 'W1:done',
-      'V4-ledger:pass', 'V4-sources:pass', 'V4-prose:fail', 'W1:done', 'V4-sources-recheck:pass', 'V4-prose-recheck:fail',
+      'D1-build:done', 'D1-finish:done', 'D1-gate:fail', 'D1-build:done', 'D1-finish:done', 'D1-gate:pass', 'D2:done', 'D2-gate:pass', 'W1:done',
+      'V4:fail', 'W1:done', 'V4-recheck:fail',
     ]);
     expect(log.checkpoints.map((c: Json) => [c.checkpoint, c.answer, c.rule])).toEqual([
-      ['brainstorm', 'pick:r1-a-1,r1-a-2', 'first-n:2'], ['verification', `pick:${CARD}`, 'first-viable'], ['final', 'accept', 'accept'],
+      ['brainstorm', 'pick:r1-a-1,r1-a-2', 'first-n:2'], ['verification', `pick:${CARD}`, 'first-viable'], ['design', 'accept', 'accept'], ['final', 'accept', 'accept'],
     ]);
-    expect(readJson(dir, 'reports/v4-prose-recheck.json').findings).toEqual([expect.objectContaining({ id: 'v4-prose-1', status: 'unresolved' })]);
+    // D-352: the full pass V4-1, the round copy rounds/1/, and the re-check V4-2 of what --changed 1 lists.
+    const recheck = fs.readFileSync(path.join(dir, 'reports', 'V4-2.md'), 'utf8');
+    expect(recheck).toMatch(/^# V4-2: re-check of rounds\/1\n/);
+    expect(recheck).toContain('## Checked\n\n- section How to play it\n');
+    expect(recheck).toContain('### v4-1-1\n\n- status: unresolved\n');
+    expect(fs.readdirSync(path.join(dir, 'rounds', '1')).sort()).toEqual(['compile-record.json', 'guide.md', 'plan.json']);
     const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
     // D-276: the runner writes it at step 14 as the finding's reader sentence alone; its id goes to audit.md.
-    const reader = readJson(dir, 'reports/v4-prose-recheck.json').findings[0].reader;
+    const reader = /- reader: (.*)\n/.exec(recheck)![1];
     expect(guide).toContain(`### Known issues\n\n- ${reader}\n`);
-    expect(fs.readFileSync(path.join(dir, 'audit.md'), 'utf8')).toContain(`| v4-prose-1 | prose | — | ${reader} |`);
+    expect(fs.readFileSync(path.join(dir, 'audit.md'), 'utf8')).toContain(`| v4-1-1 | V4 | — | ${reader} |`);
   });
 
   it('run-ok is an offline run with an endgame stage whose chaos resistance stays uncapped by its exception, stated in the guide (D-234)', () => {
@@ -237,8 +311,11 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     expect(guide).toContain('near the ceiling');
     expect(total('m')).toBeGreaterThan(0);
     expect(total('m')).toBeLessThanOrEqual(5);
+    // D-358: the anoint is priced like a slot of b.
+    expect(gate.basis.budget.slots).toContainEqual({ stage: 'b', slot: 'Anoint', priceId: 'b-anoint' });
     const log = readJson(dir, 'run-log.json');
-    expect(log.stages.find((s: Json) => s.stage === 'D1').priceOutcomes).toEqual({ ok: 13, would_wait: 1 });
+    expect(log.stages.find((s: Json) => s.stage === 'D1-finish').priceOutcomes).toEqual({ ok: 14, would_wait: 1 });
+    expect(log.stages.find((s: Json) => s.stage === 'D1-build').priceOutcomes).toBeUndefined();
   });
 
   it("run-ok-online is an open brief answered by the user: its slug is the brief's, and \"verify other cards\" opens a second verification round without a brainstorm (D-285, D-287)", () => {
@@ -246,7 +323,7 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     expect(log.brief).toEqual({ ascendancy: 'Titan', playstyle: ['melee', 'tanky', 'slow and heavy'], budget: 'budget', popularity: 'Blood Hunt Titans are rare this league' });
     expect([log.slug, log.runFolder]).toEqual(['titan-open', '/tmp/pob2-guides/titan-open/2026-10-08-1']);
     expect(log.checkpoints.map((c: Json) => `${c.checkpoint}:${c.answer}:${c.answeredBy}`)).toEqual([
-      'brainstorm:pick:r1-a-1,r1-c-2:user', 'verification:verify:r1-b-3:user', `verification:pick:${CARD}:user`, 'final:accept:user',
+      'brainstorm:pick:r1-a-1,r1-c-2:user', 'verification:verify:r1-b-3:user', `verification:pick:${CARD}:user`, 'design:accept:user', 'final:accept:user',
     ]);
     expect(log.stages.slice(0, ONLINE.d1).map((s: Json) => `${s.stage}${s.concept ? ` ${s.concept}` : ''}`)).toEqual([
       'R1a', 'R1a', 'R1a', 'R1a-assemble', `R1b ${CARD}`, 'R1b r1-c-2', 'R1b-assemble', 'R1b r1-b-3', 'R1b-assemble',
@@ -266,7 +343,7 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
   });
 
   // validatePlan only: V1 and V2 need a compile's engine-side stage checks, so they run in the engine tests.
-  it('every fixture plan, skeletons and probes included, passes validatePlan with the C1/E1 data (C-31), and sets every enemy<Type>Damage to a whole number (D-256)', () => {
+  it('every fixture plan, skeletons and probes included, passes validatePlan with the C1/E1 data (C-31), and every enemy<Type>Damage a plan or a final record holds is a whole number (D-256, D-353)', () => {
     const ref = loadReferenceData();
     const plans: string[] = [];
     const under = (dir: string): string[] => (fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? under(path.join(dir, e.name)) : e.name === 'plan.json' ? [path.join(dir, e.name)] : [])) : []);
@@ -280,17 +357,27 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
       const hits = (JSON.parse(text).stages as Json[]).flatMap((s) => (s.config.scenario as Json[]).filter((o) => /^enemy\w+Damage$/.test(o.option)));
       for (const o of hits) expect({ plan: path.relative(FIXTURES, p), option: o.option, whole: Number.isInteger(o.value) }).toEqual({ plan: path.relative(FIXTURES, p), option: o.option, whole: true });
     }
+    for (const run of [...RUNS, V2]) {
+      const record = readJson(path.join(FIXTURES, run), 'compile-record.json');
+      for (const [id, st] of Object.entries(record.stages as Record<string, Json>)) {
+        for (const [option, value] of Object.entries(st.configWritten as Json).filter(([k]) => /^enemy\w+Damage$/.test(k))) expect({ run, id, option, whole: Number.isInteger(value) }).toEqual({ run, id, option, whole: true });
+      }
+    }
   });
 
-  it('run-ok and run-ok-online are schema-2 plans whose ladder starts at the entering-maps rung m, with audit.md beside the guide (D-278, D-281)', () => {
+  it('run-ok and run-ok-online are schema-3 plans with a kind on every claim and an anoint on b, whose ladder starts at the entering-maps rung m, with audit.md beside the guide (D-278, D-281, D-351, D-358)', () => {
     for (const run of ['run-ok', 'run-ok-online']) {
       const dir = path.join(FIXTURES, run);
       const plan = readJson(dir, 'plan.json');
-      expect({ run, version: plan.schemaVersion }).toEqual({ run, version: 2 });
+      expect({ run, version: plan.schemaVersion }).toEqual({ run, version: 3 });
+      expect((plan.stages as Json[]).flatMap((s) => (s.claims as Json[]).map((c) => c.kind)).every((k) => ['hinge', 'reason'].includes(k))).toBe(true);
+      expect((plan.stages as Json[]).filter((s) => s.items.anoint !== undefined).map((s) => s.id)).toEqual(['b']);
       expect((plan.stages as Json[]).filter((s) => s.variant !== undefined).map((s) => `${s.id}:${s.variant}`)).toEqual(['m:entering-maps', 'b:budget', 'n:non-budget']);
-      // The rung is gated at area level 69 (T5): its hits cite the damage there, through the ledger entries hit_m_<type>.
+      // D-353: the compiler fills the reference hits the plan omits, m's at area level 69 (T5); no hit_ ledger entry.
       const m = (plan.stages as Json[]).find((s) => s.id === 'm')!;
-      for (const o of (m.config.scenario as Json[]).filter((x) => /^enemy\w+Damage$/.test(x.option))) expect(o.source.key).toBe('damage.by-level[69]');
+      expect((m.config.scenario as Json[]).filter((x) => /^enemy\w+Damage$/.test(x.option))).toEqual([]);
+      expect((plan.ledger as Json[]).filter((e) => /^hit_/.test(e.id))).toEqual([]);
+      expect(readJson(dir, 'compile-record.json').stages.m.configWritten).toEqual(expect.objectContaining({ enemyPhysicalDamage: 299, enemyFireDamage: 72 }));
       expect((plan.prices as Json[]).filter((x) => x.id.startsWith('m-')).length).toBe(m.items.slots.length);
       expect(fs.existsSync(path.join(dir, 'audit.md'))).toBe(true);
     }
@@ -320,6 +407,10 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
       expect((xml.toString('utf8').match(/<Spec\b/g) ?? []).length).toBe(readJson(path.join(FIXTURES, run), 'plan.json').stages.length);
       expect(record.recordVersion).toBe(2);
       for (const st of Object.values(record.stages) as Json[]) expect([typeof st.outputs.TotalEHP, typeof st.countedSkillOutputs]).toEqual(['number', 'object']);
+      // D-353, D-358: each endgame stage's measures, the Arbiter's verdict on b and n, and b's anoint recipe.
+      expect(Object.keys(record.stages.m.measures).sort()).toEqual(['clearSpeed', 'dps', 'ehp']);
+      for (const id of ['b', 'n']) expect(record.stages[id].measures.arbiter.verdict).toBe('survives');
+      expect(record.stages.b.anoint).toEqual(expect.objectContaining({ notable: 'Unbending', recipe: ['Ire', 'Guilt', 'Greed'] }));
     }
   });
 });
@@ -359,7 +450,8 @@ const broken: BrokenCase[] = [
   // (a)
   { name: '(a) guide.md is missing from a completed run', fixture: 'run-ok', edit: (d) => fs.rmSync(path.join(d, 'guide.md')), rule: 'layout', says: /guide\.md is missing/ },
   { name: '(a) a stray file in the run folder', fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'gen.py'), ''), rule: 'layout', says: /gen\.py isn't part of the run-folder layout/ },
-  { name: "(a) a report named the old way (V3, or a V4 report with a pass number)", fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'reports', 'v3-c1-p1.json'), '{}'), rule: 'layout', says: /reports\/v3-c1-p1\.json isn't named v4-<lens>\.json or v4-<lens>-recheck\.json/ },
+  { name: "(a) a report named the old way (V3, or a V4 report with a pass number)", fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'reports', 'v3-c1-p1.json'), '{}'), rule: 'layout', says: /reports\/v3-c1-p1\.json isn't a V4 report reports\/V4-<n>\.md/ },
+  { name: '(a) a V4 report named by its lens, from before amendment 4 (D-352)', fixture: 'run-ok', edit: (d) => fs.writeFileSync(path.join(d, 'reports', 'v4-prose.json'), '{}'), rule: 'layout', says: /reports\/v4-prose\.json isn't a V4 report reports\/V4-<n>\.md, n from 1 \(§2, D-352\)/ },
   // (b)
   { name: '(b) one of the reader layer\'s 14 H2s is missing (D-276)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## How to play it\n', '')), rule: 'guide-sections', says: /missing \["How to play it"\]/ },
   {
@@ -374,11 +466,11 @@ const broken: BrokenCase[] = [
   // (c)
   { name: "(c) a Leveling H3 differs from the record's loadout name", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('### Act 2 (L30) {2}', '### Act 2 (L31) {2}')), rule: 'leveling', says: /Leveling H3s are .*"Act 2 \(L31\) \{2\}".*the record's campaign loadouts.*"Act 2 \(L30\) \{2\}"/ },
   // (d)
-  // D-276: guide.md carries no markers; the dossier and the research files keep theirs, and the plan's claims carry the guide's sources.
-  { name: '(d) a dossier marker has no definition', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('for extra damage.[^d1]', 'for extra damage.[^d1][^nope]')), rule: 'markers', says: /dossier\.md:\d+: marker \[\^nope\] has no definition/ },
-  { name: '(d) a price definition names no prices[] entry', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace(`[^d4]: price | ${CARD}-weapon`, '[^d4]: price | no-such-price')), rule: 'markers', says: /price "no-such-price" names no prices\[\] entry/ },
-  { name: '(d) a ledger definition names no ledger entry', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('[^d3]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^d3]: ledger | no_such_entry')), rule: 'markers', says: /ledger "no_such_entry" names no ledger entry/ },
-  { name: '(d) a data definition names no C1/E1 fact', fixture: 'run-ok', edit: (d) => editText(d, 'dossier.md', replace('[^d3]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^d3]: data | campaign/limits.json#resistance-penalty.act9')), rule: 'markers', says: /names no C1\/E1 fact/ },
+  // D-276: guide.md carries no markers, nor, since D-355, the dossier; the research files keep theirs, and the plan's claims carry the guide's sources.
+  { name: '(d) a research marker has no definition', fixture: 'run-ok', edit: (d) => editText(d, 'research/p1-r1a-2.md', replace('no config option.[^s2]', 'no config option.[^s2][^nope]')), rule: 'markers', says: /research\/p1-r1a-2\.md:\d+: marker \[\^nope\] has no definition/ },
+  { name: '(d) a price definition names no prices[] entry', fixture: 'run-ok', edit: (d) => editText(d, 'research/p1-r1a-2.md', replace('[^s2]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^s2]: price | no-such-price')), rule: 'markers', says: /price "no-such-price" names no prices\[\] entry/ },
+  { name: '(d) a ledger definition names no ledger entry', fixture: 'run-ok', edit: (d) => editText(d, 'research/p1-r1a-2.md', replace('[^s2]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^s2]: ledger | no_such_entry')), rule: 'markers', says: /ledger "no_such_entry" names no ledger entry/ },
+  { name: '(d) a data definition names no C1/E1 fact', fixture: 'run-ok', edit: (d) => editText(d, 'research/p1-r1a-2.md', replace('[^s2]: pob-data | check_model_coverage gem "Blood Hunt" | patch: 0.5.4', '[^s2]: data | campaign/limits.json#resistance-penalty.act9')), rule: 'markers', says: /names no C1\/E1 fact/ },
   // (e)
   { name: "(e) an external tag has no accessed (a plan claim's)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => delete stageB(p).claims.find((c: Json) => c.id === 'b-meta').source.accessed), rule: 'source-tags', says: /an external tag has no accessed date/ },
   // (f)
@@ -407,44 +499,47 @@ const broken: BrokenCase[] = [
     rule: 'offline-prices',
     says: /price "b-weapon" is "ok"/,
   },
-  { name: '(k) an offline run has a price call (priceOutcomes, Q5)', fixture: 'run-ok', edit: (d) => editLog(d, (l) => (l.stages.find((s: Json) => s.stage === 'D1').priceOutcomes = { ok: 1 })), rule: 'offline-prices', says: /an offline run made 1 price call/ },
+  { name: '(k) an offline run has a price call (priceOutcomes, Q5)', fixture: 'run-ok', edit: (d) => editLog(d, (l) => (l.stages.find((s: Json) => s.stage === 'D1-finish').priceOutcomes = { ok: 1 })), rule: 'offline-prices', says: /an offline run made 1 price call/ },
   { name: "(k) an offline probe plan has a prices[] status ok", fixture: 'run-ok', edit: (d) => editJson(d, `probes/${CARD}/1/plan.json`, (p) => Object.assign(p.prices[0], { status: 'ok', amount: 1, currency: 'divine' })), rule: 'offline-prices', says: /probes\/r1-a-1\/1\/plan\.json: price "r1-a-1-weapon" is "ok"/ },
   // (l)
-  { name: "(l) a finding open after the re-check is missing from the guide's Known issues (by sentence)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, 'None.\n')), rule: 'known-issues', says: /V4 prose finding "v4-prose-1" .* is open after the re-check, but guide\.md's Known issues doesn't list its reader sentence, word for word/ },
-  { name: "(l) an open finding's id is missing from audit.md's Known issues", fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace(`| v4-prose-1 | prose | — | ${PROSE_READER} |\n`, '')), rule: 'known-issues', says: /V4 prose finding "v4-prose-1" .* is open after the re-check, but audit\.md's Known issues has no row "\| v4-prose-1 \| prose \| — \| <its reader sentence> \|"/ },
-  // (n)
-  { name: '(n) a V4 finding misses a field', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources.json', (r) => delete r.findings[0].evidence), rule: 'report-shape', says: /v4-sources\.json: findings\[0\] has no evidence/ },
-  { name: '(n) verdict pass alongside an unresolved finding', fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-sources.json', (r) => (r.findings[0].status = 'unresolved')), rule: 'report-shape', says: /says verdict "pass" alongside 1 unresolved finding/ },
-  { name: "(n) a report's check differs from its name", fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-prose-recheck.json', (r) => (r.check = 'full')), rule: 'report-shape', says: /v4-prose-recheck\.json: check is "full"; its name says "recheck"/ },
-  { name: "(n) a finding on the dossier, which V4 doesn't check (S3), or owned by dossier-fix", fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-prose.json', (r) => Object.assign(r.findings[0], { artifact: 'dossier.md', owner: 'dossier-fix' })), rule: 'report-shape', says: /artifact is "dossier\.md"/ },
-  { name: "(n) a V4 report about a concept id in a schema-3 run", fixture: 'run-ok', edit: (d) => editJson(d, 'reports/v4-ledger.json', (r) => (r.concept = 'c1')), rule: 'report-shape', says: /v4-ledger\.json: concept is "c1"; it is the guide's card, the card id r<round>-<letter>-<n>/ },
+  { name: "(l) a finding open in the last report is missing from the guide's Known issues (by sentence)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, 'None.\n')), rule: 'known-issues', says: /V4 finding "v4-1-1" .* is open in reports\/V4-2\.md, the last report, but guide\.md's Known issues doesn't list its reader sentence, word for word/ },
+  { name: "(l) an open finding's id is missing from audit.md's Known issues", fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace(`| v4-1-1 | V4 | — | ${PROSE_READER} |\n`, '')), rule: 'known-issues', says: /V4 finding "v4-1-1" .* is open in reports\/V4-2\.md, the last report, but audit\.md's Known issues has no row "\| v4-1-1 \| V4 \| — \| <its reader sentence> \|"/ },
+  // (n) The V4 report's form (stages/V4.md, D-352).
+  { name: '(n) a V4 finding misses a field', fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-1.md', replace('- evidence: offline run (run-log.json mode offline)\n\n### v4-1-3', '\n### v4-1-3')), rule: 'report-shape', says: /V4-1\.md: finding v4-1-2 \(line \d+\) has the fields status, hinge, owner, artifact, location, claim, issue; a fixed or accepted-offline finding has status, hinge, owner, artifact, location, claim, issue, evidence, in that order/ },
+  { name: '(n) verdict pass alongside an unresolved finding', fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-1.md', replace('- verdict: fail', '- verdict: pass')), rule: 'report-shape', says: /V4-1\.md: says verdict "pass" alongside 1 unresolved finding/ },
+  { name: "(n) a report's check differs from its H1", fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-2.md', replace('- check: recheck', '- check: full')), rule: 'report-shape', says: /V4-2\.md: check is "full"; it is "full" or "recheck", as its H1 says/ },
+  { name: "(n) a finding on the dossier, which V4 doesn't check (S3), or owned by dossier-fix", fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-1.md', replace('- owner: W1\n- artifact: guide.md', '- owner: dossier-fix\n- artifact: dossier.md')), rule: 'report-shape', says: /artifact is "dossier\.md"/ },
+  { name: "(n) a V4 report about another card than the pass that wrote it", fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-1.md', replace(`- concept: ${CARD}`, '- concept: c1')), rule: 'report-shape', says: /V4-1\.md: concept is "c1", but the pass that wrote it, V4 r1-a-1 attempt 1, is about r1-a-1/ },
+  { name: '(n) a finding id of the old lens form, or of another pass in a full pass', fixture: 'run-ok', edit: (d) => editText(d, 'reports/V4-1.md', replace('### v4-1-3', '### v4-prose-3')), rule: 'report-shape', says: /V4-1\.md: finding v4-prose-3 \(line \d+\): its id isn't v4-<n>-<k>/ },
+  { name: '(n) a V4 entry logged pass over a report that fails', fixture: 'run-ok', edit: (d) => editLog(d, (l) => (l.stages.find((s: Json) => s.stage === 'V4').outcome = 'pass')), rule: 'reports', says: /logs V4 r1-a-1 attempt 1 "pass", but its report reports\/V4-1\.md says verdict "fail"/ },
   // (o)
   { name: '(o) floor: pass, but the record has MissingColdResist above 0', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*MissingColdResist is 5/ },
   { name: '(o) MissingChaosResist above 0 and the chaosResistException removed (D-234)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).chaosResistException), rule: 'floor', says: /MissingChaosResist is 47 and it has no chaosResistException/ },
   { name: "(o) the exception's reason is missing from the guide's Checks (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('because no slot can carry chaos resistance', 'because of the')), rule: 'floor', says: /no line of the guide's "Endgame: budget" Checks states its full reason .* with the uncapped value 28% \(D-234\)/ },
-  { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% (47% under its cap) because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
-  { name: '(o) an endgame stage lacks its waystone-scaled chaos reference hit (D-254)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).config.scenario = stageB(p).config.scenario.filter((o: Json) => o.option !== 'enemyChaosDamage'))), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b has no waystone-scaled Chaos reference hit \(enemyChaosDamage\)/ },
-  { name: "(o) a reference hit isn't the ceiling of its ledger entry's value (D-254, D-256)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 324.19000244141)), rule: 'floor', says: /stage b's enemyPhysicalDamage 402 isn't 325, the ceiling of its ledger entry hit_b_physical's value 324\.19000244141 rounded to 2 decimals \(D-256\)/ },
+  { name: "(o) the uncapped chaos value isn't stated with % on the reason's line (D-234)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Chaos resistance stays at 28% because', 'Chaos resistance stays uncapped because')), rule: 'floor', says: /states its full reason .* with the uncapped value 28%/ },
+  { name: "(o) an endgame stage's record lacks its waystone-scaled chaos reference hit (D-254, D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => delete r.stages.b.configWritten.enemyChaosDamage), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b's record has no waystone-scaled Chaos reference hit \(configWritten\.enemyChaosDamage\)/ },
+  { name: "(o) a recorded reference hit isn't D-254's formula at its area level, rounded by D-256 (D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.configWritten.enemyPhysicalDamage = 325)), rule: 'floor', says: /stage b's recorded enemyPhysicalDamage 325 isn't 402: the damage at its area level 79 .* is 402, rounded to 2 decimals and then up \(D-254, D-256, D-353\)/ },
   // (p)
-  { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.5 divines, above 22/ },
+  { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.9 divines, above 22/ },
+  { name: '(p) the anoint maps to no prices[] entry (D-358)', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Anoint'))), rule: 'budget', says: /budget stage b's filled anoint \(Unbending\) maps to no prices\[\] entry/ },
   { name: '(p) a filled budget slot maps to no prices[] entry', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Helmet'))), rule: 'budget', says: /filled slot "Helmet" maps to no prices\[\] entry/ },
   { name: '(p) a filled tree jewel maps to no prices[] entry (D-249)', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.jewel === undefined))), rule: 'budget', says: /filled tree jewel in node 1001 maps to no prices\[\] entry/ },
-  { name: '(p) an expensive tree jewel tips the budget over 22 divines (D-249)', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 200)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23 divines, above 22/ },
+  { name: '(p) an expensive tree jewel tips the budget over 22 divines (D-249)', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 200)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.4 divines, above 22/ },
   { name: '(p) two slots holding different items share a price entry', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots.find((s: Json) => s.slot === 'Ring 2').priceId = 'b-ring1')), rule: 'budget', says: /share price entry "b-ring1" but hold different items/ },
-  { name: '(p) over 20 divines and the guide lacks "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editText(d, 'guide.md', replace('against 20, near the ceiling:', 'against 20:')), rule: 'budget', says: /lack "near the ceiling"/ },
+  { name: '(p) over 20 divines and the guide lacks "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editText(d, 'guide.md', replace('21.9 divines is near the ceiling:', '21.9 divines is close to the line:')), rule: 'budget', says: /lack "near the ceiling"/ },
   // (q)
   { name: '(q) rolledSkill: pass, but a same-role group has a larger figure in the record', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => setFigure(r, 'b', 'g2s1p1', 60000)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's group 2 \(clear\) has 60000 \(× its Count\), more than the named damage source's group 1's 50000 \(× its Count\) \(D-340\)/ },
   { name: "(q) the named damage source's group's role is utility", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.groups[0].role = 'utility')), rule: 'rolled-skill', says: /stage b's named damage source's group 1 \(rolledGroup\) has role "utility"; the named damage source is clear or single_target, never a token role/ },
   // (r), amendment 1 §4.2
-  { name: "(r) plan.json's sha1 differs from the final record's planSha1", fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => (stageB(p).claims[0].text += ' Edited after the final compile.')), rule: 'record-plan', says: /sha1\(plan\.json\) is [0-9a-f]{40}, but the final record's planSha1 is "[0-9a-f]{40}": plan\.json changed after the final compile/ },
+  { name: "(r) plan.json's sha1 differs from the final record's planSha1", fixture: 'run-ok', edit: (d) => editJson(d, 'plan.json', (p) => (stageB(p).claims[0].text += ' Edited after the final compile.')), rule: 'record-plan', says: /sha1\(plan\.json\) is [0-9a-f]{40}, but the final record's planSha1 is "[0-9a-f]{40}": plan\.json changed after the final compile, and no claims-only owner \(claims-edited\) ran after it/ },
   // (s)
   { name: "(s) the import code isn't the PoB file's (its sha1 differs from the record's pobFile)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.pobFile.sha1 = 'a9993e364706816aba3e25717850c26c9cd0d89d')), rule: 'pob-file', says: /the decoded importCode's sha1 is [0-9a-f]{40}, but the record's PoB file "titan-blood-hunt-2026-10-08-1\.xml" has sha1 "a9993e36/ },
   { name: "(s) the import code doesn't decode", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.importCode = 'eNrtWV1v2zYUfc-vIPS-FixtureImportCode-0001')), rule: 'pob-file', says: /importCode doesn't decode as a PoB code/ },
   { name: '(s) the loadout count differs from the plan stages: one tree set missing (D-215)', fixture: 'run-ok', edit: (d) => recode(d, specs(['Act 1 (L8) {1}', 'Act 2 (L30) {2}', 'Entering maps (L65) {m}', 'Endgame budget (L90) {b}'])), rule: 'pob-file', says: /holds 4 tree set\(s\), but the record compiled 5 stage\(s\); the file holds one loadout per stage \(D-215\)/ },
   { name: "(s) a tree set isn't titled by its stage's loadout name (a Default left behind)", fixture: 'run-ok', edit: (d) => recode(d, specs(['Default', 'Act 2 (L30) {2}', 'Entering maps (L65) {m}', 'Endgame budget (L90) {b}', 'Endgame non-budget (L95) {n}'])), rule: 'pob-file', says: /tree sets are titled \["Default",.*the record's loadout names, in plan order, are \["Act 1 \(L8\) \{1\}"/ },
   // (t)
-  { name: "(t) a ledger entry doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.ledger.ttk_arbiter.value = 161)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 160, but the final record has 161 \(compared to 2 decimals\)/ },
-  { name: "(t) a doubled ledger formula (FI-4's edit) doesn't re-evaluate to the record's value", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /ledger entry ttk_arbiter re-evaluates to 320, but the final record has 160/ },
+  { name: "(t) a ledger entry that doesn't evaluate over the final record (D-365)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = 'b.NoSuchOutput * share / 100')), rule: 'ledger', says: /ledger entry bleed_bonus doesn't evaluate over the final record: / },
+  { name: "(t) a doubled ledger formula (FI-4's edit) under the claim citing it (D-365)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (p.ledger[0].formula = `(${p.ledger[0].formula}) * 2`)), rule: 'ledger', says: /plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 15000 over the final record, but the claim states 7,500; a claim citing a ledger entry states its value \(D-365\)/ },
   // (u)
   { name: "(u) the named source's figure's stat set isn't skills.main.statSet (S7)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.main.statSet = 2)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's named damage source's figure g1s1p1\.TotalDPS isn't the main skill's stat set g1s1p2 \(skills\.main\)/ },
   { name: '(u) an endgame stage sets no skills.main.statSet (S7)', fixture: 'run-ok', edit: (d) => editPlan(d, (p) => delete stageB(p).skills.main.statSet), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b sets no skills\.main\.statSet/ },
@@ -453,25 +548,25 @@ const broken: BrokenCase[] = [
   // (w)
   { name: '(w) a footnote marker in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('one button for rares;', 'one button for rares;[^g1]')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
   { name: '(w) a confidence label in guide.md', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('I read it as a ceiling.', 'I read it as a ceiling (confidence L).')), rule: 'guide-markers', says: /carries the confidence label "confidence L"/ },
-  { name: '(w) a finding id in guide.md (the old Known issues form)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, `- ${PROSE_READER} (v4-prose-1)\n`)), rule: 'guide-markers', says: /carries the finding id "v4-prose-1"/ },
-  { name: '(w) pipeline text in a second fenced block under Priorities: only the import code is exempt', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Leveling\n', '```\n[^g1] (confidence L) v4-prose-1\n```\n\n## Leveling\n')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
+  { name: '(w) a finding id in guide.md (the old Known issues form)', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace(`- ${PROSE_READER}\n`, `- ${PROSE_READER} (v4-1-1)\n`)), rule: 'guide-markers', says: /carries the finding id "v4-1-1"/ },
+  { name: '(w) pipeline text in a second fenced block under Priorities: only the import code is exempt', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('## Leveling\n', '```\n[^g1] (confidence L) v4-1-1\n```\n\n## Leveling\n')), rule: 'guide-markers', says: /guide\.md:\d+ carries a footnote marker "\[\^"/ },
   // (x)
   { name: "(x) a rung's verdict line is missing", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', (t) => t.replace(/- \*\*Budget \(L90\)[^\n]*\n/, '')), rule: 'verdict-line', says: /"Survival by stage" has no verdict line for the Budget rung, stage b/ },
   { name: '(x) a verdict line not in the fixed form', fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('75/75/75/28% at −60%.', '75/75/75/28% at the endgame penalty.')), rule: 'verdict-line', says: /the Budget verdict line isn't in the fixed form ".*Effective HP about <n>\." \(D-283, D-294\)/ },
-  { name: "(x) a verdict line's level differs from the stage's", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('**Budget (L90): solid.**', '**Budget (L91): solid.**')), rule: 'verdict-line', says: /the Budget verdict line says level 91, but stage b's level is 90/ },
+  { name: "(x) a verdict line's level differs from the stage's", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('**Budget (L90): ', '**Budget (L91): ')), rule: 'verdict-line', says: /the Budget verdict line says level 91, but stage b's level is 90/ },
   { name: "(x) a verdict line's resistance is wrong", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('75/75/75/28%', '75/75/75/29%')), rule: 'verdict-line', says: /the Budget verdict line says chaos resistance 29, but b\.ChaosResist is 28/ },
   { name: "(x) a verdict line's max hit is wrong", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Max hit 5,100 physical', 'Max hit 6,100 physical')), rule: 'verdict-line', says: /the Budget verdict line says physical max hit 6,100, but b\.PhysicalMaximumHitTaken is 5100/ },
   { name: "(x) a verdict line's other max hit is the largest, not the least", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('at least 3,000 elemental', 'at least 9,800 elemental')), rule: 'verdict-line', says: /says elemental or chaos max hit 9,800, but the least of b's FireMaximumHitTaken, ColdMaximumHitTaken, LightningMaximumHitTaken, ChaosMaximumHitTaken is 3000/ },
-  { name: "(x) a verdict line's hit is mis-rounded", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 400,', 'physical against about 410,')), rule: 'verdict-line', says: /the Budget verdict line says physical hit 410, but the ledger's hit_b_physical is 401\.99/ },
-  { name: "(x) a verdict line quotes the scenario's whole number, not its ledger hit rounded", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 300,', 'physical against about 299,')), rule: 'verdict-line', says: /the Entering maps verdict line says physical hit 299, but the ledger's hit_m_physical is 298\.09/ },
+  { name: "(x) a verdict line's hit is mis-rounded against the hit the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 400,', 'physical against about 410,')), rule: 'verdict-line', says: /the Budget verdict line says physical hit 410, but the hit the compiler wrote, b\.configWritten\.enemyPhysicalDamage is 402/ },
+  { name: "(x) a verdict line's other hit isn't the largest the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('elemental or chaos against about 97.', 'elemental or chaos against about 72.')), rule: 'verdict-line', says: /the Budget verdict line says elemental or chaos hit 72, but the largest of the hits the compiler wrote, b\.configWritten's enemyFireDamage, enemyColdDamage, enemyLightningDamage, enemyChaosDamage is 97/ },
   { name: "(x) a verdict line's DPS isn't the D1 gate's figure for the named damage source", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but the named damage source's figure × its Count 1, b\.countedSkillOutputs\.g1s1p1\.TotalDPS is 50000/ },
   // (y)
   { name: "(y) the entering-maps rung's budget above 5.5 divines", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 3.2)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage m totals 5\.6 divines, above 5\.5 \(D-281\)/ },
   { name: '(y) the entering-maps rung above 5 divines without "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 2.8)), rule: 'budget', says: /entering-maps stage m totals 5\.2 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/ },
   { name: "(y) the entering-maps rung's floor: a resistance below its cap", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*stage m MissingColdResist is 5/ },
-  { name: "(y) the entering-maps rung's floor: a hit cited at another area level than 69 (D-327)", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageM(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').source.key = 'damage.by-level[79]')), rule: 'floor', says: /stage m's enemyFireDamage cites "enemies\/map-monsters\.json#damage\.by-level\[79\]"; the entering-maps variant's area level is 69/ },
+  { name: "(y) the entering-maps rung's floor: a recorded hit of another area level than 69 (D-327, D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.configWritten.enemyFireDamage = 97)), rule: 'floor', says: /stage m's recorded enemyFireDamage 97 isn't 72: the damage at its area level 69/ },
   // (z)
-  { name: '(z) audit.md is missing one of its H2s', fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace('## Run notes\n', '')), rule: 'audit-sections', says: /audit\.md's H2s are missing \["Run notes"\]/ },
+  { name: '(z) audit.md is missing one of its H2s', fixture: 'run-ok', edit: (d) => editText(d, 'audit.md', replace("## What PoB doesn't model\n", '')), rule: 'audit-sections', says: /audit\.md's H2s are missing \["What PoB doesn't model"\]/ },
   { name: '(z) audit.md is missing beside a current guide', fixture: 'run-ok', edit: (d) => fs.rmSync(path.join(d, 'audit.md')), rule: 'audit-sections', says: /guide\.md exists, but audit\.md doesn't/ },
 ];
 
@@ -631,7 +726,7 @@ describe('D-344: a run stopped at its first agent step, with no Agent tool, befo
   it('fails the same log ending completed, which needs the design, the guide and its checks', () => {
     const dir = stoppedBeforeAgents();
     editLog(dir, (l) => (l.status = 'completed'));
-    expect(failing(dir)).toMatch(/\[verification\] run-log\.json: status is "completed", but the run doesn't end with a full V4 pass/);
+    expect(failing(dir)).toMatch(/\[verification\] run-log\.json: status is "completed", but the run doesn't end with its guide's check \(the full pass, or a revision's re-check\)/);
   });
 });
 
@@ -706,7 +801,7 @@ describe("AC-W2 (cc): an escalation's way back is the choice verification; schem
   it("fails the retired gates and test-config keys: checkpoint 1 in a schema-3 log, and a default rule naming answers.checkpoint1 (D-323)", () => {
     const one = copyOf('run-ok');
     editLog(one, (l) => (l.checkpoints[1].checkpoint = 1));
-    expect(failing(one)).toMatch(/\[run-log\] run-log\.json checkpoints\[1\]: checkpoint 1 isn't "brainstorm", "verification", "final", "unsaved-build" or "escalation" \(D-289/);
+    expect(failing(one)).toMatch(/\[run-log\] run-log\.json checkpoints\[1\]: checkpoint 1 isn't "brainstorm", "verification", "design", "final", "unsaved-build" or "escalation" \(D-289/);
     const rule = stoppedAtVerification();
     editLog(rule, (l) => (l.checkpoints[1].rule = 'no checkpoint1 answer left: stop'));
     expect(failing(rule)).toMatch(/\[run-log\] run-log\.json checkpoints\[1\]: has rule "no checkpoint1 answer left: stop", which names a retired test-config key or answer/);
@@ -923,7 +1018,7 @@ describe("D-287: each gate visit's answer, in order, leads to the next step", ()
     expect(failing(more)).toMatch(/\[order\] .*: follows the brainstorm gate answered "more", which starts a brainstorm round \(R1a\), not R1b/);
     const stop = copyOf('run-ok');
     editLog(stop, (l) => (l.checkpoints[1] = { checkpoint: 'verification', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no verification answer left: stop' }));
-    expect(failing(stop)).toMatch(/\[order\] .*\(D1 r1-a-1 attempt 1\): follows the verification gate answered "stop", which ends the run stopped/);
+    expect(failing(stop)).toMatch(/\[order\] .*\(D1-build r1-a-1 attempt 1\): follows the verification gate answered "stop", which ends the run stopped/);
     const extra = copyOf('run-ok');
     editLog(extra, (l) => l.checkpoints.splice(2, 0, { checkpoint: 'verification', visit: 2, answer: 'more', answeredBy: 'pre-supplied', rule: 'more' }));
     expect(failing(extra)).toMatch(/\[order\] run-log\.json: checkpoints\[\] records 1 verification answer\(s\) more than the run visits the verification gate/);
@@ -1017,7 +1112,7 @@ describe("checkpoints.md: each escalation's choice is its escalation question's 
       l.escalations[0].choice = 'retry';
       if (guidance !== undefined) l.escalations[0].guidance = guidance;
       l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer: `retry:${answeredWith}`, answeredBy: 'pre-supplied', rule: `retry:${answeredWith}` };
-      l.stages.push(step('D1', CARD, 4, 'done'));
+      l.stages.push(step('D1-build', CARD, 4, 'done'));
       l.status = 'running';
     });
     return dir;
@@ -1099,10 +1194,7 @@ describe("D-342: an R1b failure whose card's ascendancy doesn't own the node tha
     fs.writeFileSync(path.join(dir, 'cards', 'r1-c-1.md'), CONCOCTION_CARD);
     editText(dir, 'cards.md', (t) => t.replace(/^- r1-c-1 .*\n/m, '').replace('## Not dealt\n\n', `## Not dealt\n\n- r1-c-1 "Concoction slam" | Warrior Titan, Explosive Concoction | wrong-ascendancy: ${LOCK}\n`));
     editLog(dir, (l) => (l.stages[ESCALATED.assemble].shortReason = '4 of 9 cards passed the identity check and the sniff test'));
-    editText(dir, 'dossier.md', (t) => t.replace(/### r1-c-1: Melting Maelstrom nova\n[\s\S]*?\n\n(?=## )/, [
-      '### r1-c-1: Concoction slam', '', '- Skeleton: none.', '- Compile: not compiled: wrong-ascendancy.', '- Record: none.',
-      '- Key numbers: none (not compiled).', '- Key-item prices: none (not compiled).', `- Status: failed: ${LOCK}; the card's ascendancy is Titan (D-342).`, '', '',
-    ].join('\n')));
+    editText(dir, 'dossier.md', (t) => t.replace(/^\| r1-c-1 \|.*$/m, `| r1-c-1 | 1 | failed: ${LOCK}; the card's ascendancy is Titan (D-342) | a thrown concoction on a slam warrior | — | — | — | — | — | not compiled: wrong-ascendancy |`));
     editJson(dir, 'reports/gates/R1b-r1-c-1-a1.json', (r) => {
       r.findings = [{ part: 'compiled', code: 'wrong-ascendancy', message: `${LOCK}; the card's ascendancy is Titan (D-342)` }];
     });
@@ -1125,7 +1217,7 @@ describe("D-342: an R1b failure whose card's ascendancy doesn't own the node tha
   it('the passing copy is consistent: the card, the deck, the dossier and the verdict name Explosive Concoction on a Titan', () => {
     const dir = wrongAscendancy();
     expect(fs.readFileSync(path.join(dir, 'cards.md'), 'utf8')).toMatch(/## Not dealt\n\n- r1-c-1 "Concoction slam" \| Warrior Titan, Explosive Concoction \| wrong-ascendancy: /);
-    expect(fs.readFileSync(path.join(dir, 'dossier.md'), 'utf8')).toContain('### r1-c-1: Concoction slam\n\n- Skeleton: none.\n- Compile: not compiled: wrong-ascendancy.');
+    expect(fs.readFileSync(path.join(dir, 'dossier.md'), 'utf8')).toMatch(/\n\| r1-c-1 \| 1 \| failed: Explosive Concoction is granted only by Pathfinder's node .* \| — \| — \| — \| — \| — \| not compiled: wrong-ascendancy \|\n/);
     expect(readJson(dir, 'reports/gates/R1b-r1-c-1-a1.json')).toEqual(expect.objectContaining({ compiles: 0, recordPath: null, findings: [expect.objectContaining({ code: 'wrong-ascendancy' })] }));
     expect(fs.readFileSync(path.join(dir, 'cards', 'r1-c-1.md'), 'utf8')).not.toMatch(/Melting Maelstrom|not-a-skill|isn't a skill/);
   });
@@ -1201,7 +1293,7 @@ describe('D-326: a schema-2 run, recorded before amendment 3, still checks by it
     expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[3\]: has shortReason, which schema 3 added \(D-339\); a schema-2 log has none \(D-326\)/);
     expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[4\]: has probes, which schema 3 added \(D-338\); a schema-2 log has none \(D-326\)/);
     expect(stderr).toMatch(/\[run-log\] run-log\.json stages\[4\]: a R1b entry names its concept, the concept id c<n>/);
-    for (const [i, gate] of ['brainstorm', 'verification', 'final'].entries()) {
+    for (const [i, gate] of ['brainstorm', 'verification', 'design', 'final'].entries()) {
       expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json checkpoints\\[${i}\\]: checkpoint "${gate}" isn't 1, 2, "unsaved-build" or "escalation"`));
     }
     expect(lines(stderr, 'layout').map((l) => /\] (\S+) is part of schema 3's layout \(the cards, the deck and the probes, D-338\); a schema-2 run, recorded before amendment 3, has none \(D-326\)$/.exec(l)?.[1]).filter(Boolean)).toEqual(['cards/', 'cards.md', 'probes/']);
@@ -1225,7 +1317,7 @@ describe('D-283: the guide has at most 3,000 words, the H1, the import code and 
     const counted = lines.filter((l) => !l.startsWith('# ') && l !== code && l !== `- ${PROSE_READER}`).join('\n');
     const pad = total - wordsIn(counted);
     expect(pad).toBeGreaterThan(0);
-    editText(dir, 'guide.md', replace('## Changelog\n', `${'filler '.repeat(pad)}\n\n## Changelog\n`));
+    editGuide(dir, replace('## Changelog\n', `${'filler '.repeat(pad)}\n\n## Changelog\n`));
     return dir;
   };
 
@@ -1238,7 +1330,7 @@ describe('D-283: the guide has at most 3,000 words, the H1, the import code and 
 describe('D-276: only the import code is exempt from the no-pipeline-text guard (w)', () => {
   it('names a marker, a confidence label and a finding id, each on its own line of a second fenced block', () => {
     const dir = copyOf('run-ok');
-    editText(dir, 'guide.md', replace('## Leveling\n', '```\nsee [^g1]\nI read it as a ceiling (confidence L)\nas v4-prose-1 says\n```\n\n## Leveling\n'));
+    editText(dir, 'guide.md', replace('## Leveling\n', '```\nsee [^g1]\nI read it as a ceiling (confidence L)\nas v4-1-1 says\n```\n\n## Leveling\n'));
     const at = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8').split('\n').indexOf('see [^g1]') + 1;
     expect(lines(failing(dir), 'guide-markers').map((l) => /guide\.md:(\d+) carries (a footnote marker|the confidence label|the finding id)/.exec(l)?.slice(1))).toEqual([
       [String(at), 'a footnote marker'],
@@ -1252,12 +1344,13 @@ describe("D-283: the verdict line's numbers match the record by the rounding rul
   it('matches a number at its own last significant digit: "5,100" matches 5,136 but not 5,150; "about 400" matches 401.996', () => {
     const near = copyOf('run-ok');
     editJson(near, 'compile-record.json', (r) => (r.stages.b.outputs.PhysicalMaximumHitTaken = 5136));
+    rerender(near);
     passes(near);
     const off = copyOf('run-ok');
     editJson(off, 'compile-record.json', (r) => (r.stages.b.outputs.PhysicalMaximumHitTaken = 5150));
     expect(failing(off)).toMatch(/\[verdict-line\] guide\.md:\d+: the Budget verdict line says physical max hit 5,100, but b\.PhysicalMaximumHitTaken is 5150/);
-    // The fixture's budget hit: the ledger value 401.9956…, written "about 400".
-    expect(readJson(path.join(FIXTURES, 'run-ok'), 'compile-record.json').ledger.hit_b_physical.value).toBeCloseTo(401.9956, 4);
+    // The fixture's budget hit: the compiler wrote 402 (D-353), written "about 400".
+    expect(readJson(path.join(FIXTURES, 'run-ok'), 'compile-record.json').stages.b.configWritten.enemyPhysicalDamage).toBe(402);
     expect(fs.readFileSync(path.join(FIXTURES, 'run-ok', 'guide.md'), 'utf8')).toContain('Max hit 5,100 physical against about 400,');
   });
 
@@ -1283,21 +1376,26 @@ const d1Verdict = (dir: string, attempt: number, finding: Json | null = levelPoi
 };
 
 describe("D-281: the entering-maps rung m is gated like b: its floor at area 69, its budget 5 divines (5.5 with \"near the ceiling\")", () => {
+  /** run-ok-online with m's weapon at `amount` divines, the D1 gate's basis giving the rung's new total (the other slots 2.4). */
   const withWeapon = (amount: number) => {
     const dir = copyOf('run-ok-online');
     editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = amount));
+    editJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`, (g) => (g.basis.budget.totals.find((t: Json) => t.stage === 'm').divines = Math.round((amount + 2.4) * 100) / 100));
     return dir;
   };
-  const note = (dir: string) => editText(dir, 'guide.md', replace('- Budget: 4.4 divines against the 5-divine ceiling.', '- Budget: 5.5 divines against 5, near the ceiling: within the 5.5-divine tolerance.'));
 
   it('passes up to 5, and up to 5.5 with "near the ceiling" in its Checks; above 5.5 fails', () => {
-    passes(withWeapon(2.6)); // 5.0 divines
-    const near = withWeapon(3.1); // 5.5 divines
+    const at5 = withWeapon(2.6); // 5.0 divines
+    rerender(at5);
+    passes(at5);
+    const near = withWeapon(3.1); // 5.5 divines: the render adds the near-the-ceiling line, which the guide lacks until W1 copies it
+    editText(near, 'guide.md', replace('- Budget: 4.4 divines against the 5-divine ceiling.', '- Budget: 5.5 divines against the 5-divine ceiling.'));
     expect(failing(near)).toMatch(/\[budget\] entering-maps stage m totals 5\.5 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/);
-    note(near);
+    rerender(near);
+    expect(fs.readFileSync(path.join(near, 'guide.md'), 'utf8')).toContain('  5.5 divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
     passes(near);
     const over = withWeapon(3.11); // 5.51 divines
-    note(over);
+    rerender(over);
     expect(failing(over)).toMatch(/\[budget\] .*stage m totals 5\.51 divines, above 5\.5 \(D-281\)/);
   });
 
@@ -1315,23 +1413,21 @@ describe("D-281: the entering-maps rung m is gated like b: its floor at area 69,
 
   it('FI-2 breaks the first rung of the ladder, m, wherever the plan lists it: its attempt-1 failure there runs free', () => {
     const dir = copyOf('run-ok');
-    // The plan lists b before m; the ladder still starts at m (D-282), and FI-2's finding is on m.
-    editPlan(dir, (p) => {
+    // The plan lists b before m, all along; the ladder still starts at m (D-282), and FI-2's finding is on m.
+    editPlanAll(dir, (p) => {
       const m = p.stages.splice(p.stages.findIndex((s: Json) => s.id === 'm'), 1)[0];
       p.stages.splice(p.stages.findIndex((s: Json) => s.id === 'b') + 1, 0, m);
     });
-    // The sources lens's accepted-offline locations follow the claims to their new stage indices.
-    editJson(dir, 'reports/v4-sources.json', (r) => {
-      r.findings[0].location = 'stages[2].claims[5]';
-      r.findings[1].location = 'stages[3].claims[1]';
-    });
+    // The full pass's accepted-offline locations follow the claims to their stage indices.
+    editText(dir, 'reports/V4-1.md', (t) => t.split('stages[2].claims[1] (m-budget)').join('stages[3].claims[1] (m-budget)').split('stages[3].claims[5] (b-meta)').join('stages[2].claims[5] (b-meta)'));
     const tree = { part: 'v1', code: 'tree-disconnected', stage: 'n', message: 'stage n: node 123 not connected' };
     for (const a of [2, 3]) d1Verdict(dir, a, tree);
     d1Verdict(dir, 4, null);
     editLog(dir, (l) => {
       const i = l.stages.findIndex((s: Json) => s.stage === 'D1-gate' && s.attempt === 2);
-      l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'pass'));
+      l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'pass'));
     });
+    rerender(dir);
     // Attempt 1 is free, so attempts 2 and 3 are the chain's 2 counted retries.
     passes(dir);
   });
@@ -1341,36 +1437,26 @@ describe("D-281: the entering-maps rung m is gated like b: its floor at area 69,
 // Known issues (S2, Q1): what is open after the re-check
 // ---------------------------------------------------------------------------------------------------
 
-describe('S2, Q1, D-276: every finding open after the re-check is listed under Known issues, by sentence, with its id in audit.md', () => {
+describe('D-352, D-276: every finding open in the last report is listed under Known issues, by sentence, with its id in audit.md', () => {
   const dropListing = noneOpen;
 
-  it('needs no listing for a finding the re-check reports fixed', () => {
+  it('needs no listing for a finding the re-check reports fixed: the last report holds what is open', () => {
     const dir = copyOf('run-ok');
-    editJson(dir, 'reports/v4-prose-recheck.json', (r) => {
-      r.findings[0].status = 'fixed';
-      r.verdict = 'pass';
-    });
+    fixedInRecheck(dir);
     dropListing(dir);
     passes(dir);
   });
 
-  it('keeps a full-pass finding the re-check left out open, and a new finding the re-check raised', () => {
-    const dir = copyOf('run-ok');
-    editJson(dir, 'reports/v4-prose-recheck.json', (r) => {
-      r.findings = [{ ...r.findings[0], id: 'v4-prose-2', location: 'Summary, line 13' }];
-    });
-    const stderr = failing(dir);
-    expect(stderr).toMatch(/\[known-issues\] V4 prose finding "v4-prose-2" .*is open after the re-check, but audit\.md's Known issues has no row/);
-    expect(stderr).not.toMatch(/"v4-prose-1"/);
-    dropListing(dir);
-    expect(failing(dir)).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1"/);
-  });
-
-  it("ignores a re-check report the log doesn't run after the last full pass (an earlier cycle's)", () => {
-    const dir = copyOf('run-ok-online');
-    fs.copyFileSync(path.join(FIXTURES, 'run-ok', 'reports', 'v4-prose-recheck.json'), path.join(dir, 'reports', 'v4-prose-recheck.json'));
-    editJson(dir, 'reports/v4-prose-recheck.json', (r) => (r.mode = 'online'));
-    passes(dir);
+  it('holds open a new finding the re-check raised, and fails a re-check that drops a finding still open', () => {
+    const raised = copyOf('run-ok');
+    editText(raised, 'reports/V4-2.md', (t) => `${t}\n### v4-2-1\n\n- status: unresolved\n- hinge: no\n- owner: W1\n- artifact: guide.md\n- location: How to play it, line 97\n- claim: lunge at each one twice\n- issue: no plan claim says two lunges; narrow it\n- evidence: the plan's claims hold no lunge count\n- reader: The advice to lunge twice at each rare isn't from the build: one lunge consumes the Blood Loss.\n`);
+    const stderr = failing(raised);
+    expect(stderr).toMatch(/\[known-issues\] V4 finding "v4-2-1" .*is open in reports\/V4-2\.md, the last report, but audit\.md's Known issues has no row/);
+    expect(stderr).not.toMatch(/"v4-1-1"/);
+    const dropped = copyOf('run-ok');
+    editText(dropped, 'reports/V4-2.md', (t) => t.replace(/### v4-1-1\n[\s\S]*$/, 'None.\n').replace('- verdict: fail', '- verdict: pass'));
+    editLog(dropped, (l) => (l.stages.find((s: Json) => s.stage === 'V4-recheck').outcome = 'pass'));
+    expect(lines(failing(dropped), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md doesn't report reports\/V4-1\.md's unresolved finding v4-1-1 again; a re-check reports every finding still open under its id, fixed or unresolved/));
   });
 
   it('fails when the guide has no Known issues H3 at all', () => {
@@ -1379,33 +1465,34 @@ describe('S2, Q1, D-276: every finding open after the re-check is listed under K
     expect(failing(dir)).toMatch(/\[known-issues\] 0 accepted gate finding\(s\) and 1 open V4 finding\(s\), but guide\.md has no "Known issues" H3 under "What PoB can't show"/);
   });
 
-  it("fails an audit.md row whose sentence isn't the finding's reader sentence, or whose lens is another", () => {
+  it("fails an audit.md row whose sentence isn't the finding's reader sentence, or that names something other than V4", () => {
     const dir = copyOf('run-ok');
-    editText(dir, 'audit.md', replace(`| v4-prose-1 | prose | — | ${PROSE_READER} |`, '| v4-prose-1 | sources | — | Rotation is wrong. |'));
+    editText(dir, 'audit.md', replace(`| v4-1-1 | V4 | — | ${PROSE_READER} |`, '| v4-1-1 | sources | — | Rotation is wrong. |'));
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-prose-1" names "sources", not its lens prose/);
-    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-prose-1" gives "Rotation is wrong\.", not the finding's reader sentence/);
+    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-1-1" names "sources"; an open V4 finding's row names V4 \(§7\.8, D-352\)/);
+    expect(stderr).toMatch(/\[known-issues\] audit\.md:\d+: the Known issues row for "v4-1-1" gives "Rotation is wrong\.", not the finding's reader sentence/);
   });
 });
 
-describe('C-30, §7.4: accepted-offline is only the sources lens\'s word on a claim tagged external-unavailable', () => {
-  it('fails another lens marking a finding accepted-offline', () => {
-    const dir = copyOf('run-ok');
-    editJson(dir, 'reports/v4-ledger.json', (r) => r.findings.push({ id: 'v4-ledger-1', artifact: 'guide.md', location: 'guide.md [^g9]', claim: 'c', issue: 'tagged external-unavailable', evidence: 'offline', owner: 'W1', status: 'accepted-offline' }));
-    expect(failing(dir)).toMatch(/\[report-shape\] .*v4-ledger\.json: findings\[0\] is accepted-offline in a ledger lens report; only the V4 sources lens/);
+describe('C-30, stages/V4.md: accepted-offline is only for a claim tagged external-unavailable, in an offline run', () => {
+  it('fails a finding accepted-offline in an online run', () => {
+    const dir = copyOf('run-ok-online');
+    editText(dir, 'reports/V4-1.md', replace('## Findings\n\nNone.\n', '## Findings\n\n### v4-1-1\n\n- status: accepted-offline\n- hinge: no\n- owner: D1\n- artifact: plan.json\n- location: stages[3].claims[5] (b-meta)\n- claim: Spear builds clear T15 maps on a budget this league.\n- issue: tagged external-unavailable\n- evidence: none\n'));
+    expect(failing(dir)).toMatch(/\[report-shape\] reports\/V4-1\.md: finding v4-1-1 \(line \d+\) is accepted-offline in an online run; only offline mode accepts external-unavailable \(C-30\)/);
   });
 
-  it('fails a sources finding accepted-offline whose location names no external-unavailable claim', () => {
+  it('fails a finding accepted-offline whose location names no external-unavailable claim', () => {
     for (const [artifact, location, why] of [
-      ['plan.json', 'stages[3].claims[0]', /names a pob-computed claim/],
+      ['plan.json', 'stages[3].claims[0] (b-life)', /names a pob-computed claim/],
       ['plan.json', 'Summary, line 3', /names no claim/],
-      // D-276: the guide carries no markers, so the sources lens has no guide side: no guide location is a claim.
-      ['guide.md', 'guide.md [^g9]', /names no claim/],
+      ['plan.json', 'stages[3].claims[5] (b-life)', /names no claim/],
+      // D-276: the guide carries no markers, so no guide location is a claim.
+      ['guide.md', 'How to play it, line 3', /names no claim/],
     ] as const) {
       const dir = copyOf('run-ok');
-      editJson(dir, 'reports/v4-sources.json', (r) => Object.assign(r.findings[1], { artifact, location }));
+      editText(dir, 'reports/V4-1.md', (t) => t.replace('- artifact: plan.json\n- location: stages[3].claims[5] (b-meta)', `- artifact: ${artifact}\n- location: ${location}`));
       const stderr = failing(dir);
-      expect(stderr).toMatch(/\[report-shape\] reports\/v4-sources\.json: findings\[1\] is accepted-offline/);
+      expect(stderr).toMatch(/\[report-shape\] reports\/V4-1\.md: v4-1-3 is accepted-offline/);
       expect(stderr).toMatch(why);
     }
   });
@@ -1427,7 +1514,7 @@ function acceptedRun(finding: Json, listing: string | null, choice = 'accept', r
   for (const a of [2, 3, 4]) writeJson(dir, `reports/gates/D1-gate-${CARD}-a${a}.json`, { ...passing, attempt: a, verdict: { ...passing.verdict, [finding.part]: 'fail' }, findings: [...passing.findings, finding] });
   editLog(dir, (l) => {
     const i = l.stages.findIndex((s: Json) => s.stage === 'D1-gate' && s.attempt === 2);
-    l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'escalated'));
+    l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'escalated'));
     l.escalations.push({ stage: 'D1-gate', concept: CARD, verdict: `reports/gates/D1-gate-${CARD}-a4.json`, choice });
     l.checkpoints.splice(cpAt(l, 'final'), 0, { checkpoint: 'escalation', visit: 1, answer: choice, answeredBy: 'pre-supplied', rule: choice });
   });
@@ -1463,7 +1550,7 @@ describe('§5.3: once a guide exists, a failing gate part no accepted finding co
     });
     const stderr = failing(dir);
     expect(stderr).not.toMatch(/says budget: "fail", but/);
-    expect(stderr).toMatch(/\[budget\] the guide's concept fails the D1 gate's budget \(over-budget, stage b\): stage b totals 43\.5 divines, above 22/);
+    expect(stderr).toMatch(/\[budget\] the guide's concept fails the D1 gate's budget \(over-budget, stage b\): stage b totals 43\.9 divines, above 22/);
   });
 
   it('fails a run with a guide whose last D2 gate failed V1 with no accepted finding', () => {
@@ -1536,40 +1623,42 @@ describe('§5.4: an accepted gate finding covers equal ones (same plan stage, pa
 describe('D-219 and D-249: budget totals and tree jewels', () => {
   it('rounds the total to 2 decimals before comparing it with 22', () => {
     const dir = copyOf('run-ok-online');
-    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 100.4));
+    // 21.4 divines without the jewel, and the jewel 60.4 exalted at 0.01: 22.004, which rounds to 22.
+    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 60.4));
     passes(dir);
   });
 });
 
-describe('D-256: a reference hit is the ledger value rounded to 2 decimals, then up to a whole number', () => {
-  const setHit = (dir: string, type: string, value: number) => editPlan(dir, (p) => (stageB(p).config.scenario.find((o: Json) => o.option === `enemy${type}Damage`).value = value));
+describe("D-256, D-353: a reference hit the compiler wrote is D-254's formula rounded to 2 decimals, then up to a whole number", () => {
+  const setHit = (dir: string, type: string, value: number) => editJson(dir, 'compile-record.json', (r) => (r.stages.b.configWritten[`enemy${type}Damage`] = value));
 
-  it('passes the fixture, whose fire hit is 97 against its ledger value 96.4789…', () => {
+  it("passes the fixture, whose fire hit is 97 against its formula's 96.4789… at area 79, with no hit_ ledger entry", () => {
     const plan = readJson(path.join(FIXTURES, 'run-ok'), 'plan.json');
     const record = readJson(path.join(FIXTURES, 'run-ok'), 'compile-record.json');
-    expect(stageB(plan).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value).toBe(97);
-    expect(record.ledger.hit_b_fire.value).toBeCloseTo(96.4789, 4);
+    expect(record.stages.b.configWritten.enemyFireDamage).toBe(97);
+    expect(324.19000244141 * (1 + 24 / 100) * (24 / 100)).toBeCloseTo(96.4789, 4);
+    expect([stageB(plan).config.scenario.some((o: Json) => o.option === 'enemyFireDamage'), Object.keys(record.ledger).some((k) => k.startsWith('hit_'))]).toEqual([false, false]);
     expect(runChecker(path.join(FIXTURES, 'run-ok')).code).toBe(0);
   });
 
   it("fails the 2-decimal value D-254 asked for (96.48): PoB's enemy<Type>Damage options take whole numbers", () => {
     const dir = copyOf('run-ok');
     setHit(dir, 'Fire', 96.48);
-    expect(failing(dir)).toMatch(/check-run: \[floor\] .*says floor: "pass", but the records give "fail": .*stage b's enemyFireDamage 96\.48 isn't 97, the ceiling of its ledger entry hit_b_fire's value 96\.4789\d* rounded to 2 decimals \(D-256\)/);
+    expect(failing(dir)).toMatch(/check-run: \[floor\] .*says floor: "pass", but the records give "fail": .*stage b's recorded enemyFireDamage 96\.48 isn't 97: the damage at its area level 79 .* is 96\.48, rounded to 2 decimals and then up \(D-254, D-256, D-353\)/);
   });
 
-  it('fails a hit rounded down (96): the scenario value is the ceiling, the conservative side of the floor', () => {
+  it('fails a hit rounded down (96): the hit is the ceiling, the conservative side of the floor', () => {
     const dir = copyOf('run-ok');
     setHit(dir, 'Fire', 96);
-    expect(failing(dir)).toMatch(/\[floor\] .*enemyFireDamage 96 isn't 97, the ceiling/);
+    expect(failing(dir)).toMatch(/\[floor\] .*recorded enemyFireDamage 96 isn't 97/);
   });
 
-  it('passes a ledger value with float noise (402.000003) at 402, and fails 403 for it', () => {
+  it("passes the physical hit 402, its formula's 401.9956… rounded to 2 decimals and up, and fails 403", () => {
     const dir = copyOf('run-ok');
-    editJson(dir, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 402.000003));
+    expect(readJson(dir, 'compile-record.json').stages.b.configWritten.enemyPhysicalDamage).toBe(402);
     passes(dir);
     setHit(dir, 'Physical', 403);
-    expect(failing(dir)).toMatch(/\[floor\] .*enemyPhysicalDamage 403 isn't 402, the ceiling of its ledger entry hit_b_physical's value 402\.000003/);
+    expect(failing(dir)).toMatch(/\[floor\] .*recorded enemyPhysicalDamage 403 isn't 402/);
   });
 });
 
@@ -1609,18 +1698,21 @@ describe('S4, Q5: the slim run log and its per-step price outcomes', () => {
   it('fails a priceOutcomes key that is no outcome, and one on a step that doesn\'t price', () => {
     const dir = copyOf('run-ok-online');
     editLog(dir, (l) => {
-      l.stages.find((s: Json) => s.stage === 'D1').priceOutcomes = { ok: 2, maybe: 1 };
+      l.stages.find((s: Json) => s.stage === 'D1-finish').priceOutcomes = { ok: 2, maybe: 1 };
       l.stages.find((s: Json) => s.stage === 'W1').priceOutcomes = { ok: 1 };
+      l.stages.find((s: Json) => s.stage === 'D1-build').priceOutcomes = { ok: 1 };
     });
     const stderr = failing(dir);
-    expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1}\\]\\.priceOutcomes: is \\{<outcome>: <count>\\}`));
+    expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1finish}\\]\\.priceOutcomes: is \\{<outcome>: <count>\\}`));
     expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.w1}\\]: has priceOutcomes, but W1 doesn't price`));
+    // D-356: D1-build prices nothing; D1-finish does.
+    expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1}\\]: has priceOutcomes, but D1-build doesn't price`));
   });
 
   it('fails NFR-22 on a rate_limited or locked_out call', () => {
     const dir = copyOf('run-ok-online');
-    editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'D1').priceOutcomes = { ok: 11, rate_limited: 1 }));
-    expect(failing(dir)).toMatch(new RegExp(`\\[nfr-22\\] run-log\\.json stages\\[${ONLINE.d1}\\]: pricing hit 1 rate_limited and 0 locked_out outcome\\(s\\); NFR-22 wants zero of each`));
+    editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'D1-finish').priceOutcomes = { ok: 11, rate_limited: 1 }));
+    expect(failing(dir)).toMatch(new RegExp(`\\[nfr-22\\] run-log\\.json stages\\[${ONLINE.d1finish}\\]: pricing hit 1 rate_limited and 0 locked_out outcome\\(s\\); NFR-22 wants zero of each`));
   });
 
   it('fails a test config accepted in an online run, and fault directives without one', () => {
@@ -1692,7 +1784,7 @@ describe('flow invariant 1: steps run in a legal order (SKILL.md step list)', ()
       const at = l.stages.findIndex((s: Json) => s.stage === 'D2');
       [l.stages[at - 1], l.stages[at]] = [l.stages[at], l.stages[at - 1]];
     });
-    expect(failing(dir)).toMatch(new RegExp(`\\[order\\] run-log\\.json stages\\[${RUN_OK.d2 - 1}\\] \\(D2 r1-a-1 attempt 1\\): can't follow D1 r1-a-1 attempt 2 \\(outcome "done"\\); SKILL\\.md's step list allows D1-gate next`));
+    expect(failing(dir)).toMatch(new RegExp(`\\[order\\] run-log\\.json stages\\[${RUN_OK.d2 - 1}\\] \\(D2 r1-a-1 attempt 1\\): can't follow D1-finish r1-a-1 attempt 2 \\(outcome "done"\\); SKILL\\.md's step list allows D1-gate next`));
   });
 
   it('fails an attempt number that skips, since every call counts', () => {
@@ -1704,10 +1796,13 @@ describe('flow invariant 1: steps run in a legal order (SKILL.md step list)', ()
   it("fails a design of a card the verification gate didn't finalize, and a design switching cards mid-way", () => {
     const dir = copyOf('run-ok');
     editLog(dir, (l) => (l.checkpoints[cpAt(l, 'verification')].answer = 'pick:r1-a-2'));
-    expect(failing(dir)).toMatch(new RegExp(`\\[order\\] run-log\\.json stages\\[${RUN_OK.d1}\\] \\(D1 r1-a-1 attempt 1\\): designs r1-a-1, but the verification gate finalized r1-a-2`));
+    expect(failing(dir)).toMatch(new RegExp(`\\[order\\] run-log\\.json stages\\[${RUN_OK.d1}\\] \\(D1-build r1-a-1 attempt 1\\): designs r1-a-1, but the verification gate finalized r1-a-2`));
     const dir2 = copyOf('run-ok');
     editLog(dir2, (l) => (l.stages.find((s: Json) => s.stage === 'D2').concept = 'r1-a-2'));
-    expect(failing(dir2)).toMatch(/\[order\] .*\(D2 r1-a-2 attempt 1\): is about r1-a-2, but the design before it is r1-a-1's/);
+    expect(failing(dir2)).toMatch(/\[order\] .*\(D2 r1-a-2 attempt 1\): follows the design gate answered "accept", which goes on to r1-a-1's D2, not D2 r1-a-2 \(D-362\)/);
+    const dir3 = copyOf('run-ok');
+    editLog(dir3, (l) => (l.stages.find((s: Json) => s.stage === 'D2-gate').concept = 'r1-a-2'));
+    expect(failing(dir3)).toMatch(/\[order\] .*\(D2-gate r1-a-2 attempt 1\): is about r1-a-2, but the design before it is r1-a-1's/);
   });
 
   it('fails a brainstorm round no gate answered "more" for (D-287)', () => {
@@ -1731,20 +1826,20 @@ describe('flow invariant 1: steps run in a legal order (SKILL.md step list)', ()
     expect(failing(never)).toMatch(/\[order\] .*\(W1 r1-a-1 attempt 2\): returned without its file and never re-ran/);
 
     const twice = copyOf('run-escalated');
-    restage(twice, ESCALATED.d1, [step('D1', CARD, 1, 'missing'), step('D1', CARD, 2, 'missing')], (l) => {
+    restage(twice, ESCALATED.d1, [step('D1-build', CARD, 1, 'missing'), step('D1-build', CARD, 2, 'missing')], (l) => {
       l.status = 'stopped';
       l.escalations = [];
       l.checkpoints = l.checkpoints.slice(0, 2);
     });
     passes(twice);
     editLog(twice, (l) => (l.status = 'completed'));
-    expect(failing(twice)).toMatch(/\[order\] .*\(D1 r1-a-1 attempt 2\): is a second missing return of the step; the run then ends stopped/);
+    expect(failing(twice)).toMatch(/\[order\] .*\(D1-build r1-a-1 attempt 2\): is a second missing return of the step; the run then ends stopped/);
   });
 
   it('fails a step after an escalation answered stop', () => {
     const dir = copyOf('run-escalated');
-    editLog(dir, (l) => l.stages.push(step('D1', CARD, 4, 'done')));
-    expect(failing(dir)).toMatch(/\[order\] .*\(D1 r1-a-1 attempt 4\): follows D1-gate r1-a-1's escalation answered "stop", which ends the run escalated/);
+    editLog(dir, (l) => l.stages.push(step('D1-build', CARD, 4, 'done')));
+    expect(failing(dir)).toMatch(/\[order\] .*\(D1-build r1-a-1 attempt 4\): follows D1-gate r1-a-1's escalation answered "stop", which ends the run escalated/);
   });
 });
 
@@ -1783,7 +1878,7 @@ describe('flow invariant 2: the caps, R1b at most 3 counted attempts and each ga
 
   it('gates: a third counted failure that re-runs the producer breaks the cap', () => {
     const dir = copyOf('run-escalated');
-    restage(dir, ESCALATED.d1a3, [step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'escalated')], (l) => (l.escalations[0].verdict = `reports/gates/D1-gate-${CARD}-a4.json`));
+    restage(dir, ESCALATED.d1a3, [step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'escalated')], (l) => (l.escalations[0].verdict = `reports/gates/D1-gate-${CARD}-a4.json`));
     fs.copyFileSync(path.join(dir, `reports/gates/D1-gate-${CARD}-a3.json`), path.join(dir, `reports/gates/D1-gate-${CARD}-a4.json`));
     editJson(dir, `reports/gates/D1-gate-${CARD}-a4.json`, (r) => (r.attempt = 4));
     expect(failing(dir)).toMatch(/\[caps\] .*\(D1-gate r1-a-1 attempt 3\): is counted failure 3 of D1-gate for r1-a-1 in one chain, and the producer re-runs again; a gate allows 2 counted retries/);
@@ -1795,74 +1890,85 @@ describe('flow invariant 2: the caps, R1b at most 3 counted attempts and each ga
       l.escalations[0].choice = 'retry';
       l.escalations[0].guidance = 'drop the level-1 stage';
       l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer: 'retry:drop the level-1 stage', answeredBy: 'pre-supplied', rule: 'retry:drop the level-1 stage' };
-      l.stages.push(step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'fail'), step('D1', CARD, 5, 'done'), step('D1-gate', CARD, 5, 'pass'));
+      l.stages.push(step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'fail'), step('D1-build', CARD, 5, 'done'), step('D1-finish', CARD, 5, 'done'), step('D1-gate', CARD, 5, 'pass'));
       l.status = 'stopped';
     });
     expect(failing(dir)).toMatch(/\[caps\] .*\(D1-gate r1-a-1 attempt 4\): fails after a guided retry or an accepted re-run, and the producer re-runs; such a failure escalates again/);
   });
 });
 
-describe('flow invariant 3: one full V4 pass and at most one re-check per cycle (S2, Q4)', () => {
-  const tail = RUN_OK.v4; // run-ok's stages[] index of the first V4 entry
+describe('flow invariant 3 (D-352): one full V4 pass per guide; a fix round or a revision gets one re-check, a revision no full pass', () => {
+  const tail = RUN_OK.v4; // run-ok's stages[] index of its full pass, V4
 
-  it('fails a second full pass in one cycle (the old loop) where the lenses should re-check', () => {
+  it('fails a second full pass for one guide where the fix round re-checks', () => {
     const dir = copyOf('run-ok');
-    restage(dir, tail + 4, [step('V4-ledger', CARD, 2, 'pass'), step('V4-sources', CARD, 2, 'pass'), step('V4-prose', CARD, 2, 'fail')]);
-    expect(failing(dir)).toMatch(/\[verification\] .*\(V4-ledger r1-a-1 attempt 2\): starts a second full V4 pass in one cycle; after the fix round each lens that raised a finding re-checks it \(step 13\), and only a revision the final gate asked for starts a new cycle/);
+    restage(dir, tail + 1, [step('W1', CARD, 2, 'done'), step('V4', CARD, 2, 'fail')]);
+    expect(failing(dir)).toMatch(/\[verification\] .*\(V4 r1-a-1 attempt 2\): starts a second full V4 pass for one guide; after the fix round a re-check \(V4-recheck\) covers what changed/);
   });
 
-  it('fails a full pass that skips a lens (no sampling)', () => {
+  it('fails a revision checked with a full pass: a revision runs no full pass (D-352)', () => {
     const dir = copyOf('run-ok-online');
-    editLog(dir, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V4-sources')));
-    expect(failing(dir)).toMatch(/\[verification\] .*the full V4 pass before it ran without sources; it runs all three lenses/);
-  });
-
-  it("fails a re-check of a lens that raised nothing, and a re-check with no fix round before it", () => {
-    const dir = copyOf('run-ok');
-    editLog(dir, (l) => l.stages.push(step('V4-ledger-recheck', CARD, 1, 'pass')));
-    expect(failing(dir)).toMatch(/\[verification\] .*\(V4-ledger-recheck r1-a-1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass/);
-    const nofix = copyOf('run-ok');
-    editLog(nofix, (l) => l.stages.splice(tail + 3, 1));
-    expect(failing(nofix)).toMatch(/\[order\] .*\(V4-sources-recheck r1-a-1 attempt 1\): can't follow V4-prose r1-a-1 attempt 1/);
-  });
-
-  it('fails a second re-check in one cycle, and a revision no final-gate answer asked for', () => {
-    const dir = copyOf('run-ok');
-    editLog(dir, (l) => l.stages.push(step('W1', CARD, 3, 'done'), step('V4-prose-recheck', CARD, 2, 'fail')));
-    const stderr = failing(dir);
-    expect(stderr).toMatch(/\[verification\] .*\(V4-prose-recheck r1-a-1 attempt 2\): re-checks with no full pass and fix round before it in this cycle/);
-    expect(stderr).toMatch(/\[verification\] run-log\.json stages\[\] runs 1 revision\(s\) after the V4 checks, but the final gate was answered revise:<text> 0 time\(s\)/);
-  });
-
-  it('passes a revision the final gate asked for: the owner, then one more full pass (Q4)', () => {
-    const dir = copyOf('run-ok');
     editLog(dir, (l) => {
-      l.stages.push(step('W1', CARD, 3, 'done'), step('V4-ledger', CARD, 2, 'pass'), step('V4-sources', CARD, 2, 'pass'), step('V4-prose', CARD, 2, 'pass'));
+      l.stages.push(step('W1', CARD, 2, 'done'), step('V4', CARD, 2, 'pass'));
+      const at = cpAt(l, 'final');
+      l.checkpoints.splice(at, 0, { checkpoint: 'final', visit: 1, answer: 'revise:name the boots', answeredBy: 'user' });
+      l.checkpoints[at + 1].visit = 2;
+    });
+    expect(failing(dir)).toMatch(/\[verification\] .*\(V4 r1-a-1 attempt 2\): runs a full V4 pass after a revision; a revision runs no full pass/);
+  });
+
+  it('fails a re-check with no fix round or revision before it, and a second re-check after one fix round', () => {
+    const nofix = copyOf('run-ok-online');
+    editLog(nofix, (l) => l.stages.push(step('V4-recheck', CARD, 1, 'pass')));
+    expect(failing(nofix)).toMatch(/\[verification\] .*\(V4-recheck r1-a-1 attempt 1\): re-checks with no fix round or revision before it/);
+    const twice = copyOf('run-ok');
+    editLog(twice, (l) => l.stages.push(step('V4-recheck', CARD, 2, 'fail')));
+    expect(failing(twice)).toMatch(/\[verification\] .*\(V4-recheck r1-a-1 attempt 2\): starts a second re-check after one fix round; there is no further round/);
+  });
+
+  it('fails a revision no final-gate answer asked for', () => {
+    const dir = copyOf('run-ok');
+    editLog(dir, (l) => l.stages.push(step('W1', CARD, 3, 'done'), step('V4-recheck', CARD, 2, 'fail')));
+    expect(failing(dir)).toMatch(/\[verification\] run-log\.json stages\[\] runs 1 revision\(s\) after the V4 checks, but the final gate was answered revise:<text> 0 time\(s\)/);
+  });
+
+  it('passes a revision the final gate asked for: the round copy, the owner, then its re-check of what --changed lists (D-352, A-34)', () => {
+    const dir = copyOf('run-ok');
+    fs.mkdirSync(path.join(dir, 'rounds', '2'));
+    for (const f of ['plan.json', 'compile-record.json', 'guide.md']) fs.copyFileSync(path.join(dir, f), path.join(dir, 'rounds', '2', f));
+    editText(dir, 'guide.md', replace('Rolling Slam clears packs, and Blood Hunt takes the rares: lunge at each one twice.', 'Blood Hunt clears packs and takes the rares.'));
+    editLog(dir, (l) => {
+      l.stages.push(step('W1', CARD, 3, 'done'), step('V4-recheck', CARD, 2, 'pass'));
       const at = cpAt(l, 'final');
       l.checkpoints.splice(at, 0, { checkpoint: 'final', visit: 1, answer: 'revise:say Blood Hunt clears', answeredBy: 'pre-supplied', rule: 'revise:say Blood Hunt clears' });
       l.checkpoints[at + 1].visit = 2;
     });
-    editJson(dir, 'reports/v4-prose.json', (r) => {
-      r.findings = [];
-      r.verdict = 'pass';
-    });
-    // Step 14 replaces the lists: with nothing open after the revision's pass, both say None.
+    fs.writeFileSync(path.join(dir, 'reports', 'V4-3.md'), [
+      '# V4-3: re-check of rounds/2', '', `- check: recheck`, `- concept: ${CARD}`, '- mode: offline', '- verdict: pass', '', '## Checked', '', '- section How to play it', '',
+      '## Findings', '', '### v4-1-1', '', '- status: fixed', '- hinge: yes', '- owner: W1', '- artifact: guide.md', '- location: How to play it, line 97',
+      '- claim: Blood Hunt clears packs and takes the rares.', '- issue: the clear skill is now Blood Hunt', '- evidence: b.g1s1p1.TotalDPS 50000, the clear group\'s largest', '',
+    ].join('\n'));
+    // Step 14 replaces the lists: with nothing open after the revision's re-check, both say None.
     noneOpen(dir);
     passes(dir);
+    // The revision's re-check missed the H2 the revision changed.
+    editText(dir, 'reports/V4-3.md', replace('- section How to play it\n', 'None.\n'));
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-3\.md's "## Checked" misses "section How to play it", which check-run\.mjs --changed 2 lists/));
   });
 
   it("fails a completed run that never re-checked what its full pass found", () => {
     const dir = copyOf('run-ok');
-    editLog(dir, (l) => (l.stages = l.stages.slice(0, tail + 3)));
-    expect(failing(dir)).toMatch(/\[verification\] run-log\.json: status is "completed", but the run doesn't end with a full V4 pass and, when it found anything, its re-check/);
+    editLog(dir, (l) => (l.stages = l.stages.slice(0, tail + 1)));
+    fs.rmSync(path.join(dir, 'reports', 'V4-2.md'));
+    expect(failing(dir)).toMatch(/\[verification\] run-log\.json: status is "completed", but the run doesn't end with its guide's check \(the full pass, or a revision's re-check\) and, when that found anything, the fix round's re-check/);
   });
 });
 
 describe('flow invariant 4: only the D1 and D2 gates escalate; verification never does (S2)', () => {
-  it('fails a V4 lens logged escalated', () => {
+  it('fails a V4 pass logged escalated', () => {
     const dir = copyOf('run-ok');
-    editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'V4-prose-recheck').outcome = 'escalated'));
-    expect(failing(dir)).toMatch(new RegExp(`\\[escalation\\] run-log\\.json stages\\[${RUN_OK.length - 1}\\]: V4-prose-recheck is logged escalated; only the D1 and D2 gates escalate, and verification never does`));
+    editLog(dir, (l) => (l.stages.find((s: Json) => s.stage === 'V4-recheck').outcome = 'escalated'));
+    expect(failing(dir)).toMatch(new RegExp(`\\[escalation\\] run-log\\.json stages\\[${RUN_OK.length - 1}\\]: V4-recheck is logged escalated; only the D1 and D2 gates escalate, and verification never does`));
   });
 
   it('fails an escalation whose stage is not a gate', () => {
@@ -1944,6 +2050,7 @@ describe('review 2 (MED): the stat-set check (S7) holds the named damage source 
       });
       editJson(dir, 'compile-record.json', (r) => (r.ledger.bh_b = { value: 50000, error: null, computedWithCustomMods: false }));
       editJson(dir, lastD1, (r) => (r.basis.rolledSkill.find((x: Json) => x.stage === 'b').figures[0].figure = 'ledger:bh_b'));
+      rerender(dir);
       return dir;
     };
     expect(failing(withLedgerFigure(2))).toMatch(/\[rolled-skill\] .*\(rolled-stat-set, stage b\): stage b's named damage source's figure ledger:bh_b reads b\.g1s1p1, not the main skill's stat set b\.g1s1p2 \(skills\.main\)/);
@@ -1952,10 +2059,10 @@ describe('review 2 (MED): the stat-set check (S7) holds the named damage source 
 });
 
 describe('review 3 (MED): each gate attempt is routed as its verdict file says', () => {
-  /** run-escalated stopped at the verification gate after the card's D1 gate attempt 1, logged `outcome` after D1 claimed `claim`. */
+  /** run-escalated stopped at the verification gate after the card's D1 gate attempt 1, logged `outcome` after D1-build claimed `claim`. */
   const routedOnce = (outcome: string, claim = 'done') => {
     const dir = copyOf('run-escalated');
-    restage(dir, ESCALATED.d1, [step('D1', CARD, 1, claim), step('D1-gate', CARD, 1, outcome)], (l) => {
+    restage(dir, ESCALATED.d1, [step('D1-build', CARD, 1, claim), step('D1-finish', CARD, 1, 'done'), step('D1-gate', CARD, 1, outcome)], (l) => {
       l.status = 'stopped';
       l.escalations = [];
       l.checkpoints = [...l.checkpoints.slice(0, 2), { checkpoint: 'verification', visit: 2, answer: 'stop', answeredBy: 'default', rule: 'no verification answer left: stop' }];
@@ -1977,7 +2084,7 @@ describe('review 3 (MED): each gate attempt is routed as its verdict file says',
   it('routes a floor failure infeasible only when D1 claimed it, or after 2 counted retries', () => {
     const done = routedOnce('infeasible');
     softFailure(done);
-    expect(failing(done)).toMatch(/\[routing\] .*: is routed infeasible, but D1 claimed done and the gate has 0 counted retries/);
+    expect(failing(done)).toMatch(/\[routing\] .*: is routed infeasible, but D1-build claimed done and the gate has 0 counted retries/);
     const claimed = routedOnce('infeasible', 'infeasible');
     softFailure(claimed);
     passes(claimed);
@@ -2035,19 +2142,22 @@ describe("review 4 (MED): S6's free retry needs the verdict's faultsApplied and 
     d1Verdict(dir, 4, null);
     editLog(dir, (l) => {
       const i = l.stages.findIndex((s: Json) => s.stage === 'D1-gate' && s.attempt === 2);
-      l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'pass'));
+      l.stages.splice(i, 1, step('D1-gate', CARD, 2, 'fail'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'pass'));
     });
     expect(failing(dir)).toMatch(/\[caps\] .*\(D1-gate r1-a-1 attempt 3\): is counted failure 3 of D1-gate for r1-a-1 in one chain/);
   });
 });
 
 describe('review 5 (MED): the log says which artifacts are current; legal routes pass once a guide exists', () => {
-  /** run-ok after its first cycle: a revision the final gate asked for, of D1, that fails its gate twice, then escalates. */
+  /**
+   * run-ok after its first cycle: a revision the final gate asked for, of D1 (D1-finish first, which recompiled), whose
+   * gate fails twice, D1 re-running with both steps, then escalates.
+   */
   const revisionEscalates = (choice: string) => {
     const dir = copyOf('run-ok');
     for (const a of [3, 4, 5]) d1Verdict(dir, a);
     editLog(dir, (l) => {
-      l.stages.push(step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'fail'), step('D1', CARD, 5, 'done'), step('D1-gate', CARD, 5, 'escalated'));
+      l.stages.push(step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'fail'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'fail'), step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 5, 'done'), step('D1-gate', CARD, 5, 'escalated'));
       l.checkpoints[cpAt(l, 'final')] = { checkpoint: 'final', visit: 1, answer: 'revise:cheaper boots', answeredBy: 'pre-supplied', rule: 'revise:cheaper boots' };
       l.checkpoints.push({ checkpoint: 'escalation', visit: 1, answer: choice, answeredBy: choice === 'stop' ? 'default' : 'pre-supplied', rule: choice === 'stop' ? 'no escalation answer left: stop' : choice });
       l.escalations.push({ stage: 'D1-gate', concept: CARD, verdict: `reports/gates/D1-gate-${CARD}-a5.json`, choice });
@@ -2065,7 +2175,7 @@ describe('review 5 (MED): the log says which artifacts are current; legal routes
     d1Verdict(dir, 1, null, 'r1-a-2');
     editJson(dir, 'reports/gates/D1-gate-r1-a-2-a1.json', (r) => Object.assign(r, { forced: 'infeasible', evidence: 'FI-3 (injected)' }));
     editLog(dir, (l) => {
-      l.stages.push(step('D1', 'r1-a-2', 1, 'done'), step('D1-gate', 'r1-a-2', 1, 'infeasible'));
+      l.stages.push(step('D1-build', 'r1-a-2', 1, 'done'), step('D1-finish', 'r1-a-2', 1, 'done'), step('D1-gate', 'r1-a-2', 1, 'infeasible'));
       l.checkpoints.push({ checkpoint: 'verification', visit: 2, answer: 'pick:r1-a-2', answeredBy: 'pre-supplied', rule: 'pick:r1-a-2' }, { checkpoint: 'verification', visit: 3, answer: 'stop', answeredBy: 'default', rule: 'no verification answer left: stop' });
       l.faults.push({ id: 'FI-3', target: { concepts: ['r1-a-2'] }, applied: 1, observed: 'forced' });
       l.status = 'stopped';
@@ -2080,43 +2190,37 @@ describe('review 5 (MED): the log says which artifacts are current; legal routes
   });
 });
 
-describe('review 6 (MED): a fix round that re-runs D1 or D2 re-checks all three lenses over the new plan and guide', () => {
-  /** run-ok whose fix round runs D1 → D1 gate → D2 gate → W1 instead of W1 alone, then re-checks `lenses`. */
-  const designFix = (lenses: string[]) => {
+describe('review 6, as D-352 amends it: a fix round whose owner recompiled re-checks only what --changed lists, its moved record values included', () => {
+  /** run-ok whose fix round runs D1 (D1-finish, recompiling) → D1 gate → D2 gate → W1 instead of W1 alone, then re-checks. */
+  const designFix = () => {
     const dir = copyOf('run-ok');
     d1Verdict(dir, 3, null);
     fs.copyFileSync(path.join(dir, `reports/gates/D2-gate-${CARD}-a1.json`), path.join(dir, `reports/gates/D2-gate-${CARD}-a2.json`));
     editJson(dir, `reports/gates/D2-gate-${CARD}-a2.json`, (r) => (r.attempt = 2));
-    for (const lens of lenses.filter((l) => l !== 'prose')) {
-      editJson(dir, `reports/v4-${lens}.json`, () => undefined);
-      fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
-      editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
-    }
-    restage(dir, RUN_OK.w1Fix, [step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), ...lenses.map((l) => step(`V4-${l}-recheck`, CARD, 1, l === 'prose' ? 'fail' : 'pass'))]);
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
     return dir;
   };
 
-  it('fails a targeted re-check of only the raising lens after D1 re-ran', () => {
-    expect(failing(designFix(['prose']))).toMatch(/\[verification\] .*a gate re-ran in the fix round \(an owner recompiled\), so the re-check before it is a full pass of all three lenses over the new plan and guide, but it ran without ledger, sources \(D-264\)/);
+  it('passes the re-check of what changed: a gate re-ran, and no re-check covers every claim (D-352)', () => {
+    passes(designFix());
   });
 
-  it('passes the full re-check, a lens that raised nothing included; still no second fix round', () => {
-    passes(designFix(['ledger', 'sources', 'prose']));
+  it("fails a re-check that misses a claim whose cited record value the recompile moved", () => {
+    const dir = designFix();
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.outputs.Life = 4300));
+    rerender(dir);
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which check-run\.mjs --changed 1 lists \(it changed since rounds\/1\/\)/));
+    editText(dir, 'reports/V4-2.md', replace('- section How to play it\n', '- claim stages[3].claims[0] (b-life)\n- section How to play it\n'));
+    passes(dir);
   });
 });
 
-describe('review 7 (LOW): each reference hit is derived from the damage at its variant\'s area level (D-254, D-256)', () => {
-  it('fails a hit whose ledger base is another level\'s damage (probe p6-d256-tiny-hits), and a hit citing another level', () => {
+describe("review 7 (LOW), as D-353 amends it: each recorded reference hit is the damage at its variant's area level (D-254, D-256)", () => {
+  it("fails a hit derived from another level's damage (probe p6-d256-tiny-hits), the [ledger] rule untouched", () => {
     const dir = copyOf('run-ok');
-    editPlan(dir, (p) => {
-      p.ledger.find((e: Json) => e.id === 'hit_b_physical').inputs.find((x: Json) => x.name === 'base').value = 9.1599998474121;
-      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyPhysicalDamage').value = 12;
-      stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').source.key = 'damage.by-level[78]';
-    });
-    editJson(dir, 'compile-record.json', (r) => (r.ledger.hit_b_physical.value = 9.1599998474121 * 1.24));
+    editJson(dir, 'compile-record.json', (r) => (r.stages.b.configWritten.enemyPhysicalDamage = Math.ceil(9.1599998474121 * 1.24)));
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[floor\] .*\(reference-hit-ledger-physical, stage b\): stage b's ledger entry hit_b_physical is 11\.358\d*, but the damage at its area level 79 \(enemies\/map-monsters\.json#damage\.by-level\[79\], 324\.19\d*\) × \(1 \+ 24 \/ 100\) is 402 \(D-254\)/);
-    expect(stderr).toMatch(/\[floor\] .*\(reference-hit-ledger-fire, stage b\): stage b's enemyFireDamage cites "enemies\/map-monsters\.json#damage\.by-level\[78\]"; the budget variant's area level is 79/);
+    expect(stderr).toMatch(/\[floor\] .*\(reference-hit-ledger-physical, stage b\): stage b's recorded enemyPhysicalDamage 12 isn't 402: the damage at its area level 79 \(enemies\/map-monsters\.json#damage\.by-level\[79\], 324\.19\d*\) × \(1 \+ 24 \/ 100\) is 402/);
     expect(stderr).not.toMatch(/\[ledger\]/);
   });
 });
@@ -2137,7 +2241,7 @@ describe('review 10 (LOW): a guided retry gives the producer one more attempt, t
       l.escalations[0].choice = 'retry';
       l.escalations[0].guidance = 'drop the level-1 stage';
       l.checkpoints[cpAt(l, 'escalation')] = { checkpoint: 'escalation', visit: 1, answer: 'retry:drop the level-1 stage', answeredBy: 'pre-supplied', rule: 'retry:drop the level-1 stage' };
-      l.stages.push(step('D1', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'infeasible'));
+      l.stages.push(step('D1-build', CARD, 4, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 4, 'infeasible'));
       l.status = 'stopped';
     });
     expect(failing(dir)).toMatch(/\[routing\] .*\(D1-gate r1-a-1 attempt 4\): is routed infeasible, but a guided retry that fails escalates again/);
@@ -2156,13 +2260,13 @@ describe("W19: run B's failure routes pass the checker with no --partial (no via
       writeJson(dir, `reports/gates/D1-gate-r1-a-2-a${a}.json`, { ...readJson(path.join(FIXTURES, 'run-escalated'), `reports/gates/D1-gate-${CARD}-a${a}.json`), concept: 'r1-a-2' });
     }
     editJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => Object.assign(r, { forced: 'infeasible', evidence: 'FI-3 (injected)', faultsApplied: [{ id: 'FI-3', observed: 'gate run as usual; outcome forced to infeasible' }] }));
-    editText(dir, 'dossier.md', replace('## Not carried', '### r1-a-2: Rolling Slam aftershocks\n\n- Status: failed after 3 attempts (reports/gates/R1b-r1-a-2-a3.json).\n\n### r1-c-2: Rolling Slam block tank\n\n- Status: failed after 3 attempts (reports/gates/R1b-r1-c-2-a3.json).\n\n## Not carried'));
+    editText(dir, 'dossier.md', (t) => t.replace(/^\| r1-c-1 \|.*$/m, ['r1-a-2', 'r1-c-2'].map((c) => `| ${c} | 1 | failed after 3 attempts: unknown gem "FI-1 Unknown Gem"; reports/gates/R1b-${c}-a3.json | Rolling Slam aftershocks | — | — | — | — | — | the compile |`).join('\n')));
     const r1bs = picked.flatMap((c) => [1, 2, 3].map((a) => step('R1b', c, a, 'fail', { probes: 0 })));
     const base = fixtureLog('run-escalated').stages as Json[];
     restage(dir, 0, [
       ...base.slice(0, ESCALATED.assemble + 1), ...r1bs, step('R1b-assemble', null, 1, 'done'),
-      step('D1', CARD, 1, 'done'), step('D1-gate', CARD, 1, 'infeasible'),
-      step('D1', 'r1-a-2', 1, 'done'), step('D1-gate', 'r1-a-2', 1, 'fail'), step('D1', 'r1-a-2', 2, 'done'), step('D1-gate', 'r1-a-2', 2, 'fail'), step('D1', 'r1-a-2', 3, 'done'), step('D1-gate', 'r1-a-2', 3, 'escalated'),
+      step('D1-build', CARD, 1, 'done'), step('D1-finish', CARD, 1, 'done'), step('D1-gate', CARD, 1, 'infeasible'),
+      ...[1, 2, 3].flatMap((a) => [step('D1-build', 'r1-a-2', a, 'done'), step('D1-finish', 'r1-a-2', a, 'done'), step('D1-gate', 'r1-a-2', a, a === 3 ? 'escalated' : 'fail')]),
     ], (l) => {
       l.checkpoints = [
         { checkpoint: 'brainstorm', visit: 1, answer: `pick:${picked.join(',')}`, answeredBy: 'pre-supplied', rule: `pick:${picked.join(',')}` },
@@ -2185,43 +2289,50 @@ describe("W19: run B's failure routes pass the checker with no --partial (no via
 // D-264: the fix round fixes claims in place; only a recompile re-runs the gates and the full re-check
 // ---------------------------------------------------------------------------------------------------
 
-describe('D-264: a claims-only fix round edits claims in place, runs no gate, and re-checks the raising lenses and the sources lens', () => {
+describe('D-264, D-352: a claims-only fix round edits claims in place, runs no gate, and re-checks what --changed lists', () => {
   /**
-   * run-ok whose fix round is a claims-only D1 (its claims edited in place, nothing compiled, so the record keeps
-   * the final compile's planSha1 and buildSha1), then W1 patching the guide, then the targeted re-check: the
-   * prose lens, which raised the finding, and the sources lens, which always re-checks the changed locations.
+   * run-ok whose fix round is a claims-only D1-finish (its claims edited in place, nothing compiled, so the record
+   * keeps the final compile's planSha1 and buildSha1), then the audit render and W1 patching the guide, then the
+   * re-check, whose Checked lists the edited claims beside the changed H2 (`checked`).
    */
-  const claimsOnly = (planEdit: (p: Json) => void = (p) => (stageB(p).claims[0].text += ' (fixed in place)')) => {
+  const claimsOnly = (planEdit: (p: Json) => void = (p) => (stageB(p).claims[0].text += ' (fixed in place)'), checked = ['claim stages[3].claims[0] (b-life)']) => {
     const dir = copyOf('run-ok');
     editJson(dir, 'plan.json', planEdit);
-    restage(dir, RUN_OK.w1Fix, [step('D1', CARD, 3, 'claims-edited'), step('W1', CARD, 2, 'done'), step('V4-sources-recheck', CARD, 1, 'pass'), step('V4-prose-recheck', CARD, 1, 'fail')]);
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'claims-edited'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
+    if (checked.length > 0) editText(dir, 'reports/V4-2.md', replace('## Checked\n\n', `## Checked\n\n${checked.map((c) => `- ${c}\n`).join('')}`));
+    rerender(dir);
     return dir;
   };
 
-  it('passes D1 → W1 → the targeted re-check: the plan differs from the record only in its claims, sources and tags', () => {
+  it('passes D1-finish → W1 → the re-check: the plan differs from the record only in its claims, sources and tags', () => {
     const dir = claimsOnly((p) => {
       stageB(p).claims[0].text += ' (fixed in place)';
       stageB(p).claims[1].source = { kind: 'judgment', ref: 'recited', confidence: 'M' };
       stageB(p).config.scenario[0].tag = { ...stageB(p).config.scenario[0].tag, ref: 'recited' };
-    });
+    }, ['claim stages[3].claims[0] (b-life)', 'claim stages[3].claims[1] (b-bloodloss)']);
     expect(sha1(fs.readFileSync(path.join(dir, 'plan.json')))).not.toBe(readJson(dir, 'compile-record.json').planSha1);
     passes(dir);
   });
 
-  // D-352 (WU-65): the projection leaves out the ledger, so a ledger formula edit is no build change here.
-  it('item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed the config (the review\'s run-gearswap)', () => {
+  it("fails a claims-only round's re-check that misses an edited claim --changed lists (AC-W54)", () => {
+    const dir = claimsOnly(undefined, []);
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which check-run\.mjs --changed 1 lists/));
+  });
+
+  it("item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed the config (the review's run-gearswap)", () => {
     const swaps: [string, (p: Json) => void][] = [
       ['item', (p) => (stageB(p).items.slots.find((x: Json) => x.slot === 'Body Armour').text = "Rarity: Unique\nKaom's Heart\nClaimed Body\n+500 to maximum Life")],
       ['gem', (p) => stageB(p).skills.groups[0].gems.push({ name: 'Martial Tempo', level: 20, quality: 0, enabled: true })],
       ['tree', (p) => (stageB(p).tree.nodes = stageB(p).tree.nodes.slice(1))],
-      ['config', (p) => (stageB(p).config.scenario.find((o: Json) => o.option === 'enemyFireDamage').value = 120)],
+      ['config', (p) => (stageB(p).config.scenario.find((o: Json) => o.option === 'enemyIsBoss').value = 'Boss')],
+      ['anoint', (p) => (stageB(p).items.anoint.notable = 'Heavy Buffer')],
     ];
     for (const [what, swap] of swaps) {
       const stderr = failing(claimsOnly((p) => {
         stageB(p).claims[0].text += ' (fixed in place)';
         swap(p);
       }));
-      expect({ what, line: lines(stderr, 'record-plan').some((l) => /D1 r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed: the sha1 of its build-affecting part .* is [0-9a-f]{40}, and the final record's buildSha1 is "[0-9a-f]{40}"; only a recompile changes the build \(D-264, D-266\)/.test(l)) }).toEqual({ what, line: true });
+      expect({ what, line: lines(stderr, 'record-plan').some((l) => /D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed: the sha1 of its build-affecting part \(everything but stages\[\]\.claims, the ledger and the source and tag fields\) is [0-9a-f]{40}, and the final record's buildSha1 is "[0-9a-f]{40}"; only a recompile changes the build: gear, tree, gems or config \(D-264, D-266, D-352\)/.test(l)) }).toEqual({ what, line: true });
     }
   });
 
@@ -2231,62 +2342,84 @@ describe('D-264: a claims-only fix round edits claims in place, runs no gate, an
     passes(old);
     const claims = claimsOnly();
     editJson(claims, 'compile-record.json', (r) => delete r.buildSha1);
-    expect(failing(claims)).toMatch(/\[record-plan\] D1 r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but the final record has no buildSha1 to hold the plan's build to \(D-266\)/);
+    expect(failing(claims)).toMatch(/\[record-plan\] D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but the final record has no buildSha1 to hold the plan's build to \(D-266\)/);
   });
 
-  it('fails a claims-only owner that compiled: the record is no longer the last D2 gate\'s final compile', () => {
+  it("fails a claims-only owner that compiled: the record is no longer the last D2 gate's final compile", () => {
     const measured = claimsOnly();
     editJson(measured, 'compile-record.json', (r) => (r.mode = 'measure-only'));
-    expect(failing(measured)).toMatch(/\[record-plan\] D1 r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but compile-record\.json is a "measure-only" record, not the final compile of D2-gate r1-a-1 attempt 1/);
+    expect(failing(measured)).toMatch(/\[record-plan\] D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but compile-record\.json is a "measure-only" record, not the final compile of D2-gate r1-a-1 attempt 1/);
     const other = claimsOnly();
     editJson(other, 'compile-record.json', (r) => (r.pobFile.path = 'titan-blood-hunt-2026-10-08-9.xml'));
     expect(failing(other)).toMatch(/\[record-plan\] .*but the final record's PoB file "titan-blood-hunt-2026-10-08-9\.xml" isn't "titan-blood-hunt-2026-10-08-1\.xml", the one D2-gate r1-a-1 attempt 1 wrote/);
   });
 
-  it('item 4: after a claims-only round the sources lens always re-checks, even with no finding of its own; another lens that raised nothing may not', () => {
-    const dir = claimsOnly();
-    editLog(dir, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V4-sources-recheck')));
-    expect(failing(dir)).toMatch(/\[verification\] run-log\.json stages\[\d+\]: the claims-only fix round's re-check before it ran without sources; each lens that raised a finding re-checks it, and the sources lens always re-checks the changed locations \(D-264\)/);
-    const extra = claimsOnly();
-    editLog(extra, (l) => l.stages.push(step('V4-ledger-recheck', CARD, 1, 'pass')));
-    expect(failing(extra)).toMatch(/\[verification\] .*\(V4-ledger-recheck r1-a-1 attempt 1\): re-checks the ledger lens, which raised no finding in the full pass; after a claims-only round only a lens that raised one re-checks, with the sources lens, unless a gate re-ran in the fix round \(D-264\)/);
-    // A raising lens that skips its re-check fails too.
-    const skipped = claimsOnly();
-    editLog(skipped, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'V4-prose-recheck')));
-    expect(failing(skipped)).toMatch(/\[verification\] .*the claims-only fix round's re-check before it ran without prose/);
-  });
-
   it('a claims-only owner runs no gate, and only before any gate of its round', () => {
-    // A D1 gate after a claims-only D1.
+    // A D1 gate after a claims-only D1-finish.
     const gated = copyOf('run-ok');
     d1Verdict(gated, 3, null);
-    restage(gated, RUN_OK.w1Fix, [step('D1', CARD, 3, 'claims-edited'), step('D1-gate', CARD, 3, 'pass'), step('W1', CARD, 2, 'done'), step('V4-prose-recheck', CARD, 1, 'fail')]);
-    expect(failing(gated)).toMatch(/\[order\] .*\(D1-gate r1-a-1 attempt 3\): can't follow D1 r1-a-1 attempt 3 \(outcome "claims-edited"\); SKILL\.md's step list allows D2, W1 next/);
+    restage(gated, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'claims-edited'), step('D1-gate', CARD, 3, 'pass'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
+    expect(failing(gated)).toMatch(/\[order\] .*\(D1-gate r1-a-1 attempt 3\): can't follow D1-finish r1-a-1 attempt 3 \(outcome "claims-edited"\); SKILL\.md's step list allows D2, W1 next/);
     // A claims-only D2 after the D1 gate re-ran: the D1 gate's compile replaced the final record, so D2 runs its gate.
     const late = copyOf('run-ok');
     d1Verdict(late, 3, null);
-    restage(late, RUN_OK.w1Fix, [step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2', CARD, 2, 'claims-edited'), step('W1', CARD, 2, 'done')]);
+    restage(late, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2', CARD, 2, 'claims-edited'), step('W1', CARD, 2, 'done')]);
     expect(failing(late)).toMatch(/\[order\] .*\(D2 r1-a-1 attempt 2\): edits claims without a compile \(claims-edited\), which an owner does only in the fix round or a revision, before any gate of it re-runs \(D-264\)/);
-    // The first D1 of a design is never claims-only.
+    // The first D1-finish of a design is never claims-only.
     const first = copyOf('run-ok');
-    editLog(first, (l) => (l.stages[RUN_OK.d1].outcome = 'claims-edited'));
-    expect(failing(first)).toMatch(/\[order\] .*\(D1 r1-a-1 attempt 1\): edits claims without a compile/);
+    editLog(first, (l) => (l.stages[RUN_OK.d1 + 1].outcome = 'claims-edited'));
+    expect(failing(first)).toMatch(/\[order\] .*\(D1-finish r1-a-1 attempt 1\): edits claims without a compile/);
   });
 
-  it('passes D1 claims-only, then D2 recompiling: its gate runs the final compile again, and the re-check is full', () => {
+  it('passes D1-finish claims-only, then D2 recompiling: its gate runs the final compile again, and the re-check covers what changed', () => {
     const dir = copyOf('run-ok');
     fs.copyFileSync(path.join(dir, `reports/gates/D2-gate-${CARD}-a1.json`), path.join(dir, `reports/gates/D2-gate-${CARD}-a2.json`));
     editJson(dir, `reports/gates/D2-gate-${CARD}-a2.json`, (r) => (r.attempt = 2));
-    for (const lens of ['ledger', 'sources']) {
-      fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
-      editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
-    }
-    const rechecks = ['ledger', 'sources', 'prose'].map((l) => step(`V4-${l}-recheck`, CARD, 1, l === 'prose' ? 'fail' : 'pass'));
-    restage(dir, RUN_OK.w1Fix, [step('D1', CARD, 3, 'claims-edited'), step('D2', CARD, 2, 'done'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), ...rechecks]);
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'claims-edited'), step('D2', CARD, 2, 'done'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
     passes(dir);
-    // That re-check must be full: a gate re-ran.
-    restage(dir, RUN_OK.w1Fix, [step('D1', CARD, 3, 'claims-edited'), step('D2', CARD, 2, 'done'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), rechecks[1], rechecks[2]]);
-    expect(failing(dir)).toMatch(/\[verification\] .*a gate re-ran in the fix round \(an owner recompiled\), so the re-check before it is a full pass of all three lenses/);
+  });
+});
+
+describe("AC-W59 (D-352): a ledger-only edit after the final compile passes [record-plan] and [ledger]; a gear edit still fails", () => {
+  /** run-ok whose fix round's claims-only D1-finish edited `edit` in the plan, then the render, W1 and the re-check of `checked`. */
+  const ledgerFix = (edit: (p: Json) => void, checked: string[]) => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'plan.json', edit);
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'claims-edited'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
+    if (checked.length > 0) editText(dir, 'reports/V4-2.md', replace('## Checked\n\n', `## Checked\n\n${checked.map((c) => `- ${c}\n`).join('')}`));
+    rerender(dir);
+    return dir;
+  };
+  const LEDGER_EDIT = (p: Json) => {
+    // The share falls from 15% to 12%, and the claim citing the entry follows it.
+    p.ledger[0].inputs[0].value = 12;
+    stageB(p).claims[4].text = 'Consuming Blood Loss adds about 6,000 damage per second to Blood Hunt on the budget variant.';
+  };
+
+  it("passes a ledger entry's inputs and its claim edited after the final compile, with no recompile: the record's stored ledger value is stale", () => {
+    const dir = ledgerFix(LEDGER_EDIT, ['claim stages[3].claims[4] (b-bleed)']);
+    expect(readJson(dir, 'compile-record.json').ledger.bleed_bonus.value).toBe(7500);
+    expect(fs.readFileSync(path.join(dir, 'audit.md'), 'utf8')).toContain('| `bleed_bonus` | The damage per second consuming Blood Loss adds to Blood Hunt on the budget variant, as a share of its DPS | 6000.00 |');
+    passes(dir);
+  });
+
+  it("fails the same round when it also swaps gear: the build changed, so only a recompile may follow (D-266)", () => {
+    const dir = ledgerFix((p) => {
+      LEDGER_EDIT(p);
+      stageB(p).items.slots.find((x: Json) => x.slot === 'Helmet').text += '\n+20 to Strength';
+    }, ['claim stages[3].claims[4] (b-bleed)']);
+    expect(failing(dir)).toMatch(/\[record-plan\] D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed/);
+  });
+
+  it('fails a ledger edit that leaves its claim behind (FI-4 falls to [ledger], D-365), and passes [ledger] once the claim states the new value', () => {
+    const dir = ledgerFix((p) => (p.ledger[0].inputs[0].value = 12), []);
+    expect(failing(dir)).toMatch(/\[ledger\] plan\.json stages\[3\]\.claims\[4\] \(b-bleed\) cites ledger:bleed_bonus, whose current formula gives 6000 over the final record, but the claim states 7,500/);
+    // Within 5% is an estimate's tolerance (D-352): 6,200 against 6,000 passes.
+    const near = ledgerFix((p) => {
+      p.ledger[0].inputs[0].value = 12;
+      stageB(p).claims[4].text = 'Consuming Blood Loss adds about 6,200 damage per second to Blood Hunt on the budget variant.';
+    }, ['claim stages[3].claims[4] (b-bleed)']);
+    passes(near);
   });
 });
 
@@ -2294,62 +2427,40 @@ describe('D-264: a claims-only fix round edits claims in place, runs no gate, an
 // D-265: the small items the checker holds
 // ---------------------------------------------------------------------------------------------------
 
-describe("D-265 (a): a superseded full-pass report is held to the plan it was written against, not the post-fix plan", () => {
+describe("D-265 (a), A-34: each V4 report is held to the plan as it ran: the round copy made after it, else the current plan", () => {
   /**
-   * Run A's shape (2026-10-08-2): an offline full pass whose sources lens accepted external-unavailable claims,
-   * a fix round that re-ran D1 (the plan's claims moved), and a full re-check whose sources report names them at
-   * their new locations. The full pass's locations now name other claims.
+   * Run A's shape (2026-10-08-2), as amendment 4 runs it: an offline full pass that accepted the external-unavailable
+   * claims, the round copy rounds/1/, then a fix round whose D1-finish recompiled and added a claim at the head of b,
+   * so b's claims moved; the re-check covers the new claim. The full pass's locations hold for rounds/1/ only.
    */
   const runAShape = () => {
     const dir = copyOf('run-ok');
     d1Verdict(dir, 3, null);
     fs.copyFileSync(path.join(dir, `reports/gates/D2-gate-${CARD}-a1.json`), path.join(dir, `reports/gates/D2-gate-${CARD}-a2.json`));
     editJson(dir, `reports/gates/D2-gate-${CARD}-a2.json`, (r) => (r.attempt = 2));
-    for (const lens of ['ledger', 'sources']) {
-      fs.copyFileSync(path.join(dir, `reports/v4-${lens}.json`), path.join(dir, `reports/v4-${lens}-recheck.json`));
-      editJson(dir, `reports/v4-${lens}-recheck.json`, (r) => (r.check = 'recheck'));
-    }
-    // Written before the fix round: stages[3].claims[5] was the external-unavailable claim; stages[2].claims[0] is a pob-computed one.
-    editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
-    restage(dir, RUN_OK.w1Fix, [
-      step('D1', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'),
-      step('V4-ledger-recheck', CARD, 1, 'pass'), step('V4-sources-recheck', CARD, 1, 'pass'), step('V4-prose-recheck', CARD, 1, 'fail'),
-    ]);
+    editPlan(dir, (p) => stageB(p).claims.unshift({ id: 'b-armour', text: 'Armour carries the physical hits.', kind: 'hinge', source: { kind: 'judgment', ref: 'armour mitigates physical hits', confidence: 'M' } }));
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
+    editText(dir, 'reports/V4-2.md', replace('## Checked\n\n', '## Checked\n\n- claim stages[3].claims[0] (b-armour)\n'));
+    rerender(dir);
     return dir;
   };
 
-  it('skips the superseded full pass\'s stale accepted-offline locations, and passes', () => {
-    passes(runAShape());
-  });
-
-  it('still checks the re-check report, which was written against the current plan', () => {
+  it("holds the full pass to rounds/1/, where its accepted-offline locations name the claims, and passes", () => {
     const dir = runAShape();
-    editJson(dir, 'reports/v4-sources-recheck.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
-    expect(failing(dir)).toMatch(/\[report-shape\] reports\/v4-sources-recheck\.json: findings\[0\] is accepted-offline, but "plan\.json" "stages\[2\]\.claims\[0\]" names a pob-computed claim/);
+    expect(readJson(dir, 'plan.json').stages[3].claims[6].id).toBe('b-meta');
+    expect(fs.readFileSync(path.join(dir, 'reports', 'V4-1.md'), 'utf8')).toContain('- location: stages[3].claims[5] (b-meta)');
+    passes(dir);
+    // Against rounds/1/, a location naming a pob-computed claim fails.
+    editText(dir, 'reports/V4-1.md', (t) => t.split('- location: stages[3].claims[5] (b-meta)').join('- location: stages[3].claims[0] (b-life)'));
+    expect(failing(dir)).toMatch(/\[report-shape\] reports\/V4-1\.md: v4-1-3 is accepted-offline, but "plan\.json" "stages\[3\]\.claims\[0\] \(b-life\)" names a pob-computed claim/);
   });
 
-  it("item 2: a claims-only round moves no claim, so the full pass's locations still hold and are checked (the review's run-a-d1claims)", () => {
-    // run-ok whose sources lens raised a finding too, fixed in a claims-only round (D1 edits in place, then W1);
-    // the full pass's accepted-offline location now names a pob-computed claim.
-    const make = (owners: Json[]) => {
-      const dir = copyOf('run-ok');
-      const raised = { id: 'v4-sources-3', artifact: 'guide.md', location: 'guide.md [^g1]', claim: 'Rolling Slam clears.', issue: 'no source', evidence: 'the marker cites nothing on the clear', reader: 'The Rotation line on Rolling Slam has no source.', owner: 'W1', status: 'unresolved' };
-      editJson(dir, 'reports/v4-sources.json', (r) => {
-        r.findings.push(raised);
-        r.verdict = 'fail';
-      });
-      writeJson(dir, 'reports/v4-sources-recheck.json', { ...readJson(dir, 'reports/v4-sources.json'), check: 'recheck', findings: [{ ...raised, status: 'fixed' }], verdict: 'pass' });
-      if (owners.length > 0) editJson(dir, 'plan.json', (p) => (stageB(p).claims[0].text += ' (fixed in place)'));
-      editLog(dir, (l) => (l.stages[RUN_OK.v4 + 1].outcome = 'fail'));
-      restage(dir, RUN_OK.w1Fix, [...owners, step('W1', CARD, 2, 'done'), step('V4-sources-recheck', CARD, 1, 'pass'), step('V4-prose-recheck', CARD, 1, 'fail')]);
-      return dir;
-    };
-    for (const owners of [[step('D1', CARD, 3, 'claims-edited')], []]) {
-      const dir = make(owners);
-      passes(dir);
-      editJson(dir, 'reports/v4-sources.json', (r) => (r.findings[0].location = 'stages[2].claims[0]'));
-      expect({ owners: owners.length, out: failing(dir) }).toEqual({ owners: owners.length, out: expect.stringMatching(/\[report-shape\] reports\/v4-sources\.json: findings\[0\] is accepted-offline, but "plan\.json" "stages\[2\]\.claims\[0\]" names a pob-computed claim/) });
-    }
+  it('holds the last report, with no round copy after it, to the current plan', () => {
+    const dir = runAShape();
+    editText(dir, 'reports/V4-2.md', (t) => `${t}\n### v4-1-3\n\n- status: accepted-offline\n- hinge: no\n- owner: D1\n- artifact: plan.json\n- location: stages[3].claims[5] (b-meta)\n- claim: Spear builds clear T15 maps on a budget this league.\n- issue: tagged external-unavailable\n- evidence: offline run\n`);
+    expect(failing(dir)).toMatch(/\[report-shape\] reports\/V4-2\.md: v4-1-3 is accepted-offline, but "plan\.json" "stages\[3\]\.claims\[5\] \(b-meta\)" names no claim/);
+    editText(dir, 'reports/V4-2.md', replace('- location: stages[3].claims[5] (b-meta)', '- location: stages[3].claims[6] (b-meta)'));
+    passes(dir);
   });
 });
 
@@ -2364,17 +2475,18 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
   /** run-ok whose stage 2 has passed the Medallion, the first reward choice (run-ok's own campaign stops before it). */
   const pastMedallion = (edit: (p: Json) => void = () => undefined) => {
     const dir = copyOf('run-ok');
-    editPlan(dir, (p) => {
+    editPlanAll(dir, (p) => {
       stage(p, '2').progress = 'q.act-2-deshar-the-final-letter';
       edit(p);
     });
+    rerender(dir);
     return dir;
   };
   /** Every stage at or after the quest, the endgame stages included, lists pick `i`. */
   const pickEverywhere = (i: number) => (p: Json) => ['2', 'm', 'b', 'n'].forEach((id) => stage(p, id).config.scenario.push(pick(i)));
   /** D-283: W1 names the pick by its first line, with no marker. */
   const writePick = (dir: string, i: number) =>
-    editText(dir, 'guide.md', replace('## Campaign route and rewards\n', `## Campaign route and rewards\n\n- Act 2, the Medallion: take ${values[i].split('\n')[0]}; my charms carry the flask sustain.\n`));
+    editGuide(dir, replace('## Campaign route and rewards\n', `## Campaign route and rewards\n\n- Act 2, the Medallion: take ${values[i].split('\n')[0]}; my charms carry the flask sustain.\n`));
 
   it('reads the choices from the C1 data, and run-ok, whose campaign ends before the first one, needs no pick', () => {
     expect(values.length).toBe(2);
@@ -2428,21 +2540,18 @@ describe('D-265 (c): D2 picks every campaign reward choice the campaign passes, 
 describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentence, which the runner copies into the guide's Known issues as `- <reader>`, its id into audit.md", () => {
   it('fails an unresolved V4 finding without its reader sentence (the report shape)', () => {
     const dir = copyOf('run-ok');
-    editJson(dir, 'reports/v4-prose.json', (r) => delete r.findings[0].reader);
-    editJson(dir, 'reports/v4-prose-recheck.json', (r) => (r.findings[0].reader = ' '));
+    editText(dir, 'reports/V4-1.md', (t) => t.replace(/\n- reader: [^\n]*\n/, '\n'));
+    editText(dir, 'reports/V4-2.md', (t) => t.replace(/\n- reader: [^\n]*\n/, '\n- reader: \n'));
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[report-shape\] reports\/v4-prose\.json: findings\[0\] is unresolved and has no reader: one plain sentence the guide's reader can act on \(D-265\)/);
-    expect(stderr).toMatch(/\[report-shape\] reports\/v4-prose-recheck\.json: findings\[0\] is unresolved and has no reader/);
+    expect(stderr).toMatch(/\[report-shape\] reports\/V4-1\.md: finding v4-1-1 \(line \d+\) is unresolved and has no reader: one plain sentence the guide's reader can act on \(D-265\)/);
+    expect(stderr).toMatch(/\[report-shape\] reports\/V4-1\.md: finding v4-1-1 \(line \d+\) has the fields status, hinge, owner, artifact, location, claim, issue, evidence; an unresolved finding has .*, reader/);
+    expect(stderr).toMatch(/\[report-shape\] reports\/V4-2\.md: finding v4-1-1 \(line \d+\) is unresolved and has no reader/);
   });
 
   it('passes a fixed finding, and an accepted-offline one, without a reader sentence: neither can become a known issue', () => {
     const dir = copyOf('run-ok');
-    expect(readJson(dir, 'reports/v4-sources.json').findings.map((f: Json) => [f.status, 'reader' in f])).toEqual([['accepted-offline', false], ['accepted-offline', false]]);
-    editJson(dir, 'reports/v4-prose-recheck.json', (r) => {
-      delete r.findings[0].reader;
-      r.findings[0].status = 'fixed';
-      r.verdict = 'pass';
-    });
+    expect(fs.readFileSync(path.join(dir, 'reports', 'V4-1.md'), 'utf8').match(/- status: accepted-offline\n(- (?!reader)\w+: [^\n]*\n)+(?=\n|$)/g)?.length).toBe(2);
+    fixedInRecheck(dir);
     noneOpen(dir);
     passes(dir);
   });
@@ -2456,14 +2565,14 @@ describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentenc
     // Paraphrased: not the reader sentence.
     editText(dir, 'guide.md', replace('so lead packs with Blood Hunt\n', 'so open with Blood Hunt\n'));
     const stderr = failing(dir);
-    expect(stderr).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1" .* is open after the re-check, but guide\.md's Known issues doesn't list its reader sentence, word for word, as "- The How to play it section is wrong/);
+    expect(stderr).toMatch(/\[known-issues\] V4 finding "v4-1-1" .* is open in reports\/V4-2\.md, the last report, but guide\.md's Known issues doesn't list its reader sentence, word for word, as "- The How to play it section is wrong/);
     expect(stderr).toMatch(/\[known-issues\] guide\.md:\d+: Known issues lists "- The How to play it section is wrong .*", which is the sentence of no finding open/);
     // The old jargon form: an id and pipeline words, not the reader sentence.
     const jargon = copyOf('run-ok');
-    editText(jargon, 'guide.md', replace(`- ${PROSE_READER}\n`, '- `v4-prose-1` (V4 prose, guide.md How to play it, line 90): names Rolling Slam as the clear skill\n'));
+    editText(jargon, 'guide.md', replace(`- ${PROSE_READER}\n`, '- `v4-1-1` (V4, guide.md How to play it, line 97): names Rolling Slam as the clear skill\n'));
     const out = failing(jargon);
-    expect(out).toMatch(/\[guide-markers\] guide\.md:\d+ carries the finding id "v4-prose-1"/);
-    expect(out).toMatch(/\[known-issues\] V4 prose finding "v4-prose-1" .* doesn't list its reader sentence/);
+    expect(out).toMatch(/\[guide-markers\] guide\.md:\d+ carries the finding id "v4-1-1"/);
+    expect(out).toMatch(/\[known-issues\] V4 finding "v4-1-1" .* doesn't list its reader sentence/);
   });
 
   it("item 5: both lists are this cycle's alone: a stale line or row from an earlier cycle fails, and None. only stands with nothing open (the review's run-stale)", () => {
@@ -2472,17 +2581,14 @@ describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentenc
     editText(stale, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\n- The budget fire hit is wrong: it is about 367, not 735.\n'));
     expect(failing(stale)).toMatch(new RegExp(`\\[known-issues\\] guide\\.md:${kiLine}: Known issues lists "- The budget fire hit is wrong: it is about 367, not 735\\.", which is the sentence of no finding open after this cycle's re-check and of no accepted gate finding; the runner replaces the whole list at step 14 \\(D-265\\)`));
     const staleRow = copyOf('run-ok');
-    editText(staleRow, 'audit.md', replace(AUDIT_KI_HEAD, `${AUDIT_KI_HEAD}| v4-ledger-1 | ledger | — | The budget fire hit is wrong: it is about 367, not 735. |\n`));
-    expect(failing(staleRow)).toMatch(/\[known-issues\] audit\.md:\d+: Known issues has a row for "v4-ledger-1" \(ledger\), which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole table at step 14 \(D-265\)/);
+    editText(staleRow, 'audit.md', replace(AUDIT_KI_HEAD, `${AUDIT_KI_HEAD}| v4-1-9 | V4 | — | The budget fire hit is wrong: it is about 367, not 735. |\n`));
+    expect(failing(staleRow)).toMatch(/\[known-issues\] audit\.md:\d+: Known issues has a row for "v4-1-9" \(V4\), which is no finding open after this cycle's re-check and no accepted gate finding; the runner replaces the whole table at step 14 \(D-265\)/);
     const none = copyOf('run-ok');
     editText(none, 'guide.md', replace('### Known issues\n\n', '### Known issues\n\nNone.\n'));
     expect(failing(none)).toMatch(new RegExp(`\\[known-issues\\] guide\\.md:${kiLine}: Known issues says "None\\.", but 1 V4 finding\\(s\\) are open and 0 gate finding\\(s\\) accepted`));
     // With nothing open, None. is each list.
     const fixed = copyOf('run-ok');
-    editJson(fixed, 'reports/v4-prose-recheck.json', (r) => {
-      r.findings[0].status = 'fixed';
-      r.verdict = 'pass';
-    });
+    fixedInRecheck(fixed);
     noneOpen(fixed);
     passes(fixed);
   });
@@ -2497,6 +2603,195 @@ describe("D-265 (d), D-276: every unresolved V4 finding carries a reader sentenc
 // ---------------------------------------------------------------------------------------------------
 // WU-71 (A-34, D-352): the round copy and what changed since it
 // ---------------------------------------------------------------------------------------------------
+
+describe('AC-W54 (D-352): each V4 pass writes its own report, never over an earlier one', () => {
+  it('fails a re-check written over the full pass\'s report, and a logged pass with no report', () => {
+    const dir = copyOf('run-ok');
+    fs.writeFileSync(path.join(dir, 'reports', 'V4-1.md'), fs.readFileSync(path.join(dir, 'reports', 'V4-2.md'), 'utf8').replace('# V4-2: re-check of rounds/1', '# V4-1: re-check of rounds/0'));
+    fs.rmSync(path.join(dir, 'reports', 'V4-2.md'));
+    const stderr = failing(dir);
+    expect(lines(stderr, 'reports')).toContainEqual('check-run: [reports] run-log.json logs 2 V4 pass(es) (V4 and V4-recheck), but reports/ holds 1 V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)');
+    expect(stderr).toMatch(/\[report-shape\] reports\/V4-1\.md: its H1 is "V4-1: re-check of rounds\/0"; it is "# V4-1: full pass" or "# V4-1: re-check of rounds\/0"/);
+  });
+
+  it('fails a report whose kind isn\'t its pass\'s, a gap in the numbers, and a report no pass logged', () => {
+    const swapped = copyOf('run-ok');
+    editLog(swapped, (l) => (l.stages.find((s: Json) => s.stage === 'V4-recheck').stage = 'V4'));
+    expect(lines(failing(swapped), 'reports')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md is a re-check, but the V4 pass it is, run-log\.json's V4 entry 2 \(V4 r1-a-1 attempt 1\), is a full pass \(V4\)/));
+    const gap = copyOf('run-ok');
+    fs.renameSync(path.join(gap, 'reports', 'V4-2.md'), path.join(gap, 'reports', 'V4-3.md'));
+    expect(lines(failing(gap), 'reports')).toContainEqual('check-run: [reports] reports/ holds the V4 reports V4-1.md, V4-3.md; they are numbered from 1 in run order, with no gap (D-352)');
+    const extra = copyOf('run-ok-online');
+    fs.copyFileSync(path.join(extra, 'reports', 'V4-1.md'), path.join(extra, 'reports', 'V4-2.md'));
+    expect(lines(failing(extra), 'reports')).toContainEqual('check-run: [reports] reports/ holds 2 V4 report(s), but run-log.json logs 1 V4 pass(es) (V4 and V4-recheck); every report is a logged pass\'s (D-352)');
+  });
+
+  it('fails a re-check of a round no one copied (A-34)', () => {
+    const dir = copyOf('run-ok');
+    fs.rmSync(path.join(dir, 'rounds'), { recursive: true });
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md is a re-check of rounds\/1, but rounds\/1\/ doesn't exist; the runner makes the round copy \(--snapshot 1\) before the fix round or revision \(A-34\)/));
+  });
+});
+
+describe('AC-W55 (D-351, D-353, D-355): claim kinds, the rendered audit and Checks blocks, and the survival label', () => {
+  it('fails a claim without a kind, in the plan and in a skeleton (D-351)', () => {
+    const dir = copyOf('run-ok');
+    editPlan(dir, (p) => delete stageB(p).claims[1].kind);
+    editJson(dir, `concepts/${CARD}/plan.json`, (p) => (p.stages[0].claims[0].kind = 'fact'));
+    const out = lines(failing(dir), 'claim-kind');
+    expect(out).toContainEqual(expect.stringMatching(/plan\.json stages\[3\]\.claims\[1\] \("b-bloodloss"\) has kind undefined; every claim is "hinge" .* or "reason" .*, plan schema 3 \(D-351\)/));
+    expect(out).toContainEqual(expect.stringMatching(/concepts\/r1-a-1\/plan\.json stages\[0\]\.claims\[0\] .* has kind "fact"/));
+  });
+
+  it("fails an audit.md that differs from the render, and passes one that differs only in its Known issues (D-355)", () => {
+    const dir = copyOf('run-ok');
+    editText(dir, 'audit.md', replace('| Endgame budget (L90) {b} | 90 | 4200 |', '| Endgame budget (L90) {b} | 90 | 4250 |'));
+    expect(lines(failing(dir), 'audit-render')).toEqual([expect.stringMatching(/^check-run: \[audit-render\] audit\.md:\d+ is "\| Endgame budget \(L90\) \{b\} \| 90 \| 4250 \|.*", but render-audit\.mjs renders "\| Endgame budget \(L90\) \{b\} \| 90 \| 4200 \|.*" from the current plan\.json, compile-record\.json and D1 gate verdict file/)]);
+    // The render keeps the rows under Known issues, so a known-issues edit is the known-issues check's alone.
+    const ki = copyOf('run-ok');
+    editText(ki, 'audit.md', replace(`| v4-1-1 | V4 | — | ${PROSE_READER} |`, `| v4-1-1 | V4 | — | ${PROSE_READER} |\n| level-points | D1-gate | b | An extra row. |`));
+    const out = failing(ki);
+    expect(lines(out, 'audit-render')).toEqual([]);
+    expect(lines(out, 'known-issues').length).toBeGreaterThan(0);
+  });
+
+  it("fails a guide Checks block that isn't its block in the render, copied verbatim (D-355)", () => {
+    const dir = copyOf('run-ok');
+    editGuide(dir, replace("- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.", "- The Arbiter of Divinity: survives easily."));
+    expect(lines(failing(dir), 'checks-block')).toEqual([`check-run: [checks-block] guide.md's "Endgame: non-budget" Checks, line 3 of the block, is "- The Arbiter of Divinity: survives easily.", but its block in render-audit.mjs's render (audit.md's "### Endgame non-budget (L95) {n}") has "- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit."; W1 copies the block verbatim (D-355)`]);
+  });
+
+  it("fails a budget or non-budget label that disagrees with measures.arbiter, and an Arbiter label on m (D-353)", () => {
+    const wrong = copyOf('run-ok');
+    editGuide(wrong, replace("**Budget (L90): survives the Arbiter's hits.**", "**Budget (L90): one-shot by the Arbiter's physical hit.**"));
+    expect(lines(failing(wrong), 'survival-label')).toEqual([expect.stringMatching(/guide\.md:\d+: the Budget verdict line's label is "one-shot by the Arbiter's physical hit", but stage b's measures\.arbiter verdict is "survives", so its label is "survives the Arbiter's hits" \(D-353\)/)]);
+    const judged = copyOf('run-ok');
+    editGuide(judged, replace("**Non-budget (L95): survives the Arbiter's hits.**", '**Non-budget (L95): solid.**'));
+    expect(lines(failing(judged), 'survival-label')).toEqual([expect.stringMatching(/the Non-budget verdict line's label is "solid", but stage n's measures\.arbiter verdict is "survives"/)]);
+    const m = copyOf('run-ok');
+    editGuide(m, replace('**Entering maps (L65): watch.**', "**Entering maps (L65): survives the Arbiter's hits.**"));
+    expect(lines(failing(m), 'survival-label')).toEqual([expect.stringMatching(/the Entering maps verdict line's label is "survives the Arbiter's hits"; the entering-maps rung's label is solid, watch or risky/)]);
+  });
+
+  it("passes the label of a one-shot by a mixed hit, its types joined by \"and\", and of an unmeasured verdict (D-353)", () => {
+    const dir = copyOf('run-ok');
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.b.measures.arbiter.verdict = 'one-shot';
+      r.stages.b.measures.arbiter.worst = { type: 'physical-lightning', hitId: 'phase-2-triangulate-split', ratio: 1.12 };
+      r.stages.n.measures.arbiter.verdict = null;
+    });
+    rerender(dir, true);
+    editGuide(dir, (t) => t.replace("**Budget (L90): survives the Arbiter's hits.**", "**Budget (L90): one-shot by the Arbiter's physical and lightning hit.**").replace("**Non-budget (L95): survives the Arbiter's hits.**", '**Non-budget (L95): not measured against the Arbiter.**'));
+    const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
+    expect(guide).toContain('- The Arbiter of Divinity: one-shot by its physical and lightning hit, at 1.12 of your max hit.');
+    expect(guide).toContain('- The Arbiter of Divinity: not measured.');
+    passes(dir);
+  });
+});
+
+describe('AC-W60 (D-362): the design gate sits between the D1 gate and D2 in the design phase', () => {
+  const dAt = indexOf('run-ok', (s) => s.stage === 'D1-gate' && s.attempt === 2);
+  /** run-ok cut after its passing D1 gate, in the design phase: no D2, no guide, no V4; its design answers `design`, then `then`. */
+  const designPhase = (design: Json[], then: Json[] = [], stages: Json[] = [], status = 'stopped') => {
+    const dir = copyOf('run-ok');
+    for (const f of ['guide.md', 'audit.md']) fs.rmSync(path.join(dir, f));
+    for (const f of ['rounds', 'reports/V4-1.md', 'reports/V4-2.md', `reports/gates/D2-gate-${CARD}-a1.json`]) fs.rmSync(path.join(dir, f), { recursive: true });
+    editLog(dir, (l) => {
+      l.stages = [...l.stages.slice(0, dAt + 1), ...stages];
+      l.checkpoints = [...l.checkpoints.filter((c: Json) => ['brainstorm', 'verification'].includes(c.checkpoint)), ...design.map((a, k) => ({ checkpoint: 'design', visit: k + 1, ...a })), ...then];
+      l.status = status;
+      l.outputs = { plan: 'plan.json', record: 'compile-record.json', dossier: 'dossier.md', guide: null, pobFile: null };
+    });
+    return dir;
+  };
+  const answer = (a: string): Json => ({ answer: a, answeredBy: 'pre-supplied', rule: a });
+  const STOP_DEFAULT = { answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' };
+
+  it('fails D2 reached without a design visit, in the design phase', () => {
+    const dir = copyOf('run-ok');
+    editLog(dir, (l) => (l.checkpoints = l.checkpoints.filter((c: Json) => c.checkpoint !== 'design')));
+    expect(lines(failing(dir), 'design-gate')).toEqual([expect.stringMatching(/\(D2 r1-a-1 attempt 1\): reaches D2 without a design gate visit: checkpoints\[\] records no design answer after r1-a-1's D1 gate; in the design phase the design gate runs between the D1 gate and D2, whoever answers, and D2 comes only after its accept \(D-362\)/)]);
+  });
+
+  it('passes the answers running out, then stopped; fails the default stop under another status', () => {
+    passes(designPhase([STOP_DEFAULT]));
+    const running = designPhase([STOP_DEFAULT], [], [], 'not-accepted');
+    expect(failing(running)).toMatch(/\[order\] run-log\.json: the design gate answered "stop", which ends the run stopped, but its status is "not-accepted"/);
+  });
+
+  it('passes revise:, then D1 (D1-finish alone, or D1-build then D1-finish), the D1 gate and a second visit', () => {
+    for (const d1 of [[step('D1-finish', CARD, 3, 'done')], [step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 3, 'done')], [step('D1-finish', CARD, 3, 'done'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 4, 'done')]]) {
+      const dir = designPhase([answer('revise:cheaper boots'), STOP_DEFAULT], [], [...d1, step('D1-gate', CARD, 3, 'pass')]);
+      d1Verdict(dir, 3, null);
+      passes(dir);
+    }
+    // A revise: that skips D1 for D2 doesn't follow its answer.
+    const skipped = designPhase([answer('revise:cheaper boots')], [], [step('D2', CARD, 1, 'done')], 'running');
+    expect(failing(skipped)).toMatch(/\[order\] .*\(D2 r1-a-1 attempt 1\): follows the design gate answered "revise:cheaper boots", which runs r1-a-1's D1 again \(D1-build, or D1-finish\), not D2 \(D-362\)/);
+  });
+
+  it('passes verification, then the verification gate; fails a design step after it', () => {
+    passes(designPhase([answer('verification')], [{ checkpoint: 'verification', visit: 2, answer: 'stop', answeredBy: 'default', rule: 'no verification answer left: stop' }]));
+    const onward = designPhase([answer('verification')], [{ checkpoint: 'verification', visit: 2, answer: 'stop', answeredBy: 'default', rule: 'no verification answer left: stop' }], [step('D2', CARD, 1, 'done')], 'running');
+    expect(failing(onward)).toMatch(/\[order\] .*\(D2 r1-a-1 attempt 1\): follows the verification gate answered "stop", which ends the run stopped/);
+  });
+
+  it("fails an answer that isn't the design gate's, and design answers left over", () => {
+    const bad = designPhase([answer('pick:r1-a-2')]);
+    expect(failing(bad)).toMatch(/\[run-log\] run-log\.json checkpoints\[2\]: answers "pick:r1-a-2"; the design gate's answer is accept, revise:<text>, verification or stop \(D-362\)/);
+    const left = designPhase([STOP_DEFAULT, answer('accept')]);
+    expect(failing(left)).toMatch(/\[order\] run-log\.json: checkpoints\[\] records 1 design answer\(s\) more than the run visits the design gate/);
+  });
+
+  it("passes a fix round's D1 gate going on to D2 and its gate with no design visit: the gate is the design phase's only", () => {
+    const dir = copyOf('run-ok');
+    d1Verdict(dir, 3, null);
+    fs.copyFileSync(path.join(dir, `reports/gates/D2-gate-${CARD}-a1.json`), path.join(dir, `reports/gates/D2-gate-${CARD}-a2.json`));
+    editJson(dir, `reports/gates/D2-gate-${CARD}-a2.json`, (r) => (r.attempt = 2));
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'done'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-gate', CARD, 3, 'pass'), step('D2', CARD, 2, 'done'), step('D2-gate', CARD, 2, 'pass'), step('W1', CARD, 2, 'done'), step('V4-recheck', CARD, 1, 'fail')]);
+    passes(dir);
+    // D1-build hands back to D1-finish once: a second build: return is no step of the chain.
+    restage(dir, RUN_OK.w1Fix, [step('D1-finish', CARD, 3, 'done'), step('D1-build', CARD, 3, 'done'), step('D1-finish', CARD, 4, 'done'), step('D1-build', CARD, 4, 'done')]);
+    expect(failing(dir)).toMatch(/\[order\] .*\(D1-build r1-a-1 attempt 4\): can't follow D1-finish r1-a-1 attempt 4 \(outcome "done"\); SKILL\.md's step list allows D1-gate next/);
+  });
+
+  it("fails a schema-3 log's retired stage names: one D1 step, and V4 by its lens (D-352, D-356)", () => {
+    const dir = copyOf('run-ok');
+    editLog(dir, (l) => {
+      l.stages[RUN_OK.d1].stage = 'D1';
+      l.stages[RUN_OK.v4].stage = 'V4-prose';
+    });
+    const out = lines(failing(dir), 'run-log');
+    expect(out).toContainEqual(expect.stringMatching(new RegExp(`stages\\[${RUN_OK.d1}\\]: stage "D1" isn't one of .*; D1 is two steps, D1-build then D1-finish \\(D-356\\)`)));
+    expect(out).toContainEqual(expect.stringMatching(new RegExp(`stages\\[${RUN_OK.v4}\\]: stage "V4-prose" isn't one of .*; V4 is one pass with no lenses, V4 or V4-recheck, each entry one report reports\\/V4-<n>\\.md \\(D-352\\)`)));
+  });
+});
+
+describe('D-355: the dossier is the verification gate\'s comparison table', () => {
+  it('fails an H2, a marker, a missing Brief: line, other columns, and a verified card with no row', () => {
+    const h2 = copyOf('run-ok');
+    editText(h2, 'dossier.md', (t) => `${t}\n## Concepts\n`);
+    expect(lines(failing(h2), 'dossier-sections')).toContainEqual(expect.stringMatching(/dossier\.md:\d+ has the heading "Concepts"; the dossier is one table, with no H2 or H3/));
+    const marker = copyOf('run-ok');
+    editText(marker, 'dossier.md', (t) => t.replace('| chaos resistance stays low |', '| chaos resistance stays low[^d1] |'));
+    expect(lines(failing(marker), 'dossier-sections')).toContainEqual(expect.stringMatching(/dossier\.md carries source markers/));
+    const brief = copyOf('run-ok');
+    editText(brief, 'dossier.md', (t) => t.replace(/^Brief: [^\n]*\n/m, ''));
+    expect(lines(failing(brief), 'dossier-sections')).toContainEqual(expect.stringMatching(/doesn't start with the "Brief:" line after its H1/));
+    const columns = copyOf('run-ok');
+    editText(columns, 'dossier.md', replace('| Key prices | League |', '| Prices | League |'));
+    expect(lines(failing(columns), 'dossier-sections')).toContainEqual(expect.stringMatching(/the table's columns are .*"Prices".*; the comparison's are .*"Key prices"/));
+    const row = copyOf('run-ok');
+    editText(row, 'dossier.md', (t) => t.replace(/^\| r1-a-2 \|.*\n/m, ''));
+    expect(lines(failing(row), 'dossier-sections')).toEqual([expect.stringMatching(/dossier\.md has no row "\| r1-a-2 \| …" for r1-a-2, which R1b verified before the last R1b-assemble/)]);
+  });
+
+  it("fails a failed or not-yet-finalizable card's row with numbers, prices or a league", () => {
+    const dir = copyOf('run-escalated');
+    editText(dir, 'dossier.md', (t) => t.replace(/^(\| r1-c-1 \|[^|]*\|[^|]*\|[^|]*\|) — \|/m, '$1 Maelstrom 9000 (g1s1p1.TotalDPS) |'));
+    expect(lines(failing(dir), 'dossier-sections')).toEqual([expect.stringMatching(/r1-c-1 is "can't be finalized yet", but its Named source DPS cell\(s\) aren't "—"/)]);
+  });
+});
 
 describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --changed lists exactly what changed since it', () => {
   /** A fresh synthetic run (tests/helpers/guideRunFolder.ts): a plan, its final record and a guide. */
@@ -2617,14 +2912,15 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
 
   it("the run folder's layout takes rounds/<n>/ holding the three files, and nothing else there", () => {
     const dir = copyOf('run-ok');
-    const r = runChecker(dir, '--snapshot', '1');
+    // run-ok holds rounds/1/, its fix round's copy; a revision would copy rounds/2/.
+    const r = runChecker(dir, '--snapshot', '2');
     expect(r.code).toBe(0);
     passes(dir);
-    fs.writeFileSync(path.join(dir, 'rounds', '1', 'audit.md'), '# Audit\n');
+    fs.writeFileSync(path.join(dir, 'rounds', '2', 'audit.md'), '# Audit\n');
     fs.mkdirSync(path.join(dir, 'rounds', 'latest'));
     const out = failing(dir);
     expect(lines(out, 'layout')).toEqual([
-      'check-run: [layout] rounds/1/ holds ["audit.md","compile-record.json","guide.md","plan.json"]; a round copy holds exactly plan.json, compile-record.json, guide.md (A-34)',
+      'check-run: [layout] rounds/2/ holds ["audit.md","compile-record.json","guide.md","plan.json"]; a round copy holds exactly plan.json, compile-record.json, guide.md (A-34)',
       "check-run: [layout] rounds/latest isn't a round copy rounds/<n>/ (A-34)",
     ]);
   });

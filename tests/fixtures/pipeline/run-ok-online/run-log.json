@@ -82,12 +82,18 @@
       "outcome": "done"
     },
     {
-      "stage": "D1",
+      "stage": "D1-build",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-finish",
       "concept": "r1-a-1",
       "attempt": 1,
       "outcome": "done",
       "priceOutcomes": {
-        "ok": 13,
+        "ok": 14,
         "would_wait": 1
       }
     },
@@ -119,19 +125,7 @@
       "outcome": "done"
     },
     {
-      "stage": "V4-ledger",
-      "concept": "r1-a-1",
-      "attempt": 1,
-      "outcome": "pass"
-    },
-    {
-      "stage": "V4-sources",
-      "concept": "r1-a-1",
-      "attempt": 1,
-      "outcome": "pass"
-    },
-    {
-      "stage": "V4-prose",
+      "stage": "V4",
       "concept": "r1-a-1",
       "attempt": 1,
       "outcome": "pass"
@@ -154,6 +148,12 @@
       "checkpoint": "verification",
       "visit": 2,
       "answer": "pick:r1-a-1",
+      "answeredBy": "user"
+    },
+    {
+      "checkpoint": "design",
+      "visit": 1,
+      "answer": "accept",
       "answeredBy": "user"
     },
     {

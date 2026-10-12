@@ -29,6 +29,9 @@ focus and your letter.
   never create a run folder: those belong to the coordinator and the runner (D-130, D-178). When a point
   needs a measurement (a `possibly unread` line, a number only PoB can compute), say so in your files
   for the coordinator; don't guess the number.
+- **Batch independent calls** (D-356). When reads, Greps or lookups don't depend on each other's results, make
+  them in one response, several tool calls at once, not one a turn. The lookup tools take no engine lock, so
+  they batch.
 - **Write only the header's `writes`**, inside the run folder (`runFolder`): your research file and your
   cards. Never write anywhere else, and never edit another agent's file (D-177).
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention

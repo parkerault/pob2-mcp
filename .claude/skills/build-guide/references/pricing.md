@@ -33,10 +33,11 @@ is the price's `date`.
 ## Order (D-133)
 
 1. R1b prices each concept's key items.
-2. D1 prices every filled slot **and every tree jewel** (D-249) of the three endgame rungs, entering maps,
-   budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), with rares as affix-target
-   searches (`mcp__pob2__search_trade_items` with `mods`). Each slot or jewel gets its own entry, except
-   slots holding identical item text, which may share one.
+2. D1-finish, D1's second step (D-356), prices every filled slot **and every tree jewel** (D-249) of the three
+   endgame rungs, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), and
+   the anoint of `b` and `n` like a slot (`b-anoint`, `n-anoint`, D-358), with rares as affix-target searches
+   (`mcp__pob2__search_trade_items` with `mods`). Each slot or jewel gets its own entry, except slots holding
+   identical item text, which may share one.
 3. D2 prices the campaign uniques.
 
 Before any search, reuse an entry with the same item, query and league from any plan in this run

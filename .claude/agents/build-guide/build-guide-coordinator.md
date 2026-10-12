@@ -1,6 +1,6 @@
 ---
 name: build-guide-coordinator
-description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the deck (R1a-assemble), card skeletons (R1b), the dossier (R1b-assemble), and the design and gate steps (D1, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
+description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the deck (R1a-assemble), card skeletons (R1b), the dossier (R1b-assemble), and the design and gate steps (D1-build, D1-finish, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates
 ---
 
@@ -30,6 +30,17 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   `mcp__pob2__guide_run {new_run}` (the runner made the run folder). A plan follows
   `docs/build-guide/plan-reference.md`. A refused compile is a failed attempt: report it, never work
   around it.
+- **Batch independent calls** (D-356). When reads, Greps, lookups or views don't depend on each other's
+  results, make them in one response, several tool calls at once, not one a turn. The lookups and
+  `mcp__pob2__guide_run`'s views take no engine lock, so they batch. A compile goes alone, and the build reads
+  after it wait for it.
+- **Read the plan and the record through the views** (D-356), never whole: `mcp__pob2__guide_run {view:
+  {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` gives one stage's section of the plan, its key-figure
+  line and whether the plan's build changed since the record's compile; `{view: {plan: "<runFolderRel>/plan.json",
+  claims: true}}` gives every claim, one line each. The view's JSON isn't the file's formatting: to anchor an
+  Edit, Grep or Read `plan.json` at that place. `mcp__pob2__compile_plan`'s reply gives a key-figure line per
+  stage (the headline DPS, life, energy shield, EHP, resistances, V1 and V2 finding counts; on an endgame
+  stage the Arbiter verdict and the rough clear speed): read those there, not by Grepping the record.
 - **Build reads** (`mcp__pob2__lua_get_stats`, `mcp__pob2__analyze_defenses`, `mcp__pob2__suggest_supports`,
   …) read the build the last compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
@@ -71,20 +82,22 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 
 | Stage | Stage reference | Does |
 |---|---|---|
-| `D1` | `.claude/skills/build-guide/references/stages/D1.md` | the three endgame rungs in `plan.json` (entering maps, budget, non-budget), every slot and tree jewel priced, measured measure-only |
-| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict file on the compile, V1, V2, the survival floor, the budget and the named damage source |
+| `D1-build` | `.claude/skills/build-guide/references/stages/D1-build.md` | the three endgame rungs in `plan.json` (entering maps, budget, non-budget), built and measured measure-only to a passing survival floor |
+| `D1-finish` | `.claude/skills/build-guide/references/stages/D1-finish.md` | a fresh step: the anoint on `b` and `n`, every slot and tree jewel priced, the ledger and the claims |
+| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, and the verdict file on the compile, V1, V2, the survival floor, the budget and the named damage source, with the design gate's display |
 | `D2` | `.claude/skills/build-guide/references/stages/D2.md` | the campaign stages, planned backward from the endgame, campaign uniques priced |
 | `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the final compile with the header's `buildName`, in the same step |
 
 The rules every design step keeps:
 
-- **Gates check, producers fix.** D1 and D2 write `plan.json`. A gate step writes its verdict file and
+- **Gates check, producers fix.** D1 (D1-build, then D1-finish) and D2 write `plan.json`. A gate step writes its verdict file and
   edits the plan only where its header's `writes` allows (the D1 gate's FI-2 and re-price pass). It never
   fixes a failure: the runner sends the failure back to D1 or D2 as findings.
 - **The survival floor** (D-234): fire, cold, lightning **and chaos** resistance capped on every endgame
   stage. Chaos stays uncapped only through the stage's `chaosResistException {reason, tag}`, and only when
   capping it is infeasible. Max hit taken beats five waystone-scaled reference hits (physical, fire,
-  cold, lightning, chaos), each derived by a ledger entry `hit_<stage id>_<type>` (D-254).
+  cold, lightning, chaos), which the compiler writes from the data and the record's `configWritten` holds
+  (D-254, D-353); no plan holds a `hit_*` ledger entry.
 - **The budget** (D-219, D-249, D-281): every filled slot and tree jewel of the budget variant and the
   entering-maps rung priced, each with its own entry unless the item text is identical. For the budget
   variant, at most 20 divines passes; above 20 and at most 22 passes "near the ceiling"; above 22 fails;
@@ -112,14 +125,14 @@ The rules every design step keeps:
 ## The fix round and revisions (SKILL.md steps 12 and 16)
 
 - **The owners.** `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing one and an
-  endgame price are D1's; a campaign stage and a ledger entry citing only campaign stages are D2's. The
+  endgame price are D1's (D1-finish first; D1-build only for a build change it hands on); a campaign stage and a ledger entry citing only campaign stages are D2's. The
   dossier isn't verified after the verification gate, so it has no owner.
 - **Re-run with findings.** When V4 leaves an `unresolved` claim, the runner re-runs the step that wrote it
   (D1 or D2 here) once, with those findings in the header's `findings`
   (`{id, artifact, location, claim, issue, evidence, owner}`); after a revision, with the user's requests
   (`code: "user-request"`). Fix every claim each issue touches in place with Edit (its wording, citation,
   caveat or source), not only the flagged location, and keep everything else (D-264). Recompile only when a
-  fix changes the build (gear or a price entry, the tree, the gems, the config, or a ledger formula or its
-  inputs); then the gates after you run again. Otherwise compile nothing, validate once, and leave the final
-  record as it is. Return `recompiled: yes` or `no`, the ids you fixed and the locations you changed; W1
+  fix changes the build (gear or a price entry, the tree, the gems or the config); then the gates after you
+  run again. A ledger formula or input change needs no recompile: the record's `buildSha1` leaves out the
+  ledger (D-352). Otherwise compile nothing, validate once, and leave the final record as it is. Return `recompiled: yes` or `no`, the ids you fixed and the locations you changed; W1
   then patches the guide, and the V4 re-check follows.

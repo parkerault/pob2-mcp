@@ -1,11 +1,12 @@
 # Gates, questions and escalations
 
-The runner stops for the user at three gates, one per phase (`brainstorm`, `verification` and `final`), and at
-two kinds of question (slice 03 §10, §5.4, as amendments 1 and 3 change them; D-125, D-157, D-210, D-235,
-D-236, D-287, D-288). Each is asked with AskUserQuestion; if the choices exceed one question's option limit,
-split them across questions. In offline test mode the test config answers instead (`offline-and-test.md`), and
-only there (A-28). Every answer is recorded in the run log's `checkpoints[]` under the gate's or question's name
-(`answer`, `answeredBy`, and `rule` for a pre-supplied or default answer; `run-log.md`).
+The runner stops for the user at three gates, one per phase (`brainstorm`, `verification` and `final`), at a
+fourth inside the finalization, the design gate (`design`, D-362), and at two kinds of question (slice 03 §10,
+§5.4, as amendments 1 to 4 change them; D-125, D-157, D-210, D-235, D-236, D-287, D-288). Each is asked with
+AskUserQuestion; if the choices exceed one question's option limit, split them across questions. In offline test
+mode the test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
+the run log's `checkpoints[]` under the gate's or question's name (`answer`, `answeredBy`, and `rule` for a
+pre-supplied or default answer; `run-log.md`).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -68,8 +69,37 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
   - **brainstorm more** (`more`, with the user's note): a new brainstorm round (step 2a).
   - **stop**: the run ends `stopped`.
 
-Every route back from the design comes here: an `infeasible` design (D-141), an escalation's option 3, and
-FI-3.
+Every route back from the design comes here: an `infeasible` design (D-141), an escalation's option 3, the
+design gate's `verification`, and FI-3.
+
+## The design gate: judge the endgame build
+
+A fourth user gate (D-362), after a passing D1 gate (or one whose escalation was accepted) and before D2, W1
+and V4: the user judges the endgame build before the campaign's loadouts and the guide exist. Recorded as
+checkpoint `design`. It runs between the D1 gate and D2 of the design (SKILL.md step 7b), never in the fix
+round or a revision.
+
+- **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `stages/D1-gate.md` step 6):
+  you read no plan or record and call no tool for it. One block per endgame rung, in ladder order:
+
+  ```
+  b: DPS 98412, EHP 31250, Arbiter survives, worst physical 0.82, clear fast (rough)
+     anoint: Unbending: Ire, Guilt, Greed
+     gear: Sekhema's Resolve; rare boots, 30% movement speed and resistances
+     gems: Blood Hunt with Martial Tempo and Rupture; Herald of Blood
+     tree: Brutal Fury and Crushing Impacts; the life and armour wheels by the Warrior start
+  ```
+
+  `m` shows no Arbiter and no anoint. Then the open estimates, one line each from `estimates[]`, the gate's
+  verdict line, and the verdict file's path.
+- **Ask**: accept, revise, back to the verification gate, or stop.
+  - **accept**: on to D2 (step 8) and the guide.
+  - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).
+    A build change (gear, the tree, the gems or the config) runs D1-build with it, then D1-finish; a change to
+    the anoint, the prices, the ledger or the claims runs D1-finish alone with it. Then the D1 gate, then this
+    gate again. The revision counts against no retry cap; the D1 gate in it keeps its 2 counted retries.
+  - **verification**: back to the verification gate (step 5), to finalize another card.
+  - **stop**: the run ends `stopped`.
 
 ## The final gate: the guide
 
@@ -85,9 +115,12 @@ Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). 
     round's owners: the guide's text is W1's; an endgame stage of `plan.json`, its ledger entries and
     prices D1's; a campaign stage D2's. It runs that owner as the fix round does (SKILL.md step 12, D-264:
     claims in place, then W1; the owner's gates only after it recompiled: D1 → D1 gate → D2 gate → W1, D2 →
-    D2 gate → W1) with the requests as `findings` (`code: "user-request"`), then the full V4 pass, the fix
-    round, the re-check and the known issues again, and comes back here. A revision counts against no retry
-    cap. The answer is recorded as `revise:<text>`.
+    D2 gate → W1) with the requests as `findings` (`code: "user-request"`), after the round copy to
+    `rounds/<n>/`. Then the V4 re-check over what `check-run.mjs --changed <n>` lists and the known issues
+    again, and it comes back here: **a revision runs no full pass** (D-352). A revision counts against no
+    retry cap. The answer is recorded as `revise:<text>`. The final gate's `revise:` is for guide-level
+    changes; a build change belongs at the design gate (D-362), though one asked here still runs through its
+    owner.
   - **any other answer**: the run ends `not-accepted`, with the user's note recorded as the answer.
 
 ## Escalations (D-127, D-141, D-236)
@@ -123,6 +156,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 | unsaved build | `answers.unsavedBuild`: `proceed` or `stop` | none given: `stop`, `default` |
 | brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` dealt cards in `cards.md` not verified yet, else `stop` |
 | verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>`, `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, else `stop`; a card that can't be finalized yet is never `viable` |
+| design gate | `answers.design[]`, one per visit: `accept`, `revise:<text>`, `verification` or `stop` | none left: `stop`, `default`, rule `no design answer left: stop` (D-362) |
 | final gate | `answers.final[]`, one per visit: `accept`, `not-accept` or `revise:<text>` | |
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` | none left: `stop`, `default` |
 
@@ -136,9 +170,10 @@ brief and the deck, on every visit. At the verification gate that is R1b-assembl
 card's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an
 escalation, that card's evidence (its last verdict file); with no viable card, each failed card's last
 verdict. At
-the final gate and at an escalation, the same holds for their displays.
+the design gate that is every rung's block and the open estimates from the D1 gate's verdict file, on every
+visit. At the final gate and at an escalation, the same holds for their displays.
 
-When the `brainstorm`, `verification` or `final` answers run out, the run ends `stopped` (recorded as answer
+When the `brainstorm`, `verification`, `design` or `final` answers run out, the run ends `stopped` (recorded as answer
 `stop`, `answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it
 resolved to (`first-viable` → `pick:r1-a-2`, `first-n:2` → `pick:r1-a-1,r1-a-2`). Either way the entry's
 `rule` keeps how the answer was reached: the test config's answer exactly as written

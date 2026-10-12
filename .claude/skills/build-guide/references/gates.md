@@ -57,20 +57,17 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
     breaking the budget). With the exception the floor passes and the gate adds a finding naming the value
     and the reason; the guide's `Checks` state both. Without it, `MissingChaosResist` above 0 fails the
     floor;
-  - **the reference hits** (D-119, D-254): the stage's scenario holds a waystone-scaled hit for each of
-    the `enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and
-    `enemyChaosDamage` options: physical, and each element the waystone's extra-damage modifier may add.
-    Each equals the ceiling of the record's value of the ledger entry `hit_<stage id>_<type>` that
-    derives it from the area-level damage table and the top of each waystone damage modifier's range
-    (`stages/D1.md`): PoB takes these options as whole numbers, so the hit is that value rounded to 2
-    decimals, then rounded up (D-256; 96.4789 gives 97, and 402.000003 gives 402). `<Type>MaximumHitTaken`
-    is greater than the hit. The hit is the variant's: its scenario entry cites
-    `enemies/map-monsters.json#damage.by-level[<area level>]` at the variant's area level (79 for the budget
-    variant's T15, `enemies/waystones.json#area-level.max` for the non-budget one, and 69 for the
-    entering-maps rung's T5: `enemies/waystones.json#area-level.offset` plus 5, D-281, D-327), and the ledger
-    entry's
-    value is that damage × (1 + the top of `mods.increased-monster-damage` / 100), × the top of
-    `mods.extra-damage-as-element` / 100 for an element.
+  - **the reference hits** (D-119, D-254, D-353): the stage holds a waystone-scaled hit for each of the
+    `enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage` and
+    `enemyChaosDamage` options: physical, and each element the waystone's extra-damage modifier may add. The
+    compiler writes each hit the plan leaves out, and the floor reads every hit from the record's
+    `configWritten`, not from a ledger entry (D1 writes no `hit_*` entry). A hit is the damage at the variant's
+    area level (`enemies/map-monsters.json#damage.by-level[<area level>]`: 79 for the budget variant's T15,
+    `enemies/waystones.json#area-level.max` for the non-budget one, and 69 for the entering-maps rung's T5,
+    `enemies/waystones.json#area-level.offset` plus 5, D-281, D-327) × (1 + the top of
+    `mods.increased-monster-damage` / 100), × the top of `mods.extra-damage-as-element` / 100 for an element;
+    PoB takes these options as whole numbers, so the hit is that value rounded to 2 decimals, then rounded up
+    (D-256; 96.4789 gives 97, and 402.000003 gives 402). `<Type>MaximumHitTaken` is greater than the hit.
 
   The guide's statement of the exception (checked by the run checker): **one line** of the variant's
   `Checks` holds both the exception's full `reason` text and the stage's uncapped chaos resistance
@@ -155,7 +152,7 @@ The run checker recomputes these parts and names each failure by these codes, so
 | floor | `chaos-exception` | chaos below its cap, kept by the exception: a finding on a passing floor |
 | floor | `max-hit-<type>` (`max-hit-physical`, …) | `<Type>MaximumHitTaken` isn't above that reference hit |
 | floor | `reference-hit-missing-<type>` | the stage has no positive `enemy<Type>Damage` hit of that type |
-| floor | `reference-hit-ledger-<type>` | the hit isn't the ceiling of its ledger entry `hit_<stage id>_<type>` (D-256), or the record has no value for it, or the hit isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers (D-254) |
+| floor | `reference-hit-ledger-<type>` (its name kept) | the record's hit, as the compiler wrote it in `configWritten`, isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers (D-254) and rounded up to a whole number (D-256), or the record has no value for it (D-353) |
 | budget | `over-budget` | the total is above 22 divines (above 5.5 for the entering-maps rung) |
 | budget | `near-ceiling` | above 20, at most 22 (above 5, at most 5.5 for the entering-maps rung): a finding on a passing budget |
 | budget | `unverified` | an unavailable price or a missing rate |
@@ -167,11 +164,12 @@ The run checker recomputes these parts and names each failure by these codes, so
 
 ## The D1 gate's outcome
 
-The runner routes by the verdict file and D1's claim (slice 03 §5.3's table, unchanged):
+The runner routes by the verdict file and D1's claim, D1-build's return (slice 03 §5.3's table; a pass now goes to
+the design gate, D-362):
 
 | Gate verdict | D1's claim | Outcome |
 |---|---|---|
-| compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | D2 |
+| compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | the design gate (D-362), then D2 after its `accept` |
 | compile, V1 or V2 fails | any | D1 re-runs with the findings; after 2 counted retries, `escalated` |
 | only floor, budget or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
 | only floor, budget or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 counted retries, `infeasible` |
@@ -197,4 +195,4 @@ nor a later one (`checkpoints.md`). A current guide passed every gate: the run c
 guide is current (no design step ran after its W1) and whose recomputed floor, budget or named damage
 source fails, or whose D1 or D2 gate before that W1 has a failing part, unless accepted findings cover every
 failure. Only a pass, or an `unverified` budget,
-proceeds to D2.
+proceeds, to the design gate and after its `accept` to D2.

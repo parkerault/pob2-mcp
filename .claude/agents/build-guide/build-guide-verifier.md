@@ -35,6 +35,9 @@ run folder.
   report: if it exists, write nothing and return `exists: reports/V4-<n>.md`. You have no Edit, and you never
   change any other file: not the plan, the record or the guide you check, nothing else in the run folder,
   nothing in the repository or the builds folder (D-177).
+- **Batch independent calls** (D-356). When reads, Greps or lookups don't depend on each other's results, make
+  them in one response, several tool calls at once, not one a turn. The lookup tools take no engine lock, so
+  they batch.
 - **Fresh and independent** (D-142). You didn't write what you check. Re-check numbers against the records
   and the cited sources; never accept a claim because another artifact repeats it.
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention

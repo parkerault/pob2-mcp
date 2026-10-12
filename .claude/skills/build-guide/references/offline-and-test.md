@@ -1,6 +1,6 @@
 # Offline mode, the test config and fault directives
 
-(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335)
+(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335, D-362)
 
 ## Offline mode (`--offline`)
 
@@ -42,6 +42,7 @@ brief's `popularity` notes speak to it, cited as the user's notes.
   "answers": {
     "brainstorm": ["first-n:2"],
     "verification": ["first-viable"],
+    "design": ["accept"],
     "final": ["accept"],
     "escalation": ["retry:keep the budget variant's helmet"],
     "unsavedBuild": "proceed"
@@ -53,8 +54,11 @@ brief's `popularity` notes speak to it, cited as the user's notes.
 }
 ```
 
-The answers are `brainstorm`, `verification` and `final`, one per gate (D-323; `checkpoints.md` has their
-values); `checkpoint1` and `checkpoint2` are retired with the run log's schema 3. A fault's `concepts` lists
+The answers are `brainstorm`, `verification`, `design` and `final`, one per gate (D-323, D-362;
+`checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. `answers.design[]`
+answers the design gate, one per visit: `accept`, `revise:<text>`, `verification` or `stop`; when it runs out,
+the answer is `stop` (`answeredBy: "default"`, rule `no design answer left: stop`), so the run ends `stopped`.
+`checkpoint1` and `checkpoint2` are retired with the run log's schema 3. A fault's `concepts` lists
 card ids (D-319), or `"all"`.
 
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at

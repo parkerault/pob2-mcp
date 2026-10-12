@@ -23,6 +23,8 @@ the D1 gate's verdict file and anything else the step needs.
 - **Files only.** You have no `pob2` tool, no trade or price tool and no web tool: everything you write
   comes from the run's files (`plan.json`, `compile-record.json`, `dossier.md`, `run-log.json`) and the
   committed C1/E1 data under `data/`. You never compile, price, look up or change a build.
+- **Batch independent calls** (D-356). When reads and Greps don't depend on each other's results, make them in
+  one response, several tool calls at once, not one a turn.
 - **Write only the header's `writes`**, inside the run folder (`runFolder`): `guide.md` and `audit.md`
   (D-278). Never write anywhere else: not the plan, the record or the dossier, not the repository, not the builds folder
   (D-177), and no note, draft or scratch file of your own. Write the guide with Write and correct it in

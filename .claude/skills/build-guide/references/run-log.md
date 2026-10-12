@@ -44,20 +44,21 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 
 ### Entry rules
 
-- **`stages[]`** has one entry per Agent call, in run order: each R1a researcher and each V4 lens is its own
-  entry. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1`,
-  `V4-<lens>` (the full pass) or `V4-<lens>-recheck`. `concept` is the card id (`r<round>-<letter>-<n>`,
+- **`stages[]`** has one entry per Agent call, in run order: each R1a researcher is its own entry, and so is
+  each of D1's two steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`,
+  `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check); each V4
+  entry is one report, `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`,
   D-319), set for every step but R1a, R1a-assemble and R1b-assemble. `attempt` counts the calls of that (stage,
   card) from 1, re-runs included, and matches the header and the verdict file name. `outcome`:
-  - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 lens (`fail`: it reported an
+  - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 entry (`fail`: its report has an
     `unresolved` finding);
-  - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, …), `infeasible` for D1 claiming
-    it and for a D1 gate routed so;
-  - `claims-edited` for a D1 or D2 of the fix round or a revision that returned `recompiled: no`: it edited
-    claims in place and compiled nothing, so no gate of its own follows it (D-264). The run checker tells it
-    from a redesign: the final record stays current, the plan may differ from the record's `planSha1` only in
-    its claims and source tags (its build projection's sha1 equals the record's `buildSha1`, D-266), and the
-    re-check stays with the lenses that raised a finding, plus the sources lens;
+  - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-finish, …), `infeasible` for
+    D1-build claiming it and for a D1 gate routed so;
+  - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no`: it
+    edited claims in place and compiled nothing, so no gate of its own follows it (D-264). The run checker
+    tells it from a redesign: the final record stays current, the plan may differ from the record's
+    `planSha1` only in its claims, source tags and ledger (its build projection's sha1 equals the record's
+    `buildSha1`, D-266, D-352), and the re-check covers what `check-run.mjs --changed <n>` lists;
   - `escalated` for the gate attempt that escalated;
   - `missing` for an agent that returned without its file.
   A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the
@@ -75,14 +76,16 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `short: <why>` without the `short: ` (D-339). A round is short when it deals fewer than 6 cards, or the deck
   (every round's dealt cards so far) holds fewer than two under-played cards; the run checker counts both from
   `cards.md` and accepts a short round only with its reason.
-- **`priceOutcomes`**, on a pricing step (R1b, D1, D1-gate, D2) that made price calls: its calls counted by
+- **`priceOutcomes`**, on a pricing step (R1b, D1-finish, D1-gate, D2) that made price calls: its calls counted by
   outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
   `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`.
-- **`checkpoints[]`**: `checkpoint` is `brainstorm`, `verification`, `final`, `unsaved-build` or `escalation`
-  (`checkpoints.md`); `visit` counts that checkpoint's visits from 1; `answer` is the effective answer:
+- **`checkpoints[]`**: `checkpoint` is `brainstorm`, `verification`, `design` (D-362), `final`,
+  `unsaved-build` or `escalation` (`checkpoints.md`); `visit` counts that checkpoint's visits from 1; `answer` is the effective answer:
   - the brainstorm gate: `pick:<id>[,<id>…]` (1–3 cards to verify), `more` or `stop`;
   - the verification gate: `pick:<id>` (finalize that card; its identity becomes `roll`), `verify:<id>[,<id>…]`
     (1–3 more cards from the deck, a verification round without a brainstorm), `more` or `stop`;
+  - the design gate: `accept` (on to D2), `revise:<text>` (D1 again, its gate and the design gate again),
+    `verification` (back to the verification gate) or `stop`;
   - the final gate: `accept`, `revise:<text>`, or the user's note (the run ends `not-accepted`);
   - the unsaved-build question: `proceed` or `stop`; an escalation: `accept`, `retry:<guidance>`, `verification`
     or `stop`.
@@ -92,10 +95,10 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   how the answer was reached: the test config's answer exactly as written (`first-viable`, `pick:r1-a-2`) for
   `pre-supplied`, or the default that applied (`no verification answer left: stop`) for `default`. A user's
   answer has no `rule`. The test config's answers are `answers.brainstorm`, `answers.verification`,
-  `answers.final`, `answers.escalation` and `answers.unsavedBuild` (D-323): a pre-supplied rule is one of their
+  `answers.design`, `answers.final`, `answers.escalation` and `answers.unsavedBuild` (D-323, D-362): a pre-supplied rule is one of their
   values, and `first-n:<n>` and `first-viable` resolve to the `pick:` they chose, or to `stop`. A default answer
   is `stop`. `audit.md`'s Run notes quote the rule of the verification gate entry that finalized the guide's card
-  (`stages/W1.md`), and the prose lens checks it.
+  (`stages/W1.md`), and V4 checks it.
 - **`escalations[]`**: `stage` is `D1-gate` or `D2-gate`; `verdict` is the escalated attempt's verdict file,
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with
@@ -118,8 +121,15 @@ Only the user starts a round (D-287), so the log's gate answers say where every 
 - **A verification round** is the R1b entries after a brainstorm `pick:<ids>` or a verification `verify:<ids>`:
   R1b for each named card, in that order, one at a time, then one R1b-assemble, then the verification gate. A
   card is verified once.
-- **The design** follows a verification `pick:<id>`, and every route back from it (an `infeasible` D1 gate, an
-  escalation's `verification`, FI-3) returns to the verification gate.
+- **The design** follows a verification `pick:<id>`: D1-build, D1-finish and the D1 gate, then the design gate
+  (D-362), and D2 only after its `accept`. A design `revise:<text>` runs D1 again (D1-build then D1-finish for a
+  build change, D1-finish alone otherwise), the D1 gate and the design gate again. Every route back from the
+  design (an `infeasible` D1 gate, an escalation's or the design gate's `verification`, FI-3) returns to the
+  verification gate.
+- **The fix round and a revision** (D-352): each starts with the round copy, `rounds/<n>/`, which the run
+  checker's `--snapshot <n>` makes (`SKILL.md` step 12); no design gate is asked in them. A D1 finding runs
+  D1-finish first; when it returns `build: <ids>`, D1-build runs with those findings, then D1-finish again,
+  then the gates.
 
 Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends the run `stopped`.
 
@@ -127,7 +137,8 @@ Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends
 
 - **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9
   cards; per verification round at most 3 cards compiled (a second verification round from the same deck has
-  its own 3); three lenses per pass; at most 2 counted retries per gate (the run checker counts them from
+  its own 3); one V4 pass, and one re-check per fix round or revision (D-352); at most 2 counted retries per
+  gate (the run checker counts them from
   `stages[]`, S6 included); and at most 3 agents in flight, which the session's transcript shows.
 - **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4.
 - **NFR-22** (no 429s, no lock-outs): no `priceOutcomes` counts a `rate_limited` or `locked_out` call.

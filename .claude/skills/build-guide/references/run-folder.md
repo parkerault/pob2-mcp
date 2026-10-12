@@ -47,7 +47,7 @@ folder (D-153).
 | `concepts/<id>/compile-record.json`, `concepts/<id>/compiled-build.xml` | `mcp__pob2__compile_plan`, measure-only (D-208) | the skeleton's compile record (C-33) and compiled XML |
 | `probes/<id>/<n>/plan.json`, and its record and XML | the R1b step for card `<id>`; `mcp__pob2__compile_plan`, measure-only | a probe variant, one stage, `n` from 1 to 4 (D-292, D-331, D-338) |
 | `dossier.md` | the R1b-assemble step | the dossier (slice 03 §7.2) |
-| `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
+| `plan.json` | D1's two steps (D1-build, D1-finish) and D2; the D1 gate step only to apply FI-2 and the final re-price pass | the plan (C-31) |
 | `compile-record.json`, `compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` |
 | `guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276) |
 | `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |

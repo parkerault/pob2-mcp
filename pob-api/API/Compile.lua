@@ -219,8 +219,8 @@ local function reach(nodes, mode, seeds, allow)
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- The tree's shape (WU-66, D-360, I-3): each tree leaves its start by one exit, each start holds at most one
--- tree, an alternate start holds one only while its node is allocated, and the ascendancy is one tree.
+-- The tree's shape (WU-66, D-360, I-3): each start holds at most one tree (a loop through two of its exits is
+-- one tree, D-364), an alternate start holds one only while its node is allocated, and the ascendancy is one tree.
 
 local function is_start(node)
   return node ~= nil and (node.type == 'ClassStart' or node.type == 'AscendClassStart')

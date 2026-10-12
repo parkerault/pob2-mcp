@@ -301,8 +301,8 @@ export class TreeService {
    * - never enters a start: allocated starts are where the search begins, and a path never passes through an
    *   unallocated one;
    * - leaves a start for the main tree only from an open start that holds no tree;
-   * - from the main tree, never enters an open start's exit (the tree would hold two exits) or an ascendancy
-   *   node (it would be cut off from the ascendancy start).
+   * - from the main tree, never enters an open start's exit or an ascendancy node (it would be cut off from the
+   *   ascendancy start). A loop through two exits of one start is legal (D-364); the tools just never route one.
    */
   private treeStepRule(allocatedNodes: Set<string>, treeData: PassiveTreeData): (fromId: string, toId: string) => boolean {
     const nodes = treeData.nodes;

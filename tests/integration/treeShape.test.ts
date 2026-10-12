@@ -2,9 +2,9 @@
  * V1's `tree-shape` (WU-66, D-360; AC-P65): engine-required, in process.
  *
  * The rule (I-3, in the user's words: "the build can't have two unconnected ranger start nodes or two
- * unconnected sorceress start nodes"): each tree leaves its start by one exit, each start holds at most one
- * tree, an alternate start (Path of the Sorceress, 12795) holds one only while its node is allocated, and the
- * ascendancy nodes form one tree with their start. PoB2 v0.23.1 enforces none of it.
+ * unconnected sorceress start nodes"): each start holds at most one tree, a loop through two of its exits being
+ * one tree (D-364), an alternate start (Path of the Sorceress, 12795) holds one only while its node is allocated,
+ * and the ascendancy nodes form one tree with their start. PoB2 v0.23.1 enforces none of it.
  *
  * The shapes are run A's (the 2026-10-11 recorded run, Ranger/Pathfinder), committed as
  * `tests/fixtures/plans/run-a-trees/plan.json`: its stages 2 and 5 whole, with the ledger, prices and claims
@@ -198,6 +198,27 @@ engineDescribe('WU-66: V1 tree-shape on run A\'s trees (D-360, AC-P65)', () => {
       expect(isError).toBe(false);
       expect(v1Of(record!, '5', 'tree-shape')).toEqual([]);
       expect(record!.stages['5'].v1!.pass).toBe(true);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'D-364: a single connected loop touching two exits of one start (the Mercenary\'s 59779 - 97 - 59915) passes tree-shape',
+    async () => {
+      // The shortest loop on the pinned tree: two exits of the Duelist/Mercenary start joined by one node.
+      const start = classStart('Mercenary');
+      expect(mainLinks(start)).toEqual(expect.arrayContaining([59779, 59915]));
+      expect([...links.get(97)!]).toEqual(expect.arrayContaining([59779, 59915]));
+      expect([...links.get(97)!]).not.toContain(start);
+      const base = fixturePlan();
+      const plan = { ...base, roll: { ...base.roll, className: 'Mercenary', ascendancy: 'Tactician' } };
+      const stage = structuredClone(stageOf(plan, '2'));
+      stage.tree = { ...stage.tree, nodes: [59779, 97, 59915], ascendancyNodes: [], attributeChoices: [] };
+      const trees = await treesOf(plan, stage);
+      expect(trees.main).toEqual([{ nodes: [97, 59779, 59915], exits: [59779, 59915] }]);
+      const { isError, record } = await measure(onlyStage(plan, stage));
+      expect(isError).toBe(false);
+      expect(v1Of(record!, '2', 'tree-shape')).toEqual([]);
     },
     ENGINE_TIMEOUT,
   );

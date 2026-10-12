@@ -73,15 +73,16 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
      design gate. Plus the ledger and triage rules under D-352.
    - **Evidence:** the three reports in `docs/build-guide/studies/2026-10-11-*`.
    - **The work:** milestone M-15, units WU-64…WU-72 with their DAG, and AC-W51…W60, AC-P60…P67 and AC-K66.
-   - **Next, folding (you, docs only):** fold amendment 4 into the spine and slices together with the pending
-     v1.5 items (item 3 below, plus D-343 and D-344).
+   - **Folded:** spec v1.5 at `ba9daf8` (D-339…D-362, amendment 4, M-15; reviewed and fixed). Item 3 below is
+     done. **Still to confirm with the user:** that their acceptance of amendment 4 is the HG-12 decision for
+     D-360's changes to `find_path_to_node` and `get_nearby_nodes`.
    - **Then the build (you, by the coordinator method):**
      - WU-64, the output-counter spike, and WU-65, plan schema 3 and the measures, first. They are independent.
      - WU-66 and WU-68 then run in parallel.
      - WU-69 → WU-70 → WU-71 run in series; WU-67 after WU-66.
      - Last, WU-72, the lean recorded run, which the user starts.
    - **After M-15:** the user brings their own poe.ninja Explosive Concoction build to compare with run A.
-3. **Fold v1.5 into the spec.** *Who acts: you; docs only.* The work-log holds the content.
+3. **Done: fold v1.5 into the spec** (see 2a). *Who acts: you; docs only.* The work-log holds the content.
    - **Decision rows to add:**
      - D-339: the deck and short rounds;
      - D-340: counted versus raw fields;
@@ -125,7 +126,7 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `5d7d1d9` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
+- **Integration head:** `02eddb1` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`.
 - **Live worktrees:**
   - `amend`, the integration worktree;
   - `m14`, detached at `96b1785` and built: the WU-59 run worktree.

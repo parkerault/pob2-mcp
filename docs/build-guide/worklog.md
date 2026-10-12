@@ -3191,3 +3191,18 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - `mcp/` is the isolated `pob2` from the `m15` worktree, with trade and poe.ninja off.
   - `cfg/L.json` holds run A's answers plus `design: ["accept"]`, and `faults: []`.
   - The README holds the user's instructions, with the new scripts on the approve list.
+- **M-15 wave gate: PASS at `27b90fe`** (an independent verifier, in the fresh worktree `m15`).
+  - **Bootstrap:** clean.
+  - **`mise run test` rc=0** from clean, with the Jest cache cleared: 127 of 127 suites, 2283 of 2283 tests, none
+    skipped. The NFR step passed 2 of 2, and no timing re-runs were needed. It took about 4m50s.
+  - **`pnpm build` rc=0.**
+  - **Cross-cutting checks:**
+    - both waivers are `[]`;
+    - `package.json` and `pnpm-lock.yaml` are unchanged since `acec4d1`;
+    - `vendor/` is clean at `7d6f530` (v0.23.1);
+    - the README table matches, with 84 rows.
+  - **The four pipeline fixtures:** rc=0.
+  - **The AC map:** every AC owned by WU-65…WU-71 maps to a passing test. AC-W51 (WU-64) and AC-W56…AC-W58
+    (WU-72) are unmapped, as expected.
+  - `m15` is left built for WU-72.
+- **Next:** WU-72, the lean run, started by the user. WU-64's control session is pending.

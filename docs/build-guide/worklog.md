@@ -2989,3 +2989,21 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - AC-W53.
 
   One review covers both.
+- **WU-66 review: PASS** (reviewer 178K tokens). No blocker and no should-fix. Its own gate: 126 suites, 2166
+  tests, NFR 2 of 2 (the fifteen-stage compile took 28.9 s), build rc=0. `vendor/` is clean at `7d6f530`.
+  - **The tests catch regressions:** run against the old search, AC-K66's three checks fail.
+  - **The C-1 bound holds:** the handlers, schemas and text are untouched. Probe: with 12795, the path to 4739 is
+    `[4739]`; with a tree on 56651, 13828 gets no path; the loop is never routed.
+  - **The Lua also finds** Path of the Warrior, 57253, with the Warrior exits 3936 and 38646.
+  - **Every deviation is accepted.** The two-Warrior-tree fixtures are left as they are: no test needs V1 clean
+    on them, and the pipeline fixtures aren't compiled.
+  - **Nits:**
+    - `v1.ts:509-551` groups trees across weapon sets (rare; left);
+    - the "No path found" hint is unchanged, since C-1 freezes the output (left).
+  - **For the fold:**
+    - AC-P65: two shapes are refused by the compile before V1;
+    - AC-K66: read "leaves the Sorceress start by its exits without 12795";
+    - §3.7, §2.11 and D-360 still say "one start exit"; D-364 removed that.
+- **WU-66 merged** at `daa3f7e`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
+  `bg-66` removed.
+- **WU-67 started** in lane `bg-67` (off `daa3f7e`), in parallel with WU-70 part A. The two share no files.

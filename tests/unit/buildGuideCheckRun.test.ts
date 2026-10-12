@@ -2841,6 +2841,13 @@ describe('D-355: the dossier is the verification gate\'s comparison table', () =
     expect(k).toBeGreaterThan(1);
     passes(dossier);
   });
+
+  it("skips an HTML comment, the template's left in, between the H1 and the Brief: line", () => {
+    const dir = copyOf('run-ok');
+    editText(dir, 'dossier.md', (t) => t.replace(/^(# [^\n]*\n)/, '$1\n<!--\nTemplate for dossier.md. Replace every <placeholder>; delete this comment.\n-->\n'));
+    expect(fs.readFileSync(path.join(dir, 'dossier.md'), 'utf8')).toMatch(/^# [^\n]*\n\n<!--\n/);
+    passes(dir);
+  });
 });
 
 describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --changed lists exactly what changed since it', () => {

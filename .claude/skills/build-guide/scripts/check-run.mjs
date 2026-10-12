@@ -2513,7 +2513,8 @@ function checkDeck(text, stages, cardIds, fail) {
  */
 function checkDossier(text, assembled, ID, fail) {
   const bad = (why) => fail('dossier-sections', `dossier.md${why}`);
-  const md = parseMarkdown(text);
+  // An HTML comment (the template's, left in) is no part of the dossier: blanked, its lines kept for the numbering.
+  const md = parseMarkdown(String(text).replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')));
   const h1 = md.headings.filter((h) => h.level === 1);
   if (h1.length !== 1) bad(` has ${h1.length} H1s; it has one, then the Brief: line and the comparison table (§7.2, D-355)`);
   for (const h of md.headings.filter((x) => x.level > 1)) bad(`:${h.line + 1} has the heading ${show(h.title)}; the dossier is one table, with no H2 or H3 (§7.2, D-355)`);

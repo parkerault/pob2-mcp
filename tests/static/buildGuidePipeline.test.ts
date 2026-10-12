@@ -378,8 +378,7 @@ const RESEARCH_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble'];
 const DOSSIER_TEMPLATE = path.join(SKILL_DIR, 'templates', 'dossier-template.md');
 /**
  * §7.2 as D-355 reduces it (WU-70): the dossier is the verification gate's comparison table, one row per verified
- * card, with these columns in order. The run checker's `DOSSIER_H2` still holds the six H2s of before until WU-71
- * moves it to the table.
+ * card, with these columns in order. The run checker's `DOSSIER_COLUMNS` holds the same list (WU-71).
  */
 const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
 
@@ -484,8 +483,12 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
     for (const gone of ['Mechanics', 'Synergy search', 'Config gaps', 'Not carried', 'Feasibility read']) expect({ gone, present: text.includes(gone) }).toEqual({ gone, present: false });
   });
 
-  it('has the comparison columns in order, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
+  it('has the comparison columns in order, the same list the run checker holds, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
     expect(cells(rows[0])).toEqual(DOSSIER_COLUMNS);
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    const listed = /export const DOSSIER_COLUMNS = (\[[^\]]*\]);/.exec(checker);
+    expect(listed).not.toBeNull();
+    expect(JSON.parse(listed![1].replace(/'/g, '"'))).toEqual(DOSSIER_COLUMNS);
     expect(cells(rows[1]).every((c) => /^-+$/.test(c))).toBe(true);
     const body = rows.slice(2).map(cells);
     for (const row of body) expect(row).toHaveLength(DOSSIER_COLUMNS.length);
@@ -537,8 +540,8 @@ const GUIDE_H2 = [
   'Changelog',
 ];
 /**
- * §7.8, the audit layer, as D-355 renders it (WU-70): audit.md's H2s, in order. The run checker's `AUDIT_H2` still
- * holds WU-62's list (`Hand calculations` … `Run notes`) until WU-71 renders and checks the new one.
+ * §7.8, the audit layer, as D-355 renders it (WU-70): audit.md's H2s, in order. The run checker's `AUDIT_H2` and
+ * render-audit.mjs's hold the same list (WU-71).
  */
 const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues'];
 const ENDGAME_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
@@ -864,10 +867,11 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     expect(forms).toEqual([fixed('Entering maps'), fixed('Budget', ARBITER_LABEL), fixed('Non-budget', ARBITER_LABEL)]);
     expect(section.filter((l) => l.startsWith('- **')).length).toBe(3);
     expect(section.join('\n')).not.toMatch(/Acts 1–2|Acts 3–4|Interludes and Epilogue/);
-    // The run checker holds the entering-maps form, Effective HP included (AC-W2 (dd), WU-58); the Arbiter label
-    // on b and n is WU-71's to add to it (AC-W55).
+    // The run checker holds the entering-maps form, Effective HP included (AC-W2 (dd), WU-58), and the Arbiter label
+    // it puts in place of solid, watch or risky on b and n (AC-W55, WU-71).
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     expect(/const VERDICT_FORM = '([^']*)';/.exec(checker)![1]).toBe(VERDICT_FORM);
+    expect(/const ARBITER_LABEL = "([^"]*)";/.exec(checker)![1]).toBe(ARBITER_LABEL);
   });
 
   it("puts in each rung's Checks only its block from audit.md, copied verbatim; the render's form holds the chaos exception, the budget line and the Arbiter for b and n (D-281, D-355)", () => {
@@ -934,8 +938,12 @@ describe('§7.8 (WU-62, D-278): the audit template', () => {
   const text = fs.existsSync(AUDIT_TEMPLATE) ? fs.readFileSync(AUDIT_TEMPLATE, 'utf8') : '';
   const hs = headings(text);
 
-  it("has §7.8's six H2s in order, as D-355 renders them (the run checker's AUDIT_H2 moves with WU-71)", () => {
+  it("has §7.8's six H2s in order, as D-355 renders them, the same list the run checker and the render hold", () => {
     expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(AUDIT_H2);
+    for (const script of ['check-run.mjs', 'render-audit.mjs']) {
+      const listed = /export const AUDIT_H2 = (\[[^\]]*\]);/.exec(fs.readFileSync(path.join(SKILL_DIR, 'scripts', script), 'utf8'));
+      expect({ script, listed: listed === null ? null : [...listed[1].matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2]) }).toEqual({ script, listed: AUDIT_H2 });
+    }
     const comment = folded(/<!--([\s\S]*?)-->/.exec(text)![1]);
     expect(comment).toMatch(/No agent fills this template: the runner renders audit\.md with scripts\/render-audit\.mjs after the final compile/);
     expect(comment).toMatch(/the run checker fails an audit\.md, or a guide Checks block, that differs from the render, Known issues aside/);

@@ -2717,3 +2717,21 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 - **D-362 (the user): a design gate.** The user gates the endgame build before the leveling loadouts and the guide
   are made. Today's gates are brainstorm, verification and final, with nothing between D1 and D2. The coordinator
   sees no reason against it.
+
+### Spec v1.5 folded at `ba9daf8`
+
+- **The fold.** A doer folded D-339…D-362, amendment 4, M-15, WU-63's block (AC-W61, AC-W62), the as-built WU-57
+  and WU-58, WU-59's re-scope, and WU-64…WU-72 with their ACs. The diff is 4 files, +1354/−446. Static tests
+  286 of 286.
+- **Review: FAIL, with 4 should-fix findings and no blocker.** A fresh fixer fixed them all:
+  - **HG-12:** the acceptance of amendment 4 is recorded as the user's HG-12 decision on D-360's tool changes.
+    *Confirm with the user.*
+  - **Open items:** A-34 (the round copy by script) and A-35 (the design gate's display, from the D1 gate's
+    verdict file).
+  - **The checker:** FR-W7 (2) and (3) gain the `[ledger]`, floor and verdict-line targets, and
+    `buildHash.ts` moves to WU-65.
+  - **The verifier:** AC-W14 and R-5 gain targets for its Write access.
+  - **The nits.**
+- **For WU-71.** AC-W2 (t) and FI-4's doubled formula still describe `[ledger]` as it is built. Update them when
+  WU-71 changes the check.
+- **Next:** the user compacts the context. Then the M-15 build starts, with WU-64 and WU-65 first.

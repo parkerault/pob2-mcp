@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 2)
+# Build plan reference (`plan.json`, schema version 3)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,17 +18,21 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 2`. Versions `1` and `2` are accepted. Any other
-  value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions `[1, 2]`;
-  nothing else is checked.
-- **Older versions** (D-320, D-332). A version-1 plan still validates and compiles, with the version-1
-  shape: it takes the defaults of what version 2 added, and each use of an addition errs at its own path,
-  naming the version that added it. Version 2 added:
+- **Version first.** A new plan declares `schemaVersion: 3`. Versions `1`, `2` and `3` are accepted. Any
+  other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
+  `[1, 2, 3]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A version-1 or version-2 plan still validates and compiles, with its
+  version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
+  its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
   - a group's `count` and `countReason` (`stages[].skills.groups[]`, D-293); in a version-1 plan every group
     counts as 1, and the keys are errors;
   - `config.customMods` (D-293); a version-1 plan has none, though it may list PoB's `customMods` option as
     an `earned` or `scenario` entry, which the compile record marks like custom modifiers.
+
+  Version 3 added (D-351, D-358):
+  - a claim's `kind` (`stages[].claims[].kind`); an earlier plan's claims have none;
+  - `items.anoint` (`stages[].items.anoint`); an earlier plan has no anoint.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -40,8 +44,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors.
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
-node ids and tree connectivity, config option names and values, the main skill's index, and that PoB parses
-each custom modifier line whole (C-41 step 5). A missing `countReason` or custom-modifier `reason` isn't a
+node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
+each custom modifier line whole, and an anoint's notable: it has a three-emotion recipe, the stage's tree
+doesn't allocate it, and the stage has an amulet (C-41 step 5, D-358). A missing `countReason` or custom-modifier `reason` isn't a
 schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322).
 
 ## Terms
@@ -158,7 +163,7 @@ record marks what rests on it.
   - Each entry needs a `reason` saying what it stands for and how it was worked out; without one, V1
     reports `missing-reason`.
   - Every figure of a stage with custom modifiers, defences included, is marked in the compile record, and
-    so is every ledger value that reads one. In a version-2 plan, don't list `customMods` in `earned` or
+    so is every ledger value that reads one. From version 2 on, don't list `customMods` in `earned` or
     `scenario`. A version-1 plan may still list PoB's `customMods` option there, and its stage is marked the
     same way.
 
@@ -179,6 +184,48 @@ record marks what rests on it.
 ]
 ```
 
+### Claim kinds and the anoint (D-351, D-358)
+
+Schema version 3 adds two fields.
+
+- **A claim's `kind`** says why the claim is written (D-351): `hinge`, a fact whose being wrong would make
+  the build fail at its rung, or `reason`, a reason that rests on a measurement. What the compile proves
+  needs no claim.
+- **`items.anoint`** names one notable passive the stage's amulet is anointed with, and why
+  (`{notable, reason}`). It is allowed on the budget and non-budget rungs (`b`, `n`) only; on the
+  entering-maps rung `m` or a campaign stage it is an error at `stages[n].items.anoint` (D-358, Q5).
+  - The compiler writes it on the stage's amulet as `{enchant}Allocates <notable>`, which PoB grants with no
+    path and no passive point.
+  - The compile refuses it, naming the stage, when the notable has no recipe of three Distilled Emotions,
+    when the stage's tree already allocates it, or when the stage has no amulet.
+  - The compile record gives the notable's recipe (`stages.<id>.anoint`: the notable, its node id, the three
+    emotions as the tree names them and as PoB's item names).
+
+```json
+"anoint": { "notable": "Unbending", "reason": "3% increased maximum Life, off the stage's tree path" }
+```
+
+```json
+{ "id": "b-arbiter", "text": "The budget rung survives the Arbiter's slam.", "kind": "hinge", "source": { "kind": "pob-computed", "ref": "b.PhysicalMaximumHitTaken" } }
+```
+
+### Reference hits and measures (D-353)
+
+On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
+leaves out (`enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage`,
+`enemyChaosDamage`) from the data, at the rung's area level: 69 for `m`, 79 for `b`
+(`enemies/waystones.json#area-level.offset` plus the tier, 5 or 15) and `area-level.max`, 82, for `n`. A hit
+is the map monsters' damage at that level (`enemies/map-monsters.json#damage.by-level[<level>]`) × (1 + the
+top of `mods.increased-monster-damage` / 100), and × the top of `mods.extra-damage-as-element` / 100 for fire,
+cold, lightning and chaos, rounded up to a whole number after rounding to 2 decimals (D-254, D-256): 402 and 97
+at level 79. A hit the plan lists stays as listed. The record's `configWritten` holds every hit written.
+
+The compiler also measures each endgame stage (`stages.<id>.measures` in the record), so no plan needs a
+ledger entry for them: `dps` (the named source's Count-scaled `TotalDPS`), `ehp` (`TotalEHP`), on `b` and `n`
+the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit
+(`survives` below 1, else `one-shot`), and a rough `clearSpeed`. No ledger entry is needed for a reference
+hit, a kill time or hits to kill.
+
 ### Shared sets (A-P2)
 
 The compiler gives every stage its own tree, titled `loadoutName`. Stages whose `items` (likewise
@@ -193,7 +240,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1` or `2` | yes | `2` for a new plan; `1` is still accepted, with the version-1 shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2]` | C-31, D-167, D-320, D-332 |
+| `schemaVersion` | `1`, `2` or `3` | yes | `3` for a new plan; `1` and `2` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3]` | C-31, D-167, D-320, D-332, D-351 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -272,6 +319,9 @@ rule may require an optional key in some cases.
 | `stages[].items.toggles[].active` | boolean | yes | Whether it is active when the stage is measured | C-32 |
 | `stages[].items.toggles[].uptime` | string | no | Non-empty. Required when `active` is true: how often it is up | C-32 |
 | `stages[].items.useSecondWeaponSet` | boolean | yes | Whether weapon set 2 is the one in use | C-31 |
+| `stages[].items.anoint` | object | no | The notable the stage's amulet is anointed with (see the anoint above). Only on the `budget` and `non-budget` rungs: on `entering-maps` or a campaign stage it errs here. The compile refuses a notable without a three-emotion recipe, one the stage's tree allocates, or a stage without an amulet. Schema version 3 | C-31, D-358 |
+| `stages[].items.anoint.notable` | string | yes | Non-empty. The notable's PoB name, e.g. `Unbending`, matched ignoring case; written as `{enchant}Allocates <notable>` on the amulet | D-358 |
+| `stages[].items.anoint.reason` | string | yes | Non-empty. Why this notable: what it adds, and why it isn't on the tree | D-358 |
 | `stages[].skills` | object | yes | The skill set. Stages with deep-equal `skills` share one set | C-31, A-P2 |
 | `stages[].skills.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].skills.groups` | object[] | yes | The socket groups, in order; other fields index them from 1 | C-31 |
@@ -299,7 +349,7 @@ rule may require an optional key in some cases.
 | `stages[].config.earned[].producer.kind` | `item`, `gem`, `passive`, `skill`, `flask` or `charm` | yes | The producer's kind | C-32 |
 | `stages[].config.earned[].producer.name` | string | yes | Non-empty. Its name as PoB has it | C-32 |
 | `stages[].config.earned[].uptime` | string | no | Non-empty. Required when the value is on: how the state is kept up | A-P5, C-32 |
-| `stages[].config.scenario` | object[] | yes | Scenario inputs: enemy level, `enemyIsBoss`, enemy damage and resistances, waystone modifiers, quest rewards, the resistance penalty. Must list `enemyIsBoss`, which the compiler writes into every config set (error at `config.scenario`). The config check (V2) reports `default-unlisted` for every option PoB has on by default (`resistancePenalty`) or fills from a placeholder that this stage doesn't list and `data/config-baseline.json` doesn't cover. The list covers an option PoB shows only for some builds (a skill's toggle, such as `FlickerStrikeBypassCD`) only while PoB hides it, so list it in `earned`, with its producer and uptime, once the stage has that skill (D-250). On a boss stage (`enemyIsBoss` other than `None`) list the enemy's level, armour, evasion, resistances and crit here, citing E1 (D-252). A reward quest's checkbox is on by default and in the baseline list; list it `false` in `earned` while its quest is beyond `progress` (`quest-not-reached`). A reward choice (a quest whose C1 data has `q.<key>.options`) defaults to Nothing; once the stage's `progress` is at or after its quest, list the pick here: `option` the quest's `q.<key>.pob-config-key`, `value` one of the options exactly, `source` `{file: "campaign/progress.json", key: "q.<key>.options[<i>]"}`, the same pick on every such campaign stage (the run checker holds a build-guide plan to it, D-265) | C-32, D-119, A-P4, D-212, D-230, D-250, D-252, D-265 |
+| `stages[].config.scenario` | object[] | yes | Scenario inputs: enemy level, `enemyIsBoss`, enemy damage and resistances, waystone modifiers, quest rewards, the resistance penalty. On an endgame stage the compiler fills each reference hit (`enemy<Type>Damage`) the list leaves out, from the data at the rung's area level (see reference hits above, D-353). Must list `enemyIsBoss`, which the compiler writes into every config set (error at `config.scenario`). The config check (V2) reports `default-unlisted` for every option PoB has on by default (`resistancePenalty`) or fills from a placeholder that this stage doesn't list and `data/config-baseline.json` doesn't cover. The list covers an option PoB shows only for some builds (a skill's toggle, such as `FlickerStrikeBypassCD`) only while PoB hides it, so list it in `earned`, with its producer and uptime, once the stage has that skill (D-250). On a boss stage (`enemyIsBoss` other than `None`) list the enemy's level, armour, evasion, resistances and crit here, citing E1 (D-252). A reward quest's checkbox is on by default and in the baseline list; list it `false` in `earned` while its quest is beyond `progress` (`quest-not-reached`). A reward choice (a quest whose C1 data has `q.<key>.options`) defaults to Nothing; once the stage's `progress` is at or after its quest, list the pick here: `option` the quest's `q.<key>.pob-config-key`, `value` one of the options exactly, `source` `{file: "campaign/progress.json", key: "q.<key>.options[<i>]"}`, the same pick on every such campaign stage (the run checker holds a build-guide plan to it, D-265) | C-32, D-119, A-P4, D-212, D-230, D-250, D-252, D-265 |
 | `stages[].config.scenario[].option` | string | yes | Non-empty. A PoB config option. Appears once across both lists (a repeat errs at the later entry) | C-32 |
 | `stages[].config.scenario[].value` | boolean, number or string | yes | The value written, taken from the cited fact | C-32 |
 | `stages[].config.scenario[].source` | object | yes | The C1/E1 fact the value comes from | C-32, C-35 |
@@ -311,12 +361,13 @@ rule may require an optional key in some cases.
 | `stages[].config.scenario[].tag.accessed` | string | no | `YYYY-MM-DD`; required for `external` | C-30 |
 | `stages[].config.scenario[].tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].config.scenario[].tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
-| `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. In a version-2 plan, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
+| `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. From version 2 on, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
 | `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
 | `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason` | D-293, D-322 |
 | `stages[].claims` | object[] | yes | The stage's claims, each with its source | C-30, D-105 |
 | `stages[].claims[].id` | string | yes | Non-empty | C-30 |
 | `stages[].claims[].text` | string | yes | Non-empty. The claim as the guide states it | C-30 |
+| `stages[].claims[].kind` | `hinge` or `reason` | no | Why the claim is written: a fact whose being wrong would make the build fail at its rung (`hinge`), or a reason resting on a measurement (`reason`). Schema version 3 | D-351 |
 | `stages[].claims[].source` | object (SourceTag) or string | yes | A source tag, or a citation: `ledger:<id>` or `price:<id>` naming an existing entry, or `data:<file>#<key>` naming a C1/E1 fact | C-30, D-232, D-237 |
 | `stages[].claims[].source.kind` | source kind | yes | See source tags | C-30 |
 | `stages[].claims[].source.ref` | string | yes | Non-empty; its form depends on `kind` | C-30 |
@@ -350,7 +401,8 @@ rule may require an optional key in some cases.
 ## Worked example
 
 The two-stage plan below is `tests/fixtures/plans/two-stage/plan.json`, and it validates. It is a Warrior
-Titan who rolled Boneshatter, written at the current schema version, 2.
+Titan who rolled Boneshatter, written at the current schema version, 3. Both stages are campaign stages, so
+neither has an anoint; a claim's `kind` and an endgame stage's anoint are shown above.
 
 - **Stage `1`** is level 5 at Beira, the first Act 1 quest reward (`q.act-1-clearfell-beira`). Its tree
   spends 4 points from the Warrior's start, one of them on an attribute node set to strength.
@@ -367,7 +419,7 @@ Titan who rolled Boneshatter, written at the current schema version, 2.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "roll": { "className": "Warrior", "ascendancy": "Titan", "skill": "Boneshatter" },
   "versions": {
     "pobTag": "v0.23.1",

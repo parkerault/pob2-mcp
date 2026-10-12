@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "roll": { "className": "Warrior", "ascendancy": "Titan", "skill": "Boneshatter" },
   "versions": {
     "pobTag": "v0.23.1",

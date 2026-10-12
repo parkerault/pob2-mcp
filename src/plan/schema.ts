@@ -4,17 +4,24 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 or 2; any other value is the
- * only error reported, naming the accepted versions (C-31, D-332).
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1, 2 or 3; any other value is
+ * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 2 is the current one. A version-1 plan stays accepted with the
- * version-1 shape: it takes the defaults of what version 2 added and can't use it, so each use errs at its
- * own path, naming the version that added it (`VERSION_ADDITIONS`).
+ * **Versions** (D-320, D-332). Version 3 is the current one. A plan of an earlier version stays accepted with
+ * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
+ * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
  * **Count and custom modifiers** (D-293, version 2). A socket group's `count` (an integer of at least 1,
  * default 1) is how many copies of it act at once, and `countReason` says why when it is above 1. A config's
  * `customMods` are hand-calculated effects, each one PoB modifier line with its `reason`. A missing reason is
  * a V1 finding (`missing-reason`, D-322), not a schema error: the schema checks only the shapes.
+ *
+ * **Claim kinds and the anoint** (D-351, D-358, version 3). A claim's `kind` says why it is there: a `hinge`
+ * fact, whose being wrong would make the build fail at its rung, or a `reason` resting on a measurement.
+ * `items.anoint {notable, reason}` names the notable the compiler writes on the stage's amulet as
+ * `{enchant}Allocates <notable>`; it is allowed on the budget and non-budget rungs (`b`, `n`) only, never on
+ * the entering-maps rung `m` or a campaign stage. `compile_check` refuses a notable without a three-emotion
+ * recipe, one the stage's tree allocates, and a stage without an amulet (C-41).
  *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
@@ -32,7 +39,7 @@ import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -67,10 +74,14 @@ function issue(ctx: z.RefinementCtx, path: (string | number)[], message: string)
   ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
 }
 
+/** D-351: why a claim is written: a hinge fact, or a reason resting on a measurement (schema version 3). */
+export const CLAIM_KINDS = ['hinge', 'reason'] as const;
+
 const claimSchema = z
   .object({
     id: text('id'),
     text: text('text'),
+    kind: z.enum(CLAIM_KINDS).optional(),
     source: claimSourceSchema,
   })
   .strict();
@@ -121,6 +132,12 @@ const toggleSchema = z
     }
   });
 
+/** D-358: the notable the compiler writes on the stage's amulet, and why (schema version 3). */
+const anointSchema = z.object({ notable: text('notable'), reason: text('reason') }).strict();
+
+/** D-358: the rungs an anoint is allowed on: the budget and non-budget variants (`b`, `n`), never `m` (Q5). */
+export const ANOINT_VARIANTS: readonly PlanVariant[] = ['budget', 'non-budget'];
+
 const itemsSchema = z
   .object({
     setTitle: setTitle.optional(),
@@ -128,6 +145,7 @@ const itemsSchema = z
     treeJewels: z.array(z.object({ node: nodeId, text: text('text') }).strict()),
     toggles: z.array(toggleSchema),
     useSecondWeaponSet: z.boolean(),
+    anoint: anointSchema.optional(),
   })
   .strict()
   .superRefine((items, ctx) => {
@@ -414,6 +432,19 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     before: 'no custom modifiers',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.config.customMods !== undefined ? [['stages', i, 'config', 'customMods']] : [])),
   },
+  {
+    since: 3,
+    what: "a claim's kind (D-351)",
+    before: 'claims without a kind',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) => s.claims.flatMap((c, k) => (c.kind !== undefined ? [['stages', i, 'claims', k, 'kind']] : []))),
+  },
+  {
+    since: 3,
+    what: 'items.anoint (D-358)',
+    before: 'no anoint',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.items.anoint !== undefined ? [['stages', i, 'items', 'anoint']] : [])),
+  },
 ];
 
 /** The plan schema: C-31's shape, with the cross-reference rules as refinements. */
@@ -449,6 +480,20 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
           }
         });
       }
+    });
+  }
+
+  // D-358: an anoint only on the budget and non-budget rungs; m points ahead to one in the guide (Q5). A plan of
+  // an earlier version has its one error at the anoint already.
+  if (plan.schemaVersion >= 3) {
+    plan.stages.forEach((s, i) => {
+      if (s.items.anoint === undefined || (s.variant !== undefined && ANOINT_VARIANTS.includes(s.variant))) return;
+      const where = s.variant === undefined ? 'a campaign stage' : `the ${s.variant} rung`;
+      issue(
+        ctx,
+        ['stages', i, 'items', 'anoint'],
+        `an anoint is allowed only on the budget and non-budget rungs (variant ${ANOINT_VARIANTS.join(' or ')}, D-358); this is ${where}`,
+      );
     });
   }
 

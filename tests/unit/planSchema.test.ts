@@ -7,6 +7,8 @@
  *   JSON path. Where a change also breaks a rule that depends on the changed field, the extra paths are
  *   listed with the row (`also`), and no other path may appear.
  * - D-320, D-332 (WU-61): the schema accepts versions 1 and 2; a version-1 plan has the version-1 shape.
+ * - AC-P60 (WU-65; D-351, D-358): version 3 adds `claims[].kind` and `items.anoint`, allowed on the `b` and `n`
+ *   rungs only; versions 1 and 2 stay accepted, each use of a version-3 field in them an error at its path.
  */
 import fs from 'fs';
 import path from 'path';
@@ -88,10 +90,10 @@ interface Row {
 
 const ROWS: Row[] = [
   {
-    change: 'schemaVersion: 3',
-    input: () => ({ ...fixture(), schemaVersion: 3 }),
+    change: 'schemaVersion: 4',
+    input: () => ({ ...fixture(), schemaVersion: 4 }),
     path: 'schemaVersion',
-    message: /\[1, 2\]/,
+    message: /\[1, 2, 3\]/,
   },
   {
     change: 'ledger removed',
@@ -355,10 +357,10 @@ describe('AC-P10 (WU-38, D-163): one change, one error at its JSON path', () => 
     if (row.message) expect(errors.find((e) => e.path === row.path)!.message).toMatch(row.message);
   });
 
-  it('AC-P10: schemaVersion 3 is the only error, even with other faults present', () => {
-    const p = { ...fixture(), schemaVersion: 3, foo: 1, stages: [] };
+  it('AC-P10: schemaVersion 4 is the only error, even with other faults present', () => {
+    const p = { ...fixture(), schemaVersion: 4, foo: 1, stages: [] };
     const errors = errorsOf(p);
-    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2]') }]);
+    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2, 3]') }]);
   });
 });
 
@@ -374,8 +376,8 @@ describe('D-320, D-332: schema versions 1 and 2', () => {
     return p;
   };
 
-  it('the fixture declares the current version, 2; a version-1 plan without additions still validates (D-332)', () => {
-    expect(fixture().schemaVersion).toBe(2);
+  it('the fixture declares the current version, 3; a version-1 plan without additions still validates (D-332)', () => {
+    expect(fixture().schemaVersion).toBe(3);
     const v1 = validatePlan({ ...fixture(), schemaVersion: 1 });
     expect(v1.ok ? v1.plan.schemaVersion : v1.errors).toBe(1);
     for (const name of ['fifteen-stage', 'off-hand-fresh', 'off-hand-item', 'off-hand-shared']) {
@@ -393,6 +395,71 @@ describe('D-320, D-332: schema versions 1 and 2', () => {
     const b = withEnteringMaps(1);
     b.stages[2].variant = 'budget';
     expect(validatePlan(b).ok).toBe(true);
+  });
+});
+
+describe('AC-P60 (WU-65; D-351, D-358): schema version 3, claim kinds and the anoint', () => {
+  const ANOINT = { notable: 'Unbending', reason: 'more life on the rung' };
+  /** The fixture at `version` with the endgame ladder m, b and n: stage 2's content at the endgame. */
+  const withLadder = (version: number): Json => {
+    const p = fixture();
+    p.schemaVersion = version;
+    for (const [id, variant, level] of [['m', 'entering-maps', 65], ['b', 'budget', 80], ['n', 'non-budget', 90]] as const) {
+      const s = JSON.parse(JSON.stringify(p.stages[1]));
+      Object.assign(s, { id, loadoutName: `Endgame ${id} (L${level}) {${id}}`, level, progress: 'endgame' }, variantFields(), { variant });
+      s.claims = [];
+      p.stages.push(s);
+    }
+    return p;
+  };
+  const stage = (p: Json, id: string): Json => p.stages.find((s: Json) => s.id === id);
+
+  it('AC-P60: version 3 accepts claims[].kind (hinge or reason) and items.anoint on b and n', () => {
+    const p = withLadder(3);
+    stage(p, '1').claims[0].kind = 'reason';
+    stage(p, '2').claims[0].kind = 'hinge';
+    stage(p, 'b').items.anoint = { ...ANOINT };
+    stage(p, 'n').items.anoint = { ...ANOINT, notable: 'Behemoth' };
+    const r = validatePlan(p);
+    expect(r.ok ? 'ok' : r.errors).toBe('ok');
+    if (r.ok) {
+      expect(r.plan.stages.find((s) => s.id === 'b')!.items.anoint).toEqual(ANOINT);
+      expect(r.plan.stages[0].claims[0].kind).toBe('reason');
+    }
+  });
+
+  it('AC-P60: an anoint on m or on a campaign stage is refused at its path; any other kind is refused', () => {
+    const p = withLadder(3);
+    stage(p, 'm').items.anoint = { ...ANOINT };
+    stage(p, '2').items.anoint = { ...ANOINT };
+    const errors = errorsOf(p);
+    expect(errors.map((e) => e.path).sort()).toEqual(['stages[1].items.anoint', 'stages[2].items.anoint']);
+    expect(errors.find((e) => e.path === 'stages[2].items.anoint')!.message).toMatch(/only on the budget and non-budget rungs.*D-358.*entering-maps rung/);
+    expect(errors.find((e) => e.path === 'stages[1].items.anoint')!.message).toMatch(/campaign stage/);
+    const k = withLadder(3);
+    stage(k, '1').claims[0].kind = 'caveat';
+    expect(errorsOf(k).map((e) => e.path)).toEqual(['stages[0].claims[0].kind']);
+    const shape = withLadder(3);
+    stage(shape, 'b').items.anoint = { notable: '', reason: 'r', extra: 1 };
+    expect(errorsOf(shape).map((e) => e.path).sort()).toEqual(['stages[3].items.anoint', 'stages[3].items.anoint.notable']);
+  });
+
+  it('AC-P60: versions 1 and 2 stay accepted; there a kind or an anoint is the one error at its path, naming version 3', () => {
+    for (const version of [1, 2]) {
+      const plain = version === 1 ? fixture() : withLadder(2);
+      plain.schemaVersion = version;
+      const ok = validatePlan(plain);
+      expect({ version, ok: ok.ok ? true : ok.errors }).toEqual({ version, ok: true });
+      const p = withLadder(2);
+      p.schemaVersion = version;
+      if (version === 1) p.stages = p.stages.filter((s: Json) => s.variant !== 'entering-maps');
+      stage(p, '1').claims[1].kind = 'hinge';
+      stage(p, 'b').items.anoint = { ...ANOINT };
+      const errors = errorsOf(p);
+      const bAt = p.stages.findIndex((s: Json) => s.id === 'b');
+      expect({ version, paths: errors.map((e) => e.path).sort() }).toEqual({ version, paths: ['stages[0].claims[1].kind', `stages[${bAt}].items.anoint`] });
+      for (const e of errors) expect(e.message).toMatch(new RegExp(`needs schemaVersion 3 or later; this plan declares schemaVersion ${version}`));
+    }
   });
 });
 

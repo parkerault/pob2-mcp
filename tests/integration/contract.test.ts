@@ -40,6 +40,10 @@
  * replies with `anoints` (the notable, its node, its recipe and the emotions' item names) and `gemTexts`, both
  * `[]` when empty; `compile_stage` takes `anoint` and writes it on the amulet as `{enchant}Allocates <notable>`,
  * and its `checks.nodeNames` holds the notable PoB grants.
+ *
+ * WU-66 (D-360; AC-B4): `compile_check` replies with `trees`, each stage's trees for V1's `tree-shape`: the
+ * starts (the class start and its main-tree exits), the main tree's components with the exits they hold, and
+ * the ascendancy's components, the start's first; `[]` for no stage.
  */
 import fs from 'fs';
 import path from 'path';
@@ -665,6 +669,43 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       expect(built.result.checks.nodeNames).toContain('Unbending');
       expect(built.result.allocation.nodes.map((n: Json) => n.id)).not.toContain(1352);
       expect((await call('export_build_xml')).xml as string).toMatch(/^\{enchant\}Allocates Unbending$/m);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (WU-66, D-360): compile_check replies with each stage\'s trees: the starts, the main tree\'s components with their exits, the ascendancy\'s',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const stage = checkStageOf(TWO_STAGE.stages[0]) as unknown as Json;
+      const checked = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [stage] }, { timeoutMs: 120_000 });
+      const parsed = replySchemas.compile_check!.safeParse(checked);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(checked.result.defects).toEqual([]);
+      expect(checked.result.trees).toHaveLength(1);
+      const [trees] = checked.result.trees;
+      expect(trees.stage).toBe('1');
+      // The Warrior start: its node and main-tree exits, from the pinned tree data read as plain JSON.
+      const treeJson = JSON.parse(fs.readFileSync(path.join(resolvePobSrc(process.env), 'TreeData', '0_5', 'tree.json'), 'utf8'));
+      const raw = treeJson.nodes as Record<string, Json>;
+      const startId = Number(Object.keys(raw).find((id) => ((raw[id].classesStart ?? []) as string[]).includes('Warrior')));
+      const linked = new Set<number>();
+      for (const [id, n] of Object.entries(raw)) {
+        for (const c of (n.connections ?? []) as Json[]) {
+          if (Number(id) === startId) linked.add(Number(c.id));
+          if (Number(c.id) === startId) linked.add(Number(id));
+        }
+      }
+      const isMainNode = (id: number) => raw[id] !== undefined && raw[id].ascendancyName === undefined && raw[id].classesStart === undefined && raw[id].isAscendancyStart !== true;
+      const start = { result: { node: startId, exits: [...linked].filter(isMainNode).sort((a, b) => a - b) } };
+      expect(trees.starts[0]).toEqual({ node: start.result.node, name: 'Warrior', exits: start.result.exits });
+      const nodes = [...(stage.nodes as number[])].sort((a, b) => a - b);
+      expect(trees.main).toEqual([{ nodes, exits: nodes.filter((n) => start.result.exits.includes(n)) }]);
+      expect(trees.main[0].exits).toHaveLength(1);
+      expect(trees.ascendancy).toMatchObject({ name: 'Titan', trees: [{ nodes: [trees.ascendancy.start] }] });
+      const none = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [] }, { timeoutMs: 120_000 });
+      expect(replySchemas.compile_check!.safeParse(none).success).toBe(true);
+      expect(none.result.trees).toEqual([]);
     },
     ENGINE_TIMEOUT,
   );

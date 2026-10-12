@@ -34,8 +34,18 @@
 --     is reported in `anoints`: the notable's PoB name and node, its recipe as the tree names the emotions,
 --     and PoB's item names for them (Data/LiquidEmotions.lua). `describeGems` (WU-65, D-353) names gems whose
 --     description the reply gives in `gemTexts` (the clear-speed measure reads it).
+--     The tree's shape (WU-66, D-360): `trees` holds each stage's trees, for V1's `tree-shape`; a shape is
+--     no defect. `starts` are the starts a tree may leave: the class start, by its main-tree links (its
+--     exits), and each alternate start of the ascendancy, a node of it with main-tree links (Path of the
+--     Sorceress, 12795, links the Sorceress start's exits 4739 and 44871), with whether the stage
+--     allocates that node (`granted`). `main` are the components of the stage's listed main-tree nodes,
+--     class starts not joining their exits, each with the start exits it holds; `ascendancy` the
+--     components of the ascendancy start and the listed ascendancy nodes over ascendancy links, the
+--     start's first. PoB2 v0.23.1 enforces none of the rule (I-3), so it is checked here.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
---         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}}
+--         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text},
+--         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
+--                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}]}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[]}],
@@ -170,7 +180,7 @@ local function resolve_roll(tree, className, ascendancy)
       local entry = tree.ascendNameMap and tree.ascendNameMap[asc.name]
       local ascStart = entry and entry.ascendClass and entry.ascendClass.startNodeId
       return { classId = classId, ascendClassId = ascId, classStart = class.startNodeId, ascendStart = ascStart,
-        ascendancyName = asc.name }
+        className = class.name, ascendancyName = asc.name }
     end
   end
   return nil, ('unknown ascendancy "%s" for %s'):format(tostring(ascendancy), class.name)
@@ -208,14 +218,150 @@ local function reach(nodes, mode, seeds, allow)
   return seen
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- The tree's shape (WU-66, D-360, I-3): each tree leaves its start by one exit, each start holds at most one
+-- tree, an alternate start holds one only while its node is allocated, and the ascendancy is one tree.
+
+local function is_start(node)
+  return node ~= nil and (node.type == 'ClassStart' or node.type == 'AscendClassStart')
+end
+
+local function is_main(node)
+  return node ~= nil and not node.ascendancyName and not is_start(node)
+end
+
+-- A node's links into the main tree, sorted: a start's exits.
+local function main_links(nodes, node)
+  local out = {}
+  for _, other in ipairs(node and node.linkedId or {}) do
+    if is_main(nodes[other]) then out[#out + 1] = other end
+  end
+  table.sort(out)
+  return out
+end
+
+-- The name of class start `startId` for an alternate start granted by a node named `dn`: the class sharing
+-- that start whose name the node's names ("Path of the Sorceress"), else the first such class.
+local function start_name(tree, startId, dn)
+  local first
+  for _, class in pairs(tree.classes or {}) do
+    if type(class) == 'table' and class.startNodeId == startId and type(class.name) == 'string' then
+      if tostring(dn):find(class.name, 1, true) then return class.name end
+      if not first or class.name < first then first = class.name end
+    end
+  end
+  return first or tostring(dn)
+end
+
+-- The starts a stage's trees may leave (the reply's `starts`, without `granted`): the class start, and each
+-- alternate start of the roll's ascendancy, by node id.
+local function tree_starts(tree, roll)
+  local nodes = tree.nodes
+  local starts = { { node = roll.classStart, name = roll.className, exits = main_links(nodes, nodes[roll.classStart]) } }
+  local alternates = {}
+  for id, node in pairs(nodes) do
+    if node.ascendancyName == roll.ascendancyName and not is_start(node) then
+      local exits = main_links(nodes, node)
+      if #exits > 0 then alternates[#alternates + 1] = { id = id, node = node, exits = exits } end
+    end
+  end
+  table.sort(alternates, function(a, b) return a.id < b.id end)
+  for _, alt in ipairs(alternates) do
+    local startId
+    for _, e in ipairs(alt.exits) do
+      for _, other in ipairs(nodes[e].linkedId or {}) do
+        if nodes[other] and nodes[other].type == 'ClassStart' then startId = startId or other end
+      end
+    end
+    starts[#starts + 1] = { node = startId, name = start_name(tree, startId, alt.node.dn), exits = alt.exits,
+      grantedBy = alt.id, grantedByName = alt.node.dn }
+  end
+  return starts
+end
+
+-- The components of `ids` (a sorted list) over `nodes`' links between members, each sorted, in order of
+-- their smallest node.
+local function components(nodes, ids)
+  local member, seen, out = {}, {}, {}
+  for _, id in ipairs(ids) do member[id] = true end
+  for _, id in ipairs(ids) do
+    if not seen[id] then
+      seen[id] = true
+      local comp, queue, qi = {}, { id }, 1
+      while qi <= #queue do
+        local cur = queue[qi]; qi = qi + 1
+        comp[#comp + 1] = cur
+        for _, other in ipairs(nodes[cur].linkedId or {}) do
+          if member[other] and not seen[other] then
+            seen[other] = true
+            queue[#queue + 1] = other
+          end
+        end
+      end
+      table.sort(comp)
+      out[#out + 1] = comp
+    end
+  end
+  return out
+end
+
+-- One stage's trees (the reply's `trees` entry): `mainIds` and `ascIds` are its valid listed main-tree and
+-- ascendancy nodes. A listed start node never joins its exits.
+local function tree_shape(tree, roll, id, mainIds, ascIds)
+  local nodes = tree.nodes
+  local listedAsc = {}
+  for _, a in ipairs(ascIds) do listedAsc[a] = true end
+  local exitOf, starts = {}, {}
+  for _, s in ipairs(roll.starts) do
+    local entry = { node = s.node, name = s.name, exits = s.exits, grantedBy = s.grantedBy, grantedByName = s.grantedByName }
+    if s.grantedBy then entry.granted = listedAsc[s.grantedBy] == true end
+    starts[#starts + 1] = entry
+    for _, e in ipairs(s.exits) do exitOf[e] = true end
+  end
+  local mainList = {}
+  for _, m in ipairs(mainIds) do
+    if not is_start(nodes[m]) then mainList[#mainList + 1] = m end
+  end
+  table.sort(mainList)
+  local main = {}
+  for _, comp in ipairs(components(nodes, mainList)) do
+    local exits = {}
+    for _, n in ipairs(comp) do
+      if exitOf[n] then exits[#exits + 1] = n end
+    end
+    main[#main + 1] = { nodes = comp, exits = exits }
+  end
+  local ascendancy
+  if roll.ascendStart and nodes[roll.ascendStart] then
+    local ascList, seen = { roll.ascendStart }, { [roll.ascendStart] = true }
+    for _, a in ipairs(ascIds) do
+      if not seen[a] then seen[a] = true; ascList[#ascList + 1] = a end
+    end
+    table.sort(ascList)
+    local trees, rest = {}, {}
+    for _, comp in ipairs(components(nodes, ascList)) do
+      local holdsStart = false
+      for _, n in ipairs(comp) do
+        if n == roll.ascendStart then holdsStart = true end
+      end
+      if holdsStart then trees[1] = { nodes = comp } else rest[#rest + 1] = { nodes = comp } end
+    end
+    for _, t in ipairs(rest) do trees[#trees + 1] = t end
+    ascendancy = { start = roll.ascendStart, name = roll.ascendancyName, trees = trees }
+  end
+  return { stage = tostring(id), starts = starts, main = main, ascendancy = ascendancy }
+end
+
 local SET_NAMES = { 'set1', 'set2' }
 
 -- The tree defects of one stage. `st.nodes`, `st.ascendancyNodes`, `st.weaponSets{set1, set2}` and
--- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31).
+-- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31). Returns the stage's trees for V1's
+-- `tree-shape` (D-360; `tree_shape`), or nil without a resolved roll.
 local function check_tree(tree, roll, st, defect)
   local nodes = tree.nodes
   local mode = {}
   local listed = {}
+  local mainIds, ascIds = {}, {}
   for _, id in ipairs(list(st.nodes)) do
     local node = nodes[id]
     if not node then
@@ -225,6 +371,7 @@ local function check_tree(tree, roll, st, defect)
     else
       mode[id] = 0
       listed[#listed + 1] = id
+      mainIds[#mainIds + 1] = id
     end
   end
   for _, id in ipairs(list(st.ascendancyNodes)) do
@@ -236,6 +383,7 @@ local function check_tree(tree, roll, st, defect)
     else
       mode[id] = 0
       listed[#listed + 1] = id
+      ascIds[#ascIds + 1] = id
     end
   end
   local tagged = {}
@@ -294,6 +442,7 @@ local function check_tree(tree, roll, st, defect)
         m == 0 and '' or (' (weapon set ' .. m .. ')'), how))
     end
   end
+  return tree_shape(tree, roll, st.id, mainIds, ascIds)
 end
 
 -- The number of active skills a gem may grant (an upper bound: PoB lists its non-support granted effects).
@@ -319,8 +468,9 @@ local function parses_whole(line)
   return mods ~= nil and not extra
 end
 
+-- The stage's defects; returns its trees (check_tree).
 local function check_stage(tree, roll, st, defect)
-  check_tree(tree, roll, st, defect)
+  local shape = check_tree(tree, roll, st, defect)
   for _, j in ipairs(list(st.jewels)) do
     local ok, item = pcall(construct, 'Item', tostring(j.text))
     if not ok or not item or not item.baseName then
@@ -383,6 +533,7 @@ local function check_stage(tree, roll, st, defect)
         .. 'skip it and add nothing'):format(i - 1, tostring(line)))
     end
   end
+  return shape
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -580,11 +731,12 @@ function M.compile_check(params)
   local defects = {}
   local roll, rollErr = resolve_roll(tree, params.className, params.ascendancy)
   if not roll then defects[#defects + 1] = 'roll: ' .. rollErr end
+  if roll then roll.starts = tree_starts(tree, roll) end
   local stages = list(params.stages)
-  local anoints = {}
+  local anoints, trees = {}, {}
   for _, st in ipairs(stages) do
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
-    check_stage(tree, roll, st, defect)
+    trees[#trees + 1] = check_stage(tree, roll, st, defect)
     anoints[#anoints + 1] = check_anoint(tree, st, defect)
   end
   local producers = {}
@@ -593,7 +745,7 @@ function M.compile_check(params)
     producers[#producers + 1] = { kind = kind, name = name, exists = producer_exists(tree, kind, name) }
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
-    configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems) }
+    configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees }
 end
 
 -- ---------------------------------------------------------------------------------------------------

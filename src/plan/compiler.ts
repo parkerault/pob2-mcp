@@ -39,8 +39,8 @@
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
  *
- * V1 and V2 (WU-42) run over `compile_stage`'s check inputs, `compile_check`'s producer lookups and config
- * defaults, the plan, the C1/E1 data and the baseline list (D-230), which is read with the plan, before any
+ * V1 and V2 (WU-42) run over `compile_stage`'s check inputs, `compile_check`'s producer lookups, config
+ * defaults and trees (D-360), the plan, the C1/E1 data and the baseline list (D-230), which is read with the plan, before any
  * engine request. Their findings go into the record and the text; they never fail the compile (D-192).
  */
 import crypto from 'crypto';
@@ -878,6 +878,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const producers = new Map(check.producers.map((p) => [producerKey(p.kind, p.name), p.exists]));
   // D-358: each anointed stage's notable, as the preflight resolved it.
   const anoints = new Map(check.anoints.map((a) => [a.stage, a]));
+  // D-360: each stage's trees, as the preflight's check_tree computed them, for V1's tree-shape.
+  const treesOf = new Map(check.trees.map((t) => [t.stage, t]));
   for (const [i, stage] of compiled.entries()) {
     const refs = {} as Record<ContentKind, StageSetRef>;
     for (const kind of CONTENT_KINDS) {
@@ -905,7 +907,13 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       throw new CompileError(`PoB doesn't hold stage ${stage.id}'s planned items; nothing was written:\n${itemDefects.join('\n')}`);
     }
     // V1 and V2, once the stage is measured (D-192): findings go into the record, never into an error.
-    const v1 = checkV1({ stage, predecessor: predecessorOf(plan.stages, plan.stages.indexOf(stage)), checks: reply.checks, ref: refData });
+    const v1 = checkV1({
+      stage,
+      predecessor: predecessorOf(plan.stages, plan.stages.indexOf(stage)),
+      checks: reply.checks,
+      ref: refData,
+      trees: treesOf.get(stage.id),
+    });
     const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
     results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
   }

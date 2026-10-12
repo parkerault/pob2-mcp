@@ -921,7 +921,8 @@ export class PoBLuaApiClient {
 
   /**
    * The read-only preflight of every stage: the defects, the tree the compile builds against, each valid
-   * anoint's notable and recipe (`anoints`, D-358) and the descriptions of the gems asked for (`gemTexts`, D-353).
+   * anoint's notable and recipe (`anoints`, D-358), the descriptions of the gems asked for (`gemTexts`, D-353)
+   * and each stage's trees for V1's `tree-shape` (`trees`, D-360).
    */
   async compileCheck(params: ActionParams<"compile_check">, opts?: RequestOptions): Promise<CompileCheckResult> {
     const res = await this.request("compile_check", params, opts);

@@ -1,0 +1,693 @@
+{
+  "schemaVersion": 2,
+  "roll": {
+    "className": "Ranger",
+    "ascendancy": "Pathfinder",
+    "skill": "Explosive Concoction"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": null,
+  "ledger": [],
+  "prices": [],
+  "stages": [
+    {
+      "id": "2",
+      "loadoutName": "Act 1 Ogham Manor (L16) {2}",
+      "level": 16,
+      "progress": "q.act-1-ogham-manor-candlemass",
+      "tree": {
+        "nodes": [
+          56651,
+          35234,
+          35660,
+          18548,
+          28992,
+          22795,
+          42781,
+          13828,
+          1140,
+          15507,
+          48401,
+          10909,
+          33053,
+          17726,
+          11826,
+          4844,
+          58013,
+          50795,
+          35987
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 1140,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 15507,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 48401,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 10909,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nStorm Fletch\nRecurve Bow\n40% increased Physical Damage\nAdds 2 to 22 Lightning Damage"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Cowl\nLace Hood\n+30 to maximum Life\n+14% to Fire Resistance"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nHide Shell\nShrouded Vest\n+34 to maximum Life\n+15% to Cold Resistance\n+12% to Lightning Resistance"
+          },
+          {
+            "slot": "Gloves",
+            "text": "Rarity: Magic\nBound Bracers of the Storm\n+12% to Lightning Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nRunner's Embossed Boots\n10% increased Movement Speed"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: Magic\nHale Jade Amulet\nImplicits: 1\n+12 to Dexterity\n+20 to maximum Life"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Normal\nRuby Ring\nImplicits: 1\n+25% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Normal\nSapphire Ring\nImplicits: 1\n+25% to Cold Resistance"
+          },
+          {
+            "slot": "Belt",
+            "text": "Rarity: Normal\nWide Belt\nImplicits: 2\nHas 1 Charm Slot\n25% increased Flask Charges gained"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nGrand Life Flask"
+          },
+          {
+            "slot": "Flask 2",
+            "text": "Rarity: Normal\nGrand Mana Flask"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Lightning Arrow",
+            "enabled": true,
+            "role": "leveling",
+            "gems": [
+              {
+                "name": "Lightning Arrow",
+                "level": 5,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Lightning Attunement",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Elemental Armament I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rapid Attacks I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        }
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "5",
+      "loadoutName": "Act 4 Abandoned Prison (L54) {5}",
+      "level": 54,
+      "progress": "q.act-4-abandoned-prison-goddess-of-justice",
+      "tree": {
+        "nodes": [
+          56651,
+          35234,
+          35660,
+          18548,
+          28992,
+          22795,
+          42781,
+          13828,
+          1140,
+          15507,
+          48401,
+          10909,
+          33053,
+          17726,
+          11826,
+          4844,
+          58013,
+          50795,
+          35987,
+          16489,
+          48568,
+          26786,
+          42250,
+          45137,
+          44487,
+          39884,
+          49799,
+          46224,
+          16484,
+          18923,
+          61976,
+          7526,
+          21572,
+          6660,
+          39050,
+          24922,
+          34201,
+          46882,
+          17702,
+          51048,
+          58814,
+          26952,
+          59661,
+          12245,
+          61312,
+          21280,
+          28050,
+          63888,
+          26068,
+          37389,
+          28061,
+          35878,
+          50884,
+          29843,
+          4739,
+          22419,
+          18407,
+          47555,
+          53697,
+          3041,
+          19240,
+          46358,
+          30979,
+          44733,
+          57373,
+          38300,
+          39716,
+          31326,
+          54911,
+          32135,
+          28625,
+          35848,
+          51509,
+          20831
+        ],
+        "ascendancyNodes": [
+          49503,
+          57141,
+          38004,
+          12183,
+          16433,
+          12795
+        ],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 1140,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 15507,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 48401,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 10909,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 16489,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 48568,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 26786,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 42250,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 16484,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 18923,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 24922,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 34201,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 17702,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 51048,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 58814,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 61976,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 7526,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 61312,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 21280,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 28050,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 63888,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 22419,
+            "attribute": "strength"
+          },
+          {
+            "node": 18407,
+            "attribute": "strength"
+          },
+          {
+            "node": 47555,
+            "attribute": "strength"
+          },
+          {
+            "node": 53697,
+            "attribute": "strength"
+          },
+          {
+            "node": 3041,
+            "attribute": "strength"
+          },
+          {
+            "node": 19240,
+            "attribute": "strength"
+          },
+          {
+            "node": 46358,
+            "attribute": "strength"
+          },
+          {
+            "node": 30979,
+            "attribute": "strength"
+          },
+          {
+            "node": 44733,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGale Visor\nVelvet Cap\n+60 to maximum Life\n+25% to Fire Resistance\n+25% to Cold Resistance"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDusk Shell\nStrider Vest\n+70 to maximum Life\n40% increased Evasion Rating\n+25% to Lightning Resistance\n+12% to Chaos Resistance"
+          },
+          {
+            "slot": "Gloves",
+            "text": "Rarity: Rare\nHavoc Grasp\nHardened Bracers\n+50 to maximum Life\n+22% to Fire Resistance\n+22% to Lightning Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nDune Trail\nLeatherplate Boots\n+50 to maximum Life\n25% increased Movement Speed\n+25% to Cold Resistance"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: Rare\nRune Charm\nJade Amulet\nImplicits: 1\n+12 to Dexterity\n+45 to maximum Life\n+20% to Fire Resistance\n+20% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nEmber Coil\nRuby Ring\nImplicits: 1\n+25% to Fire Resistance\n+35 to maximum Life\n+12% to Chaos Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nFrost Band\nSapphire Ring\nImplicits: 1\n+25% to Cold Resistance\n+35 to maximum Life\n+25% to Lightning Resistance"
+          },
+          {
+            "slot": "Belt",
+            "text": "Rarity: Rare\nWyrm Strap\nWide Belt\nImplicits: 2\nHas 1 Charm Slot\n25% increased Flask Charges gained\n+50 to maximum Life\n+20% to Cold Resistance\n+10% to Chaos Resistance"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nTranscendent Life Flask"
+          },
+          {
+            "slot": "Flask 2",
+            "text": "Rarity: Magic\nTranscendent Mana Flask of the Sylvan\nGains 0.25 Charges per Second"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Explosive Concoction",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Explosive Concoction",
+                "level": 13,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Fire Attunement",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Elemental Armament II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Eternal Flame II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Wildfire",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "conditionEnemyIgnited",
+            "value": true,
+            "producer": {
+              "kind": "gem",
+              "name": "Explosive Concoction"
+            },
+            "uptime": "on while the target burns: each throw can ignite (Fire Attunement, Searing Heat, Firestarter and the skill's own 100% more Flammability Magnitude set the chance, the record's IgniteChancePerHit) and Eternal Flame II doubles how long the burn lasts; off for the first throw at a fresh target and rarer once the flask is empty"
+          },
+          {
+            "option": "conditionIgnitedEnemyRecently",
+            "value": true,
+            "producer": {
+              "kind": "gem",
+              "name": "Explosive Concoction"
+            },
+            "uptime": "on for 4 seconds after any ignite: held while throwing at packs and bosses; lost between packs and in the gaps between throws once the flask is empty"
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -30,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act4"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options[0]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:59-70",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options[0]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:109-121",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options[0]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:160-171",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5% to Lightning Resistance",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options[1]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:172-183",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5% to Cold Resistance",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options[1]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:184-195",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5% to Fire Resistance",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options[1]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:196-207",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options[0]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua:218-229",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ]
+}

@@ -1005,7 +1005,8 @@ export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
  * exists in the game data, D-221) and `configBaseline` (per config option, what a new config set holds for
  * it, from PoB's option list; no set is created). WU-65 adds `anoints` (D-358), one per stage whose anoint is
  * valid: the notable's PoB name and node, its recipe of three emotions as the tree names them and PoB's item
- * names for them; and `gemTexts` (D-353), the description of each gem `describeGems` names.
+ * names for them; and `gemTexts` (D-353), the description of each gem `describeGems` names. WU-66 adds
+ * `trees` (D-360), each stage's trees for V1's `tree-shape` (`stageTreesSchema`).
  */
 /** A config value as the compiler writes and reads it (C-32): no null. */
 const compileConfigScalar = z.union([z.boolean(), z.number(), z.string()]);
@@ -1043,6 +1044,44 @@ export const anointSchema = z
   .passthrough();
 export type AnointResult = z.infer<typeof anointSchema>;
 
+/**
+ * D-360: a start a stage's trees may leave, as `compile_check` reads it from the tree. The class start, by its
+ * main-tree links (`exits`); or an alternate start of the ascendancy, opened by an ascendancy node with main-tree
+ * links (`grantedBy`: Path of the Sorceress, 12795, links the Sorceress start's exits 4739 and 44871), with
+ * whether the stage allocates that node (`granted`). `node` is the class start node (absent when an alternate
+ * start's exits join none).
+ */
+export const treeStartSchema = z
+  .object({
+    node: z.number().int().optional(),
+    name: z.string(),
+    exits: luaArray(z.number().int()),
+    grantedBy: z.number().int().optional(),
+    grantedByName: z.string().optional(),
+    granted: z.boolean().optional(),
+  })
+  .passthrough();
+export type TreeStart = z.infer<typeof treeStartSchema>;
+
+/**
+ * D-360: one stage's trees, computed by `check_tree`. `main` are the components of its listed main-tree nodes,
+ * class starts not joining their exits, each with the start exits (of any of `starts`) it holds; `ascendancy`
+ * the components of the ascendancy start and the listed ascendancy nodes over ascendancy links, the start's
+ * first. Every node list is sorted.
+ */
+export const stageTreesSchema = z
+  .object({
+    stage: z.string(),
+    starts: luaArray(treeStartSchema),
+    main: luaArray(z.object({ nodes: luaArray(z.number().int()), exits: luaArray(z.number().int()) }).passthrough()),
+    ascendancy: z
+      .object({ start: z.number().int(), name: z.string(), trees: luaArray(z.object({ nodes: luaArray(z.number().int()) }).passthrough()) })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+export type StageTrees = z.infer<typeof stageTreesSchema>;
+
 export const compileCheckReply = baseReply.extend({
   result: z
     .object({
@@ -1053,6 +1092,7 @@ export const compileCheckReply = baseReply.extend({
       configBaseline: luaMap(configOptionDefaultSchema),
       anoints: luaArray(anointSchema),
       gemTexts: luaMap(z.string()),
+      trees: luaArray(stageTreesSchema),
     })
     .passthrough(),
 });

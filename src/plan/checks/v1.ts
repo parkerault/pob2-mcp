@@ -20,6 +20,7 @@
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. One finding per group or entry; `data.path` is the missing field's path in the stage |
+ * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each main tree leaves its start by exactly one exit (an exit of the class start, or of an alternate start whose node is allocated), each start holds at most one tree, an alternate start holds one only while its node is allocated, and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -31,7 +32,7 @@
  * floor (D-259). A tier-0 gem isn't cut (C1's `skill-tiers` note), so it has no floor; a support gem's level
  * isn't cut either, so neither has one.
  */
-import type { StageChecks } from '../../engine/schemas.js';
+import type { StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
 import type { Finding, Verdict } from '../record.js';
 import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
 import { PLAN_VARIANTS, type Stage } from '../schema.js';
@@ -59,6 +60,8 @@ export interface V1Input {
   /** `compile_stage`'s V1 inputs for the stage. */
   checks: StageChecks;
   ref: PlanReferenceData;
+  /** `compile_check`'s trees for the stage (D-360). Without them, `tree-shape` isn't checked. */
+  trees?: StageTrees;
 }
 
 export interface V1Result {
@@ -485,6 +488,86 @@ export function checkReasons(stage: Pick<Stage, 'skills' | 'config'>, findings: 
   });
 }
 
+const nodeList = (nodes: readonly number[]) => `${nodes.length} node${nodes.length === 1 ? '' : 's'}: ${nodes.join(', ')}`;
+const startText = (s: TreeStart) => `the ${s.name} start${s.node !== undefined ? ` (${s.node})` : ''}`;
+
+/**
+ * `tree-shape` (D-360, I-3), over the stage's trees as `check_tree` computes them (`compile_check`'s `trees`):
+ * the main tree's components, class starts not joining their exits, and the ascendancy's. PoB2 v0.23.1
+ * enforces none of the rule, so V1 does. A start exit counts when its start is open: the class start, or an
+ * alternate start whose node the stage allocates (Path of the Sorceress, 12795, opens the Sorceress start's
+ * exits 4739 and 44871). One finding per broken rule, naming the stage, the start and each tree's nodes:
+ * - `one-exit-per-tree`: a tree leaves by no open exit (and by no closed one), or by more than one;
+ * - `alternate-start`: a tree leaves only by an alternate start's exit, and the stage doesn't allocate its node;
+ * - `one-tree-per-start`: a start's exits lead into more than one tree;
+ * - `ascendancy`: the ascendancy nodes aren't one tree with their start over ascendancy links.
+ */
+export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[]): void {
+  if (trees === undefined) return;
+  const stage = trees.stage;
+  const open = new Map<number, TreeStart>();
+  const closed = new Map<number, TreeStart>();
+  for (const s of trees.starts) {
+    for (const e of s.exits) (s.grantedBy === undefined || s.granted === true ? open : closed).set(e, s);
+  }
+  const held = new Map<TreeStart, { exits: number[]; nodes: number[] }[]>();
+  for (const t of trees.main) {
+    const exits = t.exits.filter((e) => open.has(e));
+    const locked = t.exits.filter((e) => closed.has(e));
+    if (exits.length === 0 && locked.length > 0) {
+      const s = closed.get(locked[0])!;
+      findings.push({
+        code: 'tree-shape',
+        message:
+          `stage ${stage}: a tree leaves ${startText(s)} by ${locked.join(' and ')} (${nodeList(t.nodes)}), but that start holds ` +
+          `a tree only while ${s.grantedByName ?? 'its node'} (${s.grantedBy}) is allocated (D-360)`,
+        data: { stage, rule: 'alternate-start', start: s.node ?? null, startName: s.name, grantedBy: s.grantedBy, trees: [{ exits: locked, nodes: t.nodes }] },
+      });
+    } else if (exits.length !== 1) {
+      const via = exits.map((e) => `${e} of ${startText(open.get(e)!)}`).join(', ');
+      findings.push({
+        code: 'tree-shape',
+        message:
+          `stage ${stage}: a tree leaves ${exits.length === 0 ? 'no start' : `by ${exits.length} start exits (${via})`} ` +
+          `(${nodeList(t.nodes)}), where each tree leaves its start by exactly one exit (D-360)`,
+        data: {
+          stage,
+          rule: 'one-exit-per-tree',
+          starts: [...new Set(exits.map((e) => open.get(e)!))].map((s) => ({ start: s.node ?? null, startName: s.name })),
+          trees: [{ exits, nodes: t.nodes }],
+        },
+      });
+    }
+    for (const s of new Set(exits.map((e) => open.get(e)!))) {
+      const list = held.get(s) ?? [];
+      list.push({ exits: exits.filter((e) => open.get(e) === s), nodes: t.nodes });
+      held.set(s, list);
+    }
+  }
+  for (const [s, list] of held) {
+    if (list.length < 2) continue;
+    findings.push({
+      code: 'tree-shape',
+      message:
+        `stage ${stage}: ${startText(s)} holds ${list.length} trees, where a start holds at most one (D-360): ` +
+        list.map((t, i) => `tree ${i + 1} leaves by ${t.exits.join(' and ')} (${nodeList(t.nodes)})`).join('; '),
+      data: { stage, rule: 'one-tree-per-start', start: s.node ?? null, startName: s.name, trees: list },
+    });
+  }
+  const asc = trees.ascendancy;
+  if (asc !== undefined && asc.trees.length > 1) {
+    const [own, ...cut] = asc.trees;
+    findings.push({
+      code: 'tree-shape',
+      message:
+        `stage ${stage}: the ${asc.name} nodes form ${asc.trees.length} trees, where they form one with the ${asc.name} start ` +
+        `(${asc.start}) over ascendancy links (D-360): the start's tree (${nodeList(own.nodes)}); cut off: ` +
+        cut.map((t) => `(${nodeList(t.nodes)})`).join('; '),
+      data: { stage, rule: 'ascendancy', start: asc.start, startName: asc.name, trees: asc.trees.map((t) => ({ nodes: t.nodes })) },
+    });
+  }
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -500,5 +583,6 @@ export function checkV1(input: V1Input): V1Result {
   const pobWarnings = checkWarnings(checks, martyrSpent, findings);
   checkContinuity(stage, input.predecessor, findings);
   checkReasons(stage, findings);
+  checkTreeShape(input.trees, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

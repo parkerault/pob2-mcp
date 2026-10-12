@@ -3135,3 +3135,16 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - null renders as "unknown" or "not measured";
     - the layout accepts `rounds/<n>/`.
   - **WU-71 B started:** the checker's rules and the fixtures.
+- **WU-71 B: built** (`d32bbb2` and `0bbe534`; the doer used 680K tokens, the largest context of this build).
+  Static and unit suites 1300 of 1300, 298 of them in the checker file. The checker exits 0 on `run-ok`,
+  `run-ok-online`, `run-escalated` and `run-ok-v2`.
+  - **Deviations:**
+    - schema-2 logs keep `D1`;
+    - `[ledger]` checks a `ledger:<id>` claim's numbers against the current value, at its last significant digit
+      or within 5%;
+    - re-check coverage is against `rounds/<n>/`;
+    - added rules: a re-check carries every open finding; a V4 log outcome equals its report's verdict; a
+      finding's claim id matches its location; the budget includes the anoint.
+  - **Not checked:** that a full pass's `## Checked` lists every hinge claim, and the D1 gate's `design` field.
+  - **Review:** one reviewer for parts A and B. It is focused on whether the checker would reject a valid real
+    run, and on rules stricter than the spec.

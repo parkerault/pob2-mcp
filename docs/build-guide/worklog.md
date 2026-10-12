@@ -2820,3 +2820,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   radius PoB2 resolves in hash order is read by its own stat map, which here is also the smaller, cautious
   radius. An engine test asserts the value over several engine starts. The doer's context was over 400K, so a
   fresh fixer gets the blocker and the nits.
+- **D-363 revised, on the user's direction.** Q2 was "not super important... a rough estimate is fine", so
+  the fix should be the cheapest one. The radius is read from the clear skill's first stat set, which is
+  deterministic for Earthquake's Impact. One ordinary engine test; no general rule and no multi-start test. The
+  fixer was redirected, and slice 02's text was changed to match.

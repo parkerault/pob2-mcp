@@ -725,7 +725,7 @@ back what the save dropped (D-248).
     the hit, the max hit, the ratio and the verdict;
   - `clearSpeed`, labelled rough, assuming a normal monster dies to one use: by the clear skill's radius
     (`AreaOfEffectRadiusMetres`, 0 if absent), `slow` below 2 m, `medium` from 2 m to below 4 m, `fast` from 4 m
-    (Q2; a stat set PoB2 resolves two radii for in hash order is read by its own stat map, D-363); one step
+    (Q2), read from the clear skill's first stat set (D-363); one step
     faster when its gem text explodes monsters or spreads an effect on death (a phrase list in the
     compiler); one step slower when a use takes over 1 second (`Speed` below 1, an estimate). No agent
     researches it. Run A's 1.8 m starts at slow.

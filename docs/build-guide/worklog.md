@@ -3101,3 +3101,18 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - re-render after every final compile;
     - `SKILL.md` is capped at 221 lines.
   - **The fixes** went to part B's doer (333K, under the limit).
+- **WU-70 fixes** (`156ba2d`; the doer's total was 408K tokens). S1 is fixed: D1-finish gets D1-build's `changed`,
+  re-prices and re-claims what moved, never returns `build:`, and is logged `done`. N4 is restored. N2, N3 and
+  N5–N7 are done.
+  - **N1, partly:** W1 Greps `plan.json` by field and never reads a tree, but it can't use the views, because its
+    tools are file tools only (D-257). Respec notes now name dropped nodes.
+  - Static and unit suites 1259 of 1259. The coordinator read S1's diff and found it as specified.
+- **WU-70 merged** at `a4baf68`. At the merged head: build rc=0, static and unit suites 1259 of 1259. Lane
+  `bg-70` removed.
+- **WU-71:**
+  - **The brief:** `docs/build-guide/briefs/WU-71-formats.md` collects every format the checker must match, from
+    the M-15 reports and reviews, plus D-363…D-366.
+  - **Two doers in series** in lane `bg-71`:
+    - A, the scripts: `--snapshot`, `--changed`, `render-audit.mjs`, `run-log.mjs`, their `SKILL.md` wiring,
+      and AC-W54's listing clause;
+    - B, the checker's rules and the fixtures.

@@ -3007,3 +3007,21 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 - **WU-66 merged** at `daa3f7e`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
   `bg-66` removed.
 - **WU-67 started** in lane `bg-67` (off `daa3f7e`), in parallel with WU-70 part A. The two share no files.
+- **WU-67: built** (`db3b6c2`; the doer used 167K tokens).
+  - **What it adds:**
+    - `support-sockets.tree-granted` = `{"1-39":3,"40-59":4,"60-100":5}` in `gems.json`, a `judgment` source at
+      L;
+    - `checkSupportSockets` (`v1.ts`), called last in `checkV1`.
+  - **Recognition is by elimination.** Neither the plan, PoB's gem list nor the V1 inputs record where a skill
+    comes from (`schema.ts:172-184`, `Compile.lua:1135-1158`). So the group's skill is tier 0, and no
+    `Grants Skill:` line in the stage's items names it.
+  - **The doer's suite runs:** static and unit 1199; compile engine suites 54.
+  - **Review by the coordinator.** The diff is 134 lines in 3 files, so a full reviewer wasn't worth its cost on
+    a low-risk unit. Two changes, in `0ec133e`:
+    - PoB2 gives granted skills an explicit `Tier = 0` (`Data/Gems.lua`), so only an explicit 0 counts. An
+      unknown tier (no gem data) is never flagged, and a unit test covers it.
+    - The finding adds "if an item grants it, its item text lacks the `Grants Skill:` line". That names the cause
+      of the one false positive the doer found, which is a plan defect anyway.
+  - **Disabled supports count.** That's accepted: rough is fine.
+- **WU-67 merged** at `0ec133e`. At the merged head: build rc=0; static, unit and compile engine suites 1254 of
+  1254. Lane `bg-67` removed. Slice 02's units are all merged; WU-70 A is running.

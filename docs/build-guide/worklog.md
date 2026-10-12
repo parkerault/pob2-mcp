@@ -3025,3 +3025,31 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - **Disabled supports count.** That's accepted: rough is fine.
 - **WU-67 merged** at `0ec133e`. At the merged head: build rc=0; static, unit and compile engine suites 1254 of
   1254. Lane `bg-67` removed. Slice 02's units are all merged; WU-70 A is running.
+- **WU-70 A: built** (`2413dd8`, rebased to `ed087cc` onto `2997760`; the doer used 415K tokens). Static and
+  unit suites 1226 of 1226 after the rebase. `SKILL.md` went from 442 to 221 lines.
+  - **Steps:**
+    1. Start;
+    2. R1a, R1a-assemble, the brainstorm gate;
+    3. R1b, R1b-assemble, the verification gate;
+    4. D1-build, D1-finish, D1-gate, the design gate;
+    5. D2, D2-gate;
+    6. W1, V4, the round copy (`--snapshot`), the fix round, the V4 re-check;
+    7. known issues, the checker, the final gate.
+  - **Deviations, accepted:**
+    - `references/start.md` and `references/fix-round.md` take the detail cut from `SKILL.md`;
+    - the round copy is `check-run.mjs <folder> --snapshot <n>`, the name A-34 and WU-71's block give;
+    - every D1 attempt runs build then finish: the fix round goes to D1-finish first, which returns
+      `build: <ids>` for a build change;
+    - no design gate in the fix round or a revision;
+    - the log stages are `V4` and `V4-recheck`;
+    - the budget includes `b-anoint`;
+    - one-line edits in `gates.md`, `pricing.md` and `run-folder.md`.
+  - **For WU-71:**
+    - the `design` checkpoint's answers, default and log sequences;
+    - the D1 gate verdict's `design: {rungs[{stage, dps, ehp, arbiter, clearSpeed, anoint, gear, gems, tree}],
+      estimates}`;
+    - `D1-build` and `D1-finish` replace `D1` in the log;
+    - `run-log.mjs` needs wiring into `SKILL.md`;
+    - `run-folder.md`'s checker section;
+    - `check-run.mjs` still expects `D1`, `V4-<lens>` and `hit_*`.
+- **WU-70 B started:** a fresh doer, since A's context was over 400K.

@@ -2747,3 +2747,15 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   record's `measures`, the key-figure lines, `buildSha1` without the ledger) in lane `bg-65`, both off the
   integration head. Before WU-64 starts, the coordinator asked the Claude Code guide agent which Claude Code
   sources carry final output-token counts (telemetry, the status line), as the spike's candidate ground truth.
+- **The guide agent's answer** (official Claude Code docs):
+  - OpenTelemetry's `api_request` event and `claude_code.token.usage` metric count output once per API request,
+    subagents included (`query_source` = `subagent`). The exporters are `console`, `otlp` and `none`; no file
+    exporter is documented.
+  - The status line's output field is the latest response only.
+  - `/usage` is meant for API users.
+  - Hooks carry no usage.
+
+  So the spike tests a transcript estimate against telemetry from a short control session the user runs, through
+  a localhost OTLP receiver that drops identity attributes.
+- **Dispatched:** the WU-65 doer in `bg-65`. The WU-64 doer in `bg-64` stops at "awaiting control" for the user's
+  control session.

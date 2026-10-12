@@ -2920,3 +2920,30 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     allocated one.
   - V1 drops `one-exit-per-tree`. The path tools may stay conservative and never route a loop.
   - Sent to the doer, with a rebase onto the integration head.
+- **WU-69: built** (head `77ed3e5`; the doer used 282K tokens). Static and unit suites 1194 of 1194.
+  - **V4 is one pass.** It checks the hinge claims against their sources and reads `guide.md` as an editor. It
+    keeps `reports/V4-<n>.md`, and its tools are Read, Glob, Grep, Write (`reports/` only), WebFetch and the five
+    lookups.
+  - **Triage:** `hinge: yes|no`. A non-hinge finding is removed or narrowed; under 5% in an estimate is no
+    finding. A revision runs no full pass: the round copy, then a re-check.
+  - **Deviations:**
+    - V4 Greps `plan.json`'s claims arrays. The runner pasting the claims view would break two rules: the
+      verifier's prompt is exactly the header and one line, and the runner never reads the plan. Adding
+      `guide_run` to V4 would break a third: only the coordinator names a compile tool.
+    - V4 no longer reads `audit.md` (D-355).
+    - Finding ids are `v4-<n>-<k>`.
+    - A re-check reports an untouched open finding as `unresolved` again.
+    - Edits outside the touch list: `run-folder.md`, the stages README, `source-markers.md`.
+  - **For WU-70:**
+    - `checkpoints.md`, `run-log.md`, `task-header.md` (`lens`), the `W1.md` and audit-template rows, and
+      `D1.md`'s ids;
+    - the round-copy command (A-34);
+    - D1 and D2 recompiling for a ledger formula.
+  - **For WU-71:**
+    - `--changed` prints `claim stages[<i>].claims[<k>] (<id>)` or `section <H2 title>`, one per line;
+    - the report's form;
+    - a re-check `<n>` uses `--changed <n-1>`;
+    - open findings are the latest report's `unresolved`;
+    - ids match `v4-\d+-\d+`;
+    - FI-4's doubled formula goes to `[ledger]`.
+  - **Review:** dispatched.

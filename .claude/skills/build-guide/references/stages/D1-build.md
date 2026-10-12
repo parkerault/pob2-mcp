@@ -63,7 +63,8 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    a weapon's elemental DPS or an energy shield total); when it doesn't, it is the trigger into `b`.
    - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`,
      so each rung's tree contains the one before it, except where its `respec` drops nodes (`respec
-     {dropped, goldCost, note}`, the gold cost a `judgment`); V1 checks each rung's respec and its gold cost.
+     {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the dropped nodes as the tool names
+     them, since W1 reads no node ids); V1 checks each rung's respec and its gold cost.
 4. **Skills** (D-120, D-122, D-148, D-217, D-295). The card's named damage source is the plan's
    `roll.skill` (D-286).
    - **The build's named damage source is the main source of damage, never a token role.** (D-122, as D-295

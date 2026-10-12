@@ -136,11 +136,11 @@ The report is markdown, read by line; `stages/V4.md` (Writes) gives it with an e
 - `status` is `unresolved`, `accepted-offline`, or in a re-check `fixed` (a finding of the header's
   `findings` that now holds). A re-check reports again, under its id, every finding still open: one nothing
   changed stays `unresolved` as it was.
-- `reader` (D-265) is one plain sentence the guide's reader can act on: what is wrong in the guide and what
-  is true instead, in the guide's words, with no pipeline words (lens, finding, owner, claim, location) and
-  no JSON path: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance." Only an
-  `unresolved` finding can become a known issue, so only it carries one; the run checker fails an
-  `unresolved` finding without it. A `fixed` or `accepted-offline` finding needs none.
+- `reader` (D-265) is one plain sentence the guide's reader can act on: what is wrong in the guide and what is
+  true instead, in the guide's words, with no pipeline words (lens, finding, owner, claim, location) and no JSON
+  path: "The budget gloves line is wrong: Arcane Surge on Crit is a desecrated modifier, so the gloves need an
+  energy shield base." Only an `unresolved` finding can become a known issue, so only it carries one; the run
+  checker fails an `unresolved` finding without it. A `fixed` or `accepted-offline` finding needs none.
 - `verdict` is `pass` exactly when no finding is `unresolved`.
 - `accepted-offline` is only for an `external-unavailable` claim in an offline run (C-30), its `location`
   naming that plan claim (`stages[<i>].claims[<k>] (<claim id>)`). In an online run such a claim is

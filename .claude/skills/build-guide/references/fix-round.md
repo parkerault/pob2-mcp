@@ -22,8 +22,9 @@ formula or inputs, like a claim edit, needs no recompile and no gate: the run ch
 It returns the ids it fixed, the locations it changed and whether it recompiled.
 
 - **D1 is D1-finish first** (D-356): D1's findings go to D1-finish, which fixes the claims, ledger, prices and
-  anoint. When it returns `build: <ids>`, run D1-build with those findings, then D1-finish once more, each
-  with them in `findings`; then the gates.
+  anoint. When it returns `build: <ids>`, run D1-build with those findings, then D1-finish once more, its
+  header's `changed` the locations D1-build returned: it re-prices, re-measures and re-claims what moved, and
+  returns no `build:`. Then the gates.
 - **The order.** The earliest owner runs first (D1, then D2), and W1 always runs last: it fixes its own
   findings and patches the guide in place wherever it repeats a claim another owner changed (their locations
   in its header's `changed`).
@@ -32,8 +33,9 @@ It returns the ids it fixed, the locations it changed and whether it recompiled.
 - **An owner recompiled:** its gates run as now: **D1** → D1 gate → D2 gate → W1; **D2** → D2 gate → W1. A
   step that is itself an owner gets its findings in `findings` (D2 after D1: D1 → D1 gate → D2 → D2 gate →
   W1; that D2 runs its gate even for claim edits, since the D1 gate's compile replaced the final record). Log
-  each owner as `run-log.md` says: `done` when it recompiled, or when it is the D2 whose gate follows a
-  recompiled D1; `claims-edited` when it edited claims only (a claims-only D1 before a D2 that recompiled).
+  each owner as `run-log.md` says: `done` when it recompiled, or when its gate follows a recompile before it
+  (the D1-finish after D1-build, the D2 after a recompiled D1); `claims-edited` when it edited claims only (a
+  claims-only D1 before a D2 that recompiled).
   W1 still patches the guide in place, its header's `changed` `"all"`: the import code and every record number
   the guide quotes may have moved.
 - **No design gate** runs in the round: the user judged the build at the design gate, and the final gate

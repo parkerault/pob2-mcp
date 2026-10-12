@@ -15,6 +15,8 @@ price every slot, write the ledger and the claims, and read the plan and the rec
     "user-request"`), when it concerns the anoint, the prices, the ledger or the claims, which you make;
   - in the fix round, the V4 findings routed to D1 (`{id, artifact, location, claim, issue, evidence, hinge,
     owner}`).
+- **`changed`**, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`:
+  the locations D1-build returned (`plan.json stages[6].items`). Then "After D1-build" below is your job.
 - **Prompt:** how to price in this run (offline; stopped; or paced), and with `--no-ninja` that there are no
   currency rates.
 - **Read**, the independent calls in one response:
@@ -111,6 +113,10 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
    change them, measure as step 1 does, and the D1 gate runs after you. Any other build change is
    D1-build's: make none, and return its finding ids as `build: <ids>`; the runner runs D1-build with them,
    then you once more, then the gates.
+   - **After D1-build** (your header has `changed`): D1-build made the build changes; you follow them.
+     Re-price each slot whose item changed, re-measure the anoint on a changed rung (step 1's measure-only
+     compile), and fix the claims and the ledger on what moved. Never return `build:` for a finding D1-build
+     handled: a build change still missing is the D1 gate's to find. Return `done`; the D1 gate runs after you.
 3. **A ledger edit needs no recompile.** A change to a ledger entry's formula, inputs or claim text needs no
    recompile and no gate: the record's `buildSha1` leaves out the ledger, and the run checker re-evaluates
    the plan's current ledger (D-352).

@@ -178,7 +178,7 @@ The headline figures assume <the plan's config they rest on: charges, stacks, co
 ### Known issues
 
 [always this H3, the last part of this section (D-276). W1 writes one plain sentence per gate finding the user accepted at an escalation, or the one line "None."; after the V4 checks the runner replaces the list with those lines and each open finding's reader sentence, or "None." (SKILL.md step 14). No ids here: each finding's id goes in audit.md's Known issues table. The list is outside the word cap.] - <What is wrong, in plain words, and what is true instead.>
-[added by the runner at step 14] - <the finding's reader sentence, word for word: "The Act 1 resistance line is wrong: stage 2 already has 40% fire resistance.">
+[added by the runner at step 14] - <the finding's reader sentence, word for word: "The budget gloves line is wrong: Arcane Surge on Crit is a desecrated modifier, so the gloves need an energy shield base.">
 
 ## FAQ
 

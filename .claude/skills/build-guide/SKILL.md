@@ -11,15 +11,15 @@ gates, keep the run log and run the run checker (slice 03 of `docs/build-guide/s
 The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (gate
 `brainstorm`), the verification (gate `verification`) and the finalization (gate `final`). Inside the
 finalization, the design gate (gate `design`, D-362) shows the user the endgame build before the campaign and
-the guide exist. Only the user starts a round. Every card names its **named damage source**, the main source
-of damage, never a token role (D-122 as D-295 words it). Each step below is a short card: read a reference
-only where its card names one.
+the guide exist. Only the user starts a round. Every card names its **named damage source**, the main source of
+damage, never a token role (D-122 as D-295 words it). Each step below is a short card: read a reference only
+where its card names one.
 
 ## Hard rules (for you and for every agent)
 
 - **Never read, print or copy any `.env` file**, and never set `POESESSID`.
-- **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them. There are
-  no poe.ninja tools beyond the currency rates (`mcp__pob2__get_currency_rates`, D-335) and no player evidence.
+- **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them. There are no
+  poe.ninja tools beyond the currency rates (`mcp__pob2__get_currency_rates`, D-335) and no player evidence.
 - **Write only inside the run folder**: `run-log.json` and the `Known issues` lists (step 14); each agent its
   header's `writes`.
 - **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and
@@ -31,9 +31,9 @@ only where its card names one.
   escalation. A pre-supplied or default answer replaces only the question: after the display, state the answer
   it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` (`references/checkpoints.md`).
 - **Read only what routes the run:** the gate verdict files under `reports/gates/` (the D1 gate's holds the
-  design gate's display), the deck `cards.md`, your own `run-log.json`, the test config, the agents' returns
-  and the verifiers' reports. Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read
-  or with Bash; step 14 reads only the `Known issues` lines it edits.
+  design gate's display), the deck `cards.md`, your own `run-log.json`, the test config, the agents' returns and
+  the verifiers' reports. Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read or
+  with Bash; step 14 reads only the `Known issues` lines it edits.
 - **Your Bash reads, and runs the run checker; nothing else** (D-265). The whole list:
   - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is
     fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
@@ -56,10 +56,10 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 a
   .claude/skills/build-guide/references/stages/<stage>.md and do that step.` Add only what the card lists.
 - **In flight:** at most 3 agents at once; a coordinator step never overlaps another agent (FR-W3). R1a's
   researchers run in parallel with `run_in_background: true`; every other step runs alone.
-- **Returns.** At most 8 lines. A gate step's verdict is its own file under `reports/gates/`, and the verifier
-  writes its own report, `reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it): read that file
-  to route. An agent that returns without its file is re-run once, uncounted, logged `missing`; a second miss
-  ends the run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return.
+- **Returns.** At most 8 lines. A gate step's verdict is its file under `reports/gates/`, and the verifier
+  writes its own report, `reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it): route on that
+  file. An agent returning without its file is re-run once, uncounted, logged `missing`; a second miss ends the
+  run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return: re-run at the next free `<n>`.
 - **The run log.** Rewrite `run-log.json` whole after every step, gate and question (`references/run-log.md`).
 
 The verifier's prompt is always exactly this, so it carries nothing a producing step wrote (R-5, D-142):
@@ -116,11 +116,10 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 - **R1a-assemble** (2b), after the round's researchers return. Prompt: the round, the brief, the user's note,
   and each researcher's letter, research file, cards and whether it returned. **A short round**: it returns
   `short: <why>`; record the reason in the run log, as `shortReason` on its `stages[]` entry, and say so.
-- **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display on every visit, whoever
-  answers (Hard rules): echo the parsed brief at the top, then the deck. Ask with AskUserQuestion in
-  `multiSelect` mode, up to 4 cards a question and up to 3 questions, plus one question for more or stop:
-  **verify** 1–3 cards (step 3); **brainstorm more** with the user's note (2a, round `k + 1`; only this answer
-  starts one); **stop**.
+- **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display on every visit, whoever answers
+  (Hard rules): echo the parsed brief at the top, then the deck. Ask with AskUserQuestion in `multiSelect` mode,
+  up to 4 cards a question and up to 3 questions, plus one question for more or stop: **verify** 1–3 cards (step
+  3); **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
 
 ## 3. Verification (steps 3 to 5)
 
@@ -141,13 +140,13 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 
 ## 4. Design (steps 6a to 9; `references/gates.md`)
 
-D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator step. Every D1 attempt runs
-both, in that order, each with its own `attempt`, `compile: "measure-only"` and `writes: ["plan.json"]`.
+D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator step. Every design attempt
+(fresh, or a gate retry) runs both, in that order.
 
 - **D1-build** (6a): prompt, write `plan.json` anew (attempt 1 of a fresh design) or edit it; `findings`, the
   last D1 gate verdict on a retry. Returns `done` or `infeasible`, with a reason.
-- **D1-finish** (6b): prompt, how to price (offline; stopped, once any `stages[]` entry's `priceOutcomes`
-  counts a `locked_out` or `rate_limited` call; or paced). Log its price outcomes as `priceOutcomes`.
+- **D1-finish** (6b): prompt, how to price (offline; stopped, once any `stages[]` entry's `priceOutcomes` counts
+  a `locked_out` or `rate_limited` call; or paced). Log its price outcomes as `priceOutcomes`.
 - **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim:
   - compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate (7b);
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third escalates (§5);
@@ -159,15 +158,16 @@ both, in that order, each with its own `attempt`, `compile: "measure-only"` and 
     escalates again. Log each gate attempt with the outcome its verdict file routes to; the run checker holds
     the log to the files.
 - **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display on every visit, whoever
-  answers (Hard rules): show the D1 gate verdict file's `design` field (A-35), per rung its DPS, EHP, Arbiter
-  verdict, clear speed, anoint, key gear, gems and tree, then the open estimates (no plan or record read).
-  Ask (checkpoint `design`): **accept**, on to step 8; **revise** (`revise:<text>`), a D1 fix round with the
-  text as `findings` (`code: "user-request"`), D1-build then D1-finish for a build change (gear, tree, gems or
-  config), D1-finish alone otherwise, then the D1 gate and this gate again; **verification**, step 5; **stop**.
+  answers (Hard rules): show the D1 gate verdict file's `design` field (A-35), each rung's measures, anoint,
+  gear, gems and tree and the open estimates; no plan or record read. Ask (checkpoint `design`): **accept**, on
+  to step 8; **revise** (`revise:<text>`), a D1 fix round with the text as `findings` (`code: "user-request"`):
+  D1-build then D1-finish for a build change (gear, tree, gems or config), else D1-finish (on `build:`,
+  D1-build, then D1-finish with its `changed`), then the D1 gate and this gate again; **verification**, step 5;
+  **stop**, also when `answers.design[]` is used up (`default`).
 - **D2** (8) adds the campaign; tell it how to price. **The D2 gate** (9) checks every stage and, when the
-  compile, V1 and V2 pass, runs the final compile with `buildName` (`<slug>-<YYYY-MM-DD>-<n>`, the run
-  folder's last two segments joined with `-`). A failure re-runs D2, up to 2 counted retries; the third
-  escalates (§5). A pass goes to W1.
+  compile, V1 and V2 pass, runs the final compile with `buildName` (`<slug>-<YYYY-MM-DD>-<n>`, the run folder's
+  last two segments joined with `-`). A failure re-runs D2, up to 2 counted retries; the third escalates (§5). A
+  pass goes to W1.
 
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
@@ -185,13 +185,13 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 - **Step 11, the full pass.** Start one verifier (D-352), `check: "full"`, `findings: []` and `writes:
   ["reports/V4-<n>.md"]`. `<n>` is always one more than the highest `reports/V4-<n>.md` the run folder holds
   (`ls <runFolder>/reports`), 1 for the run's first. One pass with no lenses: it checks every hinge claim of
-  `plan.json` against its source and reads every H2 of `guide.md` as an editor, with no sampling; the
-  ledger's arithmetic is the run checker's.
+  `plan.json` against its source and reads every H2 of `guide.md` as an editor, with no sampling; the ledger's
+  arithmetic is the run checker's.
 - **Step 12, the fix round** (`references/fix-round.md`), once, only when the report has an `unresolved`
   finding. First the round copy (A-34): `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
   --snapshot <n>`, `<n>` that report's number. Then each finding goes to its `owner`: D1 (D1-finish, and
-  D1-build when D1-finish returns `build: <ids>`), D2, and W1 last. Owners fix claims in place; a gate runs
-  only after a recompile, which only gear, tree, gems or config need. No design gate in the round.
+  D1-build when D1-finish returns `build: <ids>`), D2, and W1 last. Owners fix claims in place; a gate runs only
+  after a recompile, which only gear, tree, gems or config need. No design gate in the round.
 - **Step 13, the re-check** (`references/fix-round.md`): `check-run.mjs <runFolder> --changed <n>`, then one
   verifier, `check: "recheck"`, `changed` the lines it printed, verbatim. It re-checks only those, whether or
   not an owner recompiled: no re-check covers every claim (D-352).
@@ -200,8 +200,8 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 - **Step 16, the final gate** (`references/checkpoints.md`). Print its display on every visit, whoever answers
   (Hard rules): show the guide's path, the PoB file, the gate verdicts, the known issues and the checker's
   result, and ask: **accept** (`completed`), **ask for changes**, or anything else (`not-accepted`). Asking for
-  changes is a revision (`references/fix-round.md`): the round copy, the owners' chain, then step 13's
-  re-check: **a revision runs no full pass** (D-352). Steps 12 to 16 then follow as after a full pass.
+  changes is a revision (`references/fix-round.md`): the round copy, the owners' chain, then step 13's re-check:
+  **a revision runs no full pass** (D-352). Steps 12 to 16 then follow as after a full pass.
 
 ## 7. Finish
 
@@ -217,5 +217,5 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 `references/start.md`, `references/fix-round.md`, `references/checkpoints.md`, `references/run-log.md`,
 `references/task-header.md`, `references/run-folder.md`, `references/gates.md`, `references/pricing.md`,
 `references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`,
-`references/patterns.md` (C-53), `references/stages/` (one per step, `references/stages/R1a-assemble.md`
-among them), `templates/card-template.md` (C-52) and `scripts/check-run.mjs`.
+`references/patterns.md` (C-53), `references/stages/` (one per step, `references/stages/R1a-assemble.md` among
+them), `templates/card-template.md` (C-52) and `scripts/check-run.mjs`.

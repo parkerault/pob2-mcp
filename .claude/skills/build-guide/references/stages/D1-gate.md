@@ -1,10 +1,9 @@
 # D1-gate: check the endgame variants (`build-guide-coordinator`)
 
-Slice 03 §5.3 step 2; spine D-118, D-119, D-122, D-141, D-164, D-217, D-219, D-234, D-293, D-295, D-333,
-D-340, D-353, D-362; amendment 1 S7; A-35. A fresh coordinator step after every D1 attempt (D1-build, then
-D1-finish): it runs the final re-price pass, compiles `plan.json` measure-only, reads the record, and writes the
-D1 gate's verdict file, which the runner routes on and the run checker recomputes, with the design gate's
-display in it. You check; you don't design. Fix nothing in the plan: a failure goes back to D1 as findings.
+A fresh coordinator step after every D1 attempt (D1-build, then D1-finish): it runs the final re-price pass,
+compiles `plan.json` measure-only, reads the record, and writes the D1 gate's verdict file, which the runner
+routes on and the run checker recomputes, with the design gate's display in it (A-35). You check; you don't
+design. Fix nothing in the plan: a failure goes back to D1 as findings.
 
 ## Inputs
 

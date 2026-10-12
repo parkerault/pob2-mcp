@@ -54,8 +54,9 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
     `unresolved` finding);
   - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-finish, …), `infeasible` for
     D1-build claiming it and for a D1 gate routed so;
-  - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no`: it
-    edited claims in place and compiled nothing, so no gate of its own follows it (D-264). The run checker
+  - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no` with no
+    gate after it: it edited claims in place and compiled nothing (D-264). A D1-finish after D1-build, and a D2
+    after a recompiled D1, are `done` whatever they return: their gate follows. The run checker
     tells it from a redesign: the final record stays current, the plan may differ from the record's
     `planSha1` only in its claims, source tags and ledger (its build projection's sha1 equals the record's
     `buildSha1`, D-266, D-352), and the re-check covers what `check-run.mjs --changed <n>` lists;

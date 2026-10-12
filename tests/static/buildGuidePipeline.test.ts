@@ -1015,7 +1015,7 @@ describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only -
   const skill = () => folded(runnerText());
 
   it('V4.md and the verifier define one pass with no lenses: every hinge claim against its source, and the guide read as an editor', () => {
-    expect(v4()).toMatch(/\*\*One verifier checks the run in one pass, with no lenses:\*\* every hinge claim of `plan\.json` against its source, and `guide\.md` read like an editor against the plan and the final compile record/);
+    expect(v4()).toMatch(/\*\*One verifier checks the run in one pass, with no lenses\*\* \(D-352\): every hinge claim of `plan\.json` against its source, and `guide\.md` read like an editor against the plan and the final compile record/);
     expect(verifier()).toMatch(/\*\*One verifier, one pass, no lenses\*\* \(D-352\): you check every hinge claim of the plan .* against its source, and read the guide as an editor against the plan and the record/);
     // No lens survives: no lens section, header field, lens name or lens-numbered finding id.
     for (const [name, text] of [['V4.md', v4()], ['build-guide-verifier.md', verifier()]]) {
@@ -1210,7 +1210,7 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
     expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1\'s two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |');
     expect(text).not.toMatch(/\| `pass` \||\| `lens` \|/);
     expect(text).toMatch(/\| `check` \| V4 only: `full` .* or `recheck`/);
-    expect(text).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round\. The re-check's: the lines `check-run\.mjs --changed <n>` printed, verbatim, one item each: `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>` \(D-352\)\. W1's: the locations the fix round's owners returned/);
+    expect(text).toMatch(/\| `changed` \| a V4 re-check, W1 in the fix round, and a D1-finish after D1-build \(the locations D1-build returned\)\. The re-check's: the lines `check-run\.mjs --changed <n>` printed, verbatim, one item each: `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>` \(D-352\)\. W1's: the locations the fix round's owners returned/);
   });
 
   it('every stage reference returns at most 8 lines; V4 too, since it writes its own report (R-5 as D-352 amends it)', () => {
@@ -1239,7 +1239,8 @@ describe('Amendment 1 S2, Q1, Q4: verify once, fix once, re-check, and list the 
     expect(text).toMatch(/## Step 12, the fix round Once, only when the report has an `unresolved` finding \(D-264, D-352\), after the round copy\. Send each `unresolved` finding to its `owner`: D1, D2 or W1/);
     expect(text).toMatch(/## Step 13, the re-check Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`/);
     expect(text).toMatch(/After a fix round's re-check there is no further round: what stays open is a known issue; after a revision's, steps 12 to 16 follow \(step 16\)/);
-    expect(text).toMatch(/A verifier's `exists: reports\/V4-<n>\.md` is a missing return/);
+    // A re-run names the next free report, or it would find its file again and return `exists` once more.
+    expect(text).toMatch(/A verifier's `exists: reports\/V4-<n>\.md` is a missing return: re-run at the next free `<n>`/);
     expect(text).toMatch(/## Step 14, known issues The open findings are the `unresolved` findings of the last report, the `reports\/V4-<n>\.md` with the highest `<n>`: a re-check reports again every finding still open/);
     expect(text).toMatch(/Only the D1 and D2 gates escalate; verification never re-checks beyond one re-check after a fix round or a revision/);
   });
@@ -1503,9 +1504,9 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
   });
 
   it('the run log names the claims-only owner `claims-edited`, which the checker tells from a redesign, and the header carries W1 its changed locations', () => {
-    expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no`: it edited claims in place and compiled nothing, so no gate of its own follows it \(D-264\)/);
+    expect(ref('run-log.md')).toMatch(/`claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no` with no gate after it: it edited claims in place and compiled nothing \(D-264\)\. A D1-finish after D1-build, and a D2 after a recompiled D1, are `done` whatever they return: their gate follows/);
     expect(ref('run-log.md')).toMatch(/its build projection's sha1 equals the record's `buildSha1`, D-266/);
-    expect(ref('task-header.md')).toMatch(/\| `changed` \| a V4 re-check, and W1 in the fix round/);
+    expect(ref('task-header.md')).toMatch(/\| `changed` \| a V4 re-check, W1 in the fix round, and a D1-finish after D1-build/);
     expect(ref('run-folder.md')).toMatch(/one full V4 pass per guide, and at most one re-check per fix round or revision, covering only what `check-run\.mjs --changed <n>` lists \(D-352\)/);
     expect(ref('run-folder.md')).not.toMatch(/v4-prose-1|all three lenses/);
   });
@@ -1522,7 +1523,7 @@ describe('Review of bg/d264: the references say what the checker now holds', () 
   });
 
   it("item 6: each owner is logged by what it did, and a claims-only D1 may precede a D2 that recompiles and its gate", () => {
-    expect(skill()).toMatch(/Log each owner as `run-log\.md` says: `done` when it recompiled, or when it is the D2 whose gate follows a recompiled D1; `claims-edited` when it edited claims only \(a claims-only D1 before a D2 that recompiled\)/);
+    expect(skill()).toMatch(/Log each owner as `run-log\.md` says: `done` when it recompiled, or when its gate follows a recompile before it \(the D1-finish after D1-build, the D2 after a recompiled D1\); `claims-edited` when it edited claims only \(a claims-only D1 before a D2 that recompiled\)/);
     expect(skill()).not.toMatch(/Log the owners `done`/);
     expect(ref('run-folder.md')).toMatch(/a claims-only owner only before any gate of its round and never directly before a gate \(a claims-only D1 may be followed by a D2 that recompiles, and its D2 gate\)/);
     expect(ref('run-folder.md')).not.toMatch(/with no gate after it/);
@@ -2504,7 +2505,7 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
     const skill = fs.readFileSync(SKILL_MD, 'utf8');
     expect(skill).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |');
     expect(skill).toContain('| 6b | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims) |');
-    expect(folded(skill)).toMatch(/D1 is \*\*two agent steps\*\* \(D-356\): D1-build, then D1-finish, a fresh coordinator step\. Every D1 attempt runs both, in that order/);
+    expect(folded(skill)).toMatch(/D1 is \*\*two agent steps\*\* \(D-356\): D1-build, then D1-finish, a fresh coordinator step\. Every design attempt \(fresh, or a gate retry\) runs both, in that order/);
     expect(ref('task-header.md')).toContain('`D1-build`, `D1-finish` (D1\'s two steps, D-356)');
     expect(ref('stages/README.md')).toContain('`D1-build.md`, `D1-finish.md` (D1\'s two steps, D-356)');
     expect(ref('run-log.md')).toMatch(/`stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` \(the one full pass, D-352\) or `V4-recheck` \(a re-check\)/);
@@ -2560,6 +2561,16 @@ describe("WU-70 (AC-W59's static clause, D-352): D1-build, D1-finish and D2 reco
     expect(folded(fs.readFileSync(FIX_ROUND_MD, 'utf8'))).toMatch(/\*\*D1 is D1-finish first\*\* \(D-356\): D1's findings go to D1-finish, which fixes the claims, ledger, prices and anoint\. When it returns `build: <ids>`, run D1-build with those findings, then D1-finish once more/);
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/A ledger formula or input change needs no recompile: the record's `buildSha1` leaves out the ledger \(D-352\)/);
   });
+
+  it('the D1-finish after D1-build follows its changes and returns no build:, logged done; the design gate routes D1-finish\'s build: too (review S1)', () => {
+    const finish = folded(readStage('D1-finish'));
+    expect(finish).toMatch(/\*\*`changed`\*\*, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`: the locations D1-build returned/);
+    expect(finish).toMatch(/\*\*After D1-build\*\* \(your header has `changed`\): D1-build made the build changes; you follow them\. Re-price each slot whose item changed, re-measure the anoint on a changed rung \(step 1's measure-only compile\), and fix the claims and the ledger on what moved\. Never return `build:` for a finding D1-build handled/);
+    expect(folded(fs.readFileSync(FIX_ROUND_MD, 'utf8'))).toMatch(/then D1-finish once more, its header's `changed` the locations D1-build returned: it re-prices, re-measures and re-claims what moved, and returns no `build:`/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/and a D1-finish after D1-build \(the locations D1-build returned\)/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\)/);
+    expect(folded(readStage('D1-build'))).toMatch(/D1-finish then prices and claims what moved/);
+  });
 });
 
 describe('WU-70 (AC-W53, D-356): the agent definitions batch independent calls', () => {
@@ -2612,7 +2623,7 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     expect(order).toEqual([...order].sort((a, b) => a - b));
     const skill = folded(raw);
     expect(skill).toMatch(/compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate \(7b\)/);
-    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display on every visit, whoever answers \(Hard rules\): show the D1 gate verdict file's `design` field \(A-35\), per rung its DPS, EHP, Arbiter verdict, clear speed, anoint, key gear, gems and tree, then the open estimates \(no plan or record read\)\. Ask \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\), D1-build then D1-finish for a build change \(gear, tree, gems or config\), D1-finish alone otherwise, then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*\./);
+    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display on every visit, whoever answers \(Hard rules\): show the D1 gate verdict file's `design` field \(A-35\), each rung's measures, anoint, gear, gems and tree and the open estimates; no plan or record read\. Ask \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\): D1-build then D1-finish for a build change \(gear, tree, gems or config\), else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*, also when `answers\.design\[\]` is used up \(`default`\)\./);
     expect(skill).toMatch(/the gate verdict files under `reports\/gates\/` \(the D1 gate's holds the design gate's display\)/);
   });
 
@@ -2696,7 +2707,7 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
 });
 
 describe('WU-70 part B (AC-W53, D-356): the remaining stage references state their rules, not whole files or bare D-numbers', () => {
-  it.each(PART_B_STAGES)('%s points at no shared reference as a whole and opens with no list of bare D-numbers', (stage) => {
+  it.each([...PART_B_STAGES, 'D1-build', 'D1-finish', 'D1-gate', 'V4'])('%s points at no shared reference as a whole and opens with no list of bare D-numbers', (stage) => {
     const text = readStage(stage);
     expect({ stage, pointers: text.match(/\(`\.claude\/skills\/build-guide\/references\/(gates|pricing|source-markers|lookups)\.md`\)/g) ?? [] }).toEqual({ stage, pointers: [] });
     expect({ stage, spine: /^Slice 03 .*spine [CD]-\d+/m.test(text) || /; spine [CD]-\d+/.test(text) }).toEqual({ stage, spine: false });
@@ -2716,7 +2727,10 @@ describe('WU-70 part B (AC-W53, D-356): the remaining stage references state the
     expect(d2).toMatch(/the C1 facts by key, never a file whole \(Grep the key, then Read its fact\)/);
     expect(d2).toMatch(/`docs\/build-guide\/plan-reference\.md` by section, never whole/);
     const w1 = folded(readStage('W1'));
-    expect(w1).toMatch(/`plan\.json` \(it can pass 90K tokens\): Grep `"loadoutName"` for each stage's line and Read each stage from there to the next/);
+    // The writer has file tools only (§4, D-257), so it reads the plan by field, never the tree's id lists.
+    expect(w1).toMatch(/`plan\.json` \(it can pass 90K tokens\) by the fields you need, never whole and never stage by stage: you have no `mcp__pob2__guide_run` view \(your tools are file tools only, D-257\), so Grep each field with line numbers/);
+    expect(w1).toMatch(/Never Read a `tree` object or its `nodes` id lists: the path claims and the respec's `note` carry what the guide says/);
+    expect(w1).not.toMatch(/Read each stage from there to the next/);
     expect(w1).toMatch(/`compile-record\.json`, the final compile's record \(C-33\), by Grep/);
   });
 });
@@ -2808,5 +2822,16 @@ describe('WU-70 part B (AC-W53, D-353, D-354, D-358, D-359): the guide template 
     for (const title of ENDGAME_H2) expect({ title, copy: sectionOf(title).includes("[this rung's block from audit.md's Checks, copied verbatim:") }).toEqual({ title, copy: true });
     expect(body).not.toMatch(/to kill|hits to kill|kill time|time-to-kill/);
     expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/The endgame measures are the record's: DPS, Effective HP, the Arbiter verdict and a rough clear speed\. No kill time and no hits to kill anywhere \(D-353\)/);
+  });
+
+  it("gives the runner's Known issues line a hinge sample with no stage id and no campaign defence (review N5)", () => {
+    const sample = text.split(/\r?\n/).find((l) => l.startsWith('[added by the runner at step 14]'))!;
+    expect(sample).toContain('"The budget gloves line is wrong: Arcane Surge on Crit is a desecrated modifier, so the gloves need an energy shield base."');
+    expect(sample).not.toMatch(/stage \d|[Rr]esistance|Act \d/);
+    for (const rel of ['references/source-markers.md', 'references/stages/V4.md']) expect({ rel, old: fs.readFileSync(path.join(SKILL_DIR, rel), 'utf8').includes('The Act 1 resistance line is wrong') }).toEqual({ rel, old: false });
+  });
+
+  it('lists the round copy rounds/<n>/ in the run-folder layout (A-34, review N7)', () => {
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')).toContain("| `rounds/<n>/` | the run checker's `--snapshot <n>`, which the runner runs before a fix round or a revision (A-34) |");
   });
 });

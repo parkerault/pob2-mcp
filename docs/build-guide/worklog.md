@@ -2833,3 +2833,9 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   The gate passed: 125 suites, 2140 tests, build rc=0. The redirect then resumed it: it replaces the rule with the
   first stat set and swaps in one plain test. That leaves PoB's own outputs untouched and the code smaller.
   - **For the fold:** slice 02:792's `producer-absent` text for passives should gain "or a notable an item grants".
+- **WU-65, the simple rule** (fixer `d24c776`; its total use was 187K tokens). The reverted rule and its
+  multi-start test are gone. The gate passed: 124 suites, 2140 tests, build rc=0.
+  - **Stat set 1 can be the wrong part of a skill:** Stampede's first stat set is Footsteps. The coordinator's
+    commit `70110aa` (two lines, two unit tests) reads the main selection's `statSet` when the clear skill is the
+    main skill, else stat set 1. Slice 02's text matches.
+  - **Narrow re-review:** the reviewer was resumed on `54d1ee6..70110aa`, with the full gate.

@@ -4,6 +4,54 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
+## M-15: amendment 4, the lean pipeline (read this first)
+
+Added 2026-10-11. For the M-15 build, this section overrides "What to build" below and adds to the other
+sections, which still apply as written.
+
+- **Spec v1.5** (folded at `ba9daf8`). The spine `docs/build-guide/spec/README.md` holds:
+  - decisions through D-362, and A-34 and A-35;
+  - M-15 in §7;
+  - WU-64…WU-72 in §8, with amendment 4's lanes.
+
+  The slices hold the unit blocks and ACs:
+  - `01-server-tools.md`: WU-66's path tools, AC-K66;
+  - `02-plan-compiler.md`: WU-65…WU-68 (§5), AC-P60…AC-P67 (§6);
+  - `03-pipeline.md`: WU-64 and WU-69…WU-72, AC-W51…AC-W60 (§13).
+
+  Text marked *Target (WU-nn, D-nnn)* is what you build.
+- **Background, not requirements:**
+  - `spec/amendment-4-cost-and-scope.md`;
+  - the three reports `studies/2026-10-11-cost-1-mechanics.md`, `…-cost-2-claims-and-rules.md` and
+    `…-run-a-issues.md`.
+- **Ratified.** The user signed off every amendment 4 change on 2026-10-11. D-345…D-362, A-34 and A-35 are
+  settled.
+- **Directive.** Build WU-64…WU-71. WU-72, the lean recorded run, belongs to the coordinator and the user.
+- **Done means:**
+  - M-15's exit (spine §7) holds at the integration head;
+  - `mise run test` and `pnpm build` exit 0 from a clean tree;
+  - both waiver files are `[]` (AC-B2);
+  - dependencies are unchanged (AC-B7).
+- **HG-12 is granted for WU-66 only.** The grant covers changing `find_path_to_node` and `get_nearby_nodes`
+  exactly as D-360 and C-1 state: their paths never open a second tree on one start, and their arguments and
+  output format stay unchanged. Every other tool-contract change is still HG-12: stop and report `blocked`.
+  WU-68's `guide_run` views are inside C-50's target (D-356), not a new contract.
+- **Network.** No M-15 unit needs poe.ninja, and none contacts it. GitHub (`mise run pob:fetch`) and the npm
+  registry only.
+- **Serialized files for M-15.** The coordinator merges one unit at a time, in this order:
+  - `pob-api/API/Compile.lua` and `src/plan/checks/v1.ts`: WU-65, then WU-66, then WU-67 (`v1.ts`);
+  - `src/plan/schema.ts`: WU-65 only, the version-3 bump. Validators accept versions 1, 2 and 3;
+  - `src/handlers/planHandlers.ts`: WU-65 (the reply), then WU-68 (the views);
+  - the skill (`SKILL.md`, `references/`, `templates/`, the agent definitions), `check-run.mjs` and
+    `tests/static/buildGuidePipeline.test.ts`: WU-69, then WU-70, then WU-71.
+- **Tool count.** M-15 adds no tool: the counts stay 84, and 83 without poe.ninja. WU-68 changes `guide_run`'s
+  schema and description, so it regenerates the README table (`pnpm build && pnpm docs:tools --write`).
+- **Engine wiring.** A unit that changes a Lua reply updates `src/engine/schemas.ts`, `src/pobLuaBridge.ts`
+  and `tests/integration/contract.test.ts` (AC-B3, AC-B4, AC-B5).
+- **Cost.** The point of amendment 4 is a cheaper pipeline, so keep your own context lean:
+  - read the spec by unit block, AC and the sections they cite, not whole files;
+  - run targeted Jest suites while you work, and the full gate once at the end.
+
 ## What to build
 
 - **Spec.** `docs/build-guide/spec/README.md` is the spine, v1.3:

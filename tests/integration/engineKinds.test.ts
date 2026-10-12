@@ -161,11 +161,13 @@ engineDescribe('AC-E16: C-8 engine kinds match what each tool does to the engine
     }, 180000);
   });
 
-  // AC-P38, AC-B3 (D-216): a guide_run call carrying new_run is routed as kind none, so the checked set
-  // above leaves it out; it must still leave the export and revision unchanged and take no session lock.
-  it('AC-P38/AC-B3: guide_run new_run samples (kind none) leave the export and revision unchanged and emit no session event', async () => {
-    const samples = SAMPLES.filter((s) => s.tool === 'guide_run' && s.expect === 'ok' && s.args.new_run !== undefined);
-    expect(samples.length).toBeGreaterThan(0);
+  // AC-P38, AC-B3 (D-216, D-356): a guide_run call carrying new_run or view is routed as kind none, so the
+  // checked set above leaves it out; it must still leave the export and revision unchanged and take no
+  // session lock.
+  it('AC-P38/AC-B3: guide_run new_run and view samples (kind none) leave the export and revision unchanged and emit no session event', async () => {
+    const samples = SAMPLES.filter((s) => s.tool === 'guide_run' && s.expect === 'ok' && engineKindFor(s.tool, s.args) === 'none');
+    expect(samples.some((s) => s.args.new_run !== undefined)).toBe(true);
+    expect(samples.filter((s) => s.args.view !== undefined).length).toBe(2);
     for (const sample of samples) {
       expect(engineKindFor(sample.tool, sample.args)).toBe('none');
       await freshGolden();

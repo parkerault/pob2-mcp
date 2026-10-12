@@ -1084,7 +1084,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "guide_run",
-      description: "Start a build-guide run, or check a plan without compiling it. new_run (a slug of lowercase letters and digits joined by single hyphens, at most 64 characters) creates the next run folder '<slug>/<YYYY-MM-DD>-<n>' in the guides folder and returns its absolute path, the plan_path to use for the run's plan.json, and loadedBuildUnsaved: whether the engine's loaded build has unsaved changes, which the run's first compile_plan would discard (save it first). new_run never starts or touches the engine. validate (a plan_path relative to the guides folder) checks the plan's schema, reporting each error by JSON path, then checks every stage against the game data as compile_plan does before it compiles (unknown gems with suggestions, item text, passive nodes and their connection, weapon-set tags, attribute choices, tree jewels, config options and values, the main skill index), without changing the engine's build; stages limits the check to those stage ids. Give exactly one of new_run and validate.",
+      description: "Start a build-guide run, check a plan without compiling it, or read one stage or every claim of a plan. new_run (a slug of lowercase letters and digits joined by single hyphens, at most 64 characters) creates the next run folder '<slug>/<YYYY-MM-DD>-<n>' in the guides folder and returns its absolute path, the plan_path to use for the run's plan.json, and loadedBuildUnsaved: whether the engine's loaded build has unsaved changes, which the run's first compile_plan would discard (save it first). new_run never starts or touches the engine. validate (a plan_path relative to the guides folder) checks the plan's schema, reporting each error by JSON path, then checks every stage against the game data as compile_plan does before it compiles (unknown gems with suggestions, item text, passive nodes and their connection, weapon-set tags, attribute choices, tree jewels, config options and values, the main skill index), without changing the engine's build; stages limits the check to those stage ids. view reads part of a plan without the engine, each reply under 25K tokens: {plan, stage} returns that stage's section of the plan and its key figures from the compile-record.json beside the plan (DPS, life, energy shield, EHP, resistances, V1/V2 finding counts, and on an endgame stage the Arbiter verdict and rough clear speed), saying whether the plan's build changed since that compile; {plan, claims: true} returns every claim, one line each with its stage, id, kind, text and source. Give exactly one of new_run, validate and view.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1100,6 +1100,20 @@ export function getLuaToolSchemas(): any[] {
             type: "array",
             items: { type: "string" },
             description: "validate only: the stage ids to check; default every stage",
+          },
+          view: {
+            type: "object",
+            description: "Read part of a plan: {plan, stage} for one stage's section and key figures, or {plan, claims: true} for every claim",
+            properties: {
+              plan: {
+                type: "string",
+                description: "The plan, relative to the guides folder, e.g. 'titan-blood-hunt/2026-10-08-1/plan.json'",
+              },
+              stage: { type: "string", description: "A stage id: its plan section and key figures" },
+              claims: { type: "boolean", description: "true: every claim in the plan, one line each" },
+            },
+            required: ["plan"],
+            additionalProperties: false,
           },
         },
       },

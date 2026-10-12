@@ -137,8 +137,10 @@ const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options",
 const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
   manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
   // D-216: guide_run's run-folder mode never enters the session: no lock, no event, no engine start. Only a
-  // validate call (without new_run) runs as a read; any other argument mix is refused without the engine.
-  guide_run: (args) => (args?.validate === undefined || args?.new_run !== undefined ? "none" : undefined),
+  // validate call (without new_run or view) runs as a read; a view (D-356) reads files only, and any other
+  // argument mix is refused without the engine.
+  guide_run: (args) =>
+    args?.validate === undefined || args?.new_run !== undefined || args?.view !== undefined ? "none" : undefined,
 };
 
 /** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */

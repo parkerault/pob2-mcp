@@ -2759,3 +2759,21 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   a localhost OTLP receiver that drops identity attributes.
 - **Dispatched:** the WU-65 doer in `bg-65`. The WU-64 doer in `bg-64` stops at "awaiting control" for the user's
   control session.
+- **WU-64: awaiting the control** (head `734764b`, static tests 286 of 286). The spike holds
+  `scripts/run-usage.mjs` (the transcript counter), `scripts/otlp-receiver.mjs` (127.0.0.1 only; keeps
+  `api_request`/`api_error` and the token metrics, drops identity and resource attributes; the coordinator
+  read it), `spikes/WU-64-control.md` and the report, which is half done.
+  - **Run A, by the counter:**
+    - recorded output 1.79M; estimated output 2.50M; thinking 1.59M; cache read 296.2M;
+    - 425 of 1,696 requests carry only a stale record.
+  - **Held-out check against complete records:**
+    - total +0.2%;
+    - per step kind −1.4% to +5.2%;
+    - per agent −12.9% to +20.4%;
+    - P1 +4.0%.
+  - **Peak context:** 23 of 37 agents went past the 150K target, the largest D1 attempt 1 at 545K.
+  - **Found in Claude Code 2.1.296:**
+    - `api_request` carries `request_id`, equal to the transcript's `requestId`, with `query_source` and
+      `agent.name`;
+    - `/exit` writes a `cost-state` entry, the `/usage` ledger, into the transcript.
+  - **Next:** the user runs the control session (about 3 minutes); then the doer is resumed with its paths.

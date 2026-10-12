@@ -3053,3 +3053,26 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - `run-folder.md`'s checker section;
     - `check-run.mjs` still expects `D1`, `V4-<lens>` and `hit_*`.
 - **WU-70 B started:** a fresh doer, since A's context was over 400K.
+- **WU-70 B: built** (`9caa7ad`). Static and unit suites 1252 of 1252. The pipeline tests went from 245 to 271,
+  and 49 of them fail against `ed087cc`'s skill text.
+  - **Line counts:** `D2.md` 160 to 209, because it states the pricing and data rules it used to send agents to
+    whole files for; `W1.md` 206 to 207; the guide template 199 to 194; the dossier template 88 to 19.
+  - **Deviations:**
+    - the audit template is restated as the exact form `render-audit.mjs` produces, with no Run notes;
+    - three cross-checks against `check-run.mjs` were dropped, since that file is WU-71's;
+    - consistency edits in D1-build, `run-log.md`, `run-folder.md`, `source-markers.md` and `lookups.md`;
+    - W1 still adds accepted gate findings under `Known issues`.
+  - **For WU-71:**
+    - a render step and a Bash entry for `render-audit.mjs` in `SKILL.md`. Part B couldn't add them, because the
+      path test fails while the script is missing;
+    - the Checks block's form;
+    - the survival label on `b` and `n`: "survives the Arbiter's hits" or "one-shot by the Arbiter's <type> hit",
+      or "not measured…";
+    - the anoint line's form;
+    - the dossier table's columns, and `dossier-sections` moved to them.
+- **D-366 (the coordinator's ruling, PROPOSED):** D2 may keep `reason` claims that name each campaign stage's
+  tree path, its notables and keystones in order, plus one per reward pick, about 10.
+  - **Why:** the plan holds node ids only and W1 has no tree tool, but the guide must name the path (D-346).
+  - **Cost:** V4 doesn't check `reason` claims, and they count toward AC-W58's 56.
+  - **The rejected alternative:** node names in `guide_run`'s stage view. That's more code for the same result.
+- **WU-70 review:** one reviewer for parts A and B.

@@ -2829,6 +2829,18 @@ describe('D-355: the dossier is the verification gate\'s comparison table', () =
     editText(dir, 'dossier.md', (t) => t.replace(/^(\| r1-c-1 \|[^|]*\|[^|]*\|[^|]*\|) — \|/m, '$1 Maelstrom 9000 (g1s1p1.TotalDPS) |'));
     expect(lines(failing(dir), 'dossier-sections')).toEqual([expect.stringMatching(/r1-c-1 is "can't be finalized yet", but its Named source DPS cell\(s\) aren't "—"/)]);
   });
+
+  it("reads a writer's typography as the template's: a curly apostrophe in a survival label, a hyphen or en dash for a dossier's —", () => {
+    const guide = copyOf('run-ok');
+    editGuide(guide, (t) => t.replace("**Budget (L90): survives the Arbiter's hits.**", '**Budget (L90): survives the Arbiter\u2019s hits.**'));
+    expect(fs.readFileSync(path.join(guide, 'guide.md'), 'utf8')).toContain('survives the Arbiter\u2019s hits.');
+    passes(guide);
+    const dossier = copyOf('run-escalated');
+    let k = 0;
+    editText(dossier, 'dossier.md', (t) => t.replace(/^\| r1-c-1 \|.*$/m, (row) => row.replace(/ — \|/g, () => (k++ % 2 === 0 ? ' - |' : ' \u2013 |'))));
+    expect(k).toBeGreaterThan(1);
+    passes(dossier);
+  });
 });
 
 describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --changed lists exactly what changed since it', () => {

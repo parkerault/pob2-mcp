@@ -1408,7 +1408,7 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
     const st0 = isObj(record?.stages) ? record.stages[s.id] : undefined;
     if (s.variant === 'entering-maps') {
       if (!['solid', 'watch', 'risky'].includes(m[3])) fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}; the entering-maps rung's label is solid, watch or risky (D-283)`);
-    } else if (m[3] !== arbiterLabel(st0?.measures?.arbiter)) {
+    } else if (plainTypography(m[3]) !== arbiterLabel(st0?.measures?.arbiter)) {
       const verdict = st0?.measures?.arbiter?.verdict;
       fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s measures.arbiter verdict is ${show(verdict ?? null)}${verdict === 'one-shot' ? `, its worst hit ${show(st0.measures.arbiter.worst?.type)}` : ''}, so its label is ${show(arbiterLabel(st0?.measures?.arbiter))} (D-353)`);
     }
@@ -1466,8 +1466,10 @@ function sectionLines(md, heading) {
   const { start, end } = md.sectionOf(heading);
   return md.lines.slice(start + 1, end).map((raw, k) => ({ raw: raw.trim(), n: start + k + 2 })).filter((l) => l.raw !== '');
 }
-/** An audit row's stage cell for a finding about no one stage. */
-const NO_STAGE = ['', '—', '-', '–'];
+/** A writer's dash for the templates' `—`: a hyphen, the Unicode hyphens and dashes (U+2010…U+2015) or a minus. */
+const isDash = (c) => /^[-\u2010-\u2015\u2212]$/.test(c);
+/** A label as the template words it, whatever the writer's typography: curly apostrophes plain, dashes a hyphen. */
+const plainTypography = (s) => String(s).replace(/[\u2018\u2019\u02BC\u2032]/g, "'").replace(/[\u2010-\u2015\u2212]/g, '-');
 
 /**
  * D-276, D-278, D-283: Known issues by sentence. The guide's H3 `Known issues`, the last part of `What PoB can't
@@ -1498,7 +1500,7 @@ function checkKnownIssues(guide, audit, accepted, open, fail) {
       continue;
     }
     const cell = (c) => c.replace(/`/g, '');
-    rows.push({ id: cell(cells[0]), from: cell(cells[1]), stage: NO_STAGE.includes(cells[2]) ? null : cell(cells[2]), sentence: cells[3], n: l.n });
+    rows.push({ id: cell(cells[0]), from: cell(cells[1]), stage: cells[2] === '' || isDash(cells[2]) ? null : cell(cells[2]), sentence: cells[3], n: l.n });
   }
   const used = new Set();
   const sentences = [];
@@ -2545,7 +2547,7 @@ function checkDossier(text, assembled, ID, fail) {
     if (!assembled.includes(id)) bad(`:${r.n}: has a row for ${id}, which no R1b verified before the last R1b-assemble; one row per verified card (D-355)`);
     const status = r.cells[DOSSIER_COLUMNS.indexOf('Status')];
     if (/^(failed|can't be finalized)/i.test(status)) {
-      const filled = DOSSIER_EMPTY_CELLS.filter((c) => r.cells[DOSSIER_COLUMNS.indexOf(c)] !== '—');
+      const filled = DOSSIER_EMPTY_CELLS.filter((c) => !isDash(r.cells[DOSSIER_COLUMNS.indexOf(c)]));
       if (filled.length > 0) bad(`:${r.n}: ${id} is ${show(status.split(/[:;]/)[0])}, but its ${filled.join(', ')} cell(s) aren't "—"; a failed or not-yet-finalizable card has no numbers, prices or league (templates/dossier-template.md)`);
     }
   }

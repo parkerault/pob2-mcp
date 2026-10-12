@@ -29,6 +29,12 @@
  *     custom-modifier marks (`record.ts`, D-321).
  * Any failure up to step 9 writes nothing. Steps 1–5 leave the engine's build as it was.
  *
+ * WU-65 (D-353, D-358): an endgame stage whose scenario omits a reference hit gets it from the data at its
+ * rung's area level (`withReferenceHits`, D-254's formula rounded by D-256) before step 4, so it is written,
+ * grouped and checked like a listed one; a stage's anoint is checked by `compile_check` and written on its
+ * amulet by `compile_stage`; the record gives each endgame stage its `measures` and an anointed stage its
+ * recipe; `keyFigureLine` is the line `compile_plan` prints after each stage's line (D-356).
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -58,12 +64,16 @@ import { canonicalBuildPath } from '../utils/pathSanitizer.js';
 import { buildSha1 } from './buildHash.js';
 import { evaluateLedger, ledgerErrorText, type StageOutputs } from './ledger.js';
 import {
+  ARBITER_FILE,
   MEASURE_ONLY_XML_FILE,
   RECORD_FILE,
   RECORD_VERSION,
+  arbiterHitsOf,
+  clearGemNames,
   countedFigures,
   formulaReadsStages,
   recordText,
+  stageMeasures,
   unresolvedRefs,
   versionNotes,
   type CompileMode,
@@ -72,7 +82,17 @@ import {
   type StageRecord,
   type Verdict,
 } from './record.js';
-import { CUSTOM_MODS_OPTION, validatePlan, type Plan, type PlanError, type PlanReferenceData, type Stage } from './schema.js';
+import type { ReferenceData, ResolvedFact } from './referenceData.js';
+import {
+  CUSTOM_MODS_OPTION,
+  validatePlan,
+  type Plan,
+  type PlanError,
+  type PlanReferenceData,
+  type PlanVariant,
+  type Stage,
+} from './schema.js';
+import type { SourceTag } from './sourceTag.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
@@ -96,7 +116,7 @@ export interface CompilerEnv {
   guidesDirectory: string;
   writer: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile'>;
   /** The C1/E1 reference data (`loadReferenceData`). */
-  referenceData: () => PlanReferenceData;
+  referenceData: () => ReferenceData;
   /** The baseline list (D-230); default `loadConfigBaseline()` from the package's `data/`. */
   configBaseline?: () => ConfigBaseline;
   /** C-45's offense fields, measured per active skill and stat set. */
@@ -371,6 +391,7 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
     main: stage.skills.main,
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),
+    ...(stage.items.anoint !== undefined ? { anoint: stage.items.anoint.notable } : {}),
   };
 }
 
@@ -407,6 +428,129 @@ export function renderPlanErrors(errors: readonly PlanError[], raw: unknown): st
     const id = stage !== null && typeof stage === 'object' ? (stage as { id?: unknown }).id : undefined;
     return `${e.path}${typeof id === 'string' && id !== '' ? ` (stage ${id})` : ''}: ${e.message}`;
   });
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The reference hits (WU-65, D-353; D-254, D-256)
+
+/** The five reference hits of an endgame stage (D-254): each option, and whether it is an extra element (or chaos). */
+export const REFERENCE_HITS: readonly { option: string; type: string; extra: boolean }[] = [
+  { option: 'enemyPhysicalDamage', type: 'physical', extra: false },
+  { option: 'enemyFireDamage', type: 'fire', extra: true },
+  { option: 'enemyColdDamage', type: 'cold', extra: true },
+  { option: 'enemyLightningDamage', type: 'lightning', extra: true },
+  { option: 'enemyChaosDamage', type: 'chaos', extra: true },
+];
+
+const MAP_MONSTERS = 'enemies/map-monsters.json';
+const WAYSTONES = 'enemies/waystones.json';
+
+/** The waystone tier of a rung below the top (D-254, D-281): `m` at T5, `b` at T15; `n` takes the data's max area level. */
+const RUNG_TIER: Readonly<Partial<Record<PlanVariant, number>>> = { 'entering-maps': 5, budget: 15 };
+
+/** D-256: PoB takes a hit as a whole number: the value rounded to 2 decimals (absorbing float32 noise), then up. */
+export const hitCeiling = (value: number): number => Math.ceil(Math.round(value * 100) / 100);
+
+function dataFact(ref: PlanReferenceData, file: string, key: string): ResolvedFact {
+  const found = ref.resolveFact(file, key);
+  if (!found.ok) throw new CompileError(`the reference hits (D-254) need ${file}#${key}: ${found.reason}. Nothing was compiled.`);
+  return found.fact;
+}
+
+/** A fact's number: the value, or the top of a `{min, max}` range. */
+function topOf(fact: ResolvedFact): number {
+  const v = fact.value as unknown;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'object' && v !== null && typeof (v as { max?: unknown }).max === 'number') return (v as { max: number }).max;
+  throw new CompileError(`the reference hits (D-254) need a number at ${fact.file}#${fact.factId}. Nothing was compiled.`);
+}
+
+const CONFIDENCE_ORDER = ['L', 'M', 'H'] as const;
+
+/** The area level of a rung (D-254): `area-level.offset` plus its tier for `m` (69) and `b` (79), `area-level.max` for `n` (82). */
+export function rungAreaLevel(variant: PlanVariant, ref: PlanReferenceData): { level: number; facts: ResolvedFact[] } {
+  const tier = RUNG_TIER[variant];
+  if (tier === undefined) {
+    const max = dataFact(ref, WAYSTONES, 'area-level.max');
+    return { level: topOf(max), facts: [max] };
+  }
+  const offset = dataFact(ref, WAYSTONES, 'area-level.offset');
+  return { level: topOf(offset) + tier, facts: [offset] };
+}
+
+/**
+ * D-254, D-256: a rung's five reference hits, each a scenario entry. A hit is the map monsters' damage at the
+ * rung's area level × (1 + the top of `mods.increased-monster-damage` / 100), and × the top of
+ * `mods.extra-damage-as-element` / 100 for fire, cold, lightning and chaos, as a whole number (`hitCeiling`).
+ * Each cites the damage at that level, with that fact's tag at the lowest confidence of the facts it rests on.
+ */
+export function referenceHits(variant: PlanVariant, ref: PlanReferenceData): Stage['config']['scenario'] {
+  const area = rungAreaLevel(variant, ref);
+  const damageKey = `damage.by-level[${area.level}]`;
+  const damage = dataFact(ref, MAP_MONSTERS, damageKey);
+  const increased = dataFact(ref, WAYSTONES, 'mods.increased-monster-damage');
+  const extra = dataFact(ref, WAYSTONES, 'mods.extra-damage-as-element');
+  const base = topOf(damage) * (1 + topOf(increased) / 100);
+  return REFERENCE_HITS.map((h) => {
+    const facts = [damage, increased, ...(h.extra ? [extra] : []), ...area.facts];
+    const lowest = facts
+      .map((f) => f.tag.confidence ?? 'H')
+      .reduce((a, b) => (CONFIDENCE_ORDER.indexOf(a) <= CONFIDENCE_ORDER.indexOf(b) ? a : b));
+    const tag: SourceTag = { ...damage.tag, confidence: lowest };
+    return {
+      option: h.option,
+      value: hitCeiling(h.extra ? base * (topOf(extra) / 100) : base),
+      source: { file: MAP_MONSTERS, key: damageKey },
+      tag,
+    };
+  });
+}
+
+/**
+ * D-353: an endgame stage with every reference hit its scenario omits added from the data (`referenceHits`), so
+ * it is written, grouped (A-P2) and checked like a listed one; a hit the plan lists, as earned or scenario, keeps
+ * its own value. Any other stage is returned as it is.
+ */
+export function withReferenceHits(stage: Stage, ref: PlanReferenceData): Stage {
+  if (stage.variant === undefined) return stage;
+  const listed = stageConfig(stage);
+  const missing = REFERENCE_HITS.filter((h) => listed[h.option] === undefined);
+  if (missing.length === 0) return stage;
+  const filled = referenceHits(stage.variant, ref).filter((e) => missing.some((h) => h.option === e.option));
+  return { ...stage, config: { ...stage.config, scenario: [...stage.config.scenario, ...filled] } };
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The key-figure line (WU-65, D-356)
+
+const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(v) ? String(Math.round(v)) : '?');
+
+/**
+ * D-356 (amending D-273 (2)): a stage's key figures, the line `compile_plan` prints after the stage's line, so an
+ * agent needn't read the record after a compile: the headline DPS (the named source's Count-scaled figure), life,
+ * energy shield, EHP, the four resistances, the V1 and V2 finding counts, and on an endgame stage the Arbiter
+ * verdict with its worst hit (`b`, `n`) and the rough clear speed (D-353).
+ */
+export function keyFigureLine(rec: StageRecord): string {
+  const o = rec.outputs;
+  const dps = rec.measures !== undefined ? rec.measures.dps : rec.countedOutputs.fields.TotalDPS;
+  const ehp = rec.measures !== undefined ? rec.measures.ehp : o.TotalEHP;
+  const parts = [
+    `DPS ${whole(dps)}`,
+    `life ${whole(o.Life)}`,
+    `ES ${whole(o.EnergyShield)}`,
+    `EHP ${whole(ehp)}`,
+    `resists ${['FireResist', 'ColdResist', 'LightningResist', 'ChaosResist'].map((k) => whole(o[k])).join('/')} (fire/cold/lightning/chaos)`,
+    `findings V1 ${rec.v1?.findings.length ?? '?'}, V2 ${rec.v2?.findings.length ?? '?'}`,
+  ];
+  const arbiter = rec.measures?.arbiter;
+  if (arbiter !== undefined) {
+    const worst = arbiter.worst;
+    const at = worst === null ? '' : ` (worst: ${worst.type} hit ${worst.hitId}, ${worst.ratio.toFixed(2)} of max hit)`;
+    parts.push(`Arbiter ${arbiter.verdict ?? 'unknown'}${at}`);
+  }
+  if (rec.measures !== undefined) parts.push(`clear ${rec.measures.clearSpeed.speed} (rough)`);
+  return `  Key figures: ${parts.join('; ')}`;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -588,6 +732,7 @@ export function stageParams(
   first: boolean,
   refs: Record<ContentKind, StageSetRef>,
   offenseFields: readonly string[],
+  anoint?: string,
 ): CompileStageParams {
   return {
     id: stage.id,
@@ -621,10 +766,15 @@ export function stageParams(
     configSet: refs.config,
     config: stageConfig(stage),
     customMods: customModLines(stage),
-    offenseFields: [...offenseFields],
+    offenseFields: [...offenseFields, ...MEASURE_FIELDS.filter((f) => !offenseFields.includes(f))],
     itemSlots: [...ITEM_SLOTS],
+    // D-358: the notable's PoB name, as compile_check resolved it, written on the amulet.
+    ...(anoint !== undefined ? { anoint } : {}),
   };
 }
+
+/** The fields the measures read per skill beside C-45's (D-353): the clear skill's area. */
+export const MEASURE_FIELDS: readonly string[] = ['AreaOfEffectRadiusMetres'];
 
 const SET_ID_KEY: Record<ContentKind, 'itemSet' | 'skillSet' | 'configSet'> = {
   item: 'itemSet',
@@ -667,7 +817,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     refData,
     request.mode === 'measure-only' ? request.stages : undefined,
   );
-  const { plan, compiled } = loaded;
+  // D-353: each endgame stage's omitted reference hits come from the data, before the sets are grouped.
+  const plan: Plan = { ...loaded.plan, stages: loaded.plan.stages.map((s) => withReferenceHits(s, refData)) };
+  const compiledIds = new Set(loaded.compiled.map((s) => s.id));
+  const compiled = plan.stages.filter((s) => compiledIds.has(s.id));
   // V2's baseline list (D-230), checked with the plan: an invalid file stops the compile here.
   const baselineList = readConfigBaseline(env);
 
@@ -695,6 +848,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     ascendancy: plan.roll.ascendancy,
     stages: compiled.map(checkStageOf),
     producers: producersOf(compiled),
+    // D-353: the clear-speed measure reads the endgame stages' clear gems' texts.
+    describeGems: [...new Set(compiled.filter((s) => s.variant !== undefined).flatMap(clearGemNames))],
   });
   const checkMs = env.clock() - tCheck;
   if (check.defects.length > 0) {
@@ -717,6 +872,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const results: { stage: Stage; reply: CompileStageResult; elapsedMs: number; checked: StageVerdicts }[] = [];
   // V1 and V2's producer lookups, from the preflight (D-221).
   const producers = new Map(check.producers.map((p) => [producerKey(p.kind, p.name), p.exists]));
+  // D-358: each anointed stage's notable, as the preflight resolved it.
+  const anoints = new Map(check.anoints.map((a) => [a.stage, a]));
   for (const [i, stage] of compiled.entries()) {
     const refs = {} as Record<ContentKind, StageSetRef>;
     for (const kind of CONTENT_KINDS) {
@@ -724,7 +881,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       refs[kind] = setRef(grouped[kind].groups[g].title, created[kind], g);
     }
     const t = env.clock();
-    const reply = await ctx.client.compileStage(stageParams(stage, i === 0, refs, env.offenseFields));
+    const reply = await ctx.client.compileStage(stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable));
     const elapsedMs = env.clock() - t;
     for (const kind of CONTENT_KINDS) {
       const g = grouped[kind].groupOf.get(stage.id)!;
@@ -818,6 +975,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   }
 
   // 11. The ledger and the record.
+  const arbiterHits = arbiterHitsOf(refData.files.get(ARBITER_FILE)?.facts ?? {});
   const numbers: Record<string, StageOutputs> = {};
   const stages: Record<string, StageRecord> = {};
   /** D-321: the stages measured with custom modifiers present, whose figures carry the mark. */
@@ -845,6 +1003,12 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       v1: checked.v1,
       v2: checked.v2,
     };
+    // D-353: the endgame measures; D-358: the anoint's recipe.
+    if (stage.variant !== undefined) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);
+    const anoint = anoints.get(stage.id);
+    if (anoint !== undefined) {
+      stages[stage.id].anoint = { notable: anoint.notable, node: anoint.node, recipe: [...anoint.recipe], emotions: [...anoint.emotions] };
+    }
   }
   const ledger: CompileRecord['ledger'] = {};
   const evaluated = evaluateLedger(plan.ledger, { stageIds: plan.stages.map((s) => s.id), stages: numbers });
@@ -903,7 +1067,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
  * producers the earned config names that the game data lacks are listed (V2's `producer-unknown`).
  */
 export async function validatePlanFile(
-  env: Pick<CompilerEnv, 'ctx' | 'guidesDirectory' | 'referenceData'>,
+  env: Pick<CompilerEnv, 'ctx' | 'guidesDirectory'> & { referenceData: () => PlanReferenceData },
   planPath: string,
   subset?: readonly string[],
 ): Promise<{ stages: string[]; unknownProducers: { kind: string; name: string }[] }> {

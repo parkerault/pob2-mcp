@@ -216,10 +216,12 @@ describe('C-41, C-50: argument combinations and error lines', () => {
     };
     const text = renderCompileText({ planPath: 'r/plan.json', record, written: { builds: [], guides: [] }, replacedFile: false });
     const lines = text.split('\n');
+    // The stage line, then its key-figure line (D-356), then its findings.
     const after = (id: string) => {
       const at = lines.findIndex((l) => l.startsWith(`Stage ${id} `));
-      const next = lines.findIndex((l, i) => i > at && !l.startsWith('  - '));
-      return lines.slice(at + 1, next);
+      expect(lines[at + 1]).toMatch(/^  Key figures: /);
+      const next = lines.findIndex((l, i) => i > at + 1 && !l.startsWith('  - '));
+      return lines.slice(at + 2, next);
     };
     // 14 findings on stage b and 11 on stage n, each printed in full, V1 first; nothing points at the record instead.
     expect(after('b')).toEqual([...v1, ...v2].map((f) => `  - ${f.code}: ${f.message}`));

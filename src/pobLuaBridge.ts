@@ -919,7 +919,10 @@ export class PoBLuaApiClient {
   // The plan compiler (C-41, `API/Compile.lua`). Each request runs under the default timeout (C-4), which
   // bounds every stage of a compile (NFR-21).
 
-  /** The read-only preflight of every stage: the defects, and the tree the compile builds against. */
+  /**
+   * The read-only preflight of every stage: the defects, the tree the compile builds against, each valid
+   * anoint's notable and recipe (`anoints`, D-358) and the descriptions of the gems asked for (`gemTexts`, D-353).
+   */
   async compileCheck(params: ActionParams<"compile_check">, opts?: RequestOptions): Promise<CompileCheckResult> {
     const res = await this.request("compile_check", params, opts);
     return res.result;
@@ -927,7 +930,7 @@ export class PoBLuaApiClient {
 
   /**
    * Build and measure one stage: its set ids, PoB's allocation, its outputs and its breakdown, and whether each
-   * measured skill's damage over time stacks (`dotCanStack`, D-293).
+   * measured skill's damage over time stacks (`dotCanStack`, D-293). An `anoint` goes on the amulet (D-358).
    */
   async compileStage(params: ActionParams<"compile_stage">, opts?: RequestOptions): Promise<CompileStageResult> {
     const res = await this.request("compile_stage", params, opts);

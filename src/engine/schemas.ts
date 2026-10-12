@@ -1003,7 +1003,9 @@ export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
  * the class or ascendancy), empty when every stage can be built; `treeVersion` is the tree the compile
  * builds against. WU-42 adds, for V2, `producers` (whether each producer the plan's earned config names
  * exists in the game data, D-221) and `configBaseline` (per config option, what a new config set holds for
- * it, from PoB's option list; no set is created).
+ * it, from PoB's option list; no set is created). WU-65 adds `anoints` (D-358), one per stage whose anoint is
+ * valid: the notable's PoB name and node, its recipe of three emotions as the tree names them and PoB's item
+ * names for them; and `gemTexts` (D-353), the description of each gem `describeGems` names.
  */
 /** A config value as the compiler writes and reads it (C-32): no null. */
 const compileConfigScalar = z.union([z.boolean(), z.number(), z.string()]);
@@ -1026,6 +1028,21 @@ export const configOptionDefaultSchema = z
   .passthrough();
 export type ConfigOptionDefault = z.infer<typeof configOptionDefaultSchema>;
 
+/** D-358: a stage's valid anoint, as `compile_check` resolves it on the tree. */
+export const anointSchema = z
+  .object({
+    stage: z.string(),
+    /** The notable's PoB name (`node.dn`), as the compiler writes it after `Allocates `. */
+    notable: z.string(),
+    node: z.number().int(),
+    /** The tree's recipe: three emotions, as the tree names them (`Paranoia`, `Greed`, …). */
+    recipe: luaArray(z.string()),
+    /** PoB's item name of each recipe emotion (`Liquid Paranoia`, `Diluted Liquid Greed`, …). */
+    emotions: luaArray(z.string()),
+  })
+  .passthrough();
+export type AnointResult = z.infer<typeof anointSchema>;
+
 export const compileCheckReply = baseReply.extend({
   result: z
     .object({
@@ -1034,6 +1051,8 @@ export const compileCheckReply = baseReply.extend({
       stageCount: z.number().int(),
       producers: luaArray(z.object({ kind: z.string(), name: z.string(), exists: z.boolean() }).passthrough()),
       configBaseline: luaMap(configOptionDefaultSchema),
+      anoints: luaArray(anointSchema),
+      gemTexts: luaMap(z.string()),
     })
     .passthrough(),
 });
@@ -1190,6 +1209,8 @@ export interface CompileCheckStage {
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */
   customMods: string[];
+  /** D-358: the notable the stage's amulet is anointed with (`items.anoint.notable`). */
+  anoint?: string;
 }
 
 /** A stage's item, skill or config set: `reuse` selects the set an earlier stage created. */
@@ -1235,6 +1256,8 @@ export interface CompileStageParams {
   offenseFields: string[];
   /** The slots whose content the reply reports (`ITEM_SLOTS`). */
   itemSlots: string[];
+  /** D-358: the notable written on the amulet as `{enchant}Allocates <notable>`: its PoB name, from `compile_check`. */
+  anoint?: string;
   /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
   __crashForTest?: boolean;
 }
@@ -1492,13 +1515,16 @@ export interface ActionParamsMap {
   };
   /**
    * C-41 step 5: the read-only preflight of every stage; changes nothing. `producers`: the earned config's
-   * producers, each looked up in the game data (D-221, WU-42).
+   * producers, each looked up in the game data (D-221, WU-42). Each stage's `anoint` is checked and resolved
+   * (D-358); `describeGems` asks for gem descriptions (D-353).
    */
   compile_check: {
     className: string;
     ascendancy: string;
     stages: CompileCheckStage[];
     producers?: Array<{ kind: string; name: string }>;
+    /** D-353 (WU-65): the gems whose description the reply gives in `gemTexts`. */
+    describeGems?: string[];
   };
   /** C-41 step 7: build and measure one stage. */
   compile_stage: CompileStageParams;

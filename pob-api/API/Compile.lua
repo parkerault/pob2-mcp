@@ -27,19 +27,29 @@
 --     PoB's option list as ConfigTab:CreateConfigSet fills a new set (Classes/ConfigTab.lua:979-987),
 --     without creating a set, and whether PoB shows it only for some builds (`conditional`: it has a
 --     show gate such as ifSkill or ifCond, ConfigTab.lua:244-541).
---     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}}}
+--     The anoint (WU-65, D-358): a stage's `anoint` names the notable its amulet is anointed with. It is a
+--     defect when the stage equips no amulet, when the name is no notable of the tree (matched as PoB's
+--     `Allocates <name>` matches it, PassiveSpec:ResolveGrantedPassiveNodes), when the notable has no recipe
+--     of three Distilled Emotions (the tree's `recipe`), or when the stage's tree allocates it. Each valid one
+--     is reported in `anoints`: the notable's PoB name and node, its recipe as the tree names the emotions,
+--     and PoB's item names for them (Data/LiquidEmotions.lua). `describeGems` (WU-65, D-353) names gems whose
+--     description the reply gives in `gemTexts` (the clear-speed measure reads it).
+--     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
+--         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[]}],
---                   main, configSet, config, customMods[], offenseFields[], itemSlots[]}
+--                   main, configSet, config, customMods[], offenseFields[], itemSlots[], anoint?}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
 --     tags and attribute choices (C-40), then the tree jewels. Item, skill and config sets: `reuse` names
 --     a set an earlier stage created, which is only selected (its content is the same); otherwise stage 1
 --     retitles set 1 of that type and every other stage creates a set (Sets.lua, C-39), and the content
 --     goes in: the items, the toggles (a toggle on an empty slot is skipped, for the checks to report)
---     and the second weapon set; every socket group and its gems, each group with the includeInFullDPS and
---     groupCount it is given (the compiler puts only the named source's group in Full DPS, with its Count:
+--     and the second weapon set (an `anoint` notable goes on the amulet as the enchant line
+--     `Allocates <notable>`, as PoB's anoint dialog writes it, ItemsTab:anointItem; WU-65, D-358); every
+--     socket group and its gems, each group with the includeInFullDPS and groupCount it is given
+--     (the compiler puts only the named source's group in Full DPS, with its Count:
 --     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
 --     PoB's customMods text option (D-293). Then the main selection (after the second-weapon-set flag, which
 --     doesn't move it), the level in manual mode, and the measurement: every finite number of the main
@@ -59,8 +69,9 @@
 --     the item or gem each requirement comes from, every gem's tier, kind (skill, support, or spirit: it
 --     reserves Spirit) and level requirement at its level, every equipped item's level requirement and
 --     names (flasks and charms with their toggle), PoB's warning lines (get_warnings, without another
---     rebuild), the allocated nodes' names, the active skills' names, the stage's config set's `input`
---     and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included),
+--     rebuild), the allocated nodes' names (a notable an item grants, such as the anoint, included: it is
+--     allocated in the calculation, not on the tree), the active skills' names, the stage's config set's
+--     `input` and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included),
 --     and `shownOptions`, the conditional config options PoB shows for the stage (D-250).
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
@@ -471,6 +482,97 @@ local function config_baseline()
   return out
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- The anoint (WU-65, D-358): one notable on the stage's amulet, written as the enchant `Allocates
+-- <notable>`, which PoB grants with no path or point (Modules/CalcSetup.lua:17-21, 1405-1414)
+
+local ANOINT_SLOT = 'Amulet'
+
+-- The notable PoB's `Allocates <name>` grants: the tree's notable of that name, lowercased and trimmed as
+-- PassiveSpec:ResolveGrantedPassiveNodes matches it (Classes/PassiveSpec.lua:1063-1104), or nil.
+local function anoint_node(tree, notable)
+  local key = tostring(notable or ''):lower():gsub('^%s+', ''):gsub('%s+$', '')
+  return tree.notableMap and tree.notableMap[key] or nil
+end
+
+-- PoB's item names of a recipe's emotions (Data/LiquidEmotions.lua): the anoint emotions are the ones that
+-- aren't radius-jewel emotions, named "... Liquid <emotion>". An emotion with no such item keeps its name.
+local function emotion_names(recipe)
+  local byWord = {}
+  for _, e in pairs(game_data().emotions or {}) do
+    local word = type(e) == 'table' and not e.radiusJewel and type(e.name) == 'string' and e.name:match('Liquid (%a+)$')
+    if word and not e.name:match('^Potent') then byWord[word] = e.name end
+  end
+  local out = {}
+  for i, word in ipairs(recipe) do out[i] = byWord[word] or word end
+  return out
+end
+
+-- The anoint's defects for one stage (`st.anoint` names the notable), and what the record gives of a valid
+-- one: the notable's PoB name and node, its recipe and the emotions' item names. nil without a valid anoint.
+local function check_anoint(tree, st, defect)
+  local wanted = st.anoint
+  if wanted == nil then return nil end
+  local hasAmulet = false
+  for _, it in ipairs(list(st.items)) do
+    if tostring(it.slot) == ANOINT_SLOT then hasAmulet = true end
+  end
+  if not hasAmulet then
+    defect(('items.anoint: the stage equips no amulet to anoint with "%s"; put one in the Amulet slot'):format(tostring(wanted)))
+  end
+  local node = anoint_node(tree, wanted)
+  if not node then
+    defect(('items.anoint: "%s" is no notable of the passive tree, so it has no three-emotion recipe'):format(tostring(wanted)))
+    return nil
+  end
+  local recipe = {}
+  for i, word in ipairs(list(node.recipe)) do recipe[i] = tostring(word) end
+  if #recipe ~= 3 then
+    defect(('items.anoint: notable "%s" (node %d) has no recipe of three Distilled Emotions, so no amulet can be anointed '
+      .. 'with it'):format(tostring(node.dn), node.id))
+  end
+  local allocated = false
+  for _, id in ipairs(list(st.nodes)) do
+    if id == node.id then allocated = true end
+  end
+  if allocated then
+    defect(('items.anoint: notable "%s" (node %d) is already allocated on the stage\'s tree, so the anoint would add '
+      .. 'nothing'):format(tostring(node.dn), node.id))
+  end
+  if not hasAmulet or #recipe ~= 3 or allocated then return nil end
+  return { stage = tostring(st.id), notable = tostring(node.dn), node = node.id, recipe = recipe,
+    emotions = emotion_names(recipe) }
+end
+
+-- The item text compile_stage equips in a slot: on the amulet, the stage's anoint as PoB's anoint dialog
+-- writes it (ItemsTab:anointItem), one enchant line `Allocates <notable>` in place of any other.
+local function anointed_text(st, it)
+  if st.anoint == nil or tostring(it.slot) ~= ANOINT_SLOT then return it.text end
+  local ok, item = pcall(construct, 'Item', tostring(it.text))
+  if not ok or not item or not item.baseName then fail('anointing the amulet: PoB can not parse its text') end
+  local lines = { { enchant = true, line = 'Allocates ' .. tostring(st.anoint) } }
+  for _, line in ipairs(item.enchantModLines or {}) do
+    if not tostring(line.line):match('^Allocates ') then lines[#lines + 1] = line end
+  end
+  item.enchantModLines = lines
+  item:BuildAndParseRaw()
+  return item:BuildRaw()
+end
+
+-- The description PoB gives each named gem (its granted effects', joined), for the clear-speed measure (D-353).
+local function gem_texts(names)
+  local out = {}
+  for _, name in ipairs(list(names)) do
+    local gemData = BuildOps.resolve_gem(name)
+    local texts = {}
+    for _, ge in ipairs(gemData and (gemData.grantedEffectList or { gemData.grantedEffect }) or {}) do
+      if type(ge) == 'table' and type(ge.description) == 'string' then texts[#texts + 1] = ge.description end
+    end
+    if #texts > 0 then out[tostring(name)] = table.concat(texts, ' ') end
+  end
+  return out
+end
+
 function M.compile_check(params)
   local tree = main and main.LoadTree and main:LoadTree(latestTreeVersion)
   if not tree then fail('passive tree data not available') end
@@ -478,9 +580,11 @@ function M.compile_check(params)
   local roll, rollErr = resolve_roll(tree, params.className, params.ascendancy)
   if not roll then defects[#defects + 1] = 'roll: ' .. rollErr end
   local stages = list(params.stages)
+  local anoints = {}
   for _, st in ipairs(stages) do
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
     check_stage(tree, roll, st, defect)
+    anoints[#anoints + 1] = check_anoint(tree, st, defect)
   end
   local producers = {}
   for _, p in ipairs(list(params.producers)) do
@@ -488,7 +592,7 @@ function M.compile_check(params)
     producers[#producers + 1] = { kind = kind, name = name, exists = producer_exists(tree, kind, name) }
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
-    configBaseline = config_baseline() }
+    configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems) }
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -616,7 +720,8 @@ end
 local function equip(st, added, pick)
   for _, it in ipairs(list(st.items)) do
     if pick(tostring(it.slot)) then
-      local res = must('equipping the item in ' .. tostring(it.slot), BuildOps.add_item_text({ text = it.text, slotName = it.slot }))
+      local res = must('equipping the item in ' .. tostring(it.slot),
+        BuildOps.add_item_text({ text = anointed_text(st, it), slotName = it.slot }))
       added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
     end
   end
@@ -952,6 +1057,12 @@ local function stage_checks(st, output, configSetId, defer)
   local nodeNames = {}
   for _, node in pairs(spec.allocNodes or {}) do
     if node.type ~= 'ClassStart' and node.type ~= 'AscendClassStart' and node.dn then nodeNames[#nodeNames + 1] = tostring(node.dn) end
+  end
+  -- A notable an item grants (the anoint, D-358) is allocated in the calculation, not on the tree.
+  local env = build.calcsTab and build.calcsTab.mainEnv
+  for id in pairs(env and env.grantedPassives or {}) do
+    local node = not spec.allocNodes[id] and spec.nodes[id] or nil
+    if node and node.dn then nodeNames[#nodeNames + 1] = tostring(node.dn) end
   end
   table.sort(nodeNames)
   local activeSkills = {}

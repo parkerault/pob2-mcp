@@ -15,8 +15,16 @@
  *   included, was computed with custom modifiers present: from `config.customMods`, or, in a version-1 plan,
  *   PoB's `customMods` option listed as an earned or scenario entry. A ledger value that reads such a stage
  *   carries the same mark.
+ *
+ * **Measures and the anoint** (WU-65; D-353, D-358), additive, so `recordVersion` stays 2. Each endgame stage
+ * (one with a `variant`) gets `measures`, computed here so no agent computes or checks them: `dps`, the
+ * headline (the named source's Count-scaled `TotalDPS`, D-294); `ehp`, PoB's `TotalEHP`; on the budget and
+ * non-budget rungs, `arbiter`, the Arbiter of Divinity's largest hit of each damage type and each mixed hit
+ * over the stage's max hit (`arbiterMeasure`); and a rough `clearSpeed` (`clearSpeedOf`). No kill time and no
+ * hits to kill. An anointed stage's record gives the notable and its recipe of three Distilled Emotions.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
+import type { Fact } from './referenceData.js';
 import type { Plan, Stage } from './schema.js';
 import type { SourceTag } from './sourceTag.js';
 
@@ -139,6 +147,303 @@ export function formulaReadsStages(formula: string, stageIds: ReadonlySet<string
   return parsed.ok && parsed.refs.some((r) => r.segments.length > 1 && stageIds.has(r.segments[0]));
 }
 
+// ---------------------------------------------------------------------------------------------------
+// The endgame measures (WU-65, D-353) and the anoint's recipe (D-358)
+
+/** A verdict on one of the Arbiter's hits: its top roll over the stage's max hit, `survives` below 1. */
+export type ArbiterVerdict = 'survives' | 'one-shot';
+
+/** One hit of the Arbiter of Divinity (`enemies/arbiter-of-divinity.json`, `hits.<id>`): its top roll and types. */
+export interface ArbiterHit {
+  id: string;
+  /** The top roll (`max` of the fact's range): level-79 base, before mitigation, non-crit. */
+  max: number;
+  /** Its damage types (`hits.<id>.type`, split at `-`): one for a plain hit, more for a mixed one. */
+  types: string[];
+}
+
+/** The data file holding the Arbiter's hits (C-35). */
+export const ARBITER_FILE = 'enemies/arbiter-of-divinity.json';
+
+/**
+ * The Arbiter's hits from its data file's facts: every `hits.<id>` range with its `hits.<id>.type`, in file
+ * order. A hit without a type, or a type that isn't a string, is left out.
+ */
+export function arbiterHitsOf(facts: Readonly<Record<string, Fact>>): ArbiterHit[] {
+  const out: ArbiterHit[] = [];
+  for (const [key, fact] of Object.entries(facts)) {
+    const m = /^hits\.([a-z0-9-]+)$/.exec(key);
+    const value = fact.value as unknown;
+    if (!m || typeof value !== 'object' || value === null || typeof (value as { max?: unknown }).max !== 'number') continue;
+    const type = facts[`${key}.type`]?.value;
+    if (typeof type !== 'string' || type === '') continue;
+    out.push({ id: m[1], max: (value as { max: number }).max, types: type.split('-') });
+  }
+  return out;
+}
+
+/** One part of a mixed hit: its share of the top roll, the stage's max hit of that type and their ratio. */
+export interface ArbiterPart {
+  type: string;
+  hit: number;
+  maxHit: number | null;
+  ratio: number | null;
+}
+
+/** A row of `measures.arbiter`: one per damage type the Arbiter deals and one per mixed hit. */
+export interface ArbiterRow {
+  /** The damage type, or a mixed hit's types joined by `-` as the data names them (`physical-lightning`). */
+  type: string;
+  mixed: boolean;
+  /** The hit's id in the data (`hits.<id>`): the largest of its type. */
+  hitId: string;
+  /** Its top roll. */
+  hit: number;
+  /**
+   * The stage's `<Type>MaximumHitTaken`. For a mixed hit, the largest hit of that mix the stage takes: the hit
+   * over the summed ratio. Null when PoB gave no finite positive max hit.
+   */
+  maxHit: number | null;
+  /** The hit over the max hit; for a mixed hit, its parts' ratios summed. */
+  ratio: number | null;
+  verdict: ArbiterVerdict | null;
+  /** A mixed hit's parts, its top roll split evenly between its types. */
+  parts?: ArbiterPart[];
+}
+
+export interface ArbiterMeasure {
+  /** `one-shot` when any row is, `survives` when every row survives; null when a row has no verdict. */
+  verdict: ArbiterVerdict | null;
+  /** The row with the largest ratio: the hit the survival label names. */
+  worst: { type: string; hitId: string; ratio: number } | null;
+  rows: ArbiterRow[];
+}
+
+/** The order of the plain damage types in `measures.arbiter`. */
+const DAMAGE_TYPES = ['physical', 'fire', 'cold', 'lightning', 'chaos'];
+const capitalised = (t: string) => `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
+
+/** The verdict of a ratio (D-353): below 1 the stage survives the hit, else it is one-shot. */
+export const arbiterVerdict = (ratio: number): ArbiterVerdict => (ratio < 1 ? 'survives' : 'one-shot');
+
+/**
+ * D-353: for each damage type the Arbiter deals, its largest hit's top roll over the stage's
+ * `<Type>MaximumHitTaken`; for each mixed hit, the largest of that mix, its parts' ratios summed (a part is
+ * the top roll split evenly between the mix's types: the data's split is "half converted"). `survives`
+ * below 1, else `one-shot`.
+ */
+export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: readonly ArbiterHit[]): ArbiterMeasure {
+  const maxHitOf = (type: string): number | null => {
+    const v = outputs[`${capitalised(type)}MaximumHitTaken`];
+    return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+  };
+  const largest = new Map<string, ArbiterHit>();
+  for (const hit of hits) {
+    const key = hit.types.join('-');
+    const seen = largest.get(key);
+    if (seen === undefined || hit.max > seen.max) largest.set(key, hit);
+  }
+  const keys = [...largest.keys()].sort((a, b) => {
+    const rank = (k: string) => (k.includes('-') ? DAMAGE_TYPES.length : Math.max(0, DAMAGE_TYPES.indexOf(k)));
+    return rank(a) - rank(b);
+  });
+  const rows: ArbiterRow[] = keys.map((key) => {
+    const hit = largest.get(key)!;
+    if (hit.types.length === 1) {
+      const maxHit = maxHitOf(hit.types[0]);
+      const ratio = maxHit === null ? null : hit.max / maxHit;
+      return { type: key, mixed: false, hitId: hit.id, hit: hit.max, maxHit, ratio, verdict: ratio === null ? null : arbiterVerdict(ratio) };
+    }
+    const parts: ArbiterPart[] = hit.types.map((type) => {
+      const share = hit.max / hit.types.length;
+      const maxHit = maxHitOf(type);
+      return { type, hit: share, maxHit, ratio: maxHit === null ? null : share / maxHit };
+    });
+    const ratio = parts.every((p) => p.ratio !== null) ? parts.reduce((sum, p) => sum + p.ratio!, 0) : null;
+    const maxHit = ratio === null || ratio === 0 ? null : hit.max / ratio;
+    return { type: key, mixed: true, hitId: hit.id, hit: hit.max, maxHit, ratio, verdict: ratio === null ? null : arbiterVerdict(ratio), parts };
+  });
+  const verdict: ArbiterVerdict | null = rows.some((r) => r.verdict === 'one-shot')
+    ? 'one-shot'
+    : rows.length > 0 && rows.every((r) => r.verdict === 'survives')
+      ? 'survives'
+      : null;
+  let worst: ArbiterMeasure['worst'] = null;
+  for (const r of rows) if (r.ratio !== null && (worst === null || r.ratio > worst.ratio)) worst = { type: r.type, hitId: r.hitId, ratio: r.ratio };
+  return { verdict, worst, rows };
+}
+
+export type ClearSpeed = 'slow' | 'medium' | 'fast';
+const CLEAR_SPEEDS: readonly ClearSpeed[] = ['slow', 'medium', 'fast'];
+
+/**
+ * D-353: the phrase list for "its gem text explodes monsters or spreads an effect on death". A sentence of a
+ * clear-group gem's description counts when it holds a death phrase and an explode or spread phrase
+ * (`Enemies ... will Combust on death`, `explode in a Plague Burst on death`, `spreading their effects when a
+ * Cursed enemy dies`).
+ */
+export const ON_DEATH_PHRASES: readonly RegExp[] = [/\bon death\b/i, /\bdies\b/i, /\bdie\b/i, /\bkilled\b/i, /\bkilling\b/i, /\bon kill\b/i];
+export const SPREAD_PHRASES: readonly RegExp[] = [/\bexplod(e|es|ing)\b/i, /\bexplosions?\b/i, /\bburst\b/i, /\bcombust(s)?\b/i, /\bspread(s|ing)?\b/i];
+
+/** Whether a gem text explodes monsters or spreads an effect on death (the phrase list). */
+export function explodesOnDeath(text: string): boolean {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .some((sentence) => ON_DEATH_PHRASES.some((re) => re.test(sentence)) && SPREAD_PHRASES.some((re) => re.test(sentence)));
+}
+
+/** `measures.clearSpeed`: a rough label, assuming a normal monster dies to one use (D-353, Q2). */
+export interface ClearSpeedMeasure {
+  speed: ClearSpeed;
+  /** Always true: an estimate from the area, the gem text and the use time, not a measurement. */
+  rough: true;
+  /** The clear skill: its group (1-based), its breakdown key and skill name; null when the stage has none. */
+  group: number | null;
+  key: string | null;
+  skill: string | null;
+  /** Its `AreaOfEffectRadiusMetres`, 0 when PoB gives none. */
+  radiusMetres: number;
+  /** The band by the radius alone: below 2 m slow, below 4 m medium, else fast. */
+  band: ClearSpeed;
+  /** One step faster: a gem text of its group explodes monsters or spreads an effect on death. */
+  onDeath: boolean;
+  /** Its uses per second (`Speed`), null when PoB gives none. */
+  usesPerSecond: number | null;
+  /** One step slower: a use takes over 1 second (`Speed` below 1, an estimate). */
+  longUse: boolean;
+}
+
+/** The band of a radius (D-353): below 2 m slow, from 2 m below 4 m medium, 4 m or more fast. */
+export function clearBand(radiusMetres: number): ClearSpeed {
+  return radiusMetres < 2 ? 'slow' : radiusMetres < 4 ? 'medium' : 'fast';
+}
+
+/** D-353: the band, a step faster for an on-death effect, a step slower for a long use, kept within the bands. */
+export function clearSpeedOf(input: {
+  radiusMetres: number | undefined;
+  usesPerSecond: number | undefined;
+  texts: readonly string[];
+  group?: number | null;
+  key?: string | null;
+  skill?: string | null;
+}): ClearSpeedMeasure {
+  const radiusMetres = typeof input.radiusMetres === 'number' && Number.isFinite(input.radiusMetres) ? input.radiusMetres : 0;
+  const usesPerSecond = typeof input.usesPerSecond === 'number' && Number.isFinite(input.usesPerSecond) ? input.usesPerSecond : null;
+  const band = clearBand(radiusMetres);
+  const onDeath = input.texts.some(explodesOnDeath);
+  const longUse = usesPerSecond !== null && usesPerSecond < 1;
+  const at = CLEAR_SPEEDS.indexOf(band) + (onDeath ? 1 : 0) - (longUse ? 1 : 0);
+  return {
+    speed: CLEAR_SPEEDS[Math.min(CLEAR_SPEEDS.length - 1, Math.max(0, at))],
+    rough: true,
+    group: input.group ?? null,
+    key: input.key ?? null,
+    skill: input.skill ?? null,
+    radiusMetres,
+    band,
+    onDeath,
+    usesPerSecond,
+    longUse,
+  };
+}
+
+/** The clear skill (D-353): the first enabled `clear` group, else the main group; null for neither. */
+export function clearGroupOf(stage: Pick<Stage, 'skills'>): { group: number; activeSkill: number } | null {
+  const k = stage.skills.groups.findIndex((g) => g.enabled && g.role === 'clear');
+  if (k >= 0) return { group: k + 1, activeSkill: 1 };
+  const main = stage.skills.main;
+  return stage.skills.groups[main.group - 1] ? { group: main.group, activeSkill: main.activeSkill } : null;
+}
+
+/** The names of the clear skill's group's enabled gems, the skill and its supports, whose texts it reads. */
+export function clearGemNames(stage: Pick<Stage, 'skills'>): string[] {
+  const clear = clearGroupOf(stage);
+  if (clear === null) return [];
+  return stage.skills.groups[clear.group - 1].gems.filter((g) => g.enabled).map((g) => g.name);
+}
+
+/**
+ * The clear skill's breakdown entry: of the active skill's stat sets, the one with the largest area (its
+ * explosion, say), the first among ties.
+ */
+export function clearEntryOf(
+  stage: Pick<Stage, 'skills'>,
+  skillOutputs: StageRecord['skillOutputs'],
+): { group: number; key: string; skill: string; fields: Record<string, number> } | null {
+  const clear = clearGroupOf(stage);
+  if (clear === null) return null;
+  const prefix = `g${clear.group}s${clear.activeSkill}p`;
+  const radius = (f: Record<string, number>) => f.AreaOfEffectRadiusMetres ?? 0;
+  let best: { group: number; key: string; skill: string; fields: Record<string, number> } | null = null;
+  const keys = Object.keys(skillOutputs)
+    .filter((k) => k.startsWith(prefix) && /^\d+$/.test(k.slice(prefix.length)))
+    .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+  for (const key of keys) {
+    const e = skillOutputs[key];
+    if (best === null || radius(e.fields) > radius(best.fields)) best = { group: clear.group, key, skill: e.skill, fields: e.fields };
+  }
+  return best;
+}
+
+/**
+ * The headline (D-294): the named source's Count-scaled figure,
+ * `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.TotalDPS`, else the main skill's
+ * counted `TotalDPS`; null when PoB measured none.
+ */
+export function headlineDps(stage: Pick<Stage, 'skills'>, rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs'>): number | null {
+  const m = stage.skills.main;
+  const key = `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`;
+  const v = rec.countedSkillOutputs[key]?.fields.TotalDPS ?? rec.countedOutputs.fields.TotalDPS;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** `measures`, per endgame stage (D-353). `arbiter` is only on the budget and non-budget rungs. */
+export interface StageMeasures {
+  dps: number | null;
+  ehp: number | null;
+  arbiter?: ArbiterMeasure;
+  clearSpeed: ClearSpeedMeasure;
+}
+
+/** The rungs `measures.arbiter` is given on (D-353): `b` and `n`. */
+export const ARBITER_VARIANTS: readonly string[] = ['budget', 'non-budget'];
+
+/** An endgame stage's measures from its record (D-353). */
+export function stageMeasures(
+  stage: Pick<Stage, 'skills' | 'variant'>,
+  rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs'>,
+  arbiterHits: readonly ArbiterHit[],
+  gemTexts: Readonly<Record<string, string>>,
+): StageMeasures {
+  const ehp = rec.outputs.TotalEHP;
+  const entry = clearEntryOf(stage, rec.skillOutputs);
+  const clearSpeed = clearSpeedOf({
+    radiusMetres: entry?.fields.AreaOfEffectRadiusMetres,
+    usesPerSecond: entry?.fields.Speed,
+    texts: clearGemNames(stage).flatMap((name) => (gemTexts[name] !== undefined ? [gemTexts[name]] : [])),
+    group: entry?.group ?? null,
+    key: entry?.key ?? null,
+    skill: entry?.skill ?? null,
+  });
+  return {
+    dps: headlineDps(stage, rec),
+    ehp: typeof ehp === 'number' && Number.isFinite(ehp) ? ehp : null,
+    ...(stage.variant !== undefined && ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiterMeasure(rec.outputs, arbiterHits) } : {}),
+    clearSpeed,
+  };
+}
+
+/** D-358: an anointed stage's notable and its recipe of three Distilled Emotions. */
+export interface AnointRecord {
+  /** The notable's PoB name, as written after `Allocates ` on the amulet. */
+  notable: string;
+  node: number;
+  /** The recipe as the tree names the emotions (`Paranoia`, `Greed`, `Isolation`). */
+  recipe: string[];
+  /** PoB's item names of the emotions (`Liquid Paranoia`, `Diluted Liquid Greed`, …). */
+  emotions: string[];
+}
+
 export interface StageRecord {
   loadoutName: string;
   level: number;
@@ -172,6 +477,10 @@ export interface StageRecord {
   pobWarnings: { kept: string[]; filtered: string[] };
   v1: Verdict | null;
   v2: Verdict | null;
+  /** WU-65, D-353: on an endgame stage (one with a `variant`), its measures. */
+  measures?: StageMeasures;
+  /** WU-65, D-358: on an anointed stage, the notable and its recipe. */
+  anoint?: AnointRecord;
 }
 
 export interface CompileRecord {

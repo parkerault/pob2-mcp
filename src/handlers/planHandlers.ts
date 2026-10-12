@@ -20,9 +20,9 @@ import type { BuildFileWriter } from '../services/buildFileWriter.js';
 import { readPin } from '../engine/pinCheck.js';
 import { checkGuidesRoot, createRunFolder } from '../utils/guidesPath.js';
 import { wrapHandler } from '../utils/errorHandling.js';
-import { compilePlan, validatePlanFile, type CompileRequest, type CompileResult } from '../plan/compiler.js';
+import { compilePlan, keyFigureLine, validatePlanFile, type CompileRequest, type CompileResult } from '../plan/compiler.js';
 import type { Verdict } from '../plan/record.js';
-import { loadReferenceData, type PlanReferenceData } from '../plan/referenceData.js';
+import { loadReferenceData, type ReferenceData } from '../plan/referenceData.js';
 import { OFFENSE_STAT_FIELDS } from './luaHandlers.js';
 
 /** What the plan tools need of the server. */
@@ -40,7 +40,7 @@ export interface PlanContext {
   /** Whether the engine's build has unsaved changes (`session.isDirty()`, read without the lock). */
   isDirty: () => boolean;
   /** The C1/E1 data; default: `loadReferenceData()` from the package's `data/`. */
-  referenceData?: () => PlanReferenceData;
+  referenceData?: () => ReferenceData;
   /** The wall clock (dates the run folder and the record); default `new Date()`. */
   wallClock?: () => Date;
 }
@@ -118,8 +118,9 @@ function verdictText(name: string, v: Verdict | null): string {
 export const MAX_FINDINGS_PRINTED = 200;
 
 /**
- * C-41's text: the summary line, a line per stage with its verdicts and its V1/V2 findings (every one, up to
- * MAX_FINDINGS_PRINTED over all stages), the ledger values, the paths written.
+ * C-41's text: the summary line, a line per stage with its verdicts, its key-figure line (D-356,
+ * `keyFigureLine`) and its V1/V2 findings (every one, up to MAX_FINDINGS_PRINTED over all stages), the ledger
+ * values, the paths written.
  */
 export function renderCompileText(result: CompileResult): string {
   const r = result.record;
@@ -132,6 +133,7 @@ export function renderCompileText(result: CompileResult): string {
   for (const id of r.stagesCompiled) {
     const s = r.stages[id];
     lines.push(`Stage ${id} "${s.loadoutName}" level ${s.level}: ${verdictText('V1', s.v1)}, ${verdictText('V2', s.v2)}`);
+    lines.push(keyFigureLine(s));
     for (const f of [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])]) {
       if (printed < MAX_FINDINGS_PRINTED) {
         lines.push(`  - ${f.code}: ${f.message}`);

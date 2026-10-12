@@ -306,6 +306,18 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
   });
 
+  it("accepts run-log.md's example calls, and init writes its first-write example", () => {
+    const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
+    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (\w+) '(.*)'$/gm)].map((m) => [m[1], m[2]]);
+    expect(calls.map(([kind]) => kind)).toEqual(['init', 'stage', 'checkpoint', 'escalation', 'set']);
+    const dir = folder();
+    for (const [kind, json] of calls) expect({ kind, ...run(RUN_LOG, dir, kind, json) }).toMatchObject({ kind, code: 0, stderr: '' });
+    const first = folder();
+    expect(run(RUN_LOG, first, 'init', calls[0][1]).code).toBe(0);
+    const example = JSON.parse(/## A first write[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]) as Json;
+    expect(readJson(first, 'run-log.json')).toEqual({ ...example, runFolder: first });
+  });
+
   it('refuses before the first write, a schema-2 log, a non-JSON entry and a bad command line', () => {
     const empty = folder();
     expect(log(empty, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' })).toEqual({ code: 1, stdout: '', stderr: "run-log: run-log.json can't be read (ENOENT); write the first log with init\n" });

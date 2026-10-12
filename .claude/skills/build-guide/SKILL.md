@@ -8,20 +8,19 @@ description: Build a Path of Exile 2 guide (level 1 through the campaign to two 
 You are the **runner**: you start the run, call one agent per step with the Agent tool, ask the user at the
 gates, keep the run log and run the run checker (slice 03 of `docs/build-guide/spec/`, with amendments 1 to 4).
 
-The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (gate
-`brainstorm`), the verification (gate `verification`) and the finalization (gate `final`). Inside the
-finalization, the design gate (gate `design`, D-362) shows the user the endgame build before the campaign and
-the guide exist. Only the user starts a round. Every card names its **named damage source**, the main source of
-damage, never a token role (D-122 as D-295 words it). Each step below is a short card: read a reference only
-where its card names one.
+The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (gate `brainstorm`),
+the verification (gate `verification`) and the finalization (gate `final`). Inside the finalization, the design
+gate (gate `design`, D-362) shows the user the endgame build before the campaign and the guide exist. Only the user
+starts a round. Every card names its **named damage source**, the main source of damage, never a token role (D-122
+as D-295 words it). Each step below is a short card: read a reference only where its card names one.
 
 ## Hard rules (for you and for every agent)
 
 - **Never read, print or copy any `.env` file**, and never set `POESESSID`.
 - **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them. There are no
   poe.ninja tools beyond the currency rates (`mcp__pob2__get_currency_rates`, D-335) and no player evidence.
-- **Write only inside the run folder**: `run-log.json` and the `Known issues` lists (step 14); each agent its
-  header's `writes`.
+- **Write only inside the run folder**: the `Known issues` lists (step 14), and by script the run log, the round
+  copy and `audit.md`; each agent its header's `writes`.
 - **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and
   `mcp__pob2__search_tree_nodes` for the brief check (the last for the ascendancy lock, D-342), and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, engine change and price call is a coordinator step's.
@@ -34,17 +33,18 @@ where its card names one.
   design gate's display), the deck `cards.md`, your own `run-log.json`, the test config, the agents' returns and
   the verifiers' reports. Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read or
   with Bash; step 14 reads only the `Known issues` lines it edits.
-- **Your Bash reads, and runs the run checker; nothing else** (D-265). The whole list:
-  - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is
-    fine), each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or
-    `-delete` where the tool writes with it), and no command substitution (`$(…)`, backticks) feeding
-    another tool;
+- **Your Bash reads, and runs the run checker and the two scripts; nothing else** (D-265). The whole list:
+  - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is fine),
+    each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or `-delete` where
+    the tool writes with it), and no command substitution (`$(…)`, backticks) feeding another tool;
   - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, with `--changed <n>`
-    for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34).
+    for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34);
+  - the audit render, `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder>` (D-355);
+  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356).
 
   Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
-  client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing that writes, moves or deletes a file. Write every
-  file with Write (or Edit), never with Bash or a script. The agents have no Bash at all.
+  client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing else that writes, moves or deletes a file. Write
+  every other file with Write (or Edit), never with Bash. The agents have no Bash at all.
 
 ## Calling an agent
 
@@ -60,7 +60,7 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 a
   writes its own report, `reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it): route on that
   file. An agent returning without its file is re-run once, uncounted, logged `missing`; a second miss ends the
   run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return: re-run at the next free `<n>`.
-- **The run log.** Rewrite `run-log.json` whole after every step, gate and question (`references/run-log.md`).
+- **The run log.** Add each step's, gate's and question's entry with `run-log.mjs` (`references/run-log.md`).
 
 The verifier's prompt is always exactly this, so it carries nothing a producing step wrote (R-5, D-142):
 
@@ -166,8 +166,8 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
   **stop**, also when `answers.design[]` is used up (`default`).
 - **D2** (8) adds the campaign; tell it how to price. **The D2 gate** (9) checks every stage and, when the
   compile, V1 and V2 pass, runs the final compile with `buildName` (`<slug>-<YYYY-MM-DD>-<n>`, the run folder's
-  last two segments joined with `-`). A failure re-runs D2, up to 2 counted retries; the third escalates (§5). A
-  pass goes to W1.
+  last two segments joined with `-`). A failure re-runs D2, up to 2 counted retries; the third escalates (§5). On
+  a pass, render `audit.md` (`render-audit.mjs <runFolder>`, D-355), then W1.
 
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
@@ -190,8 +190,8 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 - **Step 12, the fix round** (`references/fix-round.md`), once, only when the report has an `unresolved`
   finding. First the round copy (A-34): `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
   --snapshot <n>`, `<n>` that report's number. Then each finding goes to its `owner`: D1 (D1-finish, and
-  D1-build when D1-finish returns `build: <ids>`), D2, and W1 last. Owners fix claims in place; a gate runs only
-  after a recompile, which only gear, tree, gems or config need. No design gate in the round.
+  D1-build when D1-finish returns `build: <ids>`), D2, and W1 last. Owners fix claims in place, and recompile,
+  and so re-run the gates, only for gear, tree, gems or config; no design gate. Re-render `audit.md` before W1.
 - **Step 13, the re-check** (`references/fix-round.md`): `check-run.mjs <runFolder> --changed <n>`, then one
   verifier, `check: "recheck"`, `changed` the lines it printed, verbatim. It re-checks only those, whether or
   not an owner recompiled: no re-check covers every claim (D-352).
@@ -206,7 +206,7 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 ## 7. Finish
 
 1. Set `status` and `outputs` (`plan`, `record`, `dossier`, `guide` and the PoB file; not the import code,
-   whose one home is the record, D-260), and write the run log a last time.
+   whose one home is the record, D-260) with `run-log.mjs <runFolder> set`: the run log's last write.
 2. Run the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, at step 15 and
    once more after the last log write of every run (`references/run-folder.md`).
 3. Tell the user: the run folder, the guide, the PoB file and where its import code is (the guide's `Your PoB
@@ -216,6 +216,6 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
 
 `references/start.md`, `references/fix-round.md`, `references/checkpoints.md`, `references/run-log.md`,
 `references/task-header.md`, `references/run-folder.md`, `references/gates.md`, `references/pricing.md`,
-`references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`,
-`references/patterns.md` (C-53), `references/stages/` (one per step, `references/stages/R1a-assemble.md` among
-them), `templates/card-template.md` (C-52) and `scripts/check-run.mjs`.
+`references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`, `references/patterns.md`
+(C-53), `references/stages/` (one per step, `references/stages/R1a-assemble.md` among them),
+`templates/card-template.md` (C-52), `scripts/check-run.mjs`, `scripts/render-audit.mjs` and `scripts/run-log.mjs`.

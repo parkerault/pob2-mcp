@@ -1,8 +1,8 @@
 # The run log `run-log.json`
 
-The runner writes `run-log.json` in the run folder as soon as the folder exists, and rewrites it whole
-after every step, gate and question, so an interrupted run still leaves one (FR-W2). Only the runner writes
-it. It records the run's control flow; the artifacts record the rest, and the run checker reads both
+The runner writes `run-log.json` in the run folder as soon as the folder exists, and adds to it after every
+step, gate and question, so an interrupted run still leaves one (FR-W2). Only the runner writes it, and only
+through `scripts/run-log.mjs` (D-356, "Writing it" below), never with Write or Edit. It records the run's control flow; the artifacts record the rest, and the run checker reads both
 (`run-folder.md`). This page is **schema version 3** (D-289), the run log of the three phases and their gates;
 the run checker also reads schema 2, only so runs recorded before amendment 3 still check (D-326, the last
 section).
@@ -143,9 +143,30 @@ Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends
 - **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4.
 - **NFR-22** (no 429s, no lock-outs): no `priceOutcomes` counts a `rate_limited` or `locked_out` call.
 
+## Writing it (D-356)
+
+One call per write, the entry as JSON in single quotes, its fields exactly as above, `<runFolder>` the absolute
+path `mcp__pob2__guide_run {new_run}` returned:
+
+```
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> init '{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted"}'
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage '{"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}'
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint '{"checkpoint": "design", "visit": 1, "answer": "accept", "answeredBy": "user"}'
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation '{"stage": "D1-gate", "concept": "r1-a-2", "verdict": "reports/gates/D1-gate-r1-a-2-a3.json", "choice": "stop"}'
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set '{"status": "completed", "outputs": {"plan": "plan.json", "record": "compile-record.json", "dossier": "dossier.md", "guide": "guide.md", "pobFile": "<the D2 gate's pobFile>"}}'
+```
+
+- `init` writes the first log (below): `runFolder` the folder given, `roll` null, the lists empty and every
+  `outputs` path null, `status` `running`, or `stopped` with a refused test config. It never overwrites a log.
+- `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
+  `escalations[]`.
+- `set` replaces `status`, `roll` (the verification gate's `pick:`), `outputs` or `faults` (`SKILL.md` §7).
+- An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
+  written. The run checker checks the whole log and the flow it records.
+
 ## A first write
 
-The log before any agent runs (`SKILL.md` §1, step 3): the brief as parsed and no roll yet.
+The log before any agent runs (`SKILL.md` §1, step 3), as `init` writes it: the brief as parsed and no roll yet.
 
 ```json
 {

@@ -39,7 +39,7 @@ folder (D-153).
 
 | Path in the run folder | Written by (only) | Content |
 |---|---|---|
-| `run-log.json` | the runner | the run log (`run-log.md`) |
+| `run-log.json` | the runner, through `scripts/run-log.mjs` (D-356) | the run log (`run-log.md`) |
 | `research/p<k>-r1a-<n>.md` | R1a agent `n` of brainstorm round `k` | its sections, with source markers (`source-markers.md`) |
 | `cards/<id>.md` | R1a (the brainstorm half), then R1b (the verification half) | a candidate card (`templates/card-template.md`, C-52) |
 | `cards.md` | the R1a-assemble step | the deck: the dealt cards by round, then "Not dealt" (D-287) |

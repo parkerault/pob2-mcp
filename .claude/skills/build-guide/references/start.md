@@ -87,7 +87,7 @@ text doesn't give, and never invent one:
    the documented shape is refused, and the run stops: write `run-log.json` with `testConfig: "refused"` and
    `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
    Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, the parsed brief and no
-   roll yet (`references/run-log.md` has a first write).
+   roll yet. Either first write is `run-log.mjs <runFolder> init`, never Write (`references/run-log.md`).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).

@@ -40,6 +40,10 @@ It returns the ids it fixed, the locations it changed and whether it recompiled.
   the guide quotes may have moved.
 - **No design gate** runs in the round: the user judged the build at the design gate, and the final gate
   shows the result.
+- **The audit render** (D-355). Before the round's W1, run `node .claude/skills/build-guide/scripts/render-audit.mjs
+  <runFolder>`, whether or not an owner recompiled: it renders `audit.md` again from the current plan, final
+  record and last D1 gate verdict file, and keeps the rows under its `Known issues`. W1 copies each rung's Checks
+  block from that render.
 
 The round is uncounted; the gates in it keep their 2 counted retries, and an escalation in it is a gate
 escalation.

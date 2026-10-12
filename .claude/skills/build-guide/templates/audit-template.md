@@ -9,7 +9,10 @@ the guide leaves out. Every number is the plan's or the record's as they hold it
 rounds it. No Run notes, no hand-calculation prose, no kill time and no hits to kill (D-353). <the worst hit> is
 the record's measures.arbiter.worst: its type, a mixed hit's types joined by " and ", then "hit" ("lightning
 hit", "physical and lightning hit"), the words the guide's survival label uses; <ratio> is its ratio to 2
-decimals.
+decimals. A missing number is "—"; a total the D1 gate's basis leaves null is "unknown" in place of "<total>
+divines"; an Arbiter verdict the record leaves null reads "The Arbiter of Divinity: not measured.". <why> is each
+unavailable price's note, or "no rate for <currency>", from the rung's basis slots (the anoint's among them, as
+{stage, slot: "Anoint", priceId}) and the plan's prices named <stage id>-<…>.
 W1 copies each block under Checks, verbatim, into the guide's Checks H3 of that rung, and writes the accepted
 gate findings' rows under Known issues; the runner fills that table at step 14.
 -->
@@ -18,7 +21,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 | Entry | Claim | Value | Formula |
 |---|---|---|---|
-| `<ledger id>` | <the entry's claim> | <its value in compile-record.json's ledger, to 2 decimals> | <the formula, as the plan holds it> |
+| `<ledger id>` | <the entry's claim> | <its value: the plan's current formula over compile-record.json's stages, to 2 decimals (D-365)> | <the formula, as the plan holds it> |
 
 - [only when the plan has a Count above 1] **Count:** <the group> on <the stages> counts <n> copies: <its countReason>.
 - [only when the plan has a custom modifier] **Custom modifier:** `<its text>` on <the stage>: <its reason>. The figures of <each stage the record marks computedWithCustomMods> are estimates (D-296).
@@ -37,7 +40,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 - Budget: <total> divines against the 5-divine ceiling.
   [only when the total is over 5 and at most 5.5] <total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this rung can't be claimed to fit 5 divines.
-- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's movement speed>.
+- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's outputs.EffectiveMovementSpeedMod>× base.
 
 ### <the budget loadout name>
 
@@ -46,7 +49,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
   [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
 - The Arbiter of Divinity: <survives its hits; its worst, <the worst hit>, is <ratio> of your max hit | one-shot by its <the worst hit>, at <ratio> of your max hit>.
-- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's movement speed>.
+- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's outputs.EffectiveMovementSpeedMod>× base.
 
 ### <the non-budget loadout name>
 
@@ -58,7 +61,9 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 ## What PoB doesn't model
 
-- <each mcp__pob2__check_model_coverage flag the build rests on, its status, and the ledger entry or caveat that covers it>.
+- Stage <id>: <each line of its record customModsWritten, in backticks, joined by ", ">, hand-calculated as custom modifiers for effects PoB doesn't model[, so its figures are estimates (D-296): only when the record marks the stage computedWithCustomMods].
+- Stage <id>: PoB warns "<each line of its record pobWarnings.kept>".
+[The record's consequences of the mcp__pob2__check_model_coverage flags the build rests on; "None." when it has neither.]
 
 ## Inputs by confidence
 

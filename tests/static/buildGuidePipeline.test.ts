@@ -1040,7 +1040,7 @@ describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only -
     expect(s).toMatch(/Make the round copy, `<n>` the last report's number; run that chain as step 12 does \(claims in place, the gates only after a recompile\), with the requests as `findings` \(`code: "user-request"`\); then step 13's re-check over `--changed <n>`, in the full pass's place: \*\*a revision runs no full pass\*\* \(D-352\)/);
     expect(s).not.toMatch(/then steps 11 to 16 again|all three lenses|`changed: "all"`, and check every claim|sources lens always runs/);
     // The runner's Bash list takes the re-check's set (FR-W5 as D-352 amends it).
-    expect(s).toMatch(/- the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\)\./);
+    expect(s).toMatch(/- the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\);/);
   });
 
   it('each pass writes its own reports/V4-<n>.md and never overwrites one; the runner writes no V4 report', () => {
@@ -1326,11 +1326,11 @@ describe('Amendment 1 S7: D1 sets skills.main.statSet, tools are named mcp__pob2
 describe('WU-47 fixes: what the runner does', () => {
   const skill = () => folded(runnerText());
 
-  it("D-265 (e): the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, and the run checker; nothing else", () => {
+  it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\)\./);
-    expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing that writes, moves or deletes a file/);
-    expect(text).toMatch(/Write every file with Write \(or Edit\), never with Bash or a script\. The agents have no Bash at all/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> '<json>'` \(D-356\)\. Nothing else/);
+    expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
+    expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
     expect(text).not.toMatch(/Never `cd`|no compound command|run exactly as written, one per Bash call/);
     expect(text).not.toMatch(/date -u/);
@@ -2703,6 +2703,32 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
       expect(text).toMatch(/v4-\d+-\d+/);
     }
     expect(ref('checkpoints.md')).not.toMatch(/then the full V4 pass/);
+  });
+});
+
+describe('WU-71 (D-355, D-356): the audit render and the run-log script, wired into SKILL.md and its references', () => {
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+  const skillText = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+
+  it("renders audit.md after the D2 gate's final compile and before W1, and again before the W1 of a fix round or a revision", () => {
+    const s = skillText();
+    expect(s).toMatch(/runs the final compile with `buildName` .* On a pass, render `audit\.md` \(`render-audit\.mjs <runFolder>`, D-355\), then W1\./);
+    expect(s.indexOf('On a pass, render `audit.md`')).toBeLessThan(s.indexOf('- **W1** (10)'));
+    expect(s).toMatch(/\*\*Step 12, the fix round\*\* .* no design gate\. Re-render `audit\.md` before W1\./);
+    expect(ref('fix-round.md')).toMatch(/\*\*The audit render\*\* \(D-355\)\. Before the round's W1, run `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>`, whether or not an owner recompiled: it renders `audit\.md` again from the current plan, final record and last D1 gate verdict file, and keeps the rows under its `Known issues`/);
+    for (const script of ['render-audit.mjs', 'run-log.mjs']) expect(fs.existsSync(path.join(SKILL_DIR, 'scripts', script))).toBe(true);
+  });
+
+  it('writes the run log only through run-log.mjs: the per-step card, the first write, the finish and run-log.md', () => {
+    const s = skillText();
+    expect(s).toMatch(/- \*\*The run log\.\*\* Add each step's, gate's and question's entry with `run-log\.mjs` \(`references\/run-log\.md`\)\./);
+    expect(s).not.toMatch(/Rewrite `run-log\.json` whole|write the run log a last time/);
+    expect(s).toMatch(/Set `status` and `outputs` \(`plan`, `record`, `dossier`, `guide` and the PoB file; not the import code, whose one home is the record, D-260\) with `run-log\.mjs <runFolder> set`: the run log's last write/);
+    expect(ref('start.md')).toMatch(/Either first write is `run-log\.mjs <runFolder> init`, never Write/);
+    const log = ref('run-log.md');
+    expect(log).toMatch(/Only the runner writes it, and only through `scripts\/run-log\.mjs` \(D-356, "Writing it" below\), never with Write or Edit/);
+    expect(log).not.toMatch(/rewrites it whole/);
+    for (const kind of ['init', 'stage', 'checkpoint', 'escalation', 'set']) expect(log).toContain(`node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> ${kind} '{`);
   });
 });
 

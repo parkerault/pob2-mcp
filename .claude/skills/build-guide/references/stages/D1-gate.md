@@ -143,7 +143,8 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
   (`b.MissingColdResist 12`, `enemies/map-monsters.json#damage.by-level[79]`). A check that rests on an M
   or L fact says so (A-29).
 - `basis`: only what the plan and the record don't say (`gates.md`): every slot and tree jewel of the
-  entering-maps and budget stages with its `priceId`, the rates, each of their totals (`null` when
+  entering-maps and budget stages with its `priceId`, the budget variant's anoint as a slot (`{"stage": "b",
+  "slot": "Anoint", "priceId": "b-anoint"}`), the rates, each of their totals (`null` when
   unverified) and the non-budget totals; per endgame stage, the figure of every group of the named source's
   group's role, with no value. The run checker takes every number from the record (each figure by D-340's
   rule), and W1 quotes the totals and the figures.

@@ -1,23 +1,25 @@
 # Slice 01: Server tools (lookups, coverage, measurement, rankers, set and tree-state authoring, dated prices)
 
-Part of the [spec spine](README.md). It covers work units WU-31…WU-36, WU-49, WU-54 and WU-60 (built),
-WU-50 (done: blocked by poe.ninja's terms), WU-52 (withdrawn, D-335) and WU-53 (not built), and acceptance
-criteria AC-K1…AC-K65 (AC-K47…AC-K49 withdrawn by D-335; AC-K58…AC-K65 are WU-53's, pinned on its lane and
-merged with it). The spine wins any disagreement; fold fixes back into it. The adversarial review's fixes
+Part of the [spec spine](README.md). It covers work units WU-31…WU-36, WU-49, WU-53, WU-54 and WU-60
+(built), WU-50 (done: blocked by poe.ninja's terms), WU-52 (withdrawn, D-335) and the path-tool half of
+WU-66 (target, milestone M-15), and acceptance criteria AC-K1…AC-K66 (AC-K47…AC-K49 withdrawn by D-335;
+AC-K58…AC-K65 are WU-53's, pinned on its lane and merged with it; AC-K66 is amendment 4's). The spine wins any disagreement; fold fixes back into it. The adversarial review's fixes
 for this slice (D-218) and the coordinator's resolutions of its open items (D-222…D-228) are folded in
 under their spine IDs. The build's decisions D-239…D-247, D-307…D-309 and the amendments' D-277, D-297,
 D-299, D-300 are folded in under their spine IDs (fold applied 2026-10-10), and so are D-335 and D-336 with
-WU-54's and WU-60's as-built facts (fold v1.4, 2026-10-11). This slice hosts amendment 3's server units,
-WU-50, WU-52, WU-53 and WU-54 (D-318), and amendment 2's lookup unit, WU-60 (D-317).
+WU-54's and WU-60's as-built facts (fold v1.4, 2026-10-11). Fold v1.5 (2026-10-11) records WU-53 as built
+(merge `25bde2a`) and folds in amendment 4's D-360, tree validity in the path tools. This slice hosts
+amendment 3's server units, WU-50, WU-52, WU-53 and WU-54 (D-318), amendment 2's lookup unit, WU-60
+(D-317), and the path-tool half of amendment 4's WU-66, whose block is in slice 02.
 
-**Target design.** WU-53 is approved but not built. Text that describes behaviour not built yet carries a
-one-line *Target (WU-nn, D-nnn)* marker, and the as-built behaviour stands beside it until that unit
-merges.
+**Target design.** Text that describes behaviour not built yet carries a one-line *Target (WU-nn, D-nnn)*
+marker, and the as-built behaviour stands beside it until that unit merges. Since v1.5 the target text is
+WU-66's path tools (D-360, §2.11).
 
 This slice delivers goals G-10 and G-11, plus T1. It gives the pipeline the server tools it needs before a
 plan can be compiled:
 - **K1** reads PoB2's loaded gem, unique, passive and mod data, and lists an ascendancy's nodes; a mod's
-  base types and the essences (WU-60). *Target:* amendment 3's lookup additions (WU-53; §2.2).
+  base types and the essences (WU-60); and amendment 3's lookup additions (WU-53; §2.2).
 - **K2** says, per line, whether PoB applies it, and which skill stats PoB probably ignores, with flags for
   more of what PoB doesn't model (WU-54; §2.4).
 - **M1** measures offense per active skill and per stat set (PoB2's "skill part"), and makes
@@ -28,6 +30,7 @@ plan can be compiled:
 - **T1** puts the date and league on price results, and a stable error-kind prefix on trade-tool errors
   (D-218).
 - It also fixes the `update_tree_delta` defect and the two `search_tree_nodes` bugs.
+- *Target (WU-66, D-360):* `find_path_to_node` and `get_nearby_nodes` keep a tree valid in shape (§2.11).
 - **N1**, *withdrawn → D-335:* the poe.ninja popularity and build-index tools (C-54, §2.10). Spike WU-50
   found the API they rest on closed to third parties.
 
@@ -51,6 +54,7 @@ cited as "pin §"). `vendor/` is `vendor/PathOfBuilding-PoE2/src` at v0.23.1.
 | `set_tree`, `update_tree_delta` (`BuildOps.lua:126-162, :259-281`); handler `luaHandlers.ts:533-582` | `reimport_nodes` preserves weapon-set tags (`allocMode`) and attribute choices (`hashOverrides`), but nothing sets them. Lua doesn't auto-path and doesn't cap ascendancy points. The handler renders `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed`, which Lua never sends | WU-36 (C-40, C-48) |
 | `add_item` (`toolSchemas.ts:552-569`); `add_item_text` (`BuildOps.lua:577-622`) | The enum is `ITEM_SLOTS` (`toolSchemas.ts:22-26`). `create_socket_group` (`:641`) and `setup_skill_with_gems` (`:846`) share it, and AC-E38 pins both. A tree socket's slot is `Jewel <nodeId>`, which writes `spec.jewels` (`vendor/Classes/ItemSlotControl.lua:74-86`) | WU-36 (C-46) |
 | `get_item_price` (`tradeHandlers.ts:265-339`); `search_trade_items` (`:89-200`) | Both name the league; neither gives a date. Each makes 1 search and 1 fetch through the limiter (C-11), which refuses any wait over 30 s as `would_wait` and names the wait. A failure is a `TradeError` with a `kind` (`src/trade/errors.ts:7-19`), but `wrapHandler` re-throws only its message (`src/utils/errorHandling.ts:25-35`), so the caller sees `Error: Failed to <action>: <message>` (`toolRouter.ts:189-192`) and the kind is lost | WU-49 (C-49, D-218) |
+| `find_path_to_node`, `get_nearby_nodes` (`src/services/treeService.ts:292-413`) | Path through any node, an unallocated start included, so a path can open a second tree on one start. Run A's compiled tree had two Ranger trees from stage 2 and four trees from stage 6 (the issues report, `../studies/2026-10-11-run-a-issues.md`) | WU-66 (D-360, target) |
 | poe.ninja client `src/services/poeNinjaClient.ts`; the currency cache `src/trade/currency.ts`; group `ninja` (`toolMeta.ts:138-139, :147`) | Fetches only the currency exchange overview, for C-12's currency rates (`get_currency_rates` and the price tools' normalization), with conditional requests and a 60-minute cache per league (`currency.ts:97-98`). No rate limiter. `POE_NINJA_DISABLED` hides group `ninja` (only `get_currency_rates`) and is checked at `currency.ts:127` | unchanged: C-54 and WU-52 are withdrawn (D-335) |
 
 **Pin facts relied on** (pin §B2–§D, re-probed for this slice):
@@ -235,9 +239,9 @@ advisory verification checklist (D-292) read (`amendment-3-open-builds.md:423-44
   can't show;
 - stat sets named, so a candidate's card (C-52, slice 03) names the stat set its payoff uses.
 
-Formats and checkable criteria are open: WU-53's first step pins them in this slice from the amendment's
-text, and the coordinator reviews them before any code is written (A-33). That step also settles the
-example "Culmination II, then Ailith's Chimes".
+Formats and checkable criteria were pinned by WU-53's first step in this slice from the amendment's
+text, and the coordinator reviewed them before any code was written (A-33): AC-K58…AC-K65, merged with
+WU-53 (`25bde2a`). That step also settled the example "Culmination II, then Ailith's Chimes" (AC-K61).
 
 ### 2.3 C-43 `search_tree_nodes` (modified, `read`)
 
@@ -541,6 +545,28 @@ tools (D-335). What stays:
 - the counts stay 84, and 83 with poe.ninja disabled (AC-B1);
 - tests stay offline (D-34): HTTP goes only through `fixtureFetch`.
 
+### 2.11 Tree validity in the path tools (*target*, WU-66, D-360)
+
+Amendment 4's tree rule (D-360, I-3): on a stage's main-tree nodes, class starts not joining their exits,
+each tree holds exactly one start exit (a node linked to the class start, or a main-tree link of an
+allocated alternate-start node: the Pathfinder's Path of the Sorceress, node 12795, links the Sorceress
+exits 4739 and 44871); each start holds at most one tree; an alternate start holds a tree only while its
+granting node is allocated; and the ascendancy nodes form one tree with their own start. So a build has at
+most two trees with Path of the Sorceress, and one without. Slice 02's V1 code `tree-shape` checks it at
+compile (WU-66, AC-P65).
+
+- **`find_path_to_node` and `get_nearby_nodes`** (`src/services/treeService.ts:292-413`, both `read`) never
+  path through an unallocated start, and leave a start only while it holds no tree. So neither returns a
+  path that opens a second tree on a start, crosses an unallocated start, or reaches the Sorceress exits
+  without 12795 (AC-K66).
+- Tools that follow PoB's own paths (`update_tree_delta`, `get_passive_upgrades`) are left as they are, and
+  are caught at compile by `tree-shape`.
+- PoB2 v0.23.1 doesn't enforce the rule (the user reports its UI does; a newer release may differ); it holds
+  either way.
+- **Contract.** Both tools are outside C-37…C-50, so the change is HG-12's. The user's acceptance of
+  amendment 4, whose D-360 names both tools, is that decision (2026-10-11), and the spine's C-1 and HG-12
+  name D-360. Their arguments and output format are unchanged, and no tool is added.
+
 ## 3. Work units
 
 The serialized-wiring rule applies (spine §8). Each tool-adding unit here (WU-31, WU-32, WU-35 and
@@ -555,8 +581,9 @@ principle stays: extend existing tools where natural, and group new ones.
 
 Status lines give the merge commits on the integration branch (the build's work-log,
 [`../worklog.md`](../worklog.md)). Units WU-50, WU-52, WU-53, WU-54 and WU-60 are amendment 2's and 3's;
-their milestone is M-14 ("open builds offline", D-315). WU-54 and WU-60 are built, WU-50 is done (blocked),
-WU-52 is withdrawn, and WU-53 is not built.
+their milestone is M-14 ("open builds offline", D-315). WU-53, WU-54 and WU-60 are built, WU-50 is done
+(blocked), and WU-52 is withdrawn. Amendment 4's WU-66 (M-15) has a path-tool half here; its full block is
+slice 02's.
 
 ### WU-31: K1 lookups and the `search_tree_nodes` fixes
 - kind: build
@@ -754,6 +781,21 @@ AC-K47…AC-K49. Nothing was built.
   types to a `notRolled` reason, since PoB reads that table only as the essence fallback
   (`ItemsTab.lua:3076`), and added literal test expectations. WU-53 follows it, because both edit
   `Lookup.lua` (D-317).
+
+### WU-66 (path tools): tree validity in `find_path_to_node` and `get_nearby_nodes`
+- kind: build
+- status: target (M-15). This is the path-tool half; the unit's full block, with V1's `tree-shape`, is
+  slice 02's §5
+- depends-on: [WU-65 (`Compile.lua`, `v1.ts`)]
+- role: backend-dev
+- touches: [`src/services/treeService.ts` (:292-413), the path tools' engine tests]
+- produces: [§2.11's path rule (D-360)]
+- consumes: [the pinned tree's start and exit links; slice 02's `tree-shape` rule]
+- acceptance: [AC-K66]
+- milestone: M-15
+- risk: medium
+- summary: The path tools never path through an unallocated start and leave a start only while it holds no
+  tree, so the tools an agent paths with can't open a second tree. Amendment 4 rates the unit medium.
 
 ## 4. Acceptance criteria
 
@@ -1444,6 +1486,11 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
   - Every stat-set hit in the Lua action's full gem-hit list for `Explosion` names a stat set whose
     described lines include the hit's line, at the gem's default level and quality 0 (Lua query).
 
+**Tree validity in the path tools (WU-66; target, M-15; D-360).** Copied from amendment 4 §15.
+
+- **AC-K66 (WU-66, D-360).** Engine. Neither `find_path_to_node` nor `get_nearby_nodes` returns a path that opens
+  a second tree on a start, crosses an unallocated start, or reaches the Sorceress exits without 12795.
+
 ## 5. Test strategy (this slice)
 
 | AC | Class | File |
@@ -1463,6 +1510,7 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
 | AC-K51 (WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
 | AC-K58…K65 (WU-53) | in-process, engine-required; AC-K63's `lookups.md` check static; the new samples also in `engineKinds.test.ts` (AC-K6) | `tests/integration/lookupGameData.test.ts` |
 | AC-K52 (WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
+| AC-K66 (WU-66, target) | in-process, engine-required | the path tools' engine tests (WU-66) |
 
 **Kind checks.** `engineKinds.test.ts` runs every new `ok` sample from §3. The `read` samples (the
 three lookup modes, both coverage samples, G's breakdown, the ascendancy search, `include_ascendancy`,
@@ -1492,8 +1540,10 @@ unchanged. Set titles are stricter (D-245), `get_passive_upgrades` may leave out
 lines to keep its can't-measure section whole (D-246), and `update_tree_delta` refuses an add that would
 untag a weapon-set branch (D-308). The amendment units only add output: a mod's base types and essence hits
 (WU-60, built; `kind` gains `essence`), coverage flags beside the statuses (WU-54, built), and the lookup
-additions (WU-53, target). No tool is added in group `ninja` (D-335). Rollback is a revert of the unit's
-merge.
+additions (WU-53, built; `kind` gains `base`). No tool is added in group `ninja` (D-335). *Target (WU-66,
+D-360):* `find_path_to_node` and `get_nearby_nodes` stop returning paths that open a second tree on a start
+or cross an unallocated start; their arguments and output format are unchanged, and the user's acceptance
+of amendment 4 is the HG-12 decision for it (2026-10-11). Rollback is a revert of the unit's merge.
 
 **Choices made here** (the [slice] marks; fold into the spine at ratification):
 - **Accepted by the coordinator (2026-10-07), now spine decisions:**
@@ -1540,10 +1590,8 @@ merge.
 **Former spine nits, settled 2026-10-07.** The spine's C-2/C-5 row is a modified contract listing §2.1's
 changes (D-222). WU-36 edits `add_item`'s enum, never the shared `ITEM_SLOTS` (D-223).
 
-**Open** (target; it has a settled route):
-- WU-53's output formats and checkable criteria, for each lookup addition. The unit's first step pins them
-  in §2.2 and §4 from amendment 3's text, and the coordinator reviews them before any code is written
-  (A-33). Done on its lane as AC-K58…AC-K65, which merge with it.
+**Open:** none in this slice. WU-53's output formats and checkable criteria were pinned at its first step
+(A-33) as AC-K58…AC-K65, which merged with it (`25bde2a`). Amendment 4 gave AC-K66 itself.
 
 **Closed by the build:** the WU-54 flags' names and examples (AC-K53…AC-K57, D-336); C-54's tool details
 and the popularity threshold, withdrawn with the tools (D-335, D-324 withdrawn).

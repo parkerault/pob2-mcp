@@ -483,6 +483,16 @@ function main(argv) {
         `  complete records: ${j.complete.exact}/${j.complete.n} exact; recorded ${fmtK(j.complete.recorded)} vs telemetry ${fmtK(j.complete.telemetry)}`,
         `  stale records: recorded ${fmtK(j.stale.recorded)}, estimated ${fmtK(j.stale.estimated)} vs telemetry ${fmtK(j.stale.telemetry)} (${errPct(j.stale.estimated, j.stale.telemetry)}%)`,
       );
+      const errs = j.stale.requests.filter((r) => r.telemetry > 0).map((r) => (100 * (r.estimated - r.telemetry)) / r.telemetry).sort((a, b) => a - b);
+      if (errs.length) {
+        const q = (p) => +errs[Math.min(errs.length - 1, Math.floor(p * errs.length))].toFixed(1);
+        const absErr = j.stale.requests.reduce((s, r) => s + Math.abs(r.estimated - r.telemetry), 0);
+        j.stale.errorPct = { p5: q(0.05), p25: q(0.25), median: q(0.5), p75: q(0.75), p95: q(0.95), tokenWeightedAbs: +((100 * absErr) / j.stale.telemetry).toFixed(1) };
+        const e = j.stale.errorPct;
+        text.push(`  stale per request, error %: p5 ${e.p5}, p25 ${e.p25}, median ${e.median}, p75 ${e.p75}, p95 ${e.p95}; token-weighted |error| ${e.tokenWeightedAbs}%`);
+      }
+      const ledger = result.sessionLedger && Object.values(result.sessionLedger).reduce((s, m) => s + n0(m.outputTokens), 0);
+      if (ledger) text.push(`  session ledger output ${fmtK(ledger)} vs telemetry ${fmtK(t.total.output)} (${errPct(ledger, t.total.output)}%)`);
     }
   }
   if (opts.json) fs.writeFileSync(opts.json, `${JSON.stringify(result, null, 2)}\n`);

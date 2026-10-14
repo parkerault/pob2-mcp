@@ -5,6 +5,10 @@ for the output counter (`scripts/run-usage.mjs`): Claude Code's telemetry report
 counts for each request, and the files the session writes give lower bounds. The comparison is in
 `WU-64-output-counter.md`.
 
+**Status.** Not run. The lean recorded run (WU-72), made with telemetry on through the same receiver,
+served as the control in its place. This protocol stays available as a short re-check, for instance
+after a Claude Code upgrade. The launch command below is also the one a recorded run uses.
+
 **What it touches.** A fresh `mktemp -d` folder only. The session talks to the Anthropic API and to the
 receiver on `127.0.0.1:4318`, and nothing else: no MCP servers (`--strict-mcp-config`), no web, no
 shell commands, no `.env`, no `/mnt`. It takes about three minutes.

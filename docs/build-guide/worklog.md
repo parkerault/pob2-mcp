@@ -3265,3 +3265,47 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - every recorded run starts the receiver and ends with `/exit`.
   - **AC-W51:** all six parts met. The user's short control session isn't needed; its protocol is kept for a
     later re-check.
+- **The WU-72 verification** (an independent verifier): M-15 can't close on this record as it stands.
+  - **AC-W56, not met:**
+    - the run is `completed`;
+    - the checker exits 1, the one `[order]` violation only;
+    - **the gate displays:** brainstorm and design were printed, but verification and both final visits printed
+      none. The skill text is plain (SKILL.md:28, :134, :200), so it's a runner error, as in run A (D-265,
+      AC-W37). Text alone hasn't held the runner to it twice.
+  - **The attempt numbers:** the text is ambiguous (`V4.md:21`, `task-header.md:29` and `run-log.md:50`), and the
+    runner also slipped (1, 2, 2). The smallest fix is one clause: a re-check's `attempt` counts that card's
+    re-checks from 1.
+  - **AC-W58, met:**
+    - 30 claims (11 hinge, 19 reason), every one with a kind. D2 has 6 hinge and 14 reason (6 paths, 8 picks): over
+      D-366's "about 10", within its letter;
+    - `b` and `n` carry the measures, a label matching the Arbiter verdict (both `survives`, 0.97 and 0.89) and the
+      Cremation anoint; `m` has none;
+    - no kill time, hits to kill or campaign defences;
+    - V1 has zero findings on all 9 stages;
+    - V4-1…V4-3 are kept.
+  - **AC-W57, output not met:** about **1.20M before the revision**. 11 of 21 agents and the runner went past
+    150K.
+  - **The guide:** 2,930 words, and it reads as a game guide, with a lean campaign per D-354. **Problems:**
+    - the stale card title "Burning packs call extra flasks" (quality-0 gems throw no extra flasks);
+    - "one button for bosses" against a flask lasting about 9.4 s;
+    - the maps amulet's +1 dropped with no reason;
+    - pipeline notes left in the text ("1.251× base", "unconfirmed offline");
+    - every DPS figure models the granted skill as a socketed level-16 or 20 gem with five supports, while PoB's
+      own granted copy shows about 160 DPS, so a reader can't tell whether the build works.
+  - **The design display drifted.** The design gate's figures (budget EHP 9,305, Arbiter 0.99) differ from the
+    final record's (10,409 and 0.97), and no later display showed the new ones. The likely cause, unverified:
+    D2's campaign rewards carry into the endgame rungs.
+  - **Duplicate claims:** the 5-charge cost is stated three times; the revision added a third.
+  - **Where output and context went:**
+    1. Thinking: 60% of output. W1's first call recorded 163K output against about 25K of tool input.
+    2. Reads against the stage text:
+       - V4 read `plan.json` in 8 chunks (129K characters), and W1 read it in 10 (109K);
+       - `plan-reference.md` went whole into D1-build (51K), R1b (53K) and D2 (31K), and `patterns.md` whole into
+         R1a (43K);
+       - the runner read `guide.md` and `audit.md` whole, twice.
+    3. Call volume:
+       - D1-build ran 129 turns, with 10 compiles, 36 `find_path_to_node` calls and 2 whole-plan writes;
+       - R1a researcher a made 65 lookups;
+       - W1 typed the 15K-character import code three times.
+  - **Decisions for the user:** waive or re-run for M-15's exit; the budget lever, under D-357 (thinking effort, a
+    smaller model); and how far to go on the mechanical fixes.

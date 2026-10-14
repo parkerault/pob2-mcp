@@ -3246,3 +3246,22 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     a guide review;
   - WU-64's doer, resumed to finish the spike with this run's telemetry as its ground truth, in place of the
     user's short control session.
+- **WU-64: done and merged** at `4489499` (the doer's total was 230K tokens). The coordinator reviewed it: the
+  report's decision section, a grep for identity data (none; only the receiver's list of dropped attribute
+  names), and the counter's totals, which matched the coordinator's own run. Static suite 351 of 351. Lane
+  `bg-64` removed.
+  - **The lean run served as the control.** All 837 transcript requests join telemetry on `request_id`; inputs
+    and caches are equal on every one, and the 573 complete records are exact.
+  - **The 264 stale requests:** the estimate is +1.2% in total, the per-request p5–p95 is ±33% with a median of
+    +2.2%, and the run total is +0.35%.
+  - **Three sources agree to the token** at 1,232,323: telemetry, the token metric and the session ledger.
+  - **The cache-read gap is `agent_summary`:** 47.88M cache read and 5.85K output. These are Claude Code's
+    timer-driven progress summaries of running subagents, absent from any transcript.
+  - **The decision:**
+    - telemetry backs D-357's budget, with the session ledger as the cross-check;
+    - the transcript estimate is the fallback at ±7%;
+    - per-step figures come from the transcripts joined to telemetry;
+    - `agent_summary` output counts toward the budget, and its cache read gets its own line;
+    - every recorded run starts the receiver and ends with `/exit`.
+  - **AC-W51:** all six parts met. The user's short control session isn't needed; its protocol is kept for a
+    later re-check.

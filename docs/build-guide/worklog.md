@@ -3389,3 +3389,39 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 - **The coordinator's plan:** one analyst agent reaches the builds through the user's pob2 server's read-only
   tools. It never saves, imports or exports, so nothing is written to the builds folder. It names the
   poe.ninja builds only as EC-78k and EC-98k, and writes the study `studies/2026-10-14-ec-comparison.md`.
+- **The comparison study:** `studies/2026-10-14-ec-comparison.md` (analyst 289K tokens; read-only pob2 tools; no
+  player names, as the coordinator checked).
+  - **The skill model was right:** both real builds carry Explosive Concoction as a level-20 gem group with five
+    supports at L91–93, and PoB's level-1 granted copy sits unused in all three.
+  - **The hit-DPS gap:** ×3.10 (98k) and ×2.19 (78k); with our ignite counted, ×1.67 and ×1.33. Their figures are
+    against a Pinnacle boss at 50% resistance, ours against a 0% map monster, and theirs rest on conditional
+    toggles (moving, flask on, Rage).
+  - **The causes:**
+    1. speed ×1.46, measured (+107% against our +14%);
+    2. +3 fire levels (Sunsplinter) and added fire on three slots, ≈×1.32;
+    3. permanently held conditions (Lavianga's Spirits, moving), ≈×1.22;
+    4. support multipliers, ≈×1.17 (Mana Bounty adds nothing).
+
+    Our research found those conditions and Multishot II (cards r1-c-2, r1-c-3 and r1-a-3), but the test config's
+    first-two rule never designed them.
+  - **The user's observations:**
+    - left on the table, confirmed: no charms (they run three), the allocated jewel socket 26725 empty, 24 of 36
+      rare affix slots used;
+    - pathing is efficient (96 nodes against a greedy 99): the targets are far-apart ignite and crit clusters
+      reached through 49 attribute nodes;
+    - campaign trees are nested by design (no respec). Act 3 is the weak stage. Respec planning is a skip;
+    - budget against non-budget: the same bases with better rolls, plus two damage lines;
+    - the PoB warnings are PoB gaps: The Hollow Mask's reservation line, the import's tenth gem group, an
+      unmodelled curse level cap; the chaos resistance shortfall is a real choice.
+  - **The lessons, recommended:**
+    - **Do:**
+      - (1) search +level sources across tags and slots;
+      - (2) `suggest_supports` at the top rung;
+      - (4) an unparsed key enabler becomes an earned config stand-in;
+      - (6) the non-budget rung changes build-defining items;
+      - (8) raise the granted-skill socket judgment's confidence.
+    - **Do cheaply:**
+      - (3) measure the 2–3 largest multipliers of every dealt card;
+      - (5) fill jewel sockets and charm slots (a charm checklist), and give non-budget rares 6 affixes;
+      - (7) also report DPS against a Pinnacle boss.
+    - **Skip:** (9) path optimisation and (10) campaign respecs.

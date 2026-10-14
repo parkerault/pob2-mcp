@@ -82,16 +82,18 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
      - **Merged and gated:** WU-65…WU-71 are on `build-guide/amendments`, each reviewed. The M-15 wave gate
        PASSed at `27b90fe`: 127 suites, 2283 tests, build rc=0, waivers `[]`, dependencies and `vendor/`
        unchanged.
-     - **WU-72, the lean run, is ready.** *Who acts: the user.* Its environment is `/tmp/m15.C1xp` (its README
-       has the steps). Its worktree is `m15`, detached at `27b90fe` and built. `start.sh runL` runs with
-       telemetry, `runL-plain` without. When the user reports it done, have an independent verifier check the
-       record against AC-W56…AC-W58 (slice 03 §13) and the budgets (AC-W57: output at most 1M by WU-64's counter,
-       peak context per agent, cache read per step). The transcripts are under
-       `~/.claude/projects/-home-parker-projects-pob2-mcp-wt-m15/`.
-     - **WU-64, the counter spike:** paused at "awaiting control" (lane `bg-64`, head `734764b`). The user runs
-       `docs/build-guide/spikes/WU-64-control.md` in their own terminal and hands back `$D`, the transcript path
-       and any `/usage` figures. Then resume a fresh doer (the first doer's agent is gone after a restart) to
-       finish the report and decide the budget counter. It blocks only WU-72.
+     - **WU-72, the lean run: DONE** (2026-10-12; verified 2026-10-14). It completed with 1.23M output and 130M
+       cache read. It missed three gate displays, the checker gave one `[order]` violation, and output was 1.20M
+       before the revision, over 1M. The work-log section "2026-10-14: WU-72, the lean run, ended" has it all.
+       **The user: fix, then waive** (no re-run); **the budget lever is held** until the poe.ninja comparison.
+     - **WU-73, the follow-up: IN PROGRESS** in lane `bg-73`:
+       - D-367: gate displays printed by `run-log.mjs display <gate>`, with `checkpoint` refusing without one;
+       - D-368: re-check attempt numbers;
+       - D-369: the final gate shows the final endgame figures;
+       - cheap guide fixes.
+
+       On merge, M-15 closes. Record that in the work-log and the spine at the fold.
+     - **WU-64: DONE and merged.** Telemetry backs the budget, and the transcript estimate is the fallback at ±7%.
      - **Then:** the wave gate. An independent verifier runs `mise run test` and `pnpm build` from clean at the
        integration head, since the full engine suite has run only per lane. Then the user's WU-72 lean run, with a
        new run worktree at the M-15 head (the M-14 one, `m14`, is at `96b1785`) and telemetry on, per WU-64's
@@ -100,7 +102,8 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
        - D-363: clear speed's stat set;
        - D-364: a loop through two exits of one start is one tree;
        - D-365: V4 checks guide figures against measured values only;
-       - D-366: D2's tree-path `reason` claims.
+       - D-366: D2's tree-path `reason` claims;
+       - D-367…D-369: WU-73's.
 
        Also fold the spec nits listed in the work-log: C-50's "or `view`"; AC-P65 and AC-K66's wording; §3.7,
        §2.11 and D-360's "one start exit"; slice 02:792 `producer-absent`.

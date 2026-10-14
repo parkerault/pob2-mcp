@@ -86,19 +86,15 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
        cache read. It missed three gate displays, the checker gave one `[order]` violation, and output was 1.20M
        before the revision, over 1M. The work-log section "2026-10-14: WU-72, the lean run, ended" has it all.
        **The user: fix, then waive** (no re-run); **the budget lever is held** until the poe.ninja comparison.
-     - **WU-73, the follow-up: IN PROGRESS** in lane `bg-73`:
-       - D-367: gate displays printed by `run-log.mjs display <gate>`, with `checkpoint` refusing without one;
-       - D-368: re-check attempt numbers;
-       - D-369: the final gate shows the final endgame figures;
-       - cheap guide fixes.
-
-       On merge, M-15 closes. Record that in the work-log and the spine at the fold.
+     - **WU-73, the follow-up: DONE**, merged at `a8bdf34` (D-367…D-369 and the guide fixes). **M-15 is CLOSED**
+       (2026-10-14) on the user's waiver. The work-log section "M-15 closed" has it.
      - **WU-64: DONE and merged.** Telemetry backs the budget, and the transcript estimate is the fallback at ±7%.
-     - **After WU-73 merges:**
-       1. Close M-15 in the work-log.
-       2. Fold the spec to v1.6: D-363…D-369 and the work-log's fold notes.
-       3. Then the user's poe.ninja comparison, which also decides the budget lever.
-       4. Then the sign-rebase and the cleanup (queue item 5).
+     - **Next:**
+       1. The user's poe.ninja Explosive Concoction comparison (*who acts: the user brings the build*). It decides
+          D-357's budget lever and the granted skill's DPS model.
+       2. Then one spec fold to v1.6: D-363…D-369, the work-log's fold notes, and whatever the comparison decides.
+          It's held until after the comparison, so the spec is folded once.
+       3. Then the sign-rebase and the cleanup (queue item 5).
      - **Coordinator decisions this build, PROPOSED and in the work-log only (fold them into the spine):**
        - D-363: clear speed's stat set;
        - D-364: a loop through two exits of one start is one tree;
@@ -153,8 +149,8 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `d748621` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes:
-  `bg-64` (WU-64, paused). Run worktrees: `m14` (`96b1785`) and `m15` (`27b90fe`, built).
+- **Integration head:** `f23fd71` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes:
+  none. Run worktrees: `m14` (`96b1785`) and `m15` (`27b90fe`, built).
 - **Live worktrees:**
   - `amend`, the integration worktree;
   - `m14`, detached at `96b1785` and built: the WU-59 run worktree.

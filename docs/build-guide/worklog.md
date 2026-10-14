@@ -3367,3 +3367,25 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   1. The spec fold to v1.6: D-363…D-369 plus the fold notes in this work-log.
   2. The user's poe.ninja comparison, which settles the budget lever and the granted skill's DPS model.
   3. The sign-rebase and the cleanup.
+
+## 2026-10-14: the user's comparison with poe.ninja builds
+
+- **The budget:** "1.23 is close enough to the limit that I'm willing to hold off on further optimization for
+  now". More improvement rounds are expected, and optimizing now may be premature. The D-357 lever stays unpulled.
+- **The user's review of runL's build** (imported into PoB2 as `EC`):
+  - it leaves a lot on the table: no charms, an empty jewel socket, many open affixes;
+  - the tree's pathing looks odd: are the paths the most efficient?
+  - is the campaign's node order ideal?
+  - the planners may not weigh a respec strategy: take closer nodes with a smaller payoff, then respec to the
+    farther, better nodes once points allow, unless the build needs them at once. That's quality of life in the
+    campaign, to be weighed against its complexity cost;
+  - the budget and non-budget gear is identical; only the passives differ. That's excusable offline, with no
+    prices.
+- **The sources:** the user put two poe.ninja Explosive Concoction builds in their PoB2 builds folder, `EC-78k`
+  and `EC-98k`, named for their DPS. EC-98k probably uses Oil Barrage as its main skill, with Explosive
+  Concoction secondary, yet its Explosive Concoction DPS is well above ours. Both are real level-90+ characters,
+  so they were viable, but probably not optimized. Their PoB warnings are probably PoB's failures, since
+  poe.ninja imports come from the game.
+- **The coordinator's plan:** one analyst agent reaches the builds through the user's pob2 server's read-only
+  tools. It never saves, imports or exports, so nothing is written to the builds folder. It names the
+  poe.ninja builds only as EC-78k and EC-98k, and writes the study `studies/2026-10-14-ec-comparison.md`.

@@ -3329,3 +3329,41 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - a revision cites an existing claim rather than adding a duplicate.
 - **Held for the poe.ninja comparison:** the budget lever (D-357), and the DPS model of the granted skill (a
   socketed level-16 or 20 gem with five supports, against PoB's own granted copy at about 160 DPS).
+- **WU-73: done** (doer `c12ac03`, `a1dc1ed`; 274K tokens). Static and unit suites 1318 of 1318; the four fixtures
+  rc=0; build rc=0. No server code changed, so the engine suites are unaffected.
+  - **D-367:**
+    - `run-log.mjs <folder> display <brainstorm|verification|design|final|escalation>` prints the display from
+      the run folder and records `{checkpoint, visit}` in a new `displays[]`;
+    - `checkpoint` refuses an answer whose visit printed none;
+    - the checker has a new rule, `[display]`;
+    - the hard rule and the gate paragraphs in `SKILL.md` (221 lines) and `checkpoints.md` say so.
+  - **D-368:** one clause each in `V4.md`, `task-header.md` and `run-log.md`.
+  - **D-369:** `display final` shows each rung's final figures, with the design gate's on the next line wherever
+    they moved. It also runs the checker in-process and shows its result.
+  - **The guide fixes:** movement speed as "+25%"; no pipeline notes (W1, with V4's editor read flagging them); a
+    title from the final build; no duplicate claims (D1-finish, D2).
+  - **Deviations, accepted:**
+    - a missing input prints a "No …" line, and the visit is still recorded, so `stop` can be logged;
+    - the final display shows more (the PoB file, the gate verdicts, the known issues);
+    - schema-3 logs from before D-367 (run A's, the lean run's) now fail `[display]`; the checker tests' helper
+      rebuilds `displays[]`.
+  - **The coordinator's review:** it read the refusal and display bookkeeping, and smoke-tested a fixture copy.
+    `checkpoint` without a display gives exit 1 with the D-367 line, and display then checkpoint gives exit 0. One
+    hardening was added (`a8bdf34`): `checkpoint` names the expected visit when the runner's is wrong ("the final
+    gate's next visit is 2, not 5"), so a miscounted visit can't loop on the display error.
+- **WU-73 merged** at `a8bdf34`. At the merged head: build rc=0, static and unit suites 1318 of 1318. Lane
+  `bg-73` removed.
+
+### M-15 closed (2026-10-14), on the user's waiver
+
+- **Built:** WU-64…WU-71 and WU-73, each reviewed. The wave gate passed at `27b90fe` (127 suites, 2283 tests).
+  WU-73 changed only skill text, scripts and tests after that.
+- **WU-72's record:** `completed`; output 1.23M by telemetry (run A 2.5M); cache read 129.6M (run A 296M). AC-W58
+  is met.
+- **Waived by the user ("fix, then waive"):**
+  - AC-W56's checker exit (one `[order]` attempt number) and 3 of 5 gate displays. D-368 and D-367 fix both.
+  - AC-W57's output: 1.20M before the revision, against 1M. The lever is held for the poe.ninja comparison.
+- **Next:**
+  1. The spec fold to v1.6: D-363…D-369 plus the fold notes in this work-log.
+  2. The user's poe.ninja comparison, which settles the budget lever and the granted skill's DPS model.
+  3. The sign-rebase and the cleanup.

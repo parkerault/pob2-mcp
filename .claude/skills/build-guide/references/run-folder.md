@@ -150,8 +150,9 @@ one stderr line `check-run: [<rule>] <message>`.
   round or revision, covering only what `check-run.mjs --changed <n>` lists (D-352); a revision checked by a
   re-check, never a full pass; a claims-only owner only before any gate of its round and never directly before
   a gate (a claims-only D1 may be followed by a D2 that recompiles, and its D2 gate); escalations only from the
-  gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; and `completed` only
-  after the final gate's accept (checkpoint 2's, in a schema-2 log, whose D1 stays one step).
+  gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; each gate visit's
+  display in `displays[]` before its answer (D-367); and `completed` only after the final gate's accept
+  (checkpoint 2's, in a schema-2 log, whose D1 stays one step).
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after
   the last D2 gate (a claims-only D1 or D2 leaves it current).

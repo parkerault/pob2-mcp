@@ -25,9 +25,10 @@ as D-295 words it). Each step below is a short card: read a reference only where
   `mcp__pob2__search_tree_nodes` for the brief check (the last for the ascendancy lock, D-342), and
   `mcp__pob2__guide_run {new_run}` (FR-W3). Every compile, engine change and price call is a coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type`.
-- **Every gate visit prints its display first, in your reply, whoever answers it** (D-265): the user, a
-  pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an
-  escalation. A pre-supplied or default answer replaces only the question: after the display, state the answer
+- **Every gate visit prints its display first, in your reply, whoever answers it** (D-265, D-367): the user, a
+  pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation.
+  `run-log.mjs <runFolder> display <gate>` prints it; then resolve and log the answer (`checkpoint` refuses a visit
+  with no display). A pre-supplied or default answer replaces only the question: after the display, state the answer
   it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` (`references/checkpoints.md`).
 - **Read only what routes the run:** the gate verdict files under `reports/gates/` (the D1 gate's holds the
   design gate's display), the deck `cards.md`, your own `run-log.json`, the test config, the agents' returns and
@@ -40,7 +41,8 @@ as D-295 words it). Each step below is a short card: read a reference only where
   - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, with `--changed <n>`
     for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34);
   - the audit render, `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder>` (D-355);
-  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356).
+  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
+    and a gate's display, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate>` (D-367).
 
   Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
   client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing else that writes, moves or deletes a file. Write
@@ -93,7 +95,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place, a `hinge: no` statement removed or narrowed; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
 | 13 | V4 re-check | `build-guide-verifier`, one: only what `check-run.mjs --changed <n>` lists | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict; no further round |
 | 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
-| 15 | Run checker | you (Bash) | — | its result, shown at step 16 |
+| 15 | Run checker | you: `display final` runs it | — | its result, in the final gate's display (step 16) |
 | 16 | The final gate (§6) | you | log | asks the user: accept, ask for changes (a revision), or anything else |
 
 **Retries.** The R1b compile, the D1 gate and the D2 gate allow 2 counted retries each. Uncounted: an attempt
@@ -116,10 +118,10 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 - **R1a-assemble** (2b), after the round's researchers return. Prompt: the round, the brief, the user's note,
   and each researcher's letter, research file, cards and whether it returned. **A short round**: it returns
   `short: <why>`; record the reason in the run log, as `shortReason` on its `stages[]` entry, and say so.
-- **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display on every visit, whoever answers
-  (Hard rules): echo the parsed brief at the top, then the deck. Ask with AskUserQuestion in `multiSelect` mode,
-  up to 4 cards a question and up to 3 questions, plus one question for more or stop: **verify** 1–3 cards (step
-  3); **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
+- **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display, `display brainstorm` (the brief,
+  then the deck), whoever answers (Hard rules). Ask with AskUserQuestion in `multiSelect` mode, up to 4 cards a
+  question and up to 3 questions, plus one question for more or stop: **verify** 1–3 cards (step 3);
+  **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
 
 ## 3. Verification (steps 3 to 5)
 
@@ -131,12 +133,11 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
   never retried, and the card is `failed`.
 - **R1b-assemble** (4). Prompt: the verification round, the research files (and whether each researcher
   returned), and each card `{id, title, status, attempts, verdict}`.
-- **The verification gate** (5; `references/checkpoints.md`). Print its display on every visit, whoever answers
-  (Hard rules): show every verified card's comparison line and status and the dossier's path. Ask: **finalize**
-  one card (its identity becomes the run's `roll`; not a card that can't be finalized yet, nor a
-  `wrong-ascendancy` card, failed or not, since the build it describes can't exist, D-342); **verify other
-  cards** (step 3); **brainstorm more** (2a); or **stop**. Every route back from the design comes here: an
-  `infeasible` design, an escalation's option 3, the design gate's `verification`, and FI-3.
+- **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification` (the
+  dossier), whoever answers (Hard rules). Ask: **finalize** one card (its identity becomes the run's `roll`; not a
+  card that can't be finalized yet, nor a `wrong-ascendancy` card, failed or not, since the build it describes can't
+  exist, D-342); **verify other cards** (step 3); **brainstorm more** (2a); or **stop**. Every route back from the
+  design comes here: an `infeasible` design, an escalation's option 3, the design gate's `verification`, and FI-3.
 
 ## 4. Design (steps 6a to 9; `references/gates.md`)
 
@@ -157,13 +158,12 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
   - `"forced": "infeasible"` (FI-3): `infeasible`; after a guided retry or an accepted re-run, any failure
     escalates again. Log each gate attempt with the outcome its verdict file routes to; the run checker holds
     the log to the files.
-- **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display on every visit, whoever
-  answers (Hard rules): show the D1 gate verdict file's `design` field (A-35), each rung's measures, anoint,
-  gear, gems and tree and the open estimates; no plan or record read. Ask (checkpoint `design`): **accept**, on
-  to step 8; **revise** (`revise:<text>`), a D1 fix round with the text as `findings` (`code: "user-request"`):
-  D1-build then D1-finish for a build change (gear, tree, gems or config), else D1-finish (on `build:`,
-  D1-build, then D1-finish with its `changed`), then the D1 gate and this gate again; **verification**, step 5;
-  **stop**, also when `answers.design[]` is used up (`default`).
+- **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display, `display design` (the D1
+  gate verdict file's `design` field, A-35), whoever answers (Hard rules). Ask (checkpoint `design`):
+  **accept**, on to step 8; **revise** (`revise:<text>`), a D1 fix round with the text as `findings` (`code:
+  "user-request"`): D1-build then D1-finish for a build change (gear, tree, gems or config), else D1-finish (on
+  `build:`, D1-build, then D1-finish with its `changed`), then the D1 gate and this gate again;
+  **verification**, step 5; **stop**, also when `answers.design[]` is used up (`default`).
 - **D2** (8) adds the campaign; tell it how to price. **The D2 gate** (9) checks every stage and, when the
   compile, V1 and V2 pass, runs the final compile with `buildName` (`<slug>-<YYYY-MM-DD>-<n>`, the run folder's
   last two segments joined with `-`). A failure re-runs D2, up to 2 counted retries; the third escalates (§5). On
@@ -171,13 +171,13 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
 
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
-Record `{stage, concept, verdict, choice, guidance?}` and checkpoint `escalation`. Print its display, whoever
-answers (Hard rules): show the stage, the attempts and the verdict file, and ask: 1. **accept** (not after a
-compile failure), the failing findings into every later header's `accepted`, going on as if the gate passed (the
-D2 gate runs once more, uncounted); 2. **guidance and one more retry**: the producer (D1 or D2) gets one more
-attempt, uncounted, with the verdict and the user's guidance (`code: "user-guidance"`) in `findings`, then its
-gate. If the gate fails, whatever part fails, it escalates again; 3. **back to the verification gate** (the
-choice `verification`); 4. **stop**: the run ends `escalated`.
+Record `{stage, concept, verdict, choice, guidance?}` and checkpoint `escalation`. Print its display, `display
+escalation` (the stage, the attempts and the verdict file), whoever answers (Hard rules), and ask: 1. **accept**
+(not after a compile failure), the failing findings into every later header's `accepted`, going on as if the gate
+passed (the D2 gate runs once more, uncounted); 2. **guidance and one more retry**: the producer (D1 or D2) gets one
+more attempt, uncounted, with the verdict and the user's guidance (`code: "user-guidance"`) in `findings`, then its
+gate. If the gate fails, whatever part fails, it escalates again; 3. **back to the verification gate** (the choice
+`verification`); 4. **stop**: the run ends `escalated`.
 
 ## 6. Write, verify and the final gate (steps 10 to 16)
 
@@ -197,11 +197,11 @@ choice `verification`); 4. **stop**: the run ends `escalated`.
   not an owner recompiled: no re-check covers every claim (D-352).
 - **Step 14, known issues** (`references/fix-round.md`): replace both `Known issues` lists whole with the last
   report's open findings and W1's accepted-finding lines, reading only the lines you edit.
-- **Step 16, the final gate** (`references/checkpoints.md`). Print its display on every visit, whoever answers
-  (Hard rules): show the guide's path, the PoB file, the gate verdicts, the known issues and the checker's
-  result, and ask: **accept** (`completed`), **ask for changes**, or anything else (`not-accepted`). Asking for
-  changes is a revision (`references/fix-round.md`): the round copy, the owners' chain, then step 13's re-check:
-  **a revision runs no full pass** (D-352). Steps 12 to 16 then follow as after a full pass.
+- **Step 16, the final gate** (`references/checkpoints.md`). Print its display, `display final` (each rung's final
+  figures, D-369, and the checker's result among them), whoever answers (Hard rules), and ask: **accept**
+  (`completed`), **ask for changes**, or anything else (`not-accepted`). Asking for changes is a revision
+  (`references/fix-round.md`): the round copy, the owners' chain, then step 13's re-check: **a revision runs no full
+  pass** (D-352). Steps 12 to 16 then follow as after a full pass.
 
 ## 7. Finish
 

@@ -157,6 +157,24 @@
       "rule": "accept"
     }
   ],
+  "displays": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1
+    },
+    {
+      "checkpoint": "design",
+      "visit": 1
+    },
+    {
+      "checkpoint": "final",
+      "visit": 1
+    }
+  ],
   "escalations": [],
   "faults": [
     {

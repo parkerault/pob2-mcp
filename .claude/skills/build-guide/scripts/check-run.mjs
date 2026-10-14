@@ -40,8 +40,8 @@
 //    order, each gate's answer followed (the brainstorm, verification, design and final gates, D-287, D-362),
 //    the caps per brainstorm and verification round, the retry caps (S6 honoured; an R1b `not-a-skill` or
 //    `wrong-ascendancy` failure is terminal, D-334, D-342), one full V4 pass per guide and at most one re-check
-//    per fix round or revision, escalations only from the gates, and the rule on every pre-supplied or default
-//    answer.
+//    per fix round or revision, escalations only from the gates, the rule on every pre-supplied or default
+//    answer, and each gate visit's display recorded before its answer (D-367).
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -152,6 +152,8 @@ const PLAYSTYLE_TAGS = ['melee', 'ranged-attack', 'spell', 'minion', 'totem-trap
  * the guide checkpoints 1 and 2.
  */
 const CHECKPOINTS = { 2: [1, 2, 'unsaved-build', 'escalation'], 3: ['brainstorm', 'verification', 'design', 'final', 'unsaved-build', 'escalation'] };
+/** Schema 3's gate visits that print a display first; run-log.mjs records each in `displays[]` (D-367). */
+const DISPLAYED = ['brainstorm', 'verification', 'design', 'final', 'escalation'];
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 /** An escalation's choices (D-236): schema 3 goes back to the verification gate, schema 2 to checkpoint 1 (D-289). */
 const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'] };
@@ -1732,6 +1734,7 @@ function checkRunLog(log, fail, schema) {
     }
   });
   const visits = new Map();
+  const displays = Array.isArray(log.displays) ? log.displays.filter(isObj) : [];
   arr('checkpoints').forEach((c, i) => {
     const at = `checkpoints[${i}]`;
     if (!isObj(c)) return bad(at, 'is an object');
@@ -1746,6 +1749,10 @@ function checkRunLog(log, fail, schema) {
       if (c.visit !== want) bad(at, `is visit ${c.visit} of ${show(c.checkpoint)}, but it is that checkpoint's entry ${want}; visit counts its visits from 1`);
     }
     if (v3) checkGateAnswer(c, at, bad);
+    // D-367: run-log.mjs records a gate visit's display in displays[] before it logs that visit's answer.
+    if (v3 && DISPLAYED.includes(c.checkpoint) && !displays.some((d) => d.checkpoint === c.checkpoint && d.visit === c.visit)) {
+      fail('display', `run-log.json ${at}: ${c.checkpoint} visit ${c.visit} has no display in displays[]; every gate visit prints its display first, run-log.mjs display ${c.checkpoint}, and only then logs its answer (D-367)`);
+    }
     if (typeof c.answer !== 'string' || c.answer.trim() === '') bad(at, 'has its answer');
     if (!['user', 'pre-supplied', 'default'].includes(c.answeredBy)) bad(at, 'answeredBy is "user", "pre-supplied" or "default"');
     if (c.answeredBy !== 'user' && log.testConfig !== 'accepted') {

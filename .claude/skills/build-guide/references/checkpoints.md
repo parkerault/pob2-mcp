@@ -8,6 +8,12 @@ mode the test config answers instead (`offline-and-test.md`), and only there (A-
 the run log's `checkpoints[]` under the gate's or question's name (`answer`, `answeredBy`, and `rule` for a
 pre-supplied or default answer; `run-log.md`).
 
+**Every gate visit starts with its display** (D-265, D-367), at the brainstorm, verification, design and final
+gates and at an escalation, whoever answers: run `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder>
+display <gate>` (`brainstorm`, `verification`, `design`, `final` or `escalation`). Its output is the display:
+print it in your reply as it is, then resolve the answer (ask, or take the test config's) and log it with
+`checkpoint`, which refuses a visit whose display wasn't printed. Each **Show** below is what it prints.
+
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
 Asked once, right after the run log's first write, when `mcp__pob2__guide_run {new_run}` replied
@@ -25,7 +31,7 @@ With a test config, `answers.unsavedBuild` answers it; with none there, the answ
 
 Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoint `brainstorm`.
 
-- **Show** the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
+- **Show** (`display brainstorm`) the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
   line each (its id, title, identity, playstyle tags, links confirmed, under-played label and evidence), and
   the "Not dealt" list, each with the link no lookup confirmed. A card whose damage source isn't a skill is
   marked "can't be finalized yet" (D-303). After a short round (D-339: fewer than 6 cards passed, or the deck
@@ -46,7 +52,7 @@ Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoin
 Renamed from checkpoint 1 (D-287). Shown after every verification round's R1b-assemble, and after a design
 that was `infeasible` or an escalation sent the run back here. Recorded as checkpoint `verification`.
 
-- **Show** R1b-assemble's comparison, one line per card verified in the run (every verification round, not
+- **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in the run (every verification round, not
   only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
   figure, `Life` and `TotalEHP`, D-294; the figure labelled `estimate` when its group's Count is above 1 or
   the stage is `computedWithCustomMods`, D-296), key prices (dated, or `unavailable`), risks, what PoB can't
@@ -80,7 +86,7 @@ checkpoint `design`. It runs between the D1 gate and D2 of the design (SKILL.md 
 round or a revision.
 
 - **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `stages/D1-gate.md` step 6):
-  you read no plan or record and call no tool for it. One block per endgame rung, in ladder order:
+  you read no plan or record and call no tool for it; `display design` prints it. One block per endgame rung, in ladder order:
 
   ```
   b: DPS 98412, EHP 31250, Arbiter survives, worst physical 0.82, clear fast (rough)
@@ -105,9 +111,11 @@ round or a revision.
 
 Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). Recorded as checkpoint `final`.
 
-- **Show** the guide's path; the PoB file (the D2 gate verdict's `finalCompile.pobFile`); the gate
-  verdicts; the known issues (the open V4 findings and the accepted gate findings); the run checker's
-  result; when any price is `unavailable`, that the variant can't be claimed to be under budget (D-164);
+- **Show** (`display final`, which runs the run checker) the guide's and `audit.md`'s paths; the PoB file (the
+  D2 gate verdict's `finalCompile.pobFile`); the gate verdicts; each endgame rung's figures from the final
+  compile record, its DPS, EHP, Arbiter verdict with the worst ratio, and rough clear speed, with the design
+  gate's beside them where they moved since (D-369); the known issues (the open V4 findings and the accepted
+  gate findings); the run checker's result; when any price is `unavailable`, that the variant can't be claimed to be under budget (D-164);
   and in offline mode, that the guide is from an offline run.
 - **Ask**: accept, ask for changes, or anything else.
   - **accept**: the run ends `completed`.
@@ -129,7 +137,7 @@ Only the D1 and D2 gates escalate: on the third counted failure of a compile, V1
 final compile included), and on a guided retry that fails again. Verification never escalates: what it
 leaves open becomes a known issue. Record the escalation in `escalations[]` as `{stage, concept, verdict,
 choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the question as checkpoint
-`escalation`. Show the stage, the attempts and the verdict file, and ask:
+`escalation`. Show (`display escalation`) the stage, the attempts and the verdict file with its findings, and ask:
 
 1. **accept**: the verdict's failing findings are accepted. A gate finding equal to an accepted one, **same
    plan stage, part and `code`**, fails no gate afterwards, whichever gate reports it: every later header's
@@ -171,7 +179,7 @@ card's status and the dossier's path, on every visit; on a revisit after an `inf
 escalation, that card's evidence (its last verdict file); with no viable card, each failed card's last
 verdict. At
 the design gate that is every rung's block and the open estimates from the D1 gate's verdict file, on every
-visit. At the final gate and at an escalation, the same holds for their displays.
+visit. At the final gate and at an escalation, the same holds for their displays: `display <gate>` prints each, on every visit.
 
 When the `brainstorm`, `verification`, `design` or `final` answers run out, the run ends `stopped` (recorded as answer
 `stop`, `answeredBy: "default"`). Record a used answer with `answeredBy: "pre-supplied"` and the answer it

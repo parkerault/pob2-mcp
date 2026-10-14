@@ -21,6 +21,7 @@ section).
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, shortReason?}` |
 | `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |
+| `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below) |
 | `escalations[]` | gate escalations only: `{stage, concept, verdict, choice, guidance?}` |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}`; empty otherwise |
 | `outputs` | `{plan, record, dossier, guide, pobFile}`: run-folder paths and the record's PoB path; `null` until produced. No import code: the record holds it (D-260) |
@@ -156,6 +157,7 @@ JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
 {"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}
 JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display design
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
 {"checkpoint": "design", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user"}
 JSON
@@ -171,6 +173,10 @@ JSON
   `outputs` path null, `status` `running`, or `stopped` with a refused test config. It never overwrites a log.
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
   `escalations[]`.
+- `display <gate>` (D-367; `brainstorm`, `verification`, `design`, `final` or `escalation`) prints that gate
+  visit's display, built from the run folder's files (`checkpoints.md`), and records the visit in `displays[]`;
+  printing it again records nothing new. A `checkpoint` entry for one of those gates is refused until its visit's
+  display is recorded; the unsaved-build question has no display.
 - `set` replaces `status`, `roll` (the verification gate's `pick:`), `outputs` or `faults` (`SKILL.md` §7).
 - An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
   written. The run checker checks the whole log and the flow it records.
@@ -191,6 +197,7 @@ The log before any agent runs (`SKILL.md` §1, step 3), as `init` writes it: the
   "testConfig": "accepted",
   "stages": [],
   "checkpoints": [],
+  "displays": [],
   "escalations": [],
   "faults": [],
   "outputs": { "plan": null, "record": null, "dossier": null, "guide": null, "pobFile": null }

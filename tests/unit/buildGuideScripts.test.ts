@@ -6,7 +6,10 @@
  *   from the plan, the final compile record and the D1 gate's last verdict file, and a re-render keeps the rows W1
  *   added under `Known issues`;
  * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356), or `-` for the JSON on stdin, writes the run log in
- *   `references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form.
+ *   `references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form;
+ *   `run-log.mjs <runFolder> display <gate>` (D-367) prints a gate visit's display from the run folder's files and
+ *   records it, the final gate's with each endgame rung's final figures (D-369), and a gate's answer is refused
+ *   until its visit's display is recorded.
  *
  * `--snapshot` and `--changed` (A-34, D-352) are `check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
  * The render loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
@@ -226,6 +229,8 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
 describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, in references/run-log.md's entry form", () => {
   const log = (dir: string, kind: string, entry: Json) => run(RUN_LOG, dir, kind, JSON.stringify(entry));
   const ok = (dir: string, kind: string, entry: Json, wrote: string) => expect(log(dir, kind, entry)).toEqual({ code: 0, stdout: `run-log: wrote ${wrote}\n`, stderr: '' });
+  /** Prints a gate's display on a run folder, as the runner does before it logs that visit's answer (D-367). */
+  const shown = (dir: string, gate: string) => expect(run(RUN_LOG, dir, 'display', gate)).toMatchObject({ code: 0, stderr: '' });
   const started = () => {
     const dir = folder();
     ok(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted' }, 'the first log');
@@ -245,6 +250,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       testConfig: 'accepted',
       stages: [],
       checkpoints: [],
+      displays: [],
       escalations: [],
       faults: [],
       outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
@@ -261,8 +267,10 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     ok(dir, 'stage', { stage: 'D1-build', concept: CARD, attempt: 1, outcome: 'done' }, 'stages[2]');
     ok(dir, 'stage', { outcome: 'done', priceOutcomes: { ok: 3, would_wait: 1 }, attempt: 1, concept: CARD, stage: 'D1-finish' }, 'stages[3]');
     ok(dir, 'stage', { stage: 'D1-gate', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[4]');
+    shown(dir, 'design');
     ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' }, 'checkpoints[0]');
     ok(dir, 'stage', { stage: 'D1-finish', concept: CARD, attempt: 2, outcome: 'claims-edited' }, 'stages[5]');
+    shown(dir, 'design');
     ok(dir, 'checkpoint', { checkpoint: 'design', visit: 2, answer: 'accept', answeredBy: 'user' }, 'checkpoints[1]');
     ok(dir, 'stage', { stage: 'V4', concept: CARD, attempt: 1, outcome: 'fail' }, 'stages[6]');
     ok(dir, 'stage', { stage: 'V4-recheck', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[7]');
@@ -306,16 +314,17 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       expect(r.stderr).toMatch(why);
     }
     expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
-    // A default answer at the design gate is stop, with its rule (D-362).
+    // A default answer at the design gate is stop, with its rule (D-362), after the visit's display (D-367).
+    shown(dir, 'design');
     ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
   });
 
   it("accepts run-log.md's example calls, and init writes its first-write example", () => {
     const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
-    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (\w+) - <<'JSON'\n(.*)\nJSON$/gm)].map((m) => [m[1], `${m[2]}\n`]);
-    expect(calls.map(([kind]) => kind)).toEqual(['init', 'stage', 'checkpoint', 'escalation', 'set']);
+    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (?:(\w+) - <<'JSON'\n(.*)\nJSON|display (\w+))$/gm)].map((m) => (m[3] ? ['display', m[3]] : [m[1], `${m[2]}\n`]));
+    expect(calls.map(([kind]) => kind)).toEqual(['init', 'stage', 'display', 'checkpoint', 'escalation', 'set']);
     const dir = folder();
-    for (const [kind, json] of calls) expect({ kind, ...runWith(json, RUN_LOG, dir, kind, '-') }).toMatchObject({ kind, code: 0, stderr: '' });
+    for (const [kind, arg] of calls) expect({ kind, ...(kind === 'display' ? run(RUN_LOG, dir, kind, arg) : runWith(arg, RUN_LOG, dir, kind, '-')) }).toMatchObject({ kind, code: 0, stderr: '' });
     const first = folder();
     expect(runWith(calls[0][1], RUN_LOG, first, 'init', '-').code).toBe(0);
     const example = JSON.parse(/## A first write[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]) as Json;
@@ -325,6 +334,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   it("reads the entry from stdin for -, as a quoted heredoc gives it: a text with an apostrophe needs no shell quoting", () => {
     const dir = started();
     const answer = "revise:the build's helmet costs too much; keep Blood Hunt's leap";
+    shown(dir, 'design');
     expect(runWith(`${JSON.stringify({ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' })}\n`, RUN_LOG, dir, 'checkpoint', '-')).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
     expect(readJson(dir, 'run-log.json').checkpoints).toEqual([{ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' }]);
     // Through a real shell heredoc too, the form references/run-log.md gives.
@@ -346,5 +356,111 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     expect(run(RUN_LOG, empty, 'append', '{}').code).toBe(2);
     expect(run(RUN_LOG, empty, 'stage').code).toBe(2);
     expect(fs.readdirSync(empty)).toEqual([]);
+  });
+});
+
+describe('run-log.mjs display (D-367, D-369): each gate visit prints its display from the run folder, and its answer waits for it', () => {
+  const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
+  /** A copy of a fixture run in a temp folder: the display records its visit in the copy's log. */
+  const copy = (fixture: string) => {
+    const dir = folder();
+    fs.cpSync(path.join(FIXTURES, fixture), dir, { recursive: true });
+    return dir;
+  };
+  /** The display's lines; the visit is one more than the copy's answers at that gate. */
+  const display = (dir: string, gate: string) => {
+    const r = run(RUN_LOG, dir, 'display', gate);
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    return r.stdout.split('\n');
+  };
+
+  it('brainstorm: the brief, then the deck from cards.md without the cards already verified, and the Not dealt list', () => {
+    const dir = copy('run-ok');
+    const out = display(dir, 'brainstorm');
+    expect(out.slice(0, 3)).toEqual(['## The brainstorm gate, visit 2', '', 'Brief: ascendancy Titan; skill Blood Hunt']);
+    expect(out).toContain('- r1-b-1 "Blood Hunt on a two-hander" | Warrior Titan, Blood Hunt | melee, one-button, boss | links confirmed 1 of 1 | evidence: no player evidence');
+    expect(out.filter((l) => /^- r1-a-[12] /.test(l))).toEqual([]);
+    expect(out).toContain('## Not dealt');
+    expect(readJson(dir, 'run-log.json').displays).toContainEqual({ checkpoint: 'brainstorm', visit: 2 });
+  });
+
+  it("verification: the dossier's table and path, and a card's last design verdict once a design ran", () => {
+    const dir = copy('run-ok');
+    const out = display(dir, 'verification');
+    expect(out.filter((l) => l.startsWith('|')).map((l) => l.split(' | ')[0])).toEqual(['| Card', '|---|---|---|---|---|---|---|---|---|---|', '| r1-a-1', '| r1-a-2']);
+    expect(out).toContain(`Dossier: ${path.join(dir, 'dossier.md')}`);
+    expect(out).toContain('Last design verdict, r1-a-1 (pass): reports/gates/D2-gate-r1-a-1-a1.json');
+  });
+
+  it("design: the last D1 gate verdict file's design field, one block per rung, the open estimates, the verdict and its file (A-35)", () => {
+    const out = display(copy('run-ok'), 'design');
+    expect(out.slice(0, 7)).toEqual([
+      '## The design gate, visit 2', '',
+      'm: DPS 9000, EHP 18400, clear medium (rough)',
+      '   gear: rare boots with lightning resistance; a life and cold-resistance helmet',
+      '   gems: Blood Hunt with Bloodlust and Brutality I',
+      '   tree: the life wheel by the Warrior start',
+      'b: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear medium (rough)',
+    ]);
+    expect(out).toContain('   anoint: Unbending: Ire, Guilt, Greed');
+    expect(out).toContain('Open estimates:');
+    expect(out.slice(-3)).toEqual(['Verdict: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass', 'Verdict file: reports/gates/D1-gate-r1-a-1-a2.json', '']);
+  });
+
+  it("final: the guide's and audit.md's paths, the PoB file, the gate verdicts, each endgame rung's final figures with the design gate's where they moved (D-369), the known issues and the run checker's result", () => {
+    const dir = copy('run-ok');
+    const out = display(dir, 'final');
+    expect(out.slice(0, 7)).toEqual([
+      '## The final gate, visit 2', '',
+      `Guide: ${path.join(dir, 'guide.md')}`,
+      `Audit: ${path.join(dir, 'audit.md')}`,
+      'PoB file: titan-blood-hunt-2026-10-08-1.xml',
+      'D1-gate: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass (reports/gates/D1-gate-r1-a-1-a2.json)',
+      'D2-gate: compiled pass, v1 pass, v2 pass (reports/gates/D2-gate-r1-a-1-a1.json)',
+    ]);
+    // The final record's figures; the clear speed moved since the design gate, so the design gate's line follows.
+    const at = out.indexOf('Endgame, from the final compile record:');
+    expect(out.slice(at + 1, at + 7)).toEqual([
+      'm: DPS 9000, EHP 18400, clear slow (rough)',
+      '   at the design gate: DPS 9000, EHP 18400, clear medium (rough)',
+      'b: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear slow (rough)',
+      '   at the design gate: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear medium (rough)',
+      'n: DPS 140000, EHP 52300, Arbiter survives, worst physical 0.47, clear slow (rough)',
+      '   at the design gate: DPS 140000, EHP 52300, Arbiter survives, worst physical 0.47, clear medium (rough)',
+    ]);
+    expect(out[out.indexOf('Known issues:') + 1]).toMatch(/^- The How to play it section is wrong to call Rolling Slam your clear skill/);
+    expect(out).toContain('The guide is from an offline run: no price was checked.');
+    expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
+  });
+
+  it('escalation: the escalated gate, its attempts, its verdict with the findings, and the verdict file', () => {
+    const out = display(copy('run-escalated'), 'escalation');
+    expect(out).toEqual([
+      '## Escalation, visit 2', '',
+      'D1-gate, r1-a-1: attempts 1 fail, 2 fail, 3 escalated',
+      'Verdict: compiled pass, v1 fail, v2 pass, floor pass, budget unverified, rolledSkill pass',
+      '- v1 level-points: stage b spends 108 passive points, but level 1 grants 0 (FI-2)',
+      '- floor chaos-exception: MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget',
+      'Verdict file: reports/gates/D1-gate-r1-a-1-a3.json',
+      '',
+    ]);
+  });
+
+  it("checkpoint refuses a gate's answer until that visit's display is recorded; printing it again records nothing new; the unsaved-build question has no display", () => {
+    const dir = folder();
+    expect(run(RUN_LOG, dir, 'init', JSON.stringify({ slug: 'titan-blood-hunt', brief: {}, mode: 'offline', testConfig: 'accepted' })).code).toBe(0);
+    const answer = (visit: number) => run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'design', visit, answer: 'accept', answeredBy: 'user' }));
+    const before = fs.readFileSync(path.join(dir, 'run-log.json'));
+    expect(answer(1)).toEqual({ code: 1, stdout: '', stderr: "run-log: checkpoint entry refused: the design gate's visit 1 printed no display; run run-log.mjs <runFolder> display design first and print its output (D-367)\n" });
+    expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
+    expect(display(dir, 'design')).toEqual(['## The design gate, visit 1', '', 'No D1 gate in the run log.', '']);
+    display(dir, 'design');
+    expect(readJson(dir, 'run-log.json').displays).toEqual([{ checkpoint: 'design', visit: 1 }]);
+    expect(answer(1)).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
+    // The next visit needs its own display.
+    expect(answer(2).stderr).toBe("run-log: checkpoint entry refused: the design gate's visit 2 printed no display; run run-log.mjs <runFolder> display design first and print its output (D-367)\n");
+    expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'escalation', visit: 1, answer: 'stop', answeredBy: 'user' })).stderr).toMatch(/^run-log: checkpoint entry refused: the escalation question's visit 1 printed no display/);
+    expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'user' })).code).toBe(0);
+    expect(run(RUN_LOG, dir, 'display', 'unsaved-build')).toEqual({ code: 1, stdout: '', stderr: 'run-log: display: "unsaved-build" isn\'t one of brainstorm, verification, design, final, escalation\n' });
   });
 });

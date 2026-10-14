@@ -105,7 +105,18 @@ function editPlan(dir: string, edit: (p: Json) => void): void {
     r.buildSha1 = buildSha1(readJson(dir, 'plan.json'));
   });
 }
-const editLog = (dir: string, edit: (l: Json) => void) => editJson(dir, 'run-log.json', edit);
+/** The gate visits that print a display first, which run-log.mjs records in displays[] (D-367). */
+const DISPLAYED = ['brainstorm', 'verification', 'design', 'final', 'escalation'];
+/**
+ * Edits run-log.json, keeping a schema-3 log's displays[] in step with its checkpoints[], as run-log.mjs writes
+ * them: each gate visit's display before its answer (D-367). The display rule's own test edits the log with editJson.
+ */
+const editLog = (dir: string, edit: (l: Json) => void) => editJson(dir, 'run-log.json', (l) => {
+  edit(l);
+  if (l.schemaVersion === 3 && Array.isArray(l.checkpoints)) {
+    l.displays = (l.checkpoints as Json[]).filter((c) => DISPLAYED.includes(c?.checkpoint)).map((c) => ({ checkpoint: c.checkpoint, visit: c.visit }));
+  }
+});
 /** The round copies a fixture holds (A-34): run-ok and run-ok-v2 have rounds/1/, the copy before their fix round. */
 const roundsOf = (dir: string) => (fs.existsSync(path.join(dir, 'rounds')) ? fs.readdirSync(path.join(dir, 'rounds')).map((n) => `rounds/${n}`) : []);
 /**
@@ -242,7 +253,7 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     const dir = path.join(FIXTURES, fixture);
     const log = readJson(dir, 'run-log.json');
     expect(log.schemaVersion).toBe(3);
-    expect(Object.keys(log).sort()).toEqual(['brief', 'checkpoints', 'escalations', 'faults', 'mode', 'outputs', 'roll', 'runFolder', 'schemaVersion', 'slug', 'stages', 'status', 'testConfig']);
+    expect(Object.keys(log).sort()).toEqual(['brief', 'checkpoints', 'displays', 'escalations', 'faults', 'mode', 'outputs', 'roll', 'runFolder', 'schemaVersion', 'slug', 'stages', 'status', 'testConfig']);
     expect(Object.keys(log.roll).sort()).toEqual(['ascendancy', 'className', 'skill']);
     for (const s of log.stages as Json[]) expect(Object.keys(s).filter((k) => !['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes', 'probes', 'shortReason'].includes(k))).toEqual([]);
     for (const c of log.checkpoints as Json[]) {
@@ -3007,5 +3018,23 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
     const dir = copyOf('run-ok');
     fs.writeFileSync(path.join(dir, 'run-log.json.tmp'), '{"schemaVersion": 3');
     passes(dir);
+  });
+});
+
+describe("D-367: each gate visit's display is recorded before its answer", () => {
+  it('fails a gate answer whose visit has no display in displays[], and a log with none; the unsaved-build question needs none', () => {
+    const dropped = copyOf('run-ok');
+    // editJson, not editLog: editLog keeps displays[] in step with checkpoints[], as run-log.mjs writes them.
+    editJson(dropped, 'run-log.json', (l) => (l.displays = (l.displays as Json[]).filter((d) => d.checkpoint !== 'design')));
+    expect(lines(failing(dropped), 'display')).toEqual([
+      'check-run: [display] run-log.json checkpoints[2]: design visit 1 has no display in displays[]; every gate visit prints its display first, run-log.mjs display design, and only then logs its answer (D-367)',
+    ]);
+    const none = copyOf('run-escalated');
+    editJson(none, 'run-log.json', (l) => delete l.displays);
+    expect(lines(failing(none), 'display').map((l) => /checkpoints\[\d\]: \w+ visit \d/.exec(l)![0])).toEqual(['checkpoints[0]: brainstorm visit 1', 'checkpoints[1]: verification visit 1', 'checkpoints[2]: escalation visit 1']);
+    const unsaved = copyOf('run-ok');
+    editLog(unsaved, (l) => l.checkpoints.unshift({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'pre-supplied', rule: 'proceed' }));
+    expect(readJson(unsaved, 'run-log.json').displays.map((d: Json) => d.checkpoint)).not.toContain('unsaved-build');
+    expect(lines(runChecker(unsaved).stderr, 'display')).toEqual([]);
   });
 });

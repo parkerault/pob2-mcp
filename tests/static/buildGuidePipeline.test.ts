@@ -1336,7 +1336,7 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\)\. Nothing else/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), and a gate's display, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` \(D-367\)\. Nothing else/);
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
@@ -2477,12 +2477,12 @@ describe('D-265 (b) at the point of use: every gate visit prints its display, wh
   it('Hard rules: the display comes first, in the reply, whoever answers; a pre-supplied or default answer replaces only the question, and the reply states what it resolved to', () => {
     const text = raw();
     const hard = folded(text.slice(text.indexOf('## Hard rules'), text.indexOf('## Calling an agent')));
-    expect(hard).toMatch(/- \*\*Every gate visit prints its display first, in your reply, whoever answers it\*\* \(D-265\): the user, a pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation\. A pre-supplied or default answer replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` \(`references\/checkpoints\.md`\)\./);
+    expect(hard).toMatch(/- \*\*Every gate visit prints its display first, in your reply, whoever answers it\*\* \(D-265, D-367\): the user, a pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation\. `run-log\.mjs <runFolder> display <gate>` prints it; then resolve and log the answer \(`checkpoint` refuses a visit with no display\)\. A pre-supplied or default answer replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` \(`references\/checkpoints\.md`\)\./);
   });
 
-  it('each gate paragraph points to the rule before its display and its question: the brainstorm, verification, design and final gates and the escalation', () => {
+  it('each gate paragraph names its display command (D-367) and points to the rule before its question: the brainstorm, verification, design and final gates and the escalation', () => {
     const text = folded(raw());
-    const POINTER = /Print its display(?: on every visit)?, whoever answers \(Hard rules\): (?:echo|show) /;
+    const POINTER = /Print its display, `display (brainstorm|verification|design|escalation|final)`(?: \([^)]*(?:\([^)]*\)[^)]*)*\))?, whoever answers \(Hard rules\)/;
     const gates: [string, string, string][] = [
       ['brainstorm', '- **The brainstorm gate** (2c;', 'Ask with AskUserQuestion'],
       ['verification', '- **The verification gate** (5;', 'Ask:'],
@@ -2492,9 +2492,10 @@ describe('D-265 (b) at the point of use: every gate visit prints its display, wh
     ];
     for (const [gate, start, end] of gates) {
       const p = paragraph(text, start, end);
-      expect({ gate, pointer: POINTER.test(p) }).toEqual({ gate, pointer: true });
+      expect({ gate, pointer: POINTER.exec(p)?.[1] }).toEqual({ gate, pointer: gate });
     }
-    expect(paragraph(text, '- **The brainstorm gate** (2c;', 'Ask with')).toMatch(/Print its display on every visit, whoever answers \(Hard rules\): echo the parsed brief at the top/);
+    expect(paragraph(text, '- **The brainstorm gate** (2c;', 'Ask with')).toMatch(/Print its display, `display brainstorm` \(the brief, then the deck\), whoever answers \(Hard rules\)/);
+    expect(paragraph(text, '- **Step 16, the final gate**', 'and ask:')).toMatch(/`display final` \(each rung's final figures, D-369, and the checker's result among them\)/);
   });
 });
 
@@ -2632,7 +2633,7 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     expect(order).toEqual([...order].sort((a, b) => a - b));
     const skill = folded(raw);
     expect(skill).toMatch(/compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate \(7b\)/);
-    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display on every visit, whoever answers \(Hard rules\): show the D1 gate verdict file's `design` field \(A-35\), each rung's measures, anoint, gear, gems and tree and the open estimates; no plan or record read\. Ask \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\): D1-build then D1-finish for a build change \(gear, tree, gems or config\), else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*, also when `answers\.design\[\]` is used up \(`default`\)\./);
+    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display, `display design` \(the D1 gate verdict file's `design` field, A-35\), whoever answers \(Hard rules\)\. Ask \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\): D1-build then D1-finish for a build change \(gear, tree, gems or config\), else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*, also when `answers\.design\[\]` is used up \(`default`\)\./);
     expect(skill).toMatch(/the gate verdict files under `reports\/gates\/` \(the D1 gate's holds the design gate's display\)/);
   });
 

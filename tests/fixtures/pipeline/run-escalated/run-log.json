@@ -136,6 +136,20 @@
       "rule": "no escalation answer left: stop"
     }
   ],
+  "displays": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1
+    },
+    {
+      "checkpoint": "escalation",
+      "visit": 1
+    }
+  ],
   "escalations": [
     {
       "stage": "D1-gate",

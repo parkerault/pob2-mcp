@@ -12,7 +12,7 @@
 //
 // Its choices where the template leaves one open:
 //  - movement speed is the record's `outputs.EffectiveMovementSpeedMod` (PoB's "Movement Speed" in the sidebar),
-//    written `<n>× base`;
+//    written as a reader would, the bonus over base in whole percent: 1.251 is `+25%`;
 //  - the budget totals and the reference come from the D1 gate's `basis.budget` (`totals`, `nonBudget`); a stage's
 //    prices are its `basis.budget.slots` entries (the anoint among them, `{stage, slot: "Anoint", priceId}`) and
 //    the plan's prices named `<stage>-…`; an unavailable one's `note`, or a currency with no rate, is the why;
@@ -265,7 +265,8 @@ function clearLine(rec) {
   const speed = typeof c?.speed === 'string' ? c.speed : 'not measured';
   const from = typeof c?.skill === 'string' ? `a rough estimate from ${c.skill}'s area` : 'a rough estimate; PoB measured no clear skill';
   const move = rec.outputs?.EffectiveMovementSpeedMod;
-  return `- Clear speed: ${speed}, ${from}. Movement speed: ${isNum(move) ? `${move}× base` : 'not measured'}.`;
+  const pct = isNum(move) ? Math.round((move - 1) * 100) : null;
+  return `- Clear speed: ${speed}, ${from}. Movement speed: ${pct === null ? 'not measured' : `${pct < 0 ? '' : '+'}${pct}%`}.`;
 }
 
 function modelGaps({ plan, record }) {

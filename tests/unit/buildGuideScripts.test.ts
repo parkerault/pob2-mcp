@@ -91,21 +91,21 @@ const RENDERED = `# Audit: Titan / Blood Hunt, Blood Hunt bleed burst
 - Chaos resistance stays at 12% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
 - Budget: 5.2 divines against the 5-divine ceiling.
   5.2 divines is near the ceiling: over 5, within the 5.5-divine tolerance.
-- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
 ### Endgame budget (L90) {b}
 
 - Budget: unknown against 20.
   Prices are unavailable (offline run), so this variant can't be claimed to be under 20 divines.
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.82 of your max hit.
-- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
 ### Endgame non-budget (L95) {n}
 
 - Total: unknown against the ~200-divine reference, which is no cap.
   Prices are unavailable (offline run), so this total isn't known.
 - The Arbiter of Divinity: one-shot by its physical and lightning hit, at 1.13 of your max hit.
-- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.
+- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
 ## What PoB doesn't model
 
@@ -163,7 +163,7 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     const text = render(dir);
     expect(under(text, '### Entering maps (L65) {m}')).toEqual([
       '- Budget: 4.5 divines against the 5-divine ceiling.',
-      "- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.",
+      "- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: +25%.",
     ]);
     expect(under(text, '### Endgame budget (L90) {b}')).toEqual([
       '- Budget: 21.25 divines against 20.',
@@ -174,7 +174,7 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     expect(under(text, '### Endgame non-budget (L95) {n}')).toEqual([
       '- Total: 160 divines against the ~200-divine reference, which is no cap.',
       '- The Arbiter of Divinity: not measured.',
-      "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: 1.25× base.",
+      "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.",
     ]);
     expect(text).not.toContain('Needs an external source');
   });

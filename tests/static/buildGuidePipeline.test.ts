@@ -2872,3 +2872,40 @@ describe('WU-70 part B (AC-W53, D-353, D-354, D-358, D-359): the guide template 
     expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8')).toContain("| `rounds/<n>/` | the run checker's `--snapshot <n>`, which the runner runs before a fix round or a revision (A-34) |");
   });
 });
+
+// ---------------------------------------------------------------------------------------------------
+// WU-73 (an M-15 follow-up): the gate displays made mechanical (D-367), re-check attempts (D-368), the final
+// gate's figures (D-369), and the cheap guide fixes.
+// ---------------------------------------------------------------------------------------------------
+
+describe('WU-73 (D-367, D-368, D-369): mechanical gate displays, re-check attempts and the guide fixes', () => {
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+
+  it('checkpoints.md: every gate visit runs display <gate> first, prints its output, then logs the answer; the final display carries the final figures', () => {
+    const text = ref('checkpoints.md');
+    expect(text).toMatch(/\*\*Every gate visit starts with its display\*\* \(D-265, D-367\), .* run `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` .* Its output is the display: print it in your reply as it is, then resolve the answer .* and log it with `checkpoint`, which refuses a visit whose display wasn't printed/);
+    expect(text).toMatch(/each endgame rung's figures from the final compile record, its DPS, EHP, Arbiter verdict with the worst ratio, and rough clear speed, with the design gate's beside them where they moved since \(D-369\)/);
+  });
+
+  it("a re-check's attempt counts that card's re-checks from 1, in V4.md, task-header.md and run-log.md (D-368)", () => {
+    expect(folded(readStage('V4'))).toMatch(/`attempt` \(a re-check's counts that card's re-checks from 1, as the run log's `V4-recheck` entries do, D-368\)/);
+    expect(ref('task-header.md')).toMatch(/a V4 re-check's counts that card's re-checks from 1, apart from its full pass, as the run log's `V4-recheck` entries do \(D-368\)/);
+    expect(ref('run-log.md')).toMatch(/per log name, so a re-check's `attempt` counts that card's re-checks from 1, apart from its full pass \(D-368\)/);
+  });
+
+  it('W1 titles the guide by the final build and writes no pipeline notes; V4 flags them; a fix or revision cites an existing claim, not a duplicate', () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/The H1's title says what the final build does, from the final plan, never a card hook the final plan no longer carries/);
+    expect(w1).toMatch(/Nor any note about the pipeline or the run \("unconfirmed offline", "the card's hook", a raw multiplier such as "1\.251×"\)/);
+    expect(folded(readStage('V4'))).toMatch(/a note about the pipeline or the run in the reader text \("unconfirmed offline", "the card's hook", a raw multiplier\), which W1's rule 3 forbids/);
+    for (const stage of ['D1-finish', 'D2']) {
+      expect({ stage, cites: /A fact an existing claim already states is cited from that claim, never added again as a duplicate/.test(folded(readStage(stage))) }).toEqual({ stage, cites: true });
+    }
+  });
+
+  it("the audit template writes movement speed as a reader would, a bonus over base in whole percent", () => {
+    const template = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'audit-template.md'), 'utf8');
+    expect(template).not.toMatch(/× base/);
+    expect(template.match(/Movement speed: \+<\(the record's outputs\.EffectiveMovementSpeedMod − 1\) × 100, rounded>%\./g)).toHaveLength(2);
+  });
+});

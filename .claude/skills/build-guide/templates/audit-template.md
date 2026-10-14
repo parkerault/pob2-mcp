@@ -40,7 +40,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 - Budget: <total> divines against the 5-divine ceiling.
   [only when the total is over 5 and at most 5.5] <total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this rung can't be claimed to fit 5 divines.
-- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's outputs.EffectiveMovementSpeedMod>× base.
+- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: +<(the record's outputs.EffectiveMovementSpeedMod − 1) × 100, rounded>%.
 
 ### <the budget loadout name>
 
@@ -49,7 +49,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
   [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
   [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
 - The Arbiter of Divinity: <survives its hits; its worst, <the worst hit>, is <ratio> of your max hit | one-shot by its <the worst hit>, at <ratio> of your max hit>.
-- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: <the record's outputs.EffectiveMovementSpeedMod>× base.
+- Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: +<(the record's outputs.EffectiveMovementSpeedMod − 1) × 100, rounded>%.
 
 ### <the non-budget loadout name>
 

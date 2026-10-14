@@ -108,7 +108,8 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
 1. **Fix the claims in place**, with Edit. For each finding, fix every claim the issue touches, wherever it
    is in your stages, not only the flagged location: its wording, its citation (`source`), its caveat, or
    its source itself. A `hinge: no` finding is fixed by removing or narrowing the statement, never by new
-   research or a recompile.
+   research or a recompile. A fact an existing claim already states is cited from that claim, never added again
+   as a duplicate.
 2. **Recompile only for a build change**: gear (an item, a tree jewel, a flask or charm, the anoint, or a price
    entry), the tree, the gems or the config (earned or scenario). The anoint and a price entry are yours:
    change them, measure as step 1 does, and the D1 gate runs after you. Any other build change is

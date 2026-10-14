@@ -26,7 +26,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 | Field | Content |
 |---|---|
 | `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1's two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |
-| `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included |
+| `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included; a V4 re-check's counts that card's re-checks from 1, apart from its full pass, as the run log's `V4-recheck` entries do (D-368) |
 | `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319), where the step concerns one card: R1b and every step of the finalization |
 | `check` | V4 only: `full` (step 11: one pass, no lenses, over every hinge claim and every H2 of the guide) or `recheck` (step 13: only `findings` and `changed`, D-352) |
 | `mode` | `offline` or `online`, as the run log records it |

@@ -50,7 +50,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check); each V4
   entry is one report, `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`,
   D-319), set for every step but R1a, R1a-assemble and R1b-assemble. `attempt` counts the calls of that (stage,
-  card) from 1, re-runs included, and matches the header and the verdict file name. `outcome`:
+  card) from 1, re-runs included, and matches the header and the verdict file name; per log name, so a
+  re-check's `attempt` counts that card's re-checks from 1, apart from its full pass (D-368). `outcome`:
   - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 entry (`fail`: its report has an
     `unresolved` finding);
   - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-finish, …), `infeasible` for

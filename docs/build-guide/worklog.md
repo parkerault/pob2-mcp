@@ -3309,3 +3309,23 @@ The coordinator read the draft in full and found no blocker; it goes to the user
        - W1 typed the 15K-character import code three times.
   - **Decisions for the user:** waive or re-run for M-15's exit; the budget lever, under D-357 (thinking effort, a
     smaller model); and how far to go on the mechanical fixes.
+- **The user's decisions (2026-10-14):**
+  - **M-15 closes as "fix, then waive".** The coordinator fixes the gate displays, the attempt numbers and the
+    final gate's figures. This record is accepted with its misses noted, and there is no second lean run; the next
+    real run exercises the fixes.
+  - **The budget lever is held** until the user's poe.ninja comparison.
+- **WU-73** (an M-15 follow-up, small), with the coordinator's decisions, PROPOSED:
+  - **D-367:** `run-log.mjs` prints each gate visit's display (`display <gate>`) and refuses a `checkpoint` entry
+    whose visit printed none. The order becomes mechanical, so the runner's discipline is no longer needed (run A
+    and the lean run both missed displays).
+  - **D-368:** a re-check's `attempt` counts that card's re-checks from 1, as the checker counts. `V4.md:21`,
+    `task-header.md:29` and `run-log.md:50` say so.
+  - **D-369:** the final gate's display carries each endgame rung's figures from the final record, so drift since
+    the design gate shows.
+  - **Cheap guide fixes:**
+    - the Checks block writes movement speed as "+25%";
+    - W1 writes no pipeline notes in the reader text;
+    - the title comes from the final build, not a stale card hook;
+    - a revision cites an existing claim rather than adding a duplicate.
+- **Held for the poe.ninja comparison:** the budget lever (D-357), and the DPS model of the granted skill (a
+  socketed level-16 or 20 gem with five supports, against PoB's own granted copy at about 160 DPS).

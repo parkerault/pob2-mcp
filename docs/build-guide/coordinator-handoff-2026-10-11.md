@@ -94,10 +94,11 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
        On merge, M-15 closes. Record that in the work-log and the spine at the fold.
      - **WU-64: DONE and merged.** Telemetry backs the budget, and the transcript estimate is the fallback at ±7%.
-     - **Then:** the wave gate. An independent verifier runs `mise run test` and `pnpm build` from clean at the
-       integration head, since the full engine suite has run only per lane. Then the user's WU-72 lean run, with a
-       new run worktree at the M-15 head (the M-14 one, `m14`, is at `96b1785`) and telemetry on, per WU-64's
-       outcome.
+     - **After WU-73 merges:**
+       1. Close M-15 in the work-log.
+       2. Fold the spec to v1.6: D-363…D-369 and the work-log's fold notes.
+       3. Then the user's poe.ninja comparison, which also decides the budget lever.
+       4. Then the sign-rebase and the cleanup (queue item 5).
      - **Coordinator decisions this build, PROPOSED and in the work-log only (fold them into the spine):**
        - D-363: clear speed's stat set;
        - D-364: a loop through two exits of one start is one tree;

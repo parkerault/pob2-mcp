@@ -3206,3 +3206,43 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     (WU-72) are unmapped, as expected.
   - `m15` is left built for WU-72.
 - **Next:** WU-72, the lean run, started by the user. WU-64's control session is pending.
+
+## 2026-10-14: WU-72, the lean run, ended
+
+- **The run:** `/tmp/m15.C1xp/guides/open-explosive-concoction/2026-10-12-1`, run by the user with telemetry
+  (`start.sh runL`). The transcript is `~/.claude/projects/-home-parker-projects-pob2-mcp-wt-m15/a3f7b5d1-….jsonl`,
+  with 42 subagent files.
+  - **The log:** `status: completed`. The design gate answered `accept`. The final gate's `revise:` ran as a re-check,
+    with no full pass, then `accept`.
+  - **The steps:** R1a ×3, R1a-assemble, R1b ×2, R1b-assemble, D1-build, D1-finish, D1-gate, D2, D2-gate, W1, V4
+    (`fail`), then the fix round: D1-finish and D2 (both `claims-edited`), W1, V4-recheck (`pass`). Then the
+    revision: D1-finish, W1, V4-recheck (`pass`).
+- **The checker exits 1, with one violation:** `[order] stages[17] V4-recheck attempt 2: is call 1 of V4-recheck`.
+  - `V4.md:21` gives every V4 call's header `stage: "V4"`.
+  - `run-log.md:51` says `attempt` "matches the header".
+  - The log names re-checks `V4-recheck`, and the checker counts per log name. The runner logged both re-checks as
+    attempt 2.
+  - So it's an ambiguous text and a runner slip, not a build problem.
+- **Tokens:**
+
+  | Measure | Lean run | Run A |
+  |---|---|---|
+  | Output (estimated) | 1.23M | 2.50M |
+  | Recorded transcript output | 0.87M | |
+  | Thinking | 0.74M (60%) | |
+  | Cache read (main and subagents) | 129.6M | 296M |
+  | Cache write | 3.74M | |
+
+  - Telemetry output is 1.23M, and the session's `/cost` ledger 1.23M, so three sources agree.
+  - Telemetry's total cache read is 177.5M, including 267 `agent_summary` requests: Claude Code's own subagent
+    summaries.
+  - The revision's agents (W1 6.9K, D1-finish 5.2K, the V4 re-check 12.9K) leave about **1.20M before the revision:
+    over D-349's 1M**.
+- **Output by family:** R1a 280K, D1 248K, W1 226K, D2 167K, R1b 138K, V4 134K, runner 38K.
+- **Peak context against the 150K target:** D1-build 414K, D2 395K, W1 350K, R1a researcher a 312K, V4 full 253K,
+  R1b 248K; the runner 196K.
+- **Dispatched:**
+  - an independent verifier for AC-W56…AC-W58 (the gate displays, the lean plan and guide, what's inflated), with
+    a guide review;
+  - WU-64's doer, resumed to finish the spike with this run's telemetry as its ground truth, in place of the
+    user's short control session.

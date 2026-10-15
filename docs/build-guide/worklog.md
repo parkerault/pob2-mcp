@@ -3425,3 +3425,26 @@ The coordinator read the draft in full and found no blocker; it goes to the user
       - (5) fill jewel sockets and charm slots (a charm checklist), and give non-budget rares 6 affixes;
       - (7) also report DPS against a Pinnacle boss.
     - **Skip:** (9) path optimisation and (10) campaign respecs.
+
+## 2026-10-15: the user's answers on the comparison's lessons
+
+The user's direction on the study's lessons (`studies/2026-10-14-ec-comparison.md`). Folded into amendment 5 when it
+is written; nothing is built yet.
+
+- **+gem levels** are the strongest single damage source for any skill, so the planners should rank them first.
+  They are also the most expensive affixes on trade: a rare amulet with a top +levels roll is often among a build's
+  most expensive items, up to hundreds of divines. The budget rungs must price them.
+- **`suggest_supports`:** its numbers aren't trusted, since PoB2's coverage of support effects is spotty. The rule:
+  supports on a damage dealer add damage, judged on the gem's effect; PoB's figure is not the judge.
+- **Custom modifiers:** lean heavily on PoB's custom modifier field to work around PoB2's modelling gaps. The skill
+  already has it (`config.customMods {text, reason}`, D-293; figures marked estimates, D-296), but runL used none for
+  its key enablers.
+- **Budget rares:** a budget build still fills every affix; cheaper gear more likely carries dead stats. Guides list
+  the mandatory affixes, then a priority list for the rest. The priority list is guide text; PoB can't model it.
+- **DPS figures:** the community convention is a Pinnacle boss config, so the numbers aren't inflated. Today the
+  rungs model map monsters (`enemyIsBoss` `None`, `map-monsters.json#pob-enemy-is-boss`).
+- **Campaign respec planning:** on the to-do list, after the endgame builds are satisfactory.
+- **Next, the user's proposal:** a run on Lightning Arrow Deadeye, compared with Fubgun's guide for it, which the
+  user rates high quality: a better comparison than off-meta builds of a meme skill. Open questions put to the user:
+  the run's mode (offline, so the design is the planner's own; or live, M-13's alpha with prices) and the guide's
+  patch (the pin, PoB2 v0.23.1, models patch 0.5).

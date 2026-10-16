@@ -3546,3 +3546,10 @@ architectural: the result goes into amendment 5's spec text.
   787prada, 2026-09-11, 56 min), fetched into `yt-library`; a study agent is on it. The user follows the roadmap:
   build amendment 5, then the Deadeye run, then an engine-lens amendment from the videos and the run's misses. The
   user hadn't seen the study or the amendment because they live in this worktree: give absolute paths.
+- **The techniques-video study** (`studies/2026-10-16-S1AzLxb3fZw-nerd-interactions.md`; the agent used 234K tokens,
+  10 frames): 14 techniques, four on existing shapes only; five new shapes proposed (Travel by action, Charge-type
+  converter, Harmless self-trigger, Duration to the floor, Off-tree defence layer); two engines the creator built
+  (the wolf charge loop, and the same wolf deaths feeding volatility) and one inferred (a cull hub). Not in the pin:
+  the "Grip of Kulamok" ring and volatility's base chaos line. Spot-checked: Inner Turmoil's "Take no Damage from
+  Volatility" and Charge Profusion II's random-type charge match the pin. The new shapes await the user's approval
+  (C-53's maintenance rule).

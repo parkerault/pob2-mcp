@@ -1,5 +1,5 @@
 /**
- * AC-T46 (amendment 5, WU-74, D-372): `find_upgrades`' output is dated as C-49's price tools' are, with a
+ * AC-K68 (amendment 5, WU-74, D-372): `find_upgrades`' output is dated as C-49's price tools' are, with a
  * `League: <league>` and a `Checked: <YYYY-MM-DDTHH:MM:SSZ>` line in its header, and an early stop for a
  * trade-site limit names its `TradeErrorKind` with C-49's prefix: a 429 reads `[trade:rate_limited]`.
  *
@@ -167,8 +167,8 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('AC-T46 (amendment 5, WU-74, D-372): find_upgrades is dated as C-49 dates prices, and a trade-site limit stop names its kind', () => {
-  it('AC-T46: a completed search has League: <league> and Checked: <time of its first search, UTC, whole seconds> in its header, before the listings', async () => {
+describe('AC-K68 (amendment 5, WU-74, D-372): find_upgrades is dated as C-49 dates prices, and a trade-site limit stop names its kind', () => {
+  it('AC-K68: a completed search has League: <league> and Checked: <time of its first search, UTC, whole seconds> in its header, before the listings', async () => {
     const { call, calls } = setup([searchSequence([searchResponse('s1', 2207)]), fetchRoute()]);
     const t0 = Date.now();
     const out = await call({ slot: 'Body Armour', league: LEAGUE });
@@ -194,7 +194,7 @@ describe('AC-T46 (amendment 5, WU-74, D-372): find_upgrades is dated as C-49 dat
     expect(out.text.split('\n').filter((l) => l.startsWith('League:'))).toEqual([`League: ${LEAGUE}`]);
   });
 
-  it('AC-T46: a 429 from the trade site stops early with "Stopped early: [trade:rate_limited] ...", and the result is still dated', async () => {
+  it('AC-K68: a 429 from the trade site stops early with "Stopped early: [trade:rate_limited] ...", and the result is still dated', async () => {
     const tooMany: SyntheticResponse = {
       status: 429,
       headers: { ...SEARCH_HEADERS, 'retry-after': '7' },

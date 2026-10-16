@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "pricing-study",
+      "kind": "judgment",
+      "ref": "The gear-pricing study (docs/build-guide/studies/2026-10-16-pricing.md), from five leagues of currency-exchange prices by league day: its section 5 is the conversion table, rounded over the four leagues other than Fate of the Vaal; its section 2 gives each league's data range, whose first date is league day 0. Exchange goods stand in for gear, and the leagues disagree by 2 to 3 times, so the factors are rough",
+      "confidence": "L"
+    }
+  ],
+  "facts": {
+    "conversion.threshold": {
+      "value": 10,
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "in divines: an item's price as seen, converted to divines at the run's rates, takes the under-10 rows below this and the 10-or-more rows at or above it"
+    },
+    "conversion.under-10.to-day-7": {
+      "value": { "min": 0.4, "max": 0.9 },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "the factors that turn a price seen between league days 21 and 60, under 10 divines, into its price around day 7"
+    },
+    "conversion.under-10.to-day-21": {
+      "value": { "min": 0.6, "max": 0.85 },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "the factors that turn a price seen between league days 21 and 60, under 10 divines, into its price around day 21"
+    },
+    "conversion.10-or-more.to-day-7": {
+      "value": { "min": 0.2, "max": 0.4 },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "the factors that turn a price seen between league days 21 and 60, of 10 divines or more, into its price around day 7"
+    },
+    "conversion.10-or-more.to-day-21": {
+      "value": { "min": 0.5, "max": 0.85 },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "the factors that turn a price seen between league days 21 and 60, of 10 divines or more, into its price around day 21"
+    },
+    "conversion.late-divisor": {
+      "value": { "min": 2, "max": 4 },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "a price seen late in a league (past day 60) or after the league ended takes its row's factors, then is divided by 2 to 4: the low factor over 4, the high factor over 2"
+    },
+    "conversion.first-day": {
+      "value": 21,
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "the league day the table starts at: a price seen before it isn't converted (its factors are 1), and the guide says the prices are from an early market"
+    },
+    "conversion.late-day": {
+      "value": 60,
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "a market past this league day, or in a league whose end date has passed, reads as late"
+    },
+    "league.dawn-of-the-hunt": {
+      "value": { "name": "Dawn of the Hunt", "start": "2025-04-05", "end": "2025-08-27" },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
+    },
+    "league.rise-of-the-abyssal": {
+      "value": { "name": "Rise of the Abyssal", "start": "2025-08-30", "end": "2025-12-08" },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
+    },
+    "league.fate-of-the-vaal": {
+      "value": { "name": "Fate of the Vaal", "start": "2025-12-12", "end": "2026-05-25" },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
+    },
+    "league.runes-of-aldur": {
+      "value": { "name": "Runes of Aldur", "start": "2026-05-29" },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "start is league day 0, the first date the divine traded; no end recorded, so a market past day 60 reads as late"
+    },
+    "league.forbidden-rites": {
+      "value": { "name": "Forbidden Rites", "start": "2026-09-04" },
+      "source": "pricing-study",
+      "patch": "0.5.x",
+      "confidence": "L",
+      "note": "start is league day 0, the first date the divine traded; no end recorded, so a market past day 60 reads as late"
+    }
+  }
+}

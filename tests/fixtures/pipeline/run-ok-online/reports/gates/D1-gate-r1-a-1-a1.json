@@ -13,9 +13,23 @@
   "findings": [
     {
       "part": "budget",
-      "code": "near-ceiling",
+      "code": "over-target",
       "stage": "b",
-      "message": "stage b totals 21.5 divines: over 20, within 22; the guide says near the ceiling"
+      "slot": "Weapon 1",
+      "low": 3.2,
+      "high": 7.2,
+      "target": 5,
+      "message": "b Weapon 1: about 3.2–7.2 divines around day 7, over its 5-divine target"
+    },
+    {
+      "part": "budget",
+      "code": "over-target",
+      "stage": "n",
+      "slot": "Body Armour",
+      "low": 20,
+      "high": 34,
+      "target": 20,
+      "message": "n Body Armour: about 20–34 divines around day 21, over its 20-divine target"
     },
     {
       "part": "floor",
@@ -40,6 +54,11 @@
           "divines": 0.05
         }
       ],
+      "market": {
+        "league": "Forbidden Rites",
+        "day": 34,
+        "late": false
+      },
       "slots": [
         {
           "stage": "m",
@@ -105,23 +124,56 @@
           "stage": "b",
           "slot": "Anoint",
           "priceId": "b-anoint"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1",
+          "priceId": "n-weapon"
+        },
+        {
+          "stage": "n",
+          "slot": "Body Armour",
+          "priceId": "n-body"
+        },
+        {
+          "stage": "n",
+          "slot": "Helmet",
+          "priceId": "n-helmet"
+        },
+        {
+          "stage": "n",
+          "slot": "Boots",
+          "priceId": "n-boots"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 1",
+          "priceId": "n-ring1"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 2",
+          "priceId": "n-ring2"
         }
       ],
       "totals": [
         {
           "stage": "m",
-          "divines": 4.4
+          "low": 1.8,
+          "high": 4,
+          "day": 7
         },
         {
           "stage": "b",
-          "divines": 21.9
-        }
-      ],
-      "nonBudget": [
+          "low": 8.8,
+          "high": 20,
+          "day": 7
+        },
         {
           "stage": "n",
-          "divines": 172,
-          "reference": 200
+          "low": 84,
+          "high": 143,
+          "day": 21
         }
       ]
     },

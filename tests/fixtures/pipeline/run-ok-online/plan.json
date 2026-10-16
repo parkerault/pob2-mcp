@@ -961,261 +961,521 @@
       "id": "b-weapon",
       "item": "budget Weapon 1",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "budget Weapon 1"
+        "slot": "Weapon 1",
+        "required": [
+          {
+            "affix": "+#% increased Physical Damage",
+            "min": 50
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "league": "Forbidden Rites",
+        "item_type": "spear",
+        "mods": [
+          {
+            "stat_id": "explicit.stat_1509134228",
+            "min": 50
+          }
+        ]
       },
       "amount": 8,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "over target"
+    },
+    {
+      "id": "b-weapon-fallback",
+      "item": "budget Weapon 1, fallback",
+      "query": {
+        "slot": "Weapon 1",
+        "required": [
+          {
+            "affix": "+#% increased Physical Damage",
+            "min": 35
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
+        },
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_1509134228",
+            "min": 35
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
+      },
+      "amount": 3,
+      "currency": "divine",
+      "date": "2026-10-08",
+      "league": "Forbidden Rites",
+      "status": "ok",
+      "note": "fit 71%"
     },
     {
       "id": "b-body",
       "item": "budget Body Armour",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Body Armour",
+        "required": [
+          {
+            "affix": "+# to maximum Life",
+            "min": 70
           },
-          "type": "budget Body Armour"
+          {
+            "affix": "+#% to Fire Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3299347043",
+            "min": 70
+          },
+          {
+            "trade_id": "explicit.stat_3372524247",
+            "min": 25
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 5,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 92%"
     },
     {
       "id": "b-helmet",
       "item": "budget Helmet",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Helmet",
+        "required": [
+          {
+            "affix": "+# to maximum Life",
+            "min": 50
           },
-          "type": "budget Helmet"
+          {
+            "affix": "+#% to Cold Resistance",
+            "min": 30
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3299347043",
+            "min": 50
+          },
+          {
+            "trade_id": "explicit.stat_4220027924",
+            "min": 30
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 150,
       "currency": "exalted",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 88%"
     },
     {
       "id": "b-boots",
       "item": "budget Boots",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Boots",
+        "required": [
+          {
+            "affix": "+#% increased Movement Speed",
+            "min": 25
           },
-          "type": "budget Boots"
+          {
+            "affix": "+#% to Lightning Resistance",
+            "min": 30
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_2250533757",
+            "min": 25
+          },
+          {
+            "trade_id": "explicit.stat_1671376347",
+            "min": 30
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 2,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 90%"
     },
     {
       "id": "b-ring1",
       "item": "budget Ring 1",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "budget Ring 1"
+        "slot": "Ring 1",
+        "required": [
+          {
+            "affix": "+#% to Fire Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3372524247",
+            "min": 25
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 40,
       "currency": "chaos",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 86%"
     },
     {
       "id": "b-ring2",
       "item": "budget Ring 2",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "budget Ring 2"
+        "slot": "Ring 2",
+        "required": [
+          {
+            "affix": "+#% to Cold Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_4220027924",
+            "min": 25
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 2.5,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 84%"
     },
     {
       "id": "b-jewel",
       "item": "budget tree jewel",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "budget tree jewel"
+        "slot": "Jewel 1001",
+        "required": [
+          {
+            "affix": "+#% to Fire Resistance",
+            "min": 6
+          }
+        ],
+        "target": {
+          "divines": 5,
+          "day": 7
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3372524247",
+            "min": 6
+          }
+        ],
+        "max_price": 769,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1,
+        "jewel_type": "Ruby"
       },
       "amount": 50,
       "currency": "exalted",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 95%"
     },
     {
       "id": "n-weapon",
       "item": "non-budget Weapon 1",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "non-budget Weapon 1"
+        "slot": "Weapon 1",
+        "required": [
+          {
+            "affix": "+#% increased Physical Damage",
+            "min": 50
+          }
+        ],
+        "target": {
+          "divines": 50,
+          "day": 21,
+          "reason": "the weapon carries the build's physical damage"
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_1509134228",
+            "min": 50
+          }
+        ],
+        "max_price": 7407,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 64,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 97%"
     },
     {
       "id": "n-body",
       "item": "non-budget Body Armour",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Body Armour",
+        "required": [
+          {
+            "affix": "+# to maximum Life",
+            "min": 70
           },
-          "type": "non-budget Body Armour"
+          {
+            "affix": "+#% to Fire Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 20,
+          "day": 21
         },
-        "sort": {
-          "price": "asc"
-        }
+        "league": "Forbidden Rites",
+        "item_type": "body armour",
+        "mods": [
+          {
+            "stat_id": "explicit.stat_3299347043",
+            "min": 70
+          },
+          {
+            "stat_id": "explicit.stat_3372524247",
+            "min": 25
+          }
+        ]
       },
       "amount": 40,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "over target"
     },
     {
       "id": "n-helmet",
       "item": "non-budget Helmet",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Helmet",
+        "required": [
+          {
+            "affix": "+# to maximum Life",
+            "min": 50
           },
-          "type": "non-budget Helmet"
+          {
+            "affix": "+#% to Cold Resistance",
+            "min": 30
+          }
+        ],
+        "target": {
+          "divines": 20,
+          "day": 21
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3299347043",
+            "min": 50
+          },
+          {
+            "trade_id": "explicit.stat_4220027924",
+            "min": 30
+          }
+        ],
+        "max_price": 2963,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 1200,
       "currency": "exalted",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 93%"
     },
     {
       "id": "n-boots",
       "item": "non-budget Boots",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
+        "slot": "Boots",
+        "required": [
+          {
+            "affix": "+#% increased Movement Speed",
+            "min": 25
           },
-          "type": "non-budget Boots"
+          {
+            "affix": "+#% to Lightning Resistance",
+            "min": 30
+          }
+        ],
+        "target": {
+          "divines": 20,
+          "day": 21
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_2250533757",
+            "min": 25
+          },
+          {
+            "trade_id": "explicit.stat_1671376347",
+            "min": 30
+          }
+        ],
+        "max_price": 2963,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 16,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 91%"
     },
     {
       "id": "n-ring1",
       "item": "non-budget Ring 1",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "non-budget Ring 1"
+        "slot": "Ring 1",
+        "required": [
+          {
+            "affix": "+#% to Fire Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 20,
+          "day": 21
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_3372524247",
+            "min": 25
+          }
+        ],
+        "max_price": 2963,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 320,
       "currency": "chaos",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 89%"
     },
     {
       "id": "n-ring2",
       "item": "non-budget Ring 2",
       "query": {
-        "query": {
-          "status": {
-            "option": "online"
-          },
-          "type": "non-budget Ring 2"
+        "slot": "Ring 2",
+        "required": [
+          {
+            "affix": "+#% to Cold Resistance",
+            "min": 25
+          }
+        ],
+        "target": {
+          "divines": 20,
+          "day": 21
         },
-        "sort": {
-          "price": "asc"
-        }
+        "required_mods": [
+          {
+            "trade_id": "explicit.stat_4220027924",
+            "min": 25
+          }
+        ],
+        "max_price": 2963,
+        "currency": "exalted_equivalent",
+        "rank_by": "stat_value",
+        "include_non_upgrades": true,
+        "fetch_pages": 1
       },
       "amount": 20,
       "currency": "divine",
       "date": "2026-10-08",
       "league": "Forbidden Rites",
-      "status": "ok"
+      "status": "ok",
+      "note": "fit 90%"
     },
     {
       "id": "m-weapon",

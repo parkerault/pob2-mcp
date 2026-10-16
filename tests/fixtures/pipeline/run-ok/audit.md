@@ -21,22 +21,22 @@
 ### Entering maps (L65) {m}
 
 - Chaos resistance stays at 10% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
-- Budget: unknown against the 5-divine ceiling.
-  Prices are unavailable (offline run), so this rung can't be claimed to fit 5 divines.
+- Budget: unknown, against a 5-divine target.
+  Prices are unavailable (offline run), so this rung's total isn't known.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ### Endgame budget (L90) {b}
 
 - Chaos resistance stays at 28% because no slot can carry chaos resistance without dropping a core item or breaking the budget.
-- Budget: unknown against 20.
-  Prices are unavailable (offline run), so this variant can't be claimed to be under 20 divines.
+- Budget: unknown, aiming at about 5 a slot.
+  Prices are unavailable (offline run), so this rung's total isn't known.
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.68 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ### Endgame non-budget (L95) {n}
 
-- Total: unknown against the ~200-divine reference, which is no cap.
-  Prices are unavailable (offline run), so this total isn't known.
+- Budget: unknown, against the 100–200 target.
+  Prices are unavailable (offline run), so this rung's total isn't known.
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 

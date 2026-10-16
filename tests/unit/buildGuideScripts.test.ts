@@ -89,21 +89,20 @@ const RENDERED = `# Audit: Titan / Blood Hunt, Blood Hunt bleed burst
 ### Entering maps (L65) {m}
 
 - Chaos resistance stays at 12% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
-- Budget: 5.2 divines against the 5-divine ceiling.
-  5.2 divines is near the ceiling: over 5, within the 5.5-divine tolerance.
+- Budget: about 2.1–4.7 divines around day 7, against a 5-divine target.
 - Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
 ### Endgame budget (L90) {b}
 
-- Budget: unknown against 20.
-  Prices are unavailable (offline run), so this variant can't be claimed to be under 20 divines.
+- Budget: unknown, aiming at about 5 a slot.
+  Prices are unavailable (offline run), so this rung's total isn't known.
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.82 of your max hit.
 - Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
 ### Endgame non-budget (L95) {n}
 
-- Total: unknown against the ~200-divine reference, which is no cap.
-  Prices are unavailable (offline run), so this total isn't known.
+- Budget: unknown, against the 100–200 target.
+  Prices are unavailable (offline run), so this rung's total isn't known.
 - The Arbiter of Divinity: one-shot by its physical and lightning hit, at 1.13 of your max hit.
 - Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.
 
@@ -143,14 +142,21 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     expect(render(guideRun())).toBe(RENDERED);
   });
 
-  it('renders the Checks lines that apply: prices known, near the ceiling, an unmeasured Arbiter, an online run', () => {
+  it("renders the Checks lines that apply (D-374): prices known, each rung's range at its price day against its target, the over-target slots with a fallback converted like any price, an unmeasured Arbiter, an online run", () => {
     const dir = guideRun();
     editJson(dir, GATE_FILE, (g) => {
-      g.basis.budget.totals = [{ stage: 'm', divines: 4.5 }, { stage: 'b', divines: 21.25 }];
-      g.basis.budget.nonBudget = [{ stage: 'n', divines: 160, reference: 200 }];
+      g.basis.budget.market = { league: 'Forbidden Rites', day: 41, late: false };
+      g.basis.budget.totals = [{ stage: 'm', low: 2.1, high: 4.7, day: 7 }, { stage: 'b', low: 14, high: 32, day: 7 }, { stage: 'n', low: 88, high: 140, day: 21 }];
+      g.findings = [
+        { part: 'budget', code: 'over-target', stage: 'b', slot: 'Helmet', low: 3.2, high: 7.2, target: 5, message: 'b Helmet: about 3.2–7.2 divines around day 7, over its 5-divine target' },
+        { part: 'budget', code: 'over-target', stage: 'b', jewel: 1001, low: 4, high: 9, target: 5, message: 'b Jewel 1001: about 4–9 divines around day 7, over its 5-divine target' },
+        { part: 'budget', code: 'over-target', stage: 'n', slot: 'Weapon 1', low: 40, high: 68, target: 50, message: 'n Weapon 1: about 40–68 divines around day 21, over its 50-divine target' },
+      ];
     });
     editJson(dir, 'plan.json', (p) => {
       for (const id of ['b-anoint', 'n-weapon']) Object.assign(p.prices.find((x: Json) => x.id === id), { status: 'ok', amount: 300, currency: 'exalted', note: undefined });
+      // b's helmet fallback, 2 divines seen on day 41: under 10, ×0.4–0.9 to day 7, about 0.8–1.8.
+      p.prices.push({ id: 'b-helmet-fallback', item: 'b-helmet-fallback', query: { slot: 'Helmet', required: [], target: { divines: 5, day: 7 } }, amount: 2, currency: 'divine', date: '2026-10-15', league: 'Forbidden Rites', status: 'ok', note: 'fit 70%' });
       delete p.stages[1].chaosResistException;
     });
     editJson(dir, 'compile-record.json', (r) => {
@@ -162,21 +168,40 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     });
     const text = render(dir);
     expect(under(text, '### Entering maps (L65) {m}')).toEqual([
-      '- Budget: 4.5 divines against the 5-divine ceiling.',
+      '- Budget: about 2.1–4.7 divines around day 7, against a 5-divine target.',
       "- Clear speed: medium, a rough estimate from Blood Hunt's area. Movement speed: +25%.",
     ]);
     expect(under(text, '### Endgame budget (L90) {b}')).toEqual([
-      '- Budget: 21.25 divines against 20.',
-      '  21.25 divines is near the ceiling: over 20, within the 22-divine tolerance.',
+      '- Budget: about 14–32 divines around day 7, aiming at about 5 a slot. Over target: Helmet (about 3.2–7.2; fallback about 0.8–1.8), Jewel 1001 (about 4–9).',
       '- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.82 of your max hit.',
       "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: not measured.",
     ]);
     expect(under(text, '### Endgame non-budget (L95) {n}')).toEqual([
-      '- Total: 160 divines against the ~200-divine reference, which is no cap.',
+      '- Budget: about 88–140 divines around day 21, against the 100–200 target. Over target: Weapon 1 (about 40–68).',
       '- The Arbiter of Divinity: not measured.',
       "- Clear speed: fast, a rough estimate from Blood Hunt's area. Movement speed: +25%.",
     ]);
     expect(text).not.toContain('Needs an external source');
+  });
+
+  it("keeps a slot known to be over target when the rung's total is unknown, and a fallback counts in no total: an unavailable one reads unknown and adds no D-164 line (D-164, D-371)", () => {
+    const dir = guideRun();
+    editJson(dir, GATE_FILE, (g) => {
+      g.findings = [{ part: 'budget', code: 'over-target', stage: 'b', slot: 'Helmet', low: 1.2, high: 2.7, target: 2, message: 'b Helmet: about 1.2–2.7 divines around day 7, over its 2-divine target' }];
+    });
+    editJson(dir, 'plan.json', (p) => {
+      p.prices.push({ id: 'b-helmet-fallback', item: 'b-helmet-fallback', query: {}, amount: null, currency: null, date: '2026-10-12', league: null, status: 'unavailable', note: 'pricing stopped' });
+      p.prices.push({ id: 'm-helmet-fallback', item: 'm-helmet-fallback', query: {}, amount: null, currency: null, date: '2026-10-12', league: null, status: 'unavailable', note: 'pricing stopped' });
+    });
+    const text = render(dir);
+    // b's anoint is unavailable (offline run), so b's total is unknown; its helmet is still known to be over target.
+    expect(under(text, '### Endgame budget (L90) {b}').slice(0, 2)).toEqual([
+      '- Budget: unknown, aiming at about 5 a slot. Over target: Helmet (about 1.2–2.7; fallback price unknown).',
+      "  Prices are unavailable (offline run), so this rung's total isn't known.",
+    ]);
+    // m's prices are known: its unavailable fallback is in no total and gives no reason.
+    expect(under(text, '### Entering maps (L65) {m}')[1]).toBe('- Budget: about 2.1–4.7 divines around day 7, against a 5-divine target.');
+    expect(under(text, '### Entering maps (L65) {m}').join('\n')).not.toContain('Prices are unavailable');
   });
 
   it('keeps the rows W1 added under Known issues on a re-render, and follows the recompiled record everywhere else', () => {
@@ -429,7 +454,31 @@ describe('run-log.mjs display (D-367, D-369): each gate visit prints its display
       '   at the design gate: DPS 140000, EHP 52300, Arbiter survives, worst physical 0.47, clear medium (rough)',
     ]);
     expect(out[out.indexOf('Known issues:') + 1]).toMatch(/^- The How to play it section is wrong to call Rolling Slam your clear skill/);
+    // D-371, D-374: each rung's budget line from the D1 gate's last verdict file, in the guide's Checks words.
+    const budget = out.indexOf('Budget, from the D1 gate:');
+    expect(out.slice(budget + 1, budget + 7)).toEqual([
+      'm: Budget: unknown, against a 5-divine target.',
+      "   Prices are unavailable (offline run), so this rung's total isn't known.",
+      'b: Budget: unknown, aiming at about 5 a slot.',
+      "   Prices are unavailable (offline run), so this rung's total isn't known.",
+      'n: Budget: unknown, against the 100–200 target.',
+      "   Prices are unavailable (offline run), so this rung's total isn't known.",
+    ]);
+    expect(out).toContain("Some prices are unavailable, so the total of each rung they price isn't known (D-164).");
+    expect(out.join('\n')).not.toMatch(/within its budget|ceiling/);
     expect(out).toContain('The guide is from an offline run: no price was checked.');
+    expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
+  });
+
+  it("final, online: each rung's total range at its price day against its target and its over-target slots (D-371, D-374), with no D-164 line when every price is known", () => {
+    const out = display(copy('run-ok-online'), 'final');
+    const budget = out.indexOf('Budget, from the D1 gate:');
+    expect(out.slice(budget + 1, budget + 4)).toEqual([
+      'm: Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
+      'b: Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).',
+      'n: Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
+    ]);
+    expect(out.join('\n')).not.toContain('(D-164)');
     expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
   });
 

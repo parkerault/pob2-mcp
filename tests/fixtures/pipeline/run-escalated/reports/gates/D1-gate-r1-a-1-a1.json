@@ -27,6 +27,11 @@
   "basis": {
     "budget": {
       "rates": [],
+      "market": {
+        "league": null,
+        "day": null,
+        "late": false
+      },
       "slots": [
         {
           "stage": "b",
@@ -67,19 +72,50 @@
           "stage": "b",
           "slot": "Anoint",
           "priceId": "b-anoint"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1",
+          "priceId": "n-weapon"
+        },
+        {
+          "stage": "n",
+          "slot": "Body Armour",
+          "priceId": "n-body"
+        },
+        {
+          "stage": "n",
+          "slot": "Helmet",
+          "priceId": "n-helmet"
+        },
+        {
+          "stage": "n",
+          "slot": "Boots",
+          "priceId": "n-boots"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 1",
+          "priceId": "n-ring1"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 2",
+          "priceId": "n-ring2"
         }
       ],
       "totals": [
         {
           "stage": "b",
-          "divines": null
-        }
-      ],
-      "nonBudget": [
+          "low": null,
+          "high": null,
+          "day": 7
+        },
         {
           "stage": "n",
-          "divines": null,
-          "reference": 200
+          "low": null,
+          "high": null,
+          "day": 21
         }
       ]
     },

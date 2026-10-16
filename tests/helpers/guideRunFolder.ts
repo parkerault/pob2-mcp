@@ -203,14 +203,21 @@ export function guideGate(attempt = 2): Json {
     basis: {
       budget: {
         rates: [{ currency: 'exalted', divines: 0.01 }],
+        // The plan's league is null, so no league day: the table's days 21–60 rows (D-373).
+        market: { league: null, day: null, late: false },
         slots: [
           { stage: 'm', slot: 'Helmet', priceId: 'm-helmet' },
           { stage: 'm', slot: 'Body Armour', priceId: 'm-body' },
           { stage: 'b', slot: 'Helmet', priceId: 'b-helmet' },
           { stage: 'b', slot: 'Anoint', priceId: 'b-anoint' },
+          { stage: 'n', slot: 'Weapon 1', priceId: 'n-weapon' },
         ],
-        totals: [{ stage: 'm', divines: attempt === 2 ? 5.2 : 1 }, { stage: 'b', divines: null }],
-        nonBudget: [{ stage: 'n', divines: null, reference: 200 }],
+        // m: 2 and 3.2 divines, each under 10, ×0.4–0.9 to day 7: 2.08–4.68, rounded 2.1–4.7.
+        totals: [
+          { stage: 'm', low: attempt === 2 ? 2.1 : 0.4, high: attempt === 2 ? 4.7 : 0.9, day: 7 },
+          { stage: 'b', low: null, high: null, day: 7 },
+          { stage: 'n', low: null, high: null, day: 21 },
+        ],
       },
       rolledSkill: [],
     },
@@ -232,7 +239,7 @@ export const GUIDE = [
   '',
   '### Checks',
   '',
-  '- Budget: unknown against 20.',
+  '- Budget: unknown, aiming at about 5 a slot.',
   '',
   '## How to play it',
   '',

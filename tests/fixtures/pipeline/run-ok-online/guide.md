@@ -5,7 +5,7 @@
 Blood Hunt lunges at a target and consumes its Blood Loss for a burst; Rolling Slam carries the campaign until Blood Hunt arrives.
 
 - **Pros:** one button for rares; the floor holds on every endgame rung.
-- **Cons:** the budget variant sits near its ceiling.
+- **Cons:** the budget variant's spear is over its price target.
 - **Difficulty:** easy.
 
 ## Your PoB file
@@ -16,7 +16,7 @@ Import this code in PoB2 (Import/Export Build, then Import from code):
 eJy1kk9Lw0AQxc_NpxjmlBxq_kikhWyKiooQtNCoR9luxriY7IbNJgjB7y5blCo9Wo9vBt7vPWay1XvbwEiml1oxjE8iBFJCV1LVDB_K6_kCV7mXrbl9vX-5GGTjNknuzbKdgIZGahguUwTLTU328dsreo4RRMP7_o63xPCJGyO1QeC9IFVd7jeltFwhtFyqjRZvZG-MHjqGMYYOVBoi4MLKkTYdCYYp5t5sljkBVtqGGJ4LCzH4xSKAKf5AsIboR5L0K8ltxTD5lcBNYgSlK-oZ7oCHzgn4xWkUwJQc1fpKWTJS1dDyrge_OEsDmNojI6qatwTboarJgl8sXY3tvzCUVvM9x3VRf-Rkobt97mXhwf99AqX32ZQ=
 ```
 
-The file is `titan-open-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Prices are from the Forbidden Rites league, checked 2026-10-08.
+The file is `titan-open-2026-10-08-1.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Prices are from the Forbidden Rites league, checked 2026-10-08, day 34 of the league. I estimate early endgame gear at about day 7 of a league and late endgame at about day 21. Trade moves a lot: re-price the build with the build-guide skill any time.
 
 ## Survival by stage
 
@@ -58,7 +58,7 @@ Move here when the campaign is done. Buy, in order: 1. the boots, for lightning 
 ### Checks
 
 - Chaos resistance stays at 10% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
-- Budget: 4.4 divines against the 5-divine ceiling.
+- Budget: about 1.8–4 divines around day 7, against a 5-divine target.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ## Endgame: budget
@@ -67,15 +67,14 @@ Move here once you own both rings.
 
 | Slot | Target | Fallback |
 |---|---|---|
-| Weapon 1 | War Spear, increased physical damage | |
+| Weapon 1 | War Spear, increased physical damage | 35% increased physical damage, about 1.2–2.7 divines; not measured |
 | Body Armour | life, fire resistance | |
 
 - **Anoint:** Unbending, from Distilled Ire, Distilled Guilt and Distilled Greed (40 exalted): about 6% more armour where the tree has none, measured against the plan without it.
 
 ### Checks
 
-- Budget: 21.9 divines against 20.
-  21.9 divines is near the ceiling: over 20, within the 22-divine tolerance.
+- Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.68 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
@@ -85,7 +84,7 @@ Move here when you can afford it. Upgrade the weapon first.
 
 ### Checks
 
-- Total: 172 divines against the ~200-divine reference, which is no cap.
+- Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 

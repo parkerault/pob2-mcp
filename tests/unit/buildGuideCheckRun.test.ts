@@ -20,7 +20,7 @@
  *   and default answers.
  * - Amendment 2's guards (WU-62, D-276…D-283): the reader layer's 14 H2s (b), the 3,000-word cap (v), no
  *   marker, confidence label or finding id in guide.md (w), one fixed-form verdict line per endgame rung
- *   matched to the record (x), the entering-maps rung's floor and 5-divine budget (y), audit.md's H2s (z),
+ *   matched to the record (x), the entering-maps rung's floor and 5-divine target (y), audit.md's H2s (z),
  *   Known issues by sentence with the ids in audit.md (l), and reward picks by name.
  * - Amendment 3's (WU-58, D-287, D-289, D-294, D-326, D-338): (aa) the schema version and the roll null until the
  *   verification pick; (bb) the caps per brainstorm and verification round; (cc) the escalation answer
@@ -30,6 +30,9 @@
  *   `--changed` lists; claim kinds; audit.md and the Checks blocks as `render-audit.mjs` renders them; the survival
  *   label from `measures.arbiter`; the reference hits the compiler wrote; a ledger-only edit after the final
  *   compile; the design gate; the dossier's table.
+ * - Amendment 5's (WU-76, AC-W64, D-370…D-373): the D1 gate's budget is a range at each rung's price day against its
+ *   target, recomputed from the plan's prices and data/economy/prices.json; it is pass or unverified, never a
+ *   failure, and an over-target rare is information that routes nowhere.
  *
  * Checks (t), the render and `--changed` load the server's compiled `build/plan/`: `mise run test` builds first.
  */
@@ -305,23 +308,22 @@ describe('AC-W2: the passing fixtures, runs of the amended pipeline (schema 3), 
     expect(guide).toContain(b.chaosResistException.reason);
   });
 
-  it('run-ok-online is an online run with ok prices, the budget variant over 20 and at most 22 divines with the near-the-ceiling note, the entering-maps rung within 5, and its priced steps\' priceOutcomes (D-219, D-281, Q5)', () => {
+  it("run-ok-online is an online run with ok prices on day 34 of its league, each rung's total a range at its price day, an over-target rare on b and n with b's fallback, and its priced steps' priceOutcomes (D-370, D-371, D-373, Q5)", () => {
     const dir = path.join(FIXTURES, 'run-ok-online');
     const plan = readJson(dir, 'plan.json');
     const gate = readJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`);
     const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
-    const rates = new Map<string, number>(gate.basis.budget.rates.map((r: Json) => [r.currency, r.divines]));
-    const prices = new Map<string, Json>(plan.prices.map((p: Json) => [p.id, p]));
-    const total = (stage: string) => gate.basis.budget.slots.filter((s: Json) => s.stage === stage).reduce((sum: number, s: Json) => {
-      const p = prices.get(s.priceId)!;
-      expect(p.status).toBe('ok');
-      return sum + p.amount * rates.get(p.currency)!;
-    }, 0);
-    expect(total('b')).toBeGreaterThan(20);
-    expect(total('b')).toBeLessThanOrEqual(22);
-    expect(guide).toContain('near the ceiling');
-    expect(total('m')).toBeGreaterThan(0);
-    expect(total('m')).toBeLessThanOrEqual(5);
+    expect(gate.verdict.budget).toBe('pass');
+    expect(gate.basis.budget.market).toEqual({ league: 'Forbidden Rites', day: 34, late: false });
+    expect(gate.basis.budget.totals).toEqual([{ stage: 'm', low: 1.8, high: 4, day: 7 }, { stage: 'b', low: 8.8, high: 20, day: 7 }, { stage: 'n', low: 84, high: 143, day: 21 }]);
+    expect(gate.findings.filter((f: Json) => f.code === 'over-target').map((f: Json) => [f.stage, f.slot, f.low, f.high, f.target])).toEqual([['b', 'Weapon 1', 3.2, 7.2, 5], ['n', 'Body Armour', 20, 34, 20]]);
+    // D-372: each rare of b and n carries its required affixes and its target in its query; the fallback is in no slot.
+    for (const p of (plan.prices as Json[]).filter((x) => /^[bn]-(weapon|body|helmet|boots|ring1|ring2|jewel)(-fallback)?$/.test(x.id))) {
+      expect({ id: p.id, slot: typeof p.query.slot, required: Array.isArray(p.query.required), target: p.query.target?.day }).toEqual({ id: p.id, slot: 'string', required: true, target: p.id.startsWith('b-') ? 7 : 21 });
+    }
+    expect(gate.basis.budget.slots.map((s: Json) => s.priceId)).not.toContain('b-weapon-fallback');
+    expect(guide).toContain('- Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).');
+    expect(guide).not.toMatch(/near the ceiling|-divine tolerance/);
     // D-358: the anoint is priced like a slot of b.
     expect(gate.basis.budget.slots).toContainEqual({ stage: 'b', slot: 'Anoint', priceId: 'b-anoint' });
     const log = readJson(dir, 'run-log.json');
@@ -531,13 +533,12 @@ const broken: BrokenCase[] = [
   { name: "(o) an endgame stage's record lacks its waystone-scaled chaos reference hit (D-254, D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => delete r.stages.b.configWritten.enemyChaosDamage), rule: 'floor', says: /says floor: "pass", but the records give "fail": stage b's record has no waystone-scaled Chaos reference hit \(configWritten\.enemyChaosDamage\)/ },
   { name: "(o) a recorded reference hit isn't D-254's formula at its area level, rounded by D-256 (D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.b.configWritten.enemyPhysicalDamage = 325)), rule: 'floor', says: /stage b's recorded enemyPhysicalDamage 325 isn't 402: the damage at its area level 79 .* is 402, rounded to 2 decimals and then up \(D-254, D-256, D-353\)/ },
   // (p)
-  { name: '(p) budget: pass, but the prices and rates give over 22 divines', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 10)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.9 divines, above 22/ },
+  { name: "(p) budget: pass, but a price is unavailable, so the rung's total isn't known (D-164)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => Object.assign(p.prices.find((x: Json) => x.id === 'b-helmet'), { status: 'unavailable', amount: null, currency: null, note: 'rate-limited' })), rule: 'budget', says: /says budget: "pass", but the records give "unverified"/ },
   { name: '(p) the anoint maps to no prices[] entry (D-358)', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Anoint'))), rule: 'budget', says: /budget stage b's filled anoint \(Unbending\) maps to no prices\[\] entry/ },
   { name: '(p) a filled budget slot maps to no prices[] entry', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.slot !== 'Helmet'))), rule: 'budget', says: /filled slot "Helmet" maps to no prices\[\] entry/ },
   { name: '(p) a filled tree jewel maps to no prices[] entry (D-249)', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots = r.basis.budget.slots.filter((s: Json) => s.jewel === undefined))), rule: 'budget', says: /filled tree jewel in node 1001 maps to no prices\[\] entry/ },
-  { name: '(p) an expensive tree jewel tips the budget over 22 divines (D-249)', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 200)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage b totals 23\.4 divines, above 22/ },
+  { name: "(p) an expensive tree jewel moves b's total off the gate's range (D-249, D-373)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 200)), rule: 'budget', says: /D1-gate-r1-a-1-a1\.json's basis\.budget\.totals gives stage b low 8\.8, but the recompute from the plan's prices and data\/economy\/prices\.json is 9\.4 \(about 9\.4–21 divines around day 7\)/ },
   { name: '(p) two slots holding different items share a price entry', fixture: 'run-ok-online', edit: (d) => editJson(d, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => (r.basis.budget.slots.find((s: Json) => s.slot === 'Ring 2').priceId = 'b-ring1')), rule: 'budget', says: /share price entry "b-ring1" but hold different items/ },
-  { name: '(p) over 20 divines and the guide lacks "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editText(d, 'guide.md', replace('21.9 divines is near the ceiling:', '21.9 divines is close to the line:')), rule: 'budget', says: /lack "near the ceiling"/ },
   // (q)
   { name: '(q) rolledSkill: pass, but a same-role group has a larger figure in the record', fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => setFigure(r, 'b', 'g2s1p1', 60000)), rule: 'rolled-skill', says: /says rolledSkill: "pass", but the records give "fail": stage b's group 2 \(clear\) has 60000 \(× its Count\), more than the named damage source's group 1's 50000 \(× its Count\) \(D-340\)/ },
   { name: "(q) the named damage source's group's role is utility", fixture: 'run-ok', edit: (d) => editPlan(d, (p) => (stageB(p).skills.groups[0].role = 'utility')), rule: 'rolled-skill', says: /stage b's named damage source's group 1 \(rolledGroup\) has role "utility"; the named damage source is clear or single_target, never a token role/ },
@@ -572,8 +573,7 @@ const broken: BrokenCase[] = [
   { name: "(x) a verdict line's other hit isn't the largest the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('elemental or chaos against about 97.', 'elemental or chaos against about 72.')), rule: 'verdict-line', says: /the Budget verdict line says elemental or chaos hit 72, but the largest of the hits the compiler wrote, b\.configWritten's enemyFireDamage, enemyColdDamage, enemyLightningDamage, enemyChaosDamage is 97/ },
   { name: "(x) a verdict line's DPS isn't the record's measures.dps", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but b\.measures\.dps \(the main group's TotalDPS × its Count\) is 50000/ },
   // (y)
-  { name: "(y) the entering-maps rung's budget above 5.5 divines", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 3.2)), rule: 'budget', says: /says budget: "pass", but the records give "fail": stage m totals 5\.6 divines, above 5\.5 \(D-281\)/ },
-  { name: '(y) the entering-maps rung above 5 divines without "near the ceiling"', fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 2.8)), rule: 'budget', says: /entering-maps stage m totals 5\.2 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/ },
+  { name: "(y) the entering-maps rung's total over 5 divines at its midpoint and the gate has no over-target finding for it (D-370, D-371)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 14)), rule: 'budget', says: /has no over-target finding for stage m's total: its range is about 3\.8–7\.8 divines around day 7, its midpoint 5\.76 above its 5-divine target/ },
   { name: "(y) the entering-maps rung's floor: a resistance below its cap", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*stage m MissingColdResist is 5/ },
   { name: "(y) the entering-maps rung's floor: a recorded hit of another area level than 69 (D-327, D-353)", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.configWritten.enemyFireDamage = 97)), rule: 'floor', says: /stage m's recorded enemyFireDamage 97 isn't 72: the damage at its area level 69/ },
   // (z)
@@ -1408,28 +1408,20 @@ const d1Verdict = (dir: string, attempt: number, finding: Json | null = levelPoi
   });
 };
 
-describe("D-281: the entering-maps rung m is gated like b: its floor at area 69, its budget 5 divines (5.5 with \"near the ceiling\")", () => {
-  /** run-ok-online with m's weapon at `amount` divines, the D1 gate's basis giving the rung's new total (the other slots 2.4). */
-  const withWeapon = (amount: number) => {
+describe("D-281, D-370: the entering-maps rung m is gated like b: its floor at area 69; its budget a range around day 7 against a 5-divine target, which never fails", () => {
+  it("passes m's total over 5 divines at its midpoint once the gate records it and its over-target finding; m's Checks line names no slot", () => {
     const dir = copyOf('run-ok-online');
-    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = amount));
-    editJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`, (g) => (g.basis.budget.totals.find((t: Json) => t.stage === 'm').divines = Math.round((amount + 2.4) * 100) / 100));
-    return dir;
-  };
-
-  it('passes up to 5, and up to 5.5 with "near the ceiling" in its Checks; above 5.5 fails', () => {
-    const at5 = withWeapon(2.6); // 5.0 divines
-    rerender(at5);
-    passes(at5);
-    const near = withWeapon(3.1); // 5.5 divines: the render adds the near-the-ceiling line, which the guide lacks until W1 copies it
-    editText(near, 'guide.md', replace('- Budget: 4.4 divines against the 5-divine ceiling.', '- Budget: 5.5 divines against the 5-divine ceiling.'));
-    expect(failing(near)).toMatch(/\[budget\] entering-maps stage m totals 5\.5 divines, over 5, but the guide's "Endgame: entering maps" Checks lack "near the ceiling" \(D-281\)/);
-    rerender(near);
-    expect(fs.readFileSync(path.join(near, 'guide.md'), 'utf8')).toContain('  5.5 divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
-    passes(near);
-    const over = withWeapon(3.11); // 5.51 divines
-    rerender(over);
-    expect(failing(over)).toMatch(/\[budget\] .*stage m totals 5\.51 divines, above 5\.5 \(D-281\)/);
+    // m's weapon at 14 divines takes the 10-or-more row to day 7 (×0.2–0.4): 2.8–5.6; the other slots, 2.4 divines
+    // under 10 (×0.4–0.9): 0.96–2.16. The total, 3.76–7.76, rounds to 3.8–7.8; its midpoint 5.76 is above 5.
+    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 14));
+    editJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`, (g) => {
+      Object.assign(g.basis.budget.totals.find((t: Json) => t.stage === 'm'), { low: 3.8, high: 7.8 });
+      g.findings.unshift({ part: 'budget', code: 'over-target', stage: 'm', low: 3.8, high: 7.8, target: 5, message: 'm: about 3.8–7.8 divines around day 7, over its 5-divine target' });
+    });
+    rerender(dir);
+    passes(dir);
+    const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8');
+    expect(guide).toContain('- Budget: about 3.8–7.8 divines around day 7, against a 5-divine target.\n');
   });
 
   it("is unverified offline, which doesn't fail the gate (run-ok)", () => {
@@ -1574,18 +1566,6 @@ describe('§5.3: once a guide exists, a failing gate part no accepted finding co
     expect(stderr).toMatch(/\[floor\] reports\/gates\/D1-gate-r1-a-1-a2\.json says floor: "fail" \(missing-chaos-resist\), and no accepted finding covers it/);
   });
 
-  it('fails when the last D1 gate honestly says budget: fail (over 22 divines)', () => {
-    const dir = copyOf('run-ok-online');
-    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 30));
-    editJson(dir, `reports/gates/D1-gate-${CARD}-a1.json`, (r) => {
-      r.verdict.budget = 'fail';
-      r.findings = [{ part: 'budget', code: 'over-budget', stage: 'b', message: 'stage b totals 43.5 divines' }];
-    });
-    const stderr = failing(dir);
-    expect(stderr).not.toMatch(/says budget: "fail", but/);
-    expect(stderr).toMatch(/\[budget\] the guide's concept fails the D1 gate's budget \(over-budget, stage b\): stage b totals 43\.9 divines, above 22/);
-  });
-
   it('fails a run with a guide whose last D2 gate failed V1 with no accepted finding', () => {
     const dir = copyOf('run-ok');
     editJson(dir, `reports/gates/D2-gate-${CARD}-a1.json`, (r) => {
@@ -1653,15 +1633,6 @@ describe('§5.4: an accepted gate finding covers equal ones (same plan stage, pa
   });
 });
 
-describe('D-219 and D-249: budget totals and tree jewels', () => {
-  it('rounds the total to 2 decimals before comparing it with 22', () => {
-    const dir = copyOf('run-ok-online');
-    // 21.4 divines without the jewel, and the jewel 60.4 exalted at 0.01: 22.004, which rounds to 22.
-    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'b-jewel').amount = 60.4));
-    passes(dir);
-  });
-});
-
 describe("D-256, D-353: a reference hit the compiler wrote is D-254's formula rounded to 2 decimals, then up to a whole number", () => {
   const setHit = (dir: string, type: string, value: number) => editJson(dir, 'compile-record.json', (r) => (r.stages.b.configWritten[`enemy${type}Damage`] = value));
 
@@ -1695,7 +1666,7 @@ describe("D-256, D-353: a reference hit the compiler wrote is D-254's formula ro
   });
 });
 
-describe("S5: the D1 gate's file supplies only the budget map with its rates and the figures, no copied numbers (F7)", () => {
+describe("S5: the D1 gate's file supplies only the budget map with its rates, market and totals and the figures, no copied record numbers (F7)", () => {
   it('reads every figure from the record, so a value copied into the gate file is neither needed nor compared', () => {
     const dir = copyOf('run-ok');
     editJson(dir, lastD1, (r) => (r.basis.rolledSkill[0].figures[0].value = 12345.678));
@@ -1705,7 +1676,7 @@ describe("S5: the D1 gate's file supplies only the budget map with its rates and
   it('fails a D1 gate file without its basis', () => {
     const dir = copyOf('run-ok');
     editJson(dir, lastD1, (r) => delete r.basis);
-    expect(failing(dir)).toMatch(/\[gate-report\] reports\/gates\/D1-gate-r1-a-1-a2\.json: has no basis \{budget: \{rates, slots\}, rolledSkill: \[\.\.\.\]\}/);
+    expect(failing(dir)).toMatch(/\[gate-report\] reports\/gates\/D1-gate-r1-a-1-a2\.json: has no basis \{budget: \{rates, market, slots, totals\}, rolledSkill: \[\.\.\.\]\}/);
   });
 });
 
@@ -2111,7 +2082,7 @@ describe('review 3 (MED): each gate attempt is routed as its verdict file says',
   };
 
   it('fails an infeasible route over a V1 failure (probe p4-infeasible-misroute)', () => {
-    expect(failing(routedOnce('infeasible'))).toMatch(/\[routing\] .*\(D1-gate r1-a-1 attempt 1\): is routed infeasible, but its verdict fails its compile, V1 or V2 .*; infeasible is FI-3's forced verdict, or a floor, budget or named-damage-source \(rolledSkill\) failure/);
+    expect(failing(routedOnce('infeasible'))).toMatch(/\[routing\] .*\(D1-gate r1-a-1 attempt 1\): is routed infeasible, but its verdict fails its compile, V1 or V2 .*; infeasible is FI-3's forced verdict, or a floor or named-damage-source \(rolledSkill\) failure \(the budget never fails, D-371\)/);
   });
 
   it('routes a floor failure infeasible only when D1 claimed it, or after 2 counted retries', () => {
@@ -3036,5 +3007,202 @@ describe("D-367: each gate visit's display is recorded before its answer", () =>
     editLog(unsaved, (l) => l.checkpoints.unshift({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'pre-supplied', rule: 'proceed' }));
     expect(readJson(unsaved, 'run-log.json').displays.map((d: Json) => d.checkpoint)).not.toContain('unsaved-build');
     expect(lines(runChecker(unsaved).stderr, 'display')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W64 (WU-76, amendment 5: D-370, D-371, D-373): the D1 gate's budget part, recomputed by gates.md's "Price days,
+// targets and ranges". run-ok-online's prices were seen on 2026-10-08, day 34 of Forbidden Rites (start 2026-09-04),
+// a 21–60 market: under 10 divines ×0.4–0.9 to day 7 and ×0.6–0.85 to day 21; 10 or more ×0.2–0.4 and ×0.5–0.85.
+// Each expected number below is worked by hand from those factors, not taken from the code under test.
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W64 (WU-76, D-371, D-373): the D1 gate budget is a range at the price day against a target, pass or unverified, never a failure', () => {
+  const GATE = `reports/gates/D1-gate-${CARD}-a1.json`;
+  const checks = (dir: string, h2: string) => {
+    const guide = fs.readFileSync(path.join(dir, 'guide.md'), 'utf8').split('\n');
+    const at = guide.indexOf(h2);
+    const h3 = guide.findIndex((l, i) => i > at && l === '### Checks');
+    const end = guide.findIndex((l, i) => i > h3 && /^#{1,3} /.test(l));
+    return guide.slice(h3 + 1, end).filter((l) => l.trim() !== '');
+  };
+  /** The gate's budget as one that added by hand would write it: market, totals and over-target findings. */
+  const setGate = (dir: string, market: Json, totals: [number | null, number | null][], over: Json[]) =>
+    editJson(dir, GATE, (g) => {
+      g.basis.budget.market = market;
+      g.basis.budget.totals = (['m', 'b', 'n'] as const).map((stage, i) => ({ stage, low: totals[i][0], high: totals[i][1], day: stage === 'n' ? 21 : 7 }));
+      g.findings = [...over.map((o) => ({ part: 'budget', code: 'over-target', ...o, message: `${o.stage} ${o.slot ?? 'total'}: over its ${o.target}-divine target` })), ...g.findings.filter((f: Json) => f.code !== 'over-target')];
+    });
+  /** Every price dated `date`, as a market seen that day. */
+  const datedAll = (dir: string, date: string) => editPlan(dir, (p) => (p.prices as Json[]).forEach((x) => (x.date = date)));
+
+  it("a b total of 60 divines as seen, about 15–31 at day 7, with an over-target finding, passes the D1 gate and routes to the design gate", () => {
+    const dir = copyOf('run-ok-online');
+    // b's weapon at 46.1 divines: b's slots then sum to 60 divines as seen (the other entries 13.9).
+    editPlan(dir, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').amount = 46.1));
+    const plan = readJson(dir, 'plan.json');
+    const gate = readJson(dir, GATE);
+    const rates = new Map<string, number>([['divine', 1], ...gate.basis.budget.rates.map((r: Json) => [r.currency, r.divines] as [string, number])]);
+    const seen = (gate.basis.budget.slots as Json[]).filter((x) => x.stage === 'b').reduce((sum, x) => {
+      const pr = (plan.prices as Json[]).find((y) => y.id === x.priceId)!;
+      return sum + pr.amount * rates.get(pr.currency)!;
+    }, 0);
+    expect(seen).toBeCloseTo(60, 6);
+    // The weapon, 10 or more: ×0.2–0.4, 9.22–18.44 (9.2–18), midpoint 13.83 over 5. The rest, under 10: 5.56–12.51.
+    // b's total 14.78–30.95 rounds to 15–31.
+    setGate(dir, { league: 'Forbidden Rites', day: 34, late: false }, [[1.8, 4], [15, 31], [84, 143]], [
+      { stage: 'b', slot: 'Weapon 1', low: 9.2, high: 18, target: 5 },
+      { stage: 'n', slot: 'Body Armour', low: 20, high: 34, target: 20 },
+    ]);
+    expect(readJson(dir, GATE).verdict.budget).toBe('pass');
+    rerender(dir);
+    passes(dir);
+    expect(checks(dir, '## Endgame: budget')[0]).toBe('- Budget: about 15–31 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 9.2–18; fallback about 1.2–2.7).');
+    // It routes to the design gate: the log's pass, then the design gate's visit, checks; a budget finding never sends D1 back.
+    const log = readJson(dir, 'run-log.json');
+    const at = (log.stages as Json[]).findIndex((x) => x.stage === 'D1-gate');
+    expect([log.stages[at].outcome, log.stages[at + 1].stage]).toEqual(['pass', 'D2']);
+    expect((log.checkpoints as Json[]).map((c) => c.checkpoint)).toContain('design');
+    for (const outcome of ['fail', 'infeasible']) {
+      const routed = copyOf('run-ok-online');
+      editJson(routed, GATE, (g) => (g.findings = readJson(dir, GATE).findings));
+      editLog(routed, (l) => (l.stages.find((x: Json) => x.stage === 'D1-gate').outcome = outcome));
+      expect(lines(runChecker(routed).stderr, 'routing')).toContainEqual(expect.stringMatching(new RegExp(`\\(D1-gate r1-a-1 attempt 1\\): is routed ${outcome}, but its verdict passes`)));
+    }
+  });
+
+  it('a budget fail is refused as an unknown value', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, GATE, (g) => (g.verdict.budget = 'fail'));
+    const stderr = failing(dir);
+    expect(lines(stderr, 'gate-report')).toContainEqual(`check-run: [gate-report] ${GATE}: verdict.budget is "fail"; one of pass, unverified (the budget never fails, D-371)`);
+    expect(stderr).toMatch(/\[budget\] reports\/gates\/D1-gate-r1-a-1-a1\.json says budget: "fail", but the records give "pass"/);
+    // It is no failure the guide's concept rests on, and routes nowhere: the log's pass is no routing error.
+    expect(stderr).not.toMatch(/fails the D1 gate's budget|says budget: "fail" \(/);
+    expect(lines(stderr, 'routing')).toEqual([]);
+    // R1b and the D2 gate keep pass, fail and unverified.
+    const d2 = copyOf('run-ok-online');
+    editJson(d2, `reports/gates/D2-gate-${CARD}-a1.json`, (g) => (g.verdict.v1 = 'maybe'));
+    expect(lines(failing(d2), 'gate-report')).toContainEqual(expect.stringMatching(/verdict\.v1 is "maybe"; one of pass, fail, unverified$/));
+  });
+
+  it("the rendered Checks lines give ranges at the price day and name the over-target slots, and the recompute matches the gate's", () => {
+    const dir = path.join(FIXTURES, 'run-ok-online');
+    // m: 4.4 divines, all under 10, ×0.4–0.9: 1.76–3.96, rounded 1.8–4. b: 21.9, all under 10: 8.76–19.71, 8.8–20;
+    // its weapon, 8 divines: 3.2–7.2, midpoint 5.2 over 5; its fallback, 3 divines: 1.2–2.7. n: 168 divines, all 10
+    // or more, ×0.5–0.85: 84–142.8, 84–143; its body armour, 40 divines: 20–34, midpoint 27 over its 20.
+    expect(checks(dir, '## Endgame: entering maps')).toContain('- Budget: about 1.8–4 divines around day 7, against a 5-divine target.');
+    expect(checks(dir, '## Endgame: budget')).toContain('- Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).');
+    expect(checks(dir, '## Endgame: non-budget')).toContain('- Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).');
+    for (const h2 of ['## Endgame: entering maps', '## Endgame: budget', '## Endgame: non-budget']) expect(checks(dir, h2).join('\n')).not.toMatch(/Prices are unavailable/);
+    expect(fs.readFileSync(path.join(dir, 'audit.md'), 'utf8')).toContain('- Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).');
+    passes(copyOf('run-ok-online'));
+    // A gate the recompute contradicts: its market, a slot it says is over target, one it leaves out.
+    const market = copyOf('run-ok-online');
+    editJson(market, GATE, (g) => (g.basis.budget.market.day = 33));
+    expect(lines(failing(market), 'budget')).toEqual([`check-run: [budget] ${GATE}'s basis.budget.market is {"league":"Forbidden Rites","day":33,"late":false}, but the plan's league and prices and data/economy/prices.json give {"league":"Forbidden Rites","day":34,"late":false} (gates.md step 1, D-373)`]);
+    const spurious = copyOf('run-ok-online');
+    editJson(spurious, GATE, (g) => g.findings.push({ part: 'budget', code: 'over-target', stage: 'b', slot: 'Helmet', low: 0.6, high: 1.4, target: 5, message: 'b Helmet' }));
+    expect(lines(failing(spurious), 'budget')).toEqual([`check-run: [budget] ${GATE} has an over-target finding for stage b's slot "Helmet", but the recompute puts its midpoint at 0.98, not above its 5-divine target (gates.md step 7)`]);
+    const missing = copyOf('run-ok-online');
+    editJson(missing, GATE, (g) => (g.findings = g.findings.filter((f: Json) => f.slot !== 'Body Armour')));
+    rerender(missing);
+    expect(lines(failing(missing), 'budget')).toEqual([`check-run: [budget] ${GATE} has no over-target finding for stage n's slot "Body Armour": its range is about 20–34 divines around day 21, its midpoint 27 above its 20-divine target (gates.md step 7, D-371)`]);
+    // Within 0.1 divine of a target under 10, the gate may say either: the weapon's target at 5.15 leaves its
+    // midpoint 5.2 over by 0.05, so a gate without the finding passes.
+    const margin = copyOf('run-ok-online');
+    editPlan(margin, (p) => (p.prices.find((x: Json) => x.id === 'b-weapon').query.target.divines = 5.15));
+    editJson(margin, GATE, (g) => (g.findings = g.findings.filter((f: Json) => f.slot !== 'Weapon 1')));
+    rerender(margin);
+    passes(margin);
+  });
+
+  it("an unavailable price makes the rung's total unverified, with D-164's sentence; a slot known to be over target is still named", () => {
+    const dir = copyOf('run-ok-online');
+    editPlan(dir, (p) => Object.assign(p.prices.find((x: Json) => x.id === 'b-helmet'), { status: 'unavailable', amount: null, currency: null, note: 'rate-limited' }));
+    editJson(dir, GATE, (g) => {
+      g.verdict.budget = 'unverified';
+      Object.assign(g.basis.budget.totals.find((t: Json) => t.stage === 'b'), { low: null, high: null });
+      g.findings.push({ part: 'budget', code: 'unverified', stage: 'b', message: 'b-helmet is unavailable (rate-limited)' });
+    });
+    rerender(dir);
+    passes(dir);
+    expect(checks(dir, '## Endgame: budget').slice(0, 2)).toEqual([
+      '- Budget: unknown, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).',
+      "  Prices are unavailable (rate-limited), so this rung's total isn't known.",
+    ]);
+    // The gate may not state a total the prices don't give, nor call the part pass.
+    const stated = copyOf('run-ok-online');
+    editPlan(stated, (p) => Object.assign(p.prices.find((x: Json) => x.id === 'b-helmet'), { status: 'unavailable', amount: null, currency: null, note: 'rate-limited' }));
+    const stderr = failing(stated);
+    expect(stderr).toMatch(/\[budget\] reports\/gates\/D1-gate-r1-a-1-a1\.json says budget: "pass", but the records give "unverified"/);
+    expect(stderr).toMatch(/\[budget\] reports\/gates\/D1-gate-r1-a-1-a1\.json's basis\.budget\.totals gives stage b 8\.8–20, but a price of that rung is unavailable or has no rate, so its total isn't known: low and high are null \(D-164\)/);
+  });
+
+  it('late-market factors: past day 60, the low factor over 4 and the high over 2', () => {
+    const dir = copyOf('run-ok-online');
+    datedAll(dir, '2026-11-10'); // day 67 of Forbidden Rites
+    // m: 4.4 × 0.1–0.45 = 0.44–1.98, 0.4–2. b: 21.9 × 0.1–0.45 = 2.19–9.855, 2.2–9.9; the weapon's midpoint 2.2 is
+    // under 5. n: 168, all 10 or more, × 0.125–0.425 = 21–71.4, 21–71; the body armour's midpoint 11 is under 20.
+    expect(lines(failing(dir), 'budget')).toEqual(expect.arrayContaining([
+      `check-run: [budget] ${GATE}'s basis.budget.market is {"league":"Forbidden Rites","day":34,"late":false}, but the plan's league and prices and data/economy/prices.json give {"league":"Forbidden Rites","day":67,"late":true} (gates.md step 1, D-373)`,
+      expect.stringMatching(/gives stage m low 1\.8, but the recompute .* is 0\.4 \(about 0\.4–2 divines around day 7\)/),
+      expect.stringMatching(/gives stage b low 8\.8, but the recompute .* is 2\.2 \(about 2\.2–9\.9 divines around day 7\)/),
+      expect.stringMatching(/gives stage n low 84, but the recompute .* is 21 \(about 21–71 divines around day 21\)/),
+    ]));
+    setGate(dir, { league: 'Forbidden Rites', day: 67, late: true }, [[0.4, 2], [2.2, 9.9], [21, 71]], []);
+    rerender(dir);
+    passes(dir);
+    expect(checks(dir, '## Endgame: non-budget')[0]).toBe('- Budget: about 21–71 divines around day 21, against the 100–200 target.');
+  });
+
+  it("an unknown league converts as days 21–60, with no league day", () => {
+    const dir = copyOf('run-ok-online');
+    editPlan(dir, (p) => {
+      p.league = 'Some New League';
+      for (const x of p.prices as Json[]) x.league = 'Some New League';
+    });
+    expect(lines(failing(dir), 'budget')).toEqual([`check-run: [budget] ${GATE}'s basis.budget.market is {"league":"Forbidden Rites","day":34,"late":false}, but the plan's league and prices and data/economy/prices.json give {"league":"Some New League","day":null,"late":false} (gates.md step 1, D-373)`]);
+    // Days 21–60 are the table's own rows, so the totals and the over-target slots stand as the fixture's.
+    editJson(dir, GATE, (g) => (g.basis.budget.market = { league: 'Some New League', day: null, late: false }));
+    passes(dir);
+  });
+
+  it('a market before day 21 converts nothing: the factors are 1, and an equal low and high reads as one number', () => {
+    const dir = copyOf('run-ok-online');
+    datedAll(dir, '2026-09-14'); // day 10
+    // m 4.4, b 21.9 (22), n 168, as seen. Over target: b's weapon (8 over 5), n's weapon (64 over 50) and body
+    // armour (40 over 20); n's ring 2 (20) is not above its 20.
+    setGate(dir, { league: 'Forbidden Rites', day: 10, late: false }, [[4.4, 4.4], [22, 22], [168, 168]], [
+      { stage: 'b', slot: 'Weapon 1', low: 8, high: 8, target: 5 },
+      { stage: 'n', slot: 'Weapon 1', low: 64, high: 64, target: 50 },
+      { stage: 'n', slot: 'Body Armour', low: 40, high: 40, target: 20 },
+    ]);
+    rerender(dir);
+    passes(dir);
+    expect(checks(dir, '## Endgame: entering maps')).toContain('- Budget: about 4.4 divines around day 7, against a 5-divine target.');
+    expect(checks(dir, '## Endgame: budget')[0]).toBe('- Budget: about 22 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 8; fallback about 3).');
+    expect(checks(dir, '## Endgame: non-budget')[0]).toBe('- Budget: about 168 divines around day 21, against the 100–200 target. Over target: Weapon 1 (about 64), Body Armour (about 40).');
+  });
+
+  it('the rounding rule: each end on its own, a whole divine at 10 or more and one decimal under 10, the gate held within one rounding step', () => {
+    // run-ok-online's b: 8.76 rounds to 8.8 and 19.71 to 20; n's 142.8 to 143.
+    const at = (edit: (g: Json) => void) => {
+      const dir = copyOf('run-ok-online');
+      editJson(dir, GATE, edit);
+      return lines(runChecker(dir).stderr, 'budget');
+    };
+    const b = (g: Json) => g.basis.budget.totals.find((t: Json) => t.stage === 'b');
+    const n = (g: Json) => g.basis.budget.totals.find((t: Json) => t.stage === 'n');
+    expect(at((g) => (b(g).low = 8.7))).toEqual([]); // 0.1 under 10
+    expect(at((g) => (b(g).low = 8.6))).toEqual([expect.stringMatching(/gives stage b low 8\.6, but the recompute .* is 8\.8 \(about 8\.8–20 divines around day 7\), more than one rounding step from it/)]);
+    expect(at((g) => (b(g).high = 21))).toEqual([]); // 1 at 10 or more
+    expect(at((g) => (b(g).high = 19.71))).toEqual([]); // unrounded, within the step
+    expect(at((g) => (b(g).high = 22))).toEqual([expect.stringMatching(/gives stage b high 22, but the recompute .* is 20 /)]);
+    expect(at((g) => (n(g).high = 142))).toEqual([]);
+    expect(at((g) => (n(g).high = 141))).toEqual([expect.stringMatching(/gives stage n high 141, but the recompute .* is 143 /)]);
+    expect(at((g) => (b(g).day = 21))).toEqual([`check-run: [budget] ${GATE}'s basis.budget.totals gives stage b day 21; its price day is 7 (D-370)`]);
+    // An over-target finding's range is held the same way.
+    expect(at((g) => (g.findings.find((f: Json) => f.slot === 'Weapon 1').high = 7.4))).toEqual([expect.stringMatching(/over-target finding for stage b's slot "Weapon 1" gives 3\.2–7\.4, but the recompute is about 3\.2–7\.2/)]);
   });
 });

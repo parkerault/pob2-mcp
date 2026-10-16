@@ -23,19 +23,18 @@
 ### Entering maps (L65) {m}
 
 - Chaos resistance stays at 10% because no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs.
-- Budget: 4.4 divines against the 5-divine ceiling.
+- Budget: about 1.8–4 divines around day 7, against a 5-divine target.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ### Endgame budget (L90) {b}
 
-- Budget: 21.9 divines against 20.
-  21.9 divines is near the ceiling: over 20, within the 22-divine tolerance.
+- Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.68 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 
 ### Endgame non-budget (L95) {n}
 
-- Total: 172 divines against the ~200-divine reference, which is no cap.
+- Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).
 - The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.
 - Clear speed: slow, a rough estimate from Blood Hunt's area. Movement speed: not measured.
 

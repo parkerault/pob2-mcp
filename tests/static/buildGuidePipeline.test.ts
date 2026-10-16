@@ -2024,11 +2024,15 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(gates).toMatch(/on `m`, its total, when it has one and its midpoint is above 5/);
     expect(gate).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's \(the ladder's first rung: `m`, else `b`\) `level` to `1`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8')).toContain('| `m`, entering maps | day 7 | 5 divines in all |');
-    // The run checker holds the area level; its budget literal is the old ceiling until WU-76 moves the checker
-    // onto D-370's targets (amendment 5 §9), and this assertion with it.
+    // The run checker holds the area level, and m's price day and 5-divine target come from the render's
+    // conversion, which it imports (WU-76): no ceiling and no tolerance is left in either script.
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    expect(checker).toContain("'entering-maps': { ceiling: 5, tolerance: 5.5, why: 'D-281' }");
+    const render = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'render-audit.mjs'), 'utf8');
     expect(checker).toContain("const tier = { 'entering-maps': 5, budget: 15 }[variant];");
+    expect(render).toContain("export const PRICE_DAY = { 'entering-maps': 7, budget: 7, 'non-budget': 21 };");
+    expect(render).toContain('export const M_TARGET = 5;');
+    expect(checker).toMatch(/import \{[^}]*\bpriceTable\b[^}]*\brungBudget\b[^}]*\} from '\.\/render-audit\.mjs';/);
+    for (const text of [checker, render]) expect(text).not.toMatch(/ceiling: \d|tolerance: \d|near the ceiling|over-budget|near-ceiling|nonBudget/);
   });
 });
 

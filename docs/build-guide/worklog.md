@@ -3538,3 +3538,5 @@ architectural: the result goes into amendment 5's spec text.
   the guide and the gates show) and WU-74…WU-76. An Explore agent mapped the touch points (175K tokens). Found on
   the way: `find_upgrades` has no `Checked:` line and no `[trade:<kind>]` prefix on its stops (WU-74), and it reads
   the active loadout, so pricing a rung needs a loadout select. The EC lessons become their own amendment.
+- **Amendment 5 accepted** by the user, 2026-10-16 ("Looks good"), with the corrected day-7 row. D-370…D-374 and
+  WU-74…WU-76 stand as written; the fold to v1.6 carries them with D-363…D-369.

@@ -1,8 +1,8 @@
 # Amendment 5: gear pricing
 
-**Status: PROPOSED, for the user's review.** It carries out the user's pricing direction of 2026-10-15 and
-2026-10-16 (`../worklog.md`, "pricing strategy, a detour before the reference-build run" and its bullets). It
-proposes D-370…D-374. The coordinator folds it into the spine and slices 01–03 with D-363…D-369 at v1.6. The lessons
+**Status: ACCEPTED by the user, 2026-10-16** ("Looks good"). It carries out the user's pricing direction of 2026-10-15 and
+2026-10-16 (`../worklog.md`, "pricing strategy, a detour before the reference-build run" and its bullets), as
+D-370…D-374. The coordinator folds it into the spine and slices 01–03 with D-363…D-369 at v1.6. The lessons
 of the Explosive Concoction comparison (`../studies/2026-10-14-ec-comparison.md`) are not here; they follow as their
 own amendment. Paths without a directory are under `.claude/skills/build-guide/`.
 

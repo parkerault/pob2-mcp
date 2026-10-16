@@ -3488,3 +3488,18 @@ architectural: the result goes into amendment 5's spec text.
 - **Housekeeping:** the machine restarted on 2026-10-15 and `/tmp` was cleared, so every old run environment
   (`/tmp/m12b.B0zi`, `/tmp/m12.DbTF`, `/tmp/m14.zfPx`, `/tmp/m15.C1xp`) is gone. The findings are in the studies and
   this log; runL's transcript is under `~/.claude/projects/`; its build is in the user's builds folder as `EC`.
+- **The capture (2026-10-16 UTC):** the agent's 18th search drew a trade-site 429 with a 600 s lockout. It stopped there and
+  retried nothing. The cause is unknown: the server's limiter follows the site's headers with a one-request margin.
+  The user suspects the site limits tool requests more strictly than browser ones. **For the live-run checklist:**
+  a run pricing 20–40 items may hit the same wall. The coordinator resumed after the lockout at one search every
+  ~100 s, 15 searches, with no further limit. Complete except Uber Endgame, which is beyond the user's cap.
+- **The user on gear prices** (from experience, 2026-10-15):
+  - the summary "steady in divines from day 21 to 40, unsettled before, climbing late" matches the last few leagues;
+  - the exchange is an imperfect proxy: some pairs are thinly traded, and divines are scarcer than gear early in a
+    league, so gear priced in divines is priced accordingly;
+  - early endgame gear peaks around day 7, then declines: nobody needs it after day 7. Late endgame gear plateaus
+    around day 21 and rises slowly to league end. Second characters funded from currency reserves confound good-gear
+    prices;
+  - **the anchor:** by day 7, when the user buys early endgame gear, most items cost a few divines. That gear is a big
+    upgrade on campaign gear, usually enough for most six-mod T15 maps, and past it prices hit diminishing returns;
+  - the 155-divine early endgame quarterstaff is a league-end price.

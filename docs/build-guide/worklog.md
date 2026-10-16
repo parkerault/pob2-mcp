@@ -3503,3 +3503,20 @@ architectural: the result goes into amendment 5's spec text.
   - **the anchor:** by day 7, when the user buys early endgame gear, most items cost a few divines. That gear is a big
     upgrade on campaign gear, usually enough for most six-mod T15 maps, and past it prices hit diminishing returns;
   - the 155-divine early endgame quarterstaff is a league-end price.
+- **The user on the snapshot and the rule** (2026-10-16):
+  - the guide's trade links search exact affixes with high minimum rolls, so they always return a small pool of
+    very expensive items. And as the second most popular Mobalytics guide, its followers bid those items up, and
+    crafters sell to them at a premium. A better guide widens the pool with weighted searches, as PoB2's "trade for
+    these items" does;
+  - dropping the least useful affix usually takes a +skill-levels amulet from hundreds of divines to tens. The
+    user searched for the 420–900 divine Mid Endgame amulet without "#% increased Energy Shield from Equipped Body
+    Armour", and the cheapest listing was 10 divines;
+  - our own builds are unlikely to meet that demand premium unless their gear overlaps a meta build's;
+  - the conversion table is close to what the user expects of day-7 and day-21 prices;
+  - the concern: designers overestimating gear prices and pruning a promising build as too expensive. The cap needs
+    wiggle room, and the user decides whether a build costs too much.
+- **What the pipeline does today** (read for the reply): pricing uses `search_trade_items` (exact affixes with
+  minimums, the same shape as the guide's links) and `get_item_price`; the server's `find_upgrades` (PoB's weighted
+  trade-dialog search, with required mods and a max price) isn't in the coordinator's tools. The D1 gate fails a
+  budget variant above 22 divines; D1 re-designs, and after 2 retries the concept is `infeasible`. That is the
+  pruning the user is wary of. Concept cards show key prices at the pick, with no price rule.

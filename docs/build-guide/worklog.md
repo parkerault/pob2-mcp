@@ -3448,3 +3448,43 @@ is written; nothing is built yet.
   user rates high quality: a better comparison than off-meta builds of a meme skill. Open questions put to the user:
   the run's mode (offline, so the design is the planner's own; or live, M-13's alpha with prices) and the guide's
   patch (the pin, PoB2 v0.23.1, models patch 0.5).
+
+## 2026-10-15: pricing strategy, a detour before the reference-build run
+
+The user asked to settle how guides budget gear before the Lightning Arrow Deadeye comparison. Treated as
+architectural: the result goes into amendment 5's spec text.
+
+- **The user's direction** (train of thought, not strict instruction):
+  - the target is a guide generated at league start, with late endgame reached 2–3 weeks in: budget early endgame
+    gear at about day-7 prices, late endgame gear at about day-21 prices;
+  - guides top out at mid-high gear, 100–200 divines. A perfectly rolled high-level rare (all T1–T2, no dead
+    affixes) is always expensive, and one alone approaches the ~200 divine cap, so guides never lean on perfect gear.
+    A build's peak with no budget is a research question, not the main use;
+  - every league has its own meta, so last league's price for a given item doesn't transfer. The method must be
+    general: rough heuristics for currency and gear inflation, ballpark gear estimates. Wrong estimates aren't a
+    catastrophe; the user can re-price a build at any point in the league;
+  - prices are K-shaped: mid-high gear gets cheaper over a league, top-tier gear much dearer. Demand isn't linear;
+    the confounders are many;
+  - uniques are mostly near-worthless drops, so their price history would be noise.
+- **The 0.4 data** (`poe2-exchange-archive/out/fate-of-the-vaal`, poe2scout daily exchange prices in exalts):
+  - a price index (the median exchange item's price relative to day 41) reads 0.13, 0.15, 0.25, 0.37, 1.0, 1.74 on
+    days 3, 7, 14, 21, 41, 70. The divine reads 97, 146, 377, 301, 321, 301 exalts;
+  - against the index, grouped by day-41 price, cheap items were dearer early (1.6× on day 7) and dear items far
+    cheaper early (0.12–0.15×): the K-shape in exchange goods. Grouping by day-41 price exaggerates both ends;
+  - same-kind ladders (uncut gems by level, emotion and essence tiers) are too noisy to give per-tier gear curves.
+- **Agreed direction:** measure the general price level by league day from exchange data across several leagues;
+  assume, and state, how gear tiers move against it; test on a real guide's gear sets.
+- **Approvals (the user, 2026-10-15):**
+  - trade searches through the pob2 server for the test basket (about 50; the capture is capped at 80, serial, and
+    stops on any rate limit). The user refreshed the cookie in `.env`; no agent read it;
+  - poe2scout dumps run by the coordinator with the user's script, with a User-Agent contact the user supplied for
+    this purpose.
+- **Running:**
+  - a capture agent prices the four gear sets of the Mobalytics guide the user named
+    (`mobalytics.gg/poe-2/builds/martial-artist-monk-build-league-starter-to-endgame`; its links target Forbidden
+    Rites, about day 41) into `studies/data/2026-10-16-forbidden-rites-basket.json`, with no seller names;
+  - poe2scout dumps of Forbidden Rites, Runes of Aldur, Rise of the Abyssal and Dawn of the Hunt into the
+    archive's `out/`.
+- **Housekeeping:** the machine restarted on 2026-10-15 and `/tmp` was cleared, so every old run environment
+  (`/tmp/m12b.B0zi`, `/tmp/m12.DbTF`, `/tmp/m14.zfPx`, `/tmp/m15.C1xp`) is gone. The findings are in the studies and
+  this log; runL's transcript is under `~/.claude/projects/`; its build is in the user's builds folder as `EC`.

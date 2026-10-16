@@ -132,7 +132,7 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 
 | Slot | Must have | Then | Fallback |
 |---|---|---|---|
-| <slot> | <its required affixes with their minimums, as text: what to buy; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <its other affixes, in priority order> | <only for an over-target slot: its fallback's affixes and price, and that the fallback isn't measured; else empty> |
+| <slot> | <its required affixes with their minimums, as text: what to buy; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <its other affixes, in priority order> | <only for an over-target slot: its fallback's affixes and price, the price as the Checks block's "Over target" sentence gives it (a range at the rung's price day), and that the fallback isn't measured; else empty> |
 
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
 - **Tree:** <the keystones and notables, each with what it buys>.
@@ -154,7 +154,7 @@ Move here when <the trigger>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target with its over-target slots, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
 
 ## How to play it
 

@@ -195,7 +195,8 @@ starts a fix round or a retry. If the last compile failed, every check is `not c
    phase, cooldown dead windows on interruptible casts, and hidden clauses on links ("from a Hit", "you use
    yourself"), stated as theory. Each is `risk` or `not checked`, never `verified`.
 
-**From compile variants (probes).** The mutating tools are `mutate` tools you don't hold (D-231), so each
+**From compile variants (probes).** You change no build with a tool here (D-231): the one `mutate` tool you
+hold, `mcp__pob2__manage_sets`, is for D1-finish's loadout select before pricing, and R1b doesn't use it. So each
 probe is a copy of the skeleton plan with one change, written to `probes/<card-id>/<n>/plan.json` (D-331;
 `n` counts from 1 in run order) and compiled measure-only as one stage:
 `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/probes/<card-id>/<n>/plan.json", measure_only: true}`.

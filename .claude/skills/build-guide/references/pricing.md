@@ -21,8 +21,8 @@ D-370…D-373). Only coordinator steps price; no other agent type has a price to
   `find_upgrades` prices its slots.
 - `mcp__pob2__get_item_price`: one item by name or base, priced from live listings: uniques and Distilled
   Emotions.
-- `mcp__pob2__search_trade_items`: a search with `mods`: magic and normal items, flasks, charms, and every slot
-  of `m`.
+- `mcp__pob2__search_trade_items`: a search with `mods`: magic and normal items, flasks, charms, every slot of
+  `m`, and a rare of `b` or `n` that is over its target (below).
 - `mcp__pob2__search_stats`, `mcp__pob2__trade_query_options`: building a query. `trade_query_options {slot}`
   also lists a slot's required-mod choices with their trade ids, for `find_upgrades`; it sends no trade request.
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
@@ -80,7 +80,8 @@ three weeks in. So each rung is priced for a league day, against a target:
   slots). No design goes back to D1, and none is `infeasible`, for its price.
 - **An over-target rare keeps its designed item.** D1-finish may add a fallback, the entry `<id>-fallback`
   (`b-amulet-fallback`): fewer or lower required affixes, priced the same way. The guide shows it beside the
-  slot and says it isn't measured. A fallback counts in no total.
+  slot, its price converted to the rung's price day like any other (the render's "Over target" sentence gives
+  it), and says it isn't measured. No `basis.budget.slots` entry names a fallback, so it counts in no total.
 - Still true: every filled slot and tree jewel has a price (D-249); an `unavailable` price, or a currency
   without a rate, makes the rung's total `unverified`, and the guide can't state it (D-164); offline runs price
   nothing.
@@ -119,15 +120,19 @@ required, never left to the weights.
    listing is the best item the budget buys. Its price, as listed, is the entry's `amount` and `currency`; its
    score against the designed item (the listing's `Score <its score> vs <the baseline>` line, the first over the
    second as a whole percent) is the entry's `note`, `fit 85%`.
-6. **No listing fits:** the slot is over its target. Call once more without `max_price` and with
-   `rank_by: "price"`: the first listing is the cheapest with the required affixes, and its price is the
-   entry's. `note` is then `over target, fit <n>%`.
+6. **No listing fits:** the slot is over its target. Search for the cheapest listing with the required
+   affixes: `mcp__pob2__search_trade_items` with the slot's item type (`jewel` for a tree jewel) and its
+   required affixes as `mods`, each `{stat_id, min}` (the trade ids of step 2). The trade site sorts that search
+   by price, so its first listing is the cheapest with the required affixes, and its price is the entry's.
+   `note` is then `over target`. A second `find_upgrades` call can't find it: its search is sorted by the
+   weighted sum, and ranking by price re-sorts only the page it fetched.
 7. **The entry's `query`** keeps `slot`, `required` and `target` and adds the arguments of the call whose
-   price it records: `required_mods`, `max_price` (left out for the second call), `currency`, `rank_by`,
-   `include_non_upgrades` and `fetch_pages`, plus `jewel_type` for a tree jewel.
+   price it records: for `find_upgrades`, `required_mods`, `max_price`, `currency`, `rank_by`,
+   `include_non_upgrades` and `fetch_pages`, plus `jewel_type` for a tree jewel; for the over-target search,
+   its `search_trade_items` arguments (`league`, `item_type`, `mods`).
 
-With `--no-ninja` there is no rate for `max_price`: make only the second call. Each call's league and
-`Checked:` date are the entry's, as for the other tools.
+With `--no-ninja` there is no rate for `max_price`: make only the `search_trade_items` call of step 6. Each
+call's league and `Checked:` date are the entry's, as for the other tools.
 
 ## Recording a price (C-31, D-237)
 

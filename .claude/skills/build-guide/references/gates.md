@@ -186,15 +186,18 @@ A target is the entry's `query.target` (`{divines, day}`). An entry without one 
 6. **Rounding**, for every `low` and `high` written (a total's, a finding's): each end on its own, from the
    unrounded value: 10 or more to a whole divine (`Math.round(x)`), under 10 to one decimal
    (`Math.round(x × 10) ÷ 10`). Midpoints compare unrounded.
-7. **`over-target`**: on `b` and `n`, each entry with a `query.target` whose `ok` price has a rate and whose
-   midpoint is above `query.target.divines`, named by the first `basis.budget.slots` entry that maps to it; on
-   `m`, its total, when it has one and its midpoint is above 5.
+7. **`over-target`**: on `b` and `n`, each entry the rung's `basis.budget.slots` entries name (once, however
+   many slots share it) with a `query.target` whose `ok` price has a rate and whose midpoint is above
+   `query.target.divines`, named by the first of those slots that maps to it; on `m`, its total, when it has one
+   and its midpoint is above 5. Only the entries the slots name count, here as in step 5: a fallback
+   (`<id>-fallback`) carries its slot's target but is in no slot, so it is never counted and never over target.
 
 The gate adds by hand, so the run checker holds it to its own recompute with a margin: `market` equal; each
 recorded `low` and `high`, a total's or a finding's, within one rounding step of the checker's (0.1 when the
 checker's value is under 10, 1 when it is 10 or more); and the same `over-target` findings, except where the
 checker's midpoint is within 0.1 divine of the target (1 divine for a target of 10 or more). The render takes the
-totals and the over-target slots from the gate's file.
+totals and the over-target slots from the gate's file, and converts an over-target slot's fallback to the rung's
+price day by steps 2 to 4 at the file's `market` and rates, rounded by step 6.
 
 ### Finding codes for floor, budget and rolledSkill
 

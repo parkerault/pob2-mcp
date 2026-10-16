@@ -62,10 +62,12 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      with `required_mods` (those ids with their minimums), `max_price` (below), `currency:
      "exalted_equivalent"`, `rank_by: "stat_value"`, `include_non_upgrades: true` and `fetch_pages: 1`, plus
      `jewel_type` for a tree jewel, as `mcp__pob2__trade_query_options` gives it. The first listing is the best item the budget buys: its price is the entry's `amount`
-     and `currency`, its score against the designed item the `note` (`fit 85%`). When no listing fits, call
-     once more without `max_price` and with `rank_by: "price"`: the cheapest listing with the required
-     affixes, and the slot is over its target. The entry's `query` keeps `slot`, `required` and `target` and
-     adds the call's arguments. With `--no-ninja`, make only the second call.
+     and `currency`, its score against the designed item the `note` (`fit 85%`). When no listing fits, the
+     slot is over its target: call `mcp__pob2__search_trade_items` with the slot's item type and its required
+     affixes as `mods` (`{stat_id, min}`, the same trade ids); the trade site sorts that search by price, so
+     its first listing is the cheapest with the required affixes, and its price is the entry's, with the
+     `note` `over target`. The entry's `query` keeps `slot`, `required` and `target` and adds the call's
+     arguments. With `--no-ninja`, make only the `mcp__pob2__search_trade_items` call.
    - **`max_price`** (D-373) is the target turned into today's market: the target over the midpoint of its
      factors in `data/economy/prices.json`, times the run's exalts per divine, a whole number. The factors are
      the rung's price day's (`conversion.under-10.to-day-<7|21>`; when that puts the budget at 10 divines or

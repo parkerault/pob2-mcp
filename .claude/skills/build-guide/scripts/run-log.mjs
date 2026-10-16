@@ -23,7 +23,8 @@
 // `display <gate>` (D-367) prints that gate visit's display on stdout, built from the run folder's files, and
 // records the visit in `displays[]` as `{checkpoint, visit}`, the visit one more than the gate's checkpoints[]
 // entries; printing it again records nothing new. A gate's `checkpoint` entry is refused until its visit's display
-// is recorded. The final gate's display runs the run checker and carries each endgame rung's final figures (D-369).
+// is recorded. The final gate's display runs the run checker and carries each endgame rung's final figures (D-369)
+// and its budget line, the total range at its price day with its over-target slots (D-371, D-374).
 // Exit 0: written, or the display printed (stdout). Exit 1: refused (stderr). Exit 2: usage error.
 
 import fs from 'node:fs';
@@ -288,7 +289,20 @@ async function finalDisplay(dir, log) {
   const end = lines.findIndex((l, i) => i > at && /^#{1,3} /.test(l));
   const issues = at < 0 ? [] : lines.slice(at + 1, end < 0 ? undefined : end).filter((l) => l.trim() !== '');
   out.push('', 'Known issues:', ...(issues.length > 0 ? issues : ['None.']));
-  if (objects(plan?.prices).some((p) => p.status === 'unavailable')) out.push('', 'Some prices are unavailable, so no rung can be claimed to be within its budget (D-164).');
+  // D-371, D-374: each rung's total range at its price day against its target, and its over-target slots, from the
+  // D1 gate's last verdict file, in the words of the guide's Checks (render-audit.mjs's budget lines).
+  const budget = [];
+  if (isObj(d1gate)) {
+    const { budgetLines } = await import('./render-audit.mjs');
+    for (const variant of RUNGS) {
+      const st = objects(plan?.stages).find((x) => x.variant === variant);
+      if (!st) continue;
+      const [first, ...rest] = budgetLines(st, plan, d1gate);
+      budget.push(`${st.id}: ${first.replace(/^- /, '')}`, ...rest.map((l) => `   ${l.trim()}`));
+    }
+  }
+  if (budget.length > 0) out.push('', 'Budget, from the D1 gate:', ...budget);
+  if (objects(plan?.prices).some((p) => p.status === 'unavailable')) out.push('', "Some prices are unavailable, so the total of each rung they price isn't known (D-164).");
   if (log.mode === 'offline') out.push('The guide is from an offline run: no price was checked.');
   let result;
   try {

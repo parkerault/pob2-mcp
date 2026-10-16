@@ -23,15 +23,17 @@
 //    record (its hits the compiler wrote, D-353; its Effective HP against `TotalEHP`, D-294; on `b` and `n` its
 //    survival label the record's Arbiter verdict, D-353), reward picks by name, Known issues by sentence with
 //    their ids in audit.md; audit.md and each rung's Checks block equal to `render-audit.mjs`'s render, Known
-//    issues aside (D-355); and the entering-maps rung's floor and 5-divine budget (D-281);
+//    issues aside (D-355); and the entering-maps rung's floor (D-281);
 //  - the final record against the plan (`planSha1`, or after claims-only edits its `buildSha1`, computed with
 //    the server's compiled projection, which leaves out the claims, the sources and the ledger, D-264, D-266,
 //    D-352), its PoB file (the decoded import code, one tree set per plan stage) and the ledger: the plan's
 //    current formulas, evaluated over the record with the server's own compiled evaluator, and the claims that
 //    cite them (D-365);
 //  - the D1 gate, recomputed from the plan and the record: the floor (the reference hits the compiler wrote,
-//    D-353), the budget, and the named damage source (the part `rolledSkill`, D-295) with its figure's stat
-//    set, each figure read × its Count where the record has a counted copy (D-340);
+//    D-353), the budget (every filled slot and tree jewel priced, D-249; the market, each rung's total range at
+//    its price day and the over-target findings from data/economy/prices.json, D-370, D-373; `pass` or
+//    `unverified`, never a failure, D-371), and the named damage source (the part `rolledSkill`, D-295) with its
+//    figure's stat set, each figure read × its Count where the record has a counted copy (D-340);
 //  - the V4 reports (D-352): one per pass, never overwritten; a re-check covers every item `--changed` lists;
 //    every finding open in the last report listed under the guide's `Known issues`, and every campaign reward
 //    choice the campaign passes picked in the plan and named in the guide (D-265);
@@ -59,7 +61,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { loadAuditInputs, renderAudit, checksBlocks } from './render-audit.mjs';
+import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
@@ -237,15 +239,19 @@ const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
  */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
 /** Findings that report on a passing part (../references/gates.md): never failures. */
-const INFO_CODES = ['chaos-exception', 'near-ceiling'];
+const INFO_CODES = ['chaos-exception', 'over-target'];
 
 /**
- * The gated budgets: D-219's budget variant (at most 20 divines passes; above 20 up to 22 passes with a "near the
- * ceiling" note; above 22 fails) and D-281's entering-maps rung (5, and 5.5 with the note). The non-budget
- * variant is reported against its reference, never gated.
+ * D-370, D-371: the targets. `m` aims at 5 divines in all (M_TARGET) and each rare of `b` and `n` at its entry's
+ * `query.target.divines`, each at its rung's price day (PRICE_DAY: 7, 7 and 21). A target is never a pass mark:
+ * the budget part is `pass` or `unverified`, and a rare or `m`'s total over its target is an `over-target`
+ * finding, information only. The gate adds by hand, so the checker holds its numbers to its own recompute within
+ * one rounding step (0.1 under 10 divines, 1 at 10 or more), and an over-target finding may differ from it only
+ * where the midpoint is within 0.1 divine of the target (1 for a target of 10 or more): gates.md.
  */
-const BUDGETS = { budget: { ceiling: 20, tolerance: 22, why: 'D-219' }, 'entering-maps': { ceiling: 5, tolerance: 5.5, why: 'D-281' } };
-const NEAR_CEILING = 'near the ceiling';
+const BUDGET_PARTS = ['pass', 'unverified'];
+const roundingStep = (x) => (x < 10 ? 0.1 : 1);
+const targetMargin = (target) => (target >= 10 ? 1 : 0.1);
 
 // ---------------------------------------------------------------------------------------------------
 // Small helpers
@@ -1143,12 +1149,13 @@ export async function checkRun(runFolder) {
   // when its compile ran and no D1 rewrote the plan after it; a current guide's concept passes it outright.
   if (isObj(plan) && holdsEndgame && (guideText !== null || (d1 && isObj(d1rep) && isObj(d1rep.verdict)))) {
     const said = (part) => (isObj(d1rep?.verdict) ? d1rep.verdict[part] : undefined);
+    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => D1_STAGES.includes(s.stage) && s.outcome !== CLAIMS_EDITED) < lastD1GateAt;
     const parts = {
       floor: recomputeFloor(endgame, record, guide, fail),
-      budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, guide, fail),
+      // D-371, D-373: the gate's market, totals and over-target findings are held to the recompute while it is fresh.
+      budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, gateFresh ? d1.file : null, fail),
       rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, ledgerNow, fail),
     };
-    const gateFresh = d1 && isObj(d1rep) && !compileFailed && stages.findLastIndex((s) => D1_STAGES.includes(s.stage) && s.outcome !== CLAIMS_EDITED) < lastD1GateAt;
     for (const [part, got] of Object.entries(parts)) {
       const openFailures = got.failures.filter((f) => !covered(f));
       const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
@@ -1176,7 +1183,8 @@ export async function checkRun(runFolder) {
       const rep = g ? gateReports.get(g.file) : null;
       if (!isObj(rep) || !isObj(rep.verdict)) continue;
       for (const part of GATE_PARTS[stage]) {
-        if (rep.verdict[part] !== 'fail') continue;
+        // The budget never fails (D-371): a `fail` there is an unknown value, which the gate-report check names.
+        if (rep.verdict[part] !== 'fail' || part === 'budget') continue;
         const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
         const openFindings = findings.filter((f) => !covered(f));
         if (part === 'compiled' || findings.length === 0 || openFindings.length > 0) {
@@ -2228,9 +2236,9 @@ function checkFlow(log, fail, ctx) {
           escalated: cls === 'hard' || (guided && cls === 'soft') ? null : `its verdict ${describeClass(cls)}; only a compile, V1 or V2 failure escalates, or any failure of a guided retry`,
           infeasible:
             cls === 'forced' ? (forcedByFault(s) ? null : 'its verdict is forced infeasible, but no FI-3 directive targets this attempt')
-              : cls !== 'soft' ? `its verdict ${describeClass(cls)}; infeasible is FI-3's forced verdict, or a floor, budget or named-damage-source (rolledSkill) failure`
+              : cls !== 'soft' ? `its verdict ${describeClass(cls)}; infeasible is FI-3's forced verdict, or a floor or named-damage-source (rolledSkill) failure (the budget never fails, D-371)`
                 : guided ? 'a guided retry that fails escalates again'
-                  : claimedInfeasible || counted >= GATE_RETRIES ? null : `${D1_START} claimed done and the gate has ${counted} counted retr${counted === 1 ? 'y' : 'ies'}; a floor, budget or named-damage-source (rolledSkill) failure re-runs D1 until its 2 counted retries, unless ${D1_START} claimed infeasible`,
+                  : claimedInfeasible || counted >= GATE_RETRIES ? null : `${D1_START} claimed done and the gate has ${counted} counted retr${counted === 1 ? 'y' : 'ies'}; a floor or named-damage-source (rolledSkill) failure re-runs D1 until its 2 counted retries, unless ${D1_START} claimed infeasible`,
         }[s.outcome];
         if (cls === 'forced' && s.outcome !== 'infeasible') fail('routing', `${at(i)}: is routed ${s.outcome}, but ${file} is forced infeasible (FI-3)`);
         else if (why) fail('routing', `${at(i)}: is routed ${s.outcome}, but ${s.outcome === 'pass' || s.outcome === 'fail' || s.outcome === 'escalated' || s.outcome === 'infeasible' ? why : 'that outcome'} (${file})`);
@@ -2355,23 +2363,27 @@ function checkFlow(log, fail, ctx) {
 
 /**
  * A gate verdict's failing findings: those of a part that fails, information codes and accepted findings aside.
- * A part other than the budget that is `unverified` fails too (only the budget may stay unverified, D-164).
+ * A part other than the budget that is `unverified` fails too (only the budget may stay unverified, D-164). The
+ * budget's findings never fail (D-371): `over-target` is information and `unverified` is allowed.
  */
 function failingFindings(rep, stage, covered) {
   if (!isObj(rep) || !isObj(rep.verdict)) return [];
-  return list(rep.findings).filter((f) => GATE_PARTS[stage]?.includes(f.part) && ['fail', 'unverified'].includes(rep.verdict[f.part]) && !INFO_CODES.includes(f.code) && !covered(f));
+  return list(rep.findings).filter((f) => GATE_PARTS[stage]?.includes(f.part) && f.part !== 'budget' && ['fail', 'unverified'].includes(rep.verdict[f.part]) && !INFO_CODES.includes(f.code) && !covered(f));
 }
 
 /**
  * Where a gate verdict routes (gates.md): `forced` (FI-3), `hard` (a compile, V1 or V2 failure, or a part other
- * than the budget unverified), `soft` (only floor, budget or the named damage source's part rolledSkill), or `pass`. A failing part whose
- * findings an escalation accepted passes.
+ * than the budget unverified), `soft` (only floor or the named damage source's part rolledSkill), or `pass`. A
+ * failing part whose findings an escalation accepted passes. The budget routes nowhere (D-371): it is `pass` or
+ * `unverified`, and its `over-target` findings are information, so a gate whose only issue is over target goes to
+ * the design gate (a budget `fail` is refused as an unknown value, checkGateReport).
  */
 function gateClass(rep, stage, covered) {
   if (rep.forced === 'infeasible') return 'forced';
   const failing = GATE_PARTS[stage].filter((part) => {
+    if (part === 'budget') return false;
     const v = rep.verdict[part];
-    if (v === 'unverified') return part !== 'budget';
+    if (v === 'unverified') return true;
     if (v !== 'fail') return v !== 'pass';
     const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
     return part === 'compiled' || findings.length === 0 || findings.some((f) => !covered(f));
@@ -2379,7 +2391,7 @@ function gateClass(rep, stage, covered) {
   if (failing.some((part) => ['compiled', 'v1', 'v2'].includes(part))) return 'hard';
   return failing.length > 0 ? 'soft' : 'pass';
 }
-const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor, budget or named damage source (rolledSkill)', forced: 'is forced infeasible (FI-3)' })[cls];
+const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor or named damage source (rolledSkill)', forced: 'is forced infeasible (FI-3)' })[cls];
 
 /**
  * The plan claim a V4 finding's location names, `stages[<i>].claims[<k>] (<id>)` (stages/V4.md), with its source's
@@ -2422,13 +2434,15 @@ function checkGateReport(rep, g, fail) {
   }
   if (!isObj(rep.verdict)) return bad('has no verdict object');
   for (const part of GATE_PARTS[g.stage]) {
-    if (!PARTS.includes(rep.verdict[part])) bad(`verdict.${part} is ${show(rep.verdict[part])}; one of ${PARTS.join(', ')}`);
+    // D-371: the D1 gate's budget is pass or unverified, never fail: a `fail` there is an unknown value.
+    const allowed = g.stage === 'D1-gate' && part === 'budget' ? BUDGET_PARTS : PARTS;
+    if (!allowed.includes(rep.verdict[part])) bad(`verdict.${part} is ${show(rep.verdict[part])}; one of ${allowed.join(', ')}${allowed === BUDGET_PARTS ? ' (the budget never fails, D-371)' : ''}`);
   }
   if (!Array.isArray(rep.findings)) bad('has no findings list');
   if (g.stage === 'D1-gate') {
     const b = rep.basis;
-    if (!isObj(b) || !isObj(b.budget) || !Array.isArray(b.budget.slots) || !Array.isArray(b.budget.rates) || !Array.isArray(b.rolledSkill)) {
-      bad('has no basis {budget: {rates, slots}, rolledSkill: [...]}: the slot→price map, its rates and the figures the run checker recomputes the gate from (gates.md)');
+    if (!isObj(b) || !isObj(b.budget) || !Array.isArray(b.budget.slots) || !Array.isArray(b.budget.rates) || !isObj(b.budget.market) || !Array.isArray(b.budget.totals) || !Array.isArray(b.rolledSkill)) {
+      bad('has no basis {budget: {rates, market, slots, totals}, rolledSkill: [...]}: the slot→price map, its rates, market and totals, and the figures the run checker recomputes the gate from (gates.md)');
     }
   }
 }
@@ -2762,64 +2776,121 @@ function recomputeFloor(endgame, record, guide, fail) {
 }
 
 /**
- * Budget (D-116, D-164, D-219, D-249, D-281) from the plan's prices, the gate's map from filled slots, tree
- * jewels and the anoint (D-358) to price entries, and its recorded rates, for each gated rung: the budget variant (20 divines, 22 with
- * "near the ceiling") and the entering-maps rung (5, 5.5 with "near the ceiling"). Totals are compared rounded to
- * 2 decimals.
+ * Budget (D-164, D-249, D-358, D-370, D-371, D-373) for every endgame rung, `m`, `b` and `n`, from the plan's
+ * prices, the gate's map from filled slots, tree jewels and the anoint to price entries (`basis.budget.slots`), its
+ * recorded rates and `data/economy/prices.json`, by gates.md's "Price days, targets and ranges". Every filled slot
+ * and tree jewel has an entry (D-249); a total counts only the entries the slots name, so a fallback
+ * (`<id>-fallback`), which no slot names, counts in none. The part is `unverified` when any rung's total isn't known
+ * (D-164), else `pass`: it never fails (D-371). With `file` (the gate is fresh), the gate's `market`, each rung's
+ * total and its `over-target` findings are held to the recompute within the stated margins.
  */
-function recomputeBudget(endgame, plan, rep, guide, fail) {
-  const failures = [];
+function recomputeBudget(endgame, plan, rep, file, fail) {
   const b = isObj(rep.basis?.budget) ? rep.basis.budget : {};
   const maps = list(b.slots);
-  const rates = new Map(list(b.rates).map((r) => [String(r.currency).toLowerCase(), r.divines]));
   const prices = new Map(list(plan.prices).map((p) => [p.id, p]));
   let unverified = false;
-  for (const s of endgame.filter((x) => Object.prototype.hasOwnProperty.call(BUDGETS, x.variant))) {
-    const { ceiling, tolerance, why } = BUDGETS[s.variant];
+  for (const s of endgame) {
     // D-358: the anoint is priced like a slot, `{stage, slot: "Anoint", priceId}` in the gate's basis (D1-gate.md).
     const filled = [
       ...list(s.items?.slots).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
       ...list(s.items?.treeJewels).map((j) => ({ what: `tree jewel in node ${j.node}`, jewel: j.node, text: j.text })),
       ...(isObj(s.items?.anoint) ? [{ what: `anoint (${s.items.anoint.notable})`, slot: 'Anoint', text: `anoint ${s.items.anoint.notable}` }] : []),
     ];
-    let total = 0;
-    let stageUnverified = false;
     const used = new Map();
     for (const it of filled) {
       const map = maps.find((x) => x.stage === s.id && (it.slot !== undefined ? x.slot === it.slot : x.jewel === it.jewel));
       const price = map ? prices.get(map.priceId) : undefined;
       if (!price) {
         fail('budget', `${s.variant} stage ${s.id}'s filled ${it.what} maps to no prices[] entry${map ? ` (the gate names ${show(map.priceId)})` : ''}; every filled slot and tree jewel is priced (§5.3, D-249)`);
-        stageUnverified = true;
+        unverified = true;
         continue;
       }
       if (used.has(map.priceId) && used.get(map.priceId).text !== it.text) {
         fail('budget', `${s.variant} stage ${s.id}'s ${it.what} and ${used.get(map.priceId).what} share price entry ${show(map.priceId)} but hold different items; each has its own entry unless the item text is identical`);
       }
       if (!used.has(map.priceId)) used.set(map.priceId, it);
-      if (price.status !== 'ok' || !isNum(price.amount)) {
-        stageUnverified = true;
-        continue;
-      }
-      const currency = String(price.currency).toLowerCase();
-      const rate = rates.has(currency) ? rates.get(currency) : /^divine/.test(currency) ? 1 : undefined;
-      if (!isNum(rate)) {
-        stageUnverified = true;
-        continue;
-      }
-      total += price.amount * rate;
-    }
-    const mine = stageUnverified ? null : round2(total);
-    if (mine === null) unverified = true;
-    else if (mine > tolerance) failures.push(failure('budget', s.id, 'over-budget', `stage ${s.id} totals ${mine} divines, above ${tolerance} (${why})`));
-    else if (mine > ceiling) {
-      const text = checksText(guide, s.variant);
-      if (guide && !(text !== null && norm(text).includes(NEAR_CEILING))) {
-        fail('budget', `${s.variant} stage ${s.id} totals ${mine} divines, over ${ceiling}, but the guide's "${VARIANT_H2[s.variant]}" Checks lack "${NEAR_CEILING}" (${why})`);
-      }
     }
   }
-  return { verdict: failures.length > 0 ? 'fail' : unverified ? 'unverified' : 'pass', failures, unverified };
+  for (const x of maps) {
+    if (String(x.priceId).endsWith('-fallback')) fail('budget', `the D1 gate's basis.budget.slots maps stage ${x.stage}'s ${x.jewel !== undefined ? `tree jewel in node ${x.jewel}` : `slot ${show(x.slot)}`} to the fallback ${show(x.priceId)}; a fallback is in no slot and counts in no total (D-371, gates.md)`);
+  }
+  let table;
+  try {
+    table = priceTable();
+  } catch (e) {
+    fail('budget', `${e.message}; the budget's ranges can't be recomputed (D-373)`);
+    return { verdict: 'unverified', failures: [], unverified: true };
+  }
+  const market = marketOf(plan, b, table);
+  const rungs = endgame.map((s) => ({ s, got: rungBudget(s, plan, b, market, table) }));
+  if (rungs.some((r) => r.got.total === null)) unverified = true;
+  if (file) holdBudgetToRecompute(plan, rep, b, maps, market, rungs, file, fail);
+  return { verdict: unverified ? 'unverified' : 'pass', failures: [], unverified };
+}
+
+/**
+ * gates.md: the D1 gate adds by hand, so its `basis.budget.market` must equal the recompute; each recorded `low` and
+ * `high`, a total's or an `over-target` finding's, be within one rounding step of the checker's; and its
+ * `over-target` findings be the checker's, except where the checker's midpoint is within the target's margin.
+ */
+function holdBudgetToRecompute(plan, rep, b, maps, market, rungs, file, fail) {
+  const targets = new Map(list(plan.prices).map((p) => [p.id, p.query?.target?.divines]));
+  const range = (low, high) => `${roundDivines(low)}–${roundDivines(high)}`;
+  const near = (said, mine) => isNum(said) && Math.abs(said - roundDivines(mine)) <= roundingStep(mine) + 1e-9;
+  const m = b.market;
+  if (!isObj(m) || m.league !== market.league || m.day !== market.day || m.late !== market.late) {
+    fail('budget', `${file}'s basis.budget.market is ${show(m)}, but the plan's league and prices and data/economy/prices.json give ${show(market)} (gates.md step 1, D-373)`);
+  }
+  for (const { s, got } of rungs) {
+    const row = list(b.totals).find((t) => t.stage === s.id);
+    if (!row) {
+      fail('budget', `${file}'s basis.budget.totals has no entry for stage ${s.id}; one per endgame rung, {stage, low, high, day} (gates.md)`);
+      continue;
+    }
+    if (row.day !== got.day) fail('budget', `${file}'s basis.budget.totals gives stage ${s.id} day ${show(row.day)}; its price day is ${got.day} (D-370)`);
+    if (got.total === null) {
+      if (row.low !== null || row.high !== null) fail('budget', `${file}'s basis.budget.totals gives stage ${s.id} ${show(row.low)}–${show(row.high)}, but a price of that rung is unavailable or has no rate, so its total isn't known: low and high are null (D-164)`);
+      continue;
+    }
+    for (const end of ['low', 'high']) {
+      if (!near(row[end], got.total[end])) fail('budget', `${file}'s basis.budget.totals gives stage ${s.id} ${end} ${show(row[end])}, but the recompute from the plan's prices and data/economy/prices.json is ${roundDivines(got.total[end])} (about ${range(got.total.low, got.total.high)} divines around day ${got.day}), more than one rounding step from it (gates.md)`);
+    }
+  }
+  // Over-target findings, keyed by stage and price entry (`total` for m's).
+  const priceIdOf = (stageId, f) => maps.find((x) => x.stage === stageId && (f.jewel !== undefined ? x.jewel === f.jewel : x.slot === f.slot))?.priceId;
+  const keyOf = (stageId, f) => (f.slot === undefined && f.jewel === undefined ? `${stageId}|total` : `${stageId}|${priceIdOf(stageId, f) ?? '?'}`);
+  const where = (f) => `stage ${f.stage}'s ${f.jewel !== undefined ? `tree jewel in node ${f.jewel}` : f.slot !== undefined ? `slot ${show(f.slot)}` : 'total'}`;
+  const mine = new Map(rungs.flatMap(({ s, got }) => got.overTarget.map((o) => [keyOf(s.id, o), o])));
+  const said = list(rep.findings).filter((f) => f.part === 'budget' && f.code === 'over-target');
+  const saidKeys = new Set(said.map((f) => keyOf(f.stage, f)));
+  for (const [key, o] of mine) {
+    if (saidKeys.has(key) || o.mid - o.target <= targetMargin(o.target) + 1e-9) continue;
+    fail('budget', `${file} has no over-target finding for ${where(o)}: its range is about ${range(o.low, o.high)} divines around day ${PRICE_DAY[rungs.find((r) => r.s.id === o.stage).s.variant]}, its midpoint ${round2(o.mid)} above its ${o.target}-divine target (gates.md step 7, D-371)`);
+  }
+  for (const f of said) {
+    const rung = rungs.find((r) => r.s.id === f.stage);
+    if (!rung) {
+      fail('budget', `${file}'s over-target finding names stage ${show(f.stage)}, which isn't an endgame rung`);
+      continue;
+    }
+    const o = mine.get(keyOf(f.stage, f));
+    if (o) {
+      if (!near(f.low, o.low) || !near(f.high, o.high)) fail('budget', `${file}'s over-target finding for ${where(f)} gives ${show(f.low)}–${show(f.high)}, but the recompute is about ${range(o.low, o.high)}, more than one rounding step from it (gates.md)`);
+      if (f.target !== o.target) fail('budget', `${file}'s over-target finding for ${where(f)} gives target ${show(f.target)}; it is ${o.target} divines (D-370)`);
+      continue;
+    }
+    // Not over by the recompute: allowed only where the midpoint is within the target's margin.
+    const s = rung.s;
+    const priceId = f.slot === undefined && f.jewel === undefined ? null : priceIdOf(s.id, f);
+    let [mid, t] = [undefined, undefined];
+    if (s.variant === 'entering-maps') {
+      if (priceId === null) [mid, t] = [rung.got.total?.mid, M_TARGET];
+    } else if (priceId) {
+      [mid, t] = [rung.got.ranges.get(priceId)?.mid, targets.get(priceId)];
+    }
+    if (isNum(mid) && isNum(t) && t - mid <= targetMargin(t) + 1e-9) continue;
+    fail('budget', `${file} has an over-target finding for ${where(f)}, but the recompute ${isNum(mid) && isNum(t) ? `puts its midpoint at ${round2(mid)}, not above its ${t}-divine target` : s.variant === 'entering-maps' ? "finds no such over-target item: on m, only the rung's total is measured against its 5-divine target" : 'finds no priced rare with a target there'} (gates.md step 7)`);
+  }
 }
 
 /**

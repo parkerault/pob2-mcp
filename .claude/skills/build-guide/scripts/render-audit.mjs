@@ -8,21 +8,26 @@
 // audit.md's `## Known issues` (W1's rows for the accepted gate findings, and step 14's). The runner runs it after
 // the D2 gate's final compile and before W1, and again before the W1 of a fix round or a revision. The run
 // checker imports `loadAuditInputs`, `renderAudit` and `checksBlocks` to compare audit.md and the guide's Checks
-// blocks with the render.
+// blocks with the render, and the price-day conversion (`priceTable`, `marketOf`, `rungBudget`, `roundDivines`,
+// gates.md's "Price days, targets and ranges") to recompute the D1 gate's budget, so both use one conversion.
 //
 // Its choices where the template leaves one open:
 //  - movement speed is the record's `outputs.EffectiveMovementSpeedMod` (PoB's "Movement Speed" in the sidebar),
 //    written as a reader would, the bonus over base in whole percent: 1.251 is `+25%`;
-//  - the budget totals and the reference come from the D1 gate's `basis.budget` (`totals`, `nonBudget`); a stage's
-//    prices are its `basis.budget.slots` entries (the anoint among them, `{stage, slot: "Anoint", priceId}`) and
-//    the plan's prices named `<stage>-…`; an unavailable one's `note`, or a currency with no rate, is the why;
+//  - each rung's budget line (D-374) takes its total range from the D1 gate's `basis.budget.totals` and its
+//    over-target slots from the gate's `over-target` findings, in the gate's order; an over-target slot's fallback
+//    (the entry `<priceId>-fallback`) is converted to the rung's price day like any other price, at the gate's
+//    `market` and rates (D-373), and shown in that slot's parentheses; a stage's prices are its
+//    `basis.budget.slots` entries (the anoint among them, `{stage, slot: "Anoint", priceId}`) and the plan's prices
+//    named `<stage>-…`, fallbacks aside; an unavailable one's `note`, or a currency with no rate, is the why;
 //  - "What PoB doesn't model" reads the record: each stage's `customModsWritten` (the hand-calculated effects PoB
 //    doesn't model, D-293, whose figures are estimates, D-296) and its kept PoB warnings (`pobWarnings.kept`);
 //  - an Estimates value is the plan's current formula evaluated over the record with the server's evaluator, as
 //    the checker's `[ledger]` does (D-365), so a ledger-only fix needs no recompile to show.
 //
-// Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js`. No network. Exit 0: audit.md
-// written (one line on stdout). Exit 1: an input is missing or unreadable (stderr). Exit 2: usage error.
+// Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js` and the conversion table
+// `data/economy/prices.json`. No network. Exit 0: audit.md written (one line on stdout). Exit 1: an input is
+// missing or unreadable (stderr). Exit 2: usage error.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,10 +36,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
 const LEDGER_MODULE = path.join(REPO, 'build', 'plan', 'ledger.js');
+const PRICES_FILE = path.join(REPO, 'data', 'economy', 'prices.json');
 
 /** The endgame rungs, in the order the Checks blocks follow. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
-const BUDGETS = { 'entering-maps': { ceiling: 5, tolerance: 5.5 }, budget: { ceiling: 20, tolerance: 22 } };
+/** D-370: each rung's price day, `m` and `b` around day 7 and `n` around day 21. */
+export const PRICE_DAY = { 'entering-maps': 7, budget: 7, 'non-budget': 21 };
+/** D-370: `m`'s target in all, in divines (D-281's number); `b` and `n` read each rare's from its `query.target`. */
+export const M_TARGET = 5;
+/** D-374: what each rung's budget line measures its total against. */
+const TARGET_TEXT = { 'entering-maps': 'against a 5-divine target', budget: 'aiming at about 5 a slot', 'non-budget': 'against the 100–200 target' };
 const SOURCE_KINDS = ['pob-computed', 'pob-data', 'external', 'judgment', 'external-unavailable'];
 const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
 /** The six H2s of audit.md, in order (the template's). */
@@ -54,12 +65,134 @@ const bare = (v) => String(v ?? '').trim().replace(/\.+$/, '');
 const stagesWord = (ids) => (ids.length === 1 ? `stage ${ids[0]}` : `stages ${ids.slice(0, -1).join(', ')} and ${ids[ids.length - 1]}`);
 
 // ---------------------------------------------------------------------------------------------------
+// Price days and ranges (D-370, D-373; gates.md "Price days, targets and ranges", steps 1 to 7)
+// ---------------------------------------------------------------------------------------------------
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_MS = 24 * 60 * 60 * 1000;
+let priceTableCache = null;
+
+/**
+ * D-373's conversion from `data/economy/prices.json`: the threshold, each row's factors to day 7 and day 21, the
+ * late divisor, the first and late league days, and the league table. Throws an Error naming what is missing.
+ */
+export function priceTable() {
+  if (priceTableCache !== null) return priceTableCache;
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(PRICES_FILE, 'utf8'));
+  } catch (e) {
+    throw new Error(`data/economy/prices.json is unreadable: ${e.message}`);
+  }
+  const facts = isObj(data?.facts) ? data.facts : {};
+  const value = (id, ok) => {
+    const v = facts[id]?.value;
+    if (!ok(v)) throw new Error(`data/economy/prices.json has no usable fact ${id}`);
+    return v;
+  };
+  const range = (v) => isObj(v) && isNum(v.min) && isNum(v.max);
+  const row = (name) => ({ 7: value(`conversion.${name}.to-day-7`, range), 21: value(`conversion.${name}.to-day-21`, range) });
+  priceTableCache = {
+    threshold: value('conversion.threshold', isNum),
+    rows: { 'under-10': row('under-10'), '10-or-more': row('10-or-more') },
+    lateDivisor: value('conversion.late-divisor', range),
+    firstDay: value('conversion.first-day', isNum),
+    lateDay: value('conversion.late-day', isNum),
+    leagues: Object.entries(facts).filter(([id]) => id.startsWith('league.')).map(([, f]) => f?.value).filter((l) => isObj(l) && typeof l.name === 'string' && ISO_DATE.test(String(l.start))),
+  };
+  return priceTableCache;
+}
+
+/** Step 6: an end of a range, 10 divines or more to a whole divine, under 10 to one decimal. */
+export const roundDivines = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10);
+
+/** The recorded rates by currency (`basis.budget.rates`); a divine counts 1. */
+const ratesOf = (budget) => new Map(list(budget?.rates).filter((r) => isNum(r.divines)).map((r) => [String(r.currency).toLowerCase(), r.divines]));
+
+/** Step 2: an `ok` entry's price in divines, unrounded; null when it isn't `ok` or its currency has no rate. */
+function divinesOf(price, rates) {
+  if (!isObj(price) || price.status !== 'ok' || !isNum(price.amount) || typeof price.currency !== 'string') return null;
+  const currency = price.currency.toLowerCase();
+  const rate = rates.has(currency) ? rates.get(currency) : /^divine/.test(currency) ? 1 : undefined;
+  return isNum(rate) ? price.amount * rate : null;
+}
+
+/**
+ * Step 1: the market the prices were seen in, `{league, day, late}`. `league` is the plan's (null offline); the seen
+ * date is the latest date of the `ok` entries `budget.slots` names; `day` is the whole days from the league's start
+ * to it (null when the league isn't in the table or no entry is `ok`); `late` when the league ended before it or
+ * the day is past `conversion.late-day`.
+ */
+export function marketOf(plan, budget, table) {
+  const league = typeof plan?.league === 'string' ? plan.league : null;
+  const prices = new Map(list(plan?.prices).map((p) => [p.id, p]));
+  const dates = list(budget?.slots).map((x) => prices.get(x.priceId)).filter((p) => p?.status === 'ok' && ISO_DATE.test(String(p.date))).map((p) => p.date).sort();
+  const seen = dates.length > 0 ? dates[dates.length - 1] : null;
+  const fact = league === null ? undefined : table.leagues.find((l) => l.name === league);
+  const day = fact && seen !== null ? Math.round((Date.parse(seen) - Date.parse(fact.start)) / DAY_MS) : null;
+  const late = (seen !== null && typeof fact?.end === 'string' && fact.end < seen) || (day !== null && day > table.lateDay);
+  return { league, day, late };
+}
+
+/**
+ * Steps 3 and 4: a price of `p` divines at the price day `day` (7 or 21): its row's factors (late: the low over
+ * the divisor's max and the high over its min; a known day before `conversion.first-day`: 1), and its range
+ * `{low, high, mid}`, unrounded.
+ */
+export function rangeAt(p, day, market, table) {
+  const f = table.rows[p < table.threshold ? 'under-10' : '10-or-more'][day];
+  const [lo, hi] = market?.late === true ? [f.min / table.lateDivisor.max, f.max / table.lateDivisor.min]
+    : !isNum(market?.day) || market.day >= table.firstDay ? [f.min, f.max] : [1, 1];
+  return { low: p * lo, high: p * hi, mid: (p * lo + p * hi) / 2 };
+}
+
+/**
+ * Steps 5 and 7 for one endgame stage: `{day, total, overTarget, ranges}`. `total` is `{low, high, mid}` summed over
+ * the entries `budget.slots` names for the stage, a shared entry once for each slot (a fallback is in no slot, so
+ * it counts in none), or null when any of them is missing, unavailable or in a currency without a rate. `overTarget`
+ * lists, on `b` and `n`, each entry with a `query.target` whose midpoint is above `query.target.divines`, named by
+ * the first slot that maps to it, and on `m` the total when its midpoint is above 5. `ranges` maps each priceId the
+ * stage's slots name to its range, or null. Every value is unrounded.
+ */
+export function rungBudget(stage, plan, budget, market, table) {
+  const day = PRICE_DAY[stage.variant];
+  const prices = new Map(list(plan?.prices).map((p) => [p.id, p]));
+  const rates = ratesOf(budget);
+  const maps = list(budget?.slots).filter((x) => x.stage === stage.id);
+  const ranges = new Map();
+  let [low, high, known] = [0, 0, true];
+  for (const x of maps) {
+    if (!ranges.has(x.priceId)) {
+      const p = divinesOf(prices.get(x.priceId), rates);
+      ranges.set(x.priceId, p === null ? null : rangeAt(p, day, market, table));
+    }
+    const r = ranges.get(x.priceId);
+    if (r === null) known = false;
+    else [low, high] = [low + r.low, high + r.high];
+  }
+  const total = known ? { low, high, mid: (low + high) / 2 } : null;
+  const overTarget = [];
+  if (stage.variant === 'entering-maps') {
+    if (total !== null && total.mid > M_TARGET) overTarget.push({ stage: stage.id, low: total.low, high: total.high, mid: total.mid, target: M_TARGET });
+  } else {
+    for (const [priceId, r] of ranges) {
+      const target = prices.get(priceId)?.query?.target?.divines;
+      if (r === null || !isNum(target) || !(r.mid > target)) continue;
+      const first = maps.find((x) => x.priceId === priceId);
+      overTarget.push({ stage: stage.id, ...(first.jewel !== undefined ? { jewel: first.jewel } : { slot: first.slot }), priceId, low: r.low, high: r.high, mid: r.mid, target });
+    }
+  }
+  return { day, total, overTarget, ranges };
+}
+
+// ---------------------------------------------------------------------------------------------------
 // Inputs
 // ---------------------------------------------------------------------------------------------------
 
 /**
  * Reads what the render needs from a run folder: the plan, the final record, the D1 gate's last verdict file, the
- * card's title, the run's mode, the current audit.md (for its Known issues) and each ledger entry's value.
+ * card's title, the run's mode, the current audit.md (for its Known issues), each ledger entry's value and the
+ * price-day conversion (`priceTable`).
  * Throws an Error naming what is missing.
  */
 export async function loadAuditInputs(runFolder) {
@@ -93,7 +226,8 @@ export async function loadAuditInputs(runFolder) {
   const audit = fs.existsSync(file('audit.md')) ? fs.readFileSync(file('audit.md'), 'utf8') : null;
   if (!fs.existsSync(LEDGER_MODULE)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)`);
   const ledgerModule = await import(pathToFileURL(LEDGER_MODULE).href);
-  return { plan, record, gate, gateFile, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record) };
+  const prices = priceTable();
+  return { plan, record, gate, gateFile, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
 }
 
 /** Each ledger entry's value: its current formula over the record's stages (D-365), null when it errs. */
@@ -193,7 +327,7 @@ function stageDetail({ plan, record }) {
  * Each endgame rung's Checks block, in rung order: `{variant, stage, loadoutName, lines}`, `lines` every line
  * under its H3 (the block W1 copies verbatim into the guide's Checks, D-355).
  */
-export function checksBlocks({ plan, record, gate }) {
+export function checksBlocks({ plan, record, gate, prices }) {
   const stages = list(plan.stages);
   const blocks = [];
   for (const variant of RUNGS) {
@@ -202,7 +336,7 @@ export function checksBlocks({ plan, record, gate }) {
     const rec = isObj(record.stages?.[s.id]) ? record.stages[s.id] : {};
     const lines = [];
     if (isObj(s.chaosResistException)) lines.push(`- Chaos resistance stays at ${num(rec.outputs?.ChaosResist)}% because ${sentence(s.chaosResistException.reason)}`);
-    lines.push(...budgetLines(variant, s, plan, isObj(gate?.basis?.budget) ? gate.basis.budget : {}));
+    lines.push(...budgetLines(s, plan, gate, prices));
     if (variant !== 'entering-maps') lines.push(arbiterLine(rec.measures?.arbiter));
     lines.push(clearLine(rec));
     blocks.push({ variant, stage: s.id, loadoutName: rec.loadoutName ?? s.loadoutName, lines });
@@ -210,11 +344,14 @@ export function checksBlocks({ plan, record, gate }) {
   return blocks;
 }
 
-/** Why a rung's prices are unavailable: each unavailable price's note, or a currency without a rate; '' when none. */
-function unavailableWhy(s, plan, budget, total) {
+/**
+ * Why a rung's prices are unavailable: each unavailable price's note, or a currency without a rate; '' when none.
+ * A fallback (`<id>-fallback`) counts in no total (D-371), so it is no reason.
+ */
+function unavailableWhy(s, plan, budget, known) {
   const prices = new Map(list(plan.prices).map((p) => [p.id, p]));
   const ids = new Set(list(budget.slots).filter((x) => x.stage === s.id).map((x) => x.priceId));
-  for (const p of list(plan.prices)) if (String(p.id).startsWith(`${s.id}-`)) ids.add(p.id);
+  for (const p of list(plan.prices)) if (String(p.id).startsWith(`${s.id}-`) && !String(p.id).endsWith('-fallback')) ids.add(p.id);
   const rates = new Set(list(budget.rates).map((r) => String(r.currency).toLowerCase()));
   const why = [];
   for (const id of ids) {
@@ -223,31 +360,55 @@ function unavailableWhy(s, plan, budget, total) {
     if (p.status === 'unavailable') why.push(bare(p.note ?? 'unavailable'));
     else if (typeof p.currency === 'string' && !/^divine/i.test(p.currency) && !rates.has(p.currency.toLowerCase())) why.push(`no rate for ${p.currency}`);
   }
-  if (why.length === 0 && total === null) why.push("the D1 gate's basis gives no total");
+  if (why.length === 0 && !known) why.push("the D1 gate's basis gives no total");
   return [...new Set(why)].join('; ');
 }
 
-function budgetLines(variant, s, plan, budget) {
-  const nonBudget = variant === 'non-budget';
-  const row = list(nonBudget ? budget.nonBudget : budget.totals).find((t) => t.stage === s.id);
-  const total = isNum(row?.divines) ? row.divines : null;
-  const shown = total === null ? 'unknown' : `${total} divines`;
-  const why = unavailableWhy(s, plan, budget, total);
-  if (nonBudget) {
-    const lines = [`- Total: ${shown} against the ~${isNum(row?.reference) ? row.reference : 200}-divine reference, which is no cap.`];
-    if (why !== '') lines.push(`  Prices are unavailable (${why}), so this total isn't known.`);
-    return lines;
-  }
-  const { ceiling, tolerance } = BUDGETS[variant];
-  const lines = [variant === 'budget' ? `- Budget: ${shown} against 20.` : `- Budget: ${shown} against the 5-divine ceiling.`];
-  const rounded = total === null ? null : Math.round(total * 100) / 100;
-  if (rounded !== null && rounded > ceiling && rounded <= tolerance) lines.push(`  ${total} divines is near the ceiling: over ${ceiling}, within the ${tolerance}-divine tolerance.`);
-  if (why !== '') {
-    lines.push(variant === 'budget'
-      ? `  Prices are unavailable (${why}), so this variant can't be claimed to be under 20 divines.`
-      : `  Prices are unavailable (${why}), so this rung can't be claimed to fit 5 divines.`);
-  }
+/** A range as the budget lines write it: `<low>–<high>`, or `<low>` alone when the two are equal. */
+const rangeText = (low, high) => (low === high ? `${low}` : `${low}–${high}`);
+
+/**
+ * An endgame stage's budget lines (D-374), the first line of its Checks block after the chaos exception: its total
+ * range around its price day against its target, from the D1 gate's `basis.budget.totals`, then on `b` and `n`
+ * the over-target slots from the gate's `over-target` findings (each slot's fallback converted like any other
+ * price, D-373), kept when the total is unknown; and D-164's line when a price is unavailable. Exported for
+ * run-log.mjs's final display.
+ */
+export function budgetLines(s, plan, gate, prices) {
+  const budget = isObj(gate?.basis?.budget) ? gate.basis.budget : {};
+  const row = list(budget.totals).find((t) => t.stage === s.id);
+  const known = isNum(row?.low) && isNum(row?.high);
+  const shown = known ? `about ${rangeText(row.low, row.high)} divines around day ${PRICE_DAY[s.variant]}` : 'unknown';
+  const over = s.variant === 'entering-maps' ? [] : list(gate?.findings).filter((f) => f.part === 'budget' && f.code === 'over-target' && f.stage === s.id);
+  const slots = over.map((f) => `${f.jewel !== undefined ? `Jewel ${f.jewel}` : f.slot} (about ${rangeText(f.low, f.high)}${fallbackText(s, f, plan, budget, prices)})`);
+  const lines = [`- Budget: ${shown}, ${TARGET_TEXT[s.variant]}.${slots.length > 0 ? ` Over target: ${slots.join(', ')}.` : ''}`];
+  const why = unavailableWhy(s, plan, budget, known);
+  if (why !== '') lines.push(`  Prices are unavailable (${why}), so this rung's total isn't known.`);
   return lines;
+}
+
+/**
+ * An over-target slot's fallback, `; fallback about <low>–<high>`: the entry `<its priceId>-fallback` (D-371)
+ * converted to the rung's price day at the gate's market and rates, rounded as the totals are; `; fallback price
+ * unknown` when it is unavailable or has no rate; '' when the slot has none.
+ */
+function fallbackText(s, f, plan, budget, prices) {
+  const map = list(budget.slots).find((x) => x.stage === s.id && (f.jewel !== undefined ? x.jewel === f.jewel : x.slot === f.slot));
+  const fallback = map ? list(plan.prices).find((p) => p.id === `${map.priceId}-fallback`) : undefined;
+  if (!fallback) return '';
+  let table = isObj(prices) ? prices : null;
+  if (table === null) {
+    try {
+      table = priceTable();
+    } catch {
+      table = null;
+    }
+  }
+  const p = divinesOf(fallback, ratesOf(budget));
+  if (p === null || table === null) return '; fallback price unknown';
+  const market = isObj(budget.market) ? budget.market : marketOf(plan, budget, table);
+  const r = rangeAt(p, PRICE_DAY[s.variant], market, table);
+  return `; fallback about ${rangeText(roundDivines(r.low), roundDivines(r.high))}`;
 }
 
 /** The Arbiter line on `b` and `n`, from the record's `measures.arbiter` (D-353). */

@@ -3530,3 +3530,11 @@ architectural: the result goes into amendment 5's spec text.
     into that list (`ConfigOptions.lua:2279`; a line PoB can't parse is skipped). So custom modifiers set in the build
     do move the weights. An item affix PoB can't parse gets no weight at all; `find_upgrades`' `required_mods` is the
     AND group (at most 3, `pob-api/API/Trade.lua:70`).
+- **The study and the proposal** (2026-10-16): `studies/2026-10-16-pricing.md` with its script
+  `studies/data/2026-10-16-pricing.py` (`b136140`). Checking the derivation corrected the conversion table the user
+  had seen: for items under 10 divines the day-7 factor is ×0.4–0.9 across four leagues (the draft's ×0.2–0.6 leaned
+  on Forbidden Rites alone); the other rows held. `spec/amendment-5-pricing.md` proposes D-370…D-374 (targets by
+  price day; the budget never fails a gate; `b` and `n` rares by `find_upgrades`; conversion to the price day; what
+  the guide and the gates show) and WU-74…WU-76. An Explore agent mapped the touch points (175K tokens). Found on
+  the way: `find_upgrades` has no `Checked:` line and no `[trade:<kind>]` prefix on its stops (WU-74), and it reads
+  the active loadout, so pricing a rung needs a loadout select. The EC lessons become their own amendment.

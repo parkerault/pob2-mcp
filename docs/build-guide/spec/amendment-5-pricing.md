@@ -2,7 +2,7 @@
 
 **Status: ACCEPTED by the user, 2026-10-16** ("Looks good"). It carries out the user's pricing direction of 2026-10-15 and
 2026-10-16 (`../worklog.md`, "pricing strategy, a detour before the reference-build run" and its bullets), as
-D-370…D-374. The coordinator folds it into the spine and slices 01–03 with D-363…D-369 at v1.6. The lessons
+D-370…D-374, and adds D-375 at the user's request of the same day: the endgame designer reads the pattern library. The coordinator folds it into the spine and slices 01–03 with D-363…D-369 at v1.6. The lessons
 of the Explosive Concoction comparison (`../studies/2026-10-14-ec-comparison.md`) are not here; they follow as their
 own amendment. Paths without a directory are under `.claude/skills/build-guide/`.
 
@@ -130,7 +130,22 @@ an early market.
 - **Cards and the dossier** show key prices converted, as ranges with their day, so a dead league's 2,500-divine
   amulet doesn't reach the pick as a raw number.
 
-## 7. What changes
+## 7. D-375: the endgame designer reads the pattern library
+
+The user's request (2026-10-16): give the endgame designer the pattern library, so that the Lightning Arrow Deadeye
+reference run is the baseline for later changes to how builds are designed (an engine-lens layer is next). Today only
+the R1a researchers read it (C-53, D-290).
+
+- **D1-build reads `references/patterns.md` whole** before designing `b` and `n`, as R1a does: about 10K tokens of
+  context, against the 150K peak-context target (D-357).
+- **It asks the brainstorm questions of the build,** not of a new concept: what feeds the payoff, which routine
+  action already makes the resource it needs, which +level sources and supports reach the skill, how its required
+  state fails.
+- **A shape is a starting point.** Every use is checked with a lookup and measured with a compile like any other
+  change; the plan's `reason` cites the lookup and the measurement, never the library.
+- `patterns.md`'s opening line names both readers.
+
+## 8. What changes
 
 | Was | Becomes |
 |---|---|
@@ -140,13 +155,14 @@ an early market.
 | D1 gate: `over-budget`, `near-ceiling`; budget fail re-runs D1 | `over-target` (information); no budget route |
 | Rares by `search_trade_items` with `mods` | `b` and `n` rares by `find_upgrades` (D-372) |
 | A total in divines on the day seen | a range at the price day, with the market's league day (D-373) |
+| Only R1a reads the pattern library | D1-build reads it too (D-375) |
 
-## 8. Work units
+## 9. Work units
 
 | Unit | Slice | What | Depends on | Risk |
 |---|---|---|---|---|
 | WU-74 | 01 | `find_upgrades`: `League:` and `Checked:` lines, prefixed stop kinds; an engine test on a compiled plan's loadout | — | low |
-| WU-75 | 03 | The skill text: `pricing.md`, D1-build, D1-finish, the D1 gate and `gates.md`, W1, V4, R1a, R1b, the cards and dossier, checkpoints, templates, the coordinator's tools; `data/economy/prices.json` | WU-74 | medium: many files |
+| WU-75 | 03 | The skill text: `pricing.md`, D1-build (with D-375's library read), D1-finish, the D1 gate and `gates.md`, W1, V4, R1a, R1b, the cards and dossier, checkpoints, templates, `patterns.md`'s opening, the coordinator's tools; `data/economy/prices.json` | WU-74 | medium: many files |
 | WU-76 | 03 | The checker and the renderer: targets, ranges, `over-target`, routes; fixtures and tests | WU-75 | medium |
 
 WU-75 and WU-76 run in series: they share the pipeline tests.
@@ -159,8 +175,9 @@ WU-75 and WU-76 run in series: they share the pipeline tests.
   of `b`, `find_upgrades` on a rare slot with two `required_mods` and a `max_price` sends a query with an `and`
   group of those two, a `weight` group and `trade_filters.price.max`, and scores listings against `b`'s item, not
   `n`'s.
-- **AC-W63 (WU-75, D-370…D-374).** Static. `pricing.md` has D-370's targets, D-372's call and D-373's method;
-  `data/economy/prices.json` has the table and the league dates as `judgment` facts; the coordinator's tools include
+- **AC-W63 (WU-75, D-370…D-375).** Static. `D1-build.md` has D1-build read `references/patterns.md` whole before
+  designing `b` and `n`, with the lookup-and-measure rule; `pricing.md` has D-370's targets, D-372's call and
+  D-373's method; `data/economy/prices.json` has the table and the league dates as `judgment` facts; the coordinator's tools include
   `find_upgrades` and `manage_sets`; D1-build has no `infeasible` for price; no skill file keeps the 20-divine
   ceiling, the 22- or 5.5-divine tolerance, or "near the ceiling".
 - **AC-W64 (WU-76, D-371, D-373).** Checker unit.
@@ -170,7 +187,7 @@ WU-75 and WU-76 run in series: they share the pipeline tests.
     from the plan and `prices.json` matches the D1 gate's.
   - An `unavailable` price still makes the total `unverified`, with D-164's sentence.
 
-## 9. Risks
+## 10. Risks
 
 - **The trade site's rate limit.** The study's capture drew a 429 and a 600-second lockout on its 18th search,
   although the server's limiter follows the site's headers. Two rungs of about ten rares make about 20 searches

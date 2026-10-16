@@ -3540,3 +3540,9 @@ architectural: the result goes into amendment 5's spec text.
   the active loadout, so pricing a rung needs a loadout select. The EC lessons become their own amendment.
 - **Amendment 5 accepted** by the user, 2026-10-16 ("Looks good"), with the corrected day-7 row. D-370…D-374 and
   WU-74…WU-76 stand as written; the fold to v1.6 carries them with D-363…D-369.
+- **D-375, the user's request** (2026-10-16): the endgame designer (D1-build) reads the pattern library, so the
+  Lightning Arrow Deadeye run is the baseline for later design changes; added to amendment 5 and WU-75. The user
+  named a techniques video for the library (`S1AzLxb3fZw`, "Some nerd interactions to improve your characters",
+  787prada, 2026-09-11, 56 min), fetched into `yt-library`; a study agent is on it. The user follows the roadmap:
+  build amendment 5, then the Deadeye run, then an engine-lens amendment from the videos and the run's misses. The
+  user hadn't seen the study or the amendment because they live in this worktree: give absolute paths.

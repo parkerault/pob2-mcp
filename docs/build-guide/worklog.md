@@ -3564,3 +3564,9 @@ architectural: the result goes into amendment 5's spec text.
   block and stop wording (stab `03-trade.md:489-496`, `:542`) and slice 01 §2.9's "keeps C-14's wording" need
   updating; `Checked:` is the wall-clock time of the first search. AC-T46 collided with the stabilization spec's
   AC-T46, so amendment 5's server AC is renamed AC-K68.
+- **WU-74 verified and merged** (`c099b2d`, fast-forward; the lane is removed). The independent verifier (112K
+  tokens) passed all five unit-gate checks: both exit codes 0 (129 suites, 2,300 tests, plus the NFR step), each AC
+  on a real code path, a clean diff, empty waivers and unchanged dependencies, scope inside the grant. Low findings:
+  L1, the AC-K68 test can't tell first-search dating from report-time dating within one fake second (the code dates
+  by the first search, as C-49 requires); L2, the prefix follows `Stopped early: `, so WU-75's `pricing.md` matches
+  `[trade:<kind>]` anywhere in the line; L3, the fold notes above.

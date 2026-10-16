@@ -4,6 +4,40 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
+## M-16: amendment 5, gear pricing (read this first)
+
+Added 2026-10-16. For this build, this section overrides the M-15 section and "What to build" below; the other
+sections ("Worktrees and branches" onward) still apply as written. M-16 is this handoff's label for the build; the
+spine gets it at the v1.6 fold.
+
+- **Spec.** `docs/build-guide/spec/amendment-5-pricing.md` is binding for this build: D-370…D-375, WU-74…WU-76
+  (§9) and their ACs. It is not folded into the spine and slices yet; the fold to v1.6 follows the build. Where the
+  amendment and the slices' current text disagree inside D-370…D-375's scope, the amendment wins; anywhere else
+  the spine and slices bind, and you report a conflict.
+- **Background, not requirements:** `studies/2026-10-16-pricing.md` (the conversion table's source, its §2 for
+  league dates) and `../worklog.md`, "pricing strategy, a detour before the reference-build run".
+- **Ratified.** The user accepted amendment 5 on 2026-10-16, D-375 included.
+- **Directive.** Build WU-74, then WU-75, then WU-76, in series; the coordinator merges each before the next
+  starts. The Lightning Arrow Deadeye reference run is the coordinator's and the user's, after M-16.
+- **HG-12 is granted for WU-74 only:** `find_upgrades`' output gains C-49's `League:` and `Checked:` lines, and a
+  stop for a trade-site limit carries C-49's `[trade:<kind>]` prefix with the `TradeErrorKind`. Its arguments,
+  ranking and the rest of its output stay as they are. Any other tool-contract change is still HG-12: stop and
+  report `blocked`.
+- **`data/economy/prices.json`** (WU-75) holds the conversion table (amendment §5) and the league table as
+  `judgment` facts, confidence L, citing the study, in the form `data/campaign/gems.json` uses for D-359's socket
+  estimate. League start dates are the study's day-0 dates. Give an `end` only for Dawn of the Hunt, Rise of the
+  Abyssal and Fate of the Vaal (each data range's last date); Runes of Aldur and Forbidden Rites have none, and
+  D-373's day-60 rule reads Runes of Aldur as late.
+- **Network.** None. Tests use `fixtureFetch` and never contact the trade site or poe.ninja (D-34). Never read
+  `.env` or set `POESESSID`; a test that needs a session uses a fake value, as the existing `find_upgrades` tests
+  do.
+- **Tool count.** No tool is added: the counts stay as they are. If a tool's description changes, regenerate the
+  README table (`pnpm build && pnpm docs:tools --write`).
+- **Done means:** amendment 5's ACs (AC-T46, AC-K67, AC-W63, AC-W64) pass; `mise run test` and `pnpm build`
+  exit 0 from a clean tree; both waiver files are `[]` (AC-B2); dependencies are unchanged (AC-B7).
+- **Cost.** Keep context lean: read the amendment whole (it is short) and the files it names by the lines you
+  need; run targeted Jest suites while you work, and the full gate once at the end.
+
 ## M-15: amendment 4, the lean pipeline (read this first)
 
 Added 2026-10-11. For the M-15 build, this section overrides "What to build" below and adds to the other

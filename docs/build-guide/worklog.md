@@ -3520,3 +3520,13 @@ architectural: the result goes into amendment 5's spec text.
   trade-dialog search, with required mods and a max price) isn't in the coordinator's tools. The D1 gate fails a
   budget variant above 22 divines; D1 re-designs, and after 2 retries the concept is `infeasible`. That is the
   pruning the user is wary of. Concept cards show key prices at the pick, with no price rule.
+- **The user on `find_upgrades`** (2026-10-16): PoB2's weights may be wrong when the build's damage rests on a mod PoB
+  doesn't support, unless the custom config lines enter the weight calculation. The user's habit: PoB2's weighted
+  search plus an AND stat group for the affixes the item must have; rarely needed, a tool in the toolbox.
+  Everything else in the proposal (weighted pricing with the mandatory affixes required and a converted max price;
+  the budget as a target and a report, never a gate failure; meta overlap not modelled) "sounds good".
+  - **Checked in the pin:** the weights come from `calcsTab:GetMiscCalculator()` (`TradeQueryGenerator.lua:844`),
+    whose env adds `build.configTab.modList` (`CalcSetup.lua:743`), and the config's `customMods` lines are parsed
+    into that list (`ConfigOptions.lua:2279`; a line PoB can't parse is skipped). So custom modifiers set in the build
+    do move the weights. An item affix PoB can't parse gets no weight at all; `find_upgrades`' `required_mods` is the
+    AND group (at most 3, `pob-api/API/Trade.lua:70`).

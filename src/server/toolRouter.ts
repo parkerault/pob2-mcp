@@ -707,6 +707,8 @@ async function dispatch(
           currency: deps.currency,
           credentials: deps.credentials,
           env: deps.env,
+          // C-49 (D-372): its prices are dated on the wall clock, as the other trade tools' are.
+          ...(deps.wallClock ? { wallClock: deps.wallClock } : {}),
           call: {
             signal: call.signal,
             deadline: call.arrivedAt + FIND_UPGRADES_BUDGET_MS,

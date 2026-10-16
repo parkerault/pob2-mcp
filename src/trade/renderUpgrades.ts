@@ -3,8 +3,8 @@
  *
  * - **Fallback** (a result, not `isError`): `Trade search not run: <reason>.`, the hint, then the
  *   trade-site link for the generated query.
- * - **Success:** a header, this call's notices, the current item and baseline, the counts line, then
- *   the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
+ * - **Success:** a header (with C-49's `League:` and `Checked:` lines, D-372), this call's notices, the
+ *   current item and baseline, the counts line, then the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
  *   the PoB item text) while the whole output stays ≤ 30,000 characters; the rest render as one
  *   compact line each, ending with the listing's `Buy:` (D-90), followed by a note. The last line is always `Search on the trade site: <url>`.
  *   The session's notices go in front of this text (the router adds them, C-3 step 8), so the renderer
@@ -31,6 +31,11 @@ export const STATUS_LABELS: Readonly<Record<string, string>> = {
   any: 'Any (includes offline)',
 };
 
+/** `YYYY-MM-DDTHH:MM:SSZ`: the UTC time, in whole seconds (C-49's `Checked:` line, every trade tool's). */
+export function checkedTimestamp(epochMs: number): string {
+  return new Date(Math.floor(epochMs / 1000) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 // ---------------------------------------------------------------------------------------------------
 // Fallback
 
@@ -46,6 +51,11 @@ export interface UpgradeReport {
   slot: string;
   build: { displayName: string; path: string | null } | null;
   league: string;
+  /**
+   * The wall-clock time (epoch ms) the call sent its first trade search, or made the report when it sent
+   * none: the `Checked:` line that dates its prices (C-49, D-372).
+   */
+  checkedAt: number;
   status: string;
   /** e.g. `200 exalted`, or null for no budget. */
   budget: string | null;
@@ -171,7 +181,10 @@ function headLines(report: UpgradeReport): string[] {
   return [
     `=== find_upgrades: ${report.slot} ===`,
     build,
-    `League: ${report.league} · ${STATUS_LABELS[report.status] ?? report.status} · Budget: ${report.budget ?? 'no budget'} · Sort: ${sort}`,
+    // C-49's two lines, as get_item_price and search_trade_items print them (D-372).
+    `League: ${report.league}`,
+    `Checked: ${checkedTimestamp(report.checkedAt)}`,
+    `${STATUS_LABELS[report.status] ?? report.status} · Budget: ${report.budget ?? 'no budget'} · Sort: ${sort}`,
     ...report.notices,
     `Current item: ${report.currentItem} · Baseline score ${report.baselineScore.toFixed(4)}`,
     `Searches ${c.searches} · Matches ${c.total} · Fetched ${c.fetched} · Unavailable ${c.unavailable} · ` +

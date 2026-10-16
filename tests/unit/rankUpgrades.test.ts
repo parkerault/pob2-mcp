@@ -134,6 +134,7 @@ describe('D-53: the output budget', () => {
       slot: 'Body Armour',
       build: { displayName: 'b', path: 'b.xml' },
       league: 'Forbidden Rites',
+      checkedAt: Date.parse('2026-10-16T12:00:00Z'),
       status: 'securable',
       budget: null,
       sort: [{ stat: 'FullDPS', label: 'Full DPS', weight: 1 }],

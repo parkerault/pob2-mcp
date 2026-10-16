@@ -41,7 +41,7 @@ import type { EngineCallContext, EngineSession } from '../engine/session.js';
 import { EngineActionError, EngineTimeoutError } from '../pobLuaBridge.js';
 import type { TradeGenerateQueryParams, TradeGenerateQueryResult } from '../engine/schemas.js';
 import type { Credentials } from './credentials.js';
-import { TradeError } from './errors.js';
+import { TradeError, type TradeErrorKind } from './errors.js';
 import { REQUEST_TIMEOUT_MS, type FetchEntry, type SearchResponse, type TradeApiClient } from './tradeClient.js';
 import { resolveDefaultLeague } from './league.js';
 import { tradeQueryUrl, tradeSearchUrl } from './links.js';
@@ -218,7 +218,7 @@ export type UpgradeSearchResult =
       dropped: { nullEntries: number; unpriced: number };
       droppedStatIds: string[];
       notes: string[];
-      stoppedEarly?: { reason: string; waitS?: number };
+      stoppedEarly?: SearchStop;
       /** https://www.pathofexile.com/trade2/search/poe2/<league>/<last search id> */
       searchUrl: string;
     };
@@ -256,17 +256,22 @@ export class UpgradeSearchError extends Error {
 // ---------------------------------------------------------------------------------------------------
 // Early stops (C-14 "Stopping early")
 
+/** The trade-site limits that stop a search early (C-14 "Stopping early"): the limiter's refusals and a 429. */
+export type TradeLimitKind = Extract<TradeErrorKind, 'would_wait' | 'locked_out' | 'rate_limited'>;
+
 export interface SearchStop {
   reason: string;
   waitS?: number;
+  /** Set when a trade-site limit caused the stop: the `TradeErrorKind`, which the stop line names (C-49, D-372). */
+  kind?: TradeLimitKind;
 }
 
-/** The rate-limit stop: `the trade site's rate limit requires waiting <n> s`. */
-export function rateLimitStop(waitS: number | undefined): SearchStop {
+/** The rate-limit stop: `the trade site's rate limit requires waiting <n> s`, with the limit's kind. */
+export function rateLimitStop(waitS: number | undefined, kind: TradeLimitKind): SearchStop {
   if (waitS === undefined || !Number.isFinite(waitS)) {
-    return { reason: "the trade site's rate limit requires waiting longer than this call can" };
+    return { reason: "the trade site's rate limit requires waiting longer than this call can", kind };
   }
-  return { reason: `the trade site's rate limit requires waiting ${waitS} s`, waitS };
+  return { reason: `the trade site's rate limit requires waiting ${waitS} s`, waitS, kind };
 }
 
 /**
@@ -276,15 +281,19 @@ export function rateLimitStop(waitS: number | undefined): SearchStop {
  */
 export function stopForError(error: unknown): SearchStop | null {
   if (error instanceof TradeError) {
-    if (error.kind === 'would_wait' || error.kind === 'locked_out') return rateLimitStop(error.waitS);
-    if (error.kind === 'rate_limited') return rateLimitStop(error.retryAfterS);
+    if (error.kind === 'would_wait' || error.kind === 'locked_out') return rateLimitStop(error.waitS, error.kind);
+    if (error.kind === 'rate_limited') return rateLimitStop(error.retryAfterS, error.kind);
   }
   return null;
 }
 
-/** The note an early stop renders as. */
+/**
+ * The note an early stop renders as: `Stopped early: <reason>.`, and for a trade-site limit
+ * `Stopped early: [trade:<kind>] <reason>.`, C-49's prefix with the `TradeErrorKind` unchanged (D-372), so
+ * a caller classifies the stop as it does the other trade tools' errors.
+ */
 export function stoppedEarlyNote(stop: SearchStop): string {
-  return `Stopped early: ${stop.reason}.`;
+  return `Stopped early: ${stop.kind ? `[trade:${stop.kind}] ` : ''}${stop.reason}.`;
 }
 
 /**

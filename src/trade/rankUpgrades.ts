@@ -346,6 +346,8 @@ export interface CompleteContext extends EvaluateContext {
   loaded: { displayName: string; path: string | null } | null;
   currency: { getRates(league: string): Promise<Rates | null> };
   progress: (message: string) => Promise<void>;
+  /** The wall-clock time (epoch ms) that dates the report's prices: `UpgradeReport.checkedAt` (C-49, D-372). */
+  checkedAt: number;
 }
 
 type Searched = Extract<UpgradeSearchResult, { kind: 'searched' }>;
@@ -501,6 +503,7 @@ export async function completeUpgradeSearch(searched: Searched, input: FindUpgra
     slot: input.slot,
     build: ctx.loaded,
     league: searched.league,
+    checkedAt: ctx.checkedAt,
     status: input.status,
     budget: input.max_price !== undefined ? `${input.max_price} ${display}` : null,
     sort: searched.statWeights,

@@ -1000,7 +1000,8 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       const out = await call({ slot: 'Body Armour' });
       expect(out.isError).toBe(false);
       expect(out.text).toMatch(/^Build: grenadator \(grenadator\.xml\)$/m);
-      expect(out.text).toMatch(/^League: Forbidden Rites · Instant buyout · Budget: no budget · Sort: .+ ×/m);
+      // C-49's League: and Checked: lines (D-372, WU-74), then the status, budget and sort.
+      expect(out.text).toMatch(/^League: Forbidden Rites\nChecked: \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\nInstant buyout · Budget: no budget · Sort: .+ ×/m);
       expect(out.text).toMatch(/^Current item: \S.* · Baseline score -?\d+\.\d{4}$/m);
     }, TIMEOUT);
 

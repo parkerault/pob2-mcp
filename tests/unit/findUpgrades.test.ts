@@ -283,8 +283,8 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     const first: SyntheticResponse = { status: 200, headers: rule('trade-search-request-limit', 2, 39), body: searchResponse('s1', 5).body };
     const { ctx, calls, start } = setup([searchSequence([first, searchResponse('s2', 50)]), fetchRoute()]);
     const result = searched(await drive(runUpgradeSearch(input(), ctx)));
-    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 40 s", waitS: 40 });
-    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe("Stopped early: the trade site's rate limit requires waiting 40 s.");
+    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 40 s", waitS: 40, kind: 'would_wait' });
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe("Stopped early: [trade:would_wait] the trade site's rate limit requires waiting 40 s.");
     expect(searches(calls)).toHaveLength(1);
     expect(Date.now() - start).toBeLessThan(1000);
     expect(result.searchUrl).toBe(tradeSearchUrl(LEAGUE, 's1'));
@@ -307,7 +307,7 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     const first: SyntheticResponse = { status: 200, headers: rule('trade-search-request-limit', 3, 5, 1, 45), body: searchResponse('s1', 5).body };
     const { ctx, calls } = setup([searchSequence([first, searchResponse('s2', 50)]), fetchRoute()]);
     const result = searched(await drive(runUpgradeSearch(input(), ctx)));
-    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 45 s", waitS: 45 });
+    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 45 s", waitS: 45, kind: 'locked_out' });
     expect(searches(calls)).toHaveLength(1);
   });
 
@@ -319,7 +319,7 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     };
     const { ctx, calls } = setup([searchSequence([searchResponse('s1', 5), tooMany]), fetchRoute()]);
     const result = searched(await drive(runUpgradeSearch(input(), ctx)));
-    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 7 s", waitS: 7 });
+    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 7 s", waitS: 7, kind: 'rate_limited' });
     expect(searches(calls)).toHaveLength(2);
     expect(fetches(calls)).toHaveLength(0);
   });

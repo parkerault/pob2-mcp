@@ -7,9 +7,15 @@ import type { ItemListing } from '../types/tradeTypes.js';
 import { convert, formatCurrencyValue, type CurrencyService, type Rates } from '../trade/currency.js';
 import { modTexts } from '../trade/modLines.js';
 import { tradeSearchUrl } from '../trade/links.js';
-import { currencyInputValue, parseFindUpgradesInput, runUpgradeSearch, type Env } from '../trade/findUpgrades.js';
+import {
+  currencyInputValue,
+  parseFindUpgradesInput,
+  runUpgradeSearch,
+  type Env,
+  type UpgradeSearchContext,
+} from '../trade/findUpgrades.js';
 import { completeUpgradeSearch } from '../trade/rankUpgrades.js';
-import { renderFallback, renderUpgradeReport } from '../trade/renderUpgrades.js';
+import { checkedTimestamp, renderFallback, renderUpgradeReport } from '../trade/renderUpgrades.js';
 import type { Credentials } from '../trade/credentials.js';
 import type { EngineSession } from '../engine/session.js';
 import { z } from 'zod';
@@ -52,11 +58,6 @@ async function wrapTradeHandler<T>(action: string, handler: () => Promise<T>): P
 // ========================================
 // Dated price results (C-49)
 // ========================================
-
-/** `YYYY-MM-DDTHH:MM:SSZ`: the UTC time, in whole seconds (C-49's `Checked:` line). */
-function checkedTimestamp(epochMs: number): string {
-  return new Date(Math.floor(epochMs / 1000) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
-}
 
 /**
  * The `League:` and `Checked:` lines every price result carries (C-49). `checkedAt` is the wall-clock
@@ -541,6 +542,8 @@ export interface FindUpgradesContext {
   /** C-9: re-read on every call. */
   credentials: () => Credentials;
   env: Env;
+  /** The wall clock (epoch ms) that dates the result's prices (C-49, D-372): `ServerDeps.now ?? Date.now`; default `Date.now`. */
+  wallClock?: () => number;
   /** The MCP call: its abort signal, its deadline (arrival + 90 s, D-22) and progress (D-22). */
   call: {
     signal: AbortSignal;
@@ -575,10 +578,25 @@ export async function handleFindUpgrades(
     };
     const { signal, deadline } = context.call;
     const now = context.call.now ?? Date.now;
+    const wallClock = context.wallClock ?? Date.now;
+
+    // C-49 (D-372): the result is dated by the wall-clock time its first trade search was sent, as
+    // get_item_price's is; with no search sent, by the time of the report.
+    let checkedAt: number | undefined;
+    const client = context.tradeClient;
+    const trade: UpgradeSearchContext['trade'] = {
+      search: (...a: Parameters<TradeApiClient['search']>) => {
+        if (checkedAt === undefined) checkedAt = wallClock();
+        return client.search(...a);
+      },
+      fetch: client.fetch.bind(client),
+      getStats: client.getStats.bind(client),
+      getLeagues: client.getLeagues.bind(client),
+    };
 
     const result = await runUpgradeSearch(input, {
       engine,
-      trade: context.tradeClient,
+      trade,
       credentials: context.credentials,
       env: context.env,
       signal,
@@ -601,6 +619,7 @@ export async function handleFindUpgrades(
       loaded: loaded ? { displayName: loaded.displayName, path: loaded.path } : null,
       currency: context.currency,
       progress,
+      checkedAt: checkedAt ?? wallClock(),
     });
     // The router prepends the session's notices (C-3 step 8); `refit` renders the report again with
     // their room reserved, so the whole output stays within the D-53 budget.

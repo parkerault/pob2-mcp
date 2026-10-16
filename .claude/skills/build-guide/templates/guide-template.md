@@ -50,7 +50,7 @@ Import this code in PoB2 (Import/Export Build, then Import from code):
 <importCode, copied exactly from compile-record.json>
 ```
 
-The file is `<the file name of the record's pobFile.path>`. Its loadouts, in order: <first loadout name> → <next loadout name> at <its trigger> → … → <the entering-maps loadout name> when <its trigger> → <the budget loadout name> when <its trigger> → <the non-budget loadout name> when <its trigger>. The items are stat examples: match the affixes, not the item. Engine: PoB2 <pobTag> (patch <enginePatch>); boss data <externalPatch>. <online: Prices are from the <league> league, checked <date>. | offline: Made offline, so no prices were checked.>
+The file is `<the file name of the record's pobFile.path>`. Its loadouts, in order: <first loadout name> → <next loadout name> at <its trigger> → … → <the entering-maps loadout name> when <its trigger> → <the budget loadout name> when <its trigger> → <the non-budget loadout name> when <its trigger>. The items are stat examples: match the affixes, not the item. Engine: PoB2 <pobTag> (patch <enginePatch>); boss data <externalPatch>. <online: Prices are from the <league> league, checked <date>, <day <n> of the league | on a league day I don't know>. I estimate early endgame gear at about day 7 of a league and late endgame at about day 21[only when the day is under 21: ; these prices are from an early market, so I didn't convert them]. Trade moves a lot: re-price the build with the build-guide skill any time. | offline: Made offline, so no prices were checked.>
 
 - [only when the league couldn't be verified] The league couldn't be verified: the trade site couldn't be reached when the endgame was priced.
 - [only when compile-record.json has versionNotes] <each versionNotes line, in plain words>.
@@ -110,7 +110,7 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 Move here when <the trigger>.
 
-<About 250 words. The changes from the Epilogue, then the buy order within 5 divines:>
+<About 250 words. The changes from the Epilogue, then the buy order toward a 5-divine target:>
 
 1. <the first buy>: <a short reason where it isn't obvious>.
 2. <…>.
@@ -120,7 +120,7 @@ Move here when <the trigger>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget against 5 divines, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 7 against a 5-divine target, its rough clear speed and movement speed]
 
 ## Endgame: budget
 
@@ -130,9 +130,9 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 
 1. <…>.
 
-| Slot | Target | Fallback |
-|---|---|---|
-| <slot> | <the affix targets, as text; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <the affix to give up first, or empty> |
+| Slot | Must have | Then | Fallback |
+|---|---|---|---|
+| <slot> | <its required affixes with their minimums, as text: what to buy; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <its other affixes, in priority order> | <only for an over-target slot: its fallback's affixes and price, and that the fallback isn't measured; else empty> |
 
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
 - **Tree:** <the keystones and notables, each with what it buys>.
@@ -141,7 +141,7 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget against 20 divines, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 7 aiming at about 5 a slot with its over-target slots, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
 
 ## Endgame: non-budget
 
@@ -154,7 +154,7 @@ Move here when <the trigger>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its total against the ~200-divine reference, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
 
 ## How to play it
 

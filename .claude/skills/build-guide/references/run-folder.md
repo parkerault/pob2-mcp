@@ -137,7 +137,8 @@ one stderr line `check-run: [<rule>] <message>`.
   value (at its last significant digit, or within 5%).
 - **The D1 gate, recomputed** from the record and the plan (`gates.md`): the floor (at each rung's area
   level, 69 for entering maps, each reference hit the one the compiler wrote, D-254's formula rounded by D-256),
-  the budgets (20 divines for the budget variant, the anoint priced like a slot, 5 for entering maps) and the
+  the budget (every rung's total range at its price day and each `over-target` finding, by `gates.md`'s "Price
+  days, targets and ranges", the anoint priced like a slot; it never fails, D-371) and the
   named damage source (the `rolledSkill` part), its figure's stat set equal to `skills.main.statSet`. The
   checker fails a verdict that differs from its own, and, once a guide exists, any failure no accepted finding
   covers.

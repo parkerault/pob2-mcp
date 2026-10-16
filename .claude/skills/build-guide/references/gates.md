@@ -54,7 +54,7 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   - chaos: `MissingChaosResist` is 0 too. **Chaos may stay uncapped only through the stage's
     `chaosResistException {reason, tag}`**, and D1 uses it only when capping chaos is infeasible (for
     example Chaos Inoculation, or no slot that can carry chaos resistance without dropping a core item or
-    breaking the budget). With the exception the floor passes and the gate adds a finding naming the value
+    going far over its price target). With the exception the floor passes and the gate adds a finding naming the value
     and the reason; the guide's `Checks` state both. Without it, `MissingChaosResist` above 0 fails the
     floor;
   - **the reference hits** (D-119, D-254, D-353): the stage holds a waystone-scaled hit for each of the
@@ -72,21 +72,20 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   The guide's statement of the exception (checked by the run checker): **one line** of the variant's
   `Checks` holds both the exception's full `reason` text and the stage's uncapped chaos resistance
   (the record's `ChaosResist`) as a number with `%`, for example "Chaos resistance stays at 28% because
-  no slot can carry chaos resistance without dropping a core item or breaking the budget".
-- **budget** (D-116, D-147, D-164, D-219, D-249, D-281), for the budget variant and the entering-maps rung:
-  every filled slot **and every tree jewel** (`items.treeJewels`) has a `prices[]` entry, converted to divines with
-  `mcp__pob2__get_currency_rates`' rates. Each filled slot or jewel has its own entry, except slots holding
-  identical item text (two identical rings may share one, and each counts). Totals are compared **rounded
-  to 2 decimals**.
-  - total **≤ 20 divines: pass**;
-  - total **> 20 and ≤ 22: pass, with a "near the ceiling" note** the guide's budget `Checks` must carry
-    in those words;
-  - total **> 22: fail**;
-  - the entering-maps rung's budget is **5 divines**: **≤ 5 pass; > 5 and ≤ 5.5 pass with "near the
-    ceiling"** in its `Checks`; **> 5.5 fail** (D-281);
-  - any slot price `unavailable`, or a currency without a rate: **unverified**, which doesn't fail the
-    gate, and the guide can't claim the stage is within its budget. Offline, both are unverified.
-  The non-budget total is reported against the ~200-divine reference (D-117), never gated.
+  no slot can carry chaos resistance without dropping a core item or going far over its price target".
+- **budget** (D-164, D-249, D-281, D-370, D-371, D-373), for every endgame rung, `m`, `b` and `n`: every filled
+  slot **and every tree jewel** (`items.treeJewels`), and the anoint of `b` and `n`, has a `prices[]` entry,
+  converted to divines with `mcp__pob2__get_currency_rates`' rates and then to the rung's price day (below). Each
+  filled slot or jewel has its own entry, except slots holding identical item text (two identical rings may share
+  one, and each counts). Each rung's total is a range at its price day, never a pass mark:
+  - every rung's total known: **pass**;
+  - any price of a rung `unavailable`, or a currency without a rate: **unverified** (code `unverified`, that
+    rung's total `null`), which doesn't fail the gate, and the guide can't state that total (D-164). Offline,
+    every price is unavailable, so the budget is unverified;
+  - **never fail** (D-371): a target is never a pass mark, a budget finding never sends D1 back, and no design
+    is `infeasible` for its price;
+  - `over-target`, information on a passing or unverified part: a rare of `b` or `n` whose range's midpoint is
+    above its target, and `m`'s total when its midpoint is above 5 divines.
 - **rolledSkill**, the named damage source's part (D-122, D-148, D-217, D-293, D-295). The build's named
   damage source is the main source of damage, never a token role. For a fixed skill that skill is the named
   source, and its own hits, ailments and projectiles count when another skill fires, spreads or copies them.
@@ -108,17 +107,23 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
 ### The basis: what the run checker reads from the D1 gate's file
 
 The D1 gate's file also carries `basis`: only what the plan and the record don't say. The run checker
-recomputes the floor from the plan and the record alone, and reads the budget's slot→price map with its
+recomputes the floor from the plan and the record alone, and reads the budget's slot→price map with its market and
 rates, and each endgame stage's figures, from here; it fills every number from the record itself.
 
 ```json
 "basis": {
   "budget": {
-    "rates": [ { "currency": "exalted", "divines": 0.01 } ],
-    "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
-               { "stage": "b", "jewel": 1001, "priceId": "b-jewel" } ],
-    "totals": [ { "stage": "b", "divines": 21.5 } ],
-    "nonBudget": [ { "stage": "n", "divines": 168.0, "reference": 200 } ]
+    "rates": [ { "currency": "exalted", "divines": 0.0025 } ],
+    "market": { "league": "Forbidden Rites", "day": 41, "late": false },
+    "slots": [ { "stage": "m", "slot": "Boots", "priceId": "m-boots" },
+               { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
+               { "stage": "b", "slot": "Amulet", "priceId": "b-amulet" },
+               { "stage": "b", "jewel": 1001, "priceId": "b-jewel-1001" },
+               { "stage": "b", "slot": "Anoint", "priceId": "b-anoint" },
+               { "stage": "n", "slot": "Helmet", "priceId": "n-helmet" } ],
+    "totals": [ { "stage": "m", "low": 1.6, "high": 3.6, "day": 7 },
+                { "stage": "b", "low": 14, "high": 32, "day": 7 },
+                { "stage": "n", "low": 88, "high": 140, "day": 21 } ]
   },
   "rolledSkill": [
     { "stage": "b", "figures": [ { "group": 1, "figure": "g1s1p1.TotalDPS" },
@@ -127,23 +132,75 @@ rates, and each endgame stage's figures, from here; it fills every number from t
 }
 ```
 
+- `budget.rates`: the rates used (`divines` is what one unit of the currency is worth; a divine counts 1).
+- `budget.market`: `{league, day, late}`, the market the prices were seen in (step 1 below).
 - `budget.slots`: one entry for every filled slot (`{stage, slot, priceId}`) and every tree jewel
-  (`{stage, jewel: <node id>, priceId}`) of every budget-variant and entering-maps stage, naming a
-  `prices[].id`; `rates`, the
-  rates used (`divines` is what one unit of the currency is worth; a divine counts 1).
-- `budget.totals` (each budget-variant and entering-maps stage's total, `null` when unverified) and
-  `budget.nonBudget` are what W1 quotes in the guide; the run checker computes its own total from the prices
-  and rates.
+  (`{stage, jewel: <node id>, priceId}`) of every endgame rung, `m`, `b` and `n`, and the anoint of `b` and `n`
+  as a slot (`{stage, slot: "Anoint", priceId}`), each naming a `prices[].id`. A fallback entry
+  (`<id>-fallback`) is in no slot.
+- `budget.totals`: one entry per endgame rung, `{stage, low, high, day}`: its total range in divines at its
+  price day (`day` 7 for `m` and `b`, 21 for `n`), rounded by step 6 below; `low` and `high` are `null` when the
+  rung is unverified. W1 quotes them in the guide through the render.
 - `rolledSkill`: per endgame stage, one figure for **every** group of the named source's group's role: the
   record field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record by
   the same rule (D-340): Count-scaled where the field has a counted copy, else per copy.
-- Findings with codes `chaos-exception` and `near-ceiling` report on a passing part: they are never
-  failures, and need no acceptance.
+- Findings with codes `chaos-exception` and `over-target` are information: they are never failures, and need no
+  acceptance. An `over-target` finding carries, beside its message, `slot` (or `jewel`, the node id; neither for
+  `m`'s total), `low` and `high` (its range, rounded by step 6) and `target` (in divines):
+
+  ```json
+  { "part": "budget", "code": "over-target", "stage": "b", "slot": "Amulet", "low": 3.2, "high": 7.2, "target": 5,
+    "message": "b Amulet: about 3.2–7.2 divines around day 7, over its 5-divine target" }
+  ```
+
+### Price days, targets and ranges (D-370, D-373)
+
+Prices stay in `plan.json` as seen; the gate converts them only to report them. Each step below reads
+`data/economy/prices.json`, and the run checker recomputes every number by these steps from the plan's prices,
+`basis.budget.rates` and `basis.budget.slots`.
+
+| Rung | Price day | Target |
+|---|---|---|
+| `m` | 7 | 5 divines in all |
+| `b` | 7 | each rare's `query.target.divines`: 5 |
+| `n` | 21 | each rare's `query.target.divines`, set by D1-build (together at most 200); 100–200 in all |
+
+A target is the entry's `query.target` (`{divines, day}`). An entry without one has no target and gets no
+`over-target` finding: uniques, magic items, flasks, charms and the anoint.
+
+1. **The market.** `league` is the plan's `league` (`null` offline). The seen date is the latest `date` among
+   the `ok` entries `basis.budget.slots` names. `day` is the whole days from the league's `start` to the seen
+   date, the league found by `name` among the file's `league.*` facts; `null` when the league isn't there or no
+   entry is `ok`. `late` is `true` when the league has an `end` before the seen date, or `day` is above 60
+   (`conversion.late-day`); else `false`.
+2. **An entry's price in divines,** `p`: its `amount` times its currency's rate (a divine counts 1), unrounded.
+3. **Its factors** `[lo, hi]` to the rung's price day `D` (7 or 21). The row is `under-10` when `p` is under 10
+   (`conversion.threshold`), else `10-or-more`; its factors are `conversion.<row>.to-day-<D>`, `{min, max}`.
+   - `late`: `[min ÷ 4, max ÷ 2]` (`conversion.late-divisor`);
+   - else, `day` 21 or above, or `null`: `[min, max]`;
+   - else (`day` under 21, `conversion.first-day`): `[1, 1]`, no conversion.
+4. **Its range** is `[p × lo, p × hi]`, and its midpoint `(p × lo + p × hi) ÷ 2`.
+5. **A rung's total** is the sum of the lows and the sum of the highs over the rung's `basis.budget.slots`
+   entries; an entry two identical slots share counts once for each. A rung with any of those entries
+   `unavailable`, or in a currency without a rate, has no total: `low` and `high` are `null`.
+6. **Rounding**, for every `low` and `high` written (a total's, a finding's): each end on its own, from the
+   unrounded value: 10 or more to a whole divine (`Math.round(x)`), under 10 to one decimal
+   (`Math.round(x × 10) ÷ 10`). Midpoints compare unrounded.
+7. **`over-target`**: on `b` and `n`, each entry with a `query.target` whose `ok` price has a rate and whose
+   midpoint is above `query.target.divines`, named by the first `basis.budget.slots` entry that maps to it; on
+   `m`, its total, when it has one and its midpoint is above 5.
+
+The gate adds by hand, so the run checker holds it to its own recompute with a margin: `market` equal; each
+recorded `low` and `high`, a total's or a finding's, within one rounding step of the checker's (0.1 when the
+checker's value is under 10, 1 when it is 10 or more); and the same `over-target` findings, except where the
+checker's midpoint is within 0.1 divine of the target (1 divine for a target of 10 or more). The render takes the
+totals and the over-target slots from the gate's file.
 
 ### Finding codes for floor, budget and rolledSkill
 
 The run checker recomputes these parts and names each failure by these codes, so an accepted finding
-(same plan stage, part and code) covers the matching failure:
+(same plan stage, part and code) covers the matching failure. The budget has no failure code: it never fails
+(D-371).
 
 | Part | Code | Means |
 |---|---|---|
@@ -153,9 +210,8 @@ The run checker recomputes these parts and names each failure by these codes, so
 | floor | `max-hit-<type>` (`max-hit-physical`, …) | `<Type>MaximumHitTaken` isn't above that reference hit |
 | floor | `reference-hit-missing-<type>` | the stage has no positive `enemy<Type>Damage` hit of that type |
 | floor | `reference-hit-ledger-<type>` (its name kept) | the record's hit, as the compiler wrote it in `configWritten`, isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers (D-254) and rounded up to a whole number (D-256), or the record has no value for it (D-353) |
-| budget | `over-budget` | the total is above 22 divines (above 5.5 for the entering-maps rung) |
-| budget | `near-ceiling` | above 20, at most 22 (above 5, at most 5.5 for the entering-maps rung): a finding on a passing budget |
-| budget | `unverified` | an unavailable price or a missing rate |
+| budget | `over-target` | a rare of `b` or `n` whose range's midpoint is above its target, or `m`'s total above 5 divines: information, never a failure |
+| budget | `unverified` | an unavailable price or a missing rate: the rung's total isn't known |
 | rolledSkill | `rolled-role` | the rolled group's role isn't `clear` or `single_target` |
 | rolledSkill | `rolled-not-largest` | another group of that role has the larger figure |
 | rolledSkill | `rolled-not-main` | the stage's `skills.main.group` isn't its `rolledGroup` |
@@ -165,14 +221,15 @@ The run checker recomputes these parts and names each failure by these codes, so
 ## The D1 gate's outcome
 
 The runner routes by the verdict file and D1's claim, D1-build's return (slice 03 §5.3's table; a pass now goes to
-the design gate, D-362):
+the design gate, D-362). The budget is `pass` or `unverified`, never a failure: no budget finding routes back to D1
+(D-371).
 
 | Gate verdict | D1's claim | Outcome |
 |---|---|---|
 | compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | the design gate (D-362), then D2 after its `accept` |
 | compile, V1 or V2 fails | any | D1 re-runs with the findings; after 2 counted retries, `escalated` |
-| only floor, budget or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
-| only floor, budget or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 counted retries, `infeasible` |
+| only floor or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
+| only floor or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 counted retries, `infeasible` |
 | any part but the budget `unverified` | any | as a compile, V1 or V2 failure |
 | `"forced": "infeasible"` (FI-3) | any | `infeasible`, evidence `FI-3 (injected)` |
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
@@ -185,14 +242,14 @@ compile included (part `compiled`, code `final-compile`), re-runs D2 with the fi
 retries, `escalated`. After a guided retry or an accepted re-run, any failure escalates again.
 
 The runner logs each gate attempt with the outcome its verdict file routes to, and the run checker holds the
-log to the files: a pass is a verdict that passes, an `infeasible` one is forced by FI-3 or fails only floor,
-budget or `rolledSkill` (with D1 claiming infeasible, or after 2 counted retries), and an attempt failed by a
+log to the files: a pass is a verdict that passes, an `infeasible` one is forced by FI-3 or fails only floor
+or `rolledSkill` (with D1 claiming infeasible, or after 2 counted retries), and an attempt failed by a
 fault on attempt 1 runs free only when the verdict's `faultsApplied` names the fault and every failing finding
 is on the stage the fault breaks (S6).
 
 A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
 nor a later one (`checkpoints.md`). A current guide passed every gate: the run checker fails a run whose
-guide is current (no design step ran after its W1) and whose recomputed floor, budget or named damage
+guide is current (no design step ran after its W1) and whose recomputed floor or named damage
 source fails, or whose D1 or D2 gate before that W1 has a failing part, unless accepted findings cover every
 failure. Only a pass, or an `unverified` budget,
 proceeds, to the design gate and after its `accept` to D2.

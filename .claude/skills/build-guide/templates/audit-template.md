@@ -9,10 +9,15 @@ the guide leaves out. Every number is the plan's or the record's as they hold it
 rounds it. No Run notes, no hand-calculation prose, no kill time and no hits to kill (D-353). <the worst hit> is
 the record's measures.arbiter.worst: its type, a mixed hit's types joined by " and ", then "hit" ("lightning
 hit", "physical and lightning hit"), the words the guide's survival label uses; <ratio> is its ratio to 2
-decimals. A missing number is "—"; a total the D1 gate's basis leaves null is "unknown" in place of "<total>
-divines"; an Arbiter verdict the record leaves null reads "The Arbiter of Divinity: not measured.". <why> is each
-unavailable price's note, or "no rate for <currency>", from the rung's basis slots (the anoint's among them, as
-{stage, slot: "Anoint", priceId}) and the plan's prices named <stage id>-<…>.
+decimals. A missing number is "—"; an Arbiter verdict the record leaves null reads "The Arbiter of Divinity: not
+measured.". The budget lines (D-374): <low>–<high> is the rung's total from the D1 gate's basis.budget.totals,
+each end as the gate rounds it (a whole divine at 10 or more, one decimal under 10), and "<low>" alone when the
+two are equal; a total the basis leaves null reads "unknown" in place of "about <low>–<high> divines around day
+<n>". "Over target:" lists the budget variant's over-target findings, in the D1 gate's order, each as its slot
+(a tree jewel as "Jewel <node id>") with its own range, joined by ", "; the sentence is left out when there are
+none or the total is unknown. <why> is each unavailable price's note, or "no rate for <currency>", from the
+rung's basis slots (the anoint's among them, as {stage, slot: "Anoint", priceId}) and the plan's prices named
+<stage id>-<…>.
 W1 copies each block under Checks, verbatim, into the guide's Checks H3 of that rung, and writes the accepted
 gate findings' rows under Known issues; the runner fills that table at step 14.
 -->
@@ -37,25 +42,23 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 ### <the entering-maps loadout name, exactly as the record has it>
 
 - [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Budget: <total> divines against the 5-divine ceiling.
-  [only when the total is over 5 and at most 5.5] <total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this rung can't be claimed to fit 5 divines.
+- Budget: about <low>–<high> divines around day 7, against a 5-divine target.
+  [only when any price is unavailable] Prices are unavailable (<why>), so this rung's total isn't known.
 - Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: +<(the record's outputs.EffectiveMovementSpeedMod − 1) × 100, rounded>%.
 
 ### <the budget loadout name>
 
 - [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Budget: <total> divines against 20.
-  [only when the total is over 20 and at most 22] <total> divines is near the ceiling: over 20, within the 22-divine tolerance.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this variant can't be claimed to be under 20 divines.
+- Budget: about <low>–<high> divines around day 7, aiming at about 5 a slot. Over target: <slot> (about <low>–<high>).
+  [only when any price is unavailable] Prices are unavailable (<why>), so this rung's total isn't known.
 - The Arbiter of Divinity: <survives its hits; its worst, <the worst hit>, is <ratio> of your max hit | one-shot by its <the worst hit>, at <ratio> of your max hit>.
 - Clear speed: <slow | medium | fast>, a rough estimate from <the clear skill>'s area. Movement speed: +<(the record's outputs.EffectiveMovementSpeedMod − 1) × 100, rounded>%.
 
 ### <the non-budget loadout name>
 
 - [only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.
-- Total: <total> divines against the ~200-divine reference, which is no cap.
-  [only when any price is unavailable] Prices are unavailable (<why>), so this total isn't known.
+- Budget: about <low>–<high> divines around day 21, against the 100–200 target.
+  [only when any price is unavailable] Prices are unavailable (<why>), so this rung's total isn't known.
 - The Arbiter of Divinity: <as for the budget variant>.
 - Clear speed: <as for the budget variant>.
 

@@ -5,9 +5,9 @@ Template for dossier.md, the verification gate's comparison table (slice 03 sect
 written by the R1b-assemble step (.claude/skills/build-guide/references/stages/R1b-assemble.md), its only writer,
 once per verification round. One line for the brief and the rounds, then one table with one row per verified
 card, in id order; a later round adds its rows below the earlier ones. No H2, no H3 and no markers: each number
-is the card's record's and each price its skeleton's entry, both found by the card's id. The design steps and
-W1 read their card (cards/<id>.md) and its row. A cell holds no "|". Replace every <placeholder>; delete this
-comment.
+is the card's record's and each price the card's converted key price, a range with its day (D-374), both found
+by the card's id. The design steps and W1 read their card (cards/<id>.md) and its row. A cell holds no "|".
+Replace every <placeholder>; delete this comment.
 -->
 
 Brief: <its fields as parsed: ascendancy, skill, playstyle, budget, around, like, notes, popularity; or "empty: surprise me">. Mode: <offline: no web source and no price was consulted | online>. Rounds: <brainstorm 1, started with the run; brainstorm <k>, "<the user's note>"; verification <v>: <its card ids>>.

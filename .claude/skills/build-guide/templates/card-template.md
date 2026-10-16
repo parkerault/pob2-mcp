@@ -112,4 +112,4 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Key item prices
 
-- <item>: <amount currency, dated YYYY-MM-DD | unavailable (<note>)>
+- <item>: <about <low>–<high> divines around day 7 (seen <amount currency> on YYYY-MM-DD, day <n> of <league>[, late] | <league>, its day unknown) | <amount currency>, seen YYYY-MM-DD, not converted: no currency rates | unavailable (<note>)>

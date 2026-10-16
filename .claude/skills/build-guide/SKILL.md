@@ -153,8 +153,8 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third escalates (§5);
   - any part but the budget `unverified` (only the budget may stay unverified, D-164): a failure, routed as a
     compile, V1 or V2 failure;
-  - only floor, budget or `rolledSkill` failing: `infeasible`, back to the verification gate with the verdict
-    as evidence, when D1-build claimed it; else D1 re-runs, up to 2 counted retries, then `infeasible`;
+  - only floor or `rolledSkill` failing (the budget never fails, D-371): `infeasible`, back to the verification gate
+    with the verdict as evidence, when D1-build claimed it; else D1 re-runs, up to 2 counted retries, then `infeasible`;
   - `"forced": "infeasible"` (FI-3): `infeasible`; after a guided retry or an accepted re-run, any failure
     escalates again. Log each gate attempt with the outcome its verdict file routes to; the run checker holds
     the log to the files.

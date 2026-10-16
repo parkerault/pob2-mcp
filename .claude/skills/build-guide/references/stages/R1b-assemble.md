@@ -24,7 +24,7 @@ no research.
   - where it compiled, its record's key numbers, by Grep, never the record whole: in
     `concepts/<id>/compile-record.json`, the named damage source's Count-scaled figure
     (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields`, its group's `count`), `Life`, `TotalEHP` and
-    `computedWithCustomMods`; and its key-item prices, by Grep of `concepts/<id>/plan.json` for `"prices"`.
+    `computedWithCustomMods`; and its key-item prices, converted, from the card's `Key item prices`.
 
 ## Work
 
@@ -41,7 +41,8 @@ no research.
      its note, each verification round with its cards.
    - **A viable card's row:** the named source's Count-scaled figure with its field, labelled `estimate` when
      its group's Count is above 1 or the stage is `computedWithCustomMods` (D-296); `Life`; `TotalEHP` as `EHP`
-     (D-294); each key-item price dated, or `unavailable` with its note; the league (offline: `none
+     (D-294); each key-item price as the card gives it, a range with its day (`about 3.2–7.2 divines around
+     day 7`), or `unavailable` with its note; the league (offline: `none
      (offline)`; online: the skeleton's league, and `<league>, unverified` when its verdict has
      `leagueUnverified`, so D1 doesn't take it); and its main risk. When the card's payoff rests on a mechanic
      no lookup confirmed, or that has no source in the card (no item, node or gem that grants it), its main
@@ -65,7 +66,7 @@ no research.
 
 At most 8 lines: `dossier.md`, then the verification gate's comparison, one line per card of this round in id
 order: its id, its status, its synergy in a few words, its key numbers from the record (the named source's
-Count-scaled figure, `Life` and `TotalEHP`), its key prices (dated, or `unavailable`), and its main risk; a
+Count-scaled figure, `Life` and `TotalEHP`), its key prices (ranges with their day, or `unavailable`), and its main risk; a
 failed card's line names its last verdict file. The figure is labelled `estimate` when its group's Count is
 above 1 or the stage is `computedWithCustomMods` (D-296). A card that can't be finalized yet says so, with no
 numbers, and isn't a failure.

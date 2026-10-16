@@ -55,8 +55,8 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
 - **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in the run (every verification round, not
   only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
   figure, `Life` and `TotalEHP`, D-294; the figure labelled `estimate` when its group's Count is above 1 or
-  the stage is `computedWithCustomMods`, D-296), key prices (dated, or `unavailable`), risks, what PoB can't
-  verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
+  the stage is `computedWithCustomMods`, D-296), key prices (converted, as ranges with their league day, D-374;
+  or `unavailable`), risks, what PoB can't verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
   (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b verdict's finding is
   `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own the passive-tree
   node that grants its skill, the node the finding names. Give the dossier's path. After an
@@ -115,8 +115,9 @@ Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). 
   D2 gate verdict's `finalCompile.pobFile`); the gate verdicts; each endgame rung's figures from the final
   compile record, its DPS, EHP, Arbiter verdict with the worst ratio, and rough clear speed, with the design
   gate's beside them where they moved since (D-369); the known issues (the open V4 findings and the accepted
-  gate findings); the run checker's result; when any price is `unavailable`, that the variant can't be claimed to be under budget (D-164);
-  and in offline mode, that the guide is from an offline run.
+  gate findings); the run checker's result; each rung's total range at its price day against its target, and
+  its over-target slots (the D1 gate's last verdict file, D-371, D-374); when any price is `unavailable`, that
+  the rung's total isn't known (D-164); and in offline mode, that the guide is from an offline run.
 - **Ask**: accept, ask for changes, or anything else.
   - **accept**: the run ends `completed`.
   - **changes** (D-236): a revision. The runner maps each request to the step that owns it, by the fix

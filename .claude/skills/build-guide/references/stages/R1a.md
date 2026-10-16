@@ -161,7 +161,7 @@ yet.`, for R1b to fill.
   evidence. A reference build only from the brief's `like`, or a source on an allowed host online.
 - **Risks so far:** payoff thieves, placement limits, the exposed phase, resistant bosses, and what stands
   between the card and the endgame bar: all four resistances capped, the named damage source as the main
-  damage source, a budget variant within 20 divines.
+  damage source, a budget variant whose rares cost about 5 divines each around day 7 of a league.
 - **Status words** exactly as the template lists them, one per link, figure or claim. A card cites its lookups
   in its links table, with no footnote markers.
 - **Offline** (`mode: "offline"`): no web. A point that would need an external source (a play pattern,

@@ -131,6 +131,14 @@ card whose damage source isn't a skill" below.
      `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop pricing for the rest of the run:
      every remaining item `unavailable`); any other kind, `unavailable`. Count every call by its outcome for
      your return.
+   - **converted for the card** (D-373, D-374): a key price reaches the user as a range at a league day, never
+     as a raw number from another market. Get the rates with `mcp__pob2__get_currency_rates` once (not with
+     `--no-ninja`), and convert each `ok` price to day 7, when the reader buys the early endgame gear a key item
+     is for, with `data/economy/prices.json`: the league day is the price's date less its league's `start`; the
+     price in divines, `p`, times `conversion.under-10.to-day-7` when `p` is under 10, else
+     `conversion.10-or-more.to-day-7`; past day 60 or the league's `end`, the low factor over 4 and the high
+     over 2; before day 21, factors 1; a league not in the file, its day unknown, converts as days 21–60. Round
+     each end to a whole divine at 10 or more and to one decimal under 10. The plan keeps the price as seen.
 7. **Validate again** once the prices are written (the schema checks them and the league), so the last
    compile compiles the priced plan and its record's `planSha1` is that plan's.
 8. **The last compile**, of the whole skeleton, measure-only and never with `build_name`:
@@ -229,7 +237,8 @@ Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not 
   every figure the record marks `computedWithCustomMods`, defences included; the clear and boss figures kept
   separate, never summed.
 - **Checklist results**, from the checklist above; **a fallback ladder**, cheapest first; **key item prices**,
-  from step 6, each dated or `unavailable` with its note.
+  from step 6, each converted to a range around day 7 with the price as seen and its date and league day, or
+  `unavailable` with its note (the template's form).
 
 **A card whose damage source isn't a skill** (D-334) compiles nothing, so it has no skeleton, record or probe.
 Run checks 1–4, write its verification half as above, and write the verdict with `compiled: "fail"`, one

@@ -1,7 +1,7 @@
 # Pattern library (v1)
 
-How off-meta builds link a damage source to the pieces that make it work, as shapes to search for (spine
-C-53, D-290). Every R1a researcher reads this file whole before writing cards. Start with the questions.
+How off-meta builds link a damage source to the pieces that make it work, as shapes to search for (C-53,
+D-290). R1a researchers read it whole before writing cards; D1-build, before designing `b` and `n`.
 
 ## Brainstorm questions
 

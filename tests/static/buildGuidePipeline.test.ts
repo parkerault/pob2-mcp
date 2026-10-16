@@ -42,6 +42,7 @@ import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import { TOOL_META } from '../../src/server/toolMeta';
+import { parseDataFile, type DataFile } from '../../src/plan/referenceData';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
@@ -201,7 +202,8 @@ const B = [
   'list_item_sets',
 ];
 const C = ['compile_plan', 'guide_run', 'encode_build_code'];
-const P = ['get_item_price', 'search_trade_items', 'search_stats', 'get_leagues', 'trade_query_options', 'get_currency_rates'];
+// D-372 (WU-75): the weighted search prices the rares of b and n, after a loadout select of the rung.
+const P = ['get_item_price', 'search_trade_items', 'search_stats', 'get_leagues', 'trade_query_options', 'get_currency_rates', 'find_upgrades', 'manage_sets'];
 /** `read`-kind tools that still write (into the builds folder or the state dir): never in L or B (§1). */
 const WRITING_READS = ['lua_save_build', 'export_build', 'save_config_preset'];
 
@@ -293,9 +295,11 @@ describe('AC-W5: the tool sets of §4', () => {
     }
   });
 
-  it('C compiles, validates and encodes in group core; P is the trade and poe.ninja groups', () => {
+  it('C compiles, validates and encodes in group core; P is the trade and poe.ninja groups, plus the loadout select pricing needs (D-372)', () => {
     for (const t of C) expect({ tool: t, group: TOOL_META[t].group }).toEqual({ tool: t, group: 'core' });
-    for (const t of P) expect(['trade', 'ninja']).toContain(TOOL_META[t].group);
+    for (const t of P.filter((x) => x !== 'manage_sets')) expect(['trade', 'ninja']).toContain(TOOL_META[t].group);
+    // manage_sets is a core tool, in P only to select a rung's loadout before find_upgrades prices its rares.
+    expect({ ...TOOL_META.manage_sets }).toEqual(expect.objectContaining({ group: 'core' }));
   });
 });
 
@@ -583,11 +587,12 @@ describe('WU-45: the design stage references', () => {
     expect(text).toMatch(/Only when capping it is \*\*infeasible\*\*/);
   });
 
-  it('D1 prices every slot and tree jewel of every rung, m-, b- and n-, with its own entry unless the text is identical (D-249, D-281)', () => {
+  it('D1 prices every slot and tree jewel of every rung, m-, b- and n-, with its own entry unless the text is identical; the rares of b and n by the weighted search (D-249, D-281, D-372)', () => {
     const text = folded(readD1());
     expect(text).toMatch(/One `prices\[\]` entry per filled slot and tree jewel of \*\*every\*\* rung \(D-249, D-281\), ids `m-<slot>`, `b-<slot>` and `n-<slot>`/);
     expect(text).toContain('Two slots share an entry only when their item text is identical');
-    expect(text).toContain('Rares are affix-target searches (`mcp__pob2__search_trade_items` with `mods`)');
+    expect(text).toContain('**The rares of `b` and `n`: the weighted search** (D-372), `mcp__pob2__find_upgrades`');
+    expect(text).toContain('every slot of `m` by `mcp__pob2__search_trade_items` with `mods`');
   });
 
   it("D1 never inherits R1b's fallback league, and records an unknown one as unverified", () => {
@@ -622,15 +627,18 @@ describe('WU-45: the design stage references', () => {
     const gate = folded(readStage('D1-gate'));
     const gates = fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8');
     const codes = [...gates.matchAll(/^\| (?:floor|budget|rolledSkill) \| (.*?) \|/gm)].flatMap((m) => [...m[1].matchAll(/`([a-z-]+)`/g)].map((c) => c[1]));
-    expect(codes).toEqual(expect.arrayContaining(['missing-chaos-resist', 'chaos-exception', 'over-budget', 'near-ceiling', 'unverified', 'rolled-role', 'rolled-not-largest']));
+    expect(codes).toEqual(expect.arrayContaining(['missing-chaos-resist', 'chaos-exception', 'over-target', 'unverified', 'rolled-role', 'rolled-not-largest']));
     for (const code of codes.filter((c) => !['rolled-not-compared', 'rolled-no-figure'].includes(c))) {
       const named = code.startsWith('max-hit') ? gate.includes('`max-hit-<type>`') : gate.includes(`\`${code}\``);
       expect({ code, named }).toEqual({ code, named: true });
     }
-    expect(gate).toMatch(/at most 20 divines `pass`; above 20 and at most 22 `pass` with a `near-ceiling` finding .* above 22 `fail` \(`over-budget`\)/);
-    expect(gate).toMatch(/rounded to 2 decimals/);
-    expect(gate).toMatch(/filled slots \*\*and tree jewels\*\*/);
-    expect(gate).toContain('The non-budget variant\'s total is reported against the ~200-divine reference, never gated');
+    // D-371, D-373 (WU-75): the budget is a range at each rung's price day, pass or unverified, never a failure.
+    expect(gate).toMatch(/for each rung, `m`, `b` and `n`, the stage's filled slots \*\*and tree jewels\*\*/);
+    expect(gate).toMatch(/\*\*Each rung's total\*\*: the lows summed and the highs summed, each end rounded to a whole divine at 10 or more and to one decimal under 10\. Every total known: `pass`/);
+    expect(gate).toMatch(/`late` when the league's `end` is before that date or the day is above 60/);
+    expect(gate).toMatch(/Late, the low factor over 4 and the high over 2; a known day under 21, the factors are 1/);
+    expect(gate).toMatch(/\*\*The budget never fails\*\* \(D-371\)/);
+    expect(gate).not.toMatch(/`over-budget`|`near-ceiling`|~200-divine reference/);
   });
 
   it('only the D2 gate names a final compile; D1, D2 and the D1 gate compile measure-only', () => {
@@ -671,7 +679,7 @@ describe('WU-45: the design stage references', () => {
       expect(text).not.toMatch(/"hit": (96\.48|402\.0)\b/);
     }
     expect(gates).toContain("| floor | `reference-hit-ledger-<type>` (its name kept) | the record's hit, as the compiler wrote it in `configWritten`, isn't derived from the damage at the variant's area level");
-    for (const text of [gate, gates]) expect(text).toMatch(/`chaos-exception` and `near-ceiling` .*never a failure|never failures/);
+    for (const text of [gate, gates]) expect(text).toMatch(/`chaos-exception` and `over-target` .*(never a failure|never failures)/);
     // The run checker keeps the codes (FR-W7); WU-71 moves its floor onto the compiler-written hits.
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     for (const code of ['reference-hit-missing-', 'reference-hit-ledger-']) expect(checker).toContain(code);
@@ -716,19 +724,20 @@ describe('WU-45: the design stage references', () => {
     expect(text).toContain('FI-3 (injected)');
   });
 
-  it('W1 surfaces the record\'s loadout, save and version notes, and copies the Checks block that holds the D-234 and D-219 lines the checker reads', () => {
+  it('W1 surfaces the record\'s loadout, save and version notes, and copies the Checks block that holds the D-234 and D-374 lines the checker reads', () => {
     const text = folded(readStage('W1'));
     for (const field of ['versionNotes', 'loadoutWarnings', 'saveWarnings']) expect(text).toContain(`\`${field}\``);
     expect(text).toContain('Giant\'s Blood, Instruments of Power or Lord of the Wilds');
     expect(text).toContain('check Weapon 2 and Weapon 2 Swap');
-    expect(text).toMatch(/The render already holds the chaos exception line \(D-234\), the budget line with "near the ceiling" where it applies \(D-164, D-219\), the Arbiter verdict on `b` and `n`, and the rough clear speed and movement speed; don't restate or reword them/);
+    expect(text).toMatch(/The render already holds the chaos exception line \(D-234\), the budget line with its range, price day and target, and the over-target slots on `b` \(D-164, D-374\), the Arbiter verdict on `b` and `n`, and the rough clear speed and movement speed; don't restate or reword them/);
     expect(text).toContain('copied character for character from the record\'s `importCode`');
     expect(text).toMatch(/H3 per campaign stage .* titled with its loadout name \*\*exactly\*\* as the record's/);
     // The render's form: the audit template's Checks holds the lines W1 copies.
     const audit = fs.readFileSync(AUDIT_TEMPLATE, 'utf8');
     expect(audit).toContain("[only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.");
-    expect(audit).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
-    expect(audit).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
+    expect(audit).toContain('- Budget: about <low>–<high> divines around day 7, against a 5-divine target.');
+    expect(audit).toContain('- Budget: about <low>–<high> divines around day 7, aiming at about 5 a slot. Over target: <slot> (about <low>–<high>).');
+    expect(audit).not.toMatch(/near the ceiling|-divine tolerance/);
   });
 });
 
@@ -897,23 +906,25 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
     const block = (i: number) => auditLines.slice(rungs[i].line, i + 1 < rungs.length ? rungs[i + 1].line : nextH2.line).join('\n');
     const chaos = "[only when the stage has a chaosResistException; one line, the reason in full] Chaos resistance stays at <the record's ChaosResist>% because <the exception's reason, in full>.";
     for (const i of [0, 1, 2]) expect({ i, chaos: block(i).includes(chaos), clear: block(i).includes('Clear speed:') }).toEqual({ i, chaos: true, clear: true });
-    expect(block(0)).toContain('Budget: <total> divines against the 5-divine ceiling.');
-    expect(block(0)).toContain('<total> divines is near the ceiling: over 5, within the 5.5-divine tolerance.');
-    expect(block(0)).toContain("so this rung can't be claimed to fit 5 divines");
+    // D-374 (WU-75): each rung's budget line, a range at its price day against its target.
+    expect(block(0)).toContain('- Budget: about <low>–<high> divines around day 7, against a 5-divine target.');
+    expect(block(0)).toContain("Prices are unavailable (<why>), so this rung's total isn't known.");
     expect(block(0)).not.toMatch(/Arbiter/);
-    expect(block(1)).toContain('<total> divines is near the ceiling: over 20, within the 22-divine tolerance.');
-    expect(block(1)).toContain("so this variant can't be claimed to be under 20 divines");
+    expect(block(1)).toContain('- Budget: about <low>–<high> divines around day 7, aiming at about 5 a slot. Over target: <slot> (about <low>–<high>).');
+    expect(block(1)).toContain("Prices are unavailable (<why>), so this rung's total isn't known.");
     expect(block(1)).toContain('- The Arbiter of Divinity: <survives its hits; its worst, <the worst hit>, is <ratio> of your max hit | one-shot by its <the worst hit>, at <ratio> of your max hit>.');
-    expect(block(2)).toContain('Total: <total> divines against the ~200-divine reference, which is no cap.');
+    expect(block(2)).toContain('- Budget: about <low>–<high> divines around day 21, against the 100–200 target.');
     expect(block(2)).toContain('- The Arbiter of Divinity:');
     // Each rung's H2 opens with its one "Move here when" line.
     for (const title of ENDGAME_H2) expect({ title, move: sectionOf(title).filter((l) => l.startsWith('Move here when')).length }).toEqual({ title, move: 1 });
   });
 
-  it("gives entering maps a numbered buy order within 5 divines, and the budget variant a slot table naming an affix's source where it limits the base (D-277)", () => {
-    expect(sectionOf('Endgame: entering maps').join('\n')).toMatch(/the buy order within 5 divines:>\s+1\. <the first buy>/);
+  it("gives entering maps a numbered buy order toward its 5-divine target, and the budget variant a slot table of required affixes, priority and fallback, naming an affix's source where it limits the base (D-277, D-374)", () => {
+    expect(sectionOf('Endgame: entering maps').join('\n')).toMatch(/the buy order toward a 5-divine target:>\s+1\. <the first buy>/);
     const b = sectionOf('Endgame: budget').join('\n');
-    expect(b).toContain('| Slot | Target | Fallback |');
+    expect(b).toContain('| Slot | Must have | Then | Fallback |');
+    expect(b).toContain('<its required affixes with their minimums, as text: what to buy;');
+    expect(b).toContain('<only for an over-target slot: its fallback\'s affixes and price, and that the fallback isn\'t measured; else empty>');
     expect(b).toContain('where an affix\'s source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")');
   });
 
@@ -1639,7 +1650,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
         ['Estimates', ['Count:', 'Custom modifier:', 'because <the reason>', 'Computed with a custom modifier present:', 'Clear:', 'Boss:', 'never summed']],
         ['Checklist results', ['verified \\| estimate \\| risk \\| not checked']],
         ['Fallback ladder', ['1. ', '2. ']],
-        ['Key item prices', ['dated YYYY-MM-DD', 'unavailable (<note>)']],
+        // D-374 (WU-75): a key price converted, as a range with its day, beside the price as seen.
+        ['Key item prices', ['around day 7', 'seen <amount currency> on YYYY-MM-DD', 'unavailable (<note>)']],
       ],
     ],
   ];
@@ -1947,7 +1959,7 @@ describe('WU-62: V4 reads the guide like an editor (D-279), in its one pass (D-3
 
   it('it keeps the gated statements, and never flags a missing optional item (D-277); audit.md is rendered by script, so it isn\'t read (D-355)', () => {
     const text = v4();
-    for (const gated of ['**the named damage source is the main source of damage** (D-122, as D-295 words it)', '**the budget lines** (D-164, D-219, D-281)', '**the survival floor** (D-234)', '**offline** (D-201)']) {
+    for (const gated of ['**the named damage source is the main source of damage** (D-122, as D-295 words it)', '**the budget lines** (D-164, D-370, D-371, D-374)', '**the survival floor** (D-234)', '**offline** (D-201)']) {
       expect({ gated, kept: text.includes(gated) }).toEqual({ gated, kept: true });
     }
     expect(text).toMatch(/\*\*Never flag a missing optional item\*\* \(D-277\): a fallback, a threshold trigger \(a first-person judgment trigger is fine, and a trigger's form isn't checked\), a trap, an either\/or pick, a hold or save row, a rotation clause/);
@@ -1969,10 +1981,10 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(text).toMatch(/gated at T5 \(area 69: `enemies\/waystones\.json#area-level\.offset` plus 5\)/);
     expect(text).toMatch(/at the rung's area level \(69 for `m`, 79 for `b`, 82 for `n`\)/);
     expect(text).not.toContain('`hit_m_fire`');
-    expect(text).toMatch(/`m`'s total aims at 5 divines, `b`'s at 20/);
+    expect(text).toMatch(/The targets \(D-370\): `m` about 5 divines in all at day-7 prices; each rare of `b` about 5 at day 7, and each rare of `n` its own at day 21/);
     expect(text).toMatch(/\*\*The anoint\*\* \(D-358\), on `b` and `n` only; `m` has none/);
     expect(text).toMatch(/\*\*One tree track\*\* \(D-282\): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`/);
-    expect(text).toMatch(/each rung's buy order, one claim per rung \(`m`'s buys within 5 divines, `b`'s buy order, `n`'s upgrade order from `b`\), the guide numbering them as you order them/);
+    expect(text).toMatch(/each rung's buy order, one claim per rung \(`m`'s buys toward its 5-divine target, `b`'s buy order, `n`'s upgrade order from `b`\), the guide numbering them as you order them/);
     expect(text).toContain('at `schemaVersion: 3`');
   });
 
@@ -2003,15 +2015,17 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(text).toMatch(/The endgame is one track, the ladder: `m` continues from the last campaign stage, `b` from `m` and `n` from `b`, and V1 checks each rung's respec and its gold cost/);
   });
 
-  it("the D1 gate and gates.md gate m at area 69 and at 5 divines (5.5 with near the ceiling); FI-2 breaks the ladder's first rung", () => {
+  it("the D1 gate and gates.md gate m at area 69 and price it at day 7 against a 5-divine target (D-370); FI-2 breaks the ladder's first rung", () => {
     const gate = folded(readStage('D1-gate'));
     const gates = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
     for (const text of [gate, gates]) expect(text).toMatch(/69 for the entering-maps rung/);
-    expect(gate).toMatch(/The entering-maps rung's budget is 5 divines: at most 5 `pass`; above 5 and at most 5\.5 `pass` with a `near-ceiling` finding; above 5\.5 `fail` \(`over-budget`\)/);
-    expect(gates).toMatch(/the entering-maps rung's budget is \*\*5 divines\*\*: \*\*≤ 5 pass; > 5 and ≤ 5\.5 pass with "near the ceiling"\*\* in its `Checks`; \*\*> 5\.5 fail\*\* \(D-281\)/);
+    expect(gate).toMatch(/one for `m` when its total's midpoint is above 5 divines/);
+    expect(gates).toContain('| `m` | 7 | 5 divines in all |');
+    expect(gates).toMatch(/on `m`, its total, when it has one and its midpoint is above 5/);
     expect(gate).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's \(the ladder's first rung: `m`, else `b`\) `level` to `1`/);
-    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8'))).toMatch(/Entering-maps rung, the same way: \*\*at most 5 divines passes; above 5 and at most 5\.5 passes, and the guide says "near the ceiling"; above 5\.5 fails\.\*\*/);
-    // The run checker holds the same budgets and area level.
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8')).toContain('| `m`, entering maps | day 7 | 5 divines in all |');
+    // The run checker holds the area level; its budget literal is the old ceiling until WU-76 moves the checker
+    // onto D-370's targets (amendment 5 §9), and this assertion with it.
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     expect(checker).toContain("'entering-maps': { ceiling: 5, tolerance: 5.5, why: 'D-281' }");
     expect(checker).toContain("const tier = { 'entering-maps': 5, budget: 15 }[variant];");
@@ -2543,7 +2557,8 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
     expect(finish).toMatch(/Pick one valuable notable that is \*\*off the stage's tree, or costly to path to\*\*/);
     expect(finish).toMatch(/\*\*Measure it\*\* with a measure-only compile .* `reason` states what it adds, as measured, and why it isn't on the tree/);
     expect(finish).toMatch(/and the anoint like a slot, `b-anoint` and `n-anoint`/);
-    expect(folded(readStage('D1-gate'))).toMatch(/and the budget variant's anoint \(`b-anoint`, priced like a slot\)/);
+    // D-370 (WU-75): every rung is priced, so the gate counts n's anoint too.
+    expect(folded(readStage('D1-gate'))).toMatch(/and the anoint of `b` and `n` \(`b-anoint`, `n-anoint`, priced like a slot\)/);
     expect(folded(readStage('D1-build'))).toMatch(/`b` and `n` wear an amulet: D1-finish anoints it \(D-358\), and leaves `m` without an anoint/);
   });
 
@@ -2907,5 +2922,167 @@ describe('WU-73 (D-367, D-368, D-369): mechanical gate displays, re-check attemp
     const template = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'audit-template.md'), 'utf8');
     expect(template).not.toMatch(/× base/);
     expect(template.match(/Movement speed: \+<\(the record's outputs\.EffectiveMovementSpeedMod − 1\) × 100, rounded>%\./g)).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W63 (WU-75, amendment 5: D-370…D-375): gear pricing in the skill's text. The targets and price days, the
+// weighted search for the rares of b and n, the conversion to the price day and its data file, the pattern
+// library for D1-build, and the coordinator's tools. The checker and the renderer follow in WU-76 (AC-W64), so
+// the scan for the old ceilings reads the skill's text and the agent definitions, not its scripts.
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => {
+  const raw = (name: string) => fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8');
+
+  it('D1-build reads references/patterns.md whole before designing b and n, asks its questions of the build, and checks and measures every shape (D-375)', () => {
+    const build = folded(readStage('D1-build'));
+    expect(build).toContain('`.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b` and `n` (D-375, step 3)');
+    expect(build).toMatch(/\*\*The pattern library first\*\* \(D-375\)\. Before you design `b` and `n`, read `\.claude\/skills\/build-guide\/references\/patterns\.md` whole, as the R1a researchers do/);
+    expect(build).toContain('Ask its brainstorm questions of this build, not of a new concept: what feeds the payoff, which routine action already makes the resource it needs, which +level sources and supports reach the skill, and how its required state fails.');
+    expect(build).toContain("A shape is a starting point, never a fact: check every use with a lookup and measure it with a measure-only compile like any other change. The `reason` that keeps it in the plan (D1-finish's claim) cites the lookup and the measurement, never the library.");
+    // The read comes with the design of the rungs (step 3), before the items and the measurement.
+    const text = readStage('D1-build');
+    expect(text.indexOf('**The pattern library first**')).toBeGreaterThan(text.indexOf('3. **The three rungs**'));
+    expect(text.indexOf('**The pattern library first**')).toBeLessThan(text.indexOf('6. **Items.**'));
+    // D1-finish's reason claims cite the lookup and the measurement, and the library names both readers.
+    expect(folded(readStage('D1-finish'))).toContain('a shape from the pattern library cites its lookup and that measurement, never the library, D-375');
+    expect(folded(raw('patterns.md').split(/\r?\n/).slice(0, 5).join('\n'))).toContain('R1a researchers read it whole before writing cards; D1-build, before designing `b` and `n`.');
+  });
+
+  it('D1-build claims infeasible only for the floor or the named damage source, never for a price (D-371)', () => {
+    const build = folded(readStage('D1-build'));
+    const claim = /10\. \*\*Claim\.\*\* (.*?) Offline mode:/.exec(build)![1];
+    expect(claim).toContain("`infeasible` only when this card can't meet the survival floor, or the named damage source as the main source of damage, at any arrangement you tried");
+    expect(claim).toContain('A price is never a reason (D-371).');
+    expect(claim).not.toMatch(/budget/);
+    // Each rare of b and n carries its required affixes and its target to D1-finish; a target never drops a piece.
+    expect(build).toMatch(/\*\*Required affixes and targets\*\* \(D-370, D-372\)\. For each rare gear slot and rare tree jewel of `b` and `n`, write its `prices\[\]` entry/);
+    expect(build).toContain('`target`: on `b`, `{"divines": 5, "day": 7}`. On `n`, `{"divines": <its share>, "day": 21}`: by default 150 divines shared evenly');
+    expect(build).toContain("`n`'s targets together are at most 200");
+    expect(build).toContain('An affix PoB can\'t value (one it doesn\'t parse) is always required.');
+    expect(build).toContain('it is never a reason to drop or weaken a piece the build needs (D-371)');
+  });
+
+  it("pricing.md has D-370's targets and price days, D-372's weighted search and D-373's conversion", () => {
+    const file = raw('pricing.md');
+    const text = folded(file);
+    // D-370, D-371: the targets, never a gate failure.
+    expect(file).toContain('| `m`, entering maps | day 7 | 5 divines in all |');
+    expect(file).toContain('| `b`, budget | day 7 | about 5 divines a rare slot or rare tree jewel |');
+    expect(text).toMatch(/\| `n`, non-budget \| day 21 \| 100–200 divines in all\. Each rare has its own target, set by D1-build: by default 150 divines shared evenly over `n`'s rares; a slot that carries the build \(a weapon, a skill-levels amulet\) may take more, with a reason; together at most 200 \|/);
+    expect(text).toContain("A rare's target travels in its entry's `query` as `target: {divines, day}`");
+    expect(text).toMatch(/\*\*A target never fails a gate\*\* \(D-371\)/);
+    expect(text).toMatch(/\*\*An over-target rare keeps its designed item\.\*\* D1-finish may add a fallback/);
+    // D-372: which tool, and the call.
+    expect(text).toContain('**A rare gear slot or rare tree jewel of `b` or `n`:** `mcp__pob2__find_upgrades`');
+    expect(text).toContain('**A unique, and each Distilled Emotion of an anoint:** `mcp__pob2__get_item_price`');
+    expect(text).toContain('**A magic or normal item, a flask, a charm, and every slot of `m`:** `mcp__pob2__search_trade_items` with `mods`');
+    for (const part of [
+      '`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title:',
+      '`mcp__pob2__trade_query_options {slot}` lists the slot\'s required-mod choices with their trade ids',
+      'the target turned into today\'s market, the target over the midpoint of its conversion factors',
+      '`mcp__pob2__find_upgrades {slot, required_mods: [{trade_id, min}, …], max_price, currency: "exalted_equivalent", rank_by: "stat_value", include_non_upgrades: true, fetch_pages: 1}`',
+      "the entry's `note`, `fit 85%`",
+      'Call once more without `max_price` and with `rank_by: "price"`',
+      'keeps `slot`, `required` and `target` and adds the arguments of the call',
+    ]) {
+      expect({ part, present: text.includes(part) }).toEqual({ part, present: true });
+    }
+    // Its stops classify by the prefix wherever it is; the date comes from Checked:, not the run log.
+    expect(text).toContain('`find_upgrades` names a stop for a trade-site limit as `Stopped early: [trade:<kind>] <reason>.`');
+    expect(text).toContain('wherever the prefix appears in the line');
+    expect(text).toContain("The league is the price's `league`, and the date part of the `Checked:` time is the price's `date`.");
+    expect(text).not.toMatch(/the call's `at` in the run log/);
+    // D-373: the market day, the table, early and late markets, ranges and rounding.
+    expect(text).toMatch(/\*\*The market's league day\*\* is the date the prices were seen less the league's start date, from the league table in `data\/economy\/prices\.json`/);
+    expect(text).toContain('A market past day 60, or in a league whose end date has passed, reads as **late**. A league not in the table converts as days 21–60, and the guide says its day is unknown.');
+    expect(file).toContain('| Under 10 divines | ×0.6–0.85 | ×0.4–0.9 |');
+    expect(file).toContain('| 10 divines or more | ×0.5–0.85 | ×0.2–0.4 |');
+    expect(file).toContain('| Seen late in a league (past day 60) or after it ended | the row above, then ÷2–4 | the row above, then ÷2–4 |');
+    expect(text).toContain('For a market before day 21 no conversion applies: the factors are 1, and the guide says the prices are from an early market.');
+    expect(text).toContain("**A total is a range:** the entries' lows summed and their highs summed, each end rounded to a whole divine at 10 or more and to one decimal under 10.");
+    expect(text).toContain('Prices stay in `plan.json` as seen: the conversion is reporting only');
+  });
+
+  it("gates.md defines basis.budget's market and range totals step by step, and the budget part never fails (D-371, D-373)", () => {
+    const file = raw('gates.md');
+    const text = folded(file);
+    expect(file).toContain('"market": { "league": "Forbidden Rites", "day": 41, "late": false }');
+    expect(file).toContain('{ "stage": "b", "low": 14, "high": 32, "day": 7 }');
+    expect(text).toContain('`budget.market`: `{league, day, late}`');
+    expect(text).toContain('`budget.totals`: one entry per endgame rung, `{stage, low, high, day}`');
+    expect(text).not.toMatch(/nonBudget|"divines": 21\.5/);
+    const steps = ['1. **The market.**', "2. **An entry's price in divines,**", '3. **Its factors**', '4. **Its range**', "5. **A rung's total**", '6. **Rounding**', '7. **`over-target`**'];
+    expect(steps.map((st) => text.indexOf(st))).toEqual([...steps.map((st) => text.indexOf(st))].sort((x, y) => x - y));
+    for (const st of steps) expect({ st, present: text.includes(st) }).toEqual({ st, present: true });
+    expect(text).toContain('`late`: `[min ÷ 4, max ÷ 2]` (`conversion.late-divisor`)');
+    expect(text).toContain('10 or more to a whole divine (`Math.round(x)`), under 10 to one decimal (`Math.round(x × 10) ÷ 10`)');
+    expect(text).toMatch(/\*\*never fail\*\* \(D-371\): a target is never a pass mark, a budget finding never sends D1 back, and no design is `infeasible` for its price/);
+    expect(file).toContain('| only floor or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |');
+    expect(readStage('D1-gate')).toContain('"market": { "league": null, "day": null, "late": false }');
+    expect(folded(runnerText())).toMatch(/only floor or `rolledSkill` failing \(the budget never fails, D-371\): `infeasible`, back to the verification gate with the verdict as evidence/);
+  });
+
+  it('data/economy/prices.json holds the conversion table and the league dates as judgment facts of confidence L, citing the study (D-373)', () => {
+    const parsed = parseDataFile('economy/prices.json', fs.readFileSync(path.join(REPO, 'data', 'economy', 'prices.json'), 'utf8'));
+    expect(parsed.ok ? [] : parsed.errors).toEqual([]);
+    const data = (parsed as { ok: true; data: DataFile }).data;
+    const sources = new Map(data.sources.map((src) => [src.id, src]));
+    for (const [id, fact] of Object.entries(data.facts)) {
+      const src = sources.get(fact.source)!;
+      expect({ id, kind: src.kind, sourceConfidence: src.confidence, confidence: fact.confidence, cites: src.ref.includes('docs/build-guide/studies/2026-10-16-pricing.md') }).toEqual({
+        id,
+        kind: 'judgment',
+        sourceConfidence: 'L',
+        confidence: 'L',
+        cites: true,
+      });
+    }
+    const v = (id: string) => data.facts[id]?.value;
+    expect(v('conversion.threshold')).toBe(10);
+    expect(v('conversion.under-10.to-day-21')).toEqual({ min: 0.6, max: 0.85 });
+    expect(v('conversion.under-10.to-day-7')).toEqual({ min: 0.4, max: 0.9 });
+    expect(v('conversion.10-or-more.to-day-21')).toEqual({ min: 0.5, max: 0.85 });
+    expect(v('conversion.10-or-more.to-day-7')).toEqual({ min: 0.2, max: 0.4 });
+    expect(v('conversion.late-divisor')).toEqual({ min: 2, max: 4 });
+    expect(v('conversion.first-day')).toBe(21);
+    expect(v('conversion.late-day')).toBe(60);
+    expect(Object.entries(data.facts).filter(([id]) => id.startsWith('league.')).map(([, f]) => f.value)).toEqual([
+      { name: 'Dawn of the Hunt', start: '2025-04-05', end: '2025-08-27' },
+      { name: 'Rise of the Abyssal', start: '2025-08-30', end: '2025-12-08' },
+      { name: 'Fate of the Vaal', start: '2025-12-12', end: '2026-05-25' },
+      { name: 'Runes of Aldur', start: '2026-05-29' },
+      { name: 'Forbidden Rites', start: '2026-09-04' },
+    ]);
+  });
+
+  it("the coordinator's tools include find_upgrades and manage_sets, and its standing rules hold D-370's targets", () => {
+    const def = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
+    expect(def.tools).toEqual(expect.arrayContaining([`${POB2}find_upgrades`, `${POB2}manage_sets`]));
+    const body = folded(def.body);
+    expect(body).toContain('Call `mcp__pob2__manage_sets` only as `{set_type: "loadout", action: "select"}`, to load a rung before `mcp__pob2__find_upgrades` prices its rares');
+    expect(body).toMatch(/\*\*Prices and targets\*\* \(D-249, D-370, D-371\): .* `m` 5 divines in all at day-7 prices; `b` about 5 divines a rare slot at day 7; `n` 100–200 in all at day 21, each rare with the target D1-build gave it\. A target never fails the gate and never prunes a design/);
+  });
+
+  it("the guide's pricing line says once where and when the prices were seen and what they estimate, and W1 writes it (D-374)", () => {
+    const template = fs.readFileSync(GUIDE_TEMPLATE, 'utf8');
+    expect(template).toContain("<online: Prices are from the <league> league, checked <date>, <day <n> of the league | on a league day I don't know>. I estimate early endgame gear at about day 7 of a league and late endgame at about day 21[only when the day is under 21: ; these prices are from an early market, so I didn't convert them]. Trade moves a lot: re-price the build with the build-guide skill any time.");
+    expect(folded(readStage('W1'))).toMatch(/\*\*The pricing line\*\*, once, online \(D-374\): the league and the date the prices were seen, with the league day \(`basis\.budget\.market\.day`/);
+  });
+
+  it('no skill file or agent definition keeps the 20-divine ceiling, the 22- or 5.5-divine tolerance, or "near the ceiling" (D-371)', () => {
+    const files = [
+      SKILL_MD,
+      ...fs.readdirSync(path.join(SKILL_DIR, 'references'), { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => path.join(e.parentPath, e.name)),
+      ...fs.readdirSync(path.join(SKILL_DIR, 'templates')).map((f) => path.join(SKILL_DIR, 'templates', f)),
+      ...fs.readdirSync(AGENTS_DIR).map((f) => path.join(AGENTS_DIR, f)),
+    ];
+    const OLD = /near the ceiling|near-ceiling|over-budget|\b20-divine\b|\b(?:at most|under|within|against) 20(?: divines)?\b|\b22-divine\b|\b(?:at most|above) 22\b|\b5\.5-divine\b|\b(?:at most|above) 5\.5\b|> 5\.5|~200-divine/g;
+    expect(files.length).toBeGreaterThan(20);
+    for (const file of files) {
+      const text = folded(fs.readFileSync(file, 'utf8'));
+      expect({ file: path.relative(REPO, file), stale: text.match(OLD) ?? [] }).toEqual({ file: path.relative(REPO, file), stale: [] });
+    }
   });
 });

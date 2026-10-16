@@ -48,20 +48,47 @@ price every slot, write the ledger and the claims, and read the plan and the rec
 2. **Prices.** One `prices[]` entry per filled slot and tree jewel of **every** rung (D-249, D-281), ids
    `m-<slot>`, `b-<slot>` and `n-<slot>` (`m-boots`, `b-ring1`, `b-jewel-<node>`), and the anoint like a slot,
    `b-anoint` and `n-anoint`: its item the recipe's three emotions, `query` each emotion's query and `amount`
-   their sum. `m`'s total aims at 5 divines, `b`'s at 20 (the D1 gate's budgets). Two slots share an entry
-   only when their item text is identical. Rares are affix-target searches (`mcp__pob2__search_trade_items`
-   with `mods`); a unique or an emotion is `mcp__pob2__get_item_price`, one item per call. No item-base or
-   mod-tier search serves crafting (D-348): the guide names mods to buy on trade. Reuse an entry with the
-   same item, query and league from any plan of this run first.
-   - An entry: `{id, item, query, amount, currency, date, league, status}`, `league` the plan's, `date` the
-     result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`.
+   their sum. The targets (D-370): `m` about 5 divines in all at day-7 prices; each rare of `b` about 5 at day
+   7, and each rare of `n` its own at day 21, as D1-build wrote them in their entries' `query.target`. Two slots
+   share an entry only when their item text is identical. No item-base or mod-tier search serves crafting
+   (D-348): the guide names mods to buy on trade. Reuse an entry with the same item, query and league from any
+   plan of this run first.
+   - **The rares of `b` and `n`: the weighted search** (D-372), `mcp__pob2__find_upgrades`, PoB2's "trade for
+     these items", from the entry D1-build wrote (`query.slot`, `query.required`, `query.target`). Step 1's
+     measure-only compile loaded `b` and `n` (with no step 1 compile, as in a fix round, make it first);
+     select `b`'s loadout (`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<b's
+     loadout name, as the record has it>"}`) and price its rares, then `n`'s. Per rare: map each required
+     affix to its trade id with `mcp__pob2__trade_query_options {slot}`, and call `mcp__pob2__find_upgrades`
+     with `required_mods` (those ids with their minimums), `max_price` (below), `currency:
+     "exalted_equivalent"`, `rank_by: "stat_value"`, `include_non_upgrades: true` and `fetch_pages: 1`, plus
+     `jewel_type` for a tree jewel, as `mcp__pob2__trade_query_options` gives it. The first listing is the best item the budget buys: its price is the entry's `amount`
+     and `currency`, its score against the designed item the `note` (`fit 85%`). When no listing fits, call
+     once more without `max_price` and with `rank_by: "price"`: the cheapest listing with the required
+     affixes, and the slot is over its target. The entry's `query` keeps `slot`, `required` and `target` and
+     adds the call's arguments. With `--no-ninja`, make only the second call.
+   - **`max_price`** (D-373) is the target turned into today's market: the target over the midpoint of its
+     factors in `data/economy/prices.json`, times the run's exalts per divine, a whole number. The factors are
+     the rung's price day's (`conversion.under-10.to-day-<7|21>`; when that puts the budget at 10 divines or
+     more, `conversion.10-or-more.to-day-<7|21>`). The market's league day is today's date less the league's
+     `start`; past day 60 or the league's `end`, the low factor goes over 4 and the high over 2; before day 21
+     the factors are 1. `b`'s 5 divines on day 41: the midpoint of ×0.4–0.9 is 0.65, so 7.7 divines, 3077
+     exalts at 400 a divine.
+   - **Everything else:** a unique or an emotion by `mcp__pob2__get_item_price`; a magic or normal item, a
+     flask, a charm, and every slot of `m` by `mcp__pob2__search_trade_items` with `mods`. One item per call.
+   - **An over-target rare keeps its item** (D-371). You may add a fallback entry, `<id>-fallback`
+     (`b-amulet-fallback`): fewer or lower required affixes, priced the same way, with the same target. The
+     guide shows it beside the slot and says it isn't measured. Never change the build for a price.
+   - An entry: `{id, item, query, amount, currency, date, league, status, note?}`, `league` the plan's, `date`
+     the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again
      later; its third refusal makes it `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop
-     pricing for the rest of the run: every remaining item `unavailable`); any other kind, `unavailable`.
+     pricing for the rest of the run: every remaining item `unavailable`); any other kind, `unavailable`. The
+     prefix may stand anywhere in the line: `mcp__pob2__find_upgrades` reads `Stopped early: [trade:<kind>]
+     <reason>.`.
    - Offline: no price call; every entry is `unavailable`, note `offline run`, `league` null, dated the run
-     folder's date. Pricing stopped: no call; `unavailable`, note `pricing stopped`. League `unverified`
-     (D1-build's return): `unavailable`, note `trade unreachable`. Count every call by its outcome for your
-     return.
+     folder's date, D1-build's `not priced yet` entries included. Pricing stopped: no call; `unavailable`,
+     note `pricing stopped`. League `unverified` (D1-build's return): `unavailable`, note `trade unreachable`.
+     Count every call by its outcome for your return.
 3. **Ledger** (D-106, as D-352 and D-353 narrow it). A ledger entry `{id, claim, formula, inputs}`, its
    inputs tagged, holds a hand calculation only where PoB doesn't model a mechanic the build relies on: a
    `possibly unread` line D1-build measured as unread, or a partly parsed line, which PoB applies none of. The
@@ -73,10 +100,11 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      breaks or kills the build, such as a main-hand weapon that switches the skill off, up to 4), the chaos
      exception's reason, an affix whose source narrows its slot's base, a trigger into the next rung;
    - `reason`: a reason resting on a measurement: why a support, node, item or the anoint is in (a
-     measure-only compile with a temporary stage for the other option, the record or a ledger value), an
+     measure-only compile with a temporary stage for the other option, the record or a ledger value; a shape
+     from the pattern library cites its lookup and that measurement, never the library, D-375), an
      either/or pick (up to 2, the deciding factor measured, and online the price difference), the named
-     source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys within 5
-     divines, `b`'s buy order, `n`'s upgrade order from `b`), the guide numbering them as you order them.
+     source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys toward its
+     5-divine target, `b`'s buy order, `n`'s upgrade order from `b`), the guide numbering them as you order them.
 
    What the compile proves carries no claim: requirements, gem and stage levels, record numbers, ledger
    values, prices and tree lists, which the guide renders from the plan and the record. Superfluous content
@@ -99,7 +127,8 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      `external source unavailable (offline run)`, with a confidence).
 5. **Validate** with `mcp__pob2__guide_run {validate: "<runFolderRel>/plan.json"}` until it reports no error.
    No final compile: the D1 gate compiles.
-6. **Claim.** `done`. A budget your prices break goes to the D1 gate, which routes it back to D1-build.
+6. **Claim.** `done`. A price over its target is information for the user (D-371): it never sends the design
+   back.
 
 ## The fix round and revisions (D-264, D-352)
 

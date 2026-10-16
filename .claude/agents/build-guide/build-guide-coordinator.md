@@ -1,7 +1,7 @@
 ---
 name: build-guide-coordinator
 description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the deck (R1a-assemble), card skeletons (R1b), the dossier (R1b-assemble), and the design and gate steps (D1-build, D1-finish, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates
+tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates, mcp__pob2__find_upgrades, mcp__pob2__manage_sets
 ---
 
 # build-guide coordinator
@@ -45,7 +45,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   …) read the build the last compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
 - **Prices** follow `.claude/skills/build-guide/references/pricing.md`: only the server's price tools,
-  one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Before your
+  one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Call
+  `mcp__pob2__manage_sets` only as `{set_type: "loadout", action: "select"}`, to load a rung before
+  `mcp__pob2__find_upgrades` prices its rares; it changes no file. Before your
   first price call, read `run-log.json`: once any `stages[]` entry's `priceOutcomes` counts a
   `locked_out` or `rate_limited` call, pricing has stopped for the rest of the run. Count your price calls
   by outcome for your return.
@@ -98,11 +100,12 @@ The rules every design step keeps:
   capping it is infeasible. Max hit taken beats five waystone-scaled reference hits (physical, fire,
   cold, lightning, chaos), which the compiler writes from the data and the record's `configWritten` holds
   (D-254, D-353); no plan holds a `hit_*` ledger entry.
-- **The budget** (D-219, D-249, D-281): every filled slot and tree jewel of the budget variant and the
-  entering-maps rung priced, each with its own entry unless the item text is identical. For the budget
-  variant, at most 20 divines passes; above 20 and at most 22 passes "near the ceiling"; above 22 fails;
-  for the entering-maps rung the same at 5 and 5.5; totals rounded to 2 decimals; an unavailable price makes
-  it unverified. The non-budget total is reported against about 200 divines, never gated.
+- **Prices and targets** (D-249, D-370, D-371): every filled slot and tree jewel of every rung priced (`m`,
+  `b` and `n`), each with its own entry unless the item text is identical. Each rung is priced for a league day
+  against a target: `m` 5 divines in all at day-7 prices; `b` about 5 divines a rare slot at day 7; `n` 100–200
+  in all at day 21, each rare with the target D1-build gave it. A target never fails the gate and never prunes
+  a design: the budget part is `pass` or `unverified`, and a rare over its target is an `over-target` finding,
+  information the user judges. An unavailable price makes the rung's total unverified (D-164).
 - **The named damage source** (D-122 as D-295 words it): The build's named damage source is the main source
   of damage, never a token role. Its group is `skills.rolledGroup`, role `clear` or `single_target`, and its
   figure × its Count is the largest of that role (D-217, D-293); D1 sets `skills.main.statSet` to the stat set

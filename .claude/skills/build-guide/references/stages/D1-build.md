@@ -12,7 +12,8 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
   `compile: "measure-only"`, `writes: ["plan.json"]`, `accepted` (findings the user accepted at an
   escalation; they need no fix), and `findings`:
   - on a D1 gate retry, the earlier verdict file and its findings (`{part, code, stage, message}`): fix what
-    each names; a note when an earlier attempt returned without writing;
+    each failing one names (an `over-target` or `chaos-exception` finding is information: leave it); a note
+    when an earlier attempt returned without writing;
   - on a guided retry, the escalated verdict's findings, then the user's guidance (`code: "user-guidance"`),
     which you follow;
   - the user's request from the design gate's `revise:<text>` or a final-gate revision (`code:
@@ -29,13 +30,15 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
   - `docs/build-guide/plan-reference.md` by section, never whole: Grep `^#` for its headings and Read the
     worked example and "Count and custom modifiers"; when `validate` names a field, Grep that field's table row;
   - the facts under `data/`: `data/campaign/limits.json` (`passive-points.max`, `ascendancy.max`,
-    `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`).
+    `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`);
+  - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
+    and `n` (D-375, step 3).
 
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 3` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []`, and only
-   the endgame stages below. A `plan.json` already in the run folder belongs to an earlier design and is
+   `schemaVersion: 3` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
+   adds the rares' entries), and only the endgame stages below. A `plan.json` already in the run folder belongs to an earlier design and is
    replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and
    everything D1-finish wrote that your change doesn't touch.
 2. **League** (C-31, D-233):
@@ -54,13 +57,20 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    |---|---|---|---|
    | `id`, `variant` | `m`, `entering-maps` | `b`, `budget` | `n`, `non-budget` |
    | `loadoutName` | `Entering maps (L<level>) {m}` | `Endgame budget (L<level>) {b}` | `Endgame non-budget (L<level>) {n}` |
-   | Aim | the player's setup just after the campaign, plus buys within 5 divines: T1 to T5 maps, gated at T5 (area 69: `enemies/waystones.json#area-level.offset` plus 5); the cheapest setup that passes its gate with the same skill and supports as `b` (D-281) | T15 maps (area 79: `enemies/waystones.json#area-level.offset` plus the tier) without dying often, as cheaply as possible, at most 20 divines (D-116, D-147, D-219) | as strong as possible around the ~200-divine reference: T16 (area 80) up to area 82, heavily modded waystones and tablets (D-115, D-117) |
+   | Aim | the player's setup just after the campaign, plus buys toward a 5-divine target at day-7 prices (D-370): T1 to T5 maps, gated at T5 (area 69: `enemies/waystones.json#area-level.offset` plus 5); the cheapest setup that passes its gate with the same skill and supports as `b` (D-281) | T15 maps (area 79: `enemies/waystones.json#area-level.offset` plus the tier) without dying often, each rare aiming at about 5 divines at day-7 prices (D-370) | as strong as possible for 100–200 divines in all at day-21 prices, each rare with its own target (step 6; D-370): T16 (area 80) up to area 82, heavily modded waystones and tablets (D-115) |
 
    Each stage has `progress: "endgame"`, its own `level`, `ascendancyPoints` and per-gem levels, and
    `variantBasis` giving the source of each (D-193): a C-30 tag, or a `judgment` tag stating the
    rationale. The spec fixes no number: choose what a player of that rung has. `m`'s level is above the
-   campaign's last stage. At 5 divines the key item may fit `m` (a unique, or a rare with a stat floor, such as
-   a weapon's elemental DPS or an energy shield total); when it doesn't, it is the trigger into `b`.
+   campaign's last stage. Within `m`'s 5-divine target the key item may fit `m` (a unique, or a rare with a stat
+   floor, such as a weapon's elemental DPS or an energy shield total); when it doesn't, it is the trigger into `b`.
+   - **The pattern library first** (D-375). Before you design `b` and `n`, read
+     `.claude/skills/build-guide/references/patterns.md` whole, as the R1a researchers do. Ask its brainstorm
+     questions of this build, not of a new concept: what feeds the payoff, which routine action already makes the
+     resource it needs, which +level sources and supports reach the skill, and how its required state fails. A
+     shape is a starting point, never a fact: check every use with a lookup and measure it with a measure-only
+     compile like any other change. The `reason` that keeps it in the plan (D1-finish's claim) cites the lookup
+     and the measurement, never the library.
    - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`,
      so each rung's tree contains the one before it, except where its `respec` drops nodes (`respec
      {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the dropped nodes as the tool names
@@ -118,12 +128,30 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
 6. **Items.** Every slot the variant uses (`Weapon 1` first) and every tree jewel, flasks and charms with
    their toggles. `b` and `n` wear an amulet: D1-finish anoints it (D-358), and leaves `m` without an anoint. A
    unique's text comes from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`. A rare is an
-   affix target: realistic rolls a buyer finds at that budget, bought on trade; nothing is crafted, and no
+   affix target: realistic rolls a buyer finds on trade around its target; nothing is crafted, and no
    item-base or mod-tier search serves crafting (D-348). When an affix can't roll on every base of its slot
    (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`: each `[mod]`
    hit's `Base types:` lists the bases that can roll it), fit the slot's item to that base. An off-hand made
    legal only by Giant's Blood, Instruments of Power or Lord of the Wilds needs that node or item in the same
    stage.
+   - **Required affixes and targets** (D-370, D-372). For each rare gear slot and rare tree jewel of `b` and
+     `n`, write its `prices[]` entry for D1-finish to price with PoB2's weighted trade search:
+     `{"id": "b-helmet", "item": "<a short description>", "query": {"slot": …, "required": […], "target": {…}},
+     "amount": null, "currency": null, "date": "<the run folder's date>", "league": <the plan's league>,
+     "status": "unavailable", "note": "not priced yet"}` (offline, `"note": "offline run"`, which a null league
+     needs), its `id` as D1-finish names it (`b-ring1`, `n-jewel-<node>`). When you change such a rare, write its
+     entry again this way.
+     - `slot`: the slot as `mcp__pob2__find_upgrades` names it (`Helmet`, `Ring 1`, `Jewel <node id>` for a
+       tree jewel).
+     - `required`: the slot's **required affixes**, at most 3, each `{"affix": "+# to maximum Life", "min":
+       60}`: what the slot can't do without, such as the build's damage type, a resistance the floor needs, or
+       skill levels. They become the trade search's AND group, and PoB's weights value the item's other
+       affixes. An affix PoB can't value (one it doesn't parse) is always required.
+     - `target`: on `b`, `{"divines": 5, "day": 7}`. On `n`, `{"divines": <its share>, "day": 21}`: by default
+       150 divines shared evenly over `n`'s rare slots and rare tree jewels. A slot that carries the build (a
+       weapon, a skill-levels amulet) may take more, with `"reason"` saying why; `n`'s targets together are at
+       most 200.
+     A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371).
 7. **Config** (C-32, D-114; `config.earned` and `config.scenario`).
    - **Earned state**, `{option, value, producer, uptime}`: every stack, charge, buff or condition the
      numbers rely on, with the producer present in the stage (V2 checks it) and an honest uptime. Every
@@ -154,7 +182,7 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    lightning **and chaos** resistance are capped (`Missing<Elem>Resist` 0), and each of the five reference
    hits the record wrote is below its `<Type>MaximumHitTaken`. Cap chaos resistance. Only when capping it is
    **infeasible** (Chaos Inoculation; no slot can carry chaos resistance without dropping a core item or
-   breaking the budget) add `chaosResistException {reason, tag}` to that stage: one sentence naming what makes
+   going far over its price target) add `chaosResistException {reason, tag}` to that stage: one sentence naming what makes
    the cap infeasible, tagged. Never add it to avoid work; a stage with the exception and a capped chaos
    resistance needs none.
 9. **Measure.** Validate with `mcp__pob2__guide_run {validate: "<runFolderRel>/plan.json"}` until it reports no
@@ -170,8 +198,9 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      outputs. Numbers that move mean PoB reads the line. Remove the temporary stage before you finish. A
      **partly parsed** line means PoB applies none of it: D1-finish hand-calculates the whole line.
 10. **Claim.** `done` when the three rungs are written and you expect them to pass. `infeasible` only when
-    this card can't meet the survival floor, a budget, or the named damage source as the main source of
-    damage at any arrangement you tried; give the reason in a sentence. The gate still runs and decides.
+    this card can't meet the survival floor, or the named damage source as the main source of damage, at any
+    arrangement you tried; give the reason in a sentence. A price is never a reason (D-371). The gate still
+    runs and decides.
 
 Offline mode: no WebSearch, WebFetch or price tool.
 

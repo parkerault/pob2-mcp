@@ -27,7 +27,7 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 `--no-ninja` turns off group `ninja`, whose one tool is `mcp__pob2__get_currency_rates`: no step calls it. The
 runner tells every pricing step, the D1 gate included, that there are no currency rates. Prices are still
 checked online, but totals in divines are `unverified`, pricing's path when rates are missing (`pricing.md`),
-so the guide can't claim a rung is within its budget. Offline mode turns the rates off anyway.
+so the guide can't state a rung's total. Offline mode turns the rates off anyway.
 
 There are no poe.ninja tools beyond the currency rates (D-335): poe.ninja's terms close its builds API, so no
 tool supplies player evidence. In every run, offline or not, a card says "no player evidence" unless the

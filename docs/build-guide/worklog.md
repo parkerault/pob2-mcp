@@ -3553,3 +3553,14 @@ architectural: the result goes into amendment 5's spec text.
   the "Grip of Kulamok" ring and volatility's base chaos line. Spot-checked: Inner Turmoil's "Take no Damage from
   Volatility" and Charge Profusion II's random-type charge match the pin. The new shapes await the user's approval
   (C-53's maintenance rule).
+- **Library: the five shapes added** (the user approved, 2026-10-16: "Go ahead"): Charge-type converter (family 3),
+  Travel by action and Duration to the floor (5), Harmless self-trigger (7), Off-tree defence layer (8), citing
+  `[nerd-interactions]`. Cut to the library's terse form to fit D-325's 6,000-word cap: the library is now at
+  exactly 6,000 words, so the next addition needs a trim or a decision on the cap (the engine-lens amendment).
+- **WU-74 done by its doer** (`a3c6223` on `bg/wu-74`, 258K tokens): both gate commands exit 0 (129 suites, 2,300
+  tests). The loadout select works: after selecting `b`, `find_upgrades` reads `b`'s ring as the current item and
+  scores against it; with `n` selected, against `n`'s. Deviations for the fold: the header splits into `League:`,
+  `Checked:` and the status line; the stop line reads `Stopped early: [trade:<kind>] <reason>.`, so C-14's output
+  block and stop wording (stab `03-trade.md:489-496`, `:542`) and slice 01 §2.9's "keeps C-14's wording" need
+  updating; `Checked:` is the wall-clock time of the first search. AC-T46 collided with the stabilization spec's
+  AC-T46, so amendment 5's server AC is renamed AC-K68.

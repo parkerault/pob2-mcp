@@ -270,6 +270,14 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Examples:** Enervating Nova: Doryani's Prototype at −200% lightning resistance [enervating].
 - **Cautions:** only enemies in Presence.
 
+### Charge-type converter
+
+- **Shape:** make one charge type cheaply and convert it to the type the payoff reads.
+- **Search:** the payoff's type; `mechanic "instead of Endurance Charges" (passive)`, "random type" (gem).
+- **PoB:** config stand-in for the counts; the rate is a hand calculation.
+- **Examples:** Resonance with Armour Break III; Charge Profusion II [nerd-interactions].
+- **Cautions:** Resonance changes every generator's type.
+
 ## 4. Stat bridges
 
 ### Stat-to-damage bridge
@@ -433,6 +441,24 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Examples:** Eye of Winter: Slower Projectiles raised damage [eye-of-winter].
 - **Cautions:** none of its game facts apply to PoE2.
 
+### Travel by action
+
+- **Shape:** the build moves by an action it scales (a closing strike, a dodge roll, a teleport): buy its
+  rate or reach, not movement speed.
+- **Search:** relocating actions (`mechanic "teleport" (gem)`, "Dodge Roll distance") and their speed sources.
+- **PoB:** not modelled: travel is no output.
+- **Examples:** Boneshatter at 6.76 attacks a second; Lightning Warp to Ball Lightning [nerd-interactions].
+- **Cautions:** a strike's travel needs in-game testing.
+
+### Duration to the floor
+
+- **Shape:** a skill built around a delay (a fuse, a hover, a ritual) fires at once at its minimum duration.
+- **Search:** delay text ("at the end of their duration"); then `mechanic "reduced Skill Effect Duration"
+  (passive)`, Compressed Duration, Overabundance.
+- **PoB:** not modelled until coverage shows otherwise (not established).
+- **Examples:** Spearfield with Delayed Reaction; Profane Ritual at 0.13 s [nerd-interactions].
+- **Cautions:** duration often pays damage too.
+
 ## 6. Levels, quality and tags
 
 ### Level-carrier host
@@ -529,6 +555,15 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   comes from the companion [twister].
 - **Cautions:** check the bonus doesn't need what it stops.
 
+### Harmless self-trigger
+
+- **Shape:** cancel an event's damage to you, then cause it on purpose for a payoff scaled by it.
+- **Search:** self-event payoffs ("per … exploded"); `mechanic "Take no Damage from" (passive)`; `mechanic
+  "detonate" (gem)`.
+- **PoB:** custom modifier at the expected size; the volatility nodes don't parse.
+- **Examples:** volatility with Inner Turmoil and Catharsis [nerd-interactions].
+- **Cautions:** the base chaos payoff isn't in the pin.
+
 ## 8. Item and slot tricks
 
 ### Amplified slot as stat stick
@@ -580,6 +615,14 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   creator hedges) [ancestral-cry]; Gem Studded counts every set's supports [hotg].
 - **Examples:** HotG: Fury of the King primes Glory [hotg]. Wing Blast: the builder on set 2 [wing-blast].
 - **Cautions:** a swap ritual is input demand.
+
+### Off-tree defence layer
+
+- **Shape:** a defence from gear and a spirit skill, refilled on kill, frees the tree's defence points.
+- **Search:** `mechanic "Runic Ward" (unique)`; refills: `mechanic "Remnant" (gem)`.
+- **PoB:** not modelled until coverage shows otherwise.
+- **Examples:** Brass Dome, Olroth's Resolve, Remnants of Kalguur [nerd-interactions].
+- **Cautions:** it costs the chest's 60-spirit prefix.
 
 ## 9. Actors
 
@@ -695,3 +738,4 @@ Paths are from this file; each title is the source's patch.
 [walking-calamity]: ../../../../docs/build-guide/studies/2026-10-10-aeT9rsQZ4dM-walking-calamity-witchhunter.md "0.4"
 [fangs]: ../../../../docs/build-guide/studies/2026-10-10-gLac8n8iBeA-fangs-of-frost-chronomancer.md "0.3.1"
 [shield-charge]: ../../../../docs/build-guide/studies/2026-10-10-1ZqM9dJ9MF0-shield-charge-chayula.md "0.3.x"
+[nerd-interactions]: ../../../../docs/build-guide/studies/2026-10-16-S1AzLxb3fZw-nerd-interactions.md "0.5.x"

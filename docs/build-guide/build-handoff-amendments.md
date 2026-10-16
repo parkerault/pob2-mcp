@@ -33,7 +33,7 @@ spine gets it at the v1.6 fold.
   do.
 - **Tool count.** No tool is added: the counts stay as they are. If a tool's description changes, regenerate the
   README table (`pnpm build && pnpm docs:tools --write`).
-- **Done means:** amendment 5's ACs (AC-T46, AC-K67, AC-W63, AC-W64) pass; `mise run test` and `pnpm build`
+- **Done means:** amendment 5's ACs (AC-K68, AC-K67, AC-W63, AC-W64) pass; `mise run test` and `pnpm build`
   exit 0 from a clean tree; both waiver files are `[]` (AC-B2); dependencies are unchanged (AC-B7).
 - **Cost.** Keep context lean: read the amendment whole (it is short) and the files it names by the lines you
   need; run targeted Jest suites while you work, and the full gate once at the end.

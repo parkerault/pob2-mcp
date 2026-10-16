@@ -169,7 +169,7 @@ WU-75 and WU-76 run in series: they share the pipeline tests.
 
 **Acceptance criteria:**
 
-- **AC-T46 (WU-74, D-372).** Unit, through `fixtureFetch`. `find_upgrades`' output has `League:` and `Checked:` lines;
+- **AC-K68 (WU-74, D-372).** Unit, through `fixtureFetch`. `find_upgrades`' output has `League:` and `Checked:` lines;
   a 429 stop reads `[trade:rate_limited]`.
 - **AC-K67 (WU-74, D-372).** Engine. After a measure-only compile of a three-rung fixture plan and a loadout select
   of `b`, `find_upgrades` on a rare slot with two `required_mods` and a `max_price` sends a query with an `and`

@@ -3570,3 +3570,20 @@ architectural: the result goes into amendment 5's spec text.
   L1, the AC-K68 test can't tell first-search dating from report-time dating within one fake second (the code dates
   by the first search, as C-49 requires); L2, the prefix follows `Stopped early: `, so WU-75's `pricing.md` matches
   `[trade:<kind>]` anywhere in the line; L3, the fold notes above.
+- **WU-75 built and merged** (`8c18fb5`, fast-forward; the doer used 377K tokens, the verifier 195K). The verifier
+  passed every check (129 suites, 2,308 tests; AC-W63's eight tests assert the amendment's numbers; no old-gate
+  leftovers; all 22 files in scope) and found nothing blocking. The doer defined the D1 gate's new `basis.budget`
+  in `gates.md` ("Price days, targets and ranges"), WU-76's input. Its own choices, all judged sound: "not priced
+  yet" `b`/`n` rare entries from D1-build with `query {slot, required:[{affix,min}], target}`; `manage_sets` in the
+  coordinator's set P; `prices.json` outside the loader's `DATA_FOLDERS`; card key prices at day 7; fallbacks
+  `<id>-fallback` in no total; `--no-ninja` makes only the over-target call.
+- **Amendment 5 corrected on the review's findings** (the coordinator's, within the user's acceptance):
+  - the over-target call is `search_trade_items` with the required affixes as `mods`: a second `find_upgrades`
+    ranked by price re-sorts only its fetched page of the weight-sorted search (`rankUpgrades.ts:304-320`), so it
+    doesn't find the cheapest listing with the required affixes;
+  - `n`'s Checks line gets the "Over target" sentence too, as `b`'s has (an omission in §6).
+  Both go to WU-76, with the review's low notes: `gates.md` step 7 should count only entries `basis.budget.slots`
+  names; a fallback's price is shown unconverted; "Over target" is dropped when `b`'s total is unknown.
+- **For the v1.6 fold:** `03-pipeline.md:384` (no agent definition names a tool that changes the build) and
+  `R1b.md:198` ("mutate tools you don't hold") conflict with the coordinator holding `manage_sets` for D-372's
+  loadout select; `plan-reference.md`'s `prices[].query` row needs D-372's query (WU-75 left it).

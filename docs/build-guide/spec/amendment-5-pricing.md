@@ -78,8 +78,9 @@ PoB2 writes the max price into the trade query and sorts by the weighted sum, so
 the budget buys. Its price is the entry's `amount`; its score against the designed item is the entry's `note`
 ("fit 85%"). The entry's `query` holds the call's arguments and the slot's target, so the required affixes travel
 with the price. When no
-listing fits, the slot is over target: a second call without `max_price` and with `rank_by: "price"` gives the
-cheapest listing with the required affixes.
+listing fits, the slot is over target: `search_trade_items` with the required affixes as `mods` gives the cheapest
+listing that has them, since the trade site sorts that search by price. (A second `find_upgrades` call can't: its
+search is sorted by the weighted sum, so ranking by price re-sorts only the page it fetched; WU-75's review.)
 
 **Everything else is priced as today:** uniques and emotions by `get_item_price`, magic and normal items, flasks and
 charms by `search_trade_items`, and every `m` slot by `search_trade_items` (`m` is mostly the campaign's own gear).
@@ -123,7 +124,8 @@ an early market.
 - **Each rung's Checks budget line** (the renderer's, copied verbatim):
   - `m`: "Budget: about A–B divines around day 7, against a 5-divine target."
   - `b`: "Budget: about A–B divines around day 7, aiming at about 5 a slot. Over target: <slot> (about A–B)."
-  - `n`: "Budget: about A–B divines around day 21, against the 100–200 target."
+  - `n`: "Budget: about A–B divines around day 21, against the 100–200 target. Over target: <slot> (about A–B)."
+    `b` and `n` give the "Over target" sentence only when a slot is over its target.
   - unavailable prices: "Budget: unknown", with D-164's reason, as today.
 - **The slot table** (template row 9) gives each rare's required affixes as what to buy, the rest of its affixes as
   the priority after them, and an over-target slot's fallback.

@@ -3699,3 +3699,17 @@ architectural: the result goes into amendment 5's spec text.
     - `not-granted` needs its row in `gates.md`;
     - the record field is `stages.<id>.minionSkills[]`.
   - An independent verifier is running. It is also measuring what the bigger `outputs` add to a record.
+- **WU-78 verified: PASS** (an independent verifier, 186K tokens).
+  - **Gate:** test rc 1 as run, from one tooling false-failure: AC-T22 took 9.57 s against 8 s under load and passes
+    alone. The `--runInBand` step was run separately and passes 2 of 2. Build rc 0.
+  - **ACs:** AC-P68 and AC-P69 are faithful. The two fixture plans are from game data only.
+  - **Scope:** 15 files, all WU-78's. Waivers `[]`, dependencies unchanged.
+  - **The doer's choices:** all six accepted.
+  - **Findings:** four, all low, sent back to the doer:
+    - two orphaned doc comments;
+    - `clearGroupOf` measures a non-main minion clear group at active skill 1;
+    - the static check ignores a gem's `enabled` and searches every minion type's list, so a disabled summon fails
+      hard in `compile_stage` instead of as a defect.
+  - **The size of `outputs`:** a summon stage's `outputs` has 1,433 keys, 723 of them `Minion*`. That is +28.9 KB
+    (+59%) to `record.json`. Agents read records by Grep only, and D-376 makes every field a ref, so it stays as
+    built. Note it at the v1.6 fold.

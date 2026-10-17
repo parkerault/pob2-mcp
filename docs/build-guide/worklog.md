@@ -3676,3 +3676,8 @@ architectural: the result goes into amendment 5's spec text.
       "every minion child".
   - **Note for WU-79:** there is one lookup result per granted effect, so the brief check counts the `Cast by:` lines
     across all of a name's results.
+- **WU-77 merged** at `fbafa69` (fast-forward; lane `bg-77` removed).
+  - **The fix round** (`c6c6aa0` before the rebase, about 8K tokens) added a test of Kelari's Deception at minion stat
+    set 2, with stat set 3 refused naming both labels, and removed the duplicated label helper.
+  - **The targeted suites:** `minionSkill`, `skillBreakdown` and `contract` rc 0; build rc 0.
+  - **Untested:** the duplicate-name refusal, because no minion at the pin has a duplicate name.

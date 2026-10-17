@@ -3071,6 +3071,12 @@ describe('AC-W64 (WU-76, D-371, D-373): the D1 gate budget is a range at the pri
     }
   });
 
+  it('refuses a basis slot that points at a fallback: a fallback is in no slot and counts in no total (D-371)', () => {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, GATE, (g) => (g.basis.budget.slots.find((x: Json) => x.stage === 'b' && x.slot === 'Weapon 1').priceId = 'b-weapon-fallback'));
+    expect(lines(failing(dir), 'budget')).toContainEqual(`check-run: [budget] the D1 gate's basis.budget.slots maps stage b's slot "Weapon 1" to the fallback "b-weapon-fallback"; a fallback is in no slot and counts in no total (D-371, gates.md)`);
+  });
+
   it('a budget fail is refused as an unknown value', () => {
     const dir = copyOf('run-ok-online');
     editJson(dir, GATE, (g) => (g.verdict.budget = 'fail'));

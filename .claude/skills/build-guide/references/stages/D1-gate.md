@@ -66,7 +66,8 @@ design. Fix nothing in the plan: a failure goes back to D1 as findings.
      D-333). Then, with `data/economy/prices.json` (`gates.md`'s "Price days, targets and ranges" holds the same
      steps):
      1. **The market** `{league, day, late}`: the plan's league; `day`, the whole days from the league's `start`
-        (its `league.*` fact) to the latest `date` of the `ok` prices, `null` when the league isn't in the file;
+        (its `league.*` fact) to the latest `date` of the `ok` prices your `basis.budget.slots` entries name
+        (a fallback, in no slot, doesn't date it), `null` when the league isn't in the file or none is `ok`;
         `late` when the league's `end` is before that date or the day is above 60.
      2. **Each entry's range** at its rung's price day (`m` and `b` day 7, `n` day 21): its price in divines,
         `p`, times its row's factors, `conversion.under-10.to-day-<7|21>` when `p` is under 10, else

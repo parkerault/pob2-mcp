@@ -302,7 +302,8 @@ async function finalDisplay(dir, log) {
     }
   }
   if (budget.length > 0) out.push('', 'Budget, from the D1 gate:', ...budget);
-  if (objects(plan?.prices).some((p) => p.status === 'unavailable')) out.push('', "Some prices are unavailable, so the total of each rung they price isn't known (D-164).");
+  // A fallback (`<id>-fallback`) counts in no total (D-371), so its price is never a D-164 reason.
+  if (objects(plan?.prices).some((p) => p.status === 'unavailable' && !String(p.id).endsWith('-fallback'))) out.push('', "Some prices are unavailable, so the total of each rung they price isn't known (D-164).");
   if (log.mode === 'offline') out.push('The guide is from an offline run: no price was checked.');
   let result;
   try {

@@ -470,6 +470,22 @@ describe('run-log.mjs display (D-367, D-369): each gate visit prints its display
     expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
   });
 
+  it('final, online: an unavailable fallback is no D-164 reason, so with every total known the display gives no D-164 line (D-371)', () => {
+    const dir = copy('run-ok-online');
+    const planPath = path.join(dir, 'plan.json');
+    const plan = JSON.parse(fs.readFileSync(planPath, 'utf8')) as Json;
+    Object.assign(plan.prices.find((x: Json) => x.id === 'b-weapon-fallback'), { status: 'unavailable', amount: null, currency: null, note: 'pricing stopped' });
+    fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
+    const out = display(dir, 'final');
+    const budget = out.indexOf('Budget, from the D1 gate:');
+    expect(out.slice(budget + 1, budget + 4)).toEqual([
+      'm: Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
+      'b: Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback price unknown).',
+      'n: Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
+    ]);
+    expect(out.join('\n')).not.toMatch(/Prices are unavailable|\(D-164\)/);
+  });
+
   it("final, online: each rung's total range at its price day against its target and its over-target slots (D-371, D-374), with no D-164 line when every price is known", () => {
     const out = display(copy('run-ok-online'), 'final');
     const budget = out.indexOf('Budget, from the D1 gate:');

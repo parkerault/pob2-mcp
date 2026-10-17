@@ -406,5 +406,81 @@ engineDescribe('M-17 (WU-77): a minion\'s numbers (D-376) and its selected skill
       },
       ENGINE_TIMEOUT,
     );
+
+    it(
+      'D-377, a minion stat set above 1: a socketed "Kelari, the Tainted Sands" selects "Kelari\'s Deception" with minion_stat_set 2: the reply names stat set 2, PoB measures it and both stat-set lookups hold it; stat set 3 is refused naming both labels and changes nothing',
+      async () => {
+        await freshGolden();
+        await ok('create_socket_group', { label: 'WU-77 Kelari' });
+        const group = await luaQuery<number>('return #build.skillsTab.socketGroupList');
+        await ok('add_gem', { group_index: group, gem_name: 'Kelari, the Tainted Sands', level: 20 });
+        // PoB's own view: the group's summon, its minion's skills, and Kelari's Deception's place and stat-set labels.
+        const kelari = await luaQuery<{ active: number; summonId: string; minion: string; skills: string[]; index: number; labels: string[] }>(`
+          for i, s in ipairs(build.skillsTab.socketGroupList[${group}].displaySkillList) do
+            if s.minion and s.minion.activeSkillList then
+              local out = { active = i, summonId = s.activeEffect.grantedEffect.id, minion = s.minion.minionData.name, skills = {} }
+              for j, ms in ipairs(s.minion.activeSkillList) do
+                local ge = ms.activeEffect.grantedEffect
+                out.skills[j] = ge.name
+                if ge.name == "Kelari's Deception" then
+                  out.index, out.labels = j, {}
+                  for k, set in ipairs(ge.statSets) do out.labels[k] = set.label end
+                end
+              end
+              return out
+            end
+          end`);
+        expect(kelari.index).toBeGreaterThan(0);
+        expect(kelari.labels).toHaveLength(2);
+
+        const text = await ok('set_main_skill', { group_index: group, minion_skill: "Kelari's Deception", minion_stat_set: 2 });
+        expect(text).toContain(
+          `Minion skill: ${kelari.minion} uses Kelari's Deception (skill ${kelari.index} of ${kelari.skills.length}), stat set 2 of 2, ${kelari.labels[1]}.`,
+        );
+        expect(text).toContain(`${kelari.index} Kelari's Deception (selected, stat set 2 ${kelari.labels[1]})`);
+
+        const state = () =>
+          luaQuery<Record<string, unknown>>(`
+            local g = build.skillsTab.socketGroupList[${group}]
+            local s = g.displaySkillList[${kelari.active}]
+            local src = s.activeEffect.srcInstance
+            local main = s.minion.mainSkill
+            local function at(t) return t and t['${kelari.summonId}'] and t['${kelari.summonId}'][${kelari.index}] or 'nil' end
+            return {
+              mainSocketGroup = build.mainSocketGroup, mainActiveSkill = g.mainActiveSkill,
+              selected = main.activeEffect.grantedEffect.name, statSet = main.activeEffect.statSet.index,
+              skillMinionSkill = src.skillMinionSkill, skillMinionSkillCalcs = src.skillMinionSkillCalcs,
+              lookup = at(src.skillMinionSkillStatSetIndexLookup), lookupCalcs = at(src.skillMinionSkillStatSetIndexLookupCalcs),
+            }`);
+        const selected = {
+          mainSocketGroup: group,
+          mainActiveSkill: kelari.active,
+          selected: "Kelari's Deception",
+          statSet: 2,
+          skillMinionSkill: kelari.index,
+          skillMinionSkillCalcs: kelari.index,
+          lookup: 2,
+          lookupCalcs: 2,
+        };
+        expect(await state()).toEqual(selected);
+        const lookupXml = new RegExp(`<MinionSkillIndexLookup\\b[^>]*grantedEffect="${kelari.summonId}"[^>]*>[\\s\\S]*?</MinionSkillIndexLookup>`).exec(
+          await canonicalExport(f.session),
+        );
+        expect(lookupXml).not.toBeNull();
+        expect(lookupXml![0]).toMatch(new RegExp(`<MinionSkillIndexMap\\b(?=[^>]*\\bskillIndex="${kelari.index}")(?=[^>]*\\bstatSetIndex="2")[^>]*/>`));
+
+        const before = await canonicalExport(f.session);
+        const revision = f.session.revision;
+        const three = await f.call('set_main_skill', { group_index: group, minion_skill: "Kelari's Deception", minion_stat_set: 3 });
+        expect(three.isError).toBe(true);
+        expect(three.text).toContain(
+          `minion stat set 3 is out of range: Kelari's Deception has 2 stat sets (1 ${kelari.labels[0]}, 2 ${kelari.labels[1]})`,
+        );
+        expect(f.session.revision).toBe(revision);
+        expect(await canonicalExport(f.session)).toBe(before);
+        expect(await state()).toEqual(selected);
+      },
+      ENGINE_TIMEOUT,
+    );
   });
 });

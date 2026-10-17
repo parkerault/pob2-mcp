@@ -850,12 +850,23 @@ M.config_options = config_options
 M.config_value = config_value
 
 
--- D-377: a minion skill's stat-set label, as PoB's minion stat-set dropdown lists it (vendor
--- Modules/Build.lua:2056-2057), else the skill's name.
-local function minion_stat_set_label(grantedEffect, index)
+local function nonblank(v)
+  if v ~= nil and tostring(v):match('%S') then return tostring(v) end
+  return nil
+end
+
+-- A skill's name for headings and messages: PoB's granted-effect name; for a hidden effect whose name
+-- is "" (Mirage Archer's MirageArcherSpawnPlayer), the gem's name, else the granted effect's id.
+local function effect_name(grantedEffect, srcInstance)
+  return nonblank(grantedEffect.name) or nonblank(srcInstance and srcInstance.nameSpec) or tostring(grantedEffect.id)
+end
+
+-- "1 Impact, 2 Poison Cloud, 3 Explosion": a granted effect's stat sets, as PoB's stat-set dropdown
+-- lists them (vendor Modules/Build.lua RefreshSkillSelectControls); a minion skill's too (D-377, its
+-- minion stat-set dropdown, Modules/Build.lua:2056-2057), which has no gem, so it falls back to its name.
+local function stat_set_label(grantedEffect, index, srcInstance)
   local set = grantedEffect.statSets and grantedEffect.statSets[index]
-  if set and type(set.label) == 'string' and set.label:match('%S') then return set.label end
-  return tostring(grantedEffect.name or grantedEffect.id)
+  return nonblank(set and set.label) or effect_name(grantedEffect, srcInstance)
 end
 
 -- D-377: a summon's minion and its skill list, as PoB's minion-skill dropdown shows them (vendor
@@ -876,7 +887,7 @@ local function minion_of(active)
   local main = minion.mainSkill
   local ge = main and main.activeEffect and main.activeEffect.grantedEffect
   local labels = {}
-  for i = 1, #(ge and ge.statSets or {}) do labels[i] = minion_stat_set_label(ge, i) end
+  for i = 1, #(ge and ge.statSets or {}) do labels[i] = stat_set_label(ge, i) end
   return {
     minion = tostring(minion.minionData and minion.minionData.name or minion.type),
     minionId = tostring(minion.type),
@@ -1073,24 +1084,6 @@ local function restore_selection(snap)
   for gem, s in pairs(snap.gems) do restore_gem(gem, s) end
 end
 
-local function nonblank(v)
-  if v ~= nil and tostring(v):match('%S') then return tostring(v) end
-  return nil
-end
-
--- A skill's name for headings and messages: PoB's granted-effect name; for a hidden effect whose name
--- is "" (Mirage Archer's MirageArcherSpawnPlayer), the gem's name, else the granted effect's id.
-local function effect_name(grantedEffect, srcInstance)
-  return nonblank(grantedEffect.name) or nonblank(srcInstance and srcInstance.nameSpec) or tostring(grantedEffect.id)
-end
-
--- "1 Impact, 2 Poison Cloud, 3 Explosion": a granted effect's stat sets, as PoB's stat-set dropdown
--- lists them (vendor Modules/Build.lua RefreshSkillSelectControls).
-local function stat_set_label(grantedEffect, index, srcInstance)
-  local set = grantedEffect.statSets and grantedEffect.statSets[index]
-  return nonblank(set and set.label) or effect_name(grantedEffect, srcInstance)
-end
-
 local function stat_set_list(grantedEffect, srcInstance)
   local parts = {}
   for i = 1, #(grantedEffect.statSets or {}) do
@@ -1218,7 +1211,7 @@ function M.select_minion_skill(params)
   local count = #(skillGe.statSets or {})
   if statSet > count then
     local labels = {}
-    for i = 1, count do labels[i] = minion_stat_set_label(skillGe, i) end
+    for i = 1, count do labels[i] = stat_set_label(skillGe, i) end
     return nil, ('minion stat set %d is out of range: %s has %d stat set%s (%s)'):format(statSet, tostring(skillGe.name), count,
       count == 1 and '' or 's', numbered(labels))
   end

@@ -928,7 +928,8 @@ export class PoBLuaApiClient {
   /**
    * The read-only preflight of every stage: the defects, the tree the compile builds against, each valid
    * anoint's notable and recipe (`anoints`, D-358), the descriptions of the gems asked for (`gemTexts`, D-353)
-   * and each stage's trees for V1's `tree-shape` (`trees`, D-360).
+   * and each stage's trees for V1's `tree-shape` (`trees`, D-360). A group's `minionSkill` and `minionStatSet`
+   * are checked against its summon's minion in the game data (D-377).
    */
   async compileCheck(params: ActionParams<"compile_check">, opts?: RequestOptions): Promise<CompileCheckResult> {
     const res = await this.request("compile_check", params, opts);
@@ -937,7 +938,10 @@ export class PoBLuaApiClient {
 
   /**
    * Build and measure one stage: its set ids, PoB's allocation, its outputs and its breakdown, and whether each
-   * measured skill's damage over time stacks (`dotCanStack`, D-293). An `anoint` goes on the amulet (D-358).
+   * measured skill's damage over time stacks (`dotCanStack`, D-293). An `anoint` goes on the amulet (D-358). Each
+   * group's `minionSkill` is selected by name, and its resolved selection comes back in `minionSkills`; the outputs
+   * carry the minion's numbers as `Minion<Field>` (D-376, D-377), and `checks.grantedSkills` the passives that grant
+   * a group's skill (D-380).
    */
   async compileStage(params: ActionParams<"compile_stage">, opts?: RequestOptions): Promise<CompileStageResult> {
     const res = await this.request("compile_stage", params, opts);

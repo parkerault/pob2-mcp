@@ -35,6 +35,13 @@
  * amulet by `compile_stage`; the record gives each endgame stage its `measures` and an anointed stage its
  * recipe; `keyFigureLine` is the line `compile_plan` prints after each stage's line (D-356).
  *
+ * WU-78 (D-377, D-378, D-380): a group may name its summon's minion skill (`minionSkill`, `minionStatSet`).
+ * `compile_check` refuses a group with no summon or two, a name the minion can't cast and a stat set beyond the
+ * skill's; `compile_stage` resolves the name live after the stage's groups are built, and the record keeps each
+ * resolved selection (`minionSkills`). A group's damage figure is then its minion's `MinionTotalDPS`, which the
+ * headline, the key-figure line and the clear measure read. The stage checks name each group's skill a passive
+ * grants, for V1's `not-granted`.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -73,6 +80,7 @@ import {
   countedFigures,
   formulaReadsStages,
   headlineDps,
+  minionSkillOf,
   recordText,
   stageMeasures,
   unresolvedRefs,
@@ -390,11 +398,19 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
     attributeChoices: stage.tree.attributeChoices,
     jewels: stage.items.treeJewels,
     items: stage.items.slots,
-    groups: stage.skills.groups.map((g) => ({ gems: g.gems.map((gem) => ({ name: gem.name })) })),
+    groups: stage.skills.groups.map((g) => ({ gems: g.gems.map((gem) => ({ name: gem.name })), ...minionFields(g) })),
     main: stage.skills.main,
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),
     ...(stage.items.anoint !== undefined ? { anoint: stage.items.anoint.notable } : {}),
+  };
+}
+
+/** D-377: a group's minion skill and its stat set, as the engine actions take them (absent when it names none). */
+function minionFields(g: Stage['skills']['groups'][number]): { minionSkill?: string; minionStatSet?: number } {
+  return {
+    ...(g.minionSkill !== undefined ? { minionSkill: g.minionSkill } : {}),
+    ...(g.minionStatSet !== undefined ? { minionStatSet: g.minionStatSet } : {}),
   };
 }
 
@@ -530,17 +546,19 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
 
 /**
  * D-356 (amending D-273 (2)): a stage's key figures, the line `compile_plan` prints after the stage's line, so an
- * agent needn't read the record after a compile: the headline DPS (the named source's Count-scaled figure), life,
+ * agent needn't read the record after a compile: the headline DPS (the main group's Count-scaled figure), life,
  * energy shield, EHP, the four resistances, the V1 and V2 finding counts, and on an endgame stage the Arbiter
  * verdict with its worst hit (`b`, `n`) and the rough clear speed (D-353). Every stage's DPS is `headlineDps`
- * of its main selection `main`, the figure an endgame stage's `measures.dps` holds.
+ * of its main selection `main`, the figure an endgame stage's `measures.dps` holds. When the main group names a
+ * minion skill, the DPS is its minion's and names it: `DPS <n> (<minion skill>, minion)` (D-378).
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
   const dps = headlineDps({ skills: { main } }, rec);
   const ehp = rec.measures !== undefined ? rec.measures.ehp : o.TotalEHP;
+  const minion = minionSkillOf(rec, main.group);
   const parts = [
-    `DPS ${whole(dps)}`,
+    `DPS ${whole(dps)}${minion !== undefined ? ` (${minion.name}, minion)` : ''}`,
     `life ${whole(o.Life)}`,
     `ES ${whole(o.EnergyShield)}`,
     `EHP ${whole(ehp)}`,
@@ -764,6 +782,7 @@ export function stageParams(
         includeInFullDPS: named,
         ...(named ? { groupCount: g.count ?? 1 } : {}),
         gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
+        ...minionFields(g),
       };
     }),
     main: stage.skills.main,
@@ -777,8 +796,8 @@ export function stageParams(
   };
 }
 
-/** The fields the measures read per skill beside C-45's (D-353): the clear skill's area. */
-export const MEASURE_FIELDS: readonly string[] = ['AreaOfEffectRadiusMetres'];
+/** The fields the measures read per skill beside C-45's (D-353): the clear skill's area, or its minion's (D-378). */
+export const MEASURE_FIELDS: readonly string[] = ['AreaOfEffectRadiusMetres', 'MinionAreaOfEffectRadiusMetres'];
 
 const SET_ID_KEY: Record<ContentKind, 'itemSet' | 'skillSet' | 'configSet'> = {
   item: 'itemSet',
@@ -1014,6 +1033,19 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       pobWarnings: checked.pobWarnings,
       v1: checked.v1,
       v2: checked.v2,
+      // D-377: each group's resolved minion selection, which D-378's figure reads.
+      minionSkills: reply.minionSkills.map((m) => ({
+        group: m.group,
+        activeSkill: m.activeSkill,
+        ...(m.summon !== undefined ? { summon: m.summon } : {}),
+        minion: m.minion,
+        minionId: m.minionId,
+        name: m.name,
+        index: m.index,
+        statSet: m.statSet,
+        statSets: [...m.statSets],
+        skills: [...m.skills],
+      })),
     };
     // D-353: the endgame measures; D-358: the anoint's recipe.
     if (stage.variant !== undefined) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);

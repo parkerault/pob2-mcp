@@ -1237,9 +1237,29 @@ export const stageChecksSchema = z
     config: z.object({ input: luaMap(compileConfigScalar), placeholder: luaMap(compileConfigScalar) }).passthrough(),
     /** The conditional config options PoB shows for the stage (their gates hold, D-250). */
     shownOptions: luaArray(z.string()),
+    /**
+     * D-380: each group's skill a passive grants: its skill gem (`kind: 'gem'`, "Navira, the Last Mirage" by node
+     * 32705) or its `minionSkill` (`kind: 'minionSkill'`, "Navira's Fracturing" by node 10561), by the passives
+     * whose line reads `Grants Skill: <name>`, and whether the stage allocates any of them. `group` is 1-based.
+     */
+    grantedSkills: luaArray(
+      z
+        .object({
+          group: z.number().int(),
+          kind: z.enum(['gem', 'minionSkill']),
+          name: z.string(),
+          nodes: luaArray(z.object({ id: z.number().int(), name: z.string() }).passthrough()),
+          allocated: z.boolean(),
+        })
+        .passthrough(),
+    ),
   })
   .passthrough();
 export type StageChecks = z.infer<typeof stageChecksSchema>;
+
+/** D-377: a group's minion selection as `compile_stage` resolved it (BuildOps.select_minion_skill), with its group. */
+export const stageMinionSkillSchema = selectedMinionSkillSchema.extend({ group: z.number().int() });
+export type StageMinionSkill = z.infer<typeof stageMinionSkillSchema>;
 
 export const compileStageReply = baseReply.extend({
   result: z
@@ -1266,6 +1286,8 @@ export const compileStageReply = baseReply.extend({
       configSurvivesDrop: luaMap(z.boolean()),
       dotCanStack: z.object({ main: z.boolean(), skills: luaMap(z.boolean()) }).passthrough(),
       checks: stageChecksSchema,
+      /** D-377: the resolved minion selection of each group that names a `minionSkill`, in group order. */
+      minionSkills: luaArray(stageMinionSkillSchema),
     })
     .passthrough(),
 });
@@ -1301,7 +1323,8 @@ export interface CompileCheckStage {
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
   jewels: Array<{ node: number; text: string }>;
   items: Array<{ slot: string; text: string }>;
-  groups: Array<{ gems: Array<{ name: string }> }>;
+  /** D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data. */
+  groups: Array<{ gems: Array<{ name: string }>; minionSkill?: string; minionStatSet?: number }>;
   main: { group: number; activeSkill: number; statSet?: number };
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */
@@ -1342,6 +1365,10 @@ export interface CompileStageParams {
     /** D-293: the group's Count (`groupCount`), set on the named source's group only. */
     groupCount?: number;
     gems: Array<{ name: string; level: number; quality: number; enabled: boolean }>;
+    /** D-377: the skill the group's summon's minion uses, selected by name after the stage's groups are built. */
+    minionSkill?: string;
+    /** D-377: that minion skill's stat set (default 1). */
+    minionStatSet?: number;
   }>;
   main: { group: number; activeSkill: number; statSet?: number };
   configSet: StageSetRef;

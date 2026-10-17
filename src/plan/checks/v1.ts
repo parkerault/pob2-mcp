@@ -22,6 +22,7 @@
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. One finding per group or entry; `data.path` is the missing field's path in the stage |
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
+ * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -617,6 +618,37 @@ export function checkSupportSockets(
 }
 
 /** V1 for one compiled stage. */
+/**
+ * `not-granted` (D-380). A skill a passive grants is the player's only while the stage allocates that passive, and
+ * PoB measures it either way: it builds a socketed copy of a tree-granted summon, and it computes a minion's
+ * command from the minion's skill list whatever the tree holds (spike A4). `compile_stage` names each group's
+ * skill gem and `minionSkill` that a passive's `Grants Skill:` line grants, with whether the stage allocates any
+ * granting passive (`checks.grantedSkills`). A group PoB doesn't use (disabled, and not the main group) and a gem
+ * the stage's items grant (their `Grants Skill:` lines) are left out. One finding per group and skill.
+ */
+export function checkNotGranted(
+  stage: Pick<Stage, 'items' | 'skills'>,
+  checks: Pick<StageChecks, 'grantedSkills'>,
+  findings: Finding[],
+): void {
+  const byItem = itemGrantedSkills(stage.items);
+  for (const g of checks.grantedSkills ?? []) {
+    if (g.allocated) continue;
+    const group = stage.skills.groups[g.group - 1];
+    if (group === undefined || (!group.enabled && stage.skills.main.group !== g.group)) continue;
+    if (g.kind === 'gem' && byItem.has(g.name.toLowerCase())) continue;
+    const nodes = g.nodes.map((n) => `${n.name} (node ${n.id})`).join(' or ');
+    const what = g.kind === 'gem' ? `its skill gem ${g.name}` : `its minion skill ${g.name}`;
+    findings.push({
+      code: 'not-granted',
+      message:
+        `skill group ${g.group} uses ${what}, which a passive grants (${nodes}), but the stage allocates none of them (D-380): ` +
+        `in game the skill isn't available at this stage, though PoB measures it`,
+      data: { group: g.group, kind: g.kind, name: g.name, nodes: g.nodes.map((n) => n.id) },
+    });
+  }
+}
+
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
   const facts = new FactReader(input.ref);
@@ -633,5 +665,6 @@ export function checkV1(input: V1Input): V1Result {
   checkReasons(stage, findings);
   checkTreeShape(input.trees, findings);
   checkSupportSockets(stage, checks, facts, findings);
+  checkNotGranted(stage, checks, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

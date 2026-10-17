@@ -9,6 +9,9 @@
  * - D-320, D-332 (WU-61): the schema accepts versions 1 and 2; a version-1 plan has the version-1 shape.
  * - AC-P60 (WU-65; D-351, D-358): version 3 adds `claims[].kind` and `items.anoint`, allowed on the `b` and `n`
  *   rungs only; versions 1 and 2 stay accepted, each use of a version-3 field in them an error at its path.
+ * - AC-P69 (WU-78; D-377, D-217): version 4 adds a group's `minionSkill` and `minionStatSet` (only with
+ *   `minionSkill`); a version-3 plan naming one is refused by the version rule at its path; D-217's rolled group may
+ *   name `roll.skill` as its `minionSkill` instead of holding a gem of that name.
  */
 import fs from 'fs';
 import path from 'path';
@@ -90,10 +93,10 @@ interface Row {
 
 const ROWS: Row[] = [
   {
-    change: 'schemaVersion: 4',
-    input: () => ({ ...fixture(), schemaVersion: 4 }),
+    change: 'schemaVersion: 5',
+    input: () => ({ ...fixture(), schemaVersion: 5 }),
     path: 'schemaVersion',
-    message: /\[1, 2, 3\]/,
+    message: /\[1, 2, 3, 4\]/,
   },
   {
     change: 'ledger removed',
@@ -357,10 +360,10 @@ describe('AC-P10 (WU-38, D-163): one change, one error at its JSON path', () => 
     if (row.message) expect(errors.find((e) => e.path === row.path)!.message).toMatch(row.message);
   });
 
-  it('AC-P10: schemaVersion 4 is the only error, even with other faults present', () => {
-    const p = { ...fixture(), schemaVersion: 4, foo: 1, stages: [] };
+  it('AC-P10: schemaVersion 5 is the only error, even with other faults present', () => {
+    const p = { ...fixture(), schemaVersion: 5, foo: 1, stages: [] };
     const errors = errorsOf(p);
-    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2, 3]') }]);
+    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2, 3, 4]') }]);
   });
 });
 
@@ -376,7 +379,7 @@ describe('D-320, D-332: schema versions 1 and 2', () => {
     return p;
   };
 
-  it('the fixture declares the current version, 3; a version-1 plan without additions still validates (D-332)', () => {
+  it('the fixture declares version 3, which version 4 still accepts; a version-1 plan without additions still validates (D-332)', () => {
     expect(fixture().schemaVersion).toBe(3);
     const v1 = validatePlan({ ...fixture(), schemaVersion: 1 });
     expect(v1.ok ? v1.plan.schemaVersion : v1.errors).toBe(1);
@@ -460,6 +463,78 @@ describe('AC-P60 (WU-65; D-351, D-358): schema version 3, claim kinds and the an
       expect({ version, paths: errors.map((e) => e.path).sort() }).toEqual({ version, paths: ['stages[0].claims[1].kind', `stages[${bAt}].items.anoint`] });
       for (const e of errors) expect(e.message).toMatch(new RegExp(`needs schemaVersion 3 or later; this plan declares schemaVersion ${version}`));
     }
+  });
+});
+
+describe('AC-P69 (WU-78; D-377, D-217): schema version 4, a group\'s minion skill', () => {
+  /** The fixture at `version` whose stage 2 has a third group, a Wolf Pack whose Wolf Companion uses Leap Slam. */
+  const withMinion = (version: number, group: Json = {}): Json => {
+    const p = fixture();
+    p.schemaVersion = version;
+    p.stages[1].skills.groups.push({
+      label: 'Wolf Pack',
+      enabled: true,
+      role: 'utility',
+      gems: [{ name: 'Wolf Pack', level: 10, quality: 0, enabled: true }],
+      minionSkill: 'Leap Slam',
+      minionStatSet: 1,
+      ...group,
+    });
+    return p;
+  };
+
+  it('AC-P69: version 4 accepts minionSkill and minionStatSet on a group; minionStatSet defaults to nothing', () => {
+    const r = validatePlan(withMinion(4));
+    expect(r.ok ? 'ok' : r.errors).toBe('ok');
+    if (r.ok) expect(r.plan.stages[1].skills.groups[2]).toMatchObject({ minionSkill: 'Leap Slam', minionStatSet: 1 });
+    const bare = withMinion(4);
+    delete bare.stages[1].skills.groups[2].minionStatSet;
+    const b = validatePlan(bare);
+    expect(b.ok ? b.plan.stages[1].skills.groups[2].minionStatSet : b.errors).toBeUndefined();
+  });
+
+  it('AC-P69: a version-3 plan naming a minion skill is refused by the version rule, at each field, naming version 4', () => {
+    for (const version of [1, 2, 3]) {
+      const errors = errorsOf(withMinion(version));
+      expect({ version, paths: errors.map((e) => e.path).sort() }).toEqual({
+        version,
+        paths: ['stages[1].skills.groups[2].minionSkill', 'stages[1].skills.groups[2].minionStatSet'],
+      });
+      for (const e of errors) {
+        expect(e.message).toMatch(new RegExp(`a group's minion skill \\(D-377\\) needs schemaVersion 4 or later; this plan declares schemaVersion ${version}, whose plans have a minion's first skill`));
+      }
+    }
+  });
+
+  it('AC-P69: minionStatSet needs minionSkill, and is a whole number of at least 1; minionSkill is non-empty', () => {
+    const alone = withMinion(4);
+    delete alone.stages[1].skills.groups[2].minionSkill;
+    expect(errorsOf(alone)).toEqual([{ path: 'stages[1].skills.groups[2].minionStatSet', message: expect.stringMatching(/needs minionSkill \(D-377\)/) }]);
+    for (const bad of [0, 1.5]) {
+      expect(errorsOf(withMinion(4, { minionStatSet: bad })).map((e) => e.path)).toEqual(['stages[1].skills.groups[2].minionStatSet']);
+    }
+    expect(errorsOf(withMinion(4, { minionSkill: '' })).map((e) => e.path)).toEqual(['stages[1].skills.groups[2].minionSkill']);
+  });
+
+  it('AC-P69 (D-217): the rolled group may name roll.skill as its minionSkill (case-insensitive) instead of holding a gem of that name', () => {
+    const p = withMinion(4);
+    p.roll.skill = 'leap slam';
+    delete p.stages[0].skills.rolledGroup;
+    p.stages[1].skills.rolledGroup = 3;
+    Object.assign(p.stages[1], variantFields());
+    const r = validatePlan(p);
+    expect(r.ok ? 'ok' : r.errors).toBe('ok');
+    // Neither a gem of that name nor the minion skill: refused, naming both.
+    const q = withMinion(4, { minionSkill: 'Basic Attack' });
+    q.roll.skill = 'Leap Slam';
+    delete q.stages[0].skills.rolledGroup;
+    q.stages[1].skills.rolledGroup = 3;
+    expect(errorsOf(q)).toEqual([
+      {
+        path: 'stages[1].skills.rolledGroup',
+        message: 'group 3 holds no gem named "Leap Slam" (roll.skill) and doesn\'t name it as its minionSkill (D-217, D-379)',
+      },
+    ]);
   });
 });
 

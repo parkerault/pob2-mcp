@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 4,
+  "roll": {
+    "className": "Sorceress",
+    "ascendancy": "Disciple of Varashta",
+    "skill": "Navira's Fracturing"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "stages": [
+    {
+      "id": "b",
+      "loadoutName": "Endgame budget (L80) {b}",
+      "level": 80,
+      "progress": "endgame",
+      "variant": "budget",
+      "ascendancyPoints": 2,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "test: a level-80 rung",
+          "confidence": "L"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "test: a socketed level-20 Navira",
+          "confidence": "L"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "test: two ascendancy points",
+          "confidence": "L"
+        }
+      },
+      "tree": {
+        "nodes": [],
+        "ascendancyNodes": [
+          32705,
+          10561
+        ],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": []
+      },
+      "items": {
+        "slots": [],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Navira",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Navira, the Last Mirage",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "minionSkill": "Navira's Fracturing"
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ],
+  "ledger": [],
+  "prices": []
+}

@@ -44,6 +44,11 @@
  * WU-66 (D-360; AC-B4): `compile_check` replies with `trees`, each stage's trees for V1's `tree-shape`: the
  * starts (the class start and its main-tree exits), the main tree's components with the exits they hold, and
  * the ascendancy's components, the start's first; `[]` for no stage.
+ *
+ * WU-78 (D-376, D-377, D-380; AC-B3, AC-B4): `compile_check` takes a group's `minionSkill` and `minionStatSet` and
+ * reports an unknown one as a defect; `compile_stage` takes them, replies with `minionSkills` (each group's
+ * resolved selection, `[]` for none), carries the minion's numbers as `Minion<Field>` outputs, and its
+ * `checks.grantedSkills` names the passives that grant a group's skill (`[]` for none).
  */
 import fs from 'fs';
 import path from 'path';
@@ -73,6 +78,13 @@ const FETCHED = (
 const ENGINE_TIMEOUT = 240_000;
 
 /** The two-stage fixture plan (WU-41's compile actions are checked on its stage 1). */
+/** The Varashta fixture plan (WU-78): a socketed Navira whose djinn uses Navira's Fracturing, nodes 32705 and 10561. */
+const VARASHTA = (() => {
+  const v = validatePlan(fs.readFileSync(path.join(FIXTURES, 'plans', 'varashta-navira', 'plan.json'), 'utf8'));
+  if (!v.ok) throw new Error(`the varashta-navira fixture is invalid: ${JSON.stringify(v.errors)}`);
+  return v.plan;
+})();
+
 const TWO_STAGE = (() => {
   const v = validatePlan(fs.readFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), 'utf8'));
   if (!v.ok) throw new Error(`the two-stage fixture is invalid: ${JSON.stringify(v.errors)}`);
@@ -728,6 +740,48 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       const none = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [] }, { timeoutMs: 120_000 });
       expect(replySchemas.compile_check!.safeParse(none).success).toBe(true);
       expect(none.result.trees).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (WU-78, D-376, D-377, D-380): compile_check checks a minion skill; compile_stage resolves it, with the minion\'s outputs and the granting passives',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const { className, ascendancy } = VARASHTA.roll;
+      const stage = checkStageOf(VARASHTA.stages[0]) as unknown as Json;
+      expect(stage.groups).toEqual([{ gems: [{ name: 'Navira, the Last Mirage' }], minionSkill: "Navira's Fracturing" }]);
+      const checked = await engine.request('compile_check', { className, ascendancy, stages: [stage] }, { timeoutMs: 120_000 });
+      const parsed = replySchemas.compile_check!.safeParse(checked);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(checked.result.defects).toEqual([]);
+      const unknown = { ...stage, groups: [{ ...(stage.groups as Json[])[0], minionSkill: 'Not A Skill' }] };
+      const bad = await engine.request('compile_check', { className, ascendancy, stages: [unknown] }, { timeoutMs: 120_000 });
+      expect(replySchemas.compile_check!.safeParse(bad).success).toBe(true);
+      expect(bad.result.defects).toEqual([expect.stringMatching(/^stage b: skills\.groups\[0\]\.minionSkill "Not A Skill": .* has no skill of that name; its skills: /)]);
+
+      await call('new_build', { className, ascendancy });
+      const grouped = groupSets(VARASHTA.stages);
+      const vs = VARASHTA.stages[0];
+      const title = (kind: 'item' | 'skill' | 'config') => grouped[kind].groups[grouped[kind].groupOf.get(vs.id)!].title;
+      const params = stageParams(vs, true, { item: { title: title('item') }, skill: { title: title('skill') }, config: { title: title('config') } }, OFFENSE_STAT_FIELDS) as unknown as Json;
+      expect((params.groups as Json[])[0]).toMatchObject({ minionSkill: "Navira's Fracturing" });
+      const built = await engine.request('compile_stage', params, { timeoutMs: 120_000 });
+      const stageParsed = replySchemas.compile_stage!.safeParse(built);
+      expect(stageParsed.success ? [] : stageParsed.error.issues).toEqual([]);
+      expect(built.result.minionSkills).toEqual([
+        expect.objectContaining({ group: 1, activeSkill: 1, name: "Navira's Fracturing", index: 2, statSet: 1, minionId: 'WaterDjinn' }),
+      ]);
+      expect(built.result.outputs.MinionTotalDPS).toBeGreaterThan(0);
+      expect(built.result.checks.grantedSkills).toEqual([
+        { group: 1, kind: 'gem', name: 'Navira, the Last Mirage', nodes: [{ id: 32705, name: 'Barya of Navira' }], allocated: true },
+        { group: 1, kind: 'minionSkill', name: "Navira's Fracturing", nodes: [{ id: 10561, name: "Navira's Fracturing" }], allocated: true },
+      ]);
+      // Without a minion skill or a granted skill, both lists are empty and still match the schema.
+      await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+      const plain = await engine.request('compile_stage', stageOneParams(), { timeoutMs: 120_000 });
+      expect(replySchemas.compile_stage!.safeParse(plain).success).toBe(true);
+      expect([plain.result.minionSkills, plain.result.checks.grantedSkills]).toEqual([[], []]);
     },
     ENGINE_TIMEOUT,
   );

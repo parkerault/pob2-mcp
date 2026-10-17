@@ -18,10 +18,17 @@
  *
  * **Measures and the anoint** (WU-65; D-353, D-358), additive, so `recordVersion` stays 2. Each endgame stage
  * (one with a `variant`) gets `measures`, computed here so no agent computes or checks them: `dps`, the
- * headline (the named source's Count-scaled `TotalDPS`, D-294); `ehp`, PoB's `TotalEHP`; on the budget and
+ * headline (the main group's Count-scaled figure, D-294, D-378); `ehp`, PoB's `TotalEHP`; on the budget and
  * non-budget rungs, `arbiter`, the Arbiter of Divinity's largest hit of each damage type and each mixed hit
  * over the stage's max hit (`arbiterMeasure`); and a rough `clearSpeed` (`clearSpeedOf`). No kill time and no
  * hits to kill. An anointed stage's record gives the notable and its recipe of three Distilled Emotions.
+ *
+ * **A minion's skill** (WU-78; D-377, D-378), additive. Each stage's `minionSkills` holds the resolved selection
+ * of every group that names a `minionSkill`, and only those: the minion, the skill's name, its index in the
+ * minion's live list and its stat set. A group's damage figure (`figureField`) is `MinionTotalDPS` when the group
+ * names a minion skill, else `TotalDPS`, at the same key `g<group>s<skill>p<statSet>`; the headline, the key-figure
+ * line and the clear measure read it. `outputs` carries the minion's own numbers flattened as `Minion<Field>`
+ * (D-376), and Count applies to them by PoB's Full DPS rule for a minion.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
@@ -62,6 +69,10 @@ export interface Verdict {
  * - `once`: as measured. The ailments and ground effects are the best one of any skill, never multiplied
  *   (`mode = "max"`, `:192-197`), and decay is added once (`:199`).
  *
+ * A minion (D-378) is merged as an actor of its own with `count = activeSkillCount` and `dotScale = 1`
+ * (`:366-378`): its hits (`MinionTotalDPS`) and impale (`MinionImpaleDPS`) are × the count, and its damage over
+ * time (`MinionTotalDot`) and its ailments are as measured.
+ *
  * A figure Full DPS doesn't merge per skill (`CombinedDPS`, `TotalDotDPS`, a defence, a crit chance) has no
  * Count rule, so it isn't in the counted figures; the raw figure is the one to read.
  *
@@ -82,6 +93,17 @@ export const COUNT_RULE: ReadonlyMap<string, CountScale> = new Map<string, Count
   ['PoisonDPS', 'once'],
   ['CausticGroundDPS', 'once'],
   ['DecayDPS', 'once'],
+  // D-378: a minion's figures (the `Minion<Field>` numbers, D-376).
+  ['MinionTotalDPS', 'count'],
+  ['MinionImpaleDPS', 'count'],
+  ['MinionTotalDot', 'once'],
+  ['MinionBleedDPS', 'once'],
+  ['MinionCorruptingBloodDPS', 'once'],
+  ['MinionIgniteDPS', 'once'],
+  ['MinionBurningGroundDPS', 'once'],
+  ['MinionPoisonDPS', 'once'],
+  ['MinionCausticGroundDPS', 'once'],
+  ['MinionDecayDPS', 'once'],
 ]);
 
 /** A skill's figures with its group's Count applied (D-293, D-321). */
@@ -301,13 +323,13 @@ export interface ClearSpeedMeasure {
   group: number | null;
   key: string | null;
   skill: string | null;
-  /** Its `AreaOfEffectRadiusMetres`, 0 when PoB gives none. */
+  /** Its `AreaOfEffectRadiusMetres` (a minion's `MinionAreaOfEffectRadiusMetres`, D-378), 0 when PoB gives none. */
   radiusMetres: number;
   /** The band by the radius alone: below 2 m slow, below 4 m medium, else fast. */
   band: ClearSpeed;
   /** One step faster: a gem text of its group explodes monsters or spreads an effect on death. */
   onDeath: boolean;
-  /** Its uses per second (`Speed`), null when PoB gives none. */
+  /** Its uses per second (`Speed`, a minion's `MinionSpeed`), null when PoB gives none. */
   usesPerSecond: number | null;
   /** One step slower: a use takes over 1 second (`Speed` below 1, an estimate). */
   longUse: boolean;
@@ -367,6 +389,37 @@ export function clearGemNames(stage: Pick<Stage, 'skills'>): string[] {
 }
 
 /**
+ * D-377: a group's resolved minion selection in the record (`minionSkills`): the group, its summon (the active
+ * skill's index and name), the minion, the skill's name, its index in the minion's live skill list (`skills`) and
+ * its stat set with the skill's stat-set labels.
+ */
+export interface MinionSkillRecord {
+  group: number;
+  activeSkill: number;
+  summon?: string;
+  minion: string;
+  minionId: string;
+  name: string;
+  index: number;
+  statSet: number;
+  statSets: string[];
+  skills: string[];
+}
+
+/** The stage's resolved minion selection of `group` (1-based), when the group names a minion skill. */
+export function minionSkillOf(rec: Pick<StageRecord, 'minionSkills'>, group: number): MinionSkillRecord | undefined {
+  return (rec.minionSkills ?? []).find((m) => m.group === group);
+}
+
+/**
+ * D-378: the field of a group's damage figure: `MinionTotalDPS` when the group names a minion skill (the record
+ * holds its resolved selection), else `TotalDPS`.
+ */
+export function figureField(rec: Pick<StageRecord, 'minionSkills'>, group: number): 'MinionTotalDPS' | 'TotalDPS' {
+  return minionSkillOf(rec, group) !== undefined ? 'MinionTotalDPS' : 'TotalDPS';
+}
+
+/**
  * The clear skill's breakdown entry. D-363: the stat set the plan's main selection names when the clear skill is
  * the main skill, else its first stat set, the one PoB selects by default, so the measure doesn't depend on a
  * stat set whose radius PoB resolves in hash order (Earthquake's Aftershock).
@@ -383,17 +436,19 @@ export function clearEntryOf(
 }
 
 /**
- * The headline (D-294): the named source's Count-scaled figure,
- * `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.TotalDPS`, else the main skill's
- * counted `TotalDPS`; null when PoB measured none.
+ * The headline (D-294, D-378): the main group's Count-scaled figure (`figureField`: `MinionTotalDPS` for a group
+ * that names a minion skill, else `TotalDPS`),
+ * `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.<figure>`, else the main skill's
+ * counted figure; null when PoB measured none.
  */
 export function headlineDps(
   stage: { skills: Pick<Stage['skills'], 'main'> },
-  rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs'>,
+  rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
 ): number | null {
   const m = stage.skills.main;
   const key = `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`;
-  const v = rec.countedSkillOutputs[key]?.fields.TotalDPS ?? rec.countedOutputs.fields.TotalDPS;
+  const field = figureField(rec, m.group);
+  const v = rec.countedSkillOutputs[key]?.fields[field] ?? rec.countedOutputs.fields[field];
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
@@ -411,15 +466,17 @@ export const ARBITER_VARIANTS: readonly string[] = ['budget', 'non-budget'];
 /** An endgame stage's measures from its record (D-353). */
 export function stageMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
-  rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs'>,
+  rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
   arbiterHits: readonly ArbiterHit[],
   gemTexts: Readonly<Record<string, string>>,
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
   const entry = clearEntryOf(stage, rec.skillOutputs);
+  // D-378: a clear group that names a minion skill is measured by its minion's area and use rate.
+  const minion = entry !== null && minionSkillOf(rec, entry.group) !== undefined;
   const clearSpeed = clearSpeedOf({
-    radiusMetres: entry?.fields.AreaOfEffectRadiusMetres,
-    usesPerSecond: entry?.fields.Speed,
+    radiusMetres: entry?.fields[minion ? 'MinionAreaOfEffectRadiusMetres' : 'AreaOfEffectRadiusMetres'],
+    usesPerSecond: entry?.fields[minion ? 'MinionSpeed' : 'Speed'],
     texts: clearGemNames(stage).flatMap((name) => (gemTexts[name] !== undefined ? [gemTexts[name]] : [])),
     group: entry?.group ?? null,
     key: entry?.key ?? null,
@@ -481,6 +538,11 @@ export interface StageRecord {
   measures?: StageMeasures;
   /** WU-65, D-358: on an anointed stage, the notable and its recipe. */
   anoint?: AnointRecord;
+  /**
+   * WU-78, D-377: the resolved minion selection of each group that names a `minionSkill`, in group order; empty when
+   * none does. Absent from records written before amendment 6.
+   */
+  minionSkills?: MinionSkillRecord[];
 }
 
 export interface CompileRecord {

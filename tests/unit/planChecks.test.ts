@@ -3,7 +3,8 @@
  * ladder (WU-61, D-282; AC-P59), the entering-maps variant (WU-61, D-281; AC-P58), Count and custom modifiers
  * with their reasons (WU-55, D-293, D-322; AC-P51, AC-P52) and the record's Count rule, the resistance penalty at
  * a progress key (range-keyed interlude values), "on" and placeholder-driven (A-P5, D-212), the baseline
- * list's loader (D-230), and checks over hand-made stage inputs. The engine criteria (AC-P39…AC-P44,
+ * list's loader (D-230), V1's `not-granted` (WU-78, D-380; AC-P69's unit part), and checks over hand-made stage
+ * inputs. The engine criteria (AC-P39…AC-P44,
  * AC-P50) are `tests/integration/planChecks.test.ts`.
  *
  * C1 values are read here as plain JSON from `data/`, never from the checks.
@@ -54,6 +55,7 @@ function checksFor(stage: Stage, over: Partial<StageChecks> = {}): StageChecks {
     activeSkills: [],
     config: { input: {}, placeholder: {} },
     shownOptions: [],
+    grantedSkills: [],
     ...over,
   } as StageChecks;
 }
@@ -466,6 +468,58 @@ describe('AC-P66 (WU-67, D-359): support-sockets over the estimated table', () =
   });
 });
 
+describe('AC-P69 (WU-78, D-380): not-granted over hand-made stage inputs', () => {
+  // Stage 2 of the fixture, with a third group: a socketed Navira whose djinn uses Navira's Fracturing.
+  const plan = fixture();
+  plan.schemaVersion = 4;
+  plan.stages[1].skills.groups.push({
+    label: 'Navira',
+    enabled: true,
+    role: 'utility',
+    gems: [{ name: 'Navira, the Last Mirage', level: 20, quality: 0, enabled: true }],
+    minionSkill: "Navira's Fracturing",
+  });
+  const [, base] = stagesOf(plan);
+  type Granted = StageChecks['grantedSkills'][number];
+  const SUMMON: Granted = { group: 3, kind: 'gem', name: 'Navira, the Last Mirage', nodes: [{ id: 32705, name: 'Barya of Navira' }], allocated: true };
+  const COMMAND: Granted = { group: 3, kind: 'minionSkill', name: "Navira's Fracturing", nodes: [{ id: 10561, name: "Navira's Fracturing" }], allocated: true };
+  const run = (grantedSkills: Granted[], stage: Stage = base) =>
+    checkV1({ stage, predecessor: null, checks: checksFor(stage, { grantedSkills }), ref }).verdict;
+  const flagged = (v: ReturnType<typeof run>) => v.findings.filter((f) => f.code === 'not-granted');
+
+  it('AC-P69: nothing while the stage allocates the granting passives', () => {
+    const v = run([SUMMON, COMMAND]);
+    expect(flagged(v)).toEqual([]);
+    expect(v.pass).toBe(true);
+  });
+
+  it('AC-P69: a minion skill whose passive the stage lacks is not-granted, naming the group, the skill and the passive; v1 fails', () => {
+    const v = run([SUMMON, { ...COMMAND, allocated: false }]);
+    expect(flagged(v).map((f) => f.data)).toEqual([{ group: 3, kind: 'minionSkill', name: "Navira's Fracturing", nodes: [10561] }]);
+    expect(flagged(v)[0].message).toMatch(/^skill group 3 uses its minion skill Navira's Fracturing, which a passive grants \(Navira's Fracturing \(node 10561\)\), but the stage allocates none of them \(D-380\)/);
+    expect(v.pass).toBe(false);
+    // Both: one finding per group and skill.
+    const both = run([{ ...SUMMON, allocated: false }, { ...COMMAND, allocated: false }]);
+    expect(flagged(both).map((f) => [f.data?.kind, f.data?.name])).toEqual([
+      ['gem', 'Navira, the Last Mirage'],
+      ['minionSkill', "Navira's Fracturing"],
+    ]);
+  });
+
+  it('never a disabled group that isn\'t the main group, nor a gem an item of the stage grants', () => {
+    const missing = [{ ...SUMMON, allocated: false }, { ...COMMAND, allocated: false }];
+    const disabled = JSON.parse(JSON.stringify(base)) as Stage;
+    disabled.skills.groups[2].enabled = false;
+    expect(flagged(run(missing, disabled))).toEqual([]);
+    // As the main group, a disabled group is still used.
+    disabled.skills.main = { group: 3, activeSkill: 1 };
+    expect(flagged(run(missing, disabled))).toHaveLength(2);
+    const byItem = JSON.parse(JSON.stringify(base)) as Stage;
+    byItem.items.slots[0].text = 'Rarity: Normal\nWooden Club\n{crafted}Grants Skill: Level 20 Navira, the Last Mirage';
+    expect(flagged(run(missing, byItem)).map((f) => f.data?.kind)).toEqual(['minionSkill']);
+  });
+});
+
 describe('V2 over hand-made stage inputs', () => {
   const defaults: Record<string, ConfigOptionDefault> = {
     buffOnslaught: { type: 'check', apply: true, conditional: false },
@@ -683,9 +737,16 @@ describe('WU-55 (D-293, D-321): the record\'s Count rule and custom-modifier mar
     expect(countedFields(fields, 1, true)).toEqual({ TotalDPS: 100, ImpaleDPS: 10, TotalDot: 40, IgniteDPS: 7, PoisonDPS: 3, BleedDPS: 2, DecayDPS: 5 });
     // An inherited property name is no rule.
     expect(countedFields({ constructor: 1, toString: 2 } as unknown as Record<string, number>, 2, false)).toEqual({});
-    expect([...COUNT_RULE.keys()].sort()).toEqual(
-      ['BleedDPS', 'BurningGroundDPS', 'CausticGroundDPS', 'CorruptingBloodDPS', 'DecayDPS', 'IgniteDPS', 'ImpaleDPS', 'PoisonDPS', 'TotalDPS', 'TotalDot'],
-    );
+    const player = ['BleedDPS', 'BurningGroundDPS', 'CausticGroundDPS', 'CorruptingBloodDPS', 'DecayDPS', 'IgniteDPS', 'ImpaleDPS', 'PoisonDPS', 'TotalDPS', 'TotalDot'];
+    // D-378 (WU-78): each of the player's figures has its minion twin.
+    expect([...COUNT_RULE.keys()].sort()).toEqual([...player, ...player.map((k) => `Minion${k}`)].sort());
+  });
+
+  it('D-378 (WU-78): a minion\'s hits and impale × count; its damage over time and ailments once, even when the skill\'s DoT stacks', () => {
+    const fields = { MinionTotalDPS: 100, MinionImpaleDPS: 10, MinionTotalDot: 40, MinionIgniteDPS: 7, MinionBleedDPS: 2, MinionCombinedDPS: 157, MinionSpeed: 0.5 };
+    const counted = { MinionTotalDPS: 300, MinionImpaleDPS: 30, MinionTotalDot: 40, MinionIgniteDPS: 7, MinionBleedDPS: 2 };
+    expect(countedFields(fields, 3, false)).toEqual(counted);
+    expect(countedFields(fields, 3, true)).toEqual(counted);
   });
 
   it('countedFigures: each breakdown key takes its own group\'s count and stacking flag; the main figures take the main group\'s', () => {

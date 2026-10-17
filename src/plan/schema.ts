@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1, 2 or 3; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1, 2, 3 or 4; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 3 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 4 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -22,6 +22,13 @@
  * `{enchant}Allocates <notable>`; it is allowed on the budget and non-budget rungs (`b`, `n`) only, never on
  * the entering-maps rung `m` or a campaign stage. `compile_check` refuses a notable without a three-emotion
  * recipe, one the stage's tree allocates, and a stage without an amulet (C-41).
+ *
+ * **A minion's skill** (D-377, version 4). A socket group's `minionSkill` names the skill its summon's minion uses,
+ * as the gem lookup names it, and `minionStatSet` (a whole number of at least 1, default 1, allowed only with
+ * `minionSkill`) that skill's stat set. The name is resolved against the minion's live skill list at every compile;
+ * a plan never holds an index. Before version 4, a minion uses its first skill. D-217's rolled group holds a gem
+ * named `roll.skill`, or names `roll.skill` as its `minionSkill` (D-379); `compile_check` confirms that the
+ * group's summon casts it.
  *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
@@ -39,7 +46,7 @@ import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -179,8 +186,20 @@ const skillsSchema = z
           // D-293: how many copies of the group act at once (default 1); above 1, countReason says why.
           count: z.number().int({ message: 'count is a whole number' }).min(1, { message: 'count is at least 1' }).optional(),
           countReason: text('countReason').optional(),
+          // D-377: the skill the group's summon's minion uses, by name, and that skill's stat set (default 1).
+          minionSkill: text('minionSkill').optional(),
+          minionStatSet: z
+            .number()
+            .int({ message: 'minionStatSet is a whole number' })
+            .min(1, { message: 'minionStatSet is at least 1' })
+            .optional(),
         })
-        .strict(),
+        .strict()
+        .superRefine((g, ctx) => {
+          if (g.minionStatSet !== undefined && g.minionSkill === undefined) {
+            issue(ctx, ['minionStatSet'], "minionStatSet selects the stat set of the group's minion skill, so it needs minionSkill (D-377)");
+          }
+        }),
     ),
     main: z
       .object({
@@ -401,7 +420,10 @@ interface VersionAddition {
 }
 
 /** One path per socket group, in any stage, that sets `key`. */
-const groupKeyUses = (plan: z.infer<typeof planObject>, key: 'count' | 'countReason'): (string | number)[][] =>
+const groupKeyUses = (
+  plan: z.infer<typeof planObject>,
+  key: 'count' | 'countReason' | 'minionSkill' | 'minionStatSet',
+): (string | number)[][] =>
   plan.stages.flatMap((s, i) =>
     s.skills.groups.flatMap((g, k) => (g[key] !== undefined ? [['stages', i, 'skills', 'groups', k, key]] : [])),
   );
@@ -444,6 +466,12 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     what: 'items.anoint (D-358)',
     before: 'no anoint',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.items.anoint !== undefined ? [['stages', i, 'items', 'anoint']] : [])),
+  },
+  {
+    since: 4,
+    what: "a group's minion skill (D-377)",
+    before: "a minion's first skill",
+    uses: (plan) => [...groupKeyUses(plan, 'minionSkill'), ...groupKeyUses(plan, 'minionStatSet')],
   },
 ];
 
@@ -513,7 +541,8 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
     }
   });
 
-  // D-217: rolledGroup holds the rolled skill, and every endgame variant stage sets it.
+  // D-217: rolledGroup holds the rolled skill, and every endgame variant stage sets it. From D-379, the group
+  // holds a gem named roll.skill, or names roll.skill as its minionSkill (compile_check confirms its summon casts it).
   const rolled = plan.roll.skill.toLowerCase();
   plan.stages.forEach((s, i) => {
     const path = ['stages', i, 'skills', 'rolledGroup'];
@@ -525,8 +554,12 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
     const group = s.skills.groups[rg - 1];
     if (group === undefined) {
       issue(ctx, path, `rolledGroup ${rg} names no group; the stage has ${s.skills.groups.length}`);
-    } else if (!group.gems.some((g) => g.name.toLowerCase() === rolled)) {
-      issue(ctx, path, `group ${rg} holds no gem named "${plan.roll.skill}" (roll.skill)`);
+    } else if (!group.gems.some((g) => g.name.toLowerCase() === rolled) && group.minionSkill?.toLowerCase() !== rolled) {
+      issue(
+        ctx,
+        path,
+        `group ${rg} holds no gem named "${plan.roll.skill}" (roll.skill) and doesn't name it as its minionSkill (D-217, D-379)`,
+      );
     }
   });
 

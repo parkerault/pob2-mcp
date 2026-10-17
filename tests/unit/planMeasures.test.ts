@@ -2,11 +2,24 @@
  * WU-65 (D-353, D-254, D-256): the pure parts of the endgame measures and the reference hits, without the engine.
  * The engine-required ACs (AC-P61…AC-P64) are in `tests/integration/compileMeasures.test.ts`; these pin the rules
  * at their edges: the clear-speed bands and steps kept within the bands, the on-death phrase list, an Arbiter
- * verdict at a ratio of exactly 1, and the reference hits from the committed data.
+ * verdict at a ratio of exactly 1, and the reference hits from the committed data. WU-78 (D-378): a group that
+ * names a minion skill has its minion's figure, `MinionTotalDPS`, as its damage figure, in the headline, the clear
+ * measure and the key-figure line.
  */
 import { describe, expect, it } from '@jest/globals';
-import { arbiterMeasure, clearBand, clearEntryOf, clearSpeedOf, explodesOnDeath } from '../../src/plan/record';
-import { hitCeiling, referenceHits, rungAreaLevel, withReferenceHits } from '../../src/plan/compiler';
+import {
+  arbiterMeasure,
+  clearBand,
+  clearEntryOf,
+  clearSpeedOf,
+  explodesOnDeath,
+  figureField,
+  headlineDps,
+  stageMeasures,
+  type MinionSkillRecord,
+  type StageRecord,
+} from '../../src/plan/record';
+import { hitCeiling, keyFigureLine, referenceHits, rungAreaLevel, withReferenceHits } from '../../src/plan/compiler';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import type { Stage } from '../../src/plan/schema';
 
@@ -137,5 +150,48 @@ describe("D-254, D-256: the reference hits from the committed data", () => {
     ]);
     const campaign = { ...stage, variant: undefined } as unknown as Stage;
     expect(withReferenceHits(campaign, ref)).toBe(campaign);
+  });
+});
+
+describe("D-378 (WU-78): a group whose minion deals the damage", () => {
+  const LEAP_SLAM: MinionSkillRecord = {
+    group: 1, activeSkill: 1, summon: 'Wolf Pack', minion: 'Wolf Companion', minionId: 'WolfMinion', name: 'Leap Slam',
+    index: 2, statSet: 1, statSets: ['Leap Slam'], skills: ['Basic Attack', 'Leap Slam'],
+  };
+  const fields = { TotalDPS: 0, Speed: 1, AreaOfEffectRadiusMetres: 0, MinionTotalDPS: 50, MinionSpeed: 0.5, MinionAreaOfEffectRadiusMetres: 4.5 };
+  /** A stage record whose group 1 (count 3) is a Wolf Pack, its minion's selection in `minionSkills` when `minion`. */
+  const record = (minion: boolean) =>
+    ({
+      loadoutName: 'Endgame budget (L80) {b}',
+      level: 80,
+      outputs: { TotalDPS: 0, MinionTotalDPS: 50, Life: 100, TotalEHP: 200 },
+      countedOutputs: { group: 1, count: 3, dotCanStack: false, fields: { TotalDPS: 0, MinionTotalDPS: 150 } },
+      skillOutputs: { g1s1p1: { skill: 'Wolf Pack', statSetLabel: 'Minion Info', fields } },
+      countedSkillOutputs: { g1s1p1: { skill: 'Wolf Pack', statSetLabel: 'Minion Info', count: 3, dotCanStack: false, fields: { TotalDPS: 0, MinionTotalDPS: 150 } } },
+      minionSkills: minion ? [LEAP_SLAM] : [],
+      v1: { pass: true, findings: [], notes: [] },
+      v2: { pass: true, findings: [], notes: [] },
+    }) as unknown as StageRecord;
+  const main = { group: 1, activeSkill: 1 };
+  const stage = { variant: 'budget', skills: { main, groups: [{ enabled: true, role: 'single_target', gems: [{ name: 'Wolf Pack', enabled: true }] }] } } as unknown as Stage;
+
+  it("the figure is MinionTotalDPS when the record holds the group's minion selection, else TotalDPS; the headline is it × Count", () => {
+    expect([figureField(record(true), 1), figureField(record(false), 1), figureField(record(true), 2)]).toEqual(['MinionTotalDPS', 'TotalDPS', 'TotalDPS']);
+    expect(headlineDps({ skills: { main } }, record(true))).toBe(150);
+    expect(headlineDps({ skills: { main } }, record(false))).toBe(0);
+    // Without the main entry, the main skill's counted figure.
+    const noEntry = { ...record(true), countedSkillOutputs: {} } as StageRecord;
+    expect(headlineDps({ skills: { main } }, noEntry)).toBe(150);
+  });
+
+  it("the clear measure reads the minion's area and use rate for a clear group that names a minion skill", () => {
+    expect(stageMeasures(stage, record(true), [], {}).clearSpeed).toMatchObject({ radiusMetres: 4.5, usesPerSecond: 0.5, band: 'fast', speed: 'medium' });
+    expect(stageMeasures(stage, record(false), [], {}).clearSpeed).toMatchObject({ radiusMetres: 0, usesPerSecond: 1, band: 'slow' });
+    expect(stageMeasures(stage, record(true), [], {}).dps).toBe(150);
+  });
+
+  it('the key-figure line names the minion skill: DPS <n> (<minion skill>, minion)', () => {
+    expect(keyFigureLine(record(true), main)).toMatch(/^ {2}Key figures: DPS 150 \(Leap Slam, minion\); life 100;/);
+    expect(keyFigureLine(record(false), main)).toMatch(/^ {2}Key figures: DPS 0; life 100;/);
   });
 });

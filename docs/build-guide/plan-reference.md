@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 3)
+# Build plan reference (`plan.json`, schema version 4)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 3`. Versions `1`, `2` and `3` are accepted. Any
-  other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A version-1 or version-2 plan still validates and compiles, with its
+- **Version first.** A new plan declares `schemaVersion: 4`. Versions `1`, `2`, `3` and `4` are accepted.
+  Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
+  `[1, 2, 3, 4]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A version-1, version-2 or version-3 plan still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -33,6 +33,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   Version 3 added (D-351, D-358):
   - a claim's `kind` (`stages[].claims[].kind`); an earlier plan's claims have none;
   - `items.anoint` (`stages[].items.anoint`); an earlier plan has no anoint.
+
+  Version 4 added (D-377):
+  - a group's minion skill, `minionSkill` and `minionStatSet` (`stages[].skills.groups[]`); in an earlier
+    plan a minion uses its first skill, and the keys are errors.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -45,8 +49,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
 node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
-each custom modifier line whole, and an anoint's notable: it has a three-emotion recipe, the stage's tree
-doesn't allocate it, and the stage has an amulet (C-41 step 5, D-358). A missing `countReason` or custom-modifier `reason` isn't a
+each custom modifier line whole, an anoint's notable (it has a three-emotion recipe, the stage's tree
+doesn't allocate it, and the stage has an amulet), and a group's minion skill (its group holds one summon
+whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377). A missing `countReason` or custom-modifier `reason` isn't a
 schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322).
 
 ## Terms
@@ -58,7 +63,7 @@ rules depend on its `kind`:
 
 | `kind` | `ref` | Also required |
 |---|---|---|
-| `pob-computed` | A compile-record field: `<stageId>.<Field>` (a main output, e.g. `1.Life`) or `<stageId>.g<group>s<skill>p<statSet>.<Field>` (a per-skill breakdown field, C-45) | — |
+| `pob-computed` | A compile-record field: `<stageId>.<Field>` (a main output, e.g. `1.Life`) or `<stageId>.g<group>s<skill>p<statSet>.<Field>` (a per-skill breakdown field, C-45). A minion's numbers are ordinary fields named `Minion<Field>`: `b.g1s1p1.MinionTotalDPS` (D-376) | — |
 | `pob-data` | A pinned PoB file and line (`Data/QuestRewards.lua:7`) or a lookup-tool result | — |
 | `external` | An `http` or `https` URL | `accessed` (`YYYY-MM-DD`) and `confidence` |
 | `judgment` | The reasoning, in a few words | `confidence` |
@@ -115,6 +120,8 @@ forms:
 - `x`, one segment: an input of this entry;
 - `1.Life`, `<stageId>.<Field>`: a stage's main output;
 - `2.g1s1p1.TotalDPS`, `<stageId>.g<group>s<skill>p<statSet>.<Field>`: a per-skill breakdown field (C-45).
+  A minion's figure is an ordinary field of the same forms: `b.MinionTotalDPS`, `b.g1s1p1.MinionTotalDPS`
+  (D-376).
 
 Validation fails on a syntax error (an unexpected token, a missing `)`, an empty formula), an unknown
 input, or a reference to a stage the plan doesn't have, each with its 0-based column. At compile time, a reference to an output the record doesn't hold, a
@@ -153,6 +160,8 @@ record marks what rests on it.
   - The compile record keeps PoB's figures as measured, in `outputs` and `skillOutputs`. Its counted fields,
     `countedOutputs` and `countedSkillOutputs`, apply Count to those per-copy figures by PoB's Full DPS rule:
     hits are multiplied by the count, damage over time only when it stacks, and the ailments count once.
+    A minion's hits (`MinionTotalDPS`, `MinionImpaleDPS`) are multiplied by the count, and its damage over time
+    (`MinionTotalDot`) and its ailments count once (D-378).
   - The raw `outputs.FullDPS` and `outputs.FullDotDPS` are PoB's Full DPS totals. They are non-zero because
     the named source's group is in Full DPS (D-337), and PoB has already multiplied them by Count, so they
     are never multiplied again.
@@ -182,6 +191,43 @@ record marks what rests on it.
 "customMods": [
   { "text": "10% more Damage", "reason": "<the effect PoB doesn't model, and how 10% was worked out from it>" }
 ]
+```
+
+### A minion's skill (D-377, D-378, D-380)
+
+Schema version 4 lets a socket group choose the skill its summon's minion uses: Navira's Fracturing, the Water
+Djinn's second skill, rather than its first.
+
+- **`minionSkill`** names the minion skill as the gem lookup names it. **`minionStatSet`** (a whole number of
+  at least 1, default 1) picks that skill's stat set, and is allowed only with `minionSkill`. The fields sit on
+  the group, because PoB keeps the choice per summon.
+- **The group holds exactly one summon**, an active skill that creates a minion. A summon's "Command" skill has
+  no minion. On the main group, `main.activeSkill` is the summon, never its "Command" skill.
+- **Resolved by name at every compile.** The compiler matches the name, ignoring case, against the minion's
+  live skill list (its own skills in data order, then any its supports add). A plan never holds an index.
+  The compile refuses, naming the stage, a group with no summon or two, a name the minion can't use (listing its
+  skills), a name its list holds twice, a stat set beyond the skill's, and a main active skill that isn't the
+  summon.
+- **The record** keeps each group's resolved selection (`stages.<id>.minionSkills`: the minion, the skill's name,
+  its index and its stat set), and the saved build carries PoB's own fields, as PoB's minion-skill dropdown sets
+  them.
+- **The group's figure** is its minion's `MinionTotalDPS`, at the same key `g<group>s<skill>p<statSet>`, in place
+  of `TotalDPS` (which is 0 for a summon). The headline `measures.dps` is the main group's figure × its Count, and
+  the clear measure reads the minion's `MinionAreaOfEffectRadiusMetres` and `MinionSpeed`.
+- **The rolled skill** may be a minion skill: `rolledGroup` then names it as its `minionSkill` (D-217).
+- **A skill a passive grants** (its line reads `Grants Skill: <name>`) is checked by V1, because PoB measures it
+  either way: a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705) or whose
+  `minionSkill` one grants (Navira's Fracturing, node 10561) on a stage that allocates none of those passives is
+  the finding `not-granted` (D-380).
+
+```json
+{
+  "label": "Navira",
+  "enabled": true,
+  "role": "single_target",
+  "gems": [{ "name": "Navira, the Last Mirage", "level": 20, "quality": 0, "enabled": true }],
+  "minionSkill": "Navira's Fracturing"
+}
 ```
 
 ### Claim kinds and the anoint (D-351, D-358)
@@ -221,13 +267,15 @@ cold, lightning and chaos, rounded up to a whole number after rounding to 2 deci
 at level 79. A hit the plan lists stays as listed. The record's `configWritten` holds every hit written.
 
 The compiler also measures each endgame stage (`stages.<id>.measures` in the record), so no plan needs a
-ledger entry for them: `dps` (the named source's Count-scaled `TotalDPS`), `ehp` (`TotalEHP`), on `b` and `n`
+ledger entry for them: `dps` (the main group's Count-scaled figure: its minion's `MinionTotalDPS` when it names a
+minion skill, else `TotalDPS`; D-294, D-378), `ehp` (`TotalEHP`), on `b` and `n`
 the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit
 (`survives` below 1, else `one-shot`), and a rough `clearSpeed`. No ledger entry is needed for a reference
 hit, a kill time or hits to kill.
 
 `compile_plan`'s reply prints a key-figure line after each stage's line (D-356), so a compile needs no read of
-the record for these: the headline DPS (the named source's Count-scaled figure), life, energy shield, EHP, the
+the record for these: the headline DPS (the main group's Count-scaled figure, followed by the minion skill's name
+when a minion deals it: `DPS 649 (Navira's Fracturing, minion)`), life, energy shield, EHP, the
 fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame stage also
 the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. Numbers are rounded to
 whole numbers.
@@ -251,11 +299,11 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2` or `3` | yes | `3` for a new plan; `1` and `2` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3]` | C-31, D-167, D-320, D-332, D-351 |
+| `schemaVersion` | `1`, `2`, `3` or `4` | yes | `4` for a new plan; `1`, `2` and `3` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4]` | C-31, D-167, D-320, D-332, D-351, D-377 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
-| `roll.skill` | string | yes | Non-empty. The rolled skill gem's name; `skills.rolledGroup` names a group holding a gem of this name (case-insensitive) | C-31, D-217 |
+| `roll.skill` | string | yes | Non-empty. The rolled skill's name: a skill gem's, or a minion skill's (a command such as Navira's Fracturing); `skills.rolledGroup` names a group holding a gem of this name, or naming it as its `minionSkill` (case-insensitive) | C-31, D-217, D-379 |
 | `versions` | object | yes | The versions the plan was written against; the compile record notes each one that differs from the running engine | C-31, D-107 |
 | `versions.pobTag` | string | yes | Non-empty. The PoB pin's tag, e.g. `v0.23.1` | D-107 |
 | `versions.pobCommit` | string | yes | Non-empty. The pin's commit | D-107 |
@@ -346,11 +394,13 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].gems[].enabled` | boolean | yes | Whether the gem is enabled | C-31 |
 | `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). On the `rolledGroup` it is PoB's Count in Full DPS; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320 |
 | `stages[].skills.groups[].countReason` | string | no | Non-empty. Why `count` copies act at once; needed when `count` is above 1, else V1 reports `missing-reason`. Schema version 2 | D-293, D-322 |
+| `stages[].skills.groups[].minionSkill` | string | no | Non-empty. The skill the group's summon's minion uses, as the gem lookup names it (see a minion's skill above). The group holds exactly one summon; the compile resolves the name against the minion's skill list, ignoring case, and refuses a name it can't use, listing its skills. The group's damage figure is then its minion's `MinionTotalDPS`. Schema version 4 | D-377, D-378 |
+| `stages[].skills.groups[].minionStatSet` | integer | no | At least 1; 1 when absent. The minion skill's stat set; only with `minionSkill`. The compile refuses one beyond the skill's stat sets. Schema version 4 | D-377 |
 | `stages[].skills.main` | object | yes | The main skill selection | C-31, C-44 |
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
-| `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group | C-31, C-44 |
+| `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |
 | `stages[].skills.main.statSet` | integer | no | At least 1. The active skill's stat set | C-44 |
-| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`. Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` | D-217, D-293, D-337 |
+| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`, or naming `roll.skill` as its `minionSkill` (its summon's minion casts it). Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` | D-217, D-293, D-337, D-379 |
 | `stages[].config` | object | yes | The config set: earned player state and scenario inputs. Each option appears once across `earned` and `scenario`. Stages with deep-equal `config` share one set | C-32, A-P2 |
 | `stages[].config.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].config.earned` | object[] | yes | Earned player state: stacks, charges, conditions, each with what produces it | C-32, D-114 |
@@ -412,8 +462,9 @@ rule may require an optional key in some cases.
 ## Worked example
 
 The two-stage plan below is `tests/fixtures/plans/two-stage/plan.json`, and it validates. It is a Warrior
-Titan who rolled Boneshatter, written at the current schema version, 3. Both stages are campaign stages, so
-neither has an anoint; a claim's `kind` and an endgame stage's anoint are shown above.
+Titan who rolled Boneshatter, written at schema version 3, which version 4 still accepts: it names no minion
+skill. Both stages are campaign stages, so neither has an anoint; a claim's `kind`, an endgame stage's anoint and
+a group's minion skill are shown above.
 
 - **Stage `1`** is level 5 at Beira, the first Act 1 quest reward (`q.act-1-clearfell-beira`). Its tree
   spends 4 points from the Warrior's start, one of them on an attribute node set to strength.

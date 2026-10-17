@@ -3638,3 +3638,7 @@ architectural: the result goes into amendment 5's spec text.
   - The touch-point map is in the coordinator's scratchpad (`amend6-touchpoints.md`) for the M-17 handoff.
 - **Amendment 6 proposed** (`spec/amendment-6-minion-skills.md`): D-376…D-380; WU-77…WU-79 in series; AC-K69…K71,
   AC-P68, AC-P69, AC-W65, AC-W66.
+- **Amendment 6 accepted** by the user, 2026-10-16 ("Go ahead"). The handoff gains "M-17: amendment 6": HG-12 is
+  granted for the amendment's contract changes only; WU-77 owns the reusable Lua selector, and WU-78 the compile's
+  flattened outputs; Navira's PoB is never committed as a fixture, because the repo is public. The map is kept as
+  `studies/2026-10-16-minion-skill-map.md`.

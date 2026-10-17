@@ -1,13 +1,13 @@
 # Amendment 6: a minion's skill
 
-**Status: PROPOSED, 2026-10-16.** It carries out the user's choice of 2026-10-16: before the M-16 baseline run, make a
+**Status: ACCEPTED by the user, 2026-10-16** ("Go ahead"). It carries out the user's choice of 2026-10-16: before the M-16 baseline run, make a
 minion's skill selectable, so a build whose damage is a command its minion casts can be designed and measured. The
 coordinator folds it into the spine and slices 01–03 with amendment 5 at v1.6. Paths without a directory are under
 `.claude/skills/build-guide/`.
 
 **Evidence:** *the spike* (`../studies/2026-10-16-minion-skill-spike.md`): Navira's own PoB measured with the djinn's
 first and second skill selected, what each tool and the compile record show, how PoB builds a minion's skill list, and
-the unparsed `Grants Skill:` lines. The build's touch-point map goes into the M-17 handoff.
+the unparsed `Grants Skill:` lines. The build's touch-point map is `../studies/2026-10-16-minion-skill-map.md`.
 
 **Names.** A *summon* is an active skill that creates a minion ("Navira, the Last Mirage"). Its minion's *skill list*
 is what PoB's "minion skill" dropdown offers: the minion's own skills in its data order, then any skills supports add.

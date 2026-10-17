@@ -4,7 +4,70 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-16: amendment 5, gear pricing (read this first)
+## M-17: amendment 6, a minion's skill (read this first)
+
+Added 2026-10-16. For this build, this section overrides the M-16 and M-15 sections and "What to build" below; the
+other sections ("Worktrees and branches" onward) still apply as written. M-17 is this handoff's label for the build;
+the spine gets it at the v1.6 fold.
+
+- **Spec.** `docs/build-guide/spec/amendment-6-minion-skills.md` is binding for this build: D-376…D-380, WU-77…WU-79
+  (§8) and their ACs. It is not folded into the spine and slices yet. Where the amendment and the slices' current
+  text disagree inside D-376…D-380's scope, the amendment wins; anywhere else the spine and slices bind, and you report
+  a conflict.
+- **Background, not requirements:**
+  - `studies/2026-10-16-minion-skill-spike.md`: what PoB computes, measured, as A1…A5;
+  - `studies/2026-10-16-minion-skill-map.md`: the touch-point map, with `file:line` at `78c3ef9`. Read the parts your
+    unit owns.
+- **Ratified.** The user accepted amendment 6 on 2026-10-16 ("Go ahead").
+- **Directive.** Build WU-77, then WU-78, then WU-79, in series. The coordinator merges each before the next starts.
+- **HG-12 is granted for this build's contract changes only:**
+  - `set_main_skill` gains `minion_skill` and `minion_stat_set`, and its reply names the minion selection;
+  - `get_skill_setup`, `analyze_skills` and the stats breakdown show a summon's minion skills;
+  - `lookup_game_data`'s gem mode gains the minion-skill result (D-379);
+  - `compile_plan`, its check and its record gain plan schema 4's fields, their defects, the resolved selection and
+    D-378's figure;
+  - V1 gains `not-granted`.
+
+  No tool is added, and the counts stay as they are. Any other tool-contract change is still HG-12: stop and report
+  `blocked`.
+- **Who builds what.**
+  - **WU-77** writes one Lua function that selects a group's minion skill by name and stat set. It resolves the name
+    against the live list, validates the stat set, writes PoB's fields as `Modules/Build.lua:461-475` does, and
+    rebuilds. It is usable for any group: `set_main_selection` calls it for the main group, and WU-78's compile calls
+    it for every group that names one. Its snapshot and restore cover the stat-set lookup tables (spike A3).
+  - **WU-78** owns the compile's flattened `Minion<Field>` outputs (`Compile.lua`'s `outputs`). WU-77 owns
+    `export_stats` and `stats_breakdown`.
+- **Serialized files:**
+  - `pob-api/API/BuildOps.lua`: WU-77, then WU-78;
+  - `pob-api/API/Lookup.lua`: WU-77;
+  - `src/plan/schema.ts`, `src/plan/checks/v1.ts`, `pob-api/API/Compile.lua` and `docs/build-guide/plan-reference.md`:
+    WU-78;
+  - the skill text, the agent definitions, `check-run.mjs`, `render-audit.mjs` and the pipeline tests: WU-79.
+- **Engine wiring.** WU-77 changes the replies of `get_skills`, `set_main_selection` and the lookup; WU-78 changes
+  `compile_check`'s and `compile_stage`'s. Each updates the action's reply schema in `src/engine/schemas.ts`, its
+  wrapper types in `src/pobLuaBridge.ts` and its case in `tests/integration/contract.test.ts` (AC-B3, AC-B4).
+- **The schema bump (D-320).** WU-78 makes plan schema version 4, with a `VERSION_ADDITIONS` entry. Validators accept
+  versions 1 to 4 (D-332).
+- **Fixtures.** The repository is public. Don't commit Navira's PoB, or any part of it, as a fixture.
+  - You may read it for a probe: `/home/parker/projects/pob2-mcp-runs/m16-varashta/reference/navira-pob.xml`.
+  - AC-P68's Disciple of Varashta plan is written from the game data: the Sorceress tree, nodes 32705 and 10561, and
+    a "Navira, the Last Mirage" group.
+  - AC-K70 uses `tests/fixtures/builds/grenadator.xml`.
+- **Leave alone:** `/home/parker/projects/pob2-mcp-wt/m16` and `/home/parker/projects/pob2-mcp-runs/` are the baseline
+  run's. Don't write there. `m16` holds a `.env`: never read or copy it.
+- **Network.** None. Tests use committed fixtures and never contact the trade site or poe.ninja (D-34).
+- **Done means:**
+  - amendment 6's ACs (AC-K69…AC-K71, AC-P68, AC-P69, AC-W65, AC-W66) pass;
+  - `mise run test` and `pnpm build` exit 0 from a clean tree;
+  - both waiver files are `[]` (AC-B2);
+  - dependencies are unchanged (AC-B7).
+
+  If a tool's description changes, regenerate the README table (`pnpm build && pnpm docs:tools --write`).
+- **Cost.** Keep context lean. Read the amendment whole (it is short), the spike, and the map's parts for your unit.
+  Read the files they name by the lines you need. Run targeted Jest suites while you work, and the full gate once at
+  the end.
+
+## M-16: amendment 5, gear pricing (built)
 
 Added 2026-10-16. For this build, this section overrides the M-15 section and "What to build" below; the other
 sections ("Worktrees and branches" onward) still apply as written. M-16 is this handoff's label for the build; the

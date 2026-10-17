@@ -3661,3 +3661,18 @@ architectural: the result goes into amendment 5's spec text.
     - `set_main_selection` now returns `{statSet?, minion?}`;
     - the compile's per-group outputs already carry `Minion*` fields.
   - An independent verifier is running.
+- **WU-77 verified: PASS** (an independent verifier, 192K tokens).
+  - **Gate:** rc 0 (130 suites, 2,335 tests), build rc 0.
+  - **ACs:** AC-K69…K71 are faithful.
+  - **Scope:** 17 files, all WU-77's. Waivers `[]`, dependencies unchanged.
+  - **The doer's choices:** all seven judged sound.
+  - **Findings:** four, all low.
+    - Sent back to the doer: no test of a successful stat set above 1 (Kelari's Deception, set 2); a duplicated
+      stat-set label helper in `BuildOps.lua`.
+    - **To WU-78:** the selector refuses a disabled group that isn't main (PoB builds no skills for it). The compile
+      must make such a group main around the call, or `compile_check` must refuse it.
+    - **For the v1.6 fold:** AC-K71's "every hit-making child" sweep covers minion children only. 41 of 85 granted
+      or triggered children can't be found by name, and a result for them is beyond the HG-12 grant. Reword it to
+      "every minion child".
+  - **Note for WU-79:** there is one lookup result per granted effect, so the brief check counts the `Cast by:` lines
+    across all of a name's results.

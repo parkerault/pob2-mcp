@@ -3602,3 +3602,8 @@ architectural: the result goes into amendment 5's spec text.
   entry, so naming the second slot of a shared entry passes against step 7's "first slot".
 - **M-16 built:** WU-74…WU-76 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree, then the
   Lightning Arrow Deadeye run's environment (the user supplies Fubgun's guide link and PoB).
+- **M-16 wave gate: PASS at `6eddeb8`** (an independent verifier, in the fresh run worktree `m16`, left built).
+  Bootstrap clean; `mise run test` rc 0 from clean (129 of 129 suites, 2,316 of 2,316 tests, none skipped; the NFR
+  step 2 of 2; about 320 s); `pnpm build` rc 0; both waivers `[]`; `package.json` and the lockfile unchanged since
+  `27b90fe`; `vendor/` clean at `7d6f530` (v0.23.1); the README table matches, 84 rows; the checker exits 0 on all
+  four pipeline fixtures; AC-K67, AC-K68, AC-W63 and AC-W64 each map to passing tests; `prices.json` equals §5.

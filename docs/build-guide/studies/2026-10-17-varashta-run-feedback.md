@@ -76,3 +76,102 @@ this file once the run is finished (2026-10-17). Each section is one gate or sta
 
 **For the comparison with Navira's guide:** the round-1 deck's low variety (five of eight on one loop) belongs to the
 engine-lens amendment as much as to this one.
+
+## 2. The verification gate, visit 1
+
+The run paused here on a compiler bug: compile_plan measured PoB's own tree-granted Navira group instead of the plan's.
+That is a defect, not feedback, and its fix has its own work-log section. The points below are the user's feedback on
+the candidates the gate showed.
+
+### 2.1 Legacy gems are not allowed
+
+**The user:** "Two of the build candidates used the Commandment skill marked 'legacy' in PoB, which isn't in the game
+anymore. Anything marked 'legacy' isn't allowed in the build."
+
+**What the coordinator found:**
+
+- **How PoB marks legacy.** The skill's effect has `legacy = true` (`Data/Skills/sup_int.lua:2045` for Commandment).
+  PoB's skills tab hides such gems unless "Show legacy gems" is ticked (`Classes/SkillsTab.lua:92`, `:152`;
+  `Classes/GemSelectControl.lua:105-115`). At the pin, eight skills carry the flag: Murderous Intent, Overextend,
+  Bloodlust, Infernal Legion III, Lasting Ground, Undermine, Commandment and Shock Conduction II.
+- **PoB's gem `Tier = 0` is a different thing.** Ascendancy- and item-granted skills have it too, Powered by Verisium
+  among them, so it must not be read as legacy.
+- **Our tools don't show the flag.** Only `suggest_supports` leaves legacy gems out (`pob-api/API/BuildOps.lua:2154`).
+  `lookup_game_data` shows them without a mark, and `compile_plan` accepts them.
+- **The run used Commandment everywhere.** It is in 13 of the 18 cards and in all three picked skeletons' plans. Lasting
+  Ground is in `r1-a-2`.
+- **Two R1b agents (the stage that compiles a concept skeleton) found the flag** by reading PoB's Lua
+  (`sup_int.lua:2045`). They kept the gem and wrote a risk: "PoB's data marks the gem legacy (tier 0), so it may not
+  drop in the current league" (`concepts/r2-c-1/plan.json`, `concepts/r2-c-3/plan.json`). Nothing told them that legacy
+  means not in the game. They also took `Tier = 0` for part of the mark. `r2-c-2`'s plan uses the gem with no note.
+- **The cards' figures include it.** Commandment gives 100% increased command cooldown recovery, which the cards count
+  as a large part of Navira's rate. Without it, every figure that rests on the rate is high.
+
+**For the amendment:**
+
+- **Hide legacy gems from the lookups by default**, as unique mode already skips legacy "Pre x.y" variants.
+- **`compile_plan` refuses a legacy gem**, so a plan can't carry one whatever the lookups showed.
+- **One line in the skill:** legacy means not in the game, so it isn't allowed.
+
+### 2.2 Powered by Verisium was missed
+
+**The user:** "There's a skill called 'powered by verisium' that generates elemental infusions that can be used by any
+skill. It's extremely powerful and would be a cornerstone of a build that relies on ice nova to generate frozen ground
+for Navira. None of the designers found it, so I want to figure out why. It may be newer than PoB's data set."
+
+**What the coordinator found:**
+
+- **It isn't newer than PoB's data.** It is in the pin (`Data/Gems.lua:19762`, `Data/Skills/other.lua:12739`): "Spends
+  Ward to generate Verisium Infusions, which can be used in place of any Elemental Infusions". At level 1 it
+  "Generates 4 Verisium Infusions" on a 7 s cooldown for 20 Runic Ward. At level 20 the cooldown is 5.1 s and the cost
+  155 Runic Ward. So the build needs a Runic Ward source, such as the "Verisium" item prefixes in `Data/ModItem.lua`.
+- **Our lookup finds it.** `lookup_game_data` mechanic "Infusion" (kind gem) and mechanic "Elemental Infusion" both list
+  it.
+- **The researchers searched for the specific resource.** Across the run's agents, every infusion lookup was mechanic
+  "Cold Infusion" (five times, two of them kind gem) or "Infusion Remnant" (twice). The substitution is written only in Powered by Verisium's own
+  description ("in place of any Elemental Infusions"), which doesn't contain the words "Cold Infusion".
+- **Two researchers saw a clue and didn't follow it.** Round 1's researcher a and round 2's researcher b got Runic
+  Extraction's line in their "Infusion Remnant" results: "Supported Skills have 35% chance create a Verisium Infusion
+  Remnant on kill". Neither asked what a Verisium Infusion is.
+- **Every R1a agent had the name, and only the name.** "Powered by Verisium" appears in each research transcript in a
+  long list of skill names, with no description.
+- **The miss is in the method, not the data.** When a chain consumes a resource, the supply search has to cover the
+  resource's whole class ("Infusion", "Elemental Infusion") and the class's substitutes, not just the resource's own
+  name. An unfamiliar term in a result ("Verisium Infusion") is a lead to follow.
+
+**For the engine-lens amendment** (with the tamed-beast miss): a library entry and a researcher-brief rule for the
+supply search. Navira's build is the example for both: the beast's Frozen Ground Trail and Powered by Verisium are both
+supplies of the ground the engine needs.
+
+## 3. The tool's users: a brainstorm, not an instruction
+
+**The user, after the verification gate** (lightly trimmed):
+
+> While using the tool, it occurred to me that we've designed it for a very narrow use case; provide some basic inputs
+> and have the skill spit out a build guide at the end. In reality, there are several different ways a user could use
+> the tool. This is just a brainstorm, not an instruction.
+
+The user's list of users:
+
+1. A novice with little or no game knowledge. This is the closest to the current workflow, and of questionable value,
+   since that player can follow someone else's guide.
+2. An intermediate player who knows the core build they want, and needs help finding non-obvious synergies.
+3. A variant of 2: a player with an in-game character, exported to PoB2, who wants to improve it.
+4. An advanced player who knows the "pro tips", wants to explore options, and wants the labour of editing PoB2 builds
+   offloaded.
+5. A guide author with a finished endgame build, who wants the character's progression, its PoB2 loadouts and the guide
+   written for them.
+6. A variant of 5: a player with only an endgame PoB2 file, for example from poe.ninja, who wants a guide for their own
+   use.
+7. A player who wants to customise a community build: change the gameplay they dislike, or make it work on cheaper
+   gear.
+
+> This is not an exhaustive list, but illustrates the need for flexibility. Some users will want an assistant with
+> expert game knowledge, and some users will just want a tool that produces builds. Maybe we should consider decoupling
+> the expert from the build pipeline. Regardless, the way I started work on the tool is to blame; I said I wanted to give
+> it an ascendency and skill and generate a build guide. In practice, a completely hands-free build generator isn't
+> practical. It would be nice if the user doesn't have to know anything about the game, or doesn't have to do any of
+> their own research, but without a 100% complete and accurate PoE2 encyclopedia, unattended agents will never be able
+> to produce an optimal build.
+
+The discussion that follows is recorded here once the user has answered it.

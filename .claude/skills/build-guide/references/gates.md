@@ -202,11 +202,12 @@ checker's midpoint is within 0.1 divine of the target (1 divine for a target of 
 totals and the over-target slots from the gate's file, and converts an over-target slot's fallback to the rung's
 price day by steps 2 to 4 at the file's `market` and rates, rounded by step 6.
 
-### Finding codes for floor, budget and rolledSkill
+### Finding codes the gate names
 
-The run checker recomputes these parts and names each failure by these codes, so an accepted finding
-(same plan stage, part and code) covers the matching failure. The budget has no failure code: it never fails
-(D-371). The last row is a V1 code, the compile record's, routed as every V1 finding is.
+The run checker recomputes the floor, budget and rolledSkill parts and names each failure by their codes; the
+`v1` row's code is the compile record's, and the gate reports and routes it as every V1 finding. Either way an
+accepted finding (same plan stage, part and code) covers the matching failure. The budget has no failure code:
+it never fails (D-371).
 
 | Part | Code | Means |
 |---|---|---|

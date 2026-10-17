@@ -48,6 +48,7 @@ import zlib from 'zlib';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { buildSha1 } from '../../src/plan/buildHash';
+import { headlineDps } from '../../src/plan/record';
 import { writeGuideRun, writeMinionGuideRun, editJson as editRunJson } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -940,6 +941,11 @@ describe("AC-W66 (WU-79, D-378): a rolled group that names a minion skill is rea
     editJson(dir, GATE, (g) => {
       g.basis.rolledSkill.find((b: Json) => b.stage === 'n').figures.find((f: Json) => f.group === 1).figure = 'g1s1p1.MinionTotalDPS';
     });
+    // The fixture's measures.dps is the record's own headline rule (src/plan/record.ts, D-378): the main group's
+    // MinionTotalDPS × its Count, not the player's TotalDPS.
+    const n = readJson(dir, 'compile-record.json').stages.n;
+    expect(headlineDps(readJson(dir, 'plan.json').stages.find((s: Json) => s.id === 'n'), n)).toBe(n.measures.dps);
+    expect(n.measures.dps).toBe(100000);
     return dir;
   }
 

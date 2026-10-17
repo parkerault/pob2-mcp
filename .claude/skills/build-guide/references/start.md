@@ -55,9 +55,9 @@ text doesn't give, and never invent one:
      class.
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
      (case-insensitive) must say `Kind: active`, or `Kind: minion skill` when no active gem has the name and
-     exactly one summon casts it: count the `Cast by: <minion> (summoned by <gem>)` lines across all the name's
-     results (D-379). Note that summon, the `<gem>`. A support gem, no such result, or a minion skill several
-     summons cast fails.
+     exactly one summon casts it: count the distinct `<gem>`s that the `Cast by: <minion> (summoned by <gem>)`
+     lines name across all the name's results, since one summon may print several lines (D-379). Note that
+     summon. A support gem, no such result, or a minion skill several summons cast fails.
    - a name the free text gives as the build's subject (D-343): look it up this way before you place it. A
      gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes
      on: say it is a support gem, and that the researchers will look for skills it can support. An active gem,

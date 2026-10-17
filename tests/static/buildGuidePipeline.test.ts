@@ -3115,10 +3115,10 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
   const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
   const lookupHandler = () => fs.readFileSync(path.join(REPO, 'src', 'handlers', 'lookupHandlers.ts'), 'utf8');
 
-  it("start.md accepts the gem lookup's `Kind: minion skill` when no active gem has the name and exactly one summon casts it, counting the `Cast by:` lines; several summons fail, named", () => {
+  it("start.md accepts the gem lookup's `Kind: minion skill` when no active gem has the name and exactly one summon casts it, counting the distinct summons the `Cast by:` lines name; several summons fail, named", () => {
     const flat = folded(fs.readFileSync(START_MD, 'utf8'));
     const check = flat.slice(flat.indexOf('1. **Brief check**'), flat.indexOf('2. **Run folder.**'));
-    expect(check).toMatch(/- `skill`: call `mcp__pob2__lookup_game_data \{mode: "gem", query: <skill>\}`\. A result headed `## <skill>` \(case-insensitive\) must say `Kind: active`, or `Kind: minion skill` when no active gem has the name and exactly one summon casts it: count the `Cast by: <minion> \(summoned by <gem>\)` lines across all the name's results \(D-379\)\. Note that summon, the `<gem>`\. A support gem, no such result, or a minion skill several summons cast fails\./);
+    expect(check).toMatch(/- `skill`: call `mcp__pob2__lookup_game_data \{mode: "gem", query: <skill>\}`\. A result headed `## <skill>` \(case-insensitive\) must say `Kind: active`, or `Kind: minion skill` when no active gem has the name and exactly one summon casts it: count the distinct `<gem>`s that the `Cast by: <minion> \(summoned by <gem>\)` lines name across all the name's results, since one summon may print several lines \(D-379\)\. Note that summon\. A support gem, no such result, or a minion skill several summons cast fails\./);
     expect(check).toMatch(/for a minion skill several summons cast, name those summons/);
     // The strings are the tool's own (WU-77's renderMinionSkill).
     expect(lookupHandler()).toContain('"Kind: minion skill"');
@@ -3164,6 +3164,9 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
     const gates = fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8');
     expect(folded(gates)).toMatch(/a group that names a minion skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` in place of `TotalDPS`, which is 0 for a summon \(D-378\)/);
     expect(gates).toMatch(/^\| v1 \| `not-granted` \| .*\(D-380\).*\|$/m);
+    // The table's heading and lead sentence hold for every row: the checker recomputes three parts, and V1's code is the record's.
+    expect(gates).toContain('### Finding codes the gate names');
+    expect(folded(gates)).toMatch(/The run checker recomputes the floor, budget and rolledSkill parts and names each failure by their codes; the `v1` row's code is the compile record's, and the gate reports and routes it as every V1 finding\./);
     expect(folded(readStage('D1-gate'))).toMatch(/a group that names a minion skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` where the others' is `TotalDPS`, D-378/);
     expect(folded(readStage('R1b'))).toMatch(/and for a minion skill the passives that grant it and its summon \(the lock's `Grants Skill:` nodes; PoB measures the skill without them, but V1 reports `not-granted`, D-380\)/);
     expect(folded(readStage('D2'))).toMatch(/A minion skill \(D-379\) is gated by its summon gem's requirement and by the passives that grant the summon and the skill .*: from the first stage that uses the summon, or names the skill as `minionSkill`, the tree holds a passive that grants it \(V1's `not-granted`, D-380\)/);

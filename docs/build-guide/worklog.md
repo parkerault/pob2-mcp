@@ -3755,3 +3755,11 @@ architectural: the result goes into amendment 5's spec text.
     recurring, move the trade timing test into the `--runInBand` step.
   - **The verifier's slip:** one gate log went to the session scratchpad before it read the handoff's rule against
     that.
+- **WU-79 merged** (fast-forward; lane `bg-79` removed).
+  - **The fix round:**
+    - `start.md` counts the distinct summoning gems in the `Cast by:` lines;
+    - `minionRun()` ties `measures.dps` to `record.ts`'s `headlineDps`;
+    - `gates.md`'s table is retitled "Finding codes the gate names", and a new static assertion pins the heading.
+  - **Targeted suites:** 636 of 636 tests rc 0; the checker rc 0 on the four pipeline fixtures.
+- **M-17 built:** WU-77…WU-79 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree `m17`,
+  which then serves the Varashta baseline run.

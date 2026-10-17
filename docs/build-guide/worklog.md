@@ -3721,3 +3721,19 @@ architectural: the result goes into amendment 5's spec text.
       `compileMinion` case), and it checks the minion type PoB picks for a new gem;
     - `Compile.lua` reuses `BuildOps.numbered`.
   - **Targeted suites:** 6 suites, 225 tests, rc 0; build rc 0.
+- **WU-79 built** (`f6573a2` on `bg/wu-79`; the doer used 415K tokens).
+  - **Gate:** `mise run test` rc 1, twice, on AC-T22 alone (Ring 1 about 9.5 s against 8 s under the suite's own
+    load). It passes alone, and the `--runInBand` step passes run separately. 2,369 of 2,370 tests pass. Build rc 0,
+    waivers `[]`, dependencies unchanged. The checker exits 0 on all four pipeline fixtures.
+  - **ACs:** AC-W65 is in `buildGuidePipeline.test.ts` (7 tests); AC-W66 is in `buildGuideCheckRun.test.ts` (4 tests,
+    on a minion copy of `run-ok-online`), plus a `--changed` case and the renderer's campaign headline.
+  - **Pinned text updated:** T1–T4 and D1's schema version (now 4), and the verdict-line message in three places.
+  - **The doer's choices, to judge:**
+    - `figureOf` and `citedValues` are unchanged;
+    - the rolled recompute treats `TotalDPS` and `MinionTotalDPS` as one field, and refuses a gate that compares a
+      minion group by `TotalDPS`;
+    - D1-build writes every plan at schema 4;
+    - `not-granted` sits in the gate findings table;
+    - PG-51 is added (PoB's own copy of a tree-granted summon: level 1, no supports).
+  - **AC-T22 now fails on time in every full gate since WU-78** (9.5–9.6 s against 8 s; 8.14 s was the worst before
+    M-17). The verifier is timing it alone, before and after M-17.

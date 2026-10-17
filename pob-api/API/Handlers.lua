@@ -249,8 +249,10 @@ handlers.set_main_selection = function(params)
   local ok2, err = BuildOps.set_main_selection(params or {})
   if not ok2 then return { ok = false, error = err } end
   local skills = BuildOps.get_skills()
-  -- With `statSet`, the selected stat set ({index, label, count, skill, grantedEffectId}; C-44).
-  return { ok = true, skills = skills, statSet = type(ok2) == 'table' and ok2 or nil }
+  -- With `statSet`, the selected stat set ({index, label, count, skill, grantedEffectId}; C-44); with
+  -- `minionSkill`, the minion selection (BuildOps.select_minion_skill's; D-377).
+  local selected = type(ok2) == 'table' and ok2 or {}
+  return { ok = true, skills = skills, statSet = selected.statSet, minion = selected.minion }
 end
 
 handlers.set_tree = function(params)

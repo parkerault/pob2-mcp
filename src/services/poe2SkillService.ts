@@ -9,7 +9,7 @@
  * The tag helpers below (`effectiveTagSet`, `rankSupportsForSkillTags`, `resolveActiveSkillTags`) serve
  * the leveling planner, which works from a skill *name* that need not be socketed in the build.
  */
-import type { ActionParams, CheckCoverageResult, SkillsResult, SupportCandidate, SupportCandidatesResult } from "../engine/schemas.js";
+import type { ActionParams, CheckCoverageResult, GroupMinion, MinionSelection, SkillsResult, SupportCandidate, SupportCandidatesResult } from "../engine/schemas.js";
 
 /** The slice of the Lua bridge the skill analysis needs. */
 export interface SkillEngine {
@@ -185,6 +185,8 @@ export interface AnalyzedGroup {
   /** Supports PoB says can support the group's skills and that aren't in it (`list_support_candidates`). */
   candidates: string[];
   issues: string[];
+  /** D-377: the group's summons, each with its minion's skills and the selected one. */
+  minions: GroupMinion[];
 }
 
 export interface SkillAnalysis {
@@ -218,6 +220,21 @@ export interface SupportSuggestions {
   poolNames: string[];
   /** Every candidate in the pool whose measurement returned no value (C-47), by name. */
   unmeasured: MeasuredSupport[];
+}
+
+/**
+ * D-377: a summon's minion and its skills in order, marking the selected one, as `get_skill_setup` and
+ * `analyze_skills` print it: `Minion: Navira, the Last Mirage; skills: 1 Navira's Embrace, 2 Navira's
+ * Fracturing (selected), …`. A selected skill with several stat sets also names its stat set.
+ */
+export function minionSkillsLine(m: MinionSelection): string {
+  const skills = m.skills.map((name, i) => {
+    if (i + 1 !== m.index) return `${i + 1} ${name}`;
+    const label = m.statSets[m.statSet - 1];
+    const set = m.statSets.length > 1 ? `, stat set ${m.statSet}${label ? ` ${label}` : ""}` : "";
+    return `${i + 1} ${name} (selected${set})`;
+  });
+  return `Minion: ${m.minion}; skills: ${skills.join(", ")}`;
 }
 
 /** C-38's gem status for a skill line PoB's own gem tooltip marks unsupported (pin §B4). */
@@ -332,6 +349,7 @@ export class Poe2SkillService {
         supportCount: gems.filter((gm) => gm.isSupport).length,
         candidates: pool.candidates.map((c) => c.name),
         issues,
+        minions: g.minions ?? [],
       });
     }
 

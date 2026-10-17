@@ -9,7 +9,10 @@
 --               the requirements at every gem level, and (WU-53, D-299) an active gem's skill types and
 --               the meta gems that can use it, and every gem's hit-making children. With exactly one gem
 --               returned (D-239's one-result rule), or several that are all named as the query, a support
---               lists the active gems it can support and an active gem the supports another support unlocks
+--               lists the active gems it can support and an active gem the supports another support unlocks.
+--               After the gems, the minion skills whose name is the query, case-insensitive (WU-77, D-379):
+--               of the skills a gem's minion casts, each with its minions and summoning gems, whether it is
+--               a command, the passives whose line grants it, its cooldown, skill types and stat sets
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
@@ -21,8 +24,9 @@
 --               `...`, each matching any text within the line (WU-53)
 --
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
--- server caps it): exact name matches first, then by name, then by id; mechanic hits by kind (gem,
--- unique, passive, mod, essence, base), then by name, then by id, then by line. `total` counts every match.
+-- server caps it): exact name matches first, then by name, then by id (gem mode: the gems, then the minion
+-- skills by id); mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name, then by
+-- id, then by line. `total` counts every match.
 --
 -- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258): in gem
 -- mode up to 5 active gems, then up to 3 supports (D-258a); in unique mode up to 5 unique names, of `slot`
@@ -568,6 +572,131 @@ local function gemResult(id, gem, levelParam, quality, single)
   return result
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- Amendment 6's minion skills (WU-77, D-379)
+
+-- The build's passive tree nodes (else the latest tree's), ascendancy nodes included.
+local function treeNodes()
+  if _G.build and build.spec and build.spec.tree and build.spec.tree.nodes then return build.spec.tree.nodes end
+  if _G.main and main.tree and _G.latestTreeVersion and main.tree[latestTreeVersion] then
+    return main.tree[latestTreeVersion].nodes
+  end
+  return {}
+end
+
+local minionSkillCache = setmetatable({}, { __mode = 'k' })
+
+-- Every minion skill reachable from a gem, as PoB builds a summon's minion (CalcActiveSkill.lua:1112-1130):
+-- the gem's active effects' `minionList` -> the minion's `skillList` -> `data.skills`. Keyed by the
+-- lowercased skill name: a list of { id, skill, casters }, one per granted effect, sorted by id; `casters`
+-- holds each (minion, summoning gem) that casts it, sorted by minion name, then gem name, then gem id.
+local function minionSkillIndex()
+  local d = gameData()
+  if minionSkillCache[d] then return minionSkillCache[d] end
+  local byId, seen = {}, {}
+  for gemId, gem in pairs(d.gems) do
+    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+      for _, effect in ipairs(M.gemEffects(gem)) do
+        if isActiveEffect(effect) then
+          for _, minionId in ipairs(effect.minionList or {}) do
+            local minion = d.minions and d.minions[minionId]
+            if type(minion) == 'table' then
+              for _, skillId in ipairs(minion.skillList or {}) do
+                local skill = d.skills[skillId]
+                if type(skill) == 'table' and type(skill.name) == 'string' and skill.name ~= '' then
+                  local entry = byId[skillId]
+                  if not entry then
+                    entry = { id = tostring(skillId), skill = skill, casters = {} }
+                    byId[skillId] = entry
+                  end
+                  local key = tostring(skillId) .. '\0' .. tostring(minionId) .. '\0' .. tostring(gemId)
+                  if not seen[key] then
+                    seen[key] = true
+                    table.insert(entry.casters, {
+                      minion = tostring(minion.name or minionId), minionId = tostring(minionId),
+                      gem = gem.name, gemId = tostring(gemId),
+                    })
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  local index = {}
+  for _, entry in pairs(byId) do
+    table.sort(entry.casters, function(a, b)
+      if a.minion ~= b.minion then return a.minion < b.minion end
+      if a.gem ~= b.gem then return a.gem < b.gem end
+      return a.gemId < b.gemId
+    end)
+    local key = entry.skill.name:lower()
+    index[key] = index[key] or {}
+    table.insert(index[key], entry)
+  end
+  for _, list in pairs(index) do table.sort(list, function(a, b) return a.id < b.id end) end
+  minionSkillCache[d] = index
+  return index
+end
+
+-- A command: one of its stat sets lists `is_commandable_skill` (the player orders the minion to use it).
+local function isCommandable(skill)
+  for _, statSet in ipairs(skill.statSets or {}) do
+    for _, stat in ipairs(statSet.stats or {}) do
+      if stat == 'is_commandable_skill' then return true end
+    end
+    for _, stat in ipairs(statSet.constantStats or {}) do
+      if type(stat) == 'table' and stat[1] == 'is_commandable_skill' then return true end
+    end
+  end
+  return false
+end
+
+-- The passives with a line that reads "Grants Skill: <name>": a command's unlock in game. PoB parses such
+-- a line for a gem's skill only, so it never checks a minion skill's passive (spike A4). Sorted by node id.
+local function grantingNodes(name)
+  local wanted = ('grants skill: ' .. name):lower()
+  local out = {}
+  for id, node in pairs(treeNodes()) do
+    if type(node) == 'table' and type(node.sd) == 'table' then
+      for _, stat in ipairs(node.sd) do
+        if type(stat) == 'string' and oneLine(stat):lower() == wanted then
+          table.insert(out, { id = tonumber(id), name = tostring(node.name or ('Node ' .. tostring(id))), ascendancy = node.ascendancyName })
+          break
+        end
+      end
+    end
+  end
+  table.sort(out, function(a, b) return (a.id or 0) < (b.id or 0) end)
+  return out
+end
+
+-- One minion skill (D-379): who casts it, whether it is a command, the passives that grant it, its
+-- cooldown, skill types, description and stat sets. Its level follows its minion's (PoB takes the highest
+-- level whose requirement the minion meets, CalcActiveSkill.lua:1147-1155), so it is shown at its highest.
+local function minionSkillResult(entry)
+  local skill = entry.skill
+  local levels = sortedLevels(skill)
+  local level = levels[#levels] or 1
+  local levelData = skill.levels and skill.levels[level] or {}
+  return {
+    kind = 'minion-skill',
+    id = entry.id,
+    name = skill.name,
+    castBy = entry.casters,
+    commanded = isCommandable(skill),
+    grantedBy = grantingNodes(skill.name),
+    cooldown = tonumber(levelData.cooldown),
+    skillTypes = skillTypeSet(skill),
+    description = skill.description and oneLine(skill.description) or nil,
+    level = level,
+    levelCount = #levels,
+    statSets = effectBlock(skill, level, 0),
+  }
+end
+
 local function lookupGems(query, level, quality, maxResults)
   local d = gameData()
   local matches = {}
@@ -577,6 +706,9 @@ local function lookupGems(query, level, quality, maxResults)
     end
   end
   sortByName(matches, query)
+  -- D-379: the minion skills whose name is the query (case-insensitive), after every gem: a name a gem and
+  -- a minion skill share lists the gem first.
+  local minionSkills = minionSkillIndex()[query] or {}
   local shown = cut(matches, maxResults)
   -- A gem_level is an error only when no returned gem has it (C-37).
   if level and #shown > 0 then
@@ -603,7 +735,10 @@ local function lookupGems(query, level, quality, maxResults)
   for i, m in ipairs(shown) do
     results[i] = gemResult(m.id, m.gem, level, quality, single)
   end
-  return results, #matches
+  for i = 1, math.min(#minionSkills, maxResults - #results) do
+    table.insert(results, minionSkillResult(minionSkills[i]))
+  end
+  return results, #matches + #minionSkills
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -1040,14 +1175,6 @@ end
 -- Mechanics
 
 local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5, base = 6 }
-
-local function treeNodes()
-  if _G.build and build.spec and build.spec.tree and build.spec.tree.nodes then return build.spec.tree.nodes end
-  if _G.main and main.tree and _G.latestTreeVersion and main.tree[latestTreeVersion] then
-    return main.tree[latestTreeVersion].nodes
-  end
-  return {}
-end
 
 -- A mod table entry's text lines (its array part); a rune entry nests one mod per item class.
 local function collectModHits(hits, tableName, entryId, entry, match)

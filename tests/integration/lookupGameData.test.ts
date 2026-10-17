@@ -33,6 +33,10 @@
  * `calcs.createActiveSkill` and a real support list, as PoB's CalcSetup does, after PoB's one support per
  * gem family; `altQualityStats` through the describer for the Gemling lines; the granted effects, minion
  * lists and hit flags for the children; `data.itemBaseLists` for the base implicits.
+ *
+ * AC-K71 (WU-77, D-379): gem mode finds a minion skill by name, after the gems. The expected lines are
+ * recomputed from PoB's data: the gems whose active effects' minions list the skill, `is_commandable_skill`
+ * in a stat set, the tree's "Grants Skill: <name>" lines, and the described stat sets.
  */
 import fs from 'fs';
 import path from 'path';
@@ -41,7 +45,7 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
 import { TOOL_META } from '../../src/server/toolMeta';
-import type { LookupGameDataResult, LookupGem, LookupHit } from '../../src/engine/schemas';
+import type { LookupGameDataResult, LookupGem, LookupHit, LookupMinionSkill } from '../../src/engine/schemas';
 import { renderHit } from '../../src/handlers/lookupHandlers';
 
 /**
@@ -2118,6 +2122,173 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         if (got.length > 0) withChild += 1;
       }
       expect(withChild).toBe(121);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "AC-K71 (D-379): gem mode finds a minion skill by name: \"Navira's Fracturing\" is one result (Kind: minion skill, cast by Navira's minion, summoned by \"Navira, the Last Mirage\", Commanded: yes, granted by node 10561 of Disciple of Varashta, its cooldown, skill types and stat sets); \"Gas Arrow\" lists the gem first, then the minion skill; \"Navira, the Last Mirage\" is still a gem",
+    async () => {
+      // PoB's own data for the expected lines: who casts the skill (gem -> minionList -> minion's skillList), whether a
+      // stat set lists is_commandable_skill, the passives with the line "Grants Skill: <name>", the cooldown, types
+      // and described stat sets at the skill's highest level.
+      const minionSkillQuery = (name: string) => `${RULE_LUA}
+        local wanted = ${JSON.stringify(name)}
+        local out = {}
+        local byId = {}
+        for _, g in ipairs(allGems()) do
+          for _, e in ipairs(activeEffects(g.gem)) do
+            for _, m in ipairs(e.minionList or {}) do
+              local md = data.minions[m]
+              for _, sid in ipairs(md and md.skillList or {}) do
+                local s = data.skills[sid]
+                if s and s.name == wanted then
+                  byId[sid] = byId[sid] or { id = sid, castBy = {} }
+                  local line = 'Cast by: ' .. md.name .. ' (summoned by ' .. g.name .. ')'
+                  local seen = false
+                  for _, l in ipairs(byId[sid].castBy) do if l == line then seen = true end end
+                  if not seen then table.insert(byId[sid].castBy, line) end
+                end
+              end
+            end
+          end
+        end
+        for sid, entry in pairs(byId) do
+          local s = data.skills[sid]
+          local commanded = false
+          for _, ss in ipairs(s.statSets) do
+            for _, st in ipairs(ss.stats or {}) do if st == 'is_commandable_skill' then commanded = true end end
+          end
+          local nodes = {}
+          for id, node in pairs(build.spec.tree.nodes) do
+            for _, l in ipairs(node.sd or {}) do
+              if l == 'Grants Skill: ' .. wanted then table.insert(nodes, { id = id, line = 'Granted by: ' .. node.name .. ' (' .. (node.ascendancyName and (node.ascendancyName .. ', ') or '') .. 'node ' .. id .. ')' }) end
+            end
+          end
+          table.sort(nodes, function(a, b) return a.id < b.id end)
+          local granted = {}
+          for i, n in ipairs(nodes) do granted[i] = n.line end
+          local top = 0
+          for l in pairs(s.levels) do if type(l) == 'number' and l > top then top = l end end
+          local sets = {}
+          for i, ss in ipairs(s.statSets) do
+            local lines = {}
+            for _, l in ipairs(data.describeStats(calcLib.buildSkillInstanceStats({ level = top, quality = 0 }, s, ss), ss.statDescriptionScope) or {}) do
+              table.insert(lines, '  - ' .. oneLine(l))
+            end
+            sets[i] = { header = 'Stat set ' .. i .. ': ' .. ((type(ss.label) == 'string' and ss.label ~= '') and ss.label or s.name), lines = lines }
+          end
+          table.sort(entry.castBy)
+          table.insert(out, {
+            id = sid, castBy = entry.castBy, commanded = commanded, grantedBy = granted,
+            cooldown = s.levels[top].cooldown, types = typeNames(s.skillTypes), sets = sets,
+          })
+        end
+        table.sort(out, function(a, b) return a.id < b.id end)
+        return out`;
+      interface Want {
+        id: string;
+        castBy: string[];
+        commanded: boolean;
+        grantedBy: string[] | Record<string, never>;
+        cooldown?: number;
+        types: string[];
+        sets: Array<{ header: string; lines: string[] | Record<string, never> }>;
+      }
+
+      const [fracturing] = await luaQuery<Want[]>(minionSkillQuery("Navira's Fracturing"));
+      // The spec's own facts, held against PoB's data.
+      expect(fracturing.castBy).toEqual(['Cast by: Navira, the Last Mirage (summoned by Navira, the Last Mirage)']);
+      expect(fracturing.commanded).toBe(true);
+      expect(fracturing.grantedBy).toEqual(["Granted by: Navira's Fracturing (Disciple of Varashta, node 10561)"]);
+
+      const raw = await lookupAction({ mode: 'gem', query: "Navira's Fracturing" });
+      expect(raw.total).toBe(1);
+      expect(raw.results.map((r) => [r.kind, (r as { id: string }).id])).toEqual([['minion-skill', fracturing.id]]);
+
+      const text = await okTool({ mode: 'gem', query: "navira's fracturing" });
+      expect(text).toContain('Found 1 match');
+      const got = blocks(text);
+      expect(got).toHaveLength(1);
+      const lines = got[0].split('\n');
+      expect(lines.slice(0, 5)).toEqual([
+        "## Navira's Fracturing",
+        'Kind: minion skill',
+        'Cast by: Navira, the Last Mirage (summoned by Navira, the Last Mirage)',
+        'Commanded: yes',
+        "Granted by: Navira's Fracturing (Disciple of Varashta, node 10561)",
+      ]);
+      expect(lines).toContain(`Cooldown: ${fracturing.cooldown} s`);
+      expect(lines).toContain(`Skill types: ${fracturing.types.join(', ')}`);
+      for (const set of fracturing.sets) {
+        const at = lines.indexOf(set.header);
+        expect({ header: set.header, at: at >= 0 }).toEqual({ header: set.header, at: true });
+        const listed = lines.slice(at + 1).filter((l) => l.startsWith('  - '));
+        expect(listed.slice(0, arr(set.lines).length)).toEqual(arr(set.lines));
+      }
+
+      // Names a gem and a minion skill share: the gem first, then each minion skill (by id), with its casters.
+      for (const name of ['Gas Arrow', 'Leap Slam']) {
+        const want = await luaQuery<Want[]>(minionSkillQuery(name));
+        expect(want.length).toBeGreaterThan(0);
+        const gemIds = (await gemsNamed(name)).map((g) => g.id);
+        const full = await lookupAction({ mode: 'gem', query: name, maxResults: 30 });
+        const exact = full.results.filter((r) => r.name === name);
+        expect({ name, order: exact.map((r) => [r.kind, (r as { id: string }).id]) }).toEqual({
+          name,
+          order: [...gemIds.map((id) => ['gem', id]), ...want.map((w) => ['minion-skill', w.id])],
+        });
+        // Every gem result comes before every minion skill.
+        const kinds = full.results.map((r) => r.kind);
+        expect(kinds.lastIndexOf('gem')).toBeLessThan(kinds.indexOf('minion-skill'));
+        expect(full.total).toBe(full.results.length);
+        const shown = blocks(await okTool({ mode: 'gem', query: name, max_results: 30 })).filter((b) => b.startsWith(`## ${name}\n`));
+        expect(shown.map((b) => b.split('\n')[1].startsWith('Kind: minion skill'))).toEqual([...gemIds.map(() => false), ...want.map(() => true)]);
+        for (const [i, w] of want.entries()) {
+          const block = shown[gemIds.length + i].split('\n');
+          expect({ name, castBy: block.filter((l) => l.startsWith('Cast by: ')) }).toEqual({ name, castBy: w.castBy });
+          expect(block.includes('Commanded: yes')).toBe(w.commanded);
+        }
+        // Cut to max_results 1: the gem alone, and the total still counts the minion skills.
+        const one = await lookupAction({ mode: 'gem', query: name, maxResults: 1 });
+        expect(one.results.map((r) => r.kind)).toEqual(['gem']);
+        expect(one.total).toBe(full.total);
+      }
+
+      // A tier-0 ascendancy gem is still a gem: "Navira, the Last Mirage", no minion skill of that name.
+      const navira = await lookupAction({ mode: 'gem', query: 'Navira, the Last Mirage' });
+      expect(navira.results.map((r) => r.kind)).toEqual(['gem']);
+      expect((navira.results[0] as LookupGem).tier).toBe(0);
+      const naviraText = gemBlockOf(await okTool({ mode: 'gem', query: 'Navira, the Last Mirage' }), 'Navira, the Last Mirage');
+      expect(lineWith(naviraText, 'Kind: ')).toMatch(/^active\b/);
+      expect(lineWith(naviraText, 'Tier: ')).toBe('0');
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K71 (D-379, the sweep): every minion child a gem result names under "Hit-making children" is found by its own name as a minion skill whose casters include that minion and that gem',
+    async () => {
+      const found = new Map<string, LookupMinionSkill[]>();
+      let checked = 0;
+      for (const gem of (await sweep()).values()) {
+        for (const child of gem.children) {
+          if (child.kind !== 'minion') continue;
+          if (!found.has(child.name)) {
+            const r = await lookupAction({ mode: 'gem', query: child.name, maxResults: 30 });
+            found.set(child.name, r.results.filter((x) => x.kind === 'minion-skill' && x.name === child.name) as LookupMinionSkill[]);
+          }
+          const casters = found.get(child.name)!.flatMap((s) => s.castBy.map((c) => `${c.minion} / ${c.gem}`));
+          expect({ child: child.name, by: `${child.minion} / ${gem.name}`, found: casters.includes(`${child.minion} / ${gem.name}`) }).toEqual({
+            child: child.name,
+            by: `${child.minion} / ${gem.name}`,
+            found: true,
+          });
+          checked += 1;
+        }
+      }
+      expect(checked).toBeGreaterThan(20);
+      expect(found.size).toBeGreaterThan(10);
     },
     ENGINE_TIMEOUT,
   );

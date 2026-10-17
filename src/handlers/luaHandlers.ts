@@ -295,8 +295,21 @@ export const OFFENSE_STAT_FIELDS: readonly string[] = [
 const nonZeroStat = (v: unknown) => v != null && v !== 0 && v !== '0';
 
 /**
+ * D-377: what a summon's breakdown block measures, after its heading: `, minion skill <k> <name>`, and the
+ * minion skill's stat set when it has several. Empty for a skill without a minion.
+ */
+function minionSkillNote(minion: StatsBreakdown["skills"][number]["minion"]): string {
+  if (!minion || minion.index === undefined || !minion.name) return "";
+  const label = minion.statSets[minion.statSet - 1];
+  const set = minion.statSets.length > 1 ? `, stat set ${minion.statSet}${label ? ` ${label}` : ""}` : "";
+  return `, minion skill ${minion.index} ${minion.name}${set}`;
+}
+
+/**
  * C-45's view: one block per active skill and stat set, headed `## <skill> / <stat set label>
- * [skill_part <i>]`, listing its non-zero offense fields as `<Field>: <value>` in the offense order.
+ * [skill_part <i>]`, listing its non-zero offense fields as `<Field>: <value>` in the offense order. A
+ * summon's heading goes on to name its minion's selected skill (`, minion skill 2 Leap Slam`, D-377),
+ * whose numbers are the block's `Minion` fields (D-376).
  */
 export function renderStatsBreakdown(breakdown: StatsBreakdown): string {
   const group = `socket group ${breakdown.groupIndex}${breakdown.label ? ` (${breakdown.label})` : ''}`;
@@ -308,9 +321,12 @@ export function renderStatsBreakdown(breakdown: StatsBreakdown): string {
     'Each block is measured with that skill and stat set as the main selection; the build is left as it was. ' +
       'Skills are in active_skill_index order; select one with set_main_skill {group_index, active_skill_index, skill_part}.',
   ];
+  if (breakdown.skills.some((skill) => minionSkillNote(skill.minion) !== '')) {
+    lines.push("A summon's block measures its minion's selected skill (its Minion fields); select another with set_main_skill {group_index, minion_skill}.");
+  }
   for (const skill of breakdown.skills) {
     for (const set of skill.statSets) {
-      lines.push('', `## ${skill.name} / ${set.label} [skill_part ${set.index}]`);
+      lines.push('', `## ${skill.name} / ${set.label} [skill_part ${set.index}]${minionSkillNote(skill.minion)}`);
       const shown = OFFENSE_STAT_FIELDS.filter((k) => nonZeroStat(set.output[k]));
       if (shown.length === 0) lines.push('(no non-zero offense fields)');
       for (const key of shown) lines.push(`${key}: ${set.output[key]}`);

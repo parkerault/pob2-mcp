@@ -3,6 +3,7 @@ import { wrapHandler } from "../utils/errorHandling.js";
 import {
   POSSIBLY_UNMODELLED,
   Poe2SkillService,
+  minionSkillsLine,
   possiblyUnmodelledGems,
   type CoverageScan,
   type MeasuredSupport,
@@ -44,6 +45,8 @@ export async function handleAnalyzeSkillsPoe2(context: LuaHandlerContext) {
       lines.push(`## Group ${g.index}: ${g.label}${mainTag}${disabledTag}`);
       if (g.slot) lines.push(`  Slot: ${g.slot}`);
       lines.push(`  Active skills: ${g.activeSkills.length > 0 ? g.activeSkills.join(", ") : "(none)"}`);
+      // D-377: each summon's minion and its skills; suggest_supports measures the selected one.
+      for (const m of g.minions) lines.push(`  ${minionSkillsLine(m)}`);
       lines.push(`  Supports: ${g.supportCount}`);
 
       for (const gem of g.gems) {

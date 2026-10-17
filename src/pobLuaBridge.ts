@@ -42,6 +42,7 @@ import {
   type RenameSpecResult,
   type SelectItemSetResult,
   type SelectSpecResult,
+  type SelectedMinionSkill,
   type SelectedStatSet,
   type SkillsResult,
   type StatsBreakdown,
@@ -727,10 +728,15 @@ export class PoBLuaApiClient {
     return res.skills;
   }
 
-  /** With `statSet`, returns the stat set the engine selected (C-44); otherwise `undefined`. */
-  async setMainSelection(params: ActionParams<"set_main_selection">): Promise<SelectedStatSet | undefined> {
+  /**
+   * With `statSet`, returns the stat set the engine selected (C-44); with `minionSkill`, the minion
+   * selection (D-377). Each is `undefined` when not requested.
+   */
+  async setMainSelection(
+    params: ActionParams<"set_main_selection">,
+  ): Promise<{ statSet?: SelectedStatSet; minion?: SelectedMinionSkill }> {
     const res = await this.request("set_main_selection", params);
-    return res.statSet;
+    return { statSet: res.statSet, minion: res.minion };
   }
 
   /**

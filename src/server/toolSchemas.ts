@@ -596,7 +596,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lookup_game_data",
-      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. When exactly one gem is returned, or several all named as the query, a support also lists the active gems it can support, and an active gem the supports it gains when another support adds skill types. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, where '…' matches any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed.",
+      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. When exactly one gem is returned, or several all named as the query, a support also lists the active gems it can support, and an active gem the supports it gains when another support adds skill types. Then the minion skills named exactly `query`, each with its minions and summoning gems, command flag, granting passives, cooldown, types and stat sets. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, where '…' matches any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed.",
       inputSchema: {
         type: "object",
         properties: {
@@ -632,7 +632,7 @@ export function getLuaToolSchemas(): any[] {
           max_results: {
             type: "integer",
             minimum: 1,
-            description: "Maximum results to return (default 20, max 30). Results are sorted, then cut: exact name matches first, then by name; mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name",
+            description: "Maximum results to return (default 20, max 30). Results are sorted, then cut: exact name matches first, then by name (gem mode: the gems, then the minion skills); mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name",
           },
         },
         required: ["mode"],
@@ -763,7 +763,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "get_skill_setup",
-      description: "Get current skill gem setup. Default main_only=true shows only the main DPS socket group — use this first. Set main_only=false only if you need to see all utility/aura/movement groups too.",
+      description: "Get current skill gem setup. Default main_only=true shows only the main DPS socket group — use this first. Set main_only=false only if you need to see all utility/aura/movement groups too. A group with a summon also lists its minion's skills in order, marking the one selected (set_main_skill's minion_skill).",
       inputSchema: {
         type: "object",
         properties: {
@@ -776,7 +776,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "set_main_skill",
-      description: "Set which skill group is the main skill for DPS calculations, and optionally which stat set of its active skill is measured (skill_part).",
+      description: "Set which skill group is the main skill for DPS calculations, and optionally which stat set of its active skill is measured (skill_part) and which skill its summon's minion uses (minion_skill). A minion's numbers are the Minion fields of lua_get_stats, such as MinionTotalDPS.",
       inputSchema: {
         type: "object",
         properties: {
@@ -791,6 +791,14 @@ export function getLuaToolSchemas(): any[] {
           skill_part: {
             type: "number",
             description: "The stat set of the main active skill to measure (1-based, optional): PoB2's stat-set choice, such as a grenade's impact or its explosion. It is saved with the build. A number outside the skill's stat sets is an error that lists them. lua_get_stats with breakdown=true shows every stat set's numbers without changing the build.",
+          },
+          minion_skill: {
+            type: "string",
+            description: "The skill the group's summon's minion uses (optional), by name, case-insensitive: one of the minion's skills as get_skill_setup lists them, such as a command (\"Navira's Fracturing\"); lookup_game_data's gem mode finds a minion skill by name. The group must hold exactly one summon, which becomes the main active skill; active_skill_index, when given, must be that summon, not its Command skill. It is saved with the build. An unknown name is an error that lists the minion's skills, and nothing changes.",
+          },
+          minion_stat_set: {
+            type: "number",
+            description: "The stat set of minion_skill (1-based, default 1; needs minion_skill), for a minion skill with several, such as Kelari's Deception. A number outside the skill's stat sets is an error that lists them.",
           },
         },
         required: ["group_index"],

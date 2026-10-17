@@ -62,10 +62,25 @@ end
 
 local SCALAR_TYPES = { number = true, string = true, boolean = true }
 
+-- D-376: an output field by name. PoB keeps a minion's numbers in the nested table `output.Minion`, so
+-- a field `Minion<Field>` that the output lacks reads `output.Minion[<Field>]` (`MinionTotalDPS` is
+-- the minion's `TotalDPS`). At the pin only `MinionRevivalSpeed` is a field of the output itself, so no
+-- name collides. Exported so the compile's own outputs can read the same way.
+function M.output_field(output, key)
+  local v = output[key]
+  if v == nil and type(key) == 'string' and type(output.Minion) == 'table' then
+    local field = key:match('^Minion(.+)$')
+    if field then v = output.Minion[field] end
+  end
+  return v
+end
+local output_field = M.output_field
+
 -- Export a subset of useful stats from main output.
 -- If fields is provided, only export those keys (when present). Only number, string and boolean
 -- values are exported; keys whose value is anything else (an item object, a nested table) are left
--- out and listed in `_meta.omitted`, because they cannot be encoded (ctx-lua X13).
+-- out and listed in `_meta.omitted`, because they cannot be encoded (ctx-lua X13). A `Minion<Field>`
+-- reads the minion's own output (D-376, output_field).
 function M.export_stats(fields)
   local output, err = M.get_main_output()
   if not output then
@@ -75,7 +90,7 @@ function M.export_stats(fields)
   local result = {}
   local omitted = {}
   for _, k in ipairs(wanted) do
-    local v = output[k]
+    local v = output_field(output, k)
     if SCALAR_TYPES[type(v)] then
       result[k] = v
     elseif v ~= nil then
@@ -835,16 +850,64 @@ M.config_options = config_options
 M.config_value = config_value
 
 
+-- D-377: a minion skill's stat-set label, as PoB's minion stat-set dropdown lists it (vendor
+-- Modules/Build.lua:2056-2057), else the skill's name.
+local function minion_stat_set_label(grantedEffect, index)
+  local set = grantedEffect.statSets and grantedEffect.statSets[index]
+  if set and type(set.label) == 'string' and set.label:match('%S') then return set.label end
+  return tostring(grantedEffect.name or grantedEffect.id)
+end
+
+-- D-377: a summon's minion and its skill list, as PoB's minion-skill dropdown shows them (vendor
+-- Modules/Build.lua:2046-2062): the minion's live skills in list order (its own in data order, then the
+-- ones supports add), the selected one (`minion.mainSkill`) and that skill's stat set. `active` is an
+-- entry of a group's displaySkillList; nil when it has no minion with a skill list (a "Command" skill).
+-- { minion, minionId, skills, index, name, statSet, statSets (the selected skill's stat-set labels) }
+local function minion_of(active)
+  local minion = active and active.minion
+  local list = minion and minion.activeSkillList
+  if type(list) ~= 'table' or not list[1] then return nil end
+  local skills, index = {}, nil
+  for i, skill in ipairs(list) do
+    local ge = skill.activeEffect and skill.activeEffect.grantedEffect
+    skills[i] = ge and tostring(ge.name) or '?'
+    if skill == minion.mainSkill then index = i end
+  end
+  local main = minion.mainSkill
+  local ge = main and main.activeEffect and main.activeEffect.grantedEffect
+  local labels = {}
+  for i = 1, #(ge and ge.statSets or {}) do labels[i] = minion_stat_set_label(ge, i) end
+  return {
+    minion = tostring(minion.minionData and minion.minionData.name or minion.type),
+    minionId = tostring(minion.type),
+    skills = skills,
+    index = index,
+    name = ge and tostring(ge.name) or nil,
+    statSet = main and main.activeEffect.statSet and main.activeEffect.statSet.index or 1,
+    statSets = labels,
+  }
+end
+
 -- Skills API
+-- Each group lists, besides its skills and gems, every summon among its active skills (`minions`, D-377):
+-- the active skill's index and name, its minion, the minion's skills in order and the selected one.
 function M.get_skills()
   if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
   local groups = {}
   for idx, g in ipairs(build.skillsTab.socketGroupList or {}) do
     local names = {}
+    local minions = nil
     if g.displaySkillList then
-      for _, eff in ipairs(g.displaySkillList) do
+      for i, eff in ipairs(g.displaySkillList) do
         if eff and eff.activeEffect and eff.activeEffect.grantedEffect then
           table.insert(names, eff.activeEffect.grantedEffect.name)
+        end
+        local minion = minion_of(eff)
+        if minion then
+          minion.activeSkill = i
+          minion.summon = eff.activeEffect and eff.activeEffect.grantedEffect and tostring(eff.activeEffect.grantedEffect.name) or nil
+          minions = minions or {}
+          table.insert(minions, minion)
         end
       end
     end
@@ -889,6 +952,7 @@ function M.get_skills()
       gems = gems,
       activeCount = activeCount,
       supportCount = supportCount,
+      minions = minions,
     })
   end
   local result = {
@@ -906,10 +970,79 @@ local function rebuild_outputs()
   return M.get_main_output()
 end
 
+-- D-377: a summon gem's minion stat-set lookups, PoB's `<MinionSkillIndexLookup[Calcs]>`: granted effect
+-- id -> { minion skill index -> stat set }, one for the main selection and one for the Calcs tab.
+local MINION_LOOKUPS = { 'skillMinionSkillStatSetIndexLookup', 'skillMinionSkillStatSetIndexLookupCalcs' }
+
+-- A two-level lookup's tables and contents, so it can be put back with the same tables (nil stays nil).
+local function copy_lookup(t)
+  if type(t) ~= 'table' then return { value = t } end
+  local entries = {}
+  for k, inner in pairs(t) do
+    if type(inner) == 'table' then
+      local values = {}
+      for i, v in pairs(inner) do values[i] = v end
+      entries[k] = { table = inner, values = values }
+    else
+      entries[k] = { value = inner }
+    end
+  end
+  return { table = t, entries = entries }
+end
+
+local function put_lookup(copy)
+  local t = copy.table
+  if not t then return copy.value end
+  for k in pairs(t) do t[k] = nil end
+  for k, e in pairs(copy.entries) do
+    if e.table then
+      for i in pairs(e.table) do e.table[i] = nil end
+      for i, v in pairs(e.values) do e.table[i] = v end
+      t[k] = e.table
+    else
+      t[k] = e.value
+    end
+  end
+  return t
+end
+
+-- One gem's selection state: its scalar fields (the calculation writes `skillPart`, `skillMinion`,
+-- `skillMinionSkill`, … on the main group's gems), its stat-set choices (`statSet`; nil stays nil) and
+-- its minion stat-set lookups (D-377).
+local function snapshot_gem(gem)
+  local fields = {}
+  for k, v in pairs(gem) do
+    if SCALAR_TYPES[type(v)] then fields[k] = v end
+  end
+  local statSet = nil
+  if type(gem.statSet) == 'table' then
+    statSet = {}
+    for k, v in pairs(gem.statSet) do statSet[k] = v end
+  end
+  local lookups = {}
+  for _, key in ipairs(MINION_LOOKUPS) do lookups[key] = copy_lookup(gem[key]) end
+  return { fields = fields, statSetTable = gem.statSet, statSet = statSet, lookups = lookups }
+end
+
+local function restore_gem(gem, s)
+  for k, v in pairs(gem) do
+    if SCALAR_TYPES[type(v)] and s.fields[k] == nil then gem[k] = nil end
+  end
+  for k, v in pairs(s.fields) do gem[k] = v end
+  if s.statSet == nil then
+    gem.statSet = s.statSetTable
+  else
+    local t = s.statSetTable
+    for k in pairs(t) do t[k] = nil end
+    for k, v in pairs(s.statSet) do t[k] = v end
+    gem.statSet = t
+  end
+  for _, key in ipairs(MINION_LOOKUPS) do gem[key] = put_lookup(s.lookups[key]) end
+end
+
 -- The state a main-selection change can touch (C-44, C-45, D-176): the main group, the calcs tab's
--- group (`skill_number`), every group's main active skill (main and calcs), and, for each gem of the
--- groups named, its scalar fields (the calculation writes `skillPart`, `skillMinion`, … on the main
--- group's gems) and its stat-set choices (`statSet`; nil stays nil).
+-- group (`skill_number`), every group's main active skill (main and calcs), and each gem of the groups
+-- named (snapshot_gem: its scalar fields, stat-set choices and minion stat-set lookups).
 local function snapshot_selection(groupIndexes)
   local list = build.skillsTab.socketGroupList or {}
   local snap = {
@@ -923,18 +1056,7 @@ local function snapshot_selection(groupIndexes)
   end
   for _, gi in ipairs(groupIndexes) do
     for _, gem in ipairs(list[gi] and list[gi].gemList or {}) do
-      if not snap.gems[gem] then
-        local fields = {}
-        for k, v in pairs(gem) do
-          if SCALAR_TYPES[type(v)] then fields[k] = v end
-        end
-        local statSet = nil
-        if type(gem.statSet) == 'table' then
-          statSet = {}
-          for k, v in pairs(gem.statSet) do statSet[k] = v end
-        end
-        snap.gems[gem] = { fields = fields, statSetTable = gem.statSet, statSet = statSet }
-      end
+      if not snap.gems[gem] then snap.gems[gem] = snapshot_gem(gem) end
     end
   end
   return snap
@@ -948,20 +1070,7 @@ local function restore_selection(snap)
     s.group.mainActiveSkill = s.mainActiveSkill
     s.group.mainActiveSkillCalcs = s.mainActiveSkillCalcs
   end
-  for gem, s in pairs(snap.gems) do
-    for k, v in pairs(gem) do
-      if SCALAR_TYPES[type(v)] and s.fields[k] == nil then gem[k] = nil end
-    end
-    for k, v in pairs(s.fields) do gem[k] = v end
-    if s.statSet == nil then
-      gem.statSet = s.statSetTable
-    else
-      local t = s.statSetTable
-      for k in pairs(t) do t[k] = nil end
-      for k, v in pairs(s.statSet) do t[k] = v end
-      gem.statSet = t
-    end
-  end
+  for gem, s in pairs(snap.gems) do restore_gem(gem, s) end
 end
 
 local function nonblank(v)
@@ -1001,15 +1110,161 @@ local function socket_group_label(g)
   return tostring(g.displayLabel or '')
 end
 
+-- "1 Basic Attack, 2 Leap Slam": a list's entries, numbered from 1.
+local function numbered(names)
+  local parts = {}
+  for i, name in ipairs(names) do parts[i] = i .. ' ' .. tostring(name) end
+  return table.concat(parts, ', ')
+end
+
+local function is_whole(n)
+  return type(n) == 'number' and n == math.floor(n) and n >= 1
+end
+
+-- D-377: select the skill a group's minion uses, by name, and that skill's stat set. It is the one
+-- place that writes a minion-skill selection: set_main_selection calls it for the main group, and the
+-- compile for every group whose plan names a minion skill. It never changes the main selection (the
+-- main group and the groups' main active skills).
+--
+-- M.select_minion_skill({ groupIndex, name, statSet?, activeSkill? }) -> selection | nil, error
+--   groupIndex   the socket group, 1-based. PoB builds a group's skills only when the group is the main
+--                one or enabled (vendor Modules/CalcSetup.lua:1987), so another group is refused.
+--   name         the minion skill's name, matched case-insensitively against the minion's live skill
+--                list after a rebuild (`minion.activeSkillList`: its own skills in data order, then any
+--                that supports add). A plan never holds an index, which supports and pins can move (spike A2).
+--   statSet      the minion skill's stat set, 1-based; default 1.
+--   activeSkill  optional: the summon's index among the group's active skills. Without it, the group's
+--                summon. Either way the group must hold exactly one summon (an active skill with a minion);
+--                a summon's "Command" skill has no minion and is refused.
+--
+-- Refused, writing nothing: a missing or unbuilt group; a group with no summon or with several; an active
+-- skill that isn't the summon; a name the minion's list lacks (the error lists the list) or holds twice
+-- (it names the positions); a stat set outside the skill's stat sets, which would crash PoB's
+-- calculation (vendor Modules/CalcTools.lua:155; spike A3).
+--
+-- It writes PoB's own fields on the summon's gem, as PoB's minion-skill dropdowns do (vendor
+-- Modules/Build.lua:461-475, Classes/CalcsTab.lua:143-154): `skillMinionSkill` and its Calcs-tab copy
+-- `skillMinionSkillCalcs`, and the stat set in both lookups, `skillMinionSkillStatSetIndexLookup[Calcs]
+-- [<summon's granted effect id>][<skill index>]`, which the build XML keeps as `<MinionSkillIndexLookup>`.
+-- Then it rebuilds and confirms that the minion's main skill is the one selected.
+--
+-- The selection: { minion (its name), minionId, summon (the active skill's name), activeSkill (its index),
+-- skills (the minion's skill names, in order), index, name, statSet, statSets (the skill's stat-set labels) }.
+function M.select_minion_skill(params)
+  if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
+  if type(params) ~= 'table' then return nil, 'invalid minion skill params' end
+  local list = build.skillsTab.socketGroupList or {}
+  local groupIndex = tonumber(params.groupIndex)
+  local g = groupIndex and list[groupIndex]
+  if not g then return nil, missing_group(params.groupIndex, #list) end
+  local wanted = type(params.name) == 'string' and params.name:match('^%s*(.-)%s*$') or ''
+  if wanted == '' then return nil, 'the minion skill name is empty' end
+  local statSet = 1
+  if params.statSet ~= nil then
+    statSet = tonumber(params.statSet)
+    if not is_whole(statSet) then
+      return nil, ('minion stat set %s is not a stat set number (1, 2, …)'):format(tostring(params.statSet))
+    end
+  end
+  if groupIndex ~= build.mainSocketGroup and not (g.enabled and g.slotEnabled ~= false) then
+    return nil, ('socket group %d is disabled and not the main group, so PoB builds none of its skills; enable it or make it the main group'):format(groupIndex)
+  end
+  rebuild_outputs()
+
+  -- The group's one summon.
+  local actives, summons = {}, {}
+  for i, active in ipairs(g.displaySkillList or {}) do
+    local ge = active.activeEffect and active.activeEffect.grantedEffect
+    actives[i] = ge and effect_name(ge, active.activeEffect.srcInstance) or '?'
+    if minion_of(active) then table.insert(summons, i) end
+  end
+  if #summons == 0 then
+    if #actives == 0 then return nil, ('socket group %d has no active skill, so it has no minion'):format(groupIndex) end
+    return nil, ('socket group %d has no summon: none of its active skills (%s) has a minion; a summon\'s "Command" skill has none either'):format(
+      groupIndex, numbered(actives))
+  end
+  if #summons > 1 then
+    local parts = {}
+    for k, i in ipairs(summons) do parts[k] = i .. ' ' .. actives[i] end
+    return nil, ('socket group %d holds %d summons (%s); a minion skill needs a group with one summon'):format(
+      groupIndex, #summons, table.concat(parts, ', '))
+  end
+  local summonIndex = summons[1]
+  if params.activeSkill ~= nil and tonumber(params.activeSkill) ~= summonIndex then
+    local a = tonumber(params.activeSkill)
+    local what = actives[a] and ('active skill %s (%s) has no minion'):format(tostring(a), actives[a])
+      or ('it has no active skill %s'):format(tostring(params.activeSkill))
+    return nil, ('socket group %d\'s %s: its summon is active skill %d (%s)'):format(groupIndex, what, summonIndex, actives[summonIndex])
+  end
+  local summon = g.displaySkillList[summonIndex]
+  local before = minion_of(summon)
+
+  -- The name, resolved against the live list.
+  local positions = {}
+  for i, name in ipairs(before.skills) do
+    if name:lower() == wanted:lower() then table.insert(positions, i) end
+  end
+  if #positions == 0 then
+    return nil, ('%s (%s) has no skill named "%s": its skills are %s'):format(before.minion, actives[summonIndex], wanted, numbered(before.skills))
+  end
+  if #positions > 1 then
+    local at = {}
+    for k, i in ipairs(positions) do at[k] = tostring(i) end
+    return nil, ('%s\'s skill list holds "%s" %d times, at positions %s, so the name is ambiguous: its skills are %s'):format(
+      before.minion, wanted, #positions, table.concat(at, ' and '), numbered(before.skills))
+  end
+  local index = positions[1]
+  local skillGe = summon.minion.activeSkillList[index].activeEffect.grantedEffect
+  local count = #(skillGe.statSets or {})
+  if statSet > count then
+    local labels = {}
+    for i = 1, count do labels[i] = minion_stat_set_label(skillGe, i) end
+    return nil, ('minion stat set %d is out of range: %s has %d stat set%s (%s)'):format(statSet, tostring(skillGe.name), count,
+      count == 1 and '' or 's', numbered(labels))
+  end
+  local src = summon.activeEffect.srcInstance
+  if type(src) ~= 'table' then
+    return nil, ('%s in socket group %d has no gem to hold its minion skill'):format(actives[summonIndex], groupIndex)
+  end
+
+  -- PoB's own fields, then a rebuild and the confirmation.
+  local prior = snapshot_gem(src)
+  local summonId = summon.activeEffect.grantedEffect.id
+  src.skillMinionSkill = index
+  src.skillMinionSkillCalcs = index
+  for _, key in ipairs(MINION_LOOKUPS) do
+    src[key] = src[key] or {}
+    src[key][summonId] = src[key][summonId] or {}
+    src[key][summonId][index] = statSet
+  end
+  rebuild_outputs()
+  local after = minion_of(g.displaySkillList and g.displaySkillList[summonIndex])
+  if not (after and after.index == index and after.name == tostring(skillGe.name) and after.statSet == statSet) then
+    restore_gem(src, prior)
+    rebuild_outputs()
+    return nil, ('PoB did not select %s\'s skill %d (%s), stat set %d'):format(before.minion, index, tostring(skillGe.name), statSet)
+  end
+  after.activeSkill = summonIndex
+  after.summon = actives[summonIndex]
+  return after
+end
+
 -- Set the main socket group, its main active skill and, with `statSet`, that skill's stat set (C-44).
 -- The stat set is PoB2's `srcInstance.statSet[grantedEffectId]`, written as PoB's stat-set dropdown
--- does (vendor Modules/Build.lua:375-381); the build XML keeps it as `<StatSetIndex>`. Nothing is
--- changed when the group doesn't exist, or the stat set is outside 1..n (the error names n and the
--- labels). With `statSet`, the reply says which stat set was selected.
--- params: { mainSocketGroup?: number, mainActiveSkill?: number, statSet?: number }
+-- does (vendor Modules/Build.lua:375-381); the build XML keeps it as `<StatSetIndex>`. With
+-- `minionSkill` (D-377), select_minion_skill selects the group's minion skill and `minionStatSet`
+-- (default 1), and the group's summon becomes its main active skill (`mainActiveSkill`, when given, must
+-- be the summon). Nothing is changed when the group doesn't exist, the stat set is outside 1..n (the
+-- error names n and the labels) or select_minion_skill refuses.
+-- params: { mainSocketGroup?, mainActiveSkill?, statSet?, minionSkill?: string, minionStatSet? }
+-- Returns true, or with `statSet` or `minionSkill` { statSet?: the stat set selected, minion?: the
+-- minion selection }.
 function M.set_main_selection(params)
   if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
   if type(params) ~= 'table' then return nil, 'invalid params' end
+  if params.minionStatSet ~= nil and params.minionSkill == nil then
+    return nil, 'minionStatSet selects the stat set of a minion skill, so it needs minionSkill'
+  end
   local list = build.skillsTab.socketGroupList or {}
   local groupIndex = build.mainSocketGroup
   if params.mainSocketGroup ~= nil then
@@ -1017,7 +1272,7 @@ function M.set_main_selection(params)
   end
   local g = list[groupIndex]
   if not g then return nil, missing_group(groupIndex, #list) end
-  local snap = params.statSet ~= nil and snapshot_selection({ groupIndex }) or nil
+  local snap = (params.statSet ~= nil or params.minionSkill ~= nil) and snapshot_selection({ groupIndex, build.mainSocketGroup }) or nil
   build.mainSocketGroup = groupIndex
   if params.mainActiveSkill ~= nil then
     g.mainActiveSkill = tonumber(params.mainActiveSkill) or g.mainActiveSkill
@@ -1025,7 +1280,23 @@ function M.set_main_selection(params)
   -- Keep calcsTab in sync: use active group index
   build.calcsTab.input.skill_number = build.mainSocketGroup
   rebuild_outputs()
-  if params.statSet == nil then return true end
+  local minion = nil
+  if params.minionSkill ~= nil then
+    local err
+    minion, err = M.select_minion_skill({
+      groupIndex = groupIndex, name = params.minionSkill, statSet = params.minionStatSet, activeSkill = params.mainActiveSkill,
+    })
+    if not minion then
+      restore_selection(snap)
+      rebuild_outputs()
+      return nil, err
+    end
+    if g.mainActiveSkill ~= minion.activeSkill then
+      g.mainActiveSkill = minion.activeSkill
+      rebuild_outputs()
+    end
+  end
+  if params.statSet == nil then return minion and { minion = minion } or true end
 
   -- The group's main active skill, as the rebuild settled it (CalcSetup clamps mainActiveSkill).
   local active = g.displaySkillList and g.displaySkillList[g.mainActiveSkill or 1]
@@ -1053,18 +1324,23 @@ function M.set_main_selection(params)
   src.statSet[ge.id] = index
   rebuild_outputs()
   return {
-    index = index,
-    label = stat_set_label(ge, index, src),
-    count = #ge.statSets,
-    skill = effect_name(ge, src),
-    grantedEffectId = tostring(ge.id),
+    statSet = {
+      index = index,
+      label = stat_set_label(ge, index, src),
+      count = #ge.statSets,
+      skill = effect_name(ge, src),
+      grantedEffectId = tostring(ge.id),
+    },
+    minion = minion,
   }
 end
 
 -- C-45: for each active skill of one socket group (default: the main group), and each stat set of
 -- each, the requested output fields, measured with that skill and stat set as the main selection.
 -- Then the exact prior selection is restored and the build rebuilt, so the build, its export and its
--- outputs are as they were (D-176). Only number, string and boolean values are reported.
+-- outputs are as they were (D-176). Only number, string and boolean values are reported; a
+-- `Minion<Field>` reads the minion's own output (D-376). A summon's entry names its minion's selected
+-- skill (`minion`, as get_skills gives it; D-377), which the breakdown measures and never changes.
 -- params: { groupIndex?: number, fields: string[] }
 function M.stats_breakdown(params)
   if not build or not build.skillsTab or not build.calcsTab then return nil, 'skills not initialized' end
@@ -1103,9 +1379,10 @@ function M.stats_breakdown(params)
         local output = rebuild_outputs() or {}
         local values = {}
         for _, k in ipairs(params.fields) do
-          local v = output[k]
+          local v = output_field(output, k)
           if SCALAR_TYPES[type(v)] then values[k] = v end
         end
+        if j == 1 then entry.minion = minion_of(g.displaySkillList and g.displaySkillList[s.index]) end
         table.insert(entry.statSets, { index = j, label = stat_set_label(s.ge, j, src), output = values })
       end
       -- This skill's own choice goes back before the next skill is measured.

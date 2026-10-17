@@ -19,6 +19,11 @@
  * Mechanic mode searches quality, Gemling and item-base implicit lines (kind `base`), names a gem hit's stat
  * set by number, and takes gaps (`…` or `...`) in the query.
  *
+ * WU-77 (D-379), amendment 6: after the gems, gem mode lists the minion skills named exactly as the query, each
+ * as `## <name>`, `Kind: minion skill`, a `Cast by: <minion> (summoned by <gem>)` line per summon, `Commanded:
+ * yes` for a command, a `Granted by: <passive> (<ascendancy>, node <id>)` line per passive whose line grants it,
+ * then its cooldown, skill types, description and stat sets.
+ *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
  * active gems, then up to 3 supports under their own header (D-258a); otherwise up to 5. A query too long
@@ -30,6 +35,7 @@ import type {
   LookupGameDataResult,
   LookupGem,
   LookupHit,
+  LookupMinionSkill,
   LookupSuggestion,
   LookupUnique,
 } from "../engine/schemas.js";
@@ -126,6 +132,19 @@ function childLine(child: LookupGem["children"][number]): string {
   return `- ${child.name} (${label})`;
 }
 
+/** A granted effect's stat sets: each one's label, base attack damage and crit chance (D-241), and lines. */
+function statSetLines(sets: LookupGem["statSets"]): string[] {
+  const lines: string[] = [];
+  for (const set of sets) {
+    lines.push(`Stat set ${set.index}: ${set.label}`);
+    // D-241: the stat set's base attack damage and crit chance, as PoB's gem tooltip words them.
+    for (const base of set.baseLines) lines.push(`  ${base}`);
+    if (set.lines.length === 0) lines.push("  (no described stats)");
+    for (const line of set.lines) lines.push(`  - ${line}`);
+  }
+  return lines;
+}
+
 function renderGem(gem: LookupGem): string[] {
   const lines: string[] = [`## ${gem.name}`];
   const showType = gem.gemType && gem.gemType.toLowerCase() !== gem.gemKind;
@@ -142,20 +161,11 @@ function renderGem(gem: LookupGem): string[] {
   if (gem.description) lines.push(`Description: ${gem.description}`);
   lines.push(`Stat sets at gem level ${gem.level}, quality ${gem.quality}%:`);
   if (gem.levelNote) lines.push(`Note: ${gem.levelNote}.`);
-  const renderSets = (sets: LookupGem["statSets"]) => {
-    for (const set of sets) {
-      lines.push(`Stat set ${set.index}: ${set.label}`);
-      // D-241: the stat set's base attack damage and crit chance, as PoB's gem tooltip words them.
-      for (const base of set.baseLines) lines.push(`  ${base}`);
-      if (set.lines.length === 0) lines.push("  (no described stats)");
-      for (const line of set.lines) lines.push(`  - ${line}`);
-    }
-  };
-  renderSets(gem.statSets);
+  lines.push(...statSetLines(gem.statSets));
   for (const extra of gem.additional) {
     lines.push(`Also grants: ${extra.name}${extra.support ? " (support effect)" : ""}`);
     if (extra.skillTypes) lines.push(`Skill types: ${extra.skillTypes.join(", ")}`);
-    renderSets(extra.statSets);
+    lines.push(...statSetLines(extra.statSets));
   }
   lines.push("At +20% Quality:");
   if (gem.qualityLines.length === 0) lines.push("  (no quality effects)");
@@ -192,6 +202,27 @@ function renderGem(gem: LookupGem): string[] {
   for (const [label, values] of attrs) {
     if (values && values.length > 0) lines.push(`${label} (${span}): ${values.join(", ")}`);
   }
+  return lines;
+}
+
+/**
+ * WU-77 (D-379): a minion skill's block. The kind line is fixed, `Kind: minion skill`, for the build-guide
+ * brief check; each summon that casts it, whether it is a command, and the passives whose line grants it (PoB
+ * never checks that passive, spike A4) follow, then its cooldown, skill types, description and stat sets.
+ */
+function renderMinionSkill(skill: LookupMinionSkill): string[] {
+  const lines: string[] = [`## ${skill.name}`, "Kind: minion skill"];
+  const castBy = skill.castBy.map((c) => `Cast by: ${c.minion} (summoned by ${c.gem})`);
+  lines.push(...castBy.filter((line, i) => castBy.indexOf(line) === i));
+  if (skill.commanded) lines.push("Commanded: yes");
+  for (const node of skill.grantedBy) {
+    lines.push(`Granted by: ${node.name} (${node.ascendancy ? `${node.ascendancy}, ` : ""}node ${node.id})`);
+  }
+  lines.push(`Cooldown: ${skill.cooldown !== undefined ? `${skill.cooldown} s` : "none"}`);
+  lines.push(`Skill types: ${skill.skillTypes.length > 0 ? skill.skillTypes.join(", ") : "(none)"}`);
+  if (skill.description) lines.push(`Description: ${skill.description}`);
+  lines.push(`Stat sets at skill level ${skill.level} of ${skill.levelCount} (a minion uses the highest level its own level reaches):`);
+  lines.push(...statSetLines(skill.statSets));
   return lines;
 }
 
@@ -331,10 +362,11 @@ function render(req: Request, result: LookupGameDataResult): string {
     return lines.join("\n");
   }
   const noun = req.mode === "mechanic" ? ["hit", "hits"] : ["match", "matches"];
+  const isMinionSkill = (r: (typeof result.results)[number]) => r.kind === "minion-skill";
   const order =
     req.mode === "mechanic"
       ? "sorted by kind (gem, unique, passive, mod, essence, base), then by name"
-      : "exact name matches first, then by name";
+      : `exact name matches first, then by name${result.results.some(isMinionSkill) ? "; the minion skills after the gems" : ""}`;
   if (shown < result.total) {
     const more = [
       req.maxResults < LOOKUP_MAX_RESULTS ? `raise max_results (up to ${LOOKUP_MAX_RESULTS})` : "",
@@ -349,9 +381,10 @@ function render(req: Request, result: LookupGameDataResult): string {
     lines.push(`Found ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}).`);
   }
   // WU-53: the note only when the long lists are left out (not every returned gem is named as the query).
-  if (req.mode === "gem" && shown > 1) {
-    const gems = result.results as LookupGem[];
-    if (gems.some((g) => g.canSupport === undefined && g.unlocks === undefined)) lines.push(SEVERAL_GEMS_NOTE);
+  if (req.mode === "gem") {
+    // The minion skills (D-379) have no long lists: the note is about the gems only.
+    const gems = result.results.filter((r) => r.kind === "gem") as LookupGem[];
+    if (gems.length > 1 && gems.some((g) => g.canSupport === undefined && g.unlocks === undefined)) lines.push(SEVERAL_GEMS_NOTE);
   }
   if (req.mode === "unique" && shown > 1) {
     lines.push("Several uniques are returned, so each is shown in brief; look one up by its exact name (or with max_results 1) for its full item text, ready for add_item.");
@@ -366,7 +399,13 @@ function render(req: Request, result: LookupGameDataResult): string {
     }
   } else {
     for (const r of result.results) {
-      lines.push(...(req.mode === "gem" ? renderGem(r as LookupGem) : renderUnique(r as LookupUnique)), "");
+      const block =
+        r.kind === "minion-skill"
+          ? renderMinionSkill(r as LookupMinionSkill)
+          : req.mode === "gem"
+            ? renderGem(r as LookupGem)
+            : renderUnique(r as LookupUnique);
+      lines.push(...block, "");
     }
   }
   return lines.join("\n").trimEnd();

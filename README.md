@@ -197,7 +197,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `get_equipped_items` | core | Get all currently equipped items (empty slots are omitted). |
 | `toggle_flask` | core | Turn a flask or charm on or off in the loaded build, as PoB2's slot checkbox does: an active flask or charm applies its effect to the calculated stats. |
 | `get_skill_setup` | core | Get current skill gem setup. |
-| `set_main_skill` | core | Set which skill group is the main skill for DPS calculations, and optionally which stat set of its active skill is measured (skill_part). |
+| `set_main_skill` | core | Set which skill group is the main skill for DPS calculations, and optionally which stat set of its active skill is measured (skill_part) and which skill its summon's minion uses (minion_skill). |
 | `create_socket_group` | core | Create a new socket group for skill gems |
 | `add_gem` | core | Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). |
 | `set_gem_level` | core | Set the level of a gem |

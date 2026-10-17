@@ -3,6 +3,7 @@ import { wrapHandler } from "../utils/errorHandling.js";
 import { visibleItemSlots } from "../utils/itemSlots.js";
 import { ACTIVATABLE_SLOTS } from "../server/toolSchemas.js";
 import { GEM_CORRUPTION_STATES, type GemCorruptionState } from "../engine/schemas.js";
+import { minionSkillsLine } from "../services/poe2SkillService.js";
 
 export interface ItemSkillHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -291,6 +292,10 @@ export async function handleGetSkillSetup(context: ItemSkillHandlerContext, main
         if (group.skills && group.skills.length > 0) {
           text += `  Active Skills: ${group.skills.join(', ')}\n`;
         }
+        // D-377: each summon's minion and its skills in order, the selected one marked.
+        for (const minion of group.minions ?? []) {
+          text += `  ${minionSkillsLine(minion)}\n`;
+        }
         if (group.gems && group.gems.length > 0) {
           text += `  Gems (${group.gems.length}):\n`;
           for (const gem of group.gems) {
@@ -316,13 +321,19 @@ export async function handleGetSkillSetup(context: ItemSkillHandlerContext, main
 /**
  * `set_main_skill`. `skillPart` is the 1-based stat set of the group's main active skill, which the
  * engine selects as PoB2 does (`srcInstance.statSet[grantedEffectId]`, C-44); one outside 1..n is
- * refused with n and the labels, and nothing changes.
+ * refused with n and the labels, and nothing changes. `minionSkill` (D-377) names the skill the group's
+ * summon's minion uses, case-insensitively, and `minionStatSet` (default 1) its stat set; the summon
+ * becomes the main active skill. The engine refuses, changing nothing, a group without exactly one summon,
+ * an active_skill_index that isn't the summon, an unknown or repeated name (listing the minion's skills)
+ * and a stat set outside the skill's. The reply names the minion and the skill and lists its skills.
  */
 export async function handleSetMainSkill(
   context: ItemSkillHandlerContext,
   socketGroup: number,
   activeSkillIndex?: number,
-  skillPart?: number
+  skillPart?: number,
+  minionSkill?: string,
+  minionStatSet?: number
 ) {
   return wrapHandler('set main skill', async () => {
     await context.ensureLuaClient();
@@ -338,21 +349,42 @@ export async function handleSetMainSkill(
     if (skillPart !== undefined && typeof skillPart !== 'number') {
       throw new Error('skill_part must be a stat set number (1-based)');
     }
+    if (minionSkill !== undefined && (typeof minionSkill !== 'string' || minionSkill.trim() === '')) {
+      throw new Error('minion_skill must be the name of a skill the minion uses');
+    }
+    if (minionStatSet !== undefined && typeof minionStatSet !== 'number') {
+      throw new Error('minion_stat_set must be a stat set number (1-based)');
+    }
+    if (minionStatSet !== undefined && minionSkill === undefined) {
+      throw new Error('minion_stat_set selects the stat set of a minion skill, so it needs minion_skill');
+    }
 
-    const statSet = await luaClient.setMainSelection({
+    const { statSet, minion } = await luaClient.setMainSelection({
       mainSocketGroup: socketGroup,
       mainActiveSkill: activeSkillIndex,
       statSet: skillPart,
+      ...(minionSkill !== undefined ? { minionSkill: minionSkill.trim() } : {}),
+      ...(minionStatSet !== undefined ? { minionStatSet } : {}),
     });
 
     let text = `✅ Main skill set to group ${socketGroup}`;
-    if (activeSkillIndex !== undefined) {
-      text += `, skill ${activeSkillIndex}`;
+    const skillIndex = minion ? minion.activeSkill : activeSkillIndex;
+    if (skillIndex !== undefined) {
+      text += `, skill ${skillIndex}`;
+    }
+    if (minion?.summon) {
+      text += ` (${minion.summon})`;
     }
     if (statSet) {
       text += `: ${statSet.skill} stat set ${statSet.index} of ${statSet.count}, ${statSet.label}`;
     }
     text += `.`;
+    if (minion) {
+      const setLabel = minion.statSets[minion.statSet - 1];
+      text += `\nMinion skill: ${minion.minion} uses ${minion.name} (skill ${minion.index} of ${minion.skills.length}), ` +
+        `stat set ${minion.statSet} of ${minion.statSets.length}${setLabel ? `, ${setLabel}` : ''}.`;
+      text += `\n${minionSkillsLine(minion)}`;
+    }
 
     return {
       content: [

@@ -257,6 +257,14 @@ async function coverageParams(): Promise<Json> {
 /** A golden attribute node set to Strength (the first of its `<AttributeOverride strNodes>`). */
 const GOLDEN_STR_NODE = (/<AttributeOverride\b[^>]*\sstrNodes="(\d+)/.exec(GOLDEN) as RegExpExecArray)[1];
 
+/** The golden socket group with a summon: Pounce, whose Summon Wolf's Wolf Companion casts Basic Attack and Leap Slam. */
+async function summonGroup(call: Call): Promise<number> {
+  const { skills } = await call('get_skills');
+  const group = (skills.groups as Array<{ index: number; skills: string[] }>).find((g) => g.skills.includes('Summon Wolf'));
+  if (!group) throw new Error('the golden build has no Summon Wolf group');
+  return group.index;
+}
+
 /** The golden socket group whose active skill is Gas Grenade (stat sets Impact, Poison Cloud, Explosion). */
 async function gasGrenadeGroup(call: Call): Promise<number> {
   const { skills } = await call('get_skills');
@@ -293,6 +301,20 @@ const VARIANTS: Variant[] = [
     action: 'set_main_selection',
     adds: 'statSet',
     setup: async (call) => ({ mainSocketGroup: await gasGrenadeGroup(call), statSet: 3 }),
+  },
+  {
+    // D-377 (WU-77): the minion selection, and every group's `minions` in the reply's skills.
+    name: 'set_main_selection with minionSkill and minionStatSet (D-377)',
+    action: 'set_main_selection',
+    adds: 'minion',
+    setup: async (call) => ({ mainSocketGroup: await summonGroup(call), minionSkill: 'Leap Slam', minionStatSet: 1 }),
+  },
+  {
+    // D-379 (WU-77): a minion-skill result in gem mode.
+    name: 'lookup_game_data finds a minion skill by name (D-379)',
+    action: 'lookup_game_data',
+    adds: 'result',
+    params: { mode: 'gem', query: "Navira's Fracturing" },
   },
   {
     // The reply is unchanged (C-40): the params replace the tags and set one attribute choice.

@@ -560,7 +560,7 @@ async function dispatch(
 
     case "set_main_skill":
       if (!args) throw new Error("Missing arguments");
-      return await handleSetMainSkill(itemSkillContext, args.group_index as number, (args.active_skill_index ?? args.gem_index) as number | undefined, args.skill_part as number | undefined);
+      return await handleSetMainSkill(itemSkillContext, args.group_index as number, (args.active_skill_index ?? args.gem_index) as number | undefined, args.skill_part as number | undefined, args.minion_skill as string | undefined, args.minion_stat_set as number | undefined);
 
     case "create_socket_group":
       return await handleCreateSocketGroup(itemSkillContext, args?.label as string | undefined, args?.slot as string | undefined, args?.enabled as boolean | undefined, args?.include_in_full_dps as boolean | undefined);

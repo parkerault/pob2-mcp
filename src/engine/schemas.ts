@@ -134,6 +134,24 @@ export const statsMetaSchema = z
 /** A scalar stat value; NaN/inf numbers arrive as null (R-8). */
 const statValue = z.union([z.number(), z.string(), z.boolean(), z.null()]);
 
+/**
+ * D-377: a summon's minion and its skill list, as PoB's minion-skill dropdown shows it: the minion's live
+ * skills in order (`skills`), the selected one (`index`, `name`), and that skill's stat set (`statSet`, of
+ * the labels `statSets`). `index` is absent only if PoB's selection is none of the list's skills.
+ */
+export const minionSelectionSchema = z
+  .object({
+    minion: z.string(),
+    minionId: z.string(),
+    skills: luaArray(z.string()),
+    index: z.number().int().optional(),
+    name: optString,
+    statSet: z.number().int(),
+    statSets: luaArray(z.string()),
+  })
+  .passthrough();
+export type MinionSelection = z.infer<typeof minionSelectionSchema>;
+
 /** C-45: one stat set of a breakdown skill, with the requested fields measured as the main selection. */
 export const breakdownStatSetSchema = z
   .object({ index: z.number().int(), label: z.string(), output: luaMap(statValue) })
@@ -146,6 +164,8 @@ export const breakdownSkillSchema = z
     name: z.string(),
     grantedEffectId: z.string(),
     statSets: luaArray(breakdownStatSetSchema),
+    /** D-377: a summon's minion and its selected skill, which the breakdown measures. */
+    minion: minionSelectionSchema.optional(),
   })
   .passthrough();
 
@@ -197,6 +217,10 @@ const skillGemSchema = z
   })
   .passthrough();
 
+/** D-377: a summon among a group's active skills: its index and name, then its minion's selection. */
+export const groupMinionSchema = minionSelectionSchema.extend({ activeSkill: z.number().int(), summon: optString });
+export type GroupMinion = z.infer<typeof groupMinionSchema>;
+
 const socketGroupSchema = z
   .object({
     index: z.number().int(),
@@ -209,6 +233,8 @@ const socketGroupSchema = z
     gems: luaArray(skillGemSchema),
     activeCount: z.number().int(),
     supportCount: z.number().int(),
+    /** D-377: the group's summons (active skills with a minion); absent when it has none. */
+    minions: luaArray(groupMinionSchema).optional(),
   })
   .passthrough();
 
@@ -235,7 +261,14 @@ export const selectedStatSetSchema = z
   .passthrough();
 export type SelectedStatSet = z.infer<typeof selectedStatSetSchema>;
 
-export const setMainSelectionReply = getSkillsReply.extend({ statSet: selectedStatSetSchema.optional() });
+/** D-377: the minion skill `set_main_selection` selected (BuildOps.select_minion_skill); only with `minionSkill`. */
+export const selectedMinionSkillSchema = groupMinionSchema.extend({ index: z.number().int(), name: z.string() });
+export type SelectedMinionSkill = z.infer<typeof selectedMinionSkillSchema>;
+
+export const setMainSelectionReply = getSkillsReply.extend({
+  statSet: selectedStatSetSchema.optional(),
+  minion: selectedMinionSkillSchema.optional(),
+});
 
 export const treeSchema = z
   .object({
@@ -740,6 +773,29 @@ export const lookupGemSchema = z
   .passthrough();
 
 /**
+ * D-379: a minion skill whose name is the query, listed in gem mode after the gems: each (minion, summoning
+ * gem) that casts it, whether it is a command (a stat set lists `is_commandable_skill`), the passives whose
+ * line reads "Grants Skill: <name>", its cooldown, skill types and description, and its stat sets at its
+ * highest level (`level` of `levelCount`).
+ */
+export const lookupMinionSkillSchema = z
+  .object({
+    kind: z.literal('minion-skill'),
+    id: z.string(),
+    name: z.string(),
+    castBy: luaArray(z.object({ minion: z.string(), minionId: z.string(), gem: z.string(), gemId: z.string() }).passthrough()),
+    commanded: z.boolean(),
+    grantedBy: luaArray(z.object({ id: z.number().int(), name: z.string(), ascendancy: optString }).passthrough()),
+    cooldown: z.number().optional(),
+    skillTypes: luaArray(z.string()),
+    description: optString,
+    level: z.number().int(),
+    levelCount: z.number().int(),
+    statSets: luaArray(lookupStatSetSchema),
+  })
+  .passthrough();
+
+/**
  * A unique: its uniqueDB key, name, item type, base and the lines that matched (any variant's; at most 5,
  * `matchedCount` counts them all). `raw` (`BuildRaw()`, for add_item) and `selectedVariant` come only
  * when exactly one unique is returned (D-239).
@@ -833,7 +889,7 @@ export const lookupGameDataReply = baseReply.extend({
           base: z.number().int(),
         })
         .optional(),
-      results: luaArray(z.union([lookupGemSchema, lookupUniqueSchema, lookupHitSchema])),
+      results: luaArray(z.union([lookupGemSchema, lookupMinionSkillSchema, lookupUniqueSchema, lookupHitSchema])),
       /**
        * Only when nothing matched: the closest names of the kind searched, closest first (D-258). Gem mode: up
        * to 5 active gems, then up to 3 supports (D-258a); other modes: up to 5.
@@ -846,6 +902,7 @@ export const lookupGameDataReply = baseReply.extend({
 });
 export type LookupGameDataResult = z.infer<typeof lookupGameDataReply>['result'];
 export type LookupGem = z.infer<typeof lookupGemSchema>;
+export type LookupMinionSkill = z.infer<typeof lookupMinionSkillSchema>;
 export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
 export type LookupHit = z.infer<typeof lookupHitSchema>;
 export type LookupBaseType = z.infer<typeof lookupBaseTypeSchema>;
@@ -1433,7 +1490,18 @@ export interface ActionParamsMap {
   get_skills: NoParams;
   get_tree: NoParams;
   /** `statSet`: the 1-based stat set of the group's main active skill, PoB2's `srcInstance.statSet` (C-44). */
-  set_main_selection: { mainSocketGroup?: number; mainActiveSkill?: number; statSet?: number };
+  /**
+   * `minionSkill`: the name of the skill the group's summon's minion uses, and `minionStatSet` (default 1)
+   * that skill's stat set; the summon becomes the main active skill (D-377). `minionStatSet` needs
+   * `minionSkill`.
+   */
+  set_main_selection: {
+    mainSocketGroup?: number;
+    mainActiveSkill?: number;
+    statSet?: number;
+    minionSkill?: string;
+    minionStatSet?: number;
+  };
   /**
    * C-40: `weaponSets` (node id → weapon set) replaces every weapon-set tag, and `attributeChoices` (node
    * id → attribute) is applied over the kept choices; every node they name must be in `nodes`. With

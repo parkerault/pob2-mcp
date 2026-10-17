@@ -3763,3 +3763,31 @@ architectural: the result goes into amendment 5's spec text.
   - **Targeted suites:** 636 of 636 tests rc 0; the checker rc 0 on the four pipeline fixtures.
 - **M-17 built:** WU-77…WU-79 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree `m17`,
   which then serves the Varashta baseline run.
+- **M-17 wave gate: PASS at `57b738c`** (an independent verifier, 108K tokens, in the fresh run worktree `m17`, left
+  built).
+  - **Bootstrap:** clean.
+  - **`mise run test` rc 1, from a tooling false-failure only:** AC-T22's Ring 1 took 10.12 s under load, and the test
+    passes alone (15.9 s for five slots). The `--runInBand` step passes 2 of 2 when run alone. Otherwise 2,369 of 2,370
+    tests pass, in 131 suites.
+  - **`pnpm build` rc 0.**
+  - **Cross-cutting checks:** waivers `[]`; dependencies unchanged since `1bfc8a9`; `vendor/` clean at `7d6f530`; the
+    README table matches, 84 rows; the checker exits 0 on all four pipeline fixtures.
+  - **ACs:** AC-K69…K71, AC-P68, AC-P69, AC-W65 and AC-W66 each map to passing tests, and one per unit was
+    spot-checked as faithful.
+  - **The probe, through the built server:**
+    - the gem lookup returns Navira's Fracturing as `Kind: minion skill`, one summon, `Commanded: yes`, granted by
+      node 10561, so the brief check accepts it as written;
+    - `compile_plan` on the `varashta-navira` fixture prints `DPS 649 (Navira's Fracturing, minion)`;
+      `measures.dps` = `MinionTotalDPS` × 1 = `FullDPS`;
+    - the saved build holds `skillMinionSkill="2"`;
+    - V1 reports no `not-granted`.
+  - **Finding (low):** AC-T22 now fails on time in every full gate, and the failure stops `mise run test` before its
+    compile-time step. Moving AC-T22 into the `--runInBand` step would fix both; it's the user's call, after the run.
+- **M-17 total:** about 1.92M tokens across three doers, three verifiers and the wave gate (and 426K for the spike).
+- **The baseline run's environment** now points at `m17`.
+  - `/home/parker/projects/pob2-mcp-runs/m16-varashta/`: `start.sh` and the server wrapper use `m17`; the settings
+    pre-approve the skill's three scripts; the README holds the user's steps.
+  - `.env` was copied unread to `m17` (mode 600), and `m16`'s copy was removed.
+  - The offline smoke test through the wrapper passes: 83 tools, and the lookup finds the command.
+  - **Next:** the user starts the run with `start.sh run`, then
+    `/build-guide "Disciple of Varashta" "Navira's Fracturing"`.

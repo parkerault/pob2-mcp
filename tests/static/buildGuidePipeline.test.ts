@@ -1716,7 +1716,10 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
   });
 });
 
-describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
+/** D-381: the pattern library's word cap, raised from D-325's 6,000. */
+const LIBRARY_WORD_CAP = 10_000;
+
+describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381)', () => {
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const hs = headings(text);
@@ -1814,10 +1817,10 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325)', () => {
     for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
   });
 
-  it('is at most 6,000 words, so a researcher reads it whole (D-325)', () => {
+  it('is at most 10,000 words, so a researcher reads it whole (D-325, D-381)', () => {
     const words = text.split(/\s+/).filter(Boolean).length;
     expect(words).toBeGreaterThan(1000);
-    expect(words).toBeLessThanOrEqual(6000);
+    expect(words).toBeLessThanOrEqual(LIBRARY_WORD_CAP);
   });
 });
 
@@ -3173,9 +3176,9 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
     expect(folded(readStage('W1'))).toMatch(/For a minion skill, say that the player commands the minion and the minion deals the damage \(D-379\)/);
   });
 
-  it("patterns.md's Actor rerouting names `minionSkill` and the unchecked unlock, and the library stays within 6,000 words (D-325)", () => {
+  it("patterns.md's Actor rerouting names `minionSkill` and the unchecked unlock, and the library stays within its word cap (D-325, D-381)", () => {
     const text = fs.readFileSync(path.join(SKILL_DIR, 'references', 'patterns.md'), 'utf8');
     expect(text).toContain('- **PoB:** modelled as the group\'s `minionSkill`, its unlock unchecked (PG-40); Archon not modelled (PG-11).');
-    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(6000);
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(LIBRARY_WORD_CAP);
   });
 });

@@ -3791,3 +3791,45 @@ architectural: the result goes into amendment 5's spec text.
   - The offline smoke test through the wrapper passes: 83 tools, and the lookup finds the command.
   - **Next:** the user starts the run with `start.sh run`, then
     `/build-guide "Disciple of Varashta" "Navira's Fracturing"`.
+
+## 2026-10-17: the library's word cap rises to 10,000 (D-381); AC-T22 runs alone
+
+The user decided both on 2026-10-17, before the baseline run: raise the pattern library's cap ("I'll let you decide
+how much"), and fix the trade-timing test.
+
+- **D-381 (decided by the user; the coordinator chose the number): the pattern library's cap is 10,000 words,**
+  replacing D-325's 6,000. AC-W28's static test still counts it.
+  - **Why the cap had to move:** the library sat at 5,999 of 6,000 words after M-17, and the engine-lens amendment
+    adds to it.
+  - **Why 10,000:** at 5,999 words the file is 42,467 characters (about 10.6K tokens) on 741 lines. At 10,000 words it
+    would be about 18K tokens on about 1,240 lines. That still comes back whole from one read (the Read tool's default
+    is 2,000 lines), so every reader still reads it whole. It leaves about 4,000 words for the engine-lens amendment
+    and later studies.
+  - **The cost:** every agent that reads the library whole reads up to about 7K tokens more at the cap. Those agents
+    are each R1a researcher, and D1-build under D-375.
+  - **Still a cap:** it keeps the library a curated set of shapes, not an archive. Entries stay terse.
+  - **Code:** `tests/static/buildGuidePipeline.test.ts` gains `LIBRARY_WORD_CAP = 10_000`. Both word-count
+    assertions use it (AC-W28's, and the M-17 test on the Actor rerouting entry). No skill file states the number.
+- **AC-T22 moves to the `--runInBand` step.** This is the trade-query generation test: five slots at 8 s each, on the
+  golden build.
+  - **The problem:** since WU-78 it failed on time in every full gate (9.4–10.1 s against 8 s under load) and passed
+    every time alone. Each failure also stopped `mise run test` before its compile-time step.
+  - **The new file:** `tests/integration/tradeQueryNfr.test.ts` holds AC-T22 as it stood. It gets its own engine and
+    temp builds dir on the golden build. `trade.lua.test.ts` loses the test, and its header points to the new file.
+  - **The wiring:**
+    - `jest.config.cjs` leaves the new file out of the parallel run.
+    - `mise.toml`'s last step lists both timing files in one `--runInBand` Jest call, so both run even when one
+      fails, and either failure fails the task.
+    - The static checks in `compilePlan.test.ts` cover both files: the main run lists neither, the step lists
+      exactly the two, and the step is its own entry after `pnpm test`, with no pipe.
+- **For the v1.6 fold:**
+  - D-381 joins the decisions table.
+  - C-53 and D-325's "6,000" becomes "10,000 (D-381)". The places: the spine `README.md:625-626` and `:927`, and
+    `03-pipeline.md:1126-1127`, `:2170` and `:2528` (F16).
+  - C-19's row (`README.md:236`) and `02-plan-compiler.md:759` and `:1362` name AC-T22's file beside
+    `compilePlanNfr.test.ts`.
+- **Gate: `mise run test` rc 0, `pnpm build` rc 0** (on this machine at a load average under 1).
+  - The parallel run: 2,369 of 2,369 tests in 131 suites, in 213 s.
+  - The `--runInBand` step: 3 of 3 tests in 2 suites. AC-T22 took 14.7 s for its five slots; the compile-time file
+    took 81 s.
+  - This is the first full gate since WU-78 with no tooling false-failure.

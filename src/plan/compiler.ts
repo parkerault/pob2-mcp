@@ -398,7 +398,10 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
     attributeChoices: stage.tree.attributeChoices,
     jewels: stage.items.treeJewels,
     items: stage.items.slots,
-    groups: stage.skills.groups.map((g) => ({ gems: g.gems.map((gem) => ({ name: gem.name })), ...minionFields(g) })),
+    groups: stage.skills.groups.map((g) => ({
+      gems: g.gems.map((gem) => ({ name: gem.name, enabled: gem.enabled })),
+      ...minionFields(g),
+    })),
     main: stage.skills.main,
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),

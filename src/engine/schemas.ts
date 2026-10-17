@@ -1323,8 +1323,11 @@ export interface CompileCheckStage {
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
   jewels: Array<{ node: number; text: string }>;
   items: Array<{ slot: string; text: string }>;
-  /** D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data. */
-  groups: Array<{ gems: Array<{ name: string }>; minionSkill?: string; minionStatSet?: number }>;
+  /**
+   * D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data; a
+   * gem's `enabled` (default true) says whether PoB builds its skills.
+   */
+  groups: Array<{ gems: Array<{ name: string; enabled?: boolean }>; minionSkill?: string; minionStatSet?: number }>;
   main: { group: number; activeSkill: number; statSet?: number };
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */

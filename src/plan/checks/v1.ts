@@ -617,7 +617,6 @@ export function checkSupportSockets(
   }
 }
 
-/** V1 for one compiled stage. */
 /**
  * `not-granted` (D-380). A skill a passive grants is the player's only while the stage allocates that passive, and
  * PoB measures it either way: it builds a socketed copy of a tree-granted summon, and it computes a minion's
@@ -649,6 +648,7 @@ export function checkNotGranted(
   }
 }
 
+/** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
   const facts = new FactReader(input.ref);

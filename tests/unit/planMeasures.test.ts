@@ -190,6 +190,28 @@ describe("D-378 (WU-78): a group whose minion deals the damage", () => {
     expect(stageMeasures(stage, record(true), [], {}).dps).toBe(150);
   });
 
+  it("a clear group that isn't the main group and names a minion skill is measured at its summon, not at its first skill", () => {
+    // Group 2 is a Pounce group: Pounce first, its summon (Summon Wolf, whose wolf uses Leap Slam) second.
+    const pounce: MinionSkillRecord = { ...LEAP_SLAM, group: 2, activeSkill: 2, summon: 'Summon Wolf' };
+    const two = {
+      ...record(true),
+      skillOutputs: {
+        g1s1p1: { skill: 'Wolf Pack', statSetLabel: 'Minion Info', fields },
+        g2s1p1: { skill: 'Pounce', statSetLabel: 'Pounce', fields: { AreaOfEffectRadiusMetres: 0, Speed: 2 } },
+        g2s2p1: { skill: 'Summon Wolf', statSetLabel: 'Minion Info', fields: { MinionAreaOfEffectRadiusMetres: 2.5, MinionSpeed: 1.5 } },
+      },
+      minionSkills: [LEAP_SLAM, pounce],
+    } as unknown as StageRecord;
+    const withClear = {
+      ...stage,
+      skills: { main, groups: [...stage.skills.groups, { enabled: true, role: 'clear', gems: [{ name: 'Pounce', enabled: true }] }] },
+    } as unknown as Stage;
+    expect(stageMeasures(withClear, two, [], {}).clearSpeed).toMatchObject({ key: 'g2s2p1', skill: 'Summon Wolf', radiusMetres: 2.5, usesPerSecond: 1.5, speed: 'medium' });
+    // Without the minion selection, its first skill, as before.
+    const plain = { ...two, minionSkills: [LEAP_SLAM] } as StageRecord;
+    expect(stageMeasures(withClear, plain, [], {}).clearSpeed).toMatchObject({ key: 'g2s1p1', radiusMetres: 0, usesPerSecond: 2 });
+  });
+
   it('the key-figure line names the minion skill: DPS <n> (<minion skill>, minion)', () => {
     expect(keyFigureLine(record(true), main)).toMatch(/^ {2}Key figures: DPS 150 \(Leap Slam, minion\); life 100;/);
     expect(keyFigureLine(record(false), main)).toMatch(/^ {2}Key figures: DPS 0; life 100;/);

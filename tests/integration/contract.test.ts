@@ -77,7 +77,6 @@ const FETCHED = (
 
 const ENGINE_TIMEOUT = 240_000;
 
-/** The two-stage fixture plan (WU-41's compile actions are checked on its stage 1). */
 /** The Varashta fixture plan (WU-78): a socketed Navira whose djinn uses Navira's Fracturing, nodes 32705 and 10561. */
 const VARASHTA = (() => {
   const v = validatePlan(fs.readFileSync(path.join(FIXTURES, 'plans', 'varashta-navira', 'plan.json'), 'utf8'));
@@ -85,6 +84,7 @@ const VARASHTA = (() => {
   return v.plan;
 })();
 
+/** The two-stage fixture plan (WU-41's compile actions are checked on its stage 1). */
 const TWO_STAGE = (() => {
   const v = validatePlan(fs.readFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), 'utf8'));
   if (!v.ok) throw new Error(`the two-stage fixture is invalid: ${JSON.stringify(v.errors)}`);
@@ -750,7 +750,7 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
       const { className, ascendancy } = VARASHTA.roll;
       const stage = checkStageOf(VARASHTA.stages[0]) as unknown as Json;
-      expect(stage.groups).toEqual([{ gems: [{ name: 'Navira, the Last Mirage' }], minionSkill: "Navira's Fracturing" }]);
+      expect(stage.groups).toEqual([{ gems: [{ name: 'Navira, the Last Mirage', enabled: true }], minionSkill: "Navira's Fracturing" }]);
       const checked = await engine.request('compile_check', { className, ascendancy, stages: [stage] }, { timeoutMs: 120_000 });
       const parsed = replySchemas.compile_check!.safeParse(checked);
       expect(parsed.success ? [] : parsed.error.issues).toEqual([]);

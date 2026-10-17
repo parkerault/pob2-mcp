@@ -43,12 +43,13 @@
 --     components of the ascendancy start and the listed ascendancy nodes over ascendancy links, the
 --     start's first. PoB2 v0.23.1 enforces none of the rule (I-3), so it is checked here.
 --     A minion's skill (WU-78, D-377): a group's `minionSkill` (with `minionStatSet`) is a defect when the
---     group's active skills hold no summon (a summon's "Command" skill has no minion) or two; when the name is
---     neither in the summon's minion's skill list (game data: its minionList's skillList, in data order) nor
---     added by one of the group's supports (ExtraMinionSkill), the defect listing the minion's skills; when the
+--     group's enabled gems' active skills hold no summon (a summon's "Command" skill has no minion; a disabled
+--     summon gem is named) or two; when the name is neither in the summon's minion's skill list (game data: the
+--     first type of its minionList, which PoB picks for a new gem, and its skillList in data order) nor added by
+--     one of the group's enabled supports (ExtraMinionSkill), the defect listing the minion's skills; when the
 --     minion's list holds it twice; when `minionStatSet` is beyond the skill's stat sets; and, on the main group,
 --     when the main active skill isn't the summon. The group's active skills are PoB's own for the compile's
---     gems (group_actives). compile_stage resolves the name live.
+--     gems (group_actives; each gem's `enabled` is read, default true). compile_stage resolves the name live.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
 --         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text},
 --         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
@@ -470,24 +471,28 @@ local function active_skill_count(gemData)
   return n
 end
 
--- "1 Basic Attack, 2 Leap Slam": a list's entries, numbered from 1.
-local function numbered(names)
-  local parts = {}
-  for i, name in ipairs(names) do parts[i] = i .. ' ' .. tostring(name) end
-  return table.concat(parts, ', ')
+local numbered = BuildOps.numbered
+
+-- D-377: the active skills PoB builds for a gem the compile adds: its granted effects that are neither supports
+-- nor hidden from the sidebar, a global-effect one only while its enableGlobal<n> switch is on. add_gem turns the
+-- first switch on and the second off (vendor Modules/CalcSetup.lua:1853-1855).
+local function gem_actives(gemData)
+  local out = {}
+  for index, ge in ipairs(gemData.grantedEffectList or { gemData.grantedEffect }) do
+    if type(ge) == 'table' and not ge.support and not ge.hideFromSideBar and (not ge.hasGlobalEffect or index == 1) then
+      out[#out + 1] = ge
+    end
+  end
+  return out
 end
 
--- D-377: the active skills PoB builds for a compiled group, in its order: each gem's granted effects that are
--- neither supports nor hidden from the sidebar, a global-effect one only while its enableGlobal<n> switch is on.
--- add_gem turns the first switch on and the second off (vendor Modules/CalcSetup.lua:1853-1855), so this is
--- PoB's own list for the compile's gems.
-local function group_actives(gemDatas)
+-- D-377: the active skills PoB builds for a compiled group, in its order: each enabled gem's (a disabled gem builds
+-- none, CalcSetup.lua:1852). `gems` are { gemData, enabled }.
+local function group_actives(gems)
   local out = {}
-  for _, gemData in ipairs(gemDatas) do
-    for index, ge in ipairs(gemData.grantedEffectList or { gemData.grantedEffect }) do
-      if type(ge) == 'table' and not ge.support and not ge.hideFromSideBar and (not ge.hasGlobalEffect or index == 1) then
-        out[#out + 1] = ge
-      end
+  for _, gem in ipairs(gems) do
+    if gem.enabled then
+      for _, ge in ipairs(gem_actives(gem.gemData)) do out[#out + 1] = ge end
     end
   end
   return out
@@ -499,12 +504,14 @@ local function is_summon(ge)
   return type(ge.minionList) == 'table' and ge.minionList[1] ~= nil
 end
 
--- The ExtraMinionSkill entries the group's supports add to a minion's skill list ({skillId, minionList?}), read
--- from their stat maps in stat-set order and stat-name order (Minion Instability, vendor Data/Skills/sup_int.lua).
-local function extra_minion_skills(gemDatas)
+-- The ExtraMinionSkill entries the group's enabled supports add to a minion's skill list ({skillId, minionList?}),
+-- read from their stat maps in stat-set order and stat-name order (Minion Instability, vendor
+-- Data/Skills/sup_int.lua).
+local function extra_minion_skills(gems)
   local out = {}
-  for _, gemData in ipairs(gemDatas) do
-    for _, ge in ipairs(gemData.grantedEffectList or { gemData.grantedEffect }) do
+  for _, gem in ipairs(gems) do
+    local gemData = gem.gemData
+    for _, ge in ipairs(gem.enabled and (gemData.grantedEffectList or { gemData.grantedEffect }) or {}) do
       if type(ge) == 'table' and ge.support then
         for _, set in ipairs(ge.statSets or {}) do
           local stats = {}
@@ -524,29 +531,27 @@ local function extra_minion_skills(gemDatas)
   return out
 end
 
--- D-377: a summon's minions and the skills each can use, from the game data as calcs.createMinionSkills builds the
--- live list (vendor Modules/CalcActiveSkill.lua:1112-1130): the minion's skillList in data order, ids without skill
--- data skipped, then the supports' ExtraMinionSkill skills meant for it. { {name, id, skills = {grantedEffect...}} }
-local function summon_minions(d, summon, extras)
-  local out = {}
-  for _, minionId in ipairs(summon.minionList) do
-    local minion = d.minions and d.minions[minionId]
-    if type(minion) == 'table' then
-      local skills = {}
-      for _, skillId in ipairs(minion.skillList or {}) do
-        if type(d.skills[skillId]) == 'table' then skills[#skills + 1] = d.skills[skillId] end
-      end
-      for _, extra in ipairs(extras) do
-        local meant = extra.minionList == nil
-        for _, id in ipairs(extra.minionList or {}) do
-          if id == minionId then meant = true end
-        end
-        if meant and type(d.skills[extra.skillId]) == 'table' then skills[#skills + 1] = d.skills[extra.skillId] end
-      end
-      out[#out + 1] = { name = tostring(minion.name or minionId), id = tostring(minionId), skills = skills }
-    end
+-- D-377: the summon's minion and the skills it can use, from the game data as PoB builds them for a gem the compile
+-- adds. The minion is the first type of the summon's minionList: add_gem sets no `skillMinion`, so PoB takes index 1
+-- (vendor Modules/CalcActiveSkill.lua:926-929). Its list is calcs.createMinionSkills' (:1112-1130): the minion's
+-- skillList in data order, ids without skill data skipped, then the supports' ExtraMinionSkill skills meant for it.
+-- { name, id, skills = {grantedEffect...} }, or nil when the game data has no such minion.
+local function summon_minion(d, summon, extras)
+  local minionId = summon.minionList[1]
+  local minion = d.minions and d.minions[minionId]
+  if type(minion) ~= 'table' then return nil end
+  local skills = {}
+  for _, skillId in ipairs(minion.skillList or {}) do
+    if type(d.skills[skillId]) == 'table' then skills[#skills + 1] = d.skills[skillId] end
   end
-  return out
+  for _, extra in ipairs(extras) do
+    local meant = extra.minionList == nil
+    for _, id in ipairs(extra.minionList or {}) do
+      if id == minionId then meant = true end
+    end
+    if meant and type(d.skills[extra.skillId]) == 'table' then skills[#skills + 1] = d.skills[extra.skillId] end
+  end
+  return { name = tostring(minion.name or minionId), id = tostring(minionId), skills = skills }
 end
 
 local function skill_names(skills)
@@ -555,22 +560,34 @@ local function skill_names(skills)
   return names
 end
 
--- D-377: a group's minionSkill and minionStatSet against the game data (`gemDatas` are its resolved gems, nil when
--- one is unknown, which is its own defect). `isMain` with `mainActive`, the stage's main active skill: the main
--- group's main active skill must be its summon. PoB's live list can't be read without building the stage, so a
--- name is checked against what the summon's minion and the group's supports can give it; compile_stage resolves
--- it live.
-local function check_minion_skill(gi, group, gemDatas, isMain, mainActive, defect)
+-- D-377: a group's minionSkill and minionStatSet against the game data (`gems` are its resolved gems,
+-- { gemData, enabled }, nil when one is unknown, which is its own defect). `isMain` with `mainActive`, the stage's
+-- main active skill: the main group's main active skill must be its summon. PoB's live list can't be read without
+-- building the stage, so a name is checked against what the summon's minion and the group's enabled supports can
+-- give it; compile_stage resolves it live.
+local function check_minion_skill(gi, group, gems, isMain, mainActive, defect)
   if group.minionSkill == nil then return end
   local wanted = tostring(group.minionSkill)
   local at = ('skills.groups[%d].minionSkill "%s"'):format(gi - 1, wanted)
-  if gemDatas == nil then return end
-  local actives = group_actives(gemDatas)
+  if gems == nil then return end
+  local actives = group_actives(gems)
   local names, summons = skill_names(actives), {}
   for i, ge in ipairs(actives) do
     if is_summon(ge) then summons[#summons + 1] = i end
   end
   if #summons == 0 then
+    -- A summon gem the plan disables builds no skill, so its minion has none either.
+    for k, gem in ipairs(gems) do
+      if not gem.enabled then
+        for _, ge in ipairs(gem_actives(gem.gemData)) do
+          if is_summon(ge) then
+            defect(('%s: the group\'s summon, gems[%d] "%s", is disabled, so PoB builds no minion for it; enable it'):format(
+              at, k - 1, tostring(gem.gemData.name)))
+            return
+          end
+        end
+      end
+    end
     if #actives == 0 then
       defect(('%s: the group has no active skill, so it has no minion'):format(at))
       return
@@ -597,29 +614,29 @@ local function check_minion_skill(gi, group, gemDatas, isMain, mainActive, defec
       at, mainActive, names[mainActive], summonIndex, names[summonIndex]))
   end
   local d = (build and build.data) or data
-  local minions = summon_minions(d, summon, extra_minion_skills(gemDatas))
-  local found, lists = nil, {}
-  for _, minion in ipairs(minions) do
-    local list = skill_names(minion.skills)
-    lists[#lists + 1] = ('%s: %s'):format(minion.name, numbered(list))
-    local positions = {}
-    for i, name in ipairs(list) do
-      if name:lower() == wanted:lower() then positions[#positions + 1] = i end
-    end
-    if #positions > 1 then
-      local where = {}
-      for k, i in ipairs(positions) do where[k] = tostring(i) end
-      defect(('%s: %s\'s skill list holds the name %d times, at positions %s, so it is ambiguous; its skills: %s'):format(
-        at, minion.name, #positions, table.concat(where, ' and '), numbered(list)))
-      return
-    end
-    if #positions == 1 and not found then found = minion.skills[positions[1]] end
-  end
-  if not found then
-    defect(('%s: %s (summoned by %s) has no skill of that name; its skills: %s'):format(at,
-      #minions == 1 and minions[1].name or 'its minion', tostring(summon.name), table.concat(lists, '; ')))
+  local minion = summon_minion(d, summon, extra_minion_skills(gems))
+  if minion == nil then
+    defect(('%s: the game data has no minion %s for %s'):format(at, tostring(summon.minionList[1]), tostring(summon.name)))
     return
   end
+  local list = skill_names(minion.skills)
+  local positions = {}
+  for i, name in ipairs(list) do
+    if name:lower() == wanted:lower() then positions[#positions + 1] = i end
+  end
+  if #positions > 1 then
+    local where = {}
+    for k, i in ipairs(positions) do where[k] = tostring(i) end
+    defect(('%s: %s\'s skill list holds the name %d times, at positions %s, so it is ambiguous; its skills: %s'):format(
+      at, minion.name, #positions, table.concat(where, ' and '), numbered(list)))
+    return
+  end
+  if #positions == 0 then
+    defect(('%s: %s (summoned by %s) has no skill of that name; its skills: %s'):format(at, minion.name,
+      tostring(summon.name), numbered(list)))
+    return
+  end
+  local found = minion.skills[positions[1]]
   local statSet = tonumber(group.minionStatSet)
   local count = #(found.statSets or {})
   if statSet ~= nil and count > 0 and statSet > count then
@@ -669,24 +686,24 @@ local function check_stage(tree, roll, st, defect)
     end
   end
   local groups = list(st.groups)
-  local activeCounts, gemDatas = {}, {}
+  local activeCounts, resolved = {}, {}
   for gi, group in ipairs(groups) do
     activeCounts[gi] = 0
-    gemDatas[gi] = {}
+    resolved[gi] = {}
     for k, gem in ipairs(list(group.gems)) do
       local gemData, err = BuildOps.resolve_gem(gem.name)
       if not gemData then
         defect(('skills.groups[%d].gems[%d]: %s'):format(gi - 1, k - 1, tostring(err)))
-        gemDatas[gi] = false
+        resolved[gi] = false
       else
         activeCounts[gi] = activeCounts[gi] + active_skill_count(gemData)
-        if gemDatas[gi] then table.insert(gemDatas[gi], gemData) end
+        if resolved[gi] then table.insert(resolved[gi], { gemData = gemData, enabled = gem.enabled ~= false }) end
       end
     end
   end
   local main = st.main or {}
   for gi, group in ipairs(groups) do
-    check_minion_skill(gi, group, gemDatas[gi] or nil, tonumber(main.group) == gi, tonumber(main.activeSkill), defect)
+    check_minion_skill(gi, group, resolved[gi] or nil, tonumber(main.group) == gi, tonumber(main.activeSkill), defect)
   end
   local mg = tonumber(main.group)
   if not mg or mg < 1 or mg > #groups then

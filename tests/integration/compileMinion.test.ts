@@ -243,7 +243,7 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
         expect(skills).toContain("Navira's Fracturing");
         const listed = skills.map((name, i) => `${i + 1} ${name}`).join(', ');
         expect(text).toContain(
-          `stage b: skills.groups[0].minionSkill "Navira's Nonsense": Navira, the Last Mirage (summoned by Navira, the Last Mirage) has no skill of that name; its skills: Navira, the Last Mirage: ${listed}`,
+          `stage b: skills.groups[0].minionSkill "Navira's Nonsense": Navira, the Last Mirage (summoned by Navira, the Last Mirage) has no skill of that name; its skills: ${listed}`,
         );
       },
       ENGINE_TIMEOUT,
@@ -261,6 +261,19 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
         raven.stages[0].skills.groups[0].gems[0].name = 'Mist Raven';
         expect(await refused('p69-command', raven)).toContain(
           'stage b: skills.groups[0].minionSkill "Leap Slam": the group holds no summon: none of its active skills (1 Mist Raven, 2 Command) has a minion; "Command" is a summon\'s command to its minion and has none itself',
+        );
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      'D-377: compile_check refuses a minion skill whose summon gem the plan disables, naming the gem (PoB builds no minion for it)',
+      async () => {
+        const disabled = fixturePlan('varashta-navira');
+        disabled.stages[0].skills.groups[0].gems[0].enabled = false;
+        disabled.stages[0].skills.groups[0].gems.push({ name: 'Muster', level: 1, quality: 0, enabled: true });
+        expect(await refused('p69-disabled-summon', disabled)).toContain(
+          `stage b: skills.groups[0].minionSkill "Navira's Fracturing": the group's summon, gems[0] "Navira, the Last Mirage", is disabled, so PoB builds no minion for it; enable it`,
         );
       },
       ENGINE_TIMEOUT,

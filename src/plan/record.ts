@@ -369,13 +369,21 @@ export function clearSpeedOf(input: {
   };
 }
 
-/** The clear skill (D-353): the first enabled `clear` group, else the main group; null for neither. */
+/**
+ * The clear skill (D-353): the first enabled `clear` group, else the main group; null for neither. A clear group
+ * that isn't the main group is measured at its first active skill, or, when it names a minion skill, at its summon
+ * (its resolved selection's `activeSkill` in `rec`, D-378): a Pounce group's summon is its second skill.
+ */
 export function clearGroupOf(
   stage: Pick<Stage, 'skills'>,
+  rec?: Pick<StageRecord, 'minionSkills'>,
 ): { group: number; activeSkill: number; statSet: number } | null {
   const main = stage.skills.main;
   const k = stage.skills.groups.findIndex((g) => g.enabled && g.role === 'clear');
-  if (k >= 0 && k + 1 !== main.group) return { group: k + 1, activeSkill: 1, statSet: 1 };
+  if (k >= 0 && k + 1 !== main.group) {
+    const minion = rec !== undefined ? minionSkillOf(rec, k + 1) : undefined;
+    return { group: k + 1, activeSkill: minion?.activeSkill ?? 1, statSet: 1 };
+  }
   return stage.skills.groups[main.group - 1]
     ? { group: main.group, activeSkill: main.activeSkill, statSet: main.statSet ?? 1 }
     : null;
@@ -427,8 +435,9 @@ export function figureField(rec: Pick<StageRecord, 'minionSkills'>, group: numbe
 export function clearEntryOf(
   stage: Pick<Stage, 'skills'>,
   skillOutputs: StageRecord['skillOutputs'],
+  rec?: Pick<StageRecord, 'minionSkills'>,
 ): { group: number; key: string; skill: string; fields: Record<string, number> } | null {
-  const clear = clearGroupOf(stage);
+  const clear = clearGroupOf(stage, rec);
   if (clear === null) return null;
   const key = `g${clear.group}s${clear.activeSkill}p${clear.statSet}`;
   const e = skillOutputs[key];
@@ -471,7 +480,7 @@ export function stageMeasures(
   gemTexts: Readonly<Record<string, string>>,
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
-  const entry = clearEntryOf(stage, rec.skillOutputs);
+  const entry = clearEntryOf(stage, rec.skillOutputs, rec);
   // D-378: a clear group that names a minion skill is measured by its minion's area and use rate.
   const minion = entry !== null && minionSkillOf(rec, entry.group) !== undefined;
   const clearSpeed = clearSpeedOf({

@@ -1103,12 +1103,14 @@ local function socket_group_label(g)
   return tostring(g.displayLabel or '')
 end
 
--- "1 Basic Attack, 2 Leap Slam": a list's entries, numbered from 1.
+-- "1 Basic Attack, 2 Leap Slam": a list's entries, numbered from 1. Exported for Compile.lua's minion-skill
+-- defects (WU-78).
 local function numbered(names)
   local parts = {}
   for i, name in ipairs(names) do parts[i] = i .. ' ' .. tostring(name) end
   return table.concat(parts, ', ')
 end
+M.numbered = numbered
 
 local function is_whole(n)
   return type(n) == 'number' and n == math.floor(n) and n >= 1

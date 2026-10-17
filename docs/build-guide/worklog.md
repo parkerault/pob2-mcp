@@ -3587,3 +3587,18 @@ architectural: the result goes into amendment 5's spec text.
 - **For the v1.6 fold:** `03-pipeline.md:384` (no agent definition names a tool that changes the build) and
   `R1b.md:198` ("mutate tools you don't hold") conflict with the coordinator holding `manage_sets` for D-372's
   loadout select; `plan-reference.md`'s `prices[].query` row needs D-372's query (WU-75 left it).
+- **WU-76 built, verified and merged** (`a2c284a`, fast-forward; the doer used 348K tokens plus a short fix round,
+  the verifier 182K). The verifier passed the gate (one AC-T22 timing flake at 8,141 ms under load, passing alone),
+  AC-W64 (hand-checked: the 60-divine `b` case is 15–31 at day 7; a day-67 late market gives 2.2–9.9), the
+  `gates.md` arithmetic, no budget failure path, the rendered lines and scope. Fixed before merge: the final display
+  no longer gives D-164's line for an unavailable fallback; a test for refusing a basis slot that names a fallback;
+  `D1-gate.md` dates the market from the slots' prices only, as `gates.md` and the checker do. Full gate after the
+  fixes: 129 suites, 2,316 tests, rc 0; build rc 0.
+- **Choices to fold** (the doer's, judged sound): a fallback shows inside its slot's parentheses on the Checks line
+  ("Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7)", or "fallback price unknown"), which adds to §6's verbatim
+  line; a fallback is never a D-164 reason and a basis slot naming one fails; the gate's totals and findings are
+  compared only while the gate is fresh; the basis check requires `market` and `totals`; the conversion lives once in
+  `render-audit.mjs`, exported to the checker. Low, unfixed: the checker matches over-target findings by price
+  entry, so naming the second slot of a shared entry passes against step 7's "first slot".
+- **M-16 built:** WU-74…WU-76 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree, then the
+  Lightning Arrow Deadeye run's environment (the user supplies Fubgun's guide link and PoB).

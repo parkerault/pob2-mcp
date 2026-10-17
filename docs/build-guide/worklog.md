@@ -3642,3 +3642,22 @@ architectural: the result goes into amendment 5's spec text.
   granted for the amendment's contract changes only; WU-77 owns the reusable Lua selector, and WU-78 the compile's
   flattened outputs; Navira's PoB is never committed as a fixture, because the repo is public. The map is kept as
   `studies/2026-10-16-minion-skill-map.md`.
+
+## 2026-10-16: M-17, amendment 6's build
+
+- **WU-77 built** (`49e6fac` on `bg/wu-77`; the doer used 376K tokens). Gate rc 0 (130 suites, 2,335 tests), build
+  rc 0, waivers `[]`, dependencies unchanged.
+  - **ACs:** AC-K69 and AC-K70 are in `tests/integration/minionSkill.test.ts`; AC-K71 is in `lookupGameData.test.ts`.
+  - **The doer's choices, to judge:**
+    - `set_main_skill` with `minion_skill` makes the summon the main active skill;
+    - `BuildOps.select_minion_skill({groupIndex, name, statSet?, activeSkill?})` refuses a disabled non-main group;
+    - both stat-set lookups are always written;
+    - minion skills match by exact name in gem mode;
+    - there is one result per granted effect;
+    - the sweep covers minion children only.
+  - **Friction for WU-78:**
+    - `lookup_game_data`'s description is at 2,046 of 2,048 characters;
+    - `BuildOps.output_field` is exported for `Compile.lua`'s `outputs`;
+    - `set_main_selection` now returns `{statSet?, minion?}`;
+    - the compile's per-group outputs already carry `Minion*` fields.
+  - An independent verifier is running.

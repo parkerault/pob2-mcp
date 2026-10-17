@@ -31,7 +31,8 @@ notes on what players run, each card's only player evidence). A fixed roll (a br
 build's subject (D-343): each card's named damage source is an active skill it can support.
 
 **The ascendancy lock** (D-342). Check every skill a card names, its named damage source and each skill in
-its chain and links, before you write that card; when the brief names a skill, check it before any card:
+its chain and links, a minion skill's summon too (D-379), before you write that card; when the brief names a
+skill, check it before any card:
 
 - `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` lists the nodes whose stats hold
   `Grants Skill: <skill>`, an ascendancy node with an `Ascendancy: <name>` line;
@@ -43,9 +44,9 @@ grants it: only those ascendancies can use it. A card that uses a locked skill t
 (one of them, when several grant it) and its class, and its identity says why, naming the node (`Granted by:
 "<node name>" (<node id>), a <name> ascendancy node`). A skill a non-ascendancy node or a unique grants isn't
 locked: the card names the source it uses, the node it allocates or the unique it equips. With no node and no
-unique, the skill comes from its gem. A card that uses a locked skill on another ascendancy isn't dealt
-(`R1a-assemble.md`), and R1b fails it before any compile (`wrong-ascendancy`). A brief whose ascendancy
-can't use its skill never reaches you: the runner's brief check stops it (SKILL.md step 1).
+unique, the skill comes from its gem (a minion skill, from its summon's). A card that uses a locked skill on
+another ascendancy isn't dealt (`R1a-assemble.md`), and R1b fails it before any compile (`wrong-ascendancy`). A
+brief whose ascendancy can't use its skill never reaches you: the runner's brief check stops it (SKILL.md step 1).
 
 **An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
 pattern-library shape that you judge under-played: one few builds use with this skill, ascendancy or
@@ -92,7 +93,8 @@ them: a game fact you didn't look up is a `judgment`, with a confidence.
   the ascendancy's own nodes;
 - what PoB models: `mcp__pob2__check_model_coverage` with `gems`, `item_text` or `nodes`. A line that is unparsed,
   partly parsed (PoB then applies **none** of it), parsed to nothing, possibly unread, or marked "check
-  config" is a modelling gap.
+  config" is a modelling gap. An unparsed `Grants Skill: <minion skill>` line isn't one: PoB computes that skill
+  from the minion's skill list either way, and never checks the passive (D-379, PG-40).
 
 By focus:
 
@@ -100,7 +102,8 @@ By focus:
   - Each named damage source a card proposes: `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`.
     Say what it does, its weapon requirement, its stat sets with base damage and critical hit chance, what
     quality adds, and the gem level and character level at which it can first be used (that bounds the
-    leveling plan). Run `mcp__pob2__check_model_coverage {gems: [<skill>]}` on it.
+    leveling plan). Run `mcp__pob2__check_model_coverage {gems: [<skill>]}` on it (a minion skill: on its
+    summon).
   - Its supports: which supports it can take and which change how it plays (the discovery calls above).
   - The ascendancy: `mcp__pob2__search_tree_nodes {ascendancy: <ascendancy>}`, then `mcp__pob2__check_model_coverage
     {nodes: [...]}` on the notables that touch the skill's damage, defence or resources.
@@ -110,7 +113,8 @@ By focus:
 - **`items`**: section `Synergy search`; cards led by key items.
   - Uniques that change how a skill plays, found with the unique discovery calls; run
     `mcp__pob2__check_model_coverage {item_text}` on each candidate's text.
-  - The supports each card needs, checked against its named damage source.
+  - The supports each card needs, checked against its named damage source (a minion skill's go in its summon's
+    group).
 - **`tree`**: section `Synergy search`; cards led by tree notables, keystones or ascendancy nodes.
   - Ascendancy notables, keystones and notable clusters that fit the skill, with `mcp__pob2__check_model_coverage
     {nodes}` on each one the card relies on. Name each node with its id, so the coordinator can path
@@ -147,8 +151,9 @@ yet.`, for R1b to fill.
 - **Identity:** the class, the ascendancy and the **named damage source**, each exactly as the lookup gives
   it. The named damage source is the main source of damage, never a token role (D-122 as D-295 words it): an
   active skill gem, whose own hits, ailments and projectiles count when another skill fires, spreads or copies
-  them. A damage source that isn't a skill (an item, a passive or a modifier, such as a flask nova) may lead a
-  card, marked "can't be finalized yet" (D-303, D-334).
+  them, or a minion skill one summon casts (the gem lookup's `Kind: minion skill`; name its summon, D-379). A
+  damage source that isn't a skill (an item, a passive or a modifier, such as a flask nova; never a minion skill,
+  even one a passive grants) may lead a card, marked "can't be finalized yet" (D-303, D-334).
 - **Pitch:** the title is short (at most 60 characters), names the idea rather than the roll, and is unique
   among your cards; the playstyle tags come from the brief's vocabulary; and on the under-played card, its
   `Under-played (judgment)` line.

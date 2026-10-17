@@ -23,6 +23,12 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
       of <total> active gems)`, which names the gems it can't support (`all except …`) when it can support
       most; and an active gem's `Unlocked by another support:`, the supports it can take only after another
       support adds a skill type. Example: Whirling Assault lists `Ailith's Chimes: after … Culmination II …`.
+    - **A minion skill** (D-379), by its exact name, after the gems of that name: `## <name>`, then
+      `Kind: minion skill`, one `Cast by: <minion> (summoned by <gem>)` line per summon, `Commanded: yes` for a
+      command, one `Granted by: <passive> (<ascendancy>, node <id>)` line per passive that grants it, its
+      cooldown, skill types and stat sets. It isn't a gem: a plan selects it as its summon's group's
+      `minionSkill`. Example: Navira's Fracturing, `Cast by: Navira, the Last Mirage (summoned by Navira, the
+      Last Mirage)`, a command granted by node 10561.
   - `{mode: "unique", query, slot?}`: with **several matches, each is shown in brief** (name, type,
     base, up to 5 matched lines with their variant); **full item text, ready for a plan's item slot, comes
     only when exactly one unique is returned** (D-239). Look a unique up by its exact name (or with
@@ -77,6 +83,9 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 | parsed to nothing | read, but changes no stat | say so; hand-calculate if it matters |
 | **possibly unread** | parsed, but a mod it makes is named nowhere in PoB's calculation code | **advisory** (D-243, D-226): confirm before hand-calculating (below) |
 | possibly unmodelled; check config | a gem line PoB's own tooltip marks unsupported | the effect may live in a config option (D-123); look for it before hand-calculating |
+
+**An unparsed `Grants Skill: <minion skill>` line isn't a gap** (D-379, PG-40): PoB computes that skill from the
+minion's skill list either way, and never checks that the passive is allocated (V1's `not-granted` does, D-380).
 
 **Flags** (WU-54; D-300, D-336). They're listed beside the statuses, in every mode, and change no status. Each
 names something PoB doesn't model, so treat it as a hand calculation, or as Count:

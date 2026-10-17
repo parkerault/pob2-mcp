@@ -23,7 +23,8 @@ no research.
   - each card's last verdict file (its errors, `recordPath` and `leagueUnverified`);
   - where it compiled, its record's key numbers, by Grep, never the record whole: in
     `concepts/<id>/compile-record.json`, the named damage source's Count-scaled figure
-    (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields`, its group's `count`), `Life`, `TotalEHP` and
+    (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields`, its group's `count`; `MinionTotalDPS` when the
+    group names a minion skill, else `TotalDPS`, D-378), `Life`, `TotalEHP` and
     `computedWithCustomMods`; and its key-item prices, converted, from the card's `Key item prices`.
 
 ## Work

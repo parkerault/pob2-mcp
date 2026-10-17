@@ -109,7 +109,9 @@ The rules every design step keeps:
 - **The named damage source** (D-122 as D-295 words it): The build's named damage source is the main source
   of damage, never a token role. Its group is `skills.rolledGroup`, role `clear` or `single_target`, and its
   figure × its Count is the largest of that role (D-217, D-293); D1 sets `skills.main.statSet` to the stat set
-  of the figure the gate compares (amendment 1 S7).
+  of the figure the gate compares (amendment 1 S7). A minion skill (D-379) is its group's `minionSkill`, with
+  `minionStatSet` for a skill of several stat sets: the group holds the summon, `main.activeSkill` is the
+  summon, never its "Command" skill, and the group's figure is its minion's `MinionTotalDPS` (D-378).
 - **Count and custom modifiers** (D-293): a group's `count` with its `countReason`, and each `customMods`
   entry with its reason; both are estimates, and the record marks every figure a custom modifier touched.
 - **The league** (D-233): offline, null; online, `mcp__pob2__get_leagues`' trade league, never one a skeleton or the

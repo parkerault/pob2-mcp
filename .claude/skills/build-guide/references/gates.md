@@ -92,7 +92,9 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   In each endgame stage, the named source's group (`skills.rolledGroup`; the name stays, D-295) has role
   `clear` or `single_target`, never `utility` or `leveling`, and its figure × its Count is the largest among
   the stage's groups with that role. A figure is named as a record `skillOutputs` field
-  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared. **One rule reads it**
+  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared; a group that names a minion
+  skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` in place of
+  `TotalDPS`, which is 0 for a summon (D-378). **One rule reads it**
   (D-340): a field with a counted copy is read **Count-scaled**, from the record's
   `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (the per-copy figure × that group's Count by
   PoB's Full DPS rule, WU-55; `TotalDPS` has one); any other field is read from the raw
@@ -142,7 +144,8 @@ rates, and each endgame stage's figures, from here; it fills every number from t
   price day (`day` 7 for `m` and `b`, 21 for `n`), rounded by step 6 below; `low` and `high` are `null` when the
   rung is unverified. W1 quotes them in the guide through the render.
 - `rolledSkill`: per endgame stage, one figure for **every** group of the named source's group's role: the
-  record field (or `ledger:<id>`) compared, with no value. The checker reads the values from the record by
+  record field (or `ledger:<id>`) compared, with no value (`g1s1p1.MinionTotalDPS` for a group that names a
+  minion skill). The checker reads the values from the record by
   the same rule (D-340): Count-scaled where the field has a counted copy, else per copy.
 - Findings with codes `chaos-exception` and `over-target` are information: they are never failures, and need no
   acceptance. An `over-target` finding carries, beside its message, `slot` (or `jewel`, the node id; neither for
@@ -203,7 +206,7 @@ price day by steps 2 to 4 at the file's `market` and rates, rounded by step 6.
 
 The run checker recomputes these parts and names each failure by these codes, so an accepted finding
 (same plan stage, part and code) covers the matching failure. The budget has no failure code: it never fails
-(D-371).
+(D-371). The last row is a V1 code, the compile record's, routed as every V1 finding is.
 
 | Part | Code | Means |
 |---|---|---|
@@ -220,6 +223,7 @@ The run checker recomputes these parts and names each failure by these codes, so
 | rolledSkill | `rolled-not-main` | the stage's `skills.main.group` isn't its `rolledGroup` |
 | rolledSkill | `rolled-stat-set` | the stage sets no `skills.main.statSet`, or the rolled figure (or a breakdown field its ledger formula reads) isn't the main skill's stat set |
 | rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
+| v1 | `not-granted` | a group whose skill gem, or whose `minionSkill`, a passive grants (`Grants Skill:`), on a stage that allocates none of those passives (D-380): PoB measures the skill anyway, the game doesn't give it. The compile passes (D-192), the `v1` part fails, and D1 or D2 allocates a granting passive from that stage on |
 
 ## The D1 gate's outcome
 

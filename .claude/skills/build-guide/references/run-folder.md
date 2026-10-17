@@ -102,7 +102,8 @@ one stderr line `check-run: [<rule>] <message>`.
   equal to the record's value rounded at the written number's last significant digit ("2,740" matches 2,736):
   the level, the four resistances, the physical max hit and its hit, the least other max hit and the largest
   other hit (the hits the compiler wrote, the stage's `enemy<Type>Damage` in `configWritten`, D-353), and the
-  named damage source's figure the D1 gate's verdict names. The budget and non-budget labels are the record's
+  DPS, the stage's `measures.dps`: the main group's figure × its Count, its minion's `MinionTotalDPS` when it
+  names a minion skill (D-378). The budget and non-budget labels are the record's
   `measures.arbiter` verdict, in the template's words ("survives the Arbiter's hits", "one-shot by the Arbiter's
   <type> hit", "not measured against the Arbiter"); the entering-maps label stays solid, watch or risky (D-353).
   Each rung's `Checks` block is its block in the render, copied verbatim (D-355). Every campaign reward choice
@@ -139,7 +140,8 @@ one stderr line `check-run: [<rule>] <message>`.
   level, 69 for entering maps, each reference hit the one the compiler wrote, D-254's formula rounded by D-256),
   the budget (every rung's total range at its price day and each `over-target` finding, by `gates.md`'s "Price
   days, targets and ranges", the anoint priced like a slot; it never fails, D-371) and the
-  named damage source (the `rolledSkill` part), its figure's stat set equal to `skills.main.statSet`. The
+  named damage source (the `rolledSkill` part), its figure's stat set equal to `skills.main.statSet`, and a
+  group that names a minion skill compared by its minion's `Minion<Field>` (D-378). The
   checker fails a verdict that differs from its own, and, once a guide exists, any failure no accepted finding
   covers.
 - **The run log and the control flow** (`run-log.md`): the fields and their values, the stage names `D1-build`,

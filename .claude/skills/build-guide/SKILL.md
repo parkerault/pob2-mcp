@@ -127,10 +127,10 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 
 - **R1b** (3), each picked card in order, one at a time; `concept` the card id. A failed compile re-runs with
   that verdict file as `findings`, up to 2 counted retries; then the card is `failed` (D-141). FI-1 applies
-  here. A card whose damage source isn't a skill compiles nothing (D-334): the card's status is "can't be
-  finalized yet: its damage source isn't a skill" (D-303), never `failed`. A card whose ascendancy doesn't own
-  the node that grants its skill compiles nothing either (D-342): its verdict's `wrong-ascendancy` finding is
-  never retried, and the card is `failed`.
+  here. A card whose damage source isn't a skill (a minion's skill is one, D-379) compiles nothing (D-334): the
+  card's status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`. A card
+  whose ascendancy doesn't own the node that grants its skill compiles nothing either (D-342): its verdict's
+  `wrong-ascendancy` finding is never retried, and the card is `failed`.
 - **R1b-assemble** (4). Prompt: the verification round, the research files (and whether each researcher
   returned), and each card `{id, title, status, attempts, verdict}`.
 - **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification` (the

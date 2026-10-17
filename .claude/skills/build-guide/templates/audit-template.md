@@ -39,7 +39,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 | Loadout | Level | Life | Named source DPS | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |
 |---|---|---|---|---|---|---|---|
-| <loadoutName> | <level> | <Life> | <the named source's Count-scaled figure; measures.dps on an endgame rung> | <n>/<n>/<n>/<n>% | <n> / <n> | <on an endgame rung, its configWritten hits; — on a campaign stage> | <TotalEHP; measures.ehp on an endgame rung> |
+| <loadoutName> | <level> | <Life> | <the named source's Count-scaled figure, MinionTotalDPS for a group that names a minion skill (D-378); measures.dps on an endgame rung> | <n>/<n>/<n>/<n>% | <n> / <n> | <on an endgame rung, its configWritten hits; — on a campaign stage> | <TotalEHP; measures.ehp on an endgame rung> |
 
 ## Checks
 

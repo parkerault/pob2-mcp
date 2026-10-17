@@ -79,6 +79,16 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     67%.
   - **Effect:** about 7% low at 48% lucky.
   - **Seen in:** Enervating Nova.
+- **PG-51, PoB's own copy of a tree-granted summon is level 1, with no supports.** bug (possible), confirmed in
+  code (`studies/2026-10-16-minion-skill-spike.md`, A4).
+  - **Where:** allocating a node whose line grants a summon ("Grants Skill: Navira, the Last Mirage", node 32705,
+    parsed at `level=1`, `Data/ModCache.lua:5869`) makes PoB add a group for it at the end of the socket
+    groups, at the mod's level, and empty its gem list to the active gem on every calculation
+    (`Modules/CalcSetup.lua:1503-1542`, the wipe at `:1540`).
+  - **Effect:** Navira's Fracturing measures 9.6 DPS from PoB's copy, against 1,027 from a socketed level-20
+    group with four supports. Which level the game uses needs a source.
+  - **Seen in:** Varashta; the baseline guide's PoB models a socketed group.
+  - **Workaround:** model the summon as a socketed level-20 group, with supports by D-359's estimate.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)
 
@@ -194,8 +204,18 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - Opportunity;
   - Everlasting Glory;
   - Fury of the King's Glory line.
-- **PG-40, "Grants Skill: Kelari's Deception".** Parses to nothing (`ModCache.lua:5723`, `{nil,nil}`). The skill
-  may still arrive through the Djinn's skill list; unchecked.
+- **PG-40, a minion's command is never checked against the passive that grants it.** gap (optimistic),
+  confirmed (`studies/2026-10-16-minion-skill-spike.md`, A4).
+  - **Where:** a passive's "Grants Skill: <command>" line parses to nothing (`Data/ModCache.lua:5723` Kelari's
+    Deception, `:5866` Navira's Fracturing; `{nil,nil}`), because `grantedExtraSkill`
+    (`Modules/ModParser.lua:2181-2188`) finds no gem of that name. The command comes from the djinn's skill list
+    instead, which `calcs.createMinionSkills` builds from the minion's static data whatever the tree holds
+    (`Modules/CalcActiveSkill.lua:1112-1130`).
+  - **Effect:** PoB computes the command with or without its passive: Navira's Fracturing measured 1,027 DPS with
+    node 10561 unallocated. The unparsed line loses nothing, so it isn't a modelling gap.
+  - **Seen in:** Varashta.
+  - **Workaround:** none for the numbers; V1's `not-granted` reports a stage that uses the command without its
+    passive (D-380).
 
 ## Data: missing, out of range, or stale
 

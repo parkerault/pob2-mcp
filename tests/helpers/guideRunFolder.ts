@@ -3,7 +3,8 @@
  * `--changed` (A-34, D-352), `render-audit.mjs` (D-355) and `run-log.mjs` (D-356). It holds a schema-3 plan with
  * a campaign stage and the three endgame rungs, a final record with each rung's `measures`, the D1 gate's last
  * verdict file, the card, the run log and a guide. Only the fields the scripts read are realistic; the run checker
- * itself is tested on the fixtures in `tests/fixtures/pipeline/`.
+ * itself is tested on the fixtures in `tests/fixtures/pipeline/`. `writeMinionGuideRun` writes its variant whose
+ * named damage source is a minion's skill (amendment 6, D-378).
  */
 import fs from 'fs';
 import path from 'path';
@@ -295,5 +296,50 @@ export function writeGuideRun(dir: string): string {
     outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
   });
   fs.writeFileSync(path.join(dir, 'guide.md'), GUIDE);
+  return dir;
+}
+
+/** The minion variant's summon and its resolved selection (`tests/fixtures/plans/minion-wolf`, D-377). */
+export const MINION = { summon: 'Wolf Pack', minion: 'Wolf Companion', skill: 'Leap Slam', count: 2 };
+
+/**
+ * Amendment 6 (WU-79, D-378): the same run with a minion's skill as its named damage source. The roll's skill is Leap
+ * Slam; every stage's rolled group 1 holds the summon Wolf Pack, names Leap Slam as its `minionSkill`, and counts two
+ * wolves. The record resolves the selection (`minionSkills`), and each stage's figure is the minion's: per wolf,
+ * `MinionTotalDPS` is half the base run's headline, × the Count of 2 the base headline, and the player's `TotalDPS`
+ * is 0. So `measures.dps` and every number but the figure's field and Count stay the base run's, and b's DPS claim
+ * cites `b.g1s1p1.MinionTotalDPS`.
+ */
+export function writeMinionGuideRun(dir: string): string {
+  writeGuideRun(dir);
+  const roll = { className: 'Warrior', ascendancy: 'Titan', skill: MINION.skill };
+  editJson(dir, 'plan.json', (p) => {
+    p.schemaVersion = 4;
+    p.roll = roll;
+    for (const s of p.stages as Json[]) {
+      s.skills.groups[0] = group(MINION.summon, s.skills.groups[0].role, { count: MINION.count, countReason: 'two wolves leap at once', minionSkill: MINION.skill });
+      for (const c of s.claims as Json[]) {
+        if (c.source?.ref === `${s.id}.g1s1p1.TotalDPS`) {
+          Object.assign(c, { text: 'The wolves deal about 98,000 DPS with Leap Slam.', source: tag('pob-computed', `${s.id}.g1s1p1.MinionTotalDPS`) });
+        }
+      }
+    }
+  });
+  editJson(dir, 'compile-record.json', (r) => {
+    r.planSchemaVersion = 4;
+    for (const st of Object.values(r.stages as Record<string, Json>)) {
+      const dps = st.countedSkillOutputs.g1s1p1.fields.TotalDPS as number;
+      st.skillOutputs.g1s1p1 = { skill: MINION.summon, statSetLabel: 'Default', fields: { TotalDPS: 0, MinionTotalDPS: dps / MINION.count } };
+      st.countedSkillOutputs.g1s1p1 = { skill: MINION.summon, statSetLabel: 'Default', count: MINION.count, fields: { TotalDPS: 0, MinionTotalDPS: dps } };
+      st.countedOutputs = { group: 1, count: MINION.count, fields: { TotalDPS: 0, MinionTotalDPS: dps } };
+      st.minionSkills = [
+        { group: 1, activeSkill: 1, summon: MINION.summon, minion: MINION.minion, minionId: 'WolfMinion', name: MINION.skill, index: 2, statSet: 1, statSets: ['Default'], skills: ['Basic Attack', MINION.skill] },
+      ];
+    }
+  });
+  editJson(dir, 'run-log.json', (l) => {
+    l.brief = { ascendancy: 'Titan', skill: MINION.skill };
+    l.roll = roll;
+  });
   return dir;
 }

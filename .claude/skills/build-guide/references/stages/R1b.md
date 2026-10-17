@@ -17,10 +17,11 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   `--no-ninja`, no currency rates).
 - **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
-  the skeleton's `rolledGroup`.
+  the skeleton's `rolledGroup`. A minion skill's group holds its summon and names it as `minionSkill` (D-379).
 - **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks) and the
   round's research files for the mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
-  `^#` for its headings and Read the worked example; when `validate` names a field, Grep that field's row);
+  `^#` for its headings and Read the worked example, and "A minion's skill" for a minion skill; when `validate`
+  names a field, Grep that field's row);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs; `run-log.json`
   (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited`
   call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On
@@ -34,11 +35,12 @@ trade site's limits are shared with the user's account) is spent on an item vali
 verification checklist's probe variants (below) come on top: up to 4 per card (D-292).
 
 **The ascendancy lock** (D-342), the identity check every card gets first, before any compile and before
-FI-1. For every skill the card names (its named damage source, and each skill in its chain and links), run
-`mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode:
-"mechanic", query: "<skill>", kind: "unique"}`. A skill is locked when a node grants it (its stats list
-`Grants Skill: <skill>`), every such node is an ascendancy node (an `Ascendancy: <name>` line), and no unique
-has a line `Grants Skill: <skill>` or `Grants Skill: Level (<range>) <skill>`.
+FI-1. For every skill the card names (its named damage source, and each skill in its chain and links; a minion
+skill's summon too, D-379), run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` and
+`mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind: "unique"}`. A skill is locked when a
+node grants it (its stats list `Grants Skill: <skill>`), every such node is an ascendancy node (an
+`Ascendancy: <name>` line), and no unique has a line `Grants Skill: <skill>` or `Grants Skill: Level
+(<range>) <skill>`.
 
 - **The card uses a locked skill, and no node that grants it is the card's ascendancy's:** the card's
   character can't use that skill, so the card fails at once. Write no skeleton, compile nothing, run no
@@ -55,11 +57,14 @@ has a line `Grants Skill: <skill>` or `Grants Skill: Level (<range>) <skill>`.
   skill, or nothing does): go on.
 
 A card that passes the lock and whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A
-card whose damage source isn't a skill" below.
+card whose damage source isn't a skill" below. A minion skill is a skill, even one a passive grants: it gets
+every step (D-379).
 
 1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
-   card rests on, each with its node id (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own
-   nodes). `mcp__pob2__search_tree_nodes` gives no links between nodes, so the paths come from step 3.
+   card rests on, and for a minion skill the passives that grant it and its summon (the lock's `Grants Skill:`
+   nodes; PoB measures the skill without them, but V1 reports `not-granted`, D-380), each with its node id
+   (`mcp__pob2__search_tree_nodes {query}`, or `{ascendancy}` for the ascendancy's own nodes).
+   `mcp__pob2__search_tree_nodes` gives no links between nodes, so the paths come from step 3.
 2. **FI-1**, only when the header's `faults` holds it: FI-1 goes into this attempt's **first** compile, so a
    faulted attempt compiles nothing clean and a card FI-1 fails leaves no clean record (D-265). That first
    compile is the bootstrap (step 3), which you then always run, even when the skeleton's tree is already
@@ -73,7 +78,10 @@ card whose damage source isn't a skill" below.
    `concepts/<id>/plan.json` as a tree-minimal skeleton: the roll, versions and league of step 4, its one
    stage with an empty tree (no
    `nodes`, `ascendancyNodes`, weapon-set nodes or attribute choices), no item slots, jewels or toggles,
-   the named damage source alone in one group (with its `role`, `main` and `rolledGroup`), the scenario's
+   the named damage source alone in one group (with its `role`, `main` and `rolledGroup`; for a minion skill,
+   its summon, with `main.activeSkill` on the summon, never on its "Command" skill, the skill as the group's
+   `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 4`, D-379),
+   the scenario's
    `enemyIsBoss` and resistance penalty, no claims and no prices. Compile it:
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. The engine
    then holds the class and ascendancy with only their start nodes allocated, so
@@ -101,8 +109,9 @@ card whose damage source isn't a skill" below.
    - `items`: each key unique's text from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`
      (full text comes only for a single match); plain bases or simple rares for the other slots the
      skill needs (its weapon first).
-   - `skills`: the named damage source's group with the card's supports, each group with a `role` (the
-     named source's is `clear` or `single_target`), `main` on the named source, and `rolledGroup`; a
+   - `skills`: the named damage source's group with the card's supports (a minion skill's: its summon's
+     group, as step 3 writes it), each group with a `role` (the named source's is `clear` or
+     `single_target`), `main` on the named source, and `rolledGroup`; a
      `count` with its `countReason` where the card's chain has several copies act at once (D-293).
    - `config`: the earned states the card relies on, each that is on with its producer and uptime;
      `scenario` lists `enemyIsBoss` and the endgame resistance penalty, each from a data fact with its
@@ -233,7 +242,8 @@ Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not 
 - **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
   `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled
   DPS: its Count-scaled figure, `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.TotalDPS` (the per-copy
-  figure × its group's Count, WU-55), with its stat set and group.
+  figure × its group's Count, WU-55; `MinionTotalDPS` for a group that names a minion skill, D-378), with its
+  stat set and group.
 - **Estimates** (D-296): each Count above 1 with its `countReason`, each custom modifier with its reason, and
   every figure the record marks `computedWithCustomMods`, defences included; the clear and boss figures kept
   separate, never summed.

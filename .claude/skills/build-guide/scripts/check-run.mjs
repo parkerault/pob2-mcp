@@ -333,9 +333,17 @@ export function slugOfBrief(brief) {
 const skeletonStage = (id) => `${String(id).replace(/-/g, '')}e`;
 
 /**
+ * D-378: the groups a stage's record resolved a minion skill for (`minionSkills`). Such a group's figure is its
+ * minion's, `MinionTotalDPS` in place of `TotalDPS` (0 for a summon), at the same key: `src/plan/record.ts`'s
+ * `figureField`.
+ */
+const minionGroups = (stageRecord) => new Set(list(stageRecord?.minionSkills).map((m) => m.group));
+
+/**
  * D-340: a compared figure `g<group>s<skill>p<statSet>.<Field>` of a stage's record, read × its group's Count
  * from `countedSkillOutputs` where the record has a counted copy of the field, else raw from `skillOutputs`
- * (the per-copy value; a record from before WU-55 has no counted copies).
+ * (the per-copy value; a record from before WU-55 has no counted copies). A minion's figure is an ordinary field,
+ * `MinionTotalDPS`, with its counted copy (D-376, D-378).
  */
 function figureOf(stageRecord, figure) {
   const m = /^(g\d+s\d+p\d+)\.(\w+)$/.exec(String(figure ?? ''));
@@ -1448,12 +1456,13 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
       ['elemental or chaos max hit', m[10], least(OTHER_TYPES.map((t) => out[`${t}MaximumHitTaken`])), `the least of ${s.id}'s ${OTHER_TYPES.map((t) => `${t}MaximumHitTaken`).join(', ')}`],
       ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t))), `the largest of the hits the compiler wrote, ${s.id}.configWritten's ${OTHER_TYPES.map((t) => `enemy${t}Damage`).join(', ')}`],
     ];
-    // The DPS is the record's measures.dps (D-353), the main group's counted TotalDPS, the figure W1 is told to
-    // write, whatever field or ledger figure the D1 gate names (the gate's own recompute reads that). A record
-    // from before D-353 has no measures, so its line is read against the gate's figure for the stage's
-    // rolledGroup (§5.3), × its Count where the record has a counted copy (D-294, D-340).
+    // The DPS is the record's measures.dps (D-353), the main group's figure × its Count (its minion's
+    // MinionTotalDPS when it names a minion skill, else its TotalDPS; D-378), the figure W1 is told to write,
+    // whatever field or ledger figure the D1 gate names (the gate's own recompute reads that). A record from
+    // before D-353 has no measures, so its line is read against the gate's figure for the stage's rolledGroup
+    // (§5.3), × its Count where the record has a counted copy (D-294, D-340).
     if (isObj(st?.measures)) {
-      parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's TotalDPS × its Count)`]);
+      parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's figure × its Count)`]);
     } else {
       const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
       const lg = /^ledger:(\w+)$/.exec(String(fig ?? ''));
@@ -2898,7 +2907,8 @@ function holdBudgetToRecompute(plan, rep, b, maps, market, rungs, file, fail) {
  * 1 S7): its group (`rolledGroup`) has role clear or single_target, its figure is the largest of that role, read
  * from the record for every group the gate compares, × each group's Count where the record has a counted copy
  * (`countedSkillOutputs`, D-294, D-340), and a `skillOutputs` figure of its group is of the stage's
- * `skills.main.statSet`, the set the PoB file opens on.
+ * `skills.main.statSet`, the set the PoB file opens on. A group the record resolved a minion skill for is compared by
+ * its minion's figure, `Minion<Field>` at the same key, where the others compare `<Field>` (D-378).
  */
 function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
   const failures = [];
@@ -2929,7 +2939,9 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
     }
     const figures = list(b.figures);
     const sameRole = groups.map((g, i) => ({ g, n: i + 1 })).filter(({ g }) => g?.role === role).map(({ n }) => n);
+    const minions = minionGroups(record.stages?.[s.id]);
     const fields = new Set();
+    const named = new Set();
     const values = new Map();
     const counted = new Set();
     for (const n of sameRole) {
@@ -2944,7 +2956,14 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
       const lg = /^ledger:(\w+)$/.exec(String(f.figure));
       if (sk) {
         if (Number(sk[1]) !== n) fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id} is another group's, not group ${n}'s`);
-        fields.add(sk[4]);
+        // D-378: a group that names a minion skill is compared by its minion's figure, so one field means
+        // `<Field>` for the others and `Minion<Field>` for it.
+        const minion = minions.has(n);
+        if (minion && !/^Minion[A-Z]/.test(sk[4])) {
+          fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id}'s group ${n} is the player's ${sk[4]}, but the group names a minion skill, so its figure is its minion's Minion${sk[4]} at the same key (D-378, gates.md)`);
+        }
+        fields.add(minion ? sk[4].replace(/^Minion(?=[A-Z])/, '') : sk[4]);
+        named.add(sk[4]);
         // D-340: × the group's Count where the record has a counted copy of the field, else the raw per-copy value.
         const read = figureOf(record.stages[s.id], f.figure);
         value = read.value;
@@ -2973,7 +2992,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
       }
       values.set(n, value);
     }
-    if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...fields])}; it uses one field for every group (gates.md)`);
+    if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...named])}; it uses one field for every group, its minion's Minion<Field> for a group that names a minion skill (gates.md, D-378)`);
     const mine = values.get(rolled);
     for (const [n, v] of values) {
       if (n !== rolled && isNum(mine) && v > mine) {
@@ -3032,7 +3051,8 @@ const canon = (v) => JSON.stringify(v, (_, x) => (isObj(x) ? Object.fromEntries(
  *   over the record with the server's evaluator (D-365), so a ledger-only edit and a recompile both count;
  * - `price:<id>`: the plan's price entry;
  * - a `pob-computed` tag: the record field its ref names, `<stage>.<Field>` (`outputs`, and the main group's
- *   counted copy) or `<stage>.g<g>s<s>p<p>.<Field>` (`skillOutputs`, and its counted copy, D-340);
+ *   counted copy) or `<stage>.g<g>s<s>p<p>.<Field>` (`skillOutputs`, and its counted copy, D-340); a minion's
+ *   figure is such a field, `MinionTotalDPS` with its counted copy (D-376, D-378);
  * - anything else (`data:<file>#<key>`, the other tag kinds): nothing beyond the source itself.
  */
 function citedValues(side, source) {

@@ -26,7 +26,7 @@ text doesn't give, and never invent one:
 | Field | Holds | Example |
 |---|---|---|
 | `ascendancy` | an ascendancy | Titan |
-| `skill` | an active skill gem, the named damage source | Blood Hunt |
+| `skill` | an active skill gem, or a command a summon's minion casts (D-379): the named damage source | Blood Hunt |
 | `playstyle` | tags from the vocabulary below, plus free text | `melee`, `tanky`, "slow and heavy" |
 | `budget` | `budget` or `non-budget` (the endgame variants), or a figure in divines | `budget` |
 | `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |
@@ -42,7 +42,8 @@ text doesn't give, and never invent one:
 - **A fixed roll** (a brief naming both `ascendancy` and `skill`) runs the same three phases, and every card's
   named damage source is that skill.
 - **A support gem** the free text names as the build's subject goes in `around`, by its name as the lookup gave
-  it, never in `skill` (D-343): only an active gem is a `skill`. Step 1's gem lookup tells them apart.
+  it, never in `skill` (D-343): only an active skill gem, or a command a summon's minion casts, is a `skill`.
+  Step 1's gem lookup tells them apart.
 - **Player evidence** comes only from `popularity`: no tool supplies it (D-335).
 
 ## In this order, before any agent runs
@@ -53,27 +54,31 @@ text doesn't give, and never invent one:
    - `ascendancy`: call `mcp__pob2__get_classes`. The ascendancy must be listed (case-insensitive). Note its
      class.
    - `skill`: call `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`. A result headed `## <skill>`
-     (case-insensitive) must say `Kind: active`. A support gem, or no such result, fails.
+     (case-insensitive) must say `Kind: active`, or `Kind: minion skill` when no active gem has the name and
+     exactly one summon casts it: count the `Cast by: <minion> (summoned by <gem>)` lines across all the name's
+     results (D-379). Note that summon, the `<gem>`. A support gem, no such result, or a minion skill several
+     summons cast fails.
    - a name the free text gives as the build's subject (D-343): look it up this way before you place it. A
      gem the lookup finds as a support goes in `around`, by its name as the lookup gave it, and the run goes
-     on: say it is a support gem, and that the researchers will look for skills it can support. An active gem
-     goes in `skill`. An item or mechanic (Melting Maelstrom, block) isn't a gem: it goes in `around`, and a
-     gem-lookup miss never stops it. Only a name the user gives as the build's skill, which the lookup misses,
-     fails here. The fixed roll's second name is always `skill`, so there a support gem fails:
-     `/build-guide Pathfinder Fork` stops with "Fork is a support gem".
+     on: say it is a support gem, and that the researchers will look for skills it can support. An active gem,
+     or a minion skill that passes as above, goes in `skill`. An item or mechanic (Melting Maelstrom, block)
+     isn't a gem: it goes in `around`, and a gem-lookup miss never stops it. Only a name the user gives as the
+     build's skill, which the lookup misses, fails here. The fixed roll's second name is always `skill`, so
+     there a support gem fails: `/build-guide Pathfinder Fork` stops with "Fork is a support gem".
    - both, once each passes: **the ascendancy lock** (D-342). Call `mcp__pob2__search_tree_nodes {query:
      "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind:
      "unique"}`. The ascendancy can't use the skill, and the check fails, when a node grants it (its stats
      list `Grants Skill: <skill>`), every such node is an ascendancy node (an `Ascendancy: <name>` line), none
      of them the brief's ascendancy, and no unique has a line `Grants Skill: <skill>` or `Grants Skill: Level
-     (<range>) <skill>`.
+     (<range>) <skill>`. A minion skill's lock runs on it and again on its summon; both must pass (D-379).
    - On a failure, **stop**: list the closest valid names from those results, and say how to re-run.
      Ascendancies come from `mcp__pob2__get_classes`. For the skill, quote the names the lookup gave: when
      nothing matched, `mcp__pob2__lookup_game_data` says "Nothing matched …", then lists up to 5 names under
      `Closest active gem names (…):` and up to 3 under `Closest support gem names (…):`, each line
-     `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem
-     is a valid roll. When it matched only other gems, quote those gems' names; for a support gem, say
-     "<name> is a support gem". A failed lock gives its reason instead: the nodes that grant the skill, each
+     `- <name> (active|support)` (D-258, D-258a). Quote the active names, in its order: only an active gem,
+     or a command one summon's minion casts, is a valid roll. When it matched only other gems, quote those
+     gems' names; for a support gem, say "<name> is a support gem"; for a minion skill several summons cast,
+     name those summons. A failed lock gives its reason instead: the nodes that grant the skill, each
      with its id and ascendancy, so a re-run names one of those ascendancies or none. Create no run folder
      and write nothing.
    - Use the names exactly as the tools gave them from here on. The run's `roll`,

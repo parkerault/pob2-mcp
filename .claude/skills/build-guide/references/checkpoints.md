@@ -34,9 +34,9 @@ Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoin
 - **Show** (`display brainstorm`) the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
   line each (its id, title, identity, playstyle tags, links confirmed, under-played label and evidence), and
   the "Not dealt" list, each with the link no lookup confirmed. A card whose damage source isn't a skill is
-  marked "can't be finalized yet" (D-303). After a short round (D-339: fewer than 6 cards passed, or the deck
-  holds fewer than two under-played cards), say so, with the reason R1a-assemble gave, which the run log
-  keeps as its `shortReason`.
+  marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379). After a short round (D-339:
+  fewer than 6 cards passed, or the deck holds fewer than two under-played cards), say so, with the reason
+  R1a-assemble gave, which the run log keeps as its `shortReason`.
 - **Ask** with AskUserQuestion in `multiSelect` mode: up to 4 cards a question and up to 3 questions, plus one
   question for brainstorm more or stop. With more than 12 cards to offer, offer the latest round's first; the
   user can name any other card id, a held-back one included, in the free-text answer.
@@ -54,8 +54,9 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
 
 - **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in the run (every verification round, not
   only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
-  figure, `Life` and `TotalEHP`, D-294; the figure labelled `estimate` when its group's Count is above 1 or
-  the stage is `computedWithCustomMods`, D-296), key prices (converted, as ranges with their league day, D-374;
+  figure, `Life` and `TotalEHP`, D-294; a minion skill's figure its minion's `MinionTotalDPS`, D-378; the
+  figure labelled `estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods`,
+  D-296), key prices (converted, as ranges with their league day, D-374;
   or `unavailable`), risks, what PoB can't verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
   (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b verdict's finding is
   `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own the passive-tree

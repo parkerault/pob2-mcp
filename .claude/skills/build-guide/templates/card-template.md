@@ -23,8 +23,9 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Class: <className>
 - Ascendancy: <ascendancy>
-- Named damage source: <the identity's skill: an active skill gem, or for a damage source that isn't a skill
-  the item, passive or modifier that deals it, D-334>
+- Named damage source: <the identity's skill: an active skill gem; a minion skill with its summon, "<skill>
+  (cast by <minion>, summoned by <gem>)", D-379; or for a damage source that isn't a skill the item, passive or
+  modifier that deals it, D-334>
 - [only when the damage source isn't a skill] Can't be finalized yet: its damage source isn't a skill
   (D-303).
 - [only when a passive-tree node or a unique grants a skill the card uses, D-342; one line per skill]
@@ -79,7 +80,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Defences (modelled in PoB): life <`Life`>, energy shield <`EnergyShield`>, resistances <the four
   `Missing<Elem>Resist` values>, max hit <each `<Type>MaximumHitTaken`>, effective HP <`TotalEHP`>.
-- Modelled DPS: <the named source's Count-scaled figure (`countedSkillOutputs`), its stat set and group>
+- Modelled DPS: <the named source's Count-scaled figure (`countedSkillOutputs`; `MinionTotalDPS` for a minion
+  skill, D-378), its stat set and group>
   (modelled in PoB; an estimate when its Count is above 1 or a custom modifier is present).
 - [only when the damage source isn't a skill] Not compiled: its damage source isn't a skill. Only the
   checklist's read-only checks ran (D-334).

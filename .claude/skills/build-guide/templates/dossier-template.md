@@ -14,6 +14,6 @@ Brief: <its fields as parsed: ascendancy, skill, playstyle, budget, around, like
 
 | Card | Round | Status | Synergy | Named source DPS | Life | EHP | Key prices | League | Main risk |
 |---|---|---|---|---|---|---|---|---|---|
-| r1-a-2 | <v> | viable | <its synergy in a few words> | <Skill> <the Count-scaled figure> (<its field>), "estimate" when its group's Count is above 1 or the stage is computedWithCustomMods (D-296) | <Life> | <TotalEHP> | <item: amount currency, dated YYYY-MM-DD, or unavailable (<note>); each key item> | <none (offline) or <league> or <league>, unverified> | <what could sink it, the checklist's risks among them> |
+| r1-a-2 | <v> | viable | <its synergy in a few words> | <Skill> <the Count-scaled figure> (<its field>: MinionTotalDPS for a minion skill, D-378), "estimate" when its group's Count is above 1 or the stage is computedWithCustomMods (D-296) | <Life> | <TotalEHP> | <item: amount currency, dated YYYY-MM-DD, or unavailable (<note>); each key item> | <none (offline) or <league> or <league>, unverified> | <what could sink it, the checklist's risks among them> |
 | r1-b-1 | <v> | failed after <N> attempts: <the last errors>; reports/gates/R1b-r1-b-1-a<N>.json | <its synergy> | — | — | — | — | — | <its main risk> |
 | r1-c-3 | <v> | can't be finalized yet: its damage source isn't a skill | <its synergy> | — | — | — | — | — | <what finalizing it waits on> |

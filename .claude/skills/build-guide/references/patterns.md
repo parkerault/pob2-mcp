@@ -405,7 +405,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   type.
 - **PoB:** custom modifier at the expected step (PG-25); Count is the wrong tool for ramps.
 - **Examples:** Varashta: Kelari's Deception, 50% more per consecutive use up to 300% [varashta].
-- **Cautions:** the node's "Grants Skill" line parses to nothing (PG-40).
+- **Cautions:** PoB never checks the node that unlocks it (PG-40).
 
 ### Count events, not damage
 
@@ -647,11 +647,11 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 ### Actor rerouting
 
-- **Shape:** you press the button but another actor deals the damage, opening its multiplier pool.
-- **Search:** granted command skills (`tree` on the ascendancy, gem lookup); that actor's multipliers.
-- **PoB:** modelled as a minion skill; Archon is not modelled (PG-11).
+- **Shape:** you press the button but another actor deals damage, opening its multiplier pool.
+- **Search:** granted commands (`tree` on the ascendancy, gem lookup); the actor's multipliers.
+- **PoB:** modelled as the group's `minionSkill`, its unlock unchecked (PG-40); Archon not modelled (PG-11).
 - **Examples:** Varashta: Kelari's Deception as minion damage [varashta].
-- **Cautions:** Muster's count can differ from the game's (PG-3).
+- **Cautions:** Muster's count may differ in game (PG-3).
 
 ### Reactive carrier
 

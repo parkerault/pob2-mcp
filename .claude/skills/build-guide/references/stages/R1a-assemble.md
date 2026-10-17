@@ -28,15 +28,18 @@ nothing and never edits a card.
    (D-286), as the runner checks a brief:
    - the ascendancy: `mcp__pob2__get_classes` lists it (case-insensitive), under the card's class;
    - a named damage source that is a skill: `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}` gives
-     a result headed `## <skill>` that says `Kind: active`;
-   - a damage source that isn't a skill (an item, a passive or a modifier; D-334): a lookup by its kind
-     returns it (`{mode: "unique", query: <exact name>}`, or `{mode: "mechanic", query: <its line>}` with
-     `kind: "passive"` or `kind: "mod"`). Such a card can be dealt, marked "can't be finalized yet" (D-303);
+     a result headed `## <skill>` that says `Kind: active`, or `Kind: minion skill` when no active gem has the
+     name and the name's results hold exactly one `Cast by:` summon, which the card names (D-379);
+   - a damage source that isn't a skill (an item, a passive or a modifier; never a minion skill the gem lookup
+     finds, even one a passive grants, D-379; D-334): a lookup by its kind returns it (`{mode: "unique",
+     query: <exact name>}`, or `{mode: "mechanic", query: <its line>}` with `kind: "passive"` or `kind:
+     "mod"`). Such a card can be dealt, marked "can't be finalized yet" (D-303);
    - the brief's fixed pieces: a card whose identity contradicts the brief's `ascendancy` or `skill` isn't
      dealt;
    - the ascendancy lock (D-342): for every skill a card names (its named damage source, its chain and its
-     links), once per skill in the round, run `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}`
-     and `mcp__pob2__lookup_game_data {mode: "mechanic", query: "<skill>", kind: "unique"}` again. A skill is
+     links, and a minion skill's summon, D-379), once per skill in the round, run
+     `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode:
+     "mechanic", query: "<skill>", kind: "unique"}` again. A skill is
      locked when a node grants it (its stats list `Grants Skill: <skill>`), every such node is an ascendancy
      node (an `Ascendancy: <name>` line), and no unique has a line `Grants Skill: <skill>` or `Grants Skill:
      Level (<range>) <skill>`. A card that uses a locked skill must be one of those ascendancies, its identity

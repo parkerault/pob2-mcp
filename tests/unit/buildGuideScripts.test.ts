@@ -4,7 +4,8 @@
  *
  * - `scripts/render-audit.mjs <runFolder>` (D-355) renders `audit.md` in the form of `templates/audit-template.md`
  *   from the plan, the final compile record and the D1 gate's last verdict file, and a re-render keeps the rows W1
- *   added under `Known issues`;
+ *   added under `Known issues`; a campaign stage's DPS is the record's headline rule, a minion's figure for a group
+ *   that names a minion skill (AC-W66, D-378);
  * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356), or `-` for the JSON on stdin, writes the run log in
  *   `references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form;
  *   `run-log.mjs <runFolder> display <gate>` (D-367) prints a gate visit's display from the run folder's files and
@@ -19,7 +20,8 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { CARD, GATE_FILE, editJson, readJson, writeGuideRun, type Json } from '../helpers/guideRunFolder';
+import { headlineDps } from '../../src/plan/record';
+import { CARD, GATE_FILE, MINION, editJson, readJson, writeGuideRun, writeMinionGuideRun, type Json } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
@@ -225,6 +227,21 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     fs.rmSync(path.join(fresh, 'audit.md'));
     expect(text.replace(/## Known issues[\s\S]*$/, '')).toBe(render(fresh).replace(/## Known issues[\s\S]*$/, ''));
     expect(under(audit(fresh), '## Known issues')).toEqual(['None.']);
+  });
+
+  it("AC-W66 (D-378): a campaign stage's named source DPS is the main group's figure × its Count as the record reads it, its minion's MinionTotalDPS when the group names a minion skill", () => {
+    const dir = writeMinionGuideRun(folder());
+    const plan = readJson(dir, 'plan.json');
+    const a1 = readJson(dir, 'compile-record.json').stages.a1;
+    expect(plan.stages[0].skills.groups[0]).toEqual(expect.objectContaining({ minionSkill: MINION.skill, count: 2 }));
+    expect([a1.skillOutputs.g1s1p1.fields, a1.countedSkillOutputs.g1s1p1.fields]).toEqual([{ TotalDPS: 0, MinionTotalDPS: 60.25 }, { TotalDPS: 0, MinionTotalDPS: 120.5 }]);
+    // The render's campaign row is the record's headline rule (src/plan/record.ts): the minion's figure × the Count of 2.
+    expect(headlineDps(plan.stages[0], a1)).toBe(120.5);
+    const row = (text: string) => under(text, '## Stage detail').find((l) => l.startsWith('| Act 1 (L8) {a1} |'));
+    expect(row(render(dir))).toBe('| Act 1 (L8) {a1} | 8 | 310 | 120.5 | 75/75/75/12% | 400 / 300 | — | 900 |');
+    // Without the record's resolved selection, the group's figure is the player's TotalDPS, 0 for a summon.
+    editJson(dir, 'compile-record.json', (r) => delete r.stages.a1.minionSkills);
+    expect(row(render(dir))).toBe('| Act 1 (L8) {a1} | 8 | 310 | 0 | 75/75/75/12% | 400 / 300 | — | 900 |');
   });
 
   it("shows a ledger-only edit's current formula and value without a recompile (D-365)", () => {

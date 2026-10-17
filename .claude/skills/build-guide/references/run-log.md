@@ -33,7 +33,7 @@ text gives it, with the names exactly as the brief check's tools gave them:
 
 | Field | Value |
 |---|---|
-| `ascendancy`, `skill` | text: an ascendancy, and an active skill gem (the named damage source) |
+| `ascendancy`, `skill` | text: an ascendancy, and an active skill gem or a command a summon's minion casts (the named damage source, D-379) |
 | `playstyle` | a list of strings: the vocabulary's tags in the user's order (`melee`, `tanky`, …), then any free text as one more string (`["melee", "tanky", "slow and heavy"]`) |
 | `budget` | `"budget"`, `"non-budget"`, or a figure in divines (a number) |
 | `around` | text, as the user wrote it; a support gem by its name as the lookup gave it (`"Fork"`, D-343) |

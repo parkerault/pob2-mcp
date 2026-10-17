@@ -28,7 +28,8 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
     `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/concepts/<id>/plan.json",
     stage: "<stage id>"}}`, one call per stage, batched;
   - `docs/build-guide/plan-reference.md` by section, never whole: Grep `^#` for its headings and Read the
-    worked example and "Count and custom modifiers"; when `validate` names a field, Grep that field's table row;
+    worked example and "Count and custom modifiers" ("A minion's skill" too, for a minion skill); when
+    `validate` names a field, Grep that field's table row;
   - the facts under `data/`: `data/campaign/limits.json` (`passive-points.max`, `ascendancy.max`,
     `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`);
   - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
@@ -37,7 +38,7 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 3` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
+   `schemaVersion: 4` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
    adds the rares' entries), and only the endgame stages below. A `plan.json` already in the run folder belongs to an earlier design and is
    replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and
    everything D1-finish wrote that your change doesn't touch.
@@ -86,17 +87,22 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      D1-finish writes the claim that says why.
    - Its figure, × its Count, must be the largest of the stage's groups with that role: the gate compares
      one Count-scaled record field for every group (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`,
-     the same `<Field>` for each, named `g<group>s<skill>p<statSet>.<Field>`), or a ledger value. Never give
-     a damage skill the `utility` role to keep it out of the comparison.
+     the same `<Field>` for each, named `g<group>s<skill>p<statSet>.<Field>`), or a ledger value. A group that
+     names a minion skill is compared by its minion's `Minion<Field>` at the same key (`MinionTotalDPS`, D-378).
+     Never give a damage skill the `utility` role to keep it out of the comparison.
    - Put the named source's group first (`skills.main.group: 1`, `main` on the named source): every
      stage shares the main group's index, and D2 holds a bridge skill there until the named source's
      requirement (D-301).
+   - **A minion skill** (D-379) is its group's `minionSkill`, by the gem lookup's name: the group holds the
+     summon its `Cast by:` line names, and `main.activeSkill` is the summon, never its "Command" skill. Add
+     `minionStatSet` when the skill has several stat sets (Kelari's Deception has two), the one the gate
+     compares.
    - **Set `skills.main.statSet`** on each variant stage to the named source's stat set whose figure the
      gate compares, `p<statSet>` in `g<group>s<skill>p<statSet>.<Field>` (amendment 1 S7): the PoB file
      opens on the main stat set, so the guide's headline figure must be that set's. A skill whose damage
      comes from a later stat set (an explosion after a dash) names that set here. `skills.main.group` is the
      `rolledGroup`, and the rolled figure, or every breakdown field a ledger figure's formula reads, is
-     `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
+     `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`. For a minion skill `statSet` is the summon's (1).
    - One loadout has a one-click clear and a single-target setup (D-120). Every group has a `role`; every
      gem its level and quality. `mcp__pob2__suggest_supports` ranks supports and lists what PoB can't measure (C-47).
    - **Count and custom modifiers** (D-293; `docs/build-guide/plan-reference.md`, "Count and custom

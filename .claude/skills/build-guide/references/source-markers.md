@@ -12,7 +12,7 @@ A tag is `{kind, ref, accessed?, patch?, confidence?}`:
 
 | `kind` | `ref` | Also required |
 |---|---|---|
-| `pob-computed` | a compile-record field: `<stageId>.<Field>`, or `<stageId>.g<group>s<skill>p<statSet>.<Field>` | — |
+| `pob-computed` | a compile-record field: `<stageId>.<Field>`, or `<stageId>.g<group>s<skill>p<statSet>.<Field>`; a minion's is `Minion<Field>` (`b.g1s1p1.MinionTotalDPS`, D-376) | — |
 | `pob-data` | a pinned PoB `file:line`, or a lookup-tool result (`lookup_game_data gem "Blood Hunt"`) | — |
 | `external` | an `http(s)` URL | `accessed` (YYYY-MM-DD) and `confidence` |
 | `judgment` | the reasoning, in a few words | `confidence` |

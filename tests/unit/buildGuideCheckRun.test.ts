@@ -33,6 +33,8 @@
  * - Amendment 5's (WU-76, AC-W64, D-370…D-373): the D1 gate's budget is a range at each rung's price day against its
  *   target, recomputed from the plan's prices and data/economy/prices.json; it is pass or unverified, never a
  *   failure, and an over-target rare is information that routes nowhere.
+ * - Amendment 6's (WU-79, AC-W66, D-378): a rolled group that names a minion skill is read by its minion's figure,
+ *   `MinionTotalDPS` × its Count, in the D1 gate's recompute, the verdict line and `--changed`.
  *
  * Checks (t), the render and `--changed` load the server's compiled `build/plan/`: `mise run test` builds first.
  */
@@ -46,7 +48,7 @@ import zlib from 'zlib';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { buildSha1 } from '../../src/plan/buildHash';
-import { writeGuideRun, editJson as editRunJson } from '../helpers/guideRunFolder';
+import { writeGuideRun, writeMinionGuideRun, editJson as editRunJson } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
@@ -571,7 +573,7 @@ const broken: BrokenCase[] = [
   { name: "(x) a verdict line's other max hit is the largest, not the least", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('at least 3,000 elemental', 'at least 9,800 elemental')), rule: 'verdict-line', says: /says elemental or chaos max hit 9,800, but the least of b's FireMaximumHitTaken, ColdMaximumHitTaken, LightningMaximumHitTaken, ChaosMaximumHitTaken is 3000/ },
   { name: "(x) a verdict line's hit is mis-rounded against the hit the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('physical against about 400,', 'physical against about 410,')), rule: 'verdict-line', says: /the Budget verdict line says physical hit 410, but the hit the compiler wrote, b\.configWritten\.enemyPhysicalDamage is 402/ },
   { name: "(x) a verdict line's other hit isn't the largest the compiler wrote (D-353)", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('elemental or chaos against about 97.', 'elemental or chaos against about 72.')), rule: 'verdict-line', says: /the Budget verdict line says elemental or chaos hit 72, but the largest of the hits the compiler wrote, b\.configWritten's enemyFireDamage, enemyColdDamage, enemyLightningDamage, enemyChaosDamage is 97/ },
-  { name: "(x) a verdict line's DPS isn't the record's measures.dps", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but b\.measures\.dps \(the main group's TotalDPS × its Count\) is 50000/ },
+  { name: "(x) a verdict line's DPS isn't the record's measures.dps", fixture: 'run-ok', edit: (d) => editText(d, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 60,000 DPS')), rule: 'verdict-line', says: /the Budget verdict line says DPS 60,000, but b\.measures\.dps \(the main group's figure × its Count\) is 50000/ },
   // (y)
   { name: "(y) the entering-maps rung's total over 5 divines at its midpoint and the gate has no over-target finding for it (D-370, D-371)", fixture: 'run-ok-online', edit: (d) => editPlan(d, (p) => (p.prices.find((x: Json) => x.id === 'm-weapon').amount = 14)), rule: 'budget', says: /has no over-target finding for stage m's total: its range is about 3\.8–7\.8 divines around day 7, its midpoint 5\.76 above its 5-divine target/ },
   { name: "(y) the entering-maps rung's floor: a resistance below its cap", fixture: 'run-ok', edit: (d) => editJson(d, 'compile-record.json', (r) => (r.stages.m.outputs.MissingColdResist = 5)), rule: 'floor', says: /says floor: "pass", but the records give "fail": .*stage m MissingColdResist is 5/ },
@@ -874,7 +876,7 @@ describe("AC-W2 (ee): the D1 gate's recompute and the verdict line read the name
   it("fails a verdict line quoting the per-copy figure where the record has the figure × Count", () => {
     const dir = copyOf('run-ok-online');
     editText(dir, 'guide.md', replace('Blood Hunt about 100,000 DPS.', 'Blood Hunt about 50,000 DPS.'));
-    expect(failing(dir)).toMatch(/\[verdict-line\] guide\.md:\d+: the Non-budget verdict line says DPS 50,000, but n\.measures\.dps \(the main group's TotalDPS × its Count\) is 100000/);
+    expect(failing(dir)).toMatch(/\[verdict-line\] guide\.md:\d+: the Non-budget verdict line says DPS 50,000, but n\.measures\.dps \(the main group's figure × its Count\) is 100000/);
   });
 
   it("reads the verdict line's DPS from measures.dps, not the gate's figure: a gate naming CombinedDPS passes, a DPS matching neither fails", () => {
@@ -896,7 +898,7 @@ describe("AC-W2 (ee): the D1 gate's recompute and the verdict line read the name
     // 70,000 is neither measures.dps (50,000) nor the gate's CombinedDPS (55,000).
     editText(dir, 'guide.md', replace('Blood Hunt about 50,000 DPS', 'Blood Hunt about 70,000 DPS'));
     const stderr = failing(dir);
-    expect(lines(stderr, 'verdict-line')).toEqual([expect.stringMatching(/the Budget verdict line says DPS 70,000, but b\.measures\.dps \(the main group's TotalDPS × its Count\) is 50000/)]);
+    expect(lines(stderr, 'verdict-line')).toEqual([expect.stringMatching(/the Budget verdict line says DPS 70,000, but b\.measures\.dps \(the main group's figure × its Count\) is 50000/)]);
   });
 
   it('reads a figure with no counted copy raw, per copy: a record from before WU-55 (run-ok-v2), and the same field read raw when the counted copy is gone', () => {
@@ -906,6 +908,76 @@ describe("AC-W2 (ee): the D1 gate's recompute and the verdict line read the name
     editJson(raw, 'compile-record.json', (r) => delete r.stages.n.countedSkillOutputs);
     const stderr = failing(raw);
     expect(stderr).toMatch(/\[rolled-skill\] .*says rolledSkill: "pass", but the records give "fail": stage n's group 2 \(clear\) has 60000, more than the named damage source's group 1's 50000 \(D-340\)/);
+  });
+});
+
+describe("AC-W66 (WU-79, D-378): a rolled group that names a minion skill is read by its minion's figure, MinionTotalDPS × its Count", () => {
+  const GATE = `reports/gates/D1-gate-${CARD}-a1.json`;
+  /**
+   * run-ok-online as a minion run on its n rung: the rolled group 1 (Count 2) names its minion skill, and the record
+   * resolved it (`minionSkills`, D-377), so the group's figure is its minion's: `MinionTotalDPS` 50,000 a copy and
+   * 100,000 × its Count, the player's `TotalDPS` 0. Rolling Slam, group 2, stays 60,000. `measures.dps` stays 100,000
+   * and the guide's line with it, and the D1 gate compares `g1s1p1.MinionTotalDPS` with `g2s1p1.TotalDPS`. The names
+   * stay the fixture's: the checker reads the selection from the record, never game data.
+   */
+  function minionRun(): string {
+    const dir = copyOf('run-ok-online');
+    editPlan(dir, (p) => {
+      p.schemaVersion = 4;
+      const n = p.stages.find((s: Json) => s.id === 'n');
+      n.skills.groups[0].minionSkill = p.roll.skill;
+      n.claims.find((c: Json) => c.id === 'n-dps').source.ref = 'n.MinionTotalDPS';
+    });
+    editJson(dir, 'compile-record.json', (r) => {
+      r.planSchemaVersion = 4;
+      const n = r.stages.n;
+      n.minionSkills = [{ group: 1, activeSkill: 1, summon: 'Blood Hunt', minion: 'Blood Hunter', minionId: 'BloodHunter', name: 'Blood Hunt', index: 1, statSet: 1, statSets: ['Lunge'], skills: ['Blood Hunt'] }];
+      Object.assign(n.outputs, { TotalDPS: 0, MinionTotalDPS: 50000 });
+      n.countedOutputs.fields = { TotalDPS: 0, MinionTotalDPS: 100000 };
+      n.skillOutputs.g1s1p1.fields = { ...n.skillOutputs.g1s1p1.fields, TotalDPS: 0, MinionTotalDPS: 50000 };
+      n.countedSkillOutputs.g1s1p1.fields = { TotalDPS: 0, MinionTotalDPS: 100000 };
+    });
+    editJson(dir, GATE, (g) => {
+      g.basis.rolledSkill.find((b: Json) => b.stage === 'n').figures.find((f: Json) => f.group === 1).figure = 'g1s1p1.MinionTotalDPS';
+    });
+    return dir;
+  }
+
+  it("passes the minion run: the rolled figure is MinionTotalDPS × its Count of 2, 100,000, above Rolling Slam's 60,000, though 50,000 a copy is below it", () => {
+    const dir = minionRun();
+    const n = readJson(dir, 'compile-record.json').stages.n;
+    expect([n.skillOutputs.g1s1p1.fields.TotalDPS, n.skillOutputs.g1s1p1.fields.MinionTotalDPS, n.countedSkillOutputs.g1s1p1.fields.MinionTotalDPS, n.skillOutputs.g2s1p1.fields.TotalDPS]).toEqual([0, 50000, 100000, 60000]);
+    expect(n.measures.dps).toBe(100000);
+    passes(dir);
+  });
+
+  it('fails a gate that says rolledSkill pass when another group beats the minion figure × its Count', () => {
+    const dir = minionRun();
+    editJson(dir, 'compile-record.json', (r) => setFigure(r, 'n', 'g2s1p1', 120000));
+    expect(lines(failing(dir), 'rolled-skill')).toEqual(expect.arrayContaining([
+      expect.stringMatching(/D1-gate-r1-a-1-a1\.json says rolledSkill: "pass", but the records give "fail": stage n's group 2 \(clear\) has 120000 \(× its Count\), more than the named damage source's group 1's 100000 \(× its Count\) \(D-340\)/),
+    ]));
+  });
+
+  it("fails a gate comparing the minion group by the player's TotalDPS, 0 for a summon: its figure is its minion's MinionTotalDPS at the same key", () => {
+    const dir = minionRun();
+    editJson(dir, GATE, (g) => {
+      g.basis.rolledSkill.find((b: Json) => b.stage === 'n').figures.find((f: Json) => f.group === 1).figure = 'g1s1p1.TotalDPS';
+    });
+    expect(lines(failing(dir), 'rolled-skill')).toEqual(expect.arrayContaining([
+      expect.stringMatching(/the D1 gate's figure "g1s1p1\.TotalDPS" for stage n's group 1 is the player's TotalDPS, but the group names a minion skill, so its figure is its minion's MinionTotalDPS at the same key \(D-378, gates\.md\)/),
+      expect.stringMatching(/stage n's group 2 \(clear\) has 60000 \(× its Count\), more than the named damage source's group 1's 0 \(× its Count\)/),
+    ]));
+    // Without the record's selection, MinionTotalDPS is no group's figure: one field means TotalDPS for every group.
+    const plain = minionRun();
+    editJson(plain, 'compile-record.json', (r) => delete r.stages.n.minionSkills);
+    expect(lines(failing(plain), 'rolled-skill')).toEqual([expect.stringMatching(/compares stage n's groups by different fields \["MinionTotalDPS","TotalDPS"\]; it uses one field for every group, its minion's Minion<Field> for a group that names a minion skill \(gates\.md, D-378\)/)]);
+  });
+
+  it("fails a verdict line quoting the minion's per-copy figure: its DPS is measures.dps, the main group's figure × its Count", () => {
+    const dir = minionRun();
+    editText(dir, 'guide.md', replace('Blood Hunt about 100,000 DPS.', 'Blood Hunt about 50,000 DPS.'));
+    expect(lines(failing(dir), 'verdict-line')).toEqual([expect.stringMatching(/the Non-budget verdict line says DPS 50,000, but n\.measures\.dps \(the main group's figure × its Count\) is 100000/)]);
   });
 });
 
@@ -2924,6 +2996,20 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
       p.prices.find((x: { id: string }) => x.id === 'b-helmet').amount = 4;
     });
     expect(changed(dir, 1)).toContain('claim stages[2].claims[1] (b-helmet)');
+  });
+
+  it("AC-W66 (D-378): a claim citing a minion's figure, b.g1s1p1.MinionTotalDPS, is listed when a recompile moves that figure alone", () => {
+    const dir = path.join(TMP, `guide-run-${++copies}`);
+    fs.mkdirSync(dir);
+    writeMinionGuideRun(dir);
+    snapshot(dir, 1);
+    // The recompile moves the wolves' figure only; the player's TotalDPS stays 0, and nothing else moves.
+    editRunJson(dir, 'compile-record.json', (r) => {
+      r.stages.b.skillOutputs.g1s1p1.fields.MinionTotalDPS = 45000;
+      r.stages.b.countedSkillOutputs.g1s1p1.fields.MinionTotalDPS = 90000;
+    });
+    expect(readJson(dir, 'plan.json').stages[2].claims[3]).toEqual(expect.objectContaining({ id: 'b-dps', source: { kind: 'pob-computed', ref: 'b.g1s1p1.MinionTotalDPS' } }));
+    expect(changed(dir, 1)).toEqual(['claim stages[2].claims[3] (b-dps)']);
   });
 
   it('matches claims by stage and id: a removed claim is not listed, a moved one unchanged is not, a new one is; likewise H2s', () => {

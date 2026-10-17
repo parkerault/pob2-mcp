@@ -12,7 +12,7 @@
  * - AC-B8 (write roots): a final and a measure-only compile change only the files C-34 and D-211 allow.
  * - The deferred rebuilds (WU-30's lever): each stage's outputs and breakdown equal the non-deferred path's.
  * - AC-P37 (static part) and AC-P38 (static part) are the plain describes at the end; AC-P37's timing runs in
- *   `compilePlanNfr.test.ts`, alone.
+ *   `compilePlanNfr.test.ts`, alone, in the same step as AC-T22's (`tradeQueryNfr.test.ts`).
  * - WU-41 review: off-hands that fit only with a passive (the `off-hand-fresh` and `off-hand-shared` fixtures,
  *   Instruments of Power) compile, measure and reload as planned on the deferred and eager paths, a plan that
  *   can't hold its off-hand is refused, and the record warns about PoB2's loadout switch; config values PoB's
@@ -1009,9 +1009,9 @@ describe('AC-P38 (D-216): the plan tools\' metadata and schema (static)', () => 
   });
 });
 
-describe('AC-P37 (C-19, review S17): the NFR test runs only in its own --runInBand step (static)', () => {
-  const NFR = 'tests/integration/compilePlanNfr.test.ts';
-  const STEP = `pnpm exec jest --runInBand --testPathIgnorePatterns /node_modules/ -- ${NFR}`;
+describe('AC-P37, AC-T22 (C-19, review S17): the timing NFR tests run only in their own --runInBand step (static)', () => {
+  const NFR = ['tests/integration/compilePlanNfr.test.ts', 'tests/integration/tradeQueryNfr.test.ts'];
+  const STEP = `pnpm exec jest --runInBand --testPathIgnorePatterns /node_modules/ -- ${NFR.join(' ')}`;
   const jest = (args: string[]) =>
     execFileSync(process.execPath, [path.join(REPO, 'node_modules', 'jest', 'bin', 'jest.js'), ...args], {
       cwd: REPO,
@@ -1022,15 +1022,15 @@ describe('AC-P37 (C-19, review S17): the NFR test runs only in its own --runInBa
       .filter((l) => l.trim() !== '')
       .map((l) => path.relative(REPO, l.trim()).split(path.sep).join('/'));
 
-  it('AC-P37: the main run\'s selection does not list the NFR test, and the step\'s command lists exactly it', () => {
+  it('AC-P37, AC-T22: the main run\'s selection lists neither NFR test, and the step\'s command lists exactly them', () => {
     const main = jest(['--listTests']);
     expect(main.length).toBeGreaterThan(50);
-    expect(main).not.toContain(NFR);
+    for (const nfr of NFR) expect(main).not.toContain(nfr);
     const step = STEP.replace(/^pnpm exec jest /, '').split(' ');
-    expect(jest(['--listTests', ...step])).toEqual([NFR]);
+    expect(jest(['--listTests', ...step]).sort()).toEqual([...NFR].sort());
   }, 120_000);
 
-  it('AC-P37: mise.toml\'s test task runs that step as its own entry, after pnpm test, with no pipe', () => {
+  it('AC-P37, AC-T22: mise.toml\'s test task runs that step as its own entry, after pnpm test, with no pipe', () => {
     const toml = fs.readFileSync(path.join(REPO, 'mise.toml'), 'utf8');
     const task = /\[tasks\.test\][\s\S]*?(?=\n\[|$)/.exec(toml)![0];
     const run = /^run = \[([\s\S]*?)\]$/m.exec(task)![1];

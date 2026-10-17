@@ -1,5 +1,6 @@
 /**
- * Lua trade actions (C-13, `pob-api/API/Trade.lua`): AC-T21…AC-T27 and AC-T42, engine-required.
+ * Lua trade actions (C-13, `pob-api/API/Trade.lua`): AC-T21, AC-T23…AC-T27 and AC-T42, engine-required. AC-T22,
+ * the generation-time NFR, runs alone in `tradeQueryNfr.test.ts`.
  *
  * Bridge-level: a real `PoBLuaApiClient` against real luajit, the pinned PoB checkout and the golden
  * build, with the test actions on. Independent checks are Lua queries through `__test_eval`. Trade
@@ -213,22 +214,6 @@ engineDescribe('Lua trade actions on the golden build (C-13)', () => {
       // Two fresh engine processes: deep-equal (arrays in order, object keys unordered).
       expect(b.query).toEqual(a.query);
       expect(b.rankedWeights).toEqual(a.rankedWeights);
-    },
-    ENGINE_TIMEOUT,
-  );
-
-  it(
-    'AC-T22: generation for Body Armour, Weapon 1, Ring 1, Amulet and Boots each completes in ≤ 8 s with meta.calcCount ≥ 1',
-    async () => {
-      const elapsedMs: Record<string, number> = {};
-      for (const slot of ['Body Armour', 'Weapon 1', 'Ring 1', 'Amulet', 'Boots']) {
-        const t0 = performance.now();
-        const result = await engine.tradeGenerateQuery({ slot });
-        elapsedMs[slot] = performance.now() - t0;
-        expect(result.meta.calcCount).toBeGreaterThanOrEqual(1);
-      }
-      // Reported as a whole, so a failure shows every slot's time.
-      expect(Object.entries(elapsedMs).filter(([, ms]) => ms > 8000)).toEqual([]);
     },
     ENGINE_TIMEOUT,
   );

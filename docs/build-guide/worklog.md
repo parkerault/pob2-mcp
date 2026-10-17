@@ -3681,3 +3681,21 @@ architectural: the result goes into amendment 5's spec text.
     set 2, with stat set 3 refused naming both labels, and removed the duplicated label helper.
   - **The targeted suites:** `minionSkill`, `skillBreakdown` and `contract` rc 0; build rc 0.
   - **Untested:** the duplicate-name refusal, because no minion at the pin has a duplicate name.
+- **WU-78 built** (`4f9497d` on `bg/wu-78`; the doer used 414K tokens). Gate rc 0 (131 suites, 2,355 tests), build
+  rc 0, waivers `[]`, dependencies unchanged.
+  - **ACs:** AC-P68 is in `tests/integration/compileMinion.test.ts`, with the fixture plans `minion-wolf` (Wolf Pack
+    with Leap Slam, Count 2) and `varashta-navira` (written from game data). AC-P69 is in `planSchema.test.ts`,
+    `compileMinion.test.ts` and `planChecks.test.ts`.
+  - **The doer's choices, to judge:**
+    - the compile makes each minion-skill group main for its own selection, so a disabled group works too;
+    - `compile_check` refuses a main group that names a minion skill but whose `main.activeSkill` isn't the summon;
+    - the figure field is read from the record's `stages.<id>.minionSkills[]`;
+    - `not-granted` fires for enabled or main groups only, never for item-granted gems;
+    - item-added minion skills are refused;
+    - the two-stage fixture stays at version 3;
+    - `outputs` carries every finite `Minion<Field>`.
+  - **For WU-79:**
+    - D1's pinned "at `schemaVersion: 3`" (`buildGuidePipeline.test.ts:1989`) must become 4;
+    - `not-granted` needs its row in `gates.md`;
+    - the record field is `stages.<id>.minionSkills[]`.
+  - An independent verifier is running. It is also measuring what the bigger `outputs` add to a record.

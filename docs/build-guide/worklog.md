@@ -3713,3 +3713,11 @@ architectural: the result goes into amendment 5's spec text.
   - **The size of `outputs`:** a summon stage's `outputs` has 1,433 keys, 723 of them `Minion*`. That is +28.9 KB
     (+59%) to `record.json`. Agents read records by Grep only, and D-376 makes every field a ref, so it stays as
     built. Note it at the v1.6 fold.
+- **WU-78 merged** (fast-forward; lane `bg-78` removed).
+  - **The fix round:**
+    - V1's doc comment and the contract test's comment are back above their own code;
+    - a non-main minion clear group is measured at its summon (a new `planMeasures` case);
+    - `compile_check` reads each gem's `enabled`, so a disabled summon gem is a defect naming the gem (a new
+      `compileMinion` case), and it checks the minion type PoB picks for a new gem;
+    - `Compile.lua` reuses `BuildOps.numbered`.
+  - **Targeted suites:** 6 suites, 225 tests, rc 0; build rc 0.

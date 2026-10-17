@@ -83,8 +83,9 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   code (`studies/2026-10-16-minion-skill-spike.md`, A4).
   - **Where:** allocating a node whose line grants a summon ("Grants Skill: Navira, the Last Mirage", node 32705,
     parsed at `level=1`, `Data/ModCache.lua:5869`) makes PoB add a group for it at the end of the socket
-    groups, at the mod's level, and empty its gem list to the active gem on every calculation
-    (`Modules/CalcSetup.lua:1503-1542`, the wipe at `:1540`).
+    groups as they stand at that calculation (before the plan's groups when the compile calculates before building
+    them; D-382 finds the plan's groups wherever it lands), at the mod's level, and empty its gem list to the active
+    gem on every calculation (`Modules/CalcSetup.lua:1503-1542`, the wipe at `:1540`).
   - **Effect:** Navira's Fracturing measures 9.6 DPS from PoB's copy, against 1,027 from a socketed level-20
     group with four supports. Which level the game uses needs a source.
   - **Seen in:** Varashta; the baseline guide's PoB models a socketed group.

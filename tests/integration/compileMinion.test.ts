@@ -23,6 +23,13 @@
  *   group, because PoB builds none of its skills): each group is made the main group for its own selection, so a
  *   disabled group's minion skill is resolved and saved too.
  *
+ * - D-382 (the baseline run's blocker): an off-hand makes the stage's first calculation run before its skills are
+ *   built, and that calculation adds PoB's own Navira (node 32705's, `source` "Tree:32705") ahead of the plan's group.
+ *   The compile still selects, measures and numbers the plan's groups: the main selection and the minion skill are the
+ *   plan's level-20 Navira, the record's g1 is it (with the no-item figure) and PoB's copy is g2, a later stage reusing
+ *   the item and skill sets reads the same, and V1's group numbers name the plan's groups. A stage's first calculation
+ *   runs on its own skill set, so PoB's Navira for stage b's tree never lands in stage a's set.
+ *
  * AC-P69's schema part (the version rule, D-217) is `tests/unit/planSchema.test.ts`; V1's rule over hand-made inputs
  * is `tests/unit/planChecks.test.ts`.
  */
@@ -50,14 +57,26 @@ function gemTag(xml: string, nameSpec: string, level: number): string {
   return tag;
 }
 
-/** PoB's own state of the compiled build's group 1 summon: its minion's live list, the selected skill and the outputs. */
+/**
+ * PoB's own state of the compiled build's plan group 1 summon, the active skill set's first group without a `source`
+ * (PoB's own groups, such as the tree's Navira, have one): its PoB index, its gem's level, its minion's live list,
+ * the selected skill and the outputs; and every group's `source` ('' for none), in PoB's order.
+ */
 const SUMMON_QUERY = `
-  local group = build.skillsTab.socketGroupList[1]
+  local index, group
+  local sources = {}
+  for i, g in ipairs(build.skillsTab.socketGroupList) do
+    sources[i] = g.source or ''
+    if not index and not g.source then index, group = i, g end
+  end
   local s = group.displaySkillList[group.mainActiveSkill or 1]
   local skills = {}
   for i, ms in ipairs(s.minion.activeSkillList) do skills[i] = ms.activeEffect.grantedEffect.name end
   local out = build.calcsTab.mainOutput
   return {
+    groupIndex = index,
+    sources = sources,
+    level = group.gemList[1].level,
     mainSocketGroup = build.mainSocketGroup,
     summonId = s.activeEffect.grantedEffect.id,
     minion = s.minion.minionData.name,
@@ -136,7 +155,7 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
           // The selection PoB made: the name, at its index in the minion's live list.
           const index = (pob.skills as string[]).indexOf(fixture.skill) + 1;
           expect(index).toBeGreaterThan(0);
-          expect([pob.mainSocketGroup, pob.minion, pob.selected]).toEqual([1, fixture.minion, fixture.skill]);
+          expect([pob.groupIndex, pob.mainSocketGroup, pob.minion, pob.selected]).toEqual([1, 1, fixture.minion, fixture.skill]);
           expect(s.minionSkills).toEqual([
             {
               group: 1,
@@ -318,6 +337,141 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
           { group: 1, kind: 'gem', name: 'Navira, the Last Mirage', nodes: [32705] },
           { group: 1, kind: 'minionSkill', name: "Navira's Fracturing", nodes: [10561] },
         ]);
+      },
+      ENGINE_TIMEOUT,
+    );
+  });
+
+  describe("D-382: the plan's groups are found at PoB's own index, wherever PoB's granted groups land", () => {
+    /** An off-hand: the stage's first calculation, which checks it, then runs before its skills are built. */
+    const OFF_HAND = [{ slot: 'Weapon 2', text: 'Rarity: Normal\nTwig Focus' }];
+
+    /** A copy of the fixture's stage `b` under id `id`, as an endgame stage without a variant. */
+    function stageCopy(plan: Json, id: string): Json {
+      const copy = JSON.parse(JSON.stringify(plan.stages[0]));
+      copy.id = id;
+      copy.loadoutName = `Endgame start (L${copy.level}) {${id}}`;
+      delete copy.variant;
+      delete copy.ascendancyPoints;
+      delete copy.variantBasis;
+      return copy;
+    }
+
+    /** Every skill set's title and its groups' `source`s ('' for a plan group), in PoB's order. */
+    const SKILL_SETS_QUERY = `
+      local out = {}
+      for _, id in ipairs(build.skillsTab.skillSetOrderList) do
+        local set = build.skillsTab.skillSets[id]
+        local sources = {}
+        for i, g in ipairs(set.socketGroupList) do sources[i] = g.source or '' end
+        out[#out + 1] = { title = set.title or '', sources = sources }
+      end
+      return out`;
+
+    /** The fixture's Navira, measured with no item: AC-P68's figure, from a stage whose groups PoB never reorders. */
+    let baseDps = 0;
+    beforeAll(async () => {
+      const base = await compile('d382-base', fixturePlan('varashta-navira'));
+      expect(base.pob.sources).toEqual(['', 'Tree:32705']);
+      baseDps = base.record.stages.b.skillOutputs.g1s1p1.fields.MinionTotalDPS;
+      expect(baseDps).toBeGreaterThan(0);
+    }, ENGINE_TIMEOUT);
+
+    it(
+      "D-382: with a fresh item set's off-hand, PoB's tree-granted Navira comes first; the main selection, the minion skill and the record's g1 are still the plan's Navira",
+      async () => {
+        const plan = fixturePlan('varashta-navira');
+        plan.stages[0].items.slots = OFF_HAND;
+        const { record, pob } = await compile('d382-fresh', plan);
+        const s = record.stages.b;
+        // The condition: the off-hand's calculation added PoB's own Navira (node 32705's) before the plan's group.
+        expect(pob.sources).toEqual(['Tree:32705', '']);
+        // PoB's main selection is the plan's level-20 Navira, on Navira's Fracturing.
+        expect([pob.groupIndex, pob.mainSocketGroup, pob.level, pob.selected]).toEqual([2, 2, 20, "Navira's Fracturing"]);
+        expect(s.minionSkills!.map((m) => [m.group, m.name])).toEqual([[1, "Navira's Fracturing"]]);
+        // The record numbers the plan's groups first: g1 is the plan's Navira, with the no-item figure; g2 is PoB's.
+        const entry = s.skillOutputs.g1s1p1;
+        expect(entry.skill).toBe('Navira, the Last Mirage');
+        expect(close(entry.fields.MinionTotalDPS, baseDps)).toBe(true);
+        expect(close(entry.fields.MinionTotalDPS, pob.minionTotalDPS)).toBe(true);
+        expect(s.skillOutputs.g2s1p1?.skill).toBe('Navira, the Last Mirage');
+        expect(s.measures!.dps).toBe(entry.fields.MinionTotalDPS);
+        expect(close(s.measures!.dps!, pob.fullDPS)).toBe(true);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "D-382: a later stage that reuses the item set (its off-hand settled by a calculation) and the skill set measures the plan's Navira too",
+      async () => {
+        const plan = fixturePlan('varashta-navira');
+        plan.stages[0].items.slots = OFF_HAND;
+        plan.stages.unshift(stageCopy(plan, 'a'));
+        const { record } = await compile('d382-reused', plan);
+        for (const id of ['a', 'b']) {
+          const s = record.stages[id];
+          expect([id, s.minionSkills!.map((m) => [m.group, m.name])]).toEqual([id, [[1, "Navira's Fracturing"]]]);
+          expect([id, s.skillOutputs.g1s1p1.skill, close(s.skillOutputs.g1s1p1.fields.MinionTotalDPS, baseDps)]).toEqual([
+            id,
+            'Navira, the Last Mirage',
+            true,
+          ]);
+        }
+        // One skill set serves both stages: the plan's group and PoB's own Navira.
+        const sets = await lua<{ title: string; sources: string[] }[]>(SKILL_SETS_QUERY);
+        expect(sets.map((x) => x.title)).toEqual([expect.stringMatching(/\{a,b\}$/)]);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "D-382: V1's group numbers are the plan's: a second group's ungranted summon is reported as group 2, and each gem a finding names is in its group",
+      async () => {
+        const plan = fixturePlan('varashta-navira');
+        plan.stages[0].items.slots = OFF_HAND;
+        plan.stages[0].skills.groups.push({
+          label: 'Kelari',
+          enabled: true,
+          role: 'utility',
+          gems: [{ name: 'Kelari, the Tainted Sands', level: 20, quality: 0, enabled: true }],
+        });
+        const { record, pob } = await compile('d382-groups', plan);
+        const s = record.stages.b;
+        expect(pob.sources).toEqual(['Tree:32705', '', '']);
+        const notGranted = s.v1!.findings.filter((x) => x.code === 'not-granted').map((x) => x.data as Json);
+        expect(notGranted).toEqual([{ group: 2, kind: 'gem', name: 'Kelari, the Tainted Sands', nodes: [expect.any(Number)] }]);
+        expect(notGranted[0].nodes).not.toContain(32705);
+        const groups = plan.stages[0].skills.groups as Json[];
+        for (const x of [...s.v1!.findings, ...s.v1!.notes]) {
+          const data = (x.data ?? {}) as Json;
+          if (typeof data.gem !== 'string' || typeof data.group !== 'number') continue;
+          expect([x.code, data.gem, groups[data.group - 1]?.gems.map((g: Json) => g.name)]).toEqual([
+            x.code,
+            data.gem,
+            expect.arrayContaining([data.gem]),
+          ]);
+        }
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "D-382: a stage's first calculation runs on its own skill set: PoB's Navira for stage b's tree goes into b's set, never into stage a's",
+      async () => {
+        const plan = fixturePlan('varashta-navira');
+        plan.stages[0].items.slots = OFF_HAND;
+        const a = stageCopy(plan, 'a');
+        a.tree.ascendancyNodes = [];
+        a.items.slots = [];
+        // Another label, so stage b gets a skill set of its own.
+        a.skills.groups[0].label = 'Navira (no passives)';
+        plan.stages.unshift(a);
+        const { record } = await compile('d382-scope', plan);
+        expect(record.stages.b.skillOutputs.g1s1p1.skill).toBe('Navira, the Last Mirage');
+        expect(close(record.stages.b.skillOutputs.g1s1p1.fields.MinionTotalDPS, baseDps)).toBe(true);
+        const sets = await lua<{ title: string; sources: string[] }[]>(SKILL_SETS_QUERY);
+        const byStage = Object.fromEntries(sets.map((x) => [/\{(\w+)\}$/.exec(x.title)![1], [...x.sources].sort()]));
+        expect(byStage).toEqual({ a: [''], b: ['', 'Tree:32705'] });
       },
       ENGINE_TIMEOUT,
     );

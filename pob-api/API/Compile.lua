@@ -77,6 +77,11 @@
 --     number of the main output, with the minion's own numbers flattened as `Minion<Field>` (D-376), the C-45
 --     breakdown of every socket group (stats_breakdown, keyed g<group>s<skill>p<statSet>) and PoB's allocation
 --     after the import, with each node's weapon-set tag.
+--     D-382: the stage's skill set is selected before its first calculation, so the groups PoB adds for what the
+--     stage's tree and items grant go into it. PoB's own groups have a `source` and land anywhere in the list
+--     (before the plan's when a calculation runs before the groups are built: the off-hand check), so the plan's
+--     groups are found as the groups without one, in order (group_indices). Every group number in the reply is
+--     the plan's: the plan's groups first, in plan order, then PoB's own, in PoB's order.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
@@ -1106,41 +1111,70 @@ local function plans_off_hand(st)
   return false
 end
 
--- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337), before any
--- calculation of the stage; a reused set already holds them, as it holds its groups.
-local function build_skills(st)
-  local id, fresh = stage_set('skill', st.skillSet, st.first)
-  if fresh then
-    for gi, group in ipairs(list(st.groups)) do
-      local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
-        label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
-        groupCount = group.groupCount,
+-- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337); a reused set
+-- already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
+-- calculation, D-382), so it may already hold PoB's own groups.
+local function build_skills(st, fresh)
+  if not fresh then return end
+  for gi, group in ipairs(list(st.groups)) do
+    local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
+      label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
+      groupCount = group.groupCount,
+    }))
+    for _, gem in ipairs(list(group.gems)) do
+      must(('adding gem "%s" to group %d'):format(tostring(gem.name), gi), BuildOps.add_gem({
+        groupIndex = created.index, gemName = gem.name, level = gem.level, quality = gem.quality,
+        enabled = gem.enabled ~= false,
       }))
-      for _, gem in ipairs(list(group.gems)) do
-        must(('adding gem "%s" to group %d'):format(tostring(gem.name), gi), BuildOps.add_gem({
-          groupIndex = created.index, gemName = gem.name, level = gem.level, quality = gem.quality,
-          enabled = gem.enabled ~= false,
-        }))
-      end
     end
   end
-  return id
+end
+
+-- D-382: the plan's groups in the active skill set are its groups without a `source`, in order. PoB's own groups
+-- (a skill the tree or an item grants, Thorns, monster explosions) have one, and a MAIN-mode calculation adds them
+-- at the end of the list and removes stale ones (vendor Modules/CalcSetup.lua:1501-1663), so they come before the
+-- plan's groups when a calculation runs before those are built. Returns PoB's index of each plan group, and each
+-- PoB group's number in the reply: the plan's groups first, in plan order, then PoB's own, in PoB's order.
+local function group_indices()
+  local pob, number, own = {}, {}, {}
+  for i, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    if group.source then
+      own[#own + 1] = i
+    else
+      pob[#pob + 1] = i
+      number[i] = #pob
+    end
+  end
+  for k, i in ipairs(own) do number[i] = #pob + k end
+  return pob, number
+end
+
+-- D-382: PoB's index of the plan's group `gi` in the active skill set.
+local function pob_index(gi)
+  local pob = group_indices()
+  local i = pob[tonumber(gi)]
+  if i == nil then
+    fail(('the active skill set holds %d of the plan\'s groups, not group %s'):format(#pob, tostring(gi)))
+  end
+  return i
 end
 
 -- D-377: each group's minion skill, selected by name against its minion's live skill list once the stage's
 -- groups are built (BuildOps.select_minion_skill writes PoB's own fields and rebuilds). PoB builds a disabled
 -- group's skills only while it is the main group (vendor Modules/CalcSetup.lua:1987), so each group is the main
 -- group for its own call; select_main then makes the stage's main selection. For the main group the stage's main
--- active skill must be the summon. Returns the selections, each with its group, in group order.
+-- active skill must be the summon. Returns the selections, each with its group (the plan's number, D-382), in
+-- group order.
 local function select_minion_skills(st)
   local selections = {}
   local main = st.main or {}
   for gi, group in ipairs(list(st.groups)) do
     if group.minionSkill ~= nil then
-      build.mainSocketGroup = gi
-      build.calcsTab.input.skill_number = gi
+      local index = pob_index(gi)
+      build.mainSocketGroup = index
+      build.calcsTab.input.skill_number = index
       local sel, err = BuildOps.select_minion_skill({
-        groupIndex = gi, name = group.minionSkill, statSet = group.minionStatSet,
+        groupIndex = index, name = group.minionSkill, statSet = group.minionStatSet,
         activeSkill = tonumber(main.group) == gi and main.activeSkill or nil,
       })
       if not sel then fail(('skills.groups[%d].minionSkill: %s'):format(gi - 1, tostring(err))) end
@@ -1153,10 +1187,11 @@ end
 
 local function select_main(st)
   local main = st.main or {}
+  local index = pob_index(main.group)
   must('setting the main skill', BuildOps.set_main_selection({
-    mainSocketGroup = main.group, mainActiveSkill = main.activeSkill, statSet = main.statSet,
+    mainSocketGroup = index, mainActiveSkill = main.activeSkill, statSet = main.statSet,
   }))
-  local g = build.skillsTab.socketGroupList[tonumber(main.group)]
+  local g = build.skillsTab.socketGroupList[index]
   local count = g and g.displaySkillList and #g.displaySkillList or 0
   if tonumber(main.activeSkill) > count then
     fail(('the main active skill %s is outside group %s\'s %d active skills'):format(tostring(main.activeSkill),
@@ -1202,31 +1237,34 @@ end
 -- under the same keys, whether each skill and stat set's damage over time stacks (D-293). stats_breakdown
 -- measures each one as the main selection through BuildOps.get_main_output, so while it runs that function
 -- is wrapped to read the flag after each of its rebuilds; the wrapper is removed however the breakdown ends.
+-- <group> is the group's number in the reply (D-382: the plan's groups first), not its index in PoB's list.
 local function skill_outputs(fields)
   local out, stacks = {}, {}
   local own = BuildOps.get_main_output
   BuildOps.get_main_output = function(...)
     local output, err = own(...)
+    local _, number = group_indices()
     local gi = build.mainSocketGroup
     local group = build.skillsTab.socketGroupList[gi]
     local env = build.calcsTab.mainEnv
     local skill = env and env.player and env.player.mainSkill
     local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
-    if group and statSet and skill.socketGroup == group then
-      stacks[('g%ds%dp%d'):format(gi, group.mainActiveSkill or 1, statSet.index or 1)] = main_dot_can_stack()
+    if group and number[gi] and statSet and skill.socketGroup == group then
+      stacks[('g%ds%dp%d'):format(number[gi], group.mainActiveSkill or 1, statSet.index or 1)] = main_dot_can_stack()
     end
     return output, err
   end
   local ok, err = pcall(function()
     for gi = 1, #(build.skillsTab.socketGroupList or {}) do
-      local res = must('measuring socket group ' .. gi, BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
+      local _, number = group_indices()
+      local res = must('measuring socket group ' .. tostring(number[gi]), BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
       for _, skill in ipairs(res.skills or {}) do
         for _, set in ipairs(skill.statSets or {}) do
           local numbers = {}
           for k, v in pairs(set.output or {}) do
             if finite(v) then numbers[k] = v end
           end
-          out[('g%ds%dp%d'):format(gi, skill.index, set.index)] = {
+          out[('g%ds%dp%d'):format(number[gi], skill.index, set.index)] = {
             skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
           }
         end
@@ -1355,26 +1393,25 @@ local function gem_kind(gem, grantedEffect, level)
   return 'skill'
 end
 
--- Every gem of the active skill set's socket groups (item-granted groups excluded): its group and index,
--- name, level, tier, kind and level requirement at its level.
+-- Every gem of the active skill set's plan groups (PoB's own groups, which have a `source`, left out): its group
+-- (the plan's number, D-382) and index, name, level, tier, kind and level requirement at its level.
 local function stage_gems()
   local out = {}
-  for gi, group in ipairs(build.skillsTab.socketGroupList or {}) do
-    if not group.source then
-      for k, gem in ipairs(group.gemList or {}) do
-        local gemData = gem.gemData
-        local ge = gem.grantedEffect or (gemData and gemData.grantedEffect)
-        local level = tonumber(gem.level) or 1
-        local lv = ge and ge.levels and ge.levels[level]
-        out[#out + 1] = {
-          group = gi, index = k,
-          name = tostring(gem.nameSpec or (gemData and gemData.name) or ''),
-          level = level,
-          tier = gemData and tonumber(gemData.Tier) or nil,
-          kind = gem_kind(gem, ge, level),
-          levelRequirement = tonumber(gem.reqLevel) or (lv and tonumber(lv.levelRequirement)) or 0,
-        }
-      end
+  local pob = group_indices()
+  for gi, index in ipairs(pob) do
+    for k, gem in ipairs(build.skillsTab.socketGroupList[index].gemList or {}) do
+      local gemData = gem.gemData
+      local ge = gem.grantedEffect or (gemData and gemData.grantedEffect)
+      local level = tonumber(gem.level) or 1
+      local lv = ge and ge.levels and ge.levels[level]
+      out[#out + 1] = {
+        group = gi, index = k,
+        name = tostring(gem.nameSpec or (gemData and gemData.name) or ''),
+        level = level,
+        tier = gemData and tonumber(gemData.Tier) or nil,
+        kind = gem_kind(gem, ge, level),
+        levelRequirement = tonumber(gem.reqLevel) or (lv and tonumber(lv.levelRequirement)) or 0,
+      }
     end
   end
   return out
@@ -1438,8 +1475,8 @@ local function granting_index(tree)
 end
 
 -- D-380: each of the stage's groups whose skill gem a passive grants, or whose minionSkill one does, with the
--- granting passives and whether the stage allocates any of them. The gems are the compiled ones (PoB's own
--- tree-granted groups, which have a `source`, come after the plan's groups and are left out).
+-- granting passives and whether the stage allocates any of them. The gems are the compiled ones, read from each
+-- plan group at its PoB index (D-382); PoB's own groups, which have a `source`, are left out.
 local function granted_skills(st)
   local spec = build.spec
   local index = granting_index(spec and spec.tree)
@@ -1454,9 +1491,10 @@ local function granted_skills(st)
     out[#out + 1] = { group = gi, kind = kind, name = tostring(name), nodes = nodes, allocated = allocated }
   end
   local socketGroups = build.skillsTab.socketGroupList or {}
+  local pob = group_indices()
   for gi, group in ipairs(list(st.groups)) do
-    local g = socketGroups[gi]
-    for _, gem in ipairs(g and not g.source and g.gemList or {}) do
+    local g = pob[gi] and socketGroups[pob[gi]]
+    for _, gem in ipairs(g and g.gemList or {}) do
       local gemData = gem.gemData
       if gemData and gemData.grantedEffect and not gemData.grantedEffect.support then add(gi, 'gem', gemData.name) end
     end
@@ -1543,7 +1581,7 @@ function M.compile_stage(st)
   local defer = not (TEST_ACTIONS and st.__noDeferForTest)
   local itemsTab = build.itemsTab
   local ok, res = pcall(function()
-    local specId, itemSetId, fresh, skipped, added, skillSetId
+    local specId, itemSetId, fresh, skipped, added, skillSetId, skillsFresh
     local before = item_selections()
     -- No calculation checks another stage's item set against this stage's tree (ValidateWeaponSlots
     -- runs only when a calculation loses a flag the previous one had).
@@ -1551,6 +1589,9 @@ function M.compile_stage(st)
     deferring(defer, function()
       specId = build_tree(st)
       itemSetId, fresh, skipped, added = build_items(st)
+      -- D-382: the stage's own skill set, before its first calculation (the off-hands' below), so the groups PoB
+      -- adds for what this stage's tree and items grant go into it, not into the set the last stage left active.
+      skillSetId, skillsFresh = stage_set('skill', st.skillSet, st.first)
     end)
     -- The off-hands, checked against this stage's own tree and items (an item can grant a flag).
     if fresh then
@@ -1564,7 +1605,7 @@ function M.compile_stage(st)
     end
     deferring(defer, function()
       restore_item_sets(before, itemSetId)
-      skillSetId = build_skills(st)
+      build_skills(st, skillsFresh)
     end)
     rebuild()
     local minionSkills = select_minion_skills(st)

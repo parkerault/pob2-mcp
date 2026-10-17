@@ -3883,3 +3883,59 @@ The user is giving feedback while the Varashta baseline run goes on. It is colle
     differs between cards.
   - The gate becomes an interview: the user asks questions first, and a choice can carry changes ("this one,
     but…"). The user accepts more complex offline testing for better UX.
+
+## 2026-10-17: the compile measured PoB's own Navira, not the plan's (D-382); the baseline run's blocker
+
+The baseline run (`disciple-of-varashta-navira-s-fracturing/2026-10-17-1`) stopped at the verification gate. The run
+session diagnosed it; the user paused the run until it is fixed.
+
+- **The symptom, in all three R1b skeletons:** the record's main group, g1s1p1, was PoB's own level-1, unsupported
+  Navira (MinionTotalDPS 543, 451 and 817). The plan's Navira landed at PoB's group 2 with its minion skill left on
+  Navira's Embrace, and Full DPS was 0. V1 and V2 passed it. The same skeletons without nodes 32705 and 10561
+  measured 33,922, 22,177 and 39,113, and the cards carry those workaround figures.
+- **The cause (`pob-api/API/Compile.lua`):** the compile addressed the plan's groups by their plan position as if it
+  were PoB's `socketGroupList` index: the minion-skill selection, the main selection, `granted_skills` (D-380),
+  `stage_gems` (V1's input) and the C-45 breakdown's keys. Its comment said PoB's own groups come after the plan's.
+  PoB breaks that. Every MAIN-mode calculation appends a group, with a `source`, for each granted skill that has no
+  group yet, and removes stale ones (vendor `Modules/CalcSetup.lua:1501-1663`; node 32705's Navira is
+  `source = "Tree:32705"`). A stage with an off-hand runs a calculation before its skills are built (the off-hand
+  check), so PoB's Navira went in first and every plan index was off by one. The R1b bootstrap compiles had no items,
+  so no calculation came first; the fixture `varashta-navira` equips none either, so the tests missed it.
+- **The later-stage note was real:** that early calculation ran with the previous stage's skill set active, so PoB
+  added the new stage's granted group to the earlier stage's set. The new test shows it: stage a without the node,
+  stage b with it and an off-hand, and stage a's set gained `Tree:32705`.
+- **D-382 (the fix; the coordinator chose the direction, the number is the next free one):**
+  - **The plan's groups are the active skill set's groups without a `source`, in order** (`group_indices`). Every
+    use reads PoB's index from it: `select_minion_skills`, `select_main`, `granted_skills` and `stage_gems`.
+    `created.index` alone wouldn't do: a reused skill set creates no groups, and a calculation can remove a stale
+    PoB group anywhere in the list.
+  - **Every group number in the reply stays the plan's:** the plan's groups first, in plan order, then PoB's own, in
+    PoB's order. This is the contract the compiler already assumed (`record.ts`, V1, the ledger's
+    `g<group>s<skill>p<statSet>` refs, the D1 gate's rolled-skill part, `check-run.mjs`), so nothing outside the Lua
+    changes. `skill_outputs` keys its breakdown and the DoT flags by that number.
+  - **The stage's skill set is selected before its first calculation**, with the tree and the items, so PoB's
+    groups for this stage's tree and items go into the stage's own set. `build_skills` only adds the groups now.
+  - Not changed: PoB's group order, and when PoB calculates.
+- **Tests** (`tests/integration/compileMinion.test.ts`, the new describe "D-382: the plan's groups are found at PoB's
+  own index, wherever PoB's granted groups land"). All four failed before the fix, as the diagnosis predicted:
+  - a fresh item set with a Twig Focus: PoB's groups are `['Tree:32705', '']`, and the main selection, the minion
+    skill, g1s1p1 (the no-item figure) and `measures.dps` are the plan's Navira; PoB's copy is g2;
+  - a stage `a` reusing the item set (`settle_off_hands`) and the skill set: both stages measure the plan's Navira;
+  - a second group with Kelari, the Tainted Sands, whose node isn't allocated: V1 reports `not-granted` for group 2,
+    and every finding or note that names a gem names one in its group (before the fix: no finding at all);
+  - stage `a` without the node, stage `b` with it and an off-hand: stage a's set holds no `Tree:32705` group.
+  - `SUMMON_QUERY` now reads the plan's first group (the first without a `source`) and returns its PoB index and the
+    groups' sources; AC-P68 also checks that the index is 1 with no items.
+- **Gate: `mise run test` rc 0, `pnpm build` rc 0.** The parallel run: 2,373 of 2,373 tests in 131 suites, in 192 s.
+  The `--runInBand` step: 3 of 3 (AC-T22's five slots took 14.0 s).
+- **For the run:** its server must be rebuilt from this commit and reconnected. The skeletons' gate reports
+  (`reports/gates/R1b-r2-c-{1,2,3}-a1.json`) came from the bugged compile, and the design phase compiles a fresh plan,
+  so its figures will be the plan's group with both nodes allocated. They may differ from the cards' workaround
+  figures, which were measured without the two nodes.
+- **For the v1.6 fold:**
+  - D-382 joins the decisions table.
+  - `02-plan-compiler.md:546-547` (compile_stage's reply): `<group>` in `g<group>s<skill>p<statSet>`, and every
+    group number in the reply, is the plan's group number, PoB's own groups numbered after the plan's.
+  - The compile_stage steps: the skill set is selected with the tree and the items, before the stage's first
+    calculation.
+  - `pob-gaps.md` PG-51's "at the end of the socket groups" now says where PoB's group lands.

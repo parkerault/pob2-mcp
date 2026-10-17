@@ -3607,3 +3607,34 @@ architectural: the result goes into amendment 5's spec text.
   step 2 of 2; about 320 s); `pnpm build` rc 0; both waivers `[]`; `package.json` and the lockfile unchanged since
   `27b90fe`; `vendor/` clean at `7d6f530` (v0.23.1); the README table matches, 84 rows; the checker exits 0 on all
   four pipeline fixtures; AC-K67, AC-K68, AC-W63 and AC-W64 each map to passing tests; `prices.json` equals §5.
+
+## 2026-10-16: the baseline guide changes; amendment 6 proposed
+
+- **The user's direction:**
+  - The baseline guide is now Navira's Fracturing Disciple of Varashta (MisoxShiru, Mobalytics,
+    `naviras-fracturing-varashta-league-starter`). It is the only guide the user found whose PoB holds every stage as
+    a loadout, and it replaces Fubgun's Lightning Arrow Deadeye guide.
+  - Copy `.env` to the run's folder: "I am not concerned about leaking a temporary session cookie". It was copied
+    unread to `/home/parker/projects/pob2-mcp-wt/m16/.env`, mode 600. That's where the run's server reads the cookie
+    (`<packageRoot>/.env`), and the session runs in that worktree.
+- **The run environment:** `/home/parker/projects/pob2-mcp-runs/m16-varashta/`, outside `/tmp` so a restart keeps it.
+  - `start.sh run` starts the session with telemetry; `run-plain` starts it without.
+  - `mcp/`: the `m16` server with trade and poe.ninja on, `POE_LEAGUE="Forbidden Rites"` (league day 42).
+  - `cfg/settings.json`: web search is denied, and fetches from mobalytics.gg, maxroll.gg, game8.co, poe-vault.com,
+    pobb.in, poe.ninja, YouTube, Twitch and Reddit. Reading any `.env` and the `reference/` folder is denied, and so is
+    editing under `/mnt`. poe2db is allowed.
+  - `reference/`: the guide's text and Navira's PoB (code and decoded XML), with 8 trees, 8 item sets and 8 skill
+    sets from Act 1 to Uber endgame.
+  - The smoke test ran offline (trade pointed at a dead address). The server starts with 83 tools, including
+    `find_upgrades` and `manage_sets`, and lists Disciple of Varashta.
+- **The gap.** `lookup_game_data` finds no "Navira's Fracturing": it is the Water Djinn's second skill, not a gem.
+  So the brief check would stop the run. Nothing selects a minion's skill, so plans compute the djinn's first skill,
+  a shield that deals no damage. The user chose to add minion-skill selection before the run.
+- **The spike** (an agent, 426K tokens) is kept as `studies/2026-10-16-minion-skill-spike.md`.
+  - PoB computes Navira's Fracturing: 1,027 DPS in the guide's early endgame set, 3,231 late.
+  - No tool or record can read a minion's numbers today: the bridge returns flat fields only, and the minion fields
+    the server asks for have never existed.
+  - PoB doesn't check the passive that unlocks a command.
+  - The touch-point map is in the coordinator's scratchpad (`amend6-touchpoints.md`) for the M-17 handoff.
+- **Amendment 6 proposed** (`spec/amendment-6-minion-skills.md`): D-376…D-380; WU-77…WU-79 in series; AC-K69…K71,
+  AC-P68, AC-P69, AC-W65, AC-W66.

@@ -3870,3 +3870,16 @@ build becomes one button. The user asked to add it to the engine-lens amendment'
   4. A `docs/build-guide/pob-gaps.md` entry for the rare modifiers PoB2 lacks.
 - **The baseline run:** it uses `m17`, detached at `57b738c`, so these additions can't leak into it. The comparison
   should record the beast as a miss: nothing in the run's tools or library covers it.
+
+## 2026-10-17: the baseline run's feedback, collected for one amendment
+
+The user is giving feedback while the Varashta baseline run goes on. It is collected in
+`studies/2026-10-17-varashta-run-feedback.md`. When the run is finished, it all becomes one amendment.
+
+- **The brainstorm gate (visit 1):**
+  - The display should pitch each card to a player: a shared core first, then each card's hook, how it plays, what
+    it needs and when, and the catch.
+  - Human-friendly names replace card ids. Confidence reads "not confirmed in game", and appears only where it
+    differs between cards.
+  - The gate becomes an interview: the user asks questions first, and a choice can carry changes ("this one,
+    but…"). The user accepts more complex offline testing for better UX.

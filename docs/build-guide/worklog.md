@@ -3833,3 +3833,40 @@ how much"), and fix the trade-timing test.
   - The `--runInBand` step: 3 of 3 tests in 2 suites. AC-T22 took 14.7 s for its five slots; the compile-time file
     took 81 s.
   - This is the first full gate since WU-78 with no tooling false-failure.
+
+## 2026-10-17: the engine-lens amendment's scope gains tamed rare beasts
+
+The user raised Tame Beast. A captured rare beast keeps some of its monster modifiers. Navira's Varashta guide tames
+a beast with Frozen Ground Trail, so the beast makes the Chilled Ground that Navira's Fracturing consumes, and the
+build becomes one button. The user asked to add it to the engine-lens amendment's scope ("Yes", 2026-10-17).
+
+- **The library:** no entry covers it. The only companion mention is Twister's example under Drawback cancellation.
+- **PoB2 at the pin:**
+  - **The gem:** `TameBeastPlayer` (`Data/Skills/act_dex.lua:8874`). A capture turns it into `SummonBeastPlayer`,
+    "Companion: {0}" (`:870`).
+  - **The beast:** the companion's species comes from the build's beast library (`CalcActiveSkill.lua:904-906`
+    reads `build.beastList`). The build file saves it as `<BeastCompanion id>` (`Build.lua:1126-1129`, `:1166-1167`).
+    PoB's UI sets it under "Manage Beasts…" (`:458`, `:1533-1561`).
+  - **The beasts' data:** `Data/Spectres.lua` holds 619 monsters, 192 of them `monsterCategory = "Beast"`. Each
+    has life, resistances, damage, `skillList`, `spawnLocation`, `companionReservation` (its Spirit cost) and the
+    species' own `modList`.
+  - **The rare modifiers are missing.** PoB has only the gem's text, "Tamed Beast retains up to four monster
+    modifiers when summoned" (`display_tame_beast_mod_limit`). It has no table of rare monster modifiers and no way
+    to give the companion one. No frozen-ground trail appears anywhere in its data.
+- **Our server:** nothing reads or sets the beast library (nothing in `pob-api/` uses `beastList`). So a plan can't
+  model a tamed beast at all, not even its damage or Spirit cost. The spectre library has the same gap.
+- **What the missing modifiers cost:**
+  - In Navira's build, the modifier changes who makes the Chilled Ground, not how hard Navira's Fracturing hits.
+    The gap there is knowing the modifier exists, so R1a can propose it and W1 can say how to get it.
+  - Modifiers with a numeric effect would need our own modelling, one by one.
+- **The scope for the engine-lens amendment:**
+  1. A committed table of rare monster modifiers, sourced from the game data on poe2db. Each row holds the name,
+     the in-game text, what it does, and whether a tamed beast can keep it. `lookup_game_data` answers questions
+     about it.
+  2. Server support for the beast library: a plan names the companion's species, so its damage, defences and Spirit
+     cost are measured. The spectre library may come along on the same path.
+  3. A library entry for the shape "a tamed rare beast supplies a condition the engine needs", with Navira's build
+     as its example.
+  4. A `docs/build-guide/pob-gaps.md` entry for the rare modifiers PoB2 lacks.
+- **The baseline run:** it uses `m17`, detached at `57b738c`, so these additions can't leak into it. The comparison
+  should record the beast as a miss: nothing in the run's tools or library covers it.

@@ -3737,3 +3737,21 @@ architectural: the result goes into amendment 5's spec text.
     - PG-51 is added (PoB's own copy of a tree-granted summon: level 1, no supports).
   - **AC-T22 now fails on time in every full gate since WU-78** (9.5–9.6 s against 8 s; 8.14 s was the worst before
     M-17). The verifier is timing it alone, before and after M-17.
+- **WU-79 verified: PASS** (an independent verifier, 197K tokens).
+  - **Gate:** rc 1 on AC-T22 alone (Ring 1 at 9.42 s). It passes alone 3 of 3, so it's a tooling false-failure. The
+    `--runInBand` step passes 2 of 2. Build rc 0.
+  - **ACs:** AC-W65 and AC-W66 are faithful. The doer's claim that 4 of the 6 AC-W66 tests fail on the old scripts is
+    confirmed.
+  - **Context cost:** about 965 words added across 21 skill files, with no contradictions.
+  - **Scope:** 29 files, all WU-79's. Waivers `[]`, dependencies unchanged.
+  - **The doer's choices:** all six accepted.
+  - **Findings:** three, all low, sent back to the doer:
+    - the brief check should count distinct summoning gems, not `Cast by:` lines;
+    - the minion verdict-line test's `measures.dps` should be tied to `record.ts`'s `headlineDps`;
+    - `gates.md`'s findings heading should cover the V1 row.
+  - **AC-T22 timed alone, mean of 3:** 17.6 s before M-17 (`1bfc8a9`), 17.3 s after; each slot within ±2%. So M-17
+    didn't slow it. Under the full suite the margin was already thin (24.8–31.7 s before; AC-T40 failed on time once
+    instead), and M-17's two new engine suites (`minionSkill` 89 s, `compileMinion` 29 s) narrow it. If it keeps
+    recurring, move the trade timing test into the `--runInBand` step.
+  - **The verifier's slip:** one gate log went to the session scratchpad before it read the handoff's rule against
+    that.

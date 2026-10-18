@@ -843,3 +843,435 @@ not evidence that players build around it.
 - Creates: damage-conversion | Pays off on: none
 - Penalties: none
 - PoB models it: yes
+
+### Atsak's Sight (Helmet, level 28)
+- Id: atsaks-sight
+- Rule: Your Critical Hits Poison the enemy.
+- Lines: "Critical Hits Poison the enemy"
+- Creates: poison | Pays off on: crit
+- Penalties: none
+- PoB models it: yes
+
+### Blood Price (Helmet, level 51)
+- Id: blood-price
+- Rule: Enemies in your Presence have at least 10% of their Life Reserved.
+- Lines: "Enemies in your Presence have at least 10% of Life Reserved"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Corona of the Red Sun (Helmet, level 36)
+- Id: corona-of-the-red-sun
+- Rule: When you Leech Life from your Hits, allies in your Presence Leech as much.
+- Lines: "Leeching Life from your Hits causes Allies in your Presence to also Leech the same amount of Life"
+- Creates: none | Pays off on: leech
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Crown of Eyes (Helmet, level 45)
+- Id: crown-of-eyes
+- Rule: Your increases and reductions to Spell damage also apply to Attacks.
+- Lines: "Increases and Reductions to Spell damage also apply to Attacks"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Crown of the Pale King (Helmet, level 16)
+- Id: crown-of-the-pale-king
+- Rule: Your Thorns can Retaliate against every Hit.
+- Lines: "Thorns can Retaliate against all Hits"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Decree of Acuity (Helmet, level 65)
+- Id: decree-of-acuity
+- Rule: You are always Blind, but Blind's effect on you is reversed.
+- Lines: "You are Blind", "The Effect of Blind on you is reversed"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Deidbell (Helmet, level 33)
+- Id: deidbell
+- Rule: Your Warcries explode Corpses.
+- Lines: "Warcries Explode Corpses dealing 10% of their Life as Physical Damage"
+- Creates: area | Pays off on: corpse
+- Penalties: none
+- PoB models it: yes
+
+### Elevore (Helmet, level 33)
+- Id: elevore
+- Rule: The helmet adds Charm slots, and Charms gain a charge every second.
+- Lines: "Charms gain 1 charge per Second", "+(1-2) Charm Slot"
+- Creates: charm | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Ezomyte Peak (Helmet, level 12)
+- Id: ezomyte-peak
+- Rule: You have Unwavering Stance: you can't be Light Stunned, and you can't Dodge Roll or Sprint.
+- Lines: "Unwavering Stance"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Glimpse of Chaos (Helmet, level 52)
+- Id: glimpse-of-chaos
+- Rule: The helmet can be modified while Corrupted.
+- Lines: "Can be modified while Corrupted"
+- Creates: item-modifiers | Pays off on: none
+- Penalties: "Chaos Resistance is zero"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Greymake (Helmet, level 5)
+- Id: greymake
+- Rule: The helmet has four Augment sockets, at the cost of Attributes per character level.
+- Lines: "Has 4 Augment Sockets"
+- Creates: socket | Pays off on: none
+- Penalties: "-1 to all Attributes per Level"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Heatshiver (Helmet, level 52)
+- Id: heatshiver
+- Rule: You gain Cold damage as extra Fire damage by the Chill magnitude on the enemy.
+- Lines: "Gain 1% of Cold damage as Extra Fire damage per 1% Chill Magnitude on enemy"
+- Creates: damage-conversion | Pays off on: chill
+- Penalties: none
+- PoB models it: yes
+
+### Horns of Bynden (Helmet, level 1)
+- Id: horns-of-bynden
+- Rule: Each point of Rage also grants Armour.
+- Lines: "Every Rage also grants 1% increased Armour"
+- Creates: armour | Pays off on: rage
+- Penalties: none
+- PoB models it: yes
+
+### Indigon (Helmet, level 65)
+- Id: indigon
+- Rule: Spells deal more damage, and skills cost more, by the Mana you spent recently, and only Regeneration can recover your Mana.
+- Lines: "(10-15)% increased Spell damage for each 200 total Mana you have Spent Recently", "Mana Recovery other than Regeneration cannot Recover Mana"
+- Creates: none | Pays off on: mana
+- Penalties: "(5-10)% increased Cost of Skills for each 200 total Mana Spent Recently"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Ironride (Helmet, level 16)
+- Id: ironride
+- Rule: You have no Accuracy penalty at distance.
+- Lines: "You have no Accuracy Penalty at Distance"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Keeper of the Arc (Helmet, level 62)
+- Id: keeper-of-the-arc
+- Rule: Every 5 seconds you alternate between taking 40% less damage from Hits and 40% less damage over time.
+- Lines: "Alternating every 5 seconds:", "Take 40% less Damage from Hits", "Take 40% less Damage over time"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Mask of the Sanguimancer (Helmet, level 10)
+- Id: mask-of-the-sanguimancer
+- Rule: You have Blood Magic: no Mana, and skills cost Life instead.
+- Lines: "Blood Magic"
+- Creates: none | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### Mask of the Stitched Demon (Helmet, level 33)
+- Id: mask-of-the-stitched-demon
+- Rule: You can't have Energy Shield; instead your maximum Energy Shield regenerates Life.
+- Lines: "Cannot have Energy Shield", "Regenerate 0.05 Life per second per Maximum Energy Shield"
+- Creates: recovery | Pays off on: energy-shield
+- Penalties: none
+- PoB models it: yes
+
+### Mind of the Council (Helmet, level 65)
+- Id: mind-of-the-council
+- Rule: Attacks cost part of your maximum Mana and gain Lightning damage from it.
+- Lines: "Attacks cost an additional 6% of your maximum Mana", "Attacks have Added maximum Lightning Damage equal to (6-9)% of maximum Mana"
+- Creates: none | Pays off on: mana
+- Penalties: none
+- PoB models it: yes
+
+### Radiant Grief (Helmet, level 16)
+- Id: radiant-grief
+- Rule: Enemies in your Presence are Ignited as though you dealt them Fire damage.
+- Lines: "Enemies in your Presence are Ignited as though dealt 200 Base Fire Damage"
+- Creates: ignite | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Solus Ipse (Helmet, level 65)
+- Id: solus-ipse
+- Rule: You can socket two more copies of each Lineage Support Gem, in different skills.
+- Lines: "You can Socket 2 additional copies of each Lineage Support Gem, in different Skills"
+- Creates: none | Pays off on: none
+- Penalties: "Equipment and Skill Gems have 25% increased Attribute Requirements"
+- PoB models it: yes
+
+### Starkonja's Head (Helmet, level 50)
+- Id: starkonjas-head
+- Rule: Your Companion takes part of the damage of Hits for you.
+- Lines: "15% of Damage from Hits is taken from your Damageable Companion's Life before you"
+- Creates: none | Pays off on: companion
+- Penalties: none
+- PoB models it: yes
+
+### The Bringer of Rain (Helmet, level 52)
+- Id: the-bringer-of-rain
+- Rule: You can't use a Body Armour; the helmet takes its place, with four Augment sockets that grant Body Armour bonuses, and you can wield Two-Handed weapons in one hand.
+- Lines: "Can't use Body Armour", "You can wield Two-Handed Axes, Maces and Swords in one hand", "This item gains bonuses from Socketed Items as though it was a Body Armour", "Has 4 Augment Sockets"
+- Creates: socket | Pays off on: weapon-slot, offhand-slot
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### The Devouring Diadem (Helmet, level 10)
+- Id: the-devouring-diadem
+- Rule: Every 3 seconds you consume a nearby Corpse to recover 20% of your maximum Life.
+- Lines: "Every 3 seconds, Consume a nearby Corpse to Recover 20% of maximum Life"
+- Creates: recovery | Pays off on: corpse
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Hollow Mask (Helmet, level 5)
+- Id: the-hollow-mask
+- Rule: Remnants you collect also affect allies in your Presence.
+- Lines: "Remnants you create affect Allies in your Presence as well as you when collected"
+- Creates: none | Pays off on: remnant
+- Penalties: "-10% to all Elemental Resistances"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Smiling Knight (Helmet, level 26)
+- Id: the-smiling-knight
+- Rule: Your Critical Hits with Attacks Aggravate Bleeding.
+- Lines: "Aggravate Bleeding on targets you Critically Hit with Attacks"
+- Creates: none | Pays off on: bleed, crit
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Three Dragons (Helmet, level 45)
+- Id: the-three-dragons
+- Rule: Each element builds another's ailment: Fire builds Shock, Cold builds Ignite and Lightning builds Freeze.
+- Lines: "Fire Damage from Hits Contributes to Shock Chance instead of Flammability and Ignite Magnitudes", "Cold Damage from Hits Contributes to Flammability and Ignite Magnitudes instead of Chill Magnitude or Freeze Buildup", "Lightning Damage from Hits Contributes to Freeze Buildup instead of Shock Chance"
+- Creates: shock, ignite, freeze | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### The Vertex (Helmet, level 33)
+- Id: the-vertex
+- Rule: Skill Gems have no Attribute requirements (and, by variant, neither does equipment).
+- Lines: "Skill Gems have no Attribute Requirements"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Vestige of Darkness (Helmet, level 65)
+- Id: vestige-of-darkness
+- Rule: Physical damage from your Hits builds Chill and Freeze.
+- Lines: "Physical damage from Hits Contributes to Chill Magnitude and Freeze Buildup"
+- Creates: chill, freeze | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Visage of Ayah (Helmet, level 16)
+- Id: visage-of-ayah
+- Rule: You have Eldritch Battery: your maximum Energy Shield becomes maximum Mana.
+- Lines: "Eldritch Battery"
+- Creates: mana | Pays off on: energy-shield
+- Penalties: none
+- PoB models it: yes
+
+### Wings of Caelyn (Helmet, level 1)
+- Id: wings-of-caelyn
+- Rule: Each point of Rage also raises your Stun Threshold.
+- Lines: "Every Rage also grants 1% increased Stun Threshold"
+- Creates: none | Pays off on: rage
+- Penalties: none
+- PoB models it: yes
+
+### Berek's Grip (Ring, level 42)
+- Id: bereks-grip
+- Rule: Wind skills that Elemental Ground can boost count as boosted by Shocked Ground.
+- Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Shocked Ground"
+- Creates: shocked-ground | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Berek's Pass (Ring, level 42)
+- Id: bereks-pass
+- Rule: Wind skills that Elemental Ground can boost count as boosted by Chilled Ground.
+- Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Chilled Ground"
+- Creates: chilled-ground | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Berek's Respite (Ring, level 42)
+- Id: bereks-respite
+- Rule: Wind skills that Elemental Ground can boost count as boosted by Ignited Ground.
+- Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Ignited Ground"
+- Creates: ignited-ground | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Blackflame (Ring, level 20)
+- Id: blackflame
+- Rule: Your Ignites deal Chaos damage instead of Fire, and your Withered never expires on Ignited enemies and also raises their Fire damage taken.
+- Lines: "Ignite you inflict deals Chaos Damage instead of Fire Damage", "Withered you inflict also increases Fire Damage taken", "Withered does not expire on Enemies Ignited by you"
+- Creates: none | Pays off on: ignite
+- Penalties: "(60-75)% reduced Ignite Duration on Enemies"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Blistering Bond (Ring, level 8)
+- Id: blistering-bond
+- Rule: Your Bleeding deals Fire damage and Fire damage builds Bleeding, while Bleeding on you deals Fire damage instead of Physical.
+- Lines: "You take Fire Damage instead of Physical Damage from Bleeding", "Fire Damage also Contributes to Bleeding Magnitude", "Bleeding you inflict deals Fire Damage instead of Physical Damage"
+- Creates: bleed | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Bursting Decay (Ring, level 60)
+- Id: bursting-decay
+- Rule: The ring grants an extra skill slot, and Attacks gain Physical damage from your maximum Life, while you lose 5% of your Life per second.
+- Lines: "Grants 1 additional Skill Slot", "Attacks have added Physical damage equal to 3% of maximum Life"
+- Creates: none | Pays off on: life
+- Penalties: "Lose 5% of maximum Life per second"
+- PoB models it: yes
+
+### Call of the Brotherhood (Ring, level 32)
+- Id: call-of-the-brotherhood
+- Rule: All your Lightning damage is converted to Cold.
+- Lines: "100% of Lightning Damage Converted to Cold Damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Cracklecreep (Ring, level 8)
+- Id: cracklecreep
+- Rule: Your Ignites spread to enemies that stay near the Ignited one.
+- Lines: "Ignites you inflict spread to other Enemies that stay within 1.5 metres for 1 second"
+- Creates: ignite | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Doedre's Damning (Ring, level 1)
+- Id: doedres-damning
+- Rule: You can apply one more Curse.
+- Lines: "You can apply an additional Curse"
+- Creates: curse | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Gifts from Above (Ring, level 35)
+- Id: gifts-from-above
+- Rule: You have Consecrated Ground around you while stationary.
+- Lines: "You have Consecrated Ground around you while stationary"
+- Creates: other-ground | Pays off on: stationary
+- Penalties: none
+- PoB models it: yes
+
+### Glowswarm (Ring, level 1)
+- Id: glowswarm
+- Rule: Using a Mana Flask grants Guard equal to what it recovers.
+- Lines: "Using a Mana Flask grants Guard equal to 100% of Flask's recovery amount for 4 seconds"
+- Creates: none | Pays off on: flask
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Icefang Orbit (Ring, level 36)
+- Id: icefang-orbit
+- Rule: All damage from your Hits against Poisoned enemies builds Chill, and all Hit damage you take while Poisoned builds Chill on you.
+- Lines: "All Damage taken from Hits while Poisoned Contributes to Magnitude of Chill on you", "All Damage from Hits against Poisoned targets Contributes to Chill Magnitude"
+- Creates: chill | Pays off on: poison
+- Penalties: "All Damage taken from Hits while Poisoned Contributes to Magnitude of Chill on you"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Kalandra's Touch (Ring, level 1)
+- Id: kalandras-touch
+- Rule: The ring copies the ring in your other ring slot.
+- Lines: "Reflects opposite Ring"
+- Creates: none | Pays off on: ring-slot
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Original Sin (Ring, level 20)
+- Id: original-sin
+- Rule: All your Elemental damage is converted to Chaos.
+- Lines: "100% of Elemental Damage Converted to Chaos Damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Polcirkeln (Ring, level 12)
+- Id: polcirkeln
+- Rule: Enemies Chilled by your Hits can be Shattered as though Frozen.
+- Lines: "Enemies Chilled by your Hits can be Shattered as though Frozen"
+- Creates: none | Pays off on: chill
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Prized Pain (Ring, level 48)
+- Id: prized-pain
+- Rule: Your Melee Attack Hits can deal your Thorns damage.
+- Lines: "(15-25)% chance to deal your Thorns Damage to Enemies you Hit with Melee Attacks"
+- Creates: none | Pays off on: none
+- Penalties: "Skills Gain 10% of Mana Cost as Extra Life Cost"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Snakepit (Ring, level 32)
+- Id: snakepit
+- Rule: By ring slot, your Spell Projectiles Fork (left) or Chain one more time (right), and they can't Pierce.
+- Lines: "Left ring slot: Projectiles from Spells cannot Chain", "Left ring slot: Projectiles from Spells Fork", "Right ring slot: Projectiles from Spells Chain +1 times", "Right ring slot: Projectiles from Spells cannot Fork", "Projectiles from Spells cannot Pierce"
+- Creates: projectile | Pays off on: ring-slot
+- Penalties: none
+- PoB models it: yes
+
+### The Burrower (Ring, level 16)
+- Id: the-burrower
+- Rule: Enemies' Lightning Hit damage against you is Unlucky.
+- Lines: "Lightning Damage of Enemies Hitting you is Unlucky"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Taming (Ring, level 42)
+- Id: the-taming
+- Rule: Wind skills that Elemental Ground can boost count as boosted by Ignited, Shocked and Chilled Ground at once.
+- Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces can be boosted by multiple Elemental Ground Surfaces", "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Ignited, Shocked, and Chilled Ground"
+- Creates: ignited-ground, shocked-ground, chilled-ground | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Veilpiercer (Ring, level 20)
+- Id: veilpiercer
+- Rule: Your Curses affect Hexproof enemies and spread when a Cursed enemy dies.
+- Lines: "Curses you inflict can affect Hexproof Enemies", "Curses you inflict spread to enemies within 3 metres when Cursed enemy dies"
+- Creates: curse | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Venopuncture (Ring, level 36)
+- Id: venopuncture
+- Rule: All damage from your Hits against Bleeding enemies builds Chill, and all Hit damage you take while Bleeding builds Chill on you.
+- Lines: "All Damage taken from Hits while Bleeding Contributes to Magnitude of Chill on you", "All Damage from Hits against Bleeding targets Contributes to Chill Magnitude"
+- Creates: chill | Pays off on: bleed
+- Penalties: "All Damage taken from Hits while Bleeding Contributes to Magnitude of Chill on you"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Vigilant View (Ring, level 26)
+- Id: vigilant-view
+- Rule: Enemies lose Accuracy against you with distance, but your maximum chance to Evade is 50%.
+- Lines: "Enemies have an Accuracy Penalty against you based on Distance", "Maximum Chance to Evade is 50%"
+- Creates: none | Pays off on: evasion
+- Penalties: none
+- PoB models it: yes
+
+### Whisper of the Brotherhood (Ring, level 32)
+- Id: whisper-of-the-brotherhood
+- Rule: All your Cold damage is converted to Lightning.
+- Lines: "100% of Cold Damage Converted to Lightning Damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes

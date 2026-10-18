@@ -6,7 +6,7 @@
  * `tests/static/adviceNoThresholds.test.ts`.
  */
 import { describe, it, expect } from '@jest/globals';
-import { judge, type JudgedSlot } from '../../src/advice/judge';
+import { judge, type JudgedSlot, type RuleBreaks } from '../../src/advice/judge';
 
 /** A build with no gaps: every resistance at its maximum, every max hit at or above the enemy's hit. */
 function cleanStats(): Record<string, unknown> {
@@ -94,5 +94,39 @@ describe('AC-A2 (WU-18, D-30): judge()', () => {
       [...equipped, slot('Boots', 0)],
     );
     expect(issues.map((i) => i.kind)).toEqual(['pob_warning', 'missing_resist', 'max_hit', 'empty_slot']);
+  });
+
+  it('D-383: a node whose unlock constraint is unmet is one judgment naming the node and the nodes it needs', () => {
+    const breaks: RuleBreaks = {
+      lockedNodes: [
+        { id: 22133, name: 'Command Skill Cooldown', needs: [{ id: 5571, name: 'The Unseen Path', ascendancy: 'Oracle' }] },
+        { id: 28254, name: 'Sacred Unity', needs: [{ id: 41401, name: 'A' }, { id: 46070, name: 'B' }] },
+      ],
+    };
+    const issues = judge(cleanStats(), [], equipped, breaks);
+    expect(issues).toEqual([
+      {
+        kind: 'locked_node',
+        category: 'judgment',
+        text:
+          'Node 22133 (Command Skill Cooldown) is locked: PoB unlocks it only while node 5571 (The Unseen Path, an ' +
+          'Oracle node) is allocated.',
+      },
+      {
+        kind: 'locked_node',
+        category: 'judgment',
+        text: 'Node 28254 (Sacred Unity) is locked: PoB unlocks it only while nodes 41401 (A) and 46070 (B) are allocated.',
+      },
+    ]);
+  });
+
+  it('D-383: rule breaks come right after PoB\'s warnings', () => {
+    const issues = judge(
+      { ...cleanStats(), MissingChaosResist: 20 },
+      ['You have too many passive points allocated'],
+      equipped,
+      { lockedNodes: [{ id: 22133, name: 'Command Skill Cooldown', needs: [{ id: 5571, name: 'The Unseen Path', ascendancy: 'Oracle' }] }] },
+    );
+    expect(issues.map((i) => i.kind)).toEqual(['pob_warning', 'locked_node', 'missing_resist']);
   });
 });

@@ -3,8 +3,8 @@
  * `get_build_issues` and the "Top Issues" of `lua_load_build`'s summary.
  *
  * The inputs are read from the engine inside the tool's engine call: PoB's warning lines
- * (`get_warnings`), the stats named in `ADVICE_STAT_FIELDS` (all in `get_stats`' default list, AC-E26)
- * and the item slots. A build file other than the loaded build is read with `withTemporaryBuild` (D-9),
+ * (`get_warnings`), the stats named in `ADVICE_STAT_FIELDS` (all in `get_stats`' default list, AC-E26),
+ * the item slots and the rule breaks (`get_rule_breaks`, D-383). A build file other than the loaded build is read with `withTemporaryBuild` (D-9),
  * so the engine's build, `revision` and `loaded` are left unchanged. The judgments come only from
  * `judge()`; this module only formats values and issues.
  */
@@ -19,6 +19,7 @@ import {
   judge,
   type Issue,
   type JudgedSlot,
+  type RuleBreaks,
 } from './judge.js';
 
 /** The stats the advice tools show, plus the ones `judge` reads. */
@@ -35,8 +36,15 @@ export interface AdviceInputs {
   stats: Record<string, unknown>;
   warnings: string[];
   items: JudgedSlot[];
+  /** What the game won't allow in the build (D-383). */
+  ruleBreaks: RuleBreaks;
   /** The engine's character level (`get_stats` `_meta.level`), when known. */
   level: number | null;
+}
+
+/** `judge()` over one build's advice inputs. */
+export function judgeInputs(inputs: AdviceInputs): Issue[] {
+  return judge(inputs.stats, inputs.warnings, inputs.items, inputs.ruleBreaks);
 }
 
 /** Read the advice inputs from the engine's current build. */
@@ -44,7 +52,8 @@ export async function readAdviceInputs(client: PoBLuaApiClient): Promise<AdviceI
   const warnings = await client.getWarnings();
   const { _meta: meta, ...stats } = await client.getStats([...ADVICE_STAT_FIELDS]);
   const items = await client.getItems();
-  return { stats, warnings, items, level: typeof meta?.level === 'number' ? meta.level : null };
+  const ruleBreaks = await client.getRuleBreaks();
+  return { stats, warnings, items, ruleBreaks, level: typeof meta?.level === 'number' ? meta.level : null };
 }
 
 /** The build an advice tool analysed: its name, and whether it was loaded temporarily. */
@@ -80,7 +89,7 @@ export async function readAdviceSubject(context: AdviceContext, buildName?: stri
     label,
     temporary,
     inputs,
-    issues: judge(inputs.stats, inputs.warnings, inputs.items),
+    issues: judgeInputs(inputs),
   });
   if (!buildName || buildName.trim() === '') {
     return subject(loadedLabel(loaded), false, await readAdviceInputs(engine.client));
@@ -105,7 +114,8 @@ export function showWhole(value: unknown): string {
 
 /** What the advice tools judge by, stated once in each output. */
 export const JUDGMENT_BASIS =
-  "Judgments are PoB2's own: its warning lines, resistances below their maximum (Missing<Elem>Resist > 0), " +
+  "Judgments are PoB2's own: its warning lines, what its data says the game won't allow (a passive whose unlock " +
+  'constraint is unmet), resistances below their maximum (Missing<Elem>Resist > 0), ' +
   "and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons). " +
   'Facts are stated without judgment.';
 
@@ -120,13 +130,13 @@ export function renderIssueSection(issues: readonly Issue[]): string[] {
   const facts = issues.length - judgments;
   if (issues.length === 0) {
     return [
-      'Issues: none. PoB shows no warning, no resistance is below its maximum, and no max hit taken is below ' +
-        "the configured enemy's hit of its type.",
+      'Issues: none. PoB shows no warning, no allocated passive is locked, no resistance is below its maximum, ' +
+        "and no max hit taken is below the configured enemy's hit of its type.",
     ];
   }
   const head =
     judgments === 0
-      ? `Issues: none judged (PoB shows no warning, no resistance gap, no max hit below the enemy's hit); ${facts} fact(s):`
+      ? `Issues: none judged (PoB shows no warning, no locked passive, no resistance gap, no max hit below the enemy's hit); ${facts} fact(s):`
       : `Issues (${judgments} judged${facts > 0 ? `, ${facts} fact(s)` : ''}):`;
   return [head, ...renderIssueLines(issues)];
 }

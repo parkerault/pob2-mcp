@@ -306,6 +306,13 @@ handlers.get_warnings = function(params)
   return { ok = true, result = res }
 end
 
+-- D-383: what the game won't allow in the loaded build. A read.
+handlers.get_rule_breaks = function(params)
+  local res, err = BuildOps.get_rule_breaks()
+  if not res then return { ok = false, error = err } end
+  return { ok = true, result = res }
+end
+
 -- C-48 (D-194): the tree carries the ascendancy points used after the call.
 handlers.update_tree_delta = function(params)
   local res, err = BuildOps.update_tree_delta(params or {})

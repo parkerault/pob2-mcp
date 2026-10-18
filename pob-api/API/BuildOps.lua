@@ -467,6 +467,42 @@ function M.get_warnings()
   return { lines = lines }
 end
 
+-- D-383: the nodes `node`'s unlock constraint names that aren't allocated, each {id, name, ascendancy}, or nil
+-- when it has no constraint or every node it names is. PoB unlocks such a node only while all of them are
+-- (Classes/PassiveSpec.lua:1248-1251; PassiveTreeView:checkUnlockConstraints). `isAllocated(id)` says whether
+-- a node counts as allocated: the spec's own allocation, or a plan stage's listed nodes.
+function M.unmet_unlock(nodes, node, isAllocated)
+  local constraint = node and node.unlockConstraint
+  if type(constraint) ~= 'table' then return nil end
+  local needs = {}
+  for _, id in ipairs(constraint.nodes or {}) do
+    if not isAllocated(id) then
+      local need = nodes[id]
+      needs[#needs + 1] = {
+        id = id, name = need and tostring(need.dn or need.name) or ('Node ' .. tostring(id)),
+        ascendancy = need and need.ascendancyName or nil,
+      }
+    end
+  end
+  if #needs == 0 then return nil end
+  return needs
+end
+
+-- D-383: what the game won't allow in the loaded build, which PoB itself allows from a node list (a saved
+-- file, an import, set_tree): each allocated node whose unlock constraint is unmet, by id. A read.
+function M.get_rule_breaks()
+  local spec = build and build.spec
+  if not spec then return nil, 'build not initialized' end
+  local locked = {}
+  local function allocated(id) return spec.nodes[id] ~= nil and spec.nodes[id].alloc == true end
+  for id, node in pairs(spec.allocNodes or {}) do
+    local needs = M.unmet_unlock(spec.nodes, node, allocated)
+    if needs then locked[#locked + 1] = { id = id, name = tostring(node.dn or node.name), needs = needs } end
+  end
+  table.sort(locked, function(a, b) return a.id < b.id end)
+  return { lockedNodes = locked }
+end
+
 -- The ascendancy points `update_tree_delta` allows (stated in its tool description).
 local MAX_ASCENDANCY_POINTS = 8
 

@@ -71,7 +71,7 @@ async function readLive(
       const { _meta: _ignored, ...stats } = (await client.getStats([...LIVE_STAT_FIELDS])) ?? {};
       const specs = (await client.listSpecs())?.specs ?? [];
       const itemSets = ((await client.listItemSets())?.itemSets ?? []) as LiveBuildData['itemSets'];
-      const issues = opts.judge ? judge(stats, warnings, await client.getItems()) : undefined;
+      const issues = opts.judge ? judge(stats, warnings, await client.getItems(), await client.getRuleBreaks()) : undefined;
       return { info, stats: stats as Record<string, any>, specs, itemSets, issues };
     });
   } catch (error) {

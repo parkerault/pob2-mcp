@@ -165,6 +165,7 @@ const CASES: Record<ActionName, Case> = {
   set_flask_active: { params: { slot: 'Charm 1', active: true } },
   get_build_info: {},
   get_warnings: {},
+  get_rule_breaks: {},
   update_tree_delta: { params: { addNodes: [], removeNodes: [] } },
   calc_with: {},
   get_config: {},

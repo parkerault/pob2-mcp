@@ -1,7 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import { wrapHandler } from "../utils/errorHandling.js";
-import { judge, type Issue } from "../advice/judge.js";
-import { JUDGMENT_BASIS, readAdviceInputs, renderIssueSection, showStat, showWhole } from "../advice/report.js";
+import type { Issue } from "../advice/judge.js";
+import { JUDGMENT_BASIS, judgeInputs, readAdviceInputs, renderIssueSection, showStat, showWhole } from "../advice/report.js";
 
 export interface BuildGoalsHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -21,7 +21,7 @@ export async function handleGetBuildIssues(
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error('Lua bridge not active. Use lua_start and lua_load_build first.');
     const inputs = await readAdviceInputs(luaClient);
-    return { issues: judge(inputs.stats, inputs.warnings, inputs.items), stats: inputs.stats };
+    return { issues: judgeInputs(inputs), stats: inputs.stats };
   });
 }
 

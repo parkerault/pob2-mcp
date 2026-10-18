@@ -361,6 +361,15 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
       expect: [/^stage 2: node 10029 \(Repulsion\) is not connected to its start through untagged nodes$/m],
     },
     {
+      // D-383: PoB unlocks a node with an unlock constraint only while every node it names is allocated
+      // (PassiveSpec.lua:1248-1251); The Unseen Path is the Oracle's, so a Titan never unlocks this node.
+      name: 'an Oracle-only node in a Titan plan',
+      edit: (p) => p.stages[1].tree.nodes.push(22133),
+      expect: [
+        /^stage 2: node 22133 \(Command Skill Cooldown\) is locked: PoB unlocks it only while node 5571 \(The Unseen Path, an Oracle node\) is allocated$/m,
+      ],
+    },
+    {
       name: 'a weapon-set tag on an unlisted node',
       edit: (p) => p.stages[1].tree.weaponSetNodes.set1.push(58528),
       expect: [/^stages\[1\]\.tree\.weaponSetNodes\.set1\[0\] \(stage 2\): node 58528 isn't in tree\.nodes$/m],

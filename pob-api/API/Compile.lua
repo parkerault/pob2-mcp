@@ -443,6 +443,24 @@ local function check_tree(tree, roll, st, defect)
         .. 'one is chosen (tree.attributeChoices)'):format(id))
     end
   end
+  -- D-383: a node whose unlock constraint names a node the stage doesn't list is locked: PoB unlocks it only
+  -- while every node its constraint names is allocated (BuildOps.unmet_unlock). The Oracle's The Unseen Path
+  -- (5571) unlocks 197 main-tree nodes, which no other ascendancy can take.
+  table.sort(listed)
+  for _, id in ipairs(listed) do
+    local needs = BuildOps.unmet_unlock(nodes, nodes[id], function(n) return mode[n] ~= nil end)
+    if needs then
+      local named = {}
+      for i, need in ipairs(needs) do
+        local asc = need.ascendancy
+        named[i] = ('%d (%s%s)'):format(need.id, need.name,
+          asc and (', ' .. (asc:match('^[AEIOU]') and 'an ' or 'a ') .. asc .. ' node') or '')
+      end
+      local text = #named == 1 and ('node ' .. named[1] .. ' is')
+        or ('nodes ' .. table.concat(named, ', ', 1, #named - 1) .. ' and ' .. named[#named] .. ' are')
+      defect(('node %d (%s) is locked: PoB unlocks it only while %s allocated'):format(id, tostring(nodes[id].dn), text))
+    end
+  end
   if not roll then return end
   -- PoB's rule (PassiveSpec:CanPathThroughAllocMode): an untagged node paths only through untagged nodes,
   -- a node tagged weapon set n also through nodes tagged n. The start nodes are allocated by PoB itself.

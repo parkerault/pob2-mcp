@@ -7,7 +7,9 @@
  *   Life/Mana/Spirit, too many points or gem groups, …), each one issue whose text is the line;
  * - (b) a resistance below its maximum: `Missing<Elem>Resist > 0`;
  * - (c) per damage type, `<Type>MaximumHitTaken < <Type>EnemyDamage`, the configured enemy's hit of
- *   that type (never `totalEnemyDamage`, which sums all five types).
+ *   that type (never `totalEnemyDamage`, which sums all five types);
+ * - (d) what PoB's own data says the game won't allow, though PoB allows it from a node list
+ *   (`get_rule_breaks`, D-383): an allocated node whose unlock constraint is unmet.
  *
  * Beside the judgments it states engine facts without judging them: an empty gear slot that PoB shows.
  * There are no thresholds or advice of our own here. Pure: no engine, no I/O.
@@ -25,7 +27,21 @@ export const JUDGE_STAT_FIELDS: readonly string[] = [
   ...DAMAGE_TYPES.map((t) => `${t}EnemyDamage`),
 ];
 
-export type IssueKind = 'pob_warning' | 'missing_resist' | 'max_hit' | 'empty_slot';
+export type IssueKind = 'pob_warning' | 'locked_node' | 'missing_resist' | 'max_hit' | 'empty_slot';
+
+/** A node an unlock constraint names that isn't allocated (D-383). */
+export interface UnlockNeed {
+  id: number;
+  name: string;
+  /** The needed node's ascendancy, when it is an ascendancy node (The Unseen Path: Oracle). */
+  ascendancy?: string;
+}
+
+/** What the game won't allow in a build (`get_rule_breaks`, D-383). */
+export interface RuleBreaks {
+  /** Each allocated node whose unlock constraint is unmet, with the nodes it still needs. */
+  lockedNodes?: readonly { id: number; name: string; needs: readonly UnlockNeed[] }[];
+}
 
 export interface Issue {
   kind: IssueKind;
@@ -57,19 +73,39 @@ function isGearSlot(slot: string): boolean {
   return !/\bJewel\b/.test(slot);
 }
 
+/** `node 5571 (The Unseen Path, an Oracle node) is`, or `nodes 41401 (A) and 46070 (B) are` (D-383). */
+function needsText(needs: readonly UnlockNeed[]): string {
+  const named = needs.map((n) => {
+    const asc = n.ascendancy ? `, ${/^[AEIOU]/.test(n.ascendancy) ? 'an' : 'a'} ${n.ascendancy} node` : '';
+    return `${n.id} (${n.name}${asc})`;
+  });
+  if (named.length === 1) return `node ${named[0]} is`;
+  return `nodes ${named.slice(0, -1).join(', ')} and ${named[named.length - 1]} are`;
+}
+
 /**
- * Judge a build from PoB2's outputs (`stats`), PoB's warning lines and its item slots. Order: PoB's
- * warnings (in PoB's order), then resistances, then max hits (in the order above), then facts.
+ * Judge a build from PoB2's outputs (`stats`), PoB's warning lines, its item slots and its rule breaks.
+ * Order: PoB's warnings (in PoB's order), then rule breaks (D-383), then resistances, then max hits (in the
+ * order above), then facts.
  */
 export function judge(
   stats: Readonly<Record<string, unknown>>,
   warnings: readonly string[],
   items: readonly JudgedSlot[],
+  breaks: RuleBreaks = {},
 ): Issue[] {
   const issues: Issue[] = [];
 
   for (const line of warnings) {
     issues.push({ kind: 'pob_warning', category: 'judgment', text: line });
+  }
+
+  for (const node of breaks.lockedNodes ?? []) {
+    issues.push({
+      kind: 'locked_node',
+      category: 'judgment',
+      text: `Node ${node.id} (${node.name}) is locked: PoB unlocks it only while ${needsText(node.needs)} allocated.`,
+    });
   }
 
   for (const element of RESIST_ELEMENTS) {

@@ -203,14 +203,14 @@ export async function handleLuaLoadBuild(
 
       const issuesResult = await handleGetBuildIssues({ getLuaClient: context.getLuaClient, ensureLuaClient: async () => {} }).catch(() => null);
       if (issuesResult) {
-        // The same judge() list as get_build_issues (FR-A1): PoB's warnings and engine comparisons.
+        // The same judge() list as get_build_issues (FR-A1): PoB's warnings, rule breaks (D-383) and engine comparisons.
         const { issues } = issuesResult;
         summaryLines.push('');
         if (issues.length > 0) {
           summaryLines.push('**Top Issues:**');
           summaryLines.push(...renderIssueLines(issues));
         } else {
-          summaryLines.push("**Top Issues:** none (no PoB warning, no resistance gap, no max hit below the configured enemy's hit).");
+          summaryLines.push("**Top Issues:** none (no PoB warning, no locked passive, no resistance gap, no max hit below the configured enemy's hit).");
         }
       }
     } catch { /* auto-context is best-effort */ }

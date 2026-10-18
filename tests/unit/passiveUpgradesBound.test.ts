@@ -26,6 +26,7 @@ function stubEngine(opts: { statWords: number; unparsed: number; lineWords: numb
     getWarnings: async () => [],
     getStats: async () => ({ _meta: { level: 90 } }),
     getItems: async () => [],
+    getRuleBreaks: async () => ({ lockedNodes: [] }),
     getTree: async () => ({ ascendClassId: 1, ascendClassName: 'Testasc', nodes: [] }),
     searchNodes: async (params: { keyword?: string; ascendancy?: string }) => {
       if (params.ascendancy) return { nodes: Array.from({ length: 8 }, (_, i) => ascNode(i)), count: 8, total: 8 };

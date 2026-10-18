@@ -1136,7 +1136,7 @@ export function getOptimizationToolSchemas(): any[] {
   return [
     {
       name: "analyze_defenses",
-      description: "The defence values PoB2 computes for a build: effective hit pool (TotalEHP), Life/Energy Shield/Mana/Spirit with their unreserved amounts, armour, evasion, physical damage reduction, evade, deflect and effective block chance, each resistance with the amount missing to its maximum, and each damage type's max hit taken against the configured enemy's hit of that type. The judgments are PoB's, not ours: PoB's own warning lines, a resistance below its maximum (Missing<Elem>Resist > 0), and a max hit taken below the configured enemy's hit of its type (engine comparisons); there are no thresholds of our own. Empty gear slots PoB shows are stated as facts. build_name is optional (default: the loaded build); another build file is loaded temporarily and the engine's build is left unchanged.",
+      description: "The defence values PoB2 computes for a build: effective hit pool (TotalEHP), Life/Energy Shield/Mana/Spirit with their unreserved amounts, armour, evasion, physical damage reduction, evade, deflect and effective block chance, each resistance with the amount missing to its maximum, and each damage type's max hit taken against the configured enemy's hit of that type. The judgments are PoB's, not ours: PoB's own warning lines, what PoB's data says the game won't allow (a passive whose unlock constraint is unmet), a resistance below its maximum (Missing<Elem>Resist > 0), and a max hit taken below the configured enemy's hit of its type (engine comparisons); there are no thresholds of our own. Empty gear slots PoB shows are stated as facts. build_name is optional (default: the loaded build); another build file is loaded temporarily and the engine's build is left unchanged.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1263,7 +1263,7 @@ export function getValidationToolSchemas(): any[] {
   return [
     {
       name: "validate_build",
-      description: "Validate a build on PoB2's own judgments only: PoB's own warning lines (unmet attribute requirements, unreserved Life below 1, negative unreserved Mana or Spirit, too many passive points or gem groups, and so on), resistances below their maximum (Missing<Elem>Resist > 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons). It applies no thresholds of its own. It also states engine facts: the values behind the judgments and the empty gear slots PoB shows. build_name is optional (default: the loaded build); another build file is loaded temporarily and the engine's build is left unchanged. get_build_issues lists the same issues for the loaded build without the values; analyze_defenses shows more defence values.",
+      description: "Validate a build on PoB2's own judgments only: PoB's own warning lines (unmet attribute requirements, unreserved Life below 1, negative unreserved Mana or Spirit, too many passive points or gem groups, and so on), what PoB's own data says the game won't allow though PoB loads it (an allocated passive whose unlock constraint is unmet, such as an Oracle-only node in another class's tree), resistances below their maximum (Missing<Elem>Resist > 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons). It applies no thresholds of its own. It also states engine facts: the values behind the judgments and the empty gear slots PoB shows. build_name is optional (default: the loaded build); another build file is loaded temporarily and the engine's build is left unchanged. get_build_issues lists the same issues for the loaded build without the values; analyze_defenses shows more defence values.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1593,7 +1593,7 @@ export function getBuildGoalsToolSchemas(): any[] {
   return [
     {
       name: "get_build_issues",
-      description: "The loaded build's issues as PoB2 judges them: PoB's own warning lines, resistances below their maximum (Missing<Elem>Resist > 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons), plus the empty gear slots PoB shows, stated as facts. No thresholds of our own. The same list as the Top Issues in lua_load_build's summary; validate_build adds the values behind it.",
+      description: "The loaded build's issues as PoB2 judges them: PoB's own warning lines, what PoB's data says the game won't allow (a passive whose unlock constraint is unmet), resistances below their maximum (Missing<Elem>Resist > 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons), plus the empty gear slots PoB shows, stated as facts. No thresholds of our own. The same list as the Top Issues in lua_load_build's summary; validate_build adds the values behind it.",
       inputSchema: {
         type: "object",
         properties: {},

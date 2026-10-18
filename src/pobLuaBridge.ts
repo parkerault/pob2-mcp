@@ -29,6 +29,7 @@ import {
   type TradeGenerateQueryResult,
   type TradeQueryOptionsResult,
   type BuildInfoResult,
+  type RuleBreaksResult,
   type ConfigResult,
   type CreateSpecResult,
   type DeleteSpecResult,
@@ -762,6 +763,12 @@ export class PoBLuaApiClient {
   async getWarnings(): Promise<string[]> {
     const res = await this.request("get_warnings");
     return res.result.lines;
+  }
+
+  /** What the game won't allow in the loaded build (D-383): its allocated nodes whose unlock constraint is unmet. */
+  async getRuleBreaks(): Promise<RuleBreaksResult> {
+    const res = await this.request("get_rule_breaks");
+    return res.result;
   }
 
   /**

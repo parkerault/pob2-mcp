@@ -32,6 +32,7 @@ export const ACTION_NAMES = [
   'set_flask_active',
   'get_build_info',
   'get_warnings',
+  'get_rule_breaks',
   'update_tree_delta',
   'calc_with',
   'get_config',
@@ -337,6 +338,20 @@ export type BuildInfoResult = z.infer<typeof getBuildInfoReply>['info'];
 export const getWarningsReply = baseReply.extend({
   result: z.object({ lines: luaArray(z.string()) }).passthrough(),
 });
+
+/** A node an unlock constraint names that isn't allocated (D-383). */
+export const unlockNeedSchema = z.object({ id: z.number().int(), name: z.string(), ascendancy: z.string().optional() }).passthrough();
+/** An allocated node whose unlock constraint is unmet, with the nodes it still needs (D-383). */
+export const lockedNodeSchema = z.object({ id: z.number().int(), name: z.string(), needs: luaArray(unlockNeedSchema) }).passthrough();
+
+/**
+ * `get_rule_breaks` (D-383): what the game won't allow in the loaded build, which PoB allows from a node
+ * list: each allocated node whose unlock constraint is unmet (vendor Classes/PassiveSpec.lua:1248-1251), by id.
+ */
+export const getRuleBreaksReply = baseReply.extend({
+  result: z.object({ lockedNodes: luaArray(lockedNodeSchema) }).passthrough(),
+});
+export type RuleBreaksResult = z.infer<typeof getRuleBreaksReply>['result'];
 
 export const calcWithReply = baseReply.extend({ output: luaMap(luaNumber) });
 
@@ -1459,6 +1474,7 @@ const definedSchemas = {
   set_flask_active: emptyReply,
   get_build_info: getBuildInfoReply,
   get_warnings: getWarningsReply,
+  get_rule_breaks: getRuleBreaksReply,
   update_tree_delta: updateTreeDeltaReply,
   calc_with: calcWithReply,
   get_config: configReply,
@@ -1556,6 +1572,7 @@ export interface ActionParamsMap {
   set_flask_active: { slot?: string; index?: number; active: boolean };
   get_build_info: NoParams;
   get_warnings: NoParams;
+  get_rule_breaks: NoParams;
   update_tree_delta: {
     addNodes?: number[];
     removeNodes?: number[];

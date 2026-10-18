@@ -4544,3 +4544,6 @@ the `m17` engine at `b76967b`.
   verifier is running.
 - **WU-88 verified: PASS** on the re-check (the fix round's targeted suites, 24 tests; the new test fails on the old
   filter); the verifier's total 161K. **Merged** into `build-guide/m20` (fast-forward).
+- **WU-89 dispatched** (`bg-89`, off `7d8799e`, with WU-88 merged). It may also change the dossier template's
+  column line (the checker's column list must match it) and writes its formats to a new
+  `studies/2026-10-18-wu89-formats.md`, for WU-91, as WU-81 did for WU-82.

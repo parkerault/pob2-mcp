@@ -3939,3 +3939,23 @@ session diagnosed it; the user paused the run until it is fixed.
   - The compile_stage steps: the skill set is selected with the tree and the items, before the stage's first
     calculation.
   - `pob-gaps.md` PG-51's "at the end of the socket groups" now says where PoB's group lands.
+
+## 2026-10-17: the Varashta baseline run completes
+
+The run (`disciple-of-varashta-navira-s-fracturing/2026-10-17-1`, on the `m17` worktree at `857658c`) completed, and
+the user accepted the guide at the final gate.
+
+- **The build:** `r2-c-1`, the skeleton-death engine. Navira's DPS was 10,897 entering maps, 40,733 on the budget
+  variant and 95,437 on the non-budget variant. Most prices are unknown: the trade site rate-limited the first design
+  pass.
+- **The checker:** four violations. One is the real 429 (NFR-22). Three are rolled-skill (D-378) false positives on
+  plain summon groups.
+- **The feedback file** (`studies/2026-10-17-varashta-run-feedback.md`) now also holds:
+  - the verification gate: legacy gems, and the Powered by Verisium miss;
+  - the users brainstorm and its discussion;
+  - the design gate: the Oracle-only nodes, and Skeletal Cleric, which the designer had measured;
+  - the final gate, and the runner's nine-item gap list with a triage.
+- **Next:**
+  - the comparison with Navira's guide;
+  - the defects in the gap list;
+  - the one feedback amendment.

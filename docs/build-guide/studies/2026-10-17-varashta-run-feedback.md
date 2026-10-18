@@ -1,6 +1,6 @@
 # The Varashta baseline run: the user's feedback
 
-**Status:** collecting during the run (run folder `disciple-of-varashta-navira-s-fracturing/2026-10-17-1`, in
+**Status:** the run completed on 2026-10-17; collected during the run (run folder `disciple-of-varashta-navira-s-fracturing/2026-10-17-1`, in
 `/home/parker/projects/pob2-mcp-runs/m16-varashta/guides/`). The user asked for one amendment that folds in all of
 this file once the run is finished (2026-10-17). Each section is one gate or stage, in the order the run reached it.
 
@@ -174,4 +174,80 @@ The user's list of users:
 > their own research, but without a 100% complete and accurate PoE2 encyclopedia, unattended agents will never be able
 > to produce an optimal build.
 
-The discussion that follows is recorded here once the user has answered it.
+**The discussion** (in the coordinator session):
+
+- **The coordinator's first answer** grouped the users by what they bring: a PoB file (users 3, 5, 6 and 7), an idea
+  (user 2), or expertise (user 4). It proposed "start from a PoB" as the next entry point.
+- **The user's correction:** an expert with only the pob2 tools isn't useful and may give bad advice. The project's
+  value is the game knowledge layered on the tools.
+- **The user's idea:** split the skill into discovery, research, a validator, a guide writer and a PoB2 compiler.
+  build-guide uses all of them, and a general agent uses any of them. Extract them one at a time.
+- **The coordinator's additions:**
+  - an expert-knowledge skill as the base, holding the pattern library, the lookup guide, the evidence rules and
+    `pob-gaps.md`. Facts about the game data go in the server, and how to reason goes in the skill;
+  - a standalone contract per skill, with the run folder's file formats as the interfaces;
+  - gear pricing as a sixth piece;
+  - review kept independent, as its own read-only agent;
+  - a test set per skill built from real misses;
+  - shipping the server, skills and agents as one Claude Code plugin.
+- **The coordinator's pushback:** expect about one server item per extraction. This run found three: the legacy flag,
+  rare monster mods, and a PoB-to-plan tool for the start-from-a-PoB path.
+- **The proposed order:** expert knowledge, then review, then the compiler and writer (with the PoB-to-plan tool),
+  then discovery and research after the engine-lens amendment.
+- **When:** a short design doc after the comparison with Navira's guide. Not decided yet.
+
+## 4. The design gate
+
+**Visit 1, the user's revision:** "Remove the oracle-only nodes; also, did the build designer look at skeletal
+clerics for reviving the dying minions? If not, it would be worth running the numbers on."
+
+- **The Oracle-only nodes:** the design allocated six nodes of the Oracle's The Unseen Path (5571): 761, 22133,
+  49153, 15580, 61977 and 61471. A Disciple of Varashta can't take them, yet `compile_plan`, `validate_build` and V1
+  (the plan-against-PoB check) all accepted them. That is a defect (5.1, item 1).
+- **Skeletal Cleric:** the designer had already measured it, and the plan records why it was left out
+  (`plan.json`, note `b-cleric`). It fits the spare Spirit and lifts Navira's Fracturing by 2.8%. But its heal
+  outpaces Infernal Legion's burn, so the skeletons die more slowly, and the build's engine is their deaths. The guide
+  answers the question in its FAQ.
+
+**Visit 2:** accepted.
+
+## 5. The final gate and the run's end
+
+The run completed on 2026-10-17. The user accepted the guide at the final gate.
+
+- **The build:** `r2-c-1`, the skeleton-death engine. Cast on Minion Death casts Ice Nova when a persistent minion
+  dies, and Navira's Fracturing shatters the ground.
+- **The figures:** Navira's DPS and effective HP were 10,897 and 6,602 entering maps, 40,733 and 12,203 on the
+  budget variant, and 95,437 and 13,954 on the non-budget variant.
+- **The claim check:** V4 (the claim verifier) failed twice. Of its nine findings, eight were fixed. The open one is
+  the thin margin of one nova per skeleton death, which is in the guide's Known issues.
+- **Prices:** mostly unknown. The trade site rate-limited the first design pass.
+- **The checker's four violations:**
+  - one is NFR-22 (no rate-limited pricing): the 429 really happened;
+  - three are rolled-skill (D-378) violations: the checker's rule is too narrow. See 5.1, item 3.
+
+### 5.1 The runner's gap list, with the coordinator's triage
+
+The runner wrote a gap list for the coordinator, covering everything except the compiler fix (D-382):
+
+| # | Gap | Triage |
+|---|---|---|
+| 1 | `compile_plan`, `validate_build` and V1 accept nodes whose `unlockConstraint` the build can't meet (the Oracle nodes above). | Defect: server. |
+| 2 | Nothing reads PoB's `legacy = true`. Related: uniques whose PoB entry says "Source: No longer obtainable". | Server facts, plus a rule in the skill (2.1). |
+| 3 | The checker's one-field rule (D-378) maps `Minion<Field>` only for a group that names a minion skill. Plain summon groups (Skeletal Warrior, Skeletal Arsonist) keep their damage in `MinionTotalDPS`, so a correct D1 gate verdict is flagged. | Defect: `check-run.mjs` and the rule's wording in `gates.md`. |
+| 4 | `prices[].note` counts toward `buildHash`, so a note-only wording fix forced a recompile, both gates and a rewrite of the PoB file. | Defect: hash scope. |
+| 5 | Paced pricing still hit a 429, about 20 calls into D1-finish, and the trade site asked for a 30-minute wait. | The known trade-429 risk, now measured. |
+| 6 | `get_item_price` sends a Distilled Emotion as a unique's name, and trade answers `invalid_query`, so anoints can't be priced. | Defect: server. |
+| 7 | `suggest_supports` and `get_passive_upgrades` rank by CombinedDPS, which is 0 when the main skill is a minion's. | Defect: server. Every minion build hits it. |
+| 8 | PoB applies none of At your Command (the plan used a custom-mod stand-in). Muster counts Navira and Cast on Minion Death as reviving minion types. | `pob-gaps.md` entries. |
+| 9 | The brainstorm gate's display isn't enough to choose from. | Already in section 1. |
+
+**From the final gate's own report:**
+
+- **Minion Pact is a dead gem before the budget variant.** The loadouts at levels 58 and 65 and entering maps
+  socket it on Frost Bomb. On those stages the player's life is above a skeleton's, so it can't drain one. The guide
+  says so, but the loadouts and a group label still carry it. Removing it would have been a build change, with a
+  recompile and both gates, so the run left it.
+- **The gate's display is pipeline jargon again:** "compiled pass, v1 pass, v2 pass, floor pass, budget unverified".
+  The runner's plain-words summary below it was what a player could use. This is section 1's point, for the final
+  gate.

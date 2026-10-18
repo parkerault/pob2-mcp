@@ -4360,3 +4360,17 @@ the `m17` engine at `b76967b`.
   clear speed measured on skeletons and leading every display, with a stated override of PoB's ranking (D-407); a
   rival card with fresh context before the verification gate (D-408); the library's new entries (D-409). Work units
   WU-84…WU-91 (no WU-83: that number is only the fix batch's lane name). §15 lists five choices.
+- **The two drafts' independent review** (260K tokens): 2 blockers, 21 should-fix, 15 nits, all resolved in the
+  drafts the same day.
+  - **Blockers:** the rival read figures from R1b's verdict files, which hold none (it now reads the dossier, the
+    verified cards' comparison table, and never their cards or research); and a card resting on new content could
+    never pass the sniff test (the digest's and the monster table's text now confirm a link; a card the pin can't
+    compile is dealt as "can't be finalized yet").
+  - **The main should-fixes:** the rival sits outside D-287's cap of 3 R1b steps per verification round, once per
+    run; the engine is copied onto each deck line, and D-405's rule yields to the 6-card minimum and to the user's
+    note; levers and overrides travel as D1-build return lines that D1-finish writes as `reason` claims (a plan has
+    no notes field); the facts go in `data/` (`league/`, `rules/`, `monsters/`), which settles where they live for
+    both drafts; the index leaves out legacy and unobtainable items; the seed card moves to researcher `b`; the
+    HG-12 grants and the seven poe2db requests are asked for explicitly; the acceptance criteria are written at
+    amendment 7's level, with "Where the inputs went" and "What changes" tables. The amendment's choices drop from 5
+    to 4, the split's from 4 to 3.

@@ -3,13 +3,13 @@
 One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the deck the user
 picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when
 lookups confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices
-nothing, and edits a card only to rename it (step 7).
+nothing, and edits a card only to rename it (step 7) or drop its under-played label (step 4).
 
 ## Inputs
 
 - **Header:** `stage: "R1a-assemble"`, `attempt`, `mode`, `runFolder`, `compile: "none"`, `findings` (only an
   earlier attempt's note that it returned without its file: `cards.md` may then hold its partial work, so make
-  it whole), `writes: ["cards.md", <the round's cards>]`, the cards for a rename only.
+  it whole), `writes: ["cards.md", <the round's cards>]`, the cards for a rename or a dropped label only.
 - **Prompt:** a `json` block for the round: `round`, the parsed `brief`, the user's `note` (a later round),
   and `researchers`, each `{letter, focus, researchFile, cards, returned}`; `returned: false` means that
   researcher returned without its files, so its cards may be missing or partial.
@@ -58,7 +58,8 @@ nothing, and edits a card only to rename it (step 7).
 4. **Under-played cards** (D-298 as D-335 restates it; D-339). Each researcher built at least one of its 3
    cards on a pattern-library shape it judges under-played, labelled `Under-played (judgment)` in its pitch.
    Read each label against the library: keep it when the shape is one few builds use with this skill,
-   ascendancy or playstyle, in your judgment too, and drop it otherwise. A kept label goes in the card's
+   ascendancy or playstyle, in your judgment too. Otherwise drop it, and delete the card's `Under-played
+   (judgment)` line, which the gate would show as "Unusual". A kept label goes in the card's
    `cards.md` line as `under-played (judgment: <the shape, and why>)`. There is no popularity threshold and
    no tool for it: poe.ninja's builds API is closed to third parties (D-335). The brief's `popularity` notes,
    where they speak to a card, are the card's evidence, cited as the user's notes, never as your judgment.

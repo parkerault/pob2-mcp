@@ -1498,10 +1498,10 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
       ['elemental or chaos hit', m[11], most(OTHER_TYPES.map((t) => hit(t))), `the largest of the hits the compiler wrote, ${s.id}.configWritten's ${OTHER_TYPES.map((t) => `enemy${t}Damage`).join(', ')}`],
     ];
     // The DPS is the record's measures.dps (D-353), the main group's figure × its Count (its minion's
-    // MinionTotalDPS when it names a minion skill, else its TotalDPS; D-378), the figure W1 is told to write,
-    // whatever field or ledger figure the D1 gate names (the gate's own recompute reads that). A record from
-    // before D-353 has no measures, so its line is read against the gate's figure for the stage's rolledGroup
-    // (§5.3), × its Count where the record has a counted copy (D-294, D-340).
+    // MinionTotalDPS when it names a minion skill or is a plain summon, else its TotalDPS; D-378, D-397), the
+    // figure W1 is told to write, whatever field or ledger figure the D1 gate names (the gate's own recompute
+    // reads that). A record from before D-353 has no measures, so its line is read against the gate's figure
+    // for the stage's rolledGroup (§5.3), × its Count where the record has a counted copy (D-294, D-340).
     if (isObj(st?.measures)) {
       parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's figure × its Count)`]);
     } else {

@@ -43,8 +43,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Needs: <the key items, gems and passives; when it comes online (level or act); a respec, if it takes one;
   a rough cost, when known>
 - The catch: <the main risk or cost, in one sentence>
-- [only on the card you judge under-played, at least one of each researcher's 3; D-339] Under-played
-  (judgment): <the pattern-library shape, and why few builds use it with this skill, ascendancy or playstyle>
+- [only on an under-played card, at least one of each researcher's 3; D-339] Under-played (judgment): <the
+  pattern-library shape, and why few builds use it with this skill, ascendancy or playstyle>
 - [only when a load-bearing link isn't confirmed in game text] Not confirmed: <the link>: <what it would
   change>
 - Playstyle: <tags from the brief's vocabulary: delivery, buttons, focus, defence, pace; never displayed>

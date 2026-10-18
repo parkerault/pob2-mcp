@@ -2133,7 +2133,7 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
 
   it('R1a-assemble checks identities, deals only what lookups confirm, 6–9 a round keeping two under-played cards in the deck (D-339), and writes cards.md', () => {
     const text = folded(readStage('R1a-assemble'));
-    expect(text).toContain('`writes: ["cards.md", <the round\'s cards>]`, the cards for a rename only');
+    expect(text).toContain('`writes: ["cards.md", <the round\'s cards>]`, the cards for a rename or a dropped label only');
     expect(text).toMatch(/\*\*Check each card's identity\*\* `\{className, ascendancy, skill\}`, `skill` being the named damage source \(D-286\)/);
     expect(text).toMatch(/\*\*The sniff test\*\* \(D-287\)\. .* Deal the card only when a lookup confirms every load-bearing link in game text/);
     expect(text).toMatch(/\*\*Deal 6–9 cards\*\* for the round, .* the ones that differ most .* keeping \*\*at least two under-played cards in the deck\*\*\. The deck is every round's dealt cards together, and a later round adds only new cards/);

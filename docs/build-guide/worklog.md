@@ -4407,3 +4407,8 @@ the `m17` engine at `b76967b`.
     entry for rare monster modifiers becomes PG-56.
   - An independent verifier is running, including a check that the export writes the same document as before for
     builds without such an item, since saves into the builds folder go through it.
+- **The fold's review: FAIL on 3 should-fix findings, no blocker, 5 nits** (468K tokens). Every row D-363…D-397
+  was checked; the amendments are unedited and no proposal is folded. The should-fixes: D-390's as-built text put a
+  coordinator question step at the brainstorm gate, which the built skill forbids; six rows that v1.6 decisions
+  change lacked their "amended by" marks (D-267, D-372, D-312, D-249, D-213, C-33's headline sentence); slice 02's
+  open-items list still held two settled items. Fix round sent to the doer.

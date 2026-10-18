@@ -4417,3 +4417,14 @@ the `m17` engine at `b76967b`.
   divines at 10 or more, as `roundDivines` does). **Spec v1.6 merged** into `roadmap/2026-10-18` (fast-forward,
   7 commits); static tests 384 of 384. Open for the user: HG-12 for the defect batch's tool changes (D-383, D-384,
   D-387, D-388). D-398 and D-399 join the spine after the fix batch merges.
+- **The fix batch verified: PASS** (184K tokens), four low findings. Gate rc 0 (137 suites, 2,446 tests), build
+  rc 0, no timing failure. Both D-399 tests fail on the old export; 5 of 6 D-398 engine tests fail without the
+  warning (the sixth is the golden build, which drops nothing). **Saves are unchanged by D-399:** the golden, low-str
+  and granted-supports builds, saved twice, changed and saved again, come out canonically identical before and after
+  the fix, figures included; the Runic Ward gloves grew to six sockets before it and stay at one after.
+  - **Recorded, no code change (low 2):** for a file PoB didn't write itself, whose ModRange values don't match its
+    item text, a save now keeps the stored range value (a test copy of the golden build kept `0.123456` where the old
+    export wrote `0.5`); every figure was identical.
+  - **Fix round sent** for lows 1, 3 and 4: name the file on a temporary load's warning lines; neutral examples in the
+    unit test; an engine test for an item-granted group, and no false "dropped" line when no group matches the
+    grant.

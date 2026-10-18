@@ -4,7 +4,83 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-18: amendment 7, gates as interviews (read this first)
+## M-19: the server fix batch and the spec fold to v1.6 (read this first)
+
+Added 2026-10-18, for work the coordinator runs while the user is away. For this batch, this section overrides
+the M-18 section and the ones below it where they disagree; "Worktrees and branches" onward still applies,
+with the integration worktree and branch named here.
+
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/int`, branch `roadmap/2026-10-18`, off `main` at
+  `dac3563`. Lanes branch off it and are rebased and fast-forwarded into it. The coordinator writes the work-log
+  only there. The main checkout and `/home/parker/projects/pob2-mcp-wt/m18` (the next live run's worktree) are
+  never touched.
+- **Two lanes, run in parallel.** They share no file. If either needs the other's file, stop and report.
+
+### Lane `bg-83`: the server fix batch (branch `bg/fix-batch`)
+
+The background is `studies/2026-10-17-varashta-comparison.md` §3 ("How to read them", the first bullet) and §6
+("The server"), and the work-log's "For the next server batch" (2026-10-17).
+
+- **D-398, a load warning for supports in a tree-granted group.** PoB v0.23.1 rebuilds a tree-granted skill's
+  socket group from its grant on every calculation (`vendor/.../Modules/CalcSetup.lua:1503-1534`): a group whose
+  gem level differs from the grant isn't matched, and a matched group's gem list is wiped back to the granted gem.
+  So a PoB file, probably saved by a newer PoB, that holds supports in such a group loses them silently on load,
+  and every figure after that is measured without them.
+  - Every tool reply that loads or imports a build file names each dropped gem and its group, in one warning line
+    per group. Find every such path (`lua_load_build`, `import_build`, the session's reload, any other); a load
+    that drops nothing says nothing new.
+  - **HG-12 is granted for this warning only:** no tool is added, no tool's arguments change, and the counts stay.
+    If the warning travels in an engine reply, update its reply schema (`src/engine/schemas.ts`), its wrapper type
+    (`src/pobLuaBridge.ts`) and its case in `tests/integration/contract.test.ts` (AC-B3, AC-B4).
+  - **PG-54** in `docs/build-guide/pob-gaps.md`, in its file's format: what PoB does, the code reference, the
+    effect, and the warning that now names it. Link it to PG-51 (PoB's own copy of a tree-granted summon).
+  - **Tests:** an engine test loads a fixture build whose tree-granted group holds supports and asserts the
+    warning names them; a build without such a group gets no warning. Write the fixture from the game data: an
+    ascendancy node that grants a skill, with supports added to its group. The repository is public; no
+    fixture comes from a guide author's PoB.
+- **The probe: a snapshot after a change times out on a heavy minion build.** On Navira's PoB (about eight minion
+  types), the session's snapshot after a change (`export_build_xml`) timed out: a loadout switch at the default
+  30 s `POB_TIMEOUT_MS`, and a custom-modifier `set_config` and a `toggle_gem` even at 300 s. Loading the file and
+  read-only stats were fine.
+  - **The probe build:** `/home/parker/projects/pob2-mcp-runs/m16-varashta/reference/navira-pob.xml` is the one
+    file you may read under `reference/`. Copy it into a `mktemp -d` builds folder and work only on the copy.
+    Never commit it, any part of it, or any fixture derived from it, and never paste its content into a report.
+  - **Find the cause:** reproduce through the server (from a temp cwd, with `POB_DIRECTORY`, `XDG_STATE_HOME` and
+    `POB_GUIDES_DIRECTORY` in temp dirs), then time the steps inside the snapshot and the change with `os.clock`
+    in a throwaway copy of the Lua, never in `vendor/`.
+  - **Fix it if the fix is local** (in `pob-api/` or `src/engine/`): the same snapshot, made faster or made
+    without the slow step, with a test that fails before the fix. Record it as D-399. A test may use a heavy
+    build written from the game data, not Navira's.
+  - **Stop and report instead** if the fix changes what a snapshot holds or when the session takes one, adds a
+    configuration setting, or needs `vendor/` changed. Those are the user's calls.
+- **Commits:** `fix: … (D-398)`, `fix: … (D-399)`, `docs(build-guide): pob-gaps PG-54 …`.
+
+### Lane `bg-fold`: the spec fold to v1.6 (branch `bg/fold-v16`)
+
+- **What folds.** Everything since v1.5 (`9d4654e`, folded through D-362):
+  - the decisions D-363…D-397 (and D-398, D-399 if the fix batch has merged when you finish; the coordinator adds
+    them otherwise). D-363…D-368 and D-381…D-388 are in the work-log; D-369…D-375 in amendment 5;
+    D-376…D-380 in amendment 6; D-389…D-397 in amendment 7 (whose D-391 is the approved new-card text);
+  - amendments 5, 6 and 7 (accepted 2026-10-16, 2026-10-16 and 2026-10-18; each file's status line says so),
+    with their work units and ACs as built: M-16 (amendment 5), M-17 (amendment 6), M-18 (amendment 7);
+  - every "for the fold" or "for the v1.6 fold" note in the work-log after the line `### Spec v1.5 folded at
+    \`9d4654e\``, and each build's recorded deviations the verifiers judged sound;
+  - AC-P70's label: "Skeletal Warrior Minion", the minion's name, where the amendment's text names its skill.
+  - **Not** the engine-lens amendment, the skill-split doc, the studies' remedies or anything still a proposal.
+- **How.** Fold v1.5's way (its status paragraph in `spec/README.md`): the spine and slices become
+  authoritative; each row a decision supersedes or changes is marked "amended by D-3nn (v1.6)"; the status line
+  becomes v1.6 with a paragraph listing what it folds; the amendment files stay as the rationale record and are
+  not edited. Where an amendment and the work-log's as-built record disagree, the as-built record wins, with the
+  difference stated.
+- **Owns:** `docs/build-guide/spec/README.md`, `01-server-tools.md`, `02-plan-compiler.md`, `03-pipeline.md`,
+  `docs/build-guide/plan-reference.md` if a decision changes the plan's reference, and
+  `tests/static/buildGuidePipeline.test.ts` only where it pins spec text that the fold changes (say so).
+- **Gate:** `pnpm exec jest tests/static` passes. A fold changes no code.
+- **Report:** the head commit, the decisions and notes folded (one line each where a choice was needed), any
+  amendment-versus-as-built difference, and anything left open for the user.
+- **Commits:** `docs(build-guide): spec v1.6 fold, …`.
+
+## M-18: amendment 7, gates as interviews (built)
 
 Added 2026-10-18. For this build, this section overrides the M-17, M-16 and M-15 sections and "What to build" below;
 the other sections ("Worktrees and branches" onward) still apply as written. M-18 is this handoff's label for the

@@ -16,3 +16,11 @@ Shape (official docs: https://poe.ninja/docs/api):
   sparkline}`. `primaryValue` is the value in the primary currency, and `id` is the trade2 currency
   id (the join key for `listing.price.currency`).
 - `items[]`: display metadata for `lines[].id`.
+
+## `delirium-overview.response.json`
+
+`GET https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Forbidden%20Rites&type=Delirium`,
+captured 2026-10-17 (`User-Agent: pob2-mcp-server/0.2.2`), one request, for D-387. Pretty-printed, otherwise as
+received. The Delirium category is the Distilled Emotions, named as PoB names them (`Liquid Envy`, `Ancient
+Concentrated Liquid Isolation`): 26 `lines[]`, each `primaryValue` in the primary currency (`core.primary` =
+`"divine"`), joined to `items[]` by `id` for the display name.

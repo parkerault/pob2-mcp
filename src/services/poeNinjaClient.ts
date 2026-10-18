@@ -1,8 +1,9 @@
 /**
  * poe.ninja PoE2 HTTP client: the currency exchange overview, and nothing else.
  *
- * `GET https://poe.ninja/poe2/api/economy/exchange/current/overview?league=<league>&type=Currency`
- * with the D-25 User-Agent. The conversion logic lives in `src/trade/currency.ts` (C-12); this
+ * `GET https://poe.ninja/poe2/api/economy/exchange/current/overview?league=<league>&type=<type>`
+ * with the D-25 User-Agent: `Currency` for the rates, and (D-387) another exchange category, such as
+ * `Delirium` for the Distilled Emotions. The conversion logic lives in `src/trade/currency.ts` (C-12); this
  * module only does the HTTP, including the conditional request (`If-None-Match`; poe.ninja:
  * "ETag-based. Use conditional requests").
  */
@@ -45,7 +46,15 @@ export class PoeNinjaClient {
    * comes back as `not_modified`. Any other non-2xx, a timeout or a transport failure throws.
    */
   async currencyOverview(league: string, etag?: string | null): Promise<OverviewResult> {
-    const url = `${POE_NINJA_OVERVIEW_URL}?league=${encodeURIComponent(league)}&type=Currency`;
+    return this.exchangeOverview(league, 'Currency', etag);
+  }
+
+  /**
+   * D-387: one exchange category's overview (`type`, such as `Currency` or `Delirium`), the same way: with
+   * `etag`, a conditional request, and a 304 comes back as `not_modified`.
+   */
+  async exchangeOverview(league: string, type: string, etag?: string | null): Promise<OverviewResult> {
+    const url = `${POE_NINJA_OVERVIEW_URL}?league=${encodeURIComponent(league)}&type=${encodeURIComponent(type)}`;
     const headers: Record<string, string> = { 'User-Agent': this.userAgent, Accept: 'application/json' };
     if (etag) headers['If-None-Match'] = etag;
 

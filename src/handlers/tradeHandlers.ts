@@ -302,6 +302,40 @@ function spread(values: number[]): { low: number; median: number; average: numbe
  * Price check an item by name: the cheapest listings, each with its native price and its
  * primary-currency equivalent, and a summary in the primary currency (C-12).
  */
+/**
+ * D-387: the currency-exchange items `get_item_price` prices from poe.ninja's exchange, by their PoB names:
+ * the Distilled Emotions (`Liquid Envy`, `Diluted Liquid Ire`, `Ancient Concentrated Liquid Isolation`, vendor
+ * Data/LiquidEmotions.lua), poe.ninja's `Delirium` category. The trade site refuses a search for one by name
+ * (`invalid_query`): it isn't a trade listing.
+ */
+const EXCHANGE_ITEMS: readonly { category: string; label: string; name: RegExp }[] = [
+  { category: 'Delirium', label: 'a Distilled Emotion', name: /^(?:Ancient )?(?:(?:Diluted|Concentrated|Potent) )?Liquid [A-Za-z]+$/i },
+];
+
+/** D-387: the poe.ninja exchange category of an item name, or null for an item trade listings price. */
+export function exchangeCategoryOf(itemName: string): string | null {
+  const name = itemName.trim();
+  return EXCHANGE_ITEMS.find((e) => e.name.test(name))?.category ?? null;
+}
+
+/**
+ * D-387: a currency-exchange item's price, from poe.ninja's exchange values in the primary currency, dated as
+ * every price result is (C-49). No trade request: there is no fallback to listings.
+ */
+async function exchangePrice(context: TradeContext, league: string, itemName: string, checkedAt: number): Promise<TextResult> {
+  const name = itemName.trim();
+  const item = EXCHANGE_ITEMS.find((e) => e.name.test(name))!;
+  const head = `=== Price Check: ${name} ===\n${datedLines(league, checkedAt)}`;
+  const what = `${name} is ${item.label}, a currency-exchange item, not a trade listing: priced from poe.ninja's currency exchange (${item.category}).`;
+  const rates = await context.currency.getExchange(league, item.category);
+  if (!rates) {
+    return text(`${head}${what}\npoe.ninja's currency exchange is unavailable, so ${name} has no price; trade listings can't price it.\n`);
+  }
+  const found = rates.currencies().find((c) => c.name.toLowerCase() === name.toLowerCase());
+  if (!found) return text(`${head}${what}\npoe.ninja's currency exchange (${item.category}) lists no ${name} in ${league}.\n`);
+  return text(`${head}${what}\nExchange value: ${found.valueInPrimary} ${rates.primary} (${rates.nameOf(rates.primary)})\n`);
+}
+
 export async function handleGetItemPrice(
   context: TradeContext,
   args: {
@@ -314,6 +348,8 @@ export async function handleGetItemPrice(
   return wrapTradeHandler('get item price', async () => {
     const { item_name, item_type, rarity } = args;
     const league = args.league || (await context.resolveLeague());
+    // D-387: an exchange item is priced from poe.ninja's exchange, never searched on trade.
+    if (exchangeCategoryOf(item_name) !== null) return exchangePrice(context, league, item_name, (context.now ?? Date.now)());
 
     const builder = new TradeQueryBuilder().withName(item_name).withOnlineStatus('available').withSort('price', 'asc');
     if (item_type) builder.withType(item_type);

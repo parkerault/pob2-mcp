@@ -19,15 +19,17 @@ D-370…D-373). Only coordinator steps price; no other agent type has a price to
   and `n` (below).
 - `mcp__pob2__manage_sets`: only `{set_type: "loadout", action: "select"}`, to load a rung before
   `find_upgrades` prices its slots.
-- `mcp__pob2__get_item_price`: one item by name or base, priced from live listings: uniques and Distilled
-  Emotions.
+- `mcp__pob2__get_item_price`: one item by name or base, priced from live listings: uniques. A Distilled
+  Emotion, by PoB's name (`Liquid Envy`), is a currency-exchange item, not a trade listing, so the tool prices
+  it from poe.ninja's currency exchange instead: an `Exchange value:` in the primary currency (D-387).
 - `mcp__pob2__search_trade_items`: a search with `mods`: magic and normal items, flasks, charms, every slot of
   `m`, and a rare of `b` or `n` that is over its target (below).
 - `mcp__pob2__search_stats`, `mcp__pob2__trade_query_options`: building a query. `trade_query_options {slot}`
   also lists a slot's required-mod choices with their trade ids, for `find_upgrades`; it sends no trade request.
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
 - `mcp__pob2__get_currency_rates` (poe.ninja's economy endpoints): currency values in divines, for totals. It is
-  the one poe.ninja tool: there are no poe.ninja tools beyond the currency rates (D-335).
+  the one poe.ninja tool: there are no poe.ninja tools beyond the currency rates (D-335). `get_item_price`
+  reads the same currency exchange for a Distilled Emotion (D-387).
 
 Each call prices one item; there is no batch mode (D-224). Every price result, `find_upgrades`' included,
 carries two lines (C-49):
@@ -54,7 +56,9 @@ Before any search, reuse an entry with the same item, query and league from any 
 ## Which tool (D-372)
 
 - **A rare gear slot or rare tree jewel of `b` or `n`:** `mcp__pob2__find_upgrades`, the weighted search below.
-- **A unique, and each Distilled Emotion of an anoint:** `mcp__pob2__get_item_price`.
+- **A unique, and each Distilled Emotion of an anoint:** `mcp__pob2__get_item_price`, by the name the record's
+  anoint recipe gives. An emotion's price is its exchange value (D-387): amount and currency from the
+  `Exchange value:` line, `query` `{"exchange": "Delirium", "name": "<emotion>"}`.
 - **A magic or normal item, a flask, a charm, and every slot of `m`:** `mcp__pob2__search_trade_items` with
   `mods`. `m` is mostly the campaign's own gear.
 

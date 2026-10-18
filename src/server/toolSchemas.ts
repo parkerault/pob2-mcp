@@ -1463,7 +1463,7 @@ export function getTradeToolSchemas(): any[] {
     },
     {
       name: "get_item_price",
-      description: "Quick price check for a specific item by name on the PoE2 trade site. Lists the cheapest listings with native prices, and summarizes them in the league's primary currency using poe.ninja rates (native prices only if rates are unavailable). IMPORTANT: Use the EXACT league name the user specifies.",
+      description: "Quick price check for a specific item by name on the PoE2 trade site. Lists the cheapest listings with native prices, and summarizes them in the league's primary currency using poe.ninja rates (native prices only if rates are unavailable). A Distilled Emotion (by PoB's name, such as 'Liquid Envy' or 'Ancient Concentrated Liquid Isolation') is a currency-exchange item, not a trade listing: it is priced from poe.ninja's currency exchange instead, with no trade request. IMPORTANT: Use the EXACT league name the user specifies.",
       inputSchema: {
         type: "object",
         properties: {

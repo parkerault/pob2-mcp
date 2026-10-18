@@ -11,6 +11,9 @@
  *   304 renews the entry.
  * - **Failure.** A network error, a non-2xx or an unreadable body gives `null` (callers degrade,
  *   D-11), logged to stderr. `POE_NINJA_DISABLED=true` gives `null` without a request.
+ * - **Other exchange categories** (D-387): `getExchange(league, type)` reads one more category of poe.ninja's
+ *   currency exchange (`Delirium`: the Distilled Emotions) into the same `Rates` shape, cached the same way per
+ *   league and category: each item's value in the primary currency and its display name.
  */
 import { PoeNinjaClient, type CurrencyOverviewResponse } from '../services/poeNinjaClient.js';
 
@@ -107,6 +110,7 @@ export class CurrencyService {
   private readonly client: PoeNinjaClient;
   private readonly env: Readonly<Record<string, string | undefined>>;
   private readonly now: () => number;
+  /** Keyed by `<type>\0<league>`. */
   private readonly cache = new Map<string, CacheEntry>();
   private readonly inFlight = new Map<string, Promise<Rates | null>>();
 
@@ -124,33 +128,44 @@ export class CurrencyService {
 
   /** The league's rates, or null when poe.ninja is disabled or unavailable. Concurrent callers share one request. */
   getRates(league: string): Promise<Rates | null> {
+    return this.getExchange(league, 'Currency');
+  }
+
+  /**
+   * D-387: one category of the league's currency exchange (`Currency`, `Delirium`, …) as `Rates`, or null when
+   * poe.ninja is disabled or unavailable. Concurrent callers share one request.
+   */
+  getExchange(league: string, type: string): Promise<Rates | null> {
     if (this.env.POE_NINJA_DISABLED === 'true') return Promise.resolve(null);
-    const cached = this.cache.get(league);
+    const key = `${type}\0${league}`;
+    const cached = this.cache.get(key);
     if (cached && this.now() - cached.rates.fetchedAt < RATES_TTL_MS) return Promise.resolve(cached.rates);
-    let pending = this.inFlight.get(league);
+    let pending = this.inFlight.get(key);
     if (!pending) {
-      pending = this.refresh(league, cached).finally(() => this.inFlight.delete(league));
-      this.inFlight.set(league, pending);
+      pending = this.refresh(league, type, cached).finally(() => this.inFlight.delete(key));
+      this.inFlight.set(key, pending);
     }
     return pending;
   }
 
-  private async refresh(league: string, cached: CacheEntry | undefined): Promise<Rates | null> {
+  private async refresh(league: string, type: string, cached: CacheEntry | undefined): Promise<Rates | null> {
+    const key = `${type}\0${league}`;
     try {
-      const result = await this.client.currencyOverview(league, cached?.etag ?? null);
+      const result = await this.client.exchangeOverview(league, type, cached?.etag ?? null);
       if (result.status === 'not_modified') {
         if (!cached) throw new Error('poe.ninja answered 304 without a cached response');
         const rates = parseRates(league, cached.body, this.now()) as Rates;
-        this.cache.set(league, { ...cached, rates });
+        this.cache.set(key, { ...cached, rates });
         return rates;
       }
       const rates = parseRates(league, result.body, this.now());
       if (!rates) throw new Error('poe.ninja response has no core.primary');
-      this.cache.set(league, { rates, etag: result.etag, body: result.body });
+      this.cache.set(key, { rates, etag: result.etag, body: result.body });
       return rates;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[CurrencyService] currency rates unavailable for league "${league}": ${msg}`);
+      const what = type === 'Currency' ? 'currency rates' : `exchange values (${type})`;
+      console.error(`[CurrencyService] ${what} unavailable for league "${league}": ${msg}`);
       return null;
     }
   }

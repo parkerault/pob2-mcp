@@ -4,8 +4,9 @@ The words that `Creates:` and `Pays off on:` use in `data/rules/` (amendment 8, 
 table `data/monsters/monster-mods.md` (D-402), and in a deck line's `engine: <family> from <family>` (D-405). Each
 is a family, never one resource: `infusion` covers Cold, Fire, Lightning and Verisium Infusions alike (D-404).
 
-**Rules.** Use only these words, lowercase, comma-separated. A thing that fits none is a proposal: a build unit
-names it in its report, and the coordinator adds it here. Never invent a family in an entry.
+**Rules.** Use only these words, lowercase, comma-separated. `none` is the empty value: an entry that creates, or
+pays off on, nothing in this list. A thing that fits none is a proposal: a build unit names it in its report, and
+the coordinator adds it here. Never invent a family in an entry.
 
 ## Resources
 

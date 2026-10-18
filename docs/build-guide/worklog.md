@@ -4503,3 +4503,16 @@ the `m17` engine at `b76967b`.
   of the contract. **For WU-89:** print the record's `speed` with the no-area flag, not the band (an on-death step
   can make `speed` medium while the band is slow); `render-audit.mjs` still reads movement speed from `outputs`.
   The verifier is running.
+- **WU-86 done by its doer** (`618e06f`, 311K tokens). Gate rc 0 (139 suites, 2,472 tests), build rc 0. The table
+  holds 97 modifiers, one per name (75 unnamed rows left out): 25 `stats`, 13 `condition`, 59 `none`. All 97 are
+  keepable: poe2db's Tame Beast list holds every named modifier, so it doesn't pick out a subset, and the table's
+  head says so. "Trail of Ice" is the only ice trail and links the Chilled Ground keyword, so the row takes it to be
+  the guide's "Frozen Ground Trail", as an inference. The judgments live in a map in the script, so a new modifier
+  without one fails the run. **For WU-87:** no PoB line reaches only the companion (`Minions have …` reaches every
+  minion); PoB has no option for an enemy on Ignited Ground, so fire rows use the Ignited option.
+- **The ally auras' figures:** the saved pages gave no lines for them, so the coordinator spent the four remaining
+  approved requests on their keyword pages (serial, the server's User-Agent): Haste Aura grants 20% increased Attack
+  and Cast Speed and 10% increased Movement Speed; Extra Physical Damage Aura 40% increased Physical Damage; Energy
+  Shield Aura 20% of maximum Life as added Energy Shield; Elemental Resistance Aura +35% to all Elemental
+  Resistances; each to allies within 5 metres. All seven approved requests are used. A fix round sends them to
+  WU-86. `none` joins the vocabulary as the empty value (WU-86's proposal).

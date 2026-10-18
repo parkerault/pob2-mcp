@@ -353,3 +353,8 @@ tuned the build it chose well. Navira's guide chose a better build.
 - The rebuilt Navira group is our model (PG-51). The guide's newer PoB may model the granted group differently.
 - Only the endgame variants are compared by number. The campaign variants aren't comparable (§3).
 - Prices aren't compared. Ours are unknown (rate-limited), and Navira's guide gives none.
+- **Added 2026-10-18: figures taken after a change may have drifted** (D-399). Every session snapshot after a change
+  re-parsed each item, and an item whose text doesn't read back the same (an unread "Runic Ward:" line before a
+  socketed rune) gained one socket and one rune per snapshot. Navira's PoB holds such an item, so a Navira figure
+  measured after one or more changes in the session may include extra rune bonuses. Figures read straight after the
+  load are unaffected. Re-measuring with the fix would settle it.

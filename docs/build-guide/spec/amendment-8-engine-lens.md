@@ -188,7 +188,7 @@ a companion one, and our server doesn't read or set PoB's beast library.
     and the beast itself is a link PoB can't model.
 - **A library entry:** "a tamed rare beast supplies a condition the engine needs", with Navira's build as its
   example (D-409).
-- **PG-55** in `docs/build-guide/pob-gaps.md`: PoB has no rare monster modifiers.
+- **PG-56** in `docs/build-guide/pob-gaps.md`: PoB has no rare monster modifiers.
 - **The beast library in the server** (§18, choice 2). A plan names the companion's species (`companion:
   {species}`), and the compile sets PoB's beast library from it, so the beast's damage, defences and Spirit cost are
   measured. It bumps the plan schema and changes `compile_plan`, so it needs the user's HG-12 call (§18, grants).
@@ -402,7 +402,7 @@ amendment adds nothing for it.
 | the plan schema, `compile_plan` | no companion | `companion: {species}` if §18 choice 2 builds it (HG-12) |
 | `patterns.md` | 5,999 words | questions 11–14, Standard kits, "A count as a multiplier", four shapes; under 10,000; each awaits the user's review |
 | `CLAUDE.md` (the pin upgrade) | four steps | a fifth: rebuild `data/rules/`, and re-run `league-digest.mjs --reflag` on each digest |
-| `docs/build-guide/pob-gaps.md` | to PG-54 | PG-55 |
+| `docs/build-guide/pob-gaps.md` | to PG-55 (PG-54 and PG-55 from the M-19 fix batch) | PG-56 |
 
 ## 15. Work units
 
@@ -410,7 +410,7 @@ amendment adds nothing for it.
 |---|---|---|---|---|
 | WU-84 | 03 | The league digest (D-400): the script and its fixture tests. The first digest is fetched by the coordinator, outside the lane | — | low |
 | WU-85 | 03 | The rule-changer index (D-401): the candidate script, the vocabulary, the format check and the join, then the entries (agents in batches), then a verifier's sample | — | medium: the largest content pass |
-| WU-86 | 03 | Rare monster modifiers (D-402): the table from the coordinator's probe, PG-55 | the probe finds a source | medium: the source may not exist |
+| WU-86 | 03 | Rare monster modifiers (D-402): the table from the coordinator's probe, PG-56 | the probe finds a source | medium: the source may not exist |
 | WU-88 | 02 | Clear speed and movement speed on every compile record (D-407): `compiler.ts`, `record.ts`, tests | — | low |
 | WU-87 | 02 | The beast library (D-402), if §18 choice 2 builds it: the plan schema, the compile, the measures, tests | WU-88 (the same files) | medium: a schema bump |
 | WU-89 | 03 | The scripts: the obvious card's field, the `x` card id and the verification cap's exception, stage `RV`, codes `not-dealt` and `not-in-pin`, the engine field and D-405, the structure-check line, the displays' new order with movement speed, the `waits on the pin` deck line, `data` citations to Markdown data files | WU-88 | medium: every display again |
@@ -436,7 +436,7 @@ WU-87 follows WU-88; WU-91 is last.
   - no gem PoB marks legacy and no unobtainable unique appears;
   - `uniques.md`'s head carries the one-line penalty rule, and no block carries a price.
 - **AC-W72 (WU-86, D-402).** Static: the table exists, every row with its URL, its Creates and Pays off on in the
-  vocabulary, and whether a beast keeps it; `pob-gaps.md` holds PG-55. If the probe found no source, the unit
+  vocabulary, and whether a beast keeps it; `pob-gaps.md` holds PG-56. If the probe found no source, the unit
   doesn't start and the criterion is the user's to waive.
 - **AC-P71 (WU-88, D-407).** Engine: a card skeleton's compile record holds `clearSpeed` and the movement speed; a
   clear skill with no area reads `slow` with the no-area flag.

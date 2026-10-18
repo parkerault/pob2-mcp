@@ -4388,3 +4388,22 @@ the `m17` engine at `b76967b`.
   places). **Left open for the user:** the defect batch's tool changes (D-383, D-384, D-387, D-388) have no recorded
   HG-12 grant, so the spine lists them as pending the user's confirmation. D-398 and D-399 wait for the fix batch's
   merge. An independent reviewer is running.
+- **The fix batch, done by its doer** (`fcf3199` on `bg/fix-batch`, 3 commits; 298K tokens). Gate: test rc 0 (137
+  suites, 2,446 tests, plus the timing step; one AC-F3 tooling false-failure at load average 8.6, passing alone and
+  on the re-run), build rc 0.
+  - **D-398** (`5ce0afd`): every load path names, one line per group, the supports PoB drops from a granted group:
+    file load and reload, import, the session's reload after a change on disk, and the temporary loads of
+    `analyze_build` and `compare_builds`. The engine's `load_build_xml` replies `droppedSupports`. It covers
+    item-granted groups too (Navira's sceptre loses its Purity of Ice supports the same way); on the probe copy it
+    named Kelari, Navira and the sceptre. **PG-54** (`d554069`).
+  - **D-399, the snapshot timeouts** (`fcf3199`). Not the minions: PoB's save re-parses every item, and one rare
+    Runeforged item's unread "Runic Ward:" line before a socketed rune made its text read back different, so every
+    snapshot gave it one more socket and rune and its parse grew slower (the Items saver: 0.02 s, 0.16 s, 2.0 s,
+    12.7 s, then minutes; the engine reached 1 GB). The export now builds each item's text without re-parsing it.
+    On the probe copy the same eight switches and changes took 0.04–0.24 s each. Tests fail before the fix.
+  - **A consequence for the comparison:** Navira figures measured after changes in a session may hold extra rune
+    bonuses. A caveat is added to the comparison study's §8. Re-measuring would settle it.
+  - **PG-55** goes to the unread "Runic Ward:" line (the coordinator adds it at the merge), so amendment 8's gap
+    entry for rare monster modifiers becomes PG-56.
+  - An independent verifier is running, including a check that the export writes the same document as before for
+    builds without such an item, since saves into the builds folder go through it.

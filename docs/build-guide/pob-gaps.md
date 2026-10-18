@@ -90,6 +90,21 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     group with four supports. Which level the game uses needs a source.
   - **Seen in:** Varashta; the baseline guide's PoB models a socketed group.
   - **Workaround:** model the summon as a socketed level-20 group, with supports by D-359's estimate.
+- **PG-54, loading a PoB drops the supports in a granted skill's group.** bug (possible), confirmed in code and on
+  load (the Varashta comparison, 2026-10-17; D-398). The load side of PG-51.
+  - **Where:** PoB rebuilds every granted group, a passive's (`Tree:<node>`) or an item's skill, from its grant on
+    every calculation (`Modules/CalcSetup.lua:1503-1542`). A group whose granted gem's level differs from the grant
+    isn't matched: PoB adds a new group with the granted gem alone (`:1516-1520`) and removes the old one
+    (`:1655-1666`). A matched group's gem list is wiped back to the granted gem (`:1540`). PoB marks a passive's
+    granted skill `noSupports` (`:253`).
+  - **Effect:** a file, probably saved by a newer PoB, that holds supports in such a group loses them silently on
+    load, and every figure after that is measured without them. A save writes the group back without them.
+  - **Seen in:** Varashta: Navira's PoB holds supports in Navira's and Kelari's granted groups and in its sceptre's
+    Purity of Ice group.
+  - **Warning:** every tool reply that loads or imports a build file (a load, a reload, an import, the session's
+    reload of a changed file, a temporary load) names each dropped gem, its group and the passive or item that
+    grants it, one line per group (D-398).
+  - **Workaround:** PG-51's: model the skill as a socketed group and put the supports there.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)
 

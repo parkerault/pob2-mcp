@@ -1,8 +1,9 @@
 # Amendment 8: finding the build's engine
 
-**Status: DRAFT, 2026-10-18; choices 1, 3 and 4 accepted by the user the same day** (§18: the rival every run, the
-structure check in R1b, the index written once per pin). Choice 2 (the beast library), the HG-12 grants and the
-poe2db requests await the user. Revised the same day after an independent review and its
+**Status: APPROVED by the user, 2026-10-18.** Choices 1, 3 and 4 take §18's recommendation (the rival every run,
+the structure check in R1b, the index written once per pin); choice 2 takes the alternative: "Build the beast
+library, and approve the grants and requests". §4 carries the user's two points on tamed beasts from the same
+message. Drafted and revised the same day after an independent review and its
 re-check (2 blockers and 27 should-fix findings, resolved below). It carries:
 - the comparison's remedies the user sent here (`../studies/2026-10-17-varashta-comparison.md`, "the comparison",
   §7.2 remedies 1, 3–9, 11 and 13, and §6's engine-lens list);
@@ -102,9 +103,10 @@ gems, uniques, items other than plain currency, and the new ascendancies and pas
 - writes the digest, and prints the entries added since the last one;
 - with `--reflag <slug>`, offline, re-checks only the in-pin flags of a committed digest, for a pin upgrade.
 
-**Who fetches.** The user runs the script when a league or patch lands; nothing runs it on a schedule. The first
-digest (WU-84) is fetched by the coordinator, outside any build lane, with the user's approval of this amendment as
-the go-ahead: four requests. No build agent touches the network.
+**Who fetches.** The user runs the script when a league or patch lands; nothing runs it on a schedule. With
+`--from <folder>` the script reads saved pages instead of fetching, which its tests and the first digest use: WU-84
+builds the first digest from the league pages the coordinator's probe saved on 2026-10-18, with no request. No build
+agent touches the network.
 
 **Staleness.** At a run's start the runner prints the digest's newest section and its fetch date
 (`head -3 data/league/<newest>.md`), so a stale digest shows.
@@ -124,7 +126,7 @@ the go-ahead: four requests. No build agent touches the network.
 
 ```
 - Way of the Stonefist (39595, Martial Artist) [rule] — equipped gloves become Fists of Stone, with stronger related
-  explicit modifiers. creates: glove-modifiers | pays off on: glove-slot | PoB models it: no
+  explicit modifiers. creates: item-modifiers | pays off on: glove-slot | PoB models it: no
 ```
 
 A node that changes no rule gets its line without `[rule]` and without the tags. The node's own lines come from a
@@ -142,8 +144,8 @@ lookup, not from the index.
 ```
 
 - **The vocabulary.** Creates and Pays off on use a fixed list of mechanic families (infusion, chilled-ground,
-  minion-count, minion-death, spirit, ward, the three charges, the ailments, and so on), defined at the head of
-  `nodes.md`. A family, never one resource: "infusion", not "cold-infusion" (D-404).
+  minion-count, minion-death, spirit, ward, the three charges, the ailments, and so on), defined in
+  `data/rules/vocabulary.md` (written by the coordinator before the build, since three units use it). A family, never one resource: "infusion", not "cold-infusion" (D-404).
 - **Penalties.** Explicit ones only ("-40% to Fire Resistance", "you can no longer regenerate Life by any other
   means"). The head of `uniques.md` says once that most uniques give up the resistances, life and defences a rare
   provides.
@@ -176,11 +178,28 @@ A tamed rare beast keeps up to four of its monster modifiers. Navira's guide tam
 the beast makes the Chilled Ground the build consumes. PoB has no table of rare monster modifiers and no way to give
 a companion one, and our server doesn't read or set PoB's beast library.
 
-- **A table of rare monster modifiers,** `data/monsters/monster-mods.md`, from poe2db. For each: name, in-game
-  text, what it does, whether a tamed beast can keep it, and Creates and Pays off on in the index's vocabulary, so
-  `pairs.md` joins it (a beast's frozen trail creates chilled-ground).
-  - **Its source isn't known yet.** WU-86 starts with the coordinator's probe of at most three requests to poe2db,
-    to find a page that lists the modifiers. If none does, WU-86 stops and the user decides.
+**The user's two points** (2026-10-18):
+- "The Varashta build depends on a mod that doesn't have any stats to model, but many (most?) of the mods do modify
+  stats (haste increases movement and attack speed for allies, for example, and is usually the mod that most players
+  prioritize)."
+- "Most minions reserve a flat amount of spirit, but tamed beasts always use a percentage, so they change the
+  calculus for spirit stacking." PoB agrees: a companion's reservation is its monster's `companionReservation`, a
+  percentage (`Modules/CalcDefence.lua:204`), from 13.8% to 56.1% across the 619 monsters in `Data/Spectres.lua`,
+  32.7% at the median.
+
+- **A table of rare monster modifiers,** `data/monsters/monster-mods.md`, from poe2db. For each: an id, name, its
+  stat lines as the game words them, whether a tamed beast can keep it, how a plan models it (below), and Creates
+  and Pays off on in the index's vocabulary, so `pairs.md` joins it (a trail of ice creates chilled-ground).
+  - **The source,** found by the coordinator's probe (three requests, 2026-10-18):
+    `https://poe2db.tw/us/Monster_Modifiers` lists 268 modifiers with their stat lines ("Hasted: 30% increased
+    Movement Speed, 30% increased Attack and Cast Speed"; Haste Aura; Trail of Ice); `https://poe2db.tw/us/Tame_Beast`
+    lists 178 of them under its own heading, taken to be the ones a tamed beast can keep (WU-86 confirms it), and
+    295 tameable beasts. Whether the guide's "Frozen Ground Trail" is poe2db's "Trail of Ice" is WU-86's to confirm.
+  - **How a plan models a kept modifier,** one of three ways, written in the row:
+    - **stats:** its lines go in as custom modifiers (D-293), each an estimate the record marks: an aura or a buff
+      that reaches the player as player lines, and one that reaches minions as `Minions have …` lines;
+    - **condition:** what it supplies is a config entry, as ground is today (enemies on Chilled Ground);
+    - **none:** PoB can't take it; the card says so, as for any unmodelled line.
   - **Read by Grep,** like the index. The scope of 2026-10-17 had `lookup_game_data` answer questions about the
     table; Grep does the same job with no change to the tool, which would otherwise need the user's HG-12 call (any
     change to the tool surface or a tool's contract).
@@ -188,12 +207,17 @@ a companion one, and our server doesn't read or set PoB's beast library.
     A card whose supply is a beast's modifier
     can be compiled: the condition the beast supplies is a config entry, as it is today (enemies on Chilled Ground),
     and the beast itself is a link PoB can't model.
-- **A library entry:** "a tamed rare beast supplies a condition the engine needs", with Navira's build as its
-  example (D-409).
+- **A library entry:** "a tamed rare beast": what its kept modifiers supply (a condition, such as Navira's ground,
+  or stats, such as Haste Aura's speed for its allies), and its percentage Spirit cost (D-409).
 - **PG-56** in `docs/build-guide/pob-gaps.md`: PoB has no rare monster modifiers.
-- **The beast library in the server** (§18, choice 2). A plan names the companion's species (`companion:
-  {species}`), and the compile sets PoB's beast library from it, so the beast's damage, defences and Spirit cost are
-  measured. It bumps the plan schema and changes `compile_plan`, so it needs the user's HG-12 call (§18, grants).
+- **The beast library in the server** (§18, choice 2: built). A plan names the companion's species and its kept
+  modifiers (`companion: {species, mods: [<table ids>]}`). The compile sets PoB's beast library from the species, so
+  the beast's damage, defences and Spirit reservation are measured, and writes each kept modifier as its row says:
+  stats as custom modifiers, a condition as a config entry. The record names the beast's reserved Spirit. The user
+  granted HG-12 for the schema field and the compile (§18).
+- **The percentage cost reaches the design.** The minion kit (D-403) and the structure check's counts step (D-406)
+  say that a beast's Spirit cost grows with the Spirit a build stacks, unlike a flat-cost minion's, so each point of
+  Spirit buys a little less once a beast is out.
 
 ## 5. D-403: the obvious build is always in the deck
 
@@ -347,7 +371,8 @@ maintenance rule asks (C-53, D-290).
     (D-404). Powered by Verisium and the beast's trail are its examples.
   - **Bank the resource:** a stored supply, such as infusions held between packs, clears faster than one made on the
     spot.
-  - **A tamed rare beast supplies a condition** (D-402).
+  - **A tamed rare beast** (D-402): its kept modifiers supply a condition or stats, and it reserves a percentage of
+    Spirit.
   - **A rule changer:** Way of the Stonefist; how to use the index.
 
 **A single-target answer on every card** (the comparison §6) is already a pitch line, "Bosses" (D-392); this
@@ -379,6 +404,7 @@ amendment adds nothing for it.
 | §6: a single-target answer on every card | already the Bosses line (D-392) |
 | §6: value what PoB can't measure | D-407 (the override) |
 | Tamed beasts: the table, the server, the library, the gap | D-402, D-409 |
+| The user's beast points: stat modifiers, percentage Spirit | D-402, D-403, D-406, D-409 |
 | The feedback study §2.2: a library entry and a brief rule | D-409, D-404 |
 | The deck's low variety (amendment 7's triage) | D-405 |
 | Measured clear speed on skeletons (WU-81) | D-407 |
@@ -410,17 +436,17 @@ amendment adds nothing for it.
 
 | Unit | Slice | What | Depends on | Risk |
 |---|---|---|---|---|
-| WU-84 | 03 | The league digest (D-400): the script and its fixture tests. The first digest is fetched by the coordinator, outside the lane | — | low |
+| WU-84 | 03 | The league digest (D-400): the script (with `--from` and `--reflag`) and its fixture tests; the first digest from the saved pages | — | low |
 | WU-85 | 03 | The rule-changer index (D-401): the candidate script, the vocabulary, the format check and the join, then the entries (agents in batches), then a verifier's sample | — | medium: the largest content pass |
-| WU-86 | 03 | Rare monster modifiers (D-402): the table from the coordinator's probe, PG-56 | the probe finds a source | medium: the source may not exist |
+| WU-86 | 03 | Rare monster modifiers (D-402): the table from the two pages the probe saved, each row's model (stats, condition or none), PG-56 | — | medium: two pages to join |
 | WU-88 | 02 | Clear speed and movement speed on every compile record (D-407): `compiler.ts`, `record.ts`, tests | — | low |
-| WU-87 | 02 | The beast library (D-402), if §18 choice 2 builds it: the plan schema, the compile, the measures, tests | WU-88 (the same files) | medium: a schema bump |
+| WU-87 | 02 | The beast library (D-402): the plan schema's `companion`, the compile (the species, the kept modifiers by their rows), the measures, tests | WU-88 (the same files), WU-86 (the table's ids) | medium: a schema bump |
 | WU-89 | 03 | The scripts: the obvious card's field, the `x` card id and the verification cap's exception, stage `RV`, codes `not-dealt` and `not-in-pin`, the engine field and D-405, the structure-check line, the displays' new order with movement speed, the `waits on the pin` deck line, `data` citations to Markdown data files | WU-88 | medium: every display again |
 | WU-90 | 03 | The library (D-403, D-409): Standard kits, questions 11–14, "A count as a multiplier", four shapes. The user reviews every new entry | WU-85 | low |
 | WU-91 | 03 | The skill text: every file in §14's skill rows, a new `stages/RV.md`, static tests | WU-84…WU-86, WU-89, WU-90 | medium: many files |
 
 WU-83 is unused: it was only the M-19 fix batch's lane name. WU-84, WU-85, WU-86 and WU-88 can run in parallel;
-WU-87 follows WU-88; WU-91 is last.
+WU-87 follows WU-88 and WU-86; WU-91 is last.
 
 ## 16. Acceptance criteria
 
@@ -437,13 +463,16 @@ WU-87 follows WU-88; WU-91 is last.
   - Way of the Stonefist's line exists with `[rule]` and "PoB models it: no";
   - no gem PoB marks legacy and no unobtainable unique appears;
   - `uniques.md`'s head carries the one-line penalty rule, and no block carries a price.
-- **AC-W72 (WU-86, D-402).** Static: the table exists, every row with its URL, its Creates and Pays off on in the
-  vocabulary, and whether a beast keeps it; `pob-gaps.md` holds PG-56. If the probe found no source, the unit
-  doesn't start and the criterion is the user's to waive.
+- **AC-W72 (WU-86, D-402).** Static and script unit: every row has its id, URL, stat lines, keep flag, model
+  (`stats`, `condition` or `none`), and Creates and Pays off on in the vocabulary; "Hasted" carries its two speed
+  lines and model `stats`; the ice trail carries model `condition` and creates chilled-ground; `pob-gaps.md` holds
+  PG-56.
 - **AC-P71 (WU-88, D-407).** Engine: a card skeleton's compile record holds `clearSpeed` and the movement speed; a
   clear skill with no area reads `slow` with the no-area flag.
-- **AC-P72 (WU-87, D-402).** Engine, if built: a plan naming a companion species compiles, and the record holds the
-  companion's DPS and Spirit cost; a plan without one compiles as before.
+- **AC-P72 (WU-87, D-402).** Engine: a plan naming a companion species compiles, and the record holds the
+  companion's DPS and its reserved Spirit, which is the species' percentage of the player's Spirit (two Spirit
+  totals give two reservations in that ratio); a kept `stats` modifier reaches the stage's custom modifiers marked
+  as an estimate; a plan without a companion compiles as before.
 - **AC-W73 (WU-89).** Script unit, on fixture runs:
   - the deck check fails a round that deals 5 of 9 cards on one engine, and passes it when the round is short for
     that reason or the user's note names that engine;
@@ -495,20 +524,23 @@ family's substitutes, and a rival that either beats the pick or fails to.
 1. **The rival.** Recommended: **every run,** once, before the verification gate, for about 150–170K output tokens
    against the pipeline's main weakness. The alternative is **on request only:** the user asks at a gate, and the
    runner starts the rival then.
-2. **The beast library in the server.** Recommended: **defer it.** The table, the library entry and the gap entry
-   carry the miss; in Navira's build the beast's value is its modifier, which PoB can't model anyway. The
-   alternative is **build it now** (WU-87), as the scope of 2026-10-17 listed.
+2. **The beast library in the server.** **Decided: build it now** (WU-87; the user, 2026-10-18). The draft
+   recommended deferring it, on the view that a beast's value is its modifier, which PoB can't model. Two facts
+   overturned that: a beast reserves a percentage of Spirit, which a plan without the library can't carry, and most
+   kept modifiers change stats that a plan can model (§4).
 3. **The structure check.** Recommended: **in R1b, on every picked card,** so a stronger structure reaches the
    verification gate before you commit. The alternative is **in D1-build only,** cheaper but after the pick.
 4. **The index's entries.** Recommended: **written once per pin by agents, committed** (about 0.6–1M tokens per pin).
    The alternative is **a search at run time only:** no upfront cost, the same search repeated in every run, and no
    `pairs.md`.
 
-**Grants this amendment needs** (HG-12: any change to the tool surface or a tool's contract is the user's call):
+**Grants** (HG-12: any change to the tool surface or a tool's contract is the user's call), **granted by the user,
+2026-10-18:**
 
 - `compile_plan`'s record gains `clearSpeed` and movement speed on every compile, card skeletons included (D-407). No
   tool is added and no argument changes.
-- If choice 2 builds the beast library: the plan schema's `companion` field and the compile that reads it (D-402).
+- The plan schema's `companion` field and the compile that reads it (D-402).
 
-**Approvals this amendment asks for:** about seven requests to poe2db by the coordinator, serial and outside the
-build lanes: four for the first digest (D-400) and up to three for the monster-modifier probe (D-402).
+**Approved by the user, 2026-10-18:** about seven requests to poe2db by the coordinator, serial and outside the
+build lanes. The monster-modifier probe used three (§4). The first digest is built from the league pages saved by
+the probe of the same morning, so it needs no new request unless they prove incomplete.

@@ -4467,3 +4467,29 @@ the `m17` engine at `b76967b`.
   `companionReservation` (`Modules/CalcDefence.lua:204`): from 13.8% to 56.1% across the 619 monsters in
   `Data/Spectres.lua`, 32.7% at the median. Without the beast library a plan can't carry that reservation, so a
   minion build's spare Spirit, and with it the number of minion types, reads high.
+
+## 2026-10-18: amendment 8 approved; the M-20 build starts
+
+- **The user's ruling:** "Build the beast library, and approve the grants and requests." Choice 2 takes the
+  alternative (WU-87 is built); HG-12 is granted for D-407's record fields and D-402's `companion` field; the poe2db
+  requests are approved. Amendment 8's status is APPROVED.
+- **The user's two points on tamed beasts, added to D-402:** most kept modifiers change stats (Haste: movement and
+  attack speed for allies, usually the one players want most), and a tamed beast reserves a percentage of Spirit
+  where most minions reserve a flat amount, which changes the arithmetic of stacking Spirit. A plan now names the
+  beast's kept modifiers, and each table row says how a plan models it: `stats` (custom modifiers, estimates),
+  `condition` (a config entry) or `none`.
+- **The monster-modifier probe** (3 requests to poe2db, serial, the server's User-Agent, no cookie):
+  - `Modifiers`, the hub, which links `Monster_Modifiers` and `Tame_Beast`;
+  - `Monster_Modifiers`: 268 modifiers with their stat lines ("Hasted": 30% increased Movement Speed and Attack and
+    Cast Speed; Haste Aura; Trail of Ice);
+  - `Tame_Beast`: 178 modifiers under its own heading, taken to be the ones a tamed beast keeps, and 295 beasts.
+- **The first digest needs no request:** the league pages saved by the morning's probe are kept, with the two new
+  pages, in `/home/parker/projects/pob2-mcp-wt/poe2db-cache/` (outside the repository), and the digest script reads
+  them with `--from`.
+- **The shared vocabulary** `data/rules/vocabulary.md` is written by the coordinator before the build (about 70
+  families), since the index, the monster table and the deck's engine field all use it. The amendment's example
+  tag `glove-modifiers` becomes the vocabulary's `item-modifiers`.
+- **The handoff** gains an M-20 section: waves, owners, serialized files, the entry-id format for Markdown data
+  files (`### <Name>` then `- Id: <id>`), HG-12 for WU-87 and WU-88 only, and no network for any build agent.
+- **The estimate:** about 4.5–5.5M tokens for the eight units, their verifiers and the wave gate (M-18's three
+  units took 1.97M), the index's content pass the largest single part.

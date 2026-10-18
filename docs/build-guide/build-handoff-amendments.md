@@ -4,7 +4,65 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-19: the server fix batch and the spec fold to v1.6 (read this first)
+## M-20: amendment 8, finding the build's engine (read this first)
+
+Added 2026-10-18. For this build, this section overrides the M-19 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here.
+
+- **Spec.** `docs/build-guide/spec/amendment-8-engine-lens.md` is binding: D-400…D-409, WU-84…WU-91 (§15) and
+  their ACs (§16). The spine and slices are v1.6 and bind everywhere else; where the amendment and v1.6 disagree
+  inside D-400…D-409's scope, the amendment wins; anywhere else report a conflict. Read the amendment's §2–§11 for
+  the rules your unit touches, §14 ("What changes") for the files, and your unit's row and AC.
+- **Approved** by the user on 2026-10-18 ("Build the beast library, and approve the grants and requests").
+- **HG-12 is granted for two changes only:** `compile_plan`'s record gains `clearSpeed` and movement speed on card
+  skeletons (WU-88, D-407), and the plan schema's `companion` field with the compile that reads it (WU-87, D-402).
+  No tool is added and no tool's arguments change. Any other tool-contract change is still HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m20`, branch `build-guide/m20`, off `main`. Lanes
+  `bg-<nn>` on `bg/wu-<nn>`, off the integration head when the unit starts. The main checkout and
+  `/home/parker/projects/pob2-mcp-wt/m18` (the next live run's) are never touched.
+- **Waves.** Wave 1: WU-84, WU-85, WU-86, WU-88 in parallel. Wave 2: WU-87 (after WU-88 and WU-86), WU-89 (after
+  WU-88), WU-90 (after WU-85). Wave 3: WU-91. The coordinator merges each unit after its verifier passes.
+- **Shared, fixed before the build:** `data/rules/vocabulary.md`, the mechanic families every `Creates:`,
+  `Pays off on:` and `engine:` uses. Use only its words; propose a new one in your report, never in an entry. Only
+  the coordinator edits it.
+- **The entry id** (for D-400's and D-402's citations, and the index's blocks). In a Markdown data file, every entry
+  is an H3 `### <Name>` whose next line is `- Id: <id>`, the id matching `^[a-z0-9]+(-[a-z0-9]+)*$` and unique in
+  its file. A citation is `data | <path under data/>#<id>`, such as `data | league/runes-of-aldur.md#powered-by-verisium`.
+  WU-89 teaches the run checker to resolve it.
+- **Who owns what** (each unit also owns its new tests; new test files, never another unit's):
+  - **WU-84:** `.claude/skills/build-guide/scripts/league-digest.mjs`, `data/league/`, `tests/fixtures/poe2db/league/`.
+  - **WU-85:** `.claude/skills/build-guide/scripts/rules-index.mjs`, `data/rules/` except `vocabulary.md`.
+  - **WU-86:** `.claude/skills/build-guide/scripts/monster-mods.mjs`, `data/monsters/`,
+    `tests/fixtures/poe2db/monsters/`, PG-56 in `docs/build-guide/pob-gaps.md`.
+  - **WU-88:** `src/plan/compiler.ts`, `src/plan/record.ts` and what reads the record's measures in `src/`;
+    `docs/build-guide/plan-reference.md` only where it documents the record's measures.
+  - **WU-87:** `src/plan/schema.ts`, the compile path for the companion (`src/plan/`, `pob-api/API/Compile.lua` or
+    wherever the compile sets PoB's state), `plan-reference.md`'s `companion` row, the engine reply schema and
+    contract case if an engine reply changes.
+  - **WU-89:** `check-run.mjs`, `run-log.mjs`, `render-audit.mjs`, `tests/fixtures/pipeline/`.
+  - **WU-90:** `.claude/skills/build-guide/references/patterns.md`.
+  - **WU-91:** the skill text in §14's rows (`SKILL.md`, `references/`, `templates/`, `.claude/agents/build-guide/`,
+    the new `references/stages/RV.md`) and `tests/static/buildGuidePipeline.test.ts`.
+  - **The coordinator:** `data/rules/vocabulary.md`, `CLAUDE.md`'s pin-upgrade step, the work-log.
+- **Serialized files:** `compiler.ts`, `record.ts` and `plan-reference.md`: WU-88, then WU-87.
+  `tests/static/buildGuidePipeline.test.ts`: WU-90 (only the library's word cap), then WU-91.
+- **poe2db, offline.** The coordinator's probes saved the pages under `/home/parker/projects/pob2-mcp-wt/poe2db-cache/`
+  (`Runes_of_Aldur*.html`, `home.html`, `league.html`, `Monster_Modifiers.html`, `Tame_Beast.html`). WU-84 and WU-86
+  read them through their scripts' `--from` option to build the committed data. Never fetch: no build agent touches
+  the network. Never commit a saved page or a slice of one: test fixtures are small pages you write in the same HTML
+  structure. The committed data is the game's own text with poe2db's URLs.
+- **Game knowledge needs a source.** Every entry an agent writes (an index line, a rule sentence, a model in the
+  monster table) comes from the game text in the pinned data or the saved pages, and "PoB models it" from
+  `check_model_coverage` run through your worktree's own server (a temp-dir probe or a Jest helper), never the
+  `mcp__pob2__*` tools.
+- **No legacy content** (D-384, D-395): the index and the tables leave out gems PoB marks legacy and uniques it says
+  are no longer obtainable; reuse the server's own test for both.
+- **Fixtures.** The repository is public. Write fixtures from the game data, never from a guide author's PoB.
+  `/home/parker/projects/pob2-mcp-runs/` is off limits.
+- **Done means:** the unit's AC passes through the real code path; `mise run test` and `pnpm build` exit 0 from a
+  clean tree; both waiver files are `[]`; dependencies unchanged.
+
+## M-19: the server fix batch and the spec fold to v1.6 (built)
 
 Added 2026-10-18, for work the coordinator runs while the user is away. For this batch, this section overrides
 the M-18 section and the ones below it where they disagree; "Worktrees and branches" onward still applies,

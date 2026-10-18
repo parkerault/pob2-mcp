@@ -1,20 +1,23 @@
 # Slice 01: Server tools (lookups, coverage, measurement, rankers, set and tree-state authoring, dated prices)
 
-Part of the [spec spine](README.md). It covers work units WU-31…WU-36, WU-49, WU-53, WU-54 and WU-60
-(built), WU-50 (done: blocked by poe.ninja's terms), WU-52 (withdrawn, D-335) and the path-tool half of
-WU-66 (target, milestone M-15), and acceptance criteria AC-K1…AC-K66 (AC-K47…AC-K49 withdrawn by D-335;
-AC-K58…AC-K65 are WU-53's, pinned on its lane and merged with it; AC-K66 is amendment 4's). The spine wins any disagreement; fold fixes back into it. The adversarial review's fixes
+Part of the [spec spine](README.md). It covers work units WU-31…WU-36, WU-49, WU-53, WU-54, WU-60, the
+path-tool half of WU-66 (M-15), WU-74 (M-16) and WU-77 (M-17), all built, WU-50 (done: blocked by poe.ninja's
+terms) and WU-52 (withdrawn, D-335), and acceptance criteria AC-K1…AC-K71 (AC-K47…AC-K49 withdrawn by D-335;
+AC-K58…AC-K65 are WU-53's, pinned on its lane and merged with it; AC-K66 is amendment 4's, AC-K67 and AC-K68
+amendment 5's, AC-K69…AC-K71 amendment 6's). The spine wins any disagreement; fold fixes back into it. The adversarial review's fixes
 for this slice (D-218) and the coordinator's resolutions of its open items (D-222…D-228) are folded in
 under their spine IDs. The build's decisions D-239…D-247, D-307…D-309 and the amendments' D-277, D-297,
 D-299, D-300 are folded in under their spine IDs (fold applied 2026-10-10), and so are D-335 and D-336 with
 WU-54's and WU-60's as-built facts (fold v1.4, 2026-10-11). Fold v1.5 (2026-10-11) records WU-53 as built
 (merge `506d89e`) and folds in amendment 4's D-360, tree validity in the path tools. This slice hosts
 amendment 3's server units, WU-50, WU-52, WU-53 and WU-54 (D-318), amendment 2's lookup unit, WU-60
-(D-317), and the path-tool half of amendment 4's WU-66, whose block is in slice 02.
+(D-317), and the path-tool half of amendment 4's WU-66, whose block is in slice 02. Fold v1.6 (2026-10-18)
+records WU-66's path tools as built (with D-364), and folds in amendment 5's server unit WU-74 (D-372),
+amendment 6's WU-77 (D-376, D-377, D-379), and the defect batch's server decisions D-383, D-384, D-387 and
+D-388 (2026-10-17).
 
 **Target design.** Text that describes behaviour not built yet carries a one-line *Target (WU-nn, D-nnn)*
-marker, and the as-built behaviour stands beside it until that unit merges. Since v1.5 the target text is
-WU-66's path tools (D-360, §2.11).
+marker. Since v1.6 this slice has none: every unit it hosts has merged.
 
 This slice delivers goals G-10 and G-11, plus T1. It gives the pipeline the server tools it needs before a
 plan can be compiled:
@@ -30,7 +33,14 @@ plan can be compiled:
 - **T1** puts the date and league on price results, and a stable error-kind prefix on trade-tool errors
   (D-218).
 - It also fixes the `update_tree_delta` defect and the two `search_tree_nodes` bugs.
-- *Target (WU-66, D-360):* `find_path_to_node` and `get_nearby_nodes` keep a tree valid in shape (§2.11).
+- `find_path_to_node` and `get_nearby_nodes` keep a tree valid in shape (WU-66, D-360, D-364; §2.11).
+- **Amendment 5** (WU-74, D-372): `find_upgrades` dates its prices and names a trade-limit stop's kind (§2.9).
+- **Amendment 6** (WU-77, D-376, D-377, D-379): a minion's numbers are readable, `set_main_skill` selects a
+  summon's minion skill, the skill displays show it, and the gem lookup finds minion skills (§2.1, §2.2, §2.5).
+- **The defect batch** (2026-10-17): the lookups leave legacy gems and unobtainable uniques out (D-384, §2.2),
+  `judge()` reports locked nodes and legacy content (D-383, D-384), `get_item_price` prices a Distilled Emotion
+  from the exchange (D-387, §2.9), and `get_passive_upgrades` ranks a summon main skill by its minion (D-388,
+  §2.6).
 - **N1**, *withdrawn → D-335:* the poe.ninja popularity and build-index tools (C-54, §2.10). Spike WU-50
   found the API they rest on closed to third parties.
 
@@ -54,7 +64,9 @@ cited as "pin §"). `vendor/` is `vendor/PathOfBuilding-PoE2/src` at v0.23.1.
 | `set_tree`, `update_tree_delta` (`BuildOps.lua:126-162, :259-281`); handler `luaHandlers.ts:533-582` | `reimport_nodes` preserves weapon-set tags (`allocMode`) and attribute choices (`hashOverrides`), but nothing sets them. Lua doesn't auto-path and doesn't cap ascendancy points. The handler renders `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed`, which Lua never sends | WU-36 (C-40, C-48) |
 | `add_item` (`toolSchemas.ts:552-569`); `add_item_text` (`BuildOps.lua:577-622`) | The enum is `ITEM_SLOTS` (`toolSchemas.ts:22-26`). `create_socket_group` (`:641`) and `setup_skill_with_gems` (`:846`) share it, and AC-E38 pins both. A tree socket's slot is `Jewel <nodeId>`, which writes `spec.jewels` (`vendor/Classes/ItemSlotControl.lua:74-86`) | WU-36 (C-46) |
 | `get_item_price` (`tradeHandlers.ts:265-339`); `search_trade_items` (`:89-200`) | Both name the league; neither gives a date. Each makes 1 search and 1 fetch through the limiter (C-11), which refuses any wait over 30 s as `would_wait` and names the wait. A failure is a `TradeError` with a `kind` (`src/trade/errors.ts:7-19`), but `wrapHandler` re-throws only its message (`src/utils/errorHandling.ts:25-35`), so the caller sees `Error: Failed to <action>: <message>` (`toolRouter.ts:189-192`) and the kind is lost | WU-49 (C-49, D-218) |
-| `find_path_to_node`, `get_nearby_nodes` (`src/services/treeService.ts:292-413`) | Path through any node, an unallocated start included, so a path can open a second tree on one start. Run A's compiled tree had two Ranger trees from stage 2 and four trees from stage 6 (the issues report, `../studies/2026-10-11-run-a-issues.md`) | WU-66 (D-360, target) |
+| `find_path_to_node`, `get_nearby_nodes` (`src/services/treeService.ts:292-413`) | Path through any node, an unallocated start included, so a path can open a second tree on one start. Run A's compiled tree had two Ranger trees from stage 2 and four trees from stage 6 (the issues report, `../studies/2026-10-11-run-a-issues.md`) | WU-66 (D-360, D-364; built) |
+| `find_upgrades` (`src/trade/findUpgrades.ts`, `renderUpgrades.ts`) | Its header names the league but no date, and a stop for a trade-site limit keeps C-14's own wording, with no `[trade:<kind>]` prefix. It reads the active loadout, so pricing one rung of a compiled plan needs a loadout select first | WU-74 (D-372; built) |
+| A minion's numbers and skills (`BuildOps.lua` `export_stats`, `stats_breakdown`; `get_skills`) | PoB keeps a minion's numbers in a nested `Minion` table, and the bridge returns flat fields only, so the eleven minion fields the server asks for never existed. Nothing selects a summon's minion skill, so a plan computes the minion's first skill; the gem lookup can't find a minion skill by name (the minion-skill spike, `../studies/2026-10-16-minion-skill-spike.md`, A1, A2) | WU-77 (D-376, D-377, D-379; built) |
 | poe.ninja client `src/services/poeNinjaClient.ts`; the currency cache `src/trade/currency.ts`; group `ninja` (`toolMeta.ts:138-139, :147`) | Fetches only the currency exchange overview, for C-12's currency rates (`get_currency_rates` and the price tools' normalization), with conditional requests and a 60-minute cache per league (`currency.ts:97-98`). No rate limiter. `POE_NINJA_DISABLED` hides group `ninja` (only `get_currency_rates`) and is checked at `currency.ts:127` | unchanged: C-54 and WU-52 are withdrawn (D-335) |
 
 **Pin facts relied on** (pin §B2–§D, re-probed for this slice):
@@ -99,6 +111,11 @@ bridge actions that the spine delegates to this slice.
 | `set_tree` | `BuildOps.lua` | adds `weaponSets?: {[nodeId]: 1\|2}`, which replaces the preserved tags, and `attributeChoices?: {[nodeId]: "strength"\|"dexterity"\|"intelligence"}`, which is applied over the preserved choices. Without either, `set_tree` behaves as today (AC-E29) | unchanged | WU-36 |
 | `update_tree_delta` | `BuildOps.lua` | unchanged | adds `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (already read at `pobLuaBridge.ts:858` and `luaHandlers.ts:616-617, :640`), the points counted as PoB's `CountAllocNodes` counts them (D-307). Refuses, after a dry run and with the build unchanged, an add that would change an allocated node's weapon-set tag; nodes allocated before the call keep their attribute choices (D-308) | WU-36 |
 | `lookup_game_data` (amendment 3's additions) | `pob-api/API/Lookup.lua` | `lookup_game_data` | amendment 3's additions (§2.2), in the formats AC-K58…AC-K65 pin (D-299; built) | WU-53 |
+| `get_stats`, the breakdown (amendment 6) | `BuildOps.lua` | unchanged | a requested field `Minion<Field>` that PoB's output lacks reads PoB's nested `Minion[<Field>]` (D-376); a breakdown block of a summon carries its `minion` selection, restored exactly afterwards with the stat-set lookup (D-377). `BuildOps.output_field` is shared with `Compile.lua`'s outputs | WU-77 |
+| `get_skills` (amendment 6) | `BuildOps.lua` | unchanged | each group adds `minions[]`: its summons (an active skill with a minion), each with its index, name, minion and the minion's skill list in PoB's dropdown order, the selected one marked (D-377) | WU-77 |
+| `set_main_selection` (amendment 6) | `BuildOps.lua` | adds `minionSkill?` and `minionStatSet?` | adds an optional `minion`, the selection `BuildOps.select_minion_skill` made: the minion, the skill, its stat set and the list. The selector is one reusable function (`select_minion_skill({groupIndex, name, statSet?, activeSkill?})`): it resolves the name against the live list, validates the stat set, writes PoB's fields as `Modules/Build.lua:461-475` does (both stat-set lookups always), and refuses a disabled group that isn't main (D-377) | WU-77 |
+| `lookup_game_data` (amendment 6) | `pob-api/API/Lookup.lua` | unchanged | gem mode adds minion-skill results, `kind: "minion-skill"`, after the gems: `castBy[]` (`{minion, minionId, gem, gemId}`), whether it is commanded, the granting passives, cooldown, skill types and stat sets (D-379) | WU-77 |
+| `get_rule_breaks` (new, read) | `BuildOps.lua` | none | `{result:{lockedNodes[], legacyGems[], unobtainableUniques[]}}`: each allocated node whose unlock constraint is unmet, each legacy gem in the active skill set with its group, each equipped unique no longer obtainable with its slot (D-383, D-384). `judge()` calls it | D-383, D-384 |
 
 **Compatibility.** The spine's C-2/C-5 row is a modified contract that lists these changes (D-222). Every
 change is additive except `set_main_selection`'s `skillPart` → `statSet` rename, which is internal: only
@@ -243,6 +260,27 @@ Formats and checkable criteria were pinned by WU-53's first step in this slice f
 text, and the coordinator reviewed them before any code was written (A-33): AC-K58…AC-K65, merged with
 WU-53 (`506d89e`). That step also settled the example "Culmination II, then Ailith's Chimes" (AC-K61).
 
+**Minion skills (WU-77, D-379; built, amendment 6).** A command such as Navira's Fracturing is a minion's
+skill, not a gem, so the brief check and the cards need the lookup to find it by name.
+- **Gem mode** lists, after the gems, every minion skill named exactly as the query (case-insensitively),
+  one result per granted effect. Each is a block: `## <name>`, the fixed line `Kind: minion skill`, one
+  `Cast by: <minion> (summoned by <gem>)` line per summon whose minion casts it, `Commanded: yes` for a command,
+  one `Granted by: <passive> (<ascendancy>, node <id>)` line per passive whose line reads `Grants Skill:
+  <name>`, then its cooldown, skill types and stat sets. When names collide, gems come first: 47 minion skills
+  share a gem's name at the pin (the minion-skill spike, A2); "Gas Arrow" lists the gem, then the minion skill.
+- **A hit-making child that is a minion's skill** (WU-53's list) can be looked up by its own name this way.
+  The other children, granted or triggered, can't be: 41 of 85 at the pin have no name the lookup finds, and
+  a result for them is beyond the HG-12 grant (WU-77's verifier).
+
+**Legacy content left out (D-384; built, the defect batch).** Legacy is the granted effect's `legacy = true`
+(eight skills at the pin, Commandment among them), not `Tier = 0`; a unique no longer obtainable is PoB's item
+database rule (source "No longer obtainable", or a Race Events league; `Classes/ItemDBControl.lua:118-119`).
+Every mode leaves them out, gem lists included (supports, unlocks, "usable by"), and names the ones a query
+matched on one line per kind: `Left out: <gem>, which PoB marks legacy: it is no longer in the game.`, or
+`Left out: <n> gems PoB marks legacy (<names>): they are no longer in the game.`, and likewise for uniques
+("PoB's unique data marks no longer obtainable"). The description was trimmed to stay within 2,048
+characters. AC-K61's Whirling Assault count drops from 29 to 28 with them.
+
 ### 2.3 C-43 `search_tree_nodes` (modified, `read`)
 
 - **`ascendancy`** (new; a case-insensitive name) keeps only nodes with that `ascendancyName`, notables
@@ -365,6 +403,16 @@ effect id>] = skill_part`, as PoB's own dropdown callback does (`vendor/Modules/
 never writes `skillPart`. The output names the stat set's label. **[slice]** An index outside 1…n is an
 error naming n and the labels, and changes nothing.
 
+**A minion's skill (WU-77, D-377; built, amendment 6; the user's HG-12 grant for M-17).** `set_main_skill`
+gains `minion_skill` (a name, as the gem lookup gives it) and `minion_stat_set` (default 1) for the main group.
+It selects the summon's minion skill by name against the minion's live skill list, as PoB's "minion skill"
+dropdown does, through the reusable selector `BuildOps.select_minion_skill` (§2.1), and makes the summon the
+main active skill. These are refused and change nothing (the export and `revision` unchanged): an unknown name,
+listing the minion's skills; a name the list holds twice, naming the positions (untested: no minion at the pin
+has a duplicate name); a group with no minion; a stat set beyond the skill's, since PoB's calculation crashes on
+one. The reply names the minion and the selected skill, and lists the minion's skills. `get_skill_setup` and
+`analyze_skills` print each summon's minion and its skills in order, marking the selected one.
+
 **C-45 [slice: the spine says "slice 1 bounds the breakdown"].** The bound is one group per call:
 `breakdown: true` plus `group_index` (default: the main socket group).
 - **Measure, then restore (D-176).** For each active skill in the group's `displaySkillList`, and each of
@@ -376,6 +424,11 @@ error naming n and the labels, and changes nothing.
 - **Errors and edges.** A `category` other than `offense` with `breakdown`, or a `group_index` past the
   last group, is an error. A group without an active skill gets a plain note. Without `breakdown`, every
   view is unchanged.
+- **A minion's numbers (WU-77, D-376, D-377; built).** A requested field `Minion<Field>` that PoB's output
+  lacks reads PoB's nested `Minion[<Field>]`, in every view and in the breakdown (at the pin only
+  `MinionRevivalSpeed` exists natively, so no name collides). So the offense view's eleven minion fields are
+  real, and the field count holds. The breakdown heads a summon's block with its selected minion skill, and
+  restores the selection and the stat-set lookup exactly afterwards (D-176).
 
 ### 2.6 C-47 ranker amendments (modified; amends D-77, D-78 per D-143)
 
@@ -418,6 +471,14 @@ lines first (`search_tree_nodes` gives them back), then the closing tip, then ra
 bottom of the longer ranking (D-247), and one line says what was left out. It also returns `refit`, which
 renders the text again with room for the notices the session prepends, so they can't push a line past the
 cut (D-53's mechanism, as `find_upgrades` uses it; `treeHandlers.ts:409, :725-758`).
+
+**A summon main skill (D-388; built, the defect batch).** `get_passive_upgrades` read the player's
+CombinedDPS and TotalDPS, 0 when the main skill is a summon, so it ranked nothing. It now reads `MinionTotalDPS`
+when the main skill summons a minion (its stats carry `Minion<Field>` fields, the test the record shares,
+`summonsMinion`, D-397), through `calc_with`, which reads `Minion<Field>` as `get_stats` does. It says so on its
+base line, and searches minion notables first. `suggest_supports` already ranked by the minion's CombinedDPS, as
+PoB's gem selector does; its reply now names the field, `MinionCombinedDPS`. Tests:
+`tests/integration/minionRanking.test.ts`.
 
 ### 2.7 C-39 `manage_sets` (new, `mutate`; `list` runs as `read`, D-244; group `core`) and auto-level (D-196)
 
@@ -519,7 +580,8 @@ starts with a stable prefix naming the error's kind: `Error: [trade:<kind>] Fail
   (`tradeClient.ts:287-293`).
 - **How.** The trade handlers' wrapper keeps the kind that `wrapHandler` drops today.
 - **Scope.** An error that isn't a `TradeError` gets no prefix. `find_upgrades` keeps C-14's own wording:
-  its rate-limit stops aren't errors. `search_stats` and `trade_query_options` send no trade request.
+  its rate-limit stops aren't errors. **Amended by D-372 (v1.6; built, WU-74):** a stop's line now carries the
+  kind, below. `search_stats` and `trade_query_options` send no trade request.
 - **Why.** The pipeline's pricing procedure (slice 3 §9) and run log classify outcomes by this prefix,
   not by parsing prose. NFR-22 (no 429s and no lockouts while pricing) is checked that way.
 
@@ -529,6 +591,28 @@ relies on (C-11). A batch call would need a call deadline, which D-22/D-47 give 
 (changing that is HG-12). It would also need partial results after a refusal, and a way past A-25's 120 s
 backgrounding. Input schemas are unchanged, and error answers change only by the prefix above; the
 pipeline records errors as `unavailable` (D-164).
+
+**`find_upgrades` (WU-74, D-372; built, amendment 5; the user's HG-12 grant for WU-74).** Amendment 5 prices
+`b`'s and `n`'s rares with `find_upgrades`, PoB2's weighted trade search, so its prices must be dated as the
+other tools' are, and its stops classified the same way.
+- **Header.** As built it splits into three lines: C-49's `League: <id>`, `Checked: <YYYY-MM-DDTHH:MM:SSZ>`
+  (the wall-clock time of the first search, as `ServerDeps.now` gives it) and the status line. Amendment 5 named
+  the two lines; the split is the doer's, judged sound.
+- **A stop for a trade-site limit** reads `Stopped early: [trade:<kind>] <reason>.`, with the `TradeErrorKind`
+  (`[trade:rate_limited]` for a 429), so `pricing.md` classifies it as it classifies the other price tools'
+  errors, matching `[trade:<kind>]` anywhere in the line. This amends C-14's output block and stop wording (stab
+  `03-trade.md` §C-14), and the spine's §3.1 carries it.
+- **Unchanged:** its arguments, its ranking and the rest of its output. It reads the active loadout, so a
+  pricing step selects the rung's loadout with `manage_sets` first (AC-K67).
+
+**Distilled Emotions (D-387; built, the defect batch).** The trade site answers `invalid_query` to an emotion
+searched by name, so an anoint's emotions couldn't be priced. `get_item_price` recognises one by name (`Liquid
+<Emotion>`, every tier, the Ancient ones included) and prices it from poe.ninja's currency exchange overview,
+category `Delirium`, which lists them by PoB's names with values in divines: an `Exchange value:` line, no trade
+request, and no fallback to listings. C-12's currency service fetches that category as it fetches the rates,
+with the same cache and the same polite rules (D-297); the one request that confirmed the category is the
+committed fixture `tests/fixtures/poeninja/delirium-overview.response.json`. Tests:
+`tests/mcp/exchangePrice.test.ts`.
 
 ### 2.10 C-54 poe.ninja tools (withdrawn → D-335)
 
@@ -545,20 +629,24 @@ tools (D-335). What stays:
 - the counts stay 84, and 83 with poe.ninja disabled (AC-B1);
 - tests stay offline (D-34): HTTP goes only through `fixtureFetch`.
 
-### 2.11 Tree validity in the path tools (*target*, WU-66, D-360)
+### 2.11 Tree validity in the path tools (WU-66, D-360, D-364; built, merge `ae331e4`)
 
-Amendment 4's tree rule (D-360, I-3): on a stage's main-tree nodes, class starts not joining their exits,
-each tree holds exactly one start exit (a node linked to the class start, or a main-tree link of an
-allocated alternate-start node: the Pathfinder's Path of the Sorceress, node 12795, links the Sorceress
-exits 4739 and 44871); each start holds at most one tree; an alternate start holds a tree only while its
-granting node is allocated; and the ascendancy nodes form one tree with their own start. So a build has at
-most two trees with Path of the Sorceress, and one without. Slice 02's V1 code `tree-shape` checks it at
-compile (WU-66, AC-P65).
+Amendment 4's tree rule (D-360, I-3), as D-364 amends it: on a stage's main-tree nodes, class starts not
+joining their exits, a tree is a connected group of allocated nodes (the start not counted); each start holds
+at most one tree; an alternate start holds a tree only while its granting node is allocated (the Pathfinder's
+Path of the Sorceress, node 12795, links the Sorceress exits 4739 and 44871; the Lua also finds Path of the
+Warrior, 57253, with the Warrior exits 3936 and 38646); and the ascendancy nodes form one tree with their own
+start. A tree that touches two exits of its start through its own nodes is one tree, and legal (D-364
+dropped amendment 4's "exactly one start exit"). So a build has at most two trees with Path of the Sorceress,
+and one without. Slice 02's V1 code `tree-shape` checks it at compile (WU-66, AC-P65).
 
-- **`find_path_to_node` and `get_nearby_nodes`** (`src/services/treeService.ts:292-413`, both `read`) never
-  path through an unallocated start, and leave a start only while it holds no tree. So neither returns a
-  path that opens a second tree on a start, crosses an unallocated start, or reaches the Sorceress exits
-  without 12795 (AC-K66).
+- **`find_path_to_node` and `get_nearby_nodes`** (`src/services/treeService.ts`, both `read`) never enter a
+  class start, leave a start only while it holds no tree, never step from the main tree onto an open start's
+  exit or into an ascendancy node, and never path through an unallocated 12795. So neither returns a path
+  that opens a second tree on a start, crosses an unallocated start, or reaches the Sorceress exits by the
+  alternate start without 12795 (AC-K66). As built, a Ranger tree that walks across the main tree onto 4739
+  without 12795 is valid, and the tools stay conservative: they never route a loop back to a start's other
+  exit, though V1 accepts one (D-364). The "No path found" hint is unchanged, since C-1 freezes the output.
 - Tools that follow PoB's own paths (`update_tree_delta`, `get_passive_upgrades`) are left as they are, and
   are caught at compile by `tree-shape`.
 - PoB2 v0.23.1 doesn't enforce the rule (the user reports its UI does; a newer release may differ); it holds
@@ -583,7 +671,9 @@ Status lines give the merge commits on the integration branch (the build's work-
 [`../worklog.md`](../worklog.md)). Units WU-50, WU-52, WU-53, WU-54 and WU-60 are amendment 2's and 3's;
 their milestone is M-14 ("open builds offline", D-315). WU-53, WU-54 and WU-60 are built, WU-50 is done
 (blocked), and WU-52 is withdrawn. Amendment 4's WU-66 (M-15) has a path-tool half here; its full block is
-slice 02's.
+slice 02's. Amendment 5's WU-74 (M-16) and amendment 6's WU-77 (M-17) are built; neither adds a tool. The
+defect batch's server fixes (D-383, D-384, D-387, D-388; 2026-10-17) were made by the coordinator, one commit
+each, outside any unit.
 
 ### WU-31: K1 lookups and the `search_tree_nodes` fixes
 - kind: build
@@ -784,18 +874,62 @@ AC-K47…AC-K49. Nothing was built.
 
 ### WU-66 (path tools): tree validity in `find_path_to_node` and `get_nearby_nodes`
 - kind: build
-- status: target (M-15). This is the path-tool half; the unit's full block, with V1's `tree-shape`, is
-  slice 02's §5
+- status: built (merge `ae331e4`). This is the path-tool half; the unit's full block, with V1's
+  `tree-shape`, is slice 02's §5
 - depends-on: [WU-65 (`Compile.lua`, `v1.ts`)]
 - role: backend-dev
 - touches: [`src/services/treeService.ts` (:292-413), the path tools' engine tests]
-- produces: [§2.11's path rule (D-360)]
+- produces: [§2.11's path rule (D-360, D-364)]
 - consumes: [the pinned tree's start and exit links; slice 02's `tree-shape` rule]
 - acceptance: [AC-K66]
 - milestone: M-15
 - risk: medium
 - summary: The path tools never path through an unallocated start and leave a start only while it holds no
-  tree, so the tools an agent paths with can't open a second tree. Amendment 4 rates the unit medium.
+  tree, so the tools an agent paths with can't open a second tree. Amendment 4 rates the unit medium. Its
+  review confirmed the tests catch a regression (against the old search, AC-K66's three checks fail) and that
+  the C-1 bound holds: handlers, schemas and text untouched.
+
+### WU-74: `find_upgrades` dates its prices and names its stops (amendment 5)
+- kind: build
+- status: built (merge `b6ac354`)
+- depends-on: []
+- role: backend-dev
+- touches: [`src/trade/findUpgrades.ts`, `rankUpgrades.ts`, `renderUpgrades.ts`, `src/server/toolRouter.ts`,
+  `tests/unit/findUpgradesDated.test.ts` and `tests/integration/findUpgradesLoadout.test.ts` (new), the existing
+  `find_upgrades` tests]
+- produces: [`find_upgrades`' `League:` and `Checked:` lines and its prefixed stop (§2.9, D-372)]
+- consumes: [C-14, C-49 as built; a compiled plan's loadouts]
+- acceptance: [AC-K67, AC-K68]
+- milestone: M-16
+- risk: low
+- summary: Amendment 5 prices `b`'s and `n`'s rares by PoB2's weighted search, so `find_upgrades` dates its
+  prices and names the kind of a trade-limit stop, under the user's HG-12 grant for this unit only. An engine
+  test shows that after a loadout select it scores listings against that rung's item. Its server AC was first
+  numbered AC-T46, which the stabilization spec already uses, so it is AC-K68.
+
+### WU-77: a minion's numbers, its skill selection and the lookup's minion skills (amendment 6)
+- kind: build
+- status: built (merge `cadd4d9`)
+- depends-on: []
+- role: lua-dev + backend-dev
+- touches: [`pob-api/API/BuildOps.lua` (`export_stats`, `stats_breakdown`, `get_skills`,
+  `set_main_selection`, the new `select_minion_skill`), `pob-api/API/Lookup.lua`, `src/engine/schemas.ts`,
+  `src/pobLuaBridge.ts`, `tests/integration/contract.test.ts`, the handlers of `set_main_skill`,
+  `get_skill_setup`, `analyze_skills`, `lua_get_stats` and `lookup_game_data`,
+  `tests/integration/minionSkill.test.ts` (new), `tests/integration/lookupGameData.test.ts`]
+- produces: [`Minion<Field>` (D-376); minion-skill selection in `set_main_skill`, the displays and the
+  breakdown (D-377); the gem lookup's minion-skill result (D-379)]
+- consumes: [C-37, C-44, C-45 as built; the minion-skill spike's findings A1…A4]
+- acceptance: [AC-K69, AC-K70, AC-K71, AC-B3, AC-B4]
+- milestone: M-17
+- risk: medium
+- summary: Under the user's HG-12 grant for M-17, a minion's numbers become readable, a summon's minion skill
+  selectable by name, and a command findable by the gem lookup. The selector is one reusable Lua function,
+  which WU-78's compile calls for every group that names a minion skill. Its doer's choices, all judged sound:
+  `set_main_skill` with `minion_skill` makes the summon the main active skill; the selector refuses a disabled
+  group that isn't main; both stat-set lookups are always written; minion skills match by exact name in gem
+  mode; one result per granted effect; the sweep covers minion children only (AC-K71). The lookup's
+  description stood at 2,046 of 2,048 characters after it.
 
 ## 4. Acceptance criteria
 
@@ -1395,7 +1529,7 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
       (`Data/Skills/sup_dex.lua:1634-1635`).
     - So `{mode:"gem", query:"Whirling Assault"}` lists
       `- Ailith's Chimes: after Combo Finisher I; Combo Finisher II; Culmination I; Culmination II; Vruun's
-      Inevitability`, one of its 29 lines.
+      Inevitability`, one of its 28 lines (29 before D-384 left legacy gems out of gem lists).
   - **Family.** On Gas Grenade, Nova Projectiles I doesn't unlock Nova Projectiles II, although the type
     checks pass: the two share a family.
   - **Rule check.** For Whirling Assault, `{query:"Snipe", max_results:1}`, Fireball, Gas Grenade, Raise
@@ -1486,10 +1620,46 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
   - Every stat-set hit in the Lua action's full gem-hit list for `Explosion` names a stat set whose
     described lines include the hit's line, at the gem's default level and quality 0 (Lua query).
 
-**Tree validity in the path tools (WU-66; target, M-15; D-360).** Copied from amendment 4 §15.
+**Tree validity in the path tools (WU-66; built, M-15; D-360, D-364).** From amendment 4 §15, amended at v1.6
+by WU-66's review: "reaches the Sorceress exits without 12795" read too wide, since a Ranger tree may walk
+across the main tree onto 4739 without 12795.
 
 - **AC-K66 (WU-66, D-360).** Engine. Neither `find_path_to_node` nor `get_nearby_nodes` returns a path that opens
-  a second tree on a start, crosses an unallocated start, or reaches the Sorceress exits without 12795.
+  a second tree on a start, crosses an unallocated start, or leaves the Sorceress start by its exits without
+  12795.
+
+**`find_upgrades` dated, and priced on a rung (WU-74; built, M-16; D-372).** From amendment 5 §9; AC-K68 was
+first numbered AC-T46, which the stabilization spec already uses.
+
+- **AC-K68 (WU-74, D-372).** Unit, through `fixtureFetch`. `find_upgrades`' output has `League:` and `Checked:`
+  lines; a 429 stop reads `[trade:rate_limited]`.
+- **AC-K67 (WU-74, D-372).** Engine. After a measure-only compile of a three-rung fixture plan and a loadout
+  select of `b`, `find_upgrades` on a rare slot with two `required_mods` and a `max_price` sends a query with an
+  `and` group of those two, a `weight` group and `trade_filters.price.max`, and scores listings against `b`'s
+  item, not `n`'s.
+
+**A minion's skill (WU-77; built, M-17; D-376, D-377, D-379).** From amendment 6 §8, with AC-K71's sweep
+narrowed at v1.6 as its verifier found it built.
+
+- **AC-K69 (WU-77, D-376).** Engine. On a build whose main skill is a summon, `lua_get_stats {category:
+  "offense"}` shows `MinionTotalDPS` above 0, equal to PoB's `Minion.TotalDPS`.
+- **AC-K70 (WU-77, D-377).** Engine, on `grenadator.xml`'s Pounce group (a Wolf Companion with Basic Attack and
+  Leap Slam).
+  - `set_main_skill {minion_skill: "Leap Slam"}` selects it. The reply names the minion and the skill, and
+    `get_skill_setup` marks it selected.
+  - These are refused and change nothing (the export and the revision are unchanged): an unknown name; a group
+    with no minion; an out-of-range `minion_stat_set`.
+  - A breakdown restores the selection and the stat-set lookup.
+  - As built, a minion stat set above 1 is selected too (Kelari's Deception at stat set 2), and stat set 3 is
+    refused naming both labels.
+- **AC-K71 (WU-77, D-379).** Engine.
+  - `lookup_game_data {mode: "gem", query: "Navira's Fracturing"}` returns one result: `Kind: minion skill`;
+    cast by Navira's minion, summoned by "Navira, the Last Mirage"; `Commanded: yes`; granted by node 10561
+    (Disciple of Varashta).
+  - "Gas Arrow" lists the gem first, then the minion skill.
+  - A sweep finds every minion child that a gem result names, by that child's own name. *Amended at v1.6:*
+    amendment 6 said "every hit-making child"; 41 of 85 granted or triggered children have no name the lookup
+    finds, and a result for them is beyond the HG-12 grant, so the sweep covers minion children, as built.
 
 ## 5. Test strategy (this slice)
 
@@ -1510,7 +1680,13 @@ AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendm
 | AC-K51 (WU-60) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
 | AC-K58…K65 (WU-53) | in-process, engine-required; AC-K63's `lookups.md` check static; the new samples also in `engineKinds.test.ts` (AC-K6) | `tests/integration/lookupGameData.test.ts` |
 | AC-K52 (WU-50) | script check | `docs/build-guide/spikes/WU-50-poe-ninja.md` |
-| AC-K66 (WU-66, target) | in-process, engine-required | the path tools' engine tests (WU-66) |
+| AC-K66 (WU-66) | in-process, engine-required | the path tools' engine tests (WU-66) |
+| AC-K67 (WU-74) | in-process, engine-required, `fixtureFetch` | `tests/integration/findUpgradesLoadout.test.ts` |
+| AC-K68 (WU-74) | unit, `fixtureFetch` | `tests/unit/findUpgradesDated.test.ts` |
+| AC-K69, AC-K70 (WU-77) | in-process, engine-required | `tests/integration/minionSkill.test.ts` |
+| AC-K71 (WU-77) | in-process, engine-required | `tests/integration/lookupGameData.test.ts` |
+| D-383, D-384 (the defect batch) | unit and engine-required | `tests/unit/judge.test.ts`, `tests/integration/ruleBreaks.test.ts`; the lookup suite's `LIVE_GEMS` |
+| D-387, D-388 (the defect batch) | in-process, `fixtureFetch`; engine-required | `tests/mcp/exchangePrice.test.ts`; `tests/integration/minionRanking.test.ts` |
 
 **Kind checks.** `engineKinds.test.ts` runs every new `ok` sample from §3. The `read` samples (the
 three lookup modes, both coverage samples, G's breakdown, the ascendancy search, `include_ascendancy`,
@@ -1540,10 +1716,17 @@ unchanged. Set titles are stricter (D-245), `get_passive_upgrades` may leave out
 lines to keep its can't-measure section whole (D-246), and `update_tree_delta` refuses an add that would
 untag a weapon-set branch (D-308). The amendment units only add output: a mod's base types and essence hits
 (WU-60, built; `kind` gains `essence`), coverage flags beside the statuses (WU-54, built), and the lookup
-additions (WU-53, built; `kind` gains `base`). No tool is added in group `ninja` (D-335). *Target (WU-66,
-D-360):* `find_path_to_node` and `get_nearby_nodes` stop returning paths that open a second tree on a start
-or cross an unallocated start; their arguments and output format are unchanged, and the user's acceptance
-of amendment 4 is the HG-12 decision for it (2026-10-11). Rollback is a revert of the unit's merge.
+additions (WU-53, built; `kind` gains `base`). No tool is added in group `ninja` (D-335). Since WU-66
+(D-360, D-364), `find_path_to_node` and `get_nearby_nodes` no longer return paths that open a second tree on
+a start or cross an unallocated start; their arguments and output format are unchanged, and the user's
+acceptance of amendment 4 is the HG-12 decision for it (2026-10-11). Since v1.6, under the user's HG-12 grants:
+`find_upgrades` gains two header lines and a stop prefix (WU-74); `set_main_skill` gains two optional
+arguments, and the skill displays and the breakdown show a summon's minion skills (WU-77); a minion's numbers
+fill fields that were always absent (WU-77); gem mode adds minion-skill results after the gems (WU-77). The
+defect batch adds a `Left out:` line and leaves legacy content out of every lookup mode (D-384), adds warnings
+to four authoring tools and findings to the advice tools (D-383, D-384), prices an emotion from the exchange
+(D-387), and gives `get_passive_upgrades` a ranking for a summon main skill (D-388); the work-log records no
+HG-12 grant for these (spine HG-12). Rollback is a revert of the unit's merge.
 
 **Choices made here** (the [slice] marks; fold into the spine at ratification):
 - **Accepted by the coordinator (2026-10-07), now spine decisions:**
@@ -1586,12 +1769,20 @@ of amendment 4 is the HG-12 decision for it (2026-10-11). Rollback is a revert o
     `stat not mapped` flag per gem, and `mapped but unread`'s strict reading with the skill-name templates
     (WU-54, D-336; §2.4);
   - no poe.ninja tools (D-335; §2.10).
+- **Settled by M-15…M-17 and the defect batch (fold v1.6):**
+  - the path tools' rule, with D-364's tree (WU-66; §2.11);
+  - `find_upgrades`' three header lines and its prefixed stop line (WU-74, D-372; §2.9);
+  - the minion-skill selector, its refusals, the displays and the lookup's minion-skill block (WU-77, D-376,
+    D-377, D-379; §2.1, §2.2, §2.5);
+  - legacy gems and unobtainable uniques left out and named (D-384), emotion prices from the exchange (D-387),
+    and a summon main skill ranked by its minion (D-388).
 
 **Former spine nits, settled 2026-10-07.** The spine's C-2/C-5 row is a modified contract listing §2.1's
 changes (D-222). WU-36 edits `add_item`'s enum, never the shared `ITEM_SLOTS` (D-223).
 
 **Open:** none in this slice. WU-53's output formats and checkable criteria were pinned at its first step
-(A-33) as AC-K58…AC-K65, which merged with it (`506d89e`). Amendment 4 gave AC-K66 itself.
+(A-33) as AC-K58…AC-K65, which merged with it (`506d89e`). Amendment 4 gave AC-K66 itself, amendment 5
+AC-K67 and AC-K68, and amendment 6 AC-K69…AC-K71.
 
 **Closed by the build:** the WU-54 flags' names and examples (AC-K53…AC-K57, D-336); C-54's tool details
 and the popularity threshold, withdrawn with the tools (D-335, D-324 withdrawn).

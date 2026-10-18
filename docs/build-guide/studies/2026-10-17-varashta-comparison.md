@@ -123,7 +123,7 @@ out in the engine (§6, the server). The unedited control copy measures 119,260,
 | Divergence | Where our pipeline missed it or chose otherwise |
 |---|---|
 | **Powered by Verisium as the infusion supply.** The deaths refill Ice Nova's infusion, so the nova lays ground without a freeze, and the three infusion-limit notables let the player hold more. | R1a, the research stage. Every infusion lookup was "Cold Infusion" or "Infusion Remnant", and two researchers saw "Verisium Infusion Remnant" without following it (feedback study §2.2). A supply-search miss. |
-| **A minion army on a sceptre.** About eight types make Muster and At your Command large, and the sceptre's Spirit pays for them. | R1a found both pieces: Muster's "7% more damage for each different type of Reviving Minion" (`research/p1-r1a-2.md:68`) and +4 sceptres (`research/p1-r1a-2.md:48`). No card combined them. Card r1-c-2 counted djinn as the types, none counted skeleton types, and the design took a wand for Ice Nova's freeze buildup and spell damage (`guide.md`, the budget table). Nothing asks "what scales per type, and what pays for more types". |
+| **A minion army on a sceptre.** About eight types make Muster and At your Command large, and the sceptre's Spirit pays for them. | R1a found both pieces: Muster's "7% more damage for each different type of Reviving Minion" (`research/p1-r1a-2.md:68`) and +4 sceptres (`research/p1-r1a-2.md:48`). No card combined them. Card r1-c-2 counted the djinn as Muster's types, and card r2-c-3 counted the skeletons as a second type for At your Command (node 35560), but no card grew the number of types, and the design took a wand for Ice Nova's freeze buildup and spell damage (`guide.md`, the budget table). Nothing asks "what scales per type, and what pays for more types". |
 | **Kelari for single target.** | R1a listed Barya of Kelari and Kelari's Deception (`research/p1-r1a-3.md:10-16`), and card r1-c-2 took Kelari for headcount. No card made it the boss answer: a card's only boss line is a risk ("Resistant bosses", as in `cards/r1-b-1.md`), not a second damage source. |
 | **The tamed beast with Frozen Ground Trail.** | Out of reach: the server has no beast or rare-monster-modifier data. Already in the engine-lens amendment's scope. |
 | **Encroaching Ground** on Navira and Ice Nova (surfaces grow, up to 100% more area). | R1a found it (`research/p1-r1a-3.md:73`), but no plan used it. The design chose Navira's supports by measured DPS (the FAQ's Elemental Focus figure, `guide.md` "FAQ"), and PoB gives ground area no value, so a ground-area support loses to any damage support. |
@@ -183,7 +183,7 @@ reaching the endgame (`navira-guide.txt:56`). Ours: a longer, measured and expla
   Spirit from a sceptre funds them. A library entry such as "a minion army as a multiplier" would have led to
   Navira's shape.
 - **Ask for a single-target answer on every card.** A second damage source, such as a second djinn, is a boss
-  answer the ground loop doesn't give.
+  answer the ground loop doesn't give. It is a floor check: players judge a build by clear speed, not bosses (§7.1).
 - **A tamed rare beast as a ground source** (already in scope).
 - **Value what PoB can't measure.** A design that ranks supports only by measured DPS never takes ground area
   (Encroaching Ground) or supply rate. The designer needs a stated reason to override the ranking for the engine's
@@ -208,7 +208,108 @@ reaching the endgame (`navira-guide.txt:56`). Ours: a longer, measured and expla
 - **A review skill** run on Navira's PoB would have flagged the uncapped campaign resistances, the over-reserved
   Spirit and the 12 gem groups over PoB's limit of 9 (PoB's own warning on load).
 
-## 7. Caveats
+## 7. General lessons
+
+Added on 2026-10-18, from a discussion with the user. §6 sorts the specific lessons by where they go; this section
+says what carries beyond this build. In short, almost none of the gap comes from tuning. Our pipeline measured and
+tuned the build it chose well. Navira's guide chose a better build.
+
+### 7.1 What went wrong
+
+- **Tuning can't find a better build structure.** The compile-and-measure loop picks the best support, passive or
+  item for the build it is given. The ×2.3 boss gap comes from structural choices: where the Chilled Ground comes
+  from, how many minion types the build runs, what the weapon is for, and a second djinn. Muster shows why no ranking
+  gets there. At two or three types it is a modest support, and a slot-by-slot ranking is right to drop it; at about
+  eight it is worth ×1.63 (§3). Each added type costs Spirit and helps little alone, so no run of single improvements
+  reaches the army.
+- **Tuning the wrong structure wastes tokens.** Compiles and tuning are the expensive steps. They belong after a
+  structure has beaten its alternatives on paper, where rough multiplier arithmetic is enough: Muster at eight types
+  is 7% × 8, about ×1.56.
+- **The pipeline settles on a local maximum without lateral moves** (the user's diagnosis). An average player's first
+  thought for a minion build is "sceptres and lots of Spirit". PoB can't supply that thought, and no step in our
+  pipeline does.
+- **Research found the pieces, and nothing combined them.** Muster, the +4 sceptres, Kelari and Encroaching Ground are
+  all in the research files (§4). Round-1 cards put Muster on Navira (`cards/r1-b-1.md`, `r1-b-3.md`, `r1-c-2.md`),
+  and four of round 2's nine cards used a sceptre: for its minion levels (`r2-a-1.md`, `r2-b-1.md`) or its free
+  Skeletal Warriors (`r2-b-2.md`, `r2-b-3.md`). None spent the sceptre's Spirit on more minion types. The one true
+  miss, Powered by Verisium, was a search-method miss (feedback study §2.2).
+- **Players judge a build by clear speed,** which is damage × area × pace between packs. Bosses are under 5% of play
+  time, and more damage solves them, so a boss figure is a floor check, not the judge (the user). Our headline target,
+  map monsters, was the right one, but area and pace were never measured:
+  - **Area.** Navira's spends supports on it (Encroaching Ground, and Magnified Area II on Ice Nova). Ours spent every
+    slot on damage.
+  - **Pace,** as we read the two builds (not measured or tested). Navira's banks Verisium Infusions between packs (the
+    three infusion-limit passives), so the nova can lay ground as the player arrives. Ours makes ground only as
+    skeletons die inside the pack: "I stay close so the novas reach the pack" (our `guide.md`, "How to play it"). A
+    stored supply clears faster than one made on the spot.
+  - PoB reports a skill's area and the player's movement speed, so a rough clear figure is possible. The time to first
+    damage on a new pack isn't in PoB, so the designer estimates it.
+- **A weak link in the engine taxes the whole build.** Our ground needs the player's nova to freeze, so the weapon went
+  to freeze buildup and spell damage (a wand). That gave up the sceptre's 184 Spirit and +4 minion levels, and with
+  them the army. Vis Mortis, the engine's body armour, has no resistances, so every other slot carries them. Powered by
+  Verisium makes ground from deaths without a freeze, so Navira's weapon can serve Navira.
+- **New content is a recurring problem for every PoE2 tool.** The newest mechanics are the least explored. The user:
+  it is solved only by the player community's crowd-sourced services (poe2wiki, PoB and poe2db are maintained that
+  way), or by ingesting YouTube videos. Our game data is PoB's, behind the pin: 0.5.4 data against Navira's 0.5.5
+  guide, whose PoB, probably from a newer release, keeps supports in tree-granted groups that ours drops (§3).
+
+### 7.2 What would help
+
+**Before any card is drawn:**
+
+1. **Start from the obvious build.** Write down, once per archetype, what an average player knows. For minions that is
+   a sceptre, lots of Spirit, minion levels on the helmet, amulet and focus, and more minion types. The ascendancy's
+   own design is a prior too: Varashta's nodes are djinns, so running two is the intended play. The first card of
+   every brainstorm round is that obvious build. Every other card has to clear faster, or say why it's worth it anyway.
+2. **Seed with an expert build when the user has one.** A reference build the user picks enters the brainstorm as a
+   seed card. Starting from an expert's maximum is the cheapest way out of our own, and it is the "customise a
+   community build" use case (feedback study §3).
+3. **Know what's new from the community.** A "what's new" step reads the crowd-sourced services or a video transcript
+   (the user's local YouTube library already makes one). Which services, and how within their terms, is the user's
+   call (compare poe.ninja's closed builds API, D-335).
+
+**While designing, before any compile:**
+
+4. **Check the archetype's big levers.** For minions: minion levels, Spirit, minion types and minion damage supports.
+   Flag any lever the design leaves unpulled. "100 Spirit on a minion build" is one line of arithmetic.
+5. **Flip the build's assumptions.** List its load-bearing assumptions and sketch the build with each one reversed,
+   in a paragraph, not a compile. Three of ours lead straight to Navira's build:
+   - "the ground needs a freeze" leads to the infusion search, then Verisium;
+   - "the weapon is a wand" leads to a sceptre, then Spirit, then the army;
+   - "one djinn" leads to Kelari.
+6. **Ask what grows with a count, and what pays for a bigger count.** Muster and At your Command grow with minion
+   types, the infusion-limit passives with infusions held; Spirit from a sceptre pays for more types.
+7. **Ask what each premium slot serves.** If it props up the engine rather than the damage, search for a supply that
+   frees it.
+8. **Search a resource by its whole family, and follow unfamiliar terms:** "Infusion", not "Cold Infusion" (already
+   in the engine-lens amendment's scope).
+9. **Score clear speed, with bosses as a floor.** Damage from PoB, area and movement speed from PoB, time to first
+   damage estimated. A designer may override PoB's damage ranking for area, supply or pace, with a stated reason.
+
+**At the gates:**
+
+10. **Show a found-but-unused list:** the strongest research findings no card uses, each with its reason.
+11. **Bring in a rival with fresh context.** Our designers share one set of research and briefs, so they share blind
+    spots. A fresh agent gets only the ascendancy, the skill and the pick's figures, with one job: a structurally
+    different build that clears faster. If it fails, the pick is probably near the top; if it succeeds, tuning would
+    have been wasted. It costs one agent.
+
+**After a run:**
+
+12. **Compare against a build the user picks, and keep what it teaches.** This comparison found more than all the run's
+    own checks. Its patterns ("a minion army as a multiplier", "bank the resource", "search by the resource's whole
+    family") belong in a pattern library that every run reads, so the next run doesn't learn them again. That library
+    is the game-knowledge layer the user described (feedback study §3).
+
+### 7.3 Where they go
+
+- **The engine-lens amendment:** 1, 4–9 and 11.
+- **The feedback amendment (gates as interviews):** 2 and 10, and clear speed in each card's pitch: how it clears, how
+  many buttons, how fast it moves between packs.
+- **The pattern library:** 12, starting with this study's patterns.
+- **Later, the user's choice of sources:** 3.
+
+## 8. Caveats
 
 - Navira's guide is for 0.5.5. Our pin is PoB2 v0.23.1 with 0.5.4 data (boss data 0.5.5).
 - The rebuilt Navira group is our model (PG-51). The guide's newer PoB may model the granted group differently.

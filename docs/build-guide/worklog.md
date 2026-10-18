@@ -4412,3 +4412,8 @@ the `m17` engine at `b76967b`.
   coordinator question step at the brainstorm gate, which the built skill forbids; six rows that v1.6 decisions
   change lacked their "amended by" marks (D-267, D-372, D-312, D-249, D-213, C-33's headline sentence); slice 02's
   open-items list still held two settled items. Fix round sent to the doer.
+- **The fold's fix round** (`9cc67fe`, the doer's 746K total) fixed all 8 findings; the reviewer's re-check
+  **PASS** (496K in all for the reviewer). The coordinator aligned D-373's rounding with the build (`9f57e72`: whole
+  divines at 10 or more, as `roundDivines` does). **Spec v1.6 merged** into `roadmap/2026-10-18` (fast-forward,
+  7 commits); static tests 384 of 384. Open for the user: HG-12 for the defect batch's tool changes (D-383, D-384,
+  D-387, D-388). D-398 and D-399 join the spine after the fix batch merges.

@@ -107,7 +107,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Leather Bindings (8525, Smith of Kitava) — your Body Armour grants 3% Life Regeneration per second.
 - Living Weapon (47184, Smith of Kitava) — grants the skill Manifest Weapon.
 - Molten Symbol (9997, Smith of Kitava) — your Body Armour makes you take 25% of Physical damage from Hits as Fire.
-- Smith's Masterwork (9988, Smith of Kitava) [rule] — you can use only a Normal (white) Body Armour, which gains 200 Armour for each connected notable you allocate. creates: armour | pays off on: body-slot | PoB models it: partly
+- Smith's Masterwork (9988, Smith of Kitava) [rule] — you can use only a Normal (white) Body Armour, and you gain 200 Armour for each connected notable you allocate. creates: armour | pays off on: body-slot | PoB models it: partly
 - Spiked Plates (20195, Smith of Kitava) — your Body Armour grants 100% increased Thorns damage.
 - Support Straps (49340, Smith of Kitava) — your Body Armour grants 20% increased Strength.
 - Tantalum Alloy (61039, Smith of Kitava) — your Body Armour grants +75% Fire Resistance.
@@ -278,7 +278,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Avatar of Evolution (61983, Shaman) — takes 5% of Physical damage as each Element, and Adaptations last 5 seconds with double effect.
 - Bringer of the Apocalypse (28745, Shaman) — grants the skill Apocalypse.
 - Druidic Champion (56933, Shaman) [rule] — Rage also empowers Spells: 1% more Spell damage per 2 Rage. creates: none | pays off on: rage | PoB models it: yes
-- Furious Wellspring (35762, Shaman) [rule] — Rage no longer decays but regenerates (6% per second, scaled by Mana Regeneration modifiers), and skills cost 5 Rage. creates: rage | pays off on: none | PoB models it: yes
+- Furious Wellspring (35762, Shaman) [rule] — Rage no longer decays but regenerates (6% per second, scaled by Mana Regeneration modifiers), and skills cost 5 more Rage. creates: rage | pays off on: none | PoB models it: yes
 - Reactive Growth (58646, Shaman) — 10% less Elemental damage taken, and you Adapt to each Hit's strongest Element for less damage of that Element.
 - Sacred Flow (16204, Shaman) [rule] — each empty Charm slot grants 40 Spirit. creates: spirit | pays off on: charm | PoB models it: yes
 - Turning of the Seasons (62523, Shaman) — enemies in your Presence have Exposure, and you gain 10% of damage as extra damage of a random Element.
@@ -312,7 +312,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Resolute Technique (44017, keystone) [rule] — you never deal Critical Hits, and your Accuracy Rating is doubled. creates: none | pays off on: none | PoB models it: partly
 - Resonance (25520, keystone) [rule] — you gain the next Charge type instead: Power in place of Frenzy, Frenzy in place of Endurance, Endurance in place of Power. creates: endurance-charge, frenzy-charge, power-charge | pays off on: none | PoB models it: no
 - Ritual Cadence (11230, keystone) [rule] — Invocation skills trigger their Spells every 2 seconds instead, gaining no Energy meanwhile, and the Spells cost 50% less Energy. creates: none | pays off on: energy | PoB models it: no
-- Scarred Faith (49547, keystone) [rule] — Energy Shield neither recharges nor regenerates and can't exceed your Armour; instead it recoups Physical damage that Armour prevents. creates: energy-shield | pays off on: armour | PoB models it: partly
+- Scarred Faith (49547, keystone) [rule] — Energy Shield neither recharges nor regenerates and can't exceed your Armour; instead it recoups part of the Physical damage you prevent, more per enemy Power. creates: energy-shield | pays off on: armour | PoB models it: partly
 - Trusted Kinship (41861, keystone) [rule] — you can have two Companions of different types, and Companion skills reserve more efficiently while other skills reserve less. creates: companion, minion-count | pays off on: none | PoB models it: partly
 - Unwavering Stance (14540, keystone) [rule] — you can't be Light Stunned, and you can't Dodge Roll or Sprint. creates: none | pays off on: none | PoB models it: yes
 - Vaal Pact (33369, keystone) [rule] — you recover Life only from Leech, which leeches 50% more but 67% more slowly and continues at full Life. creates: none | pays off on: leech | PoB models it: partly

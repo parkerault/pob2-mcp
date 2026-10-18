@@ -86,7 +86,7 @@ not evidence that players build around it.
 
 ### Ungil's Harmony (Amulet, level 25)
 - Id: ungils-harmony
-- Rule: Your Critical Hits deal no extra damage, which suits builds that want Critical Hits for their effects.
+- Rule: Your Critical Hits deal no extra damage.
 - Lines: "You have no Critical Damage Bonus"
 - Creates: crit | Pays off on: none
 - Penalties: none
@@ -147,14 +147,6 @@ not evidence that players build around it.
 - Creates: none | Pays off on: on-kill
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
-
-### Mageblood (Belt, level 55)
-- Id: mageblood
-- Rule: You have the Legacies of four Charms at all times, by variant.
-- Lines: "Legacy of Amethyst", "Legacy of Basalt", "Legacy of Bismuth", "Legacy of Diamond"
-- Creates: none | Pays off on: charm
-- Penalties: none
-- PoB models it: yes
 
 ### Shavronne's Satchel (Belt, level 62)
 - Id: shavronnes-satchel
@@ -326,7 +318,7 @@ not evidence that players build around it.
 
 ### Ghostwrithe (Body Armour, level 1)
 - Id: ghostwrithe
-- Rule: A third of your maximum Life becomes Energy Shield.
+- Rule: 35% of your maximum Life becomes Energy Shield.
 - Lines: "35% of Maximum Life Converted to Energy Shield"
 - Creates: energy-shield | Pays off on: life
 - Penalties: none
@@ -510,7 +502,7 @@ not evidence that players build around it.
 
 ### Wandering Reliquary (Body Armour, level 27)
 - Id: wandering-reliquary
-- Rule: Half of the Physical damage your Armour prevents is Recouped as Life.
+- Rule: Half of the Physical damage you prevent is Recouped as Life.
 - Lines: "50% of Physical Damage prevented Recouped as Life"
 - Creates: recovery | Pays off on: armour
 - Penalties: none
@@ -1710,7 +1702,7 @@ not evidence that players build around it.
 
 ### Redemption (Crossbow, level 65)
 - Id: redemption
-- Rule: The crossbow can't load or fire Ammunition; Grenade skills build Explosive Rhythm toward Explosive Fervour instead.
+- Rule: The crossbow can't load or fire Ammunition, and Grenade skills build Explosive Rhythm toward Explosive Fervour.
 - Lines: "Cannot load or fire Ammunition", "Gain 1 Explosive Rhythm every (2-3) times you use a Grenade Skill", "Remove all Explosive Rhythm on reaching 10 to gain Explosive Fervour for 10 Seconds"
 - Creates: none | Pays off on: none
 - Penalties: "Hits with this Weapon have no Critical Damage Bonus", "(20-40)% reduced Cooldown Recovery Rate"

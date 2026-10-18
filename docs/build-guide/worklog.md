@@ -4352,3 +4352,11 @@ the `m17` engine at `b76967b`.
   `/build-guide` stays as the sum of the pieces; the run folder's files are the interfaces. Extraction order: game
   knowledge (with the engine-lens amendment), review, compile and writer with a PoB-to-plan tool, pricing, then
   discovery and research. §6 lists four choices.
+- **Amendment 8, finding the build's engine** (`spec/amendment-8-engine-lens.md`), DRAFT for the user's review.
+  D-400…D-409 (D-398 and D-399 are the fix batch's): a poe2db league digest (D-400); one index of rule-changing nodes,
+  keystones, gems and uniques with precomputed pairs (D-401); rare monster modifiers and the tamed beast (D-402); the
+  obvious build always in the deck, from new standard kits (D-403); the supply search by family, following strange
+  words (D-404); at most half the deck on one engine (D-405); a structure check on paper before each skeleton (D-406);
+  clear speed measured on skeletons and leading every display, with a stated override of PoB's ranking (D-407); a
+  rival card with fresh context before the verification gate (D-408); the library's new entries (D-409). Work units
+  WU-84…WU-91 (no WU-83: that number is only the fix batch's lane name). §15 lists five choices.

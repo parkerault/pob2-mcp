@@ -4165,3 +4165,39 @@ the `m17` engine at `b76967b`.
   - no network.
 - **The integration worktree** is `pob2-mcp-wt/amend`, on a new `build-guide/amendments` branch off `main`. The
   lanes are `bg-80` and `bg-81`.
+- **WU-80 built** (`e2f3fbc` on `bg/wu-80`; the doer used 193K tokens). Gate rc 0 (135 suites, 2,400 tests; the
+  `--runInBand` step 3 of 3), build rc 0, waivers `[]`, dependencies unchanged.
+  - **The change:** `figureField` reads `MinionTotalDPS` when a group names a minion skill, or when its selected
+    `skillOutputs` entry carries `Minion<Field>` fields. The test is a shared `summonsMinion(fields)`, which
+    `get_passive_upgrades` (D-388) now calls too. The headline and the key-figure line follow it.
+  - **AC-P70** is in `tests/integration/compilePlainSummon.test.ts` (2 engine tests). The unit edges are in
+    `planMeasures.test.ts`.
+  - **The coordinator's decisions on the doer's report:**
+    - **Accepted:** the key-figure label is the record's own skill name, `(Skeletal Warrior Minion, minion)`, not
+      the AC's `(Skeletal Warrior, minion)`. The record holds PoB's granted-effect name; the gem's name would need a
+      new field in the engine reply. AC-P70's wording changes at the fold.
+    - **Accepted:** `figureField` takes `(rec, {group, activeSkill, statSet?})`.
+    - **Changed (fix round):** the clear-speed measure follows the same rule. Otherwise a plain summon as the main
+      group reads "slow" from the player's radius of 0. It falls under D-397's intent: the figure of a plain summon
+      is its minion's.
+  - **Relayed to WU-81:** the renderer's copy of the headline rule and its test (`buildGuideScripts.test.ts:242-244`)
+    still read only `minionSkills`. They are WU-81's under D-397's reach.
+  - **The doer's slip:** one gate log was written to `/tmp` rather than a `mktemp -d` dir, then deleted.
+- **WU-80's fix round** (`5989189`; the doer's total was 216K tokens).
+  - The new `minionFigures(rec, group, key)` decides for both `figureField` and the clear measure.
+  - Gate rc 0 (135 suites, 2,401 tests), build rc 0.
+  - **The doer's finding:** the Skeletal Warrior still reads "slow", now from its own numbers. At the pin, PoB gives
+    the warrior's strike no area radius (no `MinionAreaOfEffectRadiusMetres`), so its radius is 0 on either side.
+    The unit tests cover a minion with a 4.5 m radius ("fast").
+  - An independent verifier is running.
+- **WU-80 verified: PASS** (an independent verifier, 120K tokens).
+  - **Gate:** rc 0 (135 suites, 2,401 tests; the `--runInBand` step 3 of 3), build rc 0.
+  - **AC-P70 is faithful.** The summon case fails on the base code (expected 78.0, received 0) and passes on the unit.
+  - **Scope:** 5 files under `src/` and `tests/`. Waivers `[]`, no tool or description changed.
+  - **The coordinator's three rulings** are implemented as stated.
+  - **Findings, all low:**
+    - a plain summon with no `skillOutputs` entry at the main key falls back to `TotalDPS`. This is theoretical, and
+      a test pins it;
+    - a non-main clear group is measured at its first active skill, so the rule misses a plain summon in second
+      place. That predates the unit and is outside D-397;
+    - a stale header comment, fixed by the coordinator (`cf37449`).

@@ -4381,3 +4381,10 @@ the `m17` engine at `b76967b`.
   rounds half down (4 of 8 or 9) and matches engines by the index's vocabulary; "A count as a multiplier" is a new
   entry beside "Filler to satisfy a count", and every new library entry awaits the user's review (D-290); the pattern
   library is still read first; an on-request rival is stage `RV`, not a gate question.
+- **The v1.6 fold, done by its doer** (`2b312b4` on `bg/fold-v16`, 5 commits; 728K tokens): 5 files, +1919/−510;
+  the static tests pass, 384 of 384, with no pinned text changed. It folds D-363…D-397, amendments 5–7, M-16…M-18
+  with their wave gates, risks R-43…R-47 and every work-log fold note; AC-P70 reads `(Skeletal Warrior Minion,
+  minion)`. Where an amendment and the build differ, the as-built text is folded and the difference stated (twelve
+  places). **Left open for the user:** the defect batch's tool changes (D-383, D-384, D-387, D-388) have no recorded
+  HG-12 grant, so the spine lists them as pending the user's confirmation. D-398 and D-399 wait for the fix batch's
+  merge. An independent reviewer is running.

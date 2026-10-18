@@ -4339,7 +4339,7 @@ the `m17` engine at `b76967b`.
   pushed at `dac3563`. `m18` was moved to `dac3563` and rebuilt for the next live run.
 - **Integration:** worktree `int`, branch `roadmap/2026-10-18`, off `main` at `dac3563`. Commits there are unsigned
   while the user is away (the main checkout signs through 1Password); the sign-rebase comes when the user is back.
-- **The handoff** gains an M-19 section (`6d1dcf5`): lane `bg-83` (D-398, the load warning for supports dropped from
+- **The handoff** gains an M-19 section (`9fd32fa`): lane `bg-83` (D-398, the load warning for supports dropped from
   a tree-granted group, with PG-54; the probe of snapshot timeouts on a heavy minion build, fixed as D-399 only if
   the fix is local) and lane `bg-fold` (the fold to v1.6). HG-12 is granted for D-398's warning only. The probe may
   read one file under the run environment's `reference/`, Navira's PoB, copied to a temp dir and never committed.
@@ -4381,22 +4381,22 @@ the `m17` engine at `b76967b`.
   rounds half down (4 of 8 or 9) and matches engines by the index's vocabulary; "A count as a multiplier" is a new
   entry beside "Filler to satisfy a count", and every new library entry awaits the user's review (D-290); the pattern
   library is still read first; an on-request rival is stage `RV`, not a gate question.
-- **The v1.6 fold, done by its doer** (`2b312b4` on `bg/fold-v16`, 5 commits; 728K tokens): 5 files, +1919/−510;
+- **The v1.6 fold, done by its doer** (`23e9d5c` on `bg/fold-v16`, 5 commits; 728K tokens): 5 files, +1919/−510;
   the static tests pass, 384 of 384, with no pinned text changed. It folds D-363…D-397, amendments 5–7, M-16…M-18
   with their wave gates, risks R-43…R-47 and every work-log fold note; AC-P70 reads `(Skeletal Warrior Minion,
   minion)`. Where an amendment and the build differ, the as-built text is folded and the difference stated (twelve
   places). **Left open for the user:** the defect batch's tool changes (D-383, D-384, D-387, D-388) have no recorded
   HG-12 grant, so the spine lists them as pending the user's confirmation. D-398 and D-399 wait for the fix batch's
   merge. An independent reviewer is running.
-- **The fix batch, done by its doer** (`fcf3199` on `bg/fix-batch`, 3 commits; 298K tokens). Gate: test rc 0 (137
+- **The fix batch, done by its doer** (`9b581b9` on `bg/fix-batch`, 3 commits; 298K tokens). Gate: test rc 0 (137
   suites, 2,446 tests, plus the timing step; one AC-F3 tooling false-failure at load average 8.6, passing alone and
   on the re-run), build rc 0.
-  - **D-398** (`5ce0afd`): every load path names, one line per group, the supports PoB drops from a granted group:
+  - **D-398** (`4b047c5`): every load path names, one line per group, the supports PoB drops from a granted group:
     file load and reload, import, the session's reload after a change on disk, and the temporary loads of
     `analyze_build` and `compare_builds`. The engine's `load_build_xml` replies `droppedSupports`. It covers
     item-granted groups too (Navira's sceptre loses its Purity of Ice supports the same way); on the probe copy it
-    named Kelari, Navira and the sceptre. **PG-54** (`d554069`).
-  - **D-399, the snapshot timeouts** (`fcf3199`). Not the minions: PoB's save re-parses every item, and one rare
+    named Kelari, Navira and the sceptre. **PG-54** (`21b3fac`).
+  - **D-399, the snapshot timeouts** (`9b581b9`). Not the minions: PoB's save re-parses every item, and one rare
     Runeforged item's unread "Runic Ward:" line before a socketed rune made its text read back different, so every
     snapshot gave it one more socket and rune and its parse grew slower (the Items saver: 0.02 s, 0.16 s, 2.0 s,
     12.7 s, then minutes; the engine reached 1 GB). The export now builds each item's text without re-parsing it.
@@ -4412,8 +4412,8 @@ the `m17` engine at `b76967b`.
   coordinator question step at the brainstorm gate, which the built skill forbids; six rows that v1.6 decisions
   change lacked their "amended by" marks (D-267, D-372, D-312, D-249, D-213, C-33's headline sentence); slice 02's
   open-items list still held two settled items. Fix round sent to the doer.
-- **The fold's fix round** (`9cc67fe`, the doer's 746K total) fixed all 8 findings; the reviewer's re-check
-  **PASS** (496K in all for the reviewer). The coordinator aligned D-373's rounding with the build (`9f57e72`: whole
+- **The fold's fix round** (`fe65953`, the doer's 746K total) fixed all 8 findings; the reviewer's re-check
+  **PASS** (496K in all for the reviewer). The coordinator aligned D-373's rounding with the build (`6d70767`: whole
   divines at 10 or more, as `roundDivines` does). **Spec v1.6 merged** into `roadmap/2026-10-18` (fast-forward,
   7 commits); static tests 384 of 384. Open for the user: HG-12 for the defect batch's tool changes (D-383, D-384,
   D-387, D-388). D-398 and D-399 join the spine after the fix batch merges.
@@ -4428,17 +4428,26 @@ the `m17` engine at `b76967b`.
   - **Fix round sent** for lows 1, 3 and 4: name the file on a temporary load's warning lines; neutral examples in the
     unit test; an engine test for an item-granted group, and no false "dropped" line when no group matches the
     grant.
-- **The fix batch's fix round** (`d23201c` after the rebase; the doer's 331K total, 3 commits plus 1): a temporary
+- **The fix batch's fix round** (`6221fff` after the rebase; the doer's 331K total, 3 commits plus 1): a temporary
   load's lines name their file; neutral examples in the unit test; an engine test for an item-granted group; a group
   nothing grants (its passive unallocated, its item unequipped) gets a truthful line ("…isn't allocated, so PoB
   removed the group") and an optional `grantMissing` in the engine reply. The coordinator read the code diff.
-- **Merged** into `roadmap/2026-10-18` (fast-forward; `b573650` D-398, `9d34539` PG-54, `7d20ee9` D-399, `d23201c`).
-  The spine gains D-398 and D-399 (`fba4113`), and R-47 is resolved by D-399. **PG-55** (the unread "Runic Ward:"
+- **Merged** into `roadmap/2026-10-18` (fast-forward; `4b047c5` D-398, `21b3fac` PG-54, `9b581b9` D-399, `6221fff`).
+  The spine gains D-398 and D-399 (`f2880dc`), and R-47 is resolved by D-399. **PG-55** (the unread "Runic Ward:"
   line) is added. PG-51's fold note (where PoB's own group lands, D-382) was already in its text.
-- **M-19 wave gate: PASS** at `92f2f57`, from a clean build: `mise run test` rc 0 (137 suites, 2,449 tests; the
+- **M-19 wave gate: PASS** at `0b9cecc`, from a clean build: `mise run test` rc 0 (137 suites, 2,449 tests; the
   `--runInBand` step 3 of 3), `pnpm build` rc 0. The "restoring the snapshot failed" lines in the log are the
   session tests that inject that failure.
 - **The pin** (the user, 2026-10-18: pin to the PoB they run on Windows, 0.23.1): already so. `pob-pin.json` names
   tag `v0.23.1` (`7d6f530`), and the vendor checkout describes as `v0.23.1`.
 - **M-19's agents:** about 2.07M tokens: the fold doer 746K and its reviewer 496K, the fix batch's doer 331K and
   verifier 184K, the drafts' reviewer 315K. The coordinator's own session is on top.
+- **M-19 merged to `main`, signed** (with the user present). The 25 integration commits above `dac3563` were
+  re-signed with the same trees and metadata (all 25 show good signatures; the tip's tree is identical), and `main`
+  fast-forwarded to them. The unsigned originals are kept locally as `refs/archive/pre-sign-m19-2026-10-18`.
+  - **15 cited hashes remapped** in this log: the integration commits exactly, the lane originals to their main-line
+    copy by subject. No line holds two hashes that collapsed into one.
+  - **Not pushed.**
+  - **Left for the user:** removing the worktrees `int`, `bg-83` and `bg-fold` and the branches
+    `roadmap/2026-10-18`, `bg/fix-batch` and `bg/fold-v16` (the classifier blocks worktree removal for the
+    coordinator); reconnecting the pob2 server after `build/` is rebuilt.

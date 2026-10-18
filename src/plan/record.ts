@@ -26,9 +26,9 @@
  * **A minion's skill** (WU-78; D-377, D-378), additive. Each stage's `minionSkills` holds the resolved selection
  * of every group that names a `minionSkill`, and only those: the minion, the skill's name, its index in the
  * minion's live list and its stat set. A group's damage figure (`figureField`) is `MinionTotalDPS` when the group
- * names a minion skill, else `TotalDPS`, at the same key `g<group>s<skill>p<statSet>`; the headline, the key-figure
- * line and the clear measure read it. `outputs` carries the minion's own numbers flattened as `Minion<Field>`
- * (D-376), and Count applies to them by PoB's Full DPS rule for a minion.
+ * names a minion skill (or is a plain summon, below), else `TotalDPS`, at the same key `g<group>s<skill>p<statSet>`;
+ * the headline, the key-figure line and the clear measure read it. `outputs` carries the minion's own numbers
+ * flattened as `Minion<Field>` (D-376), and Count applies to them by PoB's Full DPS rule for a minion.
  *
  * **A plain summon's figure** (WU-80, D-397). A summon that names no minion skill, such as Skeletal Warrior, has its
  * minion's figure too: `figureField` is also `MinionTotalDPS` when the selected skill's `skillOutputs` entry carries

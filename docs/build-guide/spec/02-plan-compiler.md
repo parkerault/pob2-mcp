@@ -13,7 +13,7 @@ views (D-356), `support-sockets` (D-359) and `tree-shape` (D-360), with their un
 AC-P60…AC-P67. WU-66's path-tool half, with AC-K66, is in slice 01. Slice 3's WU-57 has merged, so its
 markers here read "since WU-57".
 
-**Fold v1.4 (2026-10-11).** WU-61 and WU-55 are built and WU-51 done, so their text is as-built (WU-55 merged at `3fc1500`). D-337 (Full DPS in
+**Fold v1.4 (2026-10-11).** WU-61 and WU-55 are built and WU-51 done, so their text is as-built (WU-55 merged at `418b5b5`). D-337 (Full DPS in
 every compile, PROPOSED by the coordinator) amends §3.6, and D-332's and D-282's as-built additions are
 folded in. WU-55's record fields, its new `compile_check` error and where PoB applies a group's Count were
 folded from the work-log's "Review: WU-55", first as *target* text; WU-55 merged during the fold.
@@ -1031,7 +1031,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   the stage or by the baseline list. Its review fix (`c3dba2e`) added D-250…D-252.
 
 ### WU-51: Spike: Full DPS compile cost with only the named groups (amendment 3's S-N2)
-- status: done, merged at `9f74ad9` (report `docs/build-guide/spikes/WU-51-full-dps.md`). Decision:
+- status: done, merged at `294e174` (report `docs/build-guide/spikes/WU-51-full-dps.md`). Decision:
   within NFR-21, so the final compile computes Full DPS for the named source's groups. Three quiet runs (a
   1-minute load average of at most 8): the whole call 26.22–27.77 s with Full DPS off and 29.93–31.92 s with
   it on for the named groups (median ×1.14); the slowest stage request 3.08 s. With every group in Full
@@ -1054,7 +1054,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   flags are written at export only.
 
 ### WU-55: Count and custom modifiers in the plan, the compiler and the record (amendment 3's N-4)
-- status: built, merged at `3fc1500`
+- status: built, merged at `418b5b5`
 - kind: build
 - depends-on: [WU-51 (done)]; after WU-61 on `src/plan/schema.ts`: WU-61 merged first, so WU-55 extends
   its version bump (D-320)
@@ -1084,7 +1084,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
   - Slice 3 reads the new figures (WU-57, WU-58).
 
 ### WU-61: The entering-maps variant and the ladder track (amendment 2)
-- status: built, merged at `74c5745`
+- status: built, merged at `2304e7e`
 - kind: build
 - depends-on: []; serialized with WU-55 on `src/plan/schema.ts` (D-320): WU-61 merged first
 - role: backend-dev
@@ -1480,7 +1480,7 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
 - **AC-P57 (WU-51, D-293, NFR-21).** Script check. The report at the WU-51 path gives the compile cost of
   the fifteen-stage fixture with Full DPS on for the named source's groups only, and a decision line. Within
   NFR-21, the final compile computes Full DPS; otherwise the flags are written at export only. **Met**
-  (`9f74ad9`): within NFR-21 (×1.14, at most 3.08 s per stage), so the compile computes it.
+  (`294e174`): within NFR-21 (×1.14, at most 3.08 s per stage), so the compile computes it.
 
 **Entering maps and the ladder (WU-61; built, D-281, D-282)**
 

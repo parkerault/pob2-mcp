@@ -7,7 +7,7 @@ the final gate): its guide, audit, plan, compile record and PoB file, in
 and its PoB (`reference/navira-pob.xml`). The user named both. Neither file is in this repo.
 
 Figures are PoB's unless marked. Both PoB files were measured read-only in the same engine: the `m17` worktree's build
-at `857658c` (PoB2 v0.23.1, with the D-382 compile fix and amendment 6's minion skills), started from a temp folder
+at `b76967b` (PoB2 v0.23.1, with the D-382 compile fix and amendment 6's minion skills), started from a temp folder
 with trade and poe.ninja off.
 
 ## 1. Summary

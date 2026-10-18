@@ -8,7 +8,7 @@ for this slice (D-218) and the coordinator's resolutions of its open items (D-22
 under their spine IDs. The build's decisions D-239…D-247, D-307…D-309 and the amendments' D-277, D-297,
 D-299, D-300 are folded in under their spine IDs (fold applied 2026-10-10), and so are D-335 and D-336 with
 WU-54's and WU-60's as-built facts (fold v1.4, 2026-10-11). Fold v1.5 (2026-10-11) records WU-53 as built
-(merge `25bde2a`) and folds in amendment 4's D-360, tree validity in the path tools. This slice hosts
+(merge `506d89e`) and folds in amendment 4's D-360, tree validity in the path tools. This slice hosts
 amendment 3's server units, WU-50, WU-52, WU-53 and WU-54 (D-318), amendment 2's lookup unit, WU-60
 (D-317), and the path-tool half of amendment 4's WU-66, whose block is in slice 02.
 
@@ -169,7 +169,7 @@ every kind's total whatever `kind` lists, as `<n> hits: <g> gem, <u> unique, <p>
 essence.`; when hits are cut, the "Showing the first N of M" line suggests `kind`
 (`lookupHandlers.ts:236-270`). Broad queries had filled every slot with gems.
 
-**Mod base types and essences (WU-60, D-277; built, merge `fdcf6a7`).** So D1 can source an affix's limit
+**Mod base types and essences (WU-60, D-277; built, merge `331ba26`).** So D1 can source an affix's limit
 on its base (amendment 2, `amendment-2-guide-style.md:365`):
 - **Base types.** Under each mod hit, one line `  Base types: <list>`: the bases in PoB's base lists
   (`data.itemBaseLists`, hidden bases left out) whose spawn weight for the mod is non-zero
@@ -224,7 +224,7 @@ characters gets names. A longer one gets "Nothing matched …" and one line inst
 characters long, over the 100 that closest names are listed for.` The reply then carries
 `suggestionsSkipped` in place of `suggestions`.
 
-Amendment 3's additions (WU-53, D-299; built, merge `25bde2a`; formats pinned by AC-K58…AC-K65), which the brainstorm's researchers (R1a) and R1b's
+Amendment 3's additions (WU-53, D-299; built, merge `506d89e`; formats pinned by AC-K58…AC-K65), which the brainstorm's researchers (R1a) and R1b's
 advisory verification checklist (D-292) read (`amendment-3-open-builds.md:423-441`):
 - Gemling quality effects: `altQualityStats`, shown and searched beside `qualityLines`, labelled (PG-46 in
   [`../pob-gaps.md`](../pob-gaps.md));
@@ -241,7 +241,7 @@ advisory verification checklist (D-292) read (`amendment-3-open-builds.md:423-44
 
 Formats and checkable criteria were pinned by WU-53's first step in this slice from the amendment's
 text, and the coordinator reviewed them before any code was written (A-33): AC-K58…AC-K65, merged with
-WU-53 (`25bde2a`). That step also settled the example "Culmination II, then Ailith's Chimes" (AC-K61).
+WU-53 (`506d89e`). That step also settled the example "Culmination II, then Ailith's Chimes" (AC-K61).
 
 ### 2.3 C-43 `search_tree_nodes` (modified, `read`)
 
@@ -319,7 +319,7 @@ config.
 or `Gem <name> / <stat set>`; a jewel in a tree socket is `Jewel socket <nodeId>: <name>` (D-242).
 **[slice]** Build mode lists only entries that aren't `fully parsed`, but its counts cover every line.
 
-**Flags (WU-54, D-300, D-336; built, merge `92371c2`).** Flags name what PoB doesn't model
+**Flags (WU-54, D-300, D-336; built, merge `2629841`).** Flags name what PoB doesn't model
 (`amendment-3-open-builds.md:443-451`; PG ids in [`../pob-gaps.md`](../pob-gaps.md)). They sit in a
 `flags[]` list beside the statuses, each `{flag, source, note, line?}`, never as a status, so no status, no
 count and no C-47 output changes (AC-K57). A flag about a gem has source `Gem <name>` and no `line`; a
@@ -689,7 +689,7 @@ slice 02's.
 
 ### WU-50: Spike: poe.ninja's PoE2 popularity and build-index API (S-N1)
 - kind: spike
-- status: done, blocked (report merged at `d16c16c`). The terms forbid this use: poe.ninja's API
+- status: done, blocked (report merged at `306bc7b`). The terms forbid this use: poe.ninja's API
   Reference says the builds and profiles API, "and every other non-economy endpoint (character, Path of
   Building, authentication), are internal. They are undocumented, unsupported, and not available for
   third-party use". The spike's stop condition fired, so no builds, character or API endpoint was called
@@ -721,7 +721,7 @@ AC-K47…AC-K49. Nothing was built.
 
 ### WU-53: K1 lookup additions (N-2)
 - kind: build
-- status: built, merged at `25bde2a`
+- status: built, merged at `506d89e`
 - depends-on: [WU-60]
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Lookup.lua`, `src/handlers/lookupHandlers.ts`,
@@ -738,7 +738,7 @@ AC-K47…AC-K49. Nothing was built.
 
 ### WU-54: K2 coverage flags (N-3)
 - kind: build
-- status: built (merge `92371c2`; criteria `b09a783`, AC-K50 restated `44d4028`)
+- status: built (merge `2629841`; criteria `fbfe1bb`, AC-K50 restated `5e183b6`)
 - depends-on: []
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Coverage.lua`, `src/handlers/coverageHandlers.ts`,
@@ -763,7 +763,7 @@ AC-K47…AC-K49. Nothing was built.
 
 ### WU-60: K1 mod base types and essences (amendment 2)
 - kind: build
-- status: built (merge `fdcf6a7`)
+- status: built (merge `331ba26`)
 - depends-on: []
 - role: lua-dev + backend-dev
 - touches: [`pob-api/API/Lookup.lua`, `src/handlers/lookupHandlers.ts`,
@@ -1130,7 +1130,7 @@ line, the tools and the threshold "not settled: blocked" (D-335).
 - **AC-K49.** *Withdrawn → D-335:* C-54's politeness: serial requests, back-off on 429, a per-league cache.
 
 **K2 flags (WU-54)**: `tests/integration/modelCoverage.test.ts`, in-process, engine-required. Built
-(merge `92371c2`; D-300, D-336).
+(merge `2629841`; D-300, D-336).
 
 - **AC-K50 (C-38 gem stats PoB can't act on; D-336, PROPOSED).** Mirage Archer's false all-clear (PG-49)
   comes from a stat with no stat map and no tooltip line (PG-4), not from a mapped stat. AC-K50 pins two
@@ -1266,13 +1266,13 @@ AC-K53…AC-K57 were pinned by WU-54's first step (A-33). Every WU-54 flag has o
     build mode lists no fully parsed line.
 
 **K1 base types and essences (WU-60)**: `tests/integration/lookupGameData.test.ts`, in-process,
-engine-required. Built (merge `fdcf6a7`; D-277).
+engine-required. Built (merge `331ba26`; D-277).
 
 - **AC-K51 (C-37 mod base types, essences).** The mod hit for Arcane Surge on Crit lists only gloves with
   energy shield (`vendor/Data/ModVeiled.lua:163`). An essence query returns an essence hit.
 
 **K1 lookup additions (WU-53)**: `tests/integration/lookupGameData.test.ts`, in-process, engine-required;
-the `lookups.md` check in its static block. Built by WU-53 (`25bde2a`).
+the `lookups.md` check in its static block. Built by WU-53 (`506d89e`).
 
 AC-K58…AC-K65 were pinned by WU-53's first step (A-33), one per item of amendment 3's lookup list
 (`amendment-3-open-builds.md:425-443`). Every value below was probed at the pin. Shared rules:
@@ -1591,7 +1591,7 @@ of amendment 4 is the HG-12 decision for it (2026-10-11). Rollback is a revert o
 changes (D-222). WU-36 edits `add_item`'s enum, never the shared `ITEM_SLOTS` (D-223).
 
 **Open:** none in this slice. WU-53's output formats and checkable criteria were pinned at its first step
-(A-33) as AC-K58…AC-K65, which merged with it (`25bde2a`). Amendment 4 gave AC-K66 itself.
+(A-33) as AC-K58…AC-K65, which merged with it (`506d89e`). Amendment 4 gave AC-K66 itself.
 
 **Closed by the build:** the WU-54 flags' names and examples (AC-K53…AC-K57, D-336); C-54's tool details
 and the popularity threshold, withdrawn with the tools (D-335, D-324 withdrawn).

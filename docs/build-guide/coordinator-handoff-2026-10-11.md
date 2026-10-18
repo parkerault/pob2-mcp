@@ -3,11 +3,11 @@
 **Audience:** a fresh session taking over as coordinator of the build-guide amendments build: M-14 is recorded, and M-15 (amendment 4) is being built now.
 
 **Trust posture:**
-- **Gated PASS at `278b89c`:** everything through WU-58. An independent verifier ran the full gate from clean:
+- **Gated PASS at `3482642`:** everything through WU-58. An independent verifier ran the full gate from clean:
   2095 of 2095 tests, none skipped.
 - **Since then:** WU-59's criteria (docs) and WU-63 (skill text, the checker and tests). The coordinator checked these
   with the static and checker suites (543 of 543) and the four good fixtures. The full gate hasn't been re-run since
-  `278b89c`. The run itself is the next end-to-end check.
+  `3482642`. The run itself is the next end-to-end check.
 
 ## Read first, in order
 
@@ -58,12 +58,12 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ## The queue
 
-1. **Done:** WU-63 is merged at `e62799b`, with static and checker suites passing 543 of 543. The run worktree `m14` was
-   moved to `e62799b` and built. The work-log's last section has the details.
+1. **Done:** WU-63 is merged at `736733f`, with static and checker suites passing 543 of 543. The run worktree `m14` was
+   moved to `736733f` and built. The work-log's last section has the details.
 2. **The WU-59 run, paused.** *Who acts: the user, once amendment 4 decides run B.*
-   - **P1** passed on its second attempt, at `30abc7a`.
-   - **Run A** ended `completed` at `30abc7a`, and the run checker exits 0. Its gates printed no display (AC-W37
-     fails at that head). The fix is `96b1785`, and the run worktree `m14` is rebuilt there.
+   - **P1** passed on its second attempt, at `312c264`.
+   - **Run A** ended `completed` at `312c264`, and the run checker exits 0. Its gates printed no display (AC-W37
+     fails at that head). The fix is `4eb18ef`, and the run worktree `m14` is rebuilt there.
    - **Run A's cost** was 296M cache read and 1.78M output against an estimate of 130M. The work-log's section
      "WU-59 run A ended" has the breakdown.
    - **Run B and P2 are on hold.** Re-scope them after amendment 4, which changes what a run produces.
@@ -73,20 +73,20 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
      design gate. Plus the ledger and triage rules under D-352.
    - **Evidence:** the three reports in `docs/build-guide/studies/2026-10-11-*`.
    - **The work:** milestone M-15, units WU-64…WU-72 with their DAG, and AC-W51…W60, AC-P60…P67 and AC-K66.
-   - **Folded:** spec v1.5 at `ba9daf8` (D-339…D-362, amendment 4, M-15; reviewed and fixed). Item 3 below is
+   - **Folded:** spec v1.5 at `9d4654e` (D-339…D-362, amendment 4, M-15; reviewed and fixed). Item 3 below is
      done. **Still to confirm with the user:** that their acceptance of amendment 4 is the HG-12 decision for
      D-360's changes to `find_path_to_node` and `get_nearby_nodes`.
    - **The M-15 build: IN PROGRESS** (started 2026-10-11, after the user signed off every amendment 4 change; that
      settles HG-12 for WU-66). The work-log section "2026-10-11: M-15 build start" records every verdict. *Who acts:
      you, by the coordinator method.*
      - **Merged and gated:** WU-65…WU-71 are on `build-guide/amendments`, each reviewed. The M-15 wave gate
-       PASSed at `27b90fe`: 127 suites, 2283 tests, build rc=0, waivers `[]`, dependencies and `vendor/`
+       PASSed at `fb8c446`: 127 suites, 2283 tests, build rc=0, waivers `[]`, dependencies and `vendor/`
        unchanged.
      - **WU-72, the lean run: DONE** (2026-10-12; verified 2026-10-14). It completed with 1.23M output and 130M
        cache read. It missed three gate displays, the checker gave one `[order]` violation, and output was 1.20M
        before the revision, over 1M. The work-log section "2026-10-14: WU-72, the lean run, ended" has it all.
        **The user: fix, then waive** (no re-run); **the budget lever is held** until the poe.ninja comparison.
-     - **WU-73, the follow-up: DONE**, merged at `a8bdf34` (D-367…D-369 and the guide fixes). **M-15 is CLOSED**
+     - **WU-73, the follow-up: DONE**, merged at `51bb4bf` (D-367…D-369 and the guide fixes). **M-15 is CLOSED**
        (2026-10-14) on the user's waiver. The work-log section "M-15 closed" has it.
      - **WU-64: DONE and merged.** Telemetry backs the budget, and the transcript estimate is the fallback at ±7%.
      - **Next:**
@@ -149,11 +149,11 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 
 ### Transient
 
-- **Integration head:** `f23fd71` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes:
-  none. Run worktrees: `m14` (`96b1785`) and `m15` (`27b90fe`, built).
+- **Integration head:** `a9834d5` or later, on `build-guide/amendments`, in `/home/parker/projects/pob2-mcp-wt/amend`. Lanes:
+  none. Run worktrees: `m14` (`4eb18ef`) and `m15` (`fb8c446`, built).
 - **Live worktrees:**
   - `amend`, the integration worktree;
-  - `m14`, detached at `96b1785` and built: the WU-59 run worktree.
+  - `m14`, detached at `4eb18ef` and built: the WU-59 run worktree.
 - **The main checkout** `/home/parker/projects/pob2-mcp` is on `build-guide/amendment-3` at `acec4d1`. The fleet
   doesn't touch it, because the user's pob2 server runs from its `build/`.
 - **Temp dirs:**
@@ -167,6 +167,6 @@ Each rule lives in memory or `CLAUDE.md`. Don't re-derive them.
 ## Appendix: open agent work at hand-off
 
 The WU-63 doer was resumed to bar finalizing `wrong-ascendancy` cards and to rebase, and hadn't reported when this
-was written. Its first report (head `e62f0f2`, 537 of 537 static and checker tests) is summarised in the work-log's
+was written. Its first report (head `005270b`, 537 of 537 static and checker tests) is summarised in the work-log's
 last section. Its deviations were accepted: the search also runs for card-named skills, and a self-contradicting
 brief ends short.

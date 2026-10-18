@@ -1,7 +1,7 @@
 # Amendment 6: the touch-point map
 
 An agent's map, kept for the M-17 build (2026-10-16), of every place amendment 6
-(`../spec/amendment-6-minion-skills.md`) touches. It was mapped at `78c3ef9`, so line numbers drift as units merge.
+(`../spec/amendment-6-minion-skills.md`) touches. It was mapped at `ca2b79d`, so line numbers drift as units merge.
 It is a guide, not a requirement: where it and the amendment disagree, the amendment binds. The engine answers it
 cites as A1…A5 are in `2026-10-16-minion-skill-spike.md`. Its section B8 was mapped by a second agent; the
 scratchpad copy it names isn't kept.

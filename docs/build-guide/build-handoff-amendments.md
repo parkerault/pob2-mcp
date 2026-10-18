@@ -16,7 +16,7 @@ the spine gets it at the v1.6 fold.
   a conflict.
 - **Background, not requirements:**
   - `studies/2026-10-16-minion-skill-spike.md`: what PoB computes, measured, as A1…A5;
-  - `studies/2026-10-16-minion-skill-map.md`: the touch-point map, with `file:line` at `78c3ef9`. Read the parts your
+  - `studies/2026-10-16-minion-skill-map.md`: the touch-point map, with `file:line` at `ca2b79d`. Read the parts your
     unit owns.
 - **Ratified.** The user accepted amendment 6 on 2026-10-16 ("Go ahead").
 - **Directive.** Build WU-77, then WU-78, then WU-79, in series. The coordinator merges each before the next starts.
@@ -106,7 +106,7 @@ spine gets it at the v1.6 fold.
 Added 2026-10-11. For the M-15 build, this section overrides "What to build" below and adds to the other
 sections, which still apply as written.
 
-- **Spec v1.5** (folded at `ba9daf8`). The spine `docs/build-guide/spec/README.md` holds:
+- **Spec v1.5** (folded at `9d4654e`). The spine `docs/build-guide/spec/README.md` holds:
   - decisions through D-362, and A-34 and A-35;
   - M-15 in §7;
   - WU-64…WU-72 in §8, with amendment 4's lanes.

@@ -1666,7 +1666,7 @@ wave A's lanes started:
 
 ### WU-50: blocked by poe.ninja's terms (HG-12; the user's decision)
 
-The doer stopped on a handoff stop condition: the terms forbid this use. Its report is `793ed26` on
+The doer stopped on a handoff stop condition: the terms forbid this use. Its report is `306bc7b` on
 `bg/wu-50` (`docs/build-guide/spikes/WU-50-poe-ninja.md`).
 
 **The evidence.** poe.ninja's API Reference (`/docs/api`) says the builds and profiles API, "and every other
@@ -1723,7 +1723,7 @@ The user chose "No tool; your notes". To be folded into the spine:
 
 ### WU-54: criteria review (A-33) and D-336 (PROPOSED by the coordinator)
 
-**The pinned criteria** (`b06c72c`): AC-K53 (energy-based meta gems), AC-K54 (skills granted by a support),
+**The pinned criteria** (`fbfe1bb`): AC-K53 (energy-based meta gems), AC-K54 (skills granted by a support),
 AC-K55 (granted skills with no definition), AC-K56 (Gem Studded ties) and AC-K57 (one shape for the flags,
 and build mode). Each is pinned to real gems and nodes at the pin, with a Lua-query equality over the
 whole set. The coordinator approved them with these choices:
@@ -1748,25 +1748,25 @@ one:
 
 ### Wave A doer reports
 
-- **WU-51** (`6bd9591`): done. The decision line reads "Within NFR-21: the final compile computes Full DPS
+- **WU-51** (`28c1972`): done. The decision line reads "Within NFR-21: the final compile computes Full DPS
   for the named source's groups."
   - Three quiet runs at a 1-minute load average ≤ 8: whole call 26.22–27.77 s with Full DPS off, and
     29.93–31.92 s with it on for the named groups (median ×1.14). Slowest stage 3.08 s.
   - With every group in Full DPS, through the real compiler: 61–67 s, slowest stage 6.17 s. R-32's
     160.68 s came from WU-30's emulation under load.
-- **WU-60** (`e3d4113`): done; gate rc=0/0 (1850 tests).
+- **WU-60** (`0bce0f5`): done; gate rc=0/0 (1850 tests).
   - Essences are a fifth mechanic kind, `essence`, which touches the tool's `kind` enum, its README row
     and `tool-calls.json`.
   - "Can roll" means `GetModSpawnWeight` > 0, restricted to bases that use the mod's own affix table.
-- **WU-61** (`9657f93`): done; gate rc=0/0 (1851 tests).
+- **WU-61** (`df7e4a0`): done; gate rc=0/0 (1851 tests).
   - `schemaVersion` 2. A version-1 plan is held to version 1's shape. `VERSION_ADDITIONS` is the list
     WU-55 extends.
   - The two-stage fixture and the worked example now declare version 2.
   - The ladder goes by rung, `m` → `b` → `n`, whatever the plan order. No fixture verdict moved.
-- **WU-56** (`29c20f1`): done. Static tests 210 of 210.
+- **WU-56** (`38a1d99`): done. Static tests 210 of 210.
   - `patterns.md` is 5,589 words: 60 entries in ten families.
   - An `AWAITING_SKILL_WIRING` entry exempts `patterns.md` from AC-W1 until WU-57 lists it in `SKILL.md`.
-- **WU-50** (`793ed26`): blocked by the terms; resolved by D-335.
+- **WU-50** (`306bc7b`): blocked by the terms; resolved by D-335.
 
 **Reviews** are running: WU-60; WU-61 with WU-51; WU-56.
 
@@ -1818,9 +1818,9 @@ FINDINGS: 2 medium and 6 low. Being fixed.
 ### Merges and wave B start
 
 **Merged** (fast-forward, each lane rebased first; the gate runs at the wave gate):
-- WU-61 at `74c5745`;
-- WU-51 at `9f74ad9`;
-- WU-50's report at `d16c16c`.
+- WU-61 at `2304e7e`;
+- WU-51 at `294e174`;
+- WU-50's report at `306bc7b`.
 
 Their lanes were removed.
 
@@ -1835,20 +1835,20 @@ Their lanes were removed.
   enum, the README row and `tool-calls.json`. That conflicts with nothing, now that WU-52 is withdrawn.
   §2.2's header and AC-K4 need the `essence` kind and the name-match rule.
 
-**Wave B started** off `d16c16c`:
+**Wave B started** off `306bc7b`:
 - WU-55 (Count and custom modifiers). It extends version 2's `VERSION_ADDITIONS` and builds D-337.
 - WU-62 (amendment 2's pipeline). It carries the WU-61 reviewer's notes on fixtures and `check-run.mjs`.
 
 WU-53 starts once WU-60 merges.
 
-### WU-56 merged at `228bec1`
+### WU-56 merged at `2aca7b4`
 
 All eight review findings were fixed: 212 static tests pass, and `patterns.md` is 5,642 words. One review
 finding was wrong: "Dazed" is grounded. The crossbow study's line 51 records PoB's `conditionEnemyDazed`
 option, at `ConfigOptions.lua:1684`, so it was restored with a `[crossbow]` citation. Static tests at
 the integration head: 212 of 212. The lane was removed.
 
-### WU-60 merged at `fdcf6a7`; WU-53 started
+### WU-60 merged at `331ba26`; WU-53 started
 
 - **The fixes.** Base types now come only from the tables PoB rolls on a base: the item's own affix table,
   `Corruption`, and tagged `Desecrated` mods. Exclusive mods, IncursionLimb mods and untagged Desecrated
@@ -1857,11 +1857,11 @@ the integration head: 212 of 212. The lane was removed.
   two Exclusive mods, and both Greater Essence of Haste hits.
 - **Results.** `lookupGameData` 27 of 27. Contract, engineKinds, toolHygiene and static: 489 of 489. The
   wave gate runs the full suite.
-- **WU-53** started off `fdcf6a7` with A-33's step: it pins its criteria from AC-K58 upward, and settles
+- **WU-53** started off `331ba26` with A-33's step: it pins its criteria from AC-K58 upward, and settles
   the "Culmination II, then Ailith's Chimes" example. The description has 23 characters left, so WU-53
   reports how its additions will fit.
 
-### WU-54 built (`9cf186e`); one more fix before review
+### WU-54 built (`79a61f4`); one more fix before review
 
 - **Gate:** rc=0/0 (1852 tests).
 - **The flags at the pin:**
@@ -1886,7 +1886,7 @@ the integration head: 212 of 212. The lane was removed.
 
 ### WU-53: criteria review (A-33)
 
-**The pinned criteria** (`883ea19`): AC-K58…AC-K65.
+**The pinned criteria** (`883931c`): AC-K58…AC-K65.
 - AC-K58: Gemling quality effects.
 - AC-K59: "usable by", with skill types and the meta gems that accept a gem.
 - AC-K60: item-base implicits, as a sixth mechanic kind, `base`.
@@ -1948,9 +1948,9 @@ FINDINGS: 1 high, 2 medium and 2 low. Being fixed.
 
 The coordinator's terminal (tmux) crashed, and every background agent stopped with it. The state, read from
 the lanes:
-- **WU-54:** the review fixes are committed (`e7844cd`), and the tree is clean.
-- **WU-55:** `e961892` and `a9591af`, tree clean, no report.
-- **WU-62:** `b7fcc43`, tree clean, no report.
+- **WU-54:** the review fixes are committed (`0a9c278`), and the tree is clean.
+- **WU-55:** `707e6e5` and `34f1900`, tree clean, no report.
+- **WU-62:** `f64e255`, tree clean, no report.
 - **WU-53:** the spec commits, plus uncommitted code. Its doer was resumed from its saved transcript.
 
 The coordinator runs the full gate in the three clean lanes, one at a time. Jest's cache is shared, so no
@@ -1963,18 +1963,18 @@ commits survive, but agent reports are lost unless the agent is resumed.
 ### Recovery gates and wave B reviews
 
 **Gates in the clean lanes,** run by the coordinator one after another, with no Jest cache clear:
-- **WU-55** (`a9591af`): rc=0/0 (1869 tests, then the NFR step).
-- **WU-62** (`b7fcc43`): rc=0/0 (1901 tests).
-- **WU-54** (`e7844cd`): test rc=1. One suite failed to compile: a `PobSourceScan` fake in
+- **WU-55** (`34f1900`): rc=0/0 (1869 tests, then the NFR step).
+- **WU-62** (`f64e255`): rc=0/0 (1901 tests).
+- **WU-54** (`0a9c278`): test rc=1. One suite failed to compile: a `PobSourceScan` fake in
   `passiveUpgradesBound.test.ts` lacks the new `skillCallNames` field. The doer was resumed to fix it.
 
-**Rebased onto `b6771e6`:**
-- **WU-55:** clean, now `8f6ede8`. Plan and static suites: 299 of 299.
+**Rebased onto `b4d0382`:**
+- **WU-55:** clean, now `34f1900`. Plan and static suites: 299 of 299.
 - **WU-62:** it conflicted with WU-56 in `tests/static/buildGuidePipeline.test.ts`, where both had added
   blocks at the end. The coordinator kept both sides and restored the closing lines the merge had dropped
-  (`517f892`). Static and checker suites: 417 of 417.
+  (`f4ca8f0`). Static and checker suites: 417 of 417.
 
-**WU-53** (`495968a`): built and rebased; gate rc=1/0. The only failure was AC-E8, the bridge cold start
+**WU-53** (`995b765`): built and rebased; gate rc=1/0. The only failure was AC-E8, the bridge cold start
 (5,415 ms against its 5 s limit). It passes alone in 4,552 ms: a tooling false-failure.
 - The description is 1,859 characters.
 - Deviations:
@@ -2021,14 +2021,14 @@ lost.
 - **The reviewer's scope finding was wrong.** The coordinator had allowed `pobSourceNames.ts` and the test
   fake.
 
-### WU-54 merged at `92371c2`
+### WU-54 merged at `2629841`
 
 All four re-check findings were fixed. `mapped but unread` is 24 lines.
 - A skill name fills `*` only in templates PoB builds from `activeGrantedEffect.name` in a modList read.
   The server finds them and passes them as `sourceSkillTemplates`.
 - There are now seven literal anchors with their PoB sources, and a new unit test,
   `tests/unit/pobSourceNames.test.ts`.
-- Targeted suites: 315 of 315. The full gate passed at `819eb8e`; the wave gate re-runs it.
+- Targeted suites: 315 of 315. The full gate passed at `22e266b`; the wave gate re-runs it.
 - The lane was removed.
 
 ### Review: WU-55
@@ -2075,7 +2075,7 @@ FINDINGS: 6 low. The behaviour matches the spec.
   finding is `missing-reason`, with `data.path`.
 - **C-41:** a new `compile_check` error class, for a custom-modifier line PoB can't parse whole.
 
-### WU-62 merged at `14f3553`
+### WU-62 merged at `a8506ef`
 
 The fixer closed the four findings:
 - every section's word budget now comes from §8's table (lines 1011–1024, a total of 2,840), and a static
@@ -2109,7 +2109,7 @@ WU-57 can start once WU-55 merges (its last hard dependency; WU-50's is moot und
   - move three dropped description facts into the parameter descriptions;
   - label unnamed effects by their first stat set, as PoB's tooltip does (Charged Mark, Voltaic Barrier).
 
-**Fold-2 lane** (`bg/fold-2`, off `92b0cc2`). A spec editor folds D-335…D-337 into the spec, plus the
+**Fold-2 lane** (`bg/fold-2`, off `efae21b`). A spec editor folds D-335…D-337 into the spec, plus the
 built facts of WU-50, WU-51, WU-54, WU-56, WU-60, WU-61 and WU-62, and WU-55's record fields and C-41 error
 class. It also writes D-338, PROPOSED by the coordinator:
 - R1b's probe paths go in its header `writes`, which WU-57 does;
@@ -2117,7 +2117,7 @@ class. It also writes D-338, PROPOSED by the coordinator:
 
 The spine becomes v1.4. WU-57 starts after this fold and WU-55 merge.
 
-### WU-55 merged at `3fc1500`
+### WU-55 merged at `418b5b5`
 
 The fixer closed the four findings:
 - `measuredWithCustomMods` marks a stage whose written config holds PoB's `customMods` option, including a
@@ -2126,11 +2126,11 @@ The fixer closed the four findings:
 - a new Count sample (#58) compiles `tests/fixtures/plans/two-stage-count/`. That needed a `$COUNT_PLAN`
   placeholder in `engineKinds.test.ts` and `toolHygiene.test.ts`, which are serialized wiring files.
 
-The rebase onto `92b0cc2`, which includes WU-54, was clean. On the rebased head, the shared-file suites (plan,
+The rebase onto `efae21b`, which includes WU-54, was clean. On the rebased head, the shared-file suites (plan,
 compileCount, contract, engineKinds, toolHygiene, modelCoverage and static) passed 658 of 658. The lane was
 removed.
 
-### WU-53 merged at `25bde2a`; lookups.md touch-up
+### WU-53 merged at `506d89e`; lookups.md touch-up
 
 The fixer closed all seven findings:
 - **Engine oracle.** The AC-K59, AC-K61 and AC-K62 checks now use PoB's `calcs.createActiveSkill` as the
@@ -2141,18 +2141,18 @@ The fixer closed all seven findings:
   Barrier.
 - **The description** is 1,894 characters.
 
-The rebase onto `d36dbea`, which includes WU-54, WU-55 and WU-62, was clean, and the README table was
+The rebase onto `533a25e`, which includes WU-54, WU-55 and WU-62, was clean, and the README table was
 unchanged. The shared-file suites (lookup, modelCoverage, contract, engineKinds, toolHygiene and static)
 passed 605 of 605. The lane was removed.
 
-The coordinator's `2e5c413` fixes two stale passages in `references/lookups.md`:
+The coordinator's `d294756` fixes two stale passages in `references/lookups.md`:
 - the same-name rule, from WU-53;
 - the guide's renamed H2, "What PoB can't show", plus `audit.md`'s "What PoB doesn't model". This was WU-62's
   low finding 4 (D-278).
 
 **Friction, again:** a stale `build/` in the integration worktree failed AC-G1 until `pnpm build` ran.
 
-### Wave gate (waves A and B): PASS at `410c93f`
+### Wave gate (waves A and B): PASS at `370fddb`
 
 An independent verifier ran the gate from a clean tree, with `build/`, `coverage/` and the Jest cache
 cleared and `POB_SKIP_ENGINE` unset.
@@ -2164,7 +2164,7 @@ cleared and `POB_SKIP_ENGINE` unset.
 - **Absence checks.** Every AC of WU-53, WU-54, WU-55, WU-56, WU-60, WU-61 and WU-62 has a passing test,
   and AC-P37 is in its narrowed form.
 
-### Spec fold v1.4 merged (`978e308`, `87ecc91`)
+### Spec fold v1.4 merged (`8224211`, `b5f19b7`)
 
 - **New decision rows:**
   - D-335, the user's;
@@ -2185,7 +2185,7 @@ cleared and `POB_SKIP_ENGINE` unset.
 **Next:** WU-57, the pipeline. Its dependencies are all merged: WU-55, WU-56 and WU-62. WU-50's edge is moot
 under D-335.
 
-### WU-57: AC-W32 pinned (A-33); built (`d0cbd4d`)
+### WU-57: AC-W32 pinned (A-33); built (`f74c478`)
 
 - **AC-W32 (pinned and approved).** D-295's wordings of D-122 and D-148 appear in D1, `gates.md` and the
   coordinator agent. "named damage source" appears in `SKILL.md` and eight stage references. No skill or
@@ -2244,7 +2244,7 @@ poe.ninja or popularity hit is either D-335's rule or the user's notes. All devi
 - the run log names the probe-count field;
 - `run-log.md`'s first write must match `SKILL.md`'s.
 
-### WU-57 merged at `66362d0`
+### WU-57 merged at `c872dea`
 
 All seven review findings are fixed.
 - **D-339, as applied.** A card's pitch labels it `Under-played (judgment)`. R1a-assemble returns
@@ -2254,9 +2254,9 @@ All seven review findings are fixed.
 - **D-340** is written in `gates.md` and `D1-gate.md`.
 - Static and checker suites at the merge: 462 of 462. The lane was removed.
 
-WU-58 started off `66362d0`, carrying WU-57's "for WU-58" list and the reviewer's additions.
+WU-58 started off `c872dea`, carrying WU-57's "for WU-58" list and the reviewer's additions.
 
-### WU-58 built (`eb32044`); WU-59 prep with the user's brief
+### WU-58 built (`ef93a2a`); WU-59 prep with the user's brief
 
 **WU-58.**
 - Gate: rc=0/0, with 2076 tests.
@@ -2313,7 +2313,7 @@ H2s and `audit.md` don't depend on the log schema, so WU-47's recorded runs can'
 as written, closed with exceptions E1–E4. Keeping schema 2 now keeps logs written before v3 readable; it no
 longer keeps WU-47's runs checkable. `run-ok-v2` is the regression fixture for the schema-2 log rules.
 
-### WU-58 merged at `3ffd7d0`
+### WU-58 merged at `85c70c9`
 
 All five review findings are fixed:
 - **The final gate's answer is now tied to the run's end status** (`checkpoints.md:78`, `:86`, `:136`):
@@ -2331,7 +2331,7 @@ was removed.
 Every M-14 unit is now merged except WU-59, the recorded run. The final wave gate runs next, and then the
 WU-59 worktree is created at the gated head.
 
-### Wave gate (WU-57, WU-58 and fold v1.4): PASS at `278b89c`
+### Wave gate (WU-57, WU-58 and fold v1.4): PASS at `3482642`
 
 An independent verifier ran the gate from clean, with the Jest cache cleared and `POB_SKIP_ENGINE` unset:
 - `mise run test` rc=0: 122 of 122 suites and 2095 of 2095 tests, none skipped. The NFR step passed 2 of 2;
@@ -2344,9 +2344,9 @@ An independent verifier ran the gate from clean, with the Jest cache cleared and
 - None of the earlier units regressed.
 
 **Every M-14 build unit is merged and gated.** WU-59's worktree, `pob2-mcp-wt/m14`, is a detached checkout
-of `278b89c`, bootstrapped and built.
+of `3482642`, bootstrapped and built.
 
-### WU-59's criteria merged (`56ad83d`); D-342, the user's direction: an ascendancy-locked skill
+### WU-59's criteria merged (`f1105d0`); D-342, the user's direction: an ascendancy-locked skill
 
 **The criteria.** WU-59's are AC-W34…AC-W50, pinned by the prep step (A-33) and reviewed by the
 coordinator.
@@ -2379,7 +2379,7 @@ The run worktree `m14` moves to the head that includes WU-63 once it is gated.
 
 ### WU-63: built, reviewed, fixes under way
 
-**Built.** The lock code is in `7135280`; `b82cfd8` adds the finalize bar (a `wrong-ascendancy` card is never
+**Built.** The lock code is in `7135280`; `9e9cceb` adds the finalize bar (a `wrong-ascendancy` card is never
 finalized, not even "anyway"). Static and checker suites: 538 of 538.
 
 **Review: FINDINGS, 1 medium and 4 low.** The flow and both checker bars hold, and `not-a-skill` didn't
@@ -2400,7 +2400,7 @@ regress. The pinned tree has 54 tree-granted skills, each granted by a single as
   - a consistent `wrong-ascendancy` fixture card;
   - a pre-supplied pick of a locked card ends the run `stopped`.
 
-### WU-63 merged at `e62799b`; the run worktree is ready
+### WU-63 merged at `736733f`; the run worktree is ready
 
 The fixes cover every review item:
 - the lock checks every skill a card names;
@@ -2417,10 +2417,10 @@ The fixes cover every review item:
 
 **Left for fold v1.5:** FR-W2's text on the roll check.
 
-**Checks at `e62799b`:** static and checker suites 543 of 543, and the checker exits 0 on all four good
+**Checks at `736733f`:** static and checker suites 543 of 543, and the checker exits 0 on all four good
 fixtures.
 
-**The run worktree.** `m14` is moved to `e62799b` and built. `/tmp/m14.zfPx/README.md` gains a sixth P1
+**The run worktree.** `m14` is moved to `736733f` and built. `/tmp/m14.zfPx/README.md` gains a sixth P1
 command, `/build-guide Titan "Explosive Concoction" --offline`, which should stop at the brief check. It is
 evidence for D-342, to fold into AC-W47.
 
@@ -2453,7 +2453,7 @@ is still empty.
 **Next:** the user runs P1's checks 4 to 6 in the same session, for evidence. A doer fixes WU-57 in `amend`,
 and P1 then re-runs from the start on the fixed head.
 
-### WU-57 re-open: fixed, reviewed, accepted at `30abc7a`
+### WU-57 re-open: fixed, reviewed, accepted at `312c264`
 
 **P1 evidence, first attempt** (the session's run folder is moved to `/tmp/m14.zfPx/attempt1-p1/`):
 - **Check 4** stopped early for the missing Agent tool: no folder and no run log. That is defect 2.
@@ -2461,7 +2461,7 @@ and P1 then re-runs from the start on the fixed head.
 - **Check 6** passed the D-342 brief check: it names node 38004, stops before any agent, and creates no folder.
 
 **The fix.**
-- **The doer, `51b22c9`.** It implemented D-343 and D-344 in SKILL.md and R1a.md, rewrote AC-W47, and added static
+- **The doer, `757cebb`.** It implemented D-343 and D-344 in SKILL.md and R1a.md, rewrote AC-W47, and added static
   and checker tests.
 - **Accepted deviations:**
   - no run-log field for a stop reason (the reply carries it, as for a refused config);
@@ -2476,26 +2476,26 @@ and P1 then re-runs from the start on the fixed head.
   - *Nit:* step 3's stop path wasn't spelled out.
   - *Nit:* the checker test missed check 4's log shape.
   - *Declined nit:* widening D-344 to a refused Agent call. The missing-return rule owns that case.
-- **The doer, `3c57d50`.** It fixed all five: the fixed roll is now defined by its shape, as two names whatever
+- **The doer, `10d4792`.** It fixed all five: the fixed roll is now defined by its shape, as two names whatever
   the lookups find. Gate: 2117 of 2117, rc 0 and 0.
 - **Review 2: PASS for P1.**
   - *Should-fix:* a gem-lookup miss could stop a brief whose subject is an item or a mechanic.
   - *Nit:* an unquoted `Blood Hunt` counts as two names.
-- **The doer, `30abc7a`.** It fixed both:
+- **The doer, `312c264`.** It fixed both:
   - a lookup miss stops a run only for a name the user gives as the skill, and items and mechanics go in
     `around`;
   - an unquoted brief that the gem lookup finds whole is one name.
 
   The coordinator read the diff and accepts it. Static suites 284 of 284, checker suites 270 of 270. Only the
-  skill text and the static test changed, so the full gate was skipped: `3c57d50`'s gate covers everything else.
+  skill text and the static test changed, so the full gate was skipped: `10d4792`'s gate covers everything else.
 
-**Next.** The run worktree moves to `30abc7a`. `/tmp/m14.zfPx/README.md`'s P1 list now has seven checks:
+**Next.** The run worktree moves to `312c264`. `/tmp/m14.zfPx/README.md`'s P1 list now has seven checks:
 - check 3 is `/build-guide Pathfinder Fork --offline`;
 - check 7 is the free-text Fork brief.
 
 P1 then re-runs from the start.
 
-### WU-59 P1 (second attempt, at `30abc7a`): all seven checks pass
+### WU-59 P1 (second attempt, at `312c264`): all seven checks pass
 
 Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides root.
 
@@ -2531,13 +2531,13 @@ Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides r
   evidence doesn't depend on this.
 - **The fix.** WU-57's doer puts the display rule in SKILL.md at every gate, in `amend`. The run worktree moves
   only after run A ends, so run B, which has two brainstorm visits and several verification visits, carries
-  AC-W37's evidence at the fixed head. Run A's AC-W37 result is recorded as a fail at `30abc7a`.
-- **Fixed at `96b1785`; the coordinator read the diff and accepts it.**
+  AC-W37's evidence at the fixed head. Run A's AC-W37 result is recorded as a fail at `312c264`.
+- **Fixed at `4eb18ef`; the coordinator read the diff and accepts it.**
   - A new Hard rules bullet: "Every gate visit prints its display first, in your reply, whoever answers it
     (D-265)". A pre-supplied or default answer then states what it resolved to.
   - Each gate paragraph opens with a pointer to it: steps 2c, 5 and 16, and the §5 escalation.
   - Static suite 286 of 286, checker suite 270 of 270. Only SKILL.md and the static test changed.
-- **Pending:** move `m14` to `96b1785` and rebuild it after run A ends, before run B.
+- **Pending:** move `m14` to `4eb18ef` and rebuild it after run A ends, before run B.
 
 ### WU-59 run A ended; its token cost; run B on hold
 
@@ -2547,7 +2547,7 @@ Evidence: transcript `a30c5754-…` under the m14 project key, plus the guides r
     `accept`.
   - The seeded check AC-W44 (f) passes on a scratch copy. An item text added in `plan.json` gives
     `[record-plan]`, exit 1.
-- **The run worktree** is at `96b1785` (the gate-display fix), rebuilt, with an empty `git status`.
+- **The run worktree** is at `4eb18ef` (the gate-display fix), rebuilt, with an empty `git status`.
 - **Cost, all on Opus.** Cache read 296.2M, cache write 9.05M, output 1.78M, over 37 transcripts and 1695 API turns.
   The estimate was about 130M cache read.
 
@@ -2718,7 +2718,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   are made. Today's gates are brainstorm, verification and final, with nothing between D1 and D2. The coordinator
   sees no reason against it.
 
-### Spec v1.5 folded at `ba9daf8`
+### Spec v1.5 folded at `9d4654e`
 
 - **The fold.** A doer folded D-339…D-362, amendment 4, M-15, WU-63's block (AC-W61, AC-W62), the as-built WU-57
   and WU-58, WU-59's re-scope, and WU-64…WU-72 with their ACs. The diff is 4 files, +1354/−446. Static tests
@@ -2740,7 +2740,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
 
 - **The user signed off every amendment 4 change** ("All amendment 4 changes are signed off on. Start the
   implementation."). That settles HG-12 for D-360's changes to `find_path_to_node` and `get_nearby_nodes`:
-  WU-66 may change both tools' behaviour as D-360 states. Spec v1.5 (`ba9daf8`) is binding.
+  WU-66 may change both tools' behaviour as D-360 states. Spec v1.5 (`9d4654e`) is binding.
 - **The fleet's rules** (`build-handoff-amendments.md`) gain an M-15 section: spec v1.5, the directive
   WU-64…WU-71, M-15's serialized files, no poe.ninja for any M-15 unit, and HG-12 granted for WU-66 only.
 - **Wave 1:** WU-64 (the output-counter spike) in lane `bg-64` and WU-65 (plan schema 3, the anoint, the
@@ -2759,7 +2759,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   a localhost OTLP receiver that drops identity attributes.
 - **Dispatched:** the WU-65 doer in `bg-65`. The WU-64 doer in `bg-64` stops at "awaiting control" for the user's
   control session.
-- **WU-64: awaiting the control** (head `734764b`, static tests 286 of 286). The spike holds
+- **WU-64: awaiting the control** (head `1bde3d1`, static tests 286 of 286). The spike holds
   `scripts/run-usage.mjs` (the transcript counter), `scripts/otlp-receiver.mjs` (127.0.0.1 only; keeps
   `api_request`/`api_error` and the token metrics, drops identity and resource attributes; the coordinator
   read it), `spikes/WU-64-control.md` and the report, which is half done.
@@ -2777,7 +2777,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
       `agent.name`;
     - `/exit` writes a `cost-state` entry, the `/usage` ledger, into the transcript.
   - **Next:** the user runs the control session (about 3 minutes); then the doer is resumed with its paths.
-- **WU-65: built** (head `54d1ee6`, 4 commits; the doer used 433K tokens, Opus). The doer reports `mise run test`
+- **WU-65: built** (head `1649a25`, 4 commits; the doer used 433K tokens, Opus). The doer reports `mise run test`
   rc=0 (124 suites, 2139 tests) and `pnpm build` rc=0.
   - **Key-figure line:** DPS, life, ES, EHP, the four resistances and the V1/V2 finding counts. Endgame stages add
     clear speed; `b` and `n` add the Arbiter verdict with the worst hit and ratio.
@@ -2824,7 +2824,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   the fix should be the cheapest one. The radius is read from the clear skill's first stat set, which is
   deterministic for Earthquake's Impact. One ordinary engine test; no general rule and no multi-start test. The
   fixer was redirected, and slice 02's text was changed to match.
-- **The WU-65 fixer's first pass came back before the redirect reached it.** At `1d90384` it holds:
+- **The WU-65 fixer's first pass came back before the redirect reached it.** At `161dd44` it holds:
   - a general own-stat-map radius rule in `Compile.lua` (:829-929), replacing the radius fields in
     `skillOutputs`;
   - a six-engine-start test that failed on the unfixed code and passed 7 of 7 with the fix;
@@ -2833,28 +2833,28 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   The gate passed: 125 suites, 2140 tests, build rc=0. The redirect then resumed it: it replaces the rule with the
   first stat set and swaps in one plain test. That leaves PoB's own outputs untouched and the code smaller.
   - **For the fold:** slice 02:792's `producer-absent` text for passives should gain "or a notable an item grants".
-- **WU-65, the simple rule** (fixer `d24c776`; its total use was 187K tokens). The reverted rule and its
+- **WU-65, the simple rule** (fixer `3b59e19`; its total use was 187K tokens). The reverted rule and its
   multi-start test are gone. The gate passed: 124 suites, 2140 tests, build rc=0.
   - **Stat set 1 can be the wrong part of a skill:** Stampede's first stat set is Footsteps. The coordinator's
-    commit `70110aa` (two lines, two unit tests) reads the main selection's `statSet` when the clear skill is the
+    commit `07bd741` (two lines, two unit tests) reads the main selection's `statSet` when the clear skill is the
     main skill, else stat set 1. Slice 02's text matches.
-  - **Narrow re-review:** the reviewer was resumed on `54d1ee6..70110aa`, with the full gate.
+  - **Narrow re-review:** the reviewer was resumed on `1649a25..07bd741`, with the full gate.
 - **WU-65 re-review: PASS** (the reviewer's total use was 252K tokens).
   - **Gate from clean:** 124 suites, 2142 tests, NFR 2 of 2, build rc=0.
   - **Confirmed:**
     - the blocker is gone, and the Earthquake test is deterministic;
-    - `Compile.lua` differs from `54d1ee6` only by a comment;
+    - `Compile.lua` differs from `1649a25` only by a comment;
     - the reverted code is gone;
     - nits 1–3 are done;
     - the Stampede fixture change and `CompileResult.mains` are accepted.
   - **One should-fix:** a `clear`-role group that is the main group ignored the main selection's stat set. The
-    coordinator fixed it in `b3a4e05`, with a unit test (the unit suite passes 10 of 10).
-- **WU-65 merged** at `b3a4e05`, fast-forward after a rebase. At the merged head: `pnpm build` rc=0, static and
+    coordinator fixed it in `3bfe70e`, with a unit test (the unit suite passes 10 of 10).
+- **WU-65 merged** at `3bfe70e`, fast-forward after a rebase. At the merged head: `pnpm build` rc=0, static and
   unit suites 1190 of 1190. Lane `bg-65` removed.
 - **Wave 2:** lanes `bg-66` (WU-66, `tree-shape` and the path tools; HG-12 granted) and `bg-68` (WU-68,
-  `guide_run`'s views), both off `b3a4e05`. Serialized: `Compile.lua` and `v1.ts` go to WU-66, then WU-67;
+  `guide_run`'s views), both off `3bfe70e`. Serialized: `Compile.lua` and `v1.ts` go to WU-66, then WU-67;
   `planHandlers.ts` to WU-68.
-- **WU-68: built** (head `c444ebd`; the doer used 196K tokens). The doer reports the gate passing: 124 suites,
+- **WU-68: built** (head `f79b5f0`; the doer used 196K tokens). The doer reports the gate passing: 124 suites,
   2,154 tests, build rc=0; the counts stay 84/83.
   - **The views:**
     - `{view: {plan, stage}}` gives a header, the record's current/stale status, the key-figure line and the stage
@@ -2887,9 +2887,9 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - the stage view is uncapped;
     - *for the fold:* C-50's kind sentence should gain "or `view`" (`toolRouter.ts:142`).
   - The reviewer wrote a gate log into the session scratchpad. The coordinator deleted it.
-- **WU-68 merged** at `d761f63`. At the merged head: build rc=0, static and unit suites 1190 of 1190. Lane
+- **WU-68 merged** at `f79b5f0`. At the merged head: build rc=0, static and unit suites 1190 of 1190. Lane
   `bg-68` removed. **WU-69 is next** (V4: one pass); WU-66 is still building.
-- **WU-66: built** (head `5e8313d`, 3 commits). The doer reports the gate passing: 126 suites, 2154 tests, build
+- **WU-66: built** (head `dd6f973`, 3 commits). The doer reports the gate passing: 126 suites, 2154 tests, build
   rc=0.
   - **The finding:** `tree-shape`, one per broken rule. Its data is `{stage, rule, start, startName,
     trees[{exits, nodes}]}`, with `rule` one of `one-tree-per-start`, `one-exit-per-tree`, `alternate-start` or
@@ -2920,7 +2920,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     allocated one.
   - V1 drops `one-exit-per-tree`. The path tools may stay conservative and never route a loop.
   - Sent to the doer, with a rebase onto the integration head.
-- **WU-69: built** (head `77ed3e5`; the doer used 282K tokens). Static and unit suites 1194 of 1194.
+- **WU-69: built** (head `d52419f`; the doer used 282K tokens). Static and unit suites 1194 of 1194.
   - **V4 is one pass.** It checks the hinge claims against their sources and reads `guide.md` as an editor. It
     keeps `reports/V4-<n>.md`, and its tools are Read, Glob, Grep, Write (`reports/` only), WebFetch and the five
     lookups.
@@ -2947,7 +2947,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - ids match `v4-\d+-\d+`;
     - FI-4's doubled formula goes to `[ledger]`.
   - **Review:** dispatched.
-- **WU-66, D-364 applied** (head `5a75aef`, rebased cleanly on `06c7fe0`; the doer's total use was 335K
+- **WU-66, D-364 applied** (head `ae331e4`, rebased cleanly on `ac47ef7`; the doer's total use was 335K
   tokens).
   - `one-exit-per-tree` is dropped.
   - A new test: a connected loop through two exits of the Mercenary start (59779 - 97 - 59915) passes.
@@ -2971,9 +2971,9 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   (guide figures only against measured values); the nits. Static and unit suites 1194 of 1194. The coordinator
   read the diff and confirmed that every stage has a `claims` array (`schema.ts:278`), so the Grep order gives
   `<i>`.
-- **WU-69 merged** at `8a62dbb`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
+- **WU-69 merged** at `4481752`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
   `bg-69` removed.
-- **WU-70 runs as two doers in series in lane `bg-70`** (off `8a62dbb`), to keep each context lean, which is
+- **WU-70 runs as two doers in series in lane `bg-70`** (off `4481752`), to keep each context lean, which is
   R-42 and the point of amendment 4:
   - **A, control flow:**
     - `SKILL.md`: the design gate, D1's two steps, the round copy (A-34), the per-step card, halving it;
@@ -3004,10 +3004,10 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - AC-P65: two shapes are refused by the compile before V1;
     - AC-K66: read "leaves the Sorceress start by its exits without 12795";
     - §3.7, §2.11 and D-360 still say "one start exit"; D-364 removed that.
-- **WU-66 merged** at `daa3f7e`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
+- **WU-66 merged** at `ae331e4`. At the merged head: build rc=0, static and unit suites 1194 of 1194. Lane
   `bg-66` removed.
-- **WU-67 started** in lane `bg-67` (off `daa3f7e`), in parallel with WU-70 part A. The two share no files.
-- **WU-67: built** (`db3b6c2`; the doer used 167K tokens).
+- **WU-67 started** in lane `bg-67` (off `ae331e4`), in parallel with WU-70 part A. The two share no files.
+- **WU-67: built** (`e94c01a`; the doer used 167K tokens).
   - **What it adds:**
     - `support-sockets.tree-granted` = `{"1-39":3,"40-59":4,"60-100":5}` in `gems.json`, a `judgment` source at
       L;
@@ -3017,15 +3017,15 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     `Grants Skill:` line in the stage's items names it.
   - **The doer's suite runs:** static and unit 1199; compile engine suites 54.
   - **Review by the coordinator.** The diff is 134 lines in 3 files, so a full reviewer wasn't worth its cost on
-    a low-risk unit. Two changes, in `0ec133e`:
+    a low-risk unit. Two changes, in `46a011a`:
     - PoB2 gives granted skills an explicit `Tier = 0` (`Data/Gems.lua`), so only an explicit 0 counts. An
       unknown tier (no gem data) is never flagged, and a unit test covers it.
     - The finding adds "if an item grants it, its item text lacks the `Grants Skill:` line". That names the cause
       of the one false positive the doer found, which is a plan defect anyway.
   - **Disabled supports count.** That's accepted: rough is fine.
-- **WU-67 merged** at `0ec133e`. At the merged head: build rc=0; static, unit and compile engine suites 1254 of
+- **WU-67 merged** at `46a011a`. At the merged head: build rc=0; static, unit and compile engine suites 1254 of
   1254. Lane `bg-67` removed. Slice 02's units are all merged; WU-70 A is running.
-- **WU-70 A: built** (`2413dd8`, rebased to `ed087cc` onto `2997760`; the doer used 415K tokens). Static and
+- **WU-70 A: built** (`2413dd8`, rebased to `e97bfc8` onto `eacebb3`; the doer used 415K tokens). Static and
   unit suites 1226 of 1226 after the rebase. `SKILL.md` went from 442 to 221 lines.
   - **Steps:**
     1. Start;
@@ -3053,8 +3053,8 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - `run-folder.md`'s checker section;
     - `check-run.mjs` still expects `D1`, `V4-<lens>` and `hit_*`.
 - **WU-70 B started:** a fresh doer, since A's context was over 400K.
-- **WU-70 B: built** (`9caa7ad`). Static and unit suites 1252 of 1252. The pipeline tests went from 245 to 271,
-  and 49 of them fail against `ed087cc`'s skill text.
+- **WU-70 B: built** (`ea8125c`). Static and unit suites 1252 of 1252. The pipeline tests went from 245 to 271,
+  and 49 of them fail against `e97bfc8`'s skill text.
   - **Line counts:** `D2.md` 160 to 209, because it states the pricing and data rules it used to send agents to
     whole files for; `W1.md` 206 to 207; the guide template 199 to 194; the dossier template 88 to 19.
   - **Deviations:**
@@ -3101,13 +3101,13 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - re-render after every final compile;
     - `SKILL.md` is capped at 221 lines.
   - **The fixes** went to part B's doer (333K, under the limit).
-- **WU-70 fixes** (`156ba2d`; the doer's total was 408K tokens). S1 is fixed: D1-finish gets D1-build's `changed`,
+- **WU-70 fixes** (`090bf5a`; the doer's total was 408K tokens). S1 is fixed: D1-finish gets D1-build's `changed`,
   re-prices and re-claims what moved, never returns `build:`, and is logged `done`. N4 is restored. N2, N3 and
   N5–N7 are done.
   - **N1, partly:** W1 Greps `plan.json` by field and never reads a tree, but it can't use the views, because its
     tools are file tools only (D-257). Respec notes now name dropped nodes.
   - Static and unit suites 1259 of 1259. The coordinator read S1's diff and found it as specified.
-- **WU-70 merged** at `a4baf68`. At the merged head: build rc=0, static and unit suites 1259 of 1259. Lane
+- **WU-70 merged** at `090bf5a`. At the merged head: build rc=0, static and unit suites 1259 of 1259. Lane
   `bg-70` removed.
 - **WU-71:**
   - **The brief:** `docs/build-guide/briefs/WU-71-formats.md` collects every format the checker must match, from
@@ -3116,7 +3116,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - A, the scripts: `--snapshot`, `--changed`, `render-audit.mjs`, `run-log.mjs`, their `SKILL.md` wiring,
       and AC-W54's listing clause;
     - B, the checker's rules and the fixtures.
-- **WU-71 A: built** (`470984b`; the doer used 346K tokens). Static and unit suites 1278 of 1278, build rc=0, and
+- **WU-71 A: built** (`9d79934`; the doer used 346K tokens). Static and unit suites 1278 of 1278, build rc=0, and
   `SKILL.md` stays at 221 lines.
   - **The command forms:**
     - `check-run.mjs <folder> --snapshot <n>` refuses an existing round;
@@ -3135,7 +3135,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - null renders as "unknown" or "not measured";
     - the layout accepts `rounds/<n>/`.
   - **WU-71 B started:** the checker's rules and the fixtures.
-- **WU-71 B: built** (`d32bbb2` and `0bbe534`; the doer used 680K tokens, the largest context of this build).
+- **WU-71 B: built** (`e0a8189` and `c552e8f`; the doer used 680K tokens, the largest context of this build).
   Static and unit suites 1300 of 1300, 298 of them in the checker file. The checker exits 0 on `run-ok`,
   `run-ok-online`, `run-escalated` and `run-ok-v2`.
   - **Deviations:**
@@ -3166,7 +3166,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - a stray `run-log.json.tmp`;
     - apostrophes breaking `run-log.mjs`'s single-quoted JSON, so it reads stdin with a heredoc.
   - **Fixes:** dispatched to a fresh fixer, since part B's doer ended at 680K.
-- **WU-71 fixes** (6 commits to `1e5fe7b`; the fixer used 166K tokens).
+- **WU-71 fixes** (6 commits to `e6feb0c`; the fixer used 166K tokens).
   - The verdict-line DPS is checked against `measures.dps` (`:1445`). The gate's figure stays for its own
     recompute and for records without `measures`.
   - `[ledger]` also accepts a claim's number equal to an input or the input × 100 (`:1277`), with the rule in
@@ -3178,7 +3178,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - `run-log.json.tmp` is ignored;
     - `run-log.mjs` reads `-` from stdin, and the examples are quoted heredocs.
   - The coordinator also restated `W1.md:79`: the DPS line is `measures.dps`, whatever the gate names.
-- **WU-71 merged** at `d3d3cb8`. At the merged head:
+- **WU-71 merged** at `237780b`. At the merged head:
   - build rc=0, static and unit suites 1307 of 1307;
   - the four pipeline fixtures rc=0.
 
@@ -3191,7 +3191,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
   - `mcp/` is the isolated `pob2` from the `m15` worktree, with trade and poe.ninja off.
   - `cfg/L.json` holds run A's answers plus `design: ["accept"]`, and `faults: []`.
   - The README holds the user's instructions, with the new scripts on the approve list.
-- **M-15 wave gate: PASS at `27b90fe`** (an independent verifier, in the fresh worktree `m15`).
+- **M-15 wave gate: PASS at `fb8c446`** (an independent verifier, in the fresh worktree `m15`).
   - **Bootstrap:** clean.
   - **`mise run test` rc=0** from clean, with the Jest cache cleared: 127 of 127 suites, 2283 of 2283 tests, none
     skipped. The NFR step passed 2 of 2, and no timing re-runs were needed. It took about 4m50s.
@@ -3246,7 +3246,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     a guide review;
   - WU-64's doer, resumed to finish the spike with this run's telemetry as its ground truth, in place of the
     user's short control session.
-- **WU-64: done and merged** at `4489499` (the doer's total was 230K tokens). The coordinator reviewed it: the
+- **WU-64: done and merged** at `1474fd7` (the doer's total was 230K tokens). The coordinator reviewed it: the
   report's decision section, a grep for identity data (none; only the receiver's list of dropped attribute
   names), and the counter's totals, which matched the coordinator's own run. Static suite 351 of 351. Lane
   `bg-64` removed.
@@ -3329,7 +3329,7 @@ The coordinator read the draft in full and found no blocker; it goes to the user
     - a revision cites an existing claim rather than adding a duplicate.
 - **Held for the poe.ninja comparison:** the budget lever (D-357), and the DPS model of the granted skill (a
   socketed level-16 or 20 gem with five supports, against PoB's own granted copy at about 160 DPS).
-- **WU-73: done** (doer `c12ac03`, `a1dc1ed`; 274K tokens). Static and unit suites 1318 of 1318; the four fixtures
+- **WU-73: done** (doer `d340e96`, `26e5a12`; 274K tokens). Static and unit suites 1318 of 1318; the four fixtures
   rc=0; build rc=0. No server code changed, so the engine suites are unaffected.
   - **D-367:**
     - `run-log.mjs <folder> display <brainstorm|verification|design|final|escalation>` prints the display from
@@ -3349,14 +3349,14 @@ The coordinator read the draft in full and found no blocker; it goes to the user
       rebuilds `displays[]`.
   - **The coordinator's review:** it read the refusal and display bookkeeping, and smoke-tested a fixture copy.
     `checkpoint` without a display gives exit 1 with the D-367 line, and display then checkpoint gives exit 0. One
-    hardening was added (`a8bdf34`): `checkpoint` names the expected visit when the runner's is wrong ("the final
+    hardening was added (`51bb4bf`): `checkpoint` names the expected visit when the runner's is wrong ("the final
     gate's next visit is 2, not 5"), so a miscounted visit can't loop on the display error.
-- **WU-73 merged** at `a8bdf34`. At the merged head: build rc=0, static and unit suites 1318 of 1318. Lane
+- **WU-73 merged** at `51bb4bf`. At the merged head: build rc=0, static and unit suites 1318 of 1318. Lane
   `bg-73` removed.
 
 ### M-15 closed (2026-10-14), on the user's waiver
 
-- **Built:** WU-64…WU-71 and WU-73, each reviewed. The wave gate passed at `27b90fe` (127 suites, 2283 tests).
+- **Built:** WU-64…WU-71 and WU-73, each reviewed. The wave gate passed at `fb8c446` (127 suites, 2283 tests).
   WU-73 changed only skill text, scripts and tests after that.
 - **WU-72's record:** `completed`; output 1.23M by telemetry (run A 2.5M); cache read 129.6M (run A 296M). AC-W58
   is met.
@@ -3531,7 +3531,7 @@ architectural: the result goes into amendment 5's spec text.
     do move the weights. An item affix PoB can't parse gets no weight at all; `find_upgrades`' `required_mods` is the
     AND group (at most 3, `pob-api/API/Trade.lua:70`).
 - **The study and the proposal** (2026-10-16): `studies/2026-10-16-pricing.md` with its script
-  `studies/data/2026-10-16-pricing.py` (`b136140`). Checking the derivation corrected the conversion table the user
+  `studies/data/2026-10-16-pricing.py` (`bb8c990`). Checking the derivation corrected the conversion table the user
   had seen: for items under 10 divines the day-7 factor is ×0.4–0.9 across four leagues (the draft's ×0.2–0.6 leaned
   on Forbidden Rites alone); the other rows held. `spec/amendment-5-pricing.md` proposes D-370…D-374 (targets by
   price day; the budget never fails a gate; `b` and `n` rares by `find_upgrades`; conversion to the price day; what
@@ -3557,20 +3557,20 @@ architectural: the result goes into amendment 5's spec text.
   Travel by action and Duration to the floor (5), Harmless self-trigger (7), Off-tree defence layer (8), citing
   `[nerd-interactions]`. Cut to the library's terse form to fit D-325's 6,000-word cap: the library is now at
   exactly 6,000 words, so the next addition needs a trim or a decision on the cap (the engine-lens amendment).
-- **WU-74 done by its doer** (`a3c6223` on `bg/wu-74`, 258K tokens): both gate commands exit 0 (129 suites, 2,300
+- **WU-74 done by its doer** (`ad28e07` on `bg/wu-74`, 258K tokens): both gate commands exit 0 (129 suites, 2,300
   tests). The loadout select works: after selecting `b`, `find_upgrades` reads `b`'s ring as the current item and
   scores against it; with `n` selected, against `n`'s. Deviations for the fold: the header splits into `League:`,
   `Checked:` and the status line; the stop line reads `Stopped early: [trade:<kind>] <reason>.`, so C-14's output
   block and stop wording (stab `03-trade.md:489-496`, `:542`) and slice 01 §2.9's "keeps C-14's wording" need
   updating; `Checked:` is the wall-clock time of the first search. AC-T46 collided with the stabilization spec's
   AC-T46, so amendment 5's server AC is renamed AC-K68.
-- **WU-74 verified and merged** (`c099b2d`, fast-forward; the lane is removed). The independent verifier (112K
+- **WU-74 verified and merged** (`b6ac354`, fast-forward; the lane is removed). The independent verifier (112K
   tokens) passed all five unit-gate checks: both exit codes 0 (129 suites, 2,300 tests, plus the NFR step), each AC
   on a real code path, a clean diff, empty waivers and unchanged dependencies, scope inside the grant. Low findings:
   L1, the AC-K68 test can't tell first-search dating from report-time dating within one fake second (the code dates
   by the first search, as C-49 requires); L2, the prefix follows `Stopped early: `, so WU-75's `pricing.md` matches
   `[trade:<kind>]` anywhere in the line; L3, the fold notes above.
-- **WU-75 built and merged** (`8c18fb5`, fast-forward; the doer used 377K tokens, the verifier 195K). The verifier
+- **WU-75 built and merged** (`11dfd10`, fast-forward; the doer used 377K tokens, the verifier 195K). The verifier
   passed every check (129 suites, 2,308 tests; AC-W63's eight tests assert the amendment's numbers; no old-gate
   leftovers; all 22 files in scope) and found nothing blocking. The doer defined the D1 gate's new `basis.budget`
   in `gates.md` ("Price days, targets and ranges"), WU-76's input. Its own choices, all judged sound: "not priced
@@ -3587,7 +3587,7 @@ architectural: the result goes into amendment 5's spec text.
 - **For the v1.6 fold:** `03-pipeline.md:384` (no agent definition names a tool that changes the build) and
   `R1b.md:198` ("mutate tools you don't hold") conflict with the coordinator holding `manage_sets` for D-372's
   loadout select; `plan-reference.md`'s `prices[].query` row needs D-372's query (WU-75 left it).
-- **WU-76 built, verified and merged** (`a2c284a`, fast-forward; the doer used 348K tokens plus a short fix round,
+- **WU-76 built, verified and merged** (`abe1e6a`, fast-forward; the doer used 348K tokens plus a short fix round,
   the verifier 182K). The verifier passed the gate (one AC-T22 timing flake at 8,141 ms under load, passing alone),
   AC-W64 (hand-checked: the 60-divine `b` case is 15–31 at day 7; a day-67 late market gives 2.2–9.9), the
   `gates.md` arithmetic, no budget failure path, the rendered lines and scope. Fixed before merge: the final display
@@ -3602,10 +3602,10 @@ architectural: the result goes into amendment 5's spec text.
   entry, so naming the second slot of a shared entry passes against step 7's "first slot".
 - **M-16 built:** WU-74…WU-76 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree, then the
   Lightning Arrow Deadeye run's environment (the user supplies Fubgun's guide link and PoB).
-- **M-16 wave gate: PASS at `6eddeb8`** (an independent verifier, in the fresh run worktree `m16`, left built).
+- **M-16 wave gate: PASS at `d0b557c`** (an independent verifier, in the fresh run worktree `m16`, left built).
   Bootstrap clean; `mise run test` rc 0 from clean (129 of 129 suites, 2,316 of 2,316 tests, none skipped; the NFR
   step 2 of 2; about 320 s); `pnpm build` rc 0; both waivers `[]`; `package.json` and the lockfile unchanged since
-  `27b90fe`; `vendor/` clean at `7d6f530` (v0.23.1); the README table matches, 84 rows; the checker exits 0 on all
+  `fb8c446`; `vendor/` clean at `7d6f530` (v0.23.1); the README table matches, 84 rows; the checker exits 0 on all
   four pipeline fixtures; AC-K67, AC-K68, AC-W63 and AC-W64 each map to passing tests; `prices.json` equals §5.
 
 ## 2026-10-16: the baseline guide changes; amendment 6 proposed
@@ -3645,7 +3645,7 @@ architectural: the result goes into amendment 5's spec text.
 
 ## 2026-10-16: M-17, amendment 6's build
 
-- **WU-77 built** (`49e6fac` on `bg/wu-77`; the doer used 376K tokens). Gate rc 0 (130 suites, 2,335 tests), build
+- **WU-77 built** (`0a767b8` on `bg/wu-77`; the doer used 376K tokens). Gate rc 0 (130 suites, 2,335 tests), build
   rc 0, waivers `[]`, dependencies unchanged.
   - **ACs:** AC-K69 and AC-K70 are in `tests/integration/minionSkill.test.ts`; AC-K71 is in `lookupGameData.test.ts`.
   - **The doer's choices, to judge:**
@@ -3676,12 +3676,12 @@ architectural: the result goes into amendment 5's spec text.
       "every minion child".
   - **Note for WU-79:** there is one lookup result per granted effect, so the brief check counts the `Cast by:` lines
     across all of a name's results.
-- **WU-77 merged** at `fbafa69` (fast-forward; lane `bg-77` removed).
-  - **The fix round** (`c6c6aa0` before the rebase, about 8K tokens) added a test of Kelari's Deception at minion stat
+- **WU-77 merged** at `cadd4d9` (fast-forward; lane `bg-77` removed).
+  - **The fix round** (`cadd4d9` before the rebase, about 8K tokens) added a test of Kelari's Deception at minion stat
     set 2, with stat set 3 refused naming both labels, and removed the duplicated label helper.
   - **The targeted suites:** `minionSkill`, `skillBreakdown` and `contract` rc 0; build rc 0.
   - **Untested:** the duplicate-name refusal, because no minion at the pin has a duplicate name.
-- **WU-78 built** (`4f9497d` on `bg/wu-78`; the doer used 414K tokens). Gate rc 0 (131 suites, 2,355 tests), build
+- **WU-78 built** (`2a7d1cf` on `bg/wu-78`; the doer used 414K tokens). Gate rc 0 (131 suites, 2,355 tests), build
   rc 0, waivers `[]`, dependencies unchanged.
   - **ACs:** AC-P68 is in `tests/integration/compileMinion.test.ts`, with the fixture plans `minion-wolf` (Wolf Pack
     with Leap Slam, Count 2) and `varashta-navira` (written from game data). AC-P69 is in `planSchema.test.ts`,
@@ -3721,7 +3721,7 @@ architectural: the result goes into amendment 5's spec text.
       `compileMinion` case), and it checks the minion type PoB picks for a new gem;
     - `Compile.lua` reuses `BuildOps.numbered`.
   - **Targeted suites:** 6 suites, 225 tests, rc 0; build rc 0.
-- **WU-79 built** (`f6573a2` on `bg/wu-79`; the doer used 415K tokens).
+- **WU-79 built** (`9f2519a` on `bg/wu-79`; the doer used 415K tokens).
   - **Gate:** `mise run test` rc 1, twice, on AC-T22 alone (Ring 1 about 9.5 s against 8 s under the suite's own
     load). It passes alone, and the `--runInBand` step passes run separately. 2,369 of 2,370 tests pass. Build rc 0,
     waivers `[]`, dependencies unchanged. The checker exits 0 on all four pipeline fixtures.
@@ -3749,7 +3749,7 @@ architectural: the result goes into amendment 5's spec text.
     - the brief check should count distinct summoning gems, not `Cast by:` lines;
     - the minion verdict-line test's `measures.dps` should be tied to `record.ts`'s `headlineDps`;
     - `gates.md`'s findings heading should cover the V1 row.
-  - **AC-T22 timed alone, mean of 3:** 17.6 s before M-17 (`1bfc8a9`), 17.3 s after; each slot within ±2%. So M-17
+  - **AC-T22 timed alone, mean of 3:** 17.6 s before M-17 (`660783e`), 17.3 s after; each slot within ±2%. So M-17
     didn't slow it. Under the full suite the margin was already thin (24.8–31.7 s before; AC-T40 failed on time once
     instead), and M-17's two new engine suites (`minionSkill` 89 s, `compileMinion` 29 s) narrow it. If it keeps
     recurring, move the trade timing test into the `--runInBand` step.
@@ -3763,14 +3763,14 @@ architectural: the result goes into amendment 5's spec text.
   - **Targeted suites:** 636 of 636 tests rc 0; the checker rc 0 on the four pipeline fixtures.
 - **M-17 built:** WU-77…WU-79 are on `build-guide/amendments`. Next: the wave gate in a fresh run worktree `m17`,
   which then serves the Varashta baseline run.
-- **M-17 wave gate: PASS at `57b738c`** (an independent verifier, 108K tokens, in the fresh run worktree `m17`, left
+- **M-17 wave gate: PASS at `b4df4b6`** (an independent verifier, 108K tokens, in the fresh run worktree `m17`, left
   built).
   - **Bootstrap:** clean.
   - **`mise run test` rc 1, from a tooling false-failure only:** AC-T22's Ring 1 took 10.12 s under load, and the test
     passes alone (15.9 s for five slots). The `--runInBand` step passes 2 of 2 when run alone. Otherwise 2,369 of 2,370
     tests pass, in 131 suites.
   - **`pnpm build` rc 0.**
-  - **Cross-cutting checks:** waivers `[]`; dependencies unchanged since `1bfc8a9`; `vendor/` clean at `7d6f530`; the
+  - **Cross-cutting checks:** waivers `[]`; dependencies unchanged since `660783e`; `vendor/` clean at `7d6f530`; the
     README table matches, 84 rows; the checker exits 0 on all four pipeline fixtures.
   - **ACs:** AC-K69…K71, AC-P68, AC-P69, AC-W65 and AC-W66 each map to passing tests, and one per unit was
     spot-checked as faithful.
@@ -3868,7 +3868,7 @@ build becomes one button. The user asked to add it to the engine-lens amendment'
   3. A library entry for the shape "a tamed rare beast supplies a condition the engine needs", with Navira's build
      as its example.
   4. A `docs/build-guide/pob-gaps.md` entry for the rare modifiers PoB2 lacks.
-- **The baseline run:** it uses `m17`, detached at `57b738c`, so these additions can't leak into it. The comparison
+- **The baseline run:** it uses `m17`, detached at `b4df4b6`, so these additions can't leak into it. The comparison
   should record the beast as a miss: nothing in the run's tools or library covers it.
 
 ## 2026-10-17: the baseline run's feedback, collected for one amendment
@@ -3942,7 +3942,7 @@ session diagnosed it; the user paused the run until it is fixed.
 
 ## 2026-10-17: the Varashta baseline run completes
 
-The run (`disciple-of-varashta-navira-s-fracturing/2026-10-17-1`, on the `m17` worktree at `857658c`) completed, and
+The run (`disciple-of-varashta-navira-s-fracturing/2026-10-17-1`, on the `m17` worktree at `b76967b`) completed, and
 the user accepted the guide at the final gate.
 
 - **The build:** `r2-c-1`, the skeleton-death engine. Navira's DPS was 10,897 entering maps, 40,733 on the budget
@@ -3966,7 +3966,7 @@ The defects in the Varashta run's gap list (`studies/2026-10-17-varashta-run-fee
 one commit each. The skill-side rules (legacy means not in the game; the gates as interviews) stay for the one
 feedback amendment.
 
-- **D-383, unlock constraints** (`c250ad3`). A node with an `unlockConstraint` is allocatable only while every node
+- **D-383, unlock constraints** (`e71937d`). A node with an `unlockConstraint` is allocatable only while every node
   it names is allocated (vendor `Classes/PassiveSpec.lua:1248-1251`); 197 of the pin's 200 constraints name the
   Oracle's The Unseen Path (5571).
   - `compile_check` refuses such a node: "node 22133 (Command Skill Cooldown) is locked: PoB unlocks it only while
@@ -3975,7 +3975,7 @@ feedback amendment.
     warnings, so `validate_build`, `get_build_issues` and the load summary name them. PoB drops a listed node no
     path reaches on load, so a locked node only survives with a path to it.
   - Tests: AC-P26's defect table, `tests/unit/judge.test.ts`, `tests/integration/ruleBreaks.test.ts`.
-- **D-384, legacy gems and uniques no longer obtainable** (`2b1c494`). Legacy is the granted effect's `legacy =
+- **D-384, legacy gems and uniques no longer obtainable** (`2ff277d`). Legacy is the granted effect's `legacy =
   true` (eight skills, Commandment among them), not `Tier = 0`; no longer obtainable is PoB's item database rule
   (source "No longer obtainable", or a Race Events league; `Classes/ItemDBControl.lua:118-119`).
   - `lookup_game_data` leaves them out of every mode, gem lists included (supports, unlocks, "usable by"), and
@@ -3984,34 +3984,34 @@ feedback amendment.
     as PoB does, with a warning; `get_rule_breaks` and `judge()` report them.
   - Tests: `ruleBreaks.test.ts`, AC-P26, `judge.test.ts`; the lookup suite recomputes its gem sets without legacy
     gems (`LIVE_GEMS`), and AC-K61's Whirling Assault count drops from 29 to 28.
-- **D-385, the rolled-skill rule for plain summons** (`648898c`). A group whose compared skill summons a minion (its
+- **D-385, the rolled-skill rule for plain summons** (`46eb095`). A group whose compared skill summons a minion (its
   record entry carries `Minion<Field>` fields) is compared by its minion's figure, whether or not it names a
   minion skill. `check-run.mjs`, `gates.md`, `D1-gate.md` and `D1-build.md`. The Varashta run's three rolled-skill
   violations are this rule's false positives.
   - Left as it is: the record's `figureField` still reads `TotalDPS` for a plain summon that is the *main* skill
     (planMeasures' D-378 test asserts it). A build whose named skill is a plain summon would get a headline of 0;
     worth a decision with the feedback amendment.
-- **D-386, a price's note is no build content** (`525d00b`). `buildSha1`'s projection leaves out `prices[].note`;
+- **D-386, a price's note is no build content** (`24f5b93`). `buildSha1`'s projection leaves out `prices[].note`;
   every other price field still counts. The five fixture records whose hash matched their plan are refreshed, and
   the checker's message and the skill's wording (`run-folder.md`, `D1-finish.md`, `D2.md`) name the note.
-- **D-387, Distilled Emotions from the currency exchange** (`6ffb53c`). One polite request confirmed poe.ninja's
+- **D-387, Distilled Emotions from the currency exchange** (`18b46bf`). One polite request confirmed poe.ninja's
   exchange overview lists them, category `Delirium`, by PoB's names (26 items, values in divines); it is the
   committed fixture `tests/fixtures/poeninja/delirium-overview.response.json`.
   - `get_item_price` recognises an emotion by name (`Liquid Envy`, every tier and the Ancient ones) and prices it
     from that overview, cached as the rates are, with no trade request and no fallback to listings.
   - `pricing.md`: an emotion's price is its `Exchange value:`. The poe2scout dumps aren't used.
   - Tests: `tests/mcp/exchangePrice.test.ts`.
-- **D-388, ranking a summon main skill** (`bb936fd`). `get_passive_upgrades` read the player's CombinedDPS and
+- **D-388, ranking a summon main skill** (`d8e2b5f`). `get_passive_upgrades` read the player's CombinedDPS and
   TotalDPS, 0 for a summon. It now reads `MinionTotalDPS` when the main skill summons a minion (`calc_with` reads
   `Minion<Field>` as `get_stats` does), says so on the base line, and searches minion notables first.
   `suggest_supports` already ranked by the minion's CombinedDPS, as PoB's gem selector does; its reply now names the
   field `MinionCombinedDPS`. Tests: `tests/integration/minionRanking.test.ts`.
-- **PG-52, PG-53** (`a7abcee`, `pob-gaps.md`). At your Command's multiplier has no `actor = "parent"`, so on the minion
+- **PG-52, PG-53** (`551b002`, `pob-gaps.md`). At your Command's multiplier has no `actor = "parent"`, so on the minion
   it is 0 and PoB applies nothing; Muster's count takes every Minion-and-Persistent skill, Navira and Cast on Minion
   Death included.
 - **Two fixtures broke the new rules**, as they should: the fifteen-stage plan (a Titan plan) held two Oracle-only
   nodes (8693 and 35393, stages 9-15) and Bloodlust in five groups of every stage, and AC-P43's breadth-first tree
-  reached five Oracle-only nodes. The fixture drops them (`278734a`), and AC-P43's search skips any node with an unlock
+  reached five Oracle-only nodes. The fixture drops them (`9231ba9`), and AC-P43's search skips any node with an unlock
   constraint.
 - **Gate:** `mise run test` rc 0 (134 suites, 2,397 tests; the `--runInBand` step 3 of 3), `pnpm build` rc 0.
 - **For the v1.6 fold:** D-383…D-388 join the decisions table. C-37 (`lookup_game_data`): legacy gems and unobtainable
@@ -4021,8 +4021,8 @@ feedback amendment.
 
 ## 2026-10-17: the baseline build against Navira's guide
 
-The comparison is `studies/2026-10-17-varashta-comparison.md` (`c87a87c`). Both PoB files were measured read-only in
-the `m17` engine at `857658c`.
+The comparison is `studies/2026-10-17-varashta-comparison.md` (`cdee5c4`). Both PoB files were measured read-only in
+the `m17` engine at `b76967b`.
 
 - **The same core, different supply.** Both builds turn minion deaths into Ice Nova's Chilled Ground for Navira's
   Fracturing. Ours got that core from the user's round-2 note at the brainstorm gate. Navira's feeds Ice Nova with
@@ -4048,7 +4048,7 @@ the `m17` engine at `857658c`.
 
 ## 2026-10-18: general lessons from the comparison; amendment 7 drafted
 
-- **The comparison's general lessons** (`028b1bd`, its new §7). Almost none of the gap to Navira's build comes from
+- **The comparison's general lessons** (`c8659f1`, its new §7). Almost none of the gap to Navira's build comes from
   tuning; it comes from the build's structure. The user's diagnosis: the pipeline settles on a local maximum without
   lateral moves, and tuning the wrong strategy wastes tokens. Players judge a build by clear speed (damage, area and
   pace between packs), with bosses as a floor. §7.2 lists twelve remedies, and §7.3 sorts them between the
@@ -4071,9 +4071,9 @@ the `m17` engine at `857658c`.
 
 **Git bookkeeping (2026-10-18, with the user present).**
 
-- **The gate at `5dd7461`:** `mise run test` rc 0 (134 suites and 2,397 tests, plus the timing suites' 3 tests);
+- **The gate at `5f68bb2`:** `mise run test` rc 0 (134 suites and 2,397 tests, plus the timing suites' 3 tests);
   `pnpm build` rc 0.
-- **Fast-forwarded `main`** from `afbcc6b` to `5dd7461` (243 commits) in the main checkout, which is now on `main`.
+- **Fast-forwarded `main`** from `afbcc6b` to `5f68bb2` (243 commits) in the main checkout, which is now on `main`.
   `build/` is rebuilt, and the user reconnected the pob2 server to it.
 - **Removed (by the user):** the worktrees `amend`, `m14`, `m15`, `m16` and `m17`, all clean and contained in
   `main`, and the merged branches `build-guide/amendment-3` and `build-guide/amendments`. `pob2-mcp-wt/` keeps only
@@ -4138,3 +4138,18 @@ the `m17` engine at `857658c`.
 
   Next: the sign-rebase and the force push the user authorized (`origin/main` has the unsigned commits since the
   user's push), then M-18, amendment 7's build.
+
+**Git bookkeeping: the sign-rebase (2026-10-18, with the user present).**
+
+- **The user pushed `main` unsigned** (to `8ade8a8`) and authorized a force push after the sign-rebase.
+- **Re-signed the 246 unsigned commits above `acec4d1`.** Each is re-created with the same tree, parent chain,
+  message, author, committer and both dates; only the signature is new.
+  - All 246 show good signatures.
+  - Every commit's tree is identical, and the metadata matches commit for commit.
+  - The old history is kept locally as `refs/archive/pre-sign-2026-10-18`, which is not pushed.
+- **Updated the commit hashes the docs cite: 277 citations in 9 files.**
+  - Citations of the re-signed commits are mapped exactly; two all-digit hashes were done by hand.
+  - Citations of unit-branch originals are mapped to their one main-line copy by subject. The exception is a
+    line that cites both the original and its rebased copy (WU-70 A), which keeps the original.
+  - `58663e7` (a test comment, from before the range) has no main-line copy and is unchanged.
+- **Then force-pushed `main` to `origin`,** with a lease on `8ade8a8`.

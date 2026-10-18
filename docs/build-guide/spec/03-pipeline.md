@@ -315,7 +315,7 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   fixed-form verdict line per endgame rung, compared with the record; reward picks by name; Known issues by
   sentence, with each id in `audit.md`; the entering-maps rung's floor at area 69 and its budget of 5
   divines (5.5 with "near the ceiling"), the first rung taken by rung order.
-  Since WU-58 (merge `3ffd7d0`; D-287, D-289, D-294, D-326, D-338, D-339, D-341): run log v3 (§6);
+  Since WU-58 (merge `85c70c9`; D-287, D-289, D-294, D-326, D-338, D-339, D-341): run log v3 (§6);
   brainstorm and verification rounds and their caps, a short round only with its `shortReason`; the renamed
   answers; the verdict line's "Effective HP about <n>." against `TotalEHP`; the D1 gate recompute reads
   figure × count (D-340); the layout's `cards/`, `cards.md` and `probes/`, with each card's `probes` count;
@@ -428,7 +428,7 @@ no `pass` field (D-267).
 
 ### 5.2 The steps (D-267, D-268, D-272)
 
-`SKILL.md`'s step list, as built (since WU-57, merge `66362d0`; before it, steps 2 to 5 were R1a's concept
+`SKILL.md`'s step list, as built (since WU-57, merge `c872dea`; before it, steps 2 to 5 were R1a's concept
 proposals, R1b per concept, R1b-assemble's checkpoint-1 comparison and checkpoint 1, and step 16 was
 checkpoint 2):
 
@@ -511,7 +511,7 @@ joined with `-`.
   entry's `priceOutcomes` counts a `locked_out` or `rate_limited` call); or paced. The D1 gate reads it from
   `run-log.json` itself.
 
-Since WU-57 (merge `66362d0`; D-287…D-292, D-298, D-335, D-338, D-339, D-342): **three phases, each ending
+Since WU-57 (merge `c872dea`; D-287…D-292, D-298, D-335, D-338, D-339, D-342): **three phases, each ending
 at a gate the user answers.** A fixed roll runs the same three phases, and every card's skill is the rolled
 skill.
 - **Brainstorm.** R1a: three researchers, each reading the pattern library (§7.6) first and writing 3
@@ -894,7 +894,7 @@ round, three lenses per pass and at most 2 counted retries per gate, read from `
 at most 3 agents in flight, read from the session's transcript. NFR-22 (no 429s, no lock-outs): no
 `priceOutcomes` counts a `rate_limited` or `locked_out` call (D-270).
 
-Since WU-58 (merge `3ffd7d0`; D-289, D-286, D-287, D-323, D-326, D-338, D-339, D-341): **schema version
+Since WU-58 (merge `85c70c9`; D-289, D-286, D-287, D-323, D-326, D-338, D-339, D-341): **schema version
 3** (`references/run-log.md`). The table above is schema 2's, which the checker still reads.
 - `schemaVersion: 3`, and a `brief` field holding the parsed brief (C-51): `playstyle` a list of strings;
   `around` holding a support gem by the lookup's name (D-343); `{}` for an empty brief.
@@ -1072,7 +1072,7 @@ on, and the second full pass found two the first had missed, which is the case f
 
 ### 7.5 Cards and the deck (C-52)
 
-The template `templates/card-template.md` is built (WU-56, merge `228bec1`; D-291): two H2s, `Brainstorm
+The template `templates/card-template.md` is built (WU-56, merge `2aca7b4`; D-291): two H2s, `Brainstorm
 half` and `Verification half`, each with fixed H3s. Since WU-57 (D-286, D-287, D-303, D-335, D-339), R1a
 fills the brainstorm half (about 250–400 words); R1b fills the verification half.
 
@@ -1114,7 +1114,7 @@ fills the brainstorm half (about 250–400 words); R1b fills the verification ha
 
 ### 7.6 The pattern library `references/patterns.md` (C-53)
 
-Built (WU-56, merge `228bec1`; D-290) from the ten pattern families of the work-log's "Off-meta builds
+Built (WU-56, merge `2aca7b4`; D-290) from the ten pattern families of the work-log's "Off-meta builds
 7–30", the earlier studies, and the brainstorm questions from its "Process heuristics, by phase", which open
 the file. v1 holds 60 entries in ten families, 5,642 words at the merge; its review checked all 60 against
 their sources. `SKILL.md` lists it since WU-57, which removed the static test's `AWAITING_SKILL_WIRING`
@@ -1157,7 +1157,7 @@ starts a fix round.
 
 ### 7.8 The audit layer `audit.md`
 
-Built (WU-62, merge `14f3553`; D-278). A separate file in the run folder, not an appendix to the guide; no
+Built (WU-62, merge `a8506ef`; D-278). A separate file in the run folder, not an appendix to the guide; no
 human is expected to read it, so the guide's word cap and no-marker rule apply to all of `guide.md`. W1
 writes it from `templates/audit-template.md` and patches it with Edit; the runner fills its `Known issues`
 table at step 14. The checker requires these H2s in order once a guide exists (AC-W2 (z)).
@@ -1181,7 +1181,7 @@ the render, Known issues aside (AC-W55).
 
 ## 8. Guide template (W1; ext §5, the design's quality bar)
 
-`templates/guide-template.md`, as built by WU-62 (merge `14f3553`; D-276, D-277, D-280, D-281): **the reader
+`templates/guide-template.md`, as built by WU-62 (merge `a8506ef`; D-276, D-277, D-280, D-281): **the reader
 layer.** `guide.md` has one H1 naming the roll and the concept, then the 14 H2s of the table below, in order,
 and no other H2. It is about 2,840 words, capped at 3,000 (the H1, the import code and the Known issues list
 not counted), and renders the plan: no markers, and no fact or number of its own. Everything kept for
@@ -1342,7 +1342,7 @@ or default answer); no presentation text or time is recorded (D-270).
 
 Since WU-57 and WU-58 (D-287, D-288): **three gates, one per phase**, alongside the unsaved-build question
 and escalations. Every gate visit prints its display first, in the reply, whoever answers it (D-265 (b));
-since WU-57's re-open at `96b1785` that is a hard rule in `SKILL.md`, and each gate paragraph points to it.
+since WU-57's re-open at `4eb18ef` that is a hard rule in `SKILL.md`, and each gate paragraph points to it.
 A pre-supplied or default answer then states what it resolved to (`Test config: first-n:2 → verify r1-a-1,
 r1-b-1`).
 - **The brainstorm gate.** It echoes the parsed brief, prints the deck (`cards.md`'s dealt cards and its
@@ -1606,7 +1606,7 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-56: Content — the pattern library, the card template and the checklist
 - kind: build
-- status: built (merge `228bec1`)
+- status: built (merge `2aca7b4`)
 - depends-on: []
 - role: pipeline author
 - touches: [`.claude/skills/build-guide/references/patterns.md` (new), `.claude/skills/build-guide/templates/card-template.md` (new), `.claude/skills/build-guide/references/stages/R1b.md` (the checklist), `tests/static/buildGuidePipeline.test.ts`]
@@ -1629,8 +1629,8 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-57: The pipeline — brief, three phases, cards, Count and the named damage source
 - kind: build
-- status: built (`d0cbd4d`, merged at `66362d0`). Re-opened twice from WU-59: for D-343 and D-344 at
-  `51b22c9`, `3c57d50` and `30abc7a`, and for the gate display (D-265 (b)) at `96b1785`
+- status: built (`f74c478`, merged at `c872dea`). Re-opened twice from WU-59: for D-343 and D-344 at
+  `757cebb`, `10d4792` and `312c264`, and for the gate display (D-265 (b)) at `4eb18ef`
 - depends-on: [WU-55, WU-56, WU-62]
 - role: pipeline author
 - touches: [`SKILL.md` (invocation, steps, hosts and routes, and listing `references/patterns.md`); `references/stages/R1a.md` (foci, cards, the library); `references/stages/R1a-assemble.md` (new); `references/stages/R1b.md` (the card's identity, the checklist, the probe budget, and its header `writes`: `probes/<card-id>/<n>/` and `cards/<id>.md`, D-338); `references/stages/R1b-assemble.md` (`TotalEHP` in the key numbers); `templates/card-template.md` (the Evidence fields and the fourth status word, D-335); `templates/guide-template.md` and `references/stages/W1.md` (the verdict line's EHP); `references/checkpoints.md`; `references/offline-and-test.md`; `references/gates.md` and `references/stages/D1-gate.md` (figure × count); `references/stages/D1.md`, `D2.md`; the agent definitions, including `build-guide-verifier.md`'s re-check line, which still states the rule from before D-264 (AC-W14); the "rolled skill" wording across the skill; `tests/static/buildGuidePipeline.test.ts`, including its check of that line, AC-W27's card-template strings and the `AWAITING_SKILL_WIRING` entry it drops]
@@ -1641,7 +1641,7 @@ and its file is shown to the user with item 1's approval.
 - summary: Amendment 3's N-6. Merged after WU-62, whose verdict line it extends, and before WU-58. It no
   longer depended on WU-50 or WU-52: D-335 withdrew the poe.ninja tools and the popularity threshold, so
   there was nothing to stub. As built:
-  - **AC-W32** was pinned at its first step (A-33) and approved. Built at `d0cbd4d`: gate rc 0/0 (2019
+  - **AC-W32** was pinned at its first step (A-33) and approved. Built at `f74c478`: gate rc 0/0 (2019
     tests), its ACs plus a block for D1's Count, the D1 gate's figure × count, D2's bridge skills and EHP.
   - **Deviations accepted:** steps 2a, 2b and 2c are sub-steps; a non-skill card's R1b verdict is `compiled:
     fail`, code `not-a-skill`, never retried; the slugs `open-<skill>` and `open`; the runner reads
@@ -1654,24 +1654,24 @@ and its file is shown to the user with item 1's approval.
     source-marker examples (`D2-gate.md` granted as a touch); AC-W31's test asserts the three gate step
     rows. Static and checker suites at the merge: 462 of 462.
   - **Re-opened for D-343 and D-344** (WU-59's P1, first attempt: the free-text Fork brief parsed as
-    `around`, so no D-258 refusal fired; check 4 stopped early for the missing Agent tool). `51b22c9`
+    `around`, so no D-258 refusal fired; check 4 stopped early for the missing Agent tool). `757cebb`
     implemented both in `SKILL.md` and `R1a.md`, rewrote AC-W47 and added static and checker tests
     (accepted: no run-log field for a stop reason, a sentence in `R1a.md`, WU-59's P1 count, AC-W47
     retitled "the brief check"). Its first review failed: the fixed roll was defined by whether its names
     are valid, so the misspelled checks could pass as free text; AC-W48 didn't require check 4's stop;
-    `around` wasn't recorded by the lookup's name. `3c57d50` defined the fixed roll by its shape and fixed
-    the rest (gate 2117 of 2117). The second review passed for P1; `30abc7a` then made a lookup miss stop
+    `around` wasn't recorded by the lookup's name. `10d4792` defined the fixed roll by its shape and fixed
+    the rest (gate 2117 of 2117). The second review passed for P1; `312c264` then made a lookup miss stop
     a run only for a name given as the skill, and an unquoted brief the gem lookup finds whole one name
     (static 284 of 284, checker 270 of 270; the coordinator read the diff and accepted it).
   - **Re-opened for the gate display** (WU-59's run A, AC-W37): the gates printed no display for
-    pre-supplied answers, since only `references/checkpoints.md` held D-265 (b)'s rule. `96b1785` adds a
+    pre-supplied answers, since only `references/checkpoints.md` held D-265 (b)'s rule. `4eb18ef` adds a
     Hard rules bullet, "Every gate visit prints its display first, in your reply, whoever answers it
     (D-265)", and points to it at steps 2c, 5 and 16 and the escalation (static 286 of 286, checker 270 of
     270; accepted by the coordinator).
 
 ### WU-58: The checker and run log v3
 - kind: build
-- status: built (`eb32044`, merged at `3ffd7d0`)
+- status: built (`ef93a2a`, merged at `85c70c9`)
 - depends-on: [WU-57]
 - role: pipeline author + test infra
 - touches: [`scripts/check-run.mjs` (the run-log fields, roll and brief, the escalation answer, checkpoints, the flow with picks, mores, brainstorm and verification rounds, card ids and the caps, the rolled-skill recompute with Count, the verdict line's EHP, and the layout's `cards/`, `cards.md` and `probes/`, D-338); `references/run-log.md` (each card's probe count, D-338); `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/` (`run-ok`, `run-ok-online`, `run-escalated` rebuilt; `run-ok-v2` added); granted by its review: one line of `references/stages/R1b.md` (the probe count includes failed probes)]
@@ -1708,7 +1708,7 @@ and its file is shown to the user with item 1's approval.
 ### WU-59: Offline end-to-end run with an open brief, recorded
 - kind: build (recorded run)
 - status: recorded; re-scoped by D-361 (amendment 4): runs B and P2 dropped. P1 passed on its second attempt
-  and run A ended `completed`, both at `30abc7a`. Its criteria were pinned (A-33) and merged at `56ad83d`:
+  and run A ended `completed`, both at `312c264`. Its criteria were pinned (A-33) and merged at `f1105d0`:
   AC-W34…AC-W50, AC-W45 and AC-W46 since withdrawn (D-361).
 - depends-on: [WU-51, WU-53…WU-58, WU-60…WU-63] (WU-50 done, WU-52 withdrawn, D-335)
 - role: build coordinator, with an independent verifier checking the record
@@ -1774,29 +1774,29 @@ and its file is shown to the user with item 1's approval.
        a finding against the owning unit's prompts.
   - **The record** (work-log, "2026-10-11: WU-59, P1 check 3 fails; WU-57 re-opened" onward):
     - **The environment** is `/tmp/m14.zfPx`, its launcher matching attempt 3's safety settings; the run
-      worktree `m14` moved to each gated head (`e62799b`, then `30abc7a`, then `96b1785` after run A). The
+      worktree `m14` moved to each gated head (`736733f`, then `312c264`, then `4eb18ef` after run A). The
       prep's launcher test once ran `claude` without a TTY: it exited at argument parsing, with no session,
       no model call and nothing written.
     - **P1, first attempt:** check 3 failed (the free-text Fork brief went to `around`, D-343) and check 4
       stopped early for the missing Agent tool (D-344); check 5 passed AC-W48 (b) and check 6 the lock
       (node 38004). WU-57 was re-opened. P1 grew to seven checks: check 3 became
       `/build-guide Pathfinder Fork --offline`, and check 7 the free-text Fork brief.
-    - **P1, second attempt** (`30abc7a`, transcript `a30c5754-…`): all seven checks pass, with no agent and
+    - **P1, second attempt** (`312c264`, transcript `a30c5754-…`): all seven checks pass, with no agent and
       no web or `/mnt` call, and an empty `git status --porcelain`. A nit for the analysis: the runner's
       Bash used `echo` (`echo "rc=$?"`), which writes nothing but which D-265 (e)'s list doesn't name.
-    - **Run A** (`open-explosive-concoction/2026-10-11-3`, transcript `17907107-…`, at `30abc7a`): `status:
+    - **Run A** (`open-explosive-concoction/2026-10-11-3`, transcript `17907107-…`, at `312c264`): `status:
       "completed"`, roll Ranger / Pathfinder / Explosive Concoction, `check-run` exits 0; the final gate
       pre-supplied `revise:` (the Mana Flask claim), then `accept`. The deck dealt 7 cards, 4 under-played,
       2 not dealt, every card Ranger Pathfinder (the lock held for "any ascendancy") with "no player
       evidence". **AC-W37 failed:** both gates were answered `pre-supplied` and printed no display; fixed
-      at `96b1785`, its evidence now the lean run's (D-361). AC-W44 (f) passes on a scratch copy.
+      at `4eb18ef`, its evidence now the lean run's (D-361). AC-W44 (f) passes on a scratch copy.
     - **Run A's cost**, all on Opus: cache read 296.2M, cache write 9.05M, recorded output 1.78M, over 37
       transcripts and 1695 API turns, against an estimate of about 130M cache read; V4 took 104.9M over 11
       runs. Run B was held, then dropped (D-361); the cost led to amendment 4 (D-345…D-362).
 
 ### WU-62: The guide style — the reader layer, the audit layer and the guards
 - kind: build
-- status: built (merge `14f3553`)
+- status: built (merge `a8506ef`)
 - depends-on: [WU-61]. Soft: WU-60 merged first, so D1 uses its affix sources (a mod's base types, essences)
 - role: pipeline author + test infra
 - touches: [`templates/guide-template.md` (rewritten); `templates/audit-template.md` (new); `references/stages/W1.md`, `V4.md`, `D1.md`, `D2.md`, `D1-gate.md`; `references/gates.md`; `references/source-markers.md`; `SKILL.md` steps 10 and 14; `references/run-folder.md`; `references/task-header.md`; `scripts/check-run.mjs` (the guards); `tests/static/buildGuidePipeline.test.ts`; `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/run-ok` and `run-ok-online` (a new-style `guide.md` plus `audit.md`)]
@@ -1820,7 +1820,7 @@ and its file is shown to the user with item 1's approval.
 
 ### WU-63: The ascendancy lock (D-342)
 - kind: build
-- status: built (`7135280`, the lock; `b82cfd8`, the finalize bar; merged at `e62799b`)
+- status: built (`7135280`, the lock; `9e9cceb`, the finalize bar; merged at `736733f`)
 - depends-on: [WU-57, WU-58]
 - role: pipeline author + test infra
 - touches: [`SKILL.md` (the brief check's lock, `search_tree_nodes` among the runner's tools, the finalize bar); `references/stages/R1a.md`, `R1a-assemble.md`, `R1b.md` and `R1b-assemble.md`; `templates/card-template.md` (the identity's grant lines); `references/run-log.md`, `checkpoints.md` and `offline-and-test.md`; `scripts/check-run.mjs`; `tests/static/buildGuidePipeline.test.ts`; `tests/unit/buildGuideCheckRun.test.ts` and its fixture card; this slice's FR-W3 and AC-W34]
@@ -1831,7 +1831,7 @@ and its file is shown to the user with item 1's approval.
 - summary: The user's direction (D-342), after WU-59's prep found that nothing made a card for a
   tree-granted skill use the ascendancy that grants it: the identity check confirms only that the
   ascendancy exists and the skill is active, and PoB computes an Explosive Concoction group on any class.
-  - **Built** at `7135280` and `b82cfd8` (static and checker suites 538 of 538). Its review (1 medium, 4
+  - **Built** at `7135280` and `9e9cceb` (static and checker suites 538 of 538). Its review (1 medium, 4
     low) found the flow and both checker bars sound and `not-a-skill` unregressed. The pinned tree has 54
     tree-granted skills, each granted by a single ascendancy node.
   - **The coordinator's rulings, extending D-342:** the lock checks every skill a card names (its damage
@@ -2008,7 +2008,7 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
     of its H2s (amended by D-355 (v1.5; *target*, WU-71): `audit.md` is held to the script's render,
     AC-W55). Amended: (b) checks the reader layer's 14 H2s; (l) checks Known issues by sentence, with
     the id in `audit.md`; reward picks are checked by name.
-  - Since WU-58 (merge `3ffd7d0`; D-287, D-289, D-294, D-326, D-338, D-339, D-341; behaviour tests in
+  - Since WU-58 (merge `85c70c9`; D-287, D-289, D-294, D-326, D-338, D-339, D-341; behaviour tests in
     `buildGuideCheckRun.test.ts`, with `run-ok-v2` a fourth passing fixture, the old `run-ok` held to the
     schema-2 log rules): (aa) a run log whose `schemaVersion` is neither 2
     nor 3, or a schema-3 log whose `roll` is set before the verification pick; (bb) the caps: a brainstorm round with
@@ -2159,7 +2159,7 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
       `answeredBy: "default"`, and `status: "stopped"`.
     - No `research/` file and no `compile-record.json` exist.
 
-**Content (WU-56; built, merge `228bec1`; D-290, D-291, D-292)**
+**Content (WU-56; built, merge `2aca7b4`; D-290, D-291, D-292)**
 
 - **AC-W27 (WU-56).** Static: `templates/card-template.md` holds both halves' fields (§7.5) and the six
   status words. Since WU-57 (D-335), the template and the test take §7.5's restated Evidence (the user's
@@ -2172,7 +2172,7 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   "verified, estimate, risk, not checked", and the probe budget of up to 4 one-stage measure-only variants
   per card, in order.
 
-**The pipeline (WU-57; built, merge `66362d0`; D-285, D-287, D-295, D-297, D-335)**
+**The pipeline (WU-57; built, merge `c872dea`; D-285, D-287, D-295, D-297, D-335)**
 
 - **AC-W30 (WU-57).** Static: `SKILL.md` gives the invocation
   `/build-guide <free text> [--offline [--test <path>]] [--no-ninja]` and the eight brief fields (the seven
@@ -2230,8 +2230,8 @@ subagents') or the coordinator's review. Numbers come from the run folder, never
   - Every "Not dealt" line names what held its card back.
   - Evidence: run folder, run checker (the deck rules).
 - **AC-W37 (each gate shows what is and isn't verified; D-265 (b), D-296; run B's part withdrawn, D-361).**
-  **Recorded: failed** in run A at `30abc7a`: both gates, answered `pre-supplied`, printed no display.
-  Fixed at `96b1785` (WU-57's re-open). Its evidence now comes from the lean run (AC-W56, D-361). In the
+  **Recorded: failed** in run A at `312c264`: both gates, answered `pre-supplied`, printed no display.
+  Fixed at `4eb18ef` (WU-57's re-open). Its evidence now comes from the lean run (AC-W56, D-361). In the
   transcript, every gate visit prints its display before the answer it resolved to, pre-supplied and default
   answers included:
   - the brainstorm gate: the parsed brief; each dealt card not verified yet, with its links confirmed (`n of
@@ -2435,7 +2435,7 @@ AC-P60…AC-P67, and slice 01 AC-K66.
   matching label and an anoint, and `m` no anoint; no kill time, hits to kill or campaign defences; every stage
   passes `tree-shape`; every V4 report is kept.
 
-**The ascendancy lock (WU-63; built, merge `e62799b`; D-342).** Written at the fold to match what WU-63 built
+**The ascendancy lock (WU-63; built, merge `736733f`; D-342).** Written at the fold to match what WU-63 built
 and tested; P1's check 6 is its run evidence (AC-W47).
 
 - **AC-W61 (WU-63, D-342).** Static, `tests/static/buildGuidePipeline.test.ts` ("WU-63 (D-342)"):

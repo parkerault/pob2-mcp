@@ -1651,3 +1651,387 @@ not evidence that players build around it.
 - Creates: mana | Pays off on: flask, ward
 - Penalties: "Lose 5% Life per second while you have no Runic Ward during Effect"
 - PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Ironbound (Bow, level 11)
+- Id: ironbound
+- Rule: The bow's Hits gain Physical damage per 1% chance to Block, and Arrows that Pierced a target with Fully Broken Armour Return.
+- Lines: "Hits with this weapon have (1-2) to (4-5) Added Physical Damage per 1% Block Chance", "Arrows Return if they have Pierced a target which had Fully Broken Armour"
+- Creates: projectile | Pays off on: block, armour-break
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Lioneye's Glare (Bow, level 65)
+- Id: lioneyes-glare
+- Rule: Repeatable Attacks with the bow Repeat two more times when no enemies are in your Presence.
+- Lines: "Repeatable Attacks with this Bow Repeat +2 times if no enemies are in your Presence"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Periphery (Bow, level 67)
+- Id: periphery
+- Rule: Elemental damage from your Hits builds every Elemental Ailment: Ignite, Chill, Freeze and Shock.
+- Lines: "Elemental Damage from Hits Contributes to Flammability, Ignite, and Chill Magnitudes, Freeze Buildup, and Shock Chance"
+- Creates: ignite, chill, freeze, shock | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Slivertongue (Bow, level 39)
+- Id: slivertongue
+- Rule: Arrows Fork, then Pierce every target.
+- Lines: "Arrows Fork", "Arrows Pierce all targets after Forking"
+- Creates: projectile | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Splinterheart (Bow, level 16)
+- Id: splinterheart
+- Rule: Projectiles Split toward two more targets.
+- Lines: "Projectiles Split towards +2 targets"
+- Creates: projectile | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Voltaxic Rift (Bow, level 79)
+- Id: voltaxic-rift
+- Rule: All Lightning damage is converted to Chaos, and Chaos damage from Hits still builds Shock.
+- Lines: "100% of Lightning Damage Converted to Chaos Damage", "Chaos Damage from Hits also Contributes to Shock Chance"
+- Creates: damage-conversion, shock | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Rampart Raptor (Crossbow, level 1)
+- Id: rampart-raptor
+- Rule: Crossbow Attacks don't spend bolts while you have Reloaded recently.
+- Lines: "Bolts fired by Crossbow Attacks have 100% chance to not expend Ammunition if you've Reloaded Recently"
+- Creates: none | Pays off on: none
+- Penalties: "30% reduced Reload Speed"
+- PoB models it: yes
+
+### Redemption (Crossbow, level 65)
+- Id: redemption
+- Rule: The crossbow can't load or fire Ammunition; Grenade skills build Explosive Rhythm toward Explosive Fervour instead.
+- Lines: "Cannot load or fire Ammunition", "Gain 1 Explosive Rhythm every (2-3) times you use a Grenade Skill", "Remove all Explosive Rhythm on reaching 10 to gain Explosive Fervour for 10 Seconds"
+- Creates: none | Pays off on: none
+- Penalties: "Hits with this Weapon have no Critical Damage Bonus", "(20-40)% reduced Cooldown Recovery Rate"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### The Last Lament (Crossbow, level 77)
+- Id: the-last-lament
+- Rule: Kills can load a bolt into every Crossbow skill, and you can sacrifice Life to keep your last bolt.
+- Lines: "(10-20)% chance to load a bolt into all Crossbow skills on Kill", "Sacrifice 300 Life to not consume the last bolt when firing"
+- Creates: none | Pays off on: on-kill, life
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Frostbreath (One Hand Mace, level 10)
+- Id: frostbreath
+- Rule: All damage from the mace's Hits builds Freeze.
+- Lines: "All Damage from Hits with this Weapon Contributes to Freeze Buildup"
+- Creates: freeze | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Nebuloch (One Hand Mace, level 33)
+- Id: nebuloch
+- Rule: Attacks consume an Endurance Charge to Critically Hit, and each Endurance Charge deals you Chaos damage.
+- Lines: "Attacks consume an Endurance Charge to Critically Hit"
+- Creates: crit | Pays off on: endurance-charge
+- Penalties: "Take 100 Chaos damage per second per Endurance Charge"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Olrovasara (One Hand Mace, level 65)
+- Id: olrovasara
+- Rule: Hitting an enemy raises the mace's maximum added Lightning damage by the enemy's Power for 20 seconds.
+- Lines: "On Hitting an enemy, gains maximum added Lightning damage equal to", "the enemy's Power for 20 seconds, up to a total of 500"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Sculpted Suffering (One Hand Mace, level 22)
+- Id: sculpted-suffering
+- Rule: The pick's Hits Break Armour by 40% of their damage, and enemies with Fully Broken Armour that you kill Shatter.
+- Lines: "Breaks Armour equal to 40% of damage from Hits with this weapon", "Fully Armour Broken enemies you kill with Hits Shatter"
+- Creates: armour-break | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Trenchtimbre (One Hand Mace, level 16)
+- Id: trenchtimbre
+- Rule: Modifiers to your Minions' Attack Speed also apply to you.
+- Lines: "Increases and Reductions to Minion Attack Speed also affect you"
+- Creates: attack-speed | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Brain Rattler (Two Hand Mace, level 16)
+- Id: brain-rattler
+- Rule: All damage with the weapon builds Electrocution.
+- Lines: "All damage with this Weapon causes Electrocution buildup"
+- Creates: electrocute | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Chober Chaber (Two Hand Mace, level 33)
+- Id: chober-chaber
+- Rule: Modifiers to your Minions' damage also apply to you.
+- Lines: "Increases and Reductions to Minion Damage also affect you"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Marohi Erqi (Two Hand Mace, level 60)
+- Id: marohi-erqi
+- Rule: The maul Crushes enemies on Hit and Heavy Stuns enemies on Full Life.
+- Lines: "Crushes Enemies on Hit", "Heavy Stuns Enemies that are on Full Life"
+- Creates: stun | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Quecholli (Two Hand Mace, level 38)
+- Id: quecholli
+- Rule: The maul always Critically Hits, without a Critical Damage Bonus, and enemies it kills with a Critical Hit explode.
+- Lines: "Causes Enemies to Explode on Critical kill, for 10% of their Life as Physical Damage", "Hits with this Weapon have no Critical Damage Bonus", "This Weapon's Critical Hit Chance is 100%"
+- Creates: crit, area | Pays off on: on-kill
+- Penalties: none
+- PoB models it: yes
+
+### Shyaba (Two Hand Mace, level 28)
+- Id: shyaba
+- Rule: The maul always Hits.
+- Lines: "Always Hits"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### The Empty Roar (Two Hand Mace, level 22)
+- Id: the-empty-roar
+- Rule: Every Attack counts as Empowered and Strikes deal Splash damage, but you can't use Warcries.
+- Lines: "Strikes deal Splash Damage", "All Attacks count as Empowered Attacks"
+- Creates: area | Pays off on: none
+- Penalties: "Cannot use Warcries"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Tidebreaker (Two Hand Mace, level 45)
+- Id: tidebreaker
+- Rule: All damage from the maul's Hits builds Chill.
+- Lines: "All Damage from Hits with this Weapon Contributes to Chill Magnitude"
+- Creates: chill | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Trephina (Two Hand Mace, level 11)
+- Id: trephina
+- Rule: You always Critically Hit Heavy Stunned enemies.
+- Lines: "Always deals Critical Hits against Heavy Stunned Enemies"
+- Creates: crit | Pays off on: stun
+- Penalties: none
+- PoB models it: yes
+
+### Twisted Empyrean (Two Hand Mace, level 70)
+- Id: twisted-empyrean
+- Rule: Mace skills convert all Fire damage to Cold, and the weapon's Attacks gain Cold damage from your maximum Mana.
+- Lines: "Attacks with this Weapon have Added Cold Damage equal to (6-8)% to (10-12)% of maximum Mana", "Convert 100% of Fire Damage with Mace Skills to Cold Damage"
+- Creates: damage-conversion | Pays off on: mana
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Sacred Flame (Sceptre, level 55)
+- Id: sacred-flame
+- Rule: Enemies in your Presence resist all Elemental damage by their lowest Resistance.
+- Lines: "Enemies in your Presence Resist Elemental Damage based on their Lowest Resistance"
+- Creates: exposure | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Sylvan's Effigy (Sceptre, level 62)
+- Id: sylvans-effigy
+- Rule: You can have any number of Companions of different types.
+- Lines: "You can have any number of Companions of different types"
+- Creates: companion, minion-count | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Dark Defiler (Sceptre, level 1)
+- Id: the-dark-defiler
+- Rule: You gain damage as Chaos damage per Undead Minion you have.
+- Lines: "Gain 5% of Damage as Chaos Damage per Undead Minion"
+- Creates: damage-conversion | Pays off on: minion-count
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Chainsting (Spear, level 10)
+- Id: chainsting
+- Rule: All damage from the spear's Hits builds Pin.
+- Lines: "All Damage from Hits with this Weapon Contributes to Pin Buildup"
+- Creates: pin | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Saitha's Spear (Spear, level 33)
+- Id: saithas-spear
+- Rule: Aggravating Bleeding with the spear also Aggravates every Ignite on the target.
+- Lines: "Aggravating any Bleeding with this Weapon also Aggravates all Ignites on the target"
+- Creates: none | Pays off on: bleed, ignite
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Skysliver (Spear, level 16)
+- Id: skysliver
+- Rule: Each damage type rolls only its minimum or maximum value, and the spear deals no Physical damage.
+- Lines: "Rolls only the minimum or maximum Damage value for each Damage Type"
+- Creates: none | Pays off on: none
+- Penalties: "No Physical Damage"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Spire of Ire (Spear, level 65)
+- Id: spire-of-ire
+- Rule: Life Leech recovers from your Chaos damage instead of your Physical damage.
+- Lines: "Life Leech recovers based on your Chaos damage instead of Physical damage"
+- Creates: leech | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Splinter of Lorrata (Spear, level 1)
+- Id: splinter-of-lorrata
+- Rule: The spear always Poisons on Hit, and any number of its Poisons can affect a target, but you deal no Elemental damage.
+- Lines: "Any number of Poisons from this Weapon can affect a target at the same time", "Always Poison on Hit with this weapon"
+- Creates: poison | Pays off on: none
+- Penalties: "Deal no Elemental Damage"
+- PoB models it: yes
+
+### The Ordained (Spear, level 79)
+- Id: the-ordained
+- Rule: Life Leech recovers from your Lightning damage as well as Physical.
+- Lines: "Life Leech recovers based on your Lightning damage as well as Physical damage"
+- Creates: leech | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Tyranny's Grip (Spear, level 5)
+- Id: tyrannys-grip
+- Rule: Strikes deal Splash damage, but you can't use Projectile Attacks.
+- Lines: "Strikes deal Splash Damage"
+- Creates: area | Pays off on: none
+- Penalties: "Cannot use Projectile Attacks"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Atziri's Rule (Staff, level 70)
+- Id: atziris-rule
+- Rule: Spells that cost Life gain extra Physical damage.
+- Lines: "Spells which cost Life Gain (80-120)% of Damage as Extra Physical Damage"
+- Creates: damage-conversion | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### Collapsing Horizon (Staff, level 65)
+- Id: collapsing-horizon
+- Rule: Trigger skills refund half the Energy they spend.
+- Lines: "Trigger skills refund half of Energy spent"
+- Creates: none | Pays off on: energy
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Duality (Staff, level 65)
+- Id: duality
+- Rule: Expending Combo grants Finality and Guard briefly per Combo expended.
+- Lines: "Gain Finality for 0.5 seconds per Combo expended when using Skills", "Gain (500-1000) Guard for 0.5 seconds per Combo expended when using Skills"
+- Creates: none | Pays off on: combo
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Sire of Shards (Staff, level 25)
+- Id: sire-of-shards
+- Rule: Spells fire four more Projectiles, in a circle.
+- Lines: "Spells fire 4 additional Projectiles", "Spells fire Projectiles in a circle"
+- Creates: projectile | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### The Burden of Shadows (Staff, level 56)
+- Id: the-burden-of-shadows
+- Rule: Skills cost Life instead of Mana, and gain Chaos damage from their Life cost.
+- Lines: "Skill Mana Costs Converted to Life Costs", "Skills gain 1% of Damage as Chaos Damage per 3 Life Cost"
+- Creates: damage-conversion | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### The Searing Touch (Staff, level 16)
+- Id: the-searing-touch
+- Rule: Your Ignites spread to enemies that stay near the Ignited one.
+- Lines: "Ignites you inflict spread to other Enemies that stay within 1.5 metres for 1 second"
+- Creates: ignite | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Fury of the King (Talisman, level 72)
+- Id: fury-of-the-king
+- Rule: Bear skills convert most Physical damage to Fire, and skills that need Glory generate it over time.
+- Lines: "Bear Skills Convert 80% of Physical Damage to Fire Damage", "Skills which require Glory generate (2-5) Glory every 2 seconds"
+- Creates: damage-conversion, glory | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Hysseg's Claw (Talisman, level 16)
+- Id: hyssegs-claw
+- Rule: You deal more damage per Minion you have.
+- Lines: "(5-8)% increased Damage per Minion"
+- Creates: none | Pays off on: minion-count
+- Penalties: none
+- PoB models it: yes
+
+### Spiteful Floret (Talisman, level 5)
+- Id: spiteful-floret
+- Rule: Rage also makes you Recoup part of the damage you take as Life.
+- Lines: "Every 5 Rage also grants 5% of Damage taken Recouped as Life"
+- Creates: recovery | Pays off on: rage
+- Penalties: none
+- PoB models it: yes
+
+### The Flesh Poppet (Talisman, level 40)
+- Id: the-flesh-poppet
+- Rule: Shapeshifting into an Animal form copies a random modifier from each enemy in your Presence for 30 seconds.
+- Lines: "Copy a random Modifier from each enemy in your Presence when", "you Shapeshift to an Animal form", "Modifiers gained this way are lost after 30 seconds or when you next Shapeshift"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Enezun's Charge (Wand, level 16)
+- Id: enezuns-charge
+- Rule: Consuming a Corpse may leave it in place.
+- Lines: "25% chance to not destroy Corpses when Consuming Corpses"
+- Creates: corpse | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Lifesprig (Wand, level 1)
+- Id: lifesprig
+- Rule: Casting a Spell Leeches 1% of your maximum Life.
+- Lines: "Leeches 1% of maximum Life when you Cast a Spell"
+- Creates: leech | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Liminal Coil (Wand, level 65)
+- Id: liminal-coil
+- Rule: Your Curses have no magnitude but ignore the Curse limit, and Spell Hits gain extra damage per Curse on the target.
+- Lines: "Magnitudes of Curses you inflict are zero", "Curses you inflict ignore Curse limit", "Spell Hits Gain (23-31)% of Damage as Extra Chaos Damage per Curse on target", "Spell Hits Gain (23-31)% of Damage as Extra Physical Damage per Curse on target"
+- Creates: curse, damage-conversion | Pays off on: curse
+- Penalties: none
+- PoB models it: yes
+
+### Runeseeker's Call (Wand, level 65)
+- Id: runeseekers-call
+- Rule: Only Runes can be socketed in the wand, and their effect is tripled.
+- Lines: "Only Runes can be Socketed in this item", "200% increased effect of Socketed Runes"
+- Creates: none | Pays off on: socket
+- Penalties: none
+- PoB models it: yes
+
+### Sanguine Diviner (Wand, level 1)
+- Id: sanguine-diviner
+- Rule: A quarter of your Spells' Mana cost is paid in Life.
+- Lines: "25% of Spell Mana Cost Converted to Life Cost"
+- Creates: none | Pays off on: life
+- Penalties: none
+- PoB models it: yes

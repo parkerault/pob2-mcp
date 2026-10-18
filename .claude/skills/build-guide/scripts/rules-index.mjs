@@ -72,7 +72,8 @@ const NODE_RE = /^- (.+?) \((\d+), ([^()]+)\)( \[rule\])? — (.+)$/;
 const NODE_TAGS_RE = /^(.+?) creates: ([^|]+?) \| pays off on: ([^|]+?) \| PoB models it: (\S+)$/;
 const HEADING_RE = /^### (.+) \(([^(),]+), level (\d+)\)$/;
 const BLOCK_FIELDS = ['Id', 'Rule', 'Lines', 'Creates', 'Penalties', 'PoB models it'];
-const PRICE_RE = /\b(prices?|priced|divine orbs?|exalted orbs?|chaos orbs?|\d+(\.\d+)?\s*(div|divines?|ex|exalts?)\b)/i;
+/** A price: an amount of a currency, a currency orb, or a `price:` / `priced` label (a name like Blood Price is none). */
+const PRICE_RE = /\b(\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|divine orbs?|exalted orbs?|chaos orbs?|prices?:|priced)/i;
 const BLOCK_FILES = ['uniques.md', 'gems.md'];
 
 // ------------------------------------------------------------------------------------------------------------

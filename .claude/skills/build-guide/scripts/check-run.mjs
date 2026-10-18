@@ -44,6 +44,11 @@
 //    `wrong-ascendancy` failure is terminal, D-334, D-342), one full V4 pass per guide and at most one re-check
 //    per fix round or revision, escalations only from the gates, the rule on every pre-supplied or default
 //    answer, and each gate visit's display recorded before its answer (D-367).
+//  - amendment 7's gates as interviews (D-389…D-392): each gate checkpoint's `questions` against its visit's interview
+//    notes `interviews/<gate>-<visit>.md`, the gate question steps (`Q`) against their reports
+//    `interviews/<gate>-<visit>-q<n>.md` (D-390), the checkpoint's `changes`, `newCards` and `note` in their forms, a
+//    changed card's "Changed at the gate" line, a card made at a gate (`r<k>-g-<n>`) with its "Made at the gate" line
+//    and its deck line, verified in the same round after the picked cards (D-391), and the deck's header (D-392).
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -62,6 +67,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
+import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
@@ -159,14 +165,25 @@ const DISPLAYED = ['brainstorm', 'verification', 'design', 'final', 'escalation'
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 /** An escalation's choices (D-236): schema 3 goes back to the verification gate, schema 2 to checkpoint 1 (D-289). */
 const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'] };
-/** A schema-2 concept id (`c1`), and a schema-3 card id `r<round>-<researcher letter>-<n>` (`r1-a-2`, D-319). */
+/**
+ * A schema-2 concept id (`c1`), and a schema-3 card id `r<round>-<letter>-<n>` (`r1-a-2`, D-319): the letters a to c
+ * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391).
+ */
 const CONCEPT_ID = 'c[1-9]\\d*';
-const CARD_ID = 'r[1-9]\\d*-[a-c]-[1-9]\\d*';
+const CARD_ID = 'r[1-9]\\d*-[a-cg]-[1-9]\\d*';
+/** A card made at a gate (D-391): `r<k>-g-<n>`, k its brainstorm round, n counting the run's gate-made cards in it. */
+const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The id form a run's steps, folders and files use: the card id in schema 3, the concept id in schema 2. */
 const idSource = (schema) => (schema === 2 ? CONCEPT_ID : schema === 3 ? CARD_ID : `(?:${CONCEPT_ID}|${CARD_ID})`);
 const idForm = (schema) => (schema === 2 ? 'the concept id c<n>' : 'the card id r<round>-<letter>-<n>');
 /** D-292: a card's probe variants, beyond R1b's two compiles. */
 const PROBE_CAP = 4;
+/** The gates whose visits print a display, and take questions (D-389): an interview note's and a gate question's names. */
+const INTERVIEW_GATES = '(brainstorm|verification|design|final|escalation)';
+/** D-390: a gate question step's compiled variant `probes/q-<gate>-<visit>-<n>/`. */
+const QUESTION_PROBE = new RegExp(`^q-${INTERVIEW_GATES}-([1-9]\\d*)-([1-9]\\d*)$`);
+/** D-389, D-390: `interviews/<gate>-<visit>.md`, the visit's notes, and `interviews/<gate>-<visit>-q<n>.md`, a gate question step's report. */
+const INTERVIEW_FILE = new RegExp(`^${INTERVIEW_GATES}-([1-9]\\d*)(?:-q([1-9]\\d*))?\\.md$`);
 /** D-287, D-339: a brainstorm round deals 6–9 cards, and the deck keeps at least two under-played ones. */
 const DEAL = { min: 6, max: 9, underPlayed: 2 };
 const UNDER_PLAYED = /under-played \(judgment\b/i;
@@ -203,7 +220,8 @@ const COMMON_OUTCOMES = {
 };
 const STAGE_OUTCOMES = {
   2: { ...COMMON_OUTCOMES, D1: ['done', 'infeasible', CLAIMS_EDITED] },
-  3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED] },
+  // D-390: a gate question step, `Q`, answers the user's question at a gate and writes interviews/<gate>-<visit>-q<n>.md.
+  3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED], Q: ['done'] },
 };
 const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED];
 /** The D1 steps: schema 3's two (D-356), schema 2's one. */
@@ -218,8 +236,8 @@ const ARTIFACT_WRITERS = { 'plan.json': [...D1_STAGES, 'D1-gate', 'D2'], 'guide.
 const DESIGN_STAGES = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate'];
 /** The producers whose run, unless it only edited claims (`claims-edited`), leaves the final record behind. */
 const PRODUCERS = [...D1_STAGES, 'D2'];
-/** The steps that concern no one concept or card. */
-const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble'];
+/** The steps that concern no one concept or card: the rounds' steps, and a gate question step (D-390). */
+const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
 const R1B_ATTEMPTS = 3;
 const GATE_RETRIES = 2;
@@ -574,7 +592,7 @@ export async function checkRun(runFolder) {
   const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
 
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
-  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
+  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
   // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
   for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
     if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2); agents write only the files §2 names`);
@@ -585,16 +603,16 @@ export async function checkRun(runFolder) {
     if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
     else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
   }
-  for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true]]) {
+  for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true], ['interviews', true]]) {
     if (exists(name) && isDir(name) !== dir) fail('layout', `${name} is a ${dir ? 'file' : 'folder'}; §2 names ${dir ? `the folder ${name}/` : `the file ${name}`}`);
     // D-326: the cards, the deck and the probes are schema 3's layout (D-319, D-338); a schema-2 run has none.
-    if (!v3 && exists(name)) fail('layout', `${name}${dir ? '/' : ''} is part of schema 3's layout (the cards, the deck and the probes, D-338); a schema-2 run, recorded before amendment 3, has none (D-326)`);
+    if (!v3 && exists(name)) fail('layout', `${name}${dir ? '/' : ''} is part of schema 3's layout (${name === 'interviews' ? 'the interview notes, D-389' : 'the cards, the deck and the probes, D-338'}); a schema-2 run, recorded before amendment 3, has none (D-326)`);
   }
   // C-52, D-319: R1a writes each card at cards/<id>.md, and R1b its verification half; nothing else goes there.
   const cardIds = new Set();
   for (const f of listDir('cards')) {
     const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
-    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319)`);
+    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391)`);
     else cardIds.add(m[1]);
   }
   if (completed) {
@@ -639,9 +657,21 @@ export async function checkRun(runFolder) {
   // plan with the measure-only record and XML beside it; at most 4 per card (D-292).
   const probePlans = new Map();
   const probeCounts = new Map();
+  // D-390: a gate question step's coordinator may compile one variant, probes/q-<gate>-<visit>-<n>/, its question
+  // report interviews/<gate>-<visit>-q<n>.md; it counts toward no card's probes.
+  const questionProbes = [];
   for (const id of listDir('probes')) {
+    const q = QUESTION_PROBE.exec(id);
+    if (q && isDir(`probes/${id}`)) {
+      questionProbes.push({ dir: id, report: `interviews/${q[1]}-${q[2]}-q${q[3]}.md` });
+      if (!exists(`probes/${id}/plan.json`)) fail('layout', `probes/${id}/plan.json is missing; a gate question step writes the variant it compiles there (D-390)`);
+      const p = readJson(`probes/${id}/plan.json`);
+      if (p !== null) probePlans.set(id, p);
+      measureOnlyFolder(`probes/${id}`, "a gate question step's variants");
+      continue;
+    }
     if (!new RegExp(`^${CARD_ID}$`).test(id) || !isDir(`probes/${id}`)) {
-      fail('layout', `probes/${id} isn't a card's probe folder probes/<card-id>/, the id r<round>-<letter>-<n> (§2, D-331)`);
+      fail('layout', `probes/${id} isn't a card's probe folder probes/<card-id>/, the id r<round>-<letter>-<n> (§2, D-331), or a gate question step's variant probes/q-<gate>-<visit>-<n>/ (D-390)`);
       continue;
     }
     const ns = [];
@@ -976,6 +1006,9 @@ export async function checkRun(runFolder) {
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
     checkDeck(readText('cards.md'), stages, cardIds, fail);
+    // D-389, D-391: the cards changed and made at the gates, and the interview notes, against the checkpoints.
+    checkGateCards(log, cardIds, (id) => parseCard(readText(`cards/${id}.md`)), readText('cards.md'), fail);
+    checkInterviews(log, listDir('interviews'), readText, exists, questionProbes, fail);
     // D-338: each card's probes, as R1b's return counted them, are the folders under probes/<card-id>/: every
     // probe run, a probe whose compile failed included (its plan's folder stays, with no record beside it).
     const logged = new Map();
@@ -1593,17 +1626,18 @@ function checkBrief(brief, bad) {
  * `answers.unsavedBuild`) a pre-supplied entry's `rule` records exactly as written.
  */
 const IDS = (n) => `${CARD_ID}(?:,${CARD_ID}){0,${n - 1}}`;
+/** A brainstorm `pick:` or a verification `verify:` with no id picks only the cards its `newCards` makes (D-391). */
 const GATE_ANSWERS = {
-  brainstorm: new RegExp(`^(?:pick:${IDS(3)}|more|stop)$`),
-  verification: new RegExp(`^(?:pick:${CARD_ID}|verify:${IDS(3)}|more|stop)$`),
+  brainstorm: new RegExp(`^(?:pick:(?:${IDS(3)})?|more|stop)$`),
+  verification: new RegExp(`^(?:pick:${CARD_ID}|verify:(?:${IDS(3)})?|more|stop)$`),
   design: /^(?:accept|revise:.+|verification|stop)$/s,
   final: /^.+$/s,
   'unsaved-build': /^(?:proceed|stop)$/,
   escalation: /^(?:accept|retry:.+|verification|stop)$/s,
 };
 const GATE_RULES = {
-  brainstorm: new RegExp(`^(?:pick:${IDS(3)}|first-n:[1-3]|more|stop)$`),
-  verification: new RegExp(`^(?:first-viable|pick:${CARD_ID}|verify:${IDS(3)}|more|stop)$`),
+  brainstorm: new RegExp(`^(?:pick:(?:${IDS(3)})?|first-n:[1-3]|more|stop)$`),
+  verification: new RegExp(`^(?:first-viable|pick:${CARD_ID}|verify:(?:${IDS(3)})?|more|stop)$`),
   design: /^(?:accept|revise:.+|verification|stop)$/s,
   final: /^(?:accept|not-accept|revise:.+)$/s,
   'unsaved-build': /^(?:proceed|stop)$/,
@@ -1611,13 +1645,60 @@ const GATE_RULES = {
 };
 /** What each gate's answers look like, for the messages. */
 const ANSWER_FORMS = {
-  brainstorm: 'pick:<id>[,<id>…] (1–3 cards), more or stop',
-  verification: 'pick:<id> (finalize one card), verify:<id>[,<id>…] (1–3 cards), more or stop',
+  brainstorm: 'pick:<id>[,<id>…] (1–3 cards, new cards included), more or stop',
+  verification: 'pick:<id> (finalize one card), verify:<id>[,<id>…] (1–3 cards, new cards included), more or stop',
   design: 'accept, revise:<text>, verification or stop (D-362)',
   final: 'accept, revise:<text> or the user\'s note',
   'unsaved-build': 'proceed or stop',
   escalation: 'accept, retry:<guidance>, verification or stop',
 };
+
+/** The card ids a `pick:` or `verify:` answer names; none for any other answer. */
+const idsOf = (answer) => (/^(?:pick|verify):(.*)$/s.exec(String(answer))?.[1] ?? '').split(',').filter((x) => x !== '');
+/** A schema-3 checkpoint's fields (run-log.md): amendment 7 adds questions, changes, newCards and note (D-389, D-391). */
+const CHECKPOINT_FIELDS = ['checkpoint', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note'];
+/** The most picks and new cards one answer verifies (D-287, D-391). */
+const PICK_CAP = 3;
+
+/**
+ * Amendment 7's parts of a gate's answer (D-389, D-391): `questions`, a whole number on a gate's or an escalation's
+ * answer; `changes`, keyed by the cards a brainstorm `pick:`, a verification `pick:` or `verify:` names; `newCards`,
+ * `[{id: "r<k>-g-<n>", name, from, words}]` with a brainstorm `pick:` or a verification `verify:`, the picks and the
+ * new cards 1–3 together; `note` only with `more`.
+ */
+function checkGateChoice(c, at, ids, bad) {
+  const gate = c.checkpoint;
+  const a = String(c.answer);
+  for (const k of Object.keys(c)) if (!CHECKPOINT_FIELDS.includes(k)) bad(at, `has "${k}", which isn't a field of a checkpoint (${CHECKPOINT_FIELDS.join(', ')})`);
+  if ('questions' in c) {
+    if (!DISPLAYED.includes(gate)) bad(at, "has questions; only a gate's or an escalation's answer counts the user's questions, and the unsaved-build question is a fixed one (D-389)");
+    else if (!isInt(c.questions)) bad(at, `questions is ${show(c.questions)}; it counts the questions the user asked at the visit, a whole number from 0 (D-389)`);
+  }
+  const picking = (gate === 'brainstorm' && a.startsWith('pick:')) || (gate === 'verification' && /^(?:pick|verify):/.test(a));
+  const making = (gate === 'brainstorm' && a.startsWith('pick:')) || (gate === 'verification' && a.startsWith('verify:'));
+  if ('changes' in c) {
+    if (!picking) bad(at, `has changes, but answers ${show(a)}; a revision rides on picked cards, a brainstorm pick:<ids> or a verification pick:<id> or verify:<ids> (D-391)`);
+    else if (!isObj(c.changes) || Object.keys(c.changes).length === 0 || !Object.values(c.changes).every((v) => typeof v === 'string' && v.trim() !== '')) bad(at, `changes is ${show(c.changes)}; it is {"<card id>": "<the user's words>", …} (D-391)`);
+    else for (const id of Object.keys(c.changes)) if (!ids.includes(id)) bad(at, `changes names ${id}, which ${show(a)} doesn't pick; a revision rides on a picked card (D-391)`);
+  }
+  const made = Array.isArray(c.newCards) ? c.newCards.length : 0;
+  if ('newCards' in c) {
+    if (!making) bad(at, `has newCards, but answers ${show(a)}; a new card goes with a brainstorm pick: or a verification verify: (D-391)`);
+    else if (made === 0) bad(at, 'has newCards with no card in it');
+    c.newCards?.forEach?.((n, k) => {
+      const ok = isObj(n) && GATE_CARD.test(String(n.id)) && typeof n.name === 'string' && n.name.trim() !== '' && typeof n.words === 'string' && n.words.trim() !== ''
+        && Array.isArray(n.from) && n.from.length > 0 && n.from.every((id) => new RegExp(`^${CARD_ID}$`).test(String(id))) && Object.keys(n).every((x) => ['id', 'name', 'from', 'words'].includes(x));
+      if (!ok) bad(`${at}.newCards[${k}]`, `is ${show(n)}; a new card is {"id": "r<k>-g-<n>", "name", "from": ["<card id>", …], "words"} (D-391)`);
+      else if (ids.includes(n.id)) bad(`${at}.newCards[${k}]`, `makes ${n.id}, which the answer also picks`);
+    });
+  }
+  if (making && ids.length === 0 && made === 0) bad(at, `answers ${show(a)}, which picks no card and makes none; a pick names 1–${PICK_CAP} cards, new cards included (D-391)`);
+  if (picking && ids.length + made > PICK_CAP) bad(at, `answers ${show(a)} with ${made} new card(s): ${ids.length + made} cards, over ${PICK_CAP}; a pick verifies 1–${PICK_CAP} cards, new cards included (D-391)`);
+  if ('note' in c) {
+    if (a !== 'more' || !['brainstorm', 'verification'].includes(gate)) bad(at, `has a note, but answers ${show(a)}; the note goes with more, the brainstorm-more answer (D-391)`);
+    else if (typeof c.note !== 'string' || c.note.trim() === '') bad(at, "note is the user's note, a non-empty text");
+  }
+}
 
 /** A schema-3 checkpoint entry's answer and rule (D-288, D-323; checkpoints.md's pre-supplied answers). */
 function checkGateAnswer(c, at, bad) {
@@ -1626,8 +1707,9 @@ function checkGateAnswer(c, at, bad) {
   if (gate === 'escalation' && c.answer === 'checkpoint-1') {
     bad(at, 'answers "checkpoint-1", which schema 3 retires: going back to the verification gate is "verification" (D-289)');
   } else if (!GATE_ANSWERS[gate].test(c.answer)) bad(at, `answers ${show(c.answer)}; the ${gate} ${['unsaved-build', 'escalation'].includes(gate) ? 'question' : 'gate'}'s answer is ${ANSWER_FORMS[gate]} (D-287, D-289)`);
-  const ids = /^(?:pick|verify):(.+)$/.exec(c.answer)?.[1]?.split(',') ?? [];
+  const ids = idsOf(c.answer);
   if (new Set(ids).size !== ids.length) bad(at, `answers ${show(c.answer)}, which names a card twice`);
+  checkGateChoice(c, at, ids, bad);
   if (typeof c.rule !== 'string' || c.rule.trim() === '') return;
   // D-323: the test config's keys and answers are schema 3's; checkpoint1, checkpoint2 and checkpoint-1 are retired.
   if (/checkpoint-?[12]/.test(c.rule)) bad(at, `has rule ${show(c.rule)}, which names a retired test-config key or answer (checkpoint1, checkpoint2, checkpoint-1); schema 3's are answers.brainstorm, answers.verification, answers.design, answers.final and the escalation answer "verification" (D-323, D-362)`);
@@ -1940,7 +2022,9 @@ function checkFlow(log, fail, ctx) {
   const answers = Object.fromEntries(GATES.map((g) => [g, checkpoints.filter((c) => c.checkpoint === g)]));
   const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate', design: 'the design gate' };
 
-  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.outcome !== 'missing');
+  // A gate question step (D-390) runs at a gate, between its display and its answer, and leads nowhere: the order
+  // rules read past it.
+  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.outcome !== 'missing' && s.stage !== 'Q');
   let prev = null;
   let esc = 0;
   let lastEscalation = null;
@@ -2020,7 +2104,7 @@ function checkFlow(log, fail, ctx) {
       return illegal(`follows a visit of ${name}, but checkpoints[] records no ${kind} answer for it; each visit records its answer (D-289${kind === 'design' ? ', D-362' : ''})`);
     }
     const a = String(c.answer);
-    const m = /^(pick|verify):(.+)$/.exec(a);
+    const m = /^(pick|verify):(.*)$/s.exec(a);
     if (a === 'stop') return illegal(`follows ${name} answered "stop", which ends the run stopped`);
     if (kind === 'design') {
       if (a === 'accept') {
@@ -2039,11 +2123,14 @@ function checkFlow(log, fail, ctx) {
       return 'more';
     }
     if (m && ((kind === 'brainstorm' && m[1] === 'pick') || (kind === 'verification' && m[1] === 'verify'))) {
-      const ids = m[2].split(',');
+      const ids = m[2].split(',').filter((x) => x !== '');
       for (const id of ids) if (!ctx.cardExists(id)) fail('deck', `run-log.json checkpoints: ${name} answered ${show(a)}, but ${id} is no card of the run (cards/${id}.md, C-52)`);
-      if (s.stage !== 'R1b') illegal(`follows ${name} answered ${show(a)}, which starts a verification round (R1b), not ${s.stage}`);
+      // D-391: the cards made at the gate are verified in the same round, after the picked cards, in newCards' order.
+      const made = list(c.newCards).map((n) => n.id);
+      const shown = made.length > 0 ? `${show(a)} with the new card(s) ${made.join(', ')}` : show(a);
+      if (s.stage !== 'R1b') illegal(`follows ${name} answered ${shown}, which starts a verification round (R1b), not ${s.stage}`);
       vrounds += 1;
-      vround = { n: vrounds, gate: `${name}'s ${show(a)}`, expected: ids, cards: [] };
+      vround = { n: vrounds, gate: `${name}'s ${shown}`, expected: [...ids, ...made], cards: [] };
       return 'verify';
     }
     if (m && kind === 'verification' && m[1] === 'pick') {
@@ -2312,7 +2399,8 @@ function checkFlow(log, fail, ctx) {
   while (end !== null) {
     const c = answers[end].shift();
     const name = GATE_NAME[end];
-    const atEnd = stages[stages.length - 1] === prev.s;
+    // A gate question step after the last step runs at its gate (D-390), so the run still ends there.
+    const atEnd = stages.filter((x) => x.stage !== 'Q').pop() === prev.s;
     // D-362: the design gate's "verification" goes on to the verification gate, which takes its own answer.
     if (end === 'design' && c?.answer === 'verification') {
       end = 'verification';
@@ -2479,12 +2567,15 @@ function terminalR1b(rep) {
 }
 
 /**
- * D-287, D-339: the deck `cards.md`, against the brainstorm rounds the log ran. It holds one `## Round <k>` per
- * round R1a-assemble dealt, each line `- <card id> …` a card of that round, then `## Not dealt`. A round deals
- * 6–9 cards, and the deck (every round's dealt cards so far) keeps at least two under-played cards, each line
- * labelled `under-played (judgment: …)`; a round short of either is accepted only with its reason, the
- * `shortReason` on its R1a-assemble entry. Every card of a dealt round is in the deck, dealt or not, and every card
- * `cards/<id>.md` is of a round the log ran.
+ * D-287, D-339, D-391, D-392: the deck `cards.md`, against the brainstorm rounds the log ran. Its H2s are the header
+ * (`What the cards share`, at most 80 words, and `How they differ`, one line), one `Round <k>` per round
+ * R1a-assemble dealt, then `Not dealt` and `Found, not used` (at most five findings, or "None."). Each card line is
+ * `- <card id> "<Name>" | …`. A round deals 6–9 cards, and the deck (every round's dealt cards so far) keeps at
+ * least two under-played cards, each line labelled `under-played (judgment: …)`; a round short of either is
+ * accepted only with its reason, the `shortReason` on its R1a-assemble entry. A card made at a gate (`r<k>-g-<n>`)
+ * sits under its round, marked `made at the gate`, and counts toward no deal; `checkGateCards` holds it to the log.
+ * Every researcher's card of a dealt round is in the deck, dealt or not, and every card `cards/<id>.md` is of a
+ * round the log ran.
  */
 function checkDeck(text, stages, cardIds, fail) {
   const rounds = [];
@@ -2497,7 +2588,8 @@ function checkDeck(text, stages, cardIds, fail) {
   });
   const dealtRounds = rounds.filter((r) => r.assembly !== null);
   // C-52, D-319: R1a writes a card in its own round, so no card's round is past the brainstorm rounds the log ran
-  // (counted with the researchers that returned without their file, which may have written cards).
+  // (counted with the researchers that returned without their file, which may have written cards); a card made at
+  // a gate is of the latest round (D-391).
   const ran = stages.filter((s, i) => isObj(s) && s.stage === 'R1a' && stages[i - 1]?.stage !== 'R1a').length;
   for (const id of cardIds) {
     const k = Number(/^r(\d+)-/.exec(id)[1]);
@@ -2507,19 +2599,39 @@ function checkDeck(text, stages, cardIds, fail) {
     if (dealtRounds.length > 0) fail('layout', `cards.md is missing, but R1a-assemble dealt ${dealtRounds.length} brainstorm round(s); it writes the deck there (§2, D-287)`);
     return;
   }
-  const md = parseMarkdown(text);
-  const titles = md.h2.map((h) => h.title);
-  const want = [...dealtRounds.map((r) => `Round ${r.k}`), 'Not dealt'];
-  if (show(titles) !== show(want)) fail('deck', `cards.md's H2s are ${show(titles)}; R1a-assemble writes one "Round <k>" per brainstorm round it dealt, then "Not dealt": ${show(want)} (§7.5)`);
-  const entries = (h2) => sectionLines(md, h2).filter((l) => /^[-*]\s/.test(l.raw)).map((l) => ({ id: /^[-*]\s+(\S+)/.exec(l.raw)[1], raw: l.raw, n: l.n }));
+  const deck = parseDeck(text);
+  const want = [...DECK_HEADER, ...dealtRounds.map((r) => `Round ${r.k}`), ...DECK_FOOTER];
+  if (show(deck.h2) !== show(want)) fail('deck', `cards.md's H2s are ${show(deck.h2)}; R1a-assemble writes the header ("What the cards share", "How they differ"), one "Round <k>" per brainstorm round it dealt, then "Not dealt" and "Found, not used": ${show(want)} (D-287, D-392)`);
+  // D-392: the header says once what the cards share, in at most 80 words, and the deck's shape in one line.
+  const body = (title) => deck.body?.get(title) ?? [];
+  if (deck.h2.includes('What the cards share')) {
+    const words = countWords(body('What the cards share').map((l) => l.raw));
+    if (words === 0 || words > 80) fail('deck', `cards.md's "What the cards share" holds ${words} words; it says the cards' common core once, in player terms, in 1 to 80 words (D-392)`);
+  }
+  if (deck.h2.includes('How they differ') && body('How they differ').length !== 1) fail('deck', `cards.md's "How they differ" holds ${body('How they differ').length} lines; it is one line on the deck's shape (D-392)`);
+  const found = body('Found, not used');
+  if (deck.h2.includes('Found, not used') && !(found.length === 1 && found[0].raw === 'None.') && (found.length === 0 || found.length > 5 || found.some((l) => !/^[-*]\s+\S/.test(l.raw)))) {
+    fail('deck', `cards.md's "Found, not used" holds ${found.length} line(s); it lists up to five strong research findings no card uses, each "- <finding>: <why no card uses it>", or says "None." (D-392)`);
+  }
+  for (const d of deck.entries) {
+    if (d.name === null || d.name.trim() === '') fail('deck', `cards.md:${d.n}: ${show(d.id)}'s line gives no name; a card line is - <card id> "<Name>" | … (D-392)`);
+  }
   const listed = new Map();
   let underPlayed = 0;
   for (const r of dealtRounds) {
-    const h2 = h2Named(md, `Round ${r.k}`);
-    const dealt = h2 ? entries(h2) : [];
-    for (const d of dealt) {
-      if (!new RegExp(`^r${r.k}-[a-c]-[1-9]\\d*$`).test(d.id)) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${show(d.id)}, which isn't a card of round ${r.k}, r${r.k}-<letter>-<n> (D-319)`);
-      else if (!cardIds.has(d.id)) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id}, but cards/${d.id}.md doesn't exist (C-52)`);
+    const dealt = [];
+    for (const d of deck.entries.filter((x) => x.round === r.k)) {
+      const gate = GATE_CARD.exec(d.id);
+      if (gate) {
+        // D-391: a card made at a gate sits under its round, marked; checkGateCards holds it to the checkpoint that made it.
+        if (Number(gate[1]) !== r.k) fail('deck', `cards.md:${d.n}: round ${r.k} lists ${d.id}, a card made at a gate in round ${gate[1]}; R1b-assemble adds it under "Round ${gate[1]}" (D-391)`);
+        if (d.made === null) fail('deck', `cards.md:${d.n}: ${d.id} is a card made at a gate, but its line isn't marked "${MADE_MARK}" (D-391)`);
+      } else {
+        if (!new RegExp(`^r${r.k}-[a-c]-[1-9]\\d*$`).test(d.id)) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${show(d.id)}, which isn't a card of round ${r.k}, r${r.k}-<letter>-<n> (D-319)`);
+        else if (!cardIds.has(d.id)) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id}, but cards/${d.id}.md doesn't exist (C-52)`);
+        if (d.made !== null) fail('deck', `cards.md:${d.n}: ${d.id} is marked "${MADE_MARK}", but it is a researcher's card; only a card r<k>-g-<n> is made at a gate (D-391)`);
+        dealt.push(d);
+      }
       if (listed.has(d.id)) fail('deck', `cards.md:${d.n}: ${d.id} is dealt again (line ${listed.get(d.id)}); a later round adds only new cards (§7.5)`);
       listed.set(d.id, d.n);
     }
@@ -2531,16 +2643,167 @@ function checkDeck(text, stages, cardIds, fail) {
       fail('deck', `cards.md's round ${r.k} deals ${dealt.length} card(s), and the deck holds ${underPlayed} under-played card(s), short of ${DEAL.min} to ${DEAL.max} dealt and two under-played (D-339), but its R1a-assemble entry, run-log.json stages[${r.assembly.i}], has no shortReason; a short round is accepted only with its reason`);
     }
   }
-  const notDealt = h2Named(md, 'Not dealt');
-  for (const d of notDealt ? entries(notDealt) : []) {
-    if (!cardIds.has(d.id)) fail('deck', `cards.md:${d.n}: "Not dealt" names ${show(d.id)}, which is no card of the run (cards/<id>.md, C-52)`);
+  for (const d of deck.entries.filter((x) => x.round !== null && !dealtRounds.some((r) => r.k === x.round))) {
+    fail('deck', `cards.md:${d.n}: lists ${d.id} under "Round ${d.round}", which R1a-assemble didn't deal (D-287)`);
+  }
+  for (const d of deck.entries.filter((x) => x.section === 'Not dealt')) {
+    if (GATE_CARD.test(d.id)) fail('deck', `cards.md:${d.n}: "Not dealt" names ${d.id}, a card made at a gate, which R1b-assemble adds under its round (D-391)`);
+    else if (!cardIds.has(d.id)) fail('deck', `cards.md:${d.n}: "Not dealt" names ${show(d.id)}, which is no card of the run (cards/<id>.md, C-52)`);
     else if (listed.has(d.id)) fail('deck', `cards.md:${d.n}: ${d.id} is under "Not dealt", but line ${listed.get(d.id)} lists it already`);
     listed.set(d.id, d.n);
   }
   const dealtK = new Set(dealtRounds.map((r) => r.k));
   for (const id of cardIds) {
     const k = Number(/^r(\d+)-/.exec(id)[1]);
-    if (dealtK.has(k) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+    if (dealtK.has(k) && !GATE_CARD.test(id) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+  }
+}
+
+/**
+ * D-389, D-391: the cards changed and made at the gates, against the checkpoints that asked for them. A card a
+ * brainstorm `pick:` or a verification `verify:` changed (`changes`) carries `- Changed at the gate (visit <v>):
+ * <the user's words>` under its Pitch once R1b ran for it. A card made at a gate (`newCards`) is made once; once
+ * R1b ran for it, its file carries `- Made at the gate (visit <v>): from <name> and <name>: <the user's words>`;
+ * once an R1b-assemble ran after that, the deck holds its line under its round, marked "made at the gate". Every
+ * card r<k>-g-<n> the run holds was made by a checkpoint.
+ */
+function checkGateCards(log, cardIds, readCard, deckText, fail) {
+  const stages = list(log.stages);
+  const ran = (id) => stages.map((s, i) => ({ s, i })).filter(({ s }) => s.stage === 'R1b' && s.concept === id && s.outcome !== 'missing').map(({ i }) => i);
+  const deck = parseDeck(deckText);
+  const made = new Map();
+  list(log.checkpoints).forEach((c, ci) => {
+    const at = `run-log.json checkpoints[${ci}] (${c.checkpoint} visit ${c.visit})`;
+    const a = String(c.answer);
+    // A verification pick:<id>'s changes go to D1-build as findings; the card itself isn't edited (D-391).
+    const toR1b = (c.checkpoint === 'brainstorm' && a.startsWith('pick:')) || (c.checkpoint === 'verification' && a.startsWith('verify:'));
+    if (toR1b && isObj(c.changes)) {
+      for (const id of Object.keys(c.changes)) {
+        if (ran(id).length === 0 || !cardIds.has(id)) continue;
+        if (!readCard(id).changed.some((g) => g.visit === c.visit)) {
+          fail('gate-card', `cards/${id}.md has no "- Changed at the gate (visit ${c.visit}): <the user's words>" line under its Pitch, but ${at} changed it and R1b ran for it; R1b writes that line, then the change (D-391)`);
+        }
+      }
+    }
+    for (const n of list(c.newCards)) {
+      if (typeof n.id !== 'string') continue;
+      if (made.has(n.id)) fail('gate-card', `${at} makes ${n.id}, which ${made.get(n.id).at} made already; a new card is made once (D-391)`);
+      else made.set(n.id, { at, visit: c.visit, gate: c.checkpoint });
+    }
+  });
+  for (const [id, m] of made) {
+    const r1b = ran(id);
+    if (r1b.length === 0) continue;
+    if (!cardIds.has(id)) {
+      fail('gate-card', `cards/${id}.md is missing, but R1b ran for ${id}, which ${m.at} made; R1b writes a gate-made card's brainstorm half first (D-391)`);
+      continue;
+    }
+    if (!readCard(id).made.some((g) => g.visit === m.visit)) {
+      fail('gate-card', `cards/${id}.md has no "- Made at the gate (visit ${m.visit}): from <name> and <name>: <the user's words>" line under its Pitch, but ${m.at} made it; R1b writes that line with the card's brainstorm half (D-391)`);
+    }
+    const k = Number(GATE_CARD.exec(id)?.[1]);
+    const assembled = stages.some((s, i) => i > r1b[0] && s.stage === 'R1b-assemble' && s.outcome !== 'missing');
+    const line = deck.entries.find((d) => d.id === id && d.round === k);
+    if (assembled && (line === undefined || line.made === null)) {
+      fail('deck', `cards.md holds no line for ${id} under "Round ${k}" marked "${MADE_MARK}", but ${m.at} made it and R1b-assemble ran after its R1b; R1b-assemble adds it there (D-391)`);
+    }
+  }
+  for (const id of cardIds) {
+    if (GATE_CARD.test(id) && !made.has(id)) fail('gate-card', `cards/${id}.md is a card made at a gate, but no checkpoint's newCards makes it (D-391)`);
+  }
+  for (const d of deck.entries) {
+    if (GATE_CARD.test(d.id) && !made.has(d.id)) fail('deck', `cards.md:${d.n}: lists ${d.id}, a card made at a gate, but no checkpoint's newCards makes it (D-391)`);
+  }
+}
+
+/**
+ * D-389, D-390: the interview notes and the gate question reports, against the log. `interviews/<gate>-<visit>.md`
+ * holds one H2 `Q<n>: <the user's question>` per question, numbered from 1, each with its `Answer:` (at most three
+ * lines) and its `Source:`; its count is the visit's checkpoint's `questions` (no file and no count are 0). A gate
+ * question step writes `interviews/<gate>-<visit>-q<n>.md`, numbered from 1 per visit, with `- Asked:`, `- Agent:`
+ * and the H2s `Answer` and `Sources`; the visit's notes cite it as a source, and the log's `Q` entries count them.
+ */
+function checkInterviews(log, files, readText, exists, questionProbes, fail) {
+  const notes = new Map();
+  const reports = new Map();
+  for (const f of files) {
+    const m = INTERVIEW_FILE.exec(f);
+    if (!m) {
+      fail('layout', `interviews/${f} isn't an interview note interviews/<gate>-<visit>.md or a gate question's report interviews/<gate>-<visit>-q<n>.md (D-389, D-390)`);
+      continue;
+    }
+    const key = `${m[1]}-${m[2]}`;
+    if (m[3] === undefined) notes.set(key, f);
+    else {
+      if (!reports.has(key)) reports.set(key, []);
+      reports.get(key).push(Number(m[3]));
+    }
+  }
+  const displays = list(log.displays);
+  const visited = (key) => displays.some((d) => `${d.checkpoint}-${d.visit}` === key);
+  const cited = new Map();
+  // The visit's notes: the questions, in order, each with its answer and its source.
+  const counts = new Map();
+  for (const [key, f] of notes) {
+    const rel = `interviews/${f}`;
+    if (!visited(key)) fail('interview', `${rel} is the notes of ${key.replace(/-(\d+)$/, ' visit $1')}, but displays[] records no such visit; the notes are a gate visit's (D-389)`);
+    const lines = (readText(rel) ?? '').split('\n');
+    const qs = [];
+    lines.forEach((l, i) => {
+      if (/^##\s/.test(l)) qs.push({ head: l.replace(/^##\s+/, '').trim(), n: i + 1, body: [] });
+      else if (qs.length > 0 && !/^#\s/.test(l)) qs[qs.length - 1].body.push({ raw: l, n: i + 1 });
+    });
+    qs.forEach((q, k) => {
+      const head = /^Q([1-9]\d*):\s*(\S.*)$/.exec(q.head);
+      if (!head || Number(head[1]) !== k + 1) fail('interview', `${rel}:${q.n}: the H2 ${show(q.head)} isn't "Q${k + 1}: <the user's question>"; each question is an H2 Q<n>, numbered from 1 (D-389)`);
+      const body = q.body.map((l) => l.raw.trim());
+      const answerAt = body.findIndex((l) => /^Answer:\s*\S/.test(l));
+      const sourceAt = body.findIndex((l) => /^Source:\s*\S/.test(l));
+      if (answerAt < 0 || sourceAt < 0) {
+        fail('interview', `${rel}:${q.n}: question ${k + 1} has no ${answerAt < 0 ? '"Answer: …"' : '"Source: …"'} line; each question gets its answer, in at most three lines, and its source: a file, a lookup, or a gate question step's report (D-389)`);
+        return;
+      }
+      const answer = body.slice(answerAt, sourceAt > answerAt ? sourceAt : undefined).filter((l) => l !== '');
+      if (sourceAt < answerAt || answer.length > 3) fail('interview', `${rel}:${q.n}: question ${k + 1}'s answer runs ${answer.length} lines${sourceAt < answerAt ? ', after its source' : ''}; it is at most three lines, then its "Source:" (D-389)`);
+      const source = body.slice(sourceAt).filter((l) => l !== '').join(' ');
+      for (const r of source.matchAll(/interviews\/([a-z]+-[1-9]\d*-q[1-9]\d*\.md)/g)) {
+        if (!exists(`interviews/${r[1]}`)) fail('interview', `${rel}:${q.n}: question ${k + 1} cites interviews/${r[1]}, which doesn't exist (D-390)`);
+        if (!cited.has(r[1])) cited.set(r[1], key);
+      }
+    });
+    counts.set(key, qs.length);
+  }
+  // Each gate visit's checkpoint counts the questions its notes hold (D-389).
+  list(log.checkpoints).forEach((c, i) => {
+    if (!DISPLAYED.includes(c.checkpoint)) return;
+    const key = `${c.checkpoint}-${c.visit}`;
+    const want = isInt(c.questions) ? c.questions : 0;
+    const got = counts.get(key) ?? 0;
+    if (want !== got) {
+      fail('interview', `run-log.json checkpoints[${i}]: ${c.checkpoint} visit ${c.visit} counts ${want} question(s), but ${notes.has(key) ? `interviews/${notes.get(key)} holds ${got}` : `there is no interviews/${key}.md`}; the checkpoint's questions are the visit's interview notes, one H2 Q<n> per question (D-389)`);
+    }
+  });
+  // The gate question reports (D-390): numbered from 1 per visit, each cited by its visit's notes, in its form.
+  let total = 0;
+  for (const [key, ns] of reports) {
+    ns.sort((a, b) => a - b);
+    total += ns.length;
+    if (ns.some((n, k) => n !== k + 1)) fail('interview', `interviews/ holds the gate question reports ${ns.map((n) => `${key}-q${n}.md`).join(', ')}; they are numbered from 1 per visit, with no gap (D-390)`);
+    for (const n of ns) {
+      const f = `${key}-q${n}.md`;
+      if (cited.get(f) !== key) fail('interview', `interviews/${f} is a gate question step's report, but ${notes.has(key) ? `interviews/${notes.get(key)}` : `no interviews/${key}.md`} cites it as a question's source (D-389, D-390)`);
+      const t = readText(`interviews/${f}`) ?? '';
+      const h2 = t.split('\n').filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, '').trim());
+      const agent = /^- Agent:\s*(\S+)/m.exec(t)?.[1];
+      if (!/^- Asked:\s*\S/m.test(t) || !['build-guide-researcher', 'build-guide-coordinator'].includes(agent) || show(h2) !== show(['Answer', 'Sources'])) {
+        fail('interview', `interviews/${f} isn't a gate question's report: it has "- Asked: <the question>", "- Agent: build-guide-researcher | build-guide-coordinator", then the H2s Answer and Sources (D-390)`);
+      }
+    }
+  }
+  const logged = list(log.stages).filter((s) => s.stage === 'Q' && s.outcome !== 'missing').length;
+  if (logged !== total) fail('interview', `run-log.json logs ${logged} gate question step(s) (stage Q), but interviews/ holds ${total} gate question report(s) <gate>-<visit>-q<n>.md; each step writes one (D-390)`);
+  for (const q of questionProbes) {
+    if (!exists(q.report)) fail('layout', `probes/${q.dir}/ is a gate question step's variant, but ${q.report}, its report, doesn't exist (D-390)`);
   }
 }
 

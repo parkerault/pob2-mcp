@@ -35,6 +35,11 @@
  *   failure, and an over-target rare is information that routes nowhere.
  * - Amendment 6's (WU-79, AC-W66, D-378): a rolled group that names a minion skill is read by its minion's figure,
  *   `MinionTotalDPS` × its Count, in the D1 gate's recompute, the verdict line and `--changed`.
+ * - Amendment 7's (WU-81, AC-W68, D-389…D-392): the interview notes `interviews/<gate>-<visit>.md` counted against
+ *   each checkpoint's `questions`, the gate question reports and their `Q` steps; a changed pick's "Changed at the
+ *   gate" line; a card made at a gate (`r<k>-g-<n>`) with its "Made at the gate" line and its deck line, verified in
+ *   the same round after the picked cards; the deck's header. Its fixture is run-interview, stopped at the
+ *   verification gate; the three schema-3 runs carry amendment 7's card and deck format.
  *
  * Checks (t), the render and `--changed` load the server's compiled `build/plan/`: `mise run test` builds first.
  */
@@ -1137,7 +1142,7 @@ describe("D-339: a brainstorm round deals 6 to 9 cards and the deck keeps two un
   it("fails a deck without the round's H2, a dealt line that isn't a card of its round, and a card of a dealt round left out of the deck", () => {
     const noRound = copyOf('run-ok');
     editText(noRound, 'cards.md', replace('## Round 1\n', ''));
-    expect(failing(noRound)).toMatch(/\[deck\] cards\.md's H2s are \["Not dealt"\]; R1a-assemble writes one "Round <k>" per brainstorm round it dealt, then "Not dealt": \["Round 1","Not dealt"\]/);
+    expect(failing(noRound)).toMatch(/\[deck\] cards\.md's H2s are \["What the cards share","How they differ","Not dealt","Found, not used"\]; R1a-assemble writes the header \("What the cards share", "How they differ"\), one "Round <k>" per brainstorm round it dealt, then "Not dealt" and "Found, not used": \["What the cards share","How they differ","Round 1","Not dealt","Found, not used"\] \(D-287, D-392\)/);
     const wrong = copyOf('run-ok');
     fs.copyFileSync(path.join(wrong, 'cards', 'r1-c-3.md'), path.join(wrong, 'cards', 'r2-a-1.md'));
     editText(wrong, 'cards.md', replace('- r1-c-3 ', '- r2-a-1 "Round two" | x\n- r1-c-3 '));
@@ -1151,6 +1156,215 @@ describe("D-339: a brainstorm round deals 6 to 9 cards and the deck keeps two un
     const dir = copyOf('run-ok');
     fs.rmSync(path.join(dir, 'cards.md'));
     expect(failing(dir)).toMatch(/\[layout\] cards\.md is missing, but R1a-assemble dealt 1 brainstorm round\(s\); it writes the deck there/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Amendment 7 (WU-81): gates as interviews (D-389, D-390, D-391, D-392)
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W68 (WU-81; D-389, D-391): the run checker holds the interview notes, the changed cards and the cards made at the gates to the checkpoints', () => {
+  /** run-interview: a brainstorm gate with 2 questions, a pick that changes r1-b-3 and makes r1-g-1, verified in one round, then stop. */
+  const INTERVIEW = 'run-interview';
+  const interviewCopy = () => {
+    const dir = path.join(TMP, `${INTERVIEW}-${++copies}`);
+    fs.cpSync(path.join(FIXTURES, INTERVIEW), dir, { recursive: true });
+    return dir;
+  };
+
+  it('passes run-interview: its brainstorm checkpoint counts 2 questions and interviews/brainstorm-1.md holds 2, and it holds one gate-made card with its line in the deck', () => {
+    const dir = path.join(FIXTURES, INTERVIEW);
+    const r = runChecker(dir);
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    const log = readJson(dir, 'run-log.json');
+    expect(log.checkpoints[0]).toEqual(expect.objectContaining({ checkpoint: 'brainstorm', visit: 1, answer: 'pick:r1-a-1,r1-b-3', questions: 2 }));
+    expect(log.checkpoints[0].newCards.map((n: Json) => n.id)).toEqual(['r1-g-1']);
+    expect(Object.keys(log.checkpoints[0].changes)).toEqual(['r1-b-3']);
+    expect(fs.readFileSync(path.join(dir, 'interviews', 'brainstorm-1.md'), 'utf8').match(/^## Q\d+: /gm)).toHaveLength(2);
+    expect(fs.readFileSync(path.join(dir, 'cards.md'), 'utf8')).toMatch(/^- r1-g-1 "Bleeding Shield Wall" \| .* \| made at the gate \(visit 1\): from "Blood Hunt bleed burst" and "Blood Hunt block tank"$/m);
+    expect(fs.readFileSync(path.join(dir, 'cards', 'r1-g-1.md'), 'utf8')).toMatch(/^- Made at the gate \(visit 1\): from Blood Hunt bleed burst and Blood Hunt block tank: /m);
+    expect(fs.readFileSync(path.join(dir, 'cards', 'r1-b-3.md'), 'utf8')).toMatch(/^- Changed at the gate \(visit 1\): keep Bloodlust/m);
+    // The new card is verified in the same round, after the picked cards (D-391), and a gate question step (stage Q) ran at the gate.
+    expect((log.stages as Json[]).map((s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''}`)).toEqual(['R1a', 'R1a', 'R1a', 'R1a-assemble', 'Q', 'R1b r1-a-1', 'R1b r1-b-3', 'R1b r1-g-1', 'R1b-assemble']);
+    // Its skeletons, the gate-made card's among them, are valid plans (C-31).
+    const ref = loadReferenceData();
+    for (const id of ['r1-a-1', 'r1-b-3', 'r1-g-1']) {
+      const result = validatePlan(fs.readFileSync(path.join(dir, 'concepts', id, 'plan.json'), 'utf8'), ref);
+      expect({ id, errors: result.ok ? [] : result.errors }).toEqual({ id, errors: [] });
+    }
+  });
+
+  it('fails a question count that differs from the notes: a count above them, a question dropped from them, notes for a visit that counted none', () => {
+    const more = interviewCopy();
+    editLog(more, (l) => (l.checkpoints[0].questions = 3));
+    expect(lines(failing(more), 'interview')).toEqual(['check-run: [interview] run-log.json checkpoints[0]: brainstorm visit 1 counts 3 question(s), but interviews/brainstorm-1.md holds 2; the checkpoint\'s questions are the visit\'s interview notes, one H2 Q<n> per question (D-389)']);
+    const dropped = interviewCopy();
+    editText(dropped, 'interviews/verification-1.md', (t) => t.replace(/\n## Q1:[\s\S]*$/, '\n'));
+    expect(failing(dropped)).toMatch(/\[interview\] run-log\.json checkpoints\[1\]: verification visit 1 counts 1 question\(s\), but interviews\/verification-1\.md holds 0/);
+    const uncounted = interviewCopy();
+    editLog(uncounted, (l) => delete l.checkpoints[1].questions);
+    expect(failing(uncounted)).toMatch(/\[interview\] run-log\.json checkpoints\[1\]: verification visit 1 counts 0 question\(s\), but interviews\/verification-1\.md holds 1/);
+    const noNotes = interviewCopy();
+    fs.rmSync(path.join(noNotes, 'interviews', 'verification-1.md'));
+    expect(failing(noNotes)).toMatch(/\[interview\] run-log\.json checkpoints\[1\]: verification visit 1 counts 1 question\(s\), but there is no interviews\/verification-1\.md/);
+  });
+
+  it('fails a changed pick whose card lacks its "Changed at the gate" line, or carries it for another visit', () => {
+    const dir = interviewCopy();
+    editText(dir, 'cards/r1-b-3.md', (t) => t.replace(/^- Changed at the gate \(visit 1\): .*\n/m, ''));
+    expect(lines(failing(dir), 'gate-card')).toEqual([
+      'check-run: [gate-card] cards/r1-b-3.md has no "- Changed at the gate (visit 1): <the user\'s words>" line under its Pitch, but run-log.json checkpoints[0] (brainstorm visit 1) changed it and R1b ran for it; R1b writes that line, then the change (D-391)',
+    ]);
+    const other = interviewCopy();
+    editText(other, 'cards/r1-b-3.md', replace('- Changed at the gate (visit 1):', '- Changed at the gate (visit 2):'));
+    expect(lines(failing(other), 'gate-card')).toHaveLength(1);
+  });
+
+  it('fails a gate-made card without its "Made at the gate" line, or without its line in the deck', () => {
+    const noMade = interviewCopy();
+    editText(noMade, 'cards/r1-g-1.md', (t) => t.replace(/^- Made at the gate \(visit 1\): .*\n/m, ''));
+    expect(lines(failing(noMade), 'gate-card')).toEqual([
+      'check-run: [gate-card] cards/r1-g-1.md has no "- Made at the gate (visit 1): from <name> and <name>: <the user\'s words>" line under its Pitch, but run-log.json checkpoints[0] (brainstorm visit 1) made it; R1b writes that line with the card\'s brainstorm half (D-391)',
+    ]);
+    const noLine = interviewCopy();
+    editText(noLine, 'cards.md', (t) => t.replace(/^- r1-g-1 .*\n/m, ''));
+    expect(lines(failing(noLine), 'deck')).toEqual([
+      'check-run: [deck] cards.md holds no line for r1-g-1 under "Round 1" marked "made at the gate", but run-log.json checkpoints[0] (brainstorm visit 1) made it and R1b-assemble ran after its R1b; R1b-assemble adds it there (D-391)',
+    ]);
+    const unmarked = interviewCopy();
+    editText(unmarked, 'cards.md', (t) => t.replace(/ \| made at the gate \(visit 1\): [^\n]*/, ''));
+    expect(failing(unmarked)).toMatch(/\[deck\] cards\.md:\d+: r1-g-1 is a card made at a gate, but its line isn't marked "made at the gate" \(D-391\)/);
+    // Before R1b-assemble ran, the deck needn't hold it yet.
+    const early = interviewCopy();
+    editText(early, 'cards.md', (t) => t.replace(/^- r1-g-1 .*\n/m, ''));
+    editLog(early, (l) => {
+      l.stages = l.stages.filter((s: Json) => s.stage !== 'R1b-assemble');
+      l.checkpoints = l.checkpoints.slice(0, 1);
+      l.status = 'running';
+    });
+    fs.rmSync(path.join(early, 'interviews', 'verification-1.md'));
+    fs.rmSync(path.join(early, 'dossier.md'));
+    expect(lines(runChecker(early).stderr, 'deck')).toEqual([]);
+  });
+
+  it('fails a gate-made card no checkpoint made, a gate-made card under "Not dealt", and a researcher\'s card marked as made at the gate', () => {
+    const undeclared = interviewCopy();
+    editLog(undeclared, (l) => {
+      delete l.checkpoints[0].newCards;
+    });
+    const stderr = failing(undeclared);
+    expect(stderr).toMatch(/\[gate-card\] cards\/r1-g-1\.md is a card made at a gate, but no checkpoint's newCards makes it \(D-391\)/);
+    expect(stderr).toMatch(/\[order\] .*runs R1b for r1-g-1, which the brainstorm gate's "pick:r1-a-1,r1-b-3" didn't pick for verification round 1/);
+    const notDealt = interviewCopy();
+    editText(notDealt, 'cards.md', (t) => t.replace(/^(- r1-g-1 .*)\n/m, '').replace('## Not dealt\n\n', '## Not dealt\n\n- r1-g-1 "Bleeding Shield Wall" | x\n'));
+    expect(failing(notDealt)).toMatch(/\[deck\] cards\.md:\d+: "Not dealt" names r1-g-1, a card made at a gate, which R1b-assemble adds under its round \(D-391\)/);
+    const marked = interviewCopy();
+    editText(marked, 'cards.md', (t) => t.replace(/^(- r1-c-3 .*)$/m, '$1 | made at the gate (visit 1): from "x"'));
+    expect(failing(marked)).toMatch(/\[deck\] cards\.md:\d+: r1-c-3 is marked "made at the gate", but it is a researcher's card/);
+  });
+
+  it('verifies the cards made at the gate in the same round, after the picked cards, within the round cap of 3 (D-287, D-391)', () => {
+    const order = interviewCopy();
+    editLog(order, (l) => {
+      const at = (id: string) => l.stages.findIndex((s: Json) => s.concept === id);
+      const [g] = l.stages.splice(at('r1-g-1'), 1);
+      l.stages.splice(at('r1-a-1'), 0, g);
+    });
+    expect(failing(order)).toMatch(/\[order\] .*verifies r1-g-1 before r1-a-1; R1b runs the picked cards in the order picked \(r1-a-1, r1-b-3, r1-g-1\)/);
+    const over = interviewCopy();
+    editLog(over, (l) => (l.checkpoints[0].answer = 'pick:r1-a-1,r1-b-3,r1-c-1'));
+    expect(failing(over)).toMatch(/\[run-log\] run-log\.json checkpoints\[0\]: answers "pick:r1-a-1,r1-b-3,r1-c-1" with 1 new card\(s\): 4 cards, over 3; a pick verifies 1–3 cards, new cards included \(D-391\)/);
+  });
+
+  it('fails the checkpoint fields outside their forms: changes naming an unpicked card, newCards with another answer, note without more, questions on the unsaved-build question', () => {
+    const dir = interviewCopy();
+    editLog(dir, (l) => {
+      l.checkpoints[0].changes = { 'r1-c-1': 'x' };
+      l.checkpoints[1].note = 'enough';
+      l.checkpoints[1].newCards = [{ id: 'r1-g-2', name: 'Another', from: ['r1-a-1'], words: 'x' }];
+    });
+    const stderr = failing(dir);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json checkpoints\[0\]: changes names r1-c-1, which "pick:r1-a-1,r1-b-3" doesn't pick; a revision rides on a picked card \(D-391\)/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json checkpoints\[1\]: has a note, but answers "stop"; the note goes with more/);
+    expect(stderr).toMatch(/\[run-log\] run-log\.json checkpoints\[1\]: has newCards, but answers "stop"; a new card goes with a brainstorm pick: or a verification verify:/);
+    const unsaved = copyOf('run-ok');
+    editLog(unsaved, (l) => l.checkpoints.unshift({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'pre-supplied', rule: 'proceed', questions: 1 }));
+    expect(failing(unsaved)).toMatch(/\[run-log\] run-log\.json checkpoints\[0\]: has questions; only a gate's or an escalation's answer counts the user's questions/);
+  });
+});
+
+describe('D-389, D-390 (WU-81): the interview notes and the gate question steps keep their form', () => {
+  const interviewCopy = () => {
+    const dir = path.join(TMP, `run-interview-${++copies}`);
+    fs.cpSync(path.join(FIXTURES, 'run-interview'), dir, { recursive: true });
+    return dir;
+  };
+
+  it('fails notes whose questions are out of number, or lack an answer or a source, or answer in more than three lines', () => {
+    const numbered = interviewCopy();
+    editText(numbered, 'interviews/brainstorm-1.md', replace('## Q2: ', '## Q3: '));
+    expect(failing(numbered)).toMatch(/\[interview\] interviews\/brainstorm-1\.md:\d+: the H2 "Q3: Can Herald of Blood's explosions spread the bleed to the next pack\?" isn't "Q2: <the user's question>"/);
+    const noSource = interviewCopy();
+    editText(noSource, 'interviews/brainstorm-1.md', replace('Source: cards/r1-a-1.md; cards/r1-a-2.md\n', ''));
+    expect(failing(noSource)).toMatch(/\[interview\] interviews\/brainstorm-1\.md:\d+: question 1 has no "Source: …" line/);
+    const long = interviewCopy();
+    editText(long, 'interviews/verification-1.md', replace('(modelled in PoB).\n', '(modelled in PoB).\nA second line.\nA third line.\nA fourth line.\n'));
+    expect(failing(long)).toMatch(/\[interview\] interviews\/verification-1\.md:\d+: question 1's answer runs 4 lines; it is at most three lines/);
+  });
+
+  it("fails a gate question report that the log doesn't count, that no note cites, or that isn't in its form; and a notes file for a visit never displayed", () => {
+    const uncounted = interviewCopy();
+    editLog(uncounted, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'Q')));
+    expect(failing(uncounted)).toMatch(/\[interview\] run-log\.json logs 0 gate question step\(s\) \(stage Q\), but interviews\/ holds 1 gate question report\(s\)/);
+    const uncited = interviewCopy();
+    editText(uncited, 'interviews/brainstorm-1.md', replace('Source: interviews/brainstorm-1-q1.md (a gate question step, build-guide-researcher)', 'Source: lookup_game_data gem "Herald of Blood"'));
+    expect(failing(uncited)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md is a gate question step's report, but interviews\/brainstorm-1\.md cites it as a question's source/);
+    const form = interviewCopy();
+    editText(form, 'interviews/brainstorm-1-q1.md', replace('- Agent: build-guide-researcher', '- Agent: build-guide-writer'));
+    expect(failing(form)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md isn't a gate question's report/);
+    const missing = interviewCopy();
+    fs.rmSync(path.join(missing, 'interviews', 'brainstorm-1-q1.md'));
+    editLog(missing, (l) => (l.stages = l.stages.filter((s: Json) => s.stage !== 'Q')));
+    expect(failing(missing)).toMatch(/\[interview\] interviews\/brainstorm-1\.md:\d+: question 2 cites interviews\/brainstorm-1-q1\.md, which doesn't exist \(D-390\)/);
+    const undisplayed = interviewCopy();
+    fs.writeFileSync(path.join(undisplayed, 'interviews', 'design-1.md'), '# Questions at the design gate, visit 1\n');
+    expect(failing(undisplayed)).toMatch(/\[interview\] interviews\/design-1\.md is the notes of design visit 1, but displays\[\] records no such visit/);
+    const stray = interviewCopy();
+    fs.writeFileSync(path.join(stray, 'interviews', 'notes.md'), 'x\n');
+    expect(failing(stray)).toMatch(/\[layout\] interviews\/notes\.md isn't an interview note interviews\/<gate>-<visit>\.md/);
+  });
+
+  it("accepts a gate question step's compiled variant probes/q-<gate>-<visit>-<n>/ beside its report, and fails one without it", () => {
+    const dir = interviewCopy();
+    fs.cpSync(path.join(dir, 'concepts', 'r1-a-1'), path.join(dir, 'probes', 'q-brainstorm-1-1'), { recursive: true });
+    editJson(dir, 'probes/q-brainstorm-1-1/compile-record.json', (r) => (r.pobFile.path = r.pobFile.path.replace('concepts/r1-a-1/', 'probes/q-brainstorm-1-1/')));
+    passes(dir);
+    fs.renameSync(path.join(dir, 'probes', 'q-brainstorm-1-1'), path.join(dir, 'probes', 'q-brainstorm-1-2'));
+    editJson(dir, 'probes/q-brainstorm-1-2/compile-record.json', (r) => (r.pobFile.path = r.pobFile.path.replace('q-brainstorm-1-1', 'q-brainstorm-1-2')));
+    expect(failing(dir)).toMatch(/\[layout\] probes\/q-brainstorm-1-2\/ is a gate question step's variant, but interviews\/brainstorm-1-q2\.md, its report, doesn't exist \(D-390\)/);
+  });
+
+  it('a schema-2 run has no interview notes (D-326)', () => {
+    const dir = copyOf(V2);
+    fs.mkdirSync(path.join(dir, 'interviews'));
+    expect(failing(dir)).toMatch(/\[layout\] interviews\/ is part of schema 3's layout \(the interview notes, D-389\)/);
+  });
+});
+
+describe("D-392 (WU-81): the deck's header says what the cards share and how they differ, and lists what research found that no card uses", () => {
+  it('fails a shared core over 80 words, a deck shape over one line, more than five unused findings, and a card line with no name', () => {
+    const share = copyOf('run-ok');
+    editText(share, 'cards.md', (t) => t.replace(/(## What the cards share\n\n)(.*)\n/, (m, h, x) => `${h}${x} ${'more words here '.repeat(20)}\n`));
+    expect(failing(share)).toMatch(/\[deck\] cards\.md's "What the cards share" holds \d+ words; it says the cards' common core once, in player terms, in 1 to 80 words \(D-392\)/);
+    const differ = copyOf('run-ok');
+    editText(differ, 'cards.md', replace('the add-on that clears packs.\n', 'the add-on that clears packs.\nA second line.\n'));
+    expect(failing(differ)).toMatch(/\[deck\] cards\.md's "How they differ" holds 2 lines; it is one line on the deck's shape/);
+    const found = copyOf('run-ok');
+    editText(found, 'cards.md', (t) => t.replace(/(## Found, not used\n\n)/, `$1${['a', 'b', 'c', 'd', 'e'].map((x) => `- finding ${x}: unused\n`).join('')}`));
+    expect(failing(found)).toMatch(/\[deck\] cards\.md's "Found, not used" holds 6 line\(s\); it lists up to five strong research findings/);
+    const unnamed = copyOf('run-ok');
+    editText(unnamed, 'cards.md', replace('- r1-c-3 "Blood Hunt rage cycling" |', '- r1-c-3 |'));
+    expect(failing(unnamed)).toMatch(/\[deck\] cards\.md:\d+: "r1-c-3"'s line gives no name; a card line is - <card id> "<Name>" \| … \(D-392\)/);
   });
 });
 

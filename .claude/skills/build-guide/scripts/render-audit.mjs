@@ -300,13 +300,15 @@ function estimates({ plan, record, ledger }) {
 
 /**
  * The named source's Count-scaled figure (D-294), as `src/plan/record.ts`'s `headlineDps` reads it: the main group's
- * counted figure, its minion's `MinionTotalDPS` when the record resolved a minion skill for it (`minionSkills`, D-378),
- * else its `TotalDPS`; else the main skill's.
+ * counted figure, its minion's `MinionTotalDPS` when the record resolved a minion skill for it (`minionSkills`, D-378)
+ * or when its skill summons a minion, its `skillOutputs` entry carrying `Minion<Field>` fields (a plain summon such as
+ * Skeletal Warrior, D-397, the run checker's D-385 test), else its `TotalDPS`; else the main skill's.
  */
 function headlineDps(stage, rec) {
   const m = isObj(stage.skills?.main) ? stage.skills.main : {};
   const key = `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`;
-  const field = list(rec.minionSkills).some((x) => x.group === m.group) ? 'MinionTotalDPS' : 'TotalDPS';
+  const summons = Object.keys(rec.skillOutputs?.[key]?.fields ?? {}).some((f) => /^Minion[A-Z]/.test(f));
+  const field = summons || list(rec.minionSkills).some((x) => x.group === m.group) ? 'MinionTotalDPS' : 'TotalDPS';
   return rec.countedSkillOutputs?.[key]?.fields?.[field] ?? rec.countedOutputs?.fields?.[field];
 }
 

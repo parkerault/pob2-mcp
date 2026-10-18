@@ -12,6 +12,12 @@
  *   records it, the final gate's with each endgame rung's final figures (D-369), and a gate's answer is refused
  *   until its visit's display is recorded.
  *
+ *
+ * Amendment 7 (WU-81): every display speaks plainly, card names in place of ids, codes, ids and paths last under
+ * "For reference" (AC-W67, D-392); a gate's checkpoint carries `questions`, `changes`, `newCards` and `note`, and
+ * `run-log.mjs <runFolder> test-config <path>` checks a test config whose answers may script an interview (AC-W68,
+ * D-389, D-391, D-394); a plain summon's skeleton figure and the render's headline read its minion (D-397).
+ *
  * `--snapshot` and `--changed` (A-34, D-352) are `check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
  * The render loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
  */
@@ -62,6 +68,29 @@ function under(text: string, heading: string): string[] {
   const end = lines.findIndex((l, i) => i > at && /^#+ /.test(l) && /^#+/.exec(l)![0].length <= level);
   return lines.slice(at + 1, end < 0 ? undefined : end).filter((l) => l !== '');
 }
+
+const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
+/**
+ * A copy of a fixture run rolled back to its first brainstorm gate (D-287): the log's steps up to the first
+ * R1a-assemble, no answer, no display and no roll yet.
+ */
+function atBrainstorm(fixture: string): string {
+  const dir = folder();
+  fs.cpSync(path.join(FIXTURES, fixture), dir, { recursive: true });
+  editJson(dir, 'run-log.json', (l) => {
+    l.stages = l.stages.slice(0, (l.stages as Json[]).findIndex((s) => s.stage === 'R1a-assemble') + 1);
+    Object.assign(l, { checkpoints: [], displays: [], escalations: [], faults: [], roll: null, status: 'running' });
+  });
+  return dir;
+}
+/** A display's plain part, the lines before its "For reference:" (D-392). */
+const plainPart = (out: string[]) => (out.includes('For reference:') ? out.slice(0, out.indexOf('For reference:')) : out);
+/** The five pitch lines a card's display prints, in order (D-392). */
+const PITCH = ['Why pick it', 'How it clears', 'Bosses', 'Needs', 'The catch'];
+/** A card file's Pitch fields, `- <Field>: <text>` under `### Pitch`. */
+const pitchOf = (dir: string, id: string): Record<string, string> => Object.fromEntries(
+  [...fs.readFileSync(path.join(dir, 'cards', `${id}.md`), 'utf8').split('### Pitch')[1].split('### Chain')[0].matchAll(/^- ([^:]+): (.*)$/gm)].map((m) => [m[1], m[2]]),
+);
 
 /** The synthetic run's audit.md, as the render writes it (the template's form, every number the record's). */
 const RENDERED = `# Audit: Titan / Blood Hunt, Blood Hunt bleed burst
@@ -229,7 +258,7 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     expect(under(audit(fresh), '## Known issues')).toEqual(['None.']);
   });
 
-  it("AC-W66 (D-378): a campaign stage's named source DPS is the main group's figure × its Count as the record reads it, its minion's MinionTotalDPS when the group names a minion skill", () => {
+  it("AC-W66 (D-378), D-397: a campaign stage's named source DPS is the main group's figure × its Count as the record reads it, its minion's MinionTotalDPS when the group names a minion skill or its skill summons one", () => {
     const dir = writeMinionGuideRun(folder());
     const plan = readJson(dir, 'plan.json');
     const a1 = readJson(dir, 'compile-record.json').stages.a1;
@@ -239,8 +268,14 @@ describe('render-audit.mjs (WU-71, D-355): audit.md in the exact form of templat
     expect(headlineDps(plan.stages[0], a1)).toBe(120.5);
     const row = (text: string) => under(text, '## Stage detail').find((l) => l.startsWith('| Act 1 (L8) {a1} |'));
     expect(row(render(dir))).toBe('| Act 1 (L8) {a1} | 8 | 310 | 120.5 | 75/75/75/12% | 400 / 300 | — | 900 |');
-    // Without the record's resolved selection, the group's figure is the player's TotalDPS, 0 for a summon.
+    // D-397: without the record's resolved selection, a group whose skill summons a minion (its skillOutputs entry
+    // carries Minion<Field> fields, a plain summon such as Skeletal Warrior) is still read by its minion's figure.
     editJson(dir, 'compile-record.json', (r) => delete r.stages.a1.minionSkills);
+    expect(row(render(dir))).toBe('| Act 1 (L8) {a1} | 8 | 310 | 120.5 | 75/75/75/12% | 400 / 300 | — | 900 |');
+    // A group with no minion selection and no minion fields is the player's: its TotalDPS, 0 here.
+    editJson(dir, 'compile-record.json', (r) => {
+      r.stages.a1.skillOutputs.g1s1p1.fields = { TotalDPS: 0 };
+    });
     expect(row(render(dir))).toBe('| Act 1 (L8) {a1} | 8 | 310 | 0 | 75/75/75/12% | 400 / 300 | — | 900 |');
   });
 
@@ -401,8 +436,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   });
 });
 
-describe('run-log.mjs display (D-367, D-369): each gate visit prints its display from the run folder, and its answer waits for it', () => {
-  const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
+describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its display from the run folder in plain words, codes last, and its answer waits for it', () => {
   /** A copy of a fixture run in a temp folder: the display records its visit in the copy's log. */
   const copy = (fixture: string) => {
     const dir = folder();
@@ -415,76 +449,235 @@ describe('run-log.mjs display (D-367, D-369): each gate visit prints its display
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     return r.stdout.split('\n');
   };
+  /** A display's codes, ids and paths: its lines from "For reference:" on (D-392). */
+  const referenceOf = (out: string[]) => out.slice(out.indexOf('For reference:'));
+  /** The pass/fail codes the final gate's display spoke in before amendment 7 (feedback study §5.1). */
+  const CODES = /compiled pass|v1 pass|v2 pass|floor pass/;
 
-  it('brainstorm: the brief, then the deck from cards.md without the cards already verified, and the Not dealt list', () => {
-    const dir = copy('run-ok');
+  it("AC-W67 (D-392) brainstorm: the brief, the deck's header once, every dealt card's name and its five pitch lines, numbered, then the not-dealt reasons, the found-not-used list and the invitation; no card id outside For reference, no confidence boilerplate, no tag list", () => {
+    const dir = atBrainstorm('run-ok');
     const out = display(dir, 'brainstorm');
-    expect(out.slice(0, 3)).toEqual(['## The brainstorm gate, visit 2', '', 'Brief: ascendancy Titan; skill Blood Hunt']);
-    expect(out).toContain('- r1-b-1 "Blood Hunt on a two-hander" | Warrior Titan, Blood Hunt | melee, one-button, boss | links confirmed 1 of 1 | evidence: no player evidence');
-    expect(out.filter((l) => /^- r1-a-[12] /.test(l))).toEqual([]);
-    expect(out).toContain('## Not dealt');
-    expect(readJson(dir, 'run-log.json').displays).toContainEqual({ checkpoint: 'brainstorm', visit: 2 });
-  });
-
-  it("verification: the dossier's table and path, and a card's last design verdict once a design ran", () => {
-    const dir = copy('run-ok');
-    const out = display(dir, 'verification');
-    expect(out.filter((l) => l.startsWith('|')).map((l) => l.split(' | ')[0])).toEqual(['| Card', '|---|---|---|---|---|---|---|---|---|---|', '| r1-a-1', '| r1-a-2']);
-    expect(out).toContain(`Dossier: ${path.join(dir, 'dossier.md')}`);
-    expect(out).toContain('Last design verdict, r1-a-1 (pass): reports/gates/D2-gate-r1-a-1-a1.json');
-  });
-
-  it("design: the last D1 gate verdict file's design field, one block per rung, the open estimates, the verdict and its file (A-35)", () => {
-    const out = display(copy('run-ok'), 'design');
-    expect(out.slice(0, 7)).toEqual([
-      '## The design gate, visit 2', '',
-      'm: DPS 9000, EHP 18400, clear medium (rough)',
-      '   gear: rare boots with lightning resistance; a life and cold-resistance helmet',
-      '   gems: Blood Hunt with Bloodlust and Brutality I',
-      '   tree: the life wheel by the Warrior start',
-      'b: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear medium (rough)',
+    expect(out.slice(0, 3)).toEqual(['## The brainstorm gate, visit 1', '', 'Brief: ascendancy Titan; skill Blood Hunt']);
+    const plain = plainPart(out);
+    // The deck's header, once: what the cards share, how they differ, and the default confidence, said once.
+    const deck = fs.readFileSync(path.join(dir, 'cards.md'), 'utf8');
+    const share = /## What the cards share\n\n(.*)\n/.exec(deck)![1];
+    expect(plain.filter((l) => l.startsWith('What the cards share: '))).toEqual([`What the cards share: ${share}`]);
+    expect(plain.filter((l) => l.startsWith('How they differ: '))).toEqual(['How they differ: Seven of seven are one Blood Hunt loop; they differ in the weapon, the defence and the add-on that clears packs.']);
+    expect(plain.filter((l) => /not confirmed in game/i.test(l))).toHaveLength(1);
+    // Every dealt card, numbered in the deck's order: its name, then its five pitch lines, then Unusual when under-played.
+    const dealt = [...deck.split('## Not dealt')[0].matchAll(/^- (r1-[a-c]-\d) /gm)].map((m) => m[1]);
+    expect(dealt).toHaveLength(7);
+    const numbered: string[] = [];
+    dealt.forEach((id, k) => {
+      const p = pitchOf(dir, id);
+      const at = plain.indexOf(`${k + 1}. ${p.Name}`);
+      expect({ id, at: at > 0 }).toEqual({ id, at: true });
+      expect(plain.slice(at + 1, at + 6)).toEqual(PITCH.map((f) => `   ${f}: ${p[f]}`));
+      if (p['Under-played (judgment)']) expect(plain[at + 6]).toBe(`   Unusual: ${p['Under-played (judgment)']}`);
+      numbered.push(`- ${k + 1}. ${p.Name}: ${id}`);
+    });
+    // Then the not-dealt reasons, then the found-not-used list, then the invitation.
+    const notDealt = plain.indexOf('Not dealt:');
+    const found = plain.indexOf('Found, not used:');
+    expect(notDealt).toBeGreaterThan(plain.indexOf(`7. ${pitchOf(dir, dealt[6]).Name}`));
+    expect(plain.slice(notDealt, found)).toEqual(['Not dealt:', '- Blood Hunt crit lunge: no lookup confirms "critical hits inflict Blood Loss"', '- Blood Hunt with a bleed unique: the same build as "Blood Hunt bleed burst"', '']);
+    expect(plain.slice(found)).toEqual([
+      'Found, not used:', '- Herald of Blood as the main clear: no card leads packs with it, since its explosions need a bleeding kill first.', '',
+      'Ask anything about these cards first. Then say in your own words which 1 to 3 to verify (by name or number), with any changes you want, or a new card from their ideas; or brainstorm more, or stop.', '',
     ]);
-    expect(out).toContain('   anoint: Unbending: Ire, Guilt, Greed');
-    expect(out).toContain('Open estimates:');
-    expect(out.slice(-3)).toEqual(['Verdict: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass', 'Verdict file: reports/gates/D1-gate-r1-a-1-a2.json', '']);
+    // No card id outside For reference; no "links confirmed", no "no player evidence", no playstyle tags.
+    const text = plain.join('\n');
+    expect(text).not.toMatch(/\br\d+-[a-cg]-\d+\b/);
+    expect(text).not.toMatch(/links confirmed|no player evidence|Playstyle/i);
+    for (const id of dealt) expect(text).not.toContain(pitchOf(dir, id).Playstyle);
+    expect(referenceOf(out)).toEqual(['For reference:', ...numbered, '- Not dealt: Blood Hunt crit lunge: r1-a-3, Blood Hunt with a bleed unique: r1-b-2', `- Deck: ${path.join(dir, 'cards.md')}`, '']);
+    expect(readJson(dir, 'run-log.json').displays).toEqual([{ checkpoint: 'brainstorm', visit: 1 }]);
   });
 
-  it("final: the guide's and audit.md's paths, the PoB file, the gate verdicts, each endgame rung's final figures with the design gate's where they moved (D-369), the known issues and the run checker's result", () => {
+  it('brainstorm, a later visit: the cards verified since, a gate-made card among them, are left out, and the rest numbered from 1 (run-interview)', () => {
+    const dir = copy('run-interview');
+    const out = display(dir, 'brainstorm');
+    expect(out[0]).toBe('## The brainstorm gate, visit 2');
+    const names = plainPart(out).filter((l) => /^\d+\. /.test(l));
+    expect(names).toEqual(['1. Blood Hunt with Rolling Slam clear', '2. Blood Hunt on a two-hander', '3. Blood Hunt with Titan slam notables', '4. Blood Hunt block tank', '5. Blood Hunt rage cycling']);
+    expect(out.join('\n')).not.toMatch(/Bleeding Shield Wall|Blood Hunt armour stacker|^\d+\. Blood Hunt bleed burst$/m);
+  });
+
+  it("verification (D-392): each verified card by name, its status in words, its why, its figures with units and what they're measured against, its clear, its key prices, its catch and what verification found; a gate's change and a gate-made card say so; ids and the dossier last", () => {
+    const dir = copy('run-interview');
+    const out = display(dir, 'verification');
+    expect(out).toEqual([
+      '## The verification gate, visit 2', '',
+      '1. Blood Hunt bleed burst: works.',
+      '   Why pick it: One lunge spends the bleed you built for a big hit, so rares melt in two presses. The simplest Blood Hunt loop in the deck.',
+      '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
+      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.',
+      '   Key prices: weapon: unavailable (offline run).',
+      '   The catch: The burst needs Blood Loss on the target first, and PoB has no setting for its uptime.',
+      '   Found in verification: chaos resistance stays low',
+      '',
+      '2. Blood Hunt armour stacker: works.',
+      '   Why pick it: Stacked armour shrugs off the hits that kill most melee builds, and Blood Hunt still bursts.',
+      '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
+      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
+      '   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead.',
+      '   Key prices: weapon: unavailable (offline run).',
+      '   The catch: Armour takes the gear slots that would add damage, so the burst is smaller.',
+      '   Found in verification: dropping Brutality I costs the burst a tenth',
+      '   Changed at the gate (visit 1): keep Bloodlust, but drop Brutality I for a second armour layer',
+      '',
+      '3. Bleeding Shield Wall: works.',
+      '   Why pick it: The bleed burst\'s one-lunge kill, with a shield that blocks the hits a lunge walks into.',
+      '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
+      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead, and the shield holds while you do.',
+      '   Key prices: weapon: unavailable (offline run).',
+      "   The catch: The shield costs the off-hand damage, so the burst is a little smaller than the bleed burst's.",
+      '   Found in verification: the shield costs off-hand damage',
+      "   Made at the gate (visit 1): from Blood Hunt bleed burst and Blood Hunt block tank: the bleed burst's lunge, but from behind the block tank's shield",
+      '',
+      'Ask anything about these builds first. Then say in your own words which one to finalize, with any changes; or verify other cards, make a new one, brainstorm more, or stop.',
+      '',
+      'For reference:',
+      '- 1. Blood Hunt bleed burst: r1-a-1',
+      '- 2. Blood Hunt armour stacker: r1-b-3',
+      '- 3. Bleeding Shield Wall: r1-g-1',
+      `- Dossier: ${path.join(dir, 'dossier.md')}`,
+      '',
+    ]);
+  });
+
+  it("verification: a card that can't be built yet says why, a failed card's verdict and the last design's are kept for reference (run-escalated)", () => {
+    const dir = copy('run-escalated');
+    const out = display(dir, 'verification');
+    expect(out).toContain("2. Melting Maelstrom nova: can't be built yet: its damage source isn't a skill.");
+    expect(out).toContain('Back from the design of Blood Hunt bleed burst: its last check failed and was escalated to you.');
+    expect(plainPart(out).join('\n')).not.toMatch(/\br\d+-[a-cg]-\d+\b|reports\/gates/);
+    expect(referenceOf(out)).toEqual([
+      'For reference:', '- 1. Blood Hunt bleed burst: r1-a-1', '- 2. Melting Maelstrom nova: r1-c-1',
+      '- Melting Maelstrom nova (r1-c-1) failed: reports/gates/R1b-r1-c-1-a1.json',
+      '- Last design verdict, r1-a-1 (escalated): reports/gates/D1-gate-r1-a-1-a3.json',
+      `- Dossier: ${path.join(dir, 'dossier.md')}`, '',
+    ]);
+  });
+
+  it("verification, D-397: a plain summon's skeleton figure is its minion's MinionTotalDPS × its Count, an estimate when the Count is above 1", () => {
+    const dir = copy('run-interview');
+    editJson(dir, 'concepts/r1-a-1/compile-record.json', (r) => {
+      // A plain summon names no minion skill, so the record resolves no selection; PoB still measures its minion.
+      const st = r.stages.r1a1e;
+      delete st.minionSkills;
+      st.skillOutputs.g1s1p1 = { skill: 'Skeletal Warrior', statSetLabel: 'Default', fields: { TotalDPS: 0, MinionTotalDPS: 12500 } };
+      st.countedSkillOutputs.g1s1p1 = { skill: 'Skeletal Warrior', statSetLabel: 'Default', count: 4, dotCanStack: false, fields: { TotalDPS: 0, MinionTotalDPS: 50000 } };
+    });
+    expect(display(dir, 'verification')[4]).toBe("   Damage: 50,000 per second from Skeletal Warrior's minions, against map monsters (an estimate: a Count above 1 or a custom modifier carries it).");
+  });
+
+  it("AC-W67 (D-392) design: each endgame rung's block, every figure it printed before with its unit and what it means, the open estimates and the verdict in words; the codes and the verdict file only under For reference (A-35)", () => {
+    const dir = copy('run-ok');
+    const out = display(dir, 'design');
+    expect(out).toEqual([
+      '## The design gate, visit 2', '',
+      "The endgame build for Blood Hunt bleed burst, rung by rung, as its last design check measured it. Damage is PoB's damage per second for the main skill; effective HP is PoB's estimate of the damage it takes to kill you; clear speed is a rough estimate from the main skill's area.",
+      '',
+      'Entering maps (level 65):',
+      '- Damage: 9,000 per second.',
+      '- Effective HP: 18,400.',
+      '- Clear speed: medium (rough).',
+      '- Gear: rare boots with lightning resistance; a life and cold-resistance helmet',
+      '- Gems: Blood Hunt with Bloodlust and Brutality I',
+      '- Passive tree: the life wheel by the Warrior start',
+      '',
+      'Budget endgame (level 90):',
+      '- Damage: 50,000 per second.',
+      '- Effective HP: 31,500.',
+      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.68 of your max hit).',
+      '- Clear speed: medium (rough).',
+      '- Anoint: Unbending: Ire, Guilt, Greed',
+      '- Gear: a War Spear with increased physical damage; a life and fire-resistance body',
+      '- Gems: Blood Hunt with Bloodlust and Brutality I; Herald of Blood',
+      "- Passive tree: Titan's slam notables; the life and armour wheels",
+      '',
+      'Non-budget endgame (level 95):',
+      '- Damage: 140,000 per second.',
+      '- Effective HP: 52,300.',
+      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.47 of your max hit).',
+      '- Clear speed: medium (rough).',
+      '- Gear: a stronger War Spear and both rings',
+      '- Gems: Blood Hunt with Bloodlust and Brutality I; Herald of Blood',
+      "- Passive tree: Titan's slam notables; the life and armour wheels",
+      '',
+      'Still estimates:',
+      '- Budget endgame (level 90): Blood Loss stacks are a hand calculation (bleed_bonus)',
+      "- clear speed is a rough estimate from the skill's area",
+      '',
+      "The endgame design: PoB built it; it's legal at each stage's level (passive points, gem levels, item and attribute requirements); its PoB settings match what each stage has; every endgame rung meets the survival floor (capped resistances, and a max hit above each map hit); some prices aren't known, so not every rung's total is; the named skill is its main damage.",
+      '',
+      'Ask anything about this build first. Then accept it, ask for changes, go back to the verification gate to finalize another card, or stop.',
+      '',
+      'For reference:',
+      '- Verdict: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass',
+      '- Verdict file: reports/gates/D1-gate-r1-a-1-a2.json',
+      '- Rungs: Entering maps (level 65): m, Budget endgame (level 90): b, Non-budget endgame (level 95): n',
+      '',
+    ]);
+    expect(plainPart(out).join('\n')).not.toMatch(CODES);
+  });
+
+  it("AC-W67 (D-392) final: plain sentences of what was checked, what passed and what's open; each endgame rung's final figures with the design gate's where they moved (D-369), the budget and the known issues; the codes, the verdict files and the run checker's result only under For reference", () => {
     const dir = copy('run-ok');
     const out = display(dir, 'final');
-    expect(out.slice(0, 7)).toEqual([
+    const plain = plainPart(out);
+    expect(plain.join('\n')).not.toMatch(CODES);
+    expect(plain.slice(0, 12)).toEqual([
       '## The final gate, visit 2', '',
-      `Guide: ${path.join(dir, 'guide.md')}`,
-      `Audit: ${path.join(dir, 'audit.md')}`,
-      'PoB file: titan-blood-hunt-2026-10-08-1.xml',
-      'D1-gate: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass (reports/gates/D1-gate-r1-a-1-a2.json)',
-      'D2-gate: compiled pass, v1 pass, v2 pass (reports/gates/D2-gate-r1-a-1-a1.json)',
+      `The guide for Blood Hunt bleed burst: ${path.join(dir, 'guide.md')}`,
+      `Its audit, how each number was checked: ${path.join(dir, 'audit.md')}`,
+      'Your PoB file: titan-blood-hunt-2026-10-08-1.xml',
+      '',
+      'What was checked:',
+      "- The endgame design: PoB built it; it's legal at each stage's level (passive points, gem levels, item and attribute requirements); its PoB settings match what each stage has; every endgame rung meets the survival floor (capped resistances, and a max hit above each map hit); some prices aren't known, so not every rung's total is; the named skill is its main damage.",
+      "- The whole plan, from level 1 to the endgame: PoB built it; it's legal at each stage's level (passive points, gem levels, item and attribute requirements); its PoB settings match what each stage has.",
+      "- The guide's claims, against their sources: some are still open; they're the known issues below.",
+      '- The run checker: it found no problem.',
+      '',
     ]);
-    // The final record's figures; the clear speed moved since the design gate, so the design gate's line follows.
-    const at = out.indexOf('Endgame, from the final compile record:');
-    expect(out.slice(at + 1, at + 7)).toEqual([
-      'm: DPS 9000, EHP 18400, clear slow (rough)',
-      '   at the design gate: DPS 9000, EHP 18400, clear medium (rough)',
-      'b: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear slow (rough)',
-      '   at the design gate: DPS 50000, EHP 31500, Arbiter survives, worst physical 0.68, clear medium (rough)',
-      'n: DPS 140000, EHP 52300, Arbiter survives, worst physical 0.47, clear slow (rough)',
-      '   at the design gate: DPS 140000, EHP 52300, Arbiter survives, worst physical 0.47, clear medium (rough)',
+    // D-369: the final record's figures, and the design gate's where they moved (here the clear speed).
+    const at = plain.findIndex((l) => l.startsWith('The endgame, from the final build.'));
+    expect(plain.slice(at + 1, at + 7)).toEqual([
+      '- Entering maps (level 65): 9,000 damage per second, 18,400 effective HP, clear speed slow (rough).',
+      '  At the design gate: 9,000 damage per second, 18,400 effective HP, clear speed medium (rough).',
+      "- Budget endgame (level 90): 50,000 damage per second, 31,500 effective HP, survives the Arbiter of Divinity's hits (its worst, a physical hit, is 0.68 of your max hit), clear speed slow (rough).",
+      "  At the design gate: 50,000 damage per second, 31,500 effective HP, survives the Arbiter of Divinity's hits (its worst, a physical hit, is 0.68 of your max hit), clear speed medium (rough).",
+      "- Non-budget endgame (level 95): 140,000 damage per second, 52,300 effective HP, survives the Arbiter of Divinity's hits (its worst, a physical hit, is 0.47 of your max hit), clear speed slow (rough).",
+      "  At the design gate: 140,000 damage per second, 52,300 effective HP, survives the Arbiter of Divinity's hits (its worst, a physical hit, is 0.47 of your max hit), clear speed medium (rough).",
     ]);
-    expect(out[out.indexOf('Known issues:') + 1]).toMatch(/^- The How to play it section is wrong to call Rolling Slam your clear skill/);
     // D-371, D-374: each rung's budget line from the D1 gate's last verdict file, in the guide's Checks words.
-    const budget = out.indexOf('Budget, from the D1 gate:');
-    expect(out.slice(budget + 1, budget + 7)).toEqual([
-      'm: Budget: unknown, against a 5-divine target.',
-      "   Prices are unavailable (offline run), so this rung's total isn't known.",
-      'b: Budget: unknown, aiming at about 5 a slot.',
-      "   Prices are unavailable (offline run), so this rung's total isn't known.",
-      'n: Budget: unknown, against the 100–200 target.',
-      "   Prices are unavailable (offline run), so this rung's total isn't known.",
+    const budget = plain.indexOf('The budget, from the last design check:');
+    expect(plain.slice(budget + 1, budget + 9)).toEqual([
+      '- Entering maps (level 65): Budget: unknown, against a 5-divine target.',
+      "  Prices are unavailable (offline run), so this rung's total isn't known.",
+      '- Budget endgame (level 90): Budget: unknown, aiming at about 5 a slot.',
+      "  Prices are unavailable (offline run), so this rung's total isn't known.",
+      '- Non-budget endgame (level 95): Budget: unknown, against the 100–200 target.',
+      "  Prices are unavailable (offline run), so this rung's total isn't known.",
+      "Some prices are unavailable, so the total of each rung they price isn't known.",
+      'The guide is from an offline run: no price was checked.',
     ]);
-    expect(out).toContain("Some prices are unavailable, so the total of each rung they price isn't known (D-164).");
-    expect(out.join('\n')).not.toMatch(/within its budget|ceiling/);
-    expect(out).toContain('The guide is from an offline run: no price was checked.');
-    expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
+    expect(plain.join('\n')).not.toMatch(/within its budget|ceiling|D-164/);
+    const open = plain.indexOf("What's still open, the guide's known issues:");
+    expect(plain[open + 1]).toMatch(/^- The How to play it section is wrong to call Rolling Slam your clear skill/);
+    expect(referenceOf(out)).toEqual([
+      'For reference:',
+      '- D1-gate: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass (reports/gates/D1-gate-r1-a-1-a2.json)',
+      '- D2-gate: compiled pass, v1 pass, v2 pass (reports/gates/D2-gate-r1-a-1-a1.json)',
+      '- Rungs: Entering maps (level 65): m, Budget endgame (level 90): b, Non-budget endgame (level 95): n',
+      '- Unknown totals: D-164',
+      '- Run checker: ok',
+      '',
+    ]);
   });
 
   it('final, online: an unavailable fallback is no D-164 reason, so with every total known the display gives no D-164 line (D-371)', () => {
@@ -494,36 +687,42 @@ describe('run-log.mjs display (D-367, D-369): each gate visit prints its display
     Object.assign(plan.prices.find((x: Json) => x.id === 'b-weapon-fallback'), { status: 'unavailable', amount: null, currency: null, note: 'pricing stopped' });
     fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
     const out = display(dir, 'final');
-    const budget = out.indexOf('Budget, from the D1 gate:');
+    const budget = out.indexOf('The budget, from the last design check:');
     expect(out.slice(budget + 1, budget + 4)).toEqual([
-      'm: Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
-      'b: Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback price unknown).',
-      'n: Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
+      '- Entering maps (level 65): Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
+      '- Budget endgame (level 90): Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback price unknown).',
+      '- Non-budget endgame (level 95): Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
     ]);
-    expect(out.join('\n')).not.toMatch(/Prices are unavailable|\(D-164\)/);
+    expect(out.join('\n')).not.toMatch(/Prices are unavailable|Some prices are unavailable|D-164/);
   });
 
-  it("final, online: each rung's total range at its price day against its target and its over-target slots (D-371, D-374), with no D-164 line when every price is known", () => {
+  it("final, online: each rung's total range at its price day against its target and its over-target slots (D-371, D-374), with no D-164 line when every price is known, and no pass codes outside For reference", () => {
     const out = display(copy('run-ok-online'), 'final');
-    const budget = out.indexOf('Budget, from the D1 gate:');
+    const budget = out.indexOf('The budget, from the last design check:');
     expect(out.slice(budget + 1, budget + 4)).toEqual([
-      'm: Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
-      'b: Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).',
-      'n: Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
+      '- Entering maps (level 65): Budget: about 1.8–4 divines around day 7, against a 5-divine target.',
+      '- Budget endgame (level 90): Budget: about 8.8–20 divines around day 7, aiming at about 5 a slot. Over target: Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7).',
+      '- Non-budget endgame (level 95): Budget: about 84–143 divines around day 21, against the 100–200 target. Over target: Body Armour (about 20–34).',
     ]);
-    expect(out.join('\n')).not.toContain('(D-164)');
-    expect(out.slice(-2)).toEqual(['Run checker: ok', '']);
+    expect(out.join('\n')).not.toContain('D-164');
+    expect(plainPart(out).join('\n')).not.toMatch(CODES);
+    expect(out.slice(-2)).toEqual(['- Run checker: ok', '']);
   });
 
-  it('escalation: the escalated gate, its attempts, its verdict with the findings, and the verdict file', () => {
+  it('escalation (D-392): what failed and why in a sentence, then the attempts, the verdict, its findings and its file for reference', () => {
     const out = display(copy('run-escalated'), 'escalation');
     expect(out).toEqual([
       '## Escalation, visit 2', '',
-      'D1-gate, r1-a-1: attempts 1 fail, 2 fail, 3 escalated',
-      'Verdict: compiled pass, v1 fail, v2 pass, floor pass, budget unverified, rolledSkill pass',
-      '- v1 level-points: stage b spends 108 passive points, but level 1 grants 0 (FI-2)',
-      '- floor chaos-exception: MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget',
-      'Verdict file: reports/gates/D1-gate-r1-a-1-a3.json',
+      "The endgame design for Blood Hunt bleed burst failed 3 times, so the run stops to ask you. What failed: something isn't legal at its stage's level (passive points, gem levels, item or attribute requirements): stage b spends 108 passive points, but level 1 grants 0 (FI-2).",
+      '',
+      'Ask anything about this first. Then accept what failed, give guidance for one more try, go back to the verification gate, or stop.',
+      '',
+      'For reference:',
+      '- D1-gate, r1-a-1: attempts 1 fail, 2 fail, 3 escalated',
+      '- Verdict: compiled pass, v1 fail, v2 pass, floor pass, budget unverified, rolledSkill pass',
+      '  v1 level-points: stage b spends 108 passive points, but level 1 grants 0 (FI-2)',
+      '  floor chaos-exception: MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget',
+      '- Verdict file: reports/gates/D1-gate-r1-a-1-a3.json',
       '',
     ]);
   });
@@ -544,5 +743,137 @@ describe('run-log.mjs display (D-367, D-369): each gate visit prints its display
     expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'escalation', visit: 1, answer: 'stop', answeredBy: 'user' })).stderr).toMatch(/^run-log: checkpoint entry refused: the escalation question's visit 1 printed no display/);
     expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'user' })).code).toBe(0);
     expect(run(RUN_LOG, dir, 'display', 'unsaved-build')).toEqual({ code: 1, stdout: '', stderr: 'run-log: display: "unsaved-build" isn\'t one of brainstorm, verification, design, final, escalation\n' });
+  });
+});
+
+describe('AC-W68 (WU-81; D-389, D-391): a gate\'s checkpoint carries its questions, the changes riding on its picks, the cards made at the gate and a brainstorm-more note', () => {
+  /** run-ok rolled back to its brainstorm gate, the display printed: the deck holds r1-a-1 … r1-c-3. */
+  const atGate = () => {
+    const dir = atBrainstorm('run-ok');
+    expect(run(RUN_LOG, dir, 'display', 'brainstorm').code).toBe(0);
+    return dir;
+  };
+  const write = (dir: string, entry: Json) => run(RUN_LOG, dir, 'checkpoint', JSON.stringify(entry));
+  const WORDS = "the bleed burst's lunge, but from behind the block tank's shield";
+  const NEW = { id: 'r1-g-1', name: 'Bleeding Shield Wall', from: ['r1-a-1', 'r1-c-2'], words: WORDS };
+  const PICK = { checkpoint: 'brainstorm', visit: 1, answer: 'pick:r1-a-1,r1-a-2', answeredBy: 'user' };
+
+  it("accepts a checkpoint with questions, changes keyed by picked cards, a new card r<k>-g-<n> and, at a later visit, note with more; it writes them in the entry form's order", () => {
+    const dir = atGate();
+    const entry = { ...PICK, newCards: [NEW], changes: { 'r1-a-2': 'swap Rolling Slam for a second Blood Hunt link' }, questions: 2 };
+    expect(write(dir, entry)).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
+    const logged = readJson(dir, 'run-log.json').checkpoints[0];
+    expect(Object.keys(logged)).toEqual(['checkpoint', 'visit', 'answer', 'answeredBy', 'questions', 'changes', 'newCards']);
+    expect(logged).toEqual(entry);
+    // The verification gate: a new card alone with an empty verify:, its id the round's next, n counting on.
+    expect(run(RUN_LOG, dir, 'display', 'verification').code).toBe(0);
+    const second = { checkpoint: 'verification', visit: 1, answer: 'verify:', answeredBy: 'user', questions: 0, newCards: [{ id: 'r1-g-2', name: 'Rage Wall', from: ['r1-c-3', 'r1-c-2'], words: 'rage, behind the shield wall' }] };
+    expect(write(dir, second)).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[1]\n', stderr: '' });
+    // A brainstorm-more answer keeps its note (D-391).
+    expect(run(RUN_LOG, dir, 'display', 'verification').code).toBe(0);
+    expect(write(dir, { checkpoint: 'verification', visit: 2, answer: 'more', answeredBy: 'user', questions: 1, note: 'investigate whether Herald of Blood can spread the bleed' }).code).toBe(0);
+    expect(readJson(dir, 'run-log.json').checkpoints[2].note).toBe('investigate whether Herald of Blood can spread the bleed');
+    // A test config's answer records its object's answer as the rule, and the asks as its questions (D-394).
+    expect(run(RUN_LOG, dir, 'display', 'design').code).toBe(0);
+    expect(write(dir, { checkpoint: 'design', visit: 1, answer: 'accept', answeredBy: 'pre-supplied', rule: 'accept', questions: 1 }).code).toBe(0);
+  });
+
+  it('refuses changes naming an unpicked card, newCards drawing on a card the deck doesn\'t hold, picks and new cards over 3, and note on any other answer; nothing is written', () => {
+    const dir = atGate();
+    const before = fs.readFileSync(path.join(dir, 'run-log.json'));
+    const refused: [Json, RegExp][] = [
+      [{ ...PICK, changes: { 'r1-b-1': 'a bigger spear' } }, /changes names r1-b-1, which the answer "pick:r1-a-1,r1-a-2" doesn't pick; a revision rides on a picked card \(D-391\)/],
+      [{ ...PICK, newCards: [{ ...NEW, from: ['r1-a-1', 'r1-c-9'] }] }, /newCards\[0\] draws on r1-c-9, which the deck \(cards\.md\) doesn't hold \(D-391\)/],
+      [{ ...PICK, answer: 'pick:r1-a-1,r1-a-2,r1-b-1', newCards: [NEW] }, /the answer picks 3 card\(s\) and makes 1: 4 over 3; a pick verifies 1–3 cards, new cards included \(D-391\)/],
+      [{ ...PICK, note: 'more Herald of Blood' }, /note goes with more, the brainstorm-more answer, not "pick:r1-a-1,r1-a-2" \(D-391\)/],
+      [{ ...PICK, answer: 'stop', note: 'enough' }, /note goes with more/],
+      // A new card's id is the latest round's next gate card, its name one no card has, and it goes with a pick.
+      [{ ...PICK, newCards: [{ ...NEW, id: 'r1-g-2' }] }, /newCards\[0\] has id "r1-g-2"; the next card made at a gate is r1-g-1/],
+      [{ ...PICK, newCards: [{ ...NEW, id: 'r1-a-9' }] }, /newCards\[0\] id "r1-a-9" isn't a gate-made card's id r<k>-g-<n>/],
+      [{ ...PICK, newCards: [{ ...NEW, name: 'Blood Hunt block tank' }] }, /newCards\[0\] is named "Blood Hunt block tank", which card r1-c-2 already has; a name is never reused \(D-392\)/],
+      [{ ...PICK, answer: 'more', newCards: [NEW] }, /newCards goes with the brainstorm gate's pick: or the verification gate's verify:, not "more"/],
+      [{ ...PICK, answer: 'pick:' }, /"pick:" picks no card; a pick names 1–3 cards, or makes a new one with newCards/],
+      [{ ...PICK, questions: -1 }, /questions -1 isn't a whole number from 0/],
+      [{ ...PICK, newCards: [{ ...NEW, from: [] }] }, /newCards\[0\] from lists the card ids it draws on/],
+      [{ ...PICK, extra: 1 }, /"extra" isn't a field of a checkpoint entry/],
+    ];
+    for (const [entry, why] of refused) {
+      const r = write(dir, entry);
+      expect({ entry, code: r.code, stdout: r.stdout }).toEqual({ entry, code: 1, stdout: '' });
+      expect(r.stderr).toMatch(/^run-log: checkpoint entry refused: /);
+      expect(r.stderr).toMatch(why);
+    }
+    // questions belong to a displayed gate; the unsaved-build question is fixed.
+    expect(write(dir, { checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'user', questions: 1 }).stderr).toMatch(/questions is only on a gate's or an escalation's answer/);
+    expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
+    // A verification pick:<id> (finalize) carries changes for D1-build, but makes no new card.
+    expect(run(RUN_LOG, dir, 'stage', JSON.stringify({ stage: 'Q', attempt: 1, outcome: 'done' })).code).toBe(0);
+    expect(run(RUN_LOG, dir, 'stage', JSON.stringify({ stage: 'Q', concept: 'r1-a-1', attempt: 1, outcome: 'done' })).stderr).toMatch(/a Q entry has no concept/);
+    expect(run(RUN_LOG, dir, 'display', 'verification').code).toBe(0);
+    expect(write(dir, { checkpoint: 'verification', visit: 1, answer: 'pick:r1-a-1', answeredBy: 'user', newCards: [NEW] }).stderr).toMatch(/newCards goes with the brainstorm gate's pick: or the verification gate's verify:, not "pick:r1-a-1"/);
+    expect(write(dir, { checkpoint: 'verification', visit: 1, answer: 'pick:r1-a-1', answeredBy: 'user', changes: { 'r1-a-1': 'a cheaper helmet' } }).code).toBe(0);
+  });
+});
+
+describe('D-394 (AC-W68): run-log.mjs test-config checks a test config, whose answer entries may be strings or objects scripting an interview', () => {
+  const check = (cfg: unknown) => {
+    const file = path.join(folder(), 'test-config.json');
+    fs.writeFileSync(file, typeof cfg === 'string' ? cfg : JSON.stringify(cfg));
+    return { file, ...run(RUN_LOG, path.dirname(file), 'test-config', file) };
+  };
+
+  it('accepts string entries and object entries: asks with an answer, changes, new cards, a note with more', () => {
+    const cfg = {
+      answers: {
+        brainstorm: [
+          // The amendment's example (§7), and its new card.
+          { ask: ['Which card clears fastest?', 'Could skeleton deaths make the ground?'], answer: 'pick:r1-a-1,r1-b-1', changes: { 'r1-a-1': 'use a sceptre for minion levels' } },
+          { answer: 'pick:r1-a-1', newCards: [{ name: 'Frozen Djinn Army', from: ['r1-a-1', 'r1-b-2'], words: 'the djinn with the frozen ground' }] },
+          { ask: ['Is there a cold build?'], answer: 'more', note: 'a cold build' },
+          'first-n:2',
+        ],
+        verification: ['first-viable', { ask: ['Which is tankiest?'], answer: 'verify:', newCards: [{ name: 'Shield Wall', from: ['r1-c-2'], words: 'block' }] }, { answer: 'pick:r1-a-1', changes: { 'r1-a-1': 'a cheaper helmet' } }],
+        design: [{ ask: ['Did the designer measure Skeletal Cleric?'], answer: 'accept' }],
+        final: ['accept'],
+        escalation: [{ ask: ['What failed?'], answer: 'retry:keep the helmet' }],
+        unsavedBuild: 'proceed',
+      },
+      faults: [{ id: 'FI-1', concepts: ['r1-a-1'], persistent: true }, { id: 'FI-2', concepts: 'all' }],
+    };
+    const r = check(cfg);
+    expect({ code: r.code, stdout: r.stdout, stderr: r.stderr }).toEqual({ code: 0, stdout: `run-log: test config ${r.file} is well formed\n`, stderr: '' });
+    // offline-and-test.md's example is well formed too.
+    const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'offline-and-test.md'), 'utf8');
+    expect(check(/## The test config[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]).code).toBe(0);
+  });
+
+  it('refuses the malformed entries: changes naming a card the answer doesn\'t pick, newCards with another answer, picks and new cards over 3, note without more, an empty question', () => {
+    const NEW = { name: 'Frozen Djinn Army', from: ['r1-a-1', 'r1-b-2'], words: 'the djinn with the frozen ground' };
+    const refused: [Json, RegExp][] = [
+      [{ brainstorm: [{ answer: 'pick:r1-a-1', changes: { 'r1-b-1': 'x' } }] }, /answers\.brainstorm\[0\]: changes names r1-b-1, which the answer "pick:r1-a-1" doesn't pick/],
+      [{ brainstorm: [{ answer: 'first-n:2', changes: { 'r1-a-1': 'x' } }] }, /changes rides on picked cards: .*not "first-n:2"/],
+      [{ brainstorm: [{ answer: 'more', newCards: [NEW] }] }, /answers\.brainstorm\[0\]: newCards goes with the brainstorm gate's pick: or the verification gate's verify:, not "more"/],
+      [{ verification: [{ answer: 'pick:r1-a-1', newCards: [NEW] }] }, /answers\.verification\[0\]: newCards goes with/],
+      [{ design: [{ answer: 'accept', newCards: [NEW] }] }, /answers\.design\[0\]: newCards is only on a brainstorm or verification answer/],
+      [{ brainstorm: [{ answer: 'pick:r1-a-1,r1-a-2,r1-a-3', newCards: [NEW] }] }, /picks 3 card\(s\) and makes 1: 4 over 3/],
+      [{ brainstorm: [{ answer: 'pick:r1-a-1', note: 'x' }] }, /answers\.brainstorm\[0\]: note goes with more/],
+      [{ brainstorm: [{ ask: ['Which?', ' '], answer: 'stop' }] }, /answers\.brainstorm\[0\]: ask lists the questions to ask before the answer, none of them empty/],
+      [{ brainstorm: [{ answer: 'pick:r1-a-1', newCards: [{ ...NEW, id: 'r1-g-1' }] }] }, /newCards\[0\] has an id, which the runner assigns/],
+      [{ brainstorm: [{ answer: 'pick:r1-a-1', newCards: [{ ...NEW, from: ['Frozen Djinn'] }] }] }, /newCards\[0\] from lists the card ids it draws on/],
+      [{ brainstorm: [{ answer: 'pick:', newCards: [] }] }, /newCards lists one or more new cards/],
+      [{ brainstorm: ['pick:'] }, /"pick:" picks no card/],
+      [{ brainstorm: [{ answer: 'pick:r1-a-1', why: 'x' }] }, /"why" isn't a field of an answer entry/],
+      [{ verification: [{ ask: ['x'] }] }, /answer undefined isn't an answers\.verification value/],
+      [{ checkpoint1: ['pick:r1-a-1'] }, /answers\.checkpoint1 is retired/],
+      [{ escalation: ['checkpoint-1'] }, /"checkpoint-1" isn't an answers\.escalation value/],
+    ];
+    for (const [answers, why] of refused) {
+      const r = check({ answers });
+      expect({ answers, code: r.code, stdout: r.stdout }).toEqual({ answers, code: 1, stdout: '' });
+      expect(r.stderr).toMatch(/^run-log: test config refused: /);
+      expect(r.stderr).toMatch(why);
+    }
+    expect(check('{ not json').stderr).toMatch(/^run-log: test config refused: .* can't be read as JSON/);
+    expect(check({ answers: {}, faults: [{ id: 'FI-9', concepts: 'all' }] }).stderr).toMatch(/faults\[0\] is \{id: FI-1 \| FI-2 \| FI-3/);
   });
 });

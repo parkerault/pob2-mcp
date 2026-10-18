@@ -214,12 +214,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -248,12 +242,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -290,12 +278,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -327,12 +309,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -359,12 +335,6 @@
             "gems": [
               {
                 "name": "Herald of Ash",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -805,12 +775,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -839,12 +803,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -881,12 +839,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -913,12 +865,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -951,12 +897,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 2,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -1428,12 +1368,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -1462,12 +1396,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -1504,12 +1432,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -1536,12 +1458,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -1574,12 +1490,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 4,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -2089,12 +1999,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -2123,12 +2027,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -2165,12 +2063,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -2197,12 +2089,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -2235,12 +2121,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 5,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -2775,12 +2655,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -2809,12 +2683,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -2851,12 +2719,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -2883,12 +2745,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -2921,12 +2777,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 6,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -3483,12 +3333,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -3517,12 +3361,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -3559,12 +3397,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -3591,12 +3423,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -3629,12 +3455,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 8,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -4233,12 +4053,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -4267,12 +4081,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -4309,12 +4117,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -4341,12 +4143,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -4379,12 +4175,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 9,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -5007,12 +4797,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -5041,12 +4825,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -5083,12 +4861,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -5115,12 +4887,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -5153,12 +4919,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 10,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -5452,8 +5212,7 @@
           53294,
           36163,
           45503,
-          56061,
-          8693
+          56061
         ],
         "ascendancyNodes": [
           13715,
@@ -5476,8 +5235,7 @@
             53294,
             36163,
             45503,
-            56061,
-            8693
+            56061
           ]
         },
         "attributeChoices": [
@@ -5796,12 +5554,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -5830,12 +5582,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -5872,12 +5618,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -5904,12 +5644,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -5942,12 +5676,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 12,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -6246,7 +5974,6 @@
           58295,
           47263,
           18448,
-          8693,
           16090,
           17468,
           26798,
@@ -6274,7 +6001,6 @@
             18448
           ],
           "set2": [
-            8693,
             16090,
             17468,
             26798,
@@ -6619,12 +6345,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -6653,12 +6373,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -6695,12 +6409,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -6727,12 +6435,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -6765,12 +6467,6 @@
               {
                 "name": "Herald of Ash",
                 "level": 13,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
                 "quality": 0,
                 "enabled": true
               },
@@ -7070,7 +6766,6 @@
           47263,
           18448,
           30141,
-          8693,
           16090,
           17468,
           26798,
@@ -7097,7 +6792,6 @@
         "weaponSetNodes": {
           "set1": [
             30141,
-            8693,
             16090,
             17468,
             26798,
@@ -7464,12 +7158,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -7498,12 +7186,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -7540,12 +7222,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -7572,12 +7248,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -7611,12 +7281,6 @@
                 "name": "Herald of Ash",
                 "level": 14,
                 "quality": 20,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
                 "enabled": true
               },
               {
@@ -7916,7 +7580,6 @@
           18448,
           30141,
           55190,
-          8693,
           16090,
           17468,
           26798,
@@ -8338,12 +8001,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -8372,12 +8029,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -8414,12 +8065,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -8446,12 +8091,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -8485,12 +8124,6 @@
                 "name": "Herald of Ash",
                 "level": 16,
                 "quality": 20,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
                 "enabled": true
               },
               {
@@ -8790,7 +8423,6 @@
           18448,
           30141,
           55190,
-          8693,
           16090,
           17468,
           26798,
@@ -9246,12 +8878,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -9280,12 +8906,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -9322,12 +8942,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -9354,12 +8968,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -9393,12 +9001,6 @@
                 "name": "Herald of Ash",
                 "level": 17,
                 "quality": 20,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
                 "enabled": true
               },
               {
@@ -9697,7 +9299,6 @@
           18448,
           30141,
           55190,
-          8693,
           16090,
           17468,
           26798,
@@ -9735,7 +9336,6 @@
           34210,
           37746,
           6544,
-          35393,
           50302,
           9638,
           35787,
@@ -9772,7 +9372,6 @@
           ],
           "set2": [
             6544,
-            35393,
             50302,
             9638,
             35787,
@@ -10176,12 +9775,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -10210,12 +9803,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -10252,12 +9839,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -10284,12 +9865,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -10323,12 +9898,6 @@
                 "name": "Herald of Ash",
                 "level": 19,
                 "quality": 20,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
                 "enabled": true
               },
               {
@@ -10627,7 +10196,6 @@
           18448,
           30141,
           55190,
-          8693,
           16090,
           17468,
           26798,
@@ -10665,7 +10233,6 @@
           34210,
           37746,
           6544,
-          35393,
           50302,
           9638,
           35787,
@@ -10702,7 +10269,6 @@
         "weaponSetNodes": {
           "set1": [
             6544,
-            35393,
             50302,
             9638,
             35787,
@@ -11129,12 +10695,6 @@
                 "level": 1,
                 "quality": 0,
                 "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
               }
             ]
           },
@@ -11163,12 +10723,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -11205,12 +10759,6 @@
                 "enabled": true
               },
               {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
                 "name": "Elemental Focus",
                 "level": 1,
                 "quality": 0,
@@ -11237,12 +10785,6 @@
               },
               {
                 "name": "Ruthless",
-                "level": 1,
-                "quality": 0,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
                 "level": 1,
                 "quality": 0,
                 "enabled": true
@@ -11276,12 +10818,6 @@
                 "name": "Herald of Ash",
                 "level": 20,
                 "quality": 20,
-                "enabled": true
-              },
-              {
-                "name": "Bloodlust",
-                "level": 1,
-                "quality": 0,
                 "enabled": true
               },
               {

@@ -860,7 +860,8 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
   it('AC-P43 (A-29): an endgame stage with 124 regular points passes, with a note naming passive-points.martyr (M)', async () => {
     // 124 connected regular nodes off the Warrior start's exit 3936, the fixture's (breadth first; ascendancy
     // nodes, masteries, jewel sockets and the start's other exits left out, so the tree leaves its start by one
-    // exit, D-360).
+    // exit, D-360; and the nodes an unlock constraint locks, the Oracle's among them, which compile_plan refuses,
+    // D-383).
     const tree = await luaQuery<{ nodes: number[]; attributes: number[] }>(String.raw`
       local tree = main:LoadTree(latestTreeVersion)
       local nodes, start = tree.nodes, nil
@@ -877,7 +878,7 @@ engineDescribe('WU-42: V1 and V2 inside compile_plan (§3.7, D-192)', () => {
           local n = nodes[o]
           if n and not seen[o] and #picked < 124 and not n.ascendancyName and n.type ~= 'ClassStart'
               and n.type ~= 'AscendClassStart' and n.type ~= 'Mastery' and not n.isMultipleChoiceOption and n.type ~= 'Socket'
-              and not n.containJewelSocket then
+              and not n.containJewelSocket and not n.unlockConstraint then
             seen[o] = true
             queue[#queue + 1] = o
             picked[#picked + 1] = o

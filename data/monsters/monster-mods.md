@@ -12,7 +12,9 @@ D-402). Re-run the script to change it; its judgments are in the script.
   `data | monsters/monster-mods.md#<id>`.
 - **Lines** are the game's words, quoted. `internal stat id:` marks a stat poe2db shows by its id with its value in
   brackets, which the game words differently. Many modifiers show their lines only in a hover the saved page doesn't
-  hold: their judgment rests on the name and the keyword it links.
+  hold: their judgment rests on the name and the keyword it links, unless the modifier's own keyword page is saved
+  beside the lists (4 are). Then **Page text** is that page's sentence, verbatim, and the lines marked
+  `from the page text:` are PoB's wording of it.
 - **Tamed beast keeps it:** the Tame Beast gem says "Tamed Beast retains up to four monster modifiers when summoned";
   `yes` means Tame_Beast's list has the modifier.
 - **Model,** how a plan models the modifier on a tamed beast that keeps it: `stats`, its lines go in as custom modifiers
@@ -71,7 +73,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Lightning Explosion on Death (lightning-explosion-on-death): none; creates none; pays off on minion-death; keeps: yes
 - Powerful Minions (powerful-minions): none; creates none; pays off on none; keeps: yes
 - Empowered (empowered): stats; creates none; pays off on companion; keeps: yes
-- Extra Physical Damage Aura (extra-physical-damage-aura): stats; creates damage-conversion; pays off on none; keeps: yes
+- Extra Physical Damage Aura (extra-physical-damage-aura): stats; creates none; pays off on none; keeps: yes
 - Haste Aura (haste-aura): stats; creates attack-speed, cast-speed, movement-speed; pays off on none; keeps: yes
 - Energy Shield Aura (energy-shield-aura): stats; creates energy-shield; pays off on none; keeps: yes
 - Elemental Resistance Aura (elemental-resistance-aura): stats; creates resistance; pays off on none; keeps: yes
@@ -671,51 +673,58 @@ D-402). Re-run the script to change it; its judgments are in the script.
 ### Extra Physical Damage Aura
 - Id: extra-physical-damage-aura
 - Kind: standard
-- Lines: none on the page (poe2db shows them only in a hover)
+- Lines:
+  - from the page text: "40% increased Physical Damage"
+- Page text: "Monster creates an Aura that grants 40% increased Physical Damage to Allies within 5 metres."
 - URL: https://poe2db.tw/us/Extra_Physical_Damage_Aura
 - Tamed beast keeps it: yes
 - Model: stats
-- Reach: its allies: the player and minions
-- Creates: damage-conversion | Pays off on: none
-- Note: Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page (the URL) before
-  writing them as player lines and `Minions have` lines. Like Extra Fire Damage's "Gain … of Damage as Extra … Damage",
-  it is taken to add Physical damage.
+- Reach: its allies within 5 metres: the player and minions
+- Creates: none | Pays off on: none
+- Note: Its lines are PoB's wording of its own page's text, each an estimate the record marks. The vocabulary has no
+  family for a damage buff, so it creates none.
 
 ### Haste Aura
 - Id: haste-aura
 - Kind: standard
-- Lines: none on the page (poe2db shows them only in a hover)
+- Lines:
+  - from the page text: "20% increased Attack Speed"
+  - from the page text: "20% increased Cast Speed"
+  - from the page text: "10% increased Movement Speed"
+- Page text: "Monster creates an Aura that grants 20% increased Attack and Cast speed and 10% increased Movement speed
+  to Allies within 5 metres."
 - URL: https://poe2db.tw/us/Haste_Aura
 - Tamed beast keeps it: yes
 - Model: stats
-- Reach: its allies: the player and minions
+- Reach: its allies within 5 metres: the player and minions
 - Creates: attack-speed, cast-speed, movement-speed | Pays off on: none
-- Note: Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page (the URL) before
-  writing them as player lines and `Minions have` lines. Which speeds it raises is taken from Hasted's lines.
+- Note: Its lines are PoB's wording of its own page's text, each an estimate the record marks.
 
 ### Energy Shield Aura
 - Id: energy-shield-aura
 - Kind: standard
-- Lines: none on the page (poe2db shows them only in a hover)
+- Lines:
+  - from the page text: "Gain 20% of maximum Life as Extra maximum Energy Shield"
+- Page text: "Monster creates an Aura that grants 20% of Maximum life as added Energy Shield to Allies within 5 metres."
 - URL: https://poe2db.tw/us/Energy_Shield_Aura
 - Tamed beast keeps it: yes
 - Model: stats
-- Reach: its allies: the player and minions
+- Reach: its allies within 5 metres: the player and minions
 - Creates: energy-shield | Pays off on: none
-- Note: Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page (the URL) before
-  writing them as player lines and `Minions have` lines.
+- Note: Its lines are PoB's wording of its own page's text, each an estimate the record marks.
 
 ### Elemental Resistance Aura
 - Id: elemental-resistance-aura
 - Kind: standard
-- Lines: none on the page (poe2db shows them only in a hover)
+- Lines:
+  - from the page text: "+35% to all Elemental Resistances"
+- Page text: "Monster creates an Aura that grants +35% to all Elemental Resistances to Allies within 5 metres."
 - URL: https://poe2db.tw/us/Elemental_Resistance_Aura
 - Tamed beast keeps it: yes
 - Model: stats
-- Reach: its allies: the player and minions
+- Reach: its allies within 5 metres: the player and minions
 - Creates: resistance | Pays off on: none
-- Note: Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page (the URL) before
-  writing them as player lines and `Minions have` lines.
+- Note: Its lines are PoB's wording of its own page's text, each an estimate the record marks.
 
 ### Temporal Bubble
 - Id: temporal-bubble

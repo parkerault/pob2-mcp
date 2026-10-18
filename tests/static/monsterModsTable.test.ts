@@ -4,6 +4,8 @@
  *   `none`), and Creates and Pays off on in the words of `data/rules/vocabulary.md`.
  * - "Hasted" carries its two speed lines and model `stats`; the ice trail ("Trail of Ice") carries model `condition` and
  *   creates chilled-ground.
+ * - The four ally auras whose own poe2db pages were saved carry their figures as PoB lines, the page's sentence and
+ *   their reach, allies within 5 metres.
  * - The index has one line per block, agreeing with it, and the head's counts are the blocks'.
  * - `docs/build-guide/pob-gaps.md` holds PG-56: PoB has no rare monster modifiers.
  */
@@ -49,8 +51,18 @@ describe('AC-W72 (WU-86, D-402): the committed monster-modifier table', () => {
     expect(creates(b).creates).toContain('chilled-ground');
   });
 
-  it("an aura that reaches the beast's allies says so: Haste Aura reaches the player and minions", () => {
-    expect(block('Haste Aura').fields.get('Reach')).toBe('its allies: the player and minions');
+  it.each([
+    ['Haste Aura', ['20% increased Attack Speed', '20% increased Cast Speed', '10% increased Movement Speed'], '20% increased Attack and Cast speed and 10% increased Movement speed'],
+    ['Extra Physical Damage Aura', ['40% increased Physical Damage'], '40% increased Physical Damage'],
+    ['Energy Shield Aura', ['Gain 20% of maximum Life as Extra maximum Energy Shield'], '20% of Maximum life as added Energy Shield'],
+    ['Elemental Resistance Aura', ['+35% to all Elemental Resistances'], '+35% to all Elemental Resistances'],
+  ])("%s, an ally aura with its own page saved, carries its figures, the page's sentence and its allies within 5 metres", (name, lines, grants) => {
+    const b = block(name);
+    expect(b.lines).toEqual(lines.map((l) => `from the page text: "${l}"`));
+    expect(b.fields.get('Page text')).toBe(`"Monster creates an Aura that grants ${grants} to Allies within 5 metres."`);
+    expect(b.fields.get('Reach')).toBe('its allies within 5 metres: the player and minions');
+    expect(b.fields.get('URL')).toBe(`https://poe2db.tw/us/${name.replace(/ /g, '_')}`);
+    expect(b.fields.get('Model')).toBe('stats');
   });
 
   it('the index has one line per block, agreeing with its model, families and keep flag', () => {

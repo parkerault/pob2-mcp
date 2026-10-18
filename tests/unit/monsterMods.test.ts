@@ -3,8 +3,10 @@
  * Tame_Beast pages, saved in a folder, and writes the rare monster modifier table. Spawned as a real `node` process on
  * handwritten fixture pages in the pages' HTML structure (`tests/fixtures/poe2db/monsters/`): each name's rows join
  * into one block with its lines (game text quoted, an internal stat id marked), URL, keyword, kind and keep flag (on
- * Tame_Beast's list), and its judgment (model, reach, Creates and Pays off on) in the vocabulary. The script reads
- * saved pages only: it never fetches.
+ * Tame_Beast's list), and its judgment (model, reach, Creates and Pays off on) in the vocabulary. A modifier whose own
+ * keyword page is saved beside the lists (the fixture `Haste_Aura.html`) takes that page's sentence verbatim, its
+ * clauses in PoB's wording as lines and its radius in its reach; one whose page isn't saved is as the lists give it.
+ * The script reads saved pages only: it never fetches.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
@@ -28,7 +30,7 @@ function run(...args: string[]) {
 let n = 0;
 const outFile = () => path.join(TMP, `out-${++n}`, 'monster-mods.md');
 /** A copy of the fixture pages, one of them edited. */
-function editedFixtures(page: 'Monster_Modifiers' | 'Tame_Beast', edit: (html: string) => string): string {
+function editedFixtures(page: 'Monster_Modifiers' | 'Tame_Beast' | 'Haste_Aura', edit: (html: string) => string): string {
   const dir = path.join(TMP, `pages-${++n}`);
   fs.cpSync(FIXTURES, dir, { recursive: true });
   const file = path.join(dir, `${page}.html`);
@@ -51,7 +53,7 @@ describe('AC-W72 (WU-86): the monster-modifier script on fixture pages', () => {
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     expect(r.stdout).toBe(
       `monster-mods: wrote ${path.relative(TMP, out)}: 9 modifiers, 8 a tamed beast keeps; stats 3, condition 1, none 5; ` +
-        '1 row with no name left out\n',
+        "1 with their own page's text; 1 row with no name left out\n",
     );
     expect(table.head).toContain("from poe2db's pages saved 2026-10-18");
     expect(table.head).toContain('"Archnemesis Mods" list (13 rows)');
@@ -106,12 +108,27 @@ describe('AC-W72 (WU-86): the monster-modifier script on fixture pages', () => {
     expect(creates(b).creates).toEqual(['chilled-ground']);
   });
 
-  it("an aura's reach is its allies, the player and minions; its URL is its own page", () => {
+  it("an aura with its own page saved: the page's sentence verbatim, its figures as PoB lines, its allies within the radius", () => {
     const b = block('Haste Aura');
-    expect(b.fields.get('Reach')).toBe('its allies: the player and minions');
+    expect(b.lines).toEqual([
+      'from the page text: "20% increased Attack Speed"',
+      'from the page text: "20% increased Cast Speed"',
+      'from the page text: "10% increased Movement Speed"',
+    ]);
+    expect(b.fields.get('Page text')).toBe(
+      '"Monster creates an Aura that grants 20% increased Attack and Cast speed and 10% increased Movement speed to Allies within 5 metres."',
+    );
+    expect(b.fields.get('Reach')).toBe('its allies within 5 metres: the player and minions');
     expect(b.fields.get('URL')).toBe('https://poe2db.tw/us/Haste_Aura');
     expect(b.fields.get('Model')).toBe('stats');
+    expect(b.fields.get('Note')).toBe("Its lines are PoB's wording of its own page's text, each an estimate the record marks.");
     expect(creates(b).creates).toEqual(['attack-speed', 'cast-speed', 'movement-speed']);
+  });
+
+  it("a modifier whose own page isn't saved is as the lists give it: Prevents Recovery Above 50% has no page text", () => {
+    const b = block('Prevents Recovery Above 50%');
+    expect(b.fields.get('Lines')).toBe(NO_LINES);
+    expect(b.fields.has('Page text')).toBe(false);
   });
 
   it('keeps an internal stat id and marks it; keeps an encoded URL as the page gives it; a partly linked name gets its keyword', () => {
@@ -130,6 +147,20 @@ describe('AC-W72 (WU-86): the monster-modifier script on fixture pages', () => {
     expect(block('Bubonic Trail').fields.get('Kind')).toBe('abyss');
     expect(block("Kurgal's Last Gasp").fields.get('Kind')).toBe('abyss-special');
     expect(block('Hasted').fields.get('Kind')).toBe('standard');
+  });
+
+  it("without the aura's saved page, its row is unchanged: no lines, the plain allies reach, the note to fetch the figures", () => {
+    const dir = path.join(TMP, `pages-${++n}`);
+    fs.mkdirSync(dir);
+    for (const page of ['Monster_Modifiers', 'Tame_Beast']) fs.copyFileSync(path.join(FIXTURES, `${page}.html`), path.join(dir, `${page}.html`));
+    const without = outFile();
+    expect(run('--from', dir, '--out', without, '--date', '2026-10-18').code).toBe(0);
+    const b = parseMonsterTable(fs.readFileSync(without, 'utf8')).blocks.find((x) => x.name === 'Haste Aura')!;
+    expect(b.fields.get('Lines')).toBe(NO_LINES);
+    expect(b.lines).toEqual([]);
+    expect(b.fields.has('Page text')).toBe(false);
+    expect(b.fields.get('Reach')).toBe('its allies: the player and minions');
+    expect(b.fields.get('Note')).toMatch(/^Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page \(the URL\)/);
   });
 
   it('a second run over the same pages writes the same table', () => {
@@ -177,6 +208,15 @@ describe('AC-W72 (WU-86): the script fails loudly and writes nothing', () => {
     const r = run('--from', dir, '--out', out);
     expect(r.code).toBe(1);
     expect(r.stderr).toContain('Monster_Modifiers: the "Archnemesis Mods" tab says 14 rows but holds 13');
+    expect(fs.existsSync(out)).toBe(false);
+  });
+
+  it("when a saved keyword page has no text for its modifier", () => {
+    const dir = editedFixtures('Haste_Aura', (h) => h.replace('<a href="Haste_Aura">Haste Aura</a>', '<a href="Hasted">Hasted</a>'));
+    const out = outFile();
+    const r = run('--from', dir, '--out', out);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain('Haste_Aura: no keyword text for "Haste Aura"');
     expect(fs.existsSync(out)).toBe(false);
   });
 

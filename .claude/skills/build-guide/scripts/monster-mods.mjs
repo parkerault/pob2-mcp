@@ -15,12 +15,17 @@
 // links there, the list page otherwise), whether Tame_Beast's list has it, and the judgment below. Rows with no name
 // are left out and counted: a block needs a name.
 //
+// A modifier's own keyword page (`Haste_Aura.html` for a name linking `Haste_Aura`), when it is saved in <folder> too,
+// gives the modifier's sentence ("Monster creates an Aura that grants … to Allies within 5 metres."): the block keeps
+// it verbatim as its page text, adds the clauses that map cleanly as lines in PoB's wording, and takes the aura's
+// radius into its reach. A modifier whose page isn't saved is as the lists give it.
+//
 // The judgment per modifier (model, reach, config, Creates, Pays off on, note) is JUDGMENTS below, written from the
 // lines, or from the name and its keyword where the page gives no lines. Creates and Pays off on use only the words
 // of data/rules/vocabulary.md, or `none`.
 //
 // Exit 0: written, with a summary on stdout. Exit 1: a page is missing or doesn't parse (no "Archnemesis Mods" tab,
-// its count differs from its rows), two names make one id, a named modifier has no judgment, or a judgment uses a
+// its count differs from its rows, a saved keyword page has no text for its modifier), two names make one id, a named modifier has no judgment, or a judgment uses a
 // word the vocabulary doesn't have; nothing is written (stderr says why). Exit 2: usage error.
 
 import fs from 'node:fs';
@@ -75,6 +80,7 @@ const NOTE = {
   ignitedGround: 'PoB has no option for an enemy on Ignited Ground, so the plan takes an Ignited enemy.',
   onDeath: 'Only where the beast dies, so a reviving companion supplies it rarely.',
   minions: "What it does for a tamed beast's minions isn't on the page.",
+  pageLines: "Its lines are PoB's wording of its own page's text, each an estimate the record marks.",
 };
 
 /** A judgment: model, reach, creates and pays off on (space-separated families, '' for none), then config and note. */
@@ -153,14 +159,16 @@ export const JUDGMENTS = {
   'lightning-explosion-on-death': j('none', DEATH, '', 'minion-death', { note: NOTE.deathDamage }),
   'powerful-minions': j('none', MINIONS, '', '', { note: NOTE.minions }),
   empowered: own(),
-  'extra-physical-damage-aura': j('stats', ALLIES, 'damage-conversion', '', {
-    note: `${NOTE.aura} Like Extra Fire Damage's "Gain … of Damage as Extra … Damage", it is taken to add Physical damage.`,
+  'extra-physical-damage-aura': j('stats', ALLIES, '', '', {
+    note: NOTE.aura,
+    notePage: `${NOTE.pageLines} The vocabulary has no family for a damage buff, so it creates none.`,
   }),
   'haste-aura': j('stats', ALLIES, 'attack-speed cast-speed movement-speed', '', {
     note: `${NOTE.aura} Which speeds it raises is taken from Hasted's lines.`,
+    notePage: NOTE.pageLines,
   }),
-  'energy-shield-aura': j('stats', ALLIES, 'energy-shield', '', { note: NOTE.aura }),
-  'elemental-resistance-aura': j('stats', ALLIES, 'resistance', '', { note: NOTE.aura }),
+  'energy-shield-aura': j('stats', ALLIES, 'energy-shield', '', { note: NOTE.aura, notePage: NOTE.pageLines }),
+  'elemental-resistance-aura': j('stats', ALLIES, 'resistance', '', { note: NOTE.aura, notePage: NOTE.pageLines }),
   'temporal-bubble': j('none', BEAST, '', 'companion', { note: NOTE.internal }),
   'hinder-aura': j('condition', NEAR, 'hinder', '', { config: CONFIG.hindered, note: NOTE.name }),
   'prevents-recovery-above-50': j('none', NEAR, '', '', { note: "It stops enemies' recovery, which PoB doesn't model; the page gives no lines." }),
@@ -325,6 +333,7 @@ export function joinPages(modRows, tameRows) {
       kind,
       lines,
       url: ownLink ? BASE_URL + ownLink.link.href : BASE_URL + PAGES.mods,
+      ownHref: ownLink ? ownLink.link.href : null,
       keyword: !ownLink && other ? { name: hrefTitle(other.link.href), url: BASE_URL + other.link.href } : null,
       keep: rows.tame.length > 0,
       rows: { mods: rows.mods.length, tame: rows.tame.length },
@@ -336,6 +345,64 @@ const rank = (kind) => {
   const i = KIND_RANK.indexOf(kind);
   return i < 0 ? KIND_RANK.length : i;
 };
+
+/**
+ * The saved file of a modifier's own keyword page (its name's link, `Haste_Aura` is `Haste_Aura.html`), or null when
+ * its name links no page of its own.
+ */
+export function keywordFile(m) {
+  if (!m.ownHref) return null;
+  const file = `${safeDecode(m.ownHref)}.html`;
+  return path.basename(file) === file ? file : null;
+}
+
+/**
+ * The sentence a modifier's own keyword page gives it: the keyword popup headed by its name (the page's
+ * `<Id> Ref` section), not the buff templates above it. Throws a ParseError when the page has none for it.
+ */
+export function parseKeywordPage(html, name, page) {
+  const popup = /<div class="newItemPopup keywordPopups">[\s\S]*?<h5 class="card-header"><a href="[^"]*">([\s\S]*?)<\/a><\/h5>[\s\S]*?<div class="keyword-body">([\s\S]*?)<\/div><\/div>/g;
+  for (const m of html.matchAll(popup)) if (textOf(m[1]) === name) return textOf(m[2]);
+  throw new ParseError(`${page}: no keyword text for "${name}"`);
+}
+
+/** The aura sentence's clauses, each in PoB's wording; a clause none of these matches gives no line. */
+const CLAUSES = [
+  [/^(\d+)% increased Attack and Cast speed$/i, (n) => [`${n}% increased Attack Speed`, `${n}% increased Cast Speed`]],
+  [/^(\d+)% increased Movement speed$/i, (n) => [`${n}% increased Movement Speed`]],
+  [/^(\d+)% increased Physical Damage$/i, (n) => [`${n}% increased Physical Damage`]],
+  [/^(\d+)% of Maximum life as added Energy Shield$/i, (n) => [`Gain ${n}% of maximum Life as Extra maximum Energy Shield`]],
+  [/^\+(\d+)% to all Elemental Resistances$/i, (n) => [`+${n}% to all Elemental Resistances`]],
+];
+
+/**
+ * A keyword sentence of the form "Monster creates an Aura that grants <clauses> to Allies within <n> metres.": its
+ * clauses in PoB's wording (`lines`), the ones that don't map (`unmapped`), and the aura's radius. Any other sentence
+ * gives no lines and no radius.
+ */
+export function auraLines(sentence) {
+  const m = /^Monster creates an Aura that grants (.+) to Allies within (\d+(?:\.\d+)?) metres\.$/.exec(sentence);
+  if (!m) return { lines: [], unmapped: [], radius: null };
+  const lines = [];
+  const unmapped = [];
+  for (const clause of m[1].split(/ and (?=[+-]?\d)/)) {
+    const rule = CLAUSES.find(([re]) => re.test(clause));
+    if (rule) lines.push(...rule[1](rule[0].exec(clause)[1]));
+    else unmapped.push(clause);
+  }
+  return { lines, unmapped, radius: `${m[2]} metres` };
+}
+
+/** Each modifier whose own keyword page is saved in `folder` gains `page`: its sentence, lines and radius. */
+export function readKeywordPages(modifiers, folder) {
+  for (const m of modifiers) {
+    const file = keywordFile(m);
+    if (!file || !fs.existsSync(path.join(folder, file))) continue;
+    const sentence = parseKeywordPage(fs.readFileSync(path.join(folder, file), 'utf8'), m.name, file.replace(/\.html$/, ''));
+    m.page = { sentence, ...auraLines(sentence) };
+  }
+  return modifiers;
+}
 
 /** The families data/rules/vocabulary.md defines: each backticked word on a `- ` line. */
 export function readVocabulary(file = VOCABULARY) {
@@ -367,6 +434,8 @@ export function checkJudgments(modifiers, vocabulary, judgments = JUDGMENTS) {
 // Rendering.
 
 const families = (list) => (list.length ? list.join(', ') : 'none');
+const NO_LINES = 'none on the page (poe2db shows them only in a hover)';
+const NO_MAPPED_LINES = "none in PoB's wording (see Page text)";
 const rowsOf = (n) => `${n} row${n === 1 ? '' : 's'}`;
 
 /** A prose line wrapped at 120 columns, its continuation lines indented by `indent`; a code span is never split. */
@@ -386,25 +455,30 @@ export function wrap(text, indent = '  ', width = 120) {
 
 function renderBlock(m, jd) {
   const out = [`### ${m.name}`, `- Id: ${m.id}`, `- Kind: ${m.kind}`];
-  if (m.lines.length === 0) out.push('- Lines: none on the page (poe2db shows them only in a hover)');
+  const fromPage = m.page ? m.page.lines : [];
+  if (m.lines.length === 0 && fromPage.length === 0) out.push(`- Lines: ${m.page ? NO_MAPPED_LINES : NO_LINES}`);
   else {
     out.push('- Lines:');
     for (const l of m.lines) out.push(l.internal ? `  - internal stat id: ${l.text}` : `  - "${l.text}"`);
+    for (const l of fromPage) out.push(`  - from the page text: "${l}"`);
   }
+  if (m.page) out.push(wrap(`- Page text: "${m.page.sentence}"`));
   out.push(`- URL: ${m.url}`);
   if (m.keyword) out.push(`- Keyword: ${m.keyword.name}, ${m.keyword.url}`);
   out.push(`- Tamed beast keeps it: ${m.keep ? 'yes' : 'no'}`);
   out.push(`- Model: ${jd.model}`);
-  out.push(`- Reach: ${jd.reach}`);
+  const reach = m.page?.radius && jd.reach === ALLIES ? `its allies within ${m.page.radius}: the player and minions` : jd.reach;
+  out.push(`- Reach: ${reach}`);
   if (jd.config) out.push(`- Config: ${jd.config}`);
   out.push(`- Creates: ${families(jd.creates)} | Pays off on: ${families(jd.pays)}`);
-  if (jd.note) out.push(wrap(`- Note: ${jd.note}`));
+  const note = m.page && jd.notePage ? jd.notePage : jd.note;
+  if (note) out.push(wrap(`- Note: ${note}`));
   return out.join('\n');
 }
 
 export function counts(modifiers, judgments = JUDGMENTS) {
   const byModel = Object.fromEntries(MODELS.map((x) => [x, modifiers.filter((m) => judgments[m.id].model === x).length]));
-  return { modifiers: modifiers.length, keep: modifiers.filter((m) => m.keep).length, ...byModel };
+  return { modifiers: modifiers.length, keep: modifiers.filter((m) => m.keep).length, pages: modifiers.filter((m) => m.page).length, ...byModel };
 }
 
 export function render({ modifiers, unnamed, modRows, tameRows, date }, judgments = JUDGMENTS) {
@@ -422,7 +496,9 @@ export function render({ modifiers, unnamed, modRows, tameRows, date }, judgment
       '`data | monsters/monster-mods.md#<id>`.',
     '- **Lines** are the game\'s words, quoted. `internal stat id:` marks a stat poe2db shows by its id with its value ' +
       'in brackets, which the game words differently. Many modifiers show their lines only in a hover the saved page ' +
-      "doesn't hold: their judgment rests on the name and the keyword it links.",
+      "doesn't hold: their judgment rests on the name and the keyword it links, unless the modifier's own keyword page " +
+      `is saved beside the lists (${c.pages} are). Then **Page text** is that page's sentence, verbatim, and the lines ` +
+      "marked `from the page text:` are PoB's wording of it.",
     '- **Tamed beast keeps it:** the Tame Beast gem says "Tamed Beast retains up to four monster modifiers when ' +
       'summoned"; `yes` means Tame_Beast\'s list has the modifier.',
     '- **Model,** how a plan models the modifier on a tamed beast that keeps it: `stats`, its lines go in as custom ' +
@@ -483,6 +559,7 @@ export function main(argv) {
     const modRows = parseArchnemesisMods(fs.readFileSync(files.mods, 'utf8'), PAGES.mods);
     const tameRows = parseArchnemesisMods(fs.readFileSync(files.tame, 'utf8'), PAGES.tame);
     const { modifiers, unnamed } = joinPages(modRows, tameRows);
+    readKeywordPages(modifiers, opts.from);
     if (modifiers.length === 0) throw new ParseError('no named modifier on either page');
     const problems = checkJudgments(modifiers, readVocabulary());
     if (problems.length) throw new ParseError(problems.join('\n'));
@@ -494,7 +571,8 @@ export function main(argv) {
     const c = counts(modifiers);
     process.stdout.write(
       `monster-mods: wrote ${path.relative(process.cwd(), out) || out}: ${c.modifiers} modifiers, ${c.keep} a tamed beast ` +
-        `keeps; stats ${c.stats}, condition ${c.condition}, none ${c.none}; ${rowsOf(unnamed.mods)} with no name left out\n`,
+        `keeps; stats ${c.stats}, condition ${c.condition}, none ${c.none}; ${c.pages} with their own page's text; ` +
+        `${rowsOf(unnamed.mods)} with no name left out\n`,
     );
     return 0;
   } catch (e) {

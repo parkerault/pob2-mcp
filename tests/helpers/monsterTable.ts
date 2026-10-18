@@ -10,7 +10,10 @@ export interface MonsterBlock {
   name: string;
   /** Each `- Key: value` field, a wrapped value joined with single spaces. */
   fields: Map<string, string>;
-  /** The `- Lines:` items as written (`"<game text>"` or `internal stat id: <id> [<value>]`); empty when none. */
+  /**
+   * The `- Lines:` items as written: `"<game text>"`, `internal stat id: <id> [<value>]`, or
+   * `from the page text: "<PoB's wording>"`; empty when none.
+   */
   lines: string[];
 }
 
@@ -25,6 +28,7 @@ export interface MonsterTable {
 const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const MODELS = ['stats', 'condition', 'none'];
 export const NO_LINES = 'none on the page (poe2db shows them only in a hover)';
+export const NO_MAPPED_LINES = "none in PoB's wording (see Page text)";
 
 export function parseMonsterTable(text: string): MonsterTable {
   const lines = text.split('\n');
@@ -93,8 +97,16 @@ export function blockProblems(block: MonsterBlock, vocabulary: Set<string>): str
   const lines = f.get('Lines');
   if (lines === undefined) p.push('no Lines');
   else if (lines === '' && block.lines.length === 0) p.push('Lines has no items');
-  else if (lines !== '' && lines !== NO_LINES) p.push(`Lines "${lines}" is neither a list nor "${NO_LINES}"`);
-  for (const l of block.lines) if (!/^"[^"]+"$/.test(l) && !/^internal stat id: \S.*$/.test(l)) p.push(`a line isn't quoted game text or a marked internal stat id: ${l}`);
+  else if (lines !== '' && lines !== NO_LINES && lines !== NO_MAPPED_LINES) p.push(`Lines "${lines}" is neither a list nor "${NO_LINES}"`);
+  for (const l of block.lines) {
+    if (!/^"[^"]+"$/.test(l) && !/^internal stat id: \S.*$/.test(l) && !/^from the page text: "[^"]+"$/.test(l)) {
+      p.push(`a line isn't quoted game text, a marked internal stat id or a marked line from the page text: ${l}`);
+    }
+  }
+  const pageText = f.get('Page text');
+  if (pageText !== undefined && !/^".+"$/.test(pageText)) p.push(`Page text isn't quoted: ${pageText}`);
+  if (lines === NO_MAPPED_LINES && pageText === undefined) p.push('Lines points to a Page text the block lacks');
+  if (block.lines.some((l) => l.startsWith('from the page text:')) && pageText === undefined) p.push('lines from a page text the block lacks');
   if (!/^https:\/\/poe2db\.tw\/us\/\S+$/.test(f.get('URL') ?? '')) p.push(`URL "${f.get('URL')}" isn't a poe2db page`);
   if (!['yes', 'no'].includes(f.get('Tamed beast keeps it') ?? '')) p.push('no keep flag (yes or no)');
   const model = f.get('Model') ?? '';

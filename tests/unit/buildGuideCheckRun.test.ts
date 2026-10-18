@@ -2458,7 +2458,7 @@ describe('D-264, D-352: a claims-only fix round edits claims in place, runs no g
         stageB(p).claims[0].text += ' (fixed in place)';
         swap(p);
       }));
-      expect({ what, line: lines(stderr, 'record-plan').some((l) => /D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed: the sha1 of its build-affecting part \(everything but stages\[\]\.claims, the ledger and the source and tag fields\) is [0-9a-f]{40}, and the final record's buildSha1 is "[0-9a-f]{40}"; only a recompile changes the build: gear, tree, gems or config \(D-264, D-266, D-352\)/.test(l)) }).toEqual({ what, line: true });
+      expect({ what, line: lines(stderr, 'record-plan').some((l) => /D1-finish r1-a-1 attempt 3 edited claims without a compile \(claims-edited\), but plan\.json's build changed: the sha1 of its build-affecting part \(everything but stages\[\]\.claims, the ledger, the source and tag fields and each price's note\) is [0-9a-f]{40}, and the final record's buildSha1 is "[0-9a-f]{40}"; only a recompile changes the build: gear, tree, gems or config \(D-264, D-266, D-352, D-386\)/.test(l)) }).toEqual({ what, line: true });
     }
   });
 

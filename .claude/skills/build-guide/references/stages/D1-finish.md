@@ -152,13 +152,13 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
      handled: a build change still missing is the D1 gate's to find. Return `done`; the D1 gate runs after you.
 3. **A ledger edit needs no recompile.** A change to a ledger entry's formula, inputs or claim text needs no
    recompile and no gate: the record's `buildSha1` leaves out the ledger, and the run checker re-evaluates
-   the plan's current ledger (D-352).
-4. **Otherwise compile nothing.** A claims-only edit changes only `stages[].claims`, `source` and `tag` fields
-   and the `ledger`; anything else, a respec's note or a `chaosResistException`'s reason included, is a build
+   the plan's current ledger (D-352). A price's `note` is wording too, which `buildSha1` leaves out (D-386).
+4. **Otherwise compile nothing.** A claims-only edit changes only `stages[].claims`, `source` and `tag` fields,
+   the `ledger` and prices' `note`s; anything else, a respec's note or a `chaosResistException`'s reason included, is a build
    change (step 2). After your edits, validate once (`mcp__pob2__guide_run {validate:
    "<runFolderRel>/plan.json"}`) so the plan still validates, and leave `compile-record.json` and the PoB file
    as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan
-   without its claims, sources, tags and ledger to equal the final record's `buildSha1` (D-266, D-352).
+   without its claims, sources, tags, ledger and price notes to equal the final record's `buildSha1` (D-266, D-352, D-386).
 
 ## Writes
 

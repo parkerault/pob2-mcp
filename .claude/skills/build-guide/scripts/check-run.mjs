@@ -1255,7 +1255,7 @@ export async function checkRun(runFolder) {
       } else if (typeof finalRecord.buildSha1 !== 'string') {
         fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but the final record has no buildSha1 to hold the plan's build to (D-266)`);
       } else if (hash.buildSha1(plan) !== finalRecord.buildSha1) {
-        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but plan.json's build changed: the sha1 of its build-affecting part (everything but stages[].claims, the ledger and the source and tag fields) is ${hash.buildSha1(plan)}, and the final record's buildSha1 is ${show(finalRecord.buildSha1)}; only a recompile changes the build: gear, tree, gems or config (D-264, D-266, D-352)`);
+        fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but plan.json's build changed: the sha1 of its build-affecting part (everything but stages[].claims, the ledger, the source and tag fields and each price's note) is ${hash.buildSha1(plan)}, and the final record's buildSha1 is ${show(finalRecord.buildSha1)}; only a recompile changes the build: gear, tree, gems or config (D-264, D-266, D-352, D-386)`);
       }
     }
   }

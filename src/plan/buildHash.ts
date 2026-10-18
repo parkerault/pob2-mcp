@@ -5,7 +5,8 @@
  * whitespace. A claims-only edit in the fix round (D-264: a claim's wording, citation, caveat or source) and
  * a ledger-only edit (D-352: an entry's claim, formula or inputs, an entry added or removed; the run checker
  * re-evaluates the plan's current ledger itself) leave it unchanged; a change to an item, a gem, the tree, the
- * config or a price changes it.
+ * config or a price changes it. D-386: a price's `note` is its wording only, so it is left out too: a note-only
+ * fix (the Varashta run's) needs no recompile, no gate and no new PoB file.
  *
  * The compiler writes it beside `planSha1`, and the build-guide run checker loads this module's compiled form
  * (`build/plan/buildHash.js`) to hold a plan edited after the final compile to it. It imports only
@@ -21,7 +22,13 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 /** The plan's top-level fields that aren't build content: the ledger (D-352). */
 const NON_BUILD_KEYS = new Set(['ledger']);
 
-/** The plan without `ledger`, without `stages[].claims` and without any `source` or `tag` field. */
+/** A price's fields that are wording only (D-386): its note. */
+const PRICE_TEXT_KEYS = new Set(['note']);
+
+/**
+ * The plan without `ledger`, without `stages[].claims`, without any `source` or `tag` field and without each
+ * price's `note` (D-386).
+ */
 export function buildProjection(plan: unknown): unknown {
   const strip = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(strip);
@@ -32,6 +39,14 @@ export function buildProjection(plan: unknown): unknown {
   };
   const projected = strip(plan);
   if (isRecord(projected)) for (const k of NON_BUILD_KEYS) delete projected[k];
+  if (isRecord(projected) && Array.isArray(projected.prices)) {
+    projected.prices = projected.prices.map((p) => {
+      if (!isRecord(p)) return p;
+      const rest = { ...p };
+      for (const k of PRICE_TEXT_KEYS) delete rest[k];
+      return rest;
+    });
+  }
   if (isRecord(projected) && Array.isArray(projected.stages)) {
     projected.stages = projected.stages.map((s) => {
       if (!isRecord(s)) return s;

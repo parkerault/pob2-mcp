@@ -7,6 +7,10 @@
  * D-352 (WU-65): the projection also leaves out the plan's `ledger`, `ledger[].claim` included, so a
  * ledger-only edit after the final compile leaves `buildSha1` equal (the checker re-evaluates the plan's
  * current ledger itself), while a build edit still changes it.
+ *
+ * D-386: the projection also leaves out each price's `note`, its wording: in the Varashta run a note-only fix
+ * forced a recompile, both gates and a rewrite of the PoB file. A price's amount, currency, status, query, item,
+ * date or league still changes it.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -75,6 +79,24 @@ describe('D-266: buildSha1, the build-affecting projection of a plan', () => {
         edit(p);
       });
       expect({ what, changed: both !== base }).toEqual({ what, changed: true });
+    }
+  });
+
+  it("D-386: a price's note is no build content: rewording, adding or removing it keeps the hash", () => {
+    expect(fixture().prices.length).toBeGreaterThan(0);
+    const withNote = hashAfter((p) => (p.prices[0].note = 'priced from the cheapest listing'));
+    expect(withNote).toBe(base);
+    expect(hashAfter((p) => (p.prices[0].note = 'reworded'))).toBe(base);
+    expect(hashAfter((p) => delete p.prices[0].note)).toBe(base);
+    const projected = buildProjection(fixture()) as Json;
+    expect(projected.prices.every((x: Json) => !('note' in x))).toBe(true);
+    // The rest of a price still counts.
+    for (const [what, edit] of [
+      ['the status', (p: Json) => (p.prices[0].status = p.prices[0].status === 'ok' ? 'unavailable' : 'ok')],
+      ['the query', (p: Json) => (p.prices[0].query = { changed: true })],
+      ['the date', (p: Json) => (p.prices[0].date = '2001-01-01')],
+    ] as [string, (p: Json) => void][]) {
+      expect({ what, changed: hashAfter(edit) !== base }).toEqual({ what, changed: true });
     }
   });
 });

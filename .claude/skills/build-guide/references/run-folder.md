@@ -128,9 +128,9 @@ one stderr line `check-run: [<rule>] <message>`.
 - **The final record.** V1 and V2 pass for every stage, accepted findings aside. `sha1(plan.json)` equals the
   record's `planSha1`, unless claims-only owners (`claims-edited`, D-264) edited the plan after the final
   compile: then the record must still be that compile's (final, its PoB file the one the last D2 gate named),
-  and the sha1 of the plan's build-affecting part (everything but `stages[].claims`, the `ledger` and the
-  `source` and `tag` fields, as the server's `build/plan/buildHash.js` computes it) must equal the record's
-  `buildSha1` (D-266, D-352): a ledger-only edit passes, a gear edit fails. A record without `buildSha1` (from
+  and the sha1 of the plan's build-affecting part (everything but `stages[].claims`, the `ledger`, the
+  `source` and `tag` fields and each price's `note`, as the server's `build/plan/buildHash.js` computes it) must
+  equal the record's `buildSha1` (D-266, D-352, D-386): a ledger-only or price-note edit passes, a gear edit fails. A record without `buildSha1` (from
   before D-266) is a violation only then. The decoded `importCode` matches the record's `pobFile` sha1, with one
   tree set per plan stage, titled by the record's loadout names (D-215). The ledger is the checker's (D-365):
   every entry's current formula evaluates over the record with the server's evaluator, that value and not the

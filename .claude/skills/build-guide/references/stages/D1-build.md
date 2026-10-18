@@ -16,11 +16,12 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
     when an earlier attempt returned without writing;
   - on a guided retry, the escalated verdict's findings, then the user's guidance (`code: "user-guidance"`),
     which you follow;
-  - the user's request from the design gate's `revise:<text>` or a final-gate revision (`code:
-    "user-request"`), which you make;
+  - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
+    card the verification gate finalized (D-391); the design gate's `revise:<text>`; a final-gate revision;
   - in the fix round, the V4 findings D1-finish handed on as build changes (`{id, artifact, location, claim,
     issue, evidence, owner}`).
-- **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it.
+- **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it, and the gate's
+  interview notes when the user asked questions there: read them.
 - **Read**, the independent reads in one response:
   - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its key
     numbers, prices and league (D-355);
@@ -105,7 +106,10 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      `rolledGroup`, and the rolled figure, or every breakdown field a ledger figure's formula reads, is
      `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`. For a minion skill `statSet` is the summon's (1).
    - One loadout has a one-click clear and a single-target setup (D-120). Every group has a `role`; every
-     gem its level and quality. `mcp__pob2__suggest_supports` ranks supports and lists what PoB can't measure (C-47).
+     gem its level and quality. **No dead gems** (D-396): every gem in a stage's loadout does something at that
+     stage, and one whose condition the stage can't meet stays out of it (Minion Pact while your life is above
+     the minion's), for D1-finish's claim to say why. `mcp__pob2__suggest_supports` ranks supports and lists
+     what PoB can't measure (C-47).
    - **Count and custom modifiers** (D-293; `docs/build-guide/plan-reference.md`, "Count and custom
      modifiers"). Where several copies of a group act at once (totems, minions that each cast it, mirages),
      set the group's `count` with a `countReason` saying why that many act at once and what grants them

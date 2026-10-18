@@ -40,6 +40,10 @@
  * Amendment 6 (WU-79, D-378, D-379): AC-W65, a minion's skill as the named damage source: the brief check's
  * one-summon rule, D-334's route closed to it, the lock on its summon, the `Grants Skill:` exception, and D1's
  * `minionSkill`, `minionStatSet` and `main.activeSkill` on the summon.
+ * Amendment 7 (WU-82, D-389…D-396): AC-W69, the gates as interviews in the skill text: questions before the
+ * decision and no AskUserQuestion, the runner's sources and the gate question step Q, revisions and new cards,
+ * named pitches and the deck's header, the seed card, the test config's object entries, legacy and dead gems,
+ * and W1's FAQ; formats as WU-81's scripts parse them.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -1230,7 +1234,7 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
 
   it('the task header lists the eleven steps (R1a-assemble added, D-287; D1 split, D-356), with no pass and no lens; a V4 header has its check, a re-check the checker\'s changed lines (D-352)', () => {
     const text = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'));
-    expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1\'s two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1` or `V4` |');
+    expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1\'s two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1`, `V4`, or `Q` (a gate question, D-390) |');
     expect(text).not.toMatch(/\| `pass` \||\| `lens` \|/);
     expect(text).toMatch(/\| `check` \| V4 only: `full` .* or `recheck`/);
     expect(text).toMatch(/\| `changed` \| a V4 re-check, W1 in the fix round, and a D1-finish after D1-build \(the locations D1-build returned\)\. The re-check's: the lines `check-run\.mjs --changed <n>` printed, verbatim, one item each: `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>` \(D-352\)\. W1's: the locations the fix round's owners returned/);
@@ -1351,7 +1355,7 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), and a gate's display, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` \(D-367\)\. Nothing else/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), a gate's display, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` \(D-367\), and a test config's check, `run-log\.mjs <runFolder> test-config <path>` \(D-394\)\. Nothing else/);
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no `git`, `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
@@ -1398,7 +1402,7 @@ describe('WU-47 fixes: the stage references\' general rules', () => {
     expect(fs.readFileSync(GUIDE_TEMPLATE, 'utf8')).not.toContain('Why this concept');
     // The run log records the rule (S4 keeps it); V4's one pass (D-352) doesn't read audit.md.
     const log = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8'));
-    expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |');
+    expect(log).toContain('| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}` |');
     expect(log).toMatch(/`rule` records how the answer was reached: the test config's answer exactly as written \(`first-viable`, `pick:r1-a-2`\) for `pre-supplied`, or the default that applied .* for `default`\. A user's answer has no `rule`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/the entry's `rule` keeps how the answer was reached/);
     expect(readStage('V4')).not.toMatch(/audit\.md|Run notes/);
@@ -1638,7 +1642,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
       'Brainstorm half',
       [
         ['Identity', ['Class:', 'Ascendancy:', 'Named damage source:']],
-        ['Pitch', ['Title: <at most 60 characters', 'Playstyle: <tags', '<Line 1', '<Line 2']],
+        // D-392 (WU-82): a named pitch in player terms; the tags stay, never displayed.
+        ['Pitch', ['Name: <2–4 words', 'Why pick it: <', 'How it clears: <', 'Bosses: <', 'Needs: <', 'The catch: <', 'Playstyle: <tags']],
         ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by']],
         ['Enabler', ['<The item, node or gem>', 'arrives at level', 'by <how to get it', 'Dormant until then:']],
         ['Links', ['| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', ...POB_LABELS, 'PG ids', '"from a Hit"', '"you use yourself"']],
@@ -2128,7 +2133,7 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
 
   it('R1a-assemble checks identities, deals only what lookups confirm, 6–9 a round keeping two under-played cards in the deck (D-339), and writes cards.md', () => {
     const text = folded(readStage('R1a-assemble'));
-    expect(text).toContain('`writes: ["cards.md"]`');
+    expect(text).toContain('`writes: ["cards.md", <the round\'s cards>]`, the cards for a rename only');
     expect(text).toMatch(/\*\*Check each card's identity\*\* `\{className, ascendancy, skill\}`, `skill` being the named damage source \(D-286\)/);
     expect(text).toMatch(/\*\*The sniff test\*\* \(D-287\)\. .* Deal the card only when a lookup confirms every load-bearing link in game text/);
     expect(text).toMatch(/\*\*Deal 6–9 cards\*\* for the round, .* the ones that differ most .* keeping \*\*at least two under-played cards in the deck\*\*\. The deck is every round's dealt cards together, and a later round adds only new cards/);
@@ -2136,7 +2141,8 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     expect(text).toContain('`under-played (judgment: <the shape, and why>)`');
     expect(text).toMatch(/There is no popularity threshold and no tool for it/);
     expect(text).toMatch(/\*\*A short round\.\*\* When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two under-played cards after this round, the round is short: .* give the reason in your return as one line, `short: <why>`/);
-    expect(text).toMatch(/The last H2 is `## Not dealt`: every card held back in any round, with what held it back/);
+    expect(text).toMatch(/\*\*`## Not dealt`\*\*: every card held back in any round, with its reason in plain words/);
+    expect(text).toMatch(/\*\*`## Found, not used`\*\*, the last H2/);
   });
 
   it('D-339: each researcher writes 3 cards, at least one under-played by its judgment, whatever the brief names; SKILL.md records a short round', () => {
@@ -2165,11 +2171,11 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     expect(skill()).toMatch(/which you letter `a`, `b` and `c` when you start them, so parallel researchers never collide \(D-319\)/);
   });
 
-  it("SKILL.md routes every return from the design to the verification gate, and the brainstorm gate asks in multiSelect", () => {
+  it("SKILL.md routes every return from the design to the verification gate, and no gate asks with AskUserQuestion (D-389)", () => {
     expect(skill()).toMatch(/`infeasible`, back to the verification gate with the verdict as evidence/);
     expect(skill()).toMatch(/3\. \*\*back to the verification gate\*\* \(the choice `verification`\)/);
     expect(skill()).toMatch(/Every route back from the design comes here: an `infeasible` design, an escalation's option 3, the design gate's `verification`, and FI-3/);
-    expect(skill()).toMatch(/Ask with AskUserQuestion in `multiSelect` mode, up to 4 cards a question and up to 3 questions, plus one question for more or stop/);
+    expect(skill()).not.toMatch(/Ask with AskUserQuestion|multiSelect/);
     expect(skill()).not.toMatch(/checkpoint 1|back to checkpoint/i);
     expect(ref('offline-and-test.md')).toMatch(/\| FI-3 \| .* the route back to the verification gate \(D-287\) \|/);
   });
@@ -2183,7 +2189,7 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     expect(text).toContain('| escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` |');
     expect(text).toMatch(/`answers\.checkpoint1` and `answers\.checkpoint2` are retired with the run log's schema 3 \(D-323\)/);
     const offline = ref('offline-and-test.md');
-    expect(offline).toMatch(/"brainstorm": \["first-n:2"\], "verification": \["first-viable"\], "design": \["accept"\], "final": \["accept"\]/);
+    expect(offline).toMatch(/"verification": \["first-viable"\], "design": \["accept"\], "final": \["accept"\]/);
     expect(offline).not.toMatch(/"checkpoint1"|"checkpoint2"/);
   });
 
@@ -2192,7 +2198,7 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     expect(text).toContain('`writes: ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md", "probes/<id>/<n>/"]`');
     expect(text).toMatch(/## The card's verification half \(C-52\)/);
     expect(text).toMatch(/Edit only that half: the brainstorm half is R1a's/);
-    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('`concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half), `probes/<id>/<p>/` |');
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('`concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half, after a gate\'s change), `probes/<id>/<p>/` |');
     expect(ref('task-header.md')).toMatch(/R1b's include its card `cards\/<id>\.md` and its probes `probes\/<id>\/<n>\/` \(D-338\)/);
   });
 
@@ -2380,7 +2386,8 @@ describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to t
     const r1a = folded(readStage('R1a'));
     expect(r1a).toMatch(/A card that uses a locked skill takes the lock's ascendancy .* and its identity says why, naming the node/);
     expect(r1a).toMatch(/A skill a non-ascendancy node or a unique grants isn't locked: the card names the source it uses, the node it allocates or the unique it equips\. With no node and no unique, the skill comes from its gem/);
-    expect(folded(readStage('R1a-assemble'))).toMatch(/A card that breaks either isn't dealt: "Not dealt" gives `wrong-ascendancy: <skill> is granted by <each node, "<node name>" \(<node id>\), with its ascendancy>` \(`granted only by` when there is exactly one source\)/);
+    // D-392 (WU-82): the not-dealt reason in plain words.
+    expect(folded(readStage('R1a-assemble'))).toMatch(/A card that breaks either isn't dealt: "Not dealt" gives `its ascendancy can't use <skill>: it is granted by <each node, "<node name>" \(<node id>\), with its ascendancy>` \(`granted only by` when there is exactly one source\)/);
   });
 
   it('R1b fails a card that uses a locked skill on another ascendancy with wrong-ascendancy, naming the skill, before FI-1 and any compile', () => {
@@ -2509,18 +2516,18 @@ describe('D-265 (b) at the point of use: every gate visit prints its display, wh
     const text = folded(raw());
     const POINTER = /Print its display, `display (brainstorm|verification|design|escalation|final)`(?: \([^)]*(?:\([^)]*\)[^)]*)*\))?, whoever answers \(Hard rules\)/;
     const gates: [string, string, string][] = [
-      ['brainstorm', '- **The brainstorm gate** (2c;', 'Ask with AskUserQuestion'],
-      ['verification', '- **The verification gate** (5;', 'Ask:'],
-      ['design', '- **The design gate** (7b;', 'Ask (checkpoint `design`)'],
-      ['escalation', '## 5. Gate escalations', 'and ask:'],
-      ['final', '- **Step 16, the final gate**', 'and ask:'],
+      ['brainstorm', '- **The brainstorm gate** (2c;', 'Answers:'],
+      ['verification', '- **The verification gate** (5;', 'Answers:'],
+      ['design', '- **The design gate** (7b;', 'Answers (checkpoint `design`)'],
+      ['escalation', '## 5. Gate escalations', '; answers:'],
+      ['final', '- **Step 16, the final gate**', '; answers:'],
     ];
     for (const [gate, start, end] of gates) {
       const p = paragraph(text, start, end);
       expect({ gate, pointer: POINTER.exec(p)?.[1] }).toEqual({ gate, pointer: gate });
     }
-    expect(paragraph(text, '- **The brainstorm gate** (2c;', 'Ask with')).toMatch(/Print its display, `display brainstorm` \(the brief, then the deck\), whoever answers \(Hard rules\)/);
-    expect(paragraph(text, '- **Step 16, the final gate**', 'and ask:')).toMatch(/`display final` \(each rung's final figures, D-369, and the checker's result among them\)/);
+    expect(paragraph(text, '- **The brainstorm gate** (2c;', 'Answers:')).toMatch(/Print its display, `display brainstorm` \(the brief, then the deck\), whoever answers \(Hard rules\)/);
+    expect(paragraph(text, '- **Step 16, the final gate**', '; answers:')).toMatch(/`display final` \(each rung's final figures, D-369, and the checker's result among them\)/);
   });
 });
 
@@ -2659,7 +2666,7 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     expect(order).toEqual([...order].sort((a, b) => a - b));
     const skill = folded(raw);
     expect(skill).toMatch(/compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate \(7b\)/);
-    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display, `display design` \(the D1 gate verdict file's `design` field, A-35\), whoever answers \(Hard rules\)\. Ask \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\): D1-build then D1-finish for a build change \(gear, tree, gems or config\), else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*, also when `answers\.design\[\]` is used up \(`default`\)\./);
+    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display, `display design` \(the D1 gate verdict file's `design` field, A-35\), whoever answers \(Hard rules\)\. Answers \(checkpoint `design`\): \*\*accept\*\*, on to step 8; \*\*revise\*\* \(`revise:<text>`\), a D1 fix round with the text as `findings` \(`code: "user-request"`\): D1-build then D1-finish for a build change \(gear, tree, gems or config\), else D1-finish \(on `build:`, D1-build, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*, step 5; \*\*stop\*\*, also when `answers\.design\[\]` is used up \(`default`\)\./);
     expect(skill).toMatch(/the gate verdict files under `reports\/gates\/` \(the D1 gate's holds the design gate's display\)/);
   });
 
@@ -2712,7 +2719,9 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
 
   it('SKILL.md is halved (442 lines before amendment 4), its step detail in the references it names per step', () => {
     const lines = fs.readFileSync(SKILL_MD, 'utf8').split('\n').length - 1;
-    expect(lines).toBeLessThanOrEqual(221);
+    // 221 after amendment 4; amendment 7 (WU-82) adds the interview, legacy and test-config rules the runner
+    // needs every run, its gate detail in checkpoints.md.
+    expect(lines).toBeLessThanOrEqual(229);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/Each step below is a short card: read a reference only where its card names one/);
     expect(skill).toMatch(/Read `references\/start\.md` and do it, in its order, before any agent runs/);
@@ -2826,11 +2835,11 @@ describe('WU-70 part B (AC-W53, D-354, D-346, D-348): D2 plans a lean campaign',
     expect(d2()).toMatch(/Jeweller's Orbs add sockets to an item, never to a skill a passive grants: plan none for it/);
   });
 
-  it('writes claims only where the build hinges (D-351): hinge claims, and as reasons only the path and the reward picks', () => {
+  it('writes claims only where the build hinges (D-351): hinge claims, and as reasons only the path, the reward picks and a gem left out (D-396)', () => {
     const text = d2();
     expect(text).toMatch(/\*\*Claims\*\* \(D-351, as D-354 applies it to the campaign\)\. A claim is written only where the build hinges, and its `kind` says which\. What the compile proves carries no claim/);
     expect(text).toMatch(/Superfluous content is removed, not claimed: no resistance, max-hit or EHP line for the campaign, no kill time, no minor pick/);
-    expect(text).toMatch(/`reason`, two kinds only, because the guide's writer has no tree tool and the plan holds no text but claims: \*\*the path\*\*/);
+    expect(text).toMatch(/`reason`, three kinds only, because the guide's writer has no tree tool and the plan holds no text but claims: \*\*the path\*\*/);
     expect(text).not.toMatch(/a claim exists only for a fact the guide states or a gate needs/);
     expect(folded(readStage('R1b'))).toMatch(/A claim is written only where the build hinges \(D-351\), with its `kind`, `hinge` .* or `reason`/);
   });
@@ -3181,5 +3190,195 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
     const text = fs.readFileSync(path.join(SKILL_DIR, 'references', 'patterns.md'), 'utf8');
     expect(text).toContain('- **PoB:** modelled as the group\'s `minionSkill`, its unlock unchecked (PG-40); Archon not modelled (PG-11).');
     expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(LIBRARY_WORD_CAP);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W69 (WU-82, amendment 7: D-389…D-396): the gates as interviews, in the skill text. The formats are the ones
+// WU-81's scripts parse (run-log.mjs, check-run.mjs), read from the scripts where they name them.
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text', () => {
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+  const skillMd = () => folded(fs.readFileSync(SKILL_MD, 'utf8'));
+  const runLogScript = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'run-log.mjs'), 'utf8');
+  /** A string-list constant the run-log script exports, as the script spells it. */
+  const scriptList = (name: string): string[] => {
+    const m = new RegExp(`export const ${name} = \\[([^\\]]*)\\]`).exec(runLogScript);
+    expect({ name, found: m !== null }).toEqual({ name, found: true });
+    return [...m![1].matchAll(/'([^']*)'/g)].map((x) => x[1]);
+  };
+
+  it('SKILL.md and checkpoints.md: every gate and escalation takes questions before the decision, never with AskUserQuestion; the unsaved-build question stays fixed (D-389)', () => {
+    const skill = skillMd();
+    expect(skill).toMatch(/\*\*Every gate visit and escalation is an interview\*\* \(D-389, D-390\), never an AskUserQuestion: answer every question before any decision/);
+    expect(skill).toMatch(/Then restate the decision by the cards' names and wait for a yes\. A question is never a decision/);
+    const gates = ref('checkpoints.md');
+    expect(gates).toMatch(/Every gate visit and every escalation is an interview \(below\); the unsaved-build question stays a fixed question/);
+    expect(gates).toMatch(/No gate uses AskUserQuestion: the user answers in free text/);
+    expect(gates).toMatch(/\*\*Questions first\.\*\* Answer each question, as many as the user asks, before anything is decided; when a message holds both, the answers come first/);
+    expect(gates).toMatch(/Restate the decision in player terms, by the cards' names, saying which change is a revision and which a new card, and wait for a yes; ask about anything unclear\. \*\*A question is never a decision\.\*\*/);
+    expect(gates).toMatch(/Show \(`display escalation`\) the stage, the attempts and the verdict file with its findings; after the questions, the answers/);
+    expect(gates).toMatch(/\*\*decline\*\*: the user declines the guide, and the run ends `not-accepted`/);
+    for (const [name, text] of [['SKILL.md', skill], ['checkpoints.md', gates]]) {
+      expect({ name, ask: /Ask with AskUserQuestion|multiSelect|any other answer|or anything else/.test(text) }).toEqual({ name, ask: false });
+    }
+  });
+
+  it("SKILL.md and checkpoints.md: the runner's sources, cheapest first, and its one-line notice before a gate question step (D-390)", () => {
+    const skill = skillMd();
+    expect(skill).toMatch(/from the card and research files, your lookups, or a gate question step \(stage `Q`\) after one line saying what you start and why, without asking first/);
+    expect(skill).toMatch(/the last two, with `mcp__pob2__check_model_coverage`, at a gate, D-390/);
+    expect(skill).toMatch(/and at a gate the card and research files \(D-390\)\. Never read `plan\.json`, a compile record, `dossier\.md` or `guide\.md`/);
+    const gates = ref('checkpoints.md');
+    expect(gates).toMatch(/Your sources, cheapest first: - the display, the deck, the gate verdict files and your run log, and on demand the card files \(`cards\/<id>\.md`\) and research files \(`research\/`\); never `plan\.json`, a compile record, `dossier\.md` or `guide\.md`; - your lookups: `mcp__pob2__lookup_game_data`, `mcp__pob2__search_tree_nodes`, and `mcp__pob2__check_model_coverage`/);
+    expect(gates).toMatch(/a research question goes to a `build-guide-researcher`; one about a compiled build, or that needs a measurement, to a `build-guide-coordinator`\. Before starting one, say in one line what you start and why; don't ask first, but the user can say not to/);
+    expect(gates).toMatch(/Up to 3 research steps run in parallel; a coordinator step runs alone\. Log each as `\{"stage": "Q", "attempt": 1, "outcome": "done"\}`, and give the user its answer and its report's path/);
+    expect(gates).toMatch(/Say how you know, in the cards' status words: confirmed in game text, modelled in PoB, estimate \(with its reason\), or needs in-game testing\. An answer that rests on nothing you looked up says so/);
+    // The coordinator's and the researcher's allowlists reach check_model_coverage; the runner's is the session's.
+    expect(ref('lookups.md')).toMatch(/the coordinator, and the runner at a gate\) use the game-data tools/);
+  });
+
+  it('checkpoints.md: the interview notes in the form the run checker counts, `questions` always logged, and the notes passed on (D-389)', () => {
+    const raw = fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8');
+    // The example sits in a numbered item, indented: read it dedented.
+    const block = (/```\n( *# Questions at the [\s\S]*?)\n *```/.exec(raw)?.[1] ?? '').replace(/^ {3}/gm, '');
+    expect(block).toMatch(/^# Questions at the brainstorm gate, visit 1$/m);
+    // check-run.mjs's checkInterviews: an H2 `Q<n>: <question>` per question, numbered from 1, then `Answer:` and `Source:`.
+    expect(block).toMatch(/^## Q1: \S/m);
+    expect(block).toMatch(/^Answer: \S/m);
+    expect(block).toMatch(/^Source: .*interviews\/brainstorm-1-q1\.md \(a gate question step, build-guide-researcher\)/m);
+    const text = folded(raw);
+    expect(text).toMatch(/When the user asked questions, write the visit's notes with Write, `interviews\/<gate>-<visit>\.md`/);
+    expect(text).toMatch(/Then log the checkpoint with `questions` \(always, `0` too\), and `changes`, `newCards` or `note`\. Give the notes' path to the next step: R1a, R1b, D1-build or the revision's owner/);
+    expect(ref('run-log.md')).toMatch(/A gate's or an escalation's entry always has `questions`, how many the user asked at the visit \(`0` too, and on a pre-supplied object entry its `ask` count\)/);
+    expect(ref('run-folder.md')).toContain('| `interviews/<gate>-<visit>.md` | the runner, with Write, when the user asked questions |');
+  });
+
+  it('stages/Q.md exists, with its two agent types, its writes in the checker\'s report form, and its rule that it edits no plan and no card (D-390)', () => {
+    const raw = readStage('Q');
+    const text = folded(raw);
+    expect(text).toMatch(/^# Q: a gate question \(`build-guide-researcher` or `build-guide-coordinator`\)/);
+    expect(text).toMatch(/A researcher takes a research question; a coordinator takes one about a compiled build or one that needs a measurement/);
+    expect(text).toMatch(/\*\*You edit no plan \(`plan\.json` or a concept plan\) and no card\.\*\*/);
+    expect(text).toMatch(/`writes`: your report `interviews\/<gate>-<visit>-q<n>\.md`, and a coordinator's variant folder `probes\/q-<gate>-<visit>-<n>\/`/);
+    const titles = headings(raw).filter((h) => h.level === 2).map((h) => h.title);
+    for (const part of ['Inputs', 'Work', 'Writes', 'Returns', 'Fault directives']) expect({ part, present: titles.includes(part) }).toEqual({ part, present: true });
+    expect(text).toMatch(/## Returns At most 8 lines/);
+    // check-run.mjs's report form: `- Asked:`, `- Agent:` one of the two types, then exactly the H2s Answer and Sources.
+    const report = /```\n(# Gate question [\s\S]*?)\n```/.exec(raw)?.[1] ?? '';
+    expect(report).toMatch(/^# Gate question <n>: the <gate> gate, visit <v>$/m);
+    expect(report).toMatch(/^- Asked: \S/m);
+    expect(report).toMatch(/^- Agent: <build-guide-researcher \| build-guide-coordinator>$/m);
+    expect(report.split('\n').filter((l) => /^## /.test(l))).toEqual(['## Answer', '## Sources']);
+    expect(ref('task-header.md')).toMatch(/Q's its report `interviews\/<gate>-<visit>-q<n>\.md`, and a coordinator's variant `probes\/q-<gate>-<visit>-<n>\/` \(D-390\)/);
+    const coordinator = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
+    expect(coordinator.body).toContain('| `Q` | `.claude/skills/build-guide/references/stages/Q.md` |');
+    expect(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-researcher.md'), 'utf8'))!.fm.description).toMatch(/stage R1a, and Q for a gate question/);
+  });
+
+  it('the card template carries Name, Why pick it, How it clears, Bosses, Needs and The catch, in the order the display prints them (D-392)', () => {
+    const raw = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8');
+    expect(raw.split('\n')[0]).toBe('# Card <id>: <Name>');
+    const pitch = raw.slice(raw.indexOf('### Pitch'), raw.indexOf('### Chain'));
+    const fields = pitch.split('\n').map((l) => /^- ([A-Z][^:]*?):/.exec(l)?.[1]).filter((f): f is string => f !== undefined);
+    expect(fields.slice(0, 6)).toEqual(['Name', ...scriptList('PITCH_LINES')]);
+    expect(pitch).toMatch(/Under-played\s+\(judgment\):/);
+    expect(pitch).toMatch(/Not confirmed: <the link>: <what it would\s+change>/);
+    expect(pitch).toMatch(/Playstyle: <tags .*never displayed>/);
+    expect(pitch).not.toMatch(/Title:|<Line 1/);
+  });
+
+  it('R1a-assemble writes the header, the found-not-used list and unique names, in the deck form the scripts parse (D-392)', () => {
+    const raw = readStage('R1a-assemble');
+    const text = folded(raw);
+    const deck = /```\n(# Deck[\s\S]*?)\n```/.exec(raw)?.[1] ?? '';
+    const h2 = deck.split('\n').filter((l) => /^## /.test(l)).map((l) => l.slice(3));
+    expect(h2).toEqual([...scriptList('DECK_HEADER'), 'Round 1', ...scriptList('DECK_FOOTER')]);
+    for (const line of deck.split('\n').filter((l) => /^- r\d/.test(l))) expect({ line, form: /^- r\d+-[a-c]-\d+ "[^"]+" \| \S/.test(line) }).toEqual({ line, form: true });
+    expect(deck).not.toMatch(/links confirmed|no player evidence|duplicate of|round full/);
+    expect(text).toMatch(/\*\*The header\*\*, rewritten each round for the whole deck: `## What the cards share`, the common core once, in player terms, in at most 80 words; `## How they differ`, one line on the deck's shape/);
+    expect(text).toMatch(/\*\*`## Found, not used`\*\*, the last H2: up to five strong research findings no card uses, each `- <finding>: <why no card uses it>`, or `None\.`/);
+    expect(text).toMatch(/7\. \*\*Unique names\*\* \(D-392\)\. No two cards of the run share a name\. On a clash with a card already in `cards\.md` or another card of the round, rename the newer one/);
+    expect(text).toMatch(/"Not confirmed in game" is every card's default, which the display says once: no line repeats it, a links count or "no player evidence"/);
+    expect(folded(readStage('R1a'))).toMatch(/\*\*Pitch\*\* \(D-392\): each field as the template asks, in player terms, its \*\*Name\*\* unique among your cards and the deck's\. \*\*How it clears\*\* matters most/);
+  });
+
+  it("R1b revises a card the gate changed and writes a gate-made card's brainstorm half first, with the lines the checker looks for (D-391)", () => {
+    const text = folded(readStage('R1b'));
+    expect(text).toMatch(/\*\*A gate's change, first\*\* \(D-391\), when the header's `changes` holds one, before the lock and any compile/);
+    expect(text).toMatch(/\*\*A revision\*\*, `\{visit, words\}`: add `- Changed at the gate \(visit <visit>\): <words>` as the Pitch's last line, make the edits to the brainstorm half, and re-check with the lookups every link the change touches and any new one\. The card keeps its id and its name/);
+    expect(text).toMatch(/\*\*A card made at the gate\*\* \(`r<k>-g-<n>`\), `\{visit, name, from, words\}`: write `cards\/<id>\.md` from the template, its brainstorm half from the user's words, the cards in `from` and their research files/);
+    expect(text).toMatch(/`- Made at the gate \(visit <visit>\): from <name> and <name>: <words>` as the Pitch's last line, naming the `from` cards\. Every link is new: confirm each with a lookup/);
+    expect(text).toMatch(/A change that breaks the card .* fails the attempt, as any R1b failure/);
+    expect(ref('task-header.md')).toMatch(/\| `changes` \| R1b only, a gate's change to its card \(D-391\): `\{visit, words\}` revises it; `\{visit, name, from, words\}` makes it/);
+  });
+
+  it("R1b-assemble adds a gate-made card's deck line, marked as the scripts parse it (D-391)", () => {
+    const text = folded(readStage('R1b-assemble'));
+    expect(text).toMatch(/\*\*A card made at a gate\*\* \(`r<k>-g-<n>`, D-391\), failed or not: add its line to `cards\.md` under `## Round <k>`/);
+    const line = /`(- <id> "<Name>" \| <what it adds> \| [^`]*)`/.exec(text)?.[1] ?? '';
+    const mark = /export const MADE_MARK = '([^']+)'/.exec(runLogScript)![1];
+    expect(line).toBe(`- <id> "<Name>" | <what it adds> | ${mark} (visit <v>): from "<Name>" and "<Name>"`);
+    expect(text).toMatch(/`writes: \["dossier\.md"\]`, with `"cards\.md"` when the round verified a card made at a gate/);
+  });
+
+  it("checkpoints.md: a revision against a new card, 'when unsure, a new card', how each is recorded, and the design gate's revise that isn't one (D-391)", () => {
+    const text = ref('checkpoints.md');
+    expect(text).toMatch(/a \*\*revision\*\* keeps the card's identity \(its class, ascendancy and named damage source\) and the core of its chain, the loop that makes the damage\. It adds or swaps supporting pieces/);
+    expect(text).toMatch(/a \*\*new card\*\* is anything else: a different main skill, ascendancy or engine, another card's core mechanic, or two cards' ideas combined/);
+    expect(text).toMatch(/\*\*When unsure, a new card\*\*: it costs the same verification, and the cards it draws on stay intact\. The user can overrule your call either way/);
+    expect(text).toMatch(/a new card as `newCards: \[\{"id": "r<k>-g-<n>", "name", "from": \["<id>"…\], "words"\}\]`, `k` the latest brainstorm round and `n` the run's next gate-made card in it, `from` any cards `cards\.md` lists\. Propose its name, 2–4 words no card of the run has, in the restatement/);
+    expect(text).toMatch(/Picks and new cards together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id/);
+    expect(text).toMatch(/\*\*finalize\*\* \(`pick:<id>`\), with any revision as `changes`, which D1-build's first attempt takes as a finding, `code: "user-request"`/);
+    expect(text).toMatch(/A new card is verified before it can be finalized, at the next visit/);
+    expect(text).toMatch(/A change that isn't a revision of the finalized build \(a new card, by the rule above\) isn't a revise: say so, and offer \*\*verification\*\*, where it becomes a new card/);
+    expect(text).toMatch(/\*\*Brainstorm more:\*\* the user's note goes in `note`\. A question that became an idea goes in as the note, and the next round's researchers get its answer file/);
+  });
+
+  it('D1-build takes the verification gate\'s revisions as user-request findings and leaves dead gems out; D2 too, with its reason (D-391, D-396)', () => {
+    const d1 = folded(readStage('D1-build'));
+    expect(d1).toMatch(/the user's requests \(`code: "user-request"`\), which you make: on attempt 1, a revision that rode on the card the verification gate finalized \(D-391\)/);
+    expect(d1).toMatch(/\*\*No dead gems\*\* \(D-396\): every gem in a stage's loadout does something at that stage, and one whose condition the stage can't meet stays out of it/);
+    expect(folded(readStage('D1-finish'))).toMatch(/why a gem is out of a rung that can't meet its condition \(D-396\)/);
+    const d2 = folded(readStage('D2'));
+    expect(d2).toMatch(/\*\*No dead gems\*\* \(D-396\)\. Every gem in a stage's loadout does something at that stage\. One whose condition the stage can't meet stays out of it, with its reason claim/);
+    expect(d2).toMatch(/And \*\*a gem left out\*\* \(D-396\), on the first stage that leaves it out, saying why/);
+    expect(ref('task-header.md')).toMatch(/a revision riding on the verification gate's finalize \(D1-build's first attempt, D-391\)/);
+  });
+
+  it("W1's FAQ answers the user's gate questions a reader would ask too, from the interview notes (D-389)", () => {
+    const w1 = folded(readStage('W1'));
+    expect(w1).toMatch(/the gates' interview notes, `interviews\/<gate>-<visit>\.md` \(Glob `interviews\/\*\.md`\), for the FAQ/);
+    expect(w1).toMatch(/\*\*FAQ\*\*: 3–5 questions a player asks\. The user's gate questions that a reader of the guide would ask too are among them \(D-389\), answered from the plan and the record as every fact is \(rule 5\)/);
+  });
+
+  it('lookups.md and SKILL.md: legacy means not in the game, and Tier 0 isn\'t legacy (D-395)', () => {
+    expect(skillMd()).toMatch(/\*\*Legacy means not in the game\*\* \(D-395\): no build uses a gem PoB marks legacy or a unique PoB says is no longer obtainable\. `Tier = 0` alone isn't legacy/);
+    const lookups = ref('lookups.md');
+    expect(lookups).toMatch(/\*\*Legacy means not in the game\*\* \(D-395\)\. A gem PoB marks legacy, or a unique PoB says is no longer obtainable, is in no build/);
+    expect(lookups).toMatch(/one you find some other way is dropped, never kept as a risk\. `Tier = 0` isn't legacy: granted skills have it too \(Powered by Verisium\)/);
+  });
+
+  it('offline-and-test.md: an answer entry may be an object scripting an interview; its example holds one; a refused entry ends the run (D-394)', () => {
+    const raw = fs.readFileSync(path.join(SKILL_DIR, 'references', 'offline-and-test.md'), 'utf8');
+    const cfg = JSON.parse(/## The test config[\s\S]*?```json\n([\s\S]*?)\n```/.exec(raw)![1]);
+    const entry = cfg.answers.brainstorm[0];
+    expect(Object.keys(entry).sort()).toEqual(['answer', 'ask', 'changes', 'newCards']);
+    expect(entry.newCards[0]).not.toHaveProperty('id');
+    const text = folded(raw);
+    expect(text).toMatch(/\*\*An answer entry scripts an interview\*\* \(D-394\): a string, or an object `\{ask\?, answer, changes\?, newCards\?, note\?\}`/);
+    expect(text).toMatch(/Answer each `ask` as you would the user's, gate question steps included, and write the interview notes; then take `answer`, with no confirmation/);
+    expect(text).toMatch(/The checkpoint write checks a new card against the deck \(its `from`, its name\)\. When it refuses a pre-supplied entry, the run ends `stopped`: log answer `stop`, `answeredBy: "default"`, rule `refused answers\.<gate>\[<i>\]: <the refusal's reason>`/);
+    expect(ref('checkpoints.md')).toMatch(/An entry may be an object scripting an interview \(D-394, `offline-and-test\.md`\): its `rule` is its `answer` as written, and its `questions` its `ask` count/);
+    expect(ref('start.md')).toMatch(/Check the test config if one was given with `--offline`: `run-log\.mjs <runFolder> test-config <path>`/);
+  });
+
+  it('a seed card from a reference the user names: R1a writes it, marked, and its evidence is the reference (D-393)', () => {
+    const r1a = folded(readStage('R1a'));
+    expect(r1a).toMatch(/\*\*A seed card\*\* \(D-393\), when your prompt gives a reference build the user named \(a guide page, a video or a PoB file; offline, a local file only\): one of your 3 cards is written from it, reading only what the user named/);
+    expect(r1a).toMatch(/Its Evidence is `Reference build: Seed: <the reference>` and `players use it \(the user's reference\)`/);
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8')).toContain("players use it (the user's reference)");
+    expect(skillMd()).toMatch(/\(to `a`, a reference build the user named, for a seed card, D-393\)/);
   });
 });

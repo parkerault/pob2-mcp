@@ -30,7 +30,7 @@ text doesn't give, and never invent one:
 | `playstyle` | tags from the vocabulary below, plus free text | `melee`, `tanky`, "slow and heavy" |
 | `budget` | `budget` or `non-budget` (the endgame variants), or a figure in divines | `budget` |
 | `around` | an item, mechanic or support gem to build around | "Melting Maelstrom", "block", "Fork" |
-| `like` | a reference build and what to change | "like the Eraser, but not Gemling" |
+| `like` | a reference build the user picked (a guide page, a video or a PoB file; offline, a local file) and what to change: one researcher writes a seed card from it (D-393) | "like the Eraser, but not Gemling" |
 | `notes` | anything else | |
 | `popularity` | the user's own notes on what players run, which cards cite as user-supplied | "Blood Hunt Titans are rare this league" |
 
@@ -88,9 +88,9 @@ text doesn't give, and never invent one:
    (`references/run-folder.md`: `titan-blood-hunt`, `titan-open`, `open-<first playstyle tag>`). Keep its
    absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
    finalized later goes in the run log, not in the folder name.
-3. **Run log.** Read the test config if one was given with `--offline`. A file that can't be read or isn't
-   the documented shape is refused, and the run stops: write `run-log.json` with `testConfig: "refused"` and
-   `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
+3. **Run log.** Check the test config if one was given with `--offline`: `run-log.mjs <runFolder> test-config
+   <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
+   `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
    Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, the parsed brief and no
    roll yet. Either first write is `run-log.mjs <runFolder> init`, never Write (`references/run-log.md`).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:

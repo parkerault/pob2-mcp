@@ -10,11 +10,12 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
 
 - **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319), `mode`,
   `runFolder`, `runFolderRel`, `compile: "measure-only"`, `findings` (the earlier attempt's verdict file and
-  its findings: fix what each names), `faults` (FI-1, offline test runs only), and `writes:
+  its findings: fix what each names), `faults` (FI-1, offline test runs only), `changes` (a gate's change,
+  below), and `writes:
   ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md",
   "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338).
-- **Prompt:** the card's id and title, and how to price in this run (offline; stopped; or paced; and with
-  `--no-ninja`, no currency rates).
+- **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, and how to
+  price in this run (offline; stopped; or paced; and with `--no-ninja`, no currency rates).
 - **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
   the skeleton's `rolledGroup`. A minion skill's group holds its summon and names it as `minionSkill` (D-379).
@@ -28,6 +29,20 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   attempt 2 or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
 
 ## Work
+
+**A gate's change, first** (D-391), when the header's `changes` holds one, before the lock and any compile:
+
+- **A revision**, `{visit, words}`: add `- Changed at the gate (visit <visit>): <words>` as the Pitch's last
+  line, make the edits to the brainstorm half, and re-check with the lookups every link the change touches and
+  any new one. The card keeps its id and its name.
+- **A card made at the gate** (`r<k>-g-<n>`), `{visit, name, from, words}`: write `cards/<id>.md` from the
+  template, its brainstorm half from the user's words, the cards in `from` and their research files, like any
+  card: its name `name`, and `- Made at the gate (visit <visit>): from <name> and <name>: <words>` as the
+  Pitch's last line, naming the `from` cards. Every link is new: confirm each with a lookup.
+
+A change that breaks the card (a load-bearing link no lookup confirms, a chain that no longer holds) fails the
+attempt, as any R1b failure: only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code:
+"gate-change", message: "<why>"}`. A later attempt finds the line written: fix only what its findings name.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
@@ -102,7 +117,7 @@ every step (D-379).
    - **One stage**, `id` the card id without its hyphens, then `e` (`r1a2e` for card `r1-a-2`: a stage id
      is letters and digits only, so a dossier ref like `r1a2e.Life` names this card's record),
      `progress: "endgame"`, no `variant`, a `level` the card is meant to play at (90 when the card doesn't
-     say), and `loadoutName` `<short title> (L<level>) {<stage id>}`.
+     say), and `loadoutName` `<the card's name> (L<level>) {<stage id>}`.
    - `tree`: the targets of step 1 and the paths step 3 found to them, so every node connects to the
      class start through listed nodes, and no more points than the level allows
      (`data/campaign/limits.json`).
@@ -237,7 +252,8 @@ verification half.
 ## The card's verification half (C-52)
 
 Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
-(`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's.
+(`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
+for a gate's change.
 
 - **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
   `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled
@@ -260,8 +276,9 @@ the card can't be finalized yet (D-303).
 ## Writes
 
 Only the header's `writes` (D-338): `concepts/<id>/plan.json`, the verdict file
-`reports/gates/R1b-<id>-a<attempt>.json`, the card `cards/<id>.md` (its verification half), and each probe's
-`probes/<id>/<n>/plan.json`, `n` from 1 to 4. The server writes each compile's record and XML beside its plan.
+`reports/gates/R1b-<id>-a<attempt>.json`, the card `cards/<id>.md` (its verification half, and a gate's
+change), and each probe's `probes/<id>/<n>/plan.json`, `n` from 1 to 4. The server writes each compile's
+record and XML beside its plan.
 
 ## Returns
 

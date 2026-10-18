@@ -60,8 +60,10 @@ notes may inform it; cite them as the user's notes.
   the note that an earlier attempt returned without its files), and `writes`: your research file
   `research/p<k>-r1a-<n>.md` and your cards `cards/r<k>-<letter>-1.md` to `cards/r<k>-<letter>-3.md`
   (round `k`, researcher `n`, your letter).
-- **Prompt:** the parsed brief, your focus and letter, your marker-id prefix, and in a later round the user's
-  note for the round.
+- **Prompt:** the parsed brief, your focus and letter, your marker-id prefix; in a later round the user's
+  note and the paths of the gate's interview notes and question reports (`interviews/`): read them, so an idea
+  from a gate question starts from what the gate found (D-390); and, to one researcher, a reference build the
+  user named (a seed card, below).
 - **A re-run** (`attempt` 2: a researcher that returned without its files runs again once): your files may
   hold the dead attempt's partial work. Write them whole.
 - **A later round** (`k` ≥ 2): read `cards.md` in the run folder first, and `dossier.md`, the verified cards'
@@ -154,16 +156,20 @@ yet.`, for R1b to fill.
   them, or a minion skill one summon casts (the gem lookup's `Kind: minion skill`; name its summon, D-379). A
   damage source that isn't a skill (an item, a passive or a modifier, such as a flask nova; never a minion skill,
   even one a passive grants) may lead a card, marked "can't be finalized yet" (D-303, D-334).
-- **Pitch:** the title is short (at most 60 characters), names the idea rather than the roll, and is unique
-  among your cards; the playstyle tags come from the brief's vocabulary; and on the under-played card, its
-  `Under-played (judgment)` line.
+- **Pitch** (D-392): each field as the template asks, in player terms, its **Name** unique among your cards and
+  the deck's. **How it clears** matters most: players judge a build by its clear speed (damage, area and pace
+  between packs); bosses are a minimum check. The playstyle tags come from the brief's vocabulary.
 - **Chain, Enabler and Links:** every link of the chain in the links table, with its confirming game text
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
   clauses stated as theory ("from a Hit", "you use yourself"). A link no lookup confirmed is `not checked yet`:
   the coordinator deals a card only when every load-bearing link is confirmed (`R1a-assemble.md`).
 - **Evidence** (D-335): the brief's `popularity` notes that speak to this card's skill, ascendancy or
   combination, quoted and cited as the user's notes; otherwise "no player evidence". No tool supplies player
-  evidence. A reference build only from the brief's `like`, or a source on an allowed host online.
+  evidence. A reference build only from one the user named, or a source on an allowed host online.
+- **A seed card** (D-393), when your prompt gives a reference build the user named (a guide page, a video or a
+  PoB file; offline, a local file only): one of your 3 cards is written from it, reading only what the user
+  named. Its chain, links and pitch are like any card's, and the lookups confirm its links. Its Evidence is
+  `Reference build: Seed: <the reference>` and `players use it (the user's reference)`.
 - **Risks so far:** payoff thieves, placement limits, the exposed phase, resistant bosses, and what stands
   between the card and the endgame bar: all four resistances capped, the named damage source as the main
   damage source, a budget variant whose rares cost about 5 divines each around day 7 of a league.
@@ -175,12 +181,12 @@ yet.`, for R1b to fill.
 
 ## Returns
 
-At most 8 lines: your research file, then each card's id and title, in id order:
+At most 8 lines: your research file, then each card's id and name, in id order:
 
 ```
 research/p1-r1a-2.md
-r1-b-1: Bleed burst with Blood Hunt
-r1-b-2: Rolling Slam clear, Blood Hunt for rares
+r1-b-1: Bleed Burst Lunge
+r1-b-2: Slam and Lunge
 ```
 
 The coordinator's R1a-assemble step merges the round's cards and deals the deck (D-287).

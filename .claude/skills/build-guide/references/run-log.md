@@ -20,7 +20,7 @@ section).
 | `mode` | `offline` or `online` |
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, shortReason?}` |
-| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?}` |
+| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}` |
 | `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below) |
 | `escalations[]` | gate escalations only: `{stage, concept, verdict, choice, guidance?}` |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}`; empty otherwise |
@@ -47,10 +47,10 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 
 - **`stages[]`** has one entry per Agent call, in run order: each R1a researcher is its own entry, and so is
   each of D1's two steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`,
-  `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check); each V4
-  entry is one report, `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`,
-  D-319), set for every step but R1a, R1a-assemble and R1b-assemble. `attempt` counts the calls of that (stage,
-  card) from 1, re-runs included, and matches the header and the verdict file name; per log name, so a
+  `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a
+  gate question step (D-390); each V4 entry is one report, `reports/V4-<n>.md`. `concept` is the card id
+  (`r<round>-<letter>-<n>`, D-319), set for every step but R1a, R1a-assemble, R1b-assemble and Q. `attempt`
+  counts the calls of that (stage, card) from 1, re-runs included, and matches the header and the verdict file name; per log name, so a
   re-check's `attempt` counts that card's re-checks from 1, apart from its full pass (D-368). `outcome`:
   - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 entry (`fail`: its report has an
     `unresolved` finding);
@@ -89,7 +89,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
     (1–3 more cards from the deck, a verification round without a brainstorm), `more` or `stop`;
   - the design gate: `accept` (on to D2), `revise:<text>` (D1 again, its gate and the design gate again),
     `verification` (back to the verification gate) or `stop`;
-  - the final gate: `accept`, `revise:<text>`, or the user's note (the run ends `not-accepted`);
+  - the final gate: `accept`, `revise:<text>`, or the note of a user who declines the guide (the run ends
+    `not-accepted`);
   - the unsaved-build question: `proceed` or `stop`; an escalation: `accept`, `retry:<guidance>`, `verification`
     or `stop`.
 
@@ -101,6 +102,11 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `answers.design`, `answers.final`, `answers.escalation` and `answers.unsavedBuild` (D-323, D-362): a pre-supplied rule is one of their
   values, and `first-n:<n>` and `first-viable` resolve to the `pick:` they chose, or to `stop`. A default answer
   is `stop`. The entry that finalized the guide's card keeps its rule here; `audit.md` has no Run notes (D-355).
+
+  A gate's or an escalation's entry always has `questions`, how many the user asked at the visit (`0` too, and
+  on a pre-supplied object entry its `ask` count); its interview notes hold as many (D-389). `changes`,
+  `newCards` and `note` carry a pick's revisions, the cards made at the gate and a `more` answer's note
+  (D-391, `checkpoints.md`).
 - **`escalations[]`**: `stage` is `D1-gate` or `D2-gate`; `verdict` is the escalated attempt's verdict file,
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with
@@ -121,8 +127,8 @@ Only the user starts a round (D-287), so the log's gate answers say where every 
 - **A brainstorm round** is the run's first R1a entries, or the R1a entries after a `more` answer at either
   gate: up to 3 R1a researchers, then one R1a-assemble, then the brainstorm gate.
 - **A verification round** is the R1b entries after a brainstorm `pick:<ids>` or a verification `verify:<ids>`:
-  R1b for each named card, in that order, one at a time, then one R1b-assemble, then the verification gate. A
-  card is verified once.
+  R1b for each named card, in that order, then each of its `newCards`, one at a time, then one R1b-assemble,
+  then the verification gate. A card is verified once.
 - **The design** follows a verification `pick:<id>`: D1-build, D1-finish and the D1 gate, then the design gate
   (D-362), and D2 only after its `accept`. A design `revise:<text>` runs D1 again (D1-build then D1-finish for a
   build change, D1-finish alone otherwise), the D1 gate and the design gate again. Every route back from the
@@ -160,7 +166,7 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
 JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display design
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
-{"checkpoint": "design", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user"}
+{"checkpoint": "design", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user", "questions": 0}
 JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation - <<'JSON'
 {"stage": "D1-gate", "concept": "r1-a-2", "verdict": "reports/gates/D1-gate-r1-a-2-a3.json", "choice": "stop"}

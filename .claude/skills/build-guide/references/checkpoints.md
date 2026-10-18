@@ -2,17 +2,78 @@
 
 The runner stops for the user at three gates, one per phase (`brainstorm`, `verification` and `final`), at a
 fourth inside the finalization, the design gate (`design`, D-362), and at two kinds of question (slice 03 §10,
-§5.4, as amendments 1 to 4 change them; D-125, D-157, D-210, D-235, D-236, D-287, D-288). Each is asked with
-AskUserQuestion; if the choices exceed one question's option limit, split them across questions. In offline test
-mode the test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
+§5.4, as amendments 1 to 7 change them; D-125, D-157, D-210, D-235, D-236, D-287, D-288, D-389). Every gate
+visit and every escalation is an interview (below); the unsaved-build question stays a fixed question. In offline
+test mode the test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
 the run log's `checkpoints[]` under the gate's or question's name (`answer`, `answeredBy`, and `rule` for a
 pre-supplied or default answer; `run-log.md`).
 
 **Every gate visit starts with its display** (D-265, D-367), at the brainstorm, verification, design and final
 gates and at an escalation, whoever answers: run `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder>
 display <gate>` (`brainstorm`, `verification`, `design`, `final` or `escalation`). Its output is the display:
-print it in your reply as it is, then resolve the answer (ask, or take the test config's) and log it with
-`checkpoint`, which refuses a visit whose display wasn't printed. Each **Show** below is what it prints.
+print it in your reply as it is, then resolve the answer (the interview, or the test config's) and log it with
+`checkpoint`, which refuses a visit whose display wasn't printed. Each **Show** below is what it prints; it ends
+by inviting questions and a decision in the user's own words.
+
+## The interview (D-389 to D-391)
+
+No gate uses AskUserQuestion: the user answers in free text.
+
+1. **Questions first.** Answer each question, as many as the user asks, before anything is decided; when a
+   message holds both, the answers come first. Your sources, cheapest first:
+   - the display, the deck, the gate verdict files and your run log, and on demand the card files
+     (`cards/<id>.md`) and research files (`research/`); never `plan.json`, a compile record, `dossier.md` or
+     `guide.md`;
+   - your lookups: `mcp__pob2__lookup_game_data`, `mcp__pob2__search_tree_nodes`, and
+     `mcp__pob2__check_model_coverage` for whether PoB models a line;
+   - a **gate question step**, stage `Q` (`stages/Q.md`), one per question or batch of related ones: a research
+     question goes to a `build-guide-researcher`; one about a compiled build, or that needs a measurement, to a
+     `build-guide-coordinator`. Before starting one, say in one line what you start and why; don't ask first,
+     but the user can say not to. Its report is `interviews/<gate>-<visit>-q<n>.md`, `n` from 1 per visit. Up to
+     3 research steps run in parallel; a coordinator step runs alone. Log each as `{"stage": "Q", "attempt": 1,
+     "outcome": "done"}`, and give the user its answer and its report's path.
+
+   Say how you know, in the cards' status words: confirmed in game text, modelled in PoB, estimate (with its
+   reason), or needs in-game testing. An answer that rests on nothing you looked up says so.
+2. **The decision.** Map the user's words (a card by its name, a clear part of it, or its number) to the gate's
+   fixed answer, with any revisions and new cards (below). Restate the decision in player terms, by the cards'
+   names, saying which change is a revision and which a new card, and wait for a yes; ask about anything
+   unclear. **A question is never a decision.**
+3. **The record.** When the user asked questions, write the visit's notes with Write,
+   `interviews/<gate>-<visit>.md` (the checkpoint's gate name; the display's visit):
+
+   ```
+   # Questions at the brainstorm gate, visit 1
+
+   ## Q1: <the user's question, trimmed>
+
+   Answer: <at most 3 lines, with its status words>
+
+   Source: <a file | a lookup call | interviews/brainstorm-1-q1.md (a gate question step, build-guide-researcher)>
+   ```
+
+   Then log the checkpoint with `questions` (always, `0` too), and `changes`, `newCards` or `note`. Give the
+   notes' path to the next step: R1a, R1b, D1-build or the revision's owner. W1 reads them for the FAQ.
+
+**A revision or a new card** (D-391). Sort each change the user asks for, and the restatement says which:
+- a **revision** keeps the card's identity (its class, ascendancy and named damage source) and the core of its
+  chain, the loop that makes the damage. It adds or swaps supporting pieces (a support gem, an item, passives, a
+  defensive layer), perhaps borrowed from another card ("with the djinn-buff card's Leer Cast");
+- a **new card** is anything else: a different main skill, ascendancy or engine, another card's core mechanic,
+  or two cards' ideas combined ("X from card A and Y from card B").
+
+**When unsure, a new card**: it costs the same verification, and the cards it draws on stay intact. The user can
+overrule your call either way.
+
+- **Recorded:** a revision as `changes: {"<id>": "<the user's words>"}`, keyed by a card the answer picks; a new
+  card as `newCards: [{"id": "r<k>-g-<n>", "name", "from": ["<id>"…], "words"}]`, `k` the latest brainstorm
+  round and `n` the run's next gate-made card in it, `from` any cards `cards.md` lists. Propose its name, 2–4
+  words no card of the run has, in the restatement; the user may change it before the yes. Picks and new cards
+  together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id.
+- **To R1b:** the picked cards in order, then the new cards in order, each header's `changes` its own:
+  `{visit, words}`, or `{visit, name, from, words}`.
+- **Brainstorm more:** the user's note goes in `note`. A question that became an idea goes in as the note, and
+  the next round's researchers get its answer file.
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -31,20 +92,19 @@ With a test config, `answers.unsavedBuild` answers it; with none there, the answ
 
 Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoint `brainstorm`.
 
-- **Show** (`display brainstorm`) the parsed brief at the top, then the deck from `cards.md`: every dealt card not verified yet, one
-  line each (its id, title, identity, playstyle tags, links confirmed, under-played label and evidence), and
-  the "Not dealt" list, each with the link no lookup confirmed. A card whose damage source isn't a skill is
+- **Show** (`display brainstorm`, D-392) the brief in a line, the deck's header, every dealt card not verified
+  yet by name, numbered, with its pitch, the "Not dealt" cards with their reasons, and the findings no card used;
+  ids last, under "For reference". A card whose damage source isn't a skill is
   marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379). After a short round (D-339:
   fewer than 6 cards passed, or the deck holds fewer than two under-played cards), say so, with the reason
   R1a-assemble gave, which the run log keeps as its `shortReason`.
-- **Ask** with AskUserQuestion in `multiSelect` mode: up to 4 cards a question and up to 3 questions, plus one
-  question for brainstorm more or stop. With more than 12 cards to offer, offer the latest round's first; the
-  user can name any other card id, a held-back one included, in the free-text answer.
-  - **verify** 1–3 cards: the union of the selections; more than 3 is asked again. Recorded as
-    `pick:<id>[,<id>…]`. They go to R1b as a new verification round (SKILL.md step 3).
+- **Answers:**
+  - **verify** 1–3 cards, picked (a not-dealt one included) and made at the gate together, any with a revision:
+    `pick:<id>[,<id>…]`, with its `changes` and `newCards`. They go to R1b as a new verification round
+    (SKILL.md step 3).
   - **brainstorm more** (D-235, D-287): a new brainstorm round with the user's note, `k` one more than the
     last. Only this answer, here or at the verification gate, starts a brainstorm round; the runner never
-    starts one on its own. Recorded as `more`.
+    starts one on its own. Recorded as `more`, with `note`.
   - **stop**: the run ends `stopped`.
 
 ## The verification gate: finalize one card
@@ -64,16 +124,18 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
   `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no viable
   card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
   listed with its status, never as a failure.
-- **Ask**: finalize one card, verify other cards, brainstorm more, or stop.
-  - **finalize** (`pick:<id>`): a failed card may be finalized anyway; a card whose damage source isn't a
+- **Answers:**
+  - **finalize** (`pick:<id>`), with any revision as `changes`, which D1-build's first attempt takes as a
+    finding, `code: "user-request"`: a failed card may be finalized anyway; a card whose damage source isn't a
     skill can't be yet (D-303). A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even
     anyway: the build it describes can't exist (D-342). Refuse such an answer and ask again. A test config
     that pre-supplies one has given an illegal answer: the run ends `stopped`, recorded as answer `stop` with
     the test config's `pick:<id>` as its `rule`. The card's identity `{className, ascendancy, skill}` becomes
     the run's `roll` (D-286), and the design (steps 6 to 9) runs for it.
-  - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet): a new
-    verification round (step 3), without a brainstorm.
-  - **brainstorm more** (`more`, with the user's note): a new brainstorm round (step 2a).
+  - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet, with `changes` and
+    `newCards` as at the brainstorm gate): a new verification round (step 3), without a brainstorm. A new card
+    is verified before it can be finalized, at the next visit.
+  - **brainstorm more** (`more`, with the user's note as `note`): a new brainstorm round (step 2a).
   - **stop**: the run ends `stopped`.
 
 Every route back from the design comes here: an `infeasible` design (D-141), an escalation's option 3, the
@@ -99,12 +161,14 @@ round or a revision.
 
   `m` shows no Arbiter and no anoint. Then the open estimates, one line each from `estimates[]`, the gate's
   verdict line, and the verdict file's path.
-- **Ask**: accept, revise, back to the verification gate, or stop.
+- **Answers:**
   - **accept**: on to D2 (step 8) and the guide.
   - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).
     A build change (gear, the tree, the gems or the config) runs D1-build with it, then D1-finish; a change to
     the anoint, the prices, the ledger or the claims runs D1-finish alone with it. Then the D1 gate, then this
-    gate again. The revision counts against no retry cap; the D1 gate in it keeps its 2 counted retries.
+    gate again. The revision counts against no retry cap; the D1 gate in it keeps its 2 counted retries. A
+    change that isn't a revision of the finalized build (a new card, by the rule above) isn't a revise: say
+    so, and offer **verification**, where it becomes a new card.
   - **verification**: back to the verification gate (step 5), to finalize another card.
   - **stop**: the run ends `stopped`.
 
@@ -119,7 +183,7 @@ Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). 
   gate findings); the run checker's result; each rung's total range at its price day against its target, and
   its over-target slots (the D1 gate's last verdict file, D-371, D-374); when any price is `unavailable`, that
   the rung's total isn't known (D-164); and in offline mode, that the guide is from an offline run.
-- **Ask**: accept, ask for changes, or anything else.
+- **Answers:**
   - **accept**: the run ends `completed`.
   - **changes** (D-236): a revision. The runner maps each request to the step that owns it, by the fix
     round's owners: the guide's text is W1's; an endgame stage of `plan.json`, its ledger entries and
@@ -131,7 +195,8 @@ Checkpoint 2, unchanged in what it asks. Shown after the run checker (step 15). 
     retry cap. The answer is recorded as `revise:<text>`. The final gate's `revise:` is for guide-level
     changes; a build change belongs at the design gate (D-362), though one asked here still runs through its
     owner.
-  - **any other answer**: the run ends `not-accepted`, with the user's note recorded as the answer.
+  - **decline**: the user declines the guide, and the run ends `not-accepted`, with the user's note recorded as
+    the answer.
 
 ## Escalations (D-127, D-141, D-236)
 
@@ -139,7 +204,8 @@ Only the D1 and D2 gates escalate: on the third counted failure of a compile, V1
 final compile included), and on a guided retry that fails again. Verification never escalates: what it
 leaves open becomes a known issue. Record the escalation in `escalations[]` as `{stage, concept, verdict,
 choice, guidance?}`, `verdict` the escalated attempt's verdict file, and the question as checkpoint
-`escalation`. Show (`display escalation`) the stage, the attempts and the verdict file with its findings, and ask:
+`escalation`. Show (`display escalation`) the stage, the attempts and the verdict file with its findings; after the
+questions, the answers:
 
 1. **accept**: the verdict's failing findings are accepted. A gate finding equal to an accepted one, **same
    plan stage, part and `code`**, fails no gate afterwards, whichever gate reports it: every later header's
@@ -171,8 +237,9 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` | none left: `stop`, `default` |
 
 `answers.checkpoint1` and `answers.checkpoint2` are retired with the run log's schema 3 (D-323): a test config
-that holds them, or the escalation answer `checkpoint-1`, is malformed. A brainstorm `more` from the test config
-carries no note.
+that holds them, or the escalation answer `checkpoint-1`, is malformed. An entry may be an object scripting an
+interview (D-394, `offline-and-test.md`): its `rule` is its `answer` as written, and its `questions` its `ask`
+count.
 
 **A pre-supplied answer still prints the display** (D-265). The test config replaces only the question:
 show everything the gate shows the user, then the answer it resolved to. At the brainstorm gate that is the

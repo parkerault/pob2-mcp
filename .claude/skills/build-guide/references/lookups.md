@@ -1,8 +1,8 @@
 # Lookups and what PoB can't model
 
-How the steps that may call lookups (the R1a researchers, the V4 verifiers and the coordinator) use the
-game-data tools, and how to treat what PoB doesn't model (R-22: PoB ignores a line on about 13% of
-unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculations are routine).
+How the steps that may call lookups (the researchers, the V4 verifiers, the coordinator, and the runner at a
+gate) use the game-data tools, and how to treat what PoB doesn't model (R-22: PoB ignores a line on about 13%
+of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculations are routine).
 
 ## The lookup set L (server `pob2`; all kind `read`, they never change the build)
 
@@ -72,6 +72,10 @@ unique mods, 30% of keystones and 32% of ascendancy notables, so hand calculatio
 - `mcp__pob2__check_model_coverage` (C-38): per line of an item, a node or a gem, whether PoB applies it.
 - `mcp__pob2__search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`.
 - `mcp__pob2__list_gems`, `mcp__pob2__get_classes`.
+
+**Legacy means not in the game** (D-395). A gem PoB marks legacy, or a unique PoB says is no longer obtainable,
+is in no build: the lookups and `mcp__pob2__compile_plan` refuse them, and one you find some other way is
+dropped, never kept as a risk. `Tier = 0` isn't legacy: granted skills have it too (Powered by Verisium).
 
 ## Reading `mcp__pob2__check_model_coverage`
 

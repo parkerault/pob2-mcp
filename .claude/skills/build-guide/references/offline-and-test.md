@@ -1,6 +1,6 @@
 # Offline mode, the test config and fault directives
 
-(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335, D-362)
+(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335, D-362, D-394)
 
 ## Offline mode (`--offline`)
 
@@ -40,7 +40,11 @@ brief's `popularity` notes speak to it, cited as the user's notes.
 ```json
 {
   "answers": {
-    "brainstorm": ["first-n:2"],
+    "brainstorm": [
+      { "ask": ["Which card clears fastest?"], "answer": "pick:r1-a-1",
+        "changes": { "r1-a-1": "use a two-handed spear" },
+        "newCards": [{ "name": "Bleeding Shield Wall", "from": ["r1-a-1", "r1-c-2"], "words": "the lunge behind a shield" }] }
+    ],
     "verification": ["first-viable"],
     "design": ["accept"],
     "final": ["accept"],
@@ -61,6 +65,12 @@ the answer is `stop` (`answeredBy: "default"`, rule `no design answer left: stop
 `checkpoint1` and `checkpoint2` are retired with the run log's schema 3. A fault's `concepts` lists
 card ids (D-319), or `"all"`.
 
+**An answer entry scripts an interview** (D-394): a string, or an object `{ask?, answer, changes?, newCards?,
+note?}`, `answer` one of the gate's strings. `changes`, `newCards` (each `{name, from, words}`; you assign the
+id) and `note` go only on brainstorm and verification entries, with the answers `checkpoints.md` gives them; the
+config says which kind each change is. Answer each `ask` as you would the user's, gate question steps included,
+and write the interview notes; then take `answer`, with no confirmation.
+
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at
   gates and questions (`checkpoints.md` lists what each answer means and the defaults when they run
   out), and its faults are applied.
@@ -68,7 +78,11 @@ card ids (D-319), or `"all"`.
   fault) and asks the user at every gate (D-157). Say so in the reply.
 - A file that can't be read or isn't this shape, given with `--offline`, is refused too
   (`testConfig: "refused"`), and the run stops before research: status `stopped`, and the reason in the
-  reply (`stopped: malformed test config <path>: <what is wrong>`).
+  reply (`stopped: malformed test config <path>: <what is wrong>`). Check it with `node
+  .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>`, which prints what is wrong.
+- **An entry the deck refuses.** The checkpoint write checks a new card against the deck (its `from`, its
+  name). When it refuses a pre-supplied entry, the run ends `stopped`: log answer `stop`, `answeredBy:
+  "default"`, rule `refused answers.<gate>[<i>]: <the refusal's reason>`.
 - Without `--test`, `testConfig: "none"`.
 
 ## Fault directives (test config only)

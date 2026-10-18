@@ -103,7 +103,8 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      exception's reason, an affix whose source narrows its slot's base, a trigger into the next rung;
    - `reason`: a reason resting on a measurement: why a support, node, item or the anoint is in (a
      measure-only compile with a temporary stage for the other option, the record or a ledger value; a shape
-     from the pattern library cites its lookup and that measurement, never the library, D-375), an
+     from the pattern library cites its lookup and that measurement, never the library, D-375), why a gem is
+     out of a rung that can't meet its condition (D-396), an
      either/or pick (up to 2, the deciding factor measured, and online the price difference), the named
      source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys toward its
      5-divine target, `b`'s buy order, `n`'s upgrade order from `b`), the guide numbering them as you order them.

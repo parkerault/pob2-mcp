@@ -1,9 +1,10 @@
-# Card <id>: <title>
+# Card <id>: <Name>
 
 <!--
 Template for cards/<id>.md (slice 03 section 7.5, spine C-52), one candidate build. The id is
-r<round>-<researcher letter>-<n> (r1-a-2). R1a writes the brainstorm half, about 250–400 words, from the
-pattern library (references/patterns.md); R1b writes the verification half under it. Keep the two H2s
+r<round>-<researcher letter>-<n> (r1-a-2), or r<round>-g-<n> for a card made at a gate (D-391). R1a writes the
+brainstorm half, about 250–400 words, from the pattern library (references/patterns.md); R1b writes the
+verification half under it (and first, a gate's change to the brainstorm half, stages/R1b.md). Keep the two H2s
 and their H3s below exactly, in this order, and add no other heading. Replace every <placeholder>, keep a
 line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
 
@@ -12,7 +13,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - modelled in PoB: a compile record holds the figure;
 - estimate (<the reason>): a Count, a custom modifier or a hand calculation carries it;
 - players use it (the user's notes): the brief's `popularity` notes say players run it, cited as
-  user-supplied; no tool supplies player evidence (D-335);
+  user-supplied; on a seed card, players use it (the user's reference) (D-393); no tool supplies player
+  evidence (D-335);
 - not checked yet: nothing has looked;
 - needs in-game testing: no text or tool can settle it.
 -->
@@ -34,12 +36,18 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Pitch
 
-- Title: <at most 60 characters; names the idea, not the roll>
-- Playstyle: <tags from the brief's vocabulary: delivery, buttons, focus, defence, pace>
+- Name: <2–4 words, a player's name for the build ("Skeleton Death Engine"), unique in the run>
+- Why pick it: <the hook in player terms, at most two sentences>
+- How it clears: <how a pack dies, which buttons the player presses, how fast it moves between packs>
+- Bosses: <its answer to one tough enemy, in one sentence>
+- Needs: <the key items, gems and passives; when it comes online (level or act); a respec, if it takes one;
+  a rough cost, when known>
+- The catch: <the main risk or cost, in one sentence>
 - [only on the card you judge under-played, at least one of each researcher's 3; D-339] Under-played
   (judgment): <the pattern-library shape, and why few builds use it with this skill, ascendancy or playstyle>
-- <Line 1: what the build does.>
-- <Line 2: how it kills.>
+- [only when a load-bearing link isn't confirmed in game text] Not confirmed: <the link>: <what it would
+  change>
+- Playstyle: <tags from the brief's vocabulary: delivery, buttons, focus, defence, pace; never displayed>
 
 ### Chain
 
@@ -65,7 +73,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Player evidence: <the brief's `popularity` notes on this card's skill, ascendancy or combination,
   quoted and cited as user-supplied ("the user's notes") | no player evidence>
-- Reference build: <the build and what it shows | none>
+- Reference build: <the build and what it shows | Seed: <the reference the user named>, on a seed card
+  (D-393) | none>
 
 ### Risks so far
 

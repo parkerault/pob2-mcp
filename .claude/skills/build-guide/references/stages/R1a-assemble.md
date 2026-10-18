@@ -3,13 +3,13 @@
 One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the deck the user
 picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when
 lookups confirm its load-bearing links in game text, and writes `cards.md`. It compiles nothing, prices
-nothing and never edits a card.
+nothing, and edits a card only to rename it (step 7).
 
 ## Inputs
 
 - **Header:** `stage: "R1a-assemble"`, `attempt`, `mode`, `runFolder`, `compile: "none"`, `findings` (only an
   earlier attempt's note that it returned without its file: `cards.md` may then hold its partial work, so make
-  it whole), `writes: ["cards.md"]`.
+  it whole), `writes: ["cards.md", <the round's cards>]`, the cards for a rename only.
 - **Prompt:** a `json` block for the round: `round`, the parsed `brief`, the user's `note` (a later round),
   and `researchers`, each `{letter, focus, researchFile, cards, returned}`; `returned: false` means that
   researcher returned without its files, so its cards may be missing or partial.
@@ -23,7 +23,7 @@ nothing and never edits a card.
 
 1. **Merge duplicates.** Two cards are duplicates when they share the identity and the chain (the same payoff,
    read from the same slot). Deal the one whose links table confirms more; the other goes under "Not dealt" as
-   `duplicate of <id>`. A later round's card that duplicates one already in `cards.md` isn't dealt either.
+   `the same build as "<Name>"`. A later round's card that duplicates one already in `cards.md` isn't dealt either.
 2. **Check each card's identity** `{className, ascendancy, skill}`, `skill` being the named damage source
    (D-286), as the runner checks a brief:
    - the ascendancy: `mcp__pob2__get_classes` lists it (case-insensitive), under the card's class;
@@ -44,9 +44,9 @@ nothing and never edits a card.
      node (an `Ascendancy: <name>` line), and no unique has a line `Grants Skill: <skill>` or `Grants Skill:
      Level (<range>) <skill>`. A card that uses a locked skill must be one of those ascendancies, its identity
      naming the node; a card that uses a skill a non-ascendancy node or a unique grants must name the source
-     it uses. A card that breaks either isn't dealt: "Not dealt" gives `wrong-ascendancy: <skill> is granted
-     by <each node, "<node name>" (<node id>), with its ascendancy>` (`granted only by` when there is exactly
-     one source), or `no source for <skill>: <the nodes and uniques that grant it>`.
+     it uses. A card that breaks either isn't dealt: "Not dealt" gives `its ascendancy can't use <skill>: it is
+     granted by <each node, "<node name>" (<node id>), with its ascendancy>` (`granted only by` when there is
+     exactly one source), or `nothing on the card grants <skill>: <the nodes and uniques that do>`.
 
    A failed check holds the card back, naming what failed. Use the names exactly as the tools give them.
 3. **The sniff test** (D-287). A link in the card's links table is load-bearing when the payoff stops working
@@ -66,41 +66,60 @@ nothing and never edits a card.
    differ most (delivery, damage source, focus), keeping **at least two under-played cards in the deck**. The
    deck is every round's dealt cards together, and a later round adds only new cards, so count the
    under-played cards already dealt in `cards.md`, and deal this round's under-played cards first when the
-   deck needs them. Put the cards you don't deal under "Not dealt" as `round full`.
+   deck needs them. Put the cards you don't deal under "Not dealt" as `the round was full`.
 6. **A short round.** When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two
    under-played cards after this round, the round is short: deal what passes, and give the reason in your
    return as one line, `short: <why>` ("4 of 9 cards passed the sniff test"; "the deck holds one under-played
    card: the other two failed their identity check"). The runner records it in the run log, and the
    brainstorm gate says so.
-7. **Write `cards.md`** (below).
+7. **Unique names** (D-392). No two cards of the run share a name. On a clash with a card already in
+   `cards.md` or another card of the round, rename the newer one (the later id) with Edit, in its `- Name:`
+   line and its H1. A name shown at a gate never changes.
+8. **Write `cards.md`** (below).
 
 ## Writes: `cards.md`
 
-`cards.md` only:
+`cards.md` (D-287, D-392), in plain words a player reads:
 
 ```
 # Deck
 
+## What the cards share
+
+Every card is a Titan Warrior with a spear, and Blood Hunt is its damage: it lunges at a bleeding enemy and
+consumes its Blood Loss for a burst of physical damage.
+
+## How they differ
+
+Five of seven are one Blood Hunt loop with a different add-on; two change the defence.
+
 ## Round 1
 
-- r1-a-1 "Bleed burst with Blood Hunt" | Warrior Titan, Blood Hunt | melee, few-buttons, boss | links confirmed 4 of 4 | evidence: no player evidence
-- r1-b-2 "Totem slam relay" | Warrior Titan, Blood Hunt | totem-trap, one-button, clear | links confirmed 3 of 3 | under-played (judgment: a loop shape, rarely paired with Blood Hunt) | evidence: no player evidence
+- r1-a-1 "Bleed Burst Lunge" | one lunge spends the bleed you built, so rares melt in two presses
+- r1-b-2 "Totem Slam Relay" | totems slam the pack while you lunge | under-played (judgment: a loop shape, rarely paired with Blood Hunt)
 
 ## Not dealt
 
-- r1-c-1 "Rage cycling" | Warrior Titan, Blood Hunt | no lookup confirms "<the unconfirmed link>"
-- r1-a-3 "Bleed burst, two-hander" | duplicate of r1-a-1
+- r1-c-1 "Rage Cycling" | no lookup confirms that rage feeds the burst
+- r1-a-3 "Two-Handed Bleed" | the same build as "Bleed Burst Lunge"
+
+## Found, not used
+
+- Herald of Blood as the main clear: its explosions need a bleeding kill first.
 ```
 
-- One H2 per brainstorm round, `## Round <k>`, each line one dealt card: its id, its title in quotes, its
-  identity (class, ascendancy, named damage source), its playstyle tags, how many of its links lookups
-  confirmed, its under-played label when it has one, and its evidence (the user's notes, or "no player
-  evidence"). A card that can't be finalized yet says so (D-303).
-- The last H2 is `## Not dealt`: every card held back in any round, with what held it back: the link no
-  lookup confirmed, the identity check that failed, `duplicate of <id>`, or `round full`. The user can still
-  ask for one at the brainstorm gate. `None.` when nothing was held back.
-- A later round keeps everything already in `cards.md`, adds its `## Round <k>` after the last round, and adds
-  its held-back cards to `Not dealt`.
+- **The header**, rewritten each round for the whole deck: `## What the cards share`, the common core once, in
+  player terms, in at most 80 words; `## How they differ`, one line on the deck's shape.
+- **One `## Round <k>` per brainstorm round**, each line one dealt card: its id, its name in quotes, what it
+  adds to the shared core, then its under-played label and `can't be finalized yet: <why>` (D-303) where they
+  apply. "Not confirmed in game" is every card's default, which the display says once: no line repeats it, a
+  links count or "no player evidence".
+- **`## Not dealt`**: every card held back in any round, with its reason in plain words. The user can still ask
+  for one at the brainstorm gate. `None.` when nothing was held back.
+- **`## Found, not used`**, the last H2: up to five strong research findings no card uses, each `- <finding>:
+  <why no card uses it>`, or `None.`
+- A later round keeps every card line already in `cards.md`, gate-made ones included, adds its `## Round <k>`
+  after the last round, and adds its held-back cards to `Not dealt`.
 
 ## Returns
 

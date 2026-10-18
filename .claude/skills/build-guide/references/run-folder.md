@@ -41,8 +41,10 @@ folder (D-153).
 |---|---|---|
 | `run-log.json` | the runner, through `scripts/run-log.mjs` (D-356) | the run log (`run-log.md`) |
 | `research/p<k>-r1a-<n>.md` | R1a agent `n` of brainstorm round `k` | its sections, with source markers (`source-markers.md`) |
-| `cards/<id>.md` | R1a (the brainstorm half), then R1b (the verification half) | a candidate card (`templates/card-template.md`, C-52) |
-| `cards.md` | the R1a-assemble step | the deck: the dealt cards by round, then "Not dealt" (D-287) |
+| `cards/<id>.md` | R1a (the brainstorm half; R1a-assemble only to rename it), then R1b (the verification half, after a gate's change; a card made at a gate whole) | a candidate card (`templates/card-template.md`, C-52) |
+| `cards.md` | the R1a-assemble step; R1b-assemble adds a gate-made card's line | the deck: its header, the dealt cards by round, "Not dealt" and "Found, not used" (D-287, D-392) |
+| `interviews/<gate>-<visit>.md` | the runner, with Write, when the user asked questions | a gate visit's interview notes (D-389, `checkpoints.md`) |
+| `interviews/<gate>-<visit>-q<n>.md`, `probes/q-<gate>-<visit>-<n>/` | a gate question step (Q) | its report, and a coordinator's measured variant (D-390, `stages/Q.md`) |
 | `concepts/<id>/plan.json` | the R1b step for card `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
 | `concepts/<id>/compile-record.json`, `concepts/<id>/compiled-build.xml` | `mcp__pob2__compile_plan`, measure-only (D-208) | the skeleton's compile record (C-33) and compiled XML |
 | `probes/<id>/<n>/plan.json`, and its record and XML | the R1b step for card `<id>`; `mcp__pob2__compile_plan`, measure-only | a probe variant, one stage, `n` from 1 to 4 (D-292, D-331, D-338) |
@@ -57,8 +59,8 @@ folder (D-153).
 
 - Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b`
   and `c` when it starts them, so parallel researchers never collide and ids stay unique across rounds
-  (D-319). A step's `concept`, a gate file's `<concept>` and `concepts/<id>/` use the card id. (Runs before
-  amendment 3 used concept ids `c1`, `c2`, ….)
+  (D-319); a card made at a gate is `r<k>-g-<n>` (D-391). A step's `concept`, a gate file's `<concept>` and
+  `concepts/<id>/` use the card id. (Runs before amendment 3 used concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate` or `D2-gate`; `<attempt>` counts from 1 per (stage,
   concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the run's V4 passes
   from 1, full pass and re-checks alike.
@@ -156,6 +158,8 @@ one stderr line `check-run: [<rule>] <message>`.
   gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; each gate visit's
   display in `displays[]` before its answer (D-367); and `completed` only after the final gate's accept
   (checkpoint 2's, in a schema-2 log, whose D1 stays one step).
+- **The gate interviews** (D-389 to D-392): each checkpoint's `questions` against its notes, the question
+  reports, and the cards and deck lines the gates changed or made.
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after
   the last D2 gate (a claims-only D1 or D2 leaves it current).

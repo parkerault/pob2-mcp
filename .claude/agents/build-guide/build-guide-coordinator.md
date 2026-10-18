@@ -1,6 +1,6 @@
 ---
 name: build-guide-coordinator
-description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the deck (R1a-assemble), card skeletons (R1b), the dossier (R1b-assemble), and the design and gate steps (D1-build, D1-finish, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
+description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the deck (R1a-assemble), card skeletons (R1b), the dossier (R1b-assemble), a gate question (Q), and the design and gate steps (D1-build, D1-finish, D1-gate, D2, D2-gate). Started only by the build-guide skill's runner with the Agent tool, one step at a time; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates, mcp__pob2__find_upgrades, mcp__pob2__manage_sets
 ---
 
@@ -78,7 +78,8 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 |---|---|---|
 | `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when lookups confirm its load-bearing links (D-287) |
 | `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's endgame skeleton, its measure-only compile, its key-item prices, the advisory checklist with up to 4 probes, and the card's verification half |
-| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files, the cards and the R1b results |
+| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files, the cards and the R1b results; a gate-made card's deck line |
+| `Q` | `.claude/skills/build-guide/references/stages/Q.md` | a gate question about a compiled build, measured on a variant if need be; its report, and no plan or card edited |
 
 ## Design steps (slice 03 §5.3)
 

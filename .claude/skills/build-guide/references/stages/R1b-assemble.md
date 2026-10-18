@@ -10,15 +10,16 @@ no research.
 
 - **Header:** `stage: "R1b-assemble"`, `attempt`, `mode`, `runFolder`, `compile: "none"`, `findings`
   (only an earlier attempt's note that it returned without its file: `dossier.md` may then hold its partial
-  work, so make it whole), `writes: ["dossier.md"]`.
+  work, so make it whole), `writes: ["dossier.md"]`, with `"cards.md"` when the round verified a card made at a
+  gate.
 - **Prompt:** a `json` block for the round: `round` (the verification round), the parsed `brief`, the user's
-  `note` for each brainstorm round; and `cards`, each `{id, title, status, attempts, verdict}`: `status`
+  `note` for each brainstorm round; and `cards`, each `{id, name, status, attempts, verdict}`: `status`
   `viable`, `failed`, or `can't be finalized yet` (its last R1b verdict's finding is `not-a-skill`: its damage
   source isn't a skill, D-303, D-334), with the R1b attempts it made and its last verdict file.
 - **Read**, the independent reads in one response:
   - the template `.claude/skills/build-guide/templates/dossier-template.md`, and `dossier.md` when an earlier
     round wrote it;
-  - each card of the round, `cards/<id>.md`: its pitch line (the synergy), its risks and its checklist's
+  - each card of the round, `cards/<id>.md`: its Why pick it (the synergy), its risks and its checklist's
     risks;
   - each card's last verdict file (its errors, `recordPath` and `leagueUnverified`);
   - where it compiled, its record's key numbers, by Grep, never the record whole: in
@@ -58,10 +59,14 @@ no research.
    and adds the round to the brief line. If `dossier.md` is missing (an earlier round's assembly never
    returned its file), write it from the template for this round, and say in the brief line which earlier
    rounds have no rows.
+4. **A card made at a gate** (`r<k>-g-<n>`, D-391), failed or not: add its line to `cards.md` under `## Round
+   <k>`, after that round's last line, and change nothing else there:
+   `- <id> "<Name>" | <what it adds> | made at the gate (visit <v>): from "<Name>" and "<Name>"`, the visit and
+   the names from its card's `Made at the gate` line.
 
 ## Writes
 
-`dossier.md` only.
+`dossier.md`, and in `cards.md` only a gate-made card's line.
 
 ## Returns
 

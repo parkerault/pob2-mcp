@@ -41,7 +41,8 @@
  * resolved selection (`minionSkills`). A group's damage figure is then its minion's `MinionTotalDPS`, which the
  * headline, the key-figure line and the clear measure read. The stage checks name each group's skill a passive
  * grants, for V1's `not-granted`. WU-80 (D-397): a plain summon, which names no minion skill, has its minion's figure
- * too, in the headline and the key-figure line (`figureField`: its breakdown entry carries `Minion<Field>` fields).
+ * too, in the headline, the key-figure line and the clear measure (`minionFigures`: its breakdown entry carries
+ * `Minion<Field>` fields).
  *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the

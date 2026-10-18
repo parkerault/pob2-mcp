@@ -211,10 +211,30 @@ describe("D-378 (WU-78): a group whose minion deals the damage", () => {
     expect([summonsMinion({ Minion: 1, Minionx: 2 }), summonsMinion({}), summonsMinion(undefined)]).toEqual([false, false, false]);
   });
 
-  it("the clear measure reads the minion's area and use rate for a clear group that names a minion skill", () => {
+  it("the clear measure reads the minion's area and use rate for a clear group that names a minion skill, or a plain summon (D-397); the player's skill reads its own", () => {
     expect(stageMeasures(stage, record(true), [], {}).clearSpeed).toMatchObject({ radiusMetres: 4.5, usesPerSecond: 0.5, band: 'fast', speed: 'medium' });
-    expect(stageMeasures(stage, record(false), [], {}).clearSpeed).toMatchObject({ radiusMetres: 0, usesPerSecond: 1, band: 'slow' });
+    // D-397: a plain summon (no minion skill named, its entry carries Minion<Field> fields) is measured by its minion,
+    // not by the player's radius of 0 and use rate of 1.
+    expect(stageMeasures(stage, record(false), [], {}).clearSpeed).toMatchObject({ radiusMetres: 4.5, usesPerSecond: 0.5, band: 'fast', speed: 'medium' });
+    expect(stageMeasures(stage, player, [], {}).clearSpeed).toMatchObject({ radiusMetres: 1.2, usesPerSecond: 1, band: 'slow', speed: 'slow' });
     expect(stageMeasures(stage, record(true), [], {}).dps).toBe(150);
+  });
+
+  it("a clear group that isn't the main group and is a plain summon is measured by its minion (D-397)", () => {
+    const withClear = {
+      ...stage,
+      skills: { main, groups: [...stage.skills.groups, { enabled: true, role: 'clear', gems: [{ name: 'Skeletal Warrior', enabled: true }] }] },
+    } as unknown as Stage;
+    const rec = {
+      ...player,
+      skillOutputs: {
+        ...player.skillOutputs,
+        g2s1p1: { skill: 'Skeletal Warrior Minion', statSetLabel: 'Minion Info', fields: { MinionTotalDPS: 30, MinionAreaOfEffectRadiusMetres: 2.5, MinionSpeed: 1.5 } },
+      },
+    } as unknown as StageRecord;
+    expect(stageMeasures(withClear, rec, [], {}).clearSpeed).toMatchObject({ key: 'g2s1p1', radiusMetres: 2.5, usesPerSecond: 1.5, band: 'medium' });
+    // The headline stays the player's main skill's.
+    expect(stageMeasures(withClear, rec, [], {}).dps).toBe(120);
   });
 
   it("a clear group that isn't the main group and names a minion skill is measured at its summon, not at its first skill", () => {

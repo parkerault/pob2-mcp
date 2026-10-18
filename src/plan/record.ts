@@ -33,8 +33,8 @@
  * **A plain summon's figure** (WU-80, D-397). A summon that names no minion skill, such as Skeletal Warrior, has its
  * minion's figure too: `figureField` is also `MinionTotalDPS` when the selected skill's `skillOutputs` entry carries
  * `Minion<Field>` fields (`summonsMinion`, the checker's D-385 test and `get_passive_upgrades`' D-388 one). The
- * headline and the key-figure line read it; the clear measure still reads a minion's area for a group that names a
- * minion skill only (D-378).
+ * headline and the key-figure line read it, and the clear measure decides by the same test (`minionFigures`): a plain
+ * summon's clear speed is its minion's area and use rate.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
@@ -448,13 +448,21 @@ export function summonsMinion(fields: Readonly<Record<string, unknown>> | undefi
 }
 
 /**
- * D-378, D-397: the field of a group's damage figure at a selection's key: `MinionTotalDPS` when the group names a
- * minion skill (the record holds its resolved selection) or the selected skill summons a minion (its `skillOutputs`
- * entry carries `Minion<Field>` fields, `summonsMinion`), else `TotalDPS`.
+ * D-378, D-397: whether a group's figures at a record key are its minion's: the group names a minion skill (the
+ * record holds its resolved selection), or the skill at the key summons a minion (its `skillOutputs` entry carries
+ * `Minion<Field>` fields, `summonsMinion`). The damage figure (`figureField`) and the clear measure
+ * (`stageMeasures`) both decide by it.
+ */
+export function minionFigures(rec: Pick<StageRecord, 'minionSkills' | 'skillOutputs'>, group: number, key: string): boolean {
+  return minionSkillOf(rec, group) !== undefined || summonsMinion(rec.skillOutputs[key]?.fields);
+}
+
+/**
+ * D-378, D-397: the field of a group's damage figure at a selection's key: `MinionTotalDPS` when its figures are its
+ * minion's (`minionFigures`), else `TotalDPS`.
  */
 export function figureField(rec: Pick<StageRecord, 'minionSkills' | 'skillOutputs'>, sel: SkillSelection): 'MinionTotalDPS' | 'TotalDPS' {
-  const minion = minionSkillOf(rec, sel.group) !== undefined || summonsMinion(rec.skillOutputs[selectionKey(sel)]?.fields);
-  return minion ? 'MinionTotalDPS' : 'TotalDPS';
+  return minionFigures(rec, sel.group, selectionKey(sel)) ? 'MinionTotalDPS' : 'TotalDPS';
 }
 
 /**
@@ -511,8 +519,9 @@ export function stageMeasures(
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
   const entry = clearEntryOf(stage, rec.skillOutputs, rec);
-  // D-378: a clear group that names a minion skill is measured by its minion's area and use rate.
-  const minion = entry !== null && minionSkillOf(rec, entry.group) !== undefined;
+  // D-378, D-397: a clear skill whose figures are its minion's (a group that names a minion skill, or a plain summon)
+  // is measured by its minion's area and use rate, by the damage figure's own test.
+  const minion = entry !== null && minionFigures(rec, entry.group, entry.key);
   const clearSpeed = clearSpeedOf({
     radiusMetres: entry?.fields[minion ? 'MinionAreaOfEffectRadiusMetres' : 'AreaOfEffectRadiusMetres'],
     usesPerSecond: entry?.fields[minion ? 'MinionSpeed' : 'Speed'],

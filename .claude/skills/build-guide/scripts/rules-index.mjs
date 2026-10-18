@@ -220,8 +220,7 @@ export function checkBlocks(text, vocabulary, file) {
     i = j - 1;
     const entry = { file, name: h ? h[1] : line.slice(4), kind: h ? h[2] : '', level: h ? Number(h[3]) : 0, id: '', creates: [], paysOff: [], lines: [], penalties: [], model: '', at };
     const got = fields.map((f) => (f.text.match(/^- ([^:]+):/) || [])[1]);
-    const wanted = BLOCK_FIELDS.map((f) => (f === 'Creates' ? 'Creates' : f));
-    if (got.length !== wanted.length || got.some((g, k) => g !== wanted[k])) {
+    if (got.length !== BLOCK_FIELDS.length || got.some((g, k) => g !== BLOCK_FIELDS[k])) {
       problems.push(`${at}: the fields must be ${BLOCK_FIELDS.map((f) => (f === 'Creates' ? 'Creates … | Pays off on' : f)).join(', ')}, in that order, one line each`);
       continue;
     }

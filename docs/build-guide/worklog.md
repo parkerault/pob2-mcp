@@ -4018,3 +4018,30 @@ feedback amendment.
   uniques are left out and named. The compile check's defect list (02-plan-compiler) gains locked nodes, legacy gems
   and unobtainable uniques. FR-A1 (`judge()`) gains the rule breaks. D-266's projection gains D-386. D-372's
   routing: an emotion's price comes from the exchange (D-387). C-47 (`get_passive_upgrades`) gains D-388.
+
+## 2026-10-17: the baseline build against Navira's guide
+
+The comparison is `studies/2026-10-17-varashta-comparison.md` (`c87a87c`). Both PoB files were measured read-only in
+the `m17` engine at `857658c`.
+
+- **The same core, different supply.** Both builds turn minion deaths into Ice Nova's Chilled Ground for Navira's
+  Fracturing. Ours got that core from the user's round-2 note at the brainstorm gate. Navira's feeds Ice Nova with
+  Powered by Verisium's infusions, and runs about eight minion types on a sceptre (334 Spirit against our 100), with
+  Kelari as its boss answer.
+- **The figures:** Navira's Fracturing does 119,260 against our 51,349 on a pinnacle boss (×2.3). Against map
+  monsters, with the same At your Command handling, it's 151,195 against 95,437 (×1.6). Muster is most of the gap.
+  Effective hit pool: 24,192 against 13,954.
+- **For the engine-lens amendment:**
+  - the supply search covers a resource's class;
+  - "what scales per type, and what pays for more types";
+  - a single-target answer on every card;
+  - a stated way to value what PoB can't measure (Encroaching Ground was found but never used).
+- **For the feedback amendment:** a gate answers "can X make an engine?" questions. A card's pitch leads with
+  one-button clearing, a named boss answer, cost and respec.
+- **For the next server batch:**
+  - loading a PoB whose tree-granted groups hold supports drops the supports silently (`CalcSetup.lua:1503-1534`);
+    this needs a `pob-gaps.md` entry and a load warning;
+  - on a heavy minion build (Navira's PoB), the session's snapshot after a change timed out, even at 300 s, for a
+    loadout switch, a custom-modifier `set_config` and a `toggle_gem`. It needs a probe.
+- **Still open from the defect batch:** the compile record's headline reads `TotalDPS` for a plain summon that is the
+  main skill, so its headline DPS would be 0. That needs a decision; it goes to the feedback amendment.

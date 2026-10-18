@@ -4045,3 +4045,26 @@ the `m17` engine at `857658c`.
     loadout switch, a custom-modifier `set_config` and a `toggle_gem`. It needs a probe.
 - **Still open from the defect batch:** the compile record's headline reads `TotalDPS` for a plain summon that is the
   main skill, so its headline DPS would be 0. That needs a decision; it goes to the feedback amendment.
+
+## 2026-10-18: general lessons from the comparison; amendment 7 drafted
+
+- **The comparison's general lessons** (`028b1bd`, its new §7). Almost none of the gap to Navira's build comes from
+  tuning; it comes from the build's structure. The user's diagnosis: the pipeline settles on a local maximum without
+  lateral moves, and tuning the wrong strategy wastes tokens. Players judge a build by clear speed (damage, area and
+  pace between packs), with bosses as a floor. §7.2 lists twelve remedies, and §7.3 sorts them between the
+  engine-lens amendment, this one and a pattern library. New content is known only through the community's
+  crowd-sourced services or videos (the user).
+- **Amendment 7, gates as interviews** (`spec/amendment-7-gate-interviews.md`), DRAFT for the user's review. It folds
+  in all of the Varashta run's feedback, D-389 to D-397:
+  - every gate takes questions before the decision, which the runner restates and confirms;
+  - the runner answers from cards, research and lookups, or through a new gate question step (stage `Q`);
+  - a pick can carry changes;
+  - cards are named pitches, led by clear speed, under a deck header with a found-not-used list;
+  - plain words at every gate;
+  - a seed card from a reference build the user names;
+  - scripted interviews in the test config;
+  - legacy means not in the game;
+  - no dead gems in a loadout;
+  - a plain summon's headline is its minion's figure (the defect batch's open item).
+
+  Work units WU-80 to WU-82; §15 lists the four choices with a real alternative.

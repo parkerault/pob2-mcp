@@ -2,7 +2,7 @@
 
 Runes of Aldur (Return of the Ancients 0.5) on poe2db.tw, fetched 2026-10-18. In-pin flags: checked against the PoB2 pin v0.23.1 on 2026-10-18.
 
-What this section adds, from poe2db: the gems, uniques and items its list pages show (https://poe2db.tw/us/Runes_of_Aldur_gems, https://poe2db.tw/us/Runes_of_Aldur_uniques, https://poe2db.tw/us/Runes_of_Aldur_items), with poe2db's text, which is the game's own, and the new ascendancies and passives its block on the homepage names (https://poe2db.tw/us/), as names and URLs only. Currency is left out (86 entries: what poe2db marks as currency); socketables such as runes stay. `[not in pin]` marks an entry the PoB pin doesn't know: no plan can compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. Cite an entry by its id: `data | league/runes-of-aldur.md#<id>`. Written by `.claude/skills/build-guide/scripts/league-digest.mjs Runes_of_Aldur`; re-run it rather than editing by hand, and `--reflag Runes_of_Aldur` after a pin upgrade.
+What this section adds, from poe2db: the gems, uniques and items its list pages show (https://poe2db.tw/us/Runes_of_Aldur_gems, https://poe2db.tw/us/Runes_of_Aldur_uniques, https://poe2db.tw/us/Runes_of_Aldur_items), with poe2db's text, which is the game's own, and the new ascendancies and passives its block on the homepage names (https://poe2db.tw/us/), as names and URLs only. Currency is left out (86 entries: what poe2db marks as currency). Socketables (runes, soul cores and idols) are in the body; the head names only those judged to change a rule, marked `[rule]` with why (`runes-of-aldur.rule-changers.json`). `[not in pin]` marks an entry the PoB pin doesn't know: no plan can compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. Cite an entry by its id: `data | league/runes-of-aldur.md#<id>`. Written by `.claude/skills/build-guide/scripts/league-digest.mjs Runes_of_Aldur`; re-run it rather than editing by hand, and `--reflag Runes_of_Aldur` after a pin upgrade.
 
 Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 324 in the pin.
 
@@ -112,169 +112,51 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Vestige of Darkness (unique, Tenebrous Crown): (150—200)% increased Armour and Energy Shield
 - Voices (unique, Sapphire): Allocates 3 Sinister Jewel sockets
 - Shattered Triskelion (item, QuestItem): Can be repaired at the Verisium Anvil. [not in pin]
-- Perfect Desert Rune (item, SoulCore): Martial Weapon: Adds 17 to 20 Fire Damage
-- Perfect Glacial Rune (item, SoulCore): Martial Weapon: Adds 16 to 20 Cold Damage
-- Perfect Storm Rune (item, SoulCore): Martial Weapon: Adds 1 to 40 Lightning Damage
-- Perfect Iron Rune (item, SoulCore): Martial Weapon: 20% increased Physical Damage
-- Perfect Body Rune (item, SoulCore): Martial Weapon: Leeches 6% of Physical Damage as Life
-- Perfect Mind Rune (item, SoulCore): Martial Weapon: Leeches 5% of Physical Damage as Mana
-- Perfect Rebirth Rune (item, SoulCore): Martial Weapon: Gain 45 Life per enemy killed
-- Perfect Inspiration Rune (item, SoulCore): Martial Weapon: Gain 40 Mana per enemy killed
-- Perfect Stone Rune (item, SoulCore): Martial Weapon: Causes 50% increased Stun Buildup
-- Perfect Vision Rune (item, SoulCore): Martial Weapon: +150 to Accuracy Rating
-- Perfect Robust Rune (item, SoulCore): All Equipment: +15 to Strength
-- Perfect Adept Rune (item, SoulCore): All Equipment: +15 to Dexterity
-- Perfect Resolve Rune (item, SoulCore): All Equipment: +15 to Intelligence
-- Masterwork Rune (item, SoulCore): All Equipment: Upgrades a socketed Rune
-- Idol of Greust (item, SoulCore): Shields: +25% of Armour also applies to Elemental Damage
-- Idol of Yeena (item, SoulCore): Boots: 30% increased Skill Effect Duration with Plant Skills
-- Idol of Eramir (item, SoulCore): Body Armours: Skills have 10% chance to not remove Charges but still count as consuming them
-- Idol of Oak (item, SoulCore): Boots: 15% chance when you gain an Endurance Charge to gain an additional Endurance Charge
-- Idol of Alira (item, SoulCore): Helmets: 15% chance when you gain a Power Charge to gain an additional Power Charge
-- Idol of Kraityn (item, SoulCore): Gloves: 15% chance when you gain a Frenzy Charge to gain an additional Frenzy Charge
-- Idol of Silk (item, SoulCore): Shields: 15% increased Block chance while your Companion is in your Presence
-- Idol of the Sycophant (item, SoulCore): Martial Weapon, Wand or Staff: -20% to all Elemental Resistances, Gain 20% of Damage as Extra …
-- Idol of the Martyr (item, SoulCore): Martial Weapon, Wand or Staff: 25% reduced Spirit, Meta Skills gain 40% increased Energy
-- Idol of the Pharisee (item, SoulCore): Martial Weapon, Wand or Staff: 30% reduced maximum Mana, Gain 2% of Damage as Extra Physical …
-- Panther Idol (item, SoulCore): Body Armours: +10% of Armour also applies to Chaos Damage
-- Hawk Idol (item, SoulCore): Body Armours: 10% increased Deflection Rating
-- Stoat Idol (item, SoulCore): Body Armours: 5% of Damage taken bypasses Energy Shield
-- Emergent Vigour (item, SoulCore): Helmets: +1 to maximum Life per 8 Armour on Equipped Helmet
-- Emergent Possibility (item, SoulCore): Body Armours: 15% of Chaos Damage from Hits taken as Damage of a random Element
-- Emergent Protection (item, SoulCore): Helmets: Gain 1 Endurance Charge on reaching Low Life, only once every 2 seconds
-- Emergent Instinct (item, SoulCore): Helmets: Targets that are Blinded, Maimed, and Bleeding cannot Evade your Hits
-- Carved Cunning (item, SoulCore): Helmets: Enemies which are on Full Life cannot Evade your Hits
-- Carved Majesty (item, SoulCore): Body Armours: +3 to Spirit per Idol socketed in your Equipment
-- Carved Mischief (item, SoulCore): Helmets: Gain Guard equal to 10% of maximum Life for 4 seconds on taking Savage Hit
-- Carved Tenacity (item, SoulCore): Helmets: Enemies have no Critical Damage Bonus for 4 seconds after you Blind them
-- Raven-Touched Shard (item, SoulCore): Helmets: Raven-Touched
-- Lesser Ward Rune (item, SoulCore): Armour: +15 to maximum Runic Ward
-- Ward Rune (item, SoulCore): Armour: +20 to maximum Runic Ward
-- Greater Ward Rune (item, SoulCore): Armour: +25 to maximum Runic Ward
-- Perfect Ward Rune (item, SoulCore): Armour: +30 to maximum Runic Ward
-- Lesser Charging Rune (item, SoulCore): Armour: 8% increased Runic Ward Regeneration Rate
-- Charging Rune (item, SoulCore): Armour: 12% increased Runic Ward Regeneration Rate
-- Greater Charging Rune (item, SoulCore): Armour: 16% increased Runic Ward Regeneration Rate
-- Perfect Charging Rune (item, SoulCore): Armour: 20% increased Runic Ward Regeneration Rate
-- Warding Rune of Reinforcement (item, SoulCore): Armour: 20% increased Runic Ward
-- Warding Rune of Protection (item, SoulCore): Armour: Every 4 seconds, gain Guard equal to 20% of maximum Runic Ward for 2 seconds
-- Warding Rune of Disintegration (item, SoulCore): Martial Weapon: Attacks Break Armour equal to 15% of maximum Runic Ward
-- Warding Rune of Desperation (item, SoulCore): Wand or Staff: Spell damage Penetrates 25% of enemy Elemental Resistances while on Low Runic Ward
-- Warding Rune of Symbiosis (item, SoulCore): Boots: 1% increased Energy Shield Recharge Rate per 30 maximum Runic Ward
-- Warding Rune of Courage (item, SoulCore): Helmets: 25% increased Armour and Evasion Rating while on Low Runic Ward
-- Warding Rune of Stability (item, SoulCore): Shields and Bucklers: +4 to Stun Threshold per 10 maximum Runic Ward
-- Warding Rune of Glancing (item, SoulCore): Body Armours: +3 to Deflection Rating per 10 maximum Runic Ward
-- Warding Rune of Heart (item, SoulCore): Body Armours: Gain 5% of maximum Life as Extra maximum Runic Ward
-- Warding Rune of Nourishment (item, SoulCore): Armour: 15% Life Recovery from Flasks also applies to Runic Ward
-- Warding Rune of Annihilation (item, SoulCore): Martial Weapon: Attacks spend 5% of your maximum Runic Ward if possible to gain that much …
-- Warding Rune of Armature (item, SoulCore): Martial Weapon: Gain maximum Runic Ward equal to 15% of this Weapon's maximum damage
-- Warding Rune of Obsession (item, SoulCore): Wands: All damage taken bypasses Runic Ward, Runic Ward Regeneration Rate is doubled
-- Warding Rune of Equinox (item, SoulCore): Caster Weapon: 40% less Mana Regeneration Rate, Mana Recovery from Regeneration is also applied to Runic …
-- Warding Rune of Salvaging (item, SoulCore): Sceptres: Recover 3% of maximum Runic Ward when one of your Reviving Minions is Killed
-- Warding Rune of Bodyguards (item, SoulCore): Sceptres: Minions in your Presence have Onslaught while you are on Low Runic Ward
-- Warding Rune of Hollowing (item, SoulCore): Caster Weapon: Gain 15% of maximum Life as Extra maximum Runic Ward, 15% less maximum Life
-- Passion of Aldur (item, SoulCore): Weapon: Transforms all Cold and Lightning modifiers on the item into equivalent Fire modifiers
-- Breath of Aldur (item, SoulCore): Weapon: When socketed, transforms all Fire and Lightning modifiers to equivalent Cold modifiers
-- Ire of Aldur (item, SoulCore): Weapon: Transforms all Fire and Cold modifiers on the item into equivalent Lightning modifiers
-- Betrayal of Aldur (item, SoulCore): Weapon: Transforms all Fire, Cold and Lightning modifiers on the item into equivalent Chaos modifiers
-- Ancient Rune of Splinters (item, SoulCore): Bows: +50% Surpassing chance to fire an additional Arrow
-- Ancient Rune of Dueling (item, SoulCore): Bucklers: 30% increased Parried Debuff Magnitude
-- Ancient Rune of the Titan (item, SoulCore): Two Hand Maces: 10% chance for Slam Skills you use yourself to cause an additional Aftershock
-- Ancient Rune of Shattering (item, SoulCore): One Hand Maces: 40% increased effect of Fully Broken Armour
-- Ancient Rune of Prowess (item, SoulCore): Spears: 30% chance when you gain a Charge to gain an additional Charge
-- Ancient Rune of Control (item, SoulCore): Quarterstaves: 50% increased Immobilisation buildup
-- Ancient Rune of Discovery (item, SoulCore): Staves: 30% chance to create an additional Remnant
-- Ancient Rune of Decay (item, SoulCore): Wands: 25% increased Withered Magnitude
-- Ancient Rune of Witchcraft (item, SoulCore): Foci: 40% increased Area of Effect of Curses
-- Ancient Rune of the Horde (item, SoulCore): Sceptres: Minions have 8% increased Attack and Cast Speed
-- Ancient Rune of Animosity (item, SoulCore): Talismans: Gain 2 Druidic Prowess when you Heavy Stun a Rare or Unique Enemy
-- Ancient Rune of Detonation (item, SoulCore): Crossbows: Grenades have 10% chance to activate a second time
-- Ancient Rune of Retaliation (item, SoulCore): Shields: 8% increased Attack Speed if you have Blocked Recently
-- Rune of Vitality (item, SoulCore): Weapon: +80 to maximum Life
-- Rune of the Hunt (item, SoulCore): Boots: 8% increased Movement Speed while Sprinting
-- Rune of Acrobatics (item, SoulCore): Weapon: Flasks gain 0.2 charges per Second
-- Rune of Culmination (item, SoulCore): Gloves: 50% chance to build an additional Combo on Hit
-- Rune of Renown (item, SoulCore): Gloves: 50% increased Glory generation
-- Rune of Accumulation (item, SoulCore): Gloves: Gain 3 Life per Enemy Hit with Attacks, Gain 1 Mana per Enemy Hit with …
-- Rune of Foundations (item, SoulCore): Body Armours: +30 to Armour, +30 to Evasion Rating, +10 to maximum Energy Shield
-- Rune of the Prism (item, SoulCore): Body Armours: -10% to all Maximum Elemental Resistances, +20% to all Elemental Resistances
-- Rune of the Blossom (item, SoulCore): Body Armours: +50 to Spirit, -1 to Spirit per 2 Levels
-- Rune of Consistency (item, SoulCore): Helmets: 200% increased Critical Hit Chance, You have no Critical Damage Bonus
-- Rune of Reach (item, SoulCore): Helmets: Remnants you create have 15% increased effect
-- Rune of Vital Flame (item, SoulCore): One Hand Mace, Two Hand Mace or Talisman: Adds 13 to 16 Fire Damage, 15% of …
-- Rune of Confrontation (item, SoulCore): Quarterstaff or Spear: Gain 4 Rage on Melee Hit, -10 to Maximum Rage
-- Serle's Triumph (item, SoulCore): All Equipment: +1 Suffix Modifier allowed, (untranslated stat: local maximum mods allowed + [1])
-- Cadigan's Epiphany (item, SoulCore): Gloves: Destroys all Augment Sockets on the item to create a Jewel Socket
-- Astrid's Creativity (item, SoulCore): All Equipment: Can have 1 additional Crafted Modifiers
-- Uhtred's Sidereus (item, SoulCore): Boots: Can roll Chronomancy modifiers
-- Kolr's Hunt (item, SoulCore): Gloves: Can roll Marksman modifiers
-- Vorana's Carnage (item, SoulCore): Helmets: Can roll Berserking modifiers
-- Thrud's Might (item, SoulCore): Weapon: Can roll Destruction modifiers
-- Medved's Tending (item, SoulCore): Body Armours: Can roll Soul modifiers
-- Katla's Gloom (item, SoulCore): Gloves: Can roll Decay modifiers
-- Aldur's Legacy (item, SoulCore): All Equipment: When socketed into a Unique Kalguuran or Ezomyte item, destroys the item to create …
-- Legacy of Bramblejack (item, SoulCore): Body Armours: 250% of Melee Physical Damage taken reflected to Attacker
-- Legacy of Blackbraid (item, SoulCore): Body Armours: +50% of Armour also applies to Elemental Damage
-- Legacy of Kingsguard (item, SoulCore): Body Armours: Recover 5% of maximum Life for each Endurance Charge consumed
-- Legacy of Bristleboar (item, SoulCore): Body Armours: Gain 10 Rage when Critically Hit by an Enemy, Gain 5 Rage when Hit …
-- Legacy of Foxshade (item, SoulCore): Body Armours: 10% increased Movement Speed when on Full Life, 100% increased Evasion Rating when on …
-- Legacy of Ashrend (item, SoulCore): Body Armours: Cannot be Ignited, -10 Physical Damage taken from Attack Hits
-- Legacy of Briskwrap (item, SoulCore): Body Armours: Gain Deflection Rating equal to 30% of Evasion Rating
-- Legacy of The Unleashed (item, SoulCore): Body Armours: 25% of Damage taken from Hits bypasses Energy Shield if Energy Shield is below …
-- Legacy of Horns of Bynden (item, SoulCore): Helmets: Every Rage also grants 1% increased Armour, Gain 1 Rage on Melee Hit
-- Legacy of Wings of Caelyn (item, SoulCore): Helmets: Gain 1 Rage on Melee Hit, Every Rage also grants 1% increased Stun Threshold
-- Legacy of Ezomyte Peak (item, SoulCore): Helmets: 15% increased Area of Effect, Unwavering Stance
-- Legacy of Deidbell (item, SoulCore): Helmets: Warcries Explode Corpses dealing 10% of their Life as Physical Damage
-- Legacy of Elevore (item, SoulCore): Helmets: Charms gain 1 charge per Second, +1 Charm Slots
-- Legacy of Starkonja's Head (item, SoulCore): Helmets: 100% increased Global Evasion Rating when on Low Life, 5% of Damage from Hits is …
-- Legacy of Crown of Thorns (item, SoulCore): Helmets: Pain Attunement
-- Legacy of Greymake (item, SoulCore): Helmets: +50 to all Attributes
-- Legacy of Erian's Cobble (item, SoulCore): Helmets: +30 to Accuracy Rating, +10 to maximum Life, +10 to maximum Mana, 10% increased Rarity …
-- Legacy of The Smiling Knight (item, SoulCore): Helmets: Aggravate Bleeding on targets you Critically Hit with Attacks
-- Legacy of The Vile Knight (item, SoulCore): Helmets: Deal 4% increased Damage with Hits to Rare or Unique Enemies for each second they've …
-- Legacy of Northpaw (item, SoulCore): Gloves: Base Critical Hit Chance for Attacks with Weapons is 7%
-- Legacy of Candlemaker (item, SoulCore): Gloves: 40% increased Fire Damage, Flammability Magnitude is doubled
-- Legacy of Deathblow (item, SoulCore): Gloves: Culling Strike
-- Legacy of Legionstride (item, SoulCore): Boots: +10% to Block chance
-- Legacy of Trampletoe (item, SoulCore): Boots: Deal 10% of Overkill damage to enemies within 2 metres of the enemy killed
-- Legacy of Briarpatch (item, SoulCore): Boots: +15% to Thorns Critical Hit Chance
-- Legacy of Bushwhack (item, SoulCore): Boots: Physical Damage is Pinning
-- Legacy of Wanderlust (item, SoulCore): Boots: Your speed is unaffected by Slows
-- Legacy of The Knight-errant (item, SoulCore): Boots: Iron Reflexes
-- Legacy of Obern's Bastion (item, SoulCore): Boots: 200% increased Stun Recovery
-- Legacy of Dionadair (item, SoulCore): Shields: Double Stun Threshold while Shield is Raised
-- Legacy of Wulfsbane (item, SoulCore): Shields: Intimidate Enemies on Block for 8 seconds
-- Legacy of Chernobog's Pillar (item, SoulCore): Shields: Gain 1% of damage as Fire damage per 2% Chance to Block
-- Legacy of Alkem Eira (item, SoulCore): Shields: 30% of damage Blocked is Recouped as Mana
-- Legacy of Oaksworn (item, SoulCore): Shields: 50% increased Life Regeneration rate
-- Legacy of Dunkelhalt (item, SoulCore): Bucklers: 50% increased Parried Debuff Magnitude
-- Legacy of Rondel de Ezo (item, SoulCore): Bucklers: Curse Enemies with Enfeeble on Block
-- Legacy of Brynhand's Mark (item, SoulCore): One Hand Maces: Causes Double Stun Buildup
-- Legacy of Trenchtimbre (item, SoulCore): One Hand Maces: Increases and Reductions to Minion Attack Speed also affect you
-- Legacy of Mjölner (item, SoulCore): One Hand Maces: +200 Intelligence Requirement, +3 to Level of all Lightning Skills
-- Legacy of Twisted Empyrean (item, SoulCore): Two Hand Maces: Attacks with this Weapon have Added Cold Damage equal to 6% to 10% …
-- Legacy of Hoghunt (item, SoulCore): Two Hand Maces: +5% to Critical Hit Chance, Maim on Critical Hit
-- Legacy of Hrimnor's Hymn (item, SoulCore): Two Hand Maces: 25% chance for Slam Skills you use yourself to cause an additional Aftershock
-- Legacy of Brain Rattler (item, SoulCore): Two Hand Maces: All damage with this Weapon causes Electrocution buildup
-- Legacy of Lifesprig (item, SoulCore): Wands: +2 to Level of all Spell Skills
-- Legacy of Duality (item, SoulCore): Quarterstaves: Gain 250 Guard for 0.5 seconds per Combo expended when using Skills
-- Legacy of Tyranny's Grip (item, SoulCore): Spears: Strikes deal Splash Damage
-- Legacy of The Sentry (item, SoulCore): Quarterstaves: Adds 23 to 34 Fire damage to Attacks, 100% increased Flammability Magnitude
-- Legacy of Adonia's Ego (item, SoulCore): Wands: +1 to Maximum Power Charges
-- Legacy of Cursecarver (item, SoulCore): Wands: +3 to Level of all Curse Skills
-- Legacy of Dusk Vigil (item, SoulCore): Staves: Gain 30% of Physical Damage as Extra Fire Damage
-- Legacy of The Blood Thorn (item, SoulCore): Quarterstaves: Adds 4 to 8 Physical Damage, Causes Bleeding on Hit
-- Legacy of Quill Rain (item, SoulCore): Bows: 50% increased Attack Speed, 20% less Attack Damage
-- Legacy of Ironbound (item, SoulCore): Bows: Hits with this weapon have 1 to 3 Added Physical Damage per 1% Block Chance
-- Legacy of Amor Mandragora (item, SoulCore): Talismans: Gain 1 Druidic Prowess for every 20 total Rage spent
-- Legacy of Spiteful Floret (item, SoulCore): Talismans: Every 5 Rage also grants 5% of Damage taken Recouped as Life
-- Legacy of Svalinn (item, SoulCore): Shields: Chance to Block Damage is Lucky, You take 20% of damage from Blocked Hits
-- Legacy of Keeper of the Arc (item, SoulCore): Helmets: Alternating every 5 seconds: Take 20% less Damage from Hits Take 20% less Damage over …
-- Legacy of Olrovasara (item, SoulCore): One Hand Maces: On Hitting an enemy, gains maximum added Lightning damage equal to the enemy's …
-- Legacy of A Worthy Foe (item, SoulCore): Shields: Off-hand Hits inflict Runefather's Challenge
-- Legacy of Serle's Grit (item, SoulCore): One Hand Maces: Maximum Quality is 40%
-- Legacy of Runeseeker's Call (item, SoulCore): Wands: 75% increased effect of Socketed Runes
-- Legacy of Facebreaker (item, SoulCore): Gloves: +1 to Armour per Strength
+- Socketables (163): runes, soul cores and idols, in the body; Grep it by mechanic.
+- Idol of Eramir (item, SoulCore) [rule]: in a sceptre, allies in your Presence share your Charges
+- Idol of Oak (item, SoulCore) [rule]: in a sceptre, Endurance Charges you would gain go to allies in your Presence instead
+- Idol of Alira (item, SoulCore) [rule]: in a sceptre, Power Charges you would gain go to allies in your Presence instead
+- Idol of Kraityn (item, SoulCore) [rule]: in a sceptre, Frenzy Charges you would gain go to allies in your Presence instead
+- Emergent Instinct (item, SoulCore) [rule]: in a helmet, Blinded, Maimed and Bleeding targets can't Evade your hits
+- Carved Cunning (item, SoulCore) [rule]: in a helmet, enemies on full Life can't Evade your hits
+- Carved Tenacity (item, SoulCore) [rule]: in a helmet, enemies you Blind have no Critical Damage Bonus for 4 seconds
+- Warding Rune of Nourishment (item, SoulCore) [rule]: in armour, Life recovery from flasks also applies to Runic Ward
+- Warding Rune of Annihilation (item, SoulCore) [rule]: in a martial weapon, attacks spend Runic Ward to gain that much added Physical damage
+- Warding Rune of Obsession (item, SoulCore) [rule]: in a wand, all damage taken bypasses Runic Ward and its regeneration doubles
+- Warding Rune of Equinox (item, SoulCore) [rule]: in a caster weapon, Mana regeneration also recovers Runic Ward
+- Passion of Aldur (item, SoulCore) [rule]: in a weapon, its Cold and Lightning modifiers become equivalent Fire ones
+- Breath of Aldur (item, SoulCore) [rule]: in a weapon, its Fire and Lightning modifiers become equivalent Cold ones
+- Ire of Aldur (item, SoulCore) [rule]: in a weapon, its Fire and Cold modifiers become equivalent Lightning ones
+- Betrayal of Aldur (item, SoulCore) [rule]: in a weapon, its Fire, Cold and Lightning modifiers become equivalent Chaos ones
+- Rune of Culmination (item, SoulCore) [rule]: in a one-hand mace or quarterstaff, Physical damage rolls only its minimum or maximum
+- Rune of Consistency (item, SoulCore) [rule]: in a helmet, your hits lose their Critical Damage Bonus for 200% increased Critical Hit Chance
+- Serle's Triumph (item, SoulCore) [rule]: any equipment may have one more suffix modifier
+- Cadigan's Epiphany (item, SoulCore) [rule]: in gloves, their augment sockets are destroyed to make a Jewel socket
+- Astrid's Creativity (item, SoulCore) [rule]: any equipment may have one more crafted modifier
+- Uhtred's Sidereus (item, SoulCore) [rule]: boots can roll Chronomancy modifiers
+- Kolr's Hunt (item, SoulCore) [rule]: gloves can roll Marksman modifiers
+- Vorana's Carnage (item, SoulCore) [rule]: a helmet can roll Berserking modifiers
+- Thrud's Might (item, SoulCore) [rule]: a weapon can roll Destruction modifiers
+- Medved's Tending (item, SoulCore) [rule]: a body armour can roll Soul modifiers
+- Katla's Gloom (item, SoulCore) [rule]: gloves can roll Decay modifiers
+- Legacy of Ezomyte Peak (item, SoulCore) [rule]: in a helmet, grants Unwavering Stance
+- Legacy of Deidbell (item, SoulCore) [rule]: in a helmet, Warcries explode corpses for 10% of their Life as Physical damage
+- Legacy of Starkonja's Head (item, SoulCore) [rule]: in a helmet, part of the damage from hits is taken from your Companion's Life first
+- Legacy of Crown of Thorns (item, SoulCore) [rule]: in a helmet, grants the Pain Attunement keystone
+- Legacy of The Smiling Knight (item, SoulCore) [rule]: in a helmet, critical hits with attacks Aggravate Bleeding
+- Legacy of Northpaw (item, SoulCore) [rule]: in gloves, weapon attacks' base Critical Hit Chance becomes 7%, whatever the weapon
+- Legacy of Deathblow (item, SoulCore) [rule]: in gloves, grants Culling Strike
+- Legacy of Bushwhack (item, SoulCore) [rule]: in boots, your Physical damage Pins
+- Legacy of Wanderlust (item, SoulCore) [rule]: in boots, Slows no longer reduce your speed
+- Legacy of The Knight-errant (item, SoulCore) [rule]: in boots, grants the Iron Reflexes keystone
+- Legacy of Chernobog's Pillar (item, SoulCore) [rule]: in a shield, Block chance becomes extra Fire damage
+- Legacy of Trenchtimbre (item, SoulCore) [rule]: in a one-hand mace, your modifiers to minion attack speed also apply to you
+- Legacy of Twisted Empyrean (item, SoulCore) [rule]: in a two-hand mace, maximum Mana adds Cold damage to its attacks
+- Legacy of Brain Rattler (item, SoulCore) [rule]: in a two-hand mace, all its damage builds Electrocution, not only Lightning
+- Legacy of Tyranny's Grip (item, SoulCore) [rule]: in a spear, Strikes deal Splash damage
+- Legacy of Ironbound (item, SoulCore) [rule]: in a bow, Block chance adds Physical damage to its hits
+- Legacy of Svalinn (item, SoulCore) [rule]: in a shield, Block is Lucky but blocked hits still deal 20% of their damage
+- Legacy of Serle's Grit (item, SoulCore) [rule]: in a one-hand mace, its maximum Quality becomes 40%
 - The Triskelion Reforged (item, MapFragment): Travel to the Ruins of Kingsmarch and speak to Makoru to reach the Fallen Star where … [not in pin]
 - Head of the King (item, MapFragment): Bring this proof of your victory to Aoife in Caer Tarth. [not in pin]
 - Breachlord Sac (item, MapFragment) [not in pin]

@@ -42,6 +42,12 @@
 // `- Id: <id>` (its name as a slug, unique in the file), kind, tags, in pin, URL, fetch date and text. After writing it
 // prints the entries added since the file's previous version.
 //
+// **Socketables in the head.** The body holds every socketable; the head, which every researcher reads whole, holds
+// one line in their place, `- Socketables (<n>): …; Grep it by mechanic.`, then a `[rule]` line for each socketable an
+// agent judged a rule changer, with why in one clause. The judgments are `<out>/<file slug>.rule-changers.json`,
+// `{"ruleChangers": {"<entry id>": "<why>", …}}`, committed beside the digest and read at each write; an id that
+// isn't a socketable of the digest is refused, so a re-fetch that drops one says so.
+//
 // **`--reflag <slug>`**, offline, for a pin upgrade: re-checks only the in-pin flags of the committed digest (each
 // block's `- In pin:`, its head line's marker, the count and the pin's name and date) and prints what changed.
 //
@@ -60,6 +66,9 @@ export const KINDS = ['gem', 'unique', 'item', 'ascendancy', 'passive'];
 const PLURAL = { gem: 'gems', unique: 'uniques', item: 'items', ascendancy: 'ascendancies', passive: 'passives' };
 const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const NOT_IN_PIN = ' [not in pin]';
+/** poe2db's item class for socketables: runes, soul cores and idols. */
+const SOCKETABLE = 'SoulCore';
+const isSocketable = (e) => e.kind === 'item' && e.tags.includes(SOCKETABLE);
 
 class Refusal extends Error {}
 class Usage extends Error {}
@@ -494,10 +503,44 @@ function clauseOf(entry) {
   return words.length > 16 ? `${words.slice(0, 16).join(' ')} …` : sentence;
 }
 
-function headLine(e) {
+function headLine(e, why) {
   const kind = e.tags.length > 0 && e.kind !== 'ascendancy' && e.kind !== 'passive' ? `${e.kind}, ${e.tags[0]}` : e.kind;
-  const clause = clauseOf(e);
-  return `- ${e.name} (${kind})${clause ? `: ${clause}` : ''}${e.inPin ? '' : NOT_IN_PIN}`;
+  const clause = why ?? clauseOf(e);
+  return `- ${e.name} (${kind})${why ? ' [rule]' : ''}${clause ? `: ${clause}` : ''}${e.inPin ? '' : NOT_IN_PIN}`;
+}
+
+/** The head: a line per entry, except that the socketables give way, at the first one's place, to one line naming
+ * them and a `[rule]` line for each one judged a rule changer. */
+function headLines(entries, ruleChangers) {
+  const out = [];
+  const socketables = entries.filter(isSocketable);
+  for (const e of entries) {
+    if (!isSocketable(e)) out.push(headLine(e));
+    else if (e === socketables[0]) {
+      out.push(`- Socketables (${socketables.length}): runes, soul cores and idols, in the body; Grep it by mechanic.`);
+      for (const r of socketables.filter((x) => ruleChangers.has(x.id))) out.push(headLine(r, ruleChangers.get(r.id)));
+    }
+  }
+  return out;
+}
+
+/** The judged rule changers among the socketables, `<out>/<file slug>.rule-changers.json`: id → why. */
+export function readRuleChangers(file, entries) {
+  if (!fs.existsSync(file)) return new Map();
+  let json;
+  try {
+    json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new Refusal(`${file}: ${e.message}`);
+  }
+  const map = json?.ruleChangers;
+  if (!map || typeof map !== 'object' || Array.isArray(map)) throw new Refusal(`${file}: no "ruleChangers" object of id → why`);
+  const socketables = new Set(entries.filter(isSocketable).map((e) => e.id));
+  for (const [id, why] of Object.entries(map)) {
+    if (!socketables.has(id)) throw new Refusal(`${file}: "${id}" isn't a socketable of this digest`);
+    if (typeof why !== 'string' || !why.trim() || /\n/.test(why)) throw new Refusal(`${file}: "${id}" needs its why as one line`);
+  }
+  return new Map(Object.entries(map).map(([id, why]) => [id, why.trim()]));
 }
 
 function countsLine(entries) {
@@ -511,7 +554,7 @@ function countsLine(entries) {
 
 const pinLine = (label, date) => `In-pin flags: checked against ${label} on ${date}.`;
 
-export function renderDigest({ slug, fileSlug, section, entries, currency, pin, checked, sources }) {
+export function renderDigest({ slug, fileSlug, section, entries, currency, pin, checked, sources, ruleChangers = new Map() }) {
   const dates = [...new Set(entries.map((e) => e.fetched))].sort();
   const fetched = dates.length > 1 ? `${dates[0]} to ${dates[dates.length - 1]}` : dates[0] ?? checked;
   const out = [
@@ -522,7 +565,9 @@ export function renderDigest({ slug, fileSlug, section, entries, currency, pin, 
     `What this section adds, from poe2db: the gems, uniques and items its list pages show (${sources.join(', ')}), with ` +
       `poe2db's text, which is the game's own, and the new ascendancies and passives its block on the homepage names ` +
       `(${POE2DB}), as names and URLs only. Currency is left out (${currency} ${currency === 1 ? 'entry' : 'entries'}: what poe2db marks as ` +
-      'currency); socketables such as runes stay. `[not in pin]` marks an entry the PoB pin doesn\'t know: no plan can ' +
+      'currency). Socketables (runes, soul cores and idols) are in the body; the head names only those judged to change ' +
+      `a rule, marked \`[rule]\` with why (\`${fileSlug}.rule-changers.json\`). ` +
+      '`[not in pin]` marks an entry the PoB pin doesn\'t know: no plan can ' +
       "compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. " +
       `Cite an entry by its id: \`data | league/${fileSlug}.md#<id>\`. Written by ` +
       `\`.claude/skills/build-guide/scripts/league-digest.mjs ${slug}\`; re-run it rather than editing by hand, and ` +
@@ -532,7 +577,7 @@ export function renderDigest({ slug, fileSlug, section, entries, currency, pin, 
     '',
     '## Head',
     '',
-    ...entries.map(headLine),
+    ...headLines(entries, ruleChangers),
     '',
     '## Body',
   ];
@@ -556,16 +601,17 @@ export function readDigest(text) {
   const head = lines.indexOf('## Head');
   const body = lines.indexOf('## Body');
   if (head < 0 || body < head) throw new Refusal('not a league digest: no `## Head` before `## Body`');
-  const headLines = [];
-  for (let i = head + 1; i < body; i++) if (lines[i].startsWith('- ')) headLines.push(i);
+  const heads = [];
+  for (let i = head + 1; i < body; i++) if (lines[i].startsWith('- ')) heads.push(i);
   const blocks = [];
   for (let i = body + 1; i < lines.length; i++) {
     if (!lines[i].startsWith('### ')) continue;
     const block = { name: lines[i].slice(4), at: i };
     for (let j = i + 1; j < lines.length && lines[j].startsWith('- '); j++) {
-      const m = /^- (Id|Kind|In pin): (.*)$/.exec(lines[j]);
+      const m = /^- (Id|Kind|Tags|In pin): (.*)$/.exec(lines[j]);
       if (m && m[1] === 'Id') block.id = m[2];
       if (m && m[1] === 'Kind') block.kind = m[2];
+      if (m && m[1] === 'Tags') block.tags = m[2].split(', ');
       if (m && m[1] === 'In pin') {
         block.inPin = m[2] === 'yes';
         block.pinAt = j;
@@ -574,23 +620,38 @@ export function readDigest(text) {
     if (!block.id || !KINDS.includes(block.kind) || block.pinAt === undefined) throw new Refusal(`the block "${block.name}" (line ${i + 1}) lacks its Id, Kind or In pin line`);
     blocks.push(block);
   }
-  if (blocks.length !== headLines.length) throw new Refusal(`the head has ${headLines.length} lines but the body ${blocks.length} blocks`);
-  return { lines, headLines, blocks };
+  // Each block's head line, `- <Name> (<kind>…`; a socketable may have none, and the one line naming the
+  // socketables is no block's.
+  const claimed = new Set();
+  for (const b of blocks) {
+    const prefix = `- ${b.name} (${b.kind}`;
+    const at = heads.filter((i) => lines[i].startsWith(prefix) && /[,)]/.test(lines[i][prefix.length] ?? ''));
+    if (at.length > 1) throw new Refusal(`the head has ${at.length} lines for "${b.name}"`);
+    if (at.length === 0 && !isSocketable({ kind: b.kind, tags: b.tags ?? [] })) throw new Refusal(`the head has no line for "${b.name}": the head and the body are out of step`);
+    if (at.length === 1) {
+      b.headAt = at[0];
+      claimed.add(at[0]);
+    }
+  }
+  const stray = heads.filter((i) => !claimed.has(i) && !/^- Socketables \(\d+\): /.test(lines[i]));
+  if (stray.length > 0) throw new Refusal(`head line ${stray[0] + 1} names no block of the body`);
+  return { lines, blocks };
 }
 
 export function reflag(text, pin, today) {
-  const { lines, headLines, blocks } = readDigest(text);
+  const { lines, blocks } = readDigest(text);
   const changed = [];
-  blocks.forEach((b, i) => {
+  for (const b of blocks) {
     const inPin = pin.has(b.kind, b.name);
-    const at = headLines[i];
-    if (!lines[at].startsWith(`- ${b.name} (`)) throw new Refusal(`head line ${at + 1} isn't "${b.name}"'s: the head and the body are out of step`);
     if (inPin !== b.inPin) changed.push({ name: b.name, kind: b.kind, inPin });
     lines[b.pinAt] = `- In pin: ${inPin ? 'yes' : 'no'}`;
-    const bare = lines[at].endsWith(NOT_IN_PIN) ? lines[at].slice(0, -NOT_IN_PIN.length) : lines[at];
-    lines[at] = inPin ? bare : `${bare}${NOT_IN_PIN}`;
+    if (b.headAt !== undefined) {
+      const line = lines[b.headAt];
+      const bare = line.endsWith(NOT_IN_PIN) ? line.slice(0, -NOT_IN_PIN.length) : line;
+      lines[b.headAt] = inPin ? bare : `${bare}${NOT_IN_PIN}`;
+    }
     b.inPin = inPin;
-  });
+  }
   const pinAt = lines.findIndex((l) => / In-pin flags: checked against .+ on \d{4}-\d{2}-\d{2}\.$/.test(l));
   const countAt = lines.findIndex((l) => /^Entries: .*; \d+ of the \d+ in the pin\.$/.test(l));
   if (pinAt < 0 || countAt < 0) throw new Refusal("the digest's pin line or entries line is missing");
@@ -732,7 +793,8 @@ async function run(opts) {
   raw.push(...section.entries.map((e) => ({ ...e, fetched: home.date })));
   const entries = mergeEntries(raw).map((e) => ({ ...e, inPin: pin.has(e.kind, e.name) }));
   const sources = LISTS.filter((l) => section.lists.includes(l)).map((l) => pageUrl(opts.slug, l));
-  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources });
+  const ruleChangers = readRuleChangers(path.join(opts.out, `${fileSlug}.rule-changers.json`), entries);
+  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers });
   let before = null;
   if (fs.existsSync(file)) {
     try {

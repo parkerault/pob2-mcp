@@ -1275,3 +1275,379 @@ not evidence that players build around it.
 - Creates: damage-conversion | Pays off on: none
 - Penalties: none
 - PoB models it: yes
+
+### Alkem Eira (Shield, level 1)
+- Id: alkem-eira
+- Rule: Damage you Block is Recouped as Mana.
+- Lines: "Damage Blocked is Recouped as Mana"
+- Creates: mana | Pays off on: block
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Bloodbarrier (Shield, level 16)
+- Id: bloodbarrier
+- Rule: Blocking inflicts Corrupted Blood that deals half your maximum Life as Physical damage per second.
+- Lines: "Inflict Corrupted Blood for 5 seconds on Block, dealing 50% of your maximum Life as Physical damage per second"
+- Creates: none | Pays off on: block, life
+- Penalties: none
+- PoB models it: yes
+
+### Calgyra's Arc (Shield, level 65)
+- Id: calgyras-arc
+- Rule: Your Parry has infinite range.
+- Lines: "Infinite Parry Range"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Chernobog's Pillar (Shield, level 65)
+- Id: chernobogs-pillar
+- Rule: You gain damage as extra Fire damage by your chance to Block.
+- Lines: "Gain 1% of damage as Fire damage per 1% Chance to Block"
+- Creates: damage-conversion | Pays off on: block
+- Penalties: none
+- PoB models it: yes
+
+### Doomgate (Shield, level 12)
+- Id: doomgate
+- Rule: Enemies whose Hits you Block are Culled, but you take part of the damage of Blocked Hits.
+- Lines: "Enemies are Culled on Block"
+- Creates: none | Pays off on: block
+- Penalties: "You take (25-40)% of damage from Blocked Hits"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Feathered Fortress (Shield, level 26)
+- Id: feathered-fortress
+- Rule: Raising the shield doesn't slow your movement.
+- Lines: "No Movement Speed Penalty while Shield is Raised"
+- Creates: none | Pays off on: block
+- Penalties: none
+- PoB models it: yes
+
+### Kaltenhalt (Shield, level 22)
+- Id: kaltenhalt
+- Rule: Parry's Physical damage becomes Cold, and Stun buildup modifiers raise its Freeze buildup instead.
+- Lines: "Modifiers to Stun Buildup apply to Freeze Buildup instead for Parry", "100% of Parry Physical Damage Converted to Cold Damage"
+- Creates: freeze, damage-conversion | Pays off on: stun
+- Penalties: none
+- PoB models it: yes
+
+### Lycosidae (Shield, level 28)
+- Id: lycosidae
+- Rule: Blocking damage Poisons the attacker.
+- Lines: "Blocking Damage Poisons the Enemy as though dealing 200 Base Chaos Damage"
+- Creates: poison | Pays off on: block
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Merit of Service (Shield, level 8)
+- Id: merit-of-service
+- Rule: Allies in your Presence have your chance to Block.
+- Lines: "Allies in your Presence have Block Chance equal to yours"
+- Creates: none | Pays off on: block
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Nocturne (Shield, level 5)
+- Id: nocturne
+- Rule: Parried enemies take more Spell damage instead of more Attack damage.
+- Lines: "Parried enemies take more Spell Damage instead of more Attack Damage"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Prism Guardian (Shield, level 33)
+- Id: prism-guardian
+- Rule: Buff skills reserve Spirit more efficiently by your maximum Life.
+- Lines: "1% increased Spirit Reservation Efficiency of Buff Skills per 100 Maximum Life"
+- Creates: spirit | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### Redblade Banner (Shield, level 33)
+- Id: redblade-banner
+- Rule: Enemies in your Presence count as having double Power.
+- Lines: "Enemies in your Presence count as having double Power"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Rondel de Ezo (Shield, level 11)
+- Id: rondel-de-ezo
+- Rule: Blocking Curses the enemy with Enfeeble.
+- Lines: "Curse Enemies with Enfeeble on Block"
+- Creates: curse | Pays off on: block
+- Penalties: none
+- PoB models it: yes
+
+### Saffell's Frame (Shield, level 16)
+- Id: saffells-frame
+- Rule: You can't Block; modifiers to maximum Block chance raise your maximum Resistances instead.
+- Lines: "Cannot Block", "Modifiers to Maximum Block Chance instead apply to Maximum Resistances"
+- Creates: resistance | Pays off on: block
+- Penalties: none
+- PoB models it: yes
+
+### Svalinn (Shield, level 60)
+- Id: svalinn
+- Rule: Your chance to Block is Lucky, though Blocked Hits still deal part of their damage.
+- Lines: "Chance to Block Damage is Lucky"
+- Creates: none | Pays off on: block
+- Penalties: "You take (0-20)% of damage from Blocked Hits"
+- PoB models it: yes
+
+### Window to Paradise (Shield, level 16)
+- Id: window-to-paradise
+- Rule: While the shield is raised, enemies in front of you take Elemental Exposure.
+- Lines: "Inflict Elemental Exposure to Enemies 3 metres in front of you", "for 4 seconds, every 0.25 seconds while raised"
+- Creates: exposure | Pays off on: block
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Carrion Call (Focus, level 16)
+- Id: carrion-call
+- Rule: Your Minions' Resistances equal yours.
+- Lines: "Minions' Resistances are equal to yours"
+- Creates: none | Pays off on: resistance
+- Penalties: none
+- PoB models it: yes
+
+### Deathrattle (Focus, level 1)
+- Id: deathrattle
+- Rule: Killing an enemy can start your Energy Shield recharge.
+- Lines: "20% chance for Energy Shield Recharge to start when you Kill an Enemy"
+- Creates: energy-shield | Pays off on: on-kill
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Rathpith Globe (Focus, level 75)
+- Id: rathpith-globe
+- Rule: Non-Channelling Spells cost 6% of your maximum Life and gain damage and Critical Hit chance from it.
+- Lines: "Non-Channelling Spells cost an additional 6% of your maximum Life", "Non-Channelling Spells have 3% increased Critical Hit Chance per 100 maximum Life", "Non-Channelling Spells deal 6% increased Damage per 100 maximum Life"
+- Creates: none | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### Serpent's Lesson (Focus, level 22)
+- Id: serpents-lesson
+- Rule: You count as on Low Life at 35% of your maximum Mana or below, and on Low Mana at 35% of your maximum Life or below.
+- Lines: "You count as on Low Life while at 35% of maximum Mana or below", "You count as on Low Mana while at 35% of maximum Life or below"
+- Creates: low-life | Pays off on: mana
+- Penalties: none
+- PoB models it: yes
+
+### Threaded Light (Focus, level 6)
+- Id: threaded-light
+- Rule: Your Spell damage grows with your Spirit.
+- Lines: "(8-12)% increased Spell Damage per 10 Spirit"
+- Creates: none | Pays off on: spirit
+- Penalties: none
+- PoB models it: yes
+
+### Asphyxia's Wrath (Quiver, level 1)
+- Id: asphyxias-wrath
+- Rule: Enemies Chilled by your Hits take more damage by the Chill's magnitude.
+- Lines: "Enemies Chilled by your Hits increase damage taken by Chill Magnitude"
+- Creates: none | Pays off on: chill
+- Penalties: none
+- PoB models it: yes
+
+### Beyond Reach (Quiver, level 64)
+- Id: beyond-reach
+- Rule: Chaos damage from your Hits also builds Freeze and Electrocution.
+- Lines: "Chaos Damage from Hits also Contributes to Freeze Buildup", "Chaos Damage from Hits also Contributes to Electrocute Buildup"
+- Creates: freeze, electrocute | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Blackgleam (Quiver, level 8)
+- Id: blackgleam
+- Rule: Your Projectiles Pierce every Ignited enemy.
+- Lines: "Projectiles Pierce all Ignited enemies"
+- Creates: projectile | Pays off on: ignite
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Cadiro's Gambit (Quiver, level 66)
+- Id: cadiros-gambit
+- Rule: Every Arrow you fire is a random special Arrow: Crescendo, Splinter, Reversing, Diamond, Covetous or Blunt.
+- Lines: "Each Arrow fired is a Crescendo, Splinter, Reversing, Diamond, Covetous, or Blunt Arrow"
+- Creates: projectile | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Drillneck (Quiver, level 55)
+- Id: drillneck
+- Rule: Attack Projectiles Return after Piercing enough times, and gain damage and Critical Hit chance per Pierce.
+- Lines: "Attack Projectiles Return if they Pierced at least (2-4) times", "Projectiles deal (42-64)% increased Damage with Hits for each time they have Pierced", "Projectiles have (42-64)% increased Critical Hit chance for each time they have Pierced"
+- Creates: projectile | Pays off on: projectile
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Murkshaft (Quiver, level 39)
+- Id: murkshaft
+- Rule: Poisoning a target Blinds it.
+- Lines: "Blind Targets when you Poison them"
+- Creates: blind | Pays off on: poison
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### The Lethal Draw (Quiver, level 16)
+- Id: the-lethal-draw
+- Rule: Bow Attacks spend Life Flask charges to deal added Physical damage from the Flask's recovery.
+- Lines: "Bow Attacks consume 10% of your maximum Life Flask Charges if possible to deal added Physical damage equal to (5-10)% of Flask's Life Recovery amount"
+- Creates: none | Pays off on: flask
+- Penalties: none
+- PoB models it: yes
+
+### Against the Darkness (Jewel, level 1)
+- Id: against-the-darkness
+- Rule: Allocated small passives in the jewel's radius grant nothing; instead small and notable passives there also grant the jewel's chosen bonuses.
+- Lines: "Notable Passive Skills in Radius also grant Allocated Small Passive Skills in Radius grant nothing"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Controlled Metamorphosis (Jewel, level 1)
+- Id: controlled-metamorphosis
+- Rule: Passives in the jewel's radius can be allocated without connecting them to your tree.
+- Lines: "Passives in Radius can be Allocated without being connected to your tree"
+- Creates: none | Pays off on: none
+- Penalties: "-(20-5)% to all Elemental Resistances"
+- PoB models it: yes
+
+### Flesh Crucible (Jewel, level 1)
+- Id: flesh-crucible
+- Rule: The jewel grants a keystone, chosen by variant, for less defences.
+- Lines: "Mind Over Matter"
+- Creates: none | Pays off on: none
+- Penalties: "(10-20)% less Armour, Evasion and Energy Shield"
+- PoB models it: yes
+
+### From Nothing (Jewel, level 1)
+- Id: from-nothing
+- Rule: Passives in the radius of a keystone, chosen by variant, can be allocated without connecting them to your tree.
+- Lines: "Passives in radius of Ancestral Bond can be Allocated without being connected to your tree", "Passives in radius of Avatar of Fire can be Allocated without being connected to your tree", "Passives in radius of Blackflame Covenant can be Allocated without being connected to your tree"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Heroic Tragedy (Jewel, level 1)
+- Id: heroic-tragedy
+- Rule: Passives in the jewel's radius are Conquered by the Kalguur, which transforms them.
+- Lines: "Remembrancing (100-8000) songworthy deeds by the line of Olroth", "Passives in radius are Conquered by the Kalguur"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Megalomaniac (Jewel, level 1)
+- Id: megalomaniac
+- Rule: The jewel allocates notable passives, chosen by variant, without points or a path to them.
+- Lines: "Allocates Abasement"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Split Personality (Jewel, level 1)
+- Id: split-personality
+- Rule: You can allocate passives from another class's starting point, chosen by variant.
+- Lines: "Can Allocate Passive Skills from the Warrior's starting point"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Undying Hate (Jewel, level 1)
+- Id: undying-hate
+- Rule: Passives in the jewel's radius are Conquered by the Abyssals, which transforms them.
+- Lines: "Glorifying the defilement of (100-8000) souls in tribute to Ulaman", "Passives in radius are Conquered by the Abyssals"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Voices (Jewel, level 1)
+- Id: voices
+- Rule: The jewel allocates Sinister Jewel sockets (two to four, by variant).
+- Lines: "Allocates 4 Sinister Jewel sockets"
+- Creates: socket | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Arakaali's Gift (Charm, level 24)
+- Id: arakaalis-gift
+- Rule: Using the Charm recovers Life from your Mana Flask's recovery and Mana from your Life Flask's.
+- Lines: "Recover Life equal to (15-20)% of Mana Flask's Recovery Amount when used", "Recover Mana equal to (15-20)% of Life Flask's Recovery Amount when used"
+- Creates: recovery | Pays off on: flask
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Beira's Anguish (Charm, level 32)
+- Id: beiras-anguish
+- Rule: Using the Charm creates Ignited Ground that Ignites from five times your maximum Life.
+- Lines: "Creates Ignited Ground for 4 seconds when used, Igniting enemies as though dealing Fire damage equal to 500% of your maximum Life"
+- Creates: ignited-ground, ignite | Pays off on: life, charm
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Nascent Hope (Charm, level 12)
+- Id: nascent-hope
+- Rule: Using the Charm starts your Energy Shield recharge.
+- Lines: "Energy Shield Recharge starts on use"
+- Creates: energy-shield | Pays off on: charm
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Sanguis Heroum (Charm, level 18)
+- Id: sanguis-heroum
+- Rule: Using the Charm creates Consecrated Ground.
+- Lines: "Creates Consecrated Ground on use"
+- Creates: other-ground | Pays off on: charm
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Blood of the Warrior (Flask, level 40)
+- Id: blood-of-the-warrior
+- Rule: The Flask's effect continues at full Life, and during it Rage doesn't decay and builds when you are Hit.
+- Lines: "Effect is not removed when Unreserved Life is Filled", "Gain (3-5) Rage when Hit by an Enemy during effect", "No Inherent loss of Rage during effect"
+- Creates: rage | Pays off on: flask
+- Penalties: "90% less Life Recovered"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Lavianga's Spirits (Flask, level 49)
+- Id: laviangas-spirits
+- Rule: The Flask can't be used; instead its effect applies constantly.
+- Lines: "This Flask cannot be Used but applies its Effect constantly"
+- Creates: recovery | Pays off on: flask
+- Penalties: "(70-80)% reduced Amount Recovered"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Melting Maelstrom (Flask, level 60)
+- Id: melting-maelstrom
+- Rule: During the Flask's effect, which continues at full Mana, the Mana you spend is dealt as Chaos damage around you every 3 seconds.
+- Lines: "Effect is not removed when Unreserved Mana is Filled", "Every 3 seconds during Effect, deal 100% of Mana spent in those seconds as Chaos Damage to Enemies within 3 metres"
+- Creates: area | Pays off on: mana
+- Penalties: "Deals 25% of current Mana as Chaos Damage to you when Effect ends"
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Olroth's Resolve (Flask, level 60)
+- Id: olroths-resolve
+- Rule: Life recovery beyond your maximum becomes Guard for 20 seconds.
+- Lines: "Excess Life Recovery added as Guard for 20 seconds"
+- Creates: none | Pays off on: recovery
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Opportunity (Flask, level 60)
+- Id: opportunity
+- Rule: The Flask can't be used manually; it is used when you release a skill with Perfect Timing, and its effect continues at full Life.
+- Lines: "Effect is not removed when Unreserved Life is Filled", "Cannot be Used manually", "Used when you release a skill with Perfect Timing"
+- Creates: none | Pays off on: flask
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Uhtred's Chalice (Flask, level 50)
+- Id: uhtreds-chalice
+- Rule: During the Flask's effect, Mana recovery from Flasks can exceed your maximum Mana, but you lose Life without Runic Ward.
+- Lines: "Mana Recovery from Flasks can Overflow maximum Mana during Effect"
+- Creates: mana | Pays off on: flask, ward
+- Penalties: "Lose 5% Life per second while you have no Runic Ward during Effect"
+- PoB models it: no — a compile measures what it gives up, not what it adds

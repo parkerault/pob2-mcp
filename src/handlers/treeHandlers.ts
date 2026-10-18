@@ -362,8 +362,10 @@ export async function handleFindPath(
 
 
 /** The calculator outputs `get_passive_upgrades` measures (`calc_with` fields). */
-const UPGRADE_FIELDS = ['CombinedDPS', 'TotalDPS', 'TotalEHP', 'Life'];
+const UPGRADE_FIELDS = ['CombinedDPS', 'TotalDPS', 'MinionTotalDPS', 'TotalEHP', 'Life'];
 const DPS_FIELDS = ['CombinedDPS', 'TotalDPS'];
+/** D-388: a summon main skill's DPS field, its minion's, as the compile record reads it (D-378, D-385). */
+const MINION_DPS_FIELDS = ['MinionTotalDPS'];
 const EHP_FIELDS = ['TotalEHP', 'Life'];
 /** Candidates measured per search keyword: the nearest unallocated notables by PoB's path cost. */
 const CANDIDATES_PER_KEYWORD = 8;
@@ -409,8 +411,9 @@ interface AscendancyPool {
 /** C-1: the server cuts this tool's text at 5000 characters, so the handler keeps within it (D-246). */
 const OUTPUT_LIMIT = 5000;
 
-const dpsOf = (out: Record<string, unknown>): number =>
-  Number(out.CombinedDPS ?? 0) || Number(out.TotalDPS ?? 0);
+/** The player's DPS, or with `minion` the main skill's minion's `MinionTotalDPS` (D-388). */
+const dpsOf = (out: Record<string, unknown>, minion = false): number =>
+  minion ? Number(out.MinionTotalDPS ?? 0) : Number(out.CombinedDPS ?? 0) || Number(out.TotalDPS ?? 0);
 const ehpOf = (out: Record<string, unknown>): number => Number(out.TotalEHP ?? 0) || Number(out.Life ?? 0);
 const hasValue = (out: Record<string, unknown>, fields: string[]): boolean =>
   fields.some((f) => typeof out[f] === 'number');
@@ -489,11 +492,17 @@ export async function handleGetPassiveUpgrades(
   // Step 1: the build's issues, to pick search keywords
   const { issues } = await handleGetBuildIssues(context);
 
+  // The base: PoB's calculator with nothing added. D-388: when the main skill summons a minion (PoB gives its
+  // minion's output, so MinionTotalDPS is a number), its damage is the minion's: the player's CombinedDPS and
+  // TotalDPS are 0, so DPS is MinionTotalDPS, and the search starts from minion notables.
+  const base = await luaClient.calcWith({ fields: UPGRADE_FIELDS });
+  const minion = typeof base.MinionTotalDPS === 'number';
+
   // Step 2: map focus + issues to search keywords
   const keywords: string[] = [];
 
   if (focus === 'dps' || focus === 'both') {
-    keywords.push('damage', 'critical');
+    keywords.push(...(minion ? ['minion', 'damage'] : ['damage', 'critical']));
   }
 
   if (focus === 'defence' || focus === 'both') {
@@ -549,8 +558,7 @@ export async function handleGetPassiveUpgrades(
   // it, as PoB's tree tooltip does ("Allocating this node and all nodes leading to it"). The base is
   // the same calculator with nothing added. A candidate whose measurement returns no value for the
   // requested stat(s), or fails in the engine, isn't ranked: it goes to the can't-measure section (C-47).
-  const base = await luaClient.calcWith({ fields: UPGRADE_FIELDS });
-  const baseDPS = dpsOf(base);
+  const baseDPS = dpsOf(base, minion);
   const baseEHP = ehpOf(base);
   const rel = (delta: number, of: number) => (of > 0 ? delta / of : 0);
   const unmeasured = new Map<number, string>();
@@ -566,13 +574,13 @@ export async function handleGetPassiveUpgrades(
       return null;
     }
     const missing: string[] = [];
-    if (focus !== 'defence' && !hasValue(out, DPS_FIELDS)) missing.push('DPS');
+    if (focus !== 'defence' && !hasValue(out, minion ? MINION_DPS_FIELDS : DPS_FIELDS)) missing.push('DPS');
     if (focus !== 'dps' && !hasValue(out, EHP_FIELDS)) missing.push('EHP');
     if (missing.length > 0) {
       unmeasured.set(c.id, `PoB's calculator returned no ${missing.join(' or ')} value`);
       return null;
     }
-    const dpsDelta = dpsOf(out) - baseDPS;
+    const dpsDelta = dpsOf(out, minion) - baseDPS;
     const ehpDelta = ehpOf(out) - baseEHP;
     const gain =
       focus === 'dps' ? rel(dpsDelta, baseDPS)
@@ -669,7 +677,7 @@ export async function handleGetPassiveUpgrades(
       textLines.push('No reachable unallocated notable candidates found. Make sure a build is loaded.', '');
     } else {
       textLines.push(
-        `Base DPS: ${Math.round(baseDPS).toLocaleString()}  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
+        `Base DPS: ${Math.round(baseDPS).toLocaleString()} (${minion ? "MinionTotalDPS: the main skill's minion deals its damage" : 'CombinedDPS, else TotalDPS'})  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
         `Measured ${candidates.length} nearby notables with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
         '',
       );

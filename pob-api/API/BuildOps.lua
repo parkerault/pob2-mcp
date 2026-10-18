@@ -753,8 +753,9 @@ function M.calc_with(params)
   if type(out) ~= 'table' then return nil, 'calculator returned no output' end
   local fields = (params and type(params.fields) == 'table') and params.fields or M.DEFAULT_STAT_FIELDS
   local result = {}
+  -- D-388: a `Minion<Field>` reads the minion's own output, as get_stats does (D-376).
   for _, k in ipairs(fields) do
-    local v = out[k]
+    local v = output_field(out, k)
     if type(v) == 'number' then result[k] = v end
   end
   return result
@@ -2101,12 +2102,12 @@ end
 
 -- PoB's gem-selector value for a calc output and its sort field (SkillsTab.sortGemsByDPSField), read as
 -- GemSelectControl:UpdateSortCache reads it: FullDPS when sorting by it, else a minion's CombinedDPS,
--- else the field itself.
+-- else the field itself. Also returns the field it read, `MinionCombinedDPS` for the minion's (D-388).
 local function selector_value(output, field)
-  if field == 'FullDPS' and output[field] ~= nil then return output[field] end
-  if output.Minion and output.Minion.CombinedDPS then return output.Minion.CombinedDPS end
-  if output[field] ~= nil then return output[field] end
-  return 0
+  if field == 'FullDPS' and output[field] ~= nil then return output[field], field end
+  if output.Minion and output.Minion.CombinedDPS then return output.Minion.CombinedDPS, 'MinionCombinedDPS' end
+  if output[field] ~= nil then return output[field], field end
+  return 0, field
 end
 
 -- Measure each candidate on `group`, the way PoB's gem selector sorts gems by DPS
@@ -2130,7 +2131,7 @@ local function measure_candidates(groupIndex, group, candidates)
     build.mainSocketGroup = groupIndex
     build.calcsTab:BuildOutput()
     local calcFunc, calcBase = build.calcsTab:GetMiscCalculator()
-    local baseline = selector_value(calcBase, field)
+    local baseline, stat = selector_value(calcBase, field)
     for _, c in ipairs(candidates) do
       local gemData = c.gemData
       gemList[count + 1] = {
@@ -2154,7 +2155,7 @@ local function measure_candidates(groupIndex, group, candidates)
         c.error = tostring(output)
       end
     end
-    measured = { stat = field, baseline = baseline, groupIndex = groupIndex }
+    measured = { stat = stat, baseline = baseline, groupIndex = groupIndex }
   end)
   -- Restore, also after a failure.
   while #gemList > count do table.remove(gemList) end

@@ -149,7 +149,9 @@ export async function handleSuggestSupportsPoe2(context: SuggestSupportsContext,
       return { content: [{ type: "text" as const, text: lines.join("\n") }] };
     }
     const baseline = res.baseline ?? 0;
-    lines.push(`Measured on group ${res.groupIndex} as the main skill: ${res.stat} baseline ${fmt(baseline)}.`);
+    // D-388: a minion skill is ranked by its minion's CombinedDPS, as PoB's gem selector ranks it.
+    const whose = res.stat.startsWith("Minion") ? " (its minion's damage, as PoB's gem selector ranks a minion skill)" : "";
+    lines.push(`Measured on group ${res.groupIndex} as the main skill: ${res.stat} baseline ${fmt(baseline)}${whose}.`);
     lines.push(
       "",
       `Top ${res.ranked.length} by measured ${res.stat} change (each added at the default gem level, recalculated, removed):`,

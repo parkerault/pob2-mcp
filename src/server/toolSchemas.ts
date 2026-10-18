@@ -1601,7 +1601,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_passive_upgrades",
-      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every notable it measured: a notable with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value.",
+      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every notable it measured: a notable with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value. When the main skill summons a minion, DPS is the minion's (MinionTotalDPS) and minion notables are searched first.",
       inputSchema: {
         type: "object",
         properties: {

@@ -683,6 +683,10 @@ export class PoBLuaApiClient {
     return this.request("new_build", params);
   }
 
+  /**
+   * `load_build_xml` (C-2): the loaded build's name and `droppedSupports`, the gems PoB dropped from the build's
+   * granted socket groups (D-398, `DroppedSupportGroup`; `[]` for none). Only the session loads (D-59).
+   */
   async loadBuildXml(xml: string, name = "API Build"): Promise<ActionReply<"load_build_xml">> {
     return this.request("load_build_xml", { xml, name });
   }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build level="60" targetVersion="0_1" className="Mercenary" ascendClassName="Gemling Legionnaire" mainSocketGroup="1" viewMode="SKILLS" characterLevelAutoMode="false">
+	</Build>
+	<Tree activeSpec="1">
+		<Spec title="Granted" treeVersion="0_5" classId="9" ascendClassId="3" secondaryAscendClassId="nil" nodes="34882,11641" masteryEffects="">
+		</Spec>
+	</Tree>
+	<Skills activeSkillSet="1" defaultGemLevel="normalMaximum" defaultGemQuality="0" sortGemsByDPS="true" showSupportGemTypes="ALL" showLegacyGems="false" sortGemsByDPSField="CombinedDPS">
+		<SkillSet id="1" title="Default">
+			<Skill label="" enabled="true" includeInFullDPS="true" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem quality="0" enabled="true" variantId="FlashGrenade" level="18" gemId="Metadata/Items/Gem/SkillGemFlashGrenade" enableGlobal1="true" enableGlobal2="true" nameSpec="Flash Grenade" skillId="FlashGrenadePlayer" count="1"/>
+				<Gem quality="0" enabled="true" variantId="HeftSupport" level="1" gemId="Metadata/Items/Gem/SupportGemHeft" enableGlobal1="true" enableGlobal2="true" nameSpec="Heft" skillId="SupportHeftPlayer" count="1"/>
+			</Skill>
+			<Skill label="" enabled="true" includeInFullDPS="false" source="Tree:11641" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem quality="0" enabled="true" variantId="AscendancyGemlingVirtuousBarrier" level="1" gemId="Metadata/Items/Gems/SkillGemAscendancyVirtuousBarrier" enableGlobal1="true" enableGlobal2="nil" nameSpec="Virtuous Barrier" skillId="VirtuousBarrierPlayer" count="1"/>
+				<Gem quality="0" enabled="true" variantId="PrecisionSupport" level="1" gemId="Metadata/Items/Gems/SupportGemPrecision" enableGlobal1="true" enableGlobal2="true" nameSpec="Precision I" skillId="SupportPrecisionPlayer" count="1"/>
+				<Gem quality="0" enabled="true" variantId="ClaritySupport" level="1" gemId="Metadata/Items/Gems/SupportGemClarity" enableGlobal1="true" enableGlobal2="true" nameSpec="Clarity I" skillId="SupportClarityPlayer" count="1"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Items activeItemSet="1" useSecondWeaponSet="nil" showStatDifferences="true">
+		<ItemSet id="1" title="Default" useSecondWeaponSet="nil">
+		</ItemSet>
+	</Items>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default">
+		</ConfigSet>
+	</Config>
+	<Notes>
+	</Notes>
+</PathOfBuilding2>

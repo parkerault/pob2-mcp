@@ -49,6 +49,10 @@
  * reports an unknown one as a defect; `compile_stage` takes them, replies with `minionSkills` (each group's
  * resolved selection, `[]` for none), carries the minion's numbers as `Minion<Field>` outputs, and its
  * `checks.grantedSkills` names the passives that grant a group's skill (`[]` for none).
+ *
+ * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
+ * build's granted groups: a granted group with supports (`granted-supports.xml`) gives one entry with the group,
+ * its source, the passive's name and the gems, and the golden build gives `[]`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -66,6 +70,7 @@ import { ITEM_SLOTS } from '../../src/server/toolSchemas';
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures');
 const GOLDEN = fs.readFileSync(path.join(FIXTURES, 'builds', 'grenadator.xml'), 'utf8');
+const GRANTED_SUPPORTS = fs.readFileSync(path.join(FIXTURES, 'builds', 'granted-supports.xml'), 'utf8');
 const RUBY_RING = fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8');
 const COVERAGE_AMULET = fs.readFileSync(path.join(FIXTURES, 'items', 'coverage-amulet.txt'), 'utf8');
 /** Two committed trade2 `/fetch` entries, verbatim (no network). */
@@ -422,6 +427,23 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       ENGINE_TIMEOUT,
     );
   }
+
+  it(
+    'AC-B4 (D-398): load_build_xml replies with droppedSupports, one entry per granted group that lost gems, and [] for none',
+    async () => {
+      const golden = await engine.request('load_build_xml', { xml: GOLDEN, name: 'Grenadator' }, { timeoutMs: 120_000 });
+      expect(replySchemas.load_build_xml!.safeParse(golden).success).toBe(true);
+      expect(golden.result.droppedSupports).toEqual([]);
+
+      const reply = await engine.request('load_build_xml', { xml: GRANTED_SUPPORTS, name: 'Granted' }, { timeoutMs: 120_000 });
+      const parsed = replySchemas.load_build_xml!.safeParse(reply);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(reply.result.droppedSupports).toEqual([
+        { group: 'Virtuous Barrier', source: 'Tree:11641', grantedBy: 'Essence of Virtue', gems: ['Precision I', 'Clarity I'] },
+      ]);
+    },
+    ENGINE_TIMEOUT,
+  );
 
   it(
     'AC-B4 (WU-54): check_coverage replies carry flags of every kind, line flags with `line`, and an empty flag list encodes as []',

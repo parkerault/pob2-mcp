@@ -33,3 +33,15 @@ requirement of …" fires (spec AC-A1, "Str case").
 
 Regenerate it from the golden build if that ever changes (the same one-line edit), and re-check the
 requirement on a PoB pin bump.
+
+## `granted-supports.xml` (supports in a granted group, D-398)
+
+Written by hand from the game data, not from any player's build: a level-60 Mercenary / Gemling Legionnaire
+with node 34882 and Essence of Virtue (node 11641, "Grants Skill: Virtuous Barrier"). Its skill set has a
+socketed Flash Grenade group with Heft, and Essence of Virtue's granted group (`source="Tree:11641"`) holding
+Virtuous Barrier at the grant's level 1 with Precision I and Clarity I, two supports that take a persistent buff.
+
+| | |
+|---|---|
+| Effect | On PoB2 `v0.23.1`, the load keeps only Virtuous Barrier in the granted group, and `load_build_xml`'s `droppedSupports` names Precision I and Clarity I (`tests/integration/grantedGroupSupports.test.ts`). |
+| Re-check | On a PoB pin bump: whether PoB still rebuilds granted groups (`Modules/CalcSetup.lua`, the granted-skill loop). |

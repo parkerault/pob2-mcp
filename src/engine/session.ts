@@ -30,6 +30,7 @@ import { EngineActionError, PoBLuaApiClient, type RequestOptions } from "../pobL
 import { resolvePobApiDir, resolvePobSrc } from "./pobPath.js";
 import { readPin } from "./pinCheck.js";
 import { canonicalBuildPath, sanitizeBuildName } from "../utils/pathSanitizer.js";
+import type { DroppedSupportGroup } from "./schemas.js";
 
 export type EngineKind = "read" | "mutate" | "load" | "lifecycle";
 
@@ -202,6 +203,35 @@ function attachNotices(error: unknown, notices: string[]): void {
   }
 }
 
+function isDroppedGroup(value: unknown): value is DroppedSupportGroup {
+  const g = value as DroppedSupportGroup | null;
+  return (
+    typeof g === "object" && g !== null && typeof g.group === "string" && typeof g.source === "string" &&
+    Array.isArray(g.gems) && g.gems.length > 0 && g.gems.every((gem) => typeof gem === "string")
+  );
+}
+
+/**
+ * D-398: one warning line per granted socket group a load took gems from (the engine's `droppedSupports`).
+ * PoB v0.23.1 rebuilds a passive's or an item's granted skill group from its grant on every calculation
+ * (`Modules/CalcSetup.lua:1503-1542`), so the supports a file keeps there are gone, and every figure is
+ * measured without them. A reply without the field (or with none) gives no line.
+ */
+export function droppedSupportNotices(reply: unknown): string[] {
+  const groups = (reply as { result?: { droppedSupports?: unknown } } | null | undefined)?.result?.droppedSupports;
+  if (!Array.isArray(groups)) return [];
+  return groups.filter(isDroppedGroup).map((g) => {
+    const node = /^Tree:(\d+)$/.exec(g.source)?.[1];
+    const grantor = node
+      ? `the passive ${g.grantedBy ? `${g.grantedBy} (node ${node})` : `node ${node}`}`
+      : `the item ${g.grantedBy ?? g.source}`;
+    return (
+      `Warning: PoB dropped ${g.gems.join(", ")} from the group "${g.group}", granted by ${grantor}: PoB rebuilds ` +
+      "a granted skill's group from its grant on every calculation, so no figure includes them."
+    );
+  });
+}
+
 function abortError(): Error {
   const error = new Error("the engine call was aborted while waiting for the engine lock");
   error.name = "AbortError";
@@ -247,6 +277,8 @@ interface RunState {
   loaded: boolean;
   /** The session killed the engine on purpose during this run (not a crash). */
   deliberateKill: boolean;
+  /** The run's notices (C-3 step 8), for the ctx load methods' warnings (D-398). */
+  notices: string[];
 }
 
 class Session implements EngineSession {
@@ -412,7 +444,7 @@ class Session implements EngineSession {
   }
 
   private async runLocked<T>(call: EngineCall, fn: (ctx: EngineCallContext) => Promise<T>, notices: string[]): Promise<T> {
-    const state: RunState = { tool: call.tool, kind: call.kind, active: true, loaded: false, deliberateKill: false };
+    const state: RunState = { tool: call.tool, kind: call.kind, active: true, loaded: false, deliberateKill: false, notices };
 
     if (call.kind === "lifecycle") {
       // Rule L: lua_start runs steps 2–3 and skips 4–6; lua_stop skips 2–6 (ctx.stopEngine does the work).
@@ -629,8 +661,9 @@ class Session implements EngineSession {
 
     // 4a: auto-reload the bytes just hashed. A deadline cut leaves `loaded` as it was, so the next
     // call sees the change again and reloads it.
+    let dropped: string[];
     try {
-      await this.withinDeadline(call, `reloading ${rel}, which changed on disk`, (opts) =>
+      dropped = await this.withinDeadline(call, `reloading ${rel}, which changed on disk`, (opts) =>
         this.rawLoad(bytes.toString("utf8"), loaded.displayName, {}, opts),
       );
     } catch (error) {
@@ -655,14 +688,16 @@ class Session implements EngineSession {
       console.error(`[Engine Session] snapshot after the auto-reload failed: ${errorMessage(error)}`);
       this.snapshot = null;
     }
-    notices.push(`Reloaded ${rel}: it changed on disk since the engine loaded it.`);
+    notices.push(`Reloaded ${rel}: it changed on disk since the engine loaded it.`, ...dropped);
   }
 
   // -------------------------------------------------------------------------------------------------
   // Engine primitives (unguarded; the session's own use only)
 
-  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}, request: RequestOptions = {}): Promise<void> {
-    await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) }, request);
+  /** A load; resolves with D-398's warning lines for the gems PoB dropped from the build's granted groups. */
+  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}, request: RequestOptions = {}): Promise<string[]> {
+    const reply = await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) }, request);
+    return droppedSupportNotices(reply);
   }
 
   /** The engine's default request timeout, as the bridge reads it (C-4). */
@@ -760,8 +795,9 @@ class Session implements EngineSession {
 
   /** A load through ctx: on success it replaces `loaded` and drops the old snapshot. */
   private async ctxLoad(state: RunState, xml: string, record: Omit<LoadedBuild, "loadedRevision" | "savedRevision">): Promise<LoadedBuild> {
+    let dropped: string[];
     try {
-      await this.rawLoad(xml, record.displayName);
+      dropped = await this.rawLoad(xml, record.displayName);
     } catch (error) {
       // A failed post-check may leave a half-switched engine: kill it, so the next step 3 restores
       // the pre-load snapshot. Pre-validation failures leave the build untouched (C-2).
@@ -771,6 +807,7 @@ class Session implements EngineSession {
       throw error;
     }
     this.commitLoad(state, record);
+    state.notices.push(...dropped);
     return this.loadedValue as LoadedBuild;
   }
 
@@ -867,7 +904,8 @@ class Session implements EngineSession {
         };
         let result: T;
         try {
-          await session.rawLoad(xml, "Temporary build");
+          // D-398: the temporary build's figures leave out what PoB dropped too.
+          state.notices.push(...(await session.rawLoad(xml, "Temporary build")));
           result = await fn();
         } catch (error) {
           await putBack({ error });

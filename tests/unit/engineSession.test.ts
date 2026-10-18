@@ -5,6 +5,7 @@
 import { describe, it, expect } from '@jest/globals';
 import {
   createEngineSession,
+  droppedSupportNotices,
   EngineBusyError,
   EngineDeadlineError,
   noticesOf,
@@ -444,5 +445,34 @@ describe('D-22 (NFR-4): a call deadline bounds the session\'s own steps, not onl
     const next = await session.run({ tool: 'lua_get_build_info', kind: 'read' }, async () => 'ok');
     expect(next.notices).toEqual(['Engine restarted; restored the build to its state after `set_character_level`.']);
     expect(client.starts).toBe(2);
+  });
+});
+
+describe('D-398: droppedSupportNotices', () => {
+  it('gives one line per group: the gems, the group, and the passive (with its node) or the item that grants it', () => {
+    const reply = {
+      ok: true,
+      result: {
+        name: 'x',
+        droppedSupports: [
+          { group: 'Navira', source: 'Tree:32705', grantedBy: 'Navira', gems: ['Muster', 'Bidding II'] },
+          { group: 'Purity of Ice', source: 'Item:4:Probe Sceptre', grantedBy: 'Probe Sceptre', gems: ['Clarity I'] },
+          { group: 'Unnamed', source: 'Tree:123', gems: ['Heft'] },
+        ],
+      },
+    };
+    const tail = ": PoB rebuilds a granted skill's group from its grant on every calculation, so no figure includes them.";
+    expect(droppedSupportNotices(reply)).toEqual([
+      `Warning: PoB dropped Muster, Bidding II from the group "Navira", granted by the passive Navira (node 32705)${tail}`,
+      `Warning: PoB dropped Clarity I from the group "Purity of Ice", granted by the item Probe Sceptre${tail}`,
+      `Warning: PoB dropped Heft from the group "Unnamed", granted by the passive node 123${tail}`,
+    ]);
+  });
+
+  it('gives nothing for [], a reply without the field, or a malformed entry', () => {
+    expect(droppedSupportNotices({ ok: true, result: { name: 'x', droppedSupports: [] } })).toEqual([]);
+    expect(droppedSupportNotices({ ok: true, result: { name: 'x' } })).toEqual([]);
+    expect(droppedSupportNotices(undefined)).toEqual([]);
+    expect(droppedSupportNotices({ result: { droppedSupports: [{ group: 'g', source: 'Tree:1', gems: [] }, 'x'] } })).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@
 export const MOCK_RESPONSES = {
   ready: { ready: true },
   ping: { ok: true },
-  load_build_xml: { ok: true, result: { name: 'API Build' } },
+  load_build_xml: { ok: true, result: { name: 'API Build', droppedSupports: [] } },
   get_stats: {
     ok: true,
     stats: {

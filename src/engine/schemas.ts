@@ -117,6 +117,21 @@ export const versionReply = baseReply.extend({
 /** `new_build` and `load_build_xml`: the engine's build name after the switch (C-2). */
 export const buildNameReply = baseReply.extend({ result: z.object({ name: z.string().nullable() }).passthrough() });
 
+/**
+ * D-398: one granted socket group (a passive's or an item's skill) the load took gems from: its label or granted
+ * skill, its PoB source (`Tree:<node id>` or `Item:<id>:<name>`), the passive's or item's name, and the gems
+ * PoB dropped, in the document's order.
+ */
+const droppedSupportGroupSchema = z
+  .object({ group: z.string(), source: z.string(), grantedBy: optString, gems: z.array(z.string()) })
+  .passthrough();
+export type DroppedSupportGroup = z.infer<typeof droppedSupportGroupSchema>;
+
+/** `load_build_xml`: the build's name, and the gems PoB dropped from its granted groups (D-398; `[]` for none). */
+export const loadBuildXmlReply = buildNameReply.extend({
+  result: z.object({ name: z.string(), droppedSupports: z.array(droppedSupportGroupSchema) }).passthrough(),
+});
+
 /** `new_build`: the build name, plus the new build's engine class and ascendancy names. */
 export const newBuildReply = baseReply.extend({
   result: z.object({ name: z.string().nullable(), className: optString, ascendClassName: optString }).passthrough(),
@@ -1498,7 +1513,7 @@ const definedSchemas = {
   ping: pingReply,
   version: versionReply,
   new_build: newBuildReply,
-  load_build_xml: buildNameReply.extend({ result: z.object({ name: z.string() }).passthrough() }),
+  load_build_xml: loadBuildXmlReply,
   get_stats: getStatsReply,
   get_items: getItemsReply,
   get_skills: getSkillsReply,

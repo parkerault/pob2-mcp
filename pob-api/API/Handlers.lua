@@ -128,8 +128,107 @@ local function recorded_level(root)
   return nil
 end
 
+-- D-398: a <Gem> of a document, as SkillsTab:LoadSkill resolves it: by gemId (and variantId) in
+-- data.gemsByGameId, else by skillId in data.skills; its skill id and display name.
+local function document_gem(attrib)
+  local data = rawget(_G, 'data')
+  local variants = data and data.gemsByGameId and attrib.gemId and data.gemsByGameId[attrib.gemId]
+  local gemData = variants and attrib.variantId and variants[attrib.variantId]
+  if variants and not gemData then
+    for _, variant in pairs(variants) do gemData = variant; break end
+  end
+  if gemData then return { skillId = gemData.grantedEffectId, name = gemData.name } end
+  local effect = data and data.skills and attrib.skillId and data.skills[attrib.skillId]
+  if effect then return { skillId = effect.id, name = effect.name } end
+  local nameSpec = attrib.nameSpec ~= '' and attrib.nameSpec or nil
+  return { skillId = attrib.skillId, name = nameSpec or attrib.skillId or attrib.gemId or '?' }
+end
+
+-- D-398: a document's granted socket groups (a <Skill> whose source is a passive's, "Tree:<id>", or an item's,
+-- "Item:<id>:<name>"), by skill set id: a <Skill> directly under <Skills> is set 1, as SkillsTab:Load reads it.
+local function document_granted_groups(root)
+  local bySet = {}
+  local function add(setId, node)
+    local attrib = node.attrib or {}
+    local source = attrib.source
+    if not setId or type(source) ~= 'string' or not (source:match('^Tree:') or source:match('^Item:')) then return end
+    local gems = {}
+    for _, child in ipairs(node) do
+      if type(child) == 'table' and child.elem == 'Gem' then table.insert(gems, document_gem(child.attrib or {})) end
+    end
+    bySet[setId] = bySet[setId] or {}
+    table.insert(bySet[setId], { source = source, slot = attrib.slot, label = attrib.label, gems = gems })
+  end
+  for _, section in ipairs(root) do
+    if type(section) == 'table' and section.elem == 'Skills' then
+      for _, node in ipairs(section) do
+        if type(node) == 'table' and node.elem == 'Skill' then
+          add(1, node)
+        elseif type(node) == 'table' and node.elem == 'SkillSet' then
+          local setId = tonumber(node.attrib and node.attrib.id)
+          for _, sub in ipairs(node) do
+            if type(sub) == 'table' and sub.elem == 'Skill' then add(setId, sub) end
+          end
+        end
+      end
+    end
+  end
+  return bySet
+end
+
+-- The passive's or item's name behind a granted group's source, or nil.
+local function grantor_name(source)
+  local nodeId = tonumber(source:match('^Tree:(%d+)$'))
+  if nodeId then
+    local node = build.spec and build.spec.nodes and build.spec.nodes[nodeId]
+    return node and (node.dn or node.name) or nil
+  end
+  return source:match('^Item:[^:]*:(.+)$')
+end
+
+-- D-398: the gems the load dropped from the active skill set's granted groups. PoB rebuilds a granted group
+-- from its grant on every calculation (Modules/CalcSetup.lua:1503-1542): a group whose granted gem's level
+-- differs from the grant isn't matched and is removed (:1655-1666) for a new one, and a matched group's gem
+-- list is wiped back to the granted gem. Each document group is compared with the engine's group of the same
+-- source and slot (the one with the same first skill, if several): the gems it no longer holds were dropped.
+-- One entry per group that lost gems: {group, source, grantedBy?, gems = {names}}; [] when none did.
+local function dropped_granted_gems(bySet)
+  local skillsTab = build and build.skillsTab
+  local groups = skillsTab and bySet[skillsTab.activeSkillSetId] or {}
+  local dropped = {}
+  for _, group in ipairs(groups) do
+    local first = group.gems[1]
+    local match
+    for _, socketGroup in ipairs(skillsTab.socketGroupList or {}) do
+      if socketGroup.source == group.source and socketGroup.slot == group.slot then
+        local engineFirst = socketGroup.gemList[1]
+        if not match or (first and engineFirst and engineFirst.skillId == first.skillId) then match = socketGroup end
+      end
+    end
+    local kept = {}
+    for _, gem in ipairs(match and match.gemList or {}) do
+      if gem.skillId then kept[gem.skillId] = true end
+    end
+    local gems = {}
+    for _, gem in ipairs(group.gems) do
+      if not (gem.skillId and kept[gem.skillId]) then table.insert(gems, gem.name) end
+    end
+    if #gems > 0 then
+      local label = group.label ~= nil and group.label ~= '' and group.label or nil
+      table.insert(dropped, {
+        group = label or (first and first.name) or group.source,
+        source = group.source,
+        grantedBy = grantor_name(group.source),
+        gems = gems,
+      })
+    end
+  end
+  return dropped
+end
+
 -- load_build_xml {xml, name, keepLevel?} (C-2, D-29): validate first, so a bad document never reaches PoB and the
--- engine's current build is untouched; after the load, check that PoB really switched to it.
+-- engine's current build is untouched; after the load, check that PoB really switched to it. The reply's
+-- `droppedSupports` names the gems PoB dropped from the build's granted groups (D-398), [] for none.
 handlers.load_build_xml = function(params)
   local xml = params.xml
   if xml ~= nil and type(xml) ~= 'string' then
@@ -154,6 +253,7 @@ handlers.load_build_xml = function(params)
   end
 
   local name = params.name ~= nil and tostring(params.name) or 'API Build'
+  local readGroups, grantedGroups = pcall(document_granted_groups, first)
   launch.promptMsg = nil
   local popupsBefore = main.popups and #main.popups or 0
   _G.loadBuildFromXML(xml, name)
@@ -205,7 +305,14 @@ handlers.load_build_xml = function(params)
       end
     end
   end
-  return { ok = true, result = { name = name } }
+  -- The warning never fails a load that worked: a fault in it goes to stderr, and the reply names nothing.
+  local found, dropped = false, nil
+  if readGroups then found, dropped = pcall(dropped_granted_gems, grantedGroups) end
+  if not found then
+    io.stderr:write('[Handlers] reading the dropped granted gems failed: ' .. tostring(readGroups and dropped or grantedGroups) .. '\n')
+    dropped = {}
+  end
+  return { ok = true, result = { name = name, droppedSupports = dropped } }
 end
 
 -- With `breakdown` ({groupIndex?, fields}), the reply adds the per-skill, per-stat-set breakdown

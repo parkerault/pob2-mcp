@@ -1,10 +1,18 @@
 # Slice 02: Plan and compiler (compile-time spike, guides root, plan schema, C1/E1 data, import code, compiler, V1/V2)
 
 Part of the [build-guide spine](README.md). It covers work units WU-30 and WU-37…WU-42 (built; milestone
-M-11), WU-61 (built), WU-51 (done) and WU-55 (built), all milestone M-14, and WU-65…WU-68 (target,
-milestone M-15), and acceptance criteria AC-P1…AC-P67. When this slice and the spine disagree, the spine
+M-11), WU-61 (built), WU-51 (done) and WU-55 (built), all milestone M-14, WU-65…WU-68 (built, milestone M-15),
+WU-78 (built, M-17) and WU-80 (built, M-18), and acceptance criteria AC-P1…AC-P70. When this slice and the spine disagree, the spine
 wins. The adversarial review's fixes and the coordinator's resolutions are folded in under their spine IDs
 (D-210…D-238).
+
+**Fold v1.6 (2026-10-18).** M-15's units here have merged (WU-65…WU-68), so amendment 4's *target* text is
+stated as built, with the coordinator's D-363 (the clear-speed radius) and D-364 (what a tree is) and every
+deviation the reviewers judged sound. Folded in too: amendment 6's WU-78 (plan schema 4, the minion skill's
+resolution, its figure and V1's `not-granted`; D-377, D-378, D-380), amendment 7's WU-80 (a plain summon's
+figure, D-397), and the decisions after the Varashta baseline run: D-382 (the plan's groups at PoB's own index)
+and the defect batch's D-383 (locked nodes), D-384 (legacy content) and D-386 (a price's note). AC-T22 now runs
+in the `--runInBand` step beside AC-P37. No *target* text is left in this slice.
 
 **Fold v1.5 (2026-10-11).** Amendment 4 (accepted by the user 2026-10-11, with its answers) is folded in as
 *target* text for milestone M-15: plan schema 3 with claim kinds and the anoint (D-351, D-358), the
@@ -38,8 +46,12 @@ stage's numbers and check verdicts), a re-evaluated ledger and an import code. I
   config's `customMods`, the record's Count-scaled figures and custom-modifier marks, and the named source's
   groups in Full DPS in every compile;
 - the entering-maps rung `m` and one endgame tree track, `m` → `b` → `n` (WU-61, D-281, D-282; built);
-- *target (M-15):* plan schema 3, the anoint, the record's `measures`, the key-figure lines, `guide_run`'s
-  views, and V1's `tree-shape` and `support-sockets` (WU-65…WU-68; D-351, D-353, D-356, D-358…D-360).
+- plan schema 3, the anoint, the record's `measures`, the key-figure lines, `guide_run`'s views, and V1's
+  `tree-shape` and `support-sockets` (WU-65…WU-68; D-351, D-353, D-356, D-358…D-360, D-363, D-364; built);
+- plan schema 4's minion skill, its figure and V1's `not-granted` (WU-78; D-377, D-378, D-380; built), and a
+  plain summon's figure (WU-80, D-397; built);
+- the plan's groups found at PoB's own index (D-382), and `compile_check`'s refusal of locked nodes and legacy
+  content (D-383, D-384).
 
 ## 1. Existing system context (this slice)
 
@@ -125,7 +137,7 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
       their Count in every compile (WU-55, D-337; built).
   - **Custom modifiers.** `customMods` is a `text` config option (`Modules/ConfigOptions.lua:2279`). Each line
     PoB parses whole is added as a `Custom` modifier; a line it can't parse whole is skipped.
-  - **For amendment 4** (the issues report, `../studies/2026-10-11-run-a-issues.md`; *target*, M-15):
+  - **For amendment 4** (the issues report, `../studies/2026-10-11-run-a-issues.md`; built since, M-15):
     - **Anoints.** An anoint is the amulet line `Allocates <notable>`, which PoB grants with no path or point
       (`CalcSetup.lua:17-21, 1405-1414`); 875 notables have a three-emotion recipe. It compiles today, but no
       step, template or tool has a place for it (I-1).
@@ -136,6 +148,20 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
       v0.23.1 enforces one exit per start neither in its UI code nor on import (a headless probe confirms
       import); the user reports that its UI blocks it, and a newer release may differ. Run A had two Ranger
       trees from stage 2 and four trees from stage 6 (I-3).
+  - **For amendment 6 and the Varashta run** (the minion-skill spike, `../studies/2026-10-16-minion-skill-spike.md`;
+    built since, M-17 and the defect batch):
+    - **A minion's skill.** PoB keeps a summon's minion-skill choice per group (`srcInstance.skillMinionSkill`
+      and its stat-set lookups, `Modules/Build.lua:461-475`); a summon computes its minion's first skill by
+      default, and supports can append skills to the list, so an index isn't stable. PoB never checks the
+      passive that unlocks a command: Navira's Fracturing measured 1,027 DPS with node 10561 unallocated (A4).
+    - **PoB's own granted groups.** On every MAIN-mode calculation PoB appends a group, with a `source`, for
+      each granted skill that has no group yet, and removes stale ones (`Modules/CalcSetup.lua:1501-1663`;
+      node 32705's Navira is `source = "Tree:32705"`). So a plan group's position isn't PoB's
+      `socketGroupList` index once a calculation has run, and a stage with an off-hand calculates before its
+      skills are built (D-382).
+    - **Unlock constraints.** A node with an `unlockConstraint` is allocatable only while every node it names
+      is allocated (`Classes/PassiveSpec.lua:1248-1251`); 197 of the pin's 200 constraints name the Oracle's
+      The Unseen Path (5571). PoB applies a locked node anyway (D-383).
 - **Data and dependencies.** `data/` doesn't exist. zod 3 is a runtime dependency; `zod-to-json-schema`
   is dev-only.
 - **Tests.** `engineDescribe`, `startSessionFixture` (a private builds folder; it gains a guides folder
@@ -166,14 +192,23 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
 - **FR-P8.** The import code round-trips (D-145, D-180).
 - **FR-P9.** Creating a run folder never touches the engine, and validating a plan never changes the
   engine's build (`guide_run`, D-216).
-- *Target (M-15):*
+- Since M-15 (built, WU-65…WU-68):
   - **FR-P10.** The compiler computes each endgame stage's measures (DPS, EHP, the Arbiter verdict, clear
-    speed) and fills its reference hits from the data, so no agent computes or checks them (D-353).
-  - **FR-P11.** A stage's tree is valid in shape, not only reachable: one start exit per tree and at most one
-    tree per start (D-360).
+    speed) and fills its reference hits from the data, so no agent computes or checks them (D-353, D-363).
+  - **FR-P11.** A stage's tree is valid in shape, not only reachable: at most one tree per start, a tree being
+    a connected group of allocated nodes that may touch two exits of its start (D-360, as D-364 amends it).
   - **FR-P12.** Agents read a stage's key figures, and the plan's claims, without paging `plan.json` or
     Grepping the record: a key-figure line per stage in `compile_plan`'s reply, and `guide_run`'s views
     (D-356).
+- Since M-17 and M-18 (built, WU-78, WU-80):
+  - **FR-P13.** A plan can measure a summon's chosen minion skill: the group names it, the compiler resolves it
+    by name at every compile, and the group's figure is its minion's (D-377, D-378). A plain summon's group is
+    read by its minion's figure too (D-397).
+  - **FR-P14.** V1 checks that a stage allocates the passive that grants a tree-granted skill or a commanded
+    minion skill (`not-granted`, D-380).
+- Since the defect batch (2026-10-17): **FR-P15.** The compile refuses what the game won't allow though PoB
+  allows it: a node whose unlock constraint is unmet, a legacy gem, a unique no longer obtainable (D-383,
+  D-384).
 
 ## 3. Contracts in detail
 
@@ -215,7 +250,8 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
   (`stages[1].config.scenario[0].source`). The root, and a JSON parse error, are `$`.
 - **Version** (D-320, D-332; built by WU-61). `schemaVersion` must be `1` or `2`, `PLAN_SCHEMA_VERSIONS`
   (`src/plan/schema.ts`); version 2 is the current one. Any other value gives exactly one error, naming the
-  accepted versions (`[1, 2]`).
+  accepted versions (`[1, 2]`). **Amended at v1.6:** the accepted versions are `[1, 2, 3, 4]` since WU-78;
+  version 4 is the current one, and every earlier version keeps its own shape.
   - One bump, to `2`, covers the `entering-maps` variant, `count`, `countReason` and `customMods`. WU-61
     merged first and made it with `entering-maps`; WU-55 added its three fields to the same
     version's `VERSION_ADDITIONS`. Each unit updates `plan-reference.md` and its worked example; the
@@ -226,10 +262,14 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
     (`stages[2].variant: the entering-maps variant (D-281) needs schemaVersion 2 or later; …`). So
     recorded runs' plans still validate and compile; the fifteen-stage and off-hand fixtures stay at
     version 1 and validate.
-  - *Target (WU-65; D-351, D-358):* **version 3** adds `claims[].kind` (`hinge` or `reason`) and
+  - **Version 3** (WU-65, D-351, D-358; built) adds `claims[].kind` (`hinge` or `reason`) and
     `items.anoint {notable, reason}`, allowed on `b` and `n` only, refused on `m` or a campaign stage;
     version 2 stays accepted (AC-P60). `PLAN_SCHEMA_VERSIONS` and `VERSION_ADDITIONS` gain it, and
     `plan-reference.md` and its worked example follow.
+  - **Version 4** (WU-78, D-377; built) adds a socket group's `minionSkill` and `minionStatSet`; its
+    `VERSION_ADDITIONS` entry reads "a group's minion skill (D-377)", and before 4 a minion uses its first
+    skill. A version-3 plan with `minionSkill` is refused by the version rule (AC-P69). The two-stage fixture
+    stays at version 3; D1-build writes every plan at version 4 (WU-79).
 - **Strictness.** Objects are strict: an unknown key is an error.
 - **Cross-reference rules** are marked † below. They run as refinements, each with its own path.
 
@@ -243,12 +283,12 @@ type SourceTag = {                                   // C-30
   confidence?: 'H' | 'M' | 'L';   // required for external, judgment and external-unavailable
 };
 type Claim = { id: string; text: string;
-                kind?: 'hinge' | 'reason';  // target (WU-65, D-351): schema 3; a hinge fact or a measured reason
+                kind?: 'hinge' | 'reason';  // WU-65, D-351: schema 3; a hinge fact or a measured reason
                 source: SourceTag | `ledger:${string}` | `price:${string}` | `data:${string}#${string}` };
                 // † a ledger or price id exists (D-237); data:<file>#<key> names a file under data/ and a
                 // fact id, which † resolve once WU-39 lands (D-232)
 type Plan = {
-  schemaVersion: 1 | 2;                   // D-320, D-332: version 2 since WU-61; target (WU-65, D-351): 1 | 2 | 3
+  schemaVersion: 1 | 2 | 3 | 4;           // D-320, D-332: 2 since WU-61, 3 since WU-65 (D-351), 4 since WU-78 (D-377)
   roll: { className: string; ascendancy: string; skill: string };
                                           // the run's roll; since WU-57 (D-286) a card's identity. A
                                           // skeleton's roll is its card's; the run's plan takes the identity
@@ -288,7 +328,7 @@ type Stage = {
     treeJewels: { node: number; text: string }[];  // node ∈ tree.nodes †
     toggles: { slot: ActivatableSlot; active: boolean; uptime?: string }[];  // uptime required when active
     useSecondWeaponSet: boolean;
-    anoint?: { notable: string; reason: string };  // target (WU-65, D-358): schema 3; b and n only †
+    anoint?: { notable: string; reason: string };  // WU-65, D-358: schema 3; b and n only †
   };
   skills: {
     setTitle?: string;
@@ -296,15 +336,19 @@ type Stage = {
               role: 'clear' | 'single_target' | 'utility' | 'leveling';                          // D-217
               gems: { name: string; level: number; quality: number; enabled: boolean }[];        // ≥ 1 gem each
               count?: number;             // WU-55, D-293: integer ≥ 1, default 1
-              countReason?: string }[];   // WU-55, D-293: why count is above 1; missing there, a V1
+              countReason?: string;       // WU-55, D-293: why count is above 1; missing there, a V1
                                           // finding (§3.7), not a schema error (D-322)
+              minionSkill?: string;       // WU-78, D-377: schema 4; the skill the group's summon's minion
+                                          // uses, as the gem lookup names it; resolved by name at compile
+              minionStatSet?: number }[]; // WU-78, D-377: integer ≥ 1, default 1; only with minionSkill †
     main: { group: number; activeSkill: number; statSet?: number };  // 1-based; group equal in every stage †
                                           // D1 sets statSet on each variant stage. On every stage with a
                                           // rolledGroup, main.group equals rolledGroup (D-273). The D1 gate
                                           // and the run checker enforce both, not the schema
     rolledGroup?: number;                 // 1-based group holding a gem named roll.skill †; required on
                                           // variant stages † (D-217). Since WU-57 (D-295): the group holding
-                                          // the build's named damage source; the field keeps its name
+                                          // the build's named damage source; the field keeps its name. Since
+                                          // WU-78 (D-379): or the group whose minionSkill is roll.skill
   };
   config: {
     setTitle?: string;
@@ -360,9 +404,20 @@ type Price = { id: string;              // ^[A-Za-z0-9_-]+$, unique †; what a 
 - **Skill roles** (D-217). Every group has a `role`; the rolled-skill gate (slice 3) compares the rolled
   skill against the stage's other skills of its group's role. Since WU-57 (D-295, D-293, D-340), it
   compares the build's named damage source, by its figure × its group's `count`.
-- *Target (WU-65, D-358):* **the anoint.** `items.anoint` names one notable and why; the compiler writes it
+- **The anoint** (WU-65, D-358; built). `items.anoint` names one notable and why; the compiler writes it
   (§3.6). It is refused on `m` and on campaign stages (Q5: `m` instead points a player who can afford one
   ahead, in the guide).
+- **A minion's skill** (WU-78, D-377; built). A group that names `minionSkill` holds exactly one summon, the
+  summon itself, not its "Command" active skill, which has no minion; `main.activeSkill` on such a main group
+  is the summon. The name is resolved against the minion's live skill list at every compile (§3.6), so a plan
+  never stores an index: supports append skills, and a pin upgrade can reorder the list. The field sits on the
+  group because PoB keeps the choice per summon, so a build can measure Navira's Fracturing in its clear group
+  and Kelari's Deception (two stat sets) in its boss group.
+- **Prices for `b` and `n`'s rares** (D-370, D-372; WU-75). The schema keeps `query` as any JSON. The pipeline
+  writes a rare's entry as `query: {slot, required: [{affix, min}], target: {divines, day}}` before it is priced,
+  then adds the call's arguments; a fallback is `<id>-fallback`; an emotion's query is `{"exchange": "Delirium",
+  "name": "<emotion>"}` (D-387). Prices stay as seen: the conversion to a price day is the renderer's and the
+  checker's (D-373).
 
 **Committed reference.** `docs/build-guide/plan-reference.md` (new) has one table row per schema field
 path (form `stages[].tree.nodes`), giving its type, whether it's required, its rule and the decision it
@@ -417,13 +472,20 @@ type Fact = { value: number | string | boolean | { min: number; max: number }
 | `campaign/progress.json` | `order`: the progress keys (A-P10), i.e. `start`, one key per reward-quest row of `Data/QuestRewards.lua` in file order, then `endgame`. Per quest key `q.<key>` (D-214; `<key>` derived from the row as A-P13 says): `.region` (`act1`…`act4`, `interlude`), `.area-level`, `.reward` (text), `.passive-points` and `.weapon-set-points` (2 each for the 12 books), `.pob-config-key` (rewards with `useConfig`), and `.spirit`, `.resistance`, `.life`, `.mana` where granted | pin §B7; ext §2 (S10, S11, S12) |
 | `campaign/areas.json` | area-level ranges for `act1`…`act4`; `interlude.base-levels`; `interlude.dynamic-increase` (+8, M) | ext §2 (S9, S47, S48) |
 | `campaign/ascendancy.json` | `trial.1`…`trial.4`: `.points` (2), `.available-from` (a progress key), `.requirement` (text). The third and fourth trials' 65+/75+ dispute is recorded as M | ext §2 (S15, S16) |
-| `campaign/gems.json` | `uncut-skill.<1..20>.available-from`; `uncut-support.<1..5>.available-from`; `tier-rule` (an uncut gem of level N engraves a skill of tier ≤ N at gem level N, H); `skill-tiers`, `spirit-tiers`, `support-tiers`. *Target (WU-67, D-359):* the estimated support-socket table for tree-granted skills, a `judgment` fact at confidence L: 3 below level 40 (Act 2, levels 16–31, into Act 3), 4 from level 40 (Act 3's second half to 45, Act 4 and the interludes), 5 from level 60 (the campaign's end; the interludes start at 54–56 and rise about 8), with area levels from `campaign/areas.json` | ext §2 (S17, S18, S19, S37); the table: the user's estimate (amendment 4 Q1) |
+| `campaign/gems.json` | `uncut-skill.<1..20>.available-from`; `uncut-support.<1..5>.available-from`; `tier-rule` (an uncut gem of level N engraves a skill of tier ≤ N at gem level N, H); `skill-tiers`, `spirit-tiers`, `support-tiers`. Since WU-67 (D-359; built), `support-sockets.tree-granted` = `{"1-39":3,"40-59":4,"60-100":5}`, the estimated support-socket table for tree-granted skills, a `judgment` fact at confidence L: 3 below level 40 (Act 2, levels 16–31, into Act 3), 4 from level 40 (Act 3's second half to 45, Act 4 and the interludes), 5 from level 60 (the campaign's end; the interludes start at 54–56 and rise about 8), with area levels from `campaign/areas.json` | ext §2 (S17, S18, S19, S37); the table: the user's estimate (amendment 4 Q1) |
 | `campaign/limits.json` | `passive-points.from-levels` (99), `.max` (123), `.martyr` (1, M); `ascendancy.max` (8). `resistance-penalty.<region>`: act1 0, act2 −10, act3 −20, act4 −30, endgame −60; interludes −40 at area level 54–59 and −50 at 60–64 | ext §2 (S14, S43, S13); pin `ConfigOptions.lua:113` |
 | `enemies/arbiter-of-divinity.json` | `area-level` (79); `base.*` at level 79 (life, energy shield, armour, evasion, accuracy, crit chance and bonus); `res.fire`, `.cold`, `.lightning`, `.chaos` (0.5.5 values); `hits.<skill>` as `{min,max}`, each with `.type`; `fight-life.datamined-base`, `.extrapolated` (about 8M, with its method), `.community-report` (about twice the quest version), all L (A-30); `pob-enemy-is-boss` ("Pinnacle"; judgment, M: a pinnacle boss per ext §4, while PoB's Pinnacle uses PoE1-derived means, pin §B5) | ext §4 (S2, S26, S28, S34) |
 | `enemies/map-monsters.json` | `life.by-level` and `damage.by-level` (levels 1–100, copied from `Data/Misc.lua:7` and `:9`, `pob-data`); `pob-enemy-is-boss` ("None") | pin §B6; ext §3 |
 | `enemies/waystones.json` | `area-level.offset` (64: T15 = 79, T16 = 80); `area-level.max` (82, M); `mods.<name>` ranges (M; poe2db's current values) | ext §3 (S21, S22, S50) |
 
 No rarity life multiplier is recorded (A-27).
+
+**The economy file** (D-373; built, WU-75). `data/economy/prices.json` has the same shape, with the price
+conversion table (`conversion.*`: the under-10 and 10-or-more rows to day 7 and day 21, the late divisor, the
+first and late days) and the league table (`league.<slug>`: each league's start date, and an end date where the
+pricing study's data ends), all `judgment` facts at confidence L citing `docs/build-guide/studies/2026-10-16-pricing.md`.
+It sits outside `DATA_FOLDERS` (`campaign` and `enemies`), so the compiler's loader never reads it: the D1 gate,
+the renderer and the run checker do (slice 03 §9).
 
 **Divergence (D-168, D-203).** D-3 and D-30 forbid constants of our own in the advice tools. These files
 hold our own constants, but they are cited game facts tied to a patch, not invented advice thresholds.
@@ -488,10 +550,23 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
    Also (WU-55, D-293; built) a custom-modifier line (`config.customMods[<i>]`) that PoB can't parse
    whole, since PoB's `customMods` option would skip it without a word: the line, stripped as PoB strips
    it, must give a mod list with no remainder from `modLib.parseMod`.
-   *Target (WU-65, D-358):* an `items.anoint` whose notable has no three-emotion recipe, is already
-   allocated, or sits on a stage with no amulet, each naming the stage.
-   *Target (WU-66, D-360):* `check_tree` (`Compile.lua:182-285`), which tests only reachability today, also
-   computes each stage's trees for V1's `tree-shape` (§3.7): a tree shape is a V1 finding, not a defect.
+   Since WU-65 (D-358; built): an `items.anoint` whose notable has no three-emotion recipe, is already
+   allocated, or sits on a stage with no amulet, each naming the stage. The check also replies with
+   `describeGems`, `anoints` and `gemTexts` (the gem texts the clear measure reads), and `checks.nodeNames`
+   gains the notables an item grants.
+   Since WU-66 (D-360, D-364; built): `check_tree` (`Compile.lua`), which tested only reachability, also
+   computes each stage's trees for V1's `tree-shape` (§3.7), and `compile_check` replies with `trees[]`: a tree
+   shape is a V1 finding, not a defect. As built, PoB prunes a Sorceress tree without 12795, and an ascendancy
+   node cut off from 1583, so D-213's not-connected check refuses those plans here, before V1 runs (AC-P65).
+   Since WU-78 (D-377, D-379; built): for a group that names `minionSkill`, a group with no summon or with two,
+   an unknown minion skill (listing the minion's skills, as PoB's list for a new gem gives them), a
+   `minionStatSet` beyond the skill's stat sets, a disabled summon gem (the check reads each gem's `enabled`),
+   a main group naming a minion skill whose `main.activeSkill` isn't the summon, a minion skill an item adds,
+   and a rolled group whose summon doesn't cast `roll.skill`.
+   Since the defect batch (built): a node whose unlock constraint is unmet, "node 22133 (Command Skill
+   Cooldown) is locked: PoB unlocks it only while node 5571 (The Unseen Path, an Oracle node) is allocated"
+   (D-383; V1 needs no rule, since a refused plan never compiles); a gem PoB marks legacy, and a unique PoB
+   says is no longer obtainable (D-384).
    It also returns (both added by WU-42):
    - **`producers`** (D-221): for each `{kind, name}` producer the plan's earned entries name, whether it
      exists in the game data (by kind: an item base or unique, a gem, a passive or ascendancy node, an
@@ -510,7 +585,9 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
 7. **Build and measure,** one `compile_stage` request per stage, in plan order (D-156). It selects or
    creates the stage's tree spec and its item, skill and config sets: stage 1's are retitled spec 1 and
    set 1 of each type (D-215); others are created on first use and reused by id after; never
-   `CopyLoadout` (D-103). It imports the tree with weapon-set tags and attribute choices, sockets the
+   `CopyLoadout` (D-103). **Amended by D-382 (v1.6; built):** the stage's skill set is selected with its tree
+   and items, before the stage's first calculation, so the groups PoB adds for this stage's tree and items go
+   into the stage's own set; `build_skills` only adds the groups. It imports the tree with weapon-set tags and attribute choices, sockets the
    jewels, equips the items, sets the toggles and `useSecondWeaponSet`, adds the groups and gems, and sets
    the main selection: the build-wide group, the group's active skill, the stat set (C-44). It writes
    every listed config option, earned and scenario, into the config set (C-32), sets the stage's level in
@@ -534,17 +611,37 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
    - After the listed config options (WU-55, D-293; built), each `customMods` entry is written into PoB's
      `customMods` text option, one line per entry, in a `set_config` call of its own; the save check below
      treats that option like a listed one.
-   - *Target (WU-65, D-358):* a stage's `items.anoint` is written as `{enchant}Allocates <notable>` on its
-     amulet, which PoB grants with no path or point.
-   - *Target (WU-65, D-353):* an endgame stage whose scenario omits a reference hit gets it from the data,
-     D-254's formula rounded up by D-256 (`ceil(round2(value))`), at the stage's area level; a plan that
-     states one keeps its own.
+   - **The anoint** (WU-65, D-358; built): a stage's `items.anoint` is written as `{enchant}Allocates
+     <notable>` on its amulet, which PoB grants with no path or point.
+   - **Reference hits** (WU-65, D-353; built): an endgame stage whose scenario omits a reference hit gets it
+     from the data, D-254's formula rounded up by D-256 (`ceil(round2(value))`), at the stage's area level; a
+     plan that states one keeps its own. As built, a filled hit is a scenario entry, so it reaches the record's
+     `configWritten` and V2.
+   - **The plan's groups** (D-382; built). PoB appends a group, with a `source`, for each granted skill that has
+     no group yet, on every MAIN-mode calculation, and removes stale ones, so a plan group's position isn't
+     its `socketGroupList` index. The plan's groups are the active skill set's groups without a `source`, in
+     order (`group_indices`); every use reads PoB's index from that list: `select_minion_skills`,
+     `select_main`, `granted_skills` and `stage_gems` (V1's input). `created.index` alone wouldn't do: a reused
+     skill set creates no groups, and a calculation can remove a stale PoB group anywhere in the list. Not
+     changed: PoB's group order, and when PoB calculates.
+   - **A minion's skill** (WU-78, D-377; built). After the stage's groups are built, each group that names
+     `minionSkill` is made main for its own selection (so a disabled group works too), and
+     `BuildOps.select_minion_skill` resolves the name, case-insensitively, against its minion's live skill list
+     and writes PoB's own fields (the skill index, its Calcs-tab copy and the stat-set lookup). An unknown name
+     or a name the list holds twice fails the stage, naming the skills or the positions.
 
    It replies with:
    - `allocation` (D-213): PoB's allocated nodes and ascendancy nodes after the import, each with its
      weapon-set tag (0, 1 or 2);
    - `outputs`, every finite numeric scalar of `mainOutput`, and `skillOutputs`, C-45's breakdown keyed
-     `g<group>s<skill>p<statSet>`, each `{skill, statSetLabel, fields}`;
+     `g<group>s<skill>p<statSet>`, each `{skill, statSetLabel, fields}`. **Amended by D-382 (v1.6):** `<group>`,
+     and every group number in the reply, is the plan's group number: the plan's groups first, in plan order,
+     then PoB's own granted groups, in PoB's order, which is the contract the record, V1, the ledger's refs, the
+     D1 gate and the checker already assumed. `skill_outputs` keys its breakdown and the DoT flags by that
+     number. Since WU-65 `skillOutputs` carries `AreaOfEffectRadiusMetres`; since WU-78 `outputs` carries every
+     finite `Minion<Field>` (D-376), and the reply adds `minionSkills` (each resolved selection: the group, the
+     minion, the skill's name, its index and its stat set) and `checks.grantedSkills` (per group whose skill a
+     passive grants, the granting nodes and whether the stage allocates them, D-380);
    - V1 inputs (added by WU-42): `CountAllocNodes`, `ExtraPoints`, `PassivePointsToWeaponSetPoints`,
      `Str/Dex/Int`, `ReqStr/ReqDex/ReqInt` with their sources; each gem's tier, kind (skill, support, or
      spirit, i.e. it reserves Spirit) and `levelRequirement` at its level; each item's
@@ -685,10 +782,15 @@ back what the save dropped (D-248).
     `buildSha1` tracks build content, and sources and tags are citations.
   - When only claims were edited after the final compile, the run checker requires the current plan's
     `buildSha1` to equal the record's (slice 3, D-264).
-  - *Target (WU-65, D-352):* the projection also leaves out the plan's `ledger`, `ledger[].claim`
-    included, in `src/plan/buildHash.ts`, which the compiler and the checker share. The checker
-    re-evaluates the ledger itself (D-271, `[ledger]`, WU-71), so a ledger-only edit after the final compile
-    leaves `buildSha1` equal and passes `[record-plan]`, and a gear edit still fails it (AC-W59).
+  - **Without the ledger** (WU-65, D-352; built): the projection also leaves out the plan's `ledger`,
+    `ledger[].claim` included, in `src/plan/buildHash.ts`, which the compiler and the checker share. The
+    checker re-evaluates the ledger itself (D-271, `[ledger]`, WU-71), so a ledger-only edit after the final
+    compile leaves `buildSha1` equal and passes `[record-plan]`, and a gear edit still fails it (AC-W59).
+    WU-65 recomputed the sixteen pipeline fixture records' `buildSha1`.
+  - **Without a price's note** (D-386; built, the defect batch): the projection leaves out `prices[].note`, so a
+    note-only wording fix needs no recompile. Every other price field still counts, so a price change
+    recompiles and re-runs the gates; the WU-70 review left that as built (it matters only online) for the live
+    run to judge.
 - **`loadoutWarnings`** (D-310). PoB2 checks an off-hand against the passives of the loadout it switches
   from, so switching loadouts in PoB2 can unequip a planned off-hand. One line per weapon-fit flag (Giant's
   Blood, Instruments of Power, Lord of the Wilds) that some stages have and others lack.
@@ -717,18 +819,43 @@ back what the save dropped (D-248).
     `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.TotalDPS`, with `TotalEHP`
     beside it. `TotalEHP` is already in `outputs`, because the compiler copies every finite PoB output
     (`Compile.lua:961-964`).
-- *Target (WU-65; D-353, D-358):* **`measures`**, per endgame stage, so no agent computes or checks them:
-  - `dps`, the headline (the named source's Count-scaled figure, D-294), and `ehp`, `TotalEHP`;
+- **`measures`** (WU-65, D-353, D-358; built, additive, so `recordVersion` stays 2), per endgame stage, so no
+  agent computes or checks them:
+  - `dps`, the headline (the main group's Count-scaled figure, D-294, by D-378's figure), and `ehp`,
+    `TotalEHP`;
   - `arbiter` (`b` and `n`): for each damage type the Arbiter of Divinity deals
     (`enemies/arbiter-of-divinity.json`), its largest hit's top roll over `<Type>MaximumHitTaken`: `survives`
-    below 1, else `one-shot`; a mixed hit sums its parts' ratios. A row per damage type and mixed hit gives
-    the hit, the max hit, the ratio and the verdict;
+    below 1, else `one-shot`; a mixed hit is split evenly over its damage types, and sums its parts' ratios. A
+    row per damage type and mixed hit gives the hit, the max hit, the ratio and the verdict, and `worst` names
+    the highest ratio;
   - `clearSpeed`, labelled rough, assuming a normal monster dies to one use: by the clear skill's radius
     (`AreaOfEffectRadiusMetres`, 0 if absent), `slow` below 2 m, `medium` from 2 m to below 4 m, `fast` from 4 m
-    (Q2), read from the stat set the main selection names when the clear skill is the main skill, else its first stat set (D-363); one step
+    (Q2), read from the stat set the main selection names when the clear skill is the main skill (a
+    `clear`-role group that is the main group included), else its first stat set (D-363); one step
     faster when its gem text explodes monsters or spreads an effect on death (a phrase list in the
     compiler); one step slower when a use takes over 1 second (`Speed` below 1, an estimate). No agent
-    researches it. Run A's 1.8 m starts at slow.
+    researches it. Run A's 1.8 m starts at slow. A clear group whose figure is its minion's reads
+    `MinionAreaOfEffectRadiusMetres` and `MinionSpeed` instead (D-378, D-397; `minionFigures`), and a non-main
+    minion clear group is measured at its summon. At the pin a Skeletal Warrior's strike has no area radius, so
+    it reads "slow" either way.
+
+  D-363's basis: in PoB2 two radius stats of one stat set can both map to `skill("radius")` (Aftershock's own
+  map, 18, and the global base map, 27), applied in `pairs()` order, which LuaJIT's per-process hash makes
+  random: Earthquake's Aftershock read 2.7 m in 3 engine starts and 1.8 m in 5. Stat set 1 (Impact) is
+  deterministic, and a scan of the pinned data found only this collision. The user's Q2 made it the cheapest
+  fix: no general rule, one ordinary engine test.
+- **A group's figure** (WU-78, WU-80; D-378, D-397; built). `figureField(rec, {group, activeSkill, statSet?})`
+  is `MinionTotalDPS` when the group names a minion skill, or when its selected `skillOutputs` entry carries
+  `Minion<Field>` fields (`summonsMinion`, shared with `get_passive_upgrades`, D-388); otherwise `TotalDPS`. A
+  plain summon with no `skillOutputs` entry at the main key falls back to `TotalDPS` (theoretical; a test pins
+  it). The headline, the key-figure line, the rolled figure and the clear measure read it.
+  - **Count** (D-378): `COUNT_RULE` also multiplies `MinionTotalDPS` and `MinionImpaleDPS` by the count, and
+    counts `MinionTotalDot` and the minion ailments once, as PoB's Full DPS merges a minion with its group's
+    count.
+  - **`stages.<id>.minionSkills[]`** (D-377): the resolved selection of every group that names a minion skill,
+    and only those: the group, the minion, the skill's name, its index in the live list and its stat set.
+  - **Size.** A summon stage's `outputs` holds about 1,433 keys, 723 of them `Minion*`: about 29 KB (+59%) more
+    `record.json`. It stays as built: agents read records by Grep, and every field is a ledger ref (D-376).
 
   No kill time and no hits to kill. The ledger shrinks: the compiler fills the reference hits, so 15
   `hit_*` entries go; 4 Arbiter ratios become `measures`; 3 hits-to-kill and 12 kill-time entries go. What
@@ -744,8 +871,14 @@ back what the save dropped (D-248).
 Then one line per ledger entry (`<id> = <value>` or `<id>: <error>`), and one per version note, loadout
 warning and save warning (D-310, D-248). Then the saved level and active loadout, and the paths written,
 relative to the builds folder and the guides root.
-*Target (WU-65, D-356, amending D-273 (2)):* each stage's line is followed by a key-figure line, so agents
-stop Grepping the record after every compile; its fields are WU-65's to name (AC-P64).
+**The key-figure line** (WU-65, D-356, amending D-273 (2); built): each stage's line is followed by
+`  Key figures: DPS <n>; life <n>; ES <n>; EHP <n>; resists <f>/<c>/<l>/<ch> (fire/cold/lightning/chaos);
+findings V1 <n>, V2 <n>`, so agents stop Grepping the record after every compile (AC-P64). An endgame stage adds
+`clear <speed> (rough)`, and `b` and `n` `Arbiter <verdict> (worst: <type> hit <id>, <ratio> of max hit)`.
+DPS is the stage's headline (`headlineDps` of its main selection), the figure `measures.dps` holds on an
+endgame stage; when it is a minion's it names the source, `DPS <n> (<skill>, minion)`: the minion skill's name
+(D-378), or for a plain summon the record's own skill name, PoB's granted-effect name, so the Skeletal Warrior
+reads `(Skeletal Warrior Minion, minion)` (D-397).
 
 **Wiring** (spine §1.2). The schema literal, `TOOL_META` `{engine:'load', group:'core'}`, the router
 case, `handleCompilePlan` in `src/handlers/planHandlers.ts`, and a disposition entry with `bucket:"new"`.
@@ -758,7 +891,12 @@ threshold, so it doesn't run in the parallel Jest run: `jest.config.cjs` exclude
 (`testPathIgnorePatterns`), and `mise.toml`'s `test` task runs it in its own step after `pnpm test`,
 with `--runInBand`, e.g. `pnpm exec jest --runInBand --testPathIgnorePatterns /node_modules/ --
 tests/integration/compilePlanNfr.test.ts`. The step is its own entry in the task's `run` list, with no
-pipe, so its exit code fails the task (CLAUDE.md's no-pipes rule).
+pipe, so its exit code fails the task (CLAUDE.md's no-pipes rule). Since 2026-10-17 the step also runs
+`tests/integration/tradeQueryNfr.test.ts`, AC-T22's trade-query timing test (five slots at 8 s each on the
+golden build), moved out of `trade.lua.test.ts`: since WU-78 it failed on time in every full gate (9.4–10.1 s
+under load) and passed every time alone, and each failure stopped `mise run test` before this step. Both files
+run in one `--runInBand` Jest call, so both run when one fails and either failure fails the task;
+`jest.config.cjs` leaves both out of the parallel run, and `compilePlan.test.ts`' static checks cover it.
 
 ### 3.7 V1 and V2 (WU-42, `src/plan/checks/`)
 
@@ -782,15 +920,16 @@ usage comes from PoB's own counts.
 | `pob-warning` | any PoB warning line except the filtered ones, which go to `pobWarnings.filtered`. Two patterns are filtered. `^You have \d+ Weapon set 2 passives available$` (`Build.lua:1051-1055`) is always informational. `^You have too many passive points allocated$` is filtered only when the stage's regular points pass `passive-points` with the Martyr point alone: PoB's cap (`Build.lua:1007, :1030`) doesn't know that point, which V1 notes instead (A-29) |
 | `tree-continuity` | the stage's nodes and ascendancy nodes don't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor (`predecessorOf`, `src/plan/checks/v1.ts`; built by WU-61, D-282): stages without `variant` form the campaign track, in plan order; the endgame stages form one ladder, `m` → `b` → `n`, by rung whatever the plan order (plan order only within a rung; a rung the plan lacks is skipped). The ladder's first stage continues from the last campaign stage in the plan, wherever the rung is listed, and from none when there is no campaign stage. So each rung's `respec.dropped` is checked against the rung before it; its gold cost gets only its schema check, since it carries a `judgment` tag (A-32). This replaced A-P3's per-variant tracks |
 | `missing-reason` (WU-55, D-322; built) | a group with `count` above 1 and no `countReason`, or a `config.customMods` entry without a `reason`; `data.path` names the field. It is a V1 finding, so the stage's `v1.pass` is false; it is not a schema error (AC-P51, AC-P52) |
-| `tree-shape` (*target*, WU-66, D-360) | the stage's main-tree nodes, class starts not joining their exits, break the rule: each tree (connected component) holds exactly one start exit (a node linked to the class start, or a main-tree link of an allocated alternate-start node: Path of the Sorceress, 12795, links exits 4739 and 44871); each start holds at most one tree; an alternate start holds a tree only while its granting node is allocated; the ascendancy nodes form one tree with their own start, over ascendancy links. So a build has at most two trees with Path of the Sorceress, one without. Computed in `check_tree`; the finding names the stage, the start and each tree's nodes (AC-P65) |
-| `support-sockets` (*target*, WU-67, D-359) | a tree-granted skill's group holds more supports than the estimated ceiling at the stage's level (`campaign/gems.json`, a `judgment` fact at L); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (AC-P66) |
+| `tree-shape` (WU-66, D-360, D-364; built) | the stage's main-tree nodes, class starts not joining their exits, break the rule (D-364): a tree is a connected group of allocated nodes, the start not counted; each start holds at most one tree (`one-tree-per-start`); an alternate start holds a tree only while its granting node is allocated (`alternate-start`; Path of the Sorceress, 12795, links exits 4739 and 44871); the ascendancy nodes form one tree with their own start, over ascendancy links (`ascendancy`). A tree that touches two exits of its start through its own nodes is one tree, and legal: amendment 4's "exactly one start exit", `one-exit-per-tree`, is dropped. So a build has at most two trees with Path of the Sorceress, one without. Computed in `check_tree`; one finding per broken rule, its `data` `{stage, rule, start, startName, trees[{exits, nodes}]}` (AC-P65). As built it groups trees across weapon sets (rare; left) |
+| `support-sockets` (WU-67, D-359; built) | a tree-granted skill's group holds more supports than the estimated ceiling at the stage's level (`campaign/gems.json`'s `support-sockets.tree-granted`, a `judgment` fact at L); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (AC-P66). As built, a tree-granted group is recognised by elimination, since neither the plan nor PoB's gem list records where a skill comes from: its skill is explicitly tier 0 in PoB's data (`Data/Gems.lua`; an unknown tier is never flagged), and no `Grants Skill:` line in the stage's items names it. The finding adds "if an item grants it, its item text lacks the `Grants Skill:` line". Disabled supports count (rough is fine). `checkSupportSockets` runs last in `checkV1` |
+| `not-granted` (WU-78, D-380; built) | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives. PoB checks neither (the spike's A4). Only an enabled group or the main group, and never a gem an item of the stage grants. Its input is `compile_stage`'s `checks.grantedSkills`. Since D-382, every finding or note that names a gem names one in its own group |
 
 **V2: config** (D-114, C-32).
 
 | Code | Finding when |
 |---|---|
 | `producer-unknown` | an earned entry is on and `compile_check`'s `producers` reply says its producer doesn't exist in the game data (D-221) |
-| `producer-absent` | the producer exists but isn't in the stage. Item: an equipped item's name. Gem: a gem in the skill set. Passive: an allocated node, ascendancy included. Skill: an active skill of the stage. Flask or charm: equipped, with its toggle on. Names compare case-insensitively |
+| `producer-absent` | the producer exists but isn't in the stage. Item: an equipped item's name. Gem: a gem in the skill set. Passive: an allocated node, ascendancy included, or a notable an item grants (since WU-65, `checks.nodeNames` holds them). Skill: an active skill of the stage. Flask or charm: equipped, with its toggle on. Names compare case-insensitively |
 | `source-unresolved` | a scenario entry's `source.file` isn't a loaded C1/E1 file, or its `key` (and member) doesn't resolve |
 | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on and its quest comes after `progress` |
 | `default-unlisted` | an option is on in the config baseline, or is placeholder-driven in the stage's config set, the stage doesn't list it, and the baseline list doesn't cover it for the stage (A-P4, D-212, D-230). The list doesn't cover an option it doesn't name. Nor does it cover a conditional option PoB shows for the stage (D-250), or, on a stage that fights a boss, the enemy's level, armour, evasion, resistances or crit, which come from E1 as scenario entries (D-252). `data` names the option, its value and its `origin` (`default` or `placeholder`) |
@@ -823,12 +962,14 @@ nothing, bumps `revision` or marks the build dirty (D-216).
 
 **Arguments.** Exactly one of `new_run` (a slug, A-P7) and `validate` (a `plan_path`, relative to the
 guides root); `stages` only with `validate`. Any other combination is `isError` naming the conflict, and
-nothing is done. *Target (WU-68, D-356):* a third argument, `view`, joins the "exactly one" set.
+nothing is done. Since WU-68 (D-356; built), a third argument, `view`, joins the "exactly one" set.
 
 **Kind** (D-216, D-244). `TOOL_META.guide_run` is `{engine:'read', group:'core'}`. `toolRouter.ts`'s
 `engineKindFor(name, args)` gives a call's kind from its tool's per-call rule, else from its `TOOL_META`
 kind, and `routeToolCall` uses it.
-- `guide_run`'s rule: a `validate` call without `new_run` is a `read`, and every other call is `none`.
+- `guide_run`'s rule: a `validate` call without `new_run` (or `view`) is a `read`, and every other call is
+  `none`. Since WU-68, a call with `view` is `none` too (`toolRouter.ts`; the WU-68 review's note for the
+  fold).
 - So a `new_run` call, like any other argument mix (which the handler refuses), never enters `session.run`.
   It takes no lock, emits no session event and never starts the engine.
 - The same function holds `manage_sets`' rule: `{action:"list"}` is a `read` (D-244, slice 1).
@@ -850,11 +991,17 @@ step 5. Otherwise it returns `Plan <path> is valid: <n> stages (<ids>).`, follow
 `producers`, by one line per producer `compile_check` reports unknown (`producer-unknown`: a V2 finding at
 compile, not an error). It sends exactly one engine request.
 
-*Target (WU-68, D-356):* **the views.** `{view: {plan, stage}}` returns one stage's plan section and its
-key figures; `{view: {plan, claims: true}}` returns every claim, compact (run A's: 48K characters against
-226K paged). Each stays under Read's 25K-token cut-off; run A's `plan.json` was about 92K tokens, and Read
-stopped at line 755 of 2,848. A view call is `none` by `guide_run`'s rule above; the README tool table,
-which it regenerates, is WU-68's.
+**The views** (WU-68, D-356; built, merge `f79b5f0`). `{view: {plan, stage}}` returns a header, the record's
+current or stale status, the stage's key-figure line and the stage's plan section as compact JSON (11.7–16.0 KB
+on the fifteen-stage fixture); `{view: {plan, claims: true}}` returns one line per claim, compact (run A's: 48K
+characters against 226K paged; the fixture's 1.6 KB), capped at 50,000 characters at a stage boundary. Each
+stays under Read's 25K-token cut-off; run A's `plan.json` was about 92K tokens, and Read stopped at line 755 of
+2,848. As built, a view takes no lock and skips the schema check, so views can be batched; the claims view
+prints ledger ids, not values; and the stage JSON isn't the file's own formatting, so anchoring an Edit still
+needs Read or Grep. The path is contained as `plan_path` is (an absolute path, `..`, a symlink out and a
+directory are refused). A view call is `none` by `guide_run`'s rule above; the README tool table, which it
+regenerates, is WU-68's. Only the coordinator holds `guide_run`: the verifier Greps `plan.json`'s claims arrays
+instead, since `guide_run` also carries `new_run` (D-178), and W1's tools are file tools only (D-257).
 
 **Wiring** (spine §1.2). The schema literal, the `TOOL_META` entry, the router case and `guide_run`'s rule
 in `engineKindFor`, `handleGuideRun` in `src/handlers/planHandlers.ts`, and a disposition entry with
@@ -1110,7 +1257,7 @@ These are formalizer's choices where the inputs fix a requirement but not its me
 WU-68 in parallel after it; WU-67 after WU-66; slice 3's WU-69…WU-71 after WU-68, and WU-72 after all.
 
 ### WU-65: Plan schema 3, the anoint, `measures` and the key-figure lines
-- status: target (M-15)
+- status: built (merge `3bfe70e`)
 - kind: build
 - depends-on: []
 - role: backend-dev + lua-dev
@@ -1122,9 +1269,16 @@ WU-68 in parallel after it; WU-67 after WU-66; slice 3's WU-69…WU-71 after WU-
 - risk: medium
 - summary: Schema 3, the anoint, `measures`, the reference hits, the key-figure lines, `buildSha1` without the
   ledger and `plan-reference.md` (D-351, D-352, D-353, D-356, D-358). Its `Compile.lua` and `v1.ts` changes come first; WU-66 follows on both.
+  As built (its review and fixes): the clear-speed radius is read by D-363's rule, after a first fix with a
+  general own-stat-map rule and a six-start test was reverted on the user's direction (Q2: rough is fine);
+  every stage's DPS goes through `headlineDps` (`CompileResult.mains`); the doer's choices accepted: the clear
+  skill's choice and the radius source, the mixed Arbiter hit split evenly, filled reference hits as scenario
+  entries, `skillOutputs`' `AreaOfEffectRadiusMetres`, `compile_check`'s `describeGems`, `anoints` and
+  `gemTexts`, and `checks.nodeNames` with item-granted notables. Outside its touches: `compileAllocation.test.ts`,
+  `buildGuideCheckRun.test.ts` and the sixteen pipeline fixture records' `buildSha1`.
 
 ### WU-66: `tree-shape` and the path tools
-- status: target (M-15)
+- status: built (merge `ae331e4`)
 - kind: build
 - depends-on: [WU-65 (`Compile.lua`, `v1.ts`)]
 - role: lua-dev + backend-dev
@@ -1137,10 +1291,16 @@ WU-68 in parallel after it; WU-67 after WU-66; slice 3's WU-69…WU-71 after WU-
 - summary: V1's `tree-shape` names the stage, the start and each tree's nodes; the path tools never path
   through an unallocated start and leave a start only while it holds no tree. Tools that follow PoB's own
   paths (`update_tree_delta`, `get_passive_upgrades`) are caught at compile. The rule holds whether or not
-  the pinned PoB2 enforces it (it doesn't at v0.23.1).
+  the pinned PoB2 enforces it (it doesn't at v0.23.1). As built, with D-364 (a tree may touch two exits of its
+  start; `one-exit-per-tree` dropped, a loop through the Mercenary start's two exits passing); its accepted
+  deviations: the compile refuses two shapes before V1 (AC-P65), the finding carries `data.rule`, no path runs
+  through an unallocated 12795, a Ranger tree onto 4739 without 12795 is valid, and the implied scope took in
+  `compiler.ts`, `types.ts` (`isClassStart`), the two-stage fixture's second Warrior tree (joined to the first)
+  and `plan-reference.md`. The two-stage-count, off-hand and fifteen-stage fixtures still hold two Warrior
+  trees, so they give `tree-shape` findings; no test needs them clean, and they stay.
 
 ### WU-67: `support-sockets` and its estimated table
-- status: target (M-15)
+- status: built (merge `46a011a`)
 - kind: build
 - depends-on: [WU-66 (`v1.ts`)]
 - role: backend-dev
@@ -1151,10 +1311,12 @@ WU-68 in parallel after it; WU-67 after WU-66; slice 3's WU-69…WU-71 after WU-
 - milestone: M-15
 - risk: low
 - summary: No source has the thresholds (Q1), and PoB2 has no rule; the table is the user's estimate, a
-  `judgment` fact at confidence L. Item-granted groups and a gem's own group are never flagged.
+  `judgment` fact at confidence L. Item-granted groups and a gem's own group are never flagged. As built
+  (§3.7), a tree-granted group is recognised by elimination; the coordinator reviewed it in place of a full
+  reviewer (134 lines in 3 files) and added the explicit-tier rule and the finding's hint.
 
 ### WU-68: `guide_run`'s views
-- status: target (M-15)
+- status: built (merge `f79b5f0`)
 - kind: build
 - depends-on: [WU-65]
 - role: backend-dev
@@ -1166,7 +1328,57 @@ WU-68 in parallel after it; WU-67 after WU-66; slice 3's WU-69…WU-71 after WU-
 - risk: low
 - summary: Narrow views of the plan and the record, each under Read's 25K-token cut-off, so the long agents
   stop paging `plan.json` (run A's agents read it 130 times, 116 of them partial reads) and Grepping the
-  record. Slice 3's WU-69 builds on it. No tool is added, so the counts stay 84 and 83.
+  record. Slice 3's WU-69 builds on it. No tool is added, so the counts stay 84 and 83. Its accepted deviations:
+  a call with `view` is kind `none` (`toolRouter.ts`), the views skip the schema check, the stage view has a
+  status line, and the description's first sentence changed.
+
+### WU-78: A group's minion skill in the plan and the compiler (amendment 6)
+- status: built (merge `22f798f`)
+- kind: build
+- depends-on: [WU-77 (slice 01: the selector, `Minion<Field>`)]
+- role: backend-dev + lua-dev
+- touches: [`src/plan/schema.ts` (schema 4), `src/plan/record.ts` (the figure, `COUNT_RULE`, `minionSkills`),
+  `src/plan/compiler.ts` (the headline, the clear measure, the key-figure line), `src/plan/checks/v1.ts`
+  (`not-granted`), `pob-api/API/Compile.lua` (resolution at compile, `compile_check`'s refusals, the flattened
+  `Minion<Field>` outputs), `pob-api/API/BuildOps.lua` (after WU-77), `src/engine/schemas.ts`,
+  `src/pobLuaBridge.ts`, `tests/integration/contract.test.ts`, `docs/build-guide/plan-reference.md`,
+  `tests/integration/compileMinion.test.ts` (new), `tests/unit/planSchema.test.ts`, `planChecks.test.ts`,
+  `planMeasures.test.ts`, and the fixture plans `minion-wolf` and `varashta-navira` (new, written from game data)]
+- produces: [§3.2's schema 4; §3.6's resolution at compile, `compile_check`'s minion refusals, the figure,
+  Count, headline, clear measure and key-figure line; D-217's rule with `minionSkill` (D-379); §3.7's
+  `not-granted` (D-380)]
+- consumes: [C-31, C-33, C-41; WU-77's selector]
+- acceptance: [AC-P68, AC-P69, AC-B3, AC-B4, AC-B5]
+- milestone: M-17
+- risk: medium
+- summary: A plan names a summon group's minion skill, and the compiler resolves it by name at every compile
+  and measures the minion's figure (D-377, D-378), under the user's HG-12 grant for M-17. Its doer's choices,
+  all accepted: each minion-skill group is made main for its own selection, so a disabled group works;
+  `compile_check` refuses a main group naming a minion skill whose `main.activeSkill` isn't the summon; the
+  figure field is read from `stages.<id>.minionSkills[]`; `not-granted` fires for enabled or main groups only,
+  never for item-granted gems; item-added minion skills are refused; the two-stage fixture stays at version 3;
+  `outputs` carries every finite `Minion<Field>`. Its fix round measured a non-main minion clear group at its
+  summon and made `compile_check` read each gem's `enabled`.
+
+### WU-80: A plain summon's figure (amendment 7)
+- status: built (merge `5d8d4d1`)
+- kind: build
+- depends-on: []
+- role: backend-dev
+- touches: [`src/plan/record.ts` (`figureField`, `minionFigures`), `src/handlers/treeHandlers.ts` (the shared
+  `summonsMinion`), `tests/integration/compilePlainSummon.test.ts` (new), `tests/unit/planMeasures.test.ts`]
+- produces: [§3.6's figure of a plain summon in the headline, the key-figure line and the clear measure
+  (D-397)]
+- consumes: [WU-78's figure; D-385's test]
+- acceptance: [AC-P70, AC-B5]
+- milestone: M-18
+- risk: low
+- summary: A summon that names no minion skill is read by its minion's figure, under the user's HG-12 grant
+  for D-397 only. The coordinator's rulings on the doer's report: the key-figure label is the record's own skill
+  name, `(Skeletal Warrior Minion, minion)`, not the amendment's `(Skeletal Warrior, minion)`, since the gem's
+  name would need a new field in the engine reply; `figureField` takes `(rec, {group, activeSkill, statSet?})`;
+  and (its fix round) the clear measure follows the same rule. `planMeasures`' D-378 test, which asserted
+  `TotalDPS` for such a main group, changed with it.
 
 ## 6. Acceptance criteria
 
@@ -1315,7 +1527,8 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   tag on an unlisted node; an attribute choice on a non-attribute node; an unknown config option. Each
   gives `isError` naming stage `2` and the defect; a variant with defects in both stages names both. In
   every case the builds folder's names and sha1s, the run folder's listing, `session.revision` and the
-  canonical export are unchanged.
+  canonical export are unchanged. Since the defect batch the defect table also holds a node whose unlock
+  constraint is unmet (D-383), a legacy gem and a unique no longer obtainable (D-384).
 - **AC-P27 (WU-41, D-163).** A plan with `stages[1].level: 0` gives `isError` containing
   `stages[1].level`. The canonical export and `revision` are unchanged, and nothing is written.
 - **AC-P28 (WU-41, D-167, D-216, A-P12).** Engine-required, `guideRun.test.ts`. With `grenadator`
@@ -1492,7 +1705,8 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   the plan order (a plan listing `m` after `b` is still checked `m` → `b` → `n`), and a rung the plan lacks
   is skipped.
 
-**Amendment 4 (WU-65…WU-68; target, M-15).** Copied from amendment 4 §15; AC-K66 is in slice 01.
+**Amendment 4 (WU-65…WU-68; built, M-15).** Copied from amendment 4 §15; AC-K66 is in slice 01. Each maps to
+a passing test at the M-15 wave gate.
 
 - **AC-P60 (WU-65, D-351, D-358).** Unit. `validatePlan` accepts `schemaVersion` 3 with `claims[].kind` and an
   `items.anoint` on `b` and `n`, refuses one on `m` or a campaign stage, and still accepts version 2.
@@ -1505,12 +1719,51 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
 - **AC-P64 (WU-65, D-356).** Engine. `compile_plan`'s reply has a key-figure line per stage.
 - **AC-P65 (WU-66, D-360).** Engine, on run A's shapes: two trees off one Ranger start, a Sorceress tree without
   12795, and an ascendancy node cut off from 1583 each give `tree-shape`; a class tree plus a Sorceress tree with
-  12795 passes.
+  12795 passes. *As built (the WU-66 review, for the fold):* two of the shapes are refused by the compile before
+  V1 runs: PoB prunes a Sorceress tree without 12795, and an ascendancy node cut off from 1583, so D-213's
+  not-connected check refuses those plans; the tests assert that refusal and run `checkTreeShape` on
+  `compile_check`'s trees. The Ranger case gives `tree-shape` as stated, and a connected loop through two exits
+  of one start passes (D-364).
 - **AC-P66 (WU-67, D-359).** Unit. With the estimated table in `gems.json`, `support-sockets` flags a
   tree-granted group over the ceiling at levels 39, 40 and 60 (one more support than allowed), never an
   item-granted group or a gem's group.
 - **AC-P67 (WU-68, D-356).** Engine. On the fifteen-stage fixture, the views return one stage's section with its
   key figures, and every claim compact, each under 25K tokens.
+
+**Amendment 6 (WU-78; built, M-17).** From amendment 6 §8.
+
+- **AC-P68 (WU-78, D-377, D-378).** Engine. Two fixture plans compile: a summon group with `minionSkill: "Leap
+  Slam"` (`minion-wolf`: Wolf Pack, Count 2), and a Disciple of Varashta plan whose main group is "Navira, the
+  Last Mirage" with `minionSkill: "Navira's Fracturing"` (`varashta-navira`, written from game data). In each
+  record, `measures.dps` equals the main entry's `MinionTotalDPS` × its Count, and is above 0. The saved build
+  holds the selected skill index. Since D-382 it also checks that the plan's first group is PoB's index 1 with no
+  items.
+- **AC-P69 (WU-78, D-377, D-380).** Unit and engine.
+  - `compile_check` refuses three cases: an unknown minion skill, listing the minion's skills; a group with no
+    summon; `minionSkill` on a group whose only active skill is "Command".
+  - A version-3 plan with `minionSkill` is refused by the version rule.
+  - D-217 accepts a rolled group whose `minionSkill` is `roll.skill`.
+  - V1 reports `not-granted` for the Varashta plan with node 10561 removed, and nothing with it allocated.
+
+**The plan's groups at PoB's own index (D-382; built).** `tests/integration/compileMinion.test.ts`, describe
+"D-382: the plan's groups are found at PoB's own index, wherever PoB's granted groups land". All four failed
+before the fix:
+- a fresh item set with a Twig Focus: PoB's groups are `['Tree:32705', '']`, and the main selection, the minion
+  skill, g1s1p1 and `measures.dps` are the plan's Navira; PoB's copy is g2;
+- a stage `a` reusing the item set and the skill set: both stages measure the plan's Navira;
+- a second group with Kelari, the Tainted Sands, whose node isn't allocated: V1 reports `not-granted` for group
+  2, and every finding or note that names a gem names one in its group;
+- stage `a` without the node, stage `b` with it and an off-hand: stage `a`'s set holds no `Tree:32705` group.
+
+**Amendment 7 (WU-80; built, M-18).** From amendment 7 §13, with the label as built.
+
+- **AC-P70 (WU-80, D-397).** Engine. A plan whose main group is Skeletal Warrior, with no `minionSkill`,
+  compiles:
+  - `measures.dps` equals the main entry's `MinionTotalDPS` × its Count, and is above 0;
+  - the key-figure line reads `(Skeletal Warrior Minion, minion)`, the minion's name as the record holds it
+    (PoB's granted-effect name). *Amended at v1.6:* amendment 7 wrote `(Skeletal Warrior, minion)`, the skill's
+    gem name, which would need a new field in the engine reply;
+  - a group whose skill is the player's keeps `TotalDPS`.
 
 ## 7. Test strategy and migration (this slice)
 
@@ -1527,15 +1780,22 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   (D-315). AC-P51…AC-P59 green at the last merge is part of the exit the coordinator added (PROPOSED,
   2026-10-10; spine §7).
 - **M-15** ("the lean pipeline offline", D-361, spine §7) holds this slice's WU-65…WU-68, with AC-P60…AC-P67:
-  unit tests for AC-P60 and AC-P66, engine-required tests for the rest. Its exit is slice 3's lean run
-  (WU-72).
+  unit tests for AC-P60 and AC-P66 (`planSchema.test.ts`, `planChecks.test.ts`), engine-required tests for the
+  rest (`compileMeasures.test.ts`, `treeShape.test.ts`, `guideRun.test.ts`; `planMeasures.test.ts` for the
+  measures' units). Its exit was slice 3's lean run (WU-72), closed on the user's waiver.
+- **M-17** holds WU-78, with AC-P68 and AC-P69 (`compileMinion.test.ts`, `planSchema.test.ts`,
+  `planChecks.test.ts`); **M-18** holds WU-80, with AC-P70 (`compilePlainSummon.test.ts`, its unit edges in
+  `planMeasures.test.ts`).
 - **Regression.** Golden values (AC-B5), `engineKinds.test.ts`, the hygiene test and the static scans stay
   green with empty waivers; only the count literals move (AC-B1).
 - **Migration.** None. Everything is additive: a new env var with a default, new tools, new `data/` files,
   new Lua modules, the write ledger in the state dir, and a separate NFR step in `mise run test`. Roll back
   by reverting a unit. `schemaVersion` bumped once, to 2, with WU-61 (§3.2), and `recordVersion` once, to 2,
-  with WU-55 (§3.6). Version-1 plans stay accepted (D-332). *Target (WU-65):* `schemaVersion` 3, with version
-  2 still accepted (AC-P60); the record gains `measures`, additively.
+  with WU-55 (§3.6). Version-1 plans stay accepted (D-332). Since WU-65, `schemaVersion` 3, with version 2
+  still accepted (AC-P60); the record gains `measures`, additively. Since WU-78, `schemaVersion` 4, with versions
+  1 to 3 still accepted; the record gains `minionSkills` and the flattened `Minion<Field>` outputs, additively,
+  so `recordVersion` stays 2. `buildSha1`'s projection lost the ledger (WU-65) and `prices[].note` (D-386), and
+  the fixture records were recomputed each time.
 
 ## 8. Open items (holes in the inputs)
 

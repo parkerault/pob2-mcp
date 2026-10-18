@@ -346,7 +346,7 @@ rule may require an optional key in some cases.
 | `stages[].chaosResistException.tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].chaosResistException.tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].tree` | object | yes | The stage's passive tree | C-31 |
-| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile | C-31, D-213 |
+| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
 | `stages[].tree.ascendancyNodes` | integer[] | yes | Every allocated ascendancy node id, without the ascendancy's start node, which PoB allocates itself | C-31 |
 | `stages[].tree.weaponSetNodes` | object | yes | The nodes tagged to weapon set 1 or 2. A tagged node paths only through untagged nodes and nodes of its own set | C-31, D-213 |
 | `stages[].tree.weaponSetNodes.set1` | integer[] | yes | Each node is in `tree.nodes` (error at `set1[n]`) | C-31 |
@@ -451,13 +451,13 @@ rule may require an optional key in some cases.
 | `prices` | object[] | yes | Dated prices. Re-runs within a run reuse them; the server keeps no price cache | C-31, D-169 |
 | `prices[].id` | string | yes | `[A-Za-z0-9_-]+`; unique (a repeat errs at the later entry). What a `price:<id>` claim cites | D-237 |
 | `prices[].item` | string | yes | Non-empty. What was priced | C-31 |
-| `prices[].query` | any JSON | yes | The trade query used | C-31, D-169 |
+| `prices[].query` | any JSON | yes | The trade query used. A rare of `b` or `n` is `{slot, required, target}`, written by D1-build before it is priced: `slot` as `find_upgrades` names it (`Helmet`, `Ring 1`, `Jewel <node id>`), `required` its required affixes, at most 3, each `{affix, min}`, and `target` `{divines, day}` (on `n`, with `reason` when the slot takes more than its share); the pricing step adds the arguments of the call whose price it records (`find_upgrades`', or the over-target `search_trade_items`'). A Distilled Emotion is `{"exchange": "Delirium", "name": "<emotion>"}`. The schema checks none of this | C-31, D-169, D-370, D-372, D-387 |
 | `prices[].amount` | number or null | yes | At least 0. Set when `status` is `ok`, null when `unavailable` | D-164 |
 | `prices[].currency` | string or null | yes | Non-empty. Set when `status` is `ok`, null when `unavailable` | D-164 |
 | `prices[].date` | string | yes | `YYYY-MM-DD`, the day the price was taken | D-169 |
 | `prices[].league` | string or null | yes | Equal to the plan's `league` | D-233 |
 | `prices[].status` | `ok` or `unavailable` | yes | `unavailable` when trade couldn't be reached (no cookie, rate-limited, down, disabled or offline) | D-164 |
-| `prices[].note` | string | no | Non-empty. Required when `unavailable`: the reason, `offline run` in an offline run | C-31, D-233 |
+| `prices[].note` | string | no | Non-empty. Required when `unavailable`: the reason, `offline run` in an offline run. On a priced `b` or `n` rare, its fit against the designed item (`fit 85%`), or `over target`. Not build content: `buildSha1` leaves it out (D-386) | C-31, D-233, D-372, D-386 |
 
 ## Worked example
 

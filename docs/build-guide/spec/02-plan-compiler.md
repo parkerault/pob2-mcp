@@ -1574,7 +1574,9 @@ network (D-34). A "Lua query" is a `__test_eval` call, with test actions on. "Th
   `timing.totalMs ≤ 100000` and every `stages.*.elapsedMs < 20000`. The file runs only in the `mise run
   test` task's separate `--runInBand` step: `pnpm exec jest --listTests` (the main run's selection) doesn't
   list it, the step's command with `--listTests` lists exactly it, and `mise.toml`'s `test` task holds
-  that step as its own `run` entry, after `pnpm test`, with no `|`.
+  that step as its own `run` entry, after `pnpm test`, with no `|`. Since 2026-10-17 the step lists exactly two
+  files, this one and AC-T22's `tradeQueryNfr.test.ts`, and the main run lists neither (`compilePlan.test.ts`'
+  static checks).
 - **AC-P38 (WU-41, D-216).** `TOOL_META.compile_plan` is `{engine:'load', group:'core'}` and
   `TOOL_META.guide_run` is `{engine:'read', group:'core'}`; `compile_plan`'s schema has no `new_run` or
   `validate_only` property. In `engineKinds.test.ts` the measure-only sample changes the export and adds

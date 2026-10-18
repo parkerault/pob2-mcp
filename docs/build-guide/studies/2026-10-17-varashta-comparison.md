@@ -305,9 +305,22 @@ tuned the build it chose well. Navira's guide chose a better build.
     family") belong in a pattern library that every run reads, so the next run doesn't learn them again. That library
     is the game-knowledge layer the user described (feedback study §3).
 
+**Added by the user (2026-10-18):**
+
+13. **Look for nodes that change a standard rule.** Some ascendancy notables, and keystones, rewrite how a standard
+    mechanic works, and a researcher wouldn't think to look for them. Way of the Stonefist (Martial Artist, node 39595)
+    turns the gloves you equip into Fists of Stone and their explicit modifiers into more powerful related modifiers,
+    which makes gloves a slot to build around. The pinned PoB ignores all three of its lines, so it can't be measured
+    there. The remedy:
+    - a lens in the pattern library;
+    - a short list of every such node, one sentence each: what rule it changes and what that makes valuable, with
+      whether PoB models it. It is written once per pin from the tree's text (the 22 ascendancies' 209 notables come
+      to about 2,800 words), and redone when the pin moves.
+    - A new league's rule changers reach the poe2db digest (remedy 3) before PoB has them.
+
 ### 7.3 Where they go
 
-- **The engine-lens amendment:** 1, 3 (brought forward: the poe2db digest), 4–9 and 11.
+- **The engine-lens amendment:** 1, 3 (brought forward: the poe2db digest), 4–9, 11 and 13.
 - **The feedback amendment (gates as interviews):** 2 and 10, and clear speed in each card's pitch: how it clears, how
   many buttons, how fast it moves between packs.
 - **The pattern library:** 12, starting with this study's patterns.

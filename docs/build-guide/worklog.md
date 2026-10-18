@@ -4113,3 +4113,12 @@ the `m17` engine at `857658c`.
   - Every brainstorm reads it first, offline runs included.
   - The user triggers a refresh when a league or patch lands. An online run may warn when the digest's league isn't
     current.
+- **Rule changers, for the engine-lens amendment** (the user, 2026-10-18). Way of the Stonefist (Martial Artist,
+  node 39595) turns equipped gloves into Fists of Stone with more powerful related explicit modifiers, "something
+  that a naive researcher wouldn't think to look for".
+  - **The pattern library has no such lens.** Its keystone entries are about pathing and attribute bridges.
+  - **The pinned PoB ignores all three of the node's lines** (`check_model_coverage`: 3 unparsed).
+  - **Added as the comparison's remedy 13:** a lens, plus a one-sentence list of every rule-changing ascendancy
+    notable and keystone. Each entry says what rule it changes, what that makes valuable, and whether PoB models it.
+  - **The list is written once per pin** from the tree's text: 22 ascendancies, 209 notables, about 2,800 words,
+    plus 33 keystones. It is redone at a pin upgrade.

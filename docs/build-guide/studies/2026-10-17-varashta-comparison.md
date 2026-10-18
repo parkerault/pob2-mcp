@@ -317,6 +317,28 @@ tuned the build it chose well. Navira's guide chose a better build.
       whether PoB models it. It is written once per pin from the tree's text (the 22 ascendancies' 209 notables come
       to about 2,800 words), and redone when the pin moves.
     - A new league's rule changers reach the poe2db digest (remedy 3) before PoB has them.
+    - **Uniques too, as one index with the nodes** (agreed with the user, 2026-10-18). Most builds use at least one
+      unique for its rule change, and the cleverest combine two or more. The pinned PoB holds 435 unique entries,
+      about 21,400 words, which is too many to load in every session.
+      - **Built once per pin, on disk, never loaded whole.** Each rule-changing unique gets an entry:
+        - the rule it changes, in a sentence, with its original lines;
+        - what it creates (conditions or resources) and what it pays off on, in a small vocabulary of mechanic
+          families;
+        - its explicit penalties only, such as "-40% to Fire Resistance" or "you can no longer regenerate Life by any
+          other means";
+        - whether PoB models it, its slot and its level.
+
+        The index says once that most uniques give up the resistances, life and defences a rare provides; entries
+        don't repeat it (the user).
+      - **Two ways in.** The build's own ascendancy nodes and the keystones are small enough to read whole. Uniques
+        are searched by mechanic: "what creates X?", "what pays off on X?", a few hundred tokens a question.
+      - **Pairs come from a join.** A script joins what one entry creates with what another pays off on, ahead of
+        time, across uniques, nodes and gems. In the Varashta run, Powered by Verisium creating Infusions would have
+        been one join away.
+      - **The compile still judges the trade.** PoB measures effective HP and resistances with the unique in place
+        of the rare; for a unique it doesn't model, the entry warns that only an estimate is possible.
+      - **Price is not a popularity signal.** A unique's price is popularity plus rarity: one that drops only from a
+        pinnacle boss is dear, and a widely used one that drops anywhere can cost a few chaos (the user).
 
 ### 7.3 Where they go
 

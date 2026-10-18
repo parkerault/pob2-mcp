@@ -4122,3 +4122,10 @@ the `m17` engine at `857658c`.
     notable and keystone. Each entry says what rule it changes, what that makes valuable, and whether PoB models it.
   - **The list is written once per pin** from the tree's text: 22 ascendancies, 209 notables, about 2,800 words,
     plus 33 keystones. It is redone at a pin upgrade.
+- **Rule-changing uniques join remedy 13** (agreed with the user, 2026-10-18). There is one index across ascendancy
+  nodes, keystones, gems and uniques, built once per pin and searched by mechanic, never loaded whole.
+  - **Each entry holds:** what it creates and what it pays off on; only its explicit penalties. The index says once
+    that most uniques give up a rare's resistances, life and defences.
+  - **A script precomputes the pairs** by joining what one entry creates with what another pays off on.
+  - **Price is dropped as a popularity signal:** it is popularity plus rarity, and a widely used unique that drops
+    anywhere can cost a few chaos (the user).

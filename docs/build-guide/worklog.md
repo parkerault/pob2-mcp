@@ -4374,3 +4374,10 @@ the `m17` engine at `b76967b`.
     HG-12 grants and the seven poe2db requests are asked for explicitly; the acceptance criteria are written at
     amendment 7's level, with "Where the inputs went" and "What changes" tables. The amendment's choices drop from 5
     to 4, the split's from 4 to 3.
+- **The re-check** (315K tokens in all for the reviewer): 22 of 23 resolved, 1 partly, 6 new should-fix findings and
+  some nits, all fixed. The digest's text now amends D-287's sniff test explicitly, cited `data |
+  league/<slug>.md#<entry-id>`, which the run checker learns to resolve (it reads only JSON `facts` files today); a
+  picked card that waits on the pin compiles nothing (`not-in-pin`), like a damage source that isn't a skill; D-405
+  rounds half down (4 of 8 or 9) and matches engines by the index's vocabulary; "A count as a multiplier" is a new
+  entry beside "Filler to satisfy a count", and every new library entry awaits the user's review (D-290); the pattern
+  library is still read first; an on-request rival is stage `RV`, not a gate question.

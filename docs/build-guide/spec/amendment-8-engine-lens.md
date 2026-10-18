@@ -1,7 +1,7 @@
 # Amendment 8: finding the build's engine
 
-**Status: DRAFT, 2026-10-18,** for the user's review. Revised the same day after an independent review (2 blockers,
-21 should-fix findings, all resolved below). It carries:
+**Status: DRAFT, 2026-10-18,** for the user's review. Revised the same day after an independent review and its
+re-check (2 blockers and 27 should-fix findings, resolved below). It carries:
 - the comparison's remedies the user sent here (`../studies/2026-10-17-varashta-comparison.md`, "the comparison",
   §7.2 remedies 1, 3–9, 11 and 13, and §6's engine-lens list);
 - the tamed-beast scope the user added on 2026-10-17 (work-log, "the engine-lens amendment's scope gains tamed rare
@@ -10,7 +10,8 @@
 - measured clear speed for card skeletons (the WU-81 verdict, work-log 2026-10-18).
 
 It is written against spec v1.5 plus amendments 5–7, which fold as v1.6 in the same batch. Paths are from the
-repository root.
+repository root, except stage files (`R1a.md` and so on), which are under
+`.claude/skills/build-guide/references/stages/`.
 
 **Names.**
 - A build's **engine** is what makes its damage work: the resource or condition the damage source consumes (Chilled
@@ -69,7 +70,8 @@ repository root.
 gems, uniques, items other than plain currency, and the new ascendancies and passives. Facts about the game go in
 `data/`, beside the campaign and enemy data the stages already read; how to reason about them stays in the skill.
 
-- **Each entry:** name, kind, tags, full text, URL, the date fetched, and whether the PoB pin knows it.
+- **Each entry:** an id (its name as a slug), name, kind, tags, full text, URL, the date fetched, and whether the
+  PoB pin knows it.
   - Ascendancies and passives are names and URLs only: the league homepage lists them, but their text needs one
     request each. An online researcher may fetch one from poe2db when a card needs it (an allowed host, D-171).
 - **Head and body.** The head is one line per entry: name, kind, and the first clause of its text. At 0.5.4 ("Runes
@@ -78,11 +80,15 @@ gems, uniques, items other than plain currency, and the new ascendancies and pas
   once currency is cut.
 - **Who reads it.** Every R1a researcher reads the head whole and Greps the body by mechanic, and so does the rival
   (D-408). Offline runs read it too, since it is committed.
-- **Its text confirms a link.** The digest's entry text counts as game text for the sniff test, cited
-  `data | data/league/<slug>.md#<name>`.
+- **Its text confirms a link.** This amends the sniff test (D-287), which today needs a lookup: an entry's text in
+  the digest counts as game text, cited `data | league/<slug>.md#<entry-id>`. Each entry carries an id line, and
+  the run checker learns to resolve a Markdown data file by those ids (WU-89); today it reads only JSON `facts`
+  files.
 - **Not in the pin.** An entry the pin doesn't know can't be compiled. A card whose named damage source or
   load-bearing link rests on one is dealt as "can't be finalized yet" (D-303), and the gate says why. Its line in
-  the deck reads `waits on the pin: <entry>`.
+  the deck reads `waits on the pin: <entry>`. If the user picks it, R1b compiles nothing, as for a damage source
+  that isn't a skill: its verdict carries the finding `not-in-pin` ("not compiled: <entry> isn't in the PoB pin"),
+  and its dossier row reads "can't be finalized yet: waits on the pin".
 
 **The script,** `.claude/skills/build-guide/scripts/league-digest.mjs <slug>`:
 
@@ -91,7 +97,8 @@ gems, uniques, items other than plain currency, and the new ascendancies and pas
   nothing fetched twice. robots.txt disallows only `/*/marked` and `/*/markdown_history`;
 - parses the HTML exactly, not through WebFetch's summary;
 - checks each name against the pinned data files (`vendor/.../Data/`) for the in-pin flag;
-- writes the digest, and prints the entries added since the last one.
+- writes the digest, and prints the entries added since the last one;
+- with `--reflag <slug>`, offline, re-checks only the in-pin flags of a committed digest, for a pin upgrade.
 
 **Who fetches.** The user runs the script when a league or patch lands; nothing runs it on a schedule. The first
 digest (WU-84) is fetched by the coordinator, outside any build lane, with the user's approval of this amendment as
@@ -175,7 +182,8 @@ a companion one, and our server doesn't read or set PoB's beast library.
   - **Read by Grep,** like the index. The scope of 2026-10-17 had `lookup_game_data` answer questions about the
     table; Grep does the same job with no change to the tool, which would otherwise need the user's HG-12 call (any
     change to the tool surface or a tool's contract).
-  - **Its text confirms a link** for the sniff test, as the digest's does. A card whose supply is a beast's modifier
+  - **Its text confirms a link** for the sniff test, as the digest's does (`data | monsters/monster-mods.md#<id>`).
+    A card whose supply is a beast's modifier
     can be compiled: the condition the beast supplies is a config entry, as it is today (enemies on Chilled Ground),
     and the beast itself is a link PoB can't model.
 - **A library entry:** "a tamed rare beast supplies a condition the engine needs", with Navira's build as its
@@ -201,7 +209,8 @@ a companion one, and our server doesn't read or set PoB's beast library.
   - With no skill in the brief, it is the obvious build for the brief's playstyle. A brief with neither ("surprise
     me") has no obvious card.
   - Researcher `a`'s other two cards keep the existing rule: at least one is under-played.
-  - **The seed card moves to researcher `b`** (D-393 named `a`), so no researcher has all three cards fixed.
+  - **The seed card moves to researcher `b`** (WU-82 built it into `a`'s prompt), so no researcher has all three
+    cards fixed.
 - **Every other card answers it.** A card's "How it clears" says how it clears faster than the archetype's standard
   kit, or why it's worth picking anyway. The researchers write in parallel, so they compare against the kit, not the
   obvious card itself.
@@ -224,11 +233,12 @@ search` and the lines under it) for the deck's "Found, not used" list (D-392).
 
 ## 7. D-405: no more than half a round on one engine
 
-- **The deck line names the engine.** R1a-assemble copies each dealt card's `Consumes or requires … supplied by …`
-  line into its deck line as `engine: <X> from <Y>`. Two cards share an engine when both parts match.
-- **The rule.** R1a-assemble's step 5 (deal 6–9 cards) deals at most half of the round's cards on one engine: at
-  most 4 of 9, 3 of 6 to 8. It deals the ones that differ first and puts the rest under "Not dealt" as `the round
-  already holds <n> cards on this engine`.
+- **The deck line names the engine.** R1a-assemble reads each dealt card's `Consumes or requires … supplied by …`
+  line and writes its deck line's `engine: <family> from <family>` in the index's vocabulary (D-401), so cards that
+  word the same engine differently still match. Two cards share an engine when both families match.
+- **The rule.** R1a-assemble's step 5 (deal 6–9 cards) deals at most half of the round's cards on one engine,
+  rounded down: 4 of 8 or 9, 3 of 6 or 7. It deals the ones that differ first and puts the rest under "Not dealt" as
+  `the round already holds <n> cards on this engine`.
 - **It yields to the minimum.** When the rule would leave fewer than 6 cards, R1a-assemble deals the fewest extra
   cards that reach 6 and the round is short: `short: <n> cards share one engine`.
 - **It yields to the user.** When the user's note for the round asks for one engine, the rule doesn't apply to that
@@ -263,13 +273,13 @@ stage, as it does `left out:` lines today (D-396). The verifier checks those cla
 ## 9. D-407: clear speed is measured at every compile, and leads
 
 - **Measured on skeletons.** The record's rough `clearSpeed` (D-353: a band from the clear skill's area, assuming one
-  use kills a normal monster) is measured in every compile record, card skeletons included. Today `stageMeasures` in
-  `src/plan/compiler.ts` measures only the variant stages. The verification gate shows the measured band where
+  use kills a normal monster) is measured on card skeletons as well as the endgame variants; campaign stages still
+  have none. Today `stageMeasures` in `src/plan/compiler.ts` measures only the variant stages. The verification gate shows the measured band where
   WU-81's fix round now shows the card's estimate.
 - **Pace beside it.** The record shows the player's movement speed beside the band. Time to first damage on a new
   pack isn't in PoB; the card's "How it clears" estimates it, marked as an estimate.
 - **No area, said plainly.** PoB gives some attacks no radius (a Skeletal Warrior's strike), so the band reads "slow"
-  for builds that may clear well. When the clear skill has no area, the display reads `slow (PoB gives no area)`, and
+  for builds that may clear well, such as minions that strike in melee. When the clear skill has no area, the display reads `slow (PoB gives no area)`, and
   the card's estimate leads.
 - **The order.** The cards' pitches already lead with "How it clears" (D-392). The verification and design gates'
   displays now lead with clear speed and movement speed, then the boss floor: at the verification gate the card's
@@ -281,7 +291,7 @@ stage, as it does `left out:` lines today (D-396). The verifier checks those cla
   and D1-finish writes it as a `reason` claim, like D-406's levers. Encroaching Ground in the Varashta run is the
   example: found, never used, because the ranking was by DPS.
 
-The record's two added fields on skeleton compiles change `compile_plan`'s output, so they need the user's HG-12
+The record's added fields on skeleton compiles change `compile_plan`'s output, so they need the user's HG-12
 call (§18, grants).
 
 ## 10. D-408: a rival with fresh context
@@ -307,9 +317,11 @@ row to the dossier. The verification gate shows it beside the others, marked as 
   (`check-run.mjs`, the verification round's count) learns the `x` card.
 - **D-235** (only the user starts a round) holds: the rival runs inside the verification round the user started, and
   only the user finalizes a card.
-- A later verification round gets no rival. The user can ask for one at any gate, as a question (D-390).
+- A later verification round gets no rival. The user can ask for one at any gate; the runner then starts stage
+  `RV` with the same reads, not a gate question step (stage Q reads the run's cards and research and writes no
+  card).
 
-**The cost.** One researcher and one R1b per run: about 150–170K output tokens, about an eighth of the lean run's
+**The cost.** One researcher, one R1b and a second R1b-assemble pass per run: about 150–170K output tokens, about an eighth of the lean run's
 1.23M (WU-72: three R1a researchers spent 280K, two R1b steps 138K). If the rival finds no
 faster structure, the pick is probably near the top before the expensive design steps. If it does, the tuning would
 have been wasted.
@@ -317,15 +329,17 @@ have been wasted.
 ## 11. D-409: the library's entries
 
 Within the 10,000-word cap (D-381; the library is at 5,999 words). The library supports the steps above; it is not
-the remedy by itself (§1).
+the remedy by itself (§1). Every new or changed entry waits for the user's review before it binds, as the library's
+maintenance rule asks (C-53, D-290).
 
 - **Brainstorm questions 11–14:** what does the obvious build do, and how is this card faster? What grows with a
   count, and what pays for a bigger count? What does each premium slot serve? Which rule changer touches this engine
   (`data/rules/pairs.md`)?
 - **"Standard kits"** (D-403), about 1,200 words. Brainstorm question 9 points to it.
-- **Rewritten:** "Filler to satisfy a count" becomes "A count as a multiplier": a count that grows with minion types
-  (Muster, At your Command) is worth building around, and Spirit pays for the types. Muster at eight types is about
-  ×1.56 (§3 of the comparison: ×1.63 measured). Its Supporting Fire example stays.
+- **"A count as a multiplier,"** a new entry beside "Filler to satisfy a count", which keeps its support-colour and
+  socket counters: a count that grows with minion types (Muster, At your Command) is worth building around, and
+  Spirit pays for the types. Muster at eight types is about ×1.56 (the comparison §3 measures ×1.63). The two
+  entries point to each other.
 - **New shapes,** each with its search step, how PoB follows it and its cautions:
   - **Supply by family:** search a consumed resource by its family and its substitutes, and follow unfamiliar terms
     (D-404). Powered by Verisium and the beast's trail are its examples.
@@ -354,7 +368,7 @@ amendment adds nothing for it.
 | Remedy 3, know what's new (poe2db) | D-400 |
 | Remedy 4, the archetype's big levers | D-403 (the kits), D-406 step 1 |
 | Remedy 5, flip the assumptions | D-406 step 2 |
-| Remedy 6, what grows with a count | D-406 step 3, D-409 (the rewritten count entry) |
+| Remedy 6, what grows with a count | D-406 step 3, D-409 ("A count as a multiplier") |
 | Remedy 7, what each premium slot serves | D-406 step 4 |
 | Remedy 8, search by family | D-404, D-409 (supply by family) |
 | Remedy 9, score clear speed | D-407 |
@@ -373,9 +387,9 @@ amendment adds nothing for it.
 | Where | Was | Becomes |
 |---|---|---|
 | `data/` | campaign, economy and enemy data | adds `league/` (D-400), `rules/` (D-401), `monsters/` (D-402) |
-| `R1a.md` | the library, then lookups | the digest's head, the index (by focus), D-404's supply search and its section; researcher `a` writes the obvious card; `b` the seed card |
-| `R1a-assemble.md` | deck lines without the engine; no research read | the engine on each deck line, D-405's rule, the Supply search sections read for "Found, not used"; the obvious card dealt when it passes |
-| `R1b.md` | opening checks, then tree targets | the structure check between them; the rival's identity and sniff checks; code `not-dealt` |
+| `R1a.md` | the library, then lookups | the library first (D-290), then the digest's head and the index (by focus); D-404's supply search and its section; researcher `a` writes the obvious card, `b` the seed card |
+| `R1a-assemble.md` | deck lines without the engine; no research read; a link confirmed only by a lookup | the engine on each deck line in the index's vocabulary, D-405's rule, the Supply search sections read for "Found, not used"; the obvious card dealt when it passes; the digest's and the monster table's text confirm a link (D-287 amended); `waits on the pin` lines |
+| `R1b.md` | opening checks, then tree targets | the structure check between them; the rival's identity and sniff checks; codes `not-dealt` and `not-in-pin` |
 | `R1b-assemble.md`, dossier template | one pass per verification round | a clear-speed column; a second pass adds the rival's row |
 | `D1-build.md` | `left out:` lines only | also `lever unpulled:` and `override:` lines |
 | `D1-finish.md` | `left out:` lines as `reason` claims | the two new lines too |
@@ -383,11 +397,11 @@ amendment adds nothing for it.
 | `SKILL.md`, `start.md` | (none) | the digest's staleness line at the start; the rival step before the verification gate; seed to `b` |
 | card template | Pitch and verification half | `Obvious build:` (on one card); `### Structure check` |
 | the researcher agent's description | stages R1a and Q | adds RV; its Read and Grep rules gain `data/league/`, `data/rules/`, `data/monsters/` |
-| `check-run.mjs`, `run-log.mjs`, `render-audit.mjs` | (as built in M-18) | card id letter `x`; stage `RV`; failure code `not-dealt`; the engine field and D-405; the structure-check line; the displays' new order; the verification cap's exception |
+| `check-run.mjs`, `run-log.mjs`, `render-audit.mjs` | (as built in M-18); `data` citations resolve JSON `facts` files only | card id letter `x`; stage `RV`; codes `not-dealt` and `not-in-pin`; the engine field and D-405; the structure-check line; the displays' new order; the verification cap's exception; `data` citations to the Markdown data files by entry id |
 | `src/plan/compiler.ts`, `record.ts` | `clearSpeed` on variant stages only | on every compile record, with movement speed (HG-12) |
 | the plan schema, `compile_plan` | no companion | `companion: {species}` if §18 choice 2 builds it (HG-12) |
-| `patterns.md` | 5,999 words | questions 11–14, Standard kits, the count entry rewritten, four shapes; under 10,000 |
-| `CLAUDE.md` (the pin upgrade) | four steps | a fifth: rebuild `data/rules/` and the digest's in-pin flags |
+| `patterns.md` | 5,999 words | questions 11–14, Standard kits, "A count as a multiplier", four shapes; under 10,000; each awaits the user's review |
+| `CLAUDE.md` (the pin upgrade) | four steps | a fifth: rebuild `data/rules/`, and re-run `league-digest.mjs --reflag` on each digest |
 | `docs/build-guide/pob-gaps.md` | to PG-54 | PG-55 |
 
 ## 15. Work units
@@ -399,8 +413,8 @@ amendment adds nothing for it.
 | WU-86 | 03 | Rare monster modifiers (D-402): the table from the coordinator's probe, PG-55 | the probe finds a source | medium: the source may not exist |
 | WU-88 | 02 | Clear speed and movement speed on every compile record (D-407): `compiler.ts`, `record.ts`, tests | — | low |
 | WU-87 | 02 | The beast library (D-402), if §18 choice 2 builds it: the plan schema, the compile, the measures, tests | WU-88 (the same files) | medium: a schema bump |
-| WU-89 | 03 | The scripts: the obvious card's field, the `x` card id and the verification cap's exception, stage `RV`, code `not-dealt`, the engine field and D-405, the structure-check line, the displays' new order with movement speed, the `waits on the pin` deck line | WU-88 | medium: every display again |
-| WU-90 | 03 | The library (D-403, D-409): Standard kits, questions 11–14, the count entry, four shapes. The user reviews the kits | WU-85 | low |
+| WU-89 | 03 | The scripts: the obvious card's field, the `x` card id and the verification cap's exception, stage `RV`, codes `not-dealt` and `not-in-pin`, the engine field and D-405, the structure-check line, the displays' new order with movement speed, the `waits on the pin` deck line, `data` citations to Markdown data files | WU-88 | medium: every display again |
+| WU-90 | 03 | The library (D-403, D-409): Standard kits, questions 11–14, "A count as a multiplier", four shapes. The user reviews every new entry | WU-85 | low |
 | WU-91 | 03 | The skill text: every file in §14's skill rows, a new `stages/RV.md`, static tests | WU-84…WU-86, WU-89, WU-90 | medium: many files |
 
 WU-83 is unused: it was only the M-19 fix batch's lane name. WU-84, WU-85, WU-86 and WU-88 can run in parallel;
@@ -435,14 +449,20 @@ WU-87 follows WU-88; WU-91 is last.
   - the run log accepts stage `RV`, the card id `r1-x-1` and the failure code `not-dealt`;
   - the checker passes a verification round of 3 picked cards plus the rival, and fails one of 4 picked cards;
   - the verification and design displays print clear speed and movement speed before the boss floor;
-  - a deck line `waits on the pin: <entry>` passes on a card marked "can't be finalized yet".
+  - a deck line `waits on the pin: <entry>` passes on a card marked "can't be finalized yet", and an R1b verdict
+    with `not-in-pin` and no compile passes;
+  - a citation `data | league/<slug>.md#<entry-id>` passes when the fixture digest holds that id and fails when it
+    doesn't.
 - **AC-W74 (WU-90, D-403, D-409).** Static: the library holds questions 11–14, "Standard kits", "A count as a
-  multiplier" and the four new shapes, each new shape with its search step; it stays under 10,000 words.
+  multiplier" beside an unchanged "Filler to satisfy a count", and the four new shapes, each with its search step;
+  it stays under 10,000 words.
 - **AC-W75 (WU-91).** Static, these files carry their new rules:
-  - `R1a.md`: the digest's head and the index read first; D-404's three rules and the `## Supply search` section;
-    the obvious card for `a`; the seed card for `b`;
-  - `R1a-assemble.md`: the engine on the deck line; D-405 with both of its exceptions; the Supply search read;
+  - `R1a.md`: the pattern library first, then the digest's head and the index; D-404's three rules and the
+    `## Supply search` section; the obvious card for `a`; the seed card for `b`;
+  - `R1a-assemble.md`: the engine on the deck line in the index's vocabulary; D-405 with both of its exceptions;
+    the Supply search read; the digest and the monster table as confirming text; `waits on the pin`;
   - `R1b.md`: the structure check between the opening checks and tree targets; the rival's checks and `not-dealt`;
+    `not-in-pin` with no compile;
   - `D1-build.md` and `D1-finish.md`: `lever unpulled:` and `override:` lines, written as `reason` claims;
   - `stages/RV.md`: its reads, which name neither `research/` nor `cards/` other than its own card;
   - `SKILL.md`: the staleness line at the start, and `RV` after R1b-assemble and before the verification gate;
@@ -462,8 +482,8 @@ family's substitutes, and a rival that either beats the pick or fails to.
 - **The rival adds about 150–170K output tokens** to every run (§10).
 - **Standard kits encode common wisdom,** which can go stale after a patch. They cite their sources, and the user
   reviews them.
-- **The rough clear band misreads builds with no area,** most minion builds among them (§9). The display says so, and
-  the card's estimate leads.
+- **The rough clear band misreads builds with no area,** such as minions that strike in melee (§9). The display says
+  so, and the card's estimate leads.
 - **The half-a-round rule can thin a round,** and the minimum wins (§7).
 
 ## 18. Choices and grants for the user
@@ -471,7 +491,8 @@ family's substitutes, and a rival that either beats the pick or fails to.
 **Choices,** each with a recommendation and a real alternative:
 
 1. **The rival.** Recommended: **every run,** once, before the verification gate, for about 150–170K output tokens
-   against the pipeline's main weakness. The alternative is **on request only,** as a gate question.
+   against the pipeline's main weakness. The alternative is **on request only:** the user asks at a gate, and the
+   runner starts the rival then.
 2. **The beast library in the server.** Recommended: **defer it.** The table, the library entry and the gap entry
    carry the miss; in Navira's build the beast's value is its modifier, which PoB can't model anyway. The
    alternative is **build it now** (WU-87), as the scope of 2026-10-17 listed.

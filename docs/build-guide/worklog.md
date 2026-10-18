@@ -3959,3 +3959,62 @@ the user accepted the guide at the final gate.
   - the comparison with Navira's guide;
   - the defects in the gap list;
   - the one feedback amendment.
+
+## 2026-10-17: the baseline run's defect batch (D-383…D-388, PG-52, PG-53)
+
+The defects in the Varashta run's gap list (`studies/2026-10-17-varashta-run-feedback.md` §5.1), fixed test-first,
+one commit each. The skill-side rules (legacy means not in the game; the gates as interviews) stay for the one
+feedback amendment.
+
+- **D-383, unlock constraints** (`c250ad3`). A node with an `unlockConstraint` is allocatable only while every node
+  it names is allocated (vendor `Classes/PassiveSpec.lua:1248-1251`); 197 of the pin's 200 constraints name the
+  Oracle's The Unseen Path (5571).
+  - `compile_check` refuses such a node: "node 22133 (Command Skill Cooldown) is locked: PoB unlocks it only while
+    node 5571 (The Unseen Path, an Oracle node) is allocated". V1 needs no rule: a refused plan never compiles.
+  - A new read, `get_rule_breaks`, lists a loaded build's locked nodes. `judge()` reports them after PoB's
+    warnings, so `validate_build`, `get_build_issues` and the load summary name them. PoB drops a listed node no
+    path reaches on load, so a locked node only survives with a path to it.
+  - Tests: AC-P26's defect table, `tests/unit/judge.test.ts`, `tests/integration/ruleBreaks.test.ts`.
+- **D-384, legacy gems and uniques no longer obtainable** (`2b1c494`). Legacy is the granted effect's `legacy =
+  true` (eight skills, Commandment among them), not `Tier = 0`; no longer obtainable is PoB's item database rule
+  (source "No longer obtainable", or a Race Events league; `Classes/ItemDBControl.lua:118-119`).
+  - `lookup_game_data` leaves them out of every mode, gem lists included (supports, unlocks, "usable by"), and
+    names the ones a query matched ("Left out: …"). Its description was trimmed to stay within 2,048 characters.
+  - `compile_check` refuses them; `add_gem`, `setup_skill_with_gems`, `add_item` and `add_multiple_items` add them,
+    as PoB does, with a warning; `get_rule_breaks` and `judge()` report them.
+  - Tests: `ruleBreaks.test.ts`, AC-P26, `judge.test.ts`; the lookup suite recomputes its gem sets without legacy
+    gems (`LIVE_GEMS`), and AC-K61's Whirling Assault count drops from 29 to 28.
+- **D-385, the rolled-skill rule for plain summons** (`648898c`). A group whose compared skill summons a minion (its
+  record entry carries `Minion<Field>` fields) is compared by its minion's figure, whether or not it names a
+  minion skill. `check-run.mjs`, `gates.md`, `D1-gate.md` and `D1-build.md`. The Varashta run's three rolled-skill
+  violations are this rule's false positives.
+  - Left as it is: the record's `figureField` still reads `TotalDPS` for a plain summon that is the *main* skill
+    (planMeasures' D-378 test asserts it). A build whose named skill is a plain summon would get a headline of 0;
+    worth a decision with the feedback amendment.
+- **D-386, a price's note is no build content** (`525d00b`). `buildSha1`'s projection leaves out `prices[].note`;
+  every other price field still counts. The five fixture records whose hash matched their plan are refreshed, and
+  the checker's message and the skill's wording (`run-folder.md`, `D1-finish.md`, `D2.md`) name the note.
+- **D-387, Distilled Emotions from the currency exchange** (`6ffb53c`). One polite request confirmed poe.ninja's
+  exchange overview lists them, category `Delirium`, by PoB's names (26 items, values in divines); it is the
+  committed fixture `tests/fixtures/poeninja/delirium-overview.response.json`.
+  - `get_item_price` recognises an emotion by name (`Liquid Envy`, every tier and the Ancient ones) and prices it
+    from that overview, cached as the rates are, with no trade request and no fallback to listings.
+  - `pricing.md`: an emotion's price is its `Exchange value:`. The poe2scout dumps aren't used.
+  - Tests: `tests/mcp/exchangePrice.test.ts`.
+- **D-388, ranking a summon main skill** (`bb936fd`). `get_passive_upgrades` read the player's CombinedDPS and
+  TotalDPS, 0 for a summon. It now reads `MinionTotalDPS` when the main skill summons a minion (`calc_with` reads
+  `Minion<Field>` as `get_stats` does), says so on the base line, and searches minion notables first.
+  `suggest_supports` already ranked by the minion's CombinedDPS, as PoB's gem selector does; its reply now names the
+  field `MinionCombinedDPS`. Tests: `tests/integration/minionRanking.test.ts`.
+- **PG-52, PG-53** (`a7abcee`, `pob-gaps.md`). At your Command's multiplier has no `actor = "parent"`, so on the minion
+  it is 0 and PoB applies nothing; Muster's count takes every Minion-and-Persistent skill, Navira and Cast on Minion
+  Death included.
+- **Two fixtures broke the new rules**, as they should: the fifteen-stage plan (a Titan plan) held two Oracle-only
+  nodes (8693 and 35393, stages 9-15) and Bloodlust in five groups of every stage, and AC-P43's breadth-first tree
+  reached five Oracle-only nodes. The fixture drops them (`278734a`), and AC-P43's search skips any node with an unlock
+  constraint.
+- **Gate:** `mise run test` rc 0 (134 suites, 2,397 tests; the `--runInBand` step 3 of 3), `pnpm build` rc 0.
+- **For the v1.6 fold:** D-383…D-388 join the decisions table. C-37 (`lookup_game_data`): legacy gems and unobtainable
+  uniques are left out and named. The compile check's defect list (02-plan-compiler) gains locked nodes, legacy gems
+  and unobtainable uniques. FR-A1 (`judge()`) gains the rule breaks. D-266's projection gains D-386. D-372's
+  routing: an emotion's price comes from the exchange (D-387). C-47 (`get_passive_upgrades`) gains D-388.

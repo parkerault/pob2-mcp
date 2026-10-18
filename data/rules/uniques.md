@@ -539,3 +539,307 @@ not evidence that players build around it.
 - Creates: companion, minion-count | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Ab Aeterno (Boots, level 65)
+- Id: ab-aeterno
+- Rule: Your Dodge Roll avoids all Hits, but it leaves you Overencumbered for 4 seconds.
+- Lines: "Dodge Roll avoids all Hits", "Gain Overencumbrance for 4 seconds when you Dodge Roll"
+- Creates: none | Pays off on: on-dodge
+- Penalties: "Gain Overencumbrance for 4 seconds when you Dodge Roll"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Atziri's Step (Boots, level 65)
+- Id: atziris-step
+- Rule: You gain Deflection Rating from your Evasion Rating, though Deflection prevents a little less damage.
+- Lines: "Gain Deflection Rating equal to (40-60)% of Evasion Rating"
+- Creates: deflection | Pays off on: evasion
+- Penalties: "-(12-6)% to amount of Damage Prevented by Deflection"
+- PoB models it: yes
+
+### Beetlebite (Boots, level 52)
+- Id: beetlebite
+- Rule: Enemies entering your Presence have your Bleeding on them Aggravated.
+- Lines: "Aggravate Bleeding on Enemies when they Enter your Presence"
+- Creates: none | Pays off on: bleed
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Birth of Fury (Boots, level 33)
+- Id: birth-of-fury
+- Rule: You drop Ignited Ground while moving, which Ignites from your maximum Life.
+- Lines: "Drop Ignited Ground while moving, which lasts 8 seconds and Ignites as though dealing Fire Damage equal to 10% of your maximum Life"
+- Creates: ignited-ground, ignite | Pays off on: moving, life
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Bushwhack (Boots, level 33)
+- Id: bushwhack
+- Rule: Your Physical damage builds Pin.
+- Lines: "Physical Damage is Pinning"
+- Creates: pin | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Decree of Flight (Boots, level 65)
+- Id: decree-of-flight
+- Rule: Dodge Rolling grants Guard from missing Energy Shield, and your maximum Guard comes from your maximum Energy Shield.
+- Lines: "Gain Guard equal to (10-20)% of missing Energy Shield for 4 seconds when you Dodge Roll", "Maximum amount of Guard is based on maximum Energy Shield instead", "Divine Flight"
+- Creates: none | Pays off on: energy-shield, on-dodge
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Ghostmarch (Boots, level 16)
+- Id: ghostmarch
+- Rule: Your Dodge Roll passes through enemies.
+- Lines: "Dodge Roll passes through Enemies"
+- Creates: none | Pays off on: on-dodge
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Shankgonne (Boots, level 45)
+- Id: shankgonne
+- Rule: You gain Deflection Rating from your Armour, but you can't Sprint.
+- Lines: "Gain Deflection Rating equal to 20% of Armour"
+- Creates: deflection | Pays off on: armour
+- Penalties: "You cannot Sprint"
+- PoB models it: yes
+
+### The Knight-errant (Boots, level 6)
+- Id: the-knight-errant
+- Rule: You have Iron Reflexes: all your Evasion Rating becomes Armour.
+- Lines: "Iron Reflexes"
+- Creates: armour | Pays off on: evasion
+- Penalties: none
+- PoB models it: yes
+
+### Trampletoe (Boots, level 27)
+- Id: trampletoe
+- Rule: Part of the damage beyond a kill hits enemies near the one you killed.
+- Lines: "Deal 30% of Overkill damage to enemies within 2 metres of the enemy killed"
+- Creates: area | Pays off on: on-kill
+- Penalties: "50% increased Attribute Requirements"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Wake of Destruction (Boots, level 16)
+- Id: wake-of-destruction
+- Rule: You drop Shocked Ground while moving.
+- Lines: "Drop Shocked Ground while moving, lasting 8 seconds"
+- Creates: shocked-ground | Pays off on: moving
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Windscream (Boots, level 33)
+- Id: windscream
+- Rule: Your Curses have no activation delay.
+- Lines: "Curses have no Activation Delay"
+- Creates: none | Pays off on: curse
+- Penalties: none
+- PoB models it: yes
+
+### Atziri's Acuity (Gloves, level 33)
+- Id: atziris-acuity
+- Rule: You have Vaal Pact, and part of your Hits' Physical damage causes Blood Loss.
+- Lines: "10% of Physical damage dealt by your Hits causes Blood Loss", "Vaal Pact"
+- Creates: none | Pays off on: leech
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Blessed Bonds (Gloves, level 56)
+- Id: blessed-bonds
+- Rule: Igniting inflicts Cold Exposure, Shocking inflicts Fire Exposure, and Critical Hits inflict Lightning Exposure.
+- Lines: "Inflict Cold Exposure on Igniting an Enemy", "Inflict Fire Exposure on Shocking an Enemy", "Inflict Lightning Exposure on Critical Hit"
+- Creates: exposure | Pays off on: ignite, shock, on-crit
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Blueflame Bracers (Gloves, level 33)
+- Id: blueflame-bracers
+- Rule: All your Fire damage is converted to Cold.
+- Lines: "100% of Fire Damage Converted to Cold Damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Death Articulated (Gloves, level 65)
+- Id: death-articulated
+- Rule: Rage no longer decays and regenerates 5 per second, while you lose 5% of your Life per second.
+- Lines: "Regenerate 5 Rage per second", "No Inherent loss of Rage"
+- Creates: rage | Pays off on: none
+- Penalties: "Lose 5% of maximum Life per second"
+- PoB models it: yes
+
+### Demon Stitcher (Gloves, level 33)
+- Id: demon-stitcher
+- Rule: Casting a Spell sacrifices part of your Life to gain as much Energy Shield.
+- Lines: "Sacrifice (5-15)% of maximum Life to gain that much Energy Shield when you Cast a Spell"
+- Creates: energy-shield | Pays off on: life
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Dreadfist (Gloves, level 27)
+- Id: dreadfist
+- Rule: Critical Hits inflict Impale, but can't extract it.
+- Lines: "Critical Hits inflict Impale", "Critical Hits cannot Extract Impale"
+- Creates: none | Pays off on: crit
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Empire's Grasp (Gloves, level 52)
+- Id: empires-grasp
+- Rule: Your Knockback pulls enemies toward you instead.
+- Lines: "Knockback direction is reversed"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Essentia Sanguis (Gloves, level 52)
+- Id: essentia-sanguis
+- Rule: Your Life Leech leeches Energy Shield instead.
+- Lines: "Life Leech is Converted to Energy Shield Leech"
+- Creates: energy-shield | Pays off on: leech
+- Penalties: none
+- PoB models it: yes
+
+### Facebreaker (Gloves, level 1)
+- Id: facebreaker
+- Rule: With both hands empty you Attack as though wielding a One Hand Mace, using the gloves' own damage.
+- Lines: "Can Attack as though using a One Handed Mace while both of your hand slots are empty", "Unarmed Attacks that would use an Equipped One Hand Mace's damage use this Item's damage"
+- Creates: none | Pays off on: glove-slot
+- Penalties: none
+- PoB models it: yes
+
+### Gravebind (Gloves, level 5)
+- Id: gravebind
+- Rule: Enemies in your Presence killed by anyone count as killed by you, but your other Rarity modifiers don't apply.
+- Lines: "Enemies in your Presence killed by anyone count as being killed by you instead"
+- Creates: on-kill | Pays off on: none
+- Penalties: "Your other Modifiers to Rarity of Items found do not apply"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Hateforge (Gloves, level 33)
+- Id: hateforge
+- Rule: Reaching maximum Rage grants a random Charge and empties your Rage.
+- Lines: "Gain a random Charge on reaching Maximum Rage, no more than once every (3-6) seconds", "Lose all Rage on reaching Maximum Rage"
+- Creates: endurance-charge, frenzy-charge, power-charge | Pays off on: rage
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Idle Hands (Gloves, level 28)
+- Id: idle-hands
+- Rule: You count as on Full Mana at 90% of your maximum Mana or above.
+- Lines: "You count as on Full Mana while at 90% of maximum Mana or above"
+- Creates: none | Pays off on: mana
+- Penalties: none
+- PoB models it: yes
+
+### Jarngreipr (Gloves, level 6)
+- Id: jarngreipr
+- Rule: Strength can meet the other Attribute requirements of Melee weapons and Melee skills.
+- Lines: "Strength can satisfy other Attribute Requirements of Melee Weapons and Melee Skills"
+- Creates: none | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Killjoy (Gloves, level 16)
+- Id: killjoy
+- Rule: Your On-Kill effects happen twice, but Flasks don't recover Life.
+- Lines: "On-Kill Effects happen twice"
+- Creates: none | Pays off on: on-kill
+- Penalties: "Flasks do not recover Life"
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Kitoko's Current (Gloves, level 26)
+- Id: kitokos-current
+- Rule: Lightning damage from your Hits builds Electrocution.
+- Lines: "Lightning damage from Hits Contributes to Electrocution Buildup"
+- Creates: electrocute | Pays off on: none
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Leopold's Applause (Gloves, level 52)
+- Id: leopolds-applause
+- Rule: Your Hits can Penetrate Elemental Resistances down to -50%.
+- Lines: "Your Hits can Penetrate Elemental Resistances down to a minimum of -50%"
+- Creates: none | Pays off on: exposure
+- Penalties: none
+- PoB models it: yes
+
+### Lochtonial Caress (Gloves, level 16)
+- Id: lochtonial-caress
+- Rule: You share your Charges with allies in your Presence.
+- Lines: "Share Charges with Allies in your Presence"
+- Creates: none | Pays off on: endurance-charge, frenzy-charge, power-charge
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Maligaro's Virtuosity (Gloves, level 45)
+- Id: maligaros-virtuosity
+- Rule: Your Critical Damage Bonus is fixed at 250%, and your Critical Hit chance can't be rerolled.
+- Lines: "Your Critical Hit Chance cannot be Rerolled", "Your Critical Damage Bonus is 250%"
+- Creates: none | Pays off on: crit
+- Penalties: none
+- PoB models it: partly — a compile measures only part of what it adds
+
+### Nightscale (Gloves, level 45)
+- Id: nightscale
+- Rule: You regenerate Mana only if you dealt a Critical Hit recently, and much faster when you did.
+- Lines: "150% increased Mana Regeneration Rate if you've dealt a Critical Hit Recently", "Cannot Regenerate Mana if you haven't dealt a Critical Hit Recently"
+- Creates: mana | Pays off on: on-crit
+- Penalties: "Cannot Regenerate Mana if you haven't dealt a Critical Hit Recently"
+- PoB models it: yes
+
+### Northpaw (Gloves, level 1)
+- Id: northpaw
+- Rule: Attacks with weapons have a base Critical Hit chance of 7%, whatever the weapon's own.
+- Lines: "Base Critical Hit Chance for Attacks with Weapons is 7%"
+- Creates: crit | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Painter's Servant (Gloves, level 1)
+- Id: painters-servant
+- Rule: Your Elemental damage is spread evenly across Cold, Fire and Lightning.
+- Lines: "33% of Elemental Damage Converted to Cold Damage", "33% of Elemental Damage Converted to Fire Damage", "33% of Elemental Damage Converted to Lightning Damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Plaguefinger (Gloves, level 1)
+- Id: plaguefinger
+- Rule: All damage from your Hits builds Poison magnitude, but you can't inflict Elemental Ailments.
+- Lines: "All Damage from Hits Contributes to Poison Magnitude"
+- Creates: poison | Pays off on: none
+- Penalties: "Cannot inflict Elemental Ailments"
+- PoB models it: yes
+
+### Shackles of the Wretched (Gloves, level 16)
+- Id: shackles-of-the-wretched
+- Rule: After each Chill, Freeze, Ignite or Shock you are immune to it for 6 seconds, but your Curses are reflected back to you.
+- Lines: "You cannot be Chilled for 6 seconds after being Chilled", "You cannot be Frozen for 6 seconds after being Frozen", "You cannot be Ignited for 6 seconds after being Ignited", "You cannot be Shocked for 6 seconds after being Shocked", "Curses you inflict are reflected back to you"
+- Creates: none | Pays off on: curse
+- Penalties: none
+- PoB models it: no — a compile measures what it gives up, not what it adds
+
+### Sine Aequo (Gloves, level 65)
+- Id: sine-aequo
+- Rule: Enemies are Immobilised at half the usual buildup.
+- Lines: "Immobilise enemies at 50% buildup instead of 100%"
+- Creates: freeze, pin, stun, electrocute | Pays off on: none
+- Penalties: none
+- PoB models it: yes
+
+### Treefingers (Gloves, level 11)
+- Id: treefingers
+- Rule: You have Giant's Blood: you can wield Two-Handed Axes, Maces and Swords in one hand.
+- Lines: "Giant's Blood"
+- Creates: none | Pays off on: weapon-slot, offhand-slot
+- Penalties: none
+- PoB models it: yes
+
+### Valako's Vice (Gloves, level 45)
+- Id: valakos-vice
+- Rule: All your Fire damage is converted to Lightning.
+- Lines: "100% of Fire damage Converted to Lightning damage"
+- Creates: damage-conversion | Pays off on: none
+- Penalties: none
+- PoB models it: yes

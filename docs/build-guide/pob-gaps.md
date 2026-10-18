@@ -217,6 +217,26 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - **Seen in:** Varashta.
   - **Workaround:** none for the numbers; V1's `not-granted` reports a stage that uses the command without its
     passive (D-380).
+- **PG-52, At your Command adds nothing.** gap (pessimistic), confirmed in code (the Varashta run, 2026-10-17).
+  - **Where:** the Disciple of Varashta notable's line, "Minions deal 10% increased Damage with Command Skills for
+    each different type of Persistent Minion in your Presence", parses to a minion modifier whose multiplier
+    `PersistentMinionTypes` has no `actor = "parent"` (`Data/ModCache.lua:6224`). PoB sets that multiplier only on
+    the player's mod list (`Modules/CalcPerform.lua:1344-1348`), so on the minion it is 0. Muster reads the same
+    multiplier with `actor = "parent"` and gets it (`Data/Skills/sup_int.lua:7121`).
+  - **Effect:** PoB measures a command skill without the bonus, 10% per persistent minion type.
+  - **Seen in:** Varashta: Navira's Fracturing with Skeletal Warrior, Skeletal Arsonist and Navira.
+  - **Workaround:** a `config.customMods` stand-in for the bonus at the stage's type count, with its reason
+    (D-293), as the run's plan did.
+- **PG-53, Muster counts minions that don't revive.** gap (optimistic), confirmed in code (the Varashta run,
+  2026-10-17).
+  - **Where:** Muster says "more Damage the more different kinds of Reviving Minions you have summoned", but PoB's
+    count takes every active skill with the Minion and Persistent skill types (`Modules/CalcPerform.lua:1344-1347`).
+    That includes Navira, the Last Mirage, which can't be damaged (`MinionsAreUndamagable`,
+    `Data/Skills/other.lua:12311`), and Cast on Minion Death, a meta skill typed Minion and Persistent
+    (`Data/Skills/act_int.lua:2760`).
+  - **Effect:** Muster's more multiplier, and PG-52's stand-in if it uses PoB's count, run one or two types high.
+  - **Seen in:** Varashta.
+  - **Workaround:** count the reviving minion types by hand and say so in the plan's reason for the figure.
 
 ## Data: missing, out of range, or stale
 

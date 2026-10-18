@@ -4086,3 +4086,30 @@ the `m17` engine at `857658c`.
   identity and chain core, or a new card (`r<k>-g-<n>`), which R1b writes and verifies in the same round with no
   brainstorm round. When unsure, a new card. The cards it draws on stay in the deck. Today such a request can only
   become "brainstorm more", a whole round with no guarantee the combination is dealt.
+
+## 2026-10-18: poe2db and poe2wiki as sources; the league digest
+
+- **Asked whether we use poe2wiki and poe2db** (the user's own go-to sources):
+  - **poe2db** has been an allowed host since D-171, in online runs only. The committed reference data cites it. The
+    Varashta run cited it 4 times in about 350 research citations, as a last resort when a lookup returned nothing
+    (Navira's page; Puppet Master's buff). Nothing directs its use.
+  - **poe2wiki** was never used. It still refuses agents: Anubis, a proof-of-work bot shield, blocks both its pages
+    and `api.php`. Getting past it with a real browser would override the operator's choice, so it stays out unless
+    the user decides otherwise.
+- **The probe** (8 requests to poe2db, serial). robots.txt disallows only `/*/marked` and `/*/markdown_history`.
+  - **The homepage's popover summaries** are content-addressed files on `cdn.poe2db.tw`, which return 403 to a
+    direct request. Not pursued.
+  - **The league's list pages carry every entry's full text,** one request each:
+    - `Runes_of_Aldur_gems`: 57 gems, about 2,400 words;
+    - `Runes_of_Aldur_uniques`: 50 uniques, about 3,150 words;
+    - `Runes_of_Aldur_items`: 309 items, about 11,900 words, mostly currency;
+    - the homepage's league section names the new ascendancies and passives.
+  - **The gems page holds Powered by Verisium,** the piece Navira's build ran on and our run missed.
+- **Agreed with the user: a committed per-league digest,** in the engine-lens amendment. It brings the comparison's
+  §7.2 remedy 3 forward.
+  - A script fetches the list pages once per patch and parses the HTML exactly, not through WebFetch's summary.
+  - It writes each entry's name, kind, tags, text, URL, access date, and whether the PoB pin knows it.
+  - It is committed with fixture tests, with no network (D-34).
+  - Every brainstorm reads it first, offline runs included.
+  - The user triggers a refresh when a league or patch lands. An online run may warn when the digest's league isn't
+    current.

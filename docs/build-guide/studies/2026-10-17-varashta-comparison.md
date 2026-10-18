@@ -267,6 +267,10 @@ tuned the build it chose well. Navira's guide chose a better build.
 3. **Know what's new from the community.** A "what's new" step reads the crowd-sourced services or a video transcript
    (the user's local YouTube library already makes one). Which services, and how within their terms, is the user's
    call (compare poe.ninja's closed builds API, D-335).
+   - **The user's choice (2026-10-18): poe2db,** as a committed per-league digest that every brainstorm reads first.
+     It is built from the league's list pages, which carry every entry's full text, one request each. Example:
+     `https://poe2db.tw/us/Runes_of_Aldur_gems` lists all 57 new gems, Powered by Verisium among them.
+   - **poe2wiki** refuses agents behind Anubis, a bot shield, for both its pages and its API.
 
 **While designing, before any compile:**
 
@@ -303,11 +307,10 @@ tuned the build it chose well. Navira's guide chose a better build.
 
 ### 7.3 Where they go
 
-- **The engine-lens amendment:** 1, 4–9 and 11.
+- **The engine-lens amendment:** 1, 3 (brought forward: the poe2db digest), 4–9 and 11.
 - **The feedback amendment (gates as interviews):** 2 and 10, and clear speed in each card's pitch: how it clears, how
   many buttons, how fast it moves between packs.
 - **The pattern library:** 12, starting with this study's patterns.
-- **Later, the user's choice of sources:** 3.
 
 ## 8. Caveats
 

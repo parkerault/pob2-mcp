@@ -564,9 +564,9 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * skill is a plain summon (no minion skill; `figureField`, D-397), the DPS is its minion's too and names the summon
  * as the record does (its breakdown entry's `skill`, PoB's name of the skill): `DPS <n> (<summon>, minion)`.
  *
- * WU-88 (D-407) leaves the line as it was: a card skeleton's pace measures, and every stage's `movementSpeed`, are in
- * the record only (the user's HG-12 grant covers the record's fields), so the clear speed is printed where the
- * measures are an endgame variant's, the ones that carry `dps`.
+ * WU-88 (D-407) leaves the line as it was: a card skeleton's pace measures, and every measured stage's
+ * `movementSpeed`, are in the record only (the user's HG-12 grant covers the record's fields), so the clear speed is
+ * printed where the measures are an endgame variant's, the ones that carry `dps`.
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
@@ -889,8 +889,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     ascendancy: plan.roll.ascendancy,
     stages: compiled.map(checkStageOf),
     producers: producersOf(compiled),
-    // D-353: the clear-speed measure reads the endgame stages' clear gems' texts.
-    describeGems: [...new Set(compiled.filter((s) => s.variant !== undefined).flatMap(clearGemNames))],
+    // D-353: the clear-speed measure reads the measured stages' clear gems' texts, a card skeleton's included (D-407).
+    describeGems: [...new Set(compiled.filter(measuredStage).flatMap(clearGemNames))],
   });
   const checkMs = env.clock() - tCheck;
   if (check.defects.length > 0) {

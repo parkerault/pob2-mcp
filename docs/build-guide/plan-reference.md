@@ -292,7 +292,7 @@ the record for these: the headline DPS (the main group's Count-scaled figure, fo
 when a minion deals it: `DPS 649 (Navira's Fracturing, minion)`), life, energy shield, EHP, the
 fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame variant stage
 also the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. A card skeleton's pace
-measures and every stage's movement speed are in the record only. Numbers are rounded to whole numbers.
+measures and every measured stage's movement speed are in the record only. Numbers are rounded to whole numbers.
 
 ```
 Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass

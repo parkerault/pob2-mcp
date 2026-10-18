@@ -11,11 +11,14 @@
  *
  * The skeletons are written here from the committed `minion-wolf` fixture (its level-80 Warrior tree and Wooden Club)
  * with the variant fields removed, and the game data's names: "Earthquake" (its first stat set, Impact, has a base
- * radius of 18, `Data/Skills/act_str.lua`) and "Skeletal Warrior" (granted effect `SummonSkeletalWarriorsPlayer`,
- * `Data/Gems.lua`). The server runs in process over private folders (`startSessionFixture`).
+ * radius of 18, `Data/Skills/act_str.lua`), "Skeletal Warrior" (granted effect `SummonSkeletalWarriorsPlayer`,
+ * `Data/Gems.lua`) and "Contagion" (its gem text: "If the enemy dies while affected by Contagion, it spreads itself…").
+ * The server runs in process over private folders (`startSessionFixture`).
  *
  * - AC-P71 (D-407): a card skeleton's compile record holds `clearSpeed` and the movement speed; a clear skill with no
  *   area reads `slow` with the no-area flag.
+ * - D-407 with D-353's steps: a skeleton's clear speed is measured as a rung's is, its gem text's on-death step
+ *   included (Contagion reads the same `onDeath` and `speed` as a skeleton and as a budget rung).
  * - D-407 within the HG-12 grant: the skeleton gets no `dps`, `ehp` or `arbiter`, the endgame variant of the same build
  *   keeps them and gains the same movement speed, and `compile_plan`'s key-figure line for the skeleton is unchanged.
  *
@@ -71,6 +74,9 @@ engineDescribe('WU-88: clear speed and movement speed on a card skeleton (D-407)
   let quake: { record: CompileRecord; text: string };
   let quakeRung: { record: CompileRecord; text: string };
   let warrior: { record: CompileRecord; text: string };
+  /** Contagion, which spreads on death: a skeleton, and the same build as a budget rung. */
+  let contagion: { record: CompileRecord; text: string };
+  let contagionRung: { record: CompileRecord; text: string };
 
   /** A measure-only compile of `p` in a new run, as R1b's step 8 makes it: its record and compile_plan's text. */
   async function compile(slug: string, p: Json) {
@@ -89,6 +95,8 @@ engineDescribe('WU-88: clear speed and movement speed on a card skeleton (D-407)
     quake = await compile('p71-quake', plan('Earthquake', { fastBoots: true }));
     quakeRung = await compile('p71-quake-rung', plan('Earthquake', { fastBoots: true, variant: true }));
     warrior = await compile('p71-warrior', plan('Skeletal Warrior'));
+    contagion = await compile('p71-contagion', plan('Contagion'));
+    contagionRung = await compile('p71-contagion-rung', plan('Contagion', { variant: true }));
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
@@ -139,6 +147,19 @@ engineDescribe('WU-88: clear speed and movement speed on a card skeleton (D-407)
       expect({ minion: entry.fields.MinionAreaOfEffectRadiusMetres, own: entry.fields.AreaOfEffectRadiusMetres }).toEqual({ minion: undefined, own: undefined });
       expect(s.measures!.clearSpeed).toMatchObject({ skill: 'Skeletal Warrior Minion', key: 'g1s1p1', radiusMetres: 0, band: 'slow', speed: 'slow', noArea: true, rough: true });
       expect(s.measures!.movementSpeed).toBe(s.outputs.EffectiveMovementSpeedMod);
+    });
+
+    it("a skeleton's clear speed takes D-353's on-death step as a rung's does: Contagion spreads when its enemy dies, so it reads one band faster, the same onDeath and speed as a skeleton and as a budget rung", () => {
+      const skeleton = contagion.record.stages[SKELETON].measures!.clearSpeed;
+      const rung = contagionRung.record.stages.b.measures!.clearSpeed;
+      expect(skeleton.skill).toBe('Contagion');
+      // Its gem text spreads itself on death (D-353's phrase list): one band faster, less one for a use over 1 second.
+      expect(skeleton.onDeath).toBe(true);
+      const bands = ['slow', 'medium', 'fast'];
+      const step = Math.min(2, Math.max(0, bands.indexOf(skeleton.band) + 1 - (skeleton.longUse ? 1 : 0)));
+      expect(skeleton.speed).toBe(bands[step]);
+      expect({ onDeath: skeleton.onDeath, speed: skeleton.speed }).toEqual({ onDeath: rung.onDeath, speed: rung.speed });
+      expect(skeleton).toEqual(rung);
     });
   });
 

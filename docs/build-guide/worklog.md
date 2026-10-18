@@ -4496,3 +4496,10 @@ the `m17` engine at `b76967b`.
 - **M-20 wave 1 dispatched:** WU-84 (`bg-84`), WU-85 (`bg-85`), WU-86 (`bg-86`) and WU-88 (`bg-88`), each off the
   integration head `f1eaaa7` (worktree `m20`, branch `build-guide/m20`). Commits here are unsigned until the
   sign-rebase.
+- **WU-88 done by its doer** (`41500ad`, 235K tokens). Gate rc 0 (139 suites, 2,463 tests), build rc 0. A skeleton's
+  record (any endgame stage without a variant) gains `measures {clearSpeed, movementSpeed}`; variant stages gain
+  `movementSpeed`. It is PoB's `EffectiveMovementSpeedMod`, a multiplier (1.25 = +25%). `clearSpeed.noArea` marks a
+  clear skill with no radius (a Skeletal Warrior's strike). The key-figure line is unchanged, since its text is part
+  of the contract. **For WU-89:** print the record's `speed` with the no-area flag, not the band (an on-death step
+  can make `speed` medium while the band is slow); `render-audit.mjs` still reads movement speed from `outputs`.
+  The verifier is running.

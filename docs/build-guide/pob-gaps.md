@@ -253,6 +253,19 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - **Effect:** Muster's more multiplier, and PG-52's stand-in if it uses PoB's count, run one or two types high.
   - **Seen in:** Varashta.
   - **Workaround:** count the reviving minion types by hand and say so in the plan's reason for the figure.
+- **PG-55, a "Runic Ward:" line isn't read, so the item's text doesn't read back the same.** bug, confirmed in code
+  and on the probe (the M-19 fix batch, 2026-10-18; D-399).
+  - **Where:** the item reader takes a "Ward:" line but not "Runic Ward:" (`Classes/Item.lua:608`). On a Runeforged
+    rare whose "Runic Ward:" line sits before a socketed rune, PoB's own save re-parses the item
+    (`Classes/ItemsTab.lua:1219` through `BuildAndParseRaw`, `Classes/Item.lua:1604`) into text that reads back
+    with one more socket and one more rune.
+  - **Effect:** in PoB, every save adds a socket and a rune's bonuses, and each parse is slower than the last. Before
+    D-399, our session's snapshot after each change did the same, so a heavy build's changes took minutes and its
+    figures drifted. D-399's export no longer re-parses items, so our snapshots and saves leave the item as it was.
+    The item's Runic Ward itself still isn't counted.
+  - **Seen in:** the Varashta comparison: Navira's PoB holds such an item (its figures measured after changes may
+    hold extra rune bonuses; the comparison's §8).
+  - **Workaround:** none needed for our tools since D-399. In PoB itself, re-import the item after a save.
 
 ## Data: missing, out of range, or stale
 

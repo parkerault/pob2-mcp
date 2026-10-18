@@ -4428,3 +4428,10 @@ the `m17` engine at `b76967b`.
   - **Fix round sent** for lows 1, 3 and 4: name the file on a temporary load's warning lines; neutral examples in the
     unit test; an engine test for an item-granted group, and no false "dropped" line when no group matches the
     grant.
+- **The fix batch's fix round** (`d23201c` after the rebase; the doer's 331K total, 3 commits plus 1): a temporary
+  load's lines name their file; neutral examples in the unit test; an engine test for an item-granted group; a group
+  nothing grants (its passive unallocated, its item unequipped) gets a truthful line ("…isn't allocated, so PoB
+  removed the group") and an optional `grantMissing` in the engine reply. The coordinator read the code diff.
+- **Merged** into `roadmap/2026-10-18` (fast-forward; `b573650` D-398, `9d34539` PG-54, `7d20ee9` D-399, `d23201c`).
+  The spine gains D-398 and D-399 (`fba4113`), and R-47 is resolved by D-399. **PG-55** (the unread "Runic Ward:"
+  line) is added. PG-51's fold note (where PoB's own group lands, D-382) was already in its text.

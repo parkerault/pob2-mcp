@@ -4435,3 +4435,10 @@ the `m17` engine at `b76967b`.
 - **Merged** into `roadmap/2026-10-18` (fast-forward; `b573650` D-398, `9d34539` PG-54, `7d20ee9` D-399, `d23201c`).
   The spine gains D-398 and D-399 (`fba4113`), and R-47 is resolved by D-399. **PG-55** (the unread "Runic Ward:"
   line) is added. PG-51's fold note (where PoB's own group lands, D-382) was already in its text.
+- **M-19 wave gate: PASS** at `92f2f57`, from a clean build: `mise run test` rc 0 (137 suites, 2,449 tests; the
+  `--runInBand` step 3 of 3), `pnpm build` rc 0. The "restoring the snapshot failed" lines in the log are the
+  session tests that inject that failure.
+- **The pin** (the user, 2026-10-18: pin to the PoB they run on Windows, 0.23.1): already so. `pob-pin.json` names
+  tag `v0.23.1` (`7d6f530`), and the vendor checkout describes as `v0.23.1`.
+- **M-19's agents:** about 2.07M tokens: the fold doer 746K and its reviewer 496K, the fix batch's doer 331K and
+  verifier 184K, the drafts' reviewer 315K. The coordinator's own session is on top.

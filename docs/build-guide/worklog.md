@@ -4299,3 +4299,24 @@ the `m17` engine at `b76967b`.
     - the other low items as listed.
 - **WU-82 merged** (fast-forward, after a rebase). **M-18 built:** WU-80…WU-82 are on `build-guide/amendments`.
   Next: the wave gate, in a fresh worktree `m18`.
+- **M-18 wave gate: PASS at `5b2f75f`** (an independent verifier, 164K tokens, in the fresh worktree `m18`).
+  - **Bootstrap:** clean. `vendor/` is at the pin.
+  - **Gate:** `mise run test` rc 0 (135 suites, 2,435 tests; the `--runInBand` step 3 of 3); `pnpm build` rc 0.
+  - **Cross-cutting checks:** waivers `[]`; dependencies, `src/server/` and the README unchanged since `eb78489`;
+    the checker exits 0 on all five fixtures.
+  - **ACs:** AC-P70 and AC-W67…AC-W69 pass, and one per unit was spot-checked as faithful.
+  - **Probes through the built code:**
+    - a plain summon compiles to `DPS 78 (Skeletal Warrior Minion, minion)`, `measures.dps` = 39.0 × 2;
+    - `display brainstorm` prints 8 named cards, each with its five pitch lines, and no id before "For reference";
+    - `test-config` accepts the skill's example and refuses five malformed entries.
+  - **Seams:** the skill text's formats match the scripts' constants.
+  - **Findings, all low:**
+    - AC-P70's wording, which changes at the fold;
+    - a label R1a-assemble drops still showed on the card as "Unusual";
+    - the template wrapped the `Under-played (judgment):` label across two lines;
+    - a stale checker comment.
+
+    The coordinator fixed the last three, with the static and script suites (744 tests) passing and the checker at
+    0 on all five fixtures.
+- **M-18 total:** about 1.97M tokens: the three doers with their fix rounds 1.21M (WU-80 216K, WU-81 476K, WU-82
+  518K), the three verifiers 595K, and the wave gate 164K.

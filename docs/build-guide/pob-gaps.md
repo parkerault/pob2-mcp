@@ -266,6 +266,21 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - **Seen in:** the Varashta comparison: Navira's PoB holds such an item (its figures measured after changes may
     hold extra rune bonuses; the comparison's §8).
   - **Workaround:** none needed for our tools since D-399. In PoB itself, re-import the item after a save.
+- **PG-56, PoB has no rare monster modifiers, and no way to give a companion one.** gap, confirmed in code
+  (amendment 8, D-402, 2026-10-18).
+  - **Where:** a companion is only a monster id in the build's beast library: `<BeastCompanion id="…">`, read and
+    written by `Modules/Build.lua:1126-1128` and `:1166-1167`. A Companion skill takes its minion list from that
+    library (`Modules/CalcActiveSkill.lua:904-905`), and the minion's figures come from its monster's entry in
+    `Data/Spectres.lua` (619 monsters; the first at `:10-55`): life, resistances, `companionReservation`, its skills
+    and its own base `modList`, with no field for a rare modifier. Nothing in the pin's `Data/` lists rare monster
+    modifiers. The character import matches a "Companion:" gem to a monster by name and reservation only
+    (`Classes/ImportTab.lua:1017-1035`).
+  - **Effect:** a tamed beast keeps up to four of its monster modifiers (the Tame Beast gem's text), and none of them
+    reaches PoB: neither a stat such as Hasted's speed nor a ground such as Trail of Ice's Chilled Ground.
+  - **Seen in:** Varashta: Navira's guide tames a beast with Frozen Ground Trail for the Chilled Ground that Navira's
+    Fracturing consumes; its PoB has no beast.
+  - **Workaround:** each modifier's row in `data/monsters/monster-mods.md` says how a plan models it: `stats` as
+    custom modifiers, `condition` as a config entry, `none` stated on the card (D-402).
 
 ## Data: missing, out of range, or stale
 

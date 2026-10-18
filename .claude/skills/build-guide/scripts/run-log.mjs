@@ -696,9 +696,12 @@ function verificationDisplay(dir, log) {
       const how = fig.estimate ? 'an estimate: a Count above 1 or a custom modifier carries it' : 'modelled in PoB';
       out.push(`   Damage: ${whole(fig.dps)} per second from ${fig.minion ? `${fig.skill}'s minions` : fig.skill}, against ${fig.against} (${how}).`);
       out.push(`   Toughness: ${whole(fig.life)} life and ${whole(fig.ehp)} effective HP (PoB's estimate of the damage it takes to kill you).`);
-      if (fig.clear) out.push(`   Clear: ${clearWords(fig.clear)}.`);
+      if (fig.clear) out.push(`   Clear speed: ${speedOf(fig.clear)} (a rough estimate from the main skill's area).`);
     }
-    if (text(field('How it clears'))) out.push(`   How it clears: ${plain(field('How it clears'))}`);
+    // §5's rough clear speed: the record's measure when it has one; a skeleton has none (only a stage with a variant is
+    // measured), so a verified card's "How it clears" stands in for it, marked as the estimate it is.
+    const unmeasured = fig !== null && !fig.clear;
+    if (text(field('How it clears'))) out.push(`   How it clears: ${plain(field('How it clears'))}${unmeasured ? ' (an estimate; measured at the design)' : ''}`);
     const prices = r.cell('Key prices');
     if (text(prices) && !/^[—-]+$/.test(prices)) out.push(`   Key prices: ${plain(prices)}${/^none\b/i.test(r.cell('League')) || /^[—-]*$/.test(r.cell('League')) ? '' : ` (league: ${r.cell('League')})`}.`);
     if (text(field('The catch'))) out.push(`   The catch: ${plain(field('The catch'))}`);

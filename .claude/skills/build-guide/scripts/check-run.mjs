@@ -2791,7 +2791,7 @@ function checkInterviews(log, files, readText, exists, questionProbes, fail) {
     if (ns.some((n, k) => n !== k + 1)) fail('interview', `interviews/ holds the gate question reports ${ns.map((n) => `${key}-q${n}.md`).join(', ')}; they are numbered from 1 per visit, with no gap (D-390)`);
     for (const n of ns) {
       const f = `${key}-q${n}.md`;
-      if (cited.get(f) !== key) fail('interview', `interviews/${f} is a gate question step's report, but ${notes.has(key) ? `interviews/${notes.get(key)}` : `no interviews/${key}.md`} cites it as a question's source (D-389, D-390)`);
+      if (cited.get(f) !== key) fail('interview', `interviews/${f} is a gate question step's report, but ${notes.has(key) ? `interviews/${notes.get(key)} doesn't cite it` : `there is no interviews/${key}.md to cite it`} as a question's source (D-389, D-390)`);
       const t = readText(`interviews/${f}`) ?? '';
       const h2 = t.split('\n').filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, '').trim());
       const agent = /^- Agent:\s*(\S+)/m.exec(t)?.[1];

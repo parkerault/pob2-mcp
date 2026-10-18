@@ -1318,7 +1318,12 @@ describe('D-389, D-390 (WU-81): the interview notes and the gate question steps 
     expect(failing(uncounted)).toMatch(/\[interview\] run-log\.json logs 0 gate question step\(s\) \(stage Q\), but interviews\/ holds 1 gate question report\(s\)/);
     const uncited = interviewCopy();
     editText(uncited, 'interviews/brainstorm-1.md', replace('Source: interviews/brainstorm-1-q1.md (a gate question step, build-guide-researcher)', 'Source: lookup_game_data gem "Herald of Blood"'));
-    expect(failing(uncited)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md is a gate question step's report, but interviews\/brainstorm-1\.md cites it as a question's source/);
+    expect(failing(uncited)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md is a gate question step's report, but interviews\/brainstorm-1\.md doesn't cite it as a question's source \(D-389, D-390\)/);
+    // With no notes for the visit at all, nothing can cite it.
+    const noNotes = interviewCopy();
+    fs.rmSync(path.join(noNotes, 'interviews', 'brainstorm-1.md'));
+    editLog(noNotes, (l) => (l.checkpoints[0].questions = 0));
+    expect(failing(noNotes)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md is a gate question step's report, but there is no interviews\/brainstorm-1\.md to cite it as a question's source \(D-389, D-390\)/);
     const form = interviewCopy();
     editText(form, 'interviews/brainstorm-1-q1.md', replace('- Agent: build-guide-researcher', '- Agent: build-guide-writer'));
     expect(failing(form)).toMatch(/\[interview\] interviews\/brainstorm-1-q1\.md isn't a gate question's report/);

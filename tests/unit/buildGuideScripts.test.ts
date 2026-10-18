@@ -513,7 +513,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       '   Why pick it: One lunge spends the bleed you built for a big hit, so rares melt in two presses. The simplest Blood Hunt loop in the deck.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.',
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       '   The catch: The burst needs Blood Loss on the target first, and PoB has no setting for its uptime.',
       '   Found in verification: chaos resistance stays low',
@@ -522,7 +522,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       '   Why pick it: Stacked armour shrugs off the hits that kill most melee builds, and Blood Hunt still bursts.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead.',
+      '   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       '   The catch: Armour takes the gear slots that would add damage, so the burst is smaller.',
       '   Found in verification: dropping Brutality I costs the burst a tenth',
@@ -532,7 +532,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       '   Why pick it: The bleed burst\'s one-lunge kill, with a shield that blocks the hits a lunge walks into.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead, and the shield holds while you do.',
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead, and the shield holds while you do. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       "   The catch: The shield costs the off-hand damage, so the burst is a little smaller than the bleed burst's.",
       '   Found in verification: the shield costs off-hand damage',
@@ -547,6 +547,28 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       `- Dossier: ${path.join(dir, 'dossier.md')}`,
       '',
     ]);
+  });
+
+  it("verification, §5's rough clear speed: a skeleton record with no measures.clearSpeed shows the card's How it clears as the estimate it is; one with a measure prints it, and How it clears unmarked", () => {
+    const dir = copy('run-interview');
+    const how = 'Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.';
+    // A skeleton is one stage with no variant, which the compiler doesn't measure: no clear-speed line, the pitch's estimate instead.
+    expect(readJson(dir, 'concepts/r1-a-1/compile-record.json').stages.r1a1e.measures).toBeUndefined();
+    let out = display(dir, 'verification');
+    expect(out.filter((l) => /^ {3}(Clear speed|How it clears):/.test(l)).slice(0, 1)).toEqual([`   How it clears: ${how} (an estimate; measured at the design)`]);
+    expect(out.join('\n')).not.toMatch(/Clear speed:/);
+    editJson(dir, 'concepts/r1-a-1/compile-record.json', (r) => {
+      r.stages.r1a1e.measures = { dps: 50000, ehp: 31500, clearSpeed: { speed: 'fast', rough: true, group: 1, key: 'g1s1p1', skill: 'Blood Hunt' } };
+    });
+    out = display(dir, 'verification');
+    const at = out.indexOf('1. Blood Hunt bleed burst: works.');
+    expect(out.slice(at + 3, at + 6)).toEqual([
+      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
+      "   Clear speed: fast (a rough estimate from the main skill's area).",
+      `   How it clears: ${how}`,
+    ]);
+    // The other cards' skeletons stay unmeasured.
+    expect(out).toContain('   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead. (an estimate; measured at the design)');
   });
 
   it("verification: a card that can't be built yet says why, a failed card's verdict and the last design's are kept for reference (run-escalated)", () => {

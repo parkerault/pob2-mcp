@@ -4328,3 +4328,27 @@ the `m17` engine at `b76967b`.
   - **Not pushed.**
   - **Left for the user:** removing the worktrees `amend`, `bg-80`, `bg-81`, `bg-82` and `m18` and the merged
     branches; the classifier blocks worktree removal for the coordinator.
+
+## 2026-10-18: the fix batch and the v1.6 fold (M-19); the skill-split design
+
+- **The user's direction:** run the server fix batch and the skill-split design doc in parallel, and go as far
+  through the roadmap as possible while they're away. The coordinator's answer, which the user accepted: the fix
+  batch and the fold to v1.6 are built and verified; the skill-split doc and the engine-lens amendment are drafted
+  for review; nothing is built from a draft, signed or pushed, and the live run waits for the user.
+- **Cleanup done by the user:** worktrees `amend`, `bg-80`, `bg-81` and `bg-82` removed with their branches; `main`
+  pushed at `dac3563`. `m18` was moved to `dac3563` and rebuilt for the next live run.
+- **Integration:** worktree `int`, branch `roadmap/2026-10-18`, off `main` at `dac3563`. Commits there are unsigned
+  while the user is away (the main checkout signs through 1Password); the sign-rebase comes when the user is back.
+- **The handoff** gains an M-19 section (`6d1dcf5`): lane `bg-83` (D-398, the load warning for supports dropped from
+  a tree-granted group, with PG-54; the probe of snapshot timeouts on a heavy minion build, fixed as D-399 only if
+  the fix is local) and lane `bg-fold` (the fold to v1.6). HG-12 is granted for D-398's warning only. The probe may
+  read one file under the run environment's `reference/`, Navira's PoB, copied to a temp dir and never committed.
+- **Dispatched:** both doers, in parallel.
+- **The run environment** (`/home/parker/projects/pob2-mcp-runs/m16-varashta/`) now points at `m18`: `start.sh`,
+  `mcp/pob2-main.sh` (its variable is now `RUN_WT`) and the README. `m18` has no `.env`; copying one in is the
+  user's call, as it was for `m16`.
+- **The skill-split design** (`docs/design/2026-10-18-skill-split.md`), DRAFT for the user's review. Seven pieces:
+  the user's five (discovery, research, review, compile, writer) plus game knowledge as the base and pricing.
+  `/build-guide` stays as the sum of the pieces; the run folder's files are the interfaces. Extraction order: game
+  knowledge (with the engine-lens amendment), review, compile and writer with a PoB-to-plan tool, pricing, then
+  discovery and research. §6 lists four choices.

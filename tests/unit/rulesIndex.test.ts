@@ -63,7 +63,7 @@ const UNIQUES = [
 const GEMS = [
   '# Gems',
   '',
-  '### Fixture Support (support gem, level 1)',
+  '### Fixture Support (support gem, tier 1)',
   '- Id: fixture-support',
   '- Rule: supported spells consume an infusion in place of mana.',
   '- Lines: "Supported Spells consume an Infusion in place of Mana"',
@@ -109,6 +109,7 @@ describe('rules-index.mjs check (AC-W71)', () => {
     ['a block with a field missing', UNIQUES.replace('- Penalties: "-20% to Fire Resistance"\n', ''), 'uniques.md:5: the fields must be'],
     ['an id outside the id form', UNIQUES.replace('- Id: fixture-gloves', '- Id: Fixture Gloves'), 'uniques.md:5: id "Fixture Gloves"'],
     ['a heading without its slot and level', UNIQUES.replace('### Fixture Gloves (Gloves, level 40)', '### Fixture Gloves'), 'uniques.md:5: not a block heading'],
+    ['a heading with a tier, which only a gem has', UNIQUES.replace('(Gloves, level 40)', '(Gloves, tier 4)'), 'uniques.md:5: not a block heading'],
     ['unquoted lines', UNIQUES.replace('"Hits with Cold Skills create a Cold Infusion"', 'Hits with Cold Skills create a Cold Infusion'), 'uniques.md:5: Lines must be quoted lines'],
     ['a price', UNIQUES.replace('Cold skills leave', 'Worth 3 divines; Cold skills leave'), 'uniques.md:7: a price'],
     ['no penalty rule in the head', UNIQUES.replace(PENALTY_RULE, 'Uniques.'), 'uniques.md: the head lacks the penalty rule'],

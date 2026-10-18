@@ -29,8 +29,9 @@
 //     - <Name> (<id>, <Ascendancy or keystone>) — <what it does>.
 //     - <Name> (<id>, <Ascendancy or keystone>) [rule] — <the rule it changes>. creates: <families> | pays off on: <families> | PoB models it: <yes|partly|no>
 //
-//   uniques.md and gems.md, one block per rule changer:
-//     ### <Name> (<slot or gem kind>, level <n>)
+//   uniques.md and gems.md, one block per rule changer, headed by a unique's item type and level requirement or a
+//   gem's kind and tier:
+//     ### <Name> (<item type>, level <n>)   or   ### <Name> (<gem kind>, tier <n>)
 //     - Id: <id>
 //     - Rule: <the rule it changes, in a sentence>
 //     - Lines: "<a line, verbatim>", "<another>"
@@ -70,7 +71,8 @@ const ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MODEL_VALUES = ['yes', 'partly', 'no'];
 const NODE_RE = /^- (.+?) \((\d+), ([^()]+)\)( \[rule\])? — (.+)$/;
 const NODE_TAGS_RE = /^(.+?) creates: ([^|]+?) \| pays off on: ([^|]+?) \| PoB models it: (\S+)$/;
-const HEADING_RE = /^### (.+) \(([^(),]+), level (\d+)\)$/;
+/** A block's heading: a unique's item type and level requirement, a gem's kind and tier. */
+const HEADING_RE = { 'uniques.md': /^### (.+) \(([^(),]+), level (\d+)\)$/, 'gems.md': /^### (.+) \(([^(),]+), tier (\d+)\)$/ };
 const BLOCK_FIELDS = ['Id', 'Rule', 'Lines', 'Creates', 'Penalties', 'PoB models it'];
 /** A price: an amount of a currency, a currency orb, or a `price:` / `priced` label (a name like Blood Price is none). */
 const PRICE_RE = /\b(\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|divine orbs?|exalted orbs?|chaos orbs?|prices?:|priced)/i;
@@ -210,8 +212,8 @@ export function checkBlocks(text, vocabulary, file) {
       problems.push(`${at}: a line outside a block`);
       continue;
     }
-    const h = HEADING_RE.exec(line);
-    if (!h) problems.push(`${at}: not a block heading ("### <Name> (<slot or gem kind>, level <n>)")`);
+    const h = (HEADING_RE[path.basename(file)] ?? HEADING_RE['uniques.md']).exec(line);
+    if (!h) problems.push(`${at}: not a block heading ("### <Name> (${isUniques ? '<item type>, level <n>' : '<gem kind>, tier <n>'})")`);
     const fields = [];
     let j = i + 1;
     while (j < lines.length && lines[j].startsWith('- ')) fields.push({ text: lines[j], n: j + 1 }), j++;

@@ -4516,3 +4516,9 @@ the `m17` engine at `b76967b`.
   Shield Aura 20% of maximum Life as added Energy Shield; Elemental Resistance Aura +35% to all Elemental
   Resistances; each to allies within 5 metres. All seven approved requests are used. A fix round sends them to
   WU-86. `none` joins the vocabulary as the empty value (WU-86's proposal).
+- **WU-88 verified: FAIL on one blocker** (154K tokens). Gate, AC-P71 (4 of 5 engine tests fail on the old code),
+  waivers and ownership pass; the grant is kept (only `measures` changed). The blocker: a skeleton never got D-353's
+  on-death step, because `compiler.ts:893` fetched gem texts only for variant stages (a Contagion skeleton read slow,
+  its budget rung medium). Fix round sent, with a skeleton-against-rung test. **For WU-89:** with no clear skill
+  measured, don't print "PoB gives no area"; update `run-log.mjs:701-702` and the comment at
+  `buildGuideScripts.test.ts:555`.

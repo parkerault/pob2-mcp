@@ -4246,3 +4246,56 @@ the `m17` engine at `b76967b`.
   - **The checker's message** now says the notes don't cite the report.
 - **WU-81 merged** (fast-forward, after a rebase onto WU-80). `studies/2026-10-18-wu81-formats.md` keeps the formats
   for WU-82.
+- **The integration head after WU-80 and WU-81** (`365a741`):
+  - build rc 0;
+  - the four touched suites, 675 tests, rc 0;
+  - the checker exits 0 on all five fixtures.
+- **WU-82 started** in lane `bg-82`, at `365a741`. The skill's text is 61,727 words before it (`SKILL.md`,
+  `references/`, `templates/` and the agent definitions).
+- **WU-82 built** (`6d93569` on `bg/wu-82`; the doer used 470K tokens). Gate rc 0, build rc 0, waivers `[]`. The
+  checker exits 0 on all five fixtures.
+  - **AC-W69** is in `buildGuidePipeline.test.ts`, describe "AC-W69 (WU-82, D-389…D-396)". Thirteen pins changed,
+    each with its assertion.
+  - **Words:** 61,727 → 64,393 (+2,666). `checkpoints.md` gains 693 (it holds the interview procedure), `SKILL.md`
+    141, and the new `stages/Q.md` is 313.
+  - **The doer's choices, to judge:**
+    - `SKILL.md`'s line cap goes 221 → 229;
+    - R1a-assemble may rename a card on a clash;
+    - R1b's header gains `changes`;
+    - a breaking change fails R1b with `gate-change`;
+    - a dropped gem's reason is a `reason` claim;
+    - the seed card's mark sits under Evidence, and researcher `a` gets the reference;
+    - held-back reasons are in plain words;
+    - the runner checks a test config at start;
+    - a refused scripted entry ends the run `stopped`.
+  - An independent verifier is running. It also dry-runs four gate visits by reading the text.
+- **WU-82 verified: PASS** (an independent verifier).
+  - **Gate:** rc 0 (135 suites, 2,435 tests; the `--runInBand` step 3 of 3), build rc 0. The checker exits 0 on all
+    five fixtures.
+  - **AC-W69 is faithful:** all 14 of its tests fail on `365a741`'s text. No stale AskUserQuestion, multiple-choice,
+    Title or free-line text remains. All nine of the doer's choices are accepted.
+  - **The dry-run:** a brainstorm visit with two questions and a two-card combination, a finalize with a revision,
+    and a design revise that is really a new card all read unambiguously.
+  - **Findings, all sent back to the doer:**
+    - **medium:** a scripted entry the deck refuses leaves notes the default `stop` doesn't count, which the checker
+      fails. Fix: check the deck rules before the asks;
+    - **medium:** the coordinator's question step said to "copy the plan", which breaks its rule against reading
+      plans whole. It named no plan, and nothing for the brainstorm gate. The coordinator's ruling:
+      - at the brainstorm gate, a researcher's labelled estimate, or verifying the card;
+      - at the verification gate, the card's concept plan;
+      - at the design and final gates, the run's plan;
+      - in every case a measure-only variant of one stage, written as R1b and D1-build write probes;
+    - **low:** seven text gaps: the gate-change failure's return, a dropped gem's hand-off to D1-finish, the D1-build
+      row's `user-request`, the script's full path, the new-cards-only `pick:` and the refused-entry `default` in
+      `run-log.md`, the R1b row, and the design gate's carried words. One rule was also repeated three times.
+- **WU-82's fix round** (`919a4e2`). Gate rc 0, build rc 0. The static and script suites pass (744 tests), and the
+  checker exits 0 on all five fixtures.
+  - **Words:** 64,431, a net +38 for the fixes. Repeated text was cut to pay for them. `SKILL.md` is 230 lines.
+  - **The fixes:**
+    - M1: a scripted entry's new cards are checked against the deck before any ask;
+    - M2: `Q.md` follows the coordinator's ruling;
+    - L2: D1-build returns `left out: <gem> on <stages>: <why>` lines, which the runner passes to D1-finish;
+    - the object-entry rule is stated once, in `offline-and-test.md`;
+    - the other low items as listed.
+- **WU-82 merged** (fast-forward, after a rebase). **M-18 built:** WU-80…WU-82 are on `build-guide/amendments`.
+  Next: the wave gate, in a fresh worktree `m18`.

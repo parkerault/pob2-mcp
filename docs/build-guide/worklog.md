@@ -4165,7 +4165,7 @@ the `m17` engine at `b76967b`.
   - no network.
 - **The integration worktree** is `pob2-mcp-wt/amend`, on a new `build-guide/amendments` branch off `main`. The
   lanes are `bg-80` and `bg-81`.
-- **WU-80 built** (`e2f3fbc` on `bg/wu-80`; the doer used 193K tokens). Gate rc 0 (135 suites, 2,400 tests; the
+- **WU-80 built** (`787522a` on `bg/wu-80`; the doer used 193K tokens). Gate rc 0 (135 suites, 2,400 tests; the
   `--runInBand` step 3 of 3), build rc 0, waivers `[]`, dependencies unchanged.
   - **The change:** `figureField` reads `MinionTotalDPS` when a group names a minion skill, or when its selected
     `skillOutputs` entry carries `Minion<Field>` fields. The test is a shared `summonsMinion(fields)`, which
@@ -4183,7 +4183,7 @@ the `m17` engine at `b76967b`.
   - **Relayed to WU-81:** the renderer's copy of the headline rule and its test (`buildGuideScripts.test.ts:242-244`)
     still read only `minionSkills`. They are WU-81's under D-397's reach.
   - **The doer's slip:** one gate log was written to `/tmp` rather than a `mktemp -d` dir, then deleted.
-- **WU-80's fix round** (`5989189`; the doer's total was 216K tokens).
+- **WU-80's fix round** (`7c3718a`; the doer's total was 216K tokens).
   - The new `minionFigures(rec, group, key)` decides for both `figureField` and the clear measure.
   - Gate rc 0 (135 suites, 2,401 tests), build rc 0.
   - **The doer's finding:** the Skeletal Warrior still reads "slow", now from its own numbers. At the pin, PoB gives
@@ -4200,8 +4200,8 @@ the `m17` engine at `b76967b`.
       a test pins it;
     - a non-main clear group is measured at its first active skill, so the rule misses a plain summon in second
       place. That predates the unit and is outside D-397;
-    - a stale header comment, fixed by the coordinator (`cf37449`).
-- **WU-81 built** (`dd09c4a` on `bg/wu-81`; the doer used 468K tokens). Gate rc 0 (134 suites, 2,416 tests, plus
+    - a stale header comment, fixed by the coordinator (`5d8d4d1`).
+- **WU-81 built** (`7986e85` on `bg/wu-81`; the doer used 468K tokens). Gate rc 0 (134 suites, 2,416 tests, plus
   the `--runInBand` step), build rc 0, waivers `[]`, `src/` and dependencies untouched. The checker exits 0 on all five
   pipeline fixtures.
   - **Fixtures:** `run-interview` is new: it stops at the verification gate and is written from game data.
@@ -4239,20 +4239,20 @@ the `m17` engine at `b76967b`.
     - the "Changed at the gate" line is matched by visit only. Left as is: no card can be both changed at the
       brainstorm and re-verified;
     - cosmetic: the escalation sentence repeats the finding's stage id and fault code. Left as is.
-- **WU-81's fix round** (`5495d29`). Gate rc 0 (2,417 tests, plus the 3 timing tests), build rc 0. The checker
+- **WU-81's fix round** (`047bb17`). Gate rc 0 (2,417 tests, plus the 3 timing tests), build rc 0. The checker
   exits 0 on all five fixtures.
   - **The verification display:** with no measured clear speed, a verified card's "How it clears" ends "(an
     estimate; measured at the design)".
   - **The checker's message** now says the notes don't cite the report.
 - **WU-81 merged** (fast-forward, after a rebase onto WU-80). `studies/2026-10-18-wu81-formats.md` keeps the formats
   for WU-82.
-- **The integration head after WU-80 and WU-81** (`365a741`):
+- **The integration head after WU-80 and WU-81** (`047bb17`):
   - build rc 0;
   - the four touched suites, 675 tests, rc 0;
   - the checker exits 0 on all five fixtures.
-- **WU-82 started** in lane `bg-82`, at `365a741`. The skill's text is 61,727 words before it (`SKILL.md`,
+- **WU-82 started** in lane `bg-82`, at `047bb17`. The skill's text is 61,727 words before it (`SKILL.md`,
   `references/`, `templates/` and the agent definitions).
-- **WU-82 built** (`6d93569` on `bg/wu-82`; the doer used 470K tokens). Gate rc 0, build rc 0, waivers `[]`. The
+- **WU-82 built** (`36251dc` on `bg/wu-82`; the doer used 470K tokens). Gate rc 0, build rc 0, waivers `[]`. The
   checker exits 0 on all five fixtures.
   - **AC-W69** is in `buildGuidePipeline.test.ts`, describe "AC-W69 (WU-82, D-389…D-396)". Thirteen pins changed,
     each with its assertion.
@@ -4272,7 +4272,7 @@ the `m17` engine at `b76967b`.
 - **WU-82 verified: PASS** (an independent verifier).
   - **Gate:** rc 0 (135 suites, 2,435 tests; the `--runInBand` step 3 of 3), build rc 0. The checker exits 0 on all
     five fixtures.
-  - **AC-W69 is faithful:** all 14 of its tests fail on `365a741`'s text. No stale AskUserQuestion, multiple-choice,
+  - **AC-W69 is faithful:** all 14 of its tests fail on `047bb17`'s text. No stale AskUserQuestion, multiple-choice,
     Title or free-line text remains. All nine of the doer's choices are accepted.
   - **The dry-run:** a brainstorm visit with two questions and a two-card combination, a finalize with a revision,
     and a design revise that is really a new card all read unambiguously.
@@ -4288,7 +4288,7 @@ the `m17` engine at `b76967b`.
     - **low:** seven text gaps: the gate-change failure's return, a dropped gem's hand-off to D1-finish, the D1-build
       row's `user-request`, the script's full path, the new-cards-only `pick:` and the refused-entry `default` in
       `run-log.md`, the R1b row, and the design gate's carried words. One rule was also repeated three times.
-- **WU-82's fix round** (`919a4e2`). Gate rc 0, build rc 0. The static and script suites pass (744 tests), and the
+- **WU-82's fix round** (`3fa8531`). Gate rc 0, build rc 0. The static and script suites pass (744 tests), and the
   checker exits 0 on all five fixtures.
   - **Words:** 64,431, a net +38 for the fixes. Repeated text was cut to pay for them. `SKILL.md` is 230 lines.
   - **The fixes:**
@@ -4299,7 +4299,7 @@ the `m17` engine at `b76967b`.
     - the other low items as listed.
 - **WU-82 merged** (fast-forward, after a rebase). **M-18 built:** WU-80…WU-82 are on `build-guide/amendments`.
   Next: the wave gate, in a fresh worktree `m18`.
-- **M-18 wave gate: PASS at `5b2f75f`** (an independent verifier, 164K tokens, in the fresh worktree `m18`).
+- **M-18 wave gate: PASS at `3fa8531`** (an independent verifier, 164K tokens, in the fresh worktree `m18`).
   - **Bootstrap:** clean. `vendor/` is at the pin.
   - **Gate:** `mise run test` rc 0 (135 suites, 2,435 tests; the `--runInBand` step 3 of 3); `pnpm build` rc 0.
   - **Cross-cutting checks:** waivers `[]`; dependencies, `src/server/` and the README unchanged since `eb78489`;
@@ -4320,3 +4320,11 @@ the `m17` engine at `b76967b`.
     0 on all five fixtures.
 - **M-18 total:** about 1.97M tokens: the three doers with their fix rounds 1.21M (WU-80 216K, WU-81 476K, WU-82
   518K), the three verifiers 595K, and the wave gate 164K.
+- **M-18 merged to `main`, signed.** The 12 integration commits above `eb78489` were re-signed with the same trees
+  and metadata (all 12 show good signatures). `main` fast-forwarded to them. The unsigned originals are kept locally
+  as `refs/archive/pre-sign-m18-2026-10-18`.
+  - **11 cited hashes remapped:** the integration commits exactly; the lane originals to their one main-line copy
+    by subject. No line holds two hashes that collapsed into one.
+  - **Not pushed.**
+  - **Left for the user:** removing the worktrees `amend`, `bg-80`, `bg-81`, `bg-82` and `m18` and the merged
+    branches; the classifier blocks worktree removal for the coordinator.

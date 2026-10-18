@@ -88,8 +88,8 @@ text doesn't give, and never invent one:
    (`references/run-folder.md`: `titan-blood-hunt`, `titan-open`, `open-<first playstyle tag>`). Keep its
    absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
    finalized later goes in the run log, not in the folder name.
-3. **Run log.** Check the test config if one was given with `--offline`: `run-log.mjs <runFolder> test-config
-   <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
+3. **Run log.** Check the test config if one was given with `--offline`: `node
+   .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
    `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
    Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, the parsed brief and no
    roll yet. Either first write is `run-log.mjs <runFolder> init`, never Write (`references/run-log.md`).

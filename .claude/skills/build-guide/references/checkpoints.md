@@ -28,7 +28,8 @@ No gate uses AskUserQuestion: the user answers in free text.
      `mcp__pob2__check_model_coverage` for whether PoB models a line;
    - a **gate question step**, stage `Q` (`stages/Q.md`), one per question or batch of related ones: a research
      question goes to a `build-guide-researcher`; one about a compiled build, or that needs a measurement, to a
-     `build-guide-coordinator`. Before starting one, say in one line what you start and why; don't ask first,
+     `build-guide-coordinator`. At the brainstorm gate nothing is compiled: a researcher gives a labelled
+     estimate, or you offer to verify the card. Before starting one, say in one line what you start and why; don't ask first,
      but the user can say not to. Its report is `interviews/<gate>-<visit>-q<n>.md`, `n` from 1 per visit. Up to
      3 research steps run in parallel; a coordinator step runs alone. Log each as `{"stage": "Q", "attempt": 1,
      "outcome": "done"}`, and give the user its answer and its report's path.
@@ -70,10 +71,8 @@ overrule your call either way.
   round and `n` the run's next gate-made card in it, `from` any cards `cards.md` lists. Propose its name, 2–4
   words no card of the run has, in the restatement; the user may change it before the yes. Picks and new cards
   together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id.
-- **To R1b:** the picked cards in order, then the new cards in order, each header's `changes` its own:
-  `{visit, words}`, or `{visit, name, from, words}`.
-- **Brainstorm more:** the user's note goes in `note`. A question that became an idea goes in as the note, and
-  the next round's researchers get its answer file.
+- **A question that became an idea** can go into brainstorm more as its note; the next round's researchers get
+  its answer file.
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -168,7 +167,8 @@ round or a revision.
     the anoint, the prices, the ledger or the claims runs D1-finish alone with it. Then the D1 gate, then this
     gate again. The revision counts against no retry cap; the D1 gate in it keeps its 2 counted retries. A
     change that isn't a revision of the finalized build (a new card, by the rule above) isn't a revise: say
-    so, and offer **verification**, where it becomes a new card.
+    so, and offer **verification**. There the user's words carry into the restatement, as a new card whose
+    `from` is the finalized card.
   - **verification**: back to the verification gate (step 5), to finalize another card.
   - **stop**: the run ends `stopped`.
 
@@ -238,8 +238,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 
 `answers.checkpoint1` and `answers.checkpoint2` are retired with the run log's schema 3 (D-323): a test config
 that holds them, or the escalation answer `checkpoint-1`, is malformed. An entry may be an object scripting an
-interview (D-394, `offline-and-test.md`): its `rule` is its `answer` as written, and its `questions` its `ask`
-count.
+interview (D-394, `offline-and-test.md`).
 
 **A pre-supplied answer still prints the display** (D-265). The test config replaces only the question:
 show everything the gate shows the user, then the answer it resolved to. At the brainstorm gate that is the

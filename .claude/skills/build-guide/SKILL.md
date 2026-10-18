@@ -48,7 +48,7 @@ as D-295 words it). Each step below is a short card: read a reference only where
   - the audit render, `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder>` (D-355);
   - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
     a gate's display, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate>` (D-367),
-    and a test config's check, `run-log.mjs <runFolder> test-config <path>` (D-394).
+    and `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>` (D-394).
 
   Nothing else: no other `node` call (`node -e` included), no `git`, `find`, `sort`, `sed`, `awk`, network
   client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing else that writes, moves or deletes a file. Write
@@ -89,7 +89,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' names |
 | 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played; `short: <why>` for a short round |
 | 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
-| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half, after a gate's change), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
+| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
 | 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
 | 5 | The verification gate (§3) | you | log | asks the user: finalize one card, verify other cards (step 3), brainstorm more (step 2a) or stop |
 | 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
@@ -132,12 +132,13 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 
 ## 3. Verification (steps 3 to 5)
 
-- **R1b** (3), each picked card, then each new card, in order, one at a time; `concept` the card id, `changes` its
-  gate change (D-391). A failed compile re-runs with that verdict file as `findings`, up to 2 counted retries;
-  then the card is `failed` (D-141). FI-1 applies here. A card whose damage source isn't a skill (a minion's skill
-  is one, D-379) compiles nothing (D-334): the card's status is "can't be finalized yet: its damage source isn't a
-  skill" (D-303), never `failed`. A card whose ascendancy doesn't own the node that grants its skill compiles
-  nothing either (D-342): its verdict's `wrong-ascendancy` finding is never retried, and the card is `failed`.
+- **R1b** (3), the picked cards, then the new ones, in order, one at a time; `concept` the card id, `changes` its
+  gate change (D-391). A failed compile, or a gate change that breaks the card, re-runs with that verdict as
+  `findings`, the user's words kept, up to 2 counted retries; then the card is `failed` (D-141). FI-1 applies
+  here. A card whose damage source isn't a skill (a minion's skill is one, D-379) compiles nothing (D-334): the
+  card's status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`. A card
+  whose ascendancy doesn't own the node that grants its skill compiles nothing either (D-342): its verdict's
+  `wrong-ascendancy` finding is never retried, and the card is `failed`.
 - **R1b-assemble** (4). Prompt: the verification round, the research files (and whether each researcher
   returned), and each card `{id, name, status, attempts, verdict}`.
 - **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification` (the
@@ -153,9 +154,9 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
 (fresh, or a gate retry) runs both, in that order.
 
 - **D1-build** (6a): prompt, write `plan.json` anew (attempt 1 of a fresh design) or edit it; `findings`, the
-  last D1 gate verdict on a retry. Returns `done` or `infeasible`, with a reason.
+  last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason.
 - **D1-finish** (6b): prompt, how to price (offline; stopped, once any `stages[]` entry's `priceOutcomes` counts
-  a `locked_out` or `rate_limited` call; or paced). Log its price outcomes as `priceOutcomes`.
+  a `locked_out` or `rate_limited` call; or paced), and D1-build's `left out:` lines. Log its `priceOutcomes`.
 - **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim:
   - compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate (7b);
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third escalates (§5);

@@ -68,8 +68,10 @@ card ids (D-319), or `"all"`.
 **An answer entry scripts an interview** (D-394): a string, or an object `{ask?, answer, changes?, newCards?,
 note?}`, `answer` one of the gate's strings. `changes`, `newCards` (each `{name, from, words}`; you assign the
 id) and `note` go only on brainstorm and verification entries, with the answers `checkpoints.md` gives them; the
-config says which kind each change is. Answer each `ask` as you would the user's, gate question steps included,
-and write the interview notes; then take `answer`, with no confirmation.
+config says which kind each change is. First check each new card against `cards.md`: its `from` names cards the
+deck lists, and its name, ignoring case, is none the deck or an earlier `newCards` holds. Then answer each `ask`
+as you would the user's, gate question steps included, write the interview notes, and take `answer` with no
+confirmation: the checkpoint's `rule` is `answer` as written, its `questions` the `ask` count.
 
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at
   gates and questions (`checkpoints.md` lists what each answer means and the defaults when they run
@@ -78,11 +80,9 @@ and write the interview notes; then take `answer`, with no confirmation.
   fault) and asks the user at every gate (D-157). Say so in the reply.
 - A file that can't be read or isn't this shape, given with `--offline`, is refused too
   (`testConfig: "refused"`), and the run stops before research: status `stopped`, and the reason in the
-  reply (`stopped: malformed test config <path>: <what is wrong>`). Check it with `node
-  .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>`, which prints what is wrong.
-- **An entry the deck refuses.** The checkpoint write checks a new card against the deck (its `from`, its
-  name). When it refuses a pre-supplied entry, the run ends `stopped`: log answer `stop`, `answeredBy:
-  "default"`, rule `refused answers.<gate>[<i>]: <the refusal's reason>`.
+  reply (`stopped: malformed test config <path>: <what is wrong>`), as `test-config` prints it (`start.md`).
+- **An entry the deck refuses** (that first check): answer no `ask` and write no notes; the run ends `stopped`,
+  logged answer `stop`, `answeredBy: "default"`, `questions: 0`, rule `refused answers.<gate>[<i>]: <why>`.
 - Without `--test`, `testConfig: "none"`.
 
 ## Fault directives (test config only)

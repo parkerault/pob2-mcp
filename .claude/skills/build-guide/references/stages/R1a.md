@@ -61,9 +61,8 @@ notes may inform it; cite them as the user's notes.
   `research/p<k>-r1a-<n>.md` and your cards `cards/r<k>-<letter>-1.md` to `cards/r<k>-<letter>-3.md`
   (round `k`, researcher `n`, your letter).
 - **Prompt:** the parsed brief, your focus and letter, your marker-id prefix; in a later round the user's
-  note and the paths of the gate's interview notes and question reports (`interviews/`): read them, so an idea
-  from a gate question starts from what the gate found (D-390); and, to one researcher, a reference build the
-  user named (a seed card, below).
+  note and the gate's interview notes and question reports (`interviews/`), to read (D-390); and, to one
+  researcher, a reference build the user named (a seed card, below).
 - **A re-run** (`attempt` 2: a researcher that returned without its files runs again once): your files may
   hold the dead attempt's partial work. Write them whole.
 - **A later round** (`k` ≥ 2): read `cards.md` in the run folder first, and `dossier.md`, the verified cards'

@@ -12,7 +12,7 @@ user's own popularity notes; any of them may be missing). Several researchers wo
 own focus and its own files. You write a research file and 3 candidate cards, each the brainstorm half of a
 build named by its **named damage source**, at least one of them built on a pattern-library shape you judge
 under-played (`judgment`, D-339); a coordinator later deals the deck from the round's cards, and compiles the
-ones the user picks. At a gate question (stage `Q`) you answer the user's question instead, in one report.
+ones the user picks. At a gate question (stage `Q`) you answer a question instead.
 
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names

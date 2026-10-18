@@ -84,9 +84,11 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`.
 - **`checkpoints[]`**: `checkpoint` is `brainstorm`, `verification`, `design` (D-362), `final`,
   `unsaved-build` or `escalation` (`checkpoints.md`); `visit` counts that checkpoint's visits from 1; `answer` is the effective answer:
-  - the brainstorm gate: `pick:<id>[,<id>…]` (1–3 cards to verify), `more` or `stop`;
+  - the brainstorm gate: `pick:<id>[,<id>…]` (1–3 cards to verify, new cards included; `pick:` alone makes
+    only new cards), `more` or `stop`;
   - the verification gate: `pick:<id>` (finalize that card; its identity becomes `roll`), `verify:<id>[,<id>…]`
-    (1–3 more cards from the deck, a verification round without a brainstorm), `more` or `stop`;
+    (1–3 more cards from the deck, a verification round without a brainstorm; `verify:` alone, new cards
+    only), `more` or `stop`;
   - the design gate: `accept` (on to D2), `revise:<text>` (D1 again, its gate and the design gate again),
     `verification` (back to the verification gate) or `stop`;
   - the final gate: `accept`, `revise:<text>`, or the note of a user who declines the guide (the run ends
@@ -94,8 +96,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   - the unsaved-build question: `proceed` or `stop`; an escalation: `accept`, `retry:<guidance>`, `verification`
     or `stop`.
 
-  `answeredBy` is `user`, `pre-supplied` (the test config) or `default` (the test config had no answer left,
-  `offline-and-test.md`). Only an accepted test config gives `pre-supplied` or `default`, and then `rule` records
+  `answeredBy` is `user`, `pre-supplied` (the test config) or `default` (the test config had no answer left, or
+  the deck refused its entry, `offline-and-test.md`). Only an accepted test config gives `pre-supplied` or `default`, and then `rule` records
   how the answer was reached: the test config's answer exactly as written (`first-viable`, `pick:r1-a-2`) for
   `pre-supplied`, or the default that applied (`no verification answer left: stop`) for `default`. A user's
   answer has no `rule`. The test config's answers are `answers.brainstorm`, `answers.verification`,
@@ -103,8 +105,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   values, and `first-n:<n>` and `first-viable` resolve to the `pick:` they chose, or to `stop`. A default answer
   is `stop`. The entry that finalized the guide's card keeps its rule here; `audit.md` has no Run notes (D-355).
 
-  A gate's or an escalation's entry always has `questions`, how many the user asked at the visit (`0` too, and
-  on a pre-supplied object entry its `ask` count); its interview notes hold as many (D-389). `changes`,
+  A gate's or an escalation's entry always has `questions`, how many the user asked at the visit (`0` too);
+  its interview notes hold as many (D-389). `changes`,
   `newCards` and `note` carry a pick's revisions, the cards made at the gate and a `more` answer's note
   (D-391, `checkpoints.md`).
 - **`escalations[]`**: `stage` is `D1-gate` or `D2-gate`; `verdict` is the escalated attempt's verdict file,

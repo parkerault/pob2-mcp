@@ -41,8 +41,9 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   Pitch's last line, naming the `from` cards. Every link is new: confirm each with a lookup.
 
 A change that breaks the card (a load-bearing link no lookup confirms, a chain that no longer holds) fails the
-attempt, as any R1b failure: only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code:
-"gate-change", message: "<why>"}`. A later attempt finds the line written: fix only what its findings name.
+attempt: write only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code: "gate-change",
+message: "<why>"}`, `errors: []`, `compiles: 0`, `recordPath: null`, `faultsApplied: []`. A retry keeps the
+user's words and the line, and fixes only what its findings name, never reworking the change.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the

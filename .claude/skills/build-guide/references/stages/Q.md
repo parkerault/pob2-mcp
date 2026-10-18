@@ -2,8 +2,8 @@
 
 The runner starts this step at a gate, before the user decides, for a question its own reading and lookups can't
 answer (D-390): one question, or a batch of related ones. A researcher takes a research question; a coordinator
-takes one about a compiled build or one that needs a measurement. **You edit no plan (`plan.json` or a concept
-plan) and no card.**
+takes one about a compiled build or one that needs a measurement, never at the brainstorm gate, where nothing is
+compiled. **You edit no plan (`plan.json` or a concept plan) and no card.**
 
 ## Inputs
 
@@ -12,16 +12,16 @@ plan) and no card.**
   coordinator's variant folder `probes/q-<gate>-<visit>-<n>/`.
 - **Prompt:** the question, in the user's words; the gate and its visit; the cards it concerns.
 - **Read** only what it needs: the cards, the research files, `cards.md`; a coordinator also `dossier.md`, the
-  gate verdict files, and the plans and records through `mcp__pob2__guide_run`'s views or by Grep, never whole.
+  gate verdict files and the records, by Grep.
 
 ## Work
 
-1. **Look it up**, as `.claude/skills/build-guide/references/lookups.md` says; online, a researcher may use the
-   web on its allowed hosts.
-2. **A coordinator measures** when the answer is a number: copy the plan to
-   `probes/q-<gate>-<visit>-<n>/plan.json`, make the one change asked about, compile it measure-only
-   (`mcp__pob2__compile_plan {plan_path: "<runFolderRel>/probes/q-<gate>-<visit>-<n>/plan.json", measure_only:
-   true}`), and compare the records. One variant; no price call.
+1. **Look it up**, as `.claude/skills/build-guide/references/lookups.md` says.
+2. **A coordinator measures** when the answer is a number, from the card's concept plan at the verification
+   gate, else from `plan.json`. Write a variant of only the stage the question needs, with the one change it
+   asks about, to `probes/q-<gate>-<visit>-<n>/plan.json`, as R1b writes its probes (`R1b.md`, "From compile
+   variants"): the stage through `mcp__pob2__guide_run {view: {plan, stage}}`, the other fields by Grep, never
+   the plan whole. Compile it measure-only with `mcp__pob2__compile_plan` and compare the records. One variant; no price call.
 3. **Say how you know**, in the cards' status words: confirmed in game text, modelled in PoB, estimate (with
    its reason), or needs in-game testing. An answer that rests on nothing you looked up says so.
 

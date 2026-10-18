@@ -158,8 +158,6 @@ one stderr line `check-run: [<rule>] <message>`.
   gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; each gate visit's
   display in `displays[]` before its answer (D-367); and `completed` only after the final gate's accept
   (checkpoint 2's, in a schema-2 log, whose D1 stays one step).
-- **The gate interviews** (D-389 to D-392): each checkpoint's `questions` against its notes, the question
-  reports, and the cards and deck lines the gates changed or made.
 - **What is current.** The runner can't delete files, so the log says which artifacts are current: the guide
   is when no design step ran after its W1, and the final record when no producer that recompiled ran after
   the last D2 gate (a claims-only D1 or D2 leaves it current).

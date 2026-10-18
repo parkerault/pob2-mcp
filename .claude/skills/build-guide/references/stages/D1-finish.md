@@ -18,7 +18,7 @@ price every slot, write the ledger and the claims, and read the plan and the rec
 - **`changed`**, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`:
   the locations D1-build returned (`plan.json stages[6].items`). Then "After D1-build" below is your job.
 - **Prompt:** how to price in this run (offline; stopped; or paced), and with `--no-ninja` that there are no
-  currency rates.
+  currency rates; D1-build's `left out:` lines, each a `reason` claim on its first stage (D-396).
 - **Read**, the independent calls in one response:
   - each rung: `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` for `m`, `b`
     and `n`, batched. A view gives the stage's section of the plan, its key-figure line from the record and
@@ -103,10 +103,9 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      exception's reason, an affix whose source narrows its slot's base, a trigger into the next rung;
    - `reason`: a reason resting on a measurement: why a support, node, item or the anoint is in (a
      measure-only compile with a temporary stage for the other option, the record or a ledger value; a shape
-     from the pattern library cites its lookup and that measurement, never the library, D-375), why a gem is
-     out of a rung that can't meet its condition (D-396), an
-     either/or pick (up to 2, the deciding factor measured, and online the price difference), the named
-     source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys toward its
+     from the pattern library cites its lookup and that measurement, never the library, D-375), a `left out:`
+     gem, an either/or pick (up to 2, the deciding factor measured, and online the price difference), the
+     named source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys toward its
      5-divine target, `b`'s buy order, `n`'s upgrade order from `b`), the guide numbering them as you order them.
 
    What the compile proves carries no claim: requirements, gem and stage levels, record numbers, ledger

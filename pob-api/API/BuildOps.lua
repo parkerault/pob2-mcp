@@ -369,12 +369,33 @@ function M.set_tree(params)
   return true
 end
 
--- Export full build XML
+-- D-399: what ItemsTab:Save's item:BuildAndParseRaw() leaves for the save to write (the item's text, built from
+-- its state), without the re-parse.
+local function build_raw_only(item)
+  item.raw = item:BuildRaw()
+end
+
+-- Export full build XML. PoB's save (ItemsTab:Save) calls item:BuildAndParseRaw() on every item, which re-parses
+-- the text it just built into the item. An item whose text PoB v0.23.1 doesn't read back the same (a "Runic Ward:"
+-- line before a socketed rune, as a newer PoB writes it) gained a socket and a rune on every save, and its parse
+-- slowed with them, so each snapshot after a change took longer than the last and changed the build (D-399). The
+-- export writes the same document, each item's text built from its state as the save builds it, but leaves the
+-- items' state as it was.
 function M.export_build_xml()
   if not build or not build.SaveDB then
     return nil, 'build not initialized'
   end
-  local xml = build:SaveDB('api-export')
+  local items = build.itemsTab and build.itemsTab.items or {}
+  local own = {}
+  for id, item in pairs(items) do
+    own[id] = rawget(item, 'BuildAndParseRaw') or false
+    item.BuildAndParseRaw = build_raw_only
+  end
+  local saved, xml = pcall(build.SaveDB, build, 'api-export')
+  for id, item in pairs(items) do
+    if own[id] ~= nil then item.BuildAndParseRaw = own[id] or nil end
+  end
+  if not saved then return nil, 'failed to compose xml: ' .. tostring(xml) end
   if not xml then return nil, 'failed to compose xml' end
   return xml
 end

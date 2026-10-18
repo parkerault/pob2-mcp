@@ -45,3 +45,14 @@ Virtuous Barrier at the grant's level 1 with Precision I and Clarity I, two supp
 |---|---|
 | Effect | On PoB2 `v0.23.1`, the load keeps only Virtuous Barrier in the granted group, and `load_build_xml`'s `droppedSupports` names Precision I and Clarity I (`tests/integration/grantedGroupSupports.test.ts`). |
 | Re-check | On a PoB pin bump: whether PoB still rebuilds granted groups (`Modules/CalcSetup.lua`, the granted-skill loop). |
+
+## `runic-ward-gloves.xml` (an item PoB's save changes, D-399)
+
+Written by hand from the game data, not from any player's build: a level-60 Mercenary with no passives, wearing
+rare Runeforged Gold Gloves (the base's Energy Shield 33 and Ward 52, the Ward line written "Runic Ward: 52" as
+the game names it) with a Greater Storm Rune in their one socket, and one socketed Flash Grenade group with Heft.
+
+| | |
+|---|---|
+| Effect | PoB2 `v0.23.1` reads only "Ward:", so the item's text doesn't read back the same: before D-399, every export (`ItemsTab:Save`'s `BuildAndParseRaw`) gave the gloves one more socket and one more rune (`tests/integration/snapshotItemText.test.ts`). |
+| Re-check | On a PoB pin bump: whether PoB reads "Runic Ward:" (`Classes/Item.lua`, `ParseRaw`). |

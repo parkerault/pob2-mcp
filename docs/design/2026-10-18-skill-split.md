@@ -1,7 +1,9 @@
 # Splitting the build-guide skill: design
 
-**Status: DRAFT, 2026-10-18,** for the user's review; revised the same day after an independent review. Nothing here
-is binding. Each extraction it proposes would
+**Status: ACCEPTED by the user, 2026-10-18** ("I accept the suggestions in the skill split doc"), with §6's
+recommended option in each choice: game knowledge is extracted first, right after amendment 8 is built; the
+PoB-to-plan tool is designed in the compile-and-writer extraction; packaging as a plugin waits for two extractions.
+Revised the same day after an independent review before the user read it. The design is direction, not spec. Each extraction it proposes would
 become its own amendment, with decisions, work units and tests, once the user picks it.
 
 **Where it comes from.** The Varashta run's feedback (`../build-guide/studies/2026-10-17-varashta-run-feedback.md`

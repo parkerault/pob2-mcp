@@ -1,6 +1,8 @@
 # Amendment 8: finding the build's engine
 
-**Status: DRAFT, 2026-10-18,** for the user's review. Revised the same day after an independent review and its
+**Status: DRAFT, 2026-10-18; choices 1, 3 and 4 accepted by the user the same day** (§18: the rival every run, the
+structure check in R1b, the index written once per pin). Choice 2 (the beast library), the HG-12 grants and the
+poe2db requests await the user. Revised the same day after an independent review and its
 re-check (2 blockers and 27 should-fix findings, resolved below). It carries:
 - the comparison's remedies the user sent here (`../studies/2026-10-17-varashta-comparison.md`, "the comparison",
   §7.2 remedies 1, 3–9, 11 and 13, and §6's engine-lens list);

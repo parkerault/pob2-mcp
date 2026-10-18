@@ -4451,3 +4451,19 @@ the `m17` engine at `b76967b`.
   - **Left for the user:** removing the worktrees `int`, `bg-83` and `bg-fold` and the branches
     `roadmap/2026-10-18`, `bg/fix-batch` and `bg/fold-v16` (the classifier blocks worktree removal for the
     coordinator); reconnecting the pob2 server after `build/` is rebuilt.
+
+## 2026-10-18: the user's rulings on the fold, the skill split and amendment 8
+
+- **The defect batch's tool changes confirmed** ("I approve the sign off on the changes in the fold"): D-383's and
+  D-384's refusals and left-out lists, D-387's emotion prices and D-388's ranker field. The spine's HG-12 row and its
+  §3 note say so.
+- **The skill-split design accepted** ("I accept the suggestions in the skill split doc"), with each §6
+  recommendation: game knowledge first, right after amendment 8 is built; the PoB-to-plan tool designed in the
+  compile-and-writer extraction; the plugin after two extractions.
+- **Amendment 8: choices 1, 3 and 4 accepted** (the rival every run; the structure check in R1b; the index written
+  once per pin). **Choice 2, the beast library, held:** the user asked what "the table, the library entry and the gap
+  entry carry the miss" means. The HG-12 grants and the poe2db requests are still open.
+- **Found while answering:** a tamed beast reserves a share of the player's Spirit. PoB reads it from each monster's
+  `companionReservation` (`Modules/CalcDefence.lua:204`): from 13.8% to 56.1% across the 619 monsters in
+  `Data/Spectres.lua`, 32.7% at the median. Without the beast library a plan can't carry that reservation, so a
+  minion build's spare Spirit, and with it the number of minion types, reads high.

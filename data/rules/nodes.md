@@ -283,3 +283,39 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Sacred Flow (16204, Shaman) [rule] — each empty Charm slot grants 40 Spirit. creates: spirit | pays off on: charm | PoB models it: yes
 - Turning of the Seasons (62523, Shaman) — enemies in your Presence have Exposure, and you gain 10% of damage as extra damage of a random Element.
 - Wisdom of the Maji (42253, Shaman) [rule] — you gain the benefits of Bonded modifiers on your Runes and Idols. creates: none | pays off on: socket | PoB models it: no
+
+## Keystones
+
+- Ancestral Bond (45202, keystone) [rule] — your Totem Limit is doubled and placing Totems needs no Charges, but each Totem reserves 75 Spirit. creates: totem | pays off on: spirit | PoB models it: partly
+- Avatar of Fire (18684, keystone) [rule] — 75% of your damage is converted to Fire, and you deal no damage of other types. creates: damage-conversion | pays off on: none | PoB models it: yes
+- Blackflame Covenant (42680, keystone) [rule] — Fire Spells convert all their Fire damage to Chaos, that Chaos damage still builds Flammability and Ignite, and their Ignites deal Chaos damage. creates: damage-conversion, ignite | pays off on: none | PoB models it: yes
+- Blood Magic (51749, keystone) [rule] — you have no Mana, and skills cost Life instead. creates: none | pays off on: life | PoB models it: yes
+- Bulwark (56605, keystone) [rule] — Dodge Roll no longer avoids damage; you take 30% less damage from Hits while Dodge Rolling instead. creates: none | pays off on: on-dodge | PoB models it: partly
+- Chaos Inoculation (56349, keystone) [rule] — your maximum Life is 1, and you are immune to Chaos damage and Bleeding. creates: none | pays off on: energy-shield | PoB models it: yes
+- Conduit (33979, keystone) [rule] — Charges you would gain go to allies in your Presence instead. creates: none | pays off on: endurance-charge, frenzy-charge, power-charge | PoB models it: no
+- Crimson Assault (9085, keystone) [rule] — your Bleeding is Aggravated and lasts 1 second at base, with 50% more magnitude. creates: none | pays off on: bleed | PoB models it: yes
+- Dance with Death (14226, keystone) — 25% more Skill Speed with an empty off hand and a one-handed Martial Weapon in the main hand.
+- Eldritch Battery (57513, keystone) [rule] — your maximum Energy Shield becomes maximum Mana, and Mana costs are doubled. creates: mana | pays off on: energy-shield | PoB models it: yes
+- Elemental Equilibrium (46742, keystone) [rule] — you create the next Element's Infusion Remnants instead: Lightning in place of Fire, Cold in place of Lightning, Fire in place of Cold. creates: infusion, remnant | pays off on: none | PoB models it: no
+- Eternal Youth (33404, keystone) [rule] — your Life recharges instead of your Energy Shield, with 50% less Life recovery from Flasks. creates: none | pays off on: energy-shield, life | PoB models it: yes
+- Giant's Blood (32349, keystone) [rule] — you can wield Two-Handed Axes, Maces and Swords in one hand, for triple Attribute requirements and half the Life from Strength. creates: none | pays off on: weapon-slot, offhand-slot | PoB models it: yes
+- Glancing Blows (19288, keystone) [rule] — your chance to Evade is Unlucky and your chance to Deflect is Lucky. creates: none | pays off on: evasion, deflection | PoB models it: yes
+- Heartstopper (34497, keystone) [rule] — you take 50% less damage over time from a source that started in the past second, and 50% more after that. creates: none | pays off on: none | PoB models it: no
+- Hollow Palm Technique (64601, keystone) [rule] — with both hand slots empty you Attack as though wielding a Quarterstaff, its damage from the skill's level, with Attack speed from your armour's Evasion and Critical Hit chance from its Energy Shield. creates: none | pays off on: weapon-slot, evasion, energy-shield | PoB models it: yes
+- Iron Reflexes (28492, keystone) [rule] — all your Evasion Rating becomes Armour. creates: armour | pays off on: evasion | PoB models it: yes
+- Lord of the Wilds (61942, keystone) [rule] — you can equip a non-unique Sceptre while wielding a Talisman, for 50% less Spirit and 50% less Reservation Efficiency of non-Minion skills. creates: none | pays off on: weapon-slot, offhand-slot | PoB models it: yes
+- Mind Over Matter (45918, keystone) [rule] — all damage is taken from Mana before Life, with 50% less Mana recovery. creates: none | pays off on: mana | PoB models it: yes
+- Necromantic Talisman (39935, keystone) [rule] — every bonus from your equipped Amulet applies to your Minions instead of you. creates: none | pays off on: amulet-slot | PoB models it: no
+- Oasis (25100, keystone) [rule] — you can't use Charms, for 30% more recovery from Flasks. creates: none | pays off on: flask | PoB models it: yes
+- Pain Attunement (55048, keystone) — 30% more Critical Damage Bonus on Low Life, and 30% less on Full Life.
+- Primal Hunger (37484, keystone) [rule] — Rage has no effect of its own, but its maximum doubles and it regenerates from Rage spent. creates: rage | pays off on: none | PoB models it: partly
+- Resolute Technique (44017, keystone) [rule] — you never deal Critical Hits, and your Accuracy Rating is doubled. creates: none | pays off on: none | PoB models it: partly
+- Resonance (25520, keystone) [rule] — you gain the next Charge type instead: Power in place of Frenzy, Frenzy in place of Endurance, Endurance in place of Power. creates: endurance-charge, frenzy-charge, power-charge | pays off on: none | PoB models it: no
+- Ritual Cadence (11230, keystone) [rule] — Invocation skills trigger their Spells every 2 seconds instead, gaining no Energy meanwhile, and the Spells cost 50% less Energy. creates: none | pays off on: energy | PoB models it: no
+- Scarred Faith (49547, keystone) [rule] — Energy Shield neither recharges nor regenerates and can't exceed your Armour; instead it recoups Physical damage that Armour prevents. creates: energy-shield | pays off on: armour | PoB models it: partly
+- Trusted Kinship (41861, keystone) [rule] — you can have two Companions of different types, and Companion skills reserve more efficiently while other skills reserve less. creates: companion, minion-count | pays off on: none | PoB models it: partly
+- Unwavering Stance (14540, keystone) [rule] — you can't be Light Stunned, and you can't Dodge Roll or Sprint. creates: none | pays off on: none | PoB models it: yes
+- Vaal Pact (33369, keystone) [rule] — you recover Life only from Leech, which leeches 50% more but 67% more slowly and continues at full Life. creates: none | pays off on: leech | PoB models it: partly
+- Whispers of Doom (47759, keystone) [rule] — you can apply one more Curse, and Curses take twice as long to activate. creates: curse | pays off on: none | PoB models it: yes
+- Wildsurge Incantation (49363, keystone) — Storm and Plant Spells deal 50% more damage and cost 50% less, with 75% less duration.
+- Zealot's Oath (52, keystone) [rule] — Energy Shield doesn't recharge; instead excess Life Regeneration goes to Energy Shield. creates: energy-shield | pays off on: recovery | PoB models it: yes

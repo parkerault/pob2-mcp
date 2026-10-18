@@ -4201,3 +4201,48 @@ the `m17` engine at `b76967b`.
     - a non-main clear group is measured at its first active skill, so the rule misses a plain summon in second
       place. That predates the unit and is outside D-397;
     - a stale header comment, fixed by the coordinator (`cf37449`).
+- **WU-81 built** (`dd09c4a` on `bg/wu-81`; the doer used 468K tokens). Gate rc 0 (134 suites, 2,416 tests, plus
+  the `--runInBand` step), build rc 0, waivers `[]`, `src/` and dependencies untouched. The checker exits 0 on all five
+  pipeline fixtures.
+  - **Fixtures:** `run-interview` is new: it stops at the verification gate and is written from game data.
+    `run-ok`, `run-ok-online` and `run-escalated` are migrated to the new deck and Pitch format, since the checker
+    now requires the deck header. `run-ok-v2` is unchanged.
+  - **AC-W67** is in `buildGuideScripts.test.ts`. **AC-W68** is in `buildGuideScripts.test.ts` and
+    `buildGuideCheckRun.test.ts`. D-397's reach is in the renderer and the verification display; the checker
+    needed none.
+  - **The doer's choices, to judge:**
+    - `questions` is optional and counts 0 when absent;
+    - a pick of new cards only is written `pick:` with no id;
+    - stage `Q`, and `interviews/` and `probes/q-…/` in the layout;
+    - a `test-config` command in `run-log.mjs`;
+    - a new card may draw on a not-dealt card;
+    - a verification `pick:`'s changes need no card line;
+    - the "not confirmed in game" default is printed by the display;
+    - the verification display reads figures from the records;
+    - `parseCard` and `parseDeck` are shared with the checker;
+    - figures print with thousands separators.
+  - **It defines the formats WU-82 describes:** the card's Pitch fields, the deck's H2s, the interview notes, the
+    gate question report, the checkpoint JSON and the test config's object entries.
+  - An independent verifier is running.
+- **WU-81 verified: PASS** (an independent verifier).
+  - **Gate:** rc 0 (134 suites, 2,416 tests; the `--runInBand` step 3 of 3), build rc 0. The checker exits 0 on all
+    five fixtures.
+  - **AC-W67 and AC-W68 are faithful.** On the base scripts, the brainstorm display prints card ids, the design
+    display prints "compiled pass", and the checker exits 1 on `run-interview` with 14 violations.
+  - **The migration lost no coverage.** All ten of the doer's choices are accepted.
+  - **Findings, all low:**
+    - the verification display's clear speed never appears, because a skeleton's record has no
+      `measures.clearSpeed` (`compiler.ts:1054` measures only variant stages). Fix round: when the record has none,
+      the display shows the card's "How it clears" line marked as an estimate. Measuring a skeleton's clear speed goes
+      to the engine-lens amendment (the comparison's remedy 9, scoring clear speed);
+    - the checker's message for notes that don't cite a gate question report says the opposite. Fix round;
+    - the "Changed at the gate" line is matched by visit only. Left as is: no card can be both changed at the
+      brainstorm and re-verified;
+    - cosmetic: the escalation sentence repeats the finding's stage id and fault code. Left as is.
+- **WU-81's fix round** (`5495d29`). Gate rc 0 (2,417 tests, plus the 3 timing tests), build rc 0. The checker
+  exits 0 on all five fixtures.
+  - **The verification display:** with no measured clear speed, a verified card's "How it clears" ends "(an
+    estimate; measured at the design)".
+  - **The checker's message** now says the notes don't cite the report.
+- **WU-81 merged** (fast-forward, after a rebase onto WU-80). `studies/2026-10-18-wu81-formats.md` keeps the formats
+  for WU-82.

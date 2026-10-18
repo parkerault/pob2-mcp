@@ -340,6 +340,14 @@ const skeletonStage = (id) => `${String(id).replace(/-/g, '')}e`;
 const minionGroups = (stageRecord) => new Set(list(stageRecord?.minionSkills).map((m) => m.group));
 
 /**
+ * D-385: whether the skill at a record key summons a minion: PoB measures the summon's minion, so the key's
+ * `skillOutputs` entry carries `Minion<Field>` fields (a plain summon such as Skeletal Warrior, which names no
+ * minion skill). Such a group's figure is its minion's too.
+ */
+const summonsMinion = (stageRecord, key) =>
+  Object.keys(stageRecord?.skillOutputs?.[key]?.fields ?? {}).some((field) => /^Minion[A-Z]/.test(field));
+
+/**
  * D-340: a compared figure `g<group>s<skill>p<statSet>.<Field>` of a stage's record, read × its group's Count
  * from `countedSkillOutputs` where the record has a counted copy of the field, else raw from `skillOutputs`
  * (the per-copy value; a record from before WU-55 has no counted copies). A minion's figure is an ordinary field,
@@ -2907,8 +2915,9 @@ function holdBudgetToRecompute(plan, rep, b, maps, market, rungs, file, fail) {
  * 1 S7): its group (`rolledGroup`) has role clear or single_target, its figure is the largest of that role, read
  * from the record for every group the gate compares, × each group's Count where the record has a counted copy
  * (`countedSkillOutputs`, D-294, D-340), and a `skillOutputs` figure of its group is of the stage's
- * `skills.main.statSet`, the set the PoB file opens on. A group the record resolved a minion skill for is compared by
- * its minion's figure, `Minion<Field>` at the same key, where the others compare `<Field>` (D-378).
+ * `skills.main.statSet`, the set the PoB file opens on. A group whose damage is its minion's, one the record resolved
+ * a minion skill for (D-378) or whose compared skill summons a minion (D-385, `summonsMinion`), is compared by its
+ * minion's figure, `Minion<Field>` at the same key, where the others compare `<Field>`.
  */
 function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
   const failures = [];
@@ -2956,11 +2965,14 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
       const lg = /^ledger:(\w+)$/.exec(String(f.figure));
       if (sk) {
         if (Number(sk[1]) !== n) fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id} is another group's, not group ${n}'s`);
-        // D-378: a group that names a minion skill is compared by its minion's figure, so one field means
-        // `<Field>` for the others and `Minion<Field>` for it.
-        const minion = minions.has(n);
+        // D-378, D-385: a group whose damage is its minion's (it names a minion skill, or its compared skill
+        // summons a minion) is compared by its minion's figure, so one field means `<Field>` for the others and
+        // `Minion<Field>` for it.
+        const names = minions.has(n);
+        const minion = names || summonsMinion(record.stages?.[s.id], `g${sk[1]}s${sk[2]}p${sk[3]}`);
         if (minion && !/^Minion[A-Z]/.test(sk[4])) {
-          fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id}'s group ${n} is the player's ${sk[4]}, but the group names a minion skill, so its figure is its minion's Minion${sk[4]} at the same key (D-378, gates.md)`);
+          const why = names ? 'the group names a minion skill' : "the group's skill summons a minion";
+          fail('rolled-skill', `the D1 gate's figure ${show(f.figure)} for stage ${s.id}'s group ${n} is the player's ${sk[4]}, but ${why}, so its figure is its minion's Minion${sk[4]} at the same key (D-378, ${names ? '' : 'D-385, '}gates.md)`);
         }
         fields.add(minion ? sk[4].replace(/^Minion(?=[A-Z])/, '') : sk[4]);
         named.add(sk[4]);
@@ -2992,7 +3004,7 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
       }
       values.set(n, value);
     }
-    if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...named])}; it uses one field for every group, its minion's Minion<Field> for a group that names a minion skill (gates.md, D-378)`);
+    if (fields.size > 1) fail('rolled-skill', `the D1 gate compares stage ${s.id}'s groups by different fields ${show([...named])}; it uses one field for every group, its minion's Minion<Field> for a group whose damage is its minion's (gates.md, D-378, D-385)`);
     const mine = values.get(rolled);
     for (const [n, v] of values) {
       if (n !== rolled && isNum(mine) && v > mine) {

@@ -87,8 +87,9 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      D1-finish writes the claim that says why.
    - Its figure, × its Count, must be the largest of the stage's groups with that role: the gate compares
      one Count-scaled record field for every group (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`,
-     the same `<Field>` for each, named `g<group>s<skill>p<statSet>.<Field>`), or a ledger value. A group that
-     names a minion skill is compared by its minion's `Minion<Field>` at the same key (`MinionTotalDPS`, D-378).
+     the same `<Field>` for each, named `g<group>s<skill>p<statSet>.<Field>`), or a ledger value. A group whose
+     damage is its minion's (it names a minion skill, or its skill summons a minion, as a plain Skeletal Warrior
+     does) is compared by its minion's `Minion<Field>` at the same key (`MinionTotalDPS`, D-378, D-385).
      Never give a damage skill the `utility` role to keep it out of the comparison.
    - Put the named source's group first (`skills.main.group: 1`, `main` on the named source): every
      stage shares the main group's index, and D2 holds a bridge skill there until the named source's

@@ -86,9 +86,10 @@ design. Fix nothing in the plan: a failure goes back to D1 as findings.
      `skills.rolledGroup` group, which holds the named damage source, has role `clear` or `single_target`
      (else `rolled-role`), and its figure **× its Count** is the largest among the stage's groups with that
      role (else `rolled-not-largest`). Compare one record field for every group of that role, named
-     `g<group>s<skill>p<statSet>.<Field>` (the same `<Field>` for each; a group that names a minion skill is
-     compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` where the others'
-     is `TotalDPS`, D-378), read by one rule (D-340): a field with a counted copy Count-scaled, from the stage's
+     `g<group>s<skill>p<statSet>.<Field>` (the same `<Field>` for each; a group whose damage is its minion's (it
+     names a minion skill, or its compared skill summons a minion, its record entry carrying `Minion<Field>`
+     fields) is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` where the
+     others' is `TotalDPS`, D-378, D-385), read by one rule (D-340): a field with a counted copy Count-scaled, from the stage's
      `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (each group's per-copy figure × its
      Count, WU-55; `TotalDPS` has one); any other field from the raw
      `skillOutputs[g<group>s<skill>p<statSet>].fields.<Field>`, the per-copy value, labelled "per copy" in

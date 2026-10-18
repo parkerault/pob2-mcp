@@ -3165,12 +3165,13 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
 
   it("the figure: a group that names a minion skill is compared by its minion's MinionTotalDPS in the D1 gate, and V1's not-granted is in gates.md's table; R1b and D2 path to the granting passives (D-378, D-380)", () => {
     const gates = fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8');
-    expect(folded(gates)).toMatch(/a group that names a minion skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` in place of `TotalDPS`, which is 0 for a summon \(D-378\)/);
+    // D-385: also a group whose compared skill summons a minion without naming a minion skill (a plain summon).
+    expect(folded(gates)).toMatch(/a group whose damage is its minion's, one that names a minion skill or whose compared skill summons a minion \(its record entry carries `Minion<Field>` fields\), is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` in place of `TotalDPS`, which is 0 for a summon \(D-378, D-385\)/);
     expect(gates).toMatch(/^\| v1 \| `not-granted` \| .*\(D-380\).*\|$/m);
     // The table's heading and lead sentence hold for every row: the checker recomputes three parts, and V1's code is the record's.
     expect(gates).toContain('### Finding codes the gate names');
     expect(folded(gates)).toMatch(/The run checker recomputes the floor, budget and rolledSkill parts and names each failure by their codes; the `v1` row's code is the compile record's, and the gate reports and routes it as every V1 finding\./);
-    expect(folded(readStage('D1-gate'))).toMatch(/a group that names a minion skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` where the others' is `TotalDPS`, D-378/);
+    expect(folded(readStage('D1-gate'))).toMatch(/a group whose damage is its minion's \(it names a minion skill, or its compared skill summons a minion, its record entry carrying `Minion<Field>` fields\) is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` where the others' is `TotalDPS`, D-378, D-385/);
     expect(folded(readStage('R1b'))).toMatch(/and for a minion skill the passives that grant it and its summon \(the lock's `Grants Skill:` nodes; PoB measures the skill without them, but V1 reports `not-granted`, D-380\)/);
     expect(folded(readStage('D2'))).toMatch(/A minion skill \(D-379\) is gated by its summon gem's requirement and by the passives that grant the summon and the skill .*: from the first stage that uses the summon, or names the skill as `minionSkill`, the tree holds a passive that grants it \(V1's `not-granted`, D-380\)/);
     expect(folded(readStage('W1'))).toMatch(/For a minion skill, say that the player commands the minion and the minion deals the damage \(D-379\)/);

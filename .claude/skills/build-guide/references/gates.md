@@ -92,9 +92,10 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   In each endgame stage, the named source's group (`skills.rolledGroup`; the name stays, D-295) has role
   `clear` or `single_target`, never `utility` or `leveling`, and its figure × its Count is the largest among
   the stage's groups with that role. A figure is named as a record `skillOutputs` field
-  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared; a group that names a minion
-  skill is compared by its minion's `Minion<Field>` at the same key, its figure `MinionTotalDPS` in place of
-  `TotalDPS`, which is 0 for a summon (D-378). **One rule reads it**
+  (`g<group>s<skill>p<statSet>.<Field>`), the same field for every group compared; a group whose damage is its
+  minion's, one that names a minion skill or whose compared skill summons a minion (its record entry carries
+  `Minion<Field>` fields), is compared by its minion's `Minion<Field>` at the same key, its figure
+  `MinionTotalDPS` in place of `TotalDPS`, which is 0 for a summon (D-378, D-385). **One rule reads it**
   (D-340): a field with a counted copy is read **Count-scaled**, from the record's
   `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.<Field>` (the per-copy figure × that group's Count by
   PoB's Full DPS rule, WU-55; `TotalDPS` has one); any other field is read from the raw

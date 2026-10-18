@@ -974,16 +974,60 @@ describe("AC-W66 (WU-79, D-378): a rolled group that names a minion skill is rea
       expect.stringMatching(/the D1 gate's figure "g1s1p1\.TotalDPS" for stage n's group 1 is the player's TotalDPS, but the group names a minion skill, so its figure is its minion's MinionTotalDPS at the same key \(D-378, gates\.md\)/),
       expect.stringMatching(/stage n's group 2 \(clear\) has 60000 \(× its Count\), more than the named damage source's group 1's 0 \(× its Count\)/),
     ]));
-    // Without the record's selection, MinionTotalDPS is no group's figure: one field means TotalDPS for every group.
+    // D-385: without the record's selection, the group's skill still summons a minion (its record entry carries
+    // MinionTotalDPS), so its figure is still its minion's: the gate's MinionTotalDPS passes.
     const plain = minionRun();
     editJson(plain, 'compile-record.json', (r) => delete r.stages.n.minionSkills);
-    expect(lines(failing(plain), 'rolled-skill')).toEqual([expect.stringMatching(/compares stage n's groups by different fields \["MinionTotalDPS","TotalDPS"\]; it uses one field for every group, its minion's Minion<Field> for a group that names a minion skill \(gates\.md, D-378\)/)]);
+    expect(lines(runChecker(plain).stderr, 'rolled-skill')).toEqual([]);
   });
 
   it("fails a verdict line quoting the minion's per-copy figure: its DPS is measures.dps, the main group's figure × its Count", () => {
     const dir = minionRun();
     editText(dir, 'guide.md', replace('Blood Hunt about 100,000 DPS.', 'Blood Hunt about 50,000 DPS.'));
     expect(lines(failing(dir), 'verdict-line')).toEqual([expect.stringMatching(/the Non-budget verdict line says DPS 50,000, but n\.measures\.dps \(the main group's figure × its Count\) is 100000/)]);
+  });
+});
+
+describe("D-385: a group whose skill summons a minion is compared by its minion's figure, whether or not it names a minion skill", () => {
+  const GATE = `reports/gates/D1-gate-${CARD}-a1.json`;
+  /**
+   * run-ok-online with its n rung's group 2 a plain summon, as the Varashta run's Skeletal Warrior and Skeletal
+   * Arsonist were: no minion skill named, so no selection in the record, but its record entry carries the
+   * minion's figures (PoB measures a summon's minion), `MinionTotalDPS` 40,000 a copy and `TotalDPS` 0. The rolled
+   * group 1 stays the player's skill, compared by `TotalDPS`. The checker reads the record only, so Rolling Slam's
+   * name stays.
+   */
+  function summonRun(figure: string): string {
+    const dir = copyOf('run-ok-online');
+    editJson(dir, 'compile-record.json', (r) => {
+      const n = r.stages.n;
+      n.skillOutputs.g2s1p1.fields = { ...n.skillOutputs.g2s1p1.fields, TotalDPS: 0, MinionTotalDPS: 40000 };
+      if (n.countedSkillOutputs.g2s1p1) n.countedSkillOutputs.g2s1p1.fields = { TotalDPS: 0, MinionTotalDPS: 40000 * n.countedSkillOutputs.g2s1p1.count };
+    });
+    editJson(dir, GATE, (g) => {
+      g.basis.rolledSkill.find((b: Json) => b.stage === 'n').figures.find((f: Json) => f.group === 2).figure = figure;
+    });
+    return dir;
+  }
+
+  it("passes a gate comparing the summon by MinionTotalDPS and the player's skill by TotalDPS: one field, the minion's for the summon", () => {
+    expect(lines(runChecker(summonRun('g2s1p1.MinionTotalDPS')).stderr, 'rolled-skill')).toEqual([]);
+  });
+
+  it("fails a gate comparing the summon by the player's TotalDPS, 0 for a summon", () => {
+    expect(lines(failing(summonRun('g2s1p1.TotalDPS')), 'rolled-skill')).toEqual(expect.arrayContaining([
+      expect.stringMatching(/the D1 gate's figure "g2s1p1\.TotalDPS" for stage n's group 2 is the player's TotalDPS, but the group's skill summons a minion, so its figure is its minion's MinionTotalDPS at the same key \(D-378, D-385, gates\.md\)/),
+    ]));
+  });
+
+  it("fails a gate comparing the player's skill by its minion field: a skill that summons no minion has no Minion<Field>", () => {
+    const dir = summonRun('g2s1p1.MinionTotalDPS');
+    editJson(dir, GATE, (g) => {
+      g.basis.rolledSkill.find((b: Json) => b.stage === 'n').figures.find((f: Json) => f.group === 1).figure = 'g1s1p1.MinionTotalDPS';
+    });
+    expect(lines(failing(dir), 'rolled-skill')).toEqual(expect.arrayContaining([
+      expect.stringMatching(/compares stage n's groups by different fields \["MinionTotalDPS"\]/),
+    ]));
   });
 });
 

@@ -38,8 +38,9 @@
 //     - Penalties: "<an explicit penalty line, verbatim>", … | none
 //     - PoB models it: <yes | partly | no>[ — <what a compile measures>]
 //
-// A families field is `none` or vocabulary words, comma-separated; an entry names at least one family. A unique PoB
-// models only partly or not at all says what a compile measures (UNIQUE_MODEL_NOTES). No block carries a price.
+// A families field is `none` or vocabulary words, comma-separated; a rule changer no family fits is `none` in both
+// (a proposal for vocabulary.md, never a new word). A unique PoB models only partly or not at all says what a compile
+// measures (UNIQUE_MODEL_NOTES). No block carries a price.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -179,9 +180,6 @@ export function checkNodes(text, vocabulary, file = 'nodes.md') {
       else entry[key] = parsed.families;
     }
     if (!MODEL_VALUES.includes(model)) problems.push(`${at}: PoB models it: "${model}" (expected yes, partly or no)`);
-    if (entry.creates.length === 0 && entry.paysOff.length === 0 && !problems.some((p) => p.startsWith(`${at}:`))) {
-      problems.push(`${at}: a [rule] line names no family`);
-    }
     entries.push(entry);
   });
   if (sections.length === 0) problems.push(`${file}: no sections`);
@@ -242,9 +240,6 @@ export function checkBlocks(text, vocabulary, file) {
         const parsed = parseFamilies(field, vocabulary);
         if (parsed.error) problems.push(`${at}: ${label}: ${parsed.error}`);
         else entry[key] = parsed.families;
-      }
-      if (entry.creates.length === 0 && entry.paysOff.length === 0 && !problems.some((p) => p.startsWith(`${at}:`))) {
-        problems.push(`${at}: the block names no family`);
       }
     }
     const penalties = value(4);
@@ -429,8 +424,22 @@ for id, node in pairs(tree.nodes) do
   if (node.ascendancyName and notable and not node.isAscendancyStart) or (keystone and not node.ascendancyName) then
     local lines = {}
     for _, l in ipairs(node.sd or {}) do table.insert(lines, oneLine(l)) end
+    -- A multiple-choice notable has no lines of its own: its options' lines, one option a line.
+    if node.isMultipleChoice then
+      local options = {}
+      local specNode = build.spec.nodes and build.spec.nodes[id] or node
+      for _, other in ipairs(specNode.linked or {}) do
+        if other.isMultipleChoiceOption then
+          local sd = {}
+          for _, l in ipairs(other.sd or {}) do table.insert(sd, oneLine(l)) end
+          table.insert(options, { id = other.id, line = 'Option ' .. (other.dn or other.name) .. ': ' .. table.concat(sd, ' / ') })
+        end
+      end
+      table.sort(options, function(a, b) return a.id < b.id end)
+      for _, o in ipairs(options) do table.insert(lines, o.line) end
+    end
     table.insert(out.nodes, { id = tonumber(id) or id, name = node.dn or node.name, ascendancy = node.ascendancyName,
-      keystone = keystone or nil, choice = node.isMultipleChoiceOption or nil, lines = lines })
+      keystone = keystone or nil, choice = node.isMultipleChoice or nil, lines = lines })
   end
 end
 

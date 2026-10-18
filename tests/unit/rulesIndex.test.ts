@@ -119,11 +119,16 @@ describe('rules-index.mjs check (AC-W71)', () => {
     expect(r.stdout).toContain(problem);
   });
 
-  it('fails gems.md with a family outside the vocabulary and a block with no family', () => {
-    const r = run('check', index({ gems: GEMS.replace('infusion, mana', 'cold-infusion') + GEMS.replace(/fixture-support/g, 'other').replace('Fixture Support', 'Other').replace('infusion, mana', 'none') }, false));
+  it('fails gems.md with a family outside the vocabulary and an id used twice', () => {
+    const r = run('check', index({ gems: GEMS.replace('infusion, mana', 'cold-infusion') + GEMS.replace('# Gems\n\n', '').replace('Fixture Support', 'Other') }, false));
     expect(r.code).toBe(1);
     expect(r.stdout).toContain('gems.md:3: Pays off on: not in the vocabulary: cold-infusion');
-    expect(r.stdout).toContain('gems.md:12: the block names no family');
+    expect(r.stdout).toContain('gems.md:10: id "fixture-support" used twice');
+  });
+
+  it('passes a rule changer no family fits, with none in both', () => {
+    const r = run('check', index({ gems: GEMS.replace('infusion, mana', 'none') }));
+    expect(r.code).toBe(0);
   });
 
   it('fails a pairs.md that is missing or is not the join', () => {

@@ -9,7 +9,7 @@ re-check (2 blockers and 27 should-fix findings, resolved below). It carries:
 - the Powered by Verisium miss (`../studies/2026-10-17-varashta-run-feedback.md`, "the feedback study", §2.2);
 - measured clear speed for card skeletons (the WU-81 verdict, work-log 2026-10-18).
 
-It is written against spec v1.5 plus amendments 5–7, which fold as v1.6 in the same batch. Paths are from the
+It is written against spec v1.6 (folded 2026-10-18, through D-397). Paths are from the
 repository root, except stage files (`R1a.md` and so on), which are under
 `.claude/skills/build-guide/references/stages/`.
 

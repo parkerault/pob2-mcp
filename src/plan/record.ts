@@ -35,6 +35,12 @@
  * `Minion<Field>` fields (`summonsMinion`, the checker's D-385 test and `get_passive_upgrades`' D-388 one). The
  * headline and the key-figure line read it, and the clear measure decides by the same test (`minionFigures`): a plain
  * summon's clear speed is its minion's area and use rate.
+ *
+ * **Pace on every endgame stage** (WU-88, D-407; the user's HG-12 grant), additive. Every endgame stage (`progress`
+ * `endgame`: a variant, and a card skeleton, R1b's one stage with no `variant`) gets the pace measures: the rough
+ * `clearSpeed`, now with `noArea` when PoB gives the clear skill no radius (its band is then `slow`, so a display can
+ * say "slow (PoB gives no area)"), and `movementSpeed`, the player's movement speed as PoB's `EffectiveMovementSpeedMod`.
+ * `dps`, `ehp` and `arbiter` stay on the variant stages only. A campaign stage has no `measures`.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
@@ -333,6 +339,12 @@ export interface ClearSpeedMeasure {
   radiusMetres: number;
   /** The band by the radius alone: below 2 m slow, below 4 m medium, else fast. */
   band: ClearSpeed;
+  /**
+   * D-407: PoB gives the clear skill no area (no radius above 0, as for a Skeletal Warrior's strike), so its band is
+   * `slow` for want of a radius, not from a small one: a display says "slow (PoB gives no area)". True too when the
+   * stage has no clear skill to read (`skill` null).
+   */
+  noArea: boolean;
   /** One step faster: a gem text of its group explodes monsters or spreads an effect on death. */
   onDeath: boolean;
   /** Its uses per second (`Speed`, a minion's `MinionSpeed`), null when PoB gives none. */
@@ -346,7 +358,10 @@ export function clearBand(radiusMetres: number): ClearSpeed {
   return radiusMetres < 2 ? 'slow' : radiusMetres < 4 ? 'medium' : 'fast';
 }
 
-/** D-353: the band, a step faster for an on-death effect, a step slower for a long use, kept within the bands. */
+/**
+ * D-353: the band, a step faster for an on-death effect, a step slower for a long use, kept within the bands. D-407:
+ * `noArea` when PoB gives no radius above 0; the steps still apply, as D-353 sets them.
+ */
 export function clearSpeedOf(input: {
   radiusMetres: number | undefined;
   usesPerSecond: number | undefined;
@@ -358,6 +373,7 @@ export function clearSpeedOf(input: {
   const radiusMetres = typeof input.radiusMetres === 'number' && Number.isFinite(input.radiusMetres) ? input.radiusMetres : 0;
   const usesPerSecond = typeof input.usesPerSecond === 'number' && Number.isFinite(input.usesPerSecond) ? input.usesPerSecond : null;
   const band = clearBand(radiusMetres);
+  const noArea = !(radiusMetres > 0);
   const onDeath = input.texts.some(explodesOnDeath);
   const longUse = usesPerSecond !== null && usesPerSecond < 1;
   const at = CLEAR_SPEEDS.indexOf(band) + (onDeath ? 1 : 0) - (longUse ? 1 : 0);
@@ -369,6 +385,7 @@ export function clearSpeedOf(input: {
     skill: input.skill ?? null,
     radiusMetres,
     band,
+    noArea,
     onDeath,
     usesPerSecond,
     longUse,
@@ -499,18 +516,43 @@ export function headlineDps(
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
-/** `measures`, per endgame stage (D-353). `arbiter` is only on the budget and non-budget rungs. */
+/**
+ * `measures`, per endgame stage (D-353, D-407; `measuredStage`). Every endgame stage, a card skeleton's included, has
+ * the pace measures, `clearSpeed` and `movementSpeed`. `dps` and `ehp` are on an endgame variant stage (one with a
+ * `variant`) only, and `arbiter` only on the budget and non-budget rungs.
+ */
 export interface StageMeasures {
-  dps: number | null;
-  ehp: number | null;
+  /** On a variant stage only (D-353): the headline. */
+  dps?: number | null;
+  /** On a variant stage only (D-353): PoB's `TotalEHP`. */
+  ehp?: number | null;
   arbiter?: ArbiterMeasure;
   clearSpeed: ClearSpeedMeasure;
+  /**
+   * D-407: the player's movement speed, PoB's `EffectiveMovementSpeedMod` (`MOVEMENT_SPEED_FIELD`): movement speed ×
+   * action speed as a multiplier, the sidebar's "Movement Speed Modifier" (1.25 is +25%); null when PoB gives none.
+   */
+  movementSpeed: number | null;
 }
 
 /** The rungs `measures.arbiter` is given on (D-353): `b` and `n`. */
 export const ARBITER_VARIANTS: readonly string[] = ['budget', 'non-budget'];
 
-/** An endgame stage's measures from its record (D-353). */
+/** D-407: the PoB output field `measures.movementSpeed` reads (`CalcDefence.lua`: `MovementSpeedMod * ActionSpeedMod`). */
+export const MOVEMENT_SPEED_FIELD = 'EffectiveMovementSpeedMod';
+
+/**
+ * D-353, D-407: whether a stage gets `measures`: an endgame stage, `progress` `endgame` (a variant, or a card
+ * skeleton, which has none), or any stage with a `variant`. A campaign stage (`start`, `q.<key>`) gets none.
+ */
+export function measuredStage(stage: Pick<Stage, 'progress' | 'variant'>): boolean {
+  return stage.variant !== undefined || stage.progress === 'endgame';
+}
+
+/**
+ * An endgame stage's measures from its record (D-353, D-407): the pace measures on every one; `dps`, `ehp` and, on
+ * `b` and `n`, `arbiter`, on a variant stage.
+ */
 export function stageMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
   rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
@@ -518,6 +560,8 @@ export function stageMeasures(
   gemTexts: Readonly<Record<string, string>>,
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
+  const move = rec.outputs[MOVEMENT_SPEED_FIELD];
+  const movementSpeed = typeof move === 'number' && Number.isFinite(move) ? move : null;
   const entry = clearEntryOf(stage, rec.skillOutputs, rec);
   // D-378, D-397: a clear skill whose figures are its minion's (a group that names a minion skill, or a plain summon)
   // is measured by its minion's area and use rate, by the damage figure's own test.
@@ -530,11 +574,14 @@ export function stageMeasures(
     key: entry?.key ?? null,
     skill: entry?.skill ?? null,
   });
+  // D-407: a card skeleton (no variant) has the pace measures only (the HG-12 grant covers these two fields).
+  if (stage.variant === undefined) return { clearSpeed, movementSpeed };
   return {
     dps: headlineDps(stage, rec),
     ehp: typeof ehp === 'number' && Number.isFinite(ehp) ? ehp : null,
-    ...(stage.variant !== undefined && ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiterMeasure(rec.outputs, arbiterHits) } : {}),
+    ...(ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiterMeasure(rec.outputs, arbiterHits) } : {}),
     clearSpeed,
+    movementSpeed,
   };
 }
 
@@ -582,7 +629,10 @@ export interface StageRecord {
   pobWarnings: { kept: string[]; filtered: string[] };
   v1: Verdict | null;
   v2: Verdict | null;
-  /** WU-65, D-353: on an endgame stage (one with a `variant`), its measures. */
+  /**
+   * WU-65, D-353: on an endgame stage, its measures. WU-88, D-407: a card skeleton's too (`measuredStage`), with the
+   * pace measures only; absent from a skeleton's record written before amendment 8.
+   */
   measures?: StageMeasures;
   /** WU-65, D-358: on an anointed stage, the notable and its recipe. */
   anoint?: AnointRecord;

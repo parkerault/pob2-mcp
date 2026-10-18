@@ -33,7 +33,9 @@
  * rung's area level (`withReferenceHits`, D-254's formula rounded by D-256) before step 4, so it is written,
  * grouped and checked like a listed one; a stage's anoint is checked by `compile_check` and written on its
  * amulet by `compile_stage`; the record gives each endgame stage its `measures` and an anointed stage its
- * recipe; `keyFigureLine` is the line `compile_plan` prints after each stage's line (D-356).
+ * recipe; `keyFigureLine` is the line `compile_plan` prints after each stage's line (D-356). WU-88 (D-407): a card
+ * skeleton (an endgame stage with no `variant`) gets `measures` too, the rough clear speed and the player's movement
+ * speed (`measuredStage`), and every endgame stage's measures carry the movement speed; campaign stages get none.
  *
  * WU-78 (D-377, D-378, D-380): a group may name its summon's minion skill (`minionSkill`, `minionStatSet`).
  * `compile_check` refuses a group with no summon or two, a name the minion can't cast and a stat set beyond the
@@ -83,6 +85,7 @@ import {
   figureField,
   formulaReadsStages,
   headlineDps,
+  measuredStage,
   minionSkillOf,
   recordText,
   selectionKey,
@@ -560,11 +563,16 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * minion skill, the DPS is its minion's and names it: `DPS <n> (<minion skill>, minion)` (D-378). When the main
  * skill is a plain summon (no minion skill; `figureField`, D-397), the DPS is its minion's too and names the summon
  * as the record does (its breakdown entry's `skill`, PoB's name of the skill): `DPS <n> (<summon>, minion)`.
+ *
+ * WU-88 (D-407) leaves the line as it was: a card skeleton's pace measures, and every stage's `movementSpeed`, are in
+ * the record only (the user's HG-12 grant covers the record's fields), so the clear speed is printed where the
+ * measures are an endgame variant's, the ones that carry `dps`.
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
   const dps = headlineDps({ skills: { main } }, rec);
-  const ehp = rec.measures !== undefined ? rec.measures.ehp : o.TotalEHP;
+  const variantMeasures = rec.measures?.dps !== undefined ? rec.measures : undefined;
+  const ehp = variantMeasures !== undefined ? variantMeasures.ehp : o.TotalEHP;
   const minion = minionSkillOf(rec, main.group);
   const source = figureField(rec, main) === 'MinionTotalDPS' ? (minion?.name ?? rec.skillOutputs[selectionKey(main)]?.skill) : undefined;
   const parts = [
@@ -581,7 +589,7 @@ export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): 
     const at = worst === null ? '' : ` (worst: ${worst.type} hit ${worst.hitId}, ${worst.ratio.toFixed(2)} of max hit)`;
     parts.push(`Arbiter ${arbiter.verdict ?? 'unknown'}${at}`);
   }
-  if (rec.measures !== undefined) parts.push(`clear ${rec.measures.clearSpeed.speed} (rough)`);
+  if (variantMeasures !== undefined) parts.push(`clear ${variantMeasures.clearSpeed.speed} (rough)`);
   return `  Key figures: ${parts.join('; ')}`;
 }
 
@@ -1057,8 +1065,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         skills: [...m.skills],
       })),
     };
-    // D-353: the endgame measures; D-358: the anoint's recipe.
-    if (stage.variant !== undefined) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);
+    // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
+    if (measuredStage(stage)) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);
     const anoint = anoints.get(stage.id);
     if (anoint !== undefined) {
       stages[stage.id].anoint = { notable: anoint.notable, node: anoint.node, recipe: [...anoint.recipe], emotions: [...anoint.emotions] };

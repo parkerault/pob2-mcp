@@ -255,7 +255,7 @@ Schema version 3 adds two fields.
 { "id": "b-arbiter", "text": "The budget rung survives the Arbiter's slam.", "kind": "hinge", "source": { "kind": "pob-computed", "ref": "b.PhysicalMaximumHitTaken" } }
 ```
 
-### Reference hits and measures (D-353)
+### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
 leaves out (`enemyPhysicalDamage`, `enemyFireDamage`, `enemyColdDamage`, `enemyLightningDamage`,
@@ -270,15 +270,29 @@ The compiler also measures each endgame stage (`stages.<id>.measures` in the rec
 ledger entry for them: `dps` (the main group's Count-scaled figure: its minion's `MinionTotalDPS` when it names a
 minion skill, else `TotalDPS`; D-294, D-378), `ehp` (`TotalEHP`), on `b` and `n`
 the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit
-(`survives` below 1, else `one-shot`), and a rough `clearSpeed`. No ledger entry is needed for a reference
-hit, a kill time or hits to kill.
+(`survives` below 1, else `one-shot`), a rough `clearSpeed` and the player's `movementSpeed`. No ledger entry is
+needed for a reference hit, a kill time or hits to kill.
+
+A card skeleton (R1b's one endgame stage with no `variant`) is measured too, with the pace measures only (D-407):
+its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arbiter rows. A campaign stage has no
+`measures`.
+
+- **`clearSpeed`** is rough, assuming one use kills a normal monster (D-353): `speed` is `band`, the clear skill's
+  radius `radiusMetres` banded (below 2 m `slow`, from 2 m `medium`, from 4 m `fast`), a step faster when its gem
+  text explodes monsters or spreads an effect on death (`onDeath`) and a step slower when a use takes over 1 second
+  (`longUse`). The clear skill is the first enabled `clear` group, else the main group, and a summon's is its
+  minion's (D-397). **`noArea`** is true when PoB gives the clear skill no radius, as for a Skeletal Warrior's
+  strike: its band is then `slow` for want of an area, not from a small one, and a display says
+  `slow (PoB gives no area)`.
+- **`movementSpeed`** is PoB's `EffectiveMovementSpeedMod`, the player's movement speed × action speed as a
+  multiplier (the sidebar's "Movement Speed Modifier"): 1.25 is +25%. It is null when PoB gives none.
 
 `compile_plan`'s reply prints a key-figure line after each stage's line (D-356), so a compile needs no read of
 the record for these: the headline DPS (the main group's Count-scaled figure, followed by the minion skill's name
 when a minion deals it: `DPS 649 (Navira's Fracturing, minion)`), life, energy shield, EHP, the
-fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame stage also
-the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. Numbers are rounded to
-whole numbers.
+fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame variant stage
+also the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. A card skeleton's pace
+measures and every stage's movement speed are in the record only. Numbers are rounded to whole numbers.
 
 ```
 Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass

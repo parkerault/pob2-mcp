@@ -1720,12 +1720,13 @@ brainstorm gate could only carry as a note into a whole new round (amendment 7 �
   stage `Q` (`references/stages/Q.md`), one per question or batch of related ones, started after one line
   saying what it starts and why, without asking first (the user can say not to). A research question goes to a
   `build-guide-researcher` (lookups, and the web online), up to 3 in parallel; a question about a compiled
-  build, or that needs a measurement, to a `build-guide-coordinator`, alone. The coordinator works, at the
-  brainstorm gate, from a researcher's labelled estimate or by verifying the card (nothing is compiled there);
-  at the verification gate from the card's concept plan; at the design and final gates from the run's plan; in
-  every case it measures with a measure-only variant of one stage under `probes/q-<gate>-<visit>-<n>/`, written
-  as R1b and D1-build write probes, and never edits `plan.json`, a concept plan or a card (the coordinator's
-  ruling on WU-82's review; amendment 7 said it "reads the plan, the records and the dossier"). The step writes
+  build, or that needs a measurement, to a `build-guide-coordinator`, alone. At the brainstorm gate no
+  coordinator step runs and nothing is compiled: a researcher gives a labelled estimate, or the runner offers to
+  verify the card. At the verification gate the coordinator works from the card's concept plan, and at the design
+  and final gates from the run's plan, each time by one measure-only variant of one stage under
+  `probes/q-<gate>-<visit>-<n>/`, written as R1b and D1-build write probes; it never edits `plan.json`, a concept
+  plan or a card (the coordinator's ruling on WU-82's review, `references/stages/Q.md`; amendment 7 said it
+  "reads the plan, the records and the dossier"). The step writes
   `interviews/<gate>-<visit>-q<n>.md` (`- Asked:`, `- Agent:`, then the H2s `Answer` and `Sources`), returns at
   most 8 lines, and is logged `{stage: "Q", attempt: 1, outcome: "done"}`; the runner gives the user the answer
   and the path. Every answer uses the cards' status words (confirmed in game text, modelled in PoB, estimate
@@ -3226,6 +3227,6 @@ decisions between them. None is left open in this slice.
 | — | Guides overprice gear with exact searches, prune builds for price, and quote a dead league's raw prices | **Amendment 5** (accepted by the user, 2026-10-16): D-370…D-375 | §5.2, §5.3, §7, §8, §9, WU-75, WU-76, AC-W63, AC-W64 |
 | — | The coordinator now holds `manage_sets`, a `mutate` tool, against R-4 and R1b's "mutate tools you don't hold" | the v1.6 fold: R-4 amended by D-372 for the loadout select only; R1b's reference already says R1b doesn't use it | §4, §7.7 |
 | — | A command a minion casts (Navira's Fracturing) couldn't be the brief's skill, selected, or measured | **Amendment 6** (accepted by the user, 2026-10-16): D-376…D-380 | FR-W1, FR-W2, §5.2, §5.3, §7.5, §8, WU-79, AC-W65, AC-W66 |
-| — | The library sat at 5,999 of its 6,000 words after M-17 | **D-381** (the user, 2026-10-17): 10,000 words | §7.6, AC-W28, AC-W65 |
+| — | The library sat at 5,999 of its 6,000 words after M-17 | **D-381** (the user decided to raise the cap, 2026-10-17; the coordinator chose 10,000 words) | §7.6, AC-W28, AC-W65 |
 | — | The checker's rolled-skill rule flagged plain summon groups (the Varashta run's three violations); a price note forced a recompile | **D-385, D-386** (PROPOSED by the coordinator, the defect batch) | §5.3, FR-W7, §5.5 |
 | — | The gates were a multiple choice the user couldn't question, a pick couldn't carry a change, and displays spoke in pipeline codes (the Varashta run's feedback) | **Amendment 7** (approved by the user, 2026-10-18, with §15's recommended options): D-389…D-397 | FR-W3, FR-W4, §5, §6, §7, §8, §10, §11.2, WU-81, WU-82, AC-W67…AC-W69 |

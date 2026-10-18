@@ -1850,11 +1850,23 @@ The fold of 2026-10-11 (v1.5) adds amendment 4's decisions, accepted by the user
 17. **Support sockets** (D-359; §3.4, §3.7): an estimated table (Q1: 3 supports in Act 2, rising to 5 by the
     campaign's end), since no source has the thresholds.
 18. **Tree validity** (D-360; §3.6, §3.7): one start exit per tree, one tree per start, the alternate start
-    only while its node is allocated.
-19. **Still open for the units:** the key-figure line's fields (WU-65, AC-P64) and the counter script's path
-    (WU-64, slice 3); amendment 4 names neither. A view call's kind is not open: C-50's routing rule
-    (`engineKindFor`, §3.8) makes every `guide_run` call but a `validate` call without `new_run` a `none`,
-    so a view call is `none`.
+    only while its node is allocated. **Amended by D-364 (v1.6):** a tree may touch two exits of its start
+    through its own nodes, so "one start exit per tree" goes; §3.7's `tree-shape` row holds the rule as built.
+19. **Closed at v1.6:** the key-figure line's fields, which WU-65 named (§3.6, "The key-figure line"; AC-P64), and
+    the counter script's path, which WU-64 named (`scripts/run-usage.mjs`, slice 3's WU-64 block). A view call's
+    kind was never open: C-50's routing rule (`engineKindFor`, §3.8) makes every `guide_run` call but a
+    `validate` call without `new_run` a `none`, so a view call is `none`.
+
+The fold of 2026-10-18 (v1.6) adds M-15's as-built decisions and amendments 6 and 7's compiler units:
+
+20. **The clear-speed radius** (D-363; §3.6): the stat set the main selection names when the clear skill is the
+    main skill, else its first stat set; the cheapest fix, on the user's Q2.
+21. **What a tree is** (D-364; §3.7): a connected group of allocated nodes; `one-exit-per-tree` dropped.
+22. **A minion's skill and its figure** (D-377, D-378, D-380, D-397; §3.2, §3.6, §3.7): plan schema 4, resolution
+    by name at every compile, the minion's figure for a group that names a minion skill or summons a minion, and
+    V1's `not-granted`.
+23. **The plan's groups at PoB's own index** (D-382; §3.6 step 7), and the compile's refusal of locked nodes and
+    legacy content (D-383, D-384; §3.6 step 5). Nothing in this slice is left open.
 
 Two V1 edge cases from the build are risks in the spine's register:
 - Trial 1's progress key lets an end-of-Act-1 stage spend 2 ascendancy points, with no level check to

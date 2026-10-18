@@ -4068,3 +4068,16 @@ the `m17` engine at `857658c`.
   - a plain summon's headline is its minion's figure (the defect batch's open item).
 
   Work units WU-80 to WU-82; §15 lists the four choices with a real alternative.
+
+**Git bookkeeping (2026-10-18, with the user present).**
+
+- **The gate at `5dd7461`:** `mise run test` rc 0 (134 suites and 2,397 tests, plus the timing suites' 3 tests);
+  `pnpm build` rc 0.
+- **Fast-forwarded `main`** from `afbcc6b` to `5dd7461` (243 commits) in the main checkout, which is now on `main`.
+  `build/` is rebuilt, and the user reconnected the pob2 server to it.
+- **Removed (by the user):** the worktrees `amend`, `m14`, `m15`, `m16` and `m17`, all clean and contained in
+  `main`, and the merged branches `build-guide/amendment-3` and `build-guide/amendments`. `pob2-mcp-wt/` keeps only
+  `ninja-cache/`.
+- **Not pushed.** 240 of the commits above `origin/main` are unsigned. The sign-rebase now runs on `main`, and the
+  hashes the docs cite are remapped after it, as on 2026-10-10.
+- **Where work happens now:** `/home/parker/projects/pob2-mcp` on `main`. Next: the user's review of amendment 7.

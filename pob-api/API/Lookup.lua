@@ -42,7 +42,31 @@
 
 local M = {}
 
+local BuildOps = require('API.BuildOps')
+
 local DEFAULT_MAX_RESULTS = 20
+
+-- D-384: what the lookups leave out, as PoB's own selectors do: a gem PoB marks legacy (hidden unless "Show
+-- legacy gems" is ticked) and a unique PoB marks no longer obtainable (its item database's "Obtainable"
+-- filter). Each call names the ones its query matched (`leftOut`), so a search never silently loses them.
+local function leftOutList()
+  local seen, out = { gem = {}, unique = {} }, { legacyGems = {}, unobtainableUniques = {} }
+  local function note(kind, name)
+    if seen[kind][name] then return end
+    seen[kind][name] = true
+    table.insert(kind == 'gem' and out.legacyGems or out.unobtainableUniques, name)
+  end
+  local function result()
+    if #out.legacyGems == 0 and #out.unobtainableUniques == 0 then return nil end
+    table.sort(out.legacyGems)
+    table.sort(out.unobtainableUniques)
+    return out
+  end
+  return note, result
+end
+
+local function isLegacyGem(gem) return BuildOps.is_legacy_gem(gem) end
+local function isUnobtainable(item) return BuildOps.is_unobtainable_unique(item) end
 
 local Failure = {}
 local function fail(msg)
@@ -357,8 +381,9 @@ local function gemIndex()
   local d = gameData()
   if gemIndexCache[d] then return gemIndexCache[d] end
   local index = { actives = {}, supports = {}, adders = {}, metas = {} }
+  -- D-384: a legacy gem is in no gem's lists (supports, unlocks, "usable by"), as gem mode leaves it out.
   for id, gem in pairs(d.gems) do
-    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect and not isLegacyGem(gem) then
       local entry = { id = id, name = gem.name, gem = gem }
       if isSupportGem(gem) then
         table.insert(index.supports, entry)
@@ -697,12 +722,13 @@ local function minionSkillResult(entry)
   }
 end
 
-local function lookupGems(query, level, quality, maxResults)
+local function lookupGems(query, level, quality, maxResults, leaveOut)
   local d = gameData()
   local matches = {}
   for id, gem in pairs(d.gems) do
     if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect and contains(gem.name, query) then
-      table.insert(matches, { id = id, name = gem.name, gem = gem })
+      if isLegacyGem(gem) then leaveOut('gem', gem.name)
+      else table.insert(matches, { id = id, name = gem.name, gem = gem }) end
     end
   end
   sortByName(matches, query)
@@ -832,7 +858,7 @@ end
 -- Uniques by name, mod line (any variant) or type. Each result names its base, type and the matched
 -- lines (at most MAX_MATCHED_LINES, `matchedCount` counts them all); the BuildRaw() text comes only
 -- when exactly one unique is returned (D-239), with the selected variant.
-local function lookupUniques(query, slot, maxResults)
+local function lookupUniques(query, slot, maxResults, leaveOut)
   local itemType = resolveSlot(slot)
   local matches = {}
   for key, item in pairs(uniqueList()) do
@@ -845,7 +871,9 @@ local function lookupUniques(query, slot, maxResults)
           if contains(entry.line, query) then table.insert(lines, entry) end
         end
       end
-      if query == nil or byName or #lines > 0 then
+      if (query == nil or byName or #lines > 0) and isUnobtainable(item) then
+        leaveOut('unique', name)
+      elseif query == nil or byName or #lines > 0 then
         table.insert(matches, { id = key, name = name, item = item, byName = byName, lines = lines })
       end
     end
@@ -1206,19 +1234,22 @@ end
 local KINDS_TEXT = 'gem, unique, passive, mod, essence or base'
 
 -- `match` is the query's matcher (M.matcher).
-local function lookupMechanics(match, kind, maxResults)
+local function lookupMechanics(match, kind, maxResults, leaveOut)
   local d = gameData()
   local hits = {}
 
   -- Gems: the description, then every stat set's lines at the gem's default level, quality 0, each source
-  -- naming the stat set's number as gem mode does (WU-53); then the quality and Gemling quality lines.
+  -- naming the stat set's number as gem mode does (WU-53); then the quality and Gemling quality lines. A
+  -- legacy gem's matching lines are left out and the gem named (D-384).
   for id, gem in pairs(d.gems) do
     if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
       local n = 0
+      local legacy = isLegacyGem(gem)
       local function add(source, line)
         n = n + 1
         if match(line) then
-          table.insert(hits, { kind = 'gem', id = id, name = gem.name, order = n, source = source, line = line })
+          if legacy then leaveOut('gem', gem.name)
+          else table.insert(hits, { kind = 'gem', id = id, name = gem.name, order = n, source = source, line = line }) end
         end
       end
       local ge = gem.grantedEffect
@@ -1237,11 +1268,15 @@ local function lookupMechanics(match, kind, maxResults)
     end
   end
 
-  -- Uniques: every variant's mod lines; a line the selected variant lacks names its variants.
+  -- Uniques: every variant's mod lines; a line the selected variant lacks names its variants. A unique no
+  -- longer obtainable is left out and named (D-384).
   for key, item in pairs(uniqueList()) do
     local name = item.title or item.name or key
+    local unobtainable = isUnobtainable(item)
     for n, entry in ipairs(uniqueModLines(item)) do
-      if match(entry.line) then
+      if match(entry.line) and unobtainable then
+        leaveOut('unique', name)
+      elseif match(entry.line) then
         local where = tostring(item.type)
         if entry.variants then where = where .. '; ' .. variantNote(entry.variants) end
         table.insert(hits, {
@@ -1363,7 +1398,7 @@ end
 
 local function addGemNames(add, asKind)
   for _, gem in pairs(gameData().gems) do
-    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect then
+    if type(gem) == 'table' and type(gem.name) == 'string' and gem.grantedEffect and not isLegacyGem(gem) then
       add(gem.name, asKind or (isSupportGem(gem) and 'support' or 'active'))
     end
   end
@@ -1371,7 +1406,7 @@ end
 
 local function addUniqueNames(add, itemType)
   for key, item in pairs(uniqueList()) do
-    if not itemType or item.type == itemType then
+    if (not itemType or item.type == itemType) and not isUnobtainable(item) then
       add(item.title or item.name or tostring(key), 'unique', item.type)
     end
   end
@@ -1461,16 +1496,17 @@ function M.lookup_game_data(params)
   if maxResults < 1 then maxResults = 1 end
 
   local results, total, kinds, filter
+  local leaveOut, leftOut = leftOutList()
   if mode == 'gem' then
     if not needle then fail('gem mode needs a query') end
     local level = params.level ~= nil and math.floor(tonumber(params.level) or -1) or nil
     local quality = math.floor(tonumber(params.quality) or 0)
     if quality < 0 or quality > 20 then fail('gem_quality must be 0-20') end
-    results, total = lookupGems(needle, level, quality, maxResults)
+    results, total = lookupGems(needle, level, quality, maxResults, leaveOut)
   elseif mode == 'unique' then
     local slot = trimmed(params.slot)
     if not needle and not slot then fail('unique mode needs a query, a slot or both') end
-    results, total = lookupUniques(needle, slot, maxResults)
+    results, total = lookupUniques(needle, slot, maxResults, leaveOut)
     filter = slot and resolveSlot(slot) or nil
   else
     local match = needle and M.matcher(needle) or nil
@@ -1480,7 +1516,7 @@ function M.lookup_game_data(params)
       kind = kind:lower()
       if not KIND_RANK[kind] then fail('unknown kind "' .. tostring(params.kind) .. '"; use ' .. KINDS_TEXT) end
     end
-    results, total, kinds = lookupMechanics(match, kind, maxResults)
+    results, total, kinds = lookupMechanics(match, kind, maxResults, leaveOut)
     filter = kind
   end
   -- D-258: a query that matched nothing gets the closest names of the kind searched, unless it is too long.
@@ -1495,7 +1531,7 @@ function M.lookup_game_data(params)
   end
   return {
     mode = mode, total = total, results = results, kinds = kinds,
-    suggestions = suggestions, suggestionsSkipped = suggestionsSkipped,
+    suggestions = suggestions, suggestionsSkipped = suggestionsSkipped, leftOut = leftOut(),
   }
 end
 

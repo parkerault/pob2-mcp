@@ -337,8 +337,26 @@ function renderSuggestion(mode: Mode, s: LookupSuggestion): string {
   return `- ${s.name}${label ? ` (${label})` : ""}`;
 }
 
+/**
+ * D-384: one line per kind the lookup left out, naming them: gems PoB marks legacy and uniques PoB marks no
+ * longer obtainable, which the game no longer has.
+ */
+export function leftOutLines(leftOut: LookupGameDataResult["leftOut"]): string[] {
+  const lines: string[] = [];
+  const gems = leftOut?.legacyGems ?? [];
+  if (gems.length === 1) lines.push(`Left out: ${gems[0]}, which PoB marks legacy: it is no longer in the game.`);
+  else if (gems.length > 1) lines.push(`Left out: ${gems.length} gems PoB marks legacy (${gems.join(", ")}): they are no longer in the game.`);
+  const uniques = leftOut?.unobtainableUniques ?? [];
+  if (uniques.length === 1) lines.push(`Left out: ${uniques[0]}, which PoB's unique data marks no longer obtainable.`);
+  else if (uniques.length > 1) {
+    lines.push(`Left out: ${uniques.length} uniques PoB's unique data marks no longer obtainable (${uniques.join(", ")}).`);
+  }
+  return lines;
+}
+
 function render(req: Request, result: LookupGameDataResult): string {
   const lines: string[] = [`=== Game Data Lookup (${req.mode}: ${criteria(req)}) ===`, ""];
+  const leftOut = leftOutLines(result.leftOut);
   const shown = result.results.length;
   const kinds = result.kinds;
   if (req.mode === "mechanic" && kinds) {
@@ -351,7 +369,7 @@ function render(req: Request, result: LookupGameDataResult): string {
     }
   }
   if (shown === 0) {
-    lines.push(`Nothing matched ${criteria(req)}.`);
+    lines.push(`Nothing matched ${criteria(req)}.`, ...leftOut);
     const suggestions = result.suggestions ?? [];
     if (suggestions.length > 0) lines.push(...suggestionBlock(req, suggestions));
     const skipped = result.suggestionsSkipped;
@@ -380,6 +398,7 @@ function render(req: Request, result: LookupGameDataResult): string {
     const kindNote = req.mode === "mechanic" && req.kind ? ` ${req.kind}` : "";
     lines.push(`Found ${result.total}${kindNote} ${result.total === 1 ? noun[0] : noun[1]} (${order}).`);
   }
+  lines.push(...leftOut);
   // WU-53: the note only when the long lists are left out (not every returned gem is named as the query).
   if (req.mode === "gem") {
     // The minion skills (D-379) have no long lists: the note is about the gems only.

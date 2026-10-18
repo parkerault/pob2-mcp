@@ -37,6 +37,9 @@
  * AC-K71 (WU-77, D-379): gem mode finds a minion skill by name, after the gems. The expected lines are
  * recomputed from PoB's data: the gems whose active effects' minions list the skill, `is_commandable_skill`
  * in a stat set, the tree's "Grants Skill: <name>" lines, and the described stat sets.
+ *
+ * D-384: every expected gem set is recomputed without the gems PoB marks legacy, which the lookups leave out
+ * (`LIVE_GEMS`); the legacy and unobtainable cases themselves are in `ruleBreaks.test.ts`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -277,12 +280,26 @@ describe('AC-K63: the build-guide skill lists the seven named phrase searches (s
   });
 });
 
+/**
+ * D-384: the gems the lookups search, for the queries below: PoB's gems without the ones PoB marks legacy
+ * (their granted effect's `legacy`), which every mode leaves out.
+ */
+const LIVE_GEMS = `
+local function liveGems()
+  local out = {}
+  for id, g in pairs(data.gems) do
+    if not (type(g) == 'table' and type(g.grantedEffect) == 'table' and g.grantedEffect.legacy) then out[id] = g end
+  end
+  return out
+end
+`;
+
 engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   let f: SessionFixture;
 
   async function luaQuery<T>(code: string): Promise<T> {
     const { value } = await f.session.run({ tool: 'test:lookup-query', kind: 'read' }, async (ctx) => {
-      const reply = await ctx.client.request('__test_eval', { code });
+      const reply = await ctx.client.request('__test_eval', { code: LIVE_GEMS + code });
       return reply.result as T;
     });
     return value;
@@ -319,7 +336,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   /** PoB's tooltip data for one gem (by exact name), at a gem level and quality. */
   const gemTooltipQuery = (name: string, level: number, quality: number) => `
     local gem, gemId
-    for id, g in pairs(data.gems) do
+    for id, g in pairs(liveGems()) do
       if g.name == ${JSON.stringify(name)} and (not gemId or id < gemId) then gem, gemId = g, id end
     end
     local ge = data.skills[gem.grantedEffectId]
@@ -396,7 +413,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
     async () => {
       const pick = await luaQuery<{ name: string; require: string[]; exclude: string[] }>(`
         local best
-        for id, g in pairs(data.gems) do
+        for id, g in pairs(liveGems()) do
           local ge = g.grantedEffect
           if ge and ge.support and ge.requireSkillTypes and ge.requireSkillTypes[1] and ge.excludeSkillTypes and ge.excludeSkillTypes[1] then
             if not best or g.name < best.name or (g.name == best.name and id < best.id) then best = { id = id, name = g.name, ge = ge } end
@@ -439,7 +456,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
 
       const support = await luaQuery<{ name: string; levels: number[]; maxLevel: number }>(`
         local best
-        for id, g in pairs(data.gems) do
+        for id, g in pairs(liveGems()) do
           local ge = g.grantedEffect
           if ge and ge.support and ge.requireSkillTypes and ge.requireSkillTypes[1] and ge.excludeSkillTypes and ge.excludeSkillTypes[1] then
             if not best or g.name < best.name or (g.name == best.name and id < best.id) then best = { id = id, name = g.name, g = g } end
@@ -674,7 +691,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const gems = blocks(text).map(parseGem);
       const pob = await luaQuery<Record<string, { has: boolean; default: number }>>(`
         local out = {}
-        for _, g in pairs(data.gems) do
+        for _, g in pairs(liveGems()) do
           if g.name:lower():find("blood", 1, true) then
             local ge = g.grantedEffect
             local natural = g.naturalMaxLevel or 1
@@ -719,7 +736,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         expect(gem.name).toBe(name);
         const expected = await luaQuery<Array<string[] | Record<string, never>>>(`
           local gem, gemId
-          for id, g in pairs(data.gems) do
+          for id, g in pairs(liveGems()) do
             if g.name == ${JSON.stringify(name)} and (not gemId or id < gemId) then gem, gemId = g, id end
           end
           local ge = gem.grantedEffect
@@ -899,7 +916,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   const gemCandidates = async (asKind?: string): Promise<Candidate[]> => {
     const gems = await luaQuery<Array<{ name: string; support: boolean }>>(`
       local out = {}
-      for _, g in pairs(data.gems) do
+      for _, g in pairs(liveGems()) do
         if type(g.name) == 'string' and g.grantedEffect then
           table.insert(out, { name = g.name, support = g.gemType == 'Support' or (g.tags and g.tags.support == true) or false })
         end
@@ -926,7 +943,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const gems = blocks(text).map(parseGem);
       const pob = await luaQuery<Record<string, number[]>>(`
         local out = {}
-        for _, g in pairs(data.gems) do
+        for _, g in pairs(liveGems()) do
           if g.grantedEffect and g.name:lower():find('blood', 1, true) then
             out[g.name] = out[g.name] or {}
             table.insert(out[g.name], g.Tier)
@@ -1439,7 +1456,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
     end
     local function allGems()
       local out = {}
-      for id, g in pairs(data.gems) do
+      for id, g in pairs(liveGems()) do
         if type(g) == 'table' and type(g.name) == 'string' and g.grantedEffect then table.insert(out, { id = id, name = g.name, gem = g }) end
       end
       table.sort(out, function(a, b) if a.name ~= b.name then return a.name < b.name end return a.id < b.id end)
@@ -1850,12 +1867,13 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
   const unlockWant = (want: string[]): string[] => (want.length > 0 ? want.map((l) => `- ${l}`) : ['  (none)']);
 
   it(
-    "AC-K61 (type-granting unlocks): Whirling Assault lists Ailith's Chimes after Culmination II among 29 lines; Gas Grenade's Nova Projectiles II isn't unlocked by its own family; Herald of Ash has none; the lines equal PoB's createActiveSkill for eight gems, Mace Strike's three among them",
+    "AC-K61 (type-granting unlocks): Whirling Assault lists Ailith's Chimes after Culmination II among 28 lines; Gas Grenade's Nova Projectiles II isn't unlocked by its own family; Herald of Ash has none; the lines equal PoB's createActiveSkill for eight gems, Mace Strike's three among them",
     async () => {
       const wa = gemBlockOf(await okTool({ mode: 'gem', query: 'Whirling Assault' }), 'Whirling Assault');
       const waLines = listUnder(wa, UNLOCKED, '- ')!;
       expect(waLines).toContain("Ailith's Chimes: after Combo Finisher I; Combo Finisher II; Culmination I; Culmination II; Vruun's Inevitability");
-      expect(waLines).toHaveLength(29);
+      // 29 before D-384, which leaves the supports PoB marks legacy out of every gem's lists.
+      expect(waLines).toHaveLength(28);
       // The example's facts, from PoB's data and engine.
       const facts = await luaQuery<{ types: string[]; req: string[]; adds: boolean; c2: boolean; ac: boolean; pair: boolean }>(`${RULE_LUA}
         local wa = gemNamed('Whirling Assault')

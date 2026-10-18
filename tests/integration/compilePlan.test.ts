@@ -370,6 +370,18 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
       ],
     },
     {
+      // D-384: PoB marks Commandment legacy (vendor Data/Skills/sup_int.lua, `legacy = true`).
+      name: 'a legacy gem',
+      edit: (p) => p.stages[1].skills.groups[0].gems.push({ name: 'Commandment', level: 1, quality: 0, enabled: true }),
+      expect: [/^stage 2: skills\.groups\[0\]\.gems\[3\]: Commandment is a legacy gem: PoB marks it legacy, and it is no longer in the game$/m],
+    },
+    {
+      // D-384: PoB's unique data says "Source: No longer obtainable" (vendor Data/Uniques/boots.lua).
+      name: 'a unique no longer obtainable',
+      edit: (p) => (p.stages[1].items.slots.find((s: Json) => s.slot === 'Boots').text = 'Rarity: UNIQUE\nThunderstep\nSteeltoe Boots'),
+      expect: [/^stage 2: item in Boots: Thunderstep is no longer obtainable: PoB's unique data marks it so$/m],
+    },
+    {
       name: 'a weapon-set tag on an unlisted node',
       edit: (p) => p.stages[1].tree.weaponSetNodes.set1.push(58528),
       expect: [/^stages\[1\]\.tree\.weaponSetNodes\.set1\[0\] \(stage 2\): node 58528 isn't in tree\.nodes$/m],

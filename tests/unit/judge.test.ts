@@ -129,4 +129,25 @@ describe('AC-A2 (WU-18, D-30): judge()', () => {
     );
     expect(issues.map((i) => i.kind)).toEqual(['pob_warning', 'locked_node', 'missing_resist']);
   });
+
+  it('D-384: a legacy gem and a unique no longer obtainable are one judgment each, after the locked nodes', () => {
+    const breaks: RuleBreaks = {
+      lockedNodes: [{ id: 22133, name: 'Command Skill Cooldown', needs: [{ id: 5571, name: 'The Unseen Path', ascendancy: 'Oracle' }] }],
+      legacyGems: [{ name: 'Commandment', group: 3, label: 'Navira' }, { name: 'Lasting Ground', group: 4 }],
+      unobtainableUniques: [{ name: 'Thunderstep', slot: 'Boots' }],
+    };
+    const issues = judge(cleanStats(), [], equipped, breaks);
+    expect(issues.map((i) => [i.kind, i.category])).toEqual([
+      ['locked_node', 'judgment'],
+      ['legacy_gem', 'judgment'],
+      ['legacy_gem', 'judgment'],
+      ['unobtainable_unique', 'judgment'],
+    ]);
+    expect(issues.slice(1).map((i) => i.text)).toEqual([
+      'Commandment (socket group 3, "Navira") is a legacy gem: PoB marks it legacy, and it is no longer in the game.',
+      'Lasting Ground (socket group 4) is a legacy gem: PoB marks it legacy, and it is no longer in the game.',
+      "Thunderstep (Boots) is no longer obtainable: PoB's unique data marks it so.",
+    ]);
+  });
 });
+

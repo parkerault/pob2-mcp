@@ -187,13 +187,13 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `lua_reload_build` | core | Reload the current build from disk, picking up any changes made in PoB GUI or via direct XML editing. |
 | `search_tree_nodes` | core | Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. |
 | `list_gems` | core | List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). |
-| `lookup_game_data` | core | Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. |
+| `lookup_game_data` | core | Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences), read-only. |
 | `check_model_coverage` | core | Check, line by line, whether the pinned Path of Building applies an item's, a passive node's or a gem's lines, so you know which parts of a build its numbers leave out. |
 | `get_classes` | core | List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). |
 | `import_build` | core | Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). |
 | `analyze_skills` | core | Analyze the loaded build's skill setup with the PoB2 engine. |
 | `suggest_supports` | core | Rank the support gems that could go in a socket group by their measured effect. |
-| `add_item` | core | Add an item to the build from item text (paste from game) |
+| `add_item` | core | Add an item to the build from item text (paste from game). |
 | `get_equipped_items` | core | Get all currently equipped items (empty slots are omitted). |
 | `toggle_flask` | core | Turn a flask or charm on or off in the loaded build, as PoB2's slot checkbox does: an active flask or charm applies its effect to the calculated stats. |
 | `get_skill_setup` | core | Get current skill gem setup. |

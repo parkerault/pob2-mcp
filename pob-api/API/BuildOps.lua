@@ -488,8 +488,30 @@ function M.unmet_unlock(nodes, node, isAllocated)
   return needs
 end
 
--- D-383: what the game won't allow in the loaded build, which PoB itself allows from a node list (a saved
--- file, an import, set_tree): each allocated node whose unlock constraint is unmet, by id. A read.
+-- D-384: a gem PoB marks legacy: its granted effect's `legacy` (vendor Data/Skills/*.lua), which PoB's gem
+-- selector hides unless "Show legacy gems" is ticked (Classes/GemSelectControl.lua:115). Not PoB's `Tier = 0`,
+-- which ascendancy- and item-granted skills have too.
+function M.is_legacy_gem(gemData)
+  return type(gemData) == 'table' and type(gemData.grantedEffect) == 'table' and gemData.grantedEffect.legacy == true
+end
+
+-- D-384: whether a unique item (an equipped or parsed Item, or a main.uniqueDB entry) is one PoB marks no
+-- longer obtainable, by its item database's own rule (Classes/ItemDBControl.lua:118-119): source "No longer
+-- obtainable", or a Race Events league. An item's own text rarely carries those lines, so its database entry
+-- (Item:GetUniqueDBItem) is read first.
+function M.is_unobtainable_unique(item)
+  if type(item) ~= 'table' or (item.rarity ~= nil and item.rarity ~= 'UNIQUE' and item.rarity ~= 'RELIC') then return false end
+  local entry = type(item.GetUniqueDBItem) == 'function' and _G.main and main.uniqueDB and item:GetUniqueDBItem() or nil
+  local source = (entry and entry.source) or item.source
+  local league = (entry and entry.league) or item.league
+  return source == 'No longer obtainable' or league == 'Race Events'
+end
+
+-- D-383, D-384: what the game won't allow in the loaded build, which PoB itself allows (from a node list: a
+-- saved file, an import, set_tree; legacy gems behind "Show legacy gems"; any unique's text). A read:
+-- - lockedNodes: each allocated node whose unlock constraint is unmet, by id;
+-- - legacyGems: each gem PoB marks legacy in the active skill set's groups, by group, then gem;
+-- - unobtainableUniques: each equipped unique PoB marks no longer obtainable, by slot.
 function M.get_rule_breaks()
   local spec = build and build.spec
   if not spec then return nil, 'build not initialized' end
@@ -500,7 +522,25 @@ function M.get_rule_breaks()
     if needs then locked[#locked + 1] = { id = id, name = tostring(node.dn or node.name), needs = needs } end
   end
   table.sort(locked, function(a, b) return a.id < b.id end)
-  return { lockedNodes = locked }
+  local legacy = {}
+  for gi, group in ipairs(build.skillsTab and build.skillsTab.socketGroupList or {}) do
+    for _, gem in ipairs(group.gemList or {}) do
+      if M.is_legacy_gem(gem.gemData) then
+        legacy[#legacy + 1] = { name = tostring(gem.gemData.name), group = gi,
+          label = (type(group.label) == 'string' and group.label ~= '') and group.label or nil }
+      end
+    end
+  end
+  local unobtainable = {}
+  local itemsTab = build.itemsTab
+  for slotName, slot in pairs(itemsTab and itemsTab.slots or {}) do
+    local item = (slot.selItemId or 0) > 0 and itemsTab.items[slot.selItemId] or nil
+    if item and M.is_unobtainable_unique(item) then
+      unobtainable[#unobtainable + 1] = { name = tostring(item.title or item.name), slot = tostring(slotName) }
+    end
+  end
+  table.sort(unobtainable, function(a, b) return a.slot < b.slot end)
+  return { lockedNodes = locked, legacyGems = legacy, unobtainableUniques = unobtainable }
 end
 
 -- The ascendancy points `update_tree_delta` allows (stated in its tool description).
@@ -1473,8 +1513,11 @@ function M.add_item_text(params)
     return nil, string.format('%s (%s) cannot be equipped in %s', tostring(item.name), tostring(item.baseName),
       slotCtrl.slotName)
   end
+  -- D-384: a unique PoB marks no longer obtainable is added as PoB adds it; the reply says so.
+  local unobtainable = M.is_unobtainable_unique(item) or nil
   if params.validateOnly == true then
-    return { id = 0, name = item.name, slot = slotCtrl and slotCtrl.slotName or nil }
+    return { id = 0, name = item.name, slot = slotCtrl and slotCtrl.slotName or nil, unobtainable = unobtainable,
+      title = unobtainable and item.title or nil }
   end
 
   item:NormaliseQuality()
@@ -1490,7 +1533,8 @@ function M.add_item_text(params)
   build.itemsTab:AddUndoState()
   build.buildFlag = true
   M.get_main_output()
-  return { id = item.id, name = item.name, slot = slotCtrl and slotCtrl.slotName or equipped_slot(item.id) }
+  return { id = item.id, name = item.name, slot = slotCtrl and slotCtrl.slotName or equipped_slot(item.id),
+    unobtainable = unobtainable, title = unobtainable and item.title or nil }
 end
 
 -- The slots with an activation checkbox in PoB2 (ItemSlotControl: "Flask N" and "Charm N").
@@ -1759,7 +1803,8 @@ function M.add_gem(params)
   if params.validateOnly == true then
     local gemData, err = M.resolve_gem(params.gemName)
     if not gemData then return nil, err end
-    return { gemIndex = 0, name = gemData.name, gemId = gemData.id, support = gemData.grantedEffect and gemData.grantedEffect.support == true or false }
+    return { gemIndex = 0, name = gemData.name, gemId = gemData.id, support = gemData.grantedEffect and gemData.grantedEffect.support == true or false,
+      legacy = M.is_legacy_gem(gemData) or nil }
   end
   if not params.groupIndex or not params.gemName then return nil, 'missing groupIndex or gemName' end
 
@@ -1799,7 +1844,8 @@ function M.add_gem(params)
   M.get_main_output()
 
   return { gemIndex = gemIndex, name = gemInstance.nameSpec, gemId = gemData.id,
-    support = gemData.grantedEffect and gemData.grantedEffect.support == true or false }
+    support = gemData.grantedEffect and gemData.grantedEffect.support == true or false,
+    legacy = M.is_legacy_gem(gemData) or nil }
 end
 
 -- Set gem level

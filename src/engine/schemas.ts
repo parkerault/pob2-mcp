@@ -310,7 +310,16 @@ export const ATTRIBUTE_CHOICES = ['strength', 'dexterity', 'intelligence'] as co
 export type AttributeChoice = (typeof ATTRIBUTE_CHOICES)[number];
 
 export const addItemTextReply = baseReply.extend({
-  item: z.object({ id: z.number().int(), name: z.string(), slot: optString }).passthrough(),
+  item: z
+    .object({
+      id: z.number().int(),
+      name: z.string(),
+      slot: optString,
+      /** D-384: a unique PoB marks no longer obtainable, added as PoB adds it; `title` is its name. */
+      unobtainable: z.boolean().optional(),
+      title: optString,
+    })
+    .passthrough(),
 });
 
 export const exportBuildXmlReply = baseReply.extend({ xml: z.string() });
@@ -344,12 +353,25 @@ export const unlockNeedSchema = z.object({ id: z.number().int(), name: z.string(
 /** An allocated node whose unlock constraint is unmet, with the nodes it still needs (D-383). */
 export const lockedNodeSchema = z.object({ id: z.number().int(), name: z.string(), needs: luaArray(unlockNeedSchema) }).passthrough();
 
+/** A gem PoB marks legacy in the active skill set (D-384): its name, group and the group's label. */
+export const legacyGemSchema = z.object({ name: z.string(), group: z.number().int(), label: optString }).passthrough();
+/** An equipped unique PoB marks no longer obtainable (D-384): its name and slot. */
+export const unobtainableUniqueSchema = z.object({ name: z.string(), slot: z.string() }).passthrough();
+
 /**
- * `get_rule_breaks` (D-383): what the game won't allow in the loaded build, which PoB allows from a node
- * list: each allocated node whose unlock constraint is unmet (vendor Classes/PassiveSpec.lua:1248-1251), by id.
+ * `get_rule_breaks` (D-383, D-384): what the game won't allow in the loaded build, which PoB itself allows:
+ * each allocated node whose unlock constraint is unmet (vendor Classes/PassiveSpec.lua:1248-1251), by id; each
+ * gem PoB marks legacy in the active skill set, by group; each equipped unique PoB marks no longer obtainable,
+ * by slot.
  */
 export const getRuleBreaksReply = baseReply.extend({
-  result: z.object({ lockedNodes: luaArray(lockedNodeSchema) }).passthrough(),
+  result: z
+    .object({
+      lockedNodes: luaArray(lockedNodeSchema),
+      legacyGems: luaArray(legacyGemSchema),
+      unobtainableUniques: luaArray(unobtainableUniqueSchema),
+    })
+    .passthrough(),
 });
 export type RuleBreaksResult = z.infer<typeof getRuleBreaksReply>['result'];
 
@@ -390,7 +412,14 @@ export const createSocketGroupReply = baseReply.extend({
 
 export const addGemReply = baseReply.extend({
   gem: z
-    .object({ gemIndex: z.number().int(), name: z.string(), gemId: optString, support: z.boolean().optional() })
+    .object({
+      gemIndex: z.number().int(),
+      name: z.string(),
+      gemId: optString,
+      support: z.boolean().optional(),
+      /** D-384: a gem PoB marks legacy, added as PoB adds it behind "Show legacy gems". */
+      legacy: z.boolean().optional(),
+    })
     .passthrough(),
 });
 
@@ -912,6 +941,14 @@ export const lookupGameDataReply = baseReply.extend({
       suggestions: luaArray(lookupSuggestionSchema).optional(),
       /** Only when nothing matched and the query was too long to rank names against (D-258). */
       suggestionsSkipped: z.object({ queryLength: z.number().int(), maxQueryLength: z.number().int() }).passthrough().optional(),
+      /**
+       * D-384: what the query matched but the lookup left out, by name, sorted: gems PoB marks legacy and uniques
+       * PoB marks no longer obtainable. Only when there are some.
+       */
+      leftOut: z
+        .object({ legacyGems: luaArray(z.string()), unobtainableUniques: luaArray(z.string()) })
+        .passthrough()
+        .optional(),
     })
     .passthrough(),
 });

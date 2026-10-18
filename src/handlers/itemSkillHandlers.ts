@@ -4,6 +4,7 @@ import { visibleItemSlots } from "../utils/itemSlots.js";
 import { ACTIVATABLE_SLOTS } from "../server/toolSchemas.js";
 import { GEM_CORRUPTION_STATES, type GemCorruptionState } from "../engine/schemas.js";
 import { minionSkillsLine } from "../services/poe2SkillService.js";
+import { legacyGemWarning, unobtainableUniqueWarning } from "../advice/judge.js";
 
 export interface ItemSkillHandlerContext {
   getLuaClient: () => PoBLuaApiClient | null;
@@ -36,7 +37,8 @@ export async function handleAddItem(
 
     const result = await luaClient.addItem(itemText, slotName, noAutoEquip);
 
-    const text = `✅ Item added: ${result.name || 'Unknown'} → ${result.slot || 'Not equipped'}`;
+    let text = `✅ Item added: ${result.name || 'Unknown'} → ${result.slot || 'Not equipped'}`;
+    if (result.unobtainable) text += `\n${unobtainableUniqueWarning(result.title ?? result.name)}`;
 
     return {
       content: [
@@ -471,6 +473,7 @@ export async function handleAddGem(
     });
 
     let text = `✅ Added ${gemLabel(result)} (L${level || 20}, Q${quality || 0}) to group ${groupIndex}.`;
+    if (result.legacy) text += `\n${legacyGemWarning(result.name)}`;
 
     return {
       content: [
@@ -802,6 +805,7 @@ export async function handleSetupSkillWithGems(
     // Add all gems to the group. A failure past this point (all names were checked) takes the new
     // group out again, so the call still changes nothing.
     const addedGems: string[] = [];
+    const warnings: string[] = [];
     try {
       for (const gem of gems) {
         const result = await luaClient.addGem({
@@ -814,6 +818,7 @@ export async function handleSetupSkillWithGems(
         });
 
         addedGems.push(`${gemLabel(result)} (L${gem.level || 20}, Q${gem.quality || 0})`);
+        if (result.legacy) warnings.push(legacyGemWarning(result.name));
       }
     } catch (error) {
       try {
@@ -830,6 +835,7 @@ export async function handleSetupSkillWithGems(
     }
     text += ` with ${addedGems.length} gem${addedGems.length > 1 ? 's' : ''}:\n`;
     text += addedGems.map(g => `  - ${g}`).join('\n');
+    if (warnings.length > 0) text += `\n${warnings.join('\n')}`;
 
     return {
       content: [
@@ -876,13 +882,16 @@ export async function handleAddMultipleItems(
     }
 
     const addedItems: string[] = [];
+    const warnings: string[] = [];
     for (const item of items) {
       const result = await luaClient.addItem(item.item_text, item.slot_name);
       addedItems.push(`${result.name || 'Unknown'} → ${result.slot || 'Not equipped'}`);
+      if (result.unobtainable) warnings.push(unobtainableUniqueWarning(result.title ?? result.name));
     }
 
     let text = `✅ Added ${addedItems.length} item${addedItems.length > 1 ? 's' : ''}:\n`;
     text += addedItems.map(i => `  - ${i}`).join('\n');
+    if (warnings.length > 0) text += `\n${warnings.join('\n')}`;
 
     return {
       content: [

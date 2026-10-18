@@ -8,8 +8,9 @@
  * - (b) a resistance below its maximum: `Missing<Elem>Resist > 0`;
  * - (c) per damage type, `<Type>MaximumHitTaken < <Type>EnemyDamage`, the configured enemy's hit of
  *   that type (never `totalEnemyDamage`, which sums all five types);
- * - (d) what PoB's own data says the game won't allow, though PoB allows it from a node list
- *   (`get_rule_breaks`, D-383): an allocated node whose unlock constraint is unmet.
+ * - (d) what PoB's own data says the game won't allow, though PoB itself allows it (`get_rule_breaks`): an
+ *   allocated node whose unlock constraint is unmet (D-383), a gem PoB marks legacy and an equipped unique PoB
+ *   marks no longer obtainable (D-384).
  *
  * Beside the judgments it states engine facts without judging them: an empty gear slot that PoB shows.
  * There are no thresholds or advice of our own here. Pure: no engine, no I/O.
@@ -27,7 +28,14 @@ export const JUDGE_STAT_FIELDS: readonly string[] = [
   ...DAMAGE_TYPES.map((t) => `${t}EnemyDamage`),
 ];
 
-export type IssueKind = 'pob_warning' | 'locked_node' | 'missing_resist' | 'max_hit' | 'empty_slot';
+export type IssueKind =
+  | 'pob_warning'
+  | 'locked_node'
+  | 'legacy_gem'
+  | 'unobtainable_unique'
+  | 'missing_resist'
+  | 'max_hit'
+  | 'empty_slot';
 
 /** A node an unlock constraint names that isn't allocated (D-383). */
 export interface UnlockNeed {
@@ -37,10 +45,24 @@ export interface UnlockNeed {
   ascendancy?: string;
 }
 
-/** What the game won't allow in a build (`get_rule_breaks`, D-383). */
+/** What the game won't allow in a build (`get_rule_breaks`, D-383, D-384). */
 export interface RuleBreaks {
   /** Each allocated node whose unlock constraint is unmet, with the nodes it still needs. */
   lockedNodes?: readonly { id: number; name: string; needs: readonly UnlockNeed[] }[];
+  /** Each gem PoB marks legacy in the active skill set, with its group and the group's label. */
+  legacyGems?: readonly { name: string; group: number; label?: string }[];
+  /** Each equipped unique PoB marks no longer obtainable, with its slot. */
+  unobtainableUniques?: readonly { name: string; slot: string }[];
+}
+
+/** D-384: the editing tools' warning for a gem PoB marks legacy (they add it, as PoB does). */
+export function legacyGemWarning(name: string): string {
+  return `⚠ ${name} is a legacy gem: PoB marks it legacy, and it is no longer in the game.`;
+}
+
+/** D-384: the editing tools' warning for a unique PoB marks no longer obtainable (they add it, as PoB does). */
+export function unobtainableUniqueWarning(name: string): string {
+  return `⚠ ${name} is no longer obtainable: PoB's unique data marks it so.`;
 }
 
 export interface Issue {
@@ -105,6 +127,23 @@ export function judge(
       kind: 'locked_node',
       category: 'judgment',
       text: `Node ${node.id} (${node.name}) is locked: PoB unlocks it only while ${needsText(node.needs)} allocated.`,
+    });
+  }
+
+  for (const gem of breaks.legacyGems ?? []) {
+    const label = gem.label ? `, "${gem.label}"` : '';
+    issues.push({
+      kind: 'legacy_gem',
+      category: 'judgment',
+      text: `${gem.name} (socket group ${gem.group}${label}) is a legacy gem: PoB marks it legacy, and it is no longer in the game.`,
+    });
+  }
+
+  for (const unique of breaks.unobtainableUniques ?? []) {
+    issues.push({
+      kind: 'unobtainable_unique',
+      category: 'judgment',
+      text: `${unique.name} (${unique.slot}) is no longer obtainable: PoB's unique data marks it so.`,
     });
   }
 

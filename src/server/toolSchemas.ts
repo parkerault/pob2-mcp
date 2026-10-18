@@ -596,7 +596,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lookup_game_data",
-      description: "Look up the pinned Path of Building's own game data: gems, uniques, passives, item mods and essences. Reads only; the build is never changed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage and critical hit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. When exactly one gem is returned, or several all named as the query, a support also lists the active gems it can support, and an active gem the supports it gains when another support adds skill types. Then the minion skills named exactly `query`, each with its minions and summoning gems, command flag, granting passives, cooldown, types and stat sets. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines, naming the variant of a line the selected variant lacks; the full item text, ready for add_item, comes only when exactly one unique is returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, where '…' matches any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed.",
+      description: "Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences), read-only. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage, crit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. With one gem returned (or several all named as the query), a support also lists the active gems it can support, and an active gem the supports another support's added types unlock. Then the minion skills named exactly `query`, each with its minions and summoning gems, command flag, granting passives, cooldown, types and stat sets. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines (naming the variant of a line the selected variant lacks); its full item text, for add_item, only when it is the one unique returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, '…' matching any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed. Gems PoB marks legacy and uniques no longer obtainable are left out and named.",
       inputSchema: {
         type: "object",
         properties: {
@@ -717,7 +717,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_item",
-      description: "Add an item to the build from item text (paste from game)",
+      description: "Add an item to the build from item text (paste from game). A unique PoB marks no longer obtainable is added, as PoB allows it, with a warning.",
       inputSchema: {
         type: "object",
         properties: {
@@ -829,7 +829,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_gem",
-      description: "Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). Many PoE2 support gems come in tiers, e.g. 'Brutality I', 'Brutality II'. A support can also be named '<name> Support' (PoB's base-type name), which tells it apart from an active gem of the same name (e.g. 'Unleash' is the spell, 'Unleash Support' the support). An unknown name is rejected with up to 5 suggested names; a name several gems share is rejected with their PoB gem ids, any of which can be passed instead; list_gems searches the gem data.",
+      description: "Add a gem to a socket group by its PoE2 gem name, as PoB2's gem data spells it (case is ignored). Many PoE2 support gems come in tiers, e.g. 'Brutality I', 'Brutality II'. A support can also be named '<name> Support' (PoB's base-type name), which tells it apart from an active gem of the same name (e.g. 'Unleash' is the spell, 'Unleash Support' the support). An unknown name is rejected with up to 5 suggested names; a name several gems share is rejected with their PoB gem ids, any of which can be passed instead; list_gems searches the gem data. A gem PoB marks legacy (no longer in the game) is added, as PoB allows it, with a warning.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1002,7 +1002,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "setup_skill_with_gems",
-      description: "Setup a complete skill with multiple support gems in one operation. Every gem name is checked first (as add_gem does), so a rejected name creates nothing. Does NOT auto-set as main skill for DPS. Call set_main_skill with the returned group_index afterward if this should be the primary DPS skill.",
+      description: "Setup a complete skill with multiple support gems in one operation. Every gem name is checked first (as add_gem does), so a rejected name creates nothing. Does NOT auto-set as main skill for DPS. Call set_main_skill with the returned group_index afterward if this should be the primary DPS skill. A gem PoB marks legacy is added with a warning.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1030,7 +1030,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "add_multiple_items",
-      description: "Add multiple items at once (efficient bulk operation). Every item is parsed and its slot checked first, so a bad item or slot adds nothing.",
+      description: "Add multiple items at once (efficient bulk operation). Every item is parsed and its slot checked first, so a bad item or slot adds nothing. A unique PoB marks no longer obtainable is added with a warning.",
       inputSchema: {
         type: "object",
         properties: {

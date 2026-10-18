@@ -5,10 +5,12 @@
 --     The read-only preflight (A-P12). It checks every stage of the plan against the game data and
 --     reports every defect, as "stage <id>: <defect>" lines; it changes nothing in the loaded build (no
 --     set is created, no item added, nothing recalculated). Defects: an unknown class or ascendancy; an
---     unknown gem (with resolve_gem's suggestions); item or jewel text PoB can't parse into a base type,
+--     unknown gem (with resolve_gem's suggestions), or a gem PoB marks legacy (D-384); item or jewel text PoB
+--     can't parse into a base type, a unique PoB marks no longer obtainable (D-384),
 --     or an item that doesn't fit its slot (the off-hand slots, which depend on the stage's main hand,
 --     are checked when the stage is built); a node id that isn't a passive tree node, an ascendancy node
---     listed as a regular one or the reverse; a node that doesn't connect to its start through the
+--     listed as a regular one or the reverse; a node whose unlock constraint the stage doesn't meet (D-383:
+--     the Oracle's The Unseen Path unlocks 197 nodes); a node that doesn't connect to its start through the
 --     stage's listed nodes under PoB's weapon-set rule (an untagged node paths only through untagged
 --     nodes, a node tagged weapon set n also through nodes tagged n: PassiveSpec:CanPathThroughAllocMode,
 --     D-213); a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
@@ -693,6 +695,9 @@ local function check_stage(tree, roll, st, defect)
       defect(('tree jewel on node %s: PoB can not parse its text into an item with a base type'):format(tostring(j.node)))
     elseif item.type ~= 'Jewel' then
       defect(('tree jewel on node %s: %s is not a jewel'):format(tostring(j.node), tostring(item.baseName)))
+    elseif BuildOps.is_unobtainable_unique(item) then
+      defect(('tree jewel on node %s: %s is no longer obtainable: PoB\'s unique data marks it so'):format(tostring(j.node),
+        tostring(item.title or item.name)))
     end
     if not is_jewel_socket(tree.nodes[j.node]) then
       defect(('tree jewel on node %s: that node is not a jewel socket'):format(tostring(j.node)))
@@ -706,6 +711,9 @@ local function check_stage(tree, roll, st, defect)
       local why = tostring(err)
       if why == 'failed to parse item' then why = 'PoB can not parse its text into an item with a base type' end
       defect(('item in %s: %s'):format(slot, why))
+    elseif res.unobtainable then
+      -- D-384: PoB adds it, but the game no longer drops it.
+      defect(('item in %s: %s is no longer obtainable: PoB\'s unique data marks it so'):format(slot, tostring(res.title or res.name)))
     end
   end
   local groups = list(st.groups)
@@ -719,6 +727,11 @@ local function check_stage(tree, roll, st, defect)
         defect(('skills.groups[%d].gems[%d]: %s'):format(gi - 1, k - 1, tostring(err)))
         resolved[gi] = false
       else
+        -- D-384: PoB builds a legacy gem behind "Show legacy gems", but the game no longer has it.
+        if BuildOps.is_legacy_gem(gemData) then
+          defect(('skills.groups[%d].gems[%d]: %s is a legacy gem: PoB marks it legacy, and it is no longer in the game')
+            :format(gi - 1, k - 1, tostring(gemData.name)))
+        end
         activeCounts[gi] = activeCounts[gi] + active_skill_count(gemData)
         if resolved[gi] then table.insert(resolved[gi], { gemData = gemData, enabled = gem.enabled ~= false }) end
       end

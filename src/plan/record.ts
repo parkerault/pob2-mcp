@@ -29,6 +29,12 @@
  * names a minion skill, else `TotalDPS`, at the same key `g<group>s<skill>p<statSet>`; the headline, the key-figure
  * line and the clear measure read it. `outputs` carries the minion's own numbers flattened as `Minion<Field>`
  * (D-376), and Count applies to them by PoB's Full DPS rule for a minion.
+ *
+ * **A plain summon's figure** (WU-80, D-397). A summon that names no minion skill, such as Skeletal Warrior, has its
+ * minion's figure too: `figureField` is also `MinionTotalDPS` when the selected skill's `skillOutputs` entry carries
+ * `Minion<Field>` fields (`summonsMinion`, the checker's D-385 test and `get_passive_upgrades`' D-388 one). The
+ * headline and the key-figure line read it; the clear measure still reads a minion's area for a group that names a
+ * minion skill only (D-378).
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
@@ -419,12 +425,36 @@ export function minionSkillOf(rec: Pick<StageRecord, 'minionSkills'>, group: num
   return (rec.minionSkills ?? []).find((m) => m.group === group);
 }
 
+/** A skill selection: a group, its active skill and its stat set (1 when absent), as `skills.main` holds it. */
+export interface SkillSelection {
+  group: number;
+  activeSkill: number;
+  statSet?: number;
+}
+
+/** The record key of a selection's figures, `g<group>s<activeSkill>p<statSet>` (C-45). */
+export function selectionKey(sel: SkillSelection): string {
+  return `g${sel.group}s${sel.activeSkill}p${sel.statSet ?? 1}`;
+}
+
 /**
- * D-378: the field of a group's damage figure: `MinionTotalDPS` when the group names a minion skill (the record
- * holds its resolved selection), else `TotalDPS`.
+ * D-385, D-388, D-397: whether a skill's measured figures are its minion's. PoB measures a summon by its minion and
+ * gives the minion's numbers as `Minion<Field>` fields (D-376), so the skill's fields carry one: a plain summon such
+ * as Skeletal Warrior, which names no minion skill, too. The checker's test (`check-run.mjs`, `summonsMinion`) and
+ * `get_passive_upgrades`' (a main output with `MinionTotalDPS`).
  */
-export function figureField(rec: Pick<StageRecord, 'minionSkills'>, group: number): 'MinionTotalDPS' | 'TotalDPS' {
-  return minionSkillOf(rec, group) !== undefined ? 'MinionTotalDPS' : 'TotalDPS';
+export function summonsMinion(fields: Readonly<Record<string, unknown>> | undefined): boolean {
+  return Object.keys(fields ?? {}).some((field) => /^Minion[A-Z]/.test(field));
+}
+
+/**
+ * D-378, D-397: the field of a group's damage figure at a selection's key: `MinionTotalDPS` when the group names a
+ * minion skill (the record holds its resolved selection) or the selected skill summons a minion (its `skillOutputs`
+ * entry carries `Minion<Field>` fields, `summonsMinion`), else `TotalDPS`.
+ */
+export function figureField(rec: Pick<StageRecord, 'minionSkills' | 'skillOutputs'>, sel: SkillSelection): 'MinionTotalDPS' | 'TotalDPS' {
+  const minion = minionSkillOf(rec, sel.group) !== undefined || summonsMinion(rec.skillOutputs[selectionKey(sel)]?.fields);
+  return minion ? 'MinionTotalDPS' : 'TotalDPS';
 }
 
 /**
@@ -445,18 +475,18 @@ export function clearEntryOf(
 }
 
 /**
- * The headline (D-294, D-378): the main group's Count-scaled figure (`figureField`: `MinionTotalDPS` for a group
- * that names a minion skill, else `TotalDPS`),
+ * The headline (D-294, D-378, D-397): the main group's Count-scaled figure (`figureField`: `MinionTotalDPS` for a
+ * group that names a minion skill or whose skill summons a minion, else `TotalDPS`),
  * `countedSkillOutputs[g<main.group>s<main.activeSkill>p<main.statSet>].fields.<figure>`, else the main skill's
  * counted figure; null when PoB measured none.
  */
 export function headlineDps(
   stage: { skills: Pick<Stage['skills'], 'main'> },
-  rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
+  rec: Pick<StageRecord, 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills' | 'skillOutputs'>,
 ): number | null {
   const m = stage.skills.main;
-  const key = `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`;
-  const field = figureField(rec, m.group);
+  const key = selectionKey(m);
+  const field = figureField(rec, m);
   const v = rec.countedSkillOutputs[key]?.fields[field] ?? rec.countedOutputs.fields[field];
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }

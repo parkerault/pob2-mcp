@@ -4,7 +4,8 @@
  * at their edges: the clear-speed bands and steps kept within the bands, the on-death phrase list, an Arbiter
  * verdict at a ratio of exactly 1, and the reference hits from the committed data. WU-78 (D-378): a group that
  * names a minion skill has its minion's figure, `MinionTotalDPS`, as its damage figure, in the headline, the clear
- * measure and the key-figure line.
+ * measure and the key-figure line. WU-80 (D-397): so does a plain summon, which names none, when its skill's entry
+ * carries `Minion<Field>` fields; the player's skill keeps `TotalDPS`.
  */
 import { describe, expect, it } from '@jest/globals';
 import {
@@ -16,6 +17,7 @@ import {
   figureField,
   headlineDps,
   stageMeasures,
+  summonsMinion,
   type MinionSkillRecord,
   type StageRecord,
 } from '../../src/plan/record';
@@ -175,13 +177,38 @@ describe("D-378 (WU-78): a group whose minion deals the damage", () => {
   const main = { group: 1, activeSkill: 1 };
   const stage = { variant: 'budget', skills: { main, groups: [{ enabled: true, role: 'single_target', gems: [{ name: 'Wolf Pack', enabled: true }] }] } } as unknown as Stage;
 
-  it("the figure is MinionTotalDPS when the record holds the group's minion selection, else TotalDPS; the headline is it × Count", () => {
-    expect([figureField(record(true), 1), figureField(record(false), 1), figureField(record(true), 2)]).toEqual(['MinionTotalDPS', 'TotalDPS', 'TotalDPS']);
+  /** A stage record whose group 1 (count 3) is the player's Boneshatter: its entry carries no `Minion<Field>` field. */
+  const player = {
+    ...record(false),
+    outputs: { TotalDPS: 40, Life: 100, TotalEHP: 200 },
+    countedOutputs: { group: 1, count: 3, dotCanStack: false, fields: { TotalDPS: 120 } },
+    skillOutputs: { g1s1p1: { skill: 'Boneshatter', statSetLabel: 'Boneshatter', fields: { TotalDPS: 40, Speed: 1, AreaOfEffectRadiusMetres: 1.2 } } },
+    countedSkillOutputs: { g1s1p1: { skill: 'Boneshatter', statSetLabel: 'Boneshatter', count: 3, dotCanStack: false, fields: { TotalDPS: 120 } } },
+  } as unknown as StageRecord;
+
+  it("the figure is MinionTotalDPS when the record holds the group's minion selection (D-378) or the selected skill's entry carries Minion<Field> fields (a plain summon, D-397), else TotalDPS; the headline is it × Count", () => {
+    expect([figureField(record(true), main), figureField(record(false), main), figureField(player, main)]).toEqual(['MinionTotalDPS', 'MinionTotalDPS', 'TotalDPS']);
+    // A selection the record has no entry for reads TotalDPS, unless its group names a minion skill.
+    expect([figureField(record(false), { group: 2, activeSkill: 1 }), figureField(record(false), { group: 1, activeSkill: 1, statSet: 2 })]).toEqual(['TotalDPS', 'TotalDPS']);
+    expect(figureField(record(true), { group: 1, activeSkill: 1, statSet: 2 })).toBe('MinionTotalDPS');
     expect(headlineDps({ skills: { main } }, record(true))).toBe(150);
-    expect(headlineDps({ skills: { main } }, record(false))).toBe(0);
+    // D-397: a plain summon, which names no minion skill, is read by its minion too (D-378 alone read TotalDPS, 0).
+    expect(headlineDps({ skills: { main } }, record(false))).toBe(150);
+    expect(stageMeasures(stage, record(false), [], {}).dps).toBe(150);
+    // The player's skill keeps TotalDPS × Count.
+    expect(headlineDps({ skills: { main } }, player)).toBe(120);
     // Without the main entry, the main skill's counted figure.
     const noEntry = { ...record(true), countedSkillOutputs: {} } as StageRecord;
     expect(headlineDps({ skills: { main } }, noEntry)).toBe(150);
+  });
+
+  it("summonsMinion: a skill's figures are its minion's when they carry a Minion<Field> field, as the checker (D-385) and get_passive_upgrades' calc_with base (D-388) test it", () => {
+    expect(summonsMinion(fields)).toBe(true);
+    expect(summonsMinion({ MinionLife: 10 })).toBe(true);
+    // get_passive_upgrades' base: calc_with returns MinionTotalDPS only when the main skill summons a minion.
+    expect(summonsMinion({ CombinedDPS: 0, TotalDPS: 0, MinionTotalDPS: 12, TotalEHP: 300, Life: 200 })).toBe(true);
+    expect(summonsMinion({ CombinedDPS: 40, TotalDPS: 40, TotalEHP: 300, Life: 200 })).toBe(false);
+    expect([summonsMinion({ Minion: 1, Minionx: 2 }), summonsMinion({}), summonsMinion(undefined)]).toEqual([false, false, false]);
   });
 
   it("the clear measure reads the minion's area and use rate for a clear group that names a minion skill", () => {
@@ -212,8 +239,9 @@ describe("D-378 (WU-78): a group whose minion deals the damage", () => {
     expect(stageMeasures(withClear, plain, [], {}).clearSpeed).toMatchObject({ key: 'g2s1p1', radiusMetres: 0, usesPerSecond: 2 });
   });
 
-  it('the key-figure line names the minion skill: DPS <n> (<minion skill>, minion)', () => {
+  it('the key-figure line names the minion skill: DPS <n> (<minion skill>, minion); a plain summon by its skill (D-397); the player\'s skill names none', () => {
     expect(keyFigureLine(record(true), main)).toMatch(/^ {2}Key figures: DPS 150 \(Leap Slam, minion\); life 100;/);
-    expect(keyFigureLine(record(false), main)).toMatch(/^ {2}Key figures: DPS 0; life 100;/);
+    expect(keyFigureLine(record(false), main)).toMatch(/^ {2}Key figures: DPS 150 \(Wolf Pack, minion\); life 100;/);
+    expect(keyFigureLine(player, main)).toMatch(/^ {2}Key figures: DPS 120; life 100;/);
   });
 });

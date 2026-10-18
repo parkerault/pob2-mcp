@@ -4,6 +4,7 @@ import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationCha
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
+import { summonsMinion } from "../plan/record.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import { formatLoadedBuild } from "./luaHandlers.js";
 
@@ -493,10 +494,11 @@ export async function handleGetPassiveUpgrades(
   const { issues } = await handleGetBuildIssues(context);
 
   // The base: PoB's calculator with nothing added. D-388: when the main skill summons a minion (PoB gives its
-  // minion's output, so MinionTotalDPS is a number), its damage is the minion's: the player's CombinedDPS and
-  // TotalDPS are 0, so DPS is MinionTotalDPS, and the search starts from minion notables.
+  // minion's output, so calc_with returns MinionTotalDPS, a number), its damage is the minion's: the player's
+  // CombinedDPS and TotalDPS are 0, so DPS is MinionTotalDPS, and the search starts from minion notables. The
+  // compile record decides a group's figure by the same test (`summonsMinion`, D-397).
   const base = await luaClient.calcWith({ fields: UPGRADE_FIELDS });
-  const minion = typeof base.MinionTotalDPS === 'number';
+  const minion = summonsMinion(base);
 
   // Step 2: map focus + issues to search keywords
   const keywords: string[] = [];

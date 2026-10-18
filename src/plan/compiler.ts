@@ -40,7 +40,8 @@
  * skill's; `compile_stage` resolves the name live after the stage's groups are built, and the record keeps each
  * resolved selection (`minionSkills`). A group's damage figure is then its minion's `MinionTotalDPS`, which the
  * headline, the key-figure line and the clear measure read. The stage checks name each group's skill a passive
- * grants, for V1's `not-granted`.
+ * grants, for V1's `not-granted`. WU-80 (D-397): a plain summon, which names no minion skill, has its minion's figure
+ * too, in the headline and the key-figure line (`figureField`: its breakdown entry carries `Minion<Field>` fields).
  *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
@@ -78,10 +79,12 @@ import {
   arbiterHitsOf,
   clearGemNames,
   countedFigures,
+  figureField,
   formulaReadsStages,
   headlineDps,
   minionSkillOf,
   recordText,
+  selectionKey,
   stageMeasures,
   unresolvedRefs,
   versionNotes,
@@ -553,15 +556,18 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * energy shield, EHP, the four resistances, the V1 and V2 finding counts, and on an endgame stage the Arbiter
  * verdict with its worst hit (`b`, `n`) and the rough clear speed (D-353). Every stage's DPS is `headlineDps`
  * of its main selection `main`, the figure an endgame stage's `measures.dps` holds. When the main group names a
- * minion skill, the DPS is its minion's and names it: `DPS <n> (<minion skill>, minion)` (D-378).
+ * minion skill, the DPS is its minion's and names it: `DPS <n> (<minion skill>, minion)` (D-378). When the main
+ * skill is a plain summon (no minion skill; `figureField`, D-397), the DPS is its minion's too and names the summon
+ * as the record does (its breakdown entry's `skill`, PoB's name of the skill): `DPS <n> (<summon>, minion)`.
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
   const dps = headlineDps({ skills: { main } }, rec);
   const ehp = rec.measures !== undefined ? rec.measures.ehp : o.TotalEHP;
   const minion = minionSkillOf(rec, main.group);
+  const source = figureField(rec, main) === 'MinionTotalDPS' ? (minion?.name ?? rec.skillOutputs[selectionKey(main)]?.skill) : undefined;
   const parts = [
-    `DPS ${whole(dps)}${minion !== undefined ? ` (${minion.name}, minion)` : ''}`,
+    `DPS ${whole(dps)}${source !== undefined ? ` (${source}, minion)` : ''}`,
     `life ${whole(o.Life)}`,
     `ES ${whole(o.EnergyShield)}`,
     `EHP ${whole(ehp)}`,

@@ -4129,3 +4129,12 @@ the `m17` engine at `857658c`.
   - **A script precomputes the pairs** by joining what one entry creates with what another pays off on.
   - **Price is dropped as a popularity signal:** it is popularity plus rarity, and a widely used unique that drops
     anywhere can cost a few chaos (the user).
+- **Amendment 7 approved** by the user, 2026-10-18 ("Amendment 7 looks good, I accept the recommendations"), with the
+  first option in each §15 choice:
+  - the runner restates the decision and waits for a yes;
+  - it starts a gate question step after a one-line notice;
+  - it reads card and research files itself;
+  - the seed card stays in this amendment.
+
+  Next: the sign-rebase and the force push the user authorized (`origin/main` has the unsigned commits since the
+  user's push), then M-18, amendment 7's build.

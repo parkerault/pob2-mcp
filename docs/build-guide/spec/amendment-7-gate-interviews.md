@@ -1,6 +1,8 @@
 # Amendment 7: gates as interviews
 
-**Status: DRAFT for the user's review, 2026-10-18.** It folds in the user's feedback from the Varashta baseline run
+**Status: APPROVED by the user, 2026-10-18** ("Amendment 7 looks good, I accept the recommendations"), with §15's
+recommended option in each choice. Drafted 2026-10-18; §4's new-card rule added the same day at the user's request.
+It folds in the user's feedback from the Varashta baseline run
 (`../studies/2026-10-17-varashta-run-feedback.md`, "the feedback study"), as the user asked on 2026-10-17: one
 amendment for all of it. It also carries the gate lessons of the comparison with Navira's guide
 (`../studies/2026-10-17-varashta-comparison.md`, "the comparison", §6 and §7) and one decision the defect batch left
@@ -413,6 +415,8 @@ is where the user judges the gates. Its feedback goes into a study like this one
 ## 15. Choices for the user's review
 
 These are the decisions with a real alternative. The draft takes the first option in each.
+
+**The user's answer (2026-10-18):** the recommendations, the first option in each.
 
 1. **The runner restates the decision and waits for a yes**, which costs one more reply per gate. The alternative is
    to act at once, and say what it did. A pick with changes is easy to misread, so the draft confirms.

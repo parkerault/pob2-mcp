@@ -4081,3 +4081,8 @@ the `m17` engine at `857658c`.
 - **Not pushed.** 240 of the commits above `origin/main` are unsigned. The sign-rebase now runs on `main`, and the
   hashes the docs cite are remapped after it, as on 2026-10-10.
 - **Where work happens now:** `/home/parker/projects/pob2-mcp` on `main`. Next: the user's review of amendment 7.
+- **Amendment 7, a new card at the gate** (the user, 2026-10-18: "new card for change requests that aren't a
+  straightforward revision of an existing card"). D-391 now sorts a change into a revision, which keeps the card's
+  identity and chain core, or a new card (`r<k>-g-<n>`), which R1b writes and verifies in the same round with no
+  brainstorm round. When unsure, a new card. The cards it draws on stay in the deck. Today such a request can only
+  become "brainstorm more", a whole round with no guarantee the combination is dealt.

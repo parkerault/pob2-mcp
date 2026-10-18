@@ -4542,3 +4542,5 @@ the `m17` engine at `b76967b`.
   (2,478 tests). **Declined:** a `damage` family (WU-86's proposal). A generic damage increase fits every build and
   would pair with nearly everything in `pairs.md`; the join is for mechanics, so such rows create `none`. The
   verifier is running.
+- **WU-88 verified: PASS** on the re-check (the fix round's targeted suites, 24 tests; the new test fails on the old
+  filter); the verifier's total 161K. **Merged** into `build-guide/m20` (fast-forward).

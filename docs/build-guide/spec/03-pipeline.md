@@ -1,19 +1,25 @@
 # Slice 03: Pipeline — the build-guide skill, its runner and agents, the offline run, the alpha
 
 **Status: fold applied 2026-10-10; fold v1.4 applied 2026-10-11; WU-59's criteria pinned 2026-10-11
-(AC-W34…AC-W50, A-33); fold v1.5 applied 2026-10-11.** This slice folds in the build's pipeline
+(AC-W34…AC-W50, A-33); fold v1.5 applied 2026-10-11; fold v1.6 applied 2026-10-18.** This slice folds in the build's pipeline
 decisions (D-239…D-266 and D-305…D-314 where they touch the pipeline), amendment 1 (built: D-267…D-275),
 amendment 2 (approved 2026-10-09, built by WU-62: D-276…D-284), amendment 3 (approved 2026-10-10; built by
 WU-56, WU-57, WU-58 and WU-63: D-285…D-304), the fold's own resolutions (D-315…D-334, A-33, HG-22), v1.4's
 D-335 (no player-evidence tools) and D-338 (R1b's probe and card writes), and v1.5's D-339…D-344 (the last
-units' decisions and WU-59's) and amendment 4 (accepted by the user 2026-10-11: D-345…D-362, *target*). The
-amendments stay as the rationale record; the spine and this slice are authoritative.
+units' decisions and WU-59's) and amendment 4 (accepted by the user 2026-10-11: D-345…D-362, then *target*).
+v1.6 states M-15 as built (WU-64 done, WU-69…WU-71 and WU-73 built, WU-72 recorded and waived; D-365…D-369), and
+folds in amendment 5 (gear pricing, accepted 2026-10-16: D-370…D-375, WU-75, WU-76), amendment 6 (a minion's
+skill, accepted 2026-10-16: D-376…D-380, WU-79), the user's D-381 (the library's cap), the defect batch's
+pipeline decisions (D-385, D-386, D-387) and amendment 7 (gates as interviews, approved 2026-10-18:
+D-389…D-397, WU-81, WU-82). The amendments stay as the rationale record; the spine and this slice are
+authoritative.
 
 Part of the [spec spine](README.md) ("spine"). It covers work units WU-43…WU-47, WU-56…WU-58, WU-62 and
-WU-63 (built), WU-59 (recorded; re-scoped by D-361), WU-48 (the human alpha), and WU-64 and WU-69…WU-72
-(target, milestone M-15), and acceptance criteria AC-W1…AC-W62 with AC-W2 (a)…(ff) (AC-W3, AC-W6…W10,
+WU-63 (built), WU-59 (recorded; re-scoped by D-361), WU-48 (the human alpha), WU-64 (done), WU-69…WU-71 and
+WU-73 (built) and WU-72 (recorded; milestone M-15), WU-75 and WU-76 (built, M-16), WU-79 (built, M-17), and
+WU-81 and WU-82 (built, M-18), and acceptance criteria AC-W1…AC-W69 with AC-W2 (a)…(ff) (AC-W3, AC-W6…W10,
 AC-W13, AC-W24 and AC-W25 withdrawn by D-267; AC-W45 and AC-W46 by D-361), plus the WU-48 checklist.
-Requirements trace to the spine's contracts and decisions (C-30…C-54, C-54 withdrawn, D-100…D-362, A-20…A-35), the
+Requirements trace to the spine's contracts and decisions (C-30…C-54, C-54 withdrawn, D-100…D-397, A-20…A-35), the
 design rows they lift, the platform
 grounding ("platform §") and ext §5 (the prior-art guide outline). `../worklog.md:n` cites the build's
 work-log. §15 lists the open items and how each was settled. Prompt wording is tuned on real runs; this
@@ -26,8 +32,9 @@ slice fixes the contracts and required behaviours, not the prose of prompts.
   D-nnn)* marker, and keeps the as-built behaviour beside it until that unit merges, so a build agent can
   tell the two apart. Amendment 2's pipeline unit (WU-62) merged before amendment 3's (WU-57, WU-58), which
   edit amendment 2's verdict line (D-317). Since v1.5 amendment 3's units are built, and their former
-  markers read "Since WU-nn"; the *target* passages are amendment 4's (WU-64, WU-69…WU-72, and slice 02's
-  WU-65…WU-68; milestone M-15).
+  markers read "Since WU-nn". Since v1.6 amendment 4's are too (M-15), and amendments 5 to 7 are built (M-16,
+  M-17, M-18): no *target* passage is left but WU-48, the live alpha. Where this slice and an amendment
+  differ, the slice states the as-built behaviour and names the difference.
 
 ## 1. Existing system context (this slice)
 
@@ -64,9 +71,17 @@ slice fixes the contracts and required behaviours, not the prose of prompts.
   - since WU-60 and WU-54 (D-277, D-300, D-336): a mod hit that lists the base types that can roll it,
     essences as a mechanic kind (C-37), and the coverage flags (C-38). The lookup
     additions (WU-53, D-299; built). There are no poe.ninja tools beyond `get_currency_rates` (C-54 withdrawn, D-335).
-  - *target (WU-65, WU-68; D-353, D-356):* the record's `measures`, a key-figure line per stage in
-    `compile_plan`'s text, and `guide_run`'s views, which the stage references read in place of paging
-    `plan.json` and Grepping the record.
+  - since WU-65 and WU-68 (D-353, D-356): the record's `measures`, a key-figure line per stage in
+    `compile_plan`'s text, and `guide_run`'s views, which the coordinator's stage references read in place of
+    paging `plan.json` and Grepping the record;
+  - since WU-74 (D-372): `find_upgrades`' `League:` and `Checked:` lines and its prefixed trade-limit stops,
+    so the coordinator prices `b`'s and `n`'s rares by PoB2's weighted search; `manage_sets` selects a rung's
+    loadout first;
+  - since WU-77 and WU-78 (D-376…D-380): a minion's numbers (`Minion<Field>`), a group's `minionSkill`, the
+    lookup's minion-skill results, and V1's `not-granted`; since WU-80 (D-397), a plain summon's figure;
+  - since the defect batch (2026-10-17): legacy gems and unobtainable uniques left out of the lookups and
+    refused by the compile (D-384), locked nodes refused (D-383), and a Distilled Emotion priced from the
+    exchange (D-387).
 
   The registration names the server `pob2` (stab D-16), so allowlists name `mcp__pob2__<tool>`.
 - **Tool groups** (stab C-1): `POE_TRADE_DISABLED=true` hides group `trade` and `POE_NINJA_DISABLED=true`
@@ -93,35 +108,39 @@ writes into an earlier run's (D-153). (Before WU-57 the slug was the roll's `<as
 
 | Path in the run folder | Written by (only) | Content |
 |---|---|---|
-| `run-log.json` | the runner | §6 (D-270) |
+| `run-log.json` | the runner, through `scripts/run-log.mjs` since WU-71 (D-356) | §6 (D-270) |
 | `research/p<k>-r1a-<n>.md` | R1a researcher `n` of research round `k` | its sections, with source markers (§7.3) |
 | `concepts/<id>/plan.json` | the R1b step for concept `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
 | `concepts/<id>/compile-record.json`, `concepts/<id>/compiled-build.xml` | `compile_plan`, measure-only (D-208) | the skeleton's record (C-33) and compiled XML |
-| `dossier.md` | the R1b-assemble step only (D-269) | §7.2. *Target (WU-70, D-355):* the verification gate's comparison table |
-| `plan.json` | the D1 and D2 steps; the D1 gate step only to apply FI-2 (§11.3) and the final re-price pass (§9) | C-31 |
+| `dossier.md` | the R1b-assemble step only (D-269) | §7.2. Since WU-70 (D-355): the verification gate's comparison table |
+| `plan.json` | the D1 steps (D1-build, D1-finish, since WU-70) and D2; the D1 gate step only to apply FI-2 (§11.3) and the final re-price pass (§9) | C-31 |
 | `compile-record.json`, `compiled-build.xml` | `compile_plan` | the record of the last compile of `plan.json`; after the final compile it names the PoB file and holds `importCode` (D-260) |
 | `guide.md` | W1; the runner replaces its `Known issues` list (step 14, D-265) | §8 |
 | `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate or D2-gate (D-267) | its verdict (§5.3) |
-| `reports/v4-<lens>.json`, `reports/v4-<lens>-recheck.json` | the runner, from the verifier's return, unchanged (D-267) | the V4 full pass and re-check reports (§7.4). *Target (WU-69, D-352):* `reports/V4-<n>.md`, one per pass, written by the verifier itself and never overwritten |
-| `audit.md` | W1, which writes it and patches it with Edit; the runner fills its `Known issues` table (step 14) | the audit layer (§7.8; D-278, WU-62). *Target (WU-71, D-355):* rendered by `scripts/render-audit.mjs`, which the runner runs after the final compile |
-| `cards/<id>.md` | R1a (the brainstorm half), then R1b (the verification half) | a candidate card (§7.5; D-291, WU-57) |
-| `cards.md` | R1a-assemble | the dealt deck, plus "Not dealt" (§7.5; D-287, WU-57) |
+| `reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352; since WU-69) | the V4 full pass's or a re-check's report (§7.4). Before WU-69: `reports/v4-<lens>.json` and `reports/v4-<lens>-recheck.json`, written by the runner from the verifier's return |
+| `audit.md` | the runner, rendered by `scripts/render-audit.mjs` after every final compile and before every W1 of a fix round or a revision (D-355; since WU-71); W1 adds the accepted gate findings' rows to its `Known issues`, and the runner fills that table each cycle (step 14) | the audit layer (§7.8; D-278) |
+| `cards/<id>.md` | R1a (the brainstorm half; R1a-assemble only to rename it), then R1b (the verification half; after a gate's change, the brainstorm half first; a card made at a gate whole, D-391) | a candidate card (§7.5; D-291, WU-57) |
+| `cards.md` | R1a-assemble; R1b-assemble adds a gate-made card's line (D-391) | the deck: its header, the dealt cards by round, "Not dealt" and "Found, not used" (§7.5; D-287, D-392) |
+| `interviews/<gate>-<visit>.md` | the runner, with Write, when the user asked questions (D-389; since WU-82) | a gate visit's interview notes (§10) |
+| `interviews/<gate>-<visit>-q<n>.md`, `probes/q-<gate>-<visit>-<n>/` | a gate question step, stage `Q` (D-390; since WU-82) | its report, and a coordinator's measured variant (§10) |
 | `probes/<card-id>/<n>/` | R1b | a probe variant's one-stage plan; `compile_plan` writes its measure-only record and XML beside it (§7.7; D-292, D-331, D-338). R1b's header `writes` name it since WU-57, and the checker accepts it since WU-58 (AC-W2 (ff)) |
-| `rounds/<n>/` | the runner, before a fix round or a revision | *Target (WU-70, WU-71; D-352):* its copy of `plan.json`, `compile-record.json` and `guide.md`, which `check-run.mjs --changed <n>` compares with the current files |
+| `rounds/<n>/` | the run checker's `--snapshot <n>`, which the runner runs before a fix round or a revision (A-34; since WU-71) | the round copy: `plan.json`, `compile-record.json` and `guide.md` as they stood, which `check-run.mjs --changed <n>` compares with the current files; nobody reads it |
 
 - **Card ids** (since WU-57; D-286, D-319) are `r<round>-<researcher letter>-<n>`, for example `r1-a-2`,
   with the card at `cards/<id>.md`; the letters are `a`, `b` and `c`. The runner letters the researchers
-  when it starts them, so parallel researchers never collide. `research/p<k>-r1a-<n>.md` stays. (Before
-  WU-57, concept ids were `c1`, `c2`, … in proposal order, unique within the run across research rounds;
-  schema-2 logs still use them.)
+  when it starts them, so parallel researchers never collide. `research/p<k>-r1a-<n>.md` stays. Since WU-81
+  (D-391), a card made at a gate is `r<k>-g-<n>`. (Before WU-57, concept ids were `c1`, `c2`, … in proposal
+  order, unique within the run across research rounds; schema-2 logs still use them.)
 - `<stage>` in a gate file is `R1b`, `D1-gate` or `D2-gate`; `<attempt>` counts from 1 per (stage,
-  concept), as the header and the run log's `stages[]` do; `<lens>` is `ledger`, `sources` or `prose`.
-- A revision's verification rewrites the V4 reports; the run log's order says which re-check belongs to the
-  last full pass. *Target (D-352):* every pass keeps its own report, which nothing overwrites.
+  concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the run's V4 passes from
+  1, full pass and re-checks alike.
+- Since WU-69 (D-352), every V4 pass keeps its own report, which nothing overwrites. (Before, a revision's
+  verification rewrote the lens reports, and the run log's order said which re-check belonged to which pass.)
 - **Nothing else goes in the run folder**, and the run checker fails a stray file. No agent writes outside
   it (D-177), and agents running in parallel write different files (C-36). Since WU-58 the checker's layout
   list (`KNOWN_TOP` in `check-run.mjs`) holds `cards/`, `cards.md` and `probes/`, and fails a card file for a
-  round that never ran (AC-W2 (ff), D-338).
+  round that never ran (AC-W2 (ff), D-338); since WU-71 it accepts `rounds/<n>/`, and since WU-81
+  `interviews/` and `probes/q-…/`.
 - **The PoB file.** Only the final compile writes one, through C-17 (D-208); its `build_name` is
   `<slug>-<YYYY-MM-DD>-<n>`, the run folder's last two segments joined with `-`, so every run writes a new
   file (D-113, D-199). Every earlier compile, the concept skeletons' included, is measure-only. A re-compile
@@ -172,7 +191,11 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   - **Player evidence** (D-335). No tool supplies it: poe.ninja's terms close its builds API. A card cites
     the brief's `popularity` notes as user-supplied, or says "no player evidence".
   - **A support gem** the free text names as the build's subject goes in `around`, by its name as the lookup
-    gave it, never in `skill`: only an active gem is a `skill` (D-343).
+    gave it, never in `skill`: only an active gem is a `skill` (D-343). Since WU-79 (D-379), a command one
+    summon's minion casts is a `skill` too.
+  - **A reference build** (D-393; since WU-82). The brief, or a brainstorm-more note, may name a reference
+    build the user picked: a guide page, a video or a PoB file (offline, a local file). The run reads only what
+    the user named, and the next round makes a seed card from it (§7.5).
   - `--no-ninja`: the run calls no tool in group `ninja`, whose one tool is `get_currency_rates`, so price
     totals in divines are `unverified` (pricing's path when rates are missing) (D-297, D-333, D-335).
 - **FR-W2 (start).** In this order, before any agent runs:
@@ -180,7 +203,10 @@ verifiers' reports and runs the run checker. The agents research, design, compil
      that names an ascendancy or a skill is checked as a roll is:
      - `ascendancy`: `get_classes` must list it (case-insensitively); the runner notes its class.
      - `skill`: `lookup_game_data {mode: "gem", query: <skill>}` must give a result headed `## <skill>` that
-       says `Kind: active`; a support gem, or no such result, fails.
+       says `Kind: active`; a support gem, or no such result, fails. **Amended by D-379 (v1.6; built, WU-79):**
+       a result that says `Kind: minion skill` passes too, when no active gem has the name and exactly one
+       summoning gem's minion casts it (the runner counts the distinct summoning gems in its `Cast by:` lines;
+       there is one result per granted effect); otherwise the check fails, naming the summons.
      - a name the free text gives as the build's subject (D-343) is looked up before it is placed. A support
        gem goes in `around`, by the lookup's name, and the run goes on, the reply saying it is a support gem
        whose skills the researchers will look for; an active gem goes in `skill`; an item or mechanic goes in
@@ -191,7 +217,9 @@ verifiers' reports and runs the run checker. The agents research, design, compil
        `search_tree_nodes {query: "Grants Skill: <skill>"}` and `lookup_game_data {mode: "mechanic", query:
        "<skill>", kind: "unique"}`. The check fails when a node grants the skill, every such node is an
        ascendancy node, none of them the brief's ascendancy, and no unique grants it (a line `Grants Skill:
-       <skill>` or `Grants Skill: Level (<range>) <skill>`).
+       <skill>` or `Grants Skill: Level (<range>) <skill>`). For a minion skill the lock runs on the command and
+       on its summon (D-379): Navira's Fracturing is node 10561's and its summon node 32705's, both Disciple of
+       Varashta.
 
      On a failure the runner stops, creates no run folder, writes nothing, and lists the closest valid
      names: ascendancies from `get_classes`; for the skill, the names the lookup lists under `Closest active
@@ -205,7 +233,8 @@ verifiers' reports and runs the run checker. The agents research, design, compil
      root-relative path and `loadedBuildUnsaved` (C-50).
   3. **Run log.** A test config given with `--offline` is read first; a file that can't be read or isn't
      the documented shape (§11.2) is refused (`testConfig: "refused"`) and the run stops (`stopped`, with
-     the reason in the reply). The runner writes `run-log.json` with `status: "running"`, the mode and
+     the reason in the reply). Since WU-81 and WU-82 (D-394) the runner checks it with `run-log.mjs <runFolder>
+     test-config <path>`, which refuses a malformed scripted interview too. The runner writes `run-log.json` with `status: "running"`, the mode and
      `testConfig` (§6), and since WU-58 the parsed brief and no roll yet.
   4. **Unsaved build** (D-210). If the `new_run` reply has `loadedBuildUnsaved: true`, the runner asks the
      user before the first compile: proceed, which discards the loaded build's unsaved changes, or stop
@@ -222,8 +251,10 @@ verifiers' reports and runs the run checker. The agents research, design, compil
 - **FR-W3 (one coordinator; C-36 as corrected by D-231; D-130, D-112).** During a run the runner calls no
   `pob2` tool except `get_classes` and `lookup_game_data` for the roll check (with `search_tree_nodes` for
   the ascendancy lock of a brief naming both an ascendancy and a skill, D-342) and `guide_run {new_run}`.
-  Lookups (the tools in L, §4) may also be called by the R1a researchers, the V4 verifiers and coordinator
-  steps. Every engine-changing and trade call is made by a coordinator step, and no coordinator step
+  **Amended by D-390 (v1.6; built, WU-82):** at a gate it also calls `lookup_game_data`, `search_tree_nodes`
+  and `check_model_coverage` to answer the user's questions; it still makes no compile, engine-changing or
+  trade call. Lookups (the tools in L, §4) may also be called by the R1a researchers, the V4 verifiers and
+  coordinator steps. Every engine-changing and trade call is made by a coordinator step, and no coordinator step
   overlaps any other agent. No agent calls a poe.ninja tool beyond the coordinator's `get_currency_rates`
   (D-335; the researchers' poe.ninja tools of D-297 are withdrawn).
 - **FR-W4 (Agent calls; D-267).**
@@ -233,11 +264,14 @@ verifiers' reports and runs the run checker. The agents research, design, compil
     .claude/skills/build-guide/references/stages/<stage>.md and do that step.` It adds only what the stage
     reference lists under "Prompt". The verifier's prompt is exactly the header and that line (R-5, D-142).
   - At most 3 agents are in flight, and a coordinator step never overlaps another agent. R1a's researchers
-    and the V4 lenses run in parallel, in the background; every other step runs alone.
+    and the V4 lenses run in parallel, in the background; every other step runs alone. Since WU-69 there is
+    one V4 pass, no lenses (D-352); since WU-82 a gate's research question steps run in parallel too (D-390).
   - An agent writes only its header's `writes` and returns at most 8 lines: what it wrote and the outcome.
     A gate step's verdict is its own file under `reports/gates/`, which the runner reads to route. The
-    verifier can't write: it returns its report as JSON, which the runner writes unchanged. *Target (WU-69,
-    D-352):* the verifier writes its own `reports/V4-<n>.md`, its one Write, to `reports/` only.
+    verifier can't write: it returns its report as JSON, which the runner writes unchanged. **Amended by
+    D-352 (v1.5; built, WU-69):** the verifier writes its own `reports/V4-<n>.md`, its one Write, to
+    `reports/` only, and never overwrites one; a return of `exists: reports/V4-<n>.md` is a missing return,
+    re-run at the next free `<n>`.
   - **A missing return.** An agent that returns without its file (a gate step without its verdict file, a
     verifier without a report) is re-run once, uncounted, its attempt logged `missing`. A second miss ends
     the run `stopped`, naming the step.
@@ -245,22 +279,28 @@ verifiers' reports and runs the run checker. The agents research, design, compil
     agents' returns and the verifiers' reports, and since WU-57 the deck `cards.md`, which it shows at the
     brainstorm gate. It never reads `plan.json`, a compile record, `dossier.md` or `guide.md` (one final
     record was 268 KB), with Read or Bash. Step 14 reads only the `Known issues` lines it edits, found from
-    the `known-issues-line` W1 returned last. *Target (D-352):* before a fix round or a revision the runner
-    has the plan, record and guide copied to `rounds/<n>/` by a script it runs, so it reads none of them
-    (A-34). *Target (D-362):* the design gate's display comes from the D1 gate's verdict file, into which
-    the D1 gate step writes it (A-35).
+    the `known-issues-line` W1 returned last. Since WU-70 and WU-71 (D-352): before a fix round or a revision
+    the runner has the plan, record and guide copied to `rounds/<n>/` by `check-run.mjs <runFolder> --snapshot
+    <n>`, so it reads none of them (A-34). Since WU-70 (D-362): the design gate's display comes from the D1
+    gate's verdict file, into which the D1 gate step writes it (A-35), and since WU-73 `run-log.mjs display`
+    prints every gate's display from the run folder (D-367). Since WU-82 (D-390): at a gate the runner reads the
+    card and research files on demand, to answer a question.
 - **FR-W5 (the runner's Bash; D-265 e).** The runner's Bash reads files and runs the run checker, nothing
   else: `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before
   them is fine), each with no redirection, no `tee`, no flag that writes a file and no command substitution
   feeding another tool; and `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`. No other
   `node` call, no `git`, `find`, `sort`, `sed`, `awk`, network client or host, and nothing that writes,
   moves or deletes a file: the runner writes every file with Write or Edit. The agents have no Bash (R-4).
-  *Target (WU-71; D-352, D-355, D-356, amending D-265 (e)):* the list gains `check-run.mjs --changed <n>`,
-  `scripts/render-audit.mjs`, `scripts/run-log.mjs` and A-34's round copy (`check-run.mjs --snapshot <n>`,
-  or a mode of `scripts/run-log.mjs`).
+  **Amended by D-352, D-355, D-356 (v1.5; built, WU-71, amending D-265 (e)):** the list gains
+  `check-run.mjs <runFolder> --changed <n>` and `--snapshot <n>` (A-34's round copy),
+  `scripts/render-audit.mjs <runFolder>` and `scripts/run-log.mjs <runFolder> <kind> - <<'JSON'` (the entry
+  read from stdin by a quoted heredoc, so an apostrophe can't break it); since WU-73 `run-log.mjs <runFolder>
+  display <gate>` (D-367), and since WU-81 `run-log.mjs <runFolder> test-config <path>` (D-394). Those scripts
+  write in the run folder; the runner's own Bash still writes nothing.
 - **FR-W6 (persistence; D-267).** Gate steps write their own verdict files. The runner writes each V4
-  report from the verifier's return, unchanged, then the run log. *Target (D-352, D-356):* V4 writes its own
-  report, and `scripts/run-log.mjs` appends the run log.
+  report from the verifier's return, unchanged, then the run log. **Amended by D-352, D-356 (v1.5; built,
+  WU-69, WU-71):** V4 writes its own report, and `scripts/run-log.mjs` appends the run log. Since WU-82 the
+  runner writes the interview notes with Write (D-389).
 - **FR-W7 (run checker; D-271).** `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`,
   with no `--partial` (that flag is now a usage error, exit 2). The runner runs it at step 15 and once more
   after the run's last log write. It uses Node built-ins plus the server's compiled ledger evaluator
@@ -285,23 +325,29 @@ verifiers' reports and runs the run checker. The agents research, design, compil
      `buildSha1` (D-266). The decoded `importCode` matches the record's `pobFile` sha1, with one tree set
      per plan stage titled by the record's loadout names (D-215). Every ledger entry, re-evaluated over the
      record by the server's evaluator, equals the record's value to 2 decimals (`[ledger]`).
-     *Target (D-352):* the projection also leaves out the plan's `ledger` (WU-65, `src/plan/buildHash.ts`),
-     and `[ledger]` (WU-71) evaluates the plan's current ledger formulas over the record and takes that
-     value, not the record's stored one, as each entry's value wherever the checker reads it, so a
-     ledger-only edit after the final compile passes both `[record-plan]` and `[ledger]`; an entry that
-     doesn't evaluate still fails.
+     **Amended by D-352 (v1.5; built, WU-65, WU-71):** the projection also leaves out the plan's `ledger`
+     (`src/plan/buildHash.ts`), and `[ledger]` evaluates the plan's current ledger formulas over the record
+     and takes that value, not the record's stored one, as each entry's value wherever the checker reads it,
+     so a ledger-only edit after the final compile passes both `[record-plan]` and `[ledger]`; an entry that
+     doesn't evaluate still fails. As built, `[ledger]` also checks a `ledger:<id>` claim's numbers against the
+     entry's current value, at its last significant digit or within 5%, and accepts a number equal to one of
+     the entry's inputs or an input × 100 (D-365). Since D-386 the projection leaves out `prices[].note`.
   3. **The D1 gate, recomputed** from the record and the plan (§5.3): the floor (with D-254's and D-256's
      reference hits and D-234's chaos exception), the budget (D-219, D-249) and the rolled skill, its
      figure's stat set equal to `skills.main.statSet` (D-273). It fails a verdict that differs from its own
-     and, once a guide exists, any gate failure no accepted finding covers (D-312). *Target (WU-71,
-     D-353):* the floor reads the reference hits the compiler wrote, from the record, in place of the
-     `hit_<stage>_<type>` ledger entries (§5.3).
+     and, once a guide exists, any gate failure no accepted finding covers (D-312). Since WU-71 (D-353): the
+     floor reads the reference hits the compiler wrote, from the record's `configWritten`, in place of the
+     `hit_<stage>_<type>` ledger entries (§5.3). Since WU-76 (D-371, D-373): the budget is recomputed as ranges
+     at the price day from the plan's prices and `data/economy/prices.json`, and an `over-target` slot is
+     information, never a failure. Since WU-79 and D-385: the rolled figure is a group's minion's when its
+     skill summons one (D-378).
   4. **The run log and the control flow** (§6): the fields and their values; steps in a legal order; each
      gate attempt logged with the outcome its verdict file routes to; R1b at most 3 counted attempts and
      each gate at most 2 counted retries (D-272: only an attempt-1 failure the verdict's `faultsApplied`
      explains is free); at most 3 R1a researchers and 3 R1b concepts per research round (D-235); one full V4
-     pass and at most one re-check per verification cycle, of all three lenses if and only if a gate re-ran
-     in the fix round, else of each lens that raised a finding and the sources lens (D-264); a claims-only
+     pass and at most one re-check per verification cycle (since WU-71, one pass with no lenses, D-352; before,
+     of all three lenses if and only if a gate re-ran in the fix round, else of each lens that raised a finding
+     and the sources lens, D-264); a claims-only
      owner only before any gate of its round and never directly before a gate; escalations only from the
      gates, each naming its verdict file; a `rule` on every pre-supplied or default answer; and `completed`
      only after checkpoint 2's accept.
@@ -314,7 +360,8 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   layer's headings, `audit.md`'s included; no markers in `guide.md` outside the import code's fence; one
   fixed-form verdict line per endgame rung, compared with the record; reward picks by name; Known issues by
   sentence, with each id in `audit.md`; the entering-maps rung's floor at area 69 and its budget of 5
-  divines (5.5 with "near the ceiling"), the first rung taken by rung order.
+  divines (5.5 with "near the ceiling"; since WU-76 a 5-divine target, never a failure, D-371), the first rung
+  taken by rung order.
   Since WU-58 (merge `85c70c9`; D-287, D-289, D-294, D-326, D-338, D-339, D-341): run log v3 (§6);
   brainstorm and verification rounds and their caps, a short round only with its `shortReason`; the renamed
   answers; the verdict line's "Effective HP about <n>." against `TotalEHP`; the D1 gate recompute reads
@@ -325,14 +372,30 @@ verifiers' reports and runs the run checker. The agents research, design, compil
   `choice`, one for one; card files for rounds that never ran fail; and a schema-2 log carrying a
   schema-3-only field fails. The checker reads schema-2 logs under the schema-2 log rules only, and holds
   every artifact to the current formats, so WU-47's recorded runs no longer pass (D-341).
-  *Target (WU-71; D-351…D-353, D-355, D-362):* `--changed <n>`, which lists the claims whose text, source
-  or cited record values changed since `rounds/<n>/` and the changed guide H2s; a re-check missing one of
-  them, or an overwritten V4 report, fails; a claim without a `kind`; an `audit.md` or Checks block that
-  differs from the script's render (Known issues aside); a survival label that disagrees with
+  Since WU-71 (merge `237780b`; D-351…D-353, D-355, D-362): `--changed <n>`, which prints, one per line,
+  `claim stages[<i>].claims[<k>] (<id>)` for each claim whose text, source or cited values changed since
+  `rounds/<n>/` (ledger entries through the evaluator over the current formulas, price entries, and
+  `pob-computed` fields both raw and counted) and `section <H2 title>` for each changed guide H2; a re-check
+  missing one of them, or an overwritten V4 report, fails; a claim without a `kind`; an `audit.md` or Checks
+  block that differs from the script's render (Known issues aside); a survival label that disagrees with
   `measures.arbiter`; D2 reached without a `design` visit; `[ledger]` over the plan's current formulas
   ((2)); the floor's codes and the verdict line's hits read from the record's compiler-written hits ((3),
-  §5.3, §8); and `[record-plan]`, through WU-65's projection, passing a ledger-only edit after the final
-  compile while a gear edit still fails it.
+  §5.3, §8), and the verdict line's DPS against `measures.dps`; and `[record-plan]`, through WU-65's
+  projection, passing a ledger-only edit after the final compile while a gear edit still fails it. Its
+  as-built additions, accepted: a re-check carries every open finding; a V4 log outcome equals its report's
+  verdict; a finding's claim id matches its location; finding ids match `v4-\d+-\d+`; the budget includes the
+  anoint; schema-2 logs keep `D1`. Not checked: that a full pass's `## Checked` lists every hinge claim, and
+  the D1 gate's `design` field.
+  Since WU-73 (D-367, D-368): `[display]`, every checkpoint's visit printed its display first (schema-3 logs
+  from before D-367 now fail it); a re-check's `attempt` counts from 1 per log name. Since WU-76 (D-370…D-374):
+  the D1 gate's `basis.budget` (`market`, `totals`, `slots`), its ranges recomputed, `over-target` as
+  information, no budget `fail` (an unknown value). Since WU-79 (D-378, D-379): the rolled figure and the
+  verdict line's DPS read `MinionTotalDPS` × Count for a minion group; since D-385, for any group whose skill
+  summons a minion. Since WU-81 (D-389…D-394): the card id's letter `g`; a checkpoint's `questions` equal to
+  the interview notes' count; a changed pick's card carries its "Changed at the gate" line; a gate-made card
+  carries its "Made at the gate" line and its deck line; the deck header; the interview notes' form (an H2
+  `Q<n>: <question>` per question, an answer of at most three lines, then its source); each gate question
+  report cited by its visit's notes; and as many stage-`Q` steps logged as reports written.
 
 ## 4. Agent definitions and tool allowlists (D-130, D-142, D-178, A-24, D-267)
 
@@ -341,8 +404,8 @@ standing rules (write only inside the run folder; never read `.env`; web only on
 pathofexile.com or poe.ninja; offline-mode rules, §11.1). Stage instructions live in the stage references.
 Since WU-57 (D-335), the poe.ninja rule reads "never contact pathofexile.com or poe.ninja yourself;
 there are no poe.ninja tools beyond the currency rates", in `SKILL.md` and in the researcher's and the
-coordinator's definitions. *Target (WU-70, D-356):* every definition says to batch independent read-only
-calls in one turn.
+coordinator's definitions. Since WU-70 (D-356), every definition says to batch independent read-only
+calls in one turn, and the coordinator's to read the plan and the record through `guide_run`'s views.
 
 **Tool sets** (server `pob2`):
 - **L, lookups:** `lookup_game_data`, `check_model_coverage`, `search_tree_nodes`, `list_gems`,
@@ -353,7 +416,10 @@ calls in one turn.
   `find_path_to_node`, `list_specs`, `list_item_sets`.
 - **C, compile:** `compile_plan`, `guide_run`, `encode_build_code`.
 - **P, prices:** `get_item_price`, `search_trade_items`, `search_stats`, `get_leagues`,
-  `trade_query_options` (group `trade`), `get_currency_rates` (group `ninja`).
+  `trade_query_options` (group `trade`), `get_currency_rates` (group `ninja`). **Amended by D-372 (v1.6;
+  built, WU-75):** also `find_upgrades` (group `trade`), PoB2's weighted search for `b`'s and `n`'s rares, and
+  `manage_sets` (group `core`, kind `mutate`), which the coordinator calls only as `{set_type: "loadout",
+  action: "select"}`, to load a rung before `find_upgrades` prices its rares; it changes no file.
 - **N, poe.ninja:** *withdrawn → D-335.* The popularity and build-index tools of C-54 aren't built: there is
   no set N, and group `ninja`'s one tool, `get_currency_rates`, stays in P.
 
@@ -363,10 +429,10 @@ coordinator, and so is every poe.ninja call (`get_currency_rates`, D-335).
 
 | Type | Runs | File tools | `pob2` tools | Web |
 |---|---|---|---|---|
-| `build-guide-researcher` | R1a | Read, Glob, Grep, Write | ⊆ L | WebSearch, WebFetch |
-| `build-guide-coordinator` | R1a-assemble (since WU-57, D-287), R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (with the final compile); *target (WU-70, D-356):* `D1-build` and `D1-finish` in place of D1 | Read, Glob, Grep, Write, Edit | ⊆ L ∪ B ∪ C ∪ P | WebSearch, WebFetch |
+| `build-guide-researcher` | R1a; since WU-82 (D-390), a gate's research question step | Read, Glob, Grep, Write | ⊆ L | WebSearch, WebFetch |
+| `build-guide-coordinator` | R1a-assemble (since WU-57, D-287), R1b, R1b-assemble, D1, D1-gate, D2, D2-gate (with the final compile); since WU-70 (D-356), `D1-build` and `D1-finish` in place of D1; since WU-82 (D-390), a gate question step about a compiled build | Read, Glob, Grep, Write, Edit | ⊆ L ∪ B ∪ C ∪ P | WebSearch, WebFetch |
 | `build-guide-writer` | W1 | Read, Glob, Grep, Write, Edit (D-257) | none | none |
-| `build-guide-verifier` | V4 lenses; *target (D-352):* one V4 pass, no lenses | Read, Glob, Grep; *target (WU-69, D-352):* Write, to `reports/` only | ⊆ L | WebFetch |
+| `build-guide-verifier` | V4: since WU-69 (D-352), one pass, no lenses (before, three lenses) | Read, Glob, Grep; since WU-69 (D-352), Write, to `reports/` only | ⊆ L | WebFetch |
 
 The coordinator runs no dossier fix and maps no revision requests (D-267, D-269), and the provenance type is
 gone, with V3 (D-267, D-268).
@@ -383,10 +449,14 @@ ToolSearch, so ToolSearch joins no row.
 - **R-4.** No definition names Bash, Agent, Skill, Workflow or NotebookEdit, or any `pob2` tool outside
   L ∪ B ∪ C ∪ P. So no `mutate`, `lifecycle` or other `load`
   tool and no file-writing tool: the plan is the source of truth and the compiler builds from it (D-113,
-  D-155); the compiled build stays loaded for B's reads (D-191).
+  D-155); the compiled build stays loaded for B's reads (D-191). **Amended by D-372 (v1.6; built, WU-75):**
+  one `mutate` tool, `manage_sets`, is in P, for the coordinator's loadout select before pricing; it selects
+  a loadout of the build the last compile loaded and writes no file, so the plan stays the source of truth.
+  R1b's reference says R1b doesn't use it (`references/stages/R1b.md`), and the static test holds it to group
+  `core`.
 - **R-5.** The verifier can't write: it returns its report as JSON, which the runner writes unchanged
-  (§7.4), and it can't edit what it checks. *Target (WU-69, D-352):* it writes its own report with Write,
-  to `reports/` only, and still can't edit what it checks: it has no Edit, its instructions forbid writing
+  (§7.4), and it can't edit what it checks. **Amended by D-352 (v1.5; built, WU-69):** it writes its own
+  report with Write, to `reports/` only, and still can't edit what it checks: it has no Edit, its instructions forbid writing
   anywhere else, and the checker compares the plan, record and guide with the round's snapshot in
   `rounds/<n>/`. V4 is a separate type from the coordinator and the writer,
   starts with a fresh context, and its prompt carries only the task header and the reference line, no text
@@ -403,25 +473,27 @@ prompt contradicts it.
 
 | Field | Content |
 |---|---|
-| `stage` | `R1a`, `R1a-assemble` (since WU-57, D-287), `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1` or `V4`. *Target (WU-70, D-356):* `D1-build` and `D1-finish` in place of `D1` |
-| `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included |
+| `stage` | `R1a`, `R1a-assemble` (since WU-57, D-287), `R1b`, `R1b-assemble`, `D1`, `D1-gate`, `D2`, `D2-gate`, `W1` or `V4`. Since WU-70 (D-356), `D1-build` and `D1-finish` in place of `D1`; since WU-82 (D-390), `Q`, a gate question step |
+| `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included. Since WU-73 (D-368), a V4 re-check's counts the card's re-checks from 1, apart from its full pass, as the run log's `V4-recheck` entries do |
 | `concept` | the card id (`r<round>-<letter>-<n>`, since WU-57, D-286), where the step concerns one; before WU-57 the concept id (`c<n>`) |
-| `lens` | V4 only: `ledger`, `sources` or `prose`. *Target (WU-69, D-352):* none: one pass, no lenses |
-| `check` | V4 only: `full` (step 11, every claim in the lens) or `recheck` (step 13, only `findings` and `changed`). *Target (D-352):* `recheck` covers only the set `check-run.mjs --changed <n>` lists |
+| `lens` | *Retired by D-352 (built, WU-69):* V4 had `ledger`, `sources` or `prose`; one pass has no lens, and the header has no `lens` |
+| `check` | V4 only: `full` (step 11: one pass, no lenses, over every hinge claim and every H2 of the guide) or `recheck` (step 13: only `findings` and `changed`, the set `check-run.mjs --changed <n>` lists; D-352, built, WU-69) |
 | `mode` | `offline` or `online`, as the run log records it |
 | `runFolder`, `runFolderRel` | the run folder's absolute path, and its path relative to the guides root (§2) |
 | `compile` | `none`, `measure-only` or `final`: what this step may ask `compile_plan` for |
 | `buildName` | the D2 gate only: `<slug>-<YYYY-MM-DD>-<n>`, for its final compile |
-| `findings` | what to fix or check: the earlier attempt's gate verdict (its file and findings), the V4 findings routed to this owner, the user's revision requests (`code: "user-request"`) or guidance (`code: "user-guidance"`); for a V4 re-check, the lens's own open findings; `[]` otherwise |
-| `changed` | a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed, or `"all"` when a gate re-ran in the fix round (D-264) |
+| `findings` | what to fix or check: the earlier attempt's gate verdict (its file and findings), the V4 findings routed to this owner, the user's revision requests (`code: "user-request"`) or guidance (`code: "user-guidance"`); for a V4 re-check, the lens's own open findings; `[]` otherwise. As built since WU-70…WU-82: the user's requests come from the design gate's or the final gate's `revise:<text>`, or a revision riding on the verification gate's finalize (D1-build's first attempt, D-391); for D1-build in the fix round, the findings D1-finish returned under `build:`; for a V4 re-check, the ids of the last report's `unresolved` findings |
+| `changed` | a V4 re-check, and W1 in the fix round: the locations the fix round's owners changed, or `"all"` when a gate re-ran in the fix round (D-264). As built: also a D1-finish after D1-build (the locations D1-build returned); a re-check's are the lines `check-run.mjs --changed <n>` printed, verbatim, one item each (D-352) |
+| `changes` | R1b only, since WU-82 (D-391): a gate's change to its card, `{visit, words}` for a revision, `{visit, name, from, words}` for a card made at the gate |
 | `accepted` | gate findings the user accepted at an escalation, from its verdict file (§5.4) |
 | `faults` | offline test mode only: this step's fault directives (§11.3) |
-| `writes` | the run-folder paths this step may write; nothing else. W1's include `audit.md` (D-278, WU-62). Since WU-57 (D-338), R1b's include its probes, `probes/<card-id>/<n>/`, and its card, `cards/<id>.md`; R1a's its research file and `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-assemble's `["cards.md"]` |
+| `writes` | the run-folder paths this step may write; nothing else. W1's include `audit.md` (D-278, WU-62). Since WU-57 (D-338), R1b's include its probes, `probes/<card-id>/<n>/`, and its card, `cards/<id>.md`; R1a's its research file and `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-assemble's `["cards.md"]`. Since WU-69, V4's its own report, `reports/V4-<n>.md` (D-352). Since WU-82: R1a-assemble's also the round's cards, for a rename (D-392); R1b-assemble's `cards.md` too, for a gate-made card's line (D-391); Q's its report `interviews/<gate>-<visit>-q<n>.md` and a coordinator's variant `probes/q-<gate>-<visit>-<n>/` (D-390) |
 | `reference` | the step's stage reference, under `references/stages/` |
 
 Rules: a step writes only the paths in `writes`, all inside the run folder (D-177), and steps running in
 parallel never share a path; a gate step's `writes` include its verdict file. A V4 prompt is the header and
-the reference line, and `changed` holds locations, never text (R-5, D-142). `compile: "none"` means no
+the reference line, and `changed` holds locations, never text (R-5, D-142); since WU-69 a re-check's
+`findings` are finding ids from the last report. `compile: "none"` means no
 `compile_plan` call; only the D2 gate carries `final`, with `buildName`, and it compiles measure-only first.
 Faults travel only in headers, only in offline test mode, and only to the steps they target. The header has
 no `pass` field (D-267).
@@ -430,33 +502,41 @@ no `pass` field (D-267).
 
 `SKILL.md`'s step list, as built (since WU-57, merge `c872dea`; before it, steps 2 to 5 were R1a's concept
 proposals, R1b per concept, R1b-assemble's checkpoint-1 comparison and checkpoint 1, and step 16 was
-checkpoint 2):
+checkpoint 2). Since M-15 (WU-70, WU-71, WU-73), D1 is two steps, the design gate follows the D1 gate, V4 is one
+verifier, and every gate's display is printed by `run-log.mjs display`; since M-18 (WU-82) every gate is an
+interview (§10) and R1b takes a gate's changes:
 
 | # | Step | Agent type | Writes | Returns, user, retries |
 |---|---|---|---|---|
 | 1 | Start (FR-W2) | the runner | `run-log.json` | parses and checks the brief; asks the user when `loadedBuildUnsaved` (D-210) |
-| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' titles |
+| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' names |
 | 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played; `short: <why>` for a short round (D-339) |
-| 2c | The brainstorm gate (§10) | the runner | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
-| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed`; `not-a-skill` and `wrong-ascendancy` are never retried |
-| 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md` | the verification gate's comparison, one line per card |
-| 5 | The verification gate (§10) | the runner | log | asks the user: finalize one card, verify other cards (step 3), brainstorm more (step 2a) or stop |
-| 6 | D1, the endgame | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
-| 7 | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`; `plan.json` (FI-2 and the final re-price pass) | one verdict line; routed by §5.3 |
+| 2c | The brainstorm gate (§10) | the runner | log; the interview notes | an interview: verify 1–3 cards, picked or made at the gate (step 3), brainstorm more (step 2a, round *k*+1) or stop |
+| 3 | R1b, one picked card at a time, then the new ones, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure, or a gate change that breaks the card (`gate-change`), re-runs, ≤ 2 counted retries, then the card is `failed`; `not-a-skill` and `wrong-ascendancy` are never retried |
+| 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
+| 5 | The verification gate (§10) | the runner | log; the interview notes | an interview: finalize one card, verify other cards (step 3), brainstorm more (step 2a) or stop |
+| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible`; its `left out:` lines (D-396) |
+| 6b | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims) | `done`; its price calls by outcome |
+| 7a | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`, with the design display; `plan.json` (FI-2 and the final re-price pass) | one verdict line; routed by §5.3 |
+| 7b | The design gate (§10) | the runner | log; the interview notes | an interview: accept (step 8), revise (D1 again), verification (step 5) or stop |
 | 8 | D2, the campaign | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
-| 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
-| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` (D-278) | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
-| 11 | V4, one full pass | `build-guide-verifier` ×3 in parallel (`ledger`, `sources`, `prose`) | none; the runner writes `reports/v4-<lens>.json` | its report |
-| 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
-| 13 | V4 re-check | `build-guide-verifier`, in parallel: each lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round (§5.5) | none; the runner writes `reports/v4-<lens>-recheck.json` | its report; no further round |
-| 14 | Known issues | the runner | the `Known issues` list in `guide.md` (reader sentences) and the `Known issues` table in `audit.md` (ids) | — |
-| 15 | Run checker | the runner (Bash) | — | its result, shown at step 16 |
-| 16 | The final gate (checkpoint 2, §10) | the runner | log | asks the user: accept, ask for changes (a revision, §5.6), or anything else |
+| 9 | D2-gate and the final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates. On a pass the runner renders `audit.md` |
+| 10 | W1, the guide | `build-guide-writer` | `guide.md`; `audit.md`'s `Known issues` lines | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
+| 11 | V4, one full pass | `build-guide-verifier`, one, no lenses | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict |
+| 12 | Fix round, once, only with open findings, uncounted | the owners: D1 (D1-finish, then D1-build on `build:`), D2, W1 | the round copy first (`--snapshot <n>`); their own files: claims edited in place, a `hinge: no` statement removed or narrowed; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
+| 13 | V4 re-check | `build-guide-verifier`, one: only what `check-run.mjs --changed <n>` lists | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict; no further round |
+| 14 | Known issues | the runner | each open finding's `reader` sentence into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
+| 15 | Run checker | the runner: `display final` runs it | — | its result, in the final gate's display (step 16) |
+| 16 | The final gate (checkpoint 2, §10) | the runner | log; the interview notes | an interview: accept, ask for changes (a revision, §5.6), or the user declines |
+
+Before M-15, step 6 was one D1 step, with no design gate; step 11 was three verifiers in parallel (`ledger`,
+`sources`, `prose`), whose reports the runner wrote as `reports/v4-<lens>.json`; and step 13 re-checked each
+lens that raised a finding and the sources lens, or all three when a gate re-ran in the fix round.
 
 **Retries, in full** (D-272). The R1b compile, the D1 gate and the D2 gate allow 2 counted retries each.
 These attempts count against no cap: an attempt failed by a fault directive that applies to attempt 1 only
-(a persistent directive's failed attempts do count), a guided retry, the fix round, a revision, and the
-re-run after a missing return. Verification never runs a lens again for its findings beyond the one
+(a persistent directive's failed attempts do count), a guided retry, the fix round, a revision, the design
+gate's `revise:` (since WU-70), and the re-run after a missing return. Verification never runs a lens again for its findings beyond the one
 re-check, and never escalates; only the D1 and D2 gates escalate (D-268).
 
 **Research before WU-57** (M-12's steps 2 to 4; D-311, D-235), kept as the record of WU-47's runs:
@@ -549,27 +629,57 @@ skill.
   D1 sets each group's `count` with its `countReason` and writes each `customMods` entry with its reason,
   and after setting Count on a group that reserves per copy (or a totem with Ancestral Bond, or an Umbral
   Well buff) it checks reservation and buffs (R-33). D2 plans bridge skills when the named damage source
-  arrives late, and banks the enabler in hold and save rows (D-301; *target*, D-354: banking the enabler
-  goes).
+  arrives late, and banked the enabler in hold and save rows until D-354 (built, WU-70) dropped that (D-301).
 
-*Target (M-15; WU-70, with WU-65 and WU-71; D-351, D-353…D-356, D-358, D-359, D-362):* **the lean
+Since M-15 (WU-70, with WU-65 and WU-71; built; D-351, D-353…D-356, D-358, D-359, D-362): **the lean
 finalization.**
 - **D1 splits** (D-356). `D1-build` takes the three rungs to a passing floor; `D1-finish`, a fresh
   coordinator step, reads the plan and the record through `guide_run`'s views and adds the anoint (D-358:
   one valuable notable that is off the tree or costly to path, measured with a measure-only compile, its
   reason recorded; `b` and `n` only), the prices, the ledger and the claims (D-351: hinge facts and measured
   reasons only). D1 writes no `hit_*` entries: the compiler fills the reference hits (D-353). `D1-build`
-  states D-360's tree rule (today's `D1.md:112`).
-- **The design gate** (D-362) follows a passing D1 gate and comes before D2 (§10).
+  states D-360's tree rule as D-364 amends it. As built, every D1 attempt runs D1-build then D1-finish; a fix
+  round goes to D1-finish first, which returns `build: <ids>` for a build change; D1-finish after D1-build gets
+  D1-build's `changed`, re-prices and re-claims what moved, never returns `build:` again, and is logged `done`
+  (the WU-70 review's S1). A revision cites an existing claim rather than adding a duplicate (WU-73).
+- **The design gate** (D-362) follows a passing D1 gate and comes before D2 (§10). A fix round or a revision
+  visits no design gate.
 - **D2** (D-354) plans per act the tree path order, the support gem order, a rough upgrade order, the
   build-specific mods to target and a target life from the record's `Life`; the campaign loadouts stay in
-  the PoB file. It stops picking gear for "a resistance it lacks" (`D2.md`:70-77), crafts nothing, and
-  banks no enabler; its claims are hinge claims only. It keeps a tree-granted group within D-359's estimated support count. D2 splits only if the lean run
-  shows it past the peak-context target (D-357).
-- **W1** writes `guide.md`; the runner renders `audit.md` with `scripts/render-audit.mjs` after the final
-  compile, and W1 copies each rung's rendered Checks block verbatim (D-355).
+  the PoB file. It stops picking gear for "a resistance it lacks", crafts nothing, and banks no enabler; its
+  claims are hinge claims only, plus `reason` claims naming each stage's tree path and each reward pick (D-366).
+  It keeps a tree-granted group within D-359's estimated support count. D2 didn't split: the lean run showed it
+  at 395K peak context, past the 150K target, and the user held the lever (D-357, R-41).
+- **W1** writes `guide.md`; the runner renders `audit.md` with `scripts/render-audit.mjs` after every final
+  compile and before every W1 of a fix round or a revision, and W1 copies each rung's rendered Checks block
+  verbatim (D-355). W1 Greps `plan.json` by field and never reads a tree: its tools are file tools only
+  (D-257). Since WU-73 it writes no pipeline notes in the reader text and takes the title from the final build,
+  not a stale card hook.
 - **Every step** reads per-step excerpts of the rules it needs, not whole files or bare D-numbers, and
-  batches independent read-only calls (D-356).
+  batches independent read-only calls (D-356). `references/start.md` and `references/fix-round.md` hold the
+  detail cut from `SKILL.md`, which is capped at 230 lines (221 after WU-70, 230 after WU-82).
+
+Since M-16 (WU-75, WU-76; built; D-370…D-375): **gear pricing by price day.** D1-build reads the pattern library
+whole before designing `b` and `n`, asks the brainstorm questions of the build, and checks and measures every
+shape it uses (D-375). It writes each `b` and `n` rare's price entry with `query {slot, required, target}` before
+D1-finish prices it, and claims no `infeasible` for price. D1-finish selects each rung's loadout and prices its
+rares with `find_upgrades`' weighted search, the over-target slots with `search_trade_items`, and may add a
+fallback (§9). The D1 gate's budget part is `pass` or `unverified`, never `fail` (D-371).
+
+Since M-17 (WU-79; built; D-378, D-379): **a command as the build's skill.** R1b's bootstrap and D1-build put the
+summon in the named source's group, `main.activeSkill` the summon (never its "Command" skill), and name the
+command as the group's `minionSkill`, with `minionStatSet` for a skill with several stat sets (Kelari's
+Deception has two); D1-build writes every plan at schema 4. R1b and D2 target the passives that grant the summon
+and the command, from the first stage that uses them. W1's "How to play it" says the player commands the
+minion, and the minion deals the damage.
+
+Since M-18 (WU-82; built; D-391, D-396): **a gate's changes, and no dead gems.** R1b applies a gate's revision to
+the card's brainstorm half first, or writes a gate-made card's brainstorm half from the user's words and the
+cards it draws on, then verifies it as usual (§7.5). D1-build's first attempt gets a revision that rides on the
+verification gate's finalize as `user-request` findings. D1-build and D2 keep every gem in a stage's loadout
+doing something at that stage: a gem whose condition the stage can't meet stays out, its reason a `reason`
+claim (D-396; amendment 7 says a stage note), and D1-build returns `left out: <gem> on <stages>: <why>` lines,
+which the runner passes to D1-finish.
 
 ### 5.3 Gates and their verdict files (D-267, D-312)
 
@@ -629,12 +739,13 @@ stages" are the plan's stages with a `variant`.
   - The entering-maps rung `m` is gated the same way at area level 69 (`area-level.offset` 64, plus 5, T5),
     with waystone-scaled hits in `hit_m_<type>` (D-254; WU-62). Its hits are tied to that area level as
     D-256 ties each stage's hits; only that tie is the coordinator's inference (D-327).
-  - *Target (WU-65, WU-71; D-353):* the compiler fills the five hits from the data, by the same formula
-    and rounding, when the plan omits them, so the `hit_<stage>_<type>` ledger entries go. The floor then
-    reads each hit from the record, as the compiler wrote it (the stage's `enemy<Type>Damage` in
-    `configWritten`), not from a ledger entry: `max-hit-<type>` and `reference-hit-missing-<type>` read that
-    value, and `reference-hit-ledger-<type>` (its name kept) fails a recorded hit that isn't D-254's formula
-    at the variant's area level, rounded by D-256. The floor's other codes are unchanged.
+  - **Amended by D-353 (v1.5; built, WU-65, WU-71):** the compiler fills the five hits from the data, by the
+    same formula and rounding, when the plan omits them, so the `hit_<stage>_<type>` ledger entries go, and D1
+    writes none. The floor reads each hit from the record, as the compiler wrote it (the stage's
+    `enemy<Type>Damage` in `configWritten`), not from a ledger entry: `max-hit-<type>` and
+    `reference-hit-missing-<type>` read that value, and `reference-hit-ledger-<type>` (its name kept) fails a
+    recorded hit that isn't D-254's formula at the variant's area level, rounded by D-256. The floor's other
+    codes are unchanged.
 - **budget** (D-116, D-147, D-164, D-219, D-249). For the budget variant, every filled slot **and every
   tree jewel** has a `prices[]` entry, converted to divines with `get_currency_rates`' rates. Each filled
   slot or jewel has its own entry, except slots holding identical item text. Totals are compared rounded to
@@ -645,6 +756,14 @@ stages" are the plan's stages with a `variant`.
   reference (D-117), never gated.
   `m`'s budget is 5 divines (D-281, WU-62): at most 5 passes, at most 5.5 passes with "near the ceiling";
   offline it is `unverified`.
+  **Amended by D-370…D-373 (v1.6; built, WU-75, WU-76):** the budget part covers every endgame rung, `m`, `b`
+  and `n`, with the anoint of `b` and `n` priced as a slot. Each rung's total is a range at its price day (day
+  7 for `m` and `b`, day 21 for `n`), converted by `data/economy/prices.json` (§9), never a pass mark. Every
+  rung's total known: **pass**. Any price `unavailable`, or a currency without a rate: **unverified**, as before
+  (D-164). It **never fails** (D-371): a target is information, a budget finding never sends D1 back, and no
+  design is `infeasible` for its price. `over-target`, an information finding, names a rare of `b` or `n` whose
+  range's midpoint is above its `query.target`, and `m`'s total when its midpoint is above 5 divines. The
+  20-divine ceiling, the 22-divine and 5.5-divine tolerances, `over-budget` and `near-ceiling` are gone.
 - **rolledSkill** (D-122, D-148, D-217, D-273). In each endgame stage the rolled skill's group
   (`skills.rolledGroup`) has role `clear` or `single_target`, never `utility` or `leveling`, and its figure
   is the largest among the stage's groups with that role. A figure is a record `skillOutputs` field
@@ -661,6 +780,11 @@ stages" are the plan's stages with a `variant`.
   (D-340). The headline is that Count-scaled figure, with `TotalEHP` beside it (D-294); the user sees the
   same number as PoB's Full DPS, which every compile sets up on the named source's groups only (D-293,
   D-337).
+  **Amended by D-378, D-385 and D-397 (v1.6; built, WU-79, the defect batch, WU-80):** a group whose damage is
+  its minion's (one that names a minion skill, or whose compared skill summons a minion: its record entry carries
+  `Minion<Field>` fields) is compared by its minion's figure, `MinionTotalDPS` × Count in place of `TotalDPS`,
+  which is 0 for a summon; the checker refuses a gate that compares such a group by `TotalDPS`. The Varashta
+  run's three rolled-skill violations were the old rule's false positives on plain summon groups (D-385).
 
 **The basis.** The D1 gate's file also carries `basis`, only what the plan and the record don't say. The
 checker recomputes the floor from the plan and the record alone; it reads the budget's slot→price map with
@@ -670,23 +794,35 @@ record itself.
 ```json
 "basis": {
   "budget": {
-    "rates": [ { "currency": "exalted", "divines": 0.01 } ],
-    "slots": [ { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
-               { "stage": "b", "jewel": 1001, "priceId": "b-jewel" } ],
-    "totals": [ { "stage": "b", "divines": 21.5 } ],
-    "nonBudget": [ { "stage": "n", "divines": 168.0, "reference": 200 } ]
+    "rates": [ { "currency": "exalted", "divines": 0.0025 } ],
+    "market": { "league": "Forbidden Rites", "day": 41, "late": false },
+    "slots": [ { "stage": "m", "slot": "Boots", "priceId": "m-boots" },
+               { "stage": "b", "slot": "Helmet", "priceId": "b-helmet" },
+               { "stage": "b", "jewel": 1001, "priceId": "b-jewel-1001" },
+               { "stage": "b", "slot": "Anoint", "priceId": "b-anoint" },
+               { "stage": "n", "slot": "Helmet", "priceId": "n-helmet" } ],
+    "totals": [ { "stage": "m", "low": 1.6, "high": 3.6, "day": 7 },
+                { "stage": "b", "low": 14, "high": 32, "day": 7 },
+                { "stage": "n", "low": 88, "high": 140, "day": 21 } ]
   },
   "rolledSkill": [ { "stage": "b", "figures": [ { "group": 1, "figure": "g1s1p1.TotalDPS" },
                                                 { "group": 2, "figure": "g2s1p1.TotalDPS" } ] } ]
 }
 ```
 
-`budget.totals` (each budget stage's total, `null` when unverified) and `budget.nonBudget` are what W1
-quotes; the checker computes its own total from the prices and rates.
+Since WU-75 and WU-76 (D-370…D-373), `basis.budget` holds `market` (`{league, day, late}`, the market the prices
+were seen in), `slots` for every endgame rung (the anoint of `b` and `n` as a slot, `"Anoint"`; a fallback entry
+in no slot), and `totals` as `{stage, low, high, day}`, `null` ends when unverified; W1 quotes them through the
+render. Before, `totals` held each budget stage's `divines` and `nonBudget` the non-budget total against the
+~200-divine reference. The checker recomputes the market, ranges and `over-target` findings from the plan's
+prices, `rates`, `slots` and `data/economy/prices.json`, holding the gate's numbers to its own within one rounding
+step, and requires `market` and `totals` (§9). As built, the gate's totals and findings are compared only while
+the gate is fresh, and a basis slot that names a fallback fails. An `over-target` finding carries `slot` (or
+`jewel`), `low`, `high` and `target`. Since WU-70 the file also holds the design gate's display, `design` (A-35).
 
 **Finding codes** for the recomputed parts. An accepted finding (same plan stage, part and code) covers the
 matching failure. `chaos-exception` and `near-ceiling` report on a passing part: they are never failures and
-need no acceptance (D-312).
+need no acceptance (D-312). Since WU-76, `over-target` does the same, and `near-ceiling` is gone (D-371).
 
 | Part | Code | Means |
 |---|---|---|
@@ -695,31 +831,32 @@ need no acceptance (D-312).
 | floor | `chaos-exception` | chaos below its cap, kept by the exception |
 | floor | `max-hit-<type>` | `<Type>MaximumHitTaken` isn't above that reference hit |
 | floor | `reference-hit-missing-<type>` | the stage has no positive `enemy<Type>Damage` hit of that type |
-| floor | `reference-hit-ledger-<type>` | the hit isn't the ceiling of its ledger entry, the record has no value for it, or it isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers. *Target (D-353):* the record's compiler-written hit, with no ledger entry (above) |
-| budget | `over-budget` | the total is above 22 divines |
-| budget | `near-ceiling` | above 20, at most 22 |
-| budget | `unverified` | an unavailable price or a missing rate |
+| floor | `reference-hit-ledger-<type>` | the hit isn't the ceiling of its ledger entry, the record has no value for it, or it isn't derived from the damage at the variant's area level and the tops of the waystone damage modifiers. Since WU-71 (D-353): the record's compiler-written hit, in `configWritten`, with no ledger entry (above) |
+| budget | `over-target` (since WU-76, D-371) | a rare of `b` or `n` whose range's midpoint is above its target, or `m`'s total above 5 divines: information, never a failure |
+| budget | `unverified` | an unavailable price or a missing rate: the rung's total isn't known |
+| budget | *retired by D-371:* `over-budget`, `near-ceiling` | the total above 22 divines; above 20, at most 22 |
 | rolledSkill | `rolled-role` | the rolled group's role isn't `clear` or `single_target` |
 | rolledSkill | `rolled-not-largest` | another group of that role has the larger figure |
 | rolledSkill | `rolled-not-main` | the stage's `skills.main.group` isn't its `rolledGroup` |
 | rolledSkill | `rolled-stat-set` | the stage sets no `skills.main.statSet`, or the rolled figure (or a breakdown field its ledger formula reads) isn't the main skill's stat set |
 | rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
+| v1 | `not-granted` (since WU-78, D-380) | a group whose skill gem, or whose `minionSkill`, a passive grants, on a stage that allocates none of those passives: the compile passes (D-192), the `v1` part fails, and D1 or D2 allocates a granting passive from that stage on |
 
 **The D1 gate's outcome.** The runner routes by the verdict file and D1's claim:
 
 | Gate verdict | D1's claim | Outcome |
 |---|---|---|
-| compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | D2 |
+| compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | the design gate (since WU-70, D-362), then D2 after its `accept` |
 | compile, V1 or V2 fails | any | D1 re-runs with the verdict; after 2 counted retries, `escalated` |
-| only floor, budget or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
-| only floor, budget or rolledSkill fails | `done` | D1 re-runs with the verdict; after 2 counted retries, `infeasible` |
+| only floor or rolledSkill fails (since WU-76 the budget never fails, D-371) | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
+| only floor or rolledSkill fails | `done` | D1 re-runs with the verdict; after 2 counted retries, `infeasible` |
 | any part but the budget `unverified` | any | as a compile, V1 or V2 failure |
 | `"forced": "infeasible"` (FI-3) | any | `infeasible`, evidence `FI-3 (injected)` |
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
 
 An `infeasible` outcome goes back to the verification gate (since WU-57, D-287; before it, checkpoint 1)
-with that card's last verdict file as evidence. *Target (WU-70, D-362):* a pass ("D2" in the table) goes to
-the design gate first, and D2 runs only after its `accept`.
+with that card's last verdict file as evidence. Since WU-70 (D-362), a pass goes to the design gate first,
+and D2 runs only after its `accept`.
 
 **The D2 gate's outcome.** It compiles measure-only and, when the compile, V1 and V2 pass for every stage,
 runs the final compile in the same step. A pass goes to W1. A failure, a failed or refused final compile
@@ -740,7 +877,9 @@ compile included), and on a guided retry that fails again. Verification never es
 open becomes a known issue (D-268). The runner records the escalation in `escalations[]` as `{stage, concept,
 verdict, choice, guidance?}`, `verdict` being the escalated attempt's verdict file, and the question as
 checkpoint `escalation`. It shows the stage, the attempts and the verdict file, and asks with
-AskUserQuestion:
+AskUserQuestion. **Amended by D-389 (v1.6; built, WU-82):** `run-log.mjs display escalation` prints that display
+(D-367), and the escalation is an interview like a gate (§10): the user's questions are answered first, and the
+four choices are unchanged:
 
 1. **accept** (not offered for a compile failure: nothing compiled to continue from). The verdict's failing
    findings are accepted: every later header's `accepted` carries them, and an equal finding (same plan
@@ -804,23 +943,32 @@ In offline test mode `answers.escalation[]` answers each escalation in turn; wit
 
   Every other line and row is dropped: one from an earlier cycle is stale.
 
-*Target (WU-69…WU-71; D-352):* **one pass, narrow re-checks, kept reports, triage.**
+Since WU-69…WU-71 (built; D-352): **one pass, narrow re-checks, kept reports, triage.** The lens procedure
+above is the record of M-12 and M-14's runs.
 - **Step 11** is one V4 pass, one verifier with no lens: it checks every hinge claim against its source and
   reads `guide.md` as an editor against the plan and the record, and writes `reports/V4-<n>.md` itself,
-  never overwriting one. The ledger's arithmetic is the checker's (D-271); V4 checks only that a hinge
-  claim's entry models what the claim says.
+  never overwriting one (`<n>` one more than the highest report in the folder). The ledger's arithmetic is the
+  checker's (D-271); V4 checks only that a hinge claim's entry models what the claim says, and compares a guide
+  figure only with the record's measured values (D-365). As built, it Greps `plan.json`'s claims arrays (it
+  has no `guide_run`, which also carries `new_run`), reads no `audit.md` (D-355), and numbers its findings
+  `v4-<n>-<k>`. Since WU-73 its editor read also flags pipeline notes in the reader text.
 - **Triage first.** The pass marks each finding `hinge` or not. A finding on a non-hinge statement is fixed
   by removing or narrowing the statement, never by new research or a recompile; a difference under 5% in an
   estimate is no finding.
 - **Step 12.** Before the fix round the runner copies the plan, record and guide to `rounds/<n>/`, by A-34's
-  script. A change
+  script (`check-run.mjs <runFolder> --snapshot <n>`, `<n>` the report's number). A change
   to a ledger entry's formula or inputs, like a claim edit, needs no recompile and no gate: the checker
   re-evaluates the ledger and leaves it out of the build's sha1 (`[record-plan]`). Only a change to the gear,
-  tree, gems or config recompiles and re-runs the gates (amending `D1.md`:233-236, `D2.md`'s matching rule
-  and D-264's "or a ledger formula").
+  tree, gems or config recompiles and re-runs the gates (amending D1's and D2's matching rules and D-264's "or
+  a ledger formula"); a price change still recompiles, since `buildSha1` counts every price field but the note
+  (D-386). The owners are D1 (D1-finish first, then D1-build when D1-finish returns `build: <ids>`), D2 and W1
+  last; no design gate runs, and the runner re-renders `audit.md` before W1.
 - **Step 13** re-checks only what `check-run.mjs --changed <n>` lists: the claims whose text, source or cited
   record values changed, and the changed guide H2s. It replaces both the every-claim re-check after a
-  recompile (D-264) and a revision's full pass.
+  recompile (D-264) and a revision's full pass. As built, a re-check `<n>` uses `--changed <n-1>`, carries the
+  last report's open findings by id in `findings`, and reports an untouched open finding as `unresolved`
+  again; its log stage is `V4-recheck`, its `attempt` counting the re-checks from 1 (D-368).
+- **Step 14** is unchanged, but a finding's row in `audit.md` names `V4` where it named a lens.
 
 ### 5.6 Revisions (D-236, D-268)
 
@@ -830,9 +978,10 @@ D2's), runs that chain as step 12 does (claims in place, the gates only after a 
 requests as `findings` (`code: "user-request"`), then steps 11 to 16 again: a full pass, the fix round, the
 re-check and the known issues (D-268). A revision counts against no cap; a gate failure in it keeps the
 gate's 2 counted retries. There is no `revise-map` step and no Agent-tool fallback (D-267).
-*Target (D-352, D-357, D-362):* a revision runs no full pass: after the copy to `rounds/<n>/`, V4 re-checks
-only `--changed`'s set. A revision's output is reported beside the run's budget, not counted in it (Q3). The
-final gate's `revise:` stays for guide-level changes; a build change is the design gate's `revise:` (§10).
+Since WU-69…WU-71 (built; D-352, D-357, D-362): a revision runs no full pass: after the copy to `rounds/<n>/`,
+V4 re-checks only `--changed`'s set. A revision's output is reported beside the run's budget, not counted in it
+(Q3). The final gate's `revise:` stays for guide-level changes; a build change is the design gate's `revise:`
+(§10). Since WU-82 (D-389), the request comes from the final gate's interview, restated and confirmed.
 
 ## 6. Run log `run-log.json` (D-270)
 
@@ -918,11 +1067,29 @@ Since WU-58 (merge `85c70c9`; D-289, D-286, D-287, D-323, D-326, D-338, D-339, D
   (D-341); `run-ok-v2` is the regression fixture for the schema-2 log rules, its verdict lines without
   Effective HP.
 
-*Target (WU-70, WU-71; D-356, D-362):* checkpoint `design` joins the gates, answered `accept`,
-`revise:<text>`, `verification` or `stop`; `scripts/run-log.mjs` appends the log. *Target (WU-64, WU-72;
-D-349, D-357):* the budgets are read from WU-64's counter and the transcripts, not from the log: output
-before the final gate's revision at most 1M (the revision's reported beside it), each agent's peak context
-against a design target of 150K, and the cache read per step, reported.
+Since WU-70 and WU-71 (built; D-356, D-362): checkpoint `design` joins the gates, answered `accept`,
+`revise:<text>`, `verification` or `stop`, and `scripts/run-log.mjs <runFolder> <kind> - <<'JSON'` appends the
+log (`init`, `stage`, `checkpoint`, `escalation` or `set`; the entry read from stdin by a quoted heredoc). In
+schema 3 `stages[]` names D1's two steps `D1-build` and `D1-finish` (a schema-2 log keeps `D1`), the V4 entries
+`V4` (the one full pass, each one report `reports/V4-<n>.md`) and `V4-recheck`, and `priceOutcomes` sits on
+D1-finish in place of D1. A D1-finish after D1-build, and a D2 after a recompiled D1, are `done` whatever they
+return, since their gate follows.
+Since WU-73 (D-367, D-368): `displays[]` holds `{checkpoint, visit}` for every gate visit whose display
+`run-log.mjs <runFolder> display <gate>` printed, and `checkpoint` refuses an answer whose visit printed none
+(naming the expected visit when the runner's is wrong); a re-check's `attempt` counts that card's re-checks from
+1, apart from its full pass, per log name.
+Since WU-81 and WU-82 (D-389, D-391, D-394): a gate's or an escalation's checkpoint holds `questions` (how many
+the user asked, `0` too; optional, `0` when absent, as built), and `changes`, `newCards` and `note` carry a pick's
+revisions, the cards made at the gate and a `more` answer's note. The brainstorm gate's answer `pick:` alone
+makes only new cards, and the verification gate's `verify:` alone likewise. `stages[]` adds `Q`, a gate question
+step, with no `concept`. The final gate's answers are `accept`, `revise:<text>`, or the note of a user who
+declines the guide (`not-accepted`). A default answer arises also when the deck refused a scripted entry (§11.2).
+Since WU-64 and WU-72 (D-349, D-357): the budgets are read from telemetry, cross-checked by the session's `/cost`
+ledger, with WU-64's transcript estimate as the fallback (±7%), not from the log: output before the final gate's
+revision at most 1M (the revision's reported beside it), each agent's peak context against a design target of
+150K, and the cache read per step, reported. Claude Code's own `agent_summary` requests count toward the output
+budget, and their cache read gets its own line; every recorded run starts the local telemetry receiver and ends
+with `/exit`.
 
 ## 7. Stage artifact formats
 
@@ -943,9 +1110,14 @@ against a design target of 150K, and the cache read per step, reported.
   entries.
 - `variant: "entering-maps"` for the rung `m`, with loadout `Entering maps (L<level>) {m}` (D-281; WU-61,
   WU-62), in a plan of `schemaVersion` 2 (D-332).
-- *Target (WU-65; D-351, D-353, D-358):* `schemaVersion` 3, each claim's `kind` (`hinge` or `reason`),
+- Since WU-65 and WU-70 (D-351, D-353, D-358): `schemaVersion` 3, each claim's `kind` (`hinge` or `reason`),
   `items.anoint {notable, reason}` on `b` and `n` only, and no `hit_*`, kill-time or hits-to-kill ledger
   entries (slice 02 §3.2).
+- Since WU-79 (D-377): `schemaVersion` 4 (D1-build writes every plan at 4), and a summon group's `minionSkill`
+  (with `minionStatSet` for a skill with several stat sets), `main.activeSkill` on the summon.
+- Since WU-75 (D-370, D-372): each `b` and `n` rare's price entry `query {slot, required, target}`, written by
+  D1-build before it is priced; an over-target slot may get a fallback entry `<id>-fallback` (§9).
+- Since WU-82 (D-396): no gem a stage can't use; a gem left out has a `reason` claim saying why.
 
 ### 7.2 Dossier `dossier.md` (D-269)
 
@@ -968,8 +1140,13 @@ One writer, R1b-assemble, from `templates/dossier-template.md`. H2 headings in o
 The dossier isn't verified after checkpoint 1: it serves the pick, and the guide can't cite it (D-269).
 Since WU-57 (D-287, D-294), R1b-assemble runs per verification round over the picked cards, whose
 verification halves R1b writes; its key numbers add `TotalEHP`. Amendment 3 named no change to the
-dossier's H2s. *Target (WU-70, D-355):* the dossier shrinks to the verification gate's comparison table
-(run A's ran to 7,681 words), and D1, D2 and W1 read their card and its row instead.
+dossier's H2s. **Amended by D-355 (v1.5; built, WU-70):** the dossier shrinks to the verification gate's
+comparison table (run A's ran to 7,681 words), and D1, D2 and W1 read their card and its row instead. As built
+(`templates/dossier-template.md`): one line for the brief, the mode and the rounds, then one table with a row
+per verified card, in id order, its ten columns `Card`, `Round`, `Status`, `Synergy`, `Named source DPS` (the
+Count-scaled figure, `MinionTotalDPS` for a minion skill), `Life`, `EHP`, `Key prices` (since WU-75, converted
+ranges with their day, D-374), `League` and `Main risk`; no H2, no H3 and no markers. The H2s above are the
+record of M-12 and M-14's runs.
 
 ### 7.3 Source markers in markdown (C-30 in `dossier.md` and the research files; none in `guide.md` since WU-62)
 
@@ -998,7 +1175,7 @@ and the plan's claims carry the guide's sources. In the dossier and the research
 mechanic stated without a marker is a claim without a source; in the plan, a claim without a `source` is
 the V4 sources lens's finding.
 
-*Target (WU-65, WU-70, WU-71; D-351, amending D-276 and D-279):* **claims only where the build hinges.**
+Since WU-65, WU-70 and WU-71 (built; D-351, amending D-276 and D-279): **claims only where the build hinges.**
 - A claim is written only for a **hinge** fact, one whose being wrong would make the build fail at its rung
   (run A's `m-trap-weapon`: a main-hand weapon switches the skill off), or for a **reason** resting on a
   measurement (`s6-ignite`: Ignite III over Elemental Armament II). Its `kind` says which.
@@ -1010,6 +1187,13 @@ the V4 sources lens's finding.
 - The three rules above still hold for each claim written. Run A's 133 claims were 29 hinge, 42
   compile-proven, 27 reasons and 35 superfluous, and no compile-proven claim or reason was wrong (cost study 2
   §1), so the rule keeps at most 56.
+- **D2's path claims** (D-366): D2 may keep `reason` claims that name each campaign stage's tree path, its
+  notables and keystones in order, plus one per reward pick, about 10, since the plan holds node ids only and
+  W1 has no tree tool. V4 doesn't check `reason` claims, and they count toward the 56. The lean run had 30
+  claims, 11 hinge and 19 reason, D2's 14 reasons over "about 10".
+- **No duplicates** (WU-73): a revision cites an existing claim rather than adding another; the lean run's
+  revision had stated one cost a third time.
+- **A dropped gem's reason** (D-396; WU-82) is a `reason` claim on the stage.
 
 ### 7.4 Verifier reports (V4; D-268)
 
@@ -1054,7 +1238,8 @@ none of itself; `possibly unread` is advisory until a measurement confirms it, D
   or that states them more strongly; first-person advice that asserts a fact the plan lacks; tutorial text
   (D-280); a caveat repeated or later stated as settled (D-279). It keeps the gated statements' checks: the rolled skill as
   the main damage source in `At a glance` and `How to play it`, with why when it isn't the clear skill
-  (D-122, D-148); the budget lines against 5 and 20 divines (D-164, D-219, D-281); the chaos line (D-234);
+  (D-122, D-148); the budget lines against 5 and 20 divines (D-164, D-219, D-281; since WU-75, D-374's
+  lines against their targets); the chaos line (D-234);
   the offline line (D-201); and "why this concept" in `audit.md`'s `Run notes` against `run-log.json`'s
   checkpoint-1 entry that picked it, its `answeredBy` and its `rule`. It never flags a missing optional item
   (D-277).
@@ -1063,12 +1248,23 @@ Since WU-57 (D-296), a DPS figure that rests on Count or a hand calculation, and
 marks as computed with a custom modifier, is an estimate, not checked for exactness; every interaction the
 guide states must exist in game text.
 
-*Target (WU-69, D-352):* one pass and one report. The verifier writes `reports/V4-<n>.md` itself, one per
-pass, never overwritten (run A's second round overwrote its first). There are no lenses: the pass checks
+Since WU-69 (built, merge `4481752`; D-352): one pass and one report. The lens reports above are the record of
+M-12 and M-14's runs. The verifier writes `reports/V4-<n>.md` itself, one per pass, never overwritten (run A's
+second round overwrote its first); `<n>` is one more than the last report's. There are no lenses: the pass checks
 every hinge claim against its source, and the guide as an editor, and marks each finding `hinge` or not
-(§5.5). A re-check covers only `check-run.mjs --changed <n>`'s set. The report's exact form is WU-69's, held
-by AC-W52 and AC-W54. Evidence: of run A's first full pass's 19 findings, one touched what the build hinges
-on, and the second full pass found two the first had missed, which is the case for checking fewer claims.
+(§5.5). A re-check covers only `check-run.mjs --changed <n-1>`'s set, against the round copy `rounds/<n-1>/`.
+Evidence: of run A's first full pass's 19 findings, one touched what the build hinges on, and the second full
+pass found two the first had missed, which is the case for checking fewer claims. As built
+(`references/source-markers.md`, `stages/V4.md`), the report is markdown, read by line: the H1 `# V4-<n>: full
+pass` or `# V4-<n>: re-check of rounds/<n-1>`; the lines `- check:`, `- concept:`, `- mode:` and `- verdict:`;
+`## Checked`, every hinge claim as `claim stages[<i>].claims[<k>] (<id>)` and every H2 as `section <H2 title>`
+(in a re-check, every line `--changed` printed); and `## Findings`, one H3 per finding, its id `v4-<n>-<k>`, with
+`- status:`, `- hinge:`, `- owner:`, `- artifact:` (`plan.json` or `guide.md`), `- location:`, `- claim:`,
+`- issue:`, `- evidence:` and, on an `unresolved` finding, `- reader:`; or the one line `None.`. A re-check
+reports again, under its id, every finding still open. V4 reads no `audit.md` (D-355), compares a guide figure
+only with the record's measured values (D-365), and Greps `plan.json`'s claims arrays, since it holds no
+`guide_run`. Since WU-79 it treats an unparsed `Grants Skill: <minion skill>` line as no modelling gap
+(D-379).
 
 ### 7.5 Cards and the deck (C-52)
 
@@ -1078,9 +1274,19 @@ fills the brainstorm half (about 250–400 words); R1b fills the verification ha
 
 - **Brainstorm half:**
   - **Identity:** class, ascendancy and named damage source; since WU-63, one line per skill the card uses
-    that a passive-tree node or a unique grants, naming the source (D-342).
+    that a passive-tree node or a unique grants, naming the source (D-342). Since WU-79, a minion skill is
+    named with its summon, "<skill> (cast by <minion>, summoned by <gem>)" (D-379).
   - **Pitch:** a title of at most 60 characters, playstyle tags (FR-W1's vocabulary), and two lines; an
-    under-played card's pitch carries `Under-played (judgment)` (D-339).
+    under-played card's pitch carries `Under-played (judgment)` (D-339). **Amended by D-392 (v1.6; built,
+    WU-81, WU-82):** the Pitch is a named pitch: `Name` (2–4 words, a player's name for the build, unique in
+    the run, never changed or reused), `Why pick it` (the hook in player terms, at most two sentences), `How it
+    clears` (how a pack dies, the buttons, the pace between packs: players judge a build by clear speed),
+    `Bosses` (its answer to one tough enemy, a minimum check), `Needs` (the key items, gems and passives; when it
+    comes online; a respec, if any; a rough cost, when known) and `The catch` (the main risk or cost); then the
+    under-played label, `Not confirmed: <link>: <what it would change>` for an unconfirmed load-bearing link, and
+    `Playstyle:` tags, never displayed. The H1 reads `# Card <id>: <Name>`. A card revised at a gate adds `-
+    Changed at the gate (visit <n>): <the user's words>` under Pitch; a card made at a gate, `- Made at the gate
+    (visit <n>): from <name> and <name>: <the user's words>` (D-391).
   - **Chain:** the named damage source and what it reads (the slot that carries it); its multipliers; its
     enablers; what the payoff consumes or requires, and who supplies it.
   - **Enabler:** the item, node or gem, the level it arrives at, how to get it, and what is dormant until
@@ -1089,14 +1295,17 @@ fills the brainstorm half (about 250–400 words); R1b fills the verification ha
     (§7.6's labels, with PG ids); any hidden clauses, stated as theory ("from a Hit", "you use yourself").
   - **Evidence** (D-335): the brief's `popularity` notes, cited as user-supplied, where they speak to this
     card's skill, ascendancy or combination, or else "no player evidence"; a reference build, if there is
-    one. No tool supplies player evidence.
+    one. No tool supplies player evidence. Since WU-82, a seed card's reference build line reads `Seed: <the
+    reference the user named>`, and its status word is "players use it (the user's reference)" (D-393).
   - **Risks so far:** payoff thieves, placement limits, the exposed phase, resistant bosses.
 - **Verification half:**
   - **Verified:** defences from PoB (life, energy shield, resistances, max hit, `TotalEHP`) and the modelled
-    DPS.
+    DPS (`MinionTotalDPS` for a minion skill, D-378).
   - **Estimates:** each Count and custom modifier with its reason; any figure computed with a custom
     modifier present; clear and boss figures kept separate.
-  - **Checklist results** (§7.7), **a fallback ladder** and **key item prices**.
+  - **Checklist results** (§7.7), **a fallback ladder** and **key item prices** (since WU-75, converted to
+    day 7 as ranges with their day, "about <low>–<high> divines around day 7 (seen <amount currency> on
+    <date>, day <n> of <league>)", or unconverted with no currency rates, or `unavailable`; D-374).
 - **Status words**, used everywhere on the card: confirmed in game text; modelled in PoB; estimate (with the
   reason); players use it (the user's notes, D-335); not checked yet; needs in-game testing.
 - **The template against D-335.** As WU-56 merged it, the template named poe.ninja in its fourth status
@@ -1110,7 +1319,19 @@ fills the brainstorm half (about 250–400 words); R1b fills the verification ha
   yet: its damage source isn't a skill", never `failed`, and it is in no failure list.
 - **`cards.md`** (R1a-assemble) holds one line per dealt card, like R1b-assemble's comparison lines, then a
   "Not dealt" list, each with the link no lookup confirmed or the check that failed (`wrong-ascendancy`,
-  D-342).
+  D-342). **Amended by D-392 (v1.6; built, WU-81, WU-82):** `# Deck`, then a header rewritten each round for the
+  whole deck, `## What the cards share` (the common core once, in player terms, at most 80 words) and `## How
+  they differ` (one line on the deck's shape, such as "five of eight are one loop with a different add-on"); one
+  `## Round <k>` per round with its dealt cards' lines (a gate-made card's marked "made at the gate", added by
+  R1b-assemble); `## Not dealt`, each card with its reason in plain words; and `## Found, not used`, up to five
+  strong research findings no card uses, each with its reason (Muster with a +4 sceptre would have been one in
+  the Varashta run). R1a-assemble keeps names unique, renaming the newer card on a clash. "Not confirmed in game"
+  is the deck's default, said once; no line repeats "links confirmed n of m" or "no player evidence".
+- **Cards made at a gate, and seed cards** (D-391, D-393; built, WU-81, WU-82). A card made at a gate is
+  `r<k>-g-<n>`: R1b writes its brainstorm half from the user's words, the cards it draws on and their research
+  files, checks every link with the lookups, and verifies it as usual; a card that doesn't hold together fails,
+  with the reason. A seed card is written by researcher `a` from the reference build the user named, its links
+  confirmed by the lookups like any card's.
 
 ### 7.6 The pattern library `references/patterns.md` (C-53)
 
@@ -1125,7 +1346,15 @@ exemption from AC-W1's "lists every shared reference" rule.
   a line each; cautions.
 - **Rules:** shapes only, each use re-checked against current game data; at most 6,000 words, counted by
   AC-W28's static test, so a researcher reads it whole (D-325); after each user-supplied study, the
-  coordinator proposes entries and the user approves them.
+  coordinator proposes entries and the user approves them. **Amended by D-381 (v1.6):** at most 10,000 words,
+  the static test's `LIBRARY_WORD_CAP`, still read whole in one Read (about 18K tokens at the cap); no skill
+  file states the number. The five shapes the user approved from the techniques-video study (2026-10-16) had
+  brought it to 6,000 words exactly.
+- **Readers** (D-375; since WU-75): every R1a researcher, and D1-build, which reads it whole before designing
+  `b` and `n` and asks the brainstorm questions of the build; the file's opening names both readers. A shape is
+  a starting point: each use is checked with a lookup and measured with a compile, and the plan's `reason`
+  cites those, never the library.
+- **Actor rerouting** (since WU-79, D-379): its PoB line names `minionSkill` and PoB's unchecked unlock.
 
 ### 7.7 The verification checklist (advisory)
 
@@ -1141,7 +1370,9 @@ starts a fix round.
   4. risks PoB can't show: payoff thieves (from the lookup's hit-making children), placement and targeting
      limits, the exposed phase, cooldown dead windows on interruptible casts, hidden clauses.
 - **From compile variants.** The mutating tools are `mutate` tools the coordinator doesn't hold (D-231), so
-  each probe is a plan variant compiled measure-only as a single stage, at `probes/<card-id>/<n>/` (D-331):
+  each probe is a plan variant compiled measure-only as a single stage, at `probes/<card-id>/<n>/` (D-331).
+  Since WU-75 the coordinator holds one `mutate` tool, `manage_sets`, for D1-finish's loadout select before
+  pricing only; R1b doesn't use it (D-372):
   5. a dead-slot audit: one support or source removed, a change below 1% flagged, and whether each support
      touches the activation or the payload;
   6. a condition on and off, by toggling its earned config entry, at a realistic uptime;
@@ -1171,13 +1402,23 @@ table at step 14. The checker requires these H2s in order once a guide exists (A
 | `Run notes` | why this concept (the pick's checkpoint answer and its rule); the D1 gate's budget totals and rates |
 | `Known issues` | each open or accepted finding's id, its lens or gate, and the sentence the guide prints |
 
-*Target (WU-71, D-355, amending D-278 and AC-W2 (z)):* `audit.md` is rendered by
-`scripts/render-audit.mjs`, which the runner runs after the final compile, loading the server's modules as
-the checker does. It writes the stage table, the coverage flags, the inputs by confidence and the estimates
-(ledger entries, Count and custom modifiers, with their reasons), and no Run notes or hand-calculation
-prose. It also renders each endgame rung's Checks block (budget, Arbiter verdict, clear and movement speed),
-which W1 copies verbatim into the guide; the checker fails an `audit.md` or Checks block that differs from
-the render, Known issues aside (AC-W55).
+**Amended by D-355 (v1.5; built, WU-70, WU-71, amending D-278 and AC-W2 (z)):** `audit.md` is rendered by
+`scripts/render-audit.mjs`, which the runner runs after every final compile and before every W1 of a fix round
+or a revision, loading the server's modules as the checker does. It writes the stage table, the coverage flags,
+the inputs by confidence and the estimates (ledger entries, Count and custom modifiers, with their reasons), and
+no Run notes or hand-calculation prose. It also renders each endgame rung's Checks block (budget, Arbiter
+verdict, clear and movement speed), which W1 copies verbatim into the guide; the checker fails an `audit.md` or
+Checks block that differs from the render, Known issues aside (AC-W55). The table above is the record of the
+M-12 and M-14 runs. As built (`templates/audit-template.md`, the render's exact form): the H2s are `Estimates`,
+`Stage detail`, `Checks` (one H3 per endgame rung, by its loadout name), `What PoB doesn't model`, `Inputs by
+confidence` and `Known issues`. The estimates' values come from the evaluator over the plan's current formulas
+(D-365), not the record's stored ledger; the coverage lines come from the record's `customModsWritten` and
+`pobWarnings.kept`; null renders as "—", "unknown" or "not measured". Movement speed reads "+<n>%" from the
+record's `EffectiveMovementSpeedMod` (WU-73). The budget lines are D-374's (§9), with an over-target slot's
+fallback inside its parentheses ("Weapon 1 (about 3.2–7.2; fallback about 1.2–2.7)", or "; fallback price
+unknown"), converted at the gate's market and rates. The render writes `None.` under Known issues; W1 replaces it
+with the accepted gate findings' rows, and the runner fills the table at step 14, a V4 finding's row naming `V4`.
+The render's conversion lives once, in `render-audit.mjs`, which the checker imports.
 
 ## 8. Guide template (W1; ext §5, the design's quality bar)
 
@@ -1251,16 +1492,21 @@ Since WU-57 and WU-58 (D-294), the verdict line quotes the named source's Count-
 EHP is shown beside max hit, never alone, and max hit stays the basis of the verdict. `What PoB can't show`
 lists each Count and custom modifier with its reason, rendered from the plan.
 
-*Target (WU-70, WU-71; D-351, D-353…D-355, D-358, D-359), amending the rows above:*
+Since WU-70 and WU-71 (built; D-351, D-353…D-355, D-358, D-359), amending the rows above:
 - **The survival label follows the Arbiter verdict** (D-353): "survives the Arbiter's hits" or "one-shot by
-  the Arbiter's <hit>", read from the record's `measures.arbiter` on `b` and `n` (run A's rungs read "solid"
-  while the slam one-shot them, at max hits 0.66 and 0.85 of it). The five waystone-scaled map hits stay
-  the D1 gate's floor. No kill time or hits to kill appears anywhere in the guide.
+  the Arbiter's <the worst hit>", read from the record's `measures.arbiter` on `b` and `n` (run A's rungs read
+  "solid" while the slam one-shot them, at max hits 0.66 and 0.85 of it); the worst hit is named as `audit.md`'s
+  Checks names it ("lightning hit", "physical and lightning hit"). `m` keeps `solid`, `watch` or `risky`. The
+  five waystone-scaled map hits stay the D1 gate's floor. No kill time or hits to kill appears anywhere in the
+  guide.
 - **The verdict line's hits** (D-353): with the `hit_*` entries gone, the checker compares the physical hit,
   and the largest of the other four, with the record's compiler-written hits (the stage's
-  `enemy<Type>Damage` in `configWritten`, §5.3).
+  `enemy<Type>Damage` in `configWritten`, §5.3). Its DPS is the record's `measures.dps`, whatever figure the
+  gate names (the WU-71 review; `W1.md`), and since WU-79 a minion source's figure reads `MinionTotalDPS` ×
+  Count (D-378, D-397).
 - **Each endgame rung's Checks** is the block `scripts/render-audit.mjs` renders (budget, Arbiter verdict,
-  clear and movement speed), copied verbatim (D-355). Clear speed is the record's rough `clearSpeed`.
+  clear and movement speed), copied verbatim (D-355). Clear speed is the record's rough `clearSpeed`; movement
+  speed reads "+<n>%" (WU-73).
 - **The campaign** (D-354): per act, the tree path order, the support gem order, a rough upgrade order, the
   build-specific mods to target and a target life; no resistances, max hits or EHP, so `Survival by stage`
   loses its campaign rows (`guide-template.md`:56-60). No crafting: the guide names mods to buy on trade.
@@ -1269,6 +1515,24 @@ lists each Count and custom modifier with its reason, rendered from the plan.
 - **Support sockets** (D-359): the guide says once that a tree-granted skill's support counts are
   estimates, and never saves Jeweller's Orbs for a tree-granted skill (run A's `guide.md:94` did).
 - **What PoB can't show** keeps only hinge caveats, each once (D-351).
+- **Since WU-73:** no pipeline notes in the reader text ("1.251× base", "unconfirmed offline"), and the title
+  comes from the final build, not a stale card hook.
+
+Since WU-75 and WU-76 (built; D-374), amending rows 2, 8, 9 and 10:
+- **The pricing line** (row 2, online) says once the league and the date the prices were seen, the league day
+  (or that it isn't known), that early endgame gear is estimated at about day 7 and late endgame at about day
+  21 (or, before day 21, that the prices are from an early market and weren't converted), that trade moves a
+  lot, and that the build can be re-priced with the skill at any time. Offline: "Made offline, so no prices were
+  checked."
+- **Each rung's budget line** in its Checks block is the render's (§7.8, §9), a range at the price day against
+  its target, with the over-target slots; `m`'s buy order is "within 5 divines" as a target, never a cap.
+- **The slot table** (row 9, and row 10's slots) gives each rare's required affixes as what to buy, its other
+  affixes as the priority after them, and an over-target slot's fallback with its price and that it isn't
+  measured.
+
+Since WU-79 (built; D-379): `How to play it` says the player commands the minion, and the minion deals the
+damage. Since WU-82 (built; D-389): the `FAQ` answers the user's gate questions that a reader of the guide would
+ask too, from the gates' interview notes, within its 3–5.
 
 ## 9. Pricing procedure (T1; `references/pricing.md`; D-133, D-160, D-164, D-169, D-202, D-218)
 
@@ -1276,7 +1540,9 @@ lists each Count and custom modifier with its reason, rendered from the plan.
 - **Order** (D-133): R1b prices concept key items; D1 prices every filled slot **and every tree jewel**
   (D-249) of every rung, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`,
   D-281; WU-62), with rares as affix-target searches (`search_trade_items` with `mods`), each with its own
-  entry unless slots hold identical item text; D2 prices campaign uniques.
+  entry unless slots hold identical item text; D2 prices campaign uniques. **Amended by D-372 (v1.6; built,
+  WU-75):** the rares of `b` and `n` are priced by weighted search (below); `m`'s slots, magic and normal items,
+  flasks and charms stay `search_trade_items` with `mods`, and uniques `get_item_price`.
 - **Record** each result in that plan's `prices[]` with its id (what a `price:<id>` claim cites, D-237),
   date (the result's `Checked:` line, C-49), league, query and status (D-169). An `unavailable` entry has
   `amount` and `currency` null and a `note` giving the reason (`offline run`, `rate-limited`,
@@ -1302,18 +1568,74 @@ lists each Count and custom modifier with its reason, rendered from the plan.
 - **Divines.** Totals convert with `get_currency_rates` (poe.ninja, through the same coordinator). The D1
   gate records the rates it used (`basis`, §5.3). Without rates, totals are `unverified`.
 - **Unavailable** (no cookie, rate-limited, down, disabled, offline; D-164): a variant with any unavailable
-  slot price can't be claimed to be under budget; the guide and checkpoint 2 say so.
+  slot price can't be claimed to be under budget; the guide and checkpoint 2 say so. Since D-371 the budget is a
+  target, never a pass mark: an unavailable price makes the rung's total `unverified` and the guide can't state
+  it, as before.
 - **Log** (D-270). Each pricing step returns its calls counted by outcome in one line
   (`prices: ok 12, would_wait 1`, or `prices: none`), which the runner records as that step's
   `priceOutcomes` (§6).
-- *Target (WU-70; D-348, D-356, D-358):* `D1-finish` prices D1's slots, the anoint like a slot. No item-base
-  or mod-tier search serves crafting: the guide names mods to buy on trade.
+- Since WU-70 (built; D-348, D-356, D-358): `D1-finish` prices D1's slots, the anoint like a slot. No item-base
+  or mod-tier search serves crafting: the guide names mods to buy on trade. Since D-387 an anoint's Distilled
+  Emotions are priced by `get_item_price` from the currency exchange: amount and currency from its `Exchange
+  value:` line, `query` `{"exchange": "Delirium", "name": "<emotion>"}`.
+
+Since WU-75 and WU-76 (built; D-370…D-374): **targets by price day, weighted search, conversion.** The reader
+gets the guide at league start, buys early endgame gear around day 7 and reaches late endgame two to three weeks
+in; by day 7 most early endgame items cost a few divines, and guides top out at 100–200 divines (the user,
+2026-10-15 and 2026-10-16). Estimates are ballpark, the method general (last league's price for an item doesn't
+transfer), and no build is pruned for price.
+- **Targets** (D-370). `m` and `b` at about league day 7, `n` at about day 21: `m`, 5 divines in all; `b`, about
+  5 divines a rare slot or rare tree jewel; `n`, 100–200 in all, D1-build giving each rare its own target (by
+  default 150 shared evenly; a slot that carries the build may take more, with a reason; together at most 200).
+  Uniques, magic items, flasks, charms and the anoint count toward a rung's total, with no target of their own.
+  A rare's target travels in its entry's `query` as `target: {divines, day}`.
+- **Never a gate failure** (D-371). A rare whose converted range has its midpoint above its target, and `m`'s
+  total above 5 divines, are `over-target` findings: information for the user, who judges the cost at the
+  verification gate (each card's key prices) and the final gate (each rung's total and its over-target slots).
+  No design goes back to D1, and none is `infeasible`, for its price. An over-target rare keeps its designed
+  item; D1-finish may add a fallback, `<id>-fallback` (fewer or lower required affixes, priced the same way),
+  which the guide shows beside the slot, says isn't measured, and counts in no total. A fallback is never
+  D-164's reason, and a basis slot naming one fails.
+- **The weighted search** (D-372). D1-build writes each `b` and `n` rare's entry before it is priced, `query
+  {slot, required, target}`: the slot as `find_upgrades` names it (`Helmet`, `Ring 1`, `Jewel <node id>`), its
+  required affixes (at most 3, each `{affix, min}`: what the slot can't do without, such as the build's damage
+  type, a resistance the floor needs, skill levels; an affix PoB can't value is always required), and its target.
+  D1-finish then, per rung: (1) loads the rung, after a measure-only compile, with `manage_sets {set_type:
+  "loadout", action: "select", title: <the rung's loadout name>}`; (2) maps each required affix to a trade id with
+  `trade_query_options {slot}`; (3) sets `max_price`, the target over the midpoint of its row's conversion factors
+  (D-373), times the run's exalts per divine, as a whole number; (4) calls `find_upgrades {slot, required_mods,
+  max_price, currency: "exalted_equivalent", rank_by: "stat_value", include_non_upgrades: true, fetch_pages: 1}`,
+  with the default weights (the build's saved trade weights, else full DPS 1 and EHP 0.5, custom modifiers
+  included); (5) records the first listing's price as the entry's, and its score against the designed item as the
+  `note` (`fit 85%`); (6) with no listing that fits, the slot is over target: `search_trade_items` with the
+  required affixes as `mods` gives the cheapest listing that has them (the trade site sorts that search by price;
+  a second `find_upgrades` re-sorts only its fetched page), `note` `over target`; (7) the entry's `query` keeps
+  `slot`, `required` and `target` and adds the call's arguments. With `--no-ninja` there is no rate for
+  `max_price`, so only the step-6 search runs. Each call's league and `Checked:` date are the entry's.
+- **Conversion to the price day** (D-373). The market's league day is the seen date less the league's start
+  date, from `data/economy/prices.json`; a league past its end date, or past day 60, reads as late; a league not
+  in the table converts as days 21–60 and the guide says its day is unknown. The table, a `judgment` fact at L:
+  under 10 divines, ×0.6–0.85 to day 21 and ×0.4–0.9 to day 7; 10 or more, ×0.5–0.85 and ×0.2–0.4; seen late,
+  the row then ÷2–4; a market before day 21 converts by 1. A total is a range, each entry converted at both ends
+  of its row, rounded to whole divines at 10 or more and one decimal under. Prices stay as seen in the plan; the
+  conversion is reporting only, done once in `render-audit.mjs`, which the checker imports (`gates.md`'s seven
+  steps hold the arithmetic).
+- **What the user and the reader see** (D-374). Cards and the dossier show key prices converted to day 7, as
+  ranges with their day. The guide's pricing line and the Checks budget lines are §8's: `m` "Budget: about A–B
+  divines around day 7, against a 5-divine target."; `b` "Budget: about A–B divines around day 7, aiming at about
+  5 a slot. Over target: <slot> (about A–B)."; `n` "Budget: about A–B divines around day 21, against the 100–200
+  target. Over target: <slot> (about A–B)."; the "Over target" sentence only when a slot is over, with a
+  fallback inside the slot's parentheses; unavailable prices, "Budget: unknown" with D-164's reason.
+- **The rate limit** (R-43). The pricing study's capture drew a 429 and a 600-second lockout on its 18th search;
+  the Varashta run drew one about 20 calls into D1-finish. Two rungs of about ten rares make about 20 searches
+  and 20 listing fetches; the live alpha watches it.
 
 ## 10. Gates with the user (D-125, D-157, A-28, D-210, D-235, D-236)
 
 Each question is asked with AskUserQuestion; if the choices exceed one question's option limit, the runner
-splits them across questions. In offline test mode the test config answers instead (§11.2), and only there
-(A-28). Every answer is recorded in `checkpoints[]` (`answer`, `answeredBy`, and `rule` for a pre-supplied
+splits them across questions. **Amended by D-389 (v1.6; built, WU-82):** only the unsaved-build question is
+still asked that way; every gate visit and every escalation is an interview in free text (below). In offline
+test mode the test config answers instead (§11.2), and only there (A-28). Every answer is recorded in `checkpoints[]` (`answer`, `answeredBy`, and `rule` for a pre-supplied
 or default answer); no presentation text or time is recorded (D-270).
 
 - **The unsaved-build question** (FR-W2 step 4; D-210), asked once, right after the log's first write, when
@@ -1349,7 +1671,7 @@ r1-b-1`).
   "Not dealt" list, and after a short round its reason, D-339), and asks with AskUserQuestion in
   `multiSelect` mode: up to 4 cards per question, up to 3 questions, plus one for more or stop. The pick is
   the union of the selections, up to 3; more than 3 is asked again. The answers: **verify** 1–3 cards;
-  **brainstorm more**, with a note; or **stop**.
+  **brainstorm more**, with a note; or **stop**. (Since WU-82 an interview: below.)
 - **The verification gate** (renamed from checkpoint 1). It shows the comparison of the verified cards,
   `TotalEHP` included, and asks: **finalize** one (a failed card may be picked anyway; its identity becomes
   the run's `roll`); **verify other cards** from the deck (a new verification round without a brainstorm);
@@ -1359,16 +1681,86 @@ r1-b-1`).
   run `stopped`, its `rule` the test config's `pick:<id>`.
 - **The final gate** (checkpoint 2), unchanged.
 
-*Target (WU-70, WU-71; D-362):* **the design gate**, a fourth user gate, after a passing D1 gate and before
-D2, W1 and V4: the user judges the endgame build before the leveling loadouts and the guide exist.
+Since WU-70 and WU-71 (built; D-362): **the design gate**, a fourth user gate, after a passing D1 gate and
+before D2, W1 and V4: the user judges the endgame build before the leveling loadouts and the guide exist.
 - **Display**, printed whoever answers it: each rung's measures (DPS, EHP, the Arbiter verdict, clear
   speed), the anoint, the key gear, gems and tree in brief, and the open estimates. The D1 gate step writes
-  it, compactly, into its verdict file, and the runner prints it from there, reading no plan or record (A-35).
+  it, compactly, into its verdict file (`design: {rungs[{stage, dps, ehp, arbiter, clearSpeed, anoint, gear,
+  gems, tree}], estimates}`), and the runner prints it from there, reading no plan or record (A-35).
 - **Answers:** `accept`, on to D2 and the guide; `revise:<text>`, a D1 fix round with the text (`D1-build`
-  for a build change, `D1-finish` otherwise), the D1 gate, then this gate again; `verification`, back to the
-  verification gate to finalize another card; `stop`.
+  then `D1-finish` for a build change, `D1-finish` otherwise, and on its `build:` return D1-build then
+  D1-finish with D1-build's `changed`), the D1 gate, then this gate again; `verification`, back to the
+  verification gate to finalize another card; `stop`. Since WU-82 (D-391), a revise that isn't a revision of
+  the finalized build isn't a revise: the runner says so and offers `verification`, where it becomes a new card.
 - **Plumbing:** checkpoint `design` in the run log; `answers.design[]` in the test config; when the answers
   run out, `stop`, with the rule recorded. The final gate's `revise:` stays for guide-level changes.
+
+Since WU-73 (built; D-367, D-369): **every display is printed by a script.** `run-log.mjs <runFolder> display
+<brainstorm|verification|design|final|escalation>` builds the visit's display from the run folder's files and
+records the visit in `displays[]`; `checkpoint` refuses an answer whose visit printed none, naming the expected
+visit when the runner's is wrong, so a miscounted visit can't loop. A missing input prints a "No …" line and the
+visit is still recorded, so `stop` can be logged. The final gate's display gives each endgame rung's figures
+from the final record, with the design gate's on the next line wherever they moved (the lean run's budget EHP
+moved from 9,305 to 10,409 with no display showing it), and also the PoB file, the gate verdicts, the known
+issues and the checker's result, which it runs in-process (step 15).
+
+Since WU-81 and WU-82 (built, merges `047bb17` and `3fa8531`; D-389…D-394): **every gate is an interview.** The
+user's words at the Varashta run's gates were "this one, but…", and its engine came from a question the
+brainstorm gate could only carry as a note into a whole new round (amendment 7 §1).
+- **A visit** (D-389): the display, ending with one line inviting questions and a decision in the user's own
+  words; no AskUserQuestion. The runner answers each question, as many as the user asks, before anything is
+  chosen; when a message holds both, the answers come first. Then it maps the user's words (a card by its name,
+  a clear part of it, or its number in the display) to the gate's fixed answer, with any revisions and new
+  cards, restates the decision in player terms by the cards' names, saying which change is a revision and which
+  a new card, and waits for a yes; it asks about anything unclear. **A question is never a decision.**
+  Escalations run the same way, their four choices unchanged.
+- **The runner's sources** (D-390), cheapest first: the display, the deck, the gate verdict files and its run
+  log, and on demand the card and research files (never `plan.json`, a record, `dossier.md` or `guide.md`); its
+  lookups, `lookup_game_data`, `search_tree_nodes` and `check_model_coverage`; or a **gate question step**,
+  stage `Q` (`references/stages/Q.md`), one per question or batch of related ones, started after one line
+  saying what it starts and why, without asking first (the user can say not to). A research question goes to a
+  `build-guide-researcher` (lookups, and the web online), up to 3 in parallel; a question about a compiled
+  build, or that needs a measurement, to a `build-guide-coordinator`, alone. The coordinator works, at the
+  brainstorm gate, from a researcher's labelled estimate or by verifying the card (nothing is compiled there);
+  at the verification gate from the card's concept plan; at the design and final gates from the run's plan; in
+  every case it measures with a measure-only variant of one stage under `probes/q-<gate>-<visit>-<n>/`, written
+  as R1b and D1-build write probes, and never edits `plan.json`, a concept plan or a card (the coordinator's
+  ruling on WU-82's review; amendment 7 said it "reads the plan, the records and the dossier"). The step writes
+  `interviews/<gate>-<visit>-q<n>.md` (`- Asked:`, `- Agent:`, then the H2s `Answer` and `Sources`), returns at
+  most 8 lines, and is logged `{stage: "Q", attempt: 1, outcome: "done"}`; the runner gives the user the answer
+  and the path. Every answer uses the cards' status words (confirmed in game text, modelled in PoB, estimate
+  with its reason, needs in-game testing) and says so when it rests on nothing looked up.
+- **The record** (D-389): when the user asked questions, the runner writes `interviews/<gate>-<visit>.md`, an H2
+  `Q<n>: <the question, trimmed>` per question, its `Answer:` in at most three lines, then its `Source:` (a file,
+  a lookup, or a gate question report). The checkpoint carries `questions` (always, `0` too), and `changes`,
+  `newCards` or `note`. The next step after the gate gets the notes' path (R1a, R1b, D1-build or the revision's
+  owner), and W1 reads them for the FAQ.
+- **A revision or a new card** (D-391). A revision keeps the card's identity (its class, ascendancy and named
+  damage source) and its chain's core, and adds or swaps supporting pieces (a support gem, an item, passives, a
+  defensive layer), perhaps from another card; a new card is anything else: a different main skill, ascendancy
+  or engine, another card's core mechanic, or two cards' ideas combined. When unsure, a new card; the user can
+  overrule either way. A revision is `changes: {"<id>": "<the user's words>"}`, keyed by a picked card; a new
+  card is `newCards: [{"id": "r<k>-g-<n>", "name", "from", "words"}]`, its name 2–4 words the runner proposes in
+  the restatement (no card of the run has it), and the user may change it before the yes. Picks and new cards
+  together are 1–3; a pick of new cards only is `pick:` (or `verify:`) with no id. At the brainstorm gate both go
+  to R1b in the same round, with no brainstorm round; at the verification gate a revision rides on the finalize
+  (D1-build's first attempt takes it as `user-request` findings), and a new card goes to a verification round,
+  to be finalized at the next visit; at the design gate, see above; the final gate is unchanged. A question that
+  became an idea can go into "brainstorm more" as its note, and the next round's researchers get its answer
+  file.
+- **Displays speak plainly** (D-392). Displays show card names, never ids; codes, ids and verdict paths come
+  last, under "For reference". "Not confirmed in game" is the default, said once.
+
+  | Gate | The display (`display <gate>`) |
+  |---|---|
+  | Brainstorm | the brief in a line, the deck's header, every dealt card not verified yet by name, numbered, with its pitch's five lines (the under-played label as "Unusual: <why>"), the not-dealt cards with their reasons, the found-not-used list, and the invitation |
+  | Verification | each verified card by name: its pitch's "why"; figures with units and what they're measured against (damage against map monsters, effective HP), read from the records with thousands separators; rough clear speed (with no measured one, the card's "How it clears" marked "(an estimate; measured at the design)"); key prices; the catch; its status in words ("works", "failed: <why>", "can't be built yet: <why>") |
+  | Design | each endgame rung's block, every figure with its unit and what it means |
+  | Final | plain sentences in place of the check list ("compiled pass, v1 pass, v2 pass, floor pass" only under "For reference"): what was checked, what passed, what's open; each rung's final figures (D-369) |
+  | Escalation | what failed and why in a sentence, then the attempts and findings for reference |
+
+- **The record for M-18:** an interview can't be judged by a fixture; the live check is the next online run,
+  the live alpha, where the user judges the gates (amendment 7 §13).
 
 ## 11. Offline mode, test config and fault directives
 
@@ -1423,9 +1815,35 @@ round) or `stop`. `answers.final[]`, renamed from `answers.checkpoint2[]`, with 
 `checkpoint1` and `checkpoint2` are retired in run log v3. The escalation answer `checkpoint-1` becomes
 `verification`. When answers are missing or run out, the run ends `stopped` with the rule recorded. A-28
 gains the brainstorm gate: pick the first dealt card, or follow the test config. A test config holding the
-retired keys `checkpoint1` or `checkpoint2` is refused (AC-W48). *Target (WU-70, WU-71; D-362):*
+retired keys `checkpoint1` or `checkpoint2` is refused (AC-W48). Since WU-70 and WU-71 (D-362):
 `answers.design[]`, one per design-gate visit: `accept`, `revise:<text>`, `verification` or `stop`; none
 left, `stop`, `default`.
+
+Since WU-81 and WU-82 (built; D-394): **an answer entry scripts an interview.** An entry of
+`answers.brainstorm`, `verification`, `design`, `final` or `escalation` is a string, as before, or an object
+`{ask?, answer, changes?, newCards?, note?}`, `answer` one of the gate's strings:
+
+```json
+{ "ask": ["Which card clears fastest?"], "answer": "pick:r1-a-1",
+  "changes": { "r1-a-1": "use a two-handed spear" },
+  "newCards": [{ "name": "Bleeding Shield Wall", "from": ["r1-a-1", "r1-c-2"], "words": "the lunge behind a shield" }] }
+```
+
+- `changes`, `newCards` (each `{name, from, words}`; the runner assigns the id) and `note` go only on brainstorm
+  and verification entries (as built; amendment 7 lists them for every gate), and the config says which kind each
+  change is, so a test run never depends on the runner's call.
+- The runner first checks each new card against `cards.md` (its `from` names cards the deck lists, not-dealt
+  ones included; its name, ignoring case, is none the deck or an earlier `newCards` holds); then answers each
+  `ask` as it would the user's, gate question steps included, writes the interview notes, and takes `answer` with
+  no confirmation: the checkpoint's `rule` is `answer` as written, its `questions` the `ask` count. The display
+  rule holds.
+- **Malformed**, refusing the config at start (`run-log.mjs <runFolder> test-config <path>`): `changes` naming a
+  card the answer doesn't pick; `newCards` with any other answer; picks and new cards over 3; `note` without
+  `more`; an empty question.
+- **An entry the deck refuses** (the first check): no `ask` is answered and no notes are written; the run ends
+  `stopped`, logged answer `stop`, `answeredBy: "default"`, `questions: 0`, rule `refused answers.<gate>[<i>]:
+  <why>`. The object-entry rule is stated once, in `references/offline-and-test.md`. A scripted question that
+  starts a gate question step adds an agent to an offline run, a cost the user accepted.
 
 ### 11.3 Fault directives (test config only; D-272)
 
@@ -1451,7 +1869,9 @@ The seeded V4 checks FI-4 (a ledger formula wrapped as `(<formula>) * 2`) and FI
 shared: units editing them merge one at a time. WU-62 merged before WU-57, WU-57 before WU-58, and WU-58
 before WU-63 (D-317). Amendment 2's and 3's units belong to milestone M-14, "open builds offline" (D-315);
 amendment 4's (WU-64 and WU-69…WU-72 here) to M-15, "the lean pipeline offline" (D-361), and WU-69, WU-70
-and WU-71 merge in that order.
+and WU-71 merged in that order, with WU-73 after WU-72. Amendment 5's WU-75 and WU-76 (M-16), amendment 6's
+WU-79 (M-17) and amendment 7's WU-81 and WU-82 (M-18) merged in series on the shared files (spine §8); in M-18,
+WU-81 edited the pipeline tests only where a script's pinned message changed, and WU-82 followed it.
 
 ### WU-43: The skill, shared references, run log and checker
 - kind: build
@@ -1557,7 +1977,7 @@ and WU-71 merge in that order.
 
 ### WU-48: Human — the live Titan / Blood Hunt run and the user's sign-off
 - kind: build (human gate)
-- depends-on: [M-14 (WU-59), M-15 (WU-72), HG-14]
+- depends-on: [M-14 (WU-59), M-15 (WU-72), M-16, M-17, M-18, HG-14]
 - role: **user**, assisted by the build coordinator
 - touches: [the user's guides and builds folders (coordinator and user only); the work-log]
 - produces: [the alpha sign-off (M-13)]
@@ -1566,8 +1986,10 @@ and WU-71 merge in that order.
 - milestone: M-13
 - summary: The first live run, with web research on D-171's hosts and live pricing through the server. It
   runs after M-14 ("open builds offline") and M-15 ("the lean pipeline offline"), so it exercises the
-  amended pipeline; its trade gate is unchanged (D-315, D-361). The user answers every gate, then plays the
-  guide.
+  amended pipeline; its trade gate is unchanged (D-315, D-361). Since v1.6 it also runs amendments 5 to 7
+  (M-16…M-18): gear priced by price day and weighted search, and every gate an interview, which this run is the
+  first to judge live (amendment 7 §13); its feedback goes into a study like the Varashta run's. The user
+  answers every gate, then plays the guide.
 
 **WU-48 checklist.** Each item is recorded pass or fail, with a note. Item 11 is set up before item 3,
 and its file is shown to the user with item 1's approval.
@@ -1579,7 +2001,8 @@ and its file is shown to the user with item 1's approval.
    cookie is the user's own, and no agent handles it.
 3. **Run.** In a session in the repo, `/build-guide Titan "Blood Hunt"` (online, no test config; the old
    form still works, C-51). The run log shows `answeredBy: "user"` at every gate (the brainstorm,
-   verification and final gates; after WU-71, the design gate too).
+   verification and final gates; since WU-71, the design gate too), each gate's display in `displays[]`
+   (D-367), and its interview's `questions` (D-389).
 4. **Checker.** `check-run.mjs` exits 0 on the run folder.
 5. **Checks pass.** The final record's V1 and V2 verdicts pass for every stage, and every finding open after
    the re-check is listed under `Known issues` (D-268).
@@ -1587,7 +2010,9 @@ and its file is shown to the user with item 1's approval.
    `importCode` and the code in `guide.md`, and the code round-trips (D-180).
 7. **Run log and evidence.** No step's `priceOutcomes` counts a `rate_limited` or `locked_out` call
    (NFR-22, D-270); the caps hold (NFR-23), read from `stages[]` and the transcript; every WebFetch in the
-   session and subagent transcripts went to one of D-171's hosts.
+   session and subagent transcripts went to one of D-171's hosts. The run starts the local telemetry receiver
+   and ends with `/exit`, so its output is measured as WU-64 decided (D-357). The trade site's rate limit is
+   R-43's watch item: about 20 weighted searches and their listing fetches for two rungs.
 8. **PoB2 import.** The user imports the code in PoB2 on Windows and sees one loadout per stage, and
    switching loadouts shows each stage (A-21).
 9. **Play-test.** The user levels with the guide through the campaign and maps with an endgame variant.
@@ -1854,10 +2279,10 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
 
 ### WU-64: Spike: the per-run output counter
 - kind: spike
-- status: target (M-15)
+- status: done (merge `1474fd7`)
 - depends-on: []
 - role: tooling
-- touches: [`docs/build-guide/spikes/WU-64-output-counter.md` (new) and its counter script, whose path the report names; it reads run A's transcripts and a control's, and changes nothing else]
+- touches: [`docs/build-guide/spikes/WU-64-output-counter.md` (new) and its counter script, whose path the report names; it reads run A's transcripts and a control's, and changes nothing else. As built: `scripts/run-usage.mjs` (the transcript counter), `scripts/otlp-receiver.mjs` (a local OpenTelemetry receiver on 127.0.0.1 only, keeping the `api_request`/`api_error` events and the token metrics, dropping identity and resource attributes) and `spikes/WU-64-control.md`]
 - produces: [the counter and its method; the decision whether it can back a budget AC; each agent's peak context]
 - consumes: [run A's transcripts (WU-59); cost study 1 §3]
 - acceptance: [AC-W51]
@@ -1866,10 +2291,18 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
 - summary: Transcripts under-record output: a 60K-character Write is logged at 8 tokens, and run A's recorded
   1.78M was really about 2.3–2.5M, 63% of it thinking (cost study 1 §3). D-349's budget needs a reliable
   per-run counter before any budget AC relies on one (D-357). WU-72 measures the lean run with it.
+  As built: the lean run served as the control in place of the user's short session. All 837 transcript
+  requests joined telemetry on `request_id`, inputs and caches equal on every one, and telemetry, the token
+  metric and the session's `/cost` ledger agreed to the token at 1,232,323. The decision: telemetry backs D-357's
+  budget, the session ledger cross-checks it, and the transcript estimate is the fallback at ±7% (its 264 stale
+  requests: +1.2% in total); per-step figures come from the transcripts joined to telemetry; Claude Code's own
+  `agent_summary` requests (47.88M cache read, 5.85K output in the lean run, absent from every transcript) count
+  toward the output budget, their cache read on its own line; every recorded run starts the receiver and ends
+  with `/exit`. AC-W51 met, all six parts; the control session's protocol is kept for a later re-check.
 
 ### WU-69: V4, one pass
 - kind: build
-- status: target (M-15)
+- status: built (merge `4481752`)
 - depends-on: [WU-68]
 - role: pipeline author
 - touches: [`.claude/agents/build-guide/build-guide-verifier.md` (one pass, Write to `reports/` only); `references/stages/V4.md`; `SKILL.md`'s verification (steps 11 to 14, the revision); `references/source-markers.md` (the report); `tests/static/buildGuidePipeline.test.ts`]
@@ -1881,11 +2314,15 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
 - summary: One V4 pass replaces the three lenses (D-268, NFR-23): it checks every hinge claim against its
   source and reads `guide.md` as an editor; the ledger's arithmetic is the checker's. Re-checks cover only
   `check-run.mjs --changed <n>`'s set, which WU-71 builds; reports are kept. It merges first of WU-69…WU-71,
-  which share `SKILL.md`, `check-run.mjs` and the pipeline tests.
+  which share `SKILL.md`, `check-run.mjs` and the pipeline tests. Its accepted deviations: V4 Greps `plan.json`'s
+  claims arrays (pasting the claims view into its prompt would break the header-only prompt and the runner's
+  not-reading rule, and `guide_run` carries `new_run`); V4 reads no `audit.md`; finding ids `v4-<n>-<k>`; a
+  re-check reports an untouched open finding `unresolved` again; and edits to `run-folder.md`, the stages README
+  and `source-markers.md`. Its fix round put D-365 into `V4.md`.
 
 ### WU-70: D1's split, the design gate, and the lean campaign and guide
 - kind: build
-- status: target (M-15)
+- status: built (merge `090bf5a`; two doers in series, A for control flow, B for content, one review)
 - depends-on: [WU-65, WU-69]
 - role: pipeline author
 - touches: [`SKILL.md` (the design gate, D1's two steps, the per-step card; halved); `references/stages/` (`D1-build.md` and `D1-finish.md` from `D1.md`, with D-360's tree rule from `D1.md:112`; `D1-gate.md`; `D2.md`; `W1.md`; `R1b-assemble.md`; excerpts in every stage reference); `templates/` (the guide and dossier templates); `references/checkpoints.md`, `run-log.md`, `offline-and-test.md` and `task-header.md`; the agent definitions (batching); `tests/static/buildGuidePipeline.test.ts`]
@@ -1898,11 +2335,19 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   the campaign per act without defences or crafting, the anoint, the socket estimate once, the survival
   label and rendered Checks block, the dossier reduced to the comparison table, and stage references that
   state their rules instead of pointing at whole files or bare D-numbers. D2 splits only if the lean run
-  shows it past the peak-context target (D-357).
+  shows it past the peak-context target (D-357). As built (`SKILL.md` 442 → 221 lines): `references/start.md` and
+  `references/fix-round.md` take the detail cut from `SKILL.md`; the round copy is `check-run.mjs <folder>
+  --snapshot <n>`; every D1 attempt runs build then finish, a fix round going to D1-finish first, which returns
+  `build: <ids>` for a build change; no design gate in a fix round or a revision; the log stages are `V4` and
+  `V4-recheck`; the budget includes `b-anoint`; the audit template is the render's exact form, with no Run
+  notes; W1 still adds accepted gate findings under Known issues; D-366's path claims. Its review's should-fix
+  S1 (D1-finish after D1-build wasn't told what moved) was fixed: D1-finish gets D1-build's `changed`,
+  re-prices and re-claims what moved, never returns `build:`, and is logged `done`. Left open, N8: a price change
+  still recompiles (narrowed by D-386 to everything but the note).
 
 ### WU-71: The checker and scripts
 - kind: build
-- status: target (M-15)
+- status: built (merge `237780b`; two doers in series, A for the scripts, B for the checker's rules and fixtures)
 - depends-on: [WU-70]
 - role: pipeline author + test infra
 - touches: [`scripts/check-run.mjs` (`--changed`, the `design` gate, the new checks: `[ledger]` over the plan's current formulas, the floor's codes and the verdict line's hits from the record's compiler-written hits, FR-W7 (2) and (3); and A-34's round copy if it is `--snapshot`); `scripts/render-audit.mjs` (new); `scripts/run-log.mjs` (new); `tests/unit/buildGuideCheckRun.test.ts`; `tests/fixtures/pipeline/` (rebuilt for plan schema 3 and the design gate); `tests/static/buildGuidePipeline.test.ts`]
@@ -1917,11 +2362,17 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   ledger-only edit after the final compile passes and a gear edit still fails. The floor and the verdict
   line read the reference hits the compiler wrote (D-353).
   The runner makes the `rounds/<n>/` copy with a script on its Bash list, without reading the files
-  (A-34).
+  (A-34). As built, the command forms are `check-run.mjs <folder> --snapshot <n>` (refusing an existing round),
+  `check-run.mjs <folder> --changed <n>` (only the two line forms), `render-audit.mjs <folder>` and
+  `run-log.mjs <folder> <init|stage|checkpoint|escalation|set> -` with the entry on stdin. Its accepted
+  deviations and choices are FR-W7's and §7.8's as-built text; its review's two should-fixes (the verdict line's
+  DPS against `measures.dps`; `[ledger]` accepting a claim's number equal to an input or an input × 100) were
+  fixed. Its review rebuilt a run-A-like log through `run-log.mjs` alone and the checker took it with four fix-round
+  and revision variants.
 
 ### WU-72: The lean recorded run
 - kind: build (recorded run)
-- status: target (M-15)
+- status: recorded (`open-explosive-concoction/2026-10-12-1`); M-15 closed on the user's waiver, 2026-10-14
 - depends-on: [WU-64, WU-65, WU-66, WU-67, WU-68, WU-69, WU-70, WU-71]
 - role: build coordinator, with an independent verifier checking the record
 - touches: [the work-log only; temp dirs and a worktree. Failures re-open the owning unit]
@@ -1935,6 +2386,129 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   `["revise:<R>", "accept"]` with run A's claims-only `<R>`, which exercises the narrow re-check; offline,
   with no injected faults, so run A minus its faults (3.6M cache read) is the baseline. WU-64's counter
   measures its output.
+  **The record** (an independent verifier): `completed`; the design gate answered `accept`; the final gate's
+  `revise:` ran as a re-check with no full pass, then `accept`. AC-W58 met (30 claims, 11 hinge and 19 reason;
+  the measures, the survival label and the Cremation anoint on `b` and `n`, none on `m`; no kill time, hits to
+  kill or campaign defences; V1 clean on all 9 stages; V4-1…V4-3 kept; a 2,930-word guide that reads as a game
+  guide). AC-W56 missed: the checker exited 1 on one `[order]` violation (both re-checks logged attempt 2), and
+  the verification and both final visits printed no display, a runner error with plain skill text. AC-W57's
+  output missed: 1.23M by telemetry, about 1.20M before the revision, against 1M; 60% thinking; 11 of 21 agents
+  and the runner past 150K (D1-build 414K, D2 395K, W1 350K). The guide's problems: a stale card title, pipeline
+  notes in the text, and a DPS model of the granted skill as a socketed gem, which the user's comparison with
+  poe.ninja builds (`../studies/2026-10-14-ec-comparison.md`) later found right. The user's decision: "fix, then
+  waive": WU-73 fixed the displays, the attempt numbers and the final gate's figures; no second lean run; the
+  budget lever held.
+
+### WU-73: M-15's follow-up: the displays by script, re-check attempts, the final figures
+- kind: build
+- status: built (merge `51bb4bf`)
+- depends-on: [WU-72]
+- role: pipeline author + test infra
+- touches: [`scripts/run-log.mjs` (`display <gate>`, `displays[]`, the checkpoint refusal); `scripts/check-run.mjs` (`[display]`); `SKILL.md` and `references/checkpoints.md` (the hard rule and the gate paragraphs); `references/stages/V4.md`, `references/task-header.md` and `references/run-log.md` (D-368); `W1.md`, `D1-finish.md`, `D2.md` (the cheap guide fixes); the pipeline tests and fixtures]
+- produces: [D-367's displays by script; D-368's re-check attempt; D-369's final figures; the guide fixes: movement speed as "+25%", no pipeline notes in the reader text (V4's editor read flags them), the title from the final build, no duplicate claims]
+- consumes: [WU-71's scripts; WU-72's record]
+- acceptance: [none of its own: the M-15 record's waived misses; the coordinator's smoke test (`checkpoint` without a display exits 1 with the D-367 line, display then checkpoint exits 0)]
+- milestone: M-15
+- risk: low
+- summary: The user's "fix, then waive" for AC-W56. Its accepted deviations: a missing input prints a "No …"
+  line and still records the visit; the final display shows more (the PoB file, the gate verdicts, the known
+  issues); schema-3 logs from before D-367 fail `[display]`, and the checker tests' helper rebuilds `displays[]`.
+  The coordinator added that `checkpoint` names the expected visit when the runner's is wrong.
+
+### WU-75: The skill text for amendment 5 (gear pricing)
+- kind: build
+- status: built (merge `11dfd10`)
+- depends-on: [WU-74 (slice 01)]
+- role: pipeline author
+- touches: [`references/pricing.md`; `stages/D1-build.md` (D-375's library read, the rares' price entries, no `infeasible` for price); `D1-finish.md`; `D1-gate.md` and `references/gates.md` ("Price days, targets and ranges", `basis.budget`); `W1.md`; `V4.md`; `R1a.md`; `R1b.md`; the card template and `R1b-assemble.md` (key prices converted); `references/checkpoints.md`; the templates; `references/patterns.md`'s opening; the coordinator's tools (`find_upgrades`, `manage_sets`); `data/economy/prices.json` (new); `tests/static/buildGuidePipeline.test.ts`]
+- produces: [D-370…D-375 in the skill text and the economy file]
+- consumes: [WU-74's dated `find_upgrades`; the pricing study]
+- acceptance: [AC-W63]
+- milestone: M-16
+- risk: medium: many files
+- summary: Its doer's choices, all judged sound: "not priced yet" `b` and `n` rare entries from D1-build with
+  `query {slot, required: [{affix, min}], target}`; `manage_sets` in the coordinator's set P; `prices.json`
+  outside the compiler's data folders; card key prices at day 7; fallbacks `<id>-fallback` in no total;
+  `--no-ninja` makes only the over-target search. Its review corrected amendment 5 within the user's acceptance:
+  the over-target search is `search_trade_items` (a second `find_upgrades` re-sorts only its page), and `n`'s
+  Checks line gets "Over target" too.
+
+### WU-76: The checker and the renderer for amendment 5
+- kind: build
+- status: built (merge `abe1e6a`)
+- depends-on: [WU-75]
+- role: pipeline author + test infra
+- touches: [`scripts/check-run.mjs`, `scripts/render-audit.mjs`, `tests/unit/buildGuideCheckRun.test.ts`, `tests/unit/buildGuideScripts.test.ts`, `tests/fixtures/pipeline/` (migrated to ranges and targets)]
+- produces: [the budget's targets, ranges and `over-target` in the D1 gate's recompute and the render; no budget failure path (D-370, D-371, D-373, D-374)]
+- consumes: [WU-75's `basis.budget` and `prices.json`]
+- acceptance: [AC-W64]
+- milestone: M-16
+- risk: medium
+- summary: Its doer's choices, judged sound: a fallback shows inside its slot's parentheses on the Checks line;
+  a fallback is never D-164's reason, and a basis slot naming one fails; the gate's totals and findings are
+  compared only while the gate is fresh; the basis check requires `market` and `totals`; the conversion lives
+  once in `render-audit.mjs`, exported to the checker. Fixed before merge: the final display gives no D-164 line
+  for an unavailable fallback, and `D1-gate.md` dates the market from the slots' prices only. Low, left: the
+  checker matches over-target findings by price entry, so naming the second slot of a shared entry passes.
+
+### WU-79: The skill text, the checker and the renderer for amendment 6 (a minion's skill)
+- kind: build
+- status: built (merge `6c9070e`)
+- depends-on: [WU-78 (slice 02)]
+- role: pipeline author + test infra
+- touches: [`references/start.md` (the brief check), `R1a.md`, `R1a-assemble.md`, `R1b.md`, `R1b-assemble.md`, `D1-build.md`, `D1-gate.md` and `references/gates.md`, `D2.md`, `W1.md`, `V4.md`, `references/lookups.md`, the templates, the coordinator's definition, `references/patterns.md`; `scripts/check-run.mjs`, `scripts/render-audit.mjs`; `docs/build-guide/pob-gaps.md` (PG-40 confirmed, PG-51 added); the pipeline tests and fixtures (a minion copy of `run-ok-online`)]
+- produces: [D-378's figure in the checker and the renderer; D-379's command as the build's skill in the skill text]
+- consumes: [WU-77's lookup and selector; WU-78's schema 4, figure and `not-granted`]
+- acceptance: [AC-W65, AC-W66]
+- milestone: M-17
+- risk: medium: many files
+- summary: Its doer's choices, accepted: `figureOf` and `citedValues` unchanged; the rolled recompute treats
+  `TotalDPS` and `MinionTotalDPS` as one field and refuses a gate that compares a minion group by `TotalDPS`;
+  D1-build writes every plan at schema 4; `not-granted` sits in the gate findings table; PG-51 added (PoB's own
+  copy of a tree-granted summon: level 1, no supports). Its fix round counted the distinct summoning gems in
+  `start.md`, tied the minion verdict-line test to `record.ts`'s `headlineDps`, and retitled `gates.md`'s table
+  "Finding codes the gate names". About 965 words were added across 21 skill files.
+
+### WU-81: The scripts for amendment 7 (gates as interviews)
+- kind: build
+- status: built (merge `047bb17`)
+- depends-on: []
+- role: pipeline author + test infra
+- touches: [`scripts/run-log.mjs` (the checkpoint's `questions`, `changes`, `newCards` and `note`; the `test-config` command and object entries; every display rewritten in plain words); `scripts/check-run.mjs` (the interview checks; the card id's letter `g`; gate-made cards in the deck; the deck header); `scripts/render-audit.mjs` (D-397's reach); their tests; `tests/fixtures/pipeline/` (`run-interview`, new, written from game data, stopping at the verification gate; `run-ok`, `run-ok-online` and `run-escalated` migrated to the new deck and Pitch format; `run-ok-v2` unchanged)]
+- produces: [D-389, D-391, D-392 and D-394 in the scripts; D-397 in the renderer and the verification display; the formats WU-82 describes (the card's Pitch fields, the deck's H2s, the interview notes, the gate question report, the checkpoint JSON, the test config's object entries), kept in `../studies/2026-10-18-wu81-formats.md`]
+- consumes: [amendment 7]
+- acceptance: [AC-W67, AC-W68]
+- milestone: M-18
+- risk: medium: every display changes
+- summary: Its ten choices, all accepted: `questions` optional, 0 when absent; a pick of new cards only is
+  `pick:` with no id; stage `Q`, `interviews/` and `probes/q-…/` in the layout; a `test-config` command; a new
+  card may draw on a not-dealt card; a verification `pick:`'s changes need no card line; the display prints the
+  "not confirmed in game" default; the verification display reads figures from the records; `parseCard` and
+  `parseDeck` shared with the checker; thousands separators. Its fix round showed a skeleton's unmeasured clear
+  speed as the card's "How it clears" marked an estimate (measuring a skeleton's clear speed goes to the
+  engine-lens amendment), and corrected the uncited report's message. Left, low: the "Changed at the gate" line
+  is matched by visit only.
+
+### WU-82: The skill text for amendment 7
+- kind: build
+- status: built (merge `3fa8531`)
+- depends-on: [WU-81]
+- role: pipeline author
+- touches: [`SKILL.md` (230 lines); `references/checkpoints.md` (the interview procedure); `offline-and-test.md`; `run-log.md`; `run-folder.md`; `task-header.md` (stage `Q`, `changes`); `references/stages/Q.md` (new); the card template; `R1a.md`, `R1a-assemble.md`, `R1b.md`, `R1b-assemble.md`, `D1-build.md`, `D2.md`, `W1.md`; `references/lookups.md`; the agent definitions; `tests/static/buildGuidePipeline.test.ts`]
+- produces: [D-389…D-396 in the skill text, to WU-81's formats as merged]
+- consumes: [WU-81's formats]
+- acceptance: [AC-W69]
+- milestone: M-18
+- risk: medium: many files
+- summary: The skill's text grew from 61,727 to 64,431 words. Its nine choices, all accepted: `SKILL.md`'s line
+  cap 221 → 229 (230 after the fix round); R1a-assemble may rename a card on a clash; R1b's header gains
+  `changes`; a breaking change fails R1b with `gate-change`; a dropped gem's reason is a `reason` claim
+  (amendment 7 said a stage note); the seed card's mark sits under Evidence and researcher `a` gets the
+  reference; held-back reasons in plain words; the runner checks a test config at start; a refused scripted entry
+  ends the run `stopped`. Its verifier dry-ran four gate visits by reading the text. Its fix round checked a
+  scripted entry's new cards against the deck before any ask, made `Q.md` follow the coordinator's ruling on
+  which plan a coordinator question step reads, had D1-build return `left out:` lines for D1-finish, and stated
+  the object-entry rule once.
 
 ## 13. Acceptance criteria
 
@@ -1954,7 +2528,11 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
       issue in the guide, and which includes an endgame stage whose chaos resistance stays below its cap
       by a `chaosResistException` whose reason the guide's `Checks` states (D-234);
     - `run-ok-online/`, an online run with `ok` prices and `priceOutcomes`, whose budget total is over 20
-      and at most 22 divines and whose guide carries the `near the ceiling` note (D-219);
+      and at most 22 divines and whose guide carries the `near the ceiling` note (D-219); since WU-76, migrated
+      to ranges at the price day and an `over-target` slot (D-371, AC-W64), and since WU-81 to the new deck and
+      Pitch format;
+    - since WU-81, `run-interview/`, an offline run stopped at the verification gate, written from game data,
+      with two questions in its brainstorm interview notes and one gate-made card (AC-W68);
     - `run-escalated/`, a D1 gate escalation answered by the default `stop`, its verdict file named and no
       findings copied.
   - On each broken copy it exits non-zero, and its stderr names the broken rule:
@@ -1989,7 +2567,11 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
     - (r) `plan.json`'s sha1 differs from the final record's `planSha1`;
     - (s) the import code doesn't decode or isn't the PoB file's, the loadout count differs from the plan's
       stages, or a tree set isn't titled by its stage's loadout name (D-215);
-    - (t) a ledger entry doesn't re-evaluate to the record's value (FI-4's doubled formula among them);
+    - (t) a ledger entry doesn't re-evaluate to the record's value (FI-4's doubled formula among them).
+      **Amended by D-352, D-365 (v1.6, as WU-71 built `[ledger]`):** an entry is evaluated over the plan's
+      current formulas, and a `ledger:<id>` claim's number, or a guide figure the ledger gives, that doesn't
+      match that value at its last significant digit or within 5% (an input, or an input × 100, also matches)
+      fails; FI-4's doubled formula still fails, through the claims and figures that cite it;
     - (u) the rolled figure's stat set isn't `skills.main.statSet`, or an endgame stage sets none (D-273).
   - It also covers, as built: the Known issues list (fixed findings, a re-check that leaves a finding out,
     an earlier cycle's re-check, a guide without the H3); `accepted-offline` only from the sources lens and
@@ -2005,8 +2587,10 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
     marker in `guide.md` (`[^`, `confidence H|M|L`, or a finding id), outside the import code's fence only;
     (x) a rung's verdict line missing, or a part not matching the record by the rounding rule; (y) `m`'s
     budget above 5.5, or above 5 without "near the ceiling", and `m`'s floor; (z) `audit.md` missing one
-    of its H2s (amended by D-355 (v1.5; *target*, WU-71): `audit.md` is held to the script's render,
-    AC-W55). Amended: (b) checks the reader layer's 14 H2s; (l) checks Known issues by sentence, with
+    of its H2s (amended by D-355 (v1.5; built, WU-71): `audit.md` is held to the script's render,
+    AC-W55). **Amended by D-371 (v1.6; built, WU-76):** (p)'s and (y)'s budget clauses are retired, since the
+    budget never fails: the checker recomputes each rung's range at its price day and the `over-target`
+    findings instead, and refuses a budget `fail` as an unknown value (AC-W64). Amended: (b) checks the reader layer's 14 H2s; (l) checks Known issues by sentence, with
     the id in `audit.md`; reward picks are checked by name.
   - Since WU-58 (merge `85c70c9`; D-287, D-289, D-294, D-326, D-338, D-339, D-341; behaviour tests in
     `buildGuideCheckRun.test.ts`, with `run-ok-v2` a fourth passing fixture, the old `run-ok` held to the
@@ -2073,9 +2657,9 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   once as a re-check under D-264's rule (`SKILL.md` step 13, `references/stages/V4.md`): all three lenses
   when a gate re-ran in the fix round, otherwise each lens that raised a finding and the sources lens
   always. Before WU-57 the definition and its test stated the earlier rule ("for a lens that raised a
-  finding"); WU-57 aligned both. *Target (WU-69, D-352):* the verifier has Write, limited to `reports/`,
-  and writes its own numbered report `reports/V4-<n>.md`, never overwriting one, so the definition states
-  that in place of "no Write" and "the runner writes"; AC-W52 restates the rest for one pass.
+  finding"); WU-57 aligned both. **Amended by D-352 (v1.5; built, WU-69):** the verifier has Write, limited to
+  `reports/`, and writes its own numbered report `reports/V4-<n>.md`, never overwriting one, so the definition
+  states that in place of "no Write" and "the runner writes"; AC-W52 restates the rest for one pass.
 - **AC-W25.** *Withdrawn → D-267:* the harness test of the checkpoint-2 revision resume.
 
 **Offline end-to-end run (WU-47).** Recorded coordinator checks, re-checked by an independent verifier.
@@ -2167,7 +2751,8 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
   pinned the poe.ninja strings.
 - **AC-W28 (WU-56).** Static: each `references/patterns.md` entry has its name and shape, search step, how
   PoB follows it (one of the six labels), examples and cautions; the brainstorm questions open the file; and
-  the file is at most 6,000 words (D-325).
+  the file is at most 6,000 words (D-325). **Amended by D-381 (v1.6):** at most 10,000 words, the static test's
+  `LIBRARY_WORD_CAP`, which both word-count assertions use.
 - **AC-W29 (WU-56).** Static: `references/stages/R1b.md` lists the eight checks of §7.7, the result words
   "verified, estimate, risk, not checked", and the probe budget of up to 4 one-stage measure-only variants
   per card, in order.
@@ -2400,13 +2985,16 @@ subagents') or the coordinator's review. Numbers come from the run folder, never
     PoB file.
   - Evidence: the environment's files, transcripts.
 
-**Amendment 4 (M-15; target; WU-64, WU-69…WU-72).** Copied from amendment 4 §15, in its order; slice 02 holds
-AC-P60…AC-P67, and slice 01 AC-K66.
+**Amendment 4 (M-15; built and recorded; WU-64, WU-69…WU-73).** Copied from amendment 4 §15, in its order;
+slice 02 holds AC-P60…AC-P67, and slice 01 AC-K66. At the M-15 wave gate (`fb8c446`) every AC owned by
+WU-65…WU-71 mapped to a passing test; AC-W51 is WU-64's report (met), and AC-W56…AC-W58 are WU-72's record:
+AC-W58 met, AC-W56 and AC-W57's output missed and waived by the user (2026-10-14), the misses fixed by WU-73
+(D-367, D-368) or held (the budget lever).
 
 - **AC-W51 (WU-64, D-357).** `docs/build-guide/spikes/WU-64-output-counter.md` names the counter and its method,
   runs it on run A and on a control with known output, agrees with complete usage records within 7% (cost study
   1's estimate error) or says why not, and decides whether it can back a budget AC. It also reports each agent's
-  peak context.
+  peak context. *Met:* the lean run's telemetry was the control; the decision is telemetry first (§6).
 - **AC-W52 (WU-69, D-352).** Static. `V4.md` and the verifier define one pass with no lenses, the re-check over
   `--changed`'s set, and `reports/V4-<n>.md`; a revision runs no full pass.
 - **AC-W53 (WU-70, D-351, D-354…D-356, D-358, D-359).** Static. Stage references carry excerpts, not whole files
@@ -2428,12 +3016,82 @@ AC-P60…AC-P67, and slice 01 AC-K66.
   differing from the script's render (Known issues aside), and a label disagreeing with `measures.arbiter` each
   fail.
 - **AC-W56 (WU-72, D-361, D-362).** The lean run ends `completed`, the checker exits 0, and every gate visit,
-  the design gate's included, prints its display (AC-W37).
+  the design gate's included, prints its display (AC-W37). *Missed and waived:* one `[order]` violation and 3 of 5
+  displays; since WU-73 the order and the displays are the scripts' (D-367, D-368).
 - **AC-W57 (WU-72, D-349, D-357).** By WU-64's counter, output before the final-gate revision is at most 1M (a
   miss goes to the user); each agent's peak context (against 150K) and cache read per step are reported.
+  *Missed and waived:* about 1.20M before the revision; reported per family and per agent (the work-log).
 - **AC-W58 (WU-72, D-351…D-360).** At most 56 claims, each with a kind; `b` and `n` carry the measures, a
   matching label and an anoint, and `m` no anoint; no kill time, hits to kill or campaign defences; every stage
-  passes `tree-shape`; every V4 report is kept.
+  passes `tree-shape`; every V4 report is kept. *Met:* 30 claims; V1 clean on all 9 stages.
+
+**Amendment 5 (M-16; built; WU-75, WU-76).** From amendment 5 §9; slice 01 holds AC-K67 and AC-K68. Each mapped to
+passing tests at the M-16 wave gate (`d0b557c`).
+
+- **AC-W63 (WU-75, D-370…D-375).** Static, `buildGuidePipeline.test.ts` ("AC-W63"). `D1-build.md` has D1-build
+  read `references/patterns.md` whole before designing `b` and `n`, with the lookup-and-measure rule;
+  `pricing.md` has D-370's targets, D-372's call and D-373's method; `data/economy/prices.json` has the table and
+  the league dates as `judgment` facts; the coordinator's tools include `find_upgrades` and `manage_sets`;
+  D1-build has no `infeasible` for price; no skill file keeps the 20-divine ceiling, the 22- or 5.5-divine
+  tolerance, or "near the ceiling".
+- **AC-W64 (WU-76, D-371, D-373).** Checker unit, `buildGuideCheckRun.test.ts` ("AC-W64").
+  - A `b` total of 60 divines with an `over-target` finding passes the D1 gate and routes to the design gate.
+  - A budget `fail` is refused as an unknown value.
+  - The rendered Checks lines give ranges at the price day and name the over-target slots; the checker's
+    recompute from the plan and `prices.json` matches the D1 gate's.
+  - An `unavailable` price still makes the total `unverified`, with D-164's sentence.
+
+**Amendment 6 (M-17; built; WU-79).** From amendment 6 §8; slice 01 holds AC-K69…AC-K71 and slice 02 AC-P68 and
+AC-P69.
+
+- **AC-W65 (WU-79, D-379).** Static, `buildGuidePipeline.test.ts` ("AC-W65").
+  - `start.md` accepts `Kind: minion skill` under the one-summon rule.
+  - R1a-assemble and R1b keep minion skills out of D-334's route.
+  - The lock covers the summon.
+  - R1a, `lookups.md` and V4 carry the `Grants Skill:` exception.
+  - D1-build sets `minionSkill`, `minionStatSet` and `main.activeSkill` on the summon.
+  - `patterns.md` stays within its word cap: 6,000 words in amendment 6; **amended by D-381 (v1.6)**, 10,000
+    (`LIBRARY_WORD_CAP`).
+- **AC-W66 (WU-79, D-378).** Checker unit, on a run fixture whose rolled group names a minion skill
+  (`buildGuideCheckRun.test.ts`, "AC-W66", a minion copy of `run-ok-online`).
+  - The checker's rolled-figure recompute and its verdict-line DPS check read `MinionTotalDPS` × Count.
+  - The renderer's campaign headline reads it too.
+  - As built, 4 of its tests failed on the old scripts. Since D-385 the same holds for a group whose skill
+    summons a minion without naming a minion skill.
+
+**Amendment 7 (M-18; built; WU-81, WU-82).** From amendment 7 §13; slice 02 holds AC-P70. Each mapped to passing
+tests at the M-18 wave gate (`3fa8531`).
+
+- **AC-W67 (WU-81, D-392).** Script unit, `buildGuideScripts.test.ts`, on a fixture run in the new card format.
+  - **`display brainstorm`** prints every dealt card's name and its five pitch lines, numbered. It prints the
+    deck's header once, then the not-dealt reasons and the found-not-used list. It prints no card id outside "For
+    reference", and none of "links confirmed", "no player evidence" or a bare tag list.
+  - **`display final` and `display design`** print none of "compiled pass", "v1 pass", "v2 pass" or "floor
+    pass" outside "For reference", and still print every figure they printed before.
+- **AC-W68 (WU-81, D-389, D-391, D-394).** Script unit, `buildGuideScripts.test.ts` and
+  `buildGuideCheckRun.test.ts` ("AC-W68").
+  - **`run-log.mjs` accepts** a checkpoint with `questions`, `changes` keyed by picked ids, `newCards` with ids
+    `r<k>-g-<n>`, and `note` with `more`.
+  - **It refuses** `changes` naming an unpicked card, `newCards` whose `from` names a card the deck doesn't
+    hold, picks and new cards over 3, and `note` on any other answer.
+  - **The test config** accepts object entries and refuses the malformed ones (D-394).
+  - **The checker passes** a fixture run (`run-interview`) whose checkpoint counts 2 questions and whose
+    `interviews/brainstorm-1.md` holds 2, and which holds one gate-made card with its deck line.
+  - **The checker fails:** a count that differs from the notes; a changed pick whose card lacks its "Changed at
+    the gate" line; a gate-made card without its "Made at the gate" line or its line in the deck. On the old
+    scripts it failed `run-interview` with 14 violations.
+- **AC-W69 (WU-82, D-389…D-396).** Static, `buildGuidePipeline.test.ts` ("AC-W69"), 14 tests, all failing on
+  WU-81's text.
+  - `SKILL.md` and `checkpoints.md`: every gate and escalation takes questions before the decision; the runner's
+    sources and its one-line notice before a gate question step; no AskUserQuestion at a gate.
+  - `stages/Q.md` exists, with its two agent types, its writes, and its rule that it edits no plan and no card.
+  - The card template carries Name, Why pick it, How it clears, Bosses, Needs and The catch.
+  - **These files carry their new rules:** R1a-assemble: the header, the found-not-used list and unique names;
+    R1b: the gate's revisions, and writing a gate-made card's brainstorm half; R1b-assemble: a gate-made card's
+    deck line; `checkpoints.md`: what is a revision and what is a new card, "when unsure, a new card", and the
+    design gate's revise that isn't one; D1-build: the verification gate's changes, and dead gems; D2: dead
+    gems; W1: the interview notes in the FAQ; `lookups.md` and `SKILL.md`: legacy; `offline-and-test.md`:
+    object answers.
 
 **The ascendancy lock (WU-63; built, merge `736733f`; D-342).** Written at the fold to match what WU-63 built
 and tested; P1's check 6 is its run evidence (AC-W47).
@@ -2480,11 +3138,17 @@ and tested; P1's check 6 is its run evidence (AC-W47).
 | AC-W34…W50 (WU-59, recorded; AC-W45, W46 withdrawn, D-361) | pipeline run (recorded; independent verifier) | WU-59 |
 | AC-W61 (WU-63, built) | static (pipeline files) | `mise run test` |
 | AC-W62 (WU-63, built) | unit (the run checker) | `mise run test` |
-| AC-W51 (WU-64, target) | script check (the spike's report) | WU-64 |
-| AC-W52, W53 (WU-69, WU-70, target) | static (pipeline files) | `mise run test` |
-| AC-W54, W55 (WU-71, target) | unit (the run checker, rebuilt fixtures) | `mise run test` |
-| AC-W59, W60 (WU-69…WU-71, target) | static and unit | `mise run test` |
-| AC-W56…W58 (WU-72, target) | pipeline run (recorded; independent verifier) | WU-72 |
+| AC-W51 (WU-64, done) | script check (the spike's report) | WU-64 |
+| AC-W52, W53 (WU-69, WU-70, built) | static (pipeline files) | `mise run test` |
+| AC-W54, W55 (WU-71, built) | unit (the run checker, rebuilt fixtures) | `mise run test` |
+| AC-W59, W60 (WU-69…WU-71, built) | static and unit | `mise run test` |
+| AC-W56…W58 (WU-72, recorded) | pipeline run (recorded; independent verifier) | WU-72 |
+| AC-W63 (WU-75, built) | static (pipeline files) | `mise run test` |
+| AC-W64 (WU-76, built) | unit (the run checker and the renderer) | `mise run test` |
+| AC-W65 (WU-79, built) | static (pipeline files) | `mise run test` |
+| AC-W66 (WU-79, built) | unit (the run checker and the renderer, a minion fixture) | `mise run test` |
+| AC-W67, W68 (WU-81, built) | unit (the scripts and the checker, the `run-interview` fixture) | `mise run test` |
+| AC-W69 (WU-82, built) | static (pipeline files) | `mise run test` |
 
 The checker's control-flow cases over fixture logs exercise every failure route deterministically and
 offline, in place of the deleted workflow harness; run B of WU-47 drives every failure route live (D-267).
@@ -2492,7 +3156,8 @@ WU-59's run B, which would have driven the amended routes live (AC-W45), was dro
 the checker's fixture cases alone carry them.
 The recorded runs prove that the real agents, tools and allowlists behave the same way. No test or run in
 this slice contacts pathofexile.com, poe.ninja or D-171's hosts before M-13 (D-34, D-181); there are no
-poe.ninja tools to test (D-335).
+poe.ninja tools to test (D-335). The gate interviews (amendment 7) can't be judged by a fixture: the fixtures
+hold their records' form, and the live alpha is where the user judges them.
 
 ## 15. Open items and their resolutions
 
@@ -2525,7 +3190,7 @@ The last two rows of the first fold came after it: `--no-ninja` (D-333) and a no
 | F12, F20 | No acceptance criteria for WU-59 (amendment 3's "like WU-47") or for the D-122 wording test | **A-33:** each unit's first step pins its criteria in this slice from the amendment's text, and the coordinator reviews them before any work; "like WU-47" means WU-47's recorded procedure with an open brief | WU-59 (AC-W34…AC-W50), AC-W32 |
 | F13 | The final gate's test answers | **D-323:** `answers.brainstorm`, `answers.verification` and `answers.final`; `checkpoint1` and `checkpoint2` retire with run log v3 | §11.2 |
 | F14, F15 | Who sets the popularity threshold for a deck's under-played cards; the poe.ninja tools' details | *Withdrawn → D-335:* D-324 made both outputs of spike WU-50, which found poe.ninja's builds API closed to third parties. There are no tools and no threshold; the under-played cards are the coordinator's judgment from the pattern library (D-298 restated) | §4, §5.2 |
-| F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test | §7.6, AC-W28 |
+| F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test; **D-381 (v1.6):** 10,000 words | §7.6, AC-W28 |
 | F17 | Whether the checker still accepts schema-2 logs after v3 | **D-326:** both; schema 2 only so recorded runs (WU-47's) still check | FR-W7, §6, AC-W2 (aa) |
 | F19 | Amendment 2's trade-link field | **HG-22** (PROPOSED by the coordinator): if the price tool returns a link, the user decides at WU-48 whether to add the field | WU-48 item 12 |
 | F21 | The entering-maps rung in D-256's area-level tie | **D-327:** `m` follows the tie, at D-281's area level 69 (the coordinator's inference) | §5.3 |
@@ -2544,7 +3209,23 @@ The rows below come from fold v1.5 (2026-10-11): the last units' reviews, WU-59,
 | — | Schema-2 logs can't keep WU-47's runs checkable once the artifacts follow WU-62's formats | **D-341** (PROPOSED by the coordinator): schema 2 means the schema-2 log rules only; `run-ok-v2` is their fixture | FR-W7, §6, AC-W2 |
 | — | Nothing ties a card for a tree-granted skill to the ascendancy that grants it | **D-342** (the user's direction), WU-63: the ascendancy lock | FR-W2, FR-W3, §5.2, §7.5, §10, AC-W34, AC-W47, AC-W61, AC-W62 |
 | — | A support gem named in free text slipped past the D-258 refusal into `around`; no rule for a missing Agent tool (WU-59's P1) | **D-343**, **D-344** (PROPOSED by the coordinator): the support gem goes in `around` and the fixed roll is two names by shape; steps 1 to 4 always run, and a missing Agent tool stops at the first agent step | FR-W1, FR-W2, AC-W47, AC-W48 |
-| — | Run A's cost (296.2M cache read, 1.78M recorded output) and the issues the user found (anoints, support sockets, tree roots) | **Amendment 4** (accepted by the user, 2026-10-11): D-345…D-362, *target* for M-15 | §2, §3, §5, §6, §7, §8, §10, §11.2, §12, §13 |
+| — | Run A's cost (296.2M cache read, 1.78M recorded output) and the issues the user found (anoints, support sockets, tree roots) | **Amendment 4** (accepted by the user, 2026-10-11): D-345…D-362, *target* for M-15 at v1.5; built since (v1.6) | §2, §3, §5, §6, §7, §8, §10, §11.2, §12, §13 |
 | — | How the runner copies the plan, record and guide to `rounds/<n>/` (D-352), when it reads no plan and its Bash writes nothing (FR-W4, FR-W5) | **A-34** (PROPOSED by the coordinator, 2026-10-11): a script on the runner's Bash list (`check-run.mjs --snapshot <n>` or `scripts/run-log.mjs`) copies the three files without the runner reading them | FR-W4, FR-W5, §5.5, WU-70, WU-71 |
 | — | Where the design gate's display (D-362) comes from, when the runner reads no plan or record (FR-W3, FR-W4) | **A-35** (PROPOSED by the coordinator, 2026-10-11): the D1 gate step writes it, compactly, into its verdict file, which the runner reads | FR-W4, §10, WU-70, WU-71 |
 | — | D-360 changes `find_path_to_node` and `get_nearby_nodes`, two tool contracts outside C-37…C-50, which HG-12 reserves to the user | **HG-12, decided by the user** (2026-10-11): the acceptance of amendment 4, whose D-360 names both tools, is that decision; the spine's C-1 and HG-12 name D-360 | slice 01 §2.11, WU-66 |
+
+The rows below come from fold v1.6 (2026-10-18): M-15's build and its follow-up, amendments 5 to 7, and the
+decisions between them. None is left open in this slice.
+
+| Id | Gap | Settled as | Applied in |
+|---|---|---|---|
+| — | After a ledger-only fix the record's ledger values are stale, so V4 can't compare a guide figure with them | **D-365** (PROPOSED by the coordinator): V4 compares only measured values; ledger figures are `[ledger]`'s, over the plan's current formulas | §5.5, §7.4, FR-W7 (2), AC-W2 (t) |
+| — | The plan holds node ids only and W1 has no tree tool, yet the guide must name each act's path (D-346) | **D-366** (PROPOSED by the coordinator): D2 keeps `reason` claims naming each stage's path and each reward pick, about 10 | §5.2, §7.3 |
+| — | The lean run missed 3 of 5 gate displays and logged both re-checks as attempt 2 (AC-W56) | **D-367, D-368** (PROPOSED by the coordinator, for the user's "fix, then waive"): `run-log.mjs display` and the checkpoint refusal; a re-check counts its attempts from 1 | FR-W4, §5.1, §6, §10, WU-73 |
+| — | The design gate's figures drifted by the final record with no display showing it | **D-369** (PROPOSED by the coordinator): the final gate shows the final figures beside the design gate's | §10, WU-73 |
+| — | Guides overprice gear with exact searches, prune builds for price, and quote a dead league's raw prices | **Amendment 5** (accepted by the user, 2026-10-16): D-370…D-375 | §5.2, §5.3, §7, §8, §9, WU-75, WU-76, AC-W63, AC-W64 |
+| — | The coordinator now holds `manage_sets`, a `mutate` tool, against R-4 and R1b's "mutate tools you don't hold" | the v1.6 fold: R-4 amended by D-372 for the loadout select only; R1b's reference already says R1b doesn't use it | §4, §7.7 |
+| — | A command a minion casts (Navira's Fracturing) couldn't be the brief's skill, selected, or measured | **Amendment 6** (accepted by the user, 2026-10-16): D-376…D-380 | FR-W1, FR-W2, §5.2, §5.3, §7.5, §8, WU-79, AC-W65, AC-W66 |
+| — | The library sat at 5,999 of its 6,000 words after M-17 | **D-381** (the user, 2026-10-17): 10,000 words | §7.6, AC-W28, AC-W65 |
+| — | The checker's rolled-skill rule flagged plain summon groups (the Varashta run's three violations); a price note forced a recompile | **D-385, D-386** (PROPOSED by the coordinator, the defect batch) | §5.3, FR-W7, §5.5 |
+| — | The gates were a multiple choice the user couldn't question, a pick couldn't carry a change, and displays spoke in pipeline codes (the Varashta run's feedback) | **Amendment 7** (approved by the user, 2026-10-18, with §15's recommended options): D-389…D-397 | FR-W3, FR-W4, §5, §6, §7, §8, §10, §11.2, WU-81, WU-82, AC-W67…AC-W69 |

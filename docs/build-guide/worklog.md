@@ -4493,3 +4493,6 @@ the `m17` engine at `b76967b`.
   files (`### <Name>` then `- Id: <id>`), HG-12 for WU-87 and WU-88 only, and no network for any build agent.
 - **The estimate:** about 4.5–5.5M tokens for the eight units, their verifiers and the wave gate (M-18's three
   units took 1.97M), the index's content pass the largest single part.
+- **M-20 wave 1 dispatched:** WU-84 (`bg-84`), WU-85 (`bg-85`), WU-86 (`bg-86`) and WU-88 (`bg-88`), each off the
+  integration head `f1eaaa7` (worktree `m20`, branch `build-guide/m20`). Commits here are unsigned until the
+  sign-rebase.

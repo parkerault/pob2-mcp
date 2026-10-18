@@ -4531,3 +4531,14 @@ the `m17` engine at `b76967b`.
   stay in the body but leave the head (one count line, plus any that change a rule), since the head with them is
   about 5,100 words, twice the estimate, and every researcher reads it whole. Sent back to the doer before
   verification.
+- **WU-88's fix round** (`0089306`): skeletons take the on-death step (the gem texts are fetched for every measured
+  stage), with a Contagion skeleton-against-rung engine test that fails on the old filter; "every measured stage's
+  movement speed". The doer's full gate failed only AC-T22 on time under load (21 s), passing alone. The verifier
+  re-checks.
+- **WU-86's fix round** (`379062e`): a modifier's own keyword page, when saved, gives its figures. Haste Aura: 20%
+  increased Attack Speed, 20% increased Cast Speed, 10% increased Movement Speed; Extra Physical Damage Aura: 40%
+  increased Physical Damage; Energy Shield Aura: "Gain 20% of maximum Life as Extra maximum Energy Shield" (PoB's
+  wording); Elemental Resistance Aura: +35% to all Elemental Resistances; each to allies within 5 metres. Gate rc 0
+  (2,478 tests). **Declined:** a `damage` family (WU-86's proposal). A generic damage increase fits every build and
+  would pair with nearly everything in `pairs.md`; the join is for mechanics, so such rows create `none`. The
+  verifier is running.

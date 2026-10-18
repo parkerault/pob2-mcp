@@ -191,7 +191,10 @@ end
 -- differs from the grant isn't matched and is removed (:1655-1666) for a new one, and a matched group's gem
 -- list is wiped back to the granted gem. Each document group is compared with the engine's group of the same
 -- source and slot (the one with the same first skill, if several): the gems it no longer holds were dropped.
--- One entry per group that lost gems: {group, source, grantedBy?, gems = {names}}; [] when none did.
+-- With no such group, nothing grants the skill (the passive isn't allocated, the item isn't equipped), and PoB
+-- removed the group (:1655-1666): the entry says so (`grantMissing`), and its gems leave out the granted skill,
+-- the document group's first gem.
+-- One entry per group that lost gems: {group, source, grantedBy?, grantMissing?, gems = {names}}; [] when none did.
 local function dropped_granted_gems(bySet)
   local skillsTab = build and build.skillsTab
   local groups = skillsTab and bySet[skillsTab.activeSkillSetId] or {}
@@ -210,8 +213,9 @@ local function dropped_granted_gems(bySet)
       if gem.skillId then kept[gem.skillId] = true end
     end
     local gems = {}
-    for _, gem in ipairs(group.gems) do
-      if not (gem.skillId and kept[gem.skillId]) then table.insert(gems, gem.name) end
+    for index, gem in ipairs(group.gems) do
+      local granted = not match and index == 1
+      if not granted and not (gem.skillId and kept[gem.skillId]) then table.insert(gems, gem.name) end
     end
     if #gems > 0 then
       local label = group.label ~= nil and group.label ~= '' and group.label or nil
@@ -219,6 +223,7 @@ local function dropped_granted_gems(bySet)
         group = label or (first and first.name) or group.source,
         source = group.source,
         grantedBy = grantor_name(group.source),
+        grantMissing = not match or nil,
         gems = gems,
       })
     end

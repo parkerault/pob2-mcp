@@ -119,11 +119,18 @@ export const buildNameReply = baseReply.extend({ result: z.object({ name: z.stri
 
 /**
  * D-398: one granted socket group (a passive's or an item's skill) the load took gems from: its label or granted
- * skill, its PoB source (`Tree:<node id>` or `Item:<id>:<name>`), the passive's or item's name, and the gems
+ * skill, its PoB source (`Tree:<node id>` or `Item:<id>:<name>`), the passive's or item's name, `grantMissing`
+ * when nothing grants the skill (PoB removed the group; the granted skill isn't among the gems), and the gems
  * PoB dropped, in the document's order.
  */
 const droppedSupportGroupSchema = z
-  .object({ group: z.string(), source: z.string(), grantedBy: optString, gems: z.array(z.string()) })
+  .object({
+    group: z.string(),
+    source: z.string(),
+    grantedBy: optString,
+    grantMissing: z.boolean().optional(),
+    gems: z.array(z.string()),
+  })
   .passthrough();
 export type DroppedSupportGroup = z.infer<typeof droppedSupportGroupSchema>;
 

@@ -51,8 +51,9 @@
  * `checks.grantedSkills` names the passives that grant a group's skill (`[]` for none).
  *
  * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
- * build's granted groups: a granted group with supports (`granted-supports.xml`) gives one entry with the group,
- * its source, the passive's name and the gems, and the golden build gives `[]`.
+ * build's granted groups: each granted group with supports (`granted-supports.xml`: a passive's and an item's) gives
+ * one entry with the group, its source, the grantor's name and the gems, a group nothing grants carries
+ * `grantMissing`, and the golden build gives `[]`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -440,7 +441,21 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
       expect(reply.result.droppedSupports).toEqual([
         { group: 'Virtuous Barrier', source: 'Tree:11641', grantedBy: 'Essence of Virtue', gems: ['Precision I', 'Clarity I'] },
+        { group: 'Discipline', source: 'Item:1:Stoic Sceptre', grantedBy: 'Stoic Sceptre', gems: ['Precision II', 'Clarity II'] },
       ]);
+
+      // A group nothing grants: `grantMissing`, and the granted skill isn't among the gems.
+      const unallocated = GRANTED_SUPPORTS.replace('nodes="34882,11641"', 'nodes="34882"');
+      expect(unallocated).not.toBe(GRANTED_SUPPORTS);
+      const missing = await engine.request('load_build_xml', { xml: unallocated, name: 'Granted' }, { timeoutMs: 120_000 });
+      expect(replySchemas.load_build_xml!.safeParse(missing).success).toBe(true);
+      expect(missing.result.droppedSupports[0]).toEqual({
+        group: 'Virtuous Barrier',
+        source: 'Tree:11641',
+        grantedBy: 'Essence of Virtue',
+        grantMissing: true,
+        gems: ['Precision I', 'Clarity I'],
+      });
     },
     ENGINE_TIMEOUT,
   );

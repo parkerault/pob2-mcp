@@ -39,11 +39,13 @@ requirement on a PoB pin bump.
 Written by hand from the game data, not from any player's build: a level-60 Mercenary / Gemling Legionnaire
 with node 34882 and Essence of Virtue (node 11641, "Grants Skill: Virtuous Barrier"). Its skill set has a
 socketed Flash Grenade group with Heft, and Essence of Virtue's granted group (`source="Tree:11641"`) holding
-Virtuous Barrier at the grant's level 1 with Precision I and Clarity I, two supports that take a persistent buff.
+Virtuous Barrier at the grant's level 1 with Precision I and Clarity I, two supports that take a persistent buff. A
+normal Stoic Sceptre (its base implicit "Grants Skill: Level (1-20) Discipline", written at level 10) is in Weapon 1,
+and its granted group (`source="Item:1:Stoic Sceptre"`) holds Discipline with Precision II and Clarity II.
 
 | | |
 |---|---|
-| Effect | On PoB2 `v0.23.1`, the load keeps only Virtuous Barrier in the granted group, and `load_build_xml`'s `droppedSupports` names Precision I and Clarity I (`tests/integration/grantedGroupSupports.test.ts`). |
+| Effect | On PoB2 `v0.23.1`, the load keeps only Virtuous Barrier and Discipline in the granted groups, and `load_build_xml`'s `droppedSupports` names the four supports, one entry per group (`tests/integration/grantedGroupSupports.test.ts`). |
 | Re-check | On a PoB pin bump: whether PoB still rebuilds granted groups (`Modules/CalcSetup.lua`, the granted-skill loop). |
 
 ## `runic-ward-gloves.xml` (an item PoB's save changes, D-399)

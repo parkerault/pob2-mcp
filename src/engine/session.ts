@@ -81,8 +81,11 @@ export interface EngineCallContext {
   loadXml(xml: string, origin: { displayName: string }): Promise<LoadedBuild>;
   /** `displayName = "New build"`, `path = null`. */
   newBuild(params: { className?: string; ascendancy?: string }): Promise<LoadedBuild>;
-  /** D-9: export → load xml → fn → reload the export; `revision`/`loaded` unchanged, also on failure. */
-  withTemporaryBuild<T>(xml: string, fn: () => Promise<T>): Promise<T>;
+  /**
+   * D-9: export → load xml → fn → reload the export; `revision`/`loaded` unchanged, also on failure. `file`
+   * names the build file the xml came from, in the load's D-398 warning lines.
+   */
+  withTemporaryBuild<T>(xml: string, fn: () => Promise<T>, opts?: { file?: string }): Promise<T>;
   /** ONLY after writing the engine's current build (C-17 step 6). */
   noteSaved(relPath: string, fp: Fingerprint): void;
   fingerprint(relPath: string): Promise<Fingerprint | null>;
@@ -215,18 +218,28 @@ function isDroppedGroup(value: unknown): value is DroppedSupportGroup {
  * D-398: one warning line per granted socket group a load took gems from (the engine's `droppedSupports`).
  * PoB v0.23.1 rebuilds a passive's or an item's granted skill group from its grant on every calculation
  * (`Modules/CalcSetup.lua:1503-1542`), so the supports a file keeps there are gone, and every figure is
- * measured without them. A reply without the field (or with none) gives no line.
+ * measured without them. A group nothing grants (`grantMissing`: the passive isn't allocated, the item isn't
+ * equipped) is removed with its supports, and its line says that instead. With `file` (a temporary load of a
+ * build file), each line names the file. A reply without the field (or with none) gives no line.
  */
-export function droppedSupportNotices(reply: unknown): string[] {
+export function droppedSupportNotices(reply: unknown, file?: string): string[] {
   const groups = (reply as { result?: { droppedSupports?: unknown } } | null | undefined)?.result?.droppedSupports;
   if (!Array.isArray(groups)) return [];
+  const where = file ? `in ${file}, ` : "";
   return groups.filter(isDroppedGroup).map((g) => {
     const node = /^Tree:(\d+)$/.exec(g.source)?.[1];
     const grantor = node
       ? `the passive ${g.grantedBy ? `${g.grantedBy} (node ${node})` : `node ${node}`}`
       : `the item ${g.grantedBy ?? g.source}`;
+    const gems = g.gems.join(", ");
+    if (g.grantMissing === true) {
+      return (
+        `Warning: ${where}PoB dropped ${gems} with the group "${g.group}": ${grantor}, which grants its skill, ` +
+        `${node ? "isn't allocated" : "isn't equipped"}, so PoB removed the group.`
+      );
+    }
     return (
-      `Warning: PoB dropped ${g.gems.join(", ")} from the group "${g.group}", granted by ${grantor}: PoB rebuilds ` +
+      `Warning: ${where}PoB dropped ${gems} from the group "${g.group}", granted by ${grantor}: PoB rebuilds ` +
       "a granted skill's group from its grant on every calculation, so no figure includes them."
     );
   });
@@ -694,10 +707,19 @@ class Session implements EngineSession {
   // -------------------------------------------------------------------------------------------------
   // Engine primitives (unguarded; the session's own use only)
 
-  /** A load; resolves with D-398's warning lines for the gems PoB dropped from the build's granted groups. */
-  private async rawLoad(xml: string, name: string, opts: { keepLevel?: boolean } = {}, request: RequestOptions = {}): Promise<string[]> {
+  /**
+   * A load; resolves with D-398's warning lines for the gems PoB dropped from the build's granted groups, naming
+   * `file` when given.
+   */
+  private async rawLoad(
+    xml: string,
+    name: string,
+    opts: { keepLevel?: boolean } = {},
+    request: RequestOptions = {},
+    file?: string,
+  ): Promise<string[]> {
     const reply = await this.client().request("load_build_xml", { xml, name, ...(opts.keepLevel ? { keepLevel: true } : {}) }, request);
-    return droppedSupportNotices(reply);
+    return droppedSupportNotices(reply, file);
   }
 
   /** The engine's default request timeout, as the bridge reads it (C-4). */
@@ -875,7 +897,7 @@ class Session implements EngineSession {
         session.commitLoad(state, { path: null, displayName: NEW_BUILD_NAME, fingerprint: null });
         return session.loadedValue as LoadedBuild;
       },
-      async withTemporaryBuild<T>(xml: string, fn: () => Promise<T>): Promise<T> {
+      async withTemporaryBuild<T>(xml: string, fn: () => Promise<T>, opts: { file?: string } = {}): Promise<T> {
         check();
         const pid = session.client().pid();
         const saved = await session.exportXml();
@@ -904,8 +926,9 @@ class Session implements EngineSession {
         };
         let result: T;
         try {
-          // D-398: the temporary build's figures leave out what PoB dropped too.
-          state.notices.push(...(await session.rawLoad(xml, "Temporary build")));
+          // D-398: the temporary build's figures leave out what PoB dropped too; its lines name the file, so two
+          // files' lines (compare_builds) tell apart.
+          state.notices.push(...(await session.rawLoad(xml, "Temporary build", {}, {}, opts.file)));
           result = await fn();
         } catch (error) {
           await putBack({ error });

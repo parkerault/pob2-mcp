@@ -17,10 +17,23 @@
 				<Gem quality="0" enabled="true" variantId="PrecisionSupport" level="1" gemId="Metadata/Items/Gems/SupportGemPrecision" enableGlobal1="true" enableGlobal2="true" nameSpec="Precision I" skillId="SupportPrecisionPlayer" count="1"/>
 				<Gem quality="0" enabled="true" variantId="ClaritySupport" level="1" gemId="Metadata/Items/Gems/SupportGemClarity" enableGlobal1="true" enableGlobal2="true" nameSpec="Clarity I" skillId="SupportClarityPlayer" count="1"/>
 			</Skill>
+			<Skill label="" enabled="true" includeInFullDPS="false" source="Item:1:Stoic Sceptre" slot="Weapon 1" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem quality="0" enabled="true" variantId="Discipline" level="10" gemId="Metadata/Items/Gems/SkillGemDiscipline" enableGlobal1="true" enableGlobal2="nil" nameSpec="Discipline" skillId="DisciplinePlayer" count="1"/>
+				<Gem quality="0" enabled="true" variantId="PrecisionSupportTwo" level="1" gemId="Metadata/Items/Gems/SupportGemPrecisionTwo" enableGlobal1="true" enableGlobal2="true" nameSpec="Precision II" skillId="SupportPrecisionPlayerTwo" count="1"/>
+				<Gem quality="0" enabled="true" variantId="ClaritySupportTwo" level="1" gemId="Metadata/Items/Gems/SupportGemClarityTwo" enableGlobal1="true" enableGlobal2="true" nameSpec="Clarity II" skillId="SupportClarityPlayerTwo" count="1"/>
+			</Skill>
 		</SkillSet>
 	</Skills>
 	<Items activeItemSet="1" useSecondWeaponSet="nil" showStatDifferences="true">
+		<Item id="1">
+Rarity: NORMAL
+Stoic Sceptre
+Item Level: 60
+Implicits: 1
+Grants Skill: Level 10 Discipline
+		</Item>
 		<ItemSet id="1" title="Default" useSecondWeaponSet="nil">
+			<Slot itemPbURL="" itemId="1" name="Weapon 1"/>
 		</ItemSet>
 	</Items>
 	<Config activeConfigSet="1">

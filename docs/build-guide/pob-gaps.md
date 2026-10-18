@@ -103,7 +103,8 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     Purity of Ice group.
   - **Warning:** every tool reply that loads or imports a build file (a load, a reload, an import, the session's
     reload of a changed file, a temporary load) names each dropped gem, its group and the passive or item that
-    grants it, one line per group (D-398).
+    grants it, one line per group (D-398). A temporary load's lines name the file. A group nothing grants (its
+    passive isn't allocated, its item isn't equipped) is removed with its supports, and its line says so.
   - **Workaround:** PG-51's: model the skill as a socketed group and put the supports there.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)

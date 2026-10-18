@@ -60,7 +60,7 @@ interface LiveBuildData {
 async function readLive(
   engine: EngineCallContext,
   xml: string,
-  opts: { judge?: boolean } = {},
+  opts: { judge?: boolean; file?: string } = {},
 ): Promise<LiveBuildData | { unavailable: string }> {
   try {
     return await engine.withTemporaryBuild(xml, async () => {
@@ -73,7 +73,7 @@ async function readLive(
       const itemSets = ((await client.listItemSets())?.itemSets ?? []) as LiveBuildData['itemSets'];
       const issues = opts.judge ? judge(stats, warnings, await client.getItems(), await client.getRuleBreaks()) : undefined;
       return { info, stats: stats as Record<string, any>, specs, itemSets, issues };
-    });
+    }, { file: opts.file });
   } catch (error) {
     if (error instanceof EngineActionError) return { unavailable: error.message };
     throw error;
@@ -98,7 +98,7 @@ export async function handleAnalyzeBuild(context: HandlerContext, buildName: str
   if (context.engine) {
     const engine = context.engine();
     const file = await context.buildService.readBuildFile(buildName);
-    live = await readLive(engine, file.bytes.toString('utf8'), { judge: true });
+    live = await readLive(engine, file.bytes.toString('utf8'), { judge: true, file: file.rel });
   }
 
   const specContextLines: string[] = [];
@@ -234,8 +234,8 @@ export async function handleCompareBuilds(context: HandlerContext, build1Name: s
     const engine = context.engine();
     const f1 = await context.buildService.readBuildFile(build1Name);
     const f2 = await context.buildService.readBuildFile(build2Name);
-    const l1 = await readLive(engine, f1.bytes.toString('utf8'));
-    const l2 = isLive(l1) ? await readLive(engine, f2.bytes.toString('utf8')) : null;
+    const l1 = await readLive(engine, f1.bytes.toString('utf8'), { file: f1.rel });
+    const l2 = isLive(l1) ? await readLive(engine, f2.bytes.toString('utf8'), { file: f2.rel }) : null;
     if (isLive(l1) && isLive(l2)) {
       r1 = { ...l1, name: f1.rel };
       r2 = { ...l2, name: f2.rel };

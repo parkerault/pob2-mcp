@@ -449,23 +449,41 @@ describe('D-22 (NFR-4): a call deadline bounds the session\'s own steps, not onl
 });
 
 describe('D-398: droppedSupportNotices', () => {
+  const tail = ": PoB rebuilds a granted skill's group from its grant on every calculation, so no figure includes them.";
+
   it('gives one line per group: the gems, the group, and the passive (with its node) or the item that grants it', () => {
     const reply = {
       ok: true,
       result: {
         name: 'x',
         droppedSupports: [
-          { group: 'Navira', source: 'Tree:32705', grantedBy: 'Navira', gems: ['Muster', 'Bidding II'] },
-          { group: 'Purity of Ice', source: 'Item:4:Probe Sceptre', grantedBy: 'Probe Sceptre', gems: ['Clarity I'] },
+          { group: 'Virtuous Barrier', source: 'Tree:11641', grantedBy: 'Essence of Virtue', gems: ['Precision I', 'Clarity I'] },
+          { group: 'Discipline', source: 'Item:1:Stoic Sceptre', grantedBy: 'Stoic Sceptre', gems: ['Precision II'] },
           { group: 'Unnamed', source: 'Tree:123', gems: ['Heft'] },
         ],
       },
     };
-    const tail = ": PoB rebuilds a granted skill's group from its grant on every calculation, so no figure includes them.";
     expect(droppedSupportNotices(reply)).toEqual([
-      `Warning: PoB dropped Muster, Bidding II from the group "Navira", granted by the passive Navira (node 32705)${tail}`,
-      `Warning: PoB dropped Clarity I from the group "Purity of Ice", granted by the item Probe Sceptre${tail}`,
+      `Warning: PoB dropped Precision I, Clarity I from the group "Virtuous Barrier", granted by the passive Essence of Virtue (node 11641)${tail}`,
+      `Warning: PoB dropped Precision II from the group "Discipline", granted by the item Stoic Sceptre${tail}`,
       `Warning: PoB dropped Heft from the group "Unnamed", granted by the passive node 123${tail}`,
+    ]);
+  });
+
+  it('says a group nothing grants was removed, and names the file of a temporary load', () => {
+    const reply = {
+      result: {
+        droppedSupports: [
+          { group: 'Virtuous Barrier', source: 'Tree:11641', grantedBy: 'Essence of Virtue', grantMissing: true, gems: ['Clarity I'] },
+          { group: 'Discipline', source: 'Item:1:Stoic Sceptre', grantedBy: 'Stoic Sceptre', grantMissing: true, gems: ['Precision II'] },
+        ],
+      },
+    };
+    expect(droppedSupportNotices(reply, 'a.xml')).toEqual([
+      'Warning: in a.xml, PoB dropped Clarity I with the group "Virtuous Barrier": the passive Essence of Virtue (node 11641), ' +
+        "which grants its skill, isn't allocated, so PoB removed the group.",
+      'Warning: in a.xml, PoB dropped Precision II with the group "Discipline": the item Stoic Sceptre, which grants its skill, ' +
+        "isn't equipped, so PoB removed the group.",
     ]);
   });
 

@@ -98,7 +98,9 @@ export async function readAdviceSubject(context: AdviceContext, buildName?: stri
   if (loaded?.path === file.rel) {
     return subject(file.rel, false, await readAdviceInputs(engine.client));
   }
-  const inputs = await engine.withTemporaryBuild(file.bytes.toString('utf8'), () => readAdviceInputs(engine.client));
+  const inputs = await engine.withTemporaryBuild(file.bytes.toString('utf8'), () => readAdviceInputs(engine.client), {
+    file: file.rel,
+  });
   return subject(file.rel, true, inputs);
 }
 

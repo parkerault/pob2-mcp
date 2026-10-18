@@ -4522,3 +4522,12 @@ the `m17` engine at `b76967b`.
   its budget rung medium). Fix round sent, with a skeleton-against-rung test. **For WU-89:** with no clear skill
   measured, don't print "PoB gives no area"; update `run-log.mjs:701-702` and the comment at
   `buildGuideScripts.test.ts:555`.
+- **WU-84 done by its doer** (`a45d3f4`). Gate rc 0 (138 suites, 2,462 tests), build rc 0. `league-digest.mjs`
+  with `--from`, `--reflag`, `--save`; the fetch path is tested on a stubbed `fetch` (order, 3 s spacing, the
+  User-Agent, no cookie, one retry after 60 s). **The first digest,** `data/league/runes-of-aldur.md`: 324 entries,
+  303 in the pin (57 gems, all in the pin; 46 uniques, 44; 163 socketables; 54 other items, 35; 2 ascendancies; 2
+  passives); 86 currency entries left out; `powered-by-verisium` is there. In-pin names are checked against the
+  tree's JSON for ascendancies and passives, and `Data/Bases` with `ModRunes.lua` for items. **Ruling:** socketables
+  stay in the body but leave the head (one count line, plus any that change a rule), since the head with them is
+  about 5,100 words, twice the estimate, and every researcher reads it whole. Sent back to the doer before
+  verification.

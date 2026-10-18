@@ -4,7 +4,68 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-17: amendment 6, a minion's skill (read this first)
+## M-18: amendment 7, gates as interviews (read this first)
+
+Added 2026-10-18. For this build, this section overrides the M-17, M-16 and M-15 sections and "What to build" below;
+the other sections ("Worktrees and branches" onward) still apply as written. M-18 is this handoff's label for the
+build; the spine gets it at the v1.6 fold.
+
+- **Spec.** `docs/build-guide/spec/amendment-7-gate-interviews.md` is binding for this build: D-389…D-397,
+  WU-80…WU-82 (§13) and their ACs (AC-P70, AC-W67…AC-W69). It is not folded into the spine and slices yet. Where
+  the amendment and the slices' current text disagree inside D-389…D-397's scope, the amendment wins; anywhere else
+  the spine and slices bind, and you report a conflict. Read the amendment whole: §2–§10 are the rules, §13 the units.
+- **Background, not requirements:** `studies/2026-10-17-varashta-run-feedback.md` (the feedback the amendment
+  answers) and `studies/2026-10-17-varashta-comparison.md` §6–§7. Read only what your unit needs.
+- **Ratified.** The user approved amendment 7 on 2026-10-18 with §15's recommended options, and said "Go ahead"
+  to the build.
+- **Directive.** WU-80 and WU-81 run in parallel, each in its own lane; WU-82 starts after WU-81 merges. The
+  coordinator merges each unit after its verifier passes.
+- **Who owns what.**
+  - **WU-80 (slice 02, D-397)** owns `src/` and its tests: `figureField` (`src/plan/record.ts:426`), the headline
+    (`:448-460`), the compile's key-figure line, and whatever else in `src/` reads a group's figure through
+    `figureField`. The rule: a group's figure is `MinionTotalDPS` when it names a minion skill, or when its
+    `skillOutputs` entry carries `Minion<Field>` fields (the checker's D-385 test, `check-run.mjs:347`); otherwise
+    `TotalDPS`. `get_passive_upgrades` already decides this way (`src/handlers/treeHandlers.ts`, D-388); keep the
+    two consistent. AC-P70 is an engine test.
+  - **WU-81 (slice 03 scripts)** owns `.claude/skills/build-guide/scripts/` (`run-log.mjs`, `check-run.mjs`,
+    `render-audit.mjs`), their tests and `tests/fixtures/pipeline/`. That includes D-397's reach into the checker,
+    the renderer and the verification display, if any of them reads a plain summon's figure as `TotalDPS` today; the
+    checker's own test is D-385's. It also owns:
+    - the card id's new letter `g` (`r<k>-g-<n>`, D-391), in `CARD_ID` and the deck check;
+    - the checkpoint's `questions`, `changes`, `newCards` and `note`;
+    - the test config's object entries (D-394);
+    - every display rewritten in plain words (D-392);
+    - a fixture run in the new card format (AC-W67, AC-W68).
+
+    WU-81 defines the formats: the card's Pitch fields as the display parses them, the deck header's sections, the
+    interview notes' layout. Write them down in its report, for WU-82.
+  - **WU-82 (slice 03 skill text)** owns `SKILL.md`, `references/`, `templates/`, the agent definitions under
+    `.claude/agents/build-guide/`, the new `references/stages/Q.md`, and `tests/static/buildGuidePipeline.test.ts`.
+    It writes the text to match WU-81's formats as merged, not its own reading of the amendment.
+- **Serialized files:** `tests/static/buildGuidePipeline.test.ts`: WU-81 (only where a script's pinned message
+  changes), then WU-82. No other file is shared between WU-80 and WU-81; if you find you need one, stop and report.
+- **HG-12 is granted for D-397 only:** `compile_plan`'s headline (`measures.dps`), its key-figure line
+  (`DPS <n> (<skill>, minion)`) and its record read a plain summon's group by its minion. No tool is added, no tool's
+  arguments change, and the counts stay as they are. Any other tool-contract change is still HG-12: stop and report
+  `blocked`.
+- **No legacy content.** Since D-384 the lookups leave legacy gems out and `compile_plan` refuses them. A fixture or
+  test plan uses none.
+- **Fixtures.** The repository is public. Write fixtures from the game data, never from a guide author's PoB.
+  `/home/parker/projects/pob2-mcp-runs/` is the baseline run's: read it for formats if you need to, never write
+  there, and never read its `.env` or `reference/`.
+- **Network.** None. Tests use committed fixtures and never contact the trade site, poe.ninja or poe2db (D-34).
+- **Done means:**
+  - amendment 7's ACs for your unit pass;
+  - `mise run test` and `pnpm build` exit 0 from a clean tree (AC-T22 and the compile-time test run alone in the
+    `--runInBand` step since 2026-10-17; a timing failure under load is re-run alone before it counts);
+  - both waiver files are `[]` (AC-B2);
+  - dependencies are unchanged (AC-B7).
+
+  If a tool's description changes, regenerate the README table (`pnpm build && pnpm docs:tools --write`).
+- **Cost.** Keep context lean. Read the amendment whole and the files it names by the lines you need. Run targeted
+  Jest suites while you work, and the full gate once at the end.
+
+## M-17: amendment 6, a minion's skill (built)
 
 Added 2026-10-16. For this build, this section overrides the M-16 and M-15 sections and "What to build" below; the
 other sections ("Worktrees and branches" onward) still apply as written. M-17 is this handoff's label for the build;
@@ -191,8 +252,8 @@ sections, which still apply as written.
 - **Lane worktrees:** `/home/parker/projects/pob2-mcp-wt/bg-<nn>`, on branch `bg/wu-<nn>`, created off the
   integration head current when the unit starts.
   - A lane is rebased onto `build-guide/amendments`, then fast-forward merged, then removed.
-- **Never touched by the fleet:** the main checkout `/home/parker/projects/pob2-mcp` (branch
-  `build-guide/amendment-3`). The user's pob2 MCP server runs from its `build/`.
+- **Never touched by the fleet:** the main checkout `/home/parker/projects/pob2-mcp` (branch `main` since
+  2026-10-18). The user's pob2 MCP server runs from its `build/`.
 - **Directory discipline.** `cd` to your worktree's absolute path at the start of every Bash call, because
   subagent cwd drifts.
 - **Bootstrap a new worktree:**

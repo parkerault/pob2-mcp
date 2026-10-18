@@ -4153,3 +4153,15 @@ the `m17` engine at `b76967b`.
     line that cites both the original and its rebased copy (WU-70 A), which keeps the original.
   - `58663e7` (a test comment, from before the range) has no main-line copy and is unchanged.
 - **Then force-pushed `main` to `origin`,** with a lease on `8ade8a8`.
+
+## 2026-10-18: M-18, amendment 7's build
+
+- **The user said "Go ahead"** to the build, 2026-10-18.
+- **The handoff gains "M-18: amendment 7"** (`build-handoff-amendments.md`):
+  - WU-80 and WU-81 run in parallel, and WU-82 follows WU-81;
+  - WU-80 owns `src/` and its tests;
+  - WU-81 owns the skill's scripts, their tests and the pipeline fixtures, and defines the formats WU-82 describes;
+  - HG-12 is granted for D-397's headline, key-figure line and record only;
+  - no network.
+- **The integration worktree** is `pob2-mcp-wt/amend`, on a new `build-guide/amendments` branch off `main`. The
+  lanes are `bg-80` and `bg-81`.

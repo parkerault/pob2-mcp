@@ -1,0 +1,20 @@
+{
+  "stage": "R1b",
+  "concept": "r1-b-2",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "fail"
+  },
+  "findings": [
+    {
+      "part": "compiled",
+      "code": "not-in-pin",
+      "message": "not compiled: Crimson Test Spear isn't in the PoB pin"
+    }
+  ],
+  "errors": [],
+  "compiles": 0,
+  "recordPath": null,
+  "faultsApplied": [],
+  "leagueUnverified": false
+}

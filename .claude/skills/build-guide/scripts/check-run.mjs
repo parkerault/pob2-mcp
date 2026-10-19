@@ -591,7 +591,13 @@ function vocabularyWords() {
     vocabulary = null;
     try {
       const words = new Set(['none']);
-      for (const line of fs.readFileSync(path.join(DATA_DIR, 'rules', 'vocabulary.md'), 'utf8').split(/\r?\n/)) {
+      // Each list item `- \`<family>\`[, \`<family>\` …]: <what it covers>`, its wrapped lines joined to it.
+      const items = fs.readFileSync(path.join(DATA_DIR, 'rules', 'vocabulary.md'), 'utf8').split(/\r?\n/).reduce((out, line) => {
+        if (/^\s+\S/.test(line) && out.length > 0) out[out.length - 1] += ` ${line.trim()}`;
+        else out.push(line);
+        return out;
+      }, []);
+      for (const line of items) {
         const m = /^[-*]\s+((?:`[a-z0-9-]+`(?:,\s*)?)+):/.exec(line);
         if (m) for (const w of m[1].matchAll(/`([a-z0-9-]+)`/g)) words.add(w[1]);
       }

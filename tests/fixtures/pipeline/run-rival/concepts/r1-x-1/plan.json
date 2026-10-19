@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 3,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Blood Hunt"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": null,
+  "stages": [
+    {
+      "id": "r1x1e",
+      "loadoutName": "Slam-opened lunge (L90) {r1x1e}",
+      "level": 90,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nGale Spike\nWar Spear\n+60% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDread Shell\nRusted Cuirass\n+80 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Crown\nIron Cap\n+60 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nStorm Track\nRough Greaves\n+25% increased Movement Speed\n+35% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nBlood Loop\nIron Ring\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [
+          {
+            "node": 1001,
+            "text": "Rarity: Rare\nGrim Eye\nRuby\n+8% to Fire Resistance\n+12 to maximum Life"
+          }
+        ],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyPhysicalDamage",
+            "value": 325,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "enemyFireDamage",
+            "value": 325,
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "damage.by-level[79]"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/Misc.lua:9",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "r1-a-1-dps",
+          "text": "Slam-opened lunge: the skeleton's damage.",
+          "kind": "reason",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "r1x1e.TotalDPS"
+          }
+        }
+      ]
+    }
+  ],
+  "ledger": [],
+  "prices": [
+    {
+      "id": "r1-a-1-weapon",
+      "item": "Slam-opened lunge weapon",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "Slam-opened lunge weapon"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-18",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    }
+  ]
+}

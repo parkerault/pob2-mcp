@@ -1,8 +1,8 @@
 {
   "pin": "the fixture name list",
-  "gem": ["Eonyr's Thunder", "fist of kalguur"],
-  "unique": ["Berek’s Grip"],
-  "item": ["Legacy of Facebreaker", "Grasping Ring", "Exalted Orb"],
-  "ascendancy": ["Martial Artist", "Spirit Walker"],
+  "gem": ["Kerr's Cinder Lattice", "bellows of ruin"],
+  "unique": ["Tarn’s Clasp", "Fourfold Cord", "Ferryman's Lantern"],
+  "item": ["Legacy of Cinderhelm", "Coral Loop", "Orb of Kindling", "Legacy of Ferrous Mantle"],
+  "ascendancy": ["Ashen Herald", "Tidecaller"],
   "passive": []
 }

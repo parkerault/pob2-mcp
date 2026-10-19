@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!-- Handwritten for league-digest.mjs's tests (WU-84, AC-W70). It follows the structure of a poe2db section's item list
+     (each column a name link whose class names the item's class, then a block of property, requirement and modifier
+     lines). The items are invented; none of the text is poe2db's: a currency (left out), three socketables (one judged
+     a rule changer), a base type, a quest item that is also a map fragment, an omen whose line wraps, and an item
+     listed without a page of its own. -->
+<html lang="us">
+  <head>
+    <meta charset="utf-8">
+    <title>Fixture item list</title>
+  </head>
+  <body>
+    <div class="card mb-2">
+      <h5 class="card-header">Embers of Tarn Item /9 </h5>
+      <div class="row row-cols-1 row-cols-lg-2 g-2 bg-dark">
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="item_currency StackableCurrency" href="Orb_of_Kindling"><img src="orb.webp" alt="orb" class="w1" /></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="item_currency StackableCurrency" href="Orb_of_Kindling"><img src="orb.webp" alt="orb" height="16" />Orb of Kindling</a>
+              <div>
+                <div class="property">Stack Size: <span class="colourDefault">1 / 20</span></div>
+                <div class="separator"></div>
+                <div class="explicitMod">Adds an Ember modifier to a Rare item</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem SoulCore" href="Legacy_of_Cinderhelm"><img src="rune.webp" alt="rune" class="w1" /></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem SoulCore" href="Legacy_of_Cinderhelm"><img src="rune.webp" alt="rune" height="16" />Legacy of Cinderhelm</a>
+              <div>
+                <div class="property">Limited to: <span class="colourDefault">1 <a data-keyword="TarnsLegacy" href="Tarns_Legacies" class="KeywordPopups">Tarn's Legacy</a></span></div>
+                <div class="separator"></div>
+                <div class="requirements">Requires: <span class="colourDefault">Level 60</span></div>
+                <div class="separator"></div>
+                <div class="implicitMod"><a class="ItemClasses " href="Helmets">Helmets</a>: +1 to maximum Runic Ward per 5 Intelligence</div>
+                <div class="separator"></div>
+                <div class="bondedMod"><a data-keyword="Bonded" href="Bonded" class="KeywordPopups">Bonded</a>:</div>
+                <div class="bondedMod"><a class="ItemClasses " href="Helmets">Helmets</a>: <span class="mod-value">1</span>% increased Spell Damage per 20 Intelligence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem SoulCore" href="Legacy_of_Ashen_Grip"><img src="rune.webp" alt="rune" class="w1" /></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem SoulCore" href="Legacy_of_Ashen_Grip"><img src="rune.webp" alt="rune" height="16" />Legacy of Ashen Grip</a>
+              <div>
+                <div class="property">Limited to: <span class="colourDefault">1 <a data-keyword="TarnsLegacy" href="Tarns_Legacies" class="KeywordPopups">Tarn's Legacy</a></span></div>
+                <div class="separator"></div>
+                <div class="requirements">Requires: <span class="colourDefault">Level 65</span></div>
+                <div class="separator"></div>
+                <div class="implicitMod"><a class="ItemClasses " href="Gloves">Gloves</a>: Attacks with Weapons always deal their maximum Fire Damage</div>
+                <div class="separator"></div>
+                <div class="bondedMod"><a data-keyword="Bonded" href="Bonded" class="KeywordPopups">Bonded</a>:</div>
+                <div class="bondedMod"><a class="ItemClasses " href="Gloves">Gloves</a>: <span class="mod-value">10</span>% increased Fire Damage</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem SoulCore" href="Rune_of_Smouldering"><img src="rune.webp" alt="rune" class="w1" /></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem SoulCore" href="Rune_of_Smouldering"><img src="rune.webp" alt="rune" height="16" />Rune of Smouldering</a>
+              <div>
+                <div class="property">Stack Size: <span class="colourDefault">1 / 10</span></div>
+                <div class="separator"></div>
+                <div class="requirements">Requires: <span class="colourDefault">Level 20</span></div>
+                <div class="separator"></div>
+                <div class="enchantMod"><a data-keyword="SocketBound" href="Socket_bound" class="KeywordPopups">Socket-bound</a></div>
+                <div class="implicitMod">Spear or Flail: Gain <span class="mod-value">3</span> Embers on Hit, <span class="mod-value">-5</span> to Maximum Embers</div>
+                <div class="separator"></div>
+                <div class="bondedMod">Spear or Flail: <span class="secondary">ember decay rate +% [-10]</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem Ring" href="Coral_Loop"><img src="ring.webp" alt="ring" class="w1" /></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem Ring" href="Coral_Loop"><img src="ring.webp" alt="ring" height="16" />Coral Loop</a>
+              <div>
+                <div class="requirements">Requires: <span class="colourDefault">Level 38</span></div>
+                <div class="separator"></div>
+                <div class="implicitMod">This item counts as a Belt for Socketed Items</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem MapFragment" href="Crown_of_the_Drowned"></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem MapFragment" href="Crown_of_the_Drowned">Crown of the Drowned</a>
+              <div></div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="questitem QuestItem" href="Crown_of_the_Drowned"></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="questitem QuestItem" href="Crown_of_the_Drowned">Crown of the Drowned</a>
+              <div>
+                <div class="explicitMod">Take this to the Ferryman at Tarn Landing.</div>
+                <div class="explicitMod">Take this to the Ferryman at Tarn Landing.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"><a class="whiteitem Omen" href="Omen_of_Banked_Embers"></a></div>
+            <div class="flex-grow-1 ms-2">
+              <a class="whiteitem Omen" href="Omen_of_Banked_Embers">Omen of Banked Embers</a>
+              <div>
+                <div class="property">Stack Size: <span class="colourDefault">1 / 10</span></div>
+                <div class="separator"></div>
+                <div class="explicitMod">While this item is active in your inventory your next<br />
+                  Orb of Kindling adds two Ember modifiers<br />
+                  instead of one</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="d-flex border-top rounded">
+            <div class="flex-shrink-0"></div>
+            <div class="flex-grow-1 ms-2">Legacy of Ferrous Mantle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

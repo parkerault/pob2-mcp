@@ -5,10 +5,11 @@
  * `--from` runs load a module that makes `fetch` throw, and the fetch path's own test serves the fixture pages from a
  * stubbed `fetch` and records the waits it asks for instead of waiting.
  *
- * The fixture list knows Eonyr's Thunder, "fist of kalguur" (another case), "Berek’s Grip" (a curly apostrophe), Legacy of
- * Facebreaker, Grasping Ring, Martial Artist and, from outside the section, Exalted Orb and Spirit Walker; the pinned
- * data knows more (Powered by Verisium, Way of the Stonefist), so a flag that reads "no" for those came from the list.
- * The fixture's rule-changer judgments (`runes-of-aldur.rule-changers.json`) name one socketable, Legacy of Northpaw.
+ * The fixture section, "Embers of Tarn" (slug `Embers_of_Tarn`), is invented, every name and line in it: no fixture text
+ * comes from poe2db. Its name list knows Kerr's Cinder Lattice, "bellows of ruin" (another case), "Tarn’s Clasp" (a
+ * curly apostrophe), Fourfold Cord, Ferryman's Lantern, Legacy of Cinderhelm, Coral Loop, Legacy of Ferrous Mantle,
+ * Ashen Herald and, from outside the section, Orb of Kindling and Tidecaller. Its rule-changer judgments
+ * (`embers-of-tarn.rule-changers.json`) name one socketable, Legacy of Ashen Grip.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
@@ -21,7 +22,9 @@ const REPO = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'league-digest.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'poe2db', 'league');
 const PIN_NAMES = path.join(FIXTURES, 'pin-names.json');
-const RULE_CHANGERS = path.join(FIXTURES, 'runes-of-aldur.rule-changers.json');
+const RULE_CHANGERS = path.join(FIXTURES, 'embers-of-tarn.rule-changers.json');
+const SLUG = 'Embers_of_Tarn';
+const FILE = 'embers-of-tarn.md';
 const DIGEST = path.join(REPO, 'data', 'league', 'runes-of-aldur.md');
 const VERSION = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')).version as string;
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'league-digest-'));
@@ -93,15 +96,15 @@ function run(args: string[], opts: { preload?: string; env?: Record<string, stri
 /** A new output folder holding the fixture's rule-changer judgments beside where the digest goes. */
 function outDir() {
   const out = newDir('out');
-  fs.copyFileSync(RULE_CHANGERS, path.join(out, 'runes-of-aldur.rule-changers.json'));
+  fs.copyFileSync(RULE_CHANGERS, path.join(out, 'embers-of-tarn.rule-changers.json'));
   return out;
 }
 
 /** The digest of the fixture pages, written by a `--from` run that can't reach the network. */
 function digestOf(dir = pages(), out = outDir(), pinNames = PIN_NAMES) {
-  const r = run(['Runes_of_Aldur', '--from', dir, '--out', out, '--pin-names', pinNames], { preload: NO_NETWORK });
+  const r = run([SLUG, '--from', dir, '--out', out, '--pin-names', pinNames], { preload: NO_NETWORK });
   expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
-  return { out, file: path.join(out, 'runes-of-aldur.md'), text: fs.readFileSync(path.join(out, 'runes-of-aldur.md'), 'utf8'), stdout: r.stdout };
+  return { out, file: path.join(out, FILE), text: fs.readFileSync(path.join(out, FILE), 'utf8'), stdout: r.stdout };
 }
 
 type Block = { name: string; fields: Record<string, string>; texts: Array<{ label: string; lines: string[] }> };
@@ -142,113 +145,141 @@ const one = (...lines: string[]) => [{ label: 'Text', lines }];
 
 /** What the fixture pages hold, in the spec's terms: every entry, its kind, tags, text and URL (AC-W70). */
 const EXPECTED: Block[] = [
-  entry("Eonyr's Thunder", 'eonyrs-thunder', 'gem', ['Support', 'Lineage', 'Spell', 'AoE', 'Trigger', 'Lightning'], true, URL('Eonyrs_Thunder'), one(
-    'Supports any Skill which can deal damage. Lightning damage from Supported Skills can inflict Electrocute, but Supported Skills cannot inflict Shock. Enemies slain while Electrocuted by Supported Skills explode, dealing a percentage of their maximum Life as Lightning damage.',
+  entry("Kerr's Cinder Lattice", 'kerrs-cinder-lattice', 'gem', ['Support', 'Fire', 'AoE'], true, URL('Kerrs_Cinder_Lattice'), one(
+    'Supports Skills that deal Fire damage. Supported Skills leave a lattice of embers where they hit, which Ignites enemies standing in it.',
   )),
-  entry('Fist Of Kalguur', 'fist-of-kalguur', 'gem', ['Support', 'Attack', 'Slam'], true, URL('Fist_Of_Kalguur'), one(
-    'Supports Slams you use yourself, allowing them to spend large amounts of Runic Ward to become Runically Boosted. Runically Boosted Slams are Empowered with extra Physical damage and create a rune the first time they hit an enemy.',
-    'The rune erupts in an Aftershock after a duration. Cannot support Channelling Skills.',
+  entry('Bellows Of Ruin', 'bellows-of-ruin', 'gem', ['Support', 'Attack', 'Slam'], true, URL('Bellows_Of_Ruin'), one(
+    'Supports Slams you use yourself, letting each one spend Runic Ward to Empower the next. An Empowered Slam leaves a burning crater.',
+    'The crater collapses after a duration. Cannot support Channelling Skills.',
   )),
-  entry('Powered by Verisium', 'powered-by-verisium', 'gem', ['Spell', 'Repeatable', 'Cooldown'], false, URL('Powered_by_Verisium'), one(
-    'Spends Ward to generate Verisium Infusions, which can be used in place of any Elemental Infusions.',
+  entry('Tarnished Infusion', 'tarnished-infusion', 'gem', ['Spell', 'Cooldown'], false, URL('Tarnished_Infusion'), one(
+    'Spends Ward to create Ember Infusions, which count as any Elemental Infusion.',
   )),
-  entry("Berek's Grip", 'bereks-grip', 'unique', ['Two-Stone Ring'], true, URL('Bereks_Grip'), one(
-    'Requires: Level 42',
-    '+(12—16)% to Cold and Lightning Resistances',
-    '+(10—20) to Dexterity and Intelligence',
-    '+(10—20)% to Cold and Lightning Resistances',
-    'Hits against you have (35—50)% reduced Critical Hit Chance while you are Chilled',
-    'Wind Skills which can be boosted by Elemental Ground Surfaces count',
-    'as being boosted by Shocked Ground',
+  entry("Tarn's Clasp", 'tarns-clasp', 'unique', ['Coral Ring'], true, URL('Tarns_Clasp'), one(
+    'Requires: Level 30',
+    '+(8—12)% to Fire Resistance',
+    '+(5—10) to Strength',
+    'Fire Skills which create Ground Surfaces count',
+    'as creating Ignited Ground',
   )),
-  entry('Voices', 'voices', 'unique', ['Sapphire'], false, URL('Voices'), [
-    { label: 'Text (variant 1 of 2)', lines: ['Allocates 3 Sinister Jewel sockets', 'Corrupted'] },
-    { label: 'Text (variant 2 of 2)', lines: ['Allocates 4 Sinister Jewel sockets', 'Corrupted'] },
+  entry('Echoes', 'echoes', 'unique', ['Opal'], false, URL('Echoes'), [
+    { label: 'Text (variant 1 of 2)', lines: ['Grants 2 Hollow Jewel sockets', 'Corrupted'] },
+    { label: 'Text (variant 2 of 2)', lines: ['Grants 3 Hollow Jewel sockets', 'Corrupted'] },
   ]),
-  entry('Legacy of Facebreaker', 'legacy-of-facebreaker', 'item', ['SoulCore'], true, URL('Legacy_of_Facebreaker'), one(
-    "Limited to: 1 Aldur's Legacy",
-    'Requires: Level 65',
-    'Gloves: +1 to Armour per Strength',
-    'Bonded:',
-    'Gloves: 1% increased Damage per 15 Strength',
+  entry('Fourfold Cord', 'fourfold-cord', 'unique', ['Rope Belt'], true, URL('Fourfold_Cord'), one(
+    'Has (1—2) Charm Slots',
+    'Echoing Draught',
+    'Charms gain 0.5 charges per second',
   )),
-  entry('Legacy of Northpaw', 'legacy-of-northpaw', 'item', ['SoulCore'], false, URL('Legacy_of_Northpaw'), one(
-    "Limited to: 1 Aldur's Legacy",
-    'Requires: Level 65',
-    'Gloves: Base Critical Hit Chance for Attacks with Weapons is 7%',
-    'Bonded:',
-    'Gloves: 15% increased Critical Damage Bonus',
+  entry("Ferryman's Lantern", 'ferrymans-lantern', 'unique', ['Brass Sceptre'], true, URL('Ferrymans_Lantern'), one(
+    'Requires: Level 44, 60 Int',
+    'Grants Skill: Level 14 Tollbearer',
+    'Minions have +(10—15)% to all Elemental Resistances',
   )),
-  entry('Rune of Confrontation', 'rune-of-confrontation', 'item', ['SoulCore'], false, URL('Rune_of_Confrontation'), one(
-    'Requires: Level 15',
+  entry('Legacy of Cinderhelm', 'legacy-of-cinderhelm', 'item', ['SoulCore'], true, URL('Legacy_of_Cinderhelm'), one(
+    "Limited to: 1 Tarn's Legacy",
+    'Requires: Level 60',
+    'Helmets: +1 to maximum Runic Ward per 5 Intelligence',
+    'Bonded:',
+    'Helmets: 1% increased Spell Damage per 20 Intelligence',
+  )),
+  entry('Legacy of Ashen Grip', 'legacy-of-ashen-grip', 'item', ['SoulCore'], false, URL('Legacy_of_Ashen_Grip'), one(
+    "Limited to: 1 Tarn's Legacy",
+    'Requires: Level 65',
+    'Gloves: Attacks with Weapons always deal their maximum Fire Damage',
+    'Bonded:',
+    'Gloves: 10% increased Fire Damage',
+  )),
+  entry('Rune of Smouldering', 'rune-of-smouldering', 'item', ['SoulCore'], false, URL('Rune_of_Smouldering'), one(
+    'Requires: Level 20',
     'Socket-bound',
-    'Quarterstaff or Spear: Gain 4 Rage on Melee Hit, -10 to Maximum Rage',
-    'Quarterstaff or Spear: (untranslated stat: rage effect +% [10])',
+    'Spear or Flail: Gain 3 Embers on Hit, -5 to Maximum Embers',
+    'Spear or Flail: (untranslated stat: ember decay rate +% [-10])',
   )),
-  entry('Grasping Ring', 'grasping-ring', 'item', ['Ring'], true, URL('Grasping_Ring'), one(
-    'Requires: Level 40',
-    'This item gains bonuses from Socketed Items as though it was Gloves',
+  entry('Coral Loop', 'coral-loop', 'item', ['Ring'], true, URL('Coral_Loop'), one(
+    'Requires: Level 38',
+    'This item counts as a Belt for Socketed Items',
   )),
-  entry('Head of the King', 'head-of-the-king', 'item', ['MapFragment', 'QuestItem'], false, URL('Head_of_the_King'), one(
-    'Bring this proof of your victory to Aoife in Caer Tarth.',
+  entry('Crown of the Drowned', 'crown-of-the-drowned', 'item', ['MapFragment', 'QuestItem'], false, URL('Crown_of_the_Drowned'), one(
+    'Take this to the Ferryman at Tarn Landing.',
   )),
-  entry('Omen of Chaotic Effectiveness', 'omen-of-chaotic-effectiveness', 'item', ['Omen'], false, URL('Omen_of_Chaotic_Effectiveness'), one(
+  entry('Omen of Banked Embers', 'omen-of-banked-embers', 'item', ['Omen'], false, URL('Omen_of_Banked_Embers'), one(
     'While this item is active in your inventory your next',
-    'Chaos Orb will replace all Modifiers on a Waystone',
-    'with Modifiers that do not grant Monster Effectiveness',
+    'Orb of Kindling adds two Ember modifiers',
+    'instead of one',
   )),
-  { name: 'Legacy of Edyrns Tusks', fields: { Id: 'legacy-of-edyrns-tusks', Kind: 'item', Tags: 'none', 'In pin': 'no', URL: 'none', Fetched: SAVED_DAY, Text: 'none' }, texts: [] },
-  entry('Martial Artist', 'martial-artist', 'ascendancy', null, true, URL('Martial_Artist'), []),
-  entry('Way of the Stonefist', 'way-of-the-stonefist', 'passive', null, false, URL('Way_of_the_Stonefist'), []),
+  { name: 'Legacy of Ferrous Mantle', fields: { Id: 'legacy-of-ferrous-mantle', Kind: 'item', Tags: 'none', 'In pin': 'yes', URL: 'none', Fetched: SAVED_DAY, Text: 'none' }, texts: [] },
+  entry('Ashen Herald', 'ashen-herald', 'ascendancy', null, true, URL('Ashen_Herald'), []),
+  entry('Kindled Resolve', 'kindled-resolve', 'passive', null, false, URL('Kindled_Resolve'), []),
+];
+
+/** The fixture digest's head. */
+const HEAD = [
+  "- Kerr's Cinder Lattice (gem, Support): Supports Skills that deal Fire damage.",
+  '- Bellows Of Ruin (gem, Support): Supports Slams you use yourself, letting each one spend Runic Ward to Empower the next.',
+  '- Tarnished Infusion (gem, Spell): Spends Ward to create Ember Infusions, which count as any Elemental Infusion. [not in pin]',
+  "- Tarn's Clasp (unique, Coral Ring): +(8—12)% to Fire Resistance",
+  '- Echoes (unique, Opal): Grants 2 Hollow Jewel sockets [not in pin]',
+  '- Fourfold Cord (unique, Rope Belt): Has (1—2) Charm Slots',
+  "- Ferryman's Lantern (unique, Brass Sceptre): Grants Skill: Level 14 Tollbearer",
+  '- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.',
+  '- Legacy of Ashen Grip (item, SoulCore) [rule]: in gloves, weapon attacks always deal their maximum Fire damage [not in pin]',
+  '- Coral Loop (item, Ring): This item counts as a Belt for Socketed Items',
+  '- Crown of the Drowned (item, MapFragment): Take this to the Ferryman at Tarn Landing. [not in pin]',
+  '- Omen of Banked Embers (item, Omen): While this item is active in your inventory your next Orb of Kindling adds two Ember … [not in pin]',
+  '- Legacy of Ferrous Mantle (item)',
+  '- Ashen Herald (ascendancy)',
+  '- Kindled Resolve (passive) [not in pin]',
 ];
 
 describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slug>.md, flagged in the pin or not', () => {
   it('AC-W70: the parser yields every entry with its kind, tags, text and URL, and the ascendancies and passives with name and URL only', () => {
     const { text } = digestOf();
     expect(blocks(text)).toEqual(EXPECTED);
-    // An ascendancy or a passive has no tags and no text; another block's ascendancy (Spirit Walker, in the 0.5.5
-    // block) and the block's other links (Beast, Aldur's Legacy, the gem and unique lists) are no entries.
+    // An ascendancy or a passive has no tags and no text; another block's ascendancy (Tidecaller, in the 0.9.1 block),
+    // one only a script names (Thornkeeper) and the block's other links (Ferryman, Tarn's Legacy, the lists) are no
+    // entries.
     for (const b of blocks(text).filter((x) => x.fields.Kind === 'ascendancy' || x.fields.Kind === 'passive')) {
       expect(Object.keys(b.fields)).toEqual(['Id', 'Kind', 'In pin', 'URL', 'Fetched']);
       expect(b.texts).toEqual([]);
     }
-    expect(text).not.toMatch(/Spirit Walker|Invoker|### Beast|### Aldur's Legacy|Atziri's Soul Core/);
+    expect(text).not.toMatch(/Tidecaller|Thornkeeper|### Ferryman$|### Tarn's Legacy/m);
   });
 
   it('AC-W70: currency is left out: the entry poe2db marks as currency is in neither the head nor the body, even with its name in the pin', () => {
     const { text, stdout } = digestOf();
-    expect(text).not.toContain('Exalted Orb');
-    expect(text).not.toContain('Augments a Magic or Rare item');
+    expect(text).not.toContain('### Orb of Kindling');
+    expect(text).not.toContain('Adds an Ember modifier to a Rare item');
     expect(text).toContain('Currency is left out (1 entry: what poe2db marks as currency). Socketables (runes, soul cores and idols) are in the body;');
     expect(stdout).toContain('Currency left out: 1.');
     // The socketables poe2db doesn't mark as currency stay.
-    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.name)).toEqual(['Legacy of Facebreaker', 'Legacy of Northpaw', 'Rune of Confrontation']);
+    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.name)).toEqual(['Legacy of Cinderhelm', 'Legacy of Ashen Grip', 'Rune of Smouldering']);
   });
 
   it('AC-W70: the in-pin flag is right for a known and an unknown name, checked against the fixture name list, not vendor/', () => {
     const { text } = digestOf();
     const flag = (name: string) => blocks(text).find((b) => b.name === name)!.fields['In pin'];
-    expect(flag("Eonyr's Thunder")).toBe('yes');
-    expect(flag('Powered by Verisium')).toBe('no');
-    expect(headOf(text)).toContain("- Eonyr's Thunder (gem, Support): Supports any Skill which can deal damage.");
-    expect(headOf(text)).toContain('- Powered by Verisium (gem, Spell): Spends Ward to generate Verisium Infusions, which can be used in place of any Elemental Infusions. [not in pin]');
+    expect(flag("Kerr's Cinder Lattice")).toBe('yes');
+    expect(flag('Tarnished Infusion')).toBe('no');
+    expect(headOf(text)).toContain("- Kerr's Cinder Lattice (gem, Support): Supports Skills that deal Fire damage.");
+    expect(headOf(text)).toContain('- Tarnished Infusion (gem, Spell): Spends Ward to create Ember Infusions, which count as any Elemental Infusion. [not in pin]');
     // Names compare without case or curly quotes, and only within their kind.
-    expect(flag('Fist Of Kalguur')).toBe('yes');
-    expect(flag("Berek's Grip")).toBe('yes');
-    expect(flag('Way of the Stonefist')).toBe('no');
+    expect(flag('Bellows Of Ruin')).toBe('yes');
+    expect(flag("Tarn's Clasp")).toBe('yes');
+    expect(flag('Kindled Resolve')).toBe('no');
     expect(text).toContain('In-pin flags: checked against the fixture name list on');
-    expect(text).toContain('Entries: 3 gems, 2 uniques, 7 items, 1 ascendancy, 1 passive; 6 of the 14 in the pin.');
+    expect(text).toContain('Entries: 3 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 16 in the pin.');
   });
 
   it('AC-W70: no test touches the network: a --from run never calls fetch (it throws in the child), and makes its file from the saved pages alone', () => {
     const dir = pages();
     const out = newDir('out');
-    const r = run(['Runes_of_Aldur', '--from', dir, '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
+    const r = run([SLUG, '--from', dir, '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     expect(r.stdout).not.toContain('saving the pages');
-    expect(fs.readdirSync(out)).toEqual(['runes-of-aldur.md']);
+    expect(fs.readdirSync(out)).toEqual([FILE]);
     // The preload works: a run that fetches is refused under it.
-    const live = run(['Runes_of_Aldur', '--save', newDir('save'), '--out', newDir('out'), '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
+    const live = run([SLUG, '--save', newDir('save'), '--out', newDir('out'), '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
     expect(live.code).toBe(1);
     expect(live.stderr).toBe('league-digest: refused: https://poe2db.tw/us/: the test forbids the network\n');
   });
@@ -256,42 +287,28 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
   it("names the section and its fetch date in the first three lines (the runner's head -3), then a head line per entry in body order, the socketables giving way to one line and a [rule] line for each judged rule changer", () => {
     const { text } = digestOf();
     expect(text.split('\n').slice(0, 3)).toEqual([
-      '# League digest: Runes of Aldur',
+      '# League digest: Embers of Tarn',
       '',
-      `Runes of Aldur (Return of the Ancients 0.5) on poe2db.tw, fetched ${SAVED_DAY}. In-pin flags: checked against the fixture name list on ${day(new Date())}.`,
+      `Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. In-pin flags: checked against the fixture name list on ${day(new Date())}.`,
     ]);
-    expect(text).toContain('Cite an entry by its id: `data | league/runes-of-aldur.md#<id>`.');
-    expect(headOf(text)).toEqual([
-      "- Eonyr's Thunder (gem, Support): Supports any Skill which can deal damage.",
-      '- Fist Of Kalguur (gem, Support): Supports Slams you use yourself, allowing them to spend large amounts of Runic Ward to become …',
-      '- Powered by Verisium (gem, Spell): Spends Ward to generate Verisium Infusions, which can be used in place of any Elemental Infusions. [not in pin]',
-      "- Berek's Grip (unique, Two-Stone Ring): +(12—16)% to Cold and Lightning Resistances",
-      '- Voices (unique, Sapphire): Allocates 3 Sinister Jewel sockets [not in pin]',
-      '- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.',
-      "- Legacy of Northpaw (item, SoulCore) [rule]: in gloves, weapon attacks' base Critical Hit Chance becomes 7%, whatever the weapon [not in pin]",
-      '- Grasping Ring (item, Ring): This item gains bonuses from Socketed Items as though it was Gloves',
-      '- Head of the King (item, MapFragment): Bring this proof of your victory to Aoife in Caer Tarth. [not in pin]',
-      '- Omen of Chaotic Effectiveness (item, Omen): While this item is active in your inventory your next Chaos Orb will replace all Modifiers … [not in pin]',
-      '- Legacy of Edyrns Tusks (item) [not in pin]',
-      '- Martial Artist (ascendancy)',
-      '- Way of the Stonefist (passive) [not in pin]',
-    ]);
+    expect(text).toContain('Cite an entry by its id: `data | league/embers-of-tarn.md#<id>`.');
+    expect(headOf(text)).toEqual(HEAD);
   });
 
   it('keeps every socketable in the body; with no judgments the head has only their one line, and a judgment naming no socketable of the digest is refused', () => {
     const { text } = digestOf(pages(), newDir('out'));
     expect(headOf(text).filter((l) => l.includes('SoulCore') || l.startsWith('- Socketables'))).toEqual(['- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.']);
-    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.fields.Id)).toEqual(['legacy-of-facebreaker', 'legacy-of-northpaw', 'rune-of-confrontation']);
+    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.fields.Id)).toEqual(['legacy-of-cinderhelm', 'legacy-of-ashen-grip', 'rune-of-smouldering']);
     for (const [judgments, why] of [
-      [{ ruleChangers: { 'grasping-ring': 'a ring that takes gloves socketables' } }, '"grasping-ring" isn\'t a socketable of this digest'],
-      [{ ruleChangers: { 'legacy-of-northpaw': '' } }, '"legacy-of-northpaw" needs its why as one line'],
-      [{ northpaw: 'no ruleChangers object' }, 'no "ruleChangers" object of id → why'],
+      [{ ruleChangers: { 'coral-loop': 'a ring that takes belt socketables' } }, '"coral-loop" isn\'t a socketable of this digest'],
+      [{ ruleChangers: { 'legacy-of-ashen-grip': '' } }, '"legacy-of-ashen-grip" needs its why as one line'],
+      [{ ashenGrip: 'no ruleChangers object' }, 'no "ruleChangers" object of id → why'],
     ] as const) {
       const out = newDir('out');
-      const sidecar = path.join(out, 'runes-of-aldur.rule-changers.json');
+      const sidecar = path.join(out, 'embers-of-tarn.rule-changers.json');
       fs.writeFileSync(sidecar, JSON.stringify(judgments));
-      const r = run(['Runes_of_Aldur', '--from', pages(), '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
-      expect({ code: r.code, stderr: r.stderr, files: fs.readdirSync(out) }).toEqual({ code: 1, stderr: `league-digest: refused: ${sidecar}: ${why}\n`, files: ['runes-of-aldur.rule-changers.json'] });
+      const r = run([SLUG, '--from', pages(), '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
+      expect({ code: r.code, stderr: r.stderr, files: fs.readdirSync(out) }).toEqual({ code: 1, stderr: `league-digest: refused: ${sidecar}: ${why}\n`, files: ['embers-of-tarn.rule-changers.json'] });
     }
   });
 
@@ -300,8 +317,8 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     const save = newDir('save');
     const out = outDir();
     const log = path.join(newDir('log'), 'requests.jsonl');
-    const uniques = URL('Runes_of_Aldur_uniques');
-    const r = run(['Runes_of_Aldur', '--save', save, '--out', out, '--pin-names', PIN_NAMES], {
+    const uniques = URL('Embers_of_Tarn_uniques');
+    const r = run([SLUG, '--save', save, '--out', out, '--pin-names', PIN_NAMES], {
       preload: STUB,
       env: { STUB_PAGES: served, STUB_LOG: log, STUB_FAIL: JSON.stringify([[uniques, [429]]]) },
     });
@@ -312,19 +329,19 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(entries).toEqual([
       request(URL('')),
       { wait: 3000 },
-      request(URL('Runes_of_Aldur_gems')),
+      request(URL('Embers_of_Tarn_gems')),
       { wait: 3000 },
       request(uniques),
       { wait: 60000 },
       { wait: 3000 },
       request(uniques),
       { wait: 3000 },
-      request(URL('Runes_of_Aldur_items')),
+      request(URL('Embers_of_Tarn_items')),
     ]);
-    expect(fs.readdirSync(save).sort()).toEqual(['Runes_of_Aldur_gems.html', 'Runes_of_Aldur_items.html', 'Runes_of_Aldur_uniques.html', 'home.html']);
+    expect(fs.readdirSync(save).sort()).toEqual(['Embers_of_Tarn_gems.html', 'Embers_of_Tarn_items.html', 'Embers_of_Tarn_uniques.html', 'home.html']);
     expect(r.stdout.split('\n')[0]).toBe(`league-digest: saving the pages to ${save} (re-run with --from ${save} to make no request)`);
     // The fetched digest is the saved pages' digest, fetched today.
-    const fetched = fs.readFileSync(path.join(out, 'runes-of-aldur.md'), 'utf8');
+    const fetched = fs.readFileSync(path.join(out, FILE), 'utf8');
     expect(fetched.replaceAll(`fetched ${day(new Date())}.`, `fetched ${SAVED_DAY}.`).replaceAll(`- Fetched: ${day(new Date())}`, `- Fetched: ${SAVED_DAY}`)).toBe(digestOf().text);
   });
 
@@ -332,8 +349,8 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     const save = newDir('save');
     const out = newDir('out');
     const log = path.join(newDir('log'), 'requests.jsonl');
-    const gems = URL('Runes_of_Aldur_gems');
-    const r = run(['Runes_of_Aldur', '--save', save, '--out', out, '--pin-names', PIN_NAMES], {
+    const gems = URL('Embers_of_Tarn_gems');
+    const r = run([SLUG, '--save', save, '--out', out, '--pin-names', PIN_NAMES], {
       preload: STUB,
       env: { STUB_PAGES: pages(), STUB_LOG: log, STUB_FAIL: JSON.stringify([[gems, [503, 503]]]) },
     });
@@ -348,40 +365,41 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     const { file, text, out } = digestOf();
     const names = JSON.parse(fs.readFileSync(PIN_NAMES, 'utf8'));
     const upgraded = path.join(newDir('pin'), 'upgraded.json');
-    fs.writeFileSync(upgraded, JSON.stringify({ ...names, pin: 'the upgraded list', passive: ['Way of the Stonefist'], item: [...names.item.filter((n: string) => n !== 'Grasping Ring'), 'Legacy of Northpaw', 'Rune of Confrontation'] }));
-    const r = run(['--reflag', 'runes-of-aldur', '--out', out, '--pin-names', upgraded], { preload: NO_NETWORK });
+    fs.writeFileSync(upgraded, JSON.stringify({ ...names, pin: 'the upgraded list', passive: ['Kindled Resolve'], item: [...names.item.filter((n: string) => n !== 'Coral Loop'), 'Legacy of Ashen Grip', 'Rune of Smouldering'] }));
+    const r = run(['--reflag', 'embers-of-tarn', '--out', out, '--pin-names', upgraded], { preload: NO_NETWORK });
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
-    expect(r.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 8 of the 14 in the pin.\nNow in the pin: Legacy of Northpaw (item), Rune of Confrontation (item), Way of the Stonefist (passive).\nNo longer in the pin: Grasping Ring (item).\n`);
+    expect(r.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNow in the pin: Legacy of Ashen Grip (item), Rune of Smouldering (item), Kindled Resolve (passive).\nNo longer in the pin: Coral Loop (item).\n`);
     const today = day(new Date());
     const expected = text
       .replace(`checked against the fixture name list on ${today}.`, `checked against the upgraded list on ${today}.`)
-      .replace('- Grasping Ring (item, Ring): This item gains bonuses from Socketed Items as though it was Gloves', '- Grasping Ring (item, Ring): This item gains bonuses from Socketed Items as though it was Gloves [not in pin]')
-      .replace('- Way of the Stonefist (passive) [not in pin]', '- Way of the Stonefist (passive)')
-      .replace('whatever the weapon [not in pin]', 'whatever the weapon')
-      .replace('; 6 of the 14 in the pin.', '; 8 of the 14 in the pin.')
-      .replace(/(### Legacy of Northpaw\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes')
-      .replace(/(### Rune of Confrontation\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes')
-      .replace(/(### Grasping Ring\n(?:- .*\n)*?)- In pin: yes/, '$1- In pin: no')
-      .replace(/(### Way of the Stonefist\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes');
+      .replace('- Coral Loop (item, Ring): This item counts as a Belt for Socketed Items', '- Coral Loop (item, Ring): This item counts as a Belt for Socketed Items [not in pin]')
+      .replace('- Kindled Resolve (passive) [not in pin]', '- Kindled Resolve (passive)')
+      .replace('maximum Fire damage [not in pin]', 'maximum Fire damage')
+      .replace('; 9 of the 16 in the pin.', '; 11 of the 16 in the pin.')
+      .replace(/(### Legacy of Ashen Grip\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes')
+      .replace(/(### Rune of Smouldering\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes')
+      .replace(/(### Coral Loop\n(?:- .*\n)*?)- In pin: yes/, '$1- In pin: no')
+      .replace(/(### Kindled Resolve\n(?:- .*\n)*?)- In pin: no/, '$1- In pin: yes');
     expect(fs.readFileSync(file, 'utf8')).toBe(expected);
-    // The Poe2db slug works as well, and the same list changes nothing.
-    const again = run(['--reflag', 'Runes_of_Aldur', '--out', out, '--pin-names', upgraded]);
-    expect(again.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 8 of the 14 in the pin.\nNo flag changed.\n`);
+    // The poe2db slug works as well, and the same list changes nothing.
+    const again = run(['--reflag', SLUG, '--out', out, '--pin-names', upgraded]);
+    expect(again.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNo flag changed.\n`);
     expect(fs.readFileSync(file, 'utf8')).toBe(expected);
   });
 
   it('prints the entries added since the digest it replaces', () => {
-    const dir = pages({ file: 'Runes_of_Aldur_gems.html', from: 'Runes of Aldur Gem /3 ', to: 'Runes of Aldur Gem /2 ' });
-    // Drop the gem list's last column: Powered by Verisium.
-    const gemsFile = path.join(dir, 'Runes_of_Aldur_gems.html');
+    const dir = pages({ file: 'Embers_of_Tarn_gems.html', from: 'Embers of Tarn Gem /3 ', to: 'Embers of Tarn Gem /2 ' });
+    // Drop the gem list's last column: Tarnished Infusion.
+    const gemsFile = path.join(dir, 'Embers_of_Tarn_gems.html');
     const gems = fs.readFileSync(gemsFile, 'utf8');
     const last = gems.lastIndexOf('<div class="col">');
-    fs.writeFileSync(gemsFile, gems.slice(0, last) + gems.slice(gems.indexOf('</div></div></div>', last) + '</div></div></div>'.length));
+    const end = '</div>\n          </div>\n        </div>\n';
+    fs.writeFileSync(gemsFile, gems.slice(0, last) + gems.slice(gems.indexOf(end, last) + end.length));
     fs.utimesSync(gemsFile, SAVED, SAVED);
     const first = digestOf(dir);
-    expect(first.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 2 gems, 2 uniques, 7 items, 1 ascendancy, 1 passive; 6 of the 13 in the pin. Currency left out: 1.\nAdded: the first digest of Runes_of_Aldur, so all 13 entries are new.\n`);
+    expect(first.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 2 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 15 in the pin. Currency left out: 1.\nAdded: the first digest of Embers_of_Tarn, so all 15 entries are new.\n`);
     const second = digestOf(pages(), first.out);
-    expect(second.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 3 gems, 2 uniques, 7 items, 1 ascendancy, 1 passive; 6 of the 14 in the pin. Currency left out: 1.\nAdded since the last digest (1):\n- Powered by Verisium (gem)\n`);
+    expect(second.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 3 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 16 in the pin. Currency left out: 1.\nAdded since the last digest (1):\n- Tarnished Infusion (gem)\n`);
     const third = digestOf(pages(), first.out);
     expect(third.stdout.split('\n')[1]).toBe('Added since the last digest: none.');
   });
@@ -392,15 +410,15 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
       const r = run([...args, '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
       expect({ code: r.code, stderr: r.stderr, files: fs.readdirSync(out) }).toEqual({ code: 1, stderr: `league-digest: refused: ${message}\n`, files: [] });
     };
-    refused(['Runes_of_Aldur', '--from', pages({ file: 'Runes_of_Aldur_items.html', from: 'Item /9 ', to: 'Item /10 ' })], "the items page's header counts 10 entries but 9 were parsed: poe2db changed its page");
-    refused(['Runes_of_Aldur', '--from', pages({ file: 'Runes_of_Aldur_uniques.html', from: '<span class="uniqueName">Berek\'s Grip</span>', to: '' })], 'a unique with no name: poe2db changed its page');
-    refused(['Mercenaries_of_Trarthus', '--from', pages()], 'the homepage has no section block linking Mercenaries_of_Trarthus_gems, Mercenaries_of_Trarthus_uniques or Mercenaries_of_Trarthus_items: check the slug, or poe2db changed its homepage');
+    refused([SLUG, '--from', pages({ file: 'Embers_of_Tarn_items.html', from: 'Item /9 ', to: 'Item /10 ' })], "the items page's header counts 10 entries but 9 were parsed: poe2db changed its page");
+    refused([SLUG, '--from', pages({ file: 'Embers_of_Tarn_uniques.html', from: '<span class="uniqueName">Tarn\'s Clasp</span>', to: '' })], 'a unique with no name: poe2db changed its page');
+    refused(['Veiled_Tides', '--from', pages()], 'the homepage has no section block linking Veiled_Tides_gems, Veiled_Tides_uniques or Veiled_Tides_items: check the slug, or poe2db changed its homepage');
     const dir = pages();
-    refused(['Forbidden_Rites', '--from', dir], `${path.join(dir, 'Forbidden_Rites_items.html')} is missing`);
+    refused(['Saltmarsh_Rites', '--from', dir], `${path.join(dir, 'Saltmarsh_Rites_items.html')} is missing`);
     const empty = newDir('out');
-    const reflag = run(['--reflag', 'Runes_of_Aldur', '--out', empty, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
-    expect({ code: reflag.code, stderr: reflag.stderr }).toEqual({ code: 1, stderr: `league-digest: refused: ${path.join(empty, 'runes-of-aldur.md')} is missing\n` });
-    for (const args of [[], ['runes-of-aldur', '--from', dir], ['Runes_of_Aldur', '--bogus'], ['Runes_of_Aldur', 'Other'], ['--reflag', 'Runes_of_Aldur', '--from', dir], ['Runes_of_Aldur', '--out']]) {
+    const reflag = run(['--reflag', SLUG, '--out', empty, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
+    expect({ code: reflag.code, stderr: reflag.stderr }).toEqual({ code: 1, stderr: `league-digest: refused: ${path.join(empty, FILE)} is missing\n` });
+    for (const args of [[], ['embers-of-tarn', '--from', dir], [SLUG, '--bogus'], [SLUG, 'Other'], ['--reflag', SLUG, '--from', dir], [SLUG, '--out']]) {
       const r = run(args, { preload: NO_NETWORK });
       expect({ args, code: r.code }).toEqual({ args, code: 2 });
       expect(r.stderr).toMatch(/^league-digest: .*\nusage: league-digest\.mjs <slug>/);

@@ -189,13 +189,13 @@ function find(el, pred) {
 }
 const clean = (s) => s.replace(/\s+/g, ' ').trim();
 
-/** Nodes' text, a `<br>` as a line break: images and scripts say nothing, and poe2db's `secondary` span (a stat it
- * shows untranslated, by its id and value) is marked as one. */
+/** Nodes' text, a `<br>` as a line break and the source's own line breaks as spaces: images and scripts say nothing,
+ * and poe2db's `secondary` span (a stat it shows untranslated, by its id and value) is marked as one. */
 function rawText(nodes) {
   let out = '';
   const visit = (n) => {
     if (!n.tag) {
-      out += n.text;
+      out += n.text.replace(/\s+/g, ' ');
       return;
     }
     if (n.tag === 'br') out += '\n';

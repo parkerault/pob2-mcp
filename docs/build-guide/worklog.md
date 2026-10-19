@@ -4508,8 +4508,9 @@ the `m17` engine at `b76967b`.
   keepable: poe2db's Tame Beast list holds every named modifier, so it doesn't pick out a subset, and the table's
   head says so. "Trail of Ice" is the only ice trail and links the Chilled Ground keyword, so the row takes it to be
   the guide's "Frozen Ground Trail", as an inference. The judgments live in a map in the script, so a new modifier
-  without one fails the run. **For WU-87:** no PoB line reaches only the companion (`Minions have …` reaches every
-  minion); PoB has no option for an enemy on Ignited Ground, so fire rows use the Ignited option.
+  without one fails the run. **For WU-87:** PoB has no option for an enemy on Ignited Ground, so fire rows use the
+  Ignited option. (The doer's other note, that no PoB line reaches only the companion, was wrong: PoB parses
+  `Companions have …` lines for companion skills only, `Modules/ModParser.lua:1272-1273`; the verifier caught it.)
 - **The ally auras' figures:** the saved pages gave no lines for them, so the coordinator spent the four remaining
   approved requests on their keyword pages (serial, the server's User-Agent): Haste Aura grants 20% increased Attack
   and Cast Speed and 10% increased Movement Speed; Extra Physical Damage Aura 40% increased Physical Damage; Energy
@@ -4605,3 +4606,6 @@ the `m17` engine at `b76967b`.
   notables aren't `[rule]` (Unravelling, Forced Outcome); about 9% of pairs can't be used together (notables of two
   ascendancies, two uniques for one slot). The verifier's estimate: about 3% of `[rule]` entries wrong in rule or
   tags, about 9% counting penalties. A fix round went to the doer.
+- **WU-86 verified: PASS** on the re-check (the fix round's two test files 36 of 36; a fresh `--from` run equals the
+  committed table); the verifier's total about 230K. **Merged** into `build-guide/m20` (fast-forward). Left low: a
+  keyword sentence not in the aura form gives no lines without failing.

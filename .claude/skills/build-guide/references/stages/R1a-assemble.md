@@ -85,11 +85,11 @@ nothing, and edits a card only to rename it (step 7) or drop its under-played la
      it would leave fewer than 6 cards, deal the fewest extra that reach 6, and the round is short, `short: <n>
      cards share one engine`. It yields to the user: when the user's note for the round asks for one engine,
      the rule skips that engine, and the deck's `How they differ` says so.
-6. **A short round.** When fewer than 6 cards pass steps 1 to 3, the deck still holds fewer than two
-   under-played cards after this round, or step 5's engine rule yields to the minimum, the round is short: deal
-   what passes, and give the reason in your return as one line, `short: <why>` ("4 of 9 cards passed the sniff
-   test"; "the deck holds one under-played card: the other two failed their identity check"). The runner
-   records it in the run log, and the brainstorm gate says so.
+6. **A short round.** When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two
+   under-played cards after this round, the round is short: deal what passes, and give the reason in your
+   return as one line, `short: <why>` ("4 of 9 cards passed the sniff test"; "the deck holds one under-played
+   card: the other two failed their identity check"). So is a round the engine rule fills to 6 (step 5). The
+   runner records it in the run log, and the brainstorm gate says so.
 7. **Unique names** (D-392). No two cards of the run share a name. On a clash with a card already in
    `cards.md` or another card of the round, rename the newer one (the later id) with Edit, in its `- Name:`
    line and its H1. A name shown at a gate never changes.
@@ -137,8 +137,9 @@ Three engines: bleed from on-hit (3), bleed from on-crit (2), rage from on-hit (
   links count or "no player evidence".
 - **`## Not dealt`**: every card held back in any round, with its reason in plain words. The user can still ask
   for one at the brainstorm gate. `None.` when nothing was held back.
-- **`## Found, not used`**, the last H2: up to five strong research findings no card uses, the suppliers the
-  `Supply search` sections mark not used among them, each `- <finding>: <why no card uses it>`, or `None.`
+- **`## Found, not used`**, the last H2: up to five strong research findings no card uses, each `- <finding>:
+  <why no card uses it>`, or `None.` The research files' `Supply search` sections name the suppliers no card
+  uses.
 - A later round keeps every card line already in `cards.md`, gate-made ones included, adds its `## Round <k>`
   after the last round, and adds its held-back cards to `Not dealt`.
 

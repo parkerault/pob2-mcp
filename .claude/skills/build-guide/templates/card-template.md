@@ -29,8 +29,10 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Named damage source: <the identity's skill: an active skill gem; a minion skill with its summon, "<skill>
   (cast by <minion>, summoned by <gem>)", D-379; or for a damage source that isn't a skill the item, passive or
   modifier that deals it, D-334>
-- [only when the damage source isn't a skill, or the card rests on a league-digest entry the PoB pin doesn't
-  know] Can't be finalized yet: <its damage source isn't a skill | <entry> isn't in the PoB pin> (D-303, D-400).
+- [only when the damage source isn't a skill] Can't be finalized yet: its damage source isn't a skill
+  (D-303).
+- [only when the card rests on a league-digest entry the PoB pin doesn't know] Can't be finalized yet: <entry>
+  isn't in the PoB pin (D-400).
 - [only when a passive-tree node or a unique grants a skill the card uses, D-342; one line per skill]
   Granted by: <skill>: "<node name>" (<node id>), <a <ascendancy> ascendancy node | allocated by this card>,
   or <the unique>, equipped by this card.
@@ -39,7 +41,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Name: <2–4 words, a player's name for the build ("Skeleton Death Engine"), unique in the run>
 - Why pick it: <the hook in player terms, at most two sentences>
-- How it clears: <how a pack dies, which buttons the player presses, how fast it moves between packs>
+- How it clears: <how a pack dies, which buttons the player presses, how soon it hits a new pack and how fast
+  it moves between packs; no "(an estimate)" mark: the gate adds it>
 - Bosses: <its answer to one tough enemy, in one sentence>
 - Needs: <the key items, gems and passives; when it comes online (level or act); a respec, if it takes one;
   a rough cost, when known>

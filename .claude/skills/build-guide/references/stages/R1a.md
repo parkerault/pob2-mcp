@@ -93,8 +93,8 @@ game data with a lookup, and cite the lookup, not the library.
 - **The league digest**, `data/league/<slug>.md`, the newest league's: its head whole (Read up to its `## Body`
   line), then its body by Grep. It lists what the league added.
 - **The rule-changer index**, `data/rules/`: the tree focus reads `nodes.md`'s section for the brief's ascendancy
-  (each candidate's, when the brief names none) and its `## Keystones`, whole, and so does `a` for the obvious
-  card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its cards' families,
+  (each candidate's, when the brief names none) and its `## Keystones`, whole, and `a` the ascendancy's section
+  for the obvious card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its cards' families,
   the words of `data/rules/vocabulary.md`. An index line or a pair is a lead: confirm it with a lookup.
 - **The rare monster modifiers**, `data/monsters/monster-mods.md`, by Grep: what a tamed beast keeps (D-402).
 
@@ -155,6 +155,8 @@ By focus:
   - The supports each card needs, checked against its named damage source (a minion skill's go in its summon's
     group).
 - **`tree`**: section `Synergy search`; cards led by tree notables, keystones or ascendancy nodes.
+  - What the ascendancy is built to do, from its section of `data/rules/nodes.md` (D-403): a prior every card
+    weighs.
   - Ascendancy notables, keystones and notable clusters that fit the skill, with `mcp__pob2__check_model_coverage
     {nodes}` on each one the card relies on. Name each node with its id, so the coordinator can path
     to it, and by the name the tool gives it. Call a node a notable or a keystone only when the tool tags

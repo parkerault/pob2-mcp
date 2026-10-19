@@ -44,6 +44,12 @@
  * decision and no AskUserQuestion, the runner's sources and the gate question step Q, revisions and new cards,
  * named pitches and the deck's header, the seed card, the test config's object entries, legacy and dead gems,
  * and W1's FAQ; formats as WU-81's scripts parse them.
+ * Amendment 8 (WU-91, D-400…D-409): AC-W75, finding the build's engine in the skill text: the pattern library, the
+ * league digest and the rule-changer index first in R1a, the supply search by family, the obvious card and the seed
+ * card's move to `b`; the deck's engine and D-405's half-a-round rule; the structure check, the rival's deal checks
+ * and `not-in-pin` in R1b; the levers and overrides as reason claims in D1; stage RV, the rival, with fresh
+ * context; the digest's staleness line and RV's place in SKILL.md; the researcher's description and data reads;
+ * and the dossier's eleventh column, clear speed (formats as WU-89's scripts parse them).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -68,6 +74,8 @@ const STEP_TYPES: [RegExp, string][] = [
   [/^R1a-assemble\b/, 'build-guide-coordinator'],
   [/^R1b,/, 'build-guide-coordinator'],
   [/^R1b-assemble\b/, 'build-guide-coordinator'],
+  // D-408 (WU-91): the rival, a researcher with fresh context, after R1b-assemble and before the verification gate.
+  [/^RV, the rival/, 'build-guide-researcher'],
   [/^D1-build,/, 'build-guide-coordinator'],
   [/^D1-finish\b/, 'build-guide-coordinator'],
   [/^D1-gate\b/, 'build-guide-coordinator'],
@@ -131,8 +139,9 @@ describe('AC-W1: the build-guide skill', () => {
     const rows = section.split('\n').filter((l) => /^\| \d+[a-c]? \|/.test(l)).map((l) => l.split(' | ').map((c) => c.replace(/^\| /, '')));
     // Steps 1 to 16 keep their numbers (step 14 is pinned by the checker and the spec); amendment 3's
     // brainstorm phase splits step 2 into R1a, R1a-assemble and the brainstorm gate, and amendment 4 splits
-    // step 6 into D1's two steps (D-356) and step 7 into the D1 gate and the design gate (D-362).
-    expect(rows.map((r) => r[0])).toEqual(['1', '2a', '2b', '2c', '3', '4', '5', '6a', '6b', '7a', '7b', ...Array.from({ length: 9 }, (_, i) => String(i + 8))]);
+    // step 6 into D1's two steps (D-356) and step 7 into the D1 gate and the design gate (D-362); amendment 8 splits
+    // step 4 into R1b-assemble and the rival, RV (D-408).
+    expect(rows.map((r) => r[0])).toEqual(['1', '2a', '2b', '2c', '3', '4a', '4b', '5', '6a', '6b', '7a', '7b', ...Array.from({ length: 9 }, (_, i) => String(i + 8))]);
     for (const [step, type] of STEP_TYPES) {
       const row = rows.find((r) => step.test(r[1]));
       expect({ step: String(step), type: row?.[2].includes(`\`${type}\``) }).toEqual({ step: String(step), type: true });
@@ -385,13 +394,15 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
 // ---------------------------------------------------------------------------------------------------
 
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
-const RESEARCH_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble'];
+const RESEARCH_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'RV'];
 const DOSSIER_TEMPLATE = path.join(SKILL_DIR, 'templates', 'dossier-template.md');
 /**
  * §7.2 as D-355 reduces it (WU-70): the dossier is the verification gate's comparison table, one row per verified
- * card, with these columns in order. The run checker's `DOSSIER_COLUMNS` holds the same list (WU-71).
+ * card, with these columns in order. Amendment 8 adds each card's rough clear speed after its EHP (D-407): the run
+ * checker's `DOSSIER_COLUMNS_D407` holds the same list (WU-89), and its ten-column `DOSSIER_COLUMNS` stays only for
+ * runs recorded before it.
  */
-const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
+const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk'];
 
 /** Headings outside fenced blocks, with their line numbers. */
 function headings(text: string): { level: number; title: string; line: number }[] {
@@ -497,7 +508,7 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
   it('has the comparison columns in order, the same list the run checker holds, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
     expect(cells(rows[0])).toEqual(DOSSIER_COLUMNS);
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    const listed = /export const DOSSIER_COLUMNS = (\[[^\]]*\]);/.exec(checker);
+    const listed = /export const DOSSIER_COLUMNS_D407 = (\[[^\]]*\]);/.exec(checker);
     expect(listed).not.toBeNull();
     expect(JSON.parse(listed![1].replace(/'/g, '"'))).toEqual(DOSSIER_COLUMNS);
     expect(cells(rows[1]).every((c) => /^-+$/.test(c))).toBe(true);
@@ -510,16 +521,19 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
     // D-294, D-296: TotalEHP beside Life, and the figure labelled an estimate on Count or custom modifiers.
     expect(body[0][4]).toMatch(/"estimate" when its group's Count is above 1 or the stage is computedWithCustomMods \(D-296\)/);
     expect(body[0][6]).toBe('<TotalEHP>');
+    // D-407: the rough clear speed, or the no-area wording, from the skeleton's record; "—" on a card with no record.
+    expect(body[0][7]).toMatch(/measures\.clearSpeed\.speed> \(rough\), or <speed> \(PoB gives no area\)/);
+    for (const row of body.slice(1)) expect(row[7]).toBe('—');
   });
 
   it('marks a fallback league unverified for D1, in the card\'s row', () => {
-    expect(cells(rows[2])[8]).toBe('<none (offline) or <league> or <league>, unverified>');
+    expect(cells(rows[2])[9]).toBe('<none (offline) or <league> or <league>, unverified>');
   });
 
   it('R1b-assemble writes the table and reads the record by Grep; D1-build, D2 and W1 read the card and its row', () => {
     const assemble = folded(readStage('R1b-assemble'));
     expect(assemble).toMatch(/It writes `dossier\.md`, the verification gate's comparison table \(D-355\)/);
-    expect(assemble).toContain(`with its ten columns exactly, in order: ${DOSSIER_COLUMNS.map((c) => `\`${c}\``).join(', ')}. No H2, no H3, no markers`);
+    expect(assemble).toContain(`with its eleven columns exactly, in order: ${DOSSIER_COLUMNS.map((c) => `\`${c}\``).join(', ')}. No H2, no H3, no markers`);
     expect(assemble).toMatch(/its record's key numbers, by Grep, never the record whole/);
     for (const stage of ['D1-build', 'D2', 'W1']) expect({ stage, row: folded(readStage(stage)).includes("row of `dossier.md`") || folded(readStage(stage)).includes("the card's row (Grep `^| <id> |`)") }).toEqual({ stage, row: true });
   });
@@ -1234,14 +1248,14 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
 
   it('the task header lists the eleven steps (R1a-assemble added, D-287; D1 split, D-356), with no pass and no lens; a V4 header has its check, a re-check the checker\'s changed lines (D-352)', () => {
     const text = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'));
-    expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1\'s two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1`, `V4`, or `Q` (a gate question, D-390) |');
+    expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `RV` (the rival, D-408), `D1-build`, `D1-finish` (D1\'s two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1`, `V4`, or `Q` (a gate question, D-390) |');
     expect(text).not.toMatch(/\| `pass` \||\| `lens` \|/);
     expect(text).toMatch(/\| `check` \| V4 only: `full` .* or `recheck`/);
     expect(text).toMatch(/\| `changed` \| a V4 re-check, W1 in the fix round, and a D1-finish after D1-build \(the locations D1-build returned\)\. The re-check's: the lines `check-run\.mjs --changed <n>` printed, verbatim, one item each: `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>` \(D-352\)\. W1's: the locations the fix round's owners returned/);
   });
 
   it('every stage reference returns at most 8 lines; V4 too, since it writes its own report (R-5 as D-352 amends it)', () => {
-    for (const stage of ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D1-build', 'D1-finish', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V4']) {
+    for (const stage of ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'RV', 'D1-build', 'D1-finish', 'D1-gate', 'D2', 'D2-gate', 'W1', 'V4']) {
       const text = readStage(stage);
       const returns = text.slice(text.indexOf('## Returns'), text.indexOf('## Fault directives'));
       expect({ stage, eight: /At most 8 lines/.test(returns) }).toEqual({ stage, eight: true });
@@ -1643,7 +1657,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
       [
         ['Identity', ['Class:', 'Ascendancy:', 'Named damage source:']],
         // D-392 (WU-82): a named pitch in player terms; the tags stay, never displayed.
-        ['Pitch', ['Name: <2–4 words', 'Why pick it: <', 'How it clears: <', 'Bosses: <', 'Needs: <', 'The catch: <', 'Playstyle: <tags']],
+        // D-403 (WU-91): the obvious card's kit, on one card.
+        ['Pitch', ['Name: <2–4 words', 'Why pick it: <', 'How it clears: <', 'Bosses: <', 'Needs: <', 'The catch: <', 'Obvious build: <the kit it follows', 'Playstyle: <tags']],
         ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by']],
         ['Enabler', ['<The item, node or gem>', 'arrives at level', 'by <how to get it', 'Dormant until then:']],
         ['Links', ['| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', ...POB_LABELS, 'PG ids', '"from a Hit"', '"you use yourself"']],
@@ -1655,6 +1670,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
     [
       'Verification half',
       [
+        // D-406 (WU-91): R1b's structure check on paper, first, its optional last line the stronger structure.
+        ['Structure check', ['the levers', 'assumption flipped', 'grows with a count', 'premium slot', 'A stronger structure? <the flip, in a sentence, and the rough']],
         ['Verified', ['`Life`', '`EnergyShield`', '`Missing<Elem>Resist`', '`<Type>MaximumHitTaken`', '`TotalEHP`', 'Modelled DPS:']],
         ['Estimates', ['Count:', 'Custom modifier:', 'because <the reason>', 'Computed with a custom modifier present:', 'Clear:', 'Boss:', 'never summed']],
         ['Checklist results', ['verified \\| estimate \\| risk \\| not checked']],
@@ -1997,7 +2014,7 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(text).toMatch(/\*\*The anoint\*\* \(D-358\), on `b` and `n` only; `m` has none/);
     expect(text).toMatch(/\*\*One tree track\*\* \(D-282\): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`/);
     expect(text).toMatch(/each rung's buy order, one claim per rung \(`m`'s buys toward its 5-divine target, `b`'s buy order, `n`'s upgrade order from `b`\), the guide numbering them as you order them/);
-    expect(text).toContain('at `schemaVersion: 4`');
+    expect(text).toContain('at `schemaVersion: 5`');
   });
 
   it("D1-finish writes claims only where the build hinges, each with its kind, and none for what the compile proves (D-351, amending D-279; traps and either/or picks, D-277)", () => {
@@ -2265,7 +2282,7 @@ describe('AC-W32: the skill uses D-122\'s wording, "named damage source" (A-33; 
       .filter((e) => e.isFile() && e.name.endsWith('.md'))
       .map((e) => path.join(e.parentPath, e.name));
     const agentMd = definitionFiles.map((f) => path.join(AGENTS_DIR, f));
-    // SKILL.md, 11 shared references, 11 stage references and README, 5 templates; 4 agents.
+    // SKILL.md, 12 shared references, 13 stage references and README, 4 templates; 4 agents.
     expect(skillMd.length + agentMd.length).toBeGreaterThan(25);
     const offenders = [...skillMd, ...agentMd].flatMap((file) => scan(fs.readFileSync(file, 'utf8')).map((m) => `${path.relative(REPO, file)}: ${m}`));
     expect(offenders).toEqual([]);
@@ -3164,11 +3181,11 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
     expect(gaps).toMatch(/\*\*PG-40, a minion's command is never checked against the passive that grants it\.\*\* gap \(optimistic\), confirmed/);
   });
 
-  it("D1-build, R1b's bootstrap and the coordinator put a minion skill in its summon's group: `minionSkill`, `minionStatSet` for several stat sets, `main.activeSkill` on the summon, at schema version 4", () => {
+  it("D1-build, R1b's bootstrap and the coordinator put a minion skill in its summon's group: `minionSkill`, `minionStatSet` for several stat sets, `main.activeSkill` on the summon, at schema version 5 (D-402's companion needs it)", () => {
     const d1 = folded(readStage('D1-build'));
     expect(d1).toMatch(/\*\*A minion skill\*\* \(D-379\) is its group's `minionSkill`, by the gem lookup's name: the group holds the summon its `Cast by:` line names, and `main\.activeSkill` is the summon, never its "Command" skill\. Add `minionStatSet` when the skill has several stat sets/);
-    expect(d1).toContain('at `schemaVersion: 4`');
-    expect(folded(readStage('R1b'))).toMatch(/for a minion skill, its summon, with `main\.activeSkill` on the summon, never on its "Command" skill, the skill as the group's `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 4`, D-379/);
+    expect(d1).toContain('at `schemaVersion: 5`');
+    expect(folded(readStage('R1b'))).toMatch(/for a minion skill, its summon, with `main\.activeSkill` on the summon, never on its "Command" skill, the skill as the group's `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 5`, D-379/);
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/A minion skill \(D-379\) is its group's `minionSkill`, with `minionStatSet` for a skill of several stat sets: the group holds the summon, `main\.activeSkill` is the summon, never its "Command" skill/);
   });
 
@@ -3278,7 +3295,7 @@ describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text'
     expect(ref('task-header.md')).toMatch(/Q's its report `interviews\/<gate>-<visit>-q<n>\.md`, and a coordinator's variant `probes\/q-<gate>-<visit>-<n>\/` \(D-390\)/);
     const coordinator = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
     expect(coordinator.body).toContain('| `Q` | `.claude/skills/build-guide/references/stages/Q.md` |');
-    expect(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-researcher.md'), 'utf8'))!.fm.description).toMatch(/stage R1a, and Q for a gate question/);
+    expect(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-researcher.md'), 'utf8'))!.fm.description).toMatch(/stage R1a, RV for the rival, and Q for a gate question/);
   });
 
   it('the card template carries Name, Why pick it, How it clears, Bosses, Needs and The catch, in the order the display prints them (D-392)', () => {
@@ -3393,6 +3410,228 @@ describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text'
     expect(r1a).toMatch(/\*\*A seed card\*\* \(D-393\), when your prompt gives a reference build the user named \(a guide page, a video or a PoB file; offline, a local file only\): one of your 3 cards is written from it, reading only what the user named/);
     expect(r1a).toMatch(/Its Evidence is `Reference build: Seed: <the reference>` and `players use it \(the user's reference\)`/);
     expect(fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8')).toContain("players use it (the user's reference)");
-    expect(skillMd()).toMatch(/\(to `a`, a reference build the user named, for a seed card, D-393\)/);
+    // D-403 (WU-91): the seed card moves to researcher `b`, since `a` writes the obvious card.
+    expect(skillMd()).toMatch(/\(to `b`, a reference build the user named, for a seed card, D-393\)/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W75 (WU-91, amendment 8: D-400…D-409): finding the build's engine, in the skill text. The formats are the ones
+// WU-89's scripts parse (`studies/2026-10-18-wu89-formats.md`); the facts are the committed data under `data/`.
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
+  const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
+  /**
+   * `data/rules/vocabulary.md`'s families, as the run checker reads them: each list item `- \`<family>\`[, …]: …`, its
+   * wrapped lines joined to it, and `none`, the empty value its rules name.
+   */
+  const vocabulary = (() => {
+    const text = fs.readFileSync(path.join(REPO, 'data', 'rules', 'vocabulary.md'), 'utf8');
+    const words = new Set<string>(/`none` is the empty value/.test(text) ? ['none'] : []);
+    const items = text.split(/\r?\n/).reduce<string[]>((out, line) => {
+      if (/^\s+\S/.test(line) && out.length > 0) out[out.length - 1] += ` ${line.trim()}`;
+      else out.push(line);
+      return out;
+    }, []);
+    for (const line of items) {
+      const m = /^[-*]\s+((?:`[a-z0-9-]+`(?:,\s*)?)+):/.exec(line);
+      if (m) for (const w of m[1].matchAll(/`([a-z0-9-]+)`/g)) words.add(w[1]);
+    }
+    return words;
+  })();
+
+  it('R1a.md: the pattern library first, then the league digest\'s head and the rule-changer index (D-290, D-400, D-401)', () => {
+    const raw = readStage('R1a');
+    const text = folded(raw);
+    const order = ['**The pattern library first** (C-53, D-290)', '**Then the committed game data** (D-400 to D-402)', '**The league digest**', '**The rule-changer index**'].map((m) => raw.indexOf(m));
+    expect(order.every((at) => at > 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(text).toMatch(/\*\*The league digest\*\*, `data\/league\/<slug>\.md`, the newest league's: its head whole \(Read up to its `## Body` line\), then its body by Grep/);
+    expect(text).toMatch(/\*\*The rule-changer index\*\*, `data\/rules\/`: the tree focus reads `nodes\.md`'s section for the brief's ascendancy .* and its `## Keystones`, whole/);
+    expect(text).toMatch(/the items focus Greps `uniques\.md`; every focus Greps `gems\.md` and `pairs\.md` for its cards' families, the words of `data\/rules\/vocabulary\.md`/);
+    expect(text).toMatch(/\*\*The rare monster modifiers\*\*, `data\/monsters\/monster-mods\.md`, by Grep/);
+    // The digest's and the monster table's text confirm a link; cited by id in research, never in a plan.
+    expect(text).toMatch(/A digest or monster-table entry's text is game text: it confirms a link as a lookup does\. Cite it by its id, in a research footnote `data \| league\/<slug>\.md#<id>`/);
+    expect(text).toMatch(/never in a plan/);
+  });
+
+  it("R1a.md: D-404's three rules of the supply search, and the research file's `## Supply search` section", () => {
+    const raw = readStage('R1a');
+    const text = folded(raw);
+    expect(text).toMatch(/\*\*The supply search\*\* \(D-404\)\. For each resource or condition a card's chain consumes/);
+    expect(text).toMatch(/\*\*the whole family and its substitutes:\*\* `mcp__pob2__lookup_game_data \{mode: "mechanic", query: "Infusion"\}`, not "Cold Infusion"/);
+    // WU-85: pairs.md has no infusion block, so the search Greps `creates:` across the index, the table and the digest.
+    expect(text).toMatch(/Grep `-i "creates:\[\^\|\]\*<family>"` across `data\/rules\/\*\.md` and `data\/monsters\/monster-mods\.md`, and the family's name in the digest's body/);
+    expect(text).toMatch(/\*\*every source kind:\*\* gems, uniques, passives, ascendancy nodes and the monster-modifier table/);
+    expect(text).toMatch(/\*\*unfamiliar terms:\*\* a term in a result you can't place \("Verisium Infusion"\) gets one lookup before the search ends/);
+    // The section in the research file's form, before Sources, and what R1a-assemble reads it for.
+    const form = /```\n(# Research p<k>[\s\S]*?)\n```/.exec(raw)?.[1] ?? '';
+    const h2 = form.split('\n').filter((l) => /^## /.test(l)).map((l) => l.replace(/\s{2,}.*$/, ''));
+    expect(h2).toContain('## Supply search: <family>');
+    expect(h2[h2.length - 1]).toBe('## Sources');
+    expect(form).toMatch(/^- <supplier> \(<the lookup or data file that found it>\): used by <card id> \| not used: <why>$/m);
+    expect(text).toMatch(/The `Supply search` sections are what R1a-assemble reads for the deck's "Found, not used"/);
+  });
+
+  it('R1a.md: researcher `a` writes the obvious card r1-a-1, and the seed card goes to `b` (D-403)', () => {
+    const raw = readStage('R1a');
+    const text = folded(raw);
+    expect(text).toMatch(/\*\*The obvious card\*\* \(D-403\)\. In round 1, researcher `a` writes first, as `r1-a-1`, the build an average player makes first: the brief's skill on its ascendancy, with its archetype's standard kit \(the library's "Standard kits"\) and the ascendancy's intended play/);
+    expect(text).toContain("Its Pitch carries `- Obvious build: <the kit it follows>`, after `The catch`; no other card does");
+    expect(text).toMatch(/With no skill in the brief, it is the obvious build for the brief's playstyle; a brief with neither has no obvious card/);
+    expect(text).toMatch(/Every other card's How it clears says how it clears faster than its archetype's standard kit, or why it's worth picking anyway/);
+    expect(raw).toMatch(/^\| 1 \| `a` \| `mechanics` \| .* in round 1 the first is the obvious card \|$/m);
+    expect(raw).toMatch(/^\| 2 \| `b` \| `items` \| .* one is the seed card when your prompt gives one \|$/m);
+    expect(text).toMatch(/to researcher `b`, a reference build the user named \(a seed card, below; D-403\)/);
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8')).toMatch(/^- \[only on the obvious card, r1-a-1; D-403\] Obvious build: <the kit it follows/m);
+  });
+
+  it("R1a-assemble.md: the engine on each deck line in the vocabulary's words, and D-405 with both its exceptions", () => {
+    const raw = readStage('R1a-assemble');
+    const text = folded(raw);
+    expect(text).toMatch(/\*\*The engine\*\* \(D-405\): what the card's damage consumes and what supplies it, from its chain's `Consumes or requires: <X>, supplied by <Y>` line, as `engine: <consumed> from <supply>`, each one word of `data\/rules\/vocabulary\.md` \(`none` included\)/);
+    expect(text).toMatch(/Two cards share an engine when both words match; a consumed `none` is no engine/);
+    expect(text).toMatch(/\*\*At most half a round on one engine\*\*, rounded down: 4 of 8 or 9 dealt cards, 3 of 6 or 7/);
+    // The held-back line, in the form the checker reads (WU-89).
+    expect(text).toContain('`- <id> "<Name>" | the round already holds <n> cards on this engine | engine: <consumed> from <supply>`');
+    // Exception 1: the minimum; the round deals the fewest extra that reach 6, and says why.
+    expect(text).toMatch(/It yields to the minimum: when it would leave fewer than 6 cards, deal the fewest extra that reach 6, and the round is short, `short: <n> cards share one engine`/);
+    // Exception 2: the user's note for the round.
+    expect(text).toMatch(/It yields to the user: when the user's note for the round asks for one engine, the rule skips that engine, and the deck's `How they differ` says so/);
+    expect(text).toMatch(/`## How they differ`, one line on the deck's shape, naming each engine with its count of dealt cards over every round, `<consumed> from <supply> \(<n>\)`/);
+    // The example deck: every dealt line names an engine in the vocabulary, and the header counts them.
+    const deck = /```\n(# Deck[\s\S]*?)\n```/.exec(raw)?.[1] ?? '';
+    const round = deck.slice(deck.indexOf('## Round 1'), deck.indexOf('## Not dealt'));
+    const lines = round.split('\n').filter((l) => /^- r\d/.test(l));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      const m = / \| engine: ([a-z-]+) from ([a-z-]+)(?: \||$)/.exec(line);
+      expect({ line, engine: m !== null && vocabulary.has(m[1]) && vocabulary.has(m[2]) }).toEqual({ line, engine: true });
+    }
+    expect(deck).toMatch(/^Three engines: bleed from on-hit \(3\), bleed from on-crit \(2\), rage from on-hit \(2\);/m);
+    expect(['none', 'infusion', 'chilled-ground', 'belt-slot'].filter((w) => !vocabulary.has(w))).toEqual([]);
+  });
+
+  it('R1a-assemble.md: the Supply search read, the digest and the monster table as confirming text, `waits on the pin`, and the obvious card dealt (D-287, D-400, D-402, D-403)', () => {
+    const text = folded(readStage('R1a-assemble'));
+    expect(text).toMatch(/each research file's `## Supply search` sections \(Grep `\^## Supply search` with the lines under it\)/);
+    expect(text).toMatch(/The research files' `Supply search` sections name the suppliers no card uses/);
+    expect(text).toMatch(/A league-digest or monster-table entry's text confirms a link too \(D-400, D-402\): for a link the card cites `data \\\| league\/<slug>\.md#<id>` or `data \\\| monsters\/monster-mods\.md#<id>`, Grep `- Id: <id>` in that file and check its block\. An index line \(`data\/rules\/`\) is a lead, never the confirming text/);
+    expect(text).toContain("dealt as `can't be finalized yet: <why> | waits on the pin: <entry>`, the entry by its digest name (D-400)");
+    expect(text).toMatch(/with `waits on the pin: <entry>` where they apply/);
+    expect(text).toMatch(/the obvious card `r1-a-1` whenever it passes \(D-403\)/);
+  });
+
+  it('R1b.md: the structure check between the opening checks and tree targets, from the library\'s Standard kits (D-406)', () => {
+    const raw = readStage('R1b');
+    const text = folded(raw);
+    const at = (m: string) => raw.indexOf(m);
+    const order = [at("**A gate's change, first**"), at("**The rival's card, first**"), at('**The ascendancy lock** (D-342)'), at('**The structure check** (D-406)'), at('1. **Tree targets.**')];
+    expect(order.every((i) => i > 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(text).toMatch(/the pattern library's "Standard kits" entry for the card's archetype, for the structure check/);
+    for (const step of ['**The levers:**', '**Flip the assumptions:**', '**Counts:**', '**Premium slots:**']) expect({ step, listed: text.includes(step) }).toEqual({ step, listed: true });
+    expect(text).toMatch(/Muster at eight types is about 7% × 8\. A tamed beast reserves a percentage of your Spirit/);
+    expect(text).toMatch(/Write it as the card's `### Structure check`, one `- ` line per step\. When a flip beats the card on paper, the last line is `- A stronger structure\? <the flip, in a sentence, and the rough multiplier>`/);
+    // The line the scripts read under the card is the run-log script's own (WU-89).
+    const runLogScript = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'run-log.mjs'), 'utf8');
+    expect(text).toContain(`- ${/export const STRONGER = '([^']+)'/.exec(runLogScript)![1]} <the flip`);
+  });
+
+  it("R1b.md: the rival's identity and sniff checks with `not-dealt`, and `not-in-pin` with no compile (D-400, D-408)", () => {
+    const text = folded(readStage('R1b'));
+    expect(text).toMatch(/\*\*The rival's card, first\*\* \(D-408\), when `concept` is `r<k>-x-<n>`: no one dealt it, so run R1a-assemble's identity check and sniff test on it \(`R1a-assemble\.md`, steps 2 and 3, the lock included\)/);
+    expect(text).toMatch(/with the finding `\{part: "compiled", code: "not-dealt", message: "not dealt: <the check that failed>"\}`: terminal, never retried, and the card is `failed`/);
+    expect(text).toMatch(/at most 3 per verification round, the rival's card aside \(D-408\)/);
+    // not-in-pin: like not-a-skill, no skeleton and no compile.
+    expect(text).toMatch(/\*\*So does a card that rests on a digest entry the PoB pin doesn't know\*\* \(D-400\), its finding `\{part: "compiled", code: "not-in-pin", message: "not compiled: <entry> isn't in the PoB pin"\}`/);
+    expect(text).toMatch(/compiles nothing, so it has no skeleton, record or probe\. .* `compiles: 0` and `recordPath: null`/);
+    expect(text).toMatch(/Nor does a card whose named damage source or load-bearing link is a league-digest entry marked `\[not in pin\]` \(D-400\)/);
+    // The skeleton's tamed beast (D-402), at schema 5.
+    expect(text).toMatch(/`companion`, when the card's chain has a tamed beast \(D-402\): `\{species, mods\}`, .* with one `Tame Beast` gem, enabled, in an enabled group\. The compile writes PoB's three companion options and each kept `condition` modifier's option as earned state: list none of them/);
+    expect(text).toMatch(/A `data:` source names a JSON fact: a claim resting on a digest, index or monster-table entry cites its lookup, or a `judgment` naming the entry \(D-400\)/);
+  });
+
+  it('R1b-assemble.md and the dossier template: the eleventh column, clear speed, and the second pass for the rival\'s row (D-407, D-408)', () => {
+    const text = folded(readStage('R1b-assemble'));
+    expect(text).toMatch(/and a second pass after the rival's R1b \(D-408\)/);
+    expect(text).toMatch(/\*\*The rival's pass\*\* \(D-408\): `cards` holds the rival's card alone, `r<k>-x-<n>`; keep every row and add its row below the round's/);
+    expect(text).toMatch(/the clear speed \(D-407\), the record's `speed` with `\(rough\)`, or `<speed> \(PoB gives no area\)` when `noArea` is true and it names a skill/);
+    expect(text).toMatch(/`can't be finalized yet: waits on the pin` for a `not-in-pin` card \(D-400\)/);
+    expect(text).toMatch(/The rival's `not-dealt` card is `failed after 1 attempt: not dealt: <the check it failed>; <its verdict file>` \(D-408\)/);
+    expect(folded(fs.readFileSync(DOSSIER_TEMPLATE, 'utf8'))).toMatch(/once per verification round, and again for the rival's row \(D-408\)/);
+  });
+
+  it('D1-build.md and D1-finish.md: `lever unpulled:` and `override:` lines, which D1-finish writes as `reason` claims (D-406, D-407)', () => {
+    const build = folded(readStage('D1-build'));
+    expect(build).toMatch(/\*\*The levers, measured\*\* \(D-406\)\. Then redo the levers line of the card's `### Structure check` with the skeleton's compiled figures/);
+    expect(build).toMatch(/return each lever it leaves unpulled as `lever unpulled: <lever>: <why>`/);
+    expect(build).toMatch(/\*\*Overriding PoB's ranking\*\* \(D-407\)\. .* Return each such choice as `override: <PoB's first choice> → <ours>: <why>`/);
+    expect(build).toMatch(/each `left out:`, `lever unpulled:` and `override:` line/);
+    expect(build).toMatch(/the rule-changer index \(D-401\): `data\/rules\/nodes\.md`'s section for the card's ascendancy/);
+    expect(build).toMatch(/\*\*A tamed beast\*\* \(D-402\) is a stage's `companion \{species, mods\}`, with one `Tame Beast` gem/);
+    const finish = folded(readStage('D1-finish'));
+    expect(finish).toMatch(/and its `lever unpulled:` and `override:` lines, each a `reason` claim on the first endgame stage \(D-406, D-407\)/);
+    expect(finish).toMatch(/`reason`: a reason resting on a measurement: .* a `left out:` gem, a `lever unpulled:` line \(the lever, why, and the compiled figure it rests on\), an `override:` line \(PoB's first choice, ours, and what PoB can't measure that decides it\)/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/and D1-build's `left out:` lines, with its `lever unpulled:` and `override:` lines \(D-406, D-407\)/);
+  });
+
+  it('stages/RV.md: the rival\'s reads name no research file and no card but its own; its job and its returns (D-408)', () => {
+    const raw = readStage('RV');
+    const text = folded(raw);
+    expect(text).toMatch(/^# RV: the rival \(`build-guide-researcher`\)/);
+    const inputs = raw.slice(raw.indexOf('## Inputs'), raw.indexOf('## Work'));
+    const read = inputs.slice(inputs.indexOf('- **Read**'), inputs.indexOf('\n- **', inputs.indexOf('- **Read**') + 1));
+    expect(read.length).toBeGreaterThan(100);
+    // What it reads: the library, the dossier, the digest, the index and the monster table.
+    for (const p of ['references/patterns.md', '`dossier.md`', '`data/league/<slug>.md`', '`data/rules/`', '`data/monsters/monster-mods.md`']) expect({ p, read: read.includes(p) }).toEqual({ p, read: true });
+    // ...and never the run's research, cards or interview notes.
+    for (const m of read.matchAll(/`([^`]*)`/g)) {
+      expect({ path: m[1], shared: /^(research\/|interviews\/|cards\.md|cards\/)/.test(m[1]) }).toEqual({ path: m[1], shared: false });
+    }
+    const never = folded(inputs.slice(inputs.indexOf('- **Never read**')));
+    expect(never).toMatch(/\*\*Never read\*\* the run's research files \(`research\/`\), its cards \(`cards\/`, `cards\.md`\) or the interview notes \(`interviews\/`\), apart from your own card/);
+    expect(text).toMatch(/`writes: \["cards\/r<k>-x-<n>\.md"\]`, your card/);
+    // Its job, bound by the brief, and its returns.
+    expect(text).toMatch(/\*\*The brief binds you\*\* where it is fixed: a named ascendancy or skill stays/);
+    expect(text).toMatch(/\*\*Pick the flip that clears fastest on paper,\*\* with the arithmetic/);
+    expect(text).toMatch(/\*\*Or none\.\*\* When no structure you can confirm clears faster, write no card/);
+    expect(raw).toMatch(/^none-found\ntried: /m);
+    expect(text).toMatch(/Only your card, `cards\/r<k>-x-<n>\.md`: no research file and no deck line/);
+    expect(ref('stages/README.md')).toContain('`RV.md` (the rival, D-408)');
+  });
+
+  it('SKILL.md: the digest\'s staleness line at the start, and RV after R1b-assemble and before the verification gate (D-400, D-408)', () => {
+    const raw = fs.readFileSync(SKILL_MD, 'utf8');
+    const start = folded(raw.slice(raw.indexOf('## 1. Start'), raw.indexOf('## 2. Brainstorm')));
+    expect(start).toMatch(/its last step prints the league digest's staleness line, `head -3 data\/league\/<newest>\.md` \(D-400\)/);
+    expect(ref('start.md')).toMatch(/5\. \*\*The league digest's staleness line\*\* \(D-400\)\. Print the newest digest's section and fetch date in your reply, `head -3 data\/league\/<newest>\.md`/);
+    // `head` is on the runner's Bash list.
+    expect(folded(raw)).toMatch(/- `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`/);
+    // The step list: RV's row between R1b-assemble's and the verification gate's, run by a researcher.
+    const rows = ['| 4a | R1b-assemble |', '| 4b | RV, the rival, once per run (§3) | `build-guide-researcher` | `cards/r<k>-x-<n>.md` |', '| 5 | The verification gate (§3) |'].map((r) => raw.indexOf(r));
+    expect(rows.every((at) => at > 0)).toBe(true);
+    expect(rows).toEqual([...rows].sort((a, b) => a - b));
+    // §3's cards in the same order, RV's naming what it never gets and what follows it.
+    const cards = ['- **R1b-assemble** (4a)', '- **RV, the rival** (4b; D-408), once per run, after the first verification round\'s R1b-assemble', '- **The verification gate** (5;'].map((c) => raw.indexOf(c));
+    expect(cards.every((at) => at > 0)).toBe(true);
+    expect(cards).toEqual([...cards].sort((a, b) => a - b));
+    const rv = folded(raw.slice(cards[1], cards[2]));
+    expect(rv).toMatch(/its prompt the brief and its card id `r<k>-x-<n>`, nothing from the run's research, cards or interviews\. On `done`, R1b for its card, outside the round's 3, then R1b-assemble for its row alone; on `none-found`, log its `tried`/);
+    expect(ref('checkpoints.md')).toMatch(/\*\*A rival on request\*\* \(D-408\)\. At any gate the user may ask for a rival/);
+  });
+
+  it("the researcher's description names RV, and its Read and Grep rules name the three data folders (D-400…D-402, D-408)", () => {
+    const def = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-researcher.md'), 'utf8'))!;
+    expect(def.fm.description).toMatch(/\bRV for the rival\b/);
+    const rule = folded(def.body.slice(def.body.indexOf('- **The committed game data**'), def.body.indexOf('- **Offline mode**')));
+    expect(rule).toMatch(/Read and Grep `data\/league\/` \(the league digest\), `data\/rules\/` \(the rule-changer index\) and `data\/monsters\/` \(rare monster modifiers\)/);
+    const offline = folded(def.body.slice(def.body.indexOf('- **Offline mode**')));
+    expect(offline).toMatch(/committed data under `data\/campaign\/`, `data\/enemies\/`, `data\/league\/`, `data\/rules\/` and `data\/monsters\/`/);
+    expect(folded(def.body)).toMatch(/As the rival \(stage `RV`, D-408\) you come fresh to the run/);
+    // The coordinator's R1b reads the library's kits for the structure check.
+    const coordinator = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
+    expect(coordinator.body).toMatch(/\| `R1b` \| .* one card's structure check on paper, from the pattern library's Standard kits \(D-406\)/);
   });
 });

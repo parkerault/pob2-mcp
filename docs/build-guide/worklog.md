@@ -4547,3 +4547,7 @@ the `m17` engine at `b76967b`.
 - **WU-89 dispatched** (`bg-89`, off `7d8799e`, with WU-88 merged). It may also change the dossier template's
   column line (the checker's column list must match it) and writes its formats to a new
   `studies/2026-10-18-wu89-formats.md`, for WU-91, as WU-81 did for WU-82.
+- **WU-84's ruling done** (`68a00f9`): the digest's head is 206 lines and 3,165 words (was 324 and about 5,100): the
+  socketables' count line, then 44 socketables the doer judges rule changers (18 Legacy runes), each with a reason.
+  The judgments are a committed file, `data/league/runes-of-aldur.rule-changers.json`. The doer's gate failed only
+  AC-T22 on time at load 17, passing alone. The verifier samples the judgments.

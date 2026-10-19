@@ -41,6 +41,12 @@
  * `clearSpeed`, now with `noArea` when PoB gives the clear skill no radius (its band is then `slow`, so a display can
  * say "slow (PoB gives no area)"), and `movementSpeed`, the player's movement speed as PoB's `EffectiveMovementSpeedMod`.
  * `dps`, `ehp` and `arbiter` stay on the variant stages only. A campaign stage has no `measures`.
+ *
+ * **A tamed beast** (WU-87, D-402; the user's HG-12 grant), additive. A stage that names a `companion` gets
+ * `companion`: the beast PoB summons, its DPS (its minion's `MinionTotalDPS` at its group's breakdown key), the player's
+ * Spirit, the species' Spirit percentage and PoB's reservation for it, and each kept modifier with how it was applied
+ * (`companion.ts`). Its `stats` lines are custom modifiers, so they are in `customModsWritten` and the stage carries the
+ * custom-modifier mark.
  */
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
@@ -596,6 +602,56 @@ export interface AnointRecord {
   emotions: string[];
 }
 
+/** D-402 (WU-87): one kept modifier of a stage's tamed beast, and how the compile applied it, by its table row's model. */
+export interface CompanionModRecord {
+  /** Its id and name in `data/monsters/monster-mods.md`. */
+  id: string;
+  name: string;
+  model: 'stats' | 'condition' | 'none';
+  /**
+   * `custom-modifiers`: its lines went into the stage's custom modifiers; `config`: its config option was written, on;
+   * `nothing`: PoB can't take it (a `none` row, or no line PoB parses whole).
+   */
+  applied: 'custom-modifiers' | 'config' | 'nothing';
+  /**
+   * A `stats` row's lines as the compile writes them: `Companions have …` on the beast, the line itself on the player,
+   * `Minions have …` on the minions; `written` false for a line PoB can't parse whole, which would add nothing.
+   */
+  lines?: { text: string; reaches: 'companion' | 'player' | 'minions'; written: boolean }[];
+  /** A `stats` row with a line written: an estimate (D-293), so the stage carries the custom-modifier mark. */
+  estimate?: true;
+  /** A `condition` row: the config option it sets, written as earned state, on. */
+  option?: string;
+  /** How it was applied, in words. */
+  how: string;
+}
+
+/**
+ * D-402 (WU-87): a stage's tamed beast, as PoB measured it. A beast reserves a percentage of the player's Spirit (its
+ * species' `companionReservation`), not a flat amount, so its reserved Spirit grows with the Spirit the build stacks.
+ */
+export interface CompanionRecord {
+  /** The plan's `companion.species`, and the beast PoB summons: its name and monster id. */
+  species: string;
+  monster: string;
+  monsterId: string;
+  /** The group holding the Tame Beast gem (the plan's number), its companion skill and their breakdown key. */
+  group: number;
+  activeSkill: number;
+  key: string;
+  /** The companion's DPS: its minion's `MinionTotalDPS` at `key`, as PoB measures it; null when PoB gives none. */
+  dps: number | null;
+  /** The player's Spirit, PoB's `Spirit`. */
+  spirit: number | null;
+  /** The species' Spirit cost: a percentage of the player's Spirit (`companionReservation`, `Data/Spectres.lua`). */
+  speciesReservationPercent: number;
+  /** PoB's reservation for the companion: its percentage after the build's reservation modifiers, and the Spirit it takes. */
+  reservedSpiritPercent: number;
+  reservedSpirit: number;
+  /** Each kept modifier, in the plan's order, with how it was applied. */
+  mods: CompanionModRecord[];
+}
+
 export interface StageRecord {
   loadoutName: string;
   level: number;
@@ -641,6 +697,11 @@ export interface StageRecord {
    * none does. Absent from records written before amendment 6.
    */
   minionSkills?: MinionSkillRecord[];
+  /**
+   * WU-87, D-402: on a stage that names a companion, the tamed beast: its DPS, the Spirit it reserves and its kept
+   * modifiers, each with how it was applied.
+   */
+  companion?: CompanionRecord;
 }
 
 export interface CompileRecord {

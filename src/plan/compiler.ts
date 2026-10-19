@@ -46,6 +46,13 @@
  * too, in the headline, the key-figure line and the clear measure (`minionFigures`: its breakdown entry carries
  * `Minion<Field>` fields).
  *
+ * WU-87 (D-402): a stage's `companion` (`companion.ts`). Each kept `condition` modifier's config option is written as
+ * earned state before step 5; `compile_check` resolves the species against PoB's beast library, checks the Tame Beast
+ * gem and parses the kept `stats` modifiers' lines; the lines it parses join the stage's custom modifiers after it, so
+ * the shared sets are grouped after the preflight (step 4 follows step 5), and stages naming different beasts never
+ * share a skill set. `compile_stage` turns the Tame Beast gem into the beast, and the record gives the beast's DPS, the
+ * Spirit it reserves and how each kept modifier was applied.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -99,6 +106,14 @@ import {
   type Verdict,
 } from './record.js';
 import type { ReferenceData, ResolvedFact } from './referenceData.js';
+import {
+  companionCheckOf,
+  companionPlanOf,
+  companionRecordOf,
+  withCompanionConditions,
+  withCompanionLines,
+  type CompanionPlan,
+} from './companion.js';
 import {
   CUSTOM_MODS_OPTION,
   validatePlan,
@@ -169,6 +184,16 @@ const CONTENT_OF: Record<ContentKind, (s: Stage) => Stage['items'] | Stage['skil
   config: (s) => s.config,
 };
 
+/**
+ * What a stage's sets are grouped by (A-P2): its content of the kind. D-402: a skill set's content includes the stage's
+ * companion, the beast its Tame Beast gem summons (`beastOf` the stage, its resolved monster id; else its species), so
+ * stages naming different beasts, or one and none, never share a skill set.
+ */
+function groupingKey(kind: ContentKind, stage: Stage, beastOf?: (stageId: string) => string | undefined): string {
+  if (kind !== 'skill' || stage.companion === undefined) return stableText(CONTENT_OF[kind](stage));
+  return stableText({ ...stage.skills, companion: beastOf?.(stage.id) ?? stage.companion.species });
+}
+
 const sha1 = (data: string | Buffer) => crypto.createHash('sha1').update(data).digest('hex');
 
 /** A stage's V1 and V2 verdicts and what they read for the record (D-192, D-212). */
@@ -205,14 +230,17 @@ export interface SetGroup {
  * titled `<base> {<ids>}`, the ids in plan order joined by `,`; the base is the content's `setTitle`, else
  * the first member's loadout name without its ` {<id>}`. `groupOf` maps a stage id to its group's index.
  */
-export function groupSets(stages: readonly Stage[]): Record<ContentKind, { groups: SetGroup[]; groupOf: Map<string, number> }> {
+export function groupSets(
+  stages: readonly Stage[],
+  beastOf?: (stageId: string) => string | undefined,
+): Record<ContentKind, { groups: SetGroup[]; groupOf: Map<string, number> }> {
   const out = {} as Record<ContentKind, { groups: SetGroup[]; groupOf: Map<string, number> }>;
   for (const kind of CONTENT_KINDS) {
     const byKey = new Map<string, number>();
     const groups: { kind: ContentKind; first: Stage; stageIds: string[] }[] = [];
     const groupOf = new Map<string, number>();
     for (const stage of stages) {
-      const key = stableText(CONTENT_OF[kind](stage));
+      const key = groupingKey(kind, stage, beastOf);
       let index = byKey.get(key);
       if (index === undefined) {
         index = groups.length;
@@ -395,8 +423,8 @@ function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBas
   }
 }
 
-/** What `compile_check` reads of a stage. */
-export function checkStageOf(stage: Stage): CompileCheckStage {
+/** What `compile_check` reads of a stage; with its companion (D-402), the beast's species and lines. */
+export function checkStageOf(stage: Stage, companion?: CompanionPlan): CompileCheckStage {
   return {
     id: stage.id,
     nodes: stage.tree.nodes,
@@ -413,6 +441,7 @@ export function checkStageOf(stage: Stage): CompileCheckStage {
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),
     ...(stage.items.anoint !== undefined ? { anoint: stage.items.anoint.notable } : {}),
+    ...(companion !== undefined ? { companion: companionCheckOf(stage, companion) } : {}),
   };
 }
 
@@ -773,6 +802,7 @@ export function stageParams(
   refs: Record<ContentKind, StageSetRef>,
   offenseFields: readonly string[],
   anoint?: string,
+  companionId?: string,
 ): CompileStageParams {
   return {
     id: stage.id,
@@ -811,6 +841,8 @@ export function stageParams(
     itemSlots: [...ITEM_SLOTS],
     // D-358: the notable's PoB name, as compile_check resolved it, written on the amulet.
     ...(anoint !== undefined ? { anoint } : {}),
+    // D-402: the beast compile_check resolved the companion's species to.
+    ...(companionId !== undefined ? { companion: { id: companionId } } : {}),
   };
 }
 
@@ -858,10 +890,19 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     refData,
     request.mode === 'measure-only' ? request.stages : undefined,
   );
-  // D-353: each endgame stage's omitted reference hits come from the data, before the sets are grouped.
-  const plan: Plan = { ...loaded.plan, stages: loaded.plan.stages.map((s) => withReferenceHits(s, refData)) };
+  // D-353: each endgame stage's omitted reference hits come from the data, before the sets are grouped. D-402: a
+  // companion's kept condition modifiers are written as earned state, so the preflight checks them.
+  const companions = new Map<string, CompanionPlan>();
+  for (const s of loaded.plan.stages) {
+    const c = companionPlanOf(s, refData.monsterMods);
+    if (c !== undefined) companions.set(s.id, c);
+  }
+  const checkedPlan: Plan = {
+    ...loaded.plan,
+    stages: loaded.plan.stages.map((s) => withCompanionConditions(withReferenceHits(s, refData), companions.get(s.id))),
+  };
   const compiledIds = new Set(loaded.compiled.map((s) => s.id));
-  const compiled = plan.stages.filter((s) => compiledIds.has(s.id));
+  const preflight = checkedPlan.stages.filter((s) => compiledIds.has(s.id));
   // V2's baseline list (D-230), checked with the plan: an invalid file stops the compile here.
   const baselineList = readConfigBaseline(env);
 
@@ -879,18 +920,15 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     target = await checkTarget(env, request.buildName, runFolder);
   }
 
-  // 4. Shared sets (A-P2).
-  const grouped = groupSets(compiled);
-
   // 5. The read-only preflight (A-P12).
   const tCheck = env.clock();
   const check = await ctx.client.compileCheck({
-    className: plan.roll.className,
-    ascendancy: plan.roll.ascendancy,
-    stages: compiled.map(checkStageOf),
-    producers: producersOf(compiled),
+    className: checkedPlan.roll.className,
+    ascendancy: checkedPlan.roll.ascendancy,
+    stages: preflight.map((s) => checkStageOf(s, companions.get(s.id))),
+    producers: producersOf(preflight),
     // D-353: the clear-speed measure reads the measured stages' clear gems' texts, a card skeleton's included (D-407).
-    describeGems: [...new Set(compiled.filter(measuredStage).flatMap(clearGemNames))],
+    describeGems: [...new Set(preflight.filter(measuredStage).flatMap(clearGemNames))],
   });
   const checkMs = env.clock() - tCheck;
   if (check.defects.length > 0) {
@@ -899,6 +937,17 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         check.defects.join('\n'),
     );
   }
+  // D-402: the companion lines PoB parses join the custom modifiers, each with its reason, before the sets are grouped.
+  const companionChecks = new Map(check.companions.map((c) => [c.stage, c]));
+  const plan: Plan = {
+    ...checkedPlan,
+    stages: checkedPlan.stages.map((s) => withCompanionLines(s, companions.get(s.id), companionChecks.get(s.id))),
+  };
+  const compiled = plan.stages.filter((s) => compiledIds.has(s.id));
+
+  // 4. Shared sets (A-P2), after the preflight: a companion's lines are part of its stage's config, and its resolved
+  // beast part of its skills.
+  const grouped = groupSets(compiled, (id) => companionChecks.get(id)?.id);
 
   // 6. A new build replaces the engine's build (D-210).
   await ctx.newBuild({ className: plan.roll.className, ascendancy: plan.roll.ascendancy });
@@ -924,7 +973,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       refs[kind] = setRef(grouped[kind].groups[g].title, created[kind], g);
     }
     const t = env.clock();
-    const reply = await ctx.client.compileStage(stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable));
+    const reply = await ctx.client.compileStage(
+      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id),
+    );
     const elapsedMs = env.clock() - t;
     for (const kind of CONTENT_KINDS) {
       const g = grouped[kind].groupOf.get(stage.id)!;
@@ -1071,6 +1122,13 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     if (anoint !== undefined) {
       stages[stage.id].anoint = { notable: anoint.notable, node: anoint.node, recipe: [...anoint.recipe], emotions: [...anoint.emotions] };
     }
+    // D-402: the tamed beast, its DPS and reserved Spirit, and how each kept modifier was applied.
+    const companion = companions.get(stage.id);
+    const companionCheck = companionChecks.get(stage.id);
+    if (companion !== undefined && companionCheck !== undefined) {
+      if (reply.companion === undefined) throw new CompileError(`stage ${stage.id}: PoB measured no companion for its Tame Beast gem (D-402)`);
+      stages[stage.id].companion = companionRecordOf(companion, companionCheck, reply.companion, stages[stage.id]);
+    }
   }
   const ledger: CompileRecord['ledger'] = {};
   const evaluated = evaluateLedger(plan.ledger, { stageIds: plan.stages.map((s) => s.id), stages: numbers });
@@ -1134,12 +1192,19 @@ export async function validatePlanFile(
   planPath: string,
   subset?: readonly string[],
 ): Promise<{ stages: string[]; unknownProducers: { kind: string; name: string }[] }> {
-  const loaded = await loadPlan(env.guidesDirectory, planPath, env.referenceData(), subset);
+  const refData = env.referenceData();
+  const loaded = await loadPlan(env.guidesDirectory, planPath, refData, subset);
+  // D-402: a companion is checked as the compile checks it: its species, its Tame Beast gem and its condition options.
+  const table = refData.monsterMods;
+  const stages = loaded.compiled.map((s) => {
+    const companion = table === undefined ? undefined : companionPlanOf(s, table);
+    return { stage: withCompanionConditions(s, companion), companion };
+  });
   const check = await env.ctx.client.compileCheck({
     className: loaded.plan.roll.className,
     ascendancy: loaded.plan.roll.ascendancy,
-    stages: loaded.compiled.map(checkStageOf),
-    producers: producersOf(loaded.compiled),
+    stages: stages.map((x) => checkStageOf(x.stage, x.companion)),
+    producers: producersOf(stages.map((x) => x.stage)),
   });
   if (check.defects.length > 0) {
     throw new CompileError(

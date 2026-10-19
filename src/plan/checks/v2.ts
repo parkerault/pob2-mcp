@@ -10,7 +10,7 @@
  * | Code | Finding when |
  * |---|---|
  * | `producer-unknown` | an earned entry is on and its producer doesn't exist in the game data (D-221) |
- * | `producer-absent` | the producer exists but isn't in the stage (item: an equipped item; gem: a gem of the skill set; passive: an allocated node, ascendancy included, or a notable an item grants, such as an anoint; skill: an active skill; flask or charm: equipped with its toggle on), names compared ignoring case |
+ * | `producer-absent` | the producer exists but isn't in the stage (item: an equipped item; gem: a gem of the skill set, a captured Tame Beast as PoB's companion gem, D-402; passive: an allocated node, ascendancy included, or a notable an item grants, such as an anoint; skill: an active skill; flask or charm: equipped with its toggle on), names compared ignoring case |
  * | `source-unresolved` | a scenario entry's `source.file` isn't a loaded C1/E1 file, or its key doesn't resolve |
  * | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on in the stage's effective config and its quest comes after `progress` |
  * | `default-unlisted` | an option on by default, or placeholder-driven in the stage's config set, that the stage doesn't list and the baseline list doesn't cover: it doesn't name it; or it is conditional and PoB shows it for the stage (D-250); or the stage fights a boss and it is one of the enemy's level, armour, evasion, resistances or crit (D-252) |
@@ -104,6 +104,14 @@ export function isPlaceholderDriven(
 
 const same = (a: string, b: string | undefined) => b !== undefined && a.toLowerCase() === b.toLowerCase();
 
+/**
+ * D-402: the gem a companion's producer names, and PoB's names for it once captured: the compile turns a stage's Tame
+ * Beast gem into PoB's companion gem, "Tamed Companion" until it summons a beast and "Companion: <beast>" after
+ * (`Modules/CalcDefence.lua:203-207`), so a Tame Beast producer is present when that gem is.
+ */
+const TAME_BEAST = 'Tame Beast';
+const CAPTURED_TAME_BEAST = /^(companion: .+|tamed companion)$/i;
+
 /** Whether the producer is in the stage (D-114). */
 function producerPresent(kind: string, name: string, checks: StageChecks): boolean {
   const itemNamed = (it: StageChecks['items'][number]) => same(name, it.name) || same(name, it.title) || same(name, it.baseName);
@@ -111,7 +119,7 @@ function producerPresent(kind: string, name: string, checks: StageChecks): boole
     case 'item':
       return checks.items.some(itemNamed);
     case 'gem':
-      return checks.gems.some((g) => same(name, g.name));
+      return checks.gems.some((g) => same(name, g.name) || (same(name, TAME_BEAST) && CAPTURED_TAME_BEAST.test(g.name)));
     case 'passive':
       return checks.nodeNames.some((n) => same(name, n));
     case 'skill':

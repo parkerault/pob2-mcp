@@ -52,15 +52,23 @@
 --     minion's list holds it twice; when `minionStatSet` is beyond the skill's stat sets; and, on the main group,
 --     when the main active skill isn't the summon. The group's active skills are PoB's own for the compile's
 --     gems (group_actives; each gem's `enabled` is read, default true). compile_stage resolves the name live.
+--     A tamed beast (WU-87, D-402): a stage's `companion {species, lines[], groupsEnabled[]}` is a defect when the
+--     species names no beast of PoB's beast library (the spectres whose monsterCategory is "Beast", as "Manage
+--     Beasts..." lists them; a monster id, or a name ignoring case, with suggestions) or a name several beasts share
+--     (listing their ids), and when the stage's groups hold no Tame Beast gem (PoB's companion gem counts too), two, or
+--     one that is disabled or in a disabled group (`groupsEnabled`, per group). A valid one is reported in
+--     `companions`: the beast's id, name and Spirit percentage (companionReservation), and whether PoB parses each of
+--     `lines` whole (`parsed`), the custom modifier lines its kept modifiers write.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
 --         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text},
 --         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
---                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}]}
+--                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}],
+--         companions[{stage, species, id, name, companionReservation, parsed[]}]}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[],
 --                   minionSkill?, minionStatSet?}], main, configSet, config, customMods[], offenseFields[],
---                   itemSlots[], anoint?}
+--                   itemSlots[], anoint?, companion?{id}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
 --     tags and attribute choices (C-40), then the tree jewels. Item, skill and config sets: `reuse` names
@@ -89,7 +97,15 @@
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
 --         configSurvivesDrop{option: boolean}, dotCanStack{main, skills{key: boolean}},
 --         checks{...}, minionSkills[{group, activeSkill, summon, minion, minionId, name, index, statSet,
---         statSets[], skills[]}]}
+--         statSets[], skills[]}], companion?{group, activeSkill, minion, minionId, companionReservation,
+--         reservedSpirit, reservedSpiritPercent}}
+--     A tamed beast (WU-87, D-402): with `companion {id}` (the monster compile_check resolved), the monster joins the
+--     build's beast library (build.beastList, saved as <BeastCompanion id>), and a new skill set gets the stage's Tame
+--     Beast gem as PoB's companion gem with that monster as its minion (skillMinion), as the game turns the gem when
+--     it captures the beast. The reply's `companion` is that companion as the stage's measurement left it: its
+--     group (the plan's number) and active skill, the beast, the species' Spirit percentage, and PoB's reservation
+--     for it, its percentage after the build's reservation modifiers and the Spirit that takes (skillData's
+--     SpiritReservedPercent and SpiritReservedBase, Modules/CalcDefence.lua:203-325). Absent without a companion.
 --     `minionSkills` (D-377) is each group's resolved minion selection, in group order, as select_minion_skill
 --     returns it, with its group.
 --     `dotCanStack` (D-293) says whether each measured skill's damage over time stacks: PoB's DotCanStack,
@@ -686,6 +702,127 @@ local function parses_whole(line)
   return mods ~= nil and not extra
 end
 
+-- D-402 (WU-87): the companion gems. Tame Beast (TameBeastPlayer) is the gem a plan holds; a capture turns it into
+-- PoB's companion gem (SummonBeastPlayer, "Companion: {0}", which PoB names "Tamed Companion" until it summons a beast
+-- and then "Companion: <beast>", Modules/CalcDefence.lua:203-207). Its minion comes from the build's beast library
+-- (Modules/CalcActiveSkill.lua:904-906).
+local TAME_BEAST = 'TameBeastPlayer'
+local COMPANION = 'SummonBeastPlayer'
+local COMPANION_GEM = 'Metadata/Items/Gems/SkillGemSummonBeast'
+
+local function is_companion_gem(gemData)
+  local id = type(gemData) == 'table' and gemData.grantedEffectId
+  return id == TAME_BEAST or id == COMPANION
+end
+
+-- D-402: PoB's beast library, as its "Manage Beasts..." list builds it: the spectres whose monsterCategory is "Beast"
+-- (Modules/Build.lua:1533-1561), each {id, name, companionReservation}, sorted by name, then id.
+local function beast_library()
+  local d = (build and build.data) or data
+  local out = {}
+  for id in pairs(d.spectres or {}) do
+    local m = (d.minions and d.minions[id]) or d.spectres[id]
+    if type(m) == 'table' and m.monsterCategory == 'Beast' then
+      out[#out + 1] = { id = tostring(id), name = tostring(m.name or id), companionReservation = tonumber(m.companionReservation) }
+    end
+  end
+  table.sort(out, function(a, b)
+    if a.name ~= b.name then return a.name < b.name end
+    return a.id < b.id
+  end)
+  return out
+end
+
+-- The most species suggestions an unknown name gets.
+local MAX_BEAST_SUGGESTIONS = 8
+
+-- D-402: a companion's species: a monster id of the beast library, else a beast's name, ignoring case. A name several
+-- beasts share is ambiguous (PoB's ImportTab tells them apart by their Spirit percentage too), so the error lists their
+-- ids. Returns the beast, or nil and why.
+local function resolve_beast(species)
+  local wanted = tostring(species or '')
+  local lower = wanted:lower()
+  local library = beast_library()
+  for _, b in ipairs(library) do
+    if b.id == wanted then return b end
+  end
+  local named = {}
+  for _, b in ipairs(library) do
+    if b.name:lower() == lower then named[#named + 1] = b end
+  end
+  if #named == 1 then return named[1] end
+  if #named > 1 then
+    local ids = {}
+    for k, b in ipairs(named) do ids[k] = ('%s (%s%% of Spirit)'):format(b.id, tostring(b.companionReservation)) end
+    return nil, ('PoB\'s beast library has %d beasts named "%s"; name one by its monster id: %s'):format(#named,
+      named[1].name, table.concat(ids, '; '))
+  end
+  local prefix, contains, seen = {}, {}, {}
+  for _, b in ipairs(library) do
+    local at = lower ~= '' and b.name:lower():find(lower, 1, true) or nil
+    if at and not seen[b.name] then
+      seen[b.name] = true
+      if at == 1 then prefix[#prefix + 1] = b.name else contains[#contains + 1] = b.name end
+    end
+  end
+  local hints = {}
+  for _, names in ipairs({ prefix, contains }) do
+    for _, name in ipairs(names) do
+      if #hints < MAX_BEAST_SUGGESTIONS then hints[#hints + 1] = name end
+    end
+  end
+  if #hints == 0 then
+    return nil, ('no beast of PoB\'s beast library (%d beasts, "Manage Beasts...") is named "%s"'):format(#library, wanted)
+  end
+  return nil, ('no beast of PoB\'s beast library is named "%s". Did you mean: %s'):format(wanted, table.concat(hints, ', '))
+end
+
+-- D-402: a stage's companion (`companion {species, lines[], groupsEnabled[]}`). Defects: a species the beast library
+-- lacks, or a name several beasts share; no Tame Beast gem in the stage's groups (PoB's companion gem counts too), two
+-- of them, or one that is disabled or in a disabled group. Otherwise the resolved beast, with whether PoB parses each
+-- of the custom modifier lines its kept modifiers write (`parsed`, in `lines`' order): a line it can't parse adds
+-- nothing, so the compile leaves it out and the record says so.
+local function check_companion(st, defect)
+  local c = st.companion
+  if type(c) ~= 'table' then return nil end
+  local ok = true
+  local beast, why = resolve_beast(c.species)
+  if not beast then
+    defect(('companion.species "%s": %s'):format(tostring(c.species), why))
+    ok = false
+  end
+  local groupsEnabled = list(c.groupsEnabled)
+  local found = {}
+  for gi, group in ipairs(list(st.groups)) do
+    for k, gem in ipairs(list(group.gems)) do
+      if is_companion_gem(BuildOps.resolve_gem(gem.name)) then
+        found[#found + 1] = { at = ('skills.groups[%d].gems[%d]'):format(gi - 1, k - 1),
+          enabled = gem.enabled ~= false and groupsEnabled[gi] ~= false }
+      end
+    end
+  end
+  if #found == 0 then
+    defect('companion: no group holds the Tame Beast gem, so PoB summons no companion; put a "Tame Beast" gem in an '
+      .. 'enabled group (the compile turns it into the tamed beast)')
+    ok = false
+  elseif #found > 1 then
+    local at = {}
+    for k, f in ipairs(found) do at[k] = f.at end
+    defect(('companion: %d gems are Tame Beast (%s); a stage\'s companion is one beast, so it holds one'):format(#found,
+      table.concat(at, ', ')))
+    ok = false
+  elseif not found[1].enabled then
+    defect(('companion: the Tame Beast gem, %s, is disabled or in a disabled group, so PoB summons no companion; enable it')
+      :format(found[1].at))
+    ok = false
+  end
+  if not ok then return nil end
+  local parsed = {}
+  for i, line in ipairs(list(c.lines)) do parsed[i] = parses_whole(line) end
+  return { stage = tostring(st.id), species = tostring(c.species), id = beast.id, name = beast.name,
+    companionReservation = beast.companionReservation, parsed = parsed }
+end
+
 -- The stage's defects; returns its trees (check_tree).
 local function check_stage(tree, roll, st, defect)
   local shape = check_tree(tree, roll, st, defect)
@@ -968,11 +1105,12 @@ function M.compile_check(params)
   if not roll then defects[#defects + 1] = 'roll: ' .. rollErr end
   if roll then roll.starts = tree_starts(tree, roll) end
   local stages = list(params.stages)
-  local anoints, trees = {}, {}
+  local anoints, trees, companions = {}, {}, {}
   for _, st in ipairs(stages) do
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
     trees[#trees + 1] = check_stage(tree, roll, st, defect)
     anoints[#anoints + 1] = check_anoint(tree, st, defect)
+    companions[#companions + 1] = check_companion(st, defect)
   end
   local producers = {}
   for _, p in ipairs(list(params.producers)) do
@@ -980,7 +1118,8 @@ function M.compile_check(params)
     producers[#producers + 1] = { kind = kind, name = name, exists = producer_exists(tree, kind, name) }
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
-    configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees }
+    configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees,
+    companions = companions }
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -1145,18 +1284,44 @@ end
 -- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337); a reused set
 -- already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
 -- calculation, D-382), so it may already hold PoB's own groups.
+-- D-402 (WU-87): the stage's companion is its beast, `st.companion.id` (a monster id compile_check resolved), or nil.
+local function companion_id(st)
+  return type(st.companion) == 'table' and st.companion.id ~= nil and tostring(st.companion.id) or nil
+end
+
+-- D-402: the companion's monster joins the build's beast library (PoB saves it as <BeastCompanion id>,
+-- Modules/Build.lua:1166-1167), whose entries each companion gem picks from by its skillMinion.
+local function add_to_beast_library(id)
+  build.beastList = build.beastList or {}
+  for _, have in ipairs(build.beastList) do
+    if have == id then return end
+  end
+  build.beastList[#build.beastList + 1] = id
+end
+
+-- A new skill set gets the stage's groups and gems. D-402: with a companion, the stage's Tame Beast gem goes in as
+-- PoB's companion gem, as the game turns the gem when it captures the beast, with the beast as its minion
+-- (skillMinion, which CalcActiveSkill picks from the beast library, Modules/CalcActiveSkill.lua:904-929).
 local function build_skills(st, fresh)
   if not fresh then return end
+  local beast = companion_id(st)
   for gi, group in ipairs(list(st.groups)) do
     local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
       label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
       groupCount = group.groupCount,
     }))
     for _, gem in ipairs(list(group.gems)) do
-      must(('adding gem "%s" to group %d'):format(tostring(gem.name), gi), BuildOps.add_gem({
-        groupIndex = created.index, gemName = gem.name, level = gem.level, quality = gem.quality,
-        enabled = gem.enabled ~= false,
+      local captured = beast ~= nil and is_companion_gem(BuildOps.resolve_gem(gem.name))
+      local added = must(('adding gem "%s" to group %d'):format(tostring(gem.name), gi), BuildOps.add_gem({
+        groupIndex = created.index, gemName = captured and COMPANION_GEM or gem.name, level = gem.level,
+        quality = gem.quality, enabled = gem.enabled ~= false,
       }))
+      if captured then
+        local set = build.skillsTab.skillSets[build.skillsTab.activeSkillSetId or 1]
+        local instance = set.socketGroupList[created.index].gemList[added.gemIndex]
+        instance.skillMinion = beast
+        instance.skillMinionCalcs = beast
+      end
     end
   end
 end
@@ -1603,6 +1768,43 @@ local function stage_checks(st, output, configSetId, defer)
   }
 end
 
+-- D-402 (WU-87): the stage's companion as the last calculation measured it: the plan group and active skill of its
+-- companion skill (the breakdown key's numbers), the beast PoB summoned, the species' Spirit percentage
+-- (companionReservation, Data/Spectres.lua) and the Spirit PoB reserves for it: its reserved percentage after the
+-- build's reservation modifiers and the Spirit that takes (skillData.SpiritReservedPercent and SpiritReservedBase,
+-- Modules/CalcDefence.lua:203-325). Nil without a companion; a failure when PoB built no companion skill.
+local function companion_measure(st)
+  if companion_id(st) == nil then return nil end
+  local env = build.calcsTab and build.calcsTab.mainEnv
+  local _, number = group_indices()
+  for i, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    if not group.source and number[i] then
+      for k, skill in ipairs(group.displaySkillList or {}) do
+        local effect = skill.activeEffect
+        local ge = effect and effect.grantedEffect
+        if ge and ge.id == COMPANION and skill.minion then
+          local measured = skill
+          for _, s in ipairs(env and env.player and env.player.activeSkillList or {}) do
+            if s.activeEffect and s.activeEffect.srcInstance == effect.srcInstance and s.activeEffect.grantedEffect == ge then
+              measured = s
+            end
+          end
+          local md = measured.minion and measured.minion.minionData or skill.minion.minionData or {}
+          local sd = measured.skillData or {}
+          return {
+            group = number[i], activeSkill = k,
+            minion = tostring(md.name or skill.minion.type), minionId = tostring(measured.minion and measured.minion.type or skill.minion.type),
+            companionReservation = tonumber(md.companionReservation) or 0,
+            reservedSpirit = tonumber(sd.SpiritReservedBase) or 0,
+            reservedSpiritPercent = tonumber(sd.SpiritReservedPercent) or 0,
+          }
+        end
+      end
+    end
+  end
+  fail('the stage names a companion, but PoB built no companion skill for its Tame Beast gem')
+end
+
 function M.compile_stage(st)
   if TEST_ACTIONS and st.__crashForTest then os.exit(3) end
   if not build or not build.treeTab or not build.itemsTab or not build.skillsTab or not build.configTab
@@ -1634,6 +1836,7 @@ function M.compile_stage(st)
     else
       settle_off_hands(itemSetId, before)
     end
+    if companion_id(st) ~= nil then add_to_beast_library(companion_id(st)) end
     deferring(defer, function()
       restore_item_sets(before, itemSetId)
       build_skills(st, skillsFresh)
@@ -1648,6 +1851,7 @@ function M.compile_stage(st)
     end)
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
+    local companion = companion_measure(st)
     local outputs = {}
     for k, v in pairs(output) do
       if type(k) == 'string' and finite(v) then outputs[k] = v end
@@ -1694,6 +1898,7 @@ function M.compile_stage(st)
       dotCanStack = { main = mainStacks, skills = skillStacks },
       checks = checks,
       minionSkills = minionSkills,
+      companion = companion,
     }
   end)
   if not ok then fail('stage ' .. tostring(st.id) .. ': ' .. message_of(res)) end

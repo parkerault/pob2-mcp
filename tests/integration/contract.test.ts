@@ -50,6 +50,18 @@
  * resolved selection, `[]` for none), carries the minion's numbers as `Minion<Field>` outputs, and its
  * `checks.grantedSkills` names the passives that grant a group's skill (`[]` for none).
  *
+ * WU-87 (D-402; AC-B3, AC-B4): `compile_check` takes a stage's `companion {species, lines, groupsEnabled}` and replies with
+ * `companions` (the beast its species names, its Spirit percentage, and whether PoB parses each line; `[]` for none),
+ * a disabled Tame Beast group being a defect; `compile_stage` takes `companion {id}`, turns the stage's Tame Beast gem
+ * into that beast, adds it to the build's beast library and replies with `companion` (its group, active skill, beast
+ * and reserved Spirit; absent without one).
+ *
+ * WU-87 (D-402; AC-B3, AC-B4): `compile_check` takes a stage's `companion {species, lines, groupsEnabled}` and replies with
+ * `companions` (the beast its species names, its Spirit percentage, and whether PoB parses each line; `[]` for none),
+ * a disabled Tame Beast group being a defect; `compile_stage` takes `companion {id}`, turns the stage's Tame Beast gem
+ * into that beast, adds it to the build's beast library and replies with `companion` (its group, active skill, beast
+ * and reserved Spirit; absent without one).
+ *
  * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
  * build's granted groups: each granted group with supports (`granted-supports.xml`: a passive's and an item's) gives
  * one entry with the group, its source, the grantor's name and the gems, a group nothing grants carries
@@ -820,6 +832,65 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       const plain = await engine.request('compile_stage', stageOneParams(), { timeoutMs: 120_000 });
       expect(replySchemas.compile_stage!.safeParse(plain).success).toBe(true);
       expect([plain.result.minionSkills, plain.result.checks.grantedSkills]).toEqual([[], []]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (WU-87, D-402): compile_check resolves a companion and parses its lines; compile_stage turns the Tame Beast gem into the beast and replies with its companion',
+    async () => {
+      const BOAR = 'Metadata/Monsters/GoreCharger/GoreCharger';
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const base = checkStageOf(TWO_STAGE.stages[0]) as unknown as Json;
+      const groups = [...(base.groups as Json[]), { gems: [{ name: 'Tame Beast', enabled: true }] }];
+      const companion = { species: 'diretusk boar', lines: ['Companions have 30% increased Movement Speed', 'Companions have no such line'], groupsEnabled: [true, true, true] };
+      const checked = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [{ ...base, groups, companion }] }, { timeoutMs: 120_000 });
+      const parsed = replySchemas.compile_check!.safeParse(checked);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(checked.result.defects).toEqual([]);
+      expect(checked.result.companions).toEqual([
+        { stage: '1', species: 'diretusk boar', id: BOAR, name: 'Diretusk Boar', companionReservation: expect.any(Number), parsed: [true, false] },
+      ]);
+      // Without a companion the list is empty; a disabled Tame Beast group is a defect.
+      const plain = await engine.request('compile_check', { className: 'Warrior', ascendancy: 'Titan', stages: [base] }, { timeoutMs: 120_000 });
+      expect(replySchemas.compile_check!.safeParse(plain).success).toBe(true);
+      expect(plain.result.companions).toEqual([]);
+      const off = await engine.request(
+        'compile_check',
+        { className: 'Warrior', ascendancy: 'Titan', stages: [{ ...base, groups, companion: { ...companion, groupsEnabled: [true, true, false] } }] },
+        { timeoutMs: 120_000 },
+      );
+      expect(off.result.defects).toEqual([expect.stringMatching(/^stage 1: companion: the Tame Beast gem, skills\.groups\[2\]\.gems\[0\], is disabled or in a disabled group/)]);
+
+      await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+      const params = stageOneParams();
+      const built = await engine.request(
+        'compile_stage',
+        {
+          ...params,
+          groups: [...(params.groups as Json[]), { label: 'Beast', enabled: true, includeInFullDPS: false, gems: [{ name: 'Tame Beast', level: 20, quality: 0, enabled: true }] }],
+          companion: { id: BOAR },
+        },
+        { timeoutMs: 120_000 },
+      );
+      const stageParsed = replySchemas.compile_stage!.safeParse(built);
+      expect(stageParsed.success ? [] : stageParsed.error.issues).toEqual([]);
+      expect(built.result.companion).toMatchObject({
+        group: 3,
+        activeSkill: 1,
+        minion: 'Diretusk Boar',
+        minionId: BOAR,
+        companionReservation: checked.result.companions[0].companionReservation,
+        reservedSpiritPercent: checked.result.companions[0].companionReservation,
+      });
+      expect(built.result.companion.reservedSpirit).toBe(Math.ceil((built.result.outputs.Spirit * built.result.companion.reservedSpiritPercent) / 100));
+      const xml = (await call('export_build_xml')).xml as string;
+      expect(xml).toContain(`<BeastCompanion id="${BOAR}"/>`);
+      // Without a companion the reply has none.
+      await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+      const none = await engine.request('compile_stage', stageOneParams(), { timeoutMs: 120_000 });
+      expect(replySchemas.compile_stage!.safeParse(none).success).toBe(true);
+      expect(none.result.companion).toBeUndefined();
     },
     ENGINE_TIMEOUT,
   );

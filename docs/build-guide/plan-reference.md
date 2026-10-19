@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 4)
+# Build plan reference (`plan.json`, schema version 5)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 4`. Versions `1`, `2`, `3` and `4` are accepted.
+- **Version first.** A new plan declares `schemaVersion: 5`. Versions `1`, `2`, `3`, `4` and `5` are accepted.
   Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A version-1, version-2 or version-3 plan still validates and compiles, with its
+  `[1, 2, 3, 4, 5]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 4 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -37,6 +37,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   Version 4 added (D-377):
   - a group's minion skill, `minionSkill` and `minionStatSet` (`stages[].skills.groups[]`); in an earlier
     plan a minion uses its first skill, and the keys are errors.
+
+  Version 5 added (D-402):
+  - a stage's tamed beast, `companion` (`stages[].companion`); an earlier plan has none, and the key is an error.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -45,13 +48,17 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
 - **Reference data.** Two checks need the committed C1/E1 data files under `data/`: that each `progress`
   is a C1 progress key, and that each `data:<file>#<key>` claim names a loaded fact (D-214, D-232). They
   run where the server loads that data (`src/plan/referenceData.ts`, C-35), with errors at
-  `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors.
+  `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors. The same
+  load reads `data/monsters/monster-mods.md` for a companion's modifiers (D-402): an id the table lacks, or a row
+  that says a tamed beast doesn't keep it, errs at `stages[n].companion.mods[m]`, and an option a kept `condition`
+  modifier writes errs where the stage lists it too (`stages[n].config.earned[m].option`).
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
 node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
 each custom modifier line whole, an anoint's notable (it has a three-emotion recipe, the stage's tree
-doesn't allocate it, and the stage has an amulet), and a group's minion skill (its group holds one summon
-whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377). A missing `countReason` or custom-modifier `reason` isn't a
+doesn't allocate it, and the stage has an amulet), a group's minion skill (its group holds one summon
+whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), and a companion's species and its
+Tame Beast gem (D-402). A missing `countReason` or custom-modifier `reason` isn't a
 schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322).
 
 ## Terms
@@ -230,6 +237,47 @@ Djinn's second skill, rather than its first.
 }
 ```
 
+### A tamed beast (D-402)
+
+Schema version 5 lets a stage name its tamed beast: `companion {species, mods}`. The Tame Beast gem captures a rare
+beast and then summons it as a companion, which keeps up to four of its rare monster modifiers. PoB measures the
+beast's damage, defences and Spirit cost from its species; it has no rare monster modifiers (PG-56), so the compile
+writes each kept modifier as its row in `data/monsters/monster-mods.md` says.
+
+- **The Tame Beast gem.** The stage holds exactly one gem named `Tame Beast`, as the gem lookup names it, enabled and
+  in an enabled group; any group and role will do, and it may be the main group. The compile turns it into PoB's
+  companion gem, which summons the beast, as the game turns the gem once it captures one. The record and the saved
+  build name it as PoB does, `Companion: <beast>`. Without `companion`, a Tame Beast gem stays the uncaptured gem
+  and summons nothing, as before version 5.
+- **`species`** names the beast as PoB's beast library does ("Manage Beasts…": the monsters of `Data/Spectres.lua`
+  in category `Beast`), ignoring case, such as `Diretusk Boar`, or by its monster id
+  (`Metadata/Monsters/GoreCharger/GoreCharger`). Several beasts share some names (two `Quill Crab`s, at different
+  Spirit costs); such a name is refused with their ids, and the plan names one of them.
+- **`mods`** lists the kept modifiers by their ids in the table, at most four ("Tamed Beast retains up to four
+  monster modifiers when summoned"), each once. Each is applied by its row's model:
+  - `stats`: its lines join the stage's custom modifiers after the plan's own, each with a reason marking it an
+    estimate, so the record marks every figure of the stage, as for any custom modifier. A line on the beast itself
+    (its row's reach is `the beast`) is written `Companions have <line>`, which PoB gives companion skills only; a
+    line that reaches its allies is written as is for the player and as `Minions have <line>` for the minions. A
+    line PoB can't parse whole would add nothing, so the compile leaves it out, and the record says so.
+  - `condition`: the config option its row's `Config` names is written as earned state, on, produced by the Tame
+    Beast gem. The stage doesn't list that option itself (an error at the listing).
+  - `none`: nothing; PoB can't take it, and the record says so.
+- **Spirit.** A beast reserves a percentage of the player's Spirit, its species' own (`companionReservation`), where
+  most minions reserve a flat amount: each point of Spirit a build stacks raises the beast's cost too.
+- **Refused by the compile,** naming the stage: a species the library lacks (with the nearest names), a name several
+  beasts share, and no Tame Beast gem, two, or one that is disabled or in a disabled group.
+- **Shared sets.** Stages that name different beasts, or one names none, never share a skill set.
+- **The record** gives `stages.<id>.companion`: the beast PoB summons (`monster`, `monsterId`), its group,
+  active skill and breakdown key, its DPS (its minion's `MinionTotalDPS` there), the player's `spirit`, the
+  species' percentage (`speciesReservationPercent`), PoB's reservation for it (`reservedSpiritPercent`,
+  `reservedSpirit`), and each kept modifier with how it was applied (`mods[]`: `applied` is `custom-modifiers`,
+  `config` or `nothing`, with the lines written, the option set, and `how` in words).
+
+```json
+"companion": { "species": "Diretusk Boar", "mods": ["haste-aura", "trail-of-ice"] }
+```
+
 ### Claim kinds and the anoint (D-351, D-358)
 
 Schema version 3 adds two fields.
@@ -313,7 +361,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3` or `4` | yes | `4` for a new plan; `1`, `2` and `3` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4]` | C-31, D-167, D-320, D-332, D-351, D-377 |
+| `schemaVersion` | `1`, `2`, `3`, `4` or `5` | yes | `5` for a new plan; `1` to `4` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -439,6 +487,9 @@ rule may require an optional key in some cases.
 | `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. From version 2 on, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
 | `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
 | `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason` | D-293, D-322 |
+| `stages[].companion` | object | no | The stage's tamed beast: its species and the rare monster modifiers it keeps (see a tamed beast above). The stage holds exactly one `Tame Beast` gem, enabled, in an enabled group, which the compile turns into the beast. Schema version 5 | D-402 |
+| `stages[].companion.species` | string | yes | Non-empty. The beast, as PoB's beast library names it (ignoring case), or its monster id when several beasts share the name; the compile refuses a species the library lacks or a shared name | D-402 |
+| `stages[].companion.mods` | string[] | yes | The kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, each once; `[]` for none. Each is applied by its row's model: `stats` as custom-modifier estimates, `condition` as its config option, `none` not at all. An id the table lacks errs here; an option a `condition` row writes errs where the stage lists it too | D-402 |
 | `stages[].claims` | object[] | yes | The stage's claims, each with its source | C-30, D-105 |
 | `stages[].claims[].id` | string | yes | Non-empty | C-30 |
 | `stages[].claims[].text` | string | yes | Non-empty. The claim as the guide states it | C-30 |

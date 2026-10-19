@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1, 2, 3 or 4; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 5; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 4 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 5 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -30,6 +30,13 @@
  * named `roll.skill`, or names `roll.skill` as its `minionSkill` (D-379); `compile_check` confirms that the
  * group's summon casts it.
  *
+ * **A tamed beast** (D-402, version 5; WU-87). A stage's `companion {species, mods}` names the beast its Tame Beast gem
+ * summons, as PoB's beast library names it, and the rare monster modifiers it keeps, by their ids in
+ * `data/monsters/monster-mods.md`: at most four, each once (the gem's own text: "Tamed Beast retains up to four monster
+ * modifiers when summoned"). With the reference data, an id the table lacks, a modifier it says a tamed beast doesn't
+ * keep, and a `condition` modifier's config option the stage lists itself are errors (the compile writes that option).
+ * The species and the Tame Beast gem are checked against PoB by `compile_check`, as gem names are.
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -46,7 +53,7 @@ import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -272,6 +279,32 @@ const configSchema = z
     }
   });
 
+/** D-402: how many rare monster modifiers a tamed beast keeps (Tame Beast's text, `display_tame_beast_mod_limit`). */
+export const TAMED_BEAST_MOD_LIMIT = 4;
+
+/** D-402: a monster modifier's id in `data/monsters/monster-mods.md` (an entry id). */
+const MONSTER_MOD_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** D-402: the stage's tamed beast: its species, as PoB's beast library names it, and the modifier ids it keeps. */
+const companionSchema = z
+  .object({
+    species: text('species'),
+    mods: z
+      .array(z.string().regex(MONSTER_MOD_ID_RE, { message: 'a modifier is its id in data/monsters/monster-mods.md (lowercase words joined by -)' }))
+      .max(TAMED_BEAST_MOD_LIMIT, {
+        message: `a tamed beast keeps up to ${TAMED_BEAST_MOD_LIMIT} monster modifiers ("Tamed Beast retains up to four monster modifiers when summoned", D-402)`,
+      }),
+  })
+  .strict()
+  .superRefine((c, ctx) => {
+    const first = new Map<string, number>();
+    c.mods.forEach((id, k) => {
+      const at = first.get(id);
+      if (at !== undefined) issue(ctx, ['mods', k], `modifier "${id}" is already named at mods[${at}]`);
+      else first.set(id, k);
+    });
+  });
+
 const VARIANT_FIELDS = ['variant', 'ascendancyPoints', 'variantBasis'] as const;
 
 const stageSchema = z
@@ -295,6 +328,7 @@ const stageSchema = z
     skills: skillsSchema,
     config: configSchema,
     claims: z.array(claimSchema),
+    companion: companionSchema.optional(),
   })
   .strict()
   .superRefine((s, ctx) => {
@@ -472,6 +506,12 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     what: "a group's minion skill (D-377)",
     before: "a minion's first skill",
     uses: (plan) => [...groupKeyUses(plan, 'minionSkill'), ...groupKeyUses(plan, 'minionStatSet')],
+  },
+  {
+    since: 5,
+    what: "a stage's companion, the tamed beast (D-402)",
+    before: 'no companion',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.companion !== undefined ? [['stages', i, 'companion']] : [])),
   },
 ];
 
@@ -702,9 +742,55 @@ function referenceErrors(value: Record<string, unknown>, ref: PlanReferenceData)
 }
 
 /**
+ * D-402: a stage's companion against the monster-modifier table (`ref.monsterMods`): each modifier id is a row of
+ * the table that a tamed beast keeps (at `stages[n].companion.mods[k]`), and a `condition` row's config option isn't
+ * one the stage lists, since the compile writes it (at the listing's `option`). It reads the raw value, so its errors
+ * join the schema's; a value of the wrong type or form is left to the schema.
+ */
+function companionErrors(value: Record<string, unknown>, ref: PlanReferenceData): PlanError[] {
+  const table = ref.monsterMods;
+  if (table === undefined) return [];
+  const errors: PlanError[] = [];
+  const stages = Array.isArray(value.stages) ? value.stages : [];
+  stages.forEach((stage: unknown, i) => {
+    if (!isRecord(stage) || !isRecord(stage.companion) || !Array.isArray(stage.companion.mods)) return;
+    const config = isRecord(stage.config) ? stage.config : {};
+    const listed = new Map<string, (string | number)[]>();
+    for (const list of ['earned', 'scenario'] as const) {
+      const entries = Array.isArray(config[list]) ? (config[list] as unknown[]) : [];
+      entries.forEach((e, k) => {
+        if (isRecord(e) && typeof e.option === 'string' && !listed.has(e.option)) listed.set(e.option, ['stages', i, 'config', list, k, 'option']);
+      });
+    }
+    (stage.companion.mods as unknown[]).forEach((id, k) => {
+      if (typeof id !== 'string' || !MONSTER_MOD_ID_RE.test(id)) return;
+      const mod = table.byId.get(id);
+      const at = ['stages', i, 'companion', 'mods', k];
+      if (mod === undefined) {
+        errors.push({ path: renderPath(at), message: `"${id}" is no modifier id of ${table.file} (a "- Id:" line there, D-402)` });
+        return;
+      }
+      if (!mod.keeps) {
+        errors.push({ path: renderPath(at), message: `${mod.name} (${id}) is a modifier ${table.file} says a tamed beast doesn't keep (D-402)` });
+      }
+      if (mod.model === 'condition' && mod.option !== undefined && listed.has(mod.option)) {
+        errors.push({
+          path: renderPath(listed.get(mod.option)!),
+          message:
+            `option "${mod.option}" is written from companion.mods[${k}], ${mod.name} (${id}): a condition the tamed beast ` +
+            `supplies sets its config option (D-402), so the stage doesn't list it too`,
+        });
+      }
+    });
+  });
+  return errors;
+}
+
+/**
  * Validate a plan in full (FR-P1). `input` is the plan's JSON text, or the value it parses to. Returns
  * the typed plan, or every error with its JSON path. With `refData`, the loaded C1/E1 data
- * (`loadReferenceData`), it also checks progress keys and `data:` claims against it.
+ * (`loadReferenceData`), it also checks progress keys and `data:` claims against it, and a companion's modifiers
+ * against the monster-modifier table (D-402).
  */
 export function validatePlan(input: unknown, refData?: PlanReferenceData): ValidatePlanResult {
   let value: unknown = input;
@@ -727,7 +813,10 @@ export function validatePlan(input: unknown, refData?: PlanReferenceData): Valid
     };
   }
   const parsed = planSchema.safeParse(value);
-  const refErrors = refData === undefined ? [] : referenceErrors(value as Record<string, unknown>, refData);
+  const refErrors =
+    refData === undefined
+      ? []
+      : [...referenceErrors(value as Record<string, unknown>, refData), ...companionErrors(value as Record<string, unknown>, refData)];
   if (!parsed.success) return { ok: false, errors: dedupe([...flattenIssues(parsed.error.issues), ...refErrors]) };
   if (refErrors.length > 0) return { ok: false, errors: refErrors };
   return { ok: true, plan: parsed.data };

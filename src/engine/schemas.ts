@@ -1137,7 +1137,8 @@ export type ManageSetsResult = z.infer<typeof manageSetsReply>['result'];
  * it, from PoB's option list; no set is created). WU-65 adds `anoints` (D-358), one per stage whose anoint is
  * valid: the notable's PoB name and node, its recipe of three emotions as the tree names them and PoB's item
  * names for them; and `gemTexts` (D-353), the description of each gem `describeGems` names. WU-66 adds
- * `trees` (D-360), each stage's trees for V1's `tree-shape` (`stageTreesSchema`).
+ * `trees` (D-360), each stage's trees for V1's `tree-shape` (`stageTreesSchema`). WU-87 adds `companions` (D-402),
+ * one per stage whose companion is valid (`companionCheckSchema`).
  */
 /** A config value as the compiler writes and reads it (C-32): no null. */
 const compileConfigScalar = z.union([z.boolean(), z.number(), z.string()]);
@@ -1213,6 +1214,23 @@ export const stageTreesSchema = z
   .passthrough();
 export type StageTrees = z.infer<typeof stageTreesSchema>;
 
+/**
+ * D-402: a stage's valid companion, as `compile_check` resolves it: the beast of PoB's beast library its species names
+ * (its monster id and name), the species' Spirit percentage (`companionReservation`, `Data/Spectres.lua`), and whether
+ * PoB parses each of the stage's companion lines whole (`parsed`, in the order sent).
+ */
+export const companionCheckSchema = z
+  .object({
+    stage: z.string(),
+    species: z.string(),
+    id: z.string(),
+    name: z.string(),
+    companionReservation: z.number(),
+    parsed: luaArray(z.boolean()),
+  })
+  .passthrough();
+export type CompanionCheck = z.infer<typeof companionCheckSchema>;
+
 export const compileCheckReply = baseReply.extend({
   result: z
     .object({
@@ -1224,6 +1242,8 @@ export const compileCheckReply = baseReply.extend({
       anoints: luaArray(anointSchema),
       gemTexts: luaMap(z.string()),
       trees: luaArray(stageTreesSchema),
+      /** D-402: each stage's valid companion; `[]` for none. */
+      companions: luaArray(companionCheckSchema),
     })
     .passthrough(),
 });
@@ -1335,6 +1355,25 @@ export type StageChecks = z.infer<typeof stageChecksSchema>;
 export const stageMinionSkillSchema = selectedMinionSkillSchema.extend({ group: z.number().int() });
 export type StageMinionSkill = z.infer<typeof stageMinionSkillSchema>;
 
+/**
+ * D-402: a stage's companion as its measurement left it: the group (the plan's number) and active skill of its
+ * companion skill, the beast PoB summoned, the species' Spirit percentage, and PoB's reservation for it: the
+ * percentage after the build's reservation modifiers and the Spirit that takes (`SpiritReservedPercent`,
+ * `SpiritReservedBase`).
+ */
+export const stageCompanionSchema = z
+  .object({
+    group: z.number().int(),
+    activeSkill: z.number().int(),
+    minion: z.string(),
+    minionId: z.string(),
+    companionReservation: z.number(),
+    reservedSpirit: z.number(),
+    reservedSpiritPercent: z.number(),
+  })
+  .passthrough();
+export type StageCompanion = z.infer<typeof stageCompanionSchema>;
+
 export const compileStageReply = baseReply.extend({
   result: z
     .object({
@@ -1362,6 +1401,8 @@ export const compileStageReply = baseReply.extend({
       checks: stageChecksSchema,
       /** D-377: the resolved minion selection of each group that names a `minionSkill`, in group order. */
       minionSkills: luaArray(stageMinionSkillSchema),
+      /** D-402: the stage's companion, when it names one. */
+      companion: stageCompanionSchema.optional(),
     })
     .passthrough(),
 });
@@ -1408,6 +1449,11 @@ export interface CompileCheckStage {
   customMods: string[];
   /** D-358: the notable the stage's amulet is anointed with (`items.anoint.notable`). */
   anoint?: string;
+  /**
+   * D-402: the stage's companion: its species, the custom modifier lines its kept `stats` modifiers write (whether PoB
+   * parses each comes back in `companions`), and whether each group is enabled (the Tame Beast gem's must be).
+   */
+  companion?: { species: string; lines: string[]; groupsEnabled: boolean[] };
 }
 
 /** A stage's item, skill or config set: `reuse` selects the set an earlier stage created. */
@@ -1459,6 +1505,8 @@ export interface CompileStageParams {
   itemSlots: string[];
   /** D-358: the notable written on the amulet as `{enchant}Allocates <notable>`: its PoB name, from `compile_check`. */
   anoint?: string;
+  /** D-402: the stage's companion: the monster id `compile_check` resolved its species to. */
+  companion?: { id: string };
   /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
   __crashForTest?: boolean;
 }

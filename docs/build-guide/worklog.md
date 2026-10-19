@@ -4575,3 +4575,7 @@ the `m17` engine at `b76967b`.
   nodes, 20 uniques, 5 gems); 30 stay `none` (Witchbane, Heartstopper, the wall and grenade supports among them).
   `pairs.md`: 237 pair lines in 47 family blocks (`thorns` and `support-gem` are new). Gate rc 0 (141 suites, 2,489
   tests). The verifier is running, with a content sample of at least 25 `[rule]` entries.
+- **The coordinator's session crashed** (the terminal pane), stopping four agents: WU-86's fix round (its commit
+  `d907df9` had landed), WU-89 (nothing committed; its lane was clean at `7d8799e`), and the WU-84 and WU-85
+  verifiers. No stray test or engine process was left. All four were resumed from their saved transcripts; WU-89 was
+  told to commit as it goes.

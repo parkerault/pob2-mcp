@@ -4626,3 +4626,9 @@ the `m17` engine at `b76967b`.
   eleventh column (clear speed) needs the template, R1b-assemble's "ten columns" and the static test switched
   together; the checker exports `DOSSIER_COLUMNS_D407`. New fields are required only in runs that ran the rival, so
   older runs still check. The verifier is running.
+- **WU-85's fix round** (`83ddc9e`): about 60 blocks now quote their penalty lines, and `check` fails "Penalties:
+  none" beside one; the false ground and ignite tags fixed (The Taming, Grinning Immolation, the three Berek's rings,
+  Sierran Inheritance); Unravelling and Forced Outcome are `[rule]`; the join no longer pairs two ascendancies'
+  notables or two uniques of one item type (rings, jewels, charms and flasks excepted); chaos prices caught; 11
+  entries added through two new phrases. Counts: 462 rule entries (127 nodes, 253 uniques, 82 gems); 1,559 pairs.
+  Gate rc 0 (142 suites, 2,501 tests). The verifier re-checks.

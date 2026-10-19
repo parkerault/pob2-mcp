@@ -4671,3 +4671,8 @@ the `m17` engine at `b76967b`.
   the ×3.1 belongs to one of the two Explosive Concoction builds (the other ×2.2); the tamed-beast entry dropped the
   user's point that Haste is the modifier players prioritize. A fix round with the lows went to the doer, before the
   user's review.
+- **WU-90's fix round** (`88bec28` before the rebase): the ×3.1 against ×2.2; the user's Haste point in the
+  tamed-beast entry (Hasted for the beast, Haste Aura for its allies); the +4 fractured amulet; the totem levers marked
+  as from the gem text; the damage-over-time leveling line sourced to two guides; `pin:` tags; each study's patch in
+  the review sheet. **Merged** into `build-guide/m20` (fast-forward), with the entries marked "Awaiting review" in the
+  library until the user reviews them.

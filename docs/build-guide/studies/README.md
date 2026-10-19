@@ -39,3 +39,25 @@ the agents followed are in `briefs/`.
 - [Random build: Walking Calamity Witchhunter (Schwingy, 0.4)](2026-10-10-aeT9rsQZ4dM-walking-calamity-witchhunter.md)
 - [Random build: Fangs of Frost Chronomancer (Schwingy, 0.3.1)](2026-10-10-gLac8n8iBeA-fangs-of-frost-chronomancer.md)
 - [Random build: Shield Charge Acolyte of Chayula (Schwingy, 0.3.x)](2026-10-10-1ZqM9dJ9MF0-shield-charge-chayula.md)
+
+**The Mobalytics review** (2026-10-18; brief: `briefs/2026-10-18-mobalytics-review.md`). Popular guides in the
+archetypes the pattern library covered worst, picked by the coordinator and approved by the user; guide 17 is the
+user's own pick. Studied from page text saved outside the repository, and paraphrased.
+
+- [1. Pure summoner Infernalist (Mattjestic)](2026-10-18-mob-mattjestic-minion-infernalist.md)
+- [2. SSF minion Infernalist (thyworm)](2026-10-18-mob-thyworm-minion-infernalist.md)
+- [3. Spirit Walker Beast Master (CaptainLance9)](2026-10-18-mob-captainlance9-beast-master.md)
+- [4. Shaman Bear Druid (Ronarray)](2026-10-18-mob-ronarray-shaman-bear.md)
+- [5. Wolfman Oracle (Woolie)](2026-10-18-mob-woolie-wolfman-oracle.md)
+- [6. Plant Oracle Druid (Raxxanterax)](2026-10-18-mob-raxx-plant-oracle.md)
+- [7. ED Contagion Lich (DEADRABB1T)](2026-10-18-mob-deadrabbit-ed-contagion-lich.md)
+- [8. Poison Pathfinder (Path of Evening)](2026-10-18-mob-path-of-evening-poison-pathfinder.md)
+- [9. Shield Wall + Avatar of Fire Smith of Kitava (LexD)](2026-10-18-mob-lexd-shield-wall-smith.md)
+- [10. 1-Button Arc Totems Gemling (Ky)](2026-10-18-mob-ky-arc-totems-gemling.md)
+- [11. 1-Button Ballista Cluster Grenade (Lazy Exile)](2026-10-18-mob-lazy-exile-ballista-grenade.md)
+- [12. Grenades Gemling (DEADRABB1T)](2026-10-18-mob-deadrabbit-grenades-gemling.md)
+- [13. Run n Gun Witchhunter (Woolie)](2026-10-18-mob-woolie-run-n-gun-witchhunter.md)
+- [14. Lightning Spear Amazon (Lazy Exile)](2026-10-18-mob-lazy-exile-lightning-spear-amazon.md)
+- [15. Glacial Lance Ritualist (MisoxShiru)](2026-10-18-mob-misoxshiru-glacial-lance-ritualist.md)
+- [16. Storm Wave + Flicker Invoker (Ronarray)](2026-10-18-mob-ronarray-storm-wave-invoker.md)
+- [17. Autobomber Apocalypse Shaman (Lyrthos)](2026-10-18-mob-lyrthos-autobomber-shaman.md)

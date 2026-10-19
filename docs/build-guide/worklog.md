@@ -4632,3 +4632,6 @@ the `m17` engine at `b76967b`.
   notables or two uniques of one item type (rings, jewels, charms and flasks excepted); chaos prices caught; 11
   entries added through two new phrases. Counts: 462 rule entries (127 nodes, 253 uniques, 82 gems); 1,559 pairs.
   Gate rc 0 (142 suites, 2,501 tests). The verifier re-checks.
+- **WU-85 verified: PASS** on the re-check (37 of 37 in its suites; `check` and `check --text` pass on the committed
+  files; `join` reproduces `pairs.md`; no pair left that one build can't hold; about 2% of rule entries wrong, all
+  judgment calls, down from about 9%). **Merged** into `build-guide/m20` (fast-forward).

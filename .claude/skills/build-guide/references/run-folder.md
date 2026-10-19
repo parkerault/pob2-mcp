@@ -41,8 +41,8 @@ folder (D-153).
 |---|---|---|
 | `run-log.json` | the runner, through `scripts/run-log.mjs` (D-356) | the run log (`run-log.md`) |
 | `research/p<k>-r1a-<n>.md` | R1a agent `n` of brainstorm round `k` | its sections, with source markers (`source-markers.md`) |
-| `cards/<id>.md` | R1a (the brainstorm half; R1a-assemble only to rename it), then R1b (the verification half, after a gate's change; a card made at a gate whole) | a candidate card (`templates/card-template.md`, C-52) |
-| `cards.md` | the R1a-assemble step; R1b-assemble adds a gate-made card's line | the deck: its header, the dealt cards by round, "Not dealt" and "Found, not used" (D-287, D-392) |
+| `cards/<id>.md` | R1a, or RV for the rival's card (the brainstorm half; R1a-assemble or the rival's R1b only to rename it), then R1b (the verification half, after a gate's change; a card made at a gate whole) | a candidate card (`templates/card-template.md`, C-52) |
+| `cards.md` | the R1a-assemble step; R1b-assemble adds a gate-made card's line | the deck: its header, the dealt cards by round with their engines, "Not dealt" and "Found, not used" (D-287, D-392, D-405) |
 | `interviews/<gate>-<visit>.md` | the runner, with Write, when the user asked questions | a gate visit's interview notes (D-389, `checkpoints.md`) |
 | `interviews/<gate>-<visit>-q<n>.md`, `probes/q-<gate>-<visit>-<n>/` | a gate question step (Q) | its report, and a coordinator's measured variant (D-390, `stages/Q.md`) |
 | `concepts/<id>/plan.json` | the R1b step for card `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
@@ -57,10 +57,11 @@ folder (D-153).
 | `rounds/<n>/` | the run checker's `--snapshot <n>`, which the runner runs before a fix round or a revision (A-34) | the round copy: `plan.json`, `compile-record.json` and `guide.md` as they stood, which `--changed <n>` compares with; nobody reads it |
 | `reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) | the V4 full pass's or a re-check's report (`source-markers.md`, `stages/V4.md`) |
 
-- Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b`
-  and `c` when it starts them, so parallel researchers never collide and ids stay unique across rounds
-  (D-319); a card made at a gate is `r<k>-g-<n>` (D-391). A step's `concept`, a gate file's `<concept>` and
-  `concepts/<id>/` use the card id. (Runs before amendment 3 used concept ids `c1`, `c2`, ….)
+- Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b` and `c`
+  when it starts them, so parallel researchers never collide and ids stay unique across rounds (D-319); a card
+  made at a gate is `r<k>-g-<n>` (D-391), and the rival's `r<k>-x-<n>`, with no deck line (D-408). A step's
+  `concept`, a gate file's `<concept>` and `concepts/<id>/` use the card id. (Runs before amendment 3 used
+  concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate` or `D2-gate`; `<attempt>` counts from 1 per (stage,
   concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the run's V4 passes
   from 1, full pass and re-checks alike.
@@ -90,11 +91,12 @@ the server's own compiled ledger evaluator, `build/plan/ledger.js`, and build pr
 `build/plan/buildHash.js` (D-266), and the audit render `scripts/render-audit.mjs` (D-355). Each violation is
 one stderr line `check-run: [<rule>] <message>`.
 
-- **The artifacts.** This layout. Every plan claim, the skeletons' and probes' included, has its `kind`,
-  `hinge` or `reason` (D-351). The dossier is one H1, the `Brief:` line and one table with the comparison's ten
-  columns, one row per card R1b verified, with no H2, H3 or marker; a failed or not-yet-finalizable card has `—`
-  in its number, price and league cells (D-355). Every research marker resolves and parses as a C-30 tag.
-  Offline, every price is `unavailable` and no step priced.
+- **The artifacts.** This layout. Every plan claim, the skeletons' and probes' included, has its `kind`, `hinge`
+  or `reason` (D-351). The dossier is one H1, the `Brief:` line and one table with the comparison's eleven
+  columns, clear speed among them (D-407; ten in a run from before amendment 8), one row per card R1b verified,
+  with no H2, H3 or marker; a failed or not-yet-finalizable card has `—` in its number, price and league cells
+  (D-355). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
+  step priced.
 - **The reader layer** (D-276, D-283). The guide's 14 H2s in order, its `Checks` H3s, `What PoB can't show`
   ending with the H3 `Known issues`, and its Leveling H3s equal to the record's loadout names. At most 3,000
   words, a word being a run of non-space characters holding a letter or a digit, the H1, the import code and
@@ -147,7 +149,7 @@ one stderr line `check-run: [<rule>] <message>`.
   checker fails a verdict that differs from its own, and, once a guide exists, any failure no accepted finding
   covers.
 - **The run log and the control flow** (`run-log.md`): the fields and their values, the stage names `D1-build`,
-  `D1-finish`, `V4` and `V4-recheck`; steps in a legal order, each gate visit's answer followed; in the design
+  `D1-finish`, `RV`, `V4` and `V4-recheck`; steps in a legal order, each gate visit's answer followed; in the design
   phase, D2 only after a `design` visit answered `accept` (D-362), a `revise:` running D1 again, its gate and the
   design gate, and `verification` the verification gate; each gate attempt routed as its verdict file says; R1b
   at most 3 counted attempts and each gate at most 2 counted retries (S6 honoured: only an attempt-1 failure the

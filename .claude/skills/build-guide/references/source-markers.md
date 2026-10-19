@@ -67,7 +67,9 @@ Blood Hunt consumes Blood Loss for a burst.[^d2] The skeleton keeps chaos resist
 ```
 
 Every marker needs a definition; every `ledger`, `price` and `data` definition must name an existing
-entry or fact, in any plan of the run (concept skeletons included).
+entry or fact, in any plan of the run (concept skeletons included). A research file's `data` definition may
+also name an entry of a Markdown data file by its id, `data | league/<slug>.md#<id>` (`lookups.md`, D-400); a
+plan never cites one.
 
 ## The claim rules
 

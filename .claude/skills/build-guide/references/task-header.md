@@ -25,9 +25,9 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 
 | Field | Content |
 |---|---|
-| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish` (D1's two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1`, `V4`, or `Q` (a gate question, D-390) |
+| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `RV` (the rival, D-408), `D1-build`, `D1-finish` (D1's two steps, D-356), `D1-gate`, `D2`, `D2-gate`, `W1`, `V4`, or `Q` (a gate question, D-390) |
 | `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included; a V4 re-check's counts that card's re-checks from 1, apart from its full pass, as the run log's `V4-recheck` entries do (D-368) |
-| `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319), where the step concerns one card: R1b and every step of the finalization |
+| `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319; letter `x` for the rival's card, D-408), where the step concerns one card: R1b and every step of the finalization |
 | `check` | V4 only: `full` (step 11: one pass, no lenses, over every hinge claim and every H2 of the guide) or `recheck` (step 13: only `findings` and `changed`, D-352) |
 | `mode` | `offline` or `online`, as the run log records it |
 | `runFolder` | the run folder's absolute path, from `mcp__pob2__guide_run {new_run}` |
@@ -39,7 +39,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 | `changes` | R1b only, a gate's change to its card (D-391): `{visit, words}` revises it; `{visit, name, from, words}` makes it, `from` the card ids it draws on |
 | `accepted` | gate findings the user accepted at an escalation, from its verdict file; an equal finding (same plan stage, part and code) fails no gate |
 | `faults` | offline test mode only: this step's fault directives (`offline-and-test.md`) |
-| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. R1a's are its research file and its cards, `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-assemble's `cards.md` and the round's cards, for a rename (D-392); R1b's include its card `cards/<id>.md` and its probes `probes/<id>/<n>/` (D-338); R1b-assemble's `dossier.md`, and `cards.md` for a card made at a gate (D-391); Q's its report `interviews/<gate>-<visit>-q<n>.md`, and a coordinator's variant `probes/q-<gate>-<visit>-<n>/` (D-390); D1-build's and D1-finish's `plan.json`; W1's are `guide.md` and `audit.md` (D-278); V4's its own report, `reports/V4-<n>.md` (D-352) |
+| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. R1a's are its research file and its cards, `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-assemble's `cards.md` and the round's cards, for a rename (D-392); R1b's include its card `cards/<id>.md` and its probes `probes/<id>/<n>/` (D-338); R1b-assemble's `dossier.md`, and `cards.md` for a card made at a gate (D-391); RV's its card `cards/r<k>-x-<n>.md` (D-408); Q's its report `interviews/<gate>-<visit>-q<n>.md`, and a coordinator's variant `probes/q-<gate>-<visit>-<n>/` (D-390); D1-build's and D1-finish's `plan.json`; W1's are `guide.md` and `audit.md` (D-278); V4's its own report, `reports/V4-<n>.md` (D-352) |
 | `reference` | the step's stage reference, under `references/stages/` |
 
 Rules:

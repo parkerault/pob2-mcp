@@ -90,7 +90,8 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played; `short: <why>` for a short round |
 | 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
 | 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
-| 4 | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
+| 4a | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
+| 4b | RV, the rival, once per run (§3) | `build-guide-researcher` | `cards/r<k>-x-<n>.md` | its card, or `none-found` with what it tried |
 | 5 | The verification gate (§3) | you | log | asks the user: finalize one card, verify other cards (step 3), brainstorm more (step 2a) or stop |
 | 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
 | 6b | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims) | `done`; its price calls by outcome |
@@ -113,16 +114,15 @@ verification never re-checks beyond one re-check after a fix round or a revision
 
 ## 1. Start (step 1)
 
-`/build-guide <free text> [--offline [--test <path>]] [--no-ninja]`. Read `references/start.md` and do it, in
-its order, before any agent runs: the brief and its check, `mcp__pob2__guide_run {new_run: <slug>}`, the test
-config and the run log's first write, and the unsaved-build question. With `--no-ninja` (D-333), tell every
+Read `references/start.md` and do it, in its order, before any agent runs; its last step prints the league
+digest's staleness line, `head -3 data/league/<newest>.md` (D-400). With `--no-ninja` (D-333), tell every
 pricing step, the D1 gate included, to price without currency rates. No Agent tool: the run stops (D-344).
 
 ## 2. Brainstorm (steps 2a to 2c)
 
-- **R1a** (2a), round `k`: three researchers, foci `mechanics`, `items` and `tree`, which you letter `a`, `b`
-  and `c` when you start them, so parallel researchers never collide (D-319). Prompt: the brief, the focus and
-  letter (to `a`, a reference build the user named, for a seed card, D-393), and in a later round the user's note.
+- **R1a** (2a), round `k`: three researchers, foci `mechanics`, `items` and `tree`, which you letter `a`, `b` and `c`
+  when you start them, so parallel researchers never collide (D-319). Prompt: the brief, the focus and letter (to
+  `b`, a reference build the user named, for a seed card, D-393), and in a later round the user's note.
 - **R1a-assemble** (2b), after the round's researchers return. Prompt: the round, the brief, the user's note,
   and each researcher's letter, research file, cards and whether it returned. **A short round**: it returns
   `short: <why>`; record the reason in the run log, as `shortReason` on its `stages[]` entry, and say so.
@@ -134,19 +134,23 @@ pricing step, the D1 gate included, to price without currency rates. No Agent to
 
 - **R1b** (3), the picked cards, then the new ones, in order, one at a time; `concept` the card id, `changes` its
   gate change (D-391). A failed compile, or a gate change that breaks the card, re-runs with that verdict as
-  `findings`, the user's words kept, up to 2 counted retries; then the card is `failed` (D-141). FI-1 applies
-  here. A card whose damage source isn't a skill (a minion's skill is one, D-379) compiles nothing (D-334): the
-  card's status is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`. A card
-  whose ascendancy doesn't own the node that grants its skill compiles nothing either (D-342): its verdict's
-  `wrong-ascendancy` finding is never retried, and the card is `failed`.
-- **R1b-assemble** (4). Prompt: the verification round, the research files (and whether each researcher
+  `findings`, the user's words kept, up to 2 counted retries; then the card is `failed` (D-141). FI-1 applies here. A
+  card whose damage source isn't a skill (a minion's skill is one, D-379) compiles nothing (D-334): the card's status
+  is "can't be finalized yet: its damage source isn't a skill" (D-303), never `failed`; one on an entry the PoB pin
+  lacks, "waits on the pin" (`not-in-pin`, D-400). A card whose ascendancy doesn't own the node that grants its skill
+  compiles nothing either (D-342): its verdict's `wrong-ascendancy` finding is never retried, and the card is
+  `failed`, as is a rival's card R1b doesn't deal (`not-dealt`, D-408).
+- **R1b-assemble** (4a). Prompt: the verification round, the research files (and whether each researcher
   returned), and each card `{id, name, status, attempts, verdict}`.
-- **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification` (the
-  dossier), whoever answers (Hard rules). Answers: **finalize** one card (its identity becomes the run's `roll`;
-  not a card that can't be finalized yet, nor a `wrong-ascendancy` card, failed or not, since the build it
-  describes can't exist, D-342); **verify other cards** (step 3); **brainstorm more** (2a); or **stop**. Every
-  route back from the design comes here: an `infeasible` design, an escalation's option 3, the design gate's
-  `verification`, and FI-3.
+- **RV, the rival** (4b; D-408), once per run, after the first verification round's R1b-assemble: one
+  `build-guide-researcher`, its prompt the brief and its card id `r<k>-x-<n>`, nothing from the run's research,
+  cards or interviews. On `done`, R1b for its card, outside the round's 3, then R1b-assemble for its row alone;
+  on `none-found`, log its `tried`. Then the gate. On request at a gate: `references/checkpoints.md`.
+- **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification`, whoever
+  answers (Hard rules). Answers: **finalize** one card (its identity becomes the run's `roll`; not a card that can't
+  be finalized yet, nor a `not-dealt` rival, nor a `wrong-ascendancy` card, failed or not, since the build it
+  describes can't exist, D-342); **verify other cards**; **brainstorm more**; or **stop**. Every route back from the
+  design comes here: an `infeasible` design, an escalation's option 3, the design gate's `verification`, and FI-3.
 
 ## 4. Design (steps 6a to 9; `references/gates.md`)
 
@@ -156,7 +160,8 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
 - **D1-build** (6a): prompt, write `plan.json` anew (attempt 1 of a fresh design) or edit it; `findings`, the
   last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason.
 - **D1-finish** (6b): prompt, how to price (offline; stopped, once any `stages[]` entry's `priceOutcomes` counts
-  a `locked_out` or `rate_limited` call; or paced), and D1-build's `left out:` lines. Log its `priceOutcomes`.
+  a `locked_out` or `rate_limited` call; or paced), and D1-build's `left out:` lines, with its `lever unpulled:`
+  and `override:` lines (D-406, D-407). Log its `priceOutcomes`.
 - **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim:
   - compiled, V1, V2, floor and `rolledSkill` pass, budget pass or unverified: the design gate (7b);
   - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third escalates (§5);
@@ -180,13 +185,12 @@ D1 is **two agent steps** (D-356): D1-build, then D1-finish, a fresh coordinator
 
 ## 5. Gate escalations (`references/checkpoints.md`; D-236)
 
-Record `{stage, concept, verdict, choice, guidance?}` and checkpoint `escalation`. Print its display, `display
-escalation` (the stage, the attempts and the verdict file), whoever answers (Hard rules); answers: 1. **accept**
-(not after a compile failure), the failing findings into every later header's `accepted`, going on as if the gate
-passed (the D2 gate runs once more, uncounted); 2. **guidance and one more retry**: the producer (D1 or D2) gets one
-more attempt, uncounted, with the verdict and the user's guidance (`code: "user-guidance"`) in `findings`, then its
-gate. If the gate fails, whatever part fails, it escalates again; 3. **back to the verification gate** (the choice
-`verification`); 4. **stop**: the run ends `escalated`.
+Record `{stage, concept, verdict, choice, guidance?}` and checkpoint `escalation`. Print its display,
+`display escalation`, whoever answers (Hard rules); answers: 1. **accept** (not after a compile failure), the failing
+findings into every later header's `accepted`, going on as if the gate passed (the D2 gate runs once more,
+uncounted); 2. **guidance and one more retry**: the producer (D1 or D2) gets one more attempt, uncounted, with the
+verdict and the user's guidance in `findings`, then its gate. If the gate fails, whatever part fails, it escalates
+again; 3. **back to the verification gate** (the choice `verification`); 4. **stop**: the run ends `escalated`.
 
 ## 6. Write, verify and the final gate (steps 10 to 16)
 
@@ -216,15 +220,11 @@ gate. If the gate fails, whatever part fails, it escalates again; 3. **back to t
 
 1. Set `status` and `outputs` (`plan`, `record`, `dossier`, `guide` and the PoB file; not the import code,
    whose one home is the record, D-260) with `run-log.mjs <runFolder> set`: the run log's last write.
-2. Run the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, at step 15 and
-   once more after the last log write of every run (`references/run-folder.md`).
+2. Run the run checker at step 15 and once more after the run log's last write (`references/run-folder.md`).
 3. Tell the user: the run folder, the guide, the PoB file and where its import code is (the guide's `Your PoB
    file`, and `compile-record.json`), the status, the known issues, and each violation the checker printed.
 
-## References
+## Other references
 
-`references/start.md`, `references/fix-round.md`, `references/checkpoints.md`, `references/run-log.md`,
-`references/task-header.md`, `references/run-folder.md`, `references/gates.md`, `references/pricing.md`,
-`references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`, `references/patterns.md`
-(C-53), `references/stages/` (one per step, `references/stages/R1a-assemble.md` among them),
-`templates/card-template.md` (C-52), `scripts/check-run.mjs`, `scripts/render-audit.mjs` and `scripts/run-log.mjs`.
+`references/pricing.md`, `references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`,
+`references/patterns.md` (C-53), `references/stages/`, `templates/card-template.md` (C-52) and `scripts/`.

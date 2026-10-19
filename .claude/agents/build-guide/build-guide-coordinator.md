@@ -76,9 +76,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 
 | Stage | Stage reference | Does |
 |---|---|---|
-| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when lookups confirm its load-bearing links (D-287) |
-| `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's endgame skeleton, its measure-only compile, its key-item prices, the advisory checklist with up to 4 probes, and the card's verification half |
-| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files, the cards and the R1b results; a gate-made card's deck line |
+| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when game text (a lookup, or a league-digest or monster-table entry) confirms its load-bearing links (D-287), at most half a round on one engine (D-405) |
+| `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's structure check on paper, from the pattern library's Standard kits (D-406), its endgame skeleton, its measure-only compile, its key-item prices, the advisory checklist with up to 4 probes, and the card's verification half; the rival's card first through R1a-assemble's identity and sniff checks (D-408) |
+| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files, the cards and the R1b results; a gate-made card's deck line; a second pass for the rival's row |
 | `Q` | `.claude/skills/build-guide/references/stages/Q.md` | a gate question about a compiled build, measured on a variant if need be; its report, and no plan or card edited |
 
 ## Design steps (slice 03 §5.3)

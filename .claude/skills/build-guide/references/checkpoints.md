@@ -74,6 +74,13 @@ overrule your call either way.
 - **A question that became an idea** can go into brainstorm more as its note; the next round's researchers get
   its answer file.
 
+**A rival on request** (D-408). At any gate the user may ask for a rival: a researcher with fresh context looks
+for a structure that clears faster. Start stage `RV` (`stages/RV.md`), not a gate question step, between the
+display and the answer as a question step runs, with the run's own rival's prompt (the brief and its card id
+`r<k>-x-<n>`), and log it `RV`. Relay its return: the card's name and its five pitch lines in the display's form,
+or that it found no structure that clears faster, with what it tried. That visit's answer or a later one verifies
+its card by id: `pick:` at the brainstorm gate (counted among the 1–3), `verify:` at the verification gate.
+
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
 Asked once, right after the run log's first write, when `mcp__pob2__guide_run {new_run}` replied
@@ -93,10 +100,12 @@ Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoin
 
 - **Show** (`display brainstorm`, D-392) the brief in a line, the deck's header, every dealt card not verified
   yet by name, numbered, with its pitch, the "Not dealt" cards with their reasons, and the findings no card used;
-  ids last, under "For reference". A card whose damage source isn't a skill is
-  marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379). After a short round (D-339:
-  fewer than 6 cards passed, or the deck holds fewer than two under-played cards), say so, with the reason
-  R1a-assemble gave, which the run log keeps as its `shortReason`.
+  ids last, under "For reference". The deck's header names each engine with its count (D-405); the obvious card
+  shows its `Obvious build:` line (D-403). A card whose damage source isn't a skill is marked "can't be finalized
+  yet" (D-303); a minion skill is a skill (D-379); a card resting on an entry the PoB pin doesn't know says it
+  waits on PoB (D-400). After a short round (D-339: fewer than 6 cards passed, the deck holds fewer than two
+  under-played cards, or one engine filled it, D-405), say so, with the reason R1a-assemble gave, which the run
+  log keeps as its `shortReason`.
 - **Answers:**
   - **verify** 1–3 cards, picked (a not-dealt one included) and made at the gate together, any with a revision:
     `pick:<id>[,<id>…]`, with its `changes` and `newCards`. They go to R1b as a new verification round
@@ -111,25 +120,30 @@ Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoin
 Renamed from checkpoint 1 (D-287). Shown after every verification round's R1b-assemble, and after a design
 that was `infeasible` or an escalation sent the run back here. Recorded as checkpoint `verification`.
 
-- **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in the run (every verification round, not
-  only the last): its synergy, numbers from its skeleton's record (the named damage source's Count-scaled
-  figure, `Life` and `TotalEHP`, D-294; a minion skill's figure its minion's `MinionTotalDPS`, D-378; the
-  figure labelled `estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods`,
-  D-296), key prices (converted, as ranges with their league day, D-374;
-  or `unavailable`), risks, what PoB can't verify, and its status: `viable`, `failed`, or "can't be finalized yet: its damage source isn't a skill"
-  (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b verdict's finding is
-  `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own the passive-tree
-  node that grants its skill, the node the finding names. Give the dossier's path. After an
-  `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no viable
-  card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
-  listed with its status, never as a failure.
+- **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in
+  the run (every verification round, not only the last): its synergy, numbers from its skeleton's record (the
+  named damage source's Count-scaled figure, `Life` and `TotalEHP`, D-294; a minion skill's figure its minion's
+  `MinionTotalDPS`, D-378; the figure labelled `estimate` when its group's Count is above 1 or the stage is
+  `computedWithCustomMods`, D-296), key prices (converted, as ranges with their league day, D-374; or
+  `unavailable`), risks, what PoB can't verify, and its status: `viable`, `failed`, or "can't be finalized yet:
+  its damage source isn't a skill" (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b
+  verdict's finding is `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own
+  the passive-tree node that grants its skill, the node the finding names. Each card's block leads with its
+  skeleton's measured clear speed and movement speed, then its Bosses line, the boss floor (D-407); a card's
+  `A stronger structure?` line, from its structure check, sits under it, and the user can make a new card from it
+  (D-406). The rival's card is marked as the rival, and a rival that found nothing says so, with what it tried
+  (D-408). A `not-in-pin` card is "can't be finalized yet: waits on the pin" (D-400); the rival's `not-dealt`
+  card is `failed`. Give the dossier's path. After an `infeasible` design or an escalation, show that card's
+  evidence: its last verdict file. With no viable card, show each failed card's last verdict and why it fails
+  (D-141); a card that can't be finalized yet is listed with its status, never as a failure.
 - **Answers:**
   - **finalize** (`pick:<id>`), with any revision as `changes`, which D1-build's first attempt takes as a
     finding, `code: "user-request"`: a failed card may be finalized anyway; a card whose damage source isn't a
-    skill can't be yet (D-303). A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even
-    anyway: the build it describes can't exist (D-342). Refuse such an answer and ask again. A test config
-    that pre-supplies one has given an illegal answer: the run ends `stopped`, recorded as answer `stop` with
-    the test config's `pick:<id>` as its `rule`. The card's identity `{className, ascendancy, skill}` becomes
+    skill can't be yet (D-303), nor one that waits on the pin (D-400). A card whose R1b failed `wrong-ascendancy`
+    can't be finalized at all, not even anyway: the build it describes can't exist (D-342). Refuse such an answer
+    and ask again. A test config that pre-supplies one has given an illegal answer: the run ends `stopped`,
+    recorded as answer `stop` with the test config's `pick:<id>` as its `rule`. The same holds for the rival's
+    card that ended `not-dealt`: it was never dealt (D-408). The card's identity `{className, ascendancy, skill}` becomes
     the run's `roll` (D-286), and the design (steps 6 to 9) runs for it.
   - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet, with `changes` and
     `newCards` as at the brainstorm gate): a new verification round (step 3), without a brainstorm. A new card
@@ -151,14 +165,19 @@ round or a revision.
   you read no plan or record and call no tool for it; `display design` prints it. One block per endgame rung, in ladder order:
 
   ```
-  b: DPS 98412, EHP 31250, Arbiter survives, worst physical 0.82, clear fast (rough)
-     anoint: Unbending: Ire, Guilt, Greed
-     gear: Sekhema's Resolve; rare boots, 30% movement speed and resistances
-     gems: Blood Hunt with Martial Tempo and Rupture; Herald of Blood
-     tree: Brutal Fury and Crushing Impacts; the life and armour wheels by the Warrior start
+  Budget endgame (level 92):
+  - Clear speed: fast (rough).
+  - Movement speed: +25% over your base speed.
+  - The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.82 of your max hit).
+  - Damage: 98,412 per second.
+  - Effective HP: 31,250.
+  - Anoint: Unbending: Ire, Guilt, Greed
+  - Gear: Sekhema's Resolve; rare boots, 30% movement speed and resistances
+  - Gems: Blood Hunt with Martial Tempo and Rupture; Herald of Blood
+  - Passive tree: Brutal Fury and Crushing Impacts; the life and armour wheels by the Warrior start
   ```
 
-  `m` shows no Arbiter and no anoint. Then the open estimates, one line each from `estimates[]`, the gate's
+  Clear speed and movement speed lead, then the boss floor (D-407). `m` shows no Arbiter and no anoint. Then the open estimates, one line each from `estimates[]`, the gate's
   verdict line, and the verdict file's path.
 - **Answers:**
   - **accept**: on to D2 (step 8) and the guide.

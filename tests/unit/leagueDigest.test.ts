@@ -216,7 +216,8 @@ const EXPECTED: Block[] = [
     'Orb of Kindling adds two Ember modifiers',
     'instead of one',
   )),
-  { name: 'Legacy of Ferrous Mantle', fields: { Id: 'legacy-of-ferrous-mantle', Kind: 'item', Tags: 'none', 'In pin': 'yes', URL: 'none', Fetched: SAVED_DAY, Text: 'none' }, texts: [] },
+  // Listed without a page or an item class; the pin knows it as a socketable, so it is tagged one.
+  { name: 'Legacy of Ferrous Mantle', fields: { Id: 'legacy-of-ferrous-mantle', Kind: 'item', Tags: 'SoulCore', 'In pin': 'yes', URL: 'none', Fetched: SAVED_DAY, Text: 'none' }, texts: [] },
   entry('Ashen Herald', 'ashen-herald', 'ascendancy', null, true, URL('Ashen_Herald'), []),
   entry('Kindled Resolve', 'kindled-resolve', 'passive', null, false, URL('Kindled_Resolve'), []),
 ];
@@ -231,12 +232,11 @@ const HEAD = [
   '- Echoes (unique, Opal): Grants 2 Hollow Jewel sockets [not in pin]',
   '- Fourfold Cord (unique, Rope Belt): Echoing Draught',
   "- Ferryman's Lantern (unique, Brass Sceptre): Grants Skill: Level 14 Tollbearer",
-  '- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.',
+  '- Socketables (4): runes, soul cores and idols, in the body; Grep it by mechanic.',
   '- Legacy of Ashen Grip (item, SoulCore) [rule]: in gloves, weapon attacks always deal their maximum Fire damage [not in pin]',
   '- Coral Loop (item, Ring): This item counts as a Belt for Socketed Items',
   '- Crown of the Drowned (item, MapFragment): Take this to the Ferryman at Tarn Landing. [not in pin]',
   '- Omen of Banked Embers (item, Omen): While this item is active in your inventory your next Orb of Kindling adds two Ember … [not in pin]',
-  '- Legacy of Ferrous Mantle (item)',
   '- Ashen Herald (ascendancy)',
   '- Kindled Resolve (passive) [not in pin]',
 ];
@@ -262,7 +262,7 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(text).toContain('Currency is left out (1 entry: what poe2db marks as currency). Socketables (runes, soul cores and idols) are in the body;');
     expect(stdout).toContain('Currency left out: 1.');
     // The socketables poe2db doesn't mark as currency stay.
-    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.name)).toEqual(['Legacy of Cinderhelm', 'Legacy of Ashen Grip', 'Rune of Smouldering']);
+    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.name)).toEqual(['Legacy of Cinderhelm', 'Legacy of Ashen Grip', 'Rune of Smouldering', 'Legacy of Ferrous Mantle']);
   });
 
   it('AC-W70: the in-pin flag is right for a known and an unknown name, checked against the fixture name list, not vendor/', () => {
@@ -306,8 +306,15 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
 
   it('keeps every socketable in the body; with no judgments the head has only their one line, and a judgment naming no socketable of the digest is refused', () => {
     const { text } = digestOf(pages(), newDir('out'));
-    expect(headOf(text).filter((l) => l.includes('SoulCore') || l.startsWith('- Socketables'))).toEqual(['- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.']);
-    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.fields.Id)).toEqual(['legacy-of-cinderhelm', 'legacy-of-ashen-grip', 'rune-of-smouldering']);
+    expect(headOf(text).filter((l) => l.includes('SoulCore') || l.startsWith('- Socketables') || l.includes('Ferrous Mantle'))).toEqual(['- Socketables (4): runes, soul cores and idols, in the body; Grep it by mechanic.']);
+    expect(blocks(text).filter((b) => b.fields.Tags === 'SoulCore').map((b) => b.fields.Id)).toEqual(['legacy-of-cinderhelm', 'legacy-of-ashen-grip', 'rune-of-smouldering', 'legacy-of-ferrous-mantle']);
+    // An item without a page or a class that the pin doesn't know as a socketable stays a plain item.
+    const plain = JSON.parse(fs.readFileSync(PIN_NAMES, 'utf8'));
+    const names = path.join(newDir('pin'), 'no-socketables.json');
+    fs.writeFileSync(names, JSON.stringify({ ...plain, socketable: [] }));
+    const unknown = digestOf(pages(), newDir('out'), names).text;
+    expect(blocks(unknown).find((b) => b.name === 'Legacy of Ferrous Mantle')!.fields.Tags).toBe('none');
+    expect(headOf(unknown)).toContain('- Legacy of Ferrous Mantle (item)');
     for (const [judgments, why] of [
       [{ ruleChangers: { 'coral-loop': 'a ring that takes belt socketables' } }, '"coral-loop" isn\'t a socketable of this digest'],
       [{ ruleChangers: { 'legacy-of-ashen-grip': '' } }, '"legacy-of-ashen-grip" needs its why as one line'],

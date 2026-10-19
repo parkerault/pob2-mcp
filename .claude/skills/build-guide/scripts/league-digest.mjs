@@ -35,7 +35,8 @@
 // Data/ModRunes.lua's socketables, and ascendancies and passives against the newest tree GameVersions.lua lists
 // (TreeData/<version>/tree.json), since Data/ holds no tree. Names compare without case, accents or curly quotes.
 // `--pin-names <file.json>`, `{"pin": "<label>", "gem": [names], "unique": […], "item": […], "ascendancy": […],
-// "passive": […]}`, replaces the pinned data, for tests.
+// "passive": […], "socketable": […]}`, replaces the pinned data, for tests. An item poe2db lists without a page of its
+// own has no item class; it is tagged a socketable when the pin knows it as one (Data/ModRunes.lua).
 //
 // **The file** (`--out <dir>`, default data/league): its first three lines name the section and its fetch date (the
 // runner prints `head -3` at a run's start); then how to read and cite it; `## Head`, one line per entry (name, kind
@@ -463,7 +464,8 @@ export function pinFromVendor(src) {
   }
   const item = [];
   for (const text of luaFiles(path.join('Data', 'Bases'))) item.push(...luaStrings(/^itemBases\["((?:[^"\\]|\\.)*)"\]/gm, text));
-  item.push(...luaStrings(/^\t\["((?:[^"\\]|\\.)*)"\] = \{/gm, read('Data', 'ModRunes.lua')));
+  const socketable = luaStrings(/^\t\["((?:[^"\\]|\\.)*)"\] = \{/gm, read('Data', 'ModRunes.lua'));
+  item.push(...socketable);
   const versions = /treeVersionList\s*=\s*\{([^}]*)\}/.exec(read('GameVersions.lua'));
   const latest = versions && [...versions[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).pop();
   if (!latest) throw new Refusal("GameVersions.lua's treeVersionList names no tree");
@@ -479,12 +481,13 @@ export function pinFromVendor(src) {
   } catch {
     // a label only
   }
-  return makePin(label, { gem, unique, item, ascendancy, passive });
+  return makePin(label, { gem, unique, item, ascendancy, passive, socketable });
 }
 
+/** `has(kind, name)`: the pin knows it; `isSocketable(name)`: the pin knows it as a socketable (Data/ModRunes.lua). */
 function makePin(label, lists) {
-  const sets = Object.fromEntries(KINDS.map((k) => [k, new Set((lists[k] ?? []).map(nameKey))]));
-  return { label, has: (kind, name) => Boolean(sets[kind]?.has(nameKey(name))) };
+  const sets = Object.fromEntries([...KINDS, 'socketable'].map((k) => [k, new Set((lists[k] ?? []).map(nameKey))]));
+  return { label, has: (kind, name) => Boolean(sets[kind]?.has(nameKey(name))), isSocketable: (name) => sets.socketable.has(nameKey(name)) };
 }
 
 export function pinFromNames(file) {
@@ -494,7 +497,7 @@ export function pinFromNames(file) {
   } catch (e) {
     throw new Refusal(`--pin-names ${file}: ${e.message}`);
   }
-  for (const k of KINDS) {
+  for (const k of [...KINDS, 'socketable']) {
     if (json[k] !== undefined && !(Array.isArray(json[k]) && json[k].every((n) => typeof n === 'string'))) throw new Refusal(`--pin-names ${file}: "${k}" isn't a list of names`);
   }
   return makePin(typeof json.pin === 'string' && json.pin ? json.pin : path.basename(file), json);
@@ -831,7 +834,13 @@ async function run(opts) {
     }
   }
   const previous = new Map((before?.blocks ?? []).map((b) => [`${b.kind}\u0000${nameKey(b.name)}`, b.id]));
-  const entries = mergeEntries(raw, previous).map((e) => ({ ...e, inPin: pin.has(e.kind, e.name) }));
+  // An item poe2db lists without a page has no item class; the pin's socketables (Data/ModRunes.lua) say whether it
+  // is one, as the league's Legacy runes are.
+  const entries = mergeEntries(raw, previous).map((e) => ({
+    ...e,
+    tags: e.kind === 'item' && e.tags.length === 0 && pin.isSocketable(e.name) ? [SOCKETABLE] : e.tags,
+    inPin: pin.has(e.kind, e.name),
+  }));
   const sources = LISTS.filter((l) => section.lists.includes(l)).map((l) => pageUrl(opts.slug, l));
   const ruleChangers = readRuleChangers(path.join(opts.out, `${fileSlug}.rule-changers.json`), entries);
   const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers });

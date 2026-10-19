@@ -4,5 +4,6 @@
   "unique": ["Tarn’s Clasp", "Fourfold Cord", "Ferryman's Lantern"],
   "item": ["Legacy of Cinderhelm", "Coral Loop", "Orb of Kindling", "Legacy of Ferrous Mantle"],
   "ascendancy": ["Ashen Herald", "Tidecaller"],
-  "passive": []
+  "passive": [],
+  "socketable": ["Legacy of Cinderhelm", "Legacy of Ferrous Mantle"]
 }

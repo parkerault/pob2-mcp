@@ -112,7 +112,7 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Vestige of Darkness (unique, Tenebrous Crown): (150—200)% increased Armour and Energy Shield
 - Voices (unique, Sapphire): Allocates 3 Sinister Jewel sockets
 - Shattered Triskelion (item, QuestItem): Can be repaired at the Verisium Anvil. [not in pin]
-- Socketables (163): runes, soul cores and idols, in the body; Grep it by mechanic.
+- Socketables (164): runes, soul cores and idols, in the body; Grep it by mechanic.
 - Idol of Eramir (item, SoulCore) [rule]: in a sceptre, allies in your Presence share your Charges
 - Idol of Oak (item, SoulCore) [rule]: in a sceptre, Endurance Charges you would gain go to allies in your Presence instead
 - Idol of Alira (item, SoulCore) [rule]: in a sceptre, Power Charges you would gain go to allies in your Presence instead
@@ -207,7 +207,6 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Banded Wombgift (item, BrequelFruit): Can grow into a Belt on the Genesis Tree [not in pin]
 - Signet Wombgift (item, BrequelFruit): Can grow into a Ring on the Genesis Tree [not in pin]
 - Revelatory Wombgift (item, BrequelFruit): Can grow into a Breachstone on the Genesis Tree [not in pin]
-- Legacy of Edyrns Tusks (item)
 - Martial Artist (ascendancy)
 - Spirit Walker (ascendancy)
 - Way of the Stonefist (passive)
@@ -4599,7 +4598,7 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 ### Legacy of Edyrns Tusks
 - Id: legacy-of-edyrns-tusks
 - Kind: item
-- Tags: none
+- Tags: SoulCore
 - In pin: yes
 - URL: none
 - Fetched: 2026-10-18

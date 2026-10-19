@@ -266,7 +266,11 @@ writes each kept modifier as its row in `data/monsters/monster-mods.md` says.
 - **Spirit.** A beast reserves a percentage of the player's Spirit, its species' own (`companionReservation`), where
   most minions reserve a flat amount: each point of Spirit a build stacks raises the beast's cost too.
 - **Refused by the compile,** naming the stage: a species the library lacks (with the nearest names), a name several
-  beasts share, and no Tame Beast gem, two, or one that is disabled or in a disabled group.
+  beasts share, and no Tame Beast gem, two, or one that is disabled or in a disabled group. `guide_run`'s validate
+  mode refuses them too.
+- **PoB's companion options.** With a companion, PoB shows three options, each on by default: `companionInPresence`
+  ("Is a Companion in your Presence?"), `summonCompanionEnableBuffs` and `summonCompanionEnableCurses`. V2 reports
+  each one the stage doesn't list (`default-unlisted`, D-250), so a plan lists them as earned state.
 - **Shared sets.** Stages that name different beasts, or one names none, never share a skill set.
 - **The record** gives `stages.<id>.companion`: the beast PoB summons (`monster`, `monsterId`), its group,
   active skill and breakdown key, its DPS (its minion's `MinionTotalDPS` there), the player's `spirit`, the
@@ -352,7 +356,8 @@ Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
 The compiler gives every stage its own tree, titled `loadoutName`. Stages whose `items` (likewise
 `skills`, `config`) are deep-equal share one PoB set, titled `<base> {<ids>}`: `base` is the content's
 `setTitle`, else the first sharing stage's `loadoutName` without its ` {<id>}`; `ids` are the sharing
-stages' ids in plan order, joined by `,` (D-103).
+stages' ids in plan order, joined by `,` (D-103). A skill set's content includes the stage's companion, the beast
+its Tame Beast gem summons (D-402).
 
 ## Fields
 

@@ -977,6 +977,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id),
     );
     const elapsedMs = env.clock() - t;
+    // D-402: a stage that names a companion has its measured companion (compile_stage fails without one).
+    if (companionChecks.has(stage.id) && reply.companion === undefined) {
+      throw new CompileError(`PoB measured no companion for stage ${stage.id}'s Tame Beast gem (D-402); nothing was written`);
+    }
     for (const kind of CONTENT_KINDS) {
       const g = grouped[kind].groupOf.get(stage.id)!;
       if (!created[kind].has(g)) created[kind].set(g, reply.ids[SET_ID_KEY[kind]]);
@@ -1125,8 +1129,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     // D-402: the tamed beast, its DPS and reserved Spirit, and how each kept modifier was applied.
     const companion = companions.get(stage.id);
     const companionCheck = companionChecks.get(stage.id);
-    if (companion !== undefined && companionCheck !== undefined) {
-      if (reply.companion === undefined) throw new CompileError(`stage ${stage.id}: PoB measured no companion for its Tame Beast gem (D-402)`);
+    if (companion !== undefined && companionCheck !== undefined && reply.companion !== undefined) {
       stages[stage.id].companion = companionRecordOf(companion, companionCheck, reply.companion, stages[stage.id]);
     }
   }

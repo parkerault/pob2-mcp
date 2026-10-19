@@ -20,7 +20,7 @@
  *   `condition` modifier (Trail of Ice) sets its config option; a plan without a companion compiles as before.
  * - D-402's other rules: a `none` modifier adds nothing and the record says so, as for a `stats` line PoB can't parse;
  *   the saved build carries PoB's beast library; an unknown species, a name several beasts share and a stage without
- *   the Tame Beast gem are refused before any engine change.
+ *   the Tame Beast gem are refused before any engine change, by `compile_plan` and by `guide_run`'s validate mode.
  */
 import fs from 'fs';
 import path from 'path';
@@ -102,9 +102,10 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
     const planPath = /^plan_path for this run: (\S+)$/m.exec(made.text)![1];
     fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(p, null, 2)}\n`);
     const out = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
-    if (out.isError) return { out, record: null, xml: null };
+    if (out.isError) return { out, planPath, record: null, xml: null };
     return {
       out,
+      planPath,
       record: JSON.parse(fs.readFileSync(path.join(abs, 'compile-record.json'), 'utf8')) as CompileRecord,
       xml: fs.readFileSync(path.join(abs, 'compiled-build.xml'), 'utf8'),
     };
@@ -229,6 +230,10 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
       const unknown = await compile('p72-unknown', plan([stage('a', 100, { species: 'Diretusk', mods: [] })]));
       expect(unknown.out.isError).toBe(true);
       expect(unknown.out.text).toMatch(/stage a: companion\.species "Diretusk": no beast of PoB's beast library is named "Diretusk"\. Did you mean: Diretusk Boar/);
+      // guide_run's validate mode checks the companion as the compile does.
+      const validated = await f.call('guide_run', { validate: unknown.planPath });
+      expect(validated.isError).toBe(true);
+      expect(validated.text).toMatch(/stage a: companion\.species "Diretusk": no beast of PoB's beast library is named "Diretusk"/);
       const shared = await compile('p72-shared', plan([stage('a', 100, { species: 'Quill Crab', mods: [] })]));
       expect(shared.out.isError).toBe(true);
       expect(shared.out.text).toMatch(/companion\.species "Quill Crab": PoB's beast library has 2 beasts named "Quill Crab"; name one by its monster id: Metadata\/Monsters\/QuillCrab\//);

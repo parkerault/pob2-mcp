@@ -1281,9 +1281,6 @@ local function plans_off_hand(st)
   return false
 end
 
--- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337); a reused set
--- already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
--- calculation, D-382), so it may already hold PoB's own groups.
 -- D-402 (WU-87): the stage's companion is its beast, `st.companion.id` (a monster id compile_check resolved), or nil.
 local function companion_id(st)
   return type(st.companion) == 'table' and st.companion.id ~= nil and tostring(st.companion.id) or nil
@@ -1299,9 +1296,12 @@ local function add_to_beast_library(id)
   build.beastList[#build.beastList + 1] = id
 end
 
--- A new skill set gets the stage's groups and gems. D-402: with a companion, the stage's Tame Beast gem goes in as
--- PoB's companion gem, as the game turns the gem when it captures the beast, with the beast as its minion
--- (skillMinion, which CalcActiveSkill picks from the beast library, Modules/CalcActiveSkill.lua:904-929).
+-- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337); a reused set
+-- already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
+-- calculation, D-382), so it may already hold PoB's own groups.
+-- D-402: with a companion, the stage's Tame Beast gem goes in as PoB's companion gem, as the game turns the gem when
+-- it captures the beast, with the beast as its minion (skillMinion, which CalcActiveSkill picks from the beast library,
+-- Modules/CalcActiveSkill.lua:904-929).
 local function build_skills(st, fresh)
   if not fresh then return end
   local beast = companion_id(st)
@@ -1789,11 +1789,12 @@ local function companion_measure(st)
               measured = s
             end
           end
-          local md = measured.minion and measured.minion.minionData or skill.minion.minionData or {}
+          local minion = measured.minion or skill.minion
+          local md = minion.minionData or {}
           local sd = measured.skillData or {}
           return {
             group = number[i], activeSkill = k,
-            minion = tostring(md.name or skill.minion.type), minionId = tostring(measured.minion and measured.minion.type or skill.minion.type),
+            minion = tostring(md.name or minion.type), minionId = tostring(minion.type),
             companionReservation = tonumber(md.companionReservation) or 0,
             reservedSpirit = tonumber(sd.SpiritReservedBase) or 0,
             reservedSpiritPercent = tonumber(sd.SpiritReservedPercent) or 0,

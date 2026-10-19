@@ -4612,3 +4612,8 @@ the `m17` engine at `b76967b`.
 - **WU-87 dispatched** (`bg-87`, off `767fc41`, with WU-86 and WU-88 merged): the plan's `companion {species, mods}`,
   the compile through PoB's beast library, kept modifiers by their table rows (`Companions have …` for beast-only
   lines), the companion's DPS and reserved Spirit in the record.
+- **WU-84's fix round** (`f29441e`, 7 items): the fixtures rewritten by hand for an invented section; repeated lines
+  dropped only for quest items; unique head lines from the first explicit or Grants Skill line; the socketable
+  criterion stated (a mechanic that works differently is a rule change; a number added, scaled or shared isn't) and
+  42 re-judged; a redirect off poe2db.tw refused; ids kept from the digest a new one replaces. Head 203 lines, 3,130
+  words. Gate rc 0. The verifier re-checks.

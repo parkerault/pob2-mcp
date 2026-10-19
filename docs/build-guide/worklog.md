@@ -4551,3 +4551,15 @@ the `m17` engine at `b76967b`.
   socketables' count line, then 44 socketables the doer judges rule changers (18 Legacy runes), each with a reason.
   The judgments are a committed file, `data/league/runes-of-aldur.rule-changers.json`. The doer's gate failed only
   AC-T22 on time at load 17, passing alone. The verifier samples the judgments.
+- **WU-85 done by its doer** (`7be99fa`, 9 commits). Gate rc 0 (139 suites, 2,474 tests), build rc 0. `nodes.md`:
+  241 lines (208 notables, 33 keystones; Devotion to the King is in `tree.json` but not in the tree PoB loads), 125
+  `[rule]` (95 notables, 30 keystones); 252 unique blocks; 72 gem blocks of 173 candidates; `pairs.md` 235 lines in 45
+  family blocks. 59 doubtful entries were left out of `[rule]`. `candidates` drives the pinned PoB with luajit to
+  reuse the server's legacy and unobtainable tests. **Note:** `pairs.md` has no `infusion` block: three entries
+  create infusions (Powered by Verisium among them), but the skills that consume them aren't rule changers, so
+  nothing pays off on them in the index. D-404's supply search must therefore Grep `creates:` across the index's
+  files, the monster table and the digest, not only `pairs.md` (for WU-91).
+- **Vocabulary, eight families added** (WU-85's proposals, for its 64 rule changers tagged `none`): `ammunition`,
+  `stacking-buff`, `accuracy`, `luck`, `thorns`, `attribute`, `passive-tree`, `support-gem`. A retag round goes to
+  the doer before verification. **For WU-89:** `pairs.md` cites nodes as `rules/nodes.md#<node id>`, and node entries
+  are lines, so the resolver must find the line whose parenthesis starts with that id.

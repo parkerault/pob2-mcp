@@ -11,8 +11,9 @@
 // **Fetching** (no `--from`): the homepage https://poe2db.tw/us/ first, for the section's block, then each list page
 // that block links: `<slug>_gems`, `<slug>_uniques`, `<slug>_items`. One request at a time, at least 3 s apart, with
 // the server's User-Agent `pob2-mcp-server/<package.json version>` and no cookie or other identifying header; one
-// retry after 60 s on HTTP 429 or 5xx; nothing fetched twice. poe2db's robots.txt disallows only /*/marked and
-// /*/markdown_history. Each page is saved as it arrives (to `--save <folder>`, or a new temp folder), before any
+// retry after 60 s on HTTP 429 or 5xx; nothing fetched twice. A redirect to another poe2db.tw page is a request of
+// its own under those rules; one that leaves poe2db.tw is refused, with no request to it. poe2db's robots.txt
+// disallows only /*/marked and /*/markdown_history. Each page is saved as it arrives (to `--save <folder>`, or a new temp folder), before any
 // parse, so a parser fix re-runs with `--from` and no request.
 //
 // **`--from <folder>`** reads saved pages instead and makes no request: home.html, then <slug>_gems.html,
@@ -39,8 +40,9 @@
 // **The file** (`--out <dir>`, default data/league): its first three lines name the section and its fetch date (the
 // runner prints `head -3` at a run's start); then how to read and cite it; `## Head`, one line per entry (name, kind
 // and first tag, the first clause of its text, and `[not in pin]`); `## Body`, one block per entry: `### <Name>`, then
-// `- Id: <id>` (its name as a slug, unique in the file), kind, tags, in pin, URL, fetch date and text. After writing it
-// prints the entries added since the file's previous version.
+// `- Id: <id>`, kind, tags, in pin, URL, fetch date and text. An entry keeps the id it had in the file's previous
+// version, so citations stay good; a new entry's id is its name as a slug, or the slug and its kind when another entry
+// has that id. After writing it prints the entries added since the file's previous version.
 //
 // **Socketables in the head.** The body holds every socketable; the head, which every researcher reads whole, holds
 // one line in their place, `- Socketables (<n>): …; Grep it by mechanic.`, then a `[rule]` line for each socketable an
@@ -389,9 +391,11 @@ export function parseItems(html, base) {
   return { entries, currency };
 }
 
-/** Entries of one kind with one name become one entry: tags and URLs joined, distinct non-empty texts its variants;
- * then each gets its id, its name as a slug (with its kind after it when another kind has the name). */
-export function mergeEntries(entries) {
+/** Entries of one kind with one name become one entry: tags and URLs joined, distinct non-empty texts its variants.
+ * Then each gets its id. **The id rule:** an entry keeps the id it had in the digest this one replaces (`previous`,
+ * kind and name → id), so a citation of it stays good; a new entry's id is its name as a slug, or, when another entry
+ * has that id, the slug with its kind after it (then a number). */
+export function mergeEntries(entries, previous = new Map()) {
   const byKey = new Map();
   for (const e of entries) {
     const key = `${e.kind}\u0000${nameKey(e.name)}`;
@@ -410,6 +414,14 @@ export function mergeEntries(entries) {
   const out = [...byKey.values()].map(({ url, ...rest }) => rest).sort((a, b) => KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
   const ids = new Set();
   for (const e of out) {
+    const kept = previous.get(`${e.kind}\u0000${nameKey(e.name)}`);
+    if (kept && ID.test(kept) && !ids.has(kept)) {
+      e.id = kept;
+      ids.add(kept);
+    }
+  }
+  for (const e of out) {
+    if (e.id) continue;
     let id = slugify(e.name);
     if (!id) throw new Refusal(`"${e.name}" makes no id`);
     if (ids.has(id)) id = `${id}-${e.kind}`;
@@ -673,29 +685,44 @@ function packageVersion() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** One request at a time, at least 3 s apart, one retry after 60 s on 429 or 5xx, nothing fetched twice. */
+/** One request at a time, at least 3 s apart, one retry after 60 s on 429 or 5xx, nothing fetched twice. Redirects
+ * aren't followed by `fetch`: one to another poe2db.tw page is a request of its own, under the same rules, and one that
+ * leaves poe2db.tw is refused without a request to it. Resolves to the page and the URL it came from. */
 function fetcher(userAgent) {
   const done = new Set();
   let sent = false;
-  return async (url) => {
-    if (done.has(url)) throw new Refusal(`${url} was already fetched`);
-    done.add(url);
+  const request = async (url) => {
     for (let attempt = 1; ; attempt++) {
       if (sent) await sleep(3000);
       sent = true;
       let res;
       try {
-        res = await fetch(url, { headers: { 'User-Agent': userAgent, Accept: 'text/html' }, redirect: 'follow' });
+        res = await fetch(url, { headers: { 'User-Agent': userAgent, Accept: 'text/html' }, redirect: 'manual' });
       } catch (e) {
         throw new Refusal(`${url}: ${e.message}`);
       }
-      if (res.ok) return await res.text();
+      if (res.ok || (res.status >= 300 && res.status < 400)) return res;
       if ((res.status === 429 || res.status >= 500) && attempt === 1) {
         console.error(`[league-digest] ${url}: HTTP ${res.status}; one retry after 60 s`);
         await sleep(60000);
         continue;
       }
       throw new Refusal(`${url}: HTTP ${res.status}`);
+    }
+  };
+  return async (url) => {
+    let target = url;
+    for (let hops = 0; ; hops++) {
+      if (done.has(target)) throw new Refusal(`${target} was already fetched`);
+      done.add(target);
+      const res = await request(target);
+      if (res.ok) return { html: await res.text(), url: target };
+      const location = res.headers.get('location');
+      if (!location) throw new Refusal(`${target}: HTTP ${res.status} with no Location`);
+      const next = new URL(location, target);
+      if (next.protocol !== 'https:' || next.hostname !== 'poe2db.tw') throw new Refusal(`${target}: redirected off poe2db.tw, to ${next.href}; not followed`);
+      if (hops >= 4) throw new Refusal(`${url}: more than five redirects`);
+      target = next.href;
     }
   };
 }
@@ -718,9 +745,9 @@ async function loadPages(slug, opts) {
   console.log(`league-digest: saving the pages to ${save} (re-run with --from ${save} to make no request)`);
   const get = fetcher(`pob2-mcp-server/${packageVersion()}`);
   const fetchPage = async (url, file) => {
-    const html = await get(url);
-    fs.writeFileSync(path.join(save, file), html);
-    return { html, date: localDate(new Date()), url };
+    const page = await get(url);
+    fs.writeFileSync(path.join(save, file), page.html);
+    return { html: page.html, date: localDate(new Date()), url: page.url };
   };
   const home = await fetchPage(POE2DB, 'home.html');
   const section = parseSection(home.html, slug);
@@ -795,10 +822,6 @@ async function run(opts) {
     raw.push(...found.map((e) => ({ ...e, fetched: page.date })));
   }
   raw.push(...section.entries.map((e) => ({ ...e, fetched: home.date })));
-  const entries = mergeEntries(raw).map((e) => ({ ...e, inPin: pin.has(e.kind, e.name) }));
-  const sources = LISTS.filter((l) => section.lists.includes(l)).map((l) => pageUrl(opts.slug, l));
-  const ruleChangers = readRuleChangers(path.join(opts.out, `${fileSlug}.rule-changers.json`), entries);
-  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers });
   let before = null;
   if (fs.existsSync(file)) {
     try {
@@ -807,6 +830,11 @@ async function run(opts) {
       before = null;
     }
   }
+  const previous = new Map((before?.blocks ?? []).map((b) => [`${b.kind}\u0000${nameKey(b.name)}`, b.id]));
+  const entries = mergeEntries(raw, previous).map((e) => ({ ...e, inPin: pin.has(e.kind, e.name) }));
+  const sources = LISTS.filter((l) => section.lists.includes(l)).map((l) => pageUrl(opts.slug, l));
+  const ruleChangers = readRuleChangers(path.join(opts.out, `${fileSlug}.rule-changers.json`), entries);
+  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers });
   fs.mkdirSync(opts.out, { recursive: true });
   fs.writeFileSync(file, text);
   console.log(`league-digest: wrote ${file}. ${countsLine(entries)} Currency left out: ${currency}.`);

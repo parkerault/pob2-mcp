@@ -43,7 +43,8 @@ fs.writeFileSync(NO_NETWORK, "globalThis.fetch = () => { throw new Error('the te
 /**
  * A module the child loads first for the fetch path: `fetch` serves the fixture pages by URL and logs each request
  * with its headers and options; `setTimeout` logs each wait and fires at once. `STUB_FAIL` gives statuses to answer a
- * URL with before its page, as `[[url, [status, …]], …]`.
+ * URL with before its page, as `[[url, [status, …]], …]`; `STUB_REDIRECT` answers a URL with a 302 to a location, as
+ * `[[url, location], …]`.
  */
 const STUB = path.join(TMP, 'stub-fetch.mjs');
 fs.writeFileSync(
@@ -52,12 +53,14 @@ fs.writeFileSync(
 import path from 'node:path';
 const log = (entry) => fs.appendFileSync(process.env.STUB_LOG, JSON.stringify(entry) + '\\n');
 const fail = new Map(JSON.parse(process.env.STUB_FAIL || '[]'));
+const redirect = new Map(JSON.parse(process.env.STUB_REDIRECT || '[]'));
 const realSetTimeout = globalThis.setTimeout;
 globalThis.setTimeout = (fn, ms, ...args) => { log({ wait: ms }); return realSetTimeout(fn, 0, ...args); };
 globalThis.fetch = async (url, init = {}) => {
   log({ url: String(url), options: Object.keys(init).sort(), headers: init.headers });
   const queue = fail.get(String(url));
   if (queue && queue.length > 0) return new Response('busy', { status: queue.shift() });
+  if (redirect.has(String(url))) return new Response(null, { status: 302, headers: { location: redirect.get(String(url)) } });
   const name = String(url) === 'https://poe2db.tw/us/' ? 'home.html' : String(url).slice('https://poe2db.tw/us/'.length) + '.html';
   const file = path.join(process.env.STUB_PAGES, name);
   return fs.existsSync(file) ? new Response(fs.readFileSync(file, 'utf8'), { status: 200 }) : new Response('not found', { status: 404 });
@@ -72,12 +75,14 @@ const newDir = (name: string) => {
   return dir;
 };
 
-/** A copy of the fixture pages, saved at SAVED, with `edit` applied to one page's text. */
-function pages(edit?: { file: string; from: string; to: string }): string {
+type Edit = { file: string; from: string; to: string };
+
+/** A copy of the fixture pages, saved at SAVED, with each edit applied to its page's text. */
+function pages(edits: Edit | Edit[] = []): string {
   const dir = newDir('pages');
   for (const f of fs.readdirSync(FIXTURES).filter((n) => n.endsWith('.html'))) {
     let text = fs.readFileSync(path.join(FIXTURES, f), 'utf8');
-    if (edit && edit.file === f) {
+    for (const edit of [edits].flat().filter((e) => e.file === f)) {
       expect(text).toContain(edit.from);
       text = text.replace(edit.from, edit.to);
     }
@@ -363,6 +368,51 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(fs.readFileSync(log, 'utf8').trim().split('\n').filter((l) => l.includes('"url"')).length).toBe(3);
     expect(fs.readdirSync(out)).toEqual([]);
     expect(fs.readdirSync(save)).toEqual(['home.html']);
+  });
+
+  it('follows a redirect to another poe2db.tw page as a request of its own, and refuses one that leaves poe2db.tw without a request to it (stubbed fetch, no network)', () => {
+    const served = pages();
+    fs.copyFileSync(path.join(served, 'Embers_of_Tarn_gems.html'), path.join(served, 'Embers_of_Tarn_gem_list.html'));
+    const gems = URL('Embers_of_Tarn_gems');
+    const moved = URL('Embers_of_Tarn_gem_list');
+    const headers = { 'User-Agent': `pob2-mcp-server/${VERSION}`, Accept: 'text/html' };
+    const request = (url: string) => ({ url, options: ['headers', 'redirect'], headers });
+    const followed = (() => {
+      const save = newDir('save');
+      const log = path.join(newDir('log'), 'requests.jsonl');
+      const r = run([SLUG, '--save', save, '--out', outDir(), '--pin-names', PIN_NAMES], { preload: STUB, env: { STUB_PAGES: served, STUB_LOG: log, STUB_REDIRECT: JSON.stringify([[gems, '/us/Embers_of_Tarn_gem_list']]) } });
+      expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+      return { log: fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)), save };
+    })();
+    expect(followed.log.filter((e) => e.url).map((e) => e.url)).toEqual([URL(''), gems, moved, URL('Embers_of_Tarn_uniques'), URL('Embers_of_Tarn_items')]);
+    expect(followed.log.slice(2, 5)).toEqual([request(gems), { wait: 3000 }, request(moved)]);
+    expect(fs.readdirSync(followed.save).sort()).toEqual(['Embers_of_Tarn_gems.html', 'Embers_of_Tarn_items.html', 'Embers_of_Tarn_uniques.html', 'home.html']);
+
+    const items = URL('Embers_of_Tarn_items');
+    const out = newDir('out');
+    const log = path.join(newDir('log'), 'requests.jsonl');
+    const r = run([SLUG, '--save', newDir('save'), '--out', out, '--pin-names', PIN_NAMES], { preload: STUB, env: { STUB_PAGES: served, STUB_LOG: log, STUB_REDIRECT: JSON.stringify([[items, 'https://mirror.example/Embers_of_Tarn_items']]) } });
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 1, stderr: `league-digest: refused: ${items}: redirected off poe2db.tw, to https://mirror.example/Embers_of_Tarn_items; not followed\n` });
+    const urls = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((e) => e.url).map((e) => e.url);
+    expect(urls).toEqual([URL(''), gems, URL('Embers_of_Tarn_uniques'), items]);
+    expect(fs.readdirSync(out)).toEqual([]);
+  });
+
+  it("keeps an entry's id through a later digest that adds a same-name entry of another kind; a new entry takes its slug, or its slug and kind when another has it", () => {
+    const gemNamedEchoes = {
+      file: 'Embers_of_Tarn_gems.html',
+      from: '<div class="row row-cols-1 row-cols-lg-2 g-2 bg-dark">',
+      to: '<div class="row row-cols-1 row-cols-lg-2 g-2 bg-dark"><div class="col"><div class="d-flex border-top rounded"><div class="flex-shrink-0"></div><div class="flex-grow-1 ms-2"><div><a class="gemitem" href="/us/Echoes_gem">Echoes</a></div><div class="default"><a class="GemTags" href="Spell">Spell</a></div>Repeats your last Spell.</div></div></div>',
+    };
+    const recount = { file: 'Embers_of_Tarn_gems.html', from: 'Embers of Tarn Gem /3 ', to: 'Embers of Tarn Gem /4 ' };
+    const ids = (text: string) => blocks(text).filter((b) => b.name === 'Echoes').map((b) => [b.fields.Kind, b.fields.Id]);
+    const first = digestOf();
+    expect(ids(first.text)).toEqual([['unique', 'echoes']]);
+    const later = digestOf(pages([gemNamedEchoes, recount]), first.out);
+    expect(ids(later.text)).toEqual([['gem', 'echoes-gem'], ['unique', 'echoes']]);
+    expect(later.stdout).toContain('Added since the last digest (1):\n- Echoes (gem)\n');
+    // Without a digest to replace, the ids follow the order of kinds: the gem takes the slug.
+    expect(ids(digestOf(pages([gemNamedEchoes, recount])).text)).toEqual([['gem', 'echoes'], ['unique', 'echoes-unique']]);
   });
 
   it('--reflag re-checks only the in-pin flags of a committed digest: each block, its head marker, the count and the pin line; nothing else moves', () => {

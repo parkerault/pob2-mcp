@@ -1601,7 +1601,7 @@ describe("D-342: an R1b failure whose card's ascendancy doesn't own the node tha
   });
 
   it('fails a pre-supplied pick of a card the gate can finalize turned into a stop', () => {
-    expect(failing(stoppedAtPick(CARD))).toMatch(/\[order\] run-log\.json: the verification gate's pre-supplied "pick:r1-a-1" ended the run with "stop", but r1-a-1 can be finalized; a pre-supplied pick stops the run only when its card can't be \(its R1b ended wrong-ascendancy or not-a-skill; D-303, D-342\)/);
+    expect(failing(stoppedAtPick(CARD))).toMatch(/\[order\] run-log\.json: the verification gate's pre-supplied "pick:r1-a-1" ended the run with "stop", but r1-a-1 can be finalized; a pre-supplied pick stops the run only when its card can't be \(its R1b ended wrong-ascendancy, not-a-skill, not-in-pin or not-dealt; D-303, D-342, D-400, D-408\)/);
   });
 
   it('passes a run whose wrong-ascendancy card fails once, with no compile, and the round assembles', () => {

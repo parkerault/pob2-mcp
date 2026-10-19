@@ -504,25 +504,27 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     expect(out.join('\n')).not.toMatch(/Bleeding Shield Wall|Blood Hunt armour stacker|^\d+\. Blood Hunt bleed burst$/m);
   });
 
-  it("verification (D-392): each verified card by name, its status in words, its why, its figures with units and what they're measured against, its clear, its key prices, its catch and what verification found; a gate's change and a gate-made card say so; ids and the dossier last", () => {
+  it("verification (D-392, D-407): each verified card by name, its status in words, its why, its clear (here the card's estimate: these skeleton records predate WU-88's measures), its Bosses line, then its figures with units and what they're measured against, its key prices, its catch and what verification found; a gate's change and a gate-made card say so; ids and the dossier last", () => {
     const dir = copy('run-interview');
     const out = display(dir, 'verification');
     expect(out).toEqual([
       '## The verification gate, visit 2', '',
       '1. Blood Hunt bleed burst: works.',
       '   Why pick it: One lunge spends the bleed you built for a big hit, so rares melt in two presses. The simplest Blood Hunt loop in the deck.',
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one. (an estimate; measured at the design)',
+      '   Bosses: Re-apply bleed, then lunge to consume it; the burst is its boss answer.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       '   The catch: The burst needs Blood Loss on the target first, and PoB has no setting for its uptime.',
       '   Found in verification: chaos resistance stays low',
       '',
       '2. Blood Hunt armour stacker: works.',
       '   Why pick it: Stacked armour shrugs off the hits that kill most melee builds, and Blood Hunt still bursts.',
+      '   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead. (an estimate; measured at the design)',
+      '   Bosses: Face-tank the hits and lunge between them.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       '   The catch: Armour takes the gear slots that would add damage, so the burst is smaller.',
       '   Found in verification: dropping Brutality I costs the burst a tenth',
@@ -530,9 +532,10 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       '',
       '3. Bleeding Shield Wall: works.',
       '   Why pick it: The bleed burst\'s one-lunge kill, with a shield that blocks the hits a lunge walks into.',
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead, and the shield holds while you do. (an estimate; measured at the design)',
+      '   Bosses: Block the big swings, then lunge to consume the bleed.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead, and the shield holds while you do. (an estimate; measured at the design)',
       '   Key prices: weapon: unavailable (offline run).',
       "   The catch: The shield costs the off-hand damage, so the burst is a little smaller than the bleed burst's.",
       '   Found in verification: the shield costs off-hand damage',
@@ -549,23 +552,30 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     ]);
   });
 
-  it("verification, §5's rough clear speed: a skeleton record with no measures.clearSpeed shows the card's How it clears as the estimate it is; one with a measure prints it, and How it clears unmarked", () => {
+  it("verification, D-407's pace: a skeleton record from before WU-88, with no measures, shows the card's How it clears as the estimate it is; one with WU-88's measures leads with its clear speed and movement speed, How it clears unmarked, then the Bosses line and the figures", () => {
     const dir = copy('run-interview');
     const how = 'Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.';
-    // A skeleton is one stage with no variant, which the compiler doesn't measure: no clear-speed line, the pitch's estimate instead.
+    // WU-88 measures every card skeleton (D-407); this fixture's skeleton records were written before it, with no
+    // measures, so no clear-speed line: the pitch's estimate stands in.
     expect(readJson(dir, 'concepts/r1-a-1/compile-record.json').stages.r1a1e.measures).toBeUndefined();
     let out = display(dir, 'verification');
     expect(out.filter((l) => /^ {3}(Clear speed|How it clears):/.test(l)).slice(0, 1)).toEqual([`   How it clears: ${how} (an estimate; measured at the design)`]);
-    expect(out.join('\n')).not.toMatch(/Clear speed:/);
+    expect(out.join('\n')).not.toMatch(/Clear speed:|Movement speed:/);
     editJson(dir, 'concepts/r1-a-1/compile-record.json', (r) => {
-      r.stages.r1a1e.measures = { dps: 50000, ehp: 31500, clearSpeed: { speed: 'fast', rough: true, group: 1, key: 'g1s1p1', skill: 'Blood Hunt' } };
+      r.stages.r1a1e.measures = {
+        clearSpeed: { speed: 'fast', rough: true, group: 1, key: 'g1s1p1', skill: 'Blood Hunt', radiusMetres: 4.2, band: 'fast', noArea: false, onDeath: false, usesPerSecond: 1.5, longUse: false },
+        movementSpeed: 1.251,
+      };
     });
     out = display(dir, 'verification');
     const at = out.indexOf('1. Blood Hunt bleed burst: works.');
-    expect(out.slice(at + 3, at + 6)).toEqual([
-      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
-      "   Clear speed: fast (a rough estimate from the main skill's area).",
+    expect(out.slice(at + 2, at + 8)).toEqual([
+      "   Clear speed: fast (a rough estimate from Blood Hunt's area).",
+      '   Movement speed: +25% over your base speed.',
       `   How it clears: ${how}`,
+      '   Bosses: Re-apply bleed, then lunge to consume it; the burst is its boss answer.',
+      '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
+      "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
     ]);
     // The other cards' skeletons stay unmeasured.
     expect(out).toContain('   How it clears: Lunge into the pack and stand in it; Herald of Blood clears the bleeding dead. (an estimate; measured at the design)');
@@ -594,39 +604,43 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
       st.skillOutputs.g1s1p1 = { skill: 'Skeletal Warrior', statSetLabel: 'Default', fields: { TotalDPS: 0, MinionTotalDPS: 12500 } };
       st.countedSkillOutputs.g1s1p1 = { skill: 'Skeletal Warrior', statSetLabel: 'Default', count: 4, dotCanStack: false, fields: { TotalDPS: 0, MinionTotalDPS: 50000 } };
     });
-    expect(display(dir, 'verification')[4]).toBe("   Damage: 50,000 per second from Skeletal Warrior's minions, against map monsters (an estimate: a Count above 1 or a custom modifier carries it).");
+    expect(display(dir, 'verification').find((l) => l.startsWith('   Damage:'))).toBe("   Damage: 50,000 per second from Skeletal Warrior's minions, against map monsters (an estimate: a Count above 1 or a custom modifier carries it).");
   });
 
-  it("AC-W67 (D-392) design: each endgame rung's block, every figure it printed before with its unit and what it means, the open estimates and the verdict in words; the codes and the verdict file only under For reference (A-35)", () => {
+  it("AC-W67 (D-392) design, D-407's order: each endgame rung's block, the clear speed and movement speed first, then the Arbiter check, then damage and effective HP, each with its unit and what it means, the open estimates and the verdict in words; the codes and the verdict file only under For reference (A-35)", () => {
     const dir = copy('run-ok');
     const out = display(dir, 'design');
+    // run-ok's record predates WU-88: no measures.movementSpeed, and no EffectiveMovementSpeedMod in its outputs.
     expect(out).toEqual([
       '## The design gate, visit 2', '',
-      "The endgame build for Blood Hunt bleed burst, rung by rung, as its last design check measured it. Damage is PoB's damage per second for the main skill; effective HP is PoB's estimate of the damage it takes to kill you; clear speed is a rough estimate from the main skill's area.",
+      "The endgame build for Blood Hunt bleed burst, rung by rung, as its last design check measured it. Clear speed is a rough estimate from the main skill's area; movement speed is PoB's, over your base speed; damage is PoB's damage per second for the main skill; effective HP is PoB's estimate of the damage it takes to kill you.",
       '',
       'Entering maps (level 65):',
+      '- Clear speed: medium (rough).',
+      '- Movement speed: not measured.',
       '- Damage: 9,000 per second.',
       '- Effective HP: 18,400.',
-      '- Clear speed: medium (rough).',
       '- Gear: rare boots with lightning resistance; a life and cold-resistance helmet',
       '- Gems: Blood Hunt with Bloodlust and Brutality I',
       '- Passive tree: the life wheel by the Warrior start',
       '',
       'Budget endgame (level 90):',
+      '- Clear speed: medium (rough).',
+      '- Movement speed: not measured.',
+      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.68 of your max hit).',
       '- Damage: 50,000 per second.',
       '- Effective HP: 31,500.',
-      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.68 of your max hit).',
-      '- Clear speed: medium (rough).',
       '- Anoint: Unbending: Ire, Guilt, Greed',
       '- Gear: a War Spear with increased physical damage; a life and fire-resistance body',
       '- Gems: Blood Hunt with Bloodlust and Brutality I; Herald of Blood',
       "- Passive tree: Titan's slam notables; the life and armour wheels",
       '',
       'Non-budget endgame (level 95):',
+      '- Clear speed: medium (rough).',
+      '- Movement speed: not measured.',
+      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.47 of your max hit).',
       '- Damage: 140,000 per second.',
       '- Effective HP: 52,300.',
-      '- The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.47 of your max hit).',
-      '- Clear speed: medium (rough).',
       '- Gear: a stronger War Spear and both rings',
       '- Gems: Blood Hunt with Bloodlust and Brutality I; Herald of Blood',
       "- Passive tree: Titan's slam notables; the life and armour wheels",

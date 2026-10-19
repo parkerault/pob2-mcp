@@ -81,6 +81,7 @@ const NOTE = {
   onDeath: 'Only where the beast dies, so a reviving companion supplies it rarely.',
   minions: "What it does for a tamed beast's minions isn't on the page.",
   pageLines: "Its lines are PoB's wording of its own page's text, each an estimate the record marks.",
+  companion: 'A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.',
 };
 
 /** A judgment: model, reach, creates and pays off on (space-separated families, '' for none), then config and note. */
@@ -92,7 +93,7 @@ const j = (model, reach, creates, pays, more = {}) => ({
   ...more,
 });
 /** The beast's own stats, in player text: they make the beast hit harder or live longer. */
-const own = (note) => j('stats', BEAST, '', 'companion', note ? { note } : {});
+const own = (note) => j('stats', BEAST, '', 'companion', { note: note ? `${NOTE.companion} ${note}` : NOTE.companion });
 
 export const JUDGMENTS = {
   'extra-fire-damage': own(),
@@ -100,10 +101,10 @@ export const JUDGMENTS = {
   'extra-lightning-damage': own(),
   hasted: own("Its speed is the beast's own; Haste Aura is the modifier whose speed reaches its allies."),
   'extra-crits': own(),
-  stuns: j('stats', BEAST, 'stun', 'companion', { note: "The buildup is the beast's: enemies it hits are stunned sooner." }),
+  stuns: j('stats', BEAST, 'stun', 'companion', { note: `${NOTE.companion} The buildup is the beast's: enemies it hits are stunned sooner.` }),
   armoured: j('none', BEAST, '', 'companion', { note: NOTE.internal }),
   evasive: j('none', BEAST, '', 'companion', { note: NOTE.internal }),
-  'extra-energy-shield': j('none', BEAST, '', 'companion', { note: NOTE.internal }),
+  'extra-energy-shield': own("Its line is PoB's wording of its internal stat id, as Energy Shield Aura's is of the same stat; an estimate the record marks."),
   'always-poisons': j('condition', HIT, 'poison', '', { config: CONFIG.poisoned }),
   'always-bleeds': j('condition', HIT, 'bleed', '', { config: CONFIG.bleeding }),
   'periodically-unleashes-fire': j('none', NEAR, '', '', { note: NOTE.ownDamage }),
@@ -148,7 +149,10 @@ export const JUDGMENTS = {
     config: CONFIG.onShockedGround,
     note: 'Judged from its name, as Trail of Fire and Trail of Ice are: the page gives no lines.',
   }),
-  'slow-resistant': own(),
+  'slow-resistant': j('none', BEAST, '', 'companion', {
+    note: 'PoB likely doesn\'t parse its line: it leaves "…% reduced Slowing Potency of Debuffs on You" unparsed ' +
+      '(`Data/ModCache.lua:1321`).',
+  }),
   'crit-resistant': own(),
   'chaos-resistant': own(),
   'periodic-fire-explosions': j('none', NEAR, '', '', { note: NOTE.ownDamage }),
@@ -366,7 +370,17 @@ export function parseKeywordPage(html, name, page) {
   throw new ParseError(`${page}: no keyword text for "${name}"`);
 }
 
-/** The aura sentence's clauses, each in PoB's wording; a clause none of these matches gives no line. */
+/** Internal stat ids with a clean PoB wording: the id's text and value, to a PoB line. */
+const INTERNAL = [
+  [/^base maximum life % to gain as total energy shield \[(\d+)\]$/, (n) => `Gain ${n}% of maximum Life as Extra maximum Energy Shield`],
+];
+/** An internal stat id's PoB wording, or null. */
+export function internalLine(text) {
+  const rule = INTERNAL.find(([re]) => re.test(text));
+  return rule ? rule[1](rule[0].exec(text)[1]) : null;
+}
+
+/** The aura sentence's clauses, each in PoB's wording; a clause none of these matches fails the run. */
 const CLAUSES = [
   [/^(\d+)% increased Attack and Cast speed$/i, (n) => [`${n}% increased Attack Speed`, `${n}% increased Cast Speed`]],
   [/^(\d+)% increased Movement speed$/i, (n) => [`${n}% increased Movement Speed`]],
@@ -400,6 +414,9 @@ export function readKeywordPages(modifiers, folder) {
     if (!file || !fs.existsSync(path.join(folder, file))) continue;
     const sentence = parseKeywordPage(fs.readFileSync(path.join(folder, file), 'utf8'), m.name, file.replace(/\.html$/, ''));
     m.page = { sentence, ...auraLines(sentence) };
+    if (m.page.unmapped.length) {
+      throw new ParseError(`${file}: can't word the aura clause "${m.page.unmapped.join('", "')}" as a PoB line: add it to CLAUSES`);
+    }
   }
   return modifiers;
 }
@@ -459,7 +476,11 @@ function renderBlock(m, jd) {
   if (m.lines.length === 0 && fromPage.length === 0) out.push(`- Lines: ${m.page ? NO_MAPPED_LINES : NO_LINES}`);
   else {
     out.push('- Lines:');
-    for (const l of m.lines) out.push(l.internal ? `  - internal stat id: ${l.text}` : `  - "${l.text}"`);
+    for (const l of m.lines) {
+      out.push(l.internal ? `  - internal stat id: ${l.text}` : `  - "${l.text}"`);
+      const pob = l.internal ? internalLine(l.text) : null;
+      if (pob) out.push(`  - from the internal stat id: "${pob}"`);
+    }
     for (const l of fromPage) out.push(`  - from the page text: "${l}"`);
   }
   if (m.page) out.push(wrap(`- Page text: "${m.page.sentence}"`));
@@ -490,7 +511,8 @@ export function render({ modifiers, unnamed, modRows, tameRows, date }, judgment
     `- **Source.** ${BASE_URL}${PAGES.mods}, its "Archnemesis Mods" list (${modRows} rows), and ${BASE_URL}${PAGES.tame}, ` +
       `its own "Archnemesis Mods" list (${tameRows} rows). One block per name: ${c.modifiers} modifiers, ${c.keep} on ` +
       `Tame_Beast's list; ${c.stats} modelled as stats, ${c.condition} as a condition, ${c.none} not at all. Left out: ` +
-      `${rowsOf(unnamed.mods)} with no name (league modifiers such as runes', many with internal stat ids or no lines).`,
+      `${rowsOf(unnamed.mods)} with no name (lower-value variants of named modifiers, and expedition-rune, affliction and ` +
+      'Runic Ward rows; many with internal stat ids or no lines).',
     '- **Read it by Grep:** a family (`chilled-ground`) in the index below, then the block by its heading ' +
       "(`grep -n -A14 '^### Trail of Ice' data/monsters/monster-mods.md`). A citation is " +
       '`data | monsters/monster-mods.md#<id>`.',
@@ -498,14 +520,19 @@ export function render({ modifiers, unnamed, modRows, tameRows, date }, judgment
       'in brackets, which the game words differently. Many modifiers show their lines only in a hover the saved page ' +
       "doesn't hold: their judgment rests on the name and the keyword it links, unless the modifier's own keyword page " +
       `is saved beside the lists (${c.pages} are). Then **Page text** is that page's sentence, verbatim, and the lines ` +
-      "marked `from the page text:` are PoB's wording of it.",
+      "marked `from the page text:` are PoB's wording of it; `from the internal stat id:` marks PoB's wording of an " +
+      'internal stat id.',
     '- **Tamed beast keeps it:** the Tame Beast gem says "Tamed Beast retains up to four monster modifiers when ' +
-      'summoned"; `yes` means Tame_Beast\'s list has the modifier.',
+      'summoned"; `yes` means Tame_Beast\'s list has the modifier. That list is poe2db\'s whole table with duplicate ' +
+      'rows dropped, so it singles out none: every `yes` is an inference from a list that doesn\'t filter, not a ' +
+      'confirmation.',
     '- **Model,** how a plan models the modifier on a tamed beast that keeps it: `stats`, its lines go in as custom ' +
       'modifiers (D-293), each an estimate the record marks; `condition`, what it supplies is the config entry its ' +
       "`Config` line names, as enemies on Chilled Ground are; `none`, PoB can't take it, and the card says so.",
-    '- **Reach,** who the modifier acts on: `the beast`, lines for the companion alone; `its allies: the player and ' +
-      'minions`, player lines and `Minions have` lines; enemies, for what it inflicts or leaves on the ground.',
+    '- **Reach,** who the modifier acts on: `the beast`, lines for the companion alone, written as `Companions have …` ' +
+      'lines (PoB gives them to companion skills only, `Modules/ModParser.lua:1272-1273`, and the tamed beast\'s skill ' +
+      'is one); `its allies: the player and minions`, player lines and `Minions have` lines; enemies, for what it ' +
+      'inflicts or leaves on the ground.',
     '- **Creates** is what the beast supplies to the build beyond its own stats; **Pays off on** is what makes the ' +
       "modifier worth more (`companion`: the beast's own damage or survival). Both use the words of " +
       '`data/rules/vocabulary.md`, or `none`.',

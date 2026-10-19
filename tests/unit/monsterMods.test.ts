@@ -163,6 +163,24 @@ describe('AC-W72 (WU-86): the monster-modifier script on fixture pages', () => {
     expect(b.fields.get('Note')).toMatch(/^Judged from its name: the page gives no lines, so a plan takes the figures from its poe2db page \(the URL\)/);
   });
 
+  it("an internal stat id with a clean PoB wording gets it as a line, and the beast's own stats are Companions have lines", () => {
+    // Armoured's row becomes Extra Energy Shield's, on both pages.
+    const armoured = '<div class="strong">Armoured</div><span class="secondary">monster additional strength ratio % for armour [100]</span>';
+    const energyShield = '<div class="strong">Extra Energy Shield</div><span class="secondary">base maximum life % to gain as total energy shield [25]</span>';
+    const dir = editedFixtures('Monster_Modifiers', (h) => h.replace(armoured, energyShield));
+    const tame = path.join(dir, 'Tame_Beast.html');
+    fs.writeFileSync(tame, fs.readFileSync(tame, 'utf8').replace(armoured, energyShield));
+    const es = outFile();
+    expect(run('--from', dir, '--out', es, '--date', '2026-10-18').code).toBe(0);
+    const b = parseMonsterTable(fs.readFileSync(es, 'utf8')).blocks.find((x) => x.name === 'Extra Energy Shield')!;
+    expect(b.lines).toEqual([
+      'internal stat id: base maximum life % to gain as total energy shield [25]',
+      'from the internal stat id: "Gain 25% of maximum Life as Extra maximum Energy Shield"',
+    ]);
+    expect(b.fields.get('Model')).toBe('stats');
+    expect(b.fields.get('Note')).toMatch(/^A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone\./);
+  });
+
   it('a second run over the same pages writes the same table', () => {
     const again = outFile();
     expect(run('--from', FIXTURES, '--out', again, '--date', '2026-10-18').code).toBe(0);
@@ -217,6 +235,15 @@ describe('AC-W72 (WU-86): the script fails loudly and writes nothing', () => {
     const r = run('--from', dir, '--out', out);
     expect(r.code).toBe(1);
     expect(r.stderr).toContain('Haste_Aura: no keyword text for "Haste Aura"');
+    expect(fs.existsSync(out)).toBe(false);
+  });
+
+  it("when a saved keyword page's aura clause has no PoB wording", () => {
+    const dir = editedFixtures('Haste_Aura', (h) => h.replace('and 10% increased Movement speed', 'and 10% increased Life Regeneration rate'));
+    const out = outFile();
+    const r = run('--from', dir, '--out', out);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain(`Haste_Aura.html: can't word the aura clause "10% increased Life Regeneration rate" as a PoB line: add it to CLAUSES`);
     expect(fs.existsSync(out)).toBe(false);
   });
 

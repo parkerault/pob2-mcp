@@ -11,8 +11,8 @@ export interface MonsterBlock {
   /** Each `- Key: value` field, a wrapped value joined with single spaces. */
   fields: Map<string, string>;
   /**
-   * The `- Lines:` items as written: `"<game text>"`, `internal stat id: <id> [<value>]`, or
-   * `from the page text: "<PoB's wording>"`; empty when none.
+   * The `- Lines:` items as written: `"<game text>"`, `internal stat id: <id> [<value>]`,
+   * `from the internal stat id: "<PoB's wording>"` or `from the page text: "<PoB's wording>"`; empty when none.
    */
   lines: string[];
 }
@@ -99,7 +99,7 @@ export function blockProblems(block: MonsterBlock, vocabulary: Set<string>): str
   else if (lines === '' && block.lines.length === 0) p.push('Lines has no items');
   else if (lines !== '' && lines !== NO_LINES && lines !== NO_MAPPED_LINES) p.push(`Lines "${lines}" is neither a list nor "${NO_LINES}"`);
   for (const l of block.lines) {
-    if (!/^"[^"]+"$/.test(l) && !/^internal stat id: \S.*$/.test(l) && !/^from the page text: "[^"]+"$/.test(l)) {
+    if (!/^"[^"]+"$/.test(l) && !/^internal stat id: \S.*$/.test(l) && !/^from the (page text|internal stat id): "[^"]+"$/.test(l)) {
       p.push(`a line isn't quoted game text, a marked internal stat id or a marked line from the page text: ${l}`);
     }
   }
@@ -123,4 +123,15 @@ export function blockProblems(block: MonsterBlock, vocabulary: Set<string>): str
     }
   }
   return p;
+}
+
+/** The lines a plan can write as custom modifiers: game text, and PoB's wording of a page text or an internal id. */
+export function pobLines(block: MonsterBlock): string[] {
+  return block.lines.filter((l) => !l.startsWith('internal stat id: '));
+}
+
+/** A `Config` field's PoB option: `conditionEnemyOnChilledGround ("…")` gives `conditionEnemyOnChilledGround`. */
+export function configVar(block: MonsterBlock): string | null {
+  const m = /^(\w+) \(".*"\)$/.exec(block.fields.get('Config') ?? '');
+  return m ? m[1] : null;
 }

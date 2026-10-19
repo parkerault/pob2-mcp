@@ -6,13 +6,17 @@
  *   creates chilled-ground.
  * - The four ally auras whose own poe2db pages were saved carry their figures as PoB lines, the page's sentence and
  *   their reach, allies within 5 metres.
+ * - §4's models hold: every `stats` row has a line a plan can write, and every `condition` row's config option is one
+ *   PoB has (`var = "<name>"` in the pin's `Modules/ConfigOptions.lua`).
+ * - The head says every `yes` is an inference from a list that doesn't filter, and that `the beast` rows are written as
+ *   `Companions have …` lines.
  * - The index has one line per block, agreeing with it, and the head's counts are the blocks'.
  * - `docs/build-guide/pob-gaps.md` holds PG-56: PoB has no rare monster modifiers.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
-import { blockProblems, creates, parseMonsterTable, readVocabulary } from '../helpers/monsterTable';
+import { blockProblems, configVar, creates, parseMonsterTable, pobLines, readVocabulary } from '../helpers/monsterTable';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const TABLE = path.join(REPO, 'data', 'monsters', 'monster-mods.md');
@@ -63,6 +67,44 @@ describe('AC-W72 (WU-86, D-402): the committed monster-modifier table', () => {
     expect(b.fields.get('Reach')).toBe('its allies within 5 metres: the player and minions');
     expect(b.fields.get('URL')).toBe(`https://poe2db.tw/us/${name.replace(/ /g, '_')}`);
     expect(b.fields.get('Model')).toBe('stats');
+  });
+
+  it('every stats row has a line a plan can write as a custom modifier (§4)', () => {
+    const bare = table.blocks.filter((b) => b.fields.get('Model') === 'stats' && pobLines(b).length === 0).map((b) => b.name);
+    expect(bare).toEqual([]);
+  });
+
+  it("every condition row's config option is one the pin's ConfigOptions.lua defines (§4)", () => {
+    const options = fs.readFileSync(path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src', 'Modules', 'ConfigOptions.lua'), 'utf8');
+    const conditions = table.blocks.filter((b) => b.fields.get('Model') === 'condition');
+    expect(conditions.length).toBeGreaterThan(10);
+    for (const b of conditions) {
+      const v = configVar(b);
+      expect({ name: b.name, defined: v !== null && options.includes(`var = "${v}"`) }).toEqual({ name: b.name, defined: true });
+    }
+  });
+
+  it("the beast's own stats are written as Companions have lines, and Extra Energy Shield's internal id is worded as Energy Shield Aura's stat is", () => {
+    const head = table.head.replace(/\s+/g, ' ');
+    expect(head).toContain('`the beast`, lines for the companion alone, written as `Companions have …` lines');
+    expect(head).toContain('`Modules/ModParser.lua:1272-1273`');
+    expect(block('Hasted').fields.get('Note')).toMatch(/^A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone\./);
+    const es = block('Extra Energy Shield');
+    expect(es.fields.get('Model')).toBe('stats');
+    expect(pobLines(es)).toEqual(['from the internal stat id: "Gain 25% of maximum Life as Extra maximum Energy Shield"']);
+    expect(pobLines(block('Energy Shield Aura'))).toEqual(['from the page text: "Gain 20% of maximum Life as Extra maximum Energy Shield"']);
+  });
+
+  it("Slow Resistant's line is marked as one PoB likely doesn't parse, so it isn't modelled", () => {
+    const b = block('Slow Resistant');
+    expect(b.fields.get('Model')).toBe('none');
+    expect(b.fields.get('Note')).toMatch(/^PoB likely doesn't parse its line/);
+  });
+
+  it("the head says every keep flag is an inference from a list that doesn't filter", () => {
+    expect(table.head.replace(/\s+/g, ' ')).toContain(
+      "That list is poe2db's whole table with duplicate rows dropped, so it singles out none: every `yes` is an inference from a list that doesn't filter, not a confirmation.",
+    );
   });
 
   it('the index has one line per block, agreeing with its model, families and keep flag', () => {

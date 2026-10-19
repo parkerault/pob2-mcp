@@ -5,8 +5,9 @@ D-402). Re-run the script to change it; its judgments are in the script.
 
 - **Source.** https://poe2db.tw/us/Monster_Modifiers, its "Archnemesis Mods" list (268 rows), and
   https://poe2db.tw/us/Tame_Beast, its own "Archnemesis Mods" list (178 rows). One block per name: 97 modifiers, 97 on
-  Tame_Beast's list; 25 modelled as stats, 13 as a condition, 59 not at all. Left out: 75 rows with no name (league
-  modifiers such as runes', many with internal stat ids or no lines).
+  Tame_Beast's list; 25 modelled as stats, 13 as a condition, 59 not at all. Left out: 75 rows with no name (lower-value
+  variants of named modifiers, and expedition-rune, affliction and Runic Ward rows; many with internal stat ids or no
+  lines).
 - **Read it by Grep:** a family (`chilled-ground`) in the index below, then the block by its heading
   (`grep -n -A14 '^### Trail of Ice' data/monsters/monster-mods.md`). A citation is
   `data | monsters/monster-mods.md#<id>`.
@@ -14,14 +15,18 @@ D-402). Re-run the script to change it; its judgments are in the script.
   brackets, which the game words differently. Many modifiers show their lines only in a hover the saved page doesn't
   hold: their judgment rests on the name and the keyword it links, unless the modifier's own keyword page is saved
   beside the lists (4 are). Then **Page text** is that page's sentence, verbatim, and the lines marked
-  `from the page text:` are PoB's wording of it.
+  `from the page text:` are PoB's wording of it; `from the internal stat id:` marks PoB's wording of an internal stat
+  id.
 - **Tamed beast keeps it:** the Tame Beast gem says "Tamed Beast retains up to four monster modifiers when summoned";
-  `yes` means Tame_Beast's list has the modifier.
+  `yes` means Tame_Beast's list has the modifier. That list is poe2db's whole table with duplicate rows dropped, so it
+  singles out none: every `yes` is an inference from a list that doesn't filter, not a confirmation.
 - **Model,** how a plan models the modifier on a tamed beast that keeps it: `stats`, its lines go in as custom modifiers
   (D-293), each an estimate the record marks; `condition`, what it supplies is the config entry its `Config` line names,
   as enemies on Chilled Ground are; `none`, PoB can't take it, and the card says so.
-- **Reach,** who the modifier acts on: `the beast`, lines for the companion alone; `its allies: the player and minions`,
-  player lines and `Minions have` lines; enemies, for what it inflicts or leaves on the ground.
+- **Reach,** who the modifier acts on: `the beast`, lines for the companion alone, written as `Companions have …` lines
+  (PoB gives them to companion skills only, `Modules/ModParser.lua:1272-1273`, and the tamed beast's skill is one);
+  `its allies: the player and minions`, player lines and `Minions have` lines; enemies, for what it inflicts or leaves
+  on the ground.
 - **Creates** is what the beast supplies to the build beyond its own stats; **Pays off on** is what makes the modifier
   worth more (`companion`: the beast's own damage or survival). Both use the words of `data/rules/vocabulary.md`, or
   `none`.
@@ -36,7 +41,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Stuns (stuns): stats; creates stun; pays off on companion; keeps: yes
 - Armoured (armoured): none; creates none; pays off on companion; keeps: yes
 - Evasive (evasive): none; creates none; pays off on companion; keeps: yes
-- Extra Energy Shield (extra-energy-shield): none; creates none; pays off on companion; keeps: yes
+- Extra Energy Shield (extra-energy-shield): stats; creates none; pays off on companion; keeps: yes
 - Always Poisons (always-poisons): condition; creates poison; pays off on none; keeps: yes
 - Always Bleeds (always-bleeds): condition; creates bleed; pays off on none; keeps: yes
 - Periodically unleashes Fire (periodically-unleashes-fire): none; creates none; pays off on none; keeps: yes
@@ -62,7 +67,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Trail of Fire (trail-of-fire): condition; creates ignited-ground; pays off on none; keeps: yes
 - Trail of Ice (trail-of-ice): condition; creates chilled-ground; pays off on none; keeps: yes
 - Trail of Lightning (trail-of-lightning): condition; creates shocked-ground; pays off on none; keeps: yes
-- Slow Resistant (slow-resistant): stats; creates none; pays off on companion; keeps: yes
+- Slow Resistant (slow-resistant): none; creates none; pays off on companion; keeps: yes
 - Crit Resistant (crit-resistant): stats; creates none; pays off on companion; keeps: yes
 - Chaos Resistant (chaos-resistant): stats; creates none; pays off on companion; keeps: yes
 - Periodic Fire Explosions (periodic-fire-explosions): none; creates none; pays off on none; keeps: yes
@@ -138,6 +143,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Extra Cold Damage
 - Id: extra-cold-damage
@@ -149,6 +155,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Extra Lightning Damage
 - Id: extra-lightning-damage
@@ -160,6 +167,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Hasted
 - Id: hasted
@@ -172,7 +180,8 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: Its speed is the beast's own; Haste Aura is the modifier whose speed reaches its allies.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. Its speed is the
+  beast's own; Haste Aura is the modifier whose speed reaches its allies.
 
 ### Extra Crits
 - Id: extra-crits
@@ -184,6 +193,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Stuns
 - Id: stuns
@@ -195,7 +205,8 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: stun | Pays off on: companion
-- Note: The buildup is the beast's: enemies it hits are stunned sooner.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. The buildup is the
+  beast's: enemies it hits are stunned sooner.
 
 ### Armoured
 - Id: armoured
@@ -226,12 +237,14 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Kind: standard
 - Lines:
   - internal stat id: base maximum life % to gain as total energy shield [25]
+  - from the internal stat id: "Gain 25% of maximum Life as Extra maximum Energy Shield"
 - URL: https://poe2db.tw/us/Extra_Energy_Shield
 - Tamed beast keeps it: yes
-- Model: none
+- Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: Its only lines are internal stat ids, which PoB can't take as lines.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. Its line is PoB's
+  wording of its internal stat id, as Energy Shield Aura's is of the same stat; an estimate the record marks.
 
 ### Always Poisons
 - Id: always-poisons
@@ -345,6 +358,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Stun Resistant
 - Id: stun-resistant
@@ -356,6 +370,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Fire Resistant
 - Id: fire-resistant
@@ -368,6 +383,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Cold Resistant
 - Id: cold-resistant
@@ -380,6 +396,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Lightning Resistant
 - Id: lightning-resistant
@@ -392,6 +409,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Breaks Armour
 - Id: breaks-armour
@@ -416,6 +434,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Extra Chaos Damage
 - Id: extra-chaos-damage
@@ -427,6 +446,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Regenerates Life
 - Id: regenerates-life
@@ -438,6 +458,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Additional Projectiles
 - Id: additional-projectiles
@@ -449,7 +470,8 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: Worth something only when the beast's own skills fire projectiles.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. Worth something only
+  when the beast's own skills fire projectiles.
 
 ### Increased Area of Effect
 - Id: increased-area-of-effect
@@ -461,7 +483,8 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: It widens the beast's own skills.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. It widens the beast's
+  own skills.
 
 ### All Damage Ignites
 - Id: all-damage-ignites
@@ -552,9 +575,11 @@ D-402). Re-run the script to change it; its judgments are in the script.
   - "50% less Slowing Potency of Debuffs on me"
 - URL: https://poe2db.tw/us/Slow_Resistant
 - Tamed beast keeps it: yes
-- Model: stats
+- Model: none
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: PoB likely doesn't parse its line: it leaves "…% reduced Slowing Potency of Debuffs on You" unparsed
+  (`Data/ModCache.lua:1321`).
 
 ### Crit Resistant
 - Id: crit-resistant
@@ -566,6 +591,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Chaos Resistant
 - Id: chaos-resistant
@@ -577,6 +603,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Periodic Fire Explosions
 - Id: periodic-fire-explosions
@@ -669,6 +696,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Extra Physical Damage Aura
 - Id: extra-physical-damage-aura
@@ -795,6 +823,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
 
 ### Siphons Mana and Deals Lightning Damage
 - Id: siphons-mana-and-deals-lightning-damage

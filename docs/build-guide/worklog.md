@@ -4710,3 +4710,11 @@ the `m17` engine at `b76967b`.
   static tests; the dossier's eleven columns switched across the template, R1b-assemble and the test; schema 5 in
   D1-build and R1b; a new `stages/RV.md`; `SKILL.md` still at its 230-line cap after trims. Skill words 63,253 →
   66,881. The formats file's rulings were followed over the amendment where they differ. The verifier is running.
+- **The Mobalytics review approved** (the user: "The guides are fine"): the 16 picks, with URLs, gaps and the plan, are
+  in `studies/briefs/2026-10-18-mobalytics-review.md`. The optional five weren't taken. It runs after M-20's merge or
+  alongside it; saving pages goes through Playwright, one at a time.
+- **Where M-20 stands** (the user compacts the coordinator's context here): seven units merged (WU-84…WU-90); WU-91
+  done by its doer (`f1730b9` on `bg/wu-91`), with its verifier running (report to the scratchpad's
+  `verify-wu91.md`). Next: WU-91's verdict and any fix round, its merge, the wave gate on `build-guide/m20` (one
+  full run under the shared lock), then the sign-rebase and `main`'s fast-forward with the user present (1Password),
+  the cited hashes remapped, `main` and `m18` rebuilt, then the user's push and worktree cleanup.

@@ -74,7 +74,7 @@ better structure, and the pieces of one sat unused in the research ([comparison]
 
 What an average player reaches for first in each archetype, and its big levers (D-403). Question 9 and the
 obvious card start here; R1b's structure check reads the card's archetype here (D-406). Each line cites a study
-by its key and section, a lookup (`lookup:`, a grep of the pinned data under `vendor/PathOfBuilding-PoE2/src/`,
+by its key and section, the pinned data (`pin:`, a grep of the files under `vendor/PathOfBuilding-PoE2/src/`,
 2026-10-18) or the user; a line with no source stays out. Kits are common wisdom and go stale after a patch:
 re-check the numbers.
 
@@ -85,13 +85,13 @@ re-check the numbers.
   [amendment-8] §1).
 - **Levers:** minion levels, Spirit, minion types and minion damage supports [comparison] §7.2 (4).
 - **Levels:** up to +4 on a sceptre, +3 on an amulet, +2 on a helmet; a focus gets +1–2 only from the "of
-  Amanamu" suffix (lookup: `Data/ModItem.lua`, `Data/ModVeiled.lua`). Navira's guide reaches +12
-  [comparison] §2.
+  Amanamu" suffix (pin: `Data/ModItem.lua`, `Data/ModVeiled.lua`). Navira's guide reaches +12, counting a
+  fractured amulet at +4, above a regular roll's +3 [comparison] §2.
 - **Spirit:** a sceptre's base 100 and up to 65% increased; up to +50 on an amulet and +61 on body armour
-  (lookup: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2.
+  (pin: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2.
 - **Types:** one of each type rather than more of the best one, adding a type with each Spirit gain [varashta]
-  §2, §6. Muster (7% more per reviving type, lookup: `Data/Skills/sup_int.lua`) and At your Command (10%
-  increased command damage per persistent type, lookup: `TreeData/0_5/tree.lua`) grow with the count; see A
+  §2, §6. Muster (7% more per reviving type, pin: `Data/Skills/sup_int.lua`) and At your Command (10%
+  increased command damage per persistent type, pin: `TreeData/0_5/tree.lua`) grow with the count; see A
   count as a multiplier.
 - **Commands:** a command skill deals minion damage, so minion levels, Muster, Pain Offering and Archon of
   Undeath (25% more minion damage, 200% more command cooldown recovery) scale it [varashta] §2;
@@ -100,12 +100,12 @@ re-check the numbers.
   [chayula-minions] §2 (6), §6.
 - **A tamed beast** reserves a percentage of maximum Spirit (13.8–56.1% across the pin's 619 monsters, 32.7% at
   the median) where most minion gems reserve a flat amount, so each point of Spirit buys a little less once a
-  beast is out (the user, [amendment-8] §4; lookup: `Modules/CalcDefence.lua:204`, `Data/Spectres.lua`).
+  beast is out (the user, [amendment-8] §4; pin: `Modules/CalcDefence.lua:204`, `Data/Spectres.lua`).
 
 ### Spells
 
 - **Kit:** a staff or wand for spell levels: up to +5–6 on a staff, +4 on a wand, +3 on an amulet, +2 on a focus
-  (lookup: `Data/ModItem.lua`); a +4/+5 staff and Magnified Area are the cheap path [enervating] header.
+  (pin: `Data/ModItem.lua`); a +4/+5 staff and Magnified Area are the cheap path [enervating] header.
 - **Levers:** spell levels [enervating] chain 1; copies and repeats (Spell Cascade, Trickster's Shard's mimics,
   Now and Again) [enervating] chain 5; spell crit [widowhail] §2 (5); maximum mana, through Archmage's extra
   lightning per 100 mana [mana-flare] chain 2.
@@ -123,9 +123,10 @@ re-check the numbers.
 - **Kit:** Herald of Ice and Herald of Thunder to clear, which fire on a non-Herald attack hit [flicker] §2;
   Trinity (about 6% more elemental damage per 30 affinity, 100 Spirit) when hits carry two or three elements,
   and Wind Dancer once an amulet adds about 60 Spirit [ronarray-videos] §1.
-- **Levers:** attack speed, then skill levels and flat added damage on several slots: two poe.ninja Explosive
-  Concoction builds beat ours ×3.1, ×1.46 of it from speed and ×1.32 from +3 levels and added fire on three
-  slots [ec-comparison] §3; search +level sources for every tag and slot [ec-comparison] §5 (1).
+- **Levers:** attack speed, then skill levels and flat added damage on several slots: the better of two
+  poe.ninja Explosive Concoction builds beat ours ×3.1 (the other ×2.2), ×1.46 of it from speed and ×1.32 from
+  +3 levels and added fire on three slots [ec-comparison] §3; search +level sources for every tag and slot
+  [ec-comparison] §5 (1).
 - **Supports:** Elemental Armament II, Rakiata's Flow (enemy elemental resistances inverted), Concentrated Area
   against bosses [flicker] §2; [glacial-bolt] §1.
 - **Defence:** Chaos Inoculation on energy shield and evasion from about 4–6k energy shield, with Ghost Dance
@@ -138,7 +139,7 @@ re-check the numbers.
   you can afford, swapped at +50% tooltip DPS [fubgun] §2, §3.
 - **Levers:** arrows per shot ("Bow Attacks fire an additional Arrow", Surpassing chance), repeats (Barrage on
   Frenzy Charges) and Tornado Shot's copies [stormcaller] §1.
-- **Levels:** up to +4 projectile levels on a bow, +3 on an amulet, +1 on a quiver (lookup: `Data/ModItem.lua`).
+- **Levels:** up to +4 projectile levels on a bow, +3 on an amulet, +1 on a quiver (pin: `Data/ModItem.lua`).
 
 ### Crossbows
 
@@ -146,12 +147,12 @@ re-check the numbers.
   weapon set 2 against bosses [crossbow] header, chain 5; Emergency Reload, about 50% more for five bolts
   [glacial-bolt] §1.
 - **Levers:** Trinity, Rage with Berserk, Rakiata's Flow and Elemental Armament II [glacial-bolt] §1.
-- **Levels:** up to +5 projectile levels on a crossbow (lookup: `Data/ModItem.lua`).
+- **Levels:** up to +5 projectile levels on a crossbow (pin: `Data/ModItem.lua`).
 
 ### Maces
 
 - **Kit:** a two-hand mace with high physical damage and +5 melee levels [ancestral-cry] chain (the most a
-  two-hander rolls, lookup: `Data/ModItem.lua`); Rage, with Berserk [hotg] §1 (5); Herald of Ice to clear
+  two-hander rolls, pin: `Data/ModItem.lua`); Rage, with Berserk [hotg] §1 (5); Herald of Ice to clear
   [earthshatter] chain 6.
 - **Levers:** weapon damage and melee levels; Rage; heavy stun, whose payoffs include a Titan's Crushing
   Impacts, 25% more damage against Heavy Stunned enemies [ancestral-cry] chain; [crossbow] chain 3.
@@ -175,7 +176,7 @@ re-check the numbers.
   Bounty's projectiles from dodging [twister] chain 3–6; Herald of Ice and Infernal Cry to clear, Concentrated
   Area on the stab [fangs] arc (09:42, 35:32).
 - **Levers:** projectile count and repeats [twister] chain 4, 6.
-- **Levels:** up to +4 projectile and +4 melee levels on a spear (lookup: `Data/ModItem.lua`).
+- **Levels:** up to +4 projectile and +4 melee levels on a spear (pin: `Data/ModItem.lua`).
 
 ### Damage over time
 
@@ -185,18 +186,18 @@ re-check the numbers.
 - **Levers:** the skill's level, ailment magnitude, enough duration to spread (an ignite of 2–3 s) [eraser] §1;
   Swift Affliction, Brutality and Herald of Blood on Corrupted Blood [infernal-cry] chain 4, which is said to
   take its host cry's level, 17 of it from items (unverified, PG-2) [infernal-cry] chain 2.
-- **Campaign:** Contagion and Essence Drain carry chaos spells to the respec [comparison] §2; Contagion early on
-  a bow [fubgun] §2.
+- **Campaign:** two of the studied guides level with Contagion: Navira's, with Essence Drain and other chaos
+  spells until its Act 2 respec [comparison] §2, and Fubgun's bow build early on [fubgun] §2.
 
 ### Totems
 
 - **Kit:** (thin: one study) a totem that repeats the combo (Shockwave Totem's slams set off Volcanic
   Fissure), then supports that keep it alive, then a second totem [empyrean] process 6.
-- **Levers:** totem count, survival and placement speed: Hardy Totems (more life), Reinforced Totems
-  (resistances), Urgent Totems (placement) (lookup: `Data/Skills/sup_str.lua`).
-- **Limits:** Spell Totem and Ancestral Warrior Totem consume three charges per totem (lookup:
+- **Levers:** (from the gem text, not practice) totem count, survival and placement speed: Hardy Totems (more
+  life), Reinforced Totems (resistances), Urgent Totems (placement) (pin: `Data/Skills/sup_str.lua`).
+- **Limits:** Spell Totem and Ancestral Warrior Totem consume three charges per totem (pin:
   `Data/Skills/act_str.lua`); Ancestral Bond doubles the limit and drops the charges, at 75 Spirit a totem
-  (lookup: `TreeData/0_5/tree.lua`).
+  (pin: `TreeData/0_5/tree.lua`).
 
 ## 1. Loops and relays
 
@@ -633,7 +634,7 @@ re-check the numbers.
 - **PoB:** not modelled: pace is no output. The record's clear-speed band reads the skill's area, with movement
   speed beside it (D-407); the card's "How it clears" estimates the time to first damage.
 - **Examples:** Navira's Fracturing banks Verisium Infusions between packs with the three infusion-limit
-  passives (Frozen, Infernal and Shocking Limit: +1 to maximum Cold, Fire or Lightning Infusions, lookup:
+  passives (Frozen, Infernal and Shocking Limit: +1 to maximum Cold, Fire or Lightning Infusions, pin:
   `TreeData/0_5/tree.lua`), so the nova lays ground on arrival; ours made ground only as skeletons died inside
   the pack [comparison]. Whirling Assault Monk: Killing Palm on the bells fills Power Charges before a boss
   [ronarray-videos].
@@ -891,9 +892,9 @@ re-check the numbers.
   damage aura and "all damage shocks", kept alive by Brutus' Brain [infernal-cry].
 - **Cautions:** the cost is 13.8–56.1% of maximum Spirit by species (32.7% at the median,
   `Modules/CalcDefence.lua:204`), so it grows with the Spirit a build stacks, unlike a flat-cost minion's (the
-  user, [amendment-8] §4); every keep flag is an inference, and Hasted's speed is the beast's own while Haste
-  Aura's reaches its allies (the table); a minion that deals no damage applying shock is doubtful
-  [infernal-cry].
+  user, [amendment-8] §4); Haste is "usually the mod that most players prioritize" (the user, [amendment-8] §4):
+  the table's Hasted speeds the beast alone, Haste Aura its allies; every keep flag is an inference (the table);
+  a minion that deals no damage applying shock is doubtful [infernal-cry].
 
 ## 10. Tree
 

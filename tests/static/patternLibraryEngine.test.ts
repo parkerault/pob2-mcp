@@ -5,8 +5,8 @@
  *   points to Standard kits.
  * - "Standard kits" (D-403): one entry per archetype (minions, spells, attacks with each weapon family the studies
  *   cover, damage over time, totems), each with its kit and its levers; every line cites a study by key and section,
- *   a lookup whose file is in the pin, or the user; the minion kit carries the user's point on a tamed beast's
- *   percentage Spirit cost; about 1,200 words.
+ *   the pinned data (`pin:`, a file the pin holds; "lookup" is the lookup tool's word), or the user; the minion
+ *   kit carries the user's point on a tamed beast's percentage Spirit cost; about 1,200 words.
  * - "A count as a multiplier" beside an unchanged "Filler to satisfy a count", the two pointing to each other.
  * - The four new shapes (supply by family, bank the resource, a tamed rare beast, a rule changer), each in a family
  *   with its search step, how PoB follows it (one of the six labels), examples and cautions.
@@ -119,23 +119,24 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       }
     });
 
-    it('cites a source on every line: a study by its key and section, a lookup in the pin, or the user', () => {
+    it('cites a source on every line: a study by its key and section, the pinned data (`pin:`), or the user', () => {
       const studyCite = /\[([a-z0-9-]+)\] (?:§\d|[a-z]+\b)/g;
       for (const a of archetypes) {
         for (const item of bullets(a.body)) {
           const studies = [...item.matchAll(studyCite)].map((m) => m[1]);
-          const lookup = /\(lookup: |; lookup: |, lookup: /.test(item);
+          const pin = /\(pin: |; pin: |, pin: /.test(item);
           const user = /\(the user, \[amendment-8\] §\d/.test(item);
-          expect({ archetype: a.title, item, cited: studies.length > 0 || lookup || user }).toEqual({ archetype: a.title, item, cited: true });
+          expect({ archetype: a.title, item, cited: studies.length > 0 || pin || user }).toEqual({ archetype: a.title, item, cited: true });
           for (const key of studies) expect({ item, key, defined: sources.has(key) }).toEqual({ item, key, defined: true });
         }
       }
     });
 
-    it("names only lookup files the pin holds", () => {
+    it("names only `pin:` files the pin holds", () => {
       const body = bodyOf(kits!);
-      const files = [...folded(body).matchAll(/lookup: ((?:`[^`]+`(?:, |; )?)+)/g)].flatMap((m) => [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]));
+      const files = [...folded(body).matchAll(/pin: ((?:`[^`]+`(?:, |; )?)+)/g)].flatMap((m) => [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]));
       expect(files.length).toBeGreaterThan(10);
+      expect(folded(body)).not.toMatch(/lookup: `/);
       for (const f of files) {
         const rel = f.replace(/:\d+(-\d+)?$/, '');
         expect({ f, exists: fs.existsSync(path.join(PIN_SRC, rel)) }).toEqual({ f, exists: true });

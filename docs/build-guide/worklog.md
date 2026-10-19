@@ -4579,3 +4579,10 @@ the `m17` engine at `b76967b`.
   `d907df9` had landed), WU-89 (nothing committed; its lane was clean at `7d8799e`), and the WU-84 and WU-85
   verifiers. No stray test or engine process was left. All four were resumed from their saved transcripts; WU-89 was
   told to commit as it goes.
+- **WU-84 verified: FAIL on one blocker.** All five gate checks pass (rebuilding from the saved pages gives a
+  byte-identical digest; all 324 in-pin flags agree with an independent check; 41 of the 44 socketable judgments
+  hold). The blocker: a uniques fixture entry (Berek's Grip) matches the saved page exactly apart from its hover
+  attributes, against the rule that no saved page or slice of one is committed; the other entries are lightly edited
+  copies. Should-fix: a repeated-line filter cut Mageblood's four lines to one; most unique head lines quote the
+  base's implicit line. A fix round went to the doer with the lows (two reasons, the criterion for socketables, a
+  redirect off poe2db.tw refused, stable ids across kinds). The head's 27% overshoot is accepted.

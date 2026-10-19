@@ -4649,3 +4649,12 @@ the `m17` engine at `b76967b`.
   round short for one engine deals no more than 6; the formats file gains the "Not dealt" line, the rival asked for at
   the brainstorm gate, and "(an estimate)" beside a measured clear speed. Gate rc 0 (140 suites, 2,490 tests). The
   coordinator read the diff. **Merged** into `build-guide/m20` (fast-forward).
+- **WU-87 done by its doer** (453K tokens; rebased cleanly onto the integration head). Gate rc 0 (143 suites, 2,523
+  tests) under the lock. Plan schema 5 (1–4 still accepted): a stage's `companion {species, mods}`, at most 4 kept
+  modifiers (the gem's own text). The stage holds a "Tame Beast" gem, which the compile swaps for PoB's companion
+  gem with the beast as its minion; the species goes into `build.beastList`. The record's `companion` holds the
+  beast, its DPS and its reserved Spirit (PoB's percentage of the player's Spirit: 200 and 400 Spirit give
+  reservations in that ratio). Hasted and Haste Aura made the test boar attack 1.5 times as fast; Trail of Ice sets
+  the Chilled Ground option. **For WU-91:** the skill text still says `schemaVersion: 4`; a companion stage should
+  list three companion options as earned state. **For the table:** two `stats` rows can't be parsed as `Companions
+  have …` (additional projectiles, crit-resistant). The verifier is running.

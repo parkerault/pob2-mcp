@@ -131,7 +131,10 @@ export const JUDGMENTS = {
   accurate: own(),
   'extra-chaos-damage': own(),
   'regenerates-life': own(),
-  'additional-projectiles': own("Worth something only when the beast's own skills fire projectiles."),
+  'additional-projectiles': own(
+    "PoB can't parse `Companions have Skills fire …`, so the compile writes PoB's wording, `Companions have 4 additional " +
+      "Projectiles` (WU-87). Worth something only when the beast's own skills fire projectiles.",
+  ),
   'increased-area-of-effect': own("It widens the beast's own skills."),
   'all-damage-ignites': j('condition', HIT, 'ignite', '', { config: CONFIG.ignited }),
   'all-damage-chills': j('condition', HIT, 'chill', '', { config: CONFIG.chilled }),
@@ -153,7 +156,10 @@ export const JUDGMENTS = {
     note: 'PoB likely doesn\'t parse its line: it leaves "…% reduced Slowing Potency of Debuffs on You" unparsed ' +
       '(`Data/ModCache.lua:1321`).',
   }),
-  'crit-resistant': own(),
+  'crit-resistant': j('none', BEAST, '', 'companion', {
+    note: "PoB can't take its line as `Companions have …`: it parses \"Hits against you have …\" for the player only, " +
+      'and no wording of it gives it to a companion (WU-87).',
+  }),
   'chaos-resistant': own(),
   'periodic-fire-explosions': j('none', NEAR, '', '', { note: NOTE.ownDamage }),
   'periodic-cold-explosions': j('none', NEAR, '', '', { note: NOTE.ownDamage }),

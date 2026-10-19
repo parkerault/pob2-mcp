@@ -8,7 +8,8 @@
  * says how a plan models the modifier on a tamed beast that keeps it (amendment 8, §4):
  * - `stats`: its lines go in as custom modifiers (D-293), each an estimate the record marks. Who it reaches decides the
  *   line's form (the row's `Reach`): `the beast` gives `Companions have <line>`, which PoB gives companion skills only
- *   (`Modules/ModParser.lua:1272-1273`); the beast's allies, "the player and minions", give the line as written for the
+ *   (`Modules/ModParser.lua:1272-1273`), or PoB's wording for a companion where it can't parse that (`companionLine`);
+ *   the beast's allies, "the player and minions", give the line as written for the
  *   player and `Minions have <line>` for the minions.
  * - `condition`: what it supplies is the config option its `Config` field names.
  * - `none`: PoB can't take it, and the plan adds nothing for it.
@@ -169,13 +170,31 @@ export function loadMonsterMods(dataDir: string): MonsterModTable {
 }
 
 /**
- * The custom-modifier lines a `stats` row writes (D-402): `Companions have <line>` for a modifier on the beast itself;
- * for one that reaches its allies, the line as written (the player) and `Minions have <line>` (the minions). None for
- * any other row.
+ * The beast's own lines PoB can't parse after `Companions have `, each with PoB's wording of it for a companion (WU-87):
+ * "Skills fire 4 additional Projectiles" is PoB's projectile count, which it parses for a companion as
+ * `Companions have 4 additional Projectiles`.
+ */
+const COMPANION_WORDING: readonly [RegExp, (m: RegExpExecArray) => string][] = [
+  [/^Skills fire (\d+) additional Projectiles$/i, (m) => `Companions have ${m[1]} additional Projectiles`],
+];
+
+/** A line of the beast's own as the compile writes it: PoB's wording for a companion, else `Companions have <line>`. */
+export function companionLine(line: string): string {
+  for (const [re, word] of COMPANION_WORDING) {
+    const m = re.exec(line);
+    if (m) return word(m);
+  }
+  return `Companions have ${line}`;
+}
+
+/**
+ * The custom-modifier lines a `stats` row writes (D-402): `Companions have <line>` for a modifier on the beast itself
+ * (or PoB's wording for a companion, `companionLine`); for one that reaches its allies, the line as written (the player)
+ * and `Minions have <line>` (the minions). None for any other row.
  */
 export function companionLines(mod: MonsterMod): { text: string; reaches: 'companion' | 'player' | 'minions' }[] {
   if (mod.model !== 'stats') return [];
-  if (mod.reach === 'companion') return mod.lines.map((l) => ({ text: `Companions have ${l}`, reaches: 'companion' as const }));
+  if (mod.reach === 'companion') return mod.lines.map((l) => ({ text: companionLine(l), reaches: 'companion' as const }));
   return mod.lines.flatMap((l) => [
     { text: l, reaches: 'player' as const },
     { text: `Minions have ${l}`, reaches: 'minions' as const },

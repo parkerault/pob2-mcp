@@ -5,7 +5,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 
 - **Source.** https://poe2db.tw/us/Monster_Modifiers, its "Archnemesis Mods" list (268 rows), and
   https://poe2db.tw/us/Tame_Beast, its own "Archnemesis Mods" list (178 rows). One block per name: 97 modifiers, 97 on
-  Tame_Beast's list; 25 modelled as stats, 13 as a condition, 59 not at all. Left out: 75 rows with no name (lower-value
+  Tame_Beast's list; 24 modelled as stats, 13 as a condition, 60 not at all. Left out: 75 rows with no name (lower-value
   variants of named modifiers, and expedition-rune, affliction and Runic Ward rows; many with internal stat ids or no
   lines).
 - **Read it by Grep:** a family (`chilled-ground`) in the index below, then the block by its heading
@@ -68,7 +68,7 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Trail of Ice (trail-of-ice): condition; creates chilled-ground; pays off on none; keeps: yes
 - Trail of Lightning (trail-of-lightning): condition; creates shocked-ground; pays off on none; keeps: yes
 - Slow Resistant (slow-resistant): none; creates none; pays off on companion; keeps: yes
-- Crit Resistant (crit-resistant): stats; creates none; pays off on companion; keeps: yes
+- Crit Resistant (crit-resistant): none; creates none; pays off on companion; keeps: yes
 - Chaos Resistant (chaos-resistant): stats; creates none; pays off on companion; keeps: yes
 - Periodic Fire Explosions (periodic-fire-explosions): none; creates none; pays off on none; keeps: yes
 - Periodic Cold Explosions (periodic-cold-explosions): none; creates none; pays off on none; keeps: yes
@@ -470,8 +470,9 @@ D-402). Re-run the script to change it; its judgments are in the script.
 - Model: stats
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. Worth something only
-  when the beast's own skills fire projectiles.
+- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone. PoB can't parse
+  `Companions have Skills fire …`, so the compile writes PoB's wording, `Companions have 4 additional Projectiles`
+  (WU-87). Worth something only when the beast's own skills fire projectiles.
 
 ### Increased Area of Effect
 - Id: increased-area-of-effect
@@ -588,10 +589,11 @@ D-402). Re-run the script to change it; its judgments are in the script.
   - "Hits against you have 80% reduced Critical Damage Bonus"
 - URL: https://poe2db.tw/us/Crit_Resistant
 - Tamed beast keeps it: yes
-- Model: stats
+- Model: none
 - Reach: the beast
 - Creates: none | Pays off on: companion
-- Note: A plan writes its lines as `Companions have …` lines, which PoB gives the companion alone.
+- Note: PoB can't take its line as `Companions have …`: it parses "Hits against you have …" for the player only, and no
+  wording of it gives it to a companion (WU-87).
 
 ### Chaos Resistant
 - Id: chaos-resistant

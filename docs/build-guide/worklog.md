@@ -4609,3 +4609,6 @@ the `m17` engine at `b76967b`.
 - **WU-86 verified: PASS** on the re-check (the fix round's two test files 36 of 36; a fresh `--from` run equals the
   committed table); the verifier's total about 230K. **Merged** into `build-guide/m20` (fast-forward). Left low: a
   keyword sentence not in the aura form gives no lines without failing.
+- **WU-87 dispatched** (`bg-87`, off `767fc41`, with WU-86 and WU-88 merged): the plan's `companion {species, mods}`,
+  the compile through PoB's beast library, kept modifiers by their table rows (`Companions have …` for beast-only
+  lines), the companion's DPS and reserved Spirit in the record.

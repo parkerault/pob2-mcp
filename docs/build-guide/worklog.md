@@ -4666,3 +4666,8 @@ the `m17` engine at `b76967b`.
   shapeshifting, ballistas, poison (the only poison study is PoE1), penetration, Chaos Inoculation casters. Static
   tests 422 of 422. The review sheet for the user: `studies/2026-10-18-wu90-review.md`. The verifier checks every
   source before the user sees it.
+- **WU-90 verified: PASS** (2 should-fix, 5 low). All 40 kit lines checked against their sources: 1 misstates a
+  detail, none unsupported, none rests on a PoE1 study; all 13 pin lookups and both user citations hold. Should-fix:
+  the ×3.1 belongs to one of the two Explosive Concoction builds (the other ×2.2); the tamed-beast entry dropped the
+  user's point that Haste is the modifier players prioritize. A fix round with the lows went to the doer, before the
+  user's review.

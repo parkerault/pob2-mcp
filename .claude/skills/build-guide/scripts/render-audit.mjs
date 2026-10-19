@@ -12,8 +12,9 @@
 // gates.md's "Price days, targets and ranges") to recompute the D1 gate's budget, so both use one conversion.
 //
 // Its choices where the template leaves one open:
-//  - movement speed is the record's `outputs.EffectiveMovementSpeedMod` (PoB's "Movement Speed" in the sidebar),
-//    written as a reader would, the bonus over base in whole percent: 1.251 is `+25%`;
+//  - movement speed is the record's `measures.movementSpeed` (D-407, WU-88), else, in a record from before it,
+//    `outputs.EffectiveMovementSpeedMod` (PoB's "Movement Speed" in the sidebar, the same multiplier), written as a
+//    reader would, the bonus over base in whole percent: 1.251 is `+25%`;
 //  - each rung's budget line (D-374) takes its total range from the D1 gate's `basis.budget.totals` and its
 //    over-target slots from the gate's `over-target` findings, in the gate's order; an over-target slot's fallback
 //    (the entry `<priceId>-fallback`) is converted to the rung's price day like any other price, at the gate's
@@ -432,7 +433,8 @@ function clearLine(rec) {
   const c = rec.measures?.clearSpeed;
   const speed = typeof c?.speed === 'string' ? c.speed : 'not measured';
   const from = typeof c?.skill === 'string' ? `a rough estimate from ${c.skill}'s area` : 'a rough estimate; PoB measured no clear skill';
-  const move = rec.outputs?.EffectiveMovementSpeedMod;
+  // D-407: the record's measure where it has one (a record from WU-88 on), else PoB's output it reads.
+  const move = isNum(rec.measures?.movementSpeed) ? rec.measures.movementSpeed : rec.outputs?.EffectiveMovementSpeedMod;
   const pct = isNum(move) ? Math.round((move - 1) * 100) : null;
   return `- Clear speed: ${speed}, ${from}. Movement speed: ${pct === null ? 'not measured' : `${pct < 0 ? '' : '+'}${pct}%`}.`;
 }

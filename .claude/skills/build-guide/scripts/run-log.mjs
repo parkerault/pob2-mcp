@@ -38,6 +38,14 @@
 // recorded. The final gate's display runs the run checker and carries each endgame rung's final figures (D-369)
 // and its budget line, the total range at its price day with its over-target slots (D-371, D-374).
 //
+// Amendment 8 (WU-89): the rival's step `RV` (D-408), `done` when it wrote its card `cards/r<k>-x-<n>.md` and
+// `none-found` with `tried`, what it tried, when it found no faster structure; the card id letter `x`. The brainstorm
+// display adds the obvious card's `Obvious build:` line (D-403) and a card's `waits on the pin` entry (D-400); the
+// verification display leads each card with its skeleton's measured clear speed and movement speed, then its Bosses
+// line (D-407), marks the rival, and shows the structure check's `A stronger structure?` line (D-406); the design
+// display leads each rung with its clear speed and movement speed, then the Arbiter check. A clear skill PoB gives no
+// area reads `<speed> (PoB gives no area)`. The formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview. What needs the deck (a new card's `from`
 // and its name) is checked when the gate's checkpoint is written.
@@ -48,11 +56,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** A card id (D-319): `r<round>-<letter>-<n>`, the letters a to c a brainstorm round's researchers', g a card made at a gate (D-391). */
-export const CARD_ID = 'r[1-9]\\d*-[a-cg]-[1-9]\\d*';
+/**
+ * A card id (D-319): `r<round>-<letter>-<n>`, the letters a to c a brainstorm round's researchers', g a card made at a
+ * gate (D-391), x the rival's (D-408).
+ */
+export const CARD_ID = 'r[1-9]\\d*-[a-cgx]-[1-9]\\d*';
 const CARD = new RegExp(`^${CARD_ID}$`);
 /** A card made at a gate (D-391): `r<k>-g-<n>`. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
+/** The rival's card (D-408): `r<k>-x-<n>`, k the latest brainstorm round when its RV step ran, n counting the run's rivals in it. */
+export const RIVAL_CARD = /^r([1-9]\d*)-x-([1-9]\d*)$/;
 const IDS = `${CARD_ID}(?:,${CARD_ID}){0,2}`;
 const TRADE_KINDS = ['no_session', 'session_rejected', 'too_complex', 'invalid_query', 'rate_limited', 'locked_out', 'would_wait', 'auth', 'http', 'network', 'timeout', 'disabled'];
 /** Each stage and its outcomes (run-log.md); every step may also be `missing`. `Q` is a gate question step (D-390). */
@@ -70,8 +83,10 @@ const OUTCOMES = {
   V4: ['pass', 'fail'],
   'V4-recheck': ['pass', 'fail'],
   Q: ['done'],
+  // D-408: the rival writes its card (`done`), or finds no faster structure (`none-found`, with what it `tried`).
+  RV: ['done', 'none-found'],
 };
-const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q'];
+const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q', 'RV'];
 const PRICING = ['R1b', 'D1-finish', 'D1-gate', 'D2'];
 /**
  * Each gate's or question's answers (run-log.md, D-362). A brainstorm `pick:` or a verification `verify:` with no
@@ -96,7 +111,7 @@ const CONFIG_ANSWERS = {
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 /** Each kind's fields, in the order run-log.md writes them. */
 const FIELDS = {
-  stage: ['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes', 'probes', 'shortReason'],
+  stage: ['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes', 'probes', 'shortReason', 'tried'],
   checkpoint: ['checkpoint', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note'],
   escalation: ['stage', 'concept', 'verdict', 'choice', 'guidance'],
   set: ['status', 'roll', 'outputs', 'faults'],
@@ -194,6 +209,8 @@ export function entryProblems(kind, e) {
     }
     if (e.stage === 'R1b' ? !isInt(e.probes, 0) : e.probes !== undefined) bad.push(e.stage === 'R1b' ? 'an R1b entry has probes, the probe variants it ran (0 when none)' : 'probes is only on R1b');
     if (e.stage === 'R1a-assemble' ? e.shortReason !== undefined && !text(e.shortReason) : e.shortReason !== undefined) bad.push('shortReason is only on R1a-assemble, a non-empty text');
+    // D-408: a rival that found no faster structure says what it tried.
+    if (e.stage === 'RV' && e.outcome === 'none-found' ? !text(e.tried) : e.tried !== undefined) bad.push('tried is on an RV entry whose outcome is none-found, and only there: what the rival tried, a non-empty text (D-408)');
   } else if (kind === 'checkpoint') {
     const form = ANSWERS[e.checkpoint];
     if (!form) return [...bad, `checkpoint ${show(e.checkpoint)} isn't one of ${Object.keys(ANSWERS).join(', ')}`];
@@ -387,17 +404,47 @@ export const DECK_HEADER = ['What the cards share', 'How they differ'];
 export const DECK_FOOTER = ['Not dealt', 'Found, not used'];
 /** The mark on a gate-made card's deck line (D-391). */
 export const MADE_MARK = 'made at the gate';
+/** D-406: the structure check's optional last line, `- A stronger structure? <the flip, and the rough multiplier>`. */
+export const STRONGER = 'A stronger structure?';
+
+/**
+ * D-406: a card's `### Structure check`, in its verification half: its top-level items `- <text>` (indented lines
+ * joined to them) with their line numbers, the H2 it sits under, and its stronger-structure line `- A stronger
+ * structure? <text>` (`stronger`, the text after the question mark; `strongerLast`, whether it is the section's last
+ * item). Null when the card has no such heading.
+ */
+function structureCheck(lines) {
+  const at = lines.findIndex((l) => /^###\s+Structure check\s*$/.test(l));
+  if (at < 0) return null;
+  const h2 = lines.slice(0, at).filter((l) => /^##\s/.test(l)).pop()?.replace(/^##\s+/, '').trim() ?? null;
+  const items = [];
+  for (let i = at + 1; i < lines.length && !/^#{1,3}\s/.test(lines[i]); i += 1) {
+    const l = lines[i];
+    const item = /^[-*]\s+(.*)$/.exec(l);
+    if (item) items.push({ text: item[1].trim(), line: i + 1 });
+    else if (items.length > 0 && /^\s+\S/.test(l)) items[items.length - 1].text += ` ${l.trim().replace(/^[-*]\s+/, '')}`;
+  }
+  const k = items.findIndex((x) => x.text.startsWith(STRONGER));
+  return {
+    line: at + 1, h2, items,
+    stronger: k < 0 ? null : items[k].text.slice(STRONGER.length).trim(),
+    strongerLine: k < 0 ? null : items[k].line,
+    strongerLast: k < 0 || k === items.length - 1,
+  };
+}
 
 /**
  * A card file's Pitch (D-392): each top-level item `- <Field>: <text>` under `### Pitch`, its indented lines
- * joined to it (a nested item with "; "). Returns `{name, fields, changed, made}`: the name (`Name`, or a card from
- * before amendment 7's `Title`), every field by its name, and the gate lines R1b adds, `- Changed at the gate (visit
- * <n>): <words>` and `- Made at the gate (visit <n>): from <name> and <name>: <words>`, each `{visit, text, line}`.
+ * joined to it (a nested item with "; "). Returns `{name, fields, changed, made, structure}`: the name (`Name`, or a
+ * card from before amendment 7's `Title`), every field by its name (`Obvious build` among them, D-403), the gate lines
+ * R1b adds, `- Changed at the gate (visit <n>): <words>` and `- Made at the gate (visit <n>): from <name> and <name>:
+ * <words>`, each `{visit, text, line}`, and the verification half's structure check (D-406, `structureCheck`).
  */
 export function parseCard(textOrNull) {
-  const out = { name: null, fields: new Map(), changed: [], made: [] };
+  const out = { name: null, fields: new Map(), changed: [], made: [], structure: null };
   if (typeof textOrNull !== 'string') return out;
   const lines = textOrNull.replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')).split('\n');
+  out.structure = structureCheck(lines);
   const at = lines.findIndex((l) => /^###\s+Pitch\s*$/.test(l));
   if (at < 0) return out;
   let last = null;
@@ -421,10 +468,25 @@ export function parseCard(textOrNull) {
 }
 
 /**
+ * A deck line's engine part (D-405), `engine: <family> from <family>`: `{raw, ok, consumed, supply}`, `ok` false
+ * when the part isn't two lower-case words joined by " from " (the run checker holds the words to
+ * data/rules/vocabulary.md).
+ */
+export function engineOf(part) {
+  const m = /^engine:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s+from\s+([a-z0-9]+(?:-[a-z0-9]+)*)\s*$/.exec(part);
+  return m ? { raw: part, ok: true, consumed: m[1], supply: m[2], key: `${m[1]} from ${m[2]}` } : { raw: part, ok: false, consumed: null, supply: null, key: null };
+}
+/** A deck line's `can't be finalized yet: <why>` part (D-303), any apostrophe. */
+export const CANT_FINALIZE = /^can['’]t be finalized yet\b/i;
+/** D-400: a deck line's `waits on the pin: <entry>` part, on a card that can't be finalized yet. */
+export const WAITS_ON_PIN = /^waits on the pin\b/i;
+
+/**
  * The deck `cards.md` (D-287, D-391, D-392): its H2s in order, the header's two texts, each line `- <id> "<Name>" |
  * <part> | …` with its section (`Round <k>` or `Not dealt`), and the found-not-used items. A gate-made card's line
  * carries the part `made at the gate (visit <n>): from "<Name>" and "<Name>"`, an under-played one the part
- * `under-played (judgment: <why>)`.
+ * `under-played (judgment: <why>)`. Amendment 8: a line's `engine: <family> from <family>` parts (`engines`, D-405)
+ * and its `waits on the pin: <entry>` part (`waits`, D-400).
  */
 export function parseDeck(textOrNull) {
   const deck = { h2: [], share: null, differ: null, entries: [], found: [], lines: [] };
@@ -458,6 +520,8 @@ export function parseDeck(textOrNull) {
       id: m[1], name: m[2] ?? null, parts, raw: raw.trim(), n: i + 1, section, round: round ? Number(round[1]) : null,
       made: parts.find((p) => p.toLowerCase().startsWith(MADE_MARK)) ?? null,
       underPlayed: parts.find((p) => /^under-played\b/i.test(p)) ?? null,
+      engines: parts.filter((p) => /^engine\b/i.test(p)).map(engineOf),
+      waits: parts.find((p) => WAITS_ON_PIN.test(p)) ?? null,
     });
   });
   const paragraph = (title) => (body.has(title) ? body.get(title).map((l) => l.raw).join(' ') : null);
@@ -544,6 +608,30 @@ const speedOf = (c) => (typeof c === 'string' ? c : typeof c?.speed === 'string'
 const clearWords = (c) => (speedOf(c) === 'not measured' ? 'clear speed not measured' : `clear speed ${speedOf(c)} (rough)`);
 /** What the figures mean, said once above them (D-392). */
 const FIGURES_MEAN = "Damage is PoB's damage per second for the main skill; effective HP is PoB's estimate of the damage it takes to kill you; clear speed is a rough estimate from the main skill's area.";
+/** The design gate's, in its figures' order (D-407): the pace first, then the boss check, then damage and toughness. */
+const PACE_FIRST = "Clear speed is a rough estimate from the main skill's area; movement speed is PoB's, over your base speed; damage is PoB's damage per second for the main skill; effective HP is PoB's estimate of the damage it takes to kill you.";
+/**
+ * D-407: the player's movement speed, a multiplier: the record's `measures.movementSpeed`, else PoB's
+ * `EffectiveMovementSpeedMod` in its outputs (a record from before WU-88); null when neither is a number.
+ */
+const moveOf = (rec) => (isNum(rec?.measures?.movementSpeed) ? rec.measures.movementSpeed : isNum(rec?.outputs?.EffectiveMovementSpeedMod) ? rec.outputs.EffectiveMovementSpeedMod : null);
+/** A movement multiplier as a bonus over the base speed, in whole percent, as render-audit.mjs writes it: 1.251 is "+25%". */
+const moveWords = (m) => {
+  if (!isNum(m)) return 'not measured';
+  const p = Math.round((m - 1) * 100);
+  return `${p < 0 ? '' : '+'}${p}% over your base speed`;
+};
+/**
+ * D-407: PoB gives the measured clear skill no area (`noArea`), so its band reads slow for want of a radius. A stage
+ * with no clear skill (`skill` null) carries the flag too, but there's no skill to say it of.
+ */
+const noArea = (c) => isObj(c) && c.noArea === true && typeof c.skill === 'string';
+/** A skeleton's measured clear speed in words (D-407): the record's speed, never its band, and why it may read slow. */
+function clearPhrase(c) {
+  if (noArea(c)) return `${c.speed} (PoB gives no area)`;
+  if (typeof c?.skill !== 'string') return `${speedOf(c)} (a rough estimate; PoB measured no clear skill)`;
+  return `${speedOf(c)} (a rough estimate from ${c.skill}'s area)`;
+}
 /** A rung's figures in words (D-392): damage, effective HP, the Arbiter on `b` and `n`, and the rough clear speed. */
 function rungWords(r) {
   return [
@@ -594,15 +682,22 @@ function briefLine(log) {
   return `Brief: ${brief || 'none (surprise me)'}`;
 }
 
-/** One card's pitch lines (D-392): its five lines, then Unusual, a link not confirmed, and a gate's mark. */
+/**
+ * One card's pitch lines (D-392): its five lines, then the obvious card's kit (D-403), Unusual, a link not confirmed,
+ * a gate's mark, and why it can't be finalized yet, with the entry it waits on (D-303, D-400).
+ */
 function pitchLines(card, plain, deckLine) {
   const field = (k) => card.fields.get(k)?.value;
   const out = PITCH_LINES.map((k) => `   ${k}: ${text(field(k)) ? plain(field(k)) : 'not given'}`);
+  if (text(field('Obvious build'))) out.push(`   Obvious build: ${plain(field('Obvious build'))}`);
   if (text(field('Under-played (judgment)'))) out.push(`   Unusual: ${plain(field('Under-played (judgment)'))}`);
   if (text(field('Not confirmed'))) out.push(`   Not confirmed: ${plain(field('Not confirmed'))}`);
   for (const g of card.made) out.push(`   Made at the gate (visit ${g.visit}): ${plain(g.text)}`);
   for (const g of card.changed) out.push(`   Changed at the gate (visit ${g.visit}): ${plain(g.text)}`);
-  if (deckLine?.parts.some((p) => /^can't be finalized yet/i.test(p))) out.push(`   ${plain(deckLine.parts.find((p) => /^can't be finalized yet/i.test(p))).replace(/^c/, 'C')}.`);
+  const cant = deckLine?.parts.find((p) => CANT_FINALIZE.test(p));
+  if (cant) out.push(`   ${plain(cant).replace(/^c/, 'C')}.`);
+  const waits = /^waits on the pin:\s*(.+)$/i.exec(deckLine?.waits ?? '')?.[1];
+  if (waits) out.push(`   Waits on PoB: ${plain(waits)} isn't in the PoB version this run uses, so the build can't be measured yet.`);
   return out;
 }
 
@@ -665,7 +760,8 @@ function skeletonFigures(dir, id) {
   const boss = objects(st?.config?.scenario).find((c) => c.option === 'enemyIsBoss')?.value;
   return {
     dps, skill, minion, estimate: count > 1 || rec.computedWithCustomMods === true, life: rec.outputs?.Life, ehp: rec.outputs?.TotalEHP,
-    against: boss === undefined || boss === 'None' ? 'map monsters' : `a boss (PoB's ${boss} setting)`, clear: rec.measures?.clearSpeed,
+    against: boss === undefined || boss === 'None' ? 'map monsters' : `a boss (PoB's ${boss} setting)`,
+    clear: isObj(rec.measures?.clearSpeed) ? rec.measures.clearSpeed : null, move: moveOf(rec),
   };
 }
 
@@ -689,29 +785,42 @@ function verificationDisplay(dir, log) {
   rows.forEach((r, k) => {
     const card = cards.get(r.id) ?? parseCard(null);
     const field = (f) => card.fields.get(f)?.value;
-    out.push(`${k + 1}. ${name(r.id)}: ${statusWords(r.cell('Status'), plain)}.`);
+    // D-408: the rival's card is shown beside the others, marked as the rival.
+    const rival = RIVAL_CARD.test(r.id);
+    out.push(`${k + 1}. ${name(r.id)}${rival ? ', the rival' : ''}: ${statusWords(r.cell('Status'), plain)}.`);
+    if (rival) out.push('   The rival: a researcher with fresh context wrote it to clear faster than the other cards.');
     if (text(field('Why pick it'))) out.push(`   Why pick it: ${plain(field('Why pick it'))}`);
     const fig = /^viable\b/i.test(r.cell('Status')) ? skeletonFigures(dir, r.id) : null;
+    // D-407: the pace leads, the skeleton's measured clear speed and movement speed, then the boss floor (the card's
+    // Bosses line: a skeleton has no Arbiter check), then damage and toughness. A record from before WU-88 has no
+    // measures, so a verified card's "How it clears" stands in, marked as the estimate it is; when PoB gives the clear
+    // skill no area, the card's estimate leads.
+    const pace = fig?.clear ?? null;
+    const how = text(field('How it clears')) ? plain(field('How it clears')) : null;
+    if (how && noArea(pace)) out.push(`   How it clears: ${how} (the card's estimate)`);
+    if (pace) out.push(`   Clear speed: ${clearPhrase(pace)}.`, `   Movement speed: ${moveWords(fig.move)}.`);
+    if (how && !noArea(pace)) out.push(`   How it clears: ${how}${fig !== null && !pace ? ' (an estimate; measured at the design)' : ''}`);
+    if (text(field('Bosses'))) out.push(`   Bosses: ${plain(field('Bosses'))}`);
     if (fig) {
-      const how = fig.estimate ? 'an estimate: a Count above 1 or a custom modifier carries it' : 'modelled in PoB';
-      out.push(`   Damage: ${whole(fig.dps)} per second from ${fig.minion ? `${fig.skill}'s minions` : fig.skill}, against ${fig.against} (${how}).`);
+      const measured = fig.estimate ? 'an estimate: a Count above 1 or a custom modifier carries it' : 'modelled in PoB';
+      out.push(`   Damage: ${whole(fig.dps)} per second from ${fig.minion ? `${fig.skill}'s minions` : fig.skill}, against ${fig.against} (${measured}).`);
       out.push(`   Toughness: ${whole(fig.life)} life and ${whole(fig.ehp)} effective HP (PoB's estimate of the damage it takes to kill you).`);
-      if (fig.clear) out.push(`   Clear speed: ${speedOf(fig.clear)} (a rough estimate from the main skill's area).`);
     }
-    // §5's rough clear speed: the record's measure when it has one; a skeleton has none (only a stage with a variant is
-    // measured), so a verified card's "How it clears" stands in for it, marked as the estimate it is.
-    const unmeasured = fig !== null && !fig.clear;
-    if (text(field('How it clears'))) out.push(`   How it clears: ${plain(field('How it clears'))}${unmeasured ? ' (an estimate; measured at the design)' : ''}`);
     const prices = r.cell('Key prices');
     if (text(prices) && !/^[—-]+$/.test(prices)) out.push(`   Key prices: ${plain(prices)}${/^none\b/i.test(r.cell('League')) || /^[—-]*$/.test(r.cell('League')) ? '' : ` (league: ${r.cell('League')})`}.`);
     if (text(field('The catch'))) out.push(`   The catch: ${plain(field('The catch'))}`);
     const risk = r.cell('Main risk');
     if (text(risk) && !/^[—-]+$/.test(risk)) out.push(`   Found in verification: ${plain(risk)}`);
+    // D-406: the structure check's stronger structure, under the card, so the user can make a new card from it.
+    if (text(card.structure?.stronger)) out.push(`   ${STRONGER} ${plain(card.structure.stronger)}`);
     for (const g of card.made) out.push(`   Made at the gate (visit ${g.visit}): ${plain(g.text)}`);
     for (const g of card.changed) out.push(`   Changed at the gate (visit ${g.visit}): ${plain(g.text)}`);
     out.push('');
     ref.push(`${k + 1}. ${name(r.id)}: ${r.id}`);
   });
+  // D-408: a rival that found no faster structure says so, with what it tried.
+  const rv = lastStage(log, ['RV']);
+  if (rv?.outcome === 'none-found') out.push(`The rival, a researcher with fresh context, found no structure that clears faster. What it tried: ${text(rv.tried) ? plain(rv.tried) : 'not given'}`, '');
   const lastR1b = new Map();
   for (const s of stagesOf(log)) if (s.stage === 'R1b' && s.outcome !== 'missing') lastR1b.set(s.concept, s);
   for (const s of lastR1b.values()) if (s.outcome === 'fail') ref.push(`${name(s.concept)} (${s.concept}) failed: ${verdictFile(s)}`);
@@ -741,13 +850,20 @@ function designDisplay(dir, log) {
   if (!isObj(gate?.design)) return [`${file} has no design field.`];
   const plan = readJson(dir, 'plan.json');
   const { name } = cardsOf(dir);
-  const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${FIGURES_MEAN}`, ''];
+  // D-407: the D1 gate's record (its recordPath) gives each rung's movement speed and the clear skill's no-area flag.
+  const record = readJson(dir, typeof gate.recordPath === 'string' ? gate.recordPath : 'compile-record.json');
+  const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${PACE_FIRST}`, ''];
   for (const r of objects(gate.design.rungs)) {
+    const rec = record?.stages?.[r.stage];
+    const measured = rec?.measures?.clearSpeed;
+    // D-407: the pace leads (the gate's clear-speed word, or the record's speed when PoB gives the skill no area), then
+    // the boss floor, the Arbiter check, then damage and effective HP.
     out.push(`${rungLabel(plan, r.stage)}:`);
+    out.push(`- Clear speed: ${noArea(measured) ? clearPhrase(measured) : `${speedOf(typeof r.clearSpeed === 'string' ? r.clearSpeed : measured)} (rough)`}.`);
+    out.push(`- Movement speed: ${moveWords(moveOf(rec))}.`);
+    if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
     out.push(`- Damage: ${whole(r.dps)} per second.`);
     out.push(`- Effective HP: ${whole(r.ehp)}.`);
-    if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
-    out.push(`- Clear speed: ${speedOf(r.clearSpeed)} (rough).`);
     for (const [k, label] of [['anoint', 'Anoint'], ['gear', 'Gear'], ['gems', 'Gems'], ['tree', 'Passive tree']]) if (text(r[k])) out.push(`- ${label}: ${r[k]}`);
     out.push('');
   }

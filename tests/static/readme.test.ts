@@ -91,8 +91,9 @@ const REMOVED_ENV = [
 ];
 const CHANGED_ENV = ['POB_TIMEOUT_MS', 'POB_FORK_PATH', 'POB_DIRECTORY'];
 
+/** D-16 as amended 2026-10-18: the public README shows the generic form, with no machine's paths. */
 const D16_COMMAND =
-  'claude mcp add pob2 -s user -e "POB_DIRECTORY=/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds" -- mise exec -C /home/parker/projects/pob2-mcp -- node build/index.js';
+  'claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise exec -C <path to this repo> -- node build/index.js';
 const GGG_NOTICE = "This product isn't affiliated with or endorsed by Grinding Gear Games in any way.";
 
 /** AC-G2: the AC-F20 hits in one file's text, matched on the flattened text so line wraps can't hide one. */

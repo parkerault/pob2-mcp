@@ -43,18 +43,12 @@ The server refuses to start the engine on any other PoB2 version. If it reports 
 
 ## Register with Claude Code
 
-On this box (WSL2, builds in the Windows PoB2 folder), the registration command is:
-
-```bash
-claude mcp add pob2 -s user -e "POB_DIRECTORY=/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Builds" -- mise exec -C /home/parker/projects/pob2-mcp -- node build/index.js
-```
-
-On another machine, change the two paths: `POB_DIRECTORY` is your PoB2 builds folder, and `-C` is
-where you cloned this repository.
-
 ```bash
 claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise exec -C <path to this repo> -- node build/index.js
 ```
+
+`POB_DIRECTORY` is your PoB2 builds folder, and `-C` is where you cloned this repository. On WSL2, with
+PoB2 installed on Windows, the builds folder is `/mnt/c/Users/<you>/Documents/Path of Building (PoE2)/Builds`.
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
 Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 84 tools.
@@ -139,7 +133,7 @@ Snapshots, backups, exports and config presets live in `~/.local/state/pob2-mcp`
   `compare_builds`, `validate_build`, `analyze_defenses`) load it temporarily and put the engine's build
   back afterwards, unsaved changes included.
 - **Build names** resolve to the file's on-disk spelling, so `grenadator` and `Grenadator.xml` name the
-  same file on the Windows drive.
+  same file.
 
 ## Tools
 

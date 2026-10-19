@@ -4563,3 +4563,5 @@ the `m17` engine at `b76967b`.
   `stacking-buff`, `accuracy`, `luck`, `thorns`, `attribute`, `passive-tree`, `support-gem`. A retag round goes to
   the doer before verification. **For WU-89:** `pairs.md` cites nodes as `rules/nodes.md#<node id>`, and node entries
   are lines, so the resolver must find the line whose parenthesis starts with that id.
+- **WU-89 told** the node-line citation form (`rules/nodes.md#<node id>` resolves to the line whose parenthesis starts
+  with that id).

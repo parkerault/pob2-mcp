@@ -4718,3 +4718,20 @@ the `m17` engine at `b76967b`.
   `verify-wu91.md`). Next: WU-91's verdict and any fix round, its merge, the wave gate on `build-guide/m20` (one
   full run under the shared lock), then the sign-rebase and `main`'s fast-forward with the user present (1Password),
   the cited hashes remapped, `main` and `m18` rebuilt, then the user's push and worktree cleanup.
+- **WU-91 verified: PASS** with 2 should-fix and 5 low findings: the runner told to strip the `short: ` prefix the
+  checker reads for a round short on one engine; the user's-note exemption looser than the checker's (the note must
+  name the engine's consumed family); the RV test missing plain-word reads; FI-1 missing `not-in-pin` and
+  `not-dealt`; the digest's staleness read and "newest" undefined; the rival's rename against R1b's edit rule and
+  the gate-name rule; RV not requiring a structure that differs from every dossier row. The doer fixed all seven
+  (`2c04726`; 382 targeted tests); the re-check passed and left two low gaps, which the coordinator closed
+  (`bc5856d`: the engine's reason first in a two-reason `short:` line; R1b's prompt says when a gate relayed a
+  rival). **Merged** into `build-guide/m20` (fast-forward, head `bc5856d`). All eight units are merged.
+- **The M-20 wave gate passed** on `build-guide/m20` under the shared lock: test rc 0 (149 suites, 2,638 tests;
+  then the two timing suites, compile-plan and trade-query, 3 tests), build rc 0. Next: the sign-rebase into `main` with the user
+  present.
+- **The Mobalytics review started** (the user: "You can go ahead and start the guides now"). The user added guide 17,
+  Lyrthos's Autobomber Apocalypse Shaman, an automated skill loop (Community tab, 0.5.5). All 17 pages (18 files,
+  about 148,000 words) were saved through Playwright, one at a time, to `pob2-mcp-wt/mobalytics-cache/`, outside
+  the repository; the browser is closed. The brief gained the saved-page notes and the study brief (`ffe0380`).
+  Seventeen study agents are writing one study each under `studies/` (no tests, no network, at most 10 local
+  lookups each).

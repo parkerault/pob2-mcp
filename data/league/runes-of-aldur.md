@@ -65,31 +65,31 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Explosive Transmutation (gem, Buff): While active, picking up Remnants Triggers a deadly explosion, dealing damage at the location of the …
 - Rain of Blades (gem, Attack): Pour your Runic Ward into conjuring blades.
 - Olroth's Hubris (gem, Support): Supports Attacks you use or Trigger yourself, causing them to cost Runic Ward to use but …
-- Berek's Grip (unique, Two-Stone Ring): +(12—16)% to Cold and Lightning Resistances
-- Berek's Pass (unique, Two-Stone Ring): +(12—16)% to Fire and Cold Resistances
-- Berek's Respite (unique, Two-Stone Ring): +(12—16)% to Fire and Lightning Resistances
+- Berek's Grip (unique, Two-Stone Ring): +(10—20) to Dexterity and Intelligence
+- Berek's Pass (unique, Two-Stone Ring): +(10—20) to Strength and Intelligence
+- Berek's Respite (unique, Two-Stone Ring): +(10—20) to Strength and Dexterity
 - Brutus' Lead Sprinkler (unique, Morning Star): Grants Skill: Level 11 Molten Shower
-- Cat O' Nine Tails (unique, Utility Belt): Has (1—3) Charm Slots
+- Cat O' Nine Tails (unique, Utility Belt): +(120—200) to maximum Life
 - Decree of Acuity (unique, Ancient Visor): (150—250)% increased Armour and Evasion
 - Decree of Flight (unique, Ancient Leggings): 30% increased Movement Speed
 - Decree of Loyalty (unique, Ancient Mail): (200—300)% increased Armour and Energy Shield
-- Duality (unique, Warding Quarterstaff): +(30—50) to maximum Runic Ward
+- Duality (unique, Warding Quarterstaff): (200—300)% increased Physical Damage
 - Eventide Petals (unique, Veridical Chain): Grants Skill: Level 13 Midnight Zenith
 - Eyes of the Runefather (unique, Venerable Defender): Grants Skill: Raise Shield
 - Facebreaker (unique, Stocky Mitts): Has 8 to 12 Physical damage, +3 to +4 per Boss's Face Broken
 - Forgotten Warden (unique, Primal Markings): Grants Skill: Level 16 Spirit Vessel
-- Geofri's Sanctuary (unique, Revered Vestments): +1% to all Maximum Elemental Resistances
+- Geofri's Sanctuary (unique, Revered Vestments): (150—200)% increased Armour
 - Horror's Flight (unique, Engraved Bracers): Grants Skill: Level 15 Crushing Fear
-- Immaculate Adherence (unique, Solar Amulet): +(10—15) to Spirit
-- Ironbound (unique, Warden Bow): (25—35)% chance to Chain an additional time
+- Immaculate Adherence (unique, Solar Amulet): 100% of Damage is taken from Mana before Life
+- Ironbound (unique, Warden Bow): +(100—150) to Armour
 - Liminal Coil (unique, Twisted Wand): Grants Skill: Coiling Bolts
 - Loreweave (unique, Ornate Ringmail): Adds (1—4) to (8—12) Physical Damage to Attacks
-- Mageblood (unique, Utility Belt): Has (1—3) Charm Slots
-- Mastered Domain (unique, Irradiated Tablet): Adds Irradiated to a Map 1 uses remaining [not in pin]
+- Mageblood (unique, Utility Belt): All Mage's Legacies have (25—50)% increased effect per duplicate Mage's Legacy you have
+- Mastered Domain (unique, Irradiated Tablet): Map also counts as a Water Map [not in pin]
 - Nightfall (unique, Glacial Fortress): Grants Skill: Raise Shield
 - Opportunity (unique, Ultimate Life Flask): Effect is not removed when Unreserved Life is Filled
 - Periphery (unique, Heartwood Shortbow): Grants Skill: Level 16 Azmerian Swarms
-- Redemption (unique, Trarthan Cannon): Cannot load or fire Ammunition
+- Redemption (unique, Trarthan Cannon): (300—400)% increased Physical Damage
 - Reverie (unique, Shaman Mantle): Grants Skill: Level 8 Rite of Restoration
 - Runeseeker's Call (unique, Runic Fork): Grants Skill: Level 15 The Stars Answer
 - Sadist's Mercy (unique, Flanged Mace): Grants Skill: Level 16 Harbinger of Madness
@@ -104,11 +104,11 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - The Ordained (unique, Grand Spear): Grants Skill: Spear Throw
 - The Raven's Flock (unique, Perching Staff): Grants Skill: Spiraling Conspiracy
 - The Sunken Vessel (unique, Knight Armour): (120—180)% increased Armour and Evasion
-- The Taming (unique, Prismatic Ring): +(7—10)% to all Elemental Resistances
-- The Unleashed (unique, Revered Vestments): +1% to all Maximum Elemental Resistances
+- The Taming (unique, Prismatic Ring): +(10—20)% to all Elemental Resistances
+- The Unleashed (unique, Revered Vestments): (150—250)% increased Armour and Energy Shield
 - Twisted Empyrean (unique, Aberrant Sledge): Grants Skill: Level 16 Starborn Onslaught
 - Uhtred's Chalice (unique, Transcendent Mana Flask): (200—300)% increased Amount Recovered
-- Veilpiercer (unique, Amethyst Ring): +(7—13)% to Chaos Resistance
+- Veilpiercer (unique, Amethyst Ring): +(60—100) to maximum Mana
 - Vestige of Darkness (unique, Tenebrous Crown): (150—200)% increased Armour and Energy Shield
 - Voices (unique, Sapphire): Allocates 3 Sinister Jewel sockets
 - Shattered Triskelion (item, QuestItem): Can be repaired at the Verisium Anvil. [not in pin]

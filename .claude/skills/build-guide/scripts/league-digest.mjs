@@ -324,11 +324,12 @@ function linesOf(divs, dropRepeats = false) {
   for (const div of divs) {
     if (hasClass(div, 'separator')) continue;
     const type = hasClass(div, 'requirements') ? 'requires' : hasClass(div, 'property') || hasClass(div, 'enchantMod') ? 'property' : 'mod';
+    const implicit = hasClass(div, 'implicitMod');
     linesIn([div]).forEach((text, i) => {
       if (type === 'property' && /^Stack Size:/.test(text)) return;
       if (dropRepeats && lines.length > 0 && lines[lines.length - 1].text === text) return;
-      // `wrapped`: the line goes on from the one before, as one line of the game's that wraps.
-      lines.push(i > 0 ? { type, text, wrapped: true } : { type, text });
+      // `wrapped`: the line goes on from the one before, as one line of the game's that wraps. `implicit`: the base's.
+      lines.push({ type, text, ...(i > 0 ? { wrapped: true } : {}), ...(implicit ? { implicit: true } : {}) });
     });
   }
   return lines;
@@ -491,10 +492,12 @@ export function pinFromNames(file) {
 // The digest
 
 /** The first clause of an entry's text: its first mod or description line (with the lines it wraps onto), else its
- * first property, to the end of its first sentence, at most 16 words. */
+ * first property, to the end of its first sentence, at most 16 words. A unique's is its first explicit line or a line
+ * that grants a skill, since its base's implicit is every copy of that base's. */
 function clauseOf(entry) {
   const lines = entry.variants[0] ?? [];
-  let at = lines.findIndex((l) => l.type === 'mod');
+  let at = entry.kind === 'unique' ? lines.findIndex((l) => !l.wrapped && ((l.type === 'mod' && !l.implicit) || /^Grants Skill/.test(l.text))) : -1;
+  if (at < 0) at = lines.findIndex((l) => l.type === 'mod');
   if (at < 0) at = lines.findIndex((l) => l.type === 'property');
   if (at < 0) return '';
   let text = lines[at].text;

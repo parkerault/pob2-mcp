@@ -216,14 +216,15 @@ const EXPECTED: Block[] = [
   entry('Kindled Resolve', 'kindled-resolve', 'passive', null, false, URL('Kindled_Resolve'), []),
 ];
 
-/** The fixture digest's head. */
+/** The fixture digest's head: a unique's line quotes its first explicit line, or a line that grants a skill, never its
+ * base's implicit (Tarn's Clasp, Fourfold Cord, Ferryman's Lantern). */
 const HEAD = [
   "- Kerr's Cinder Lattice (gem, Support): Supports Skills that deal Fire damage.",
   '- Bellows Of Ruin (gem, Support): Supports Slams you use yourself, letting each one spend Runic Ward to Empower the next.',
   '- Tarnished Infusion (gem, Spell): Spends Ward to create Ember Infusions, which count as any Elemental Infusion. [not in pin]',
-  "- Tarn's Clasp (unique, Coral Ring): +(8—12)% to Fire Resistance",
+  "- Tarn's Clasp (unique, Coral Ring): +(5—10) to Strength",
   '- Echoes (unique, Opal): Grants 2 Hollow Jewel sockets [not in pin]',
-  '- Fourfold Cord (unique, Rope Belt): Has (1—2) Charm Slots',
+  '- Fourfold Cord (unique, Rope Belt): Echoing Draught',
   "- Ferryman's Lantern (unique, Brass Sceptre): Grants Skill: Level 14 Tollbearer",
   '- Socketables (3): runes, soul cores and idols, in the body; Grep it by mechanic.',
   '- Legacy of Ashen Grip (item, SoulCore) [rule]: in gloves, weapon attacks always deal their maximum Fire damage [not in pin]',

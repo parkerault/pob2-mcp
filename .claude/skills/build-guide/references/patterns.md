@@ -20,11 +20,25 @@ Ask these of every candidate; the builds in brackets showed why.
 7. Tag audit: which +level sources and supports can reach it? (Walking Calamity, Fangs)
 8. Search other skills' text for the main skill's tags, and pair-test the planned skills. (Shield Charge,
    Empyrean)
-9. Give it the standard kit before calling it weak. (Bone Cage)
+9. Give it the standard kit before calling it weak. (Bone Cage; the kits are under Standard kits)
 10. How does the required state fail? Plan one fix per failure. (Fangs)
 
 The answers fill the card (`templates/card-template.md`). The questions and the ten families come from
 [worklog], "Off-meta builds 7–30"; the earlier patterns from its "Off-meta builds 2–6".
+
+## Brainstorm questions 11–14: the engine
+
+Ask these after 1–10 (D-409). Navira's Fracturing against our Varashta build showed why: tuning can't find a
+better structure, and the pieces of one sat unused in the research ([comparison] §7.1).
+
+11. What does the obvious build do, and how is this card faster? Start from its archetype's entry under
+    Standard kits. (Navira's Fracturing)
+12. What grows with a count, and what pays for a bigger count? See A count as a multiplier. (Navira's
+    Fracturing, Supporting Fire)
+13. What does each premium slot serve? A slot that props up the engine rather than the damage is a lead:
+    search for a supply that frees it (Supply by family). (Navira's Fracturing)
+14. Which rule changer touches this engine? Grep `data/rules/pairs.md` for its families (A rule changer).
+    (Flicker Monk, Eventide Petals)
 
 ## How to read an entry
 
@@ -50,9 +64,139 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   lines and item-base implicits (`kind` `base`) too (D-299).
 - **Maintenance.** After each study the user supplies, the coordinator proposes entries and the user
   approves them (§7.6, C-53).
+- **Awaiting review.** Questions 11–14, Standard kits, A count as a multiplier, Supply by family, Bank the
+  resource, A tamed rare beast and A rule changer (amendment 8, D-409) bind once the user has reviewed them.
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog].
+
+## Standard kits
+
+What an average player reaches for first in each archetype, and its big levers (D-403). Question 9 and the
+obvious card start here; R1b's structure check reads the card's archetype here (D-406). Each line cites a study
+by its key and section, a lookup (`lookup:`, a grep of the pinned data under `vendor/PathOfBuilding-PoE2/src/`,
+2026-10-18) or the user; a line with no source stays out. Kits are common wisdom and go stale after a patch:
+re-check the numbers.
+
+### Minions
+
+- **Kit:** a sceptre, lots of Spirit, minion levels on the helmet, amulet and focus, and more minion types
+  [comparison] §7.2 (1). "Sceptres and lots of Spirit" is a minion player's first thought (the user,
+  [amendment-8] §1).
+- **Levers:** minion levels, Spirit, minion types and minion damage supports [comparison] §7.2 (4).
+- **Levels:** up to +4 on a sceptre, +3 on an amulet, +2 on a helmet; a focus gets +1–2 only from the "of
+  Amanamu" suffix (lookup: `Data/ModItem.lua`, `Data/ModVeiled.lua`). Navira's guide reaches +12
+  [comparison] §2.
+- **Spirit:** a sceptre's base 100 and up to 65% increased; up to +50 on an amulet and +61 on body armour
+  (lookup: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2.
+- **Types:** one of each type rather than more of the best one, adding a type with each Spirit gain [varashta]
+  §2, §6. Muster (7% more per reviving type, lookup: `Data/Skills/sup_int.lua`) and At your Command (10%
+  increased command damage per persistent type, lookup: `TreeData/0_5/tree.lua`) grow with the count; see A
+  count as a multiplier.
+- **Commands:** a command skill deals minion damage, so minion levels, Muster, Pain Offering and Archon of
+  Undeath (25% more minion damage, 200% more command cooldown recovery) scale it [varashta] §2;
+  [supporting-fire] chain 6.
+- **Survival:** when the damage or a buff lives on the minions, cap their resistances first (two cheap jewels)
+  [chayula-minions] §2 (6), §6.
+- **A tamed beast** reserves a percentage of maximum Spirit (13.8–56.1% across the pin's 619 monsters, 32.7% at
+  the median) where most minion gems reserve a flat amount, so each point of Spirit buys a little less once a
+  beast is out (the user, [amendment-8] §4; lookup: `Modules/CalcDefence.lua:204`, `Data/Spectres.lua`).
+
+### Spells
+
+- **Kit:** a staff or wand for spell levels: up to +5–6 on a staff, +4 on a wand, +3 on an amulet, +2 on a focus
+  (lookup: `Data/ModItem.lua`); a +4/+5 staff and Magnified Area are the cheap path [enervating] header.
+- **Levers:** spell levels [enervating] chain 1; copies and repeats (Spell Cascade, Trickster's Shard's mimics,
+  Now and Again) [enervating] chain 5; spell crit [widowhail] §2 (5); maximum mana, through Archmage's extra
+  lightning per 100 mana [mana-flare] chain 2.
+- **Before calling a spell weak:** placement or multi-cast supports (Astral Projection, Spell Cascade), area
+  uniques and curses [bone-cage] arc (15:02), process 5, phases.
+- **Area:** Magnified Area on the clear skill, Concentrated Area on the boss skill [mana-flare] chain 4.
+- **Curses:** Temporal Chains on Blasphemy [enervating] chain 2; a Chronomancer copied it from poe.ninja
+  [fangs] arc (46:16).
+- **Crit:** Cast on Critical into Arc "is standard" [widowhail] §3; Pinpoint Critical trades crit bonus for
+  chance [enervating] chain 6.
+- **Defence:** Mind over Matter or Eldritch Battery on a large mana pool [enervating] chain 7; [oracle] chain 9.
+
+### Attacks, any weapon
+
+- **Kit:** Herald of Ice and Herald of Thunder to clear, which fire on a non-Herald attack hit [flicker] §2;
+  Trinity (about 6% more elemental damage per 30 affinity, 100 Spirit) when hits carry two or three elements,
+  and Wind Dancer once an amulet adds about 60 Spirit [ronarray-videos] §1.
+- **Levers:** attack speed, then skill levels and flat added damage on several slots: two poe.ninja Explosive
+  Concoction builds beat ours ×3.1, ×1.46 of it from speed and ×1.32 from +3 levels and added fire on three
+  slots [ec-comparison] §3; search +level sources for every tag and slot [ec-comparison] §5 (1).
+- **Supports:** Elemental Armament II, Rakiata's Flow (enemy elemental resistances inverted), Concentrated Area
+  against bosses [flicker] §2; [glacial-bolt] §1.
+- **Defence:** Chaos Inoculation on energy shield and evasion from about 4–6k energy shield, with Ghost Dance
+  for recovery [ronarray-videos] §1.
+
+### Bows
+
+- **Kit:** Fubgun's Lightning Arrow Deadeye: Lightning Arrow and Herald of Thunder to clear, Lightning Rods and
+  Tornado Shot against bosses, Frost Bomb for its debuff, Wind Dancer on a 45-Spirit amulet; the highest-DPS bow
+  you can afford, swapped at +50% tooltip DPS [fubgun] §2, §3.
+- **Levers:** arrows per shot ("Bow Attacks fire an additional Arrow", Surpassing chance), repeats (Barrage on
+  Frenzy Charges) and Tornado Shot's copies [stormcaller] §1.
+- **Levels:** up to +4 projectile levels on a bow, +3 on an amulet, +1 on a quiver (lookup: `Data/ModItem.lua`).
+
+### Crossbows
+
+- **Kit:** (thin: two off-meta studies) Fresh Clip II and Rapid Attacks II as flat multipliers, grenades on
+  weapon set 2 against bosses [crossbow] header, chain 5; Emergency Reload, about 50% more for five bolts
+  [glacial-bolt] §1.
+- **Levers:** Trinity, Rage with Berserk, Rakiata's Flow and Elemental Armament II [glacial-bolt] §1.
+- **Levels:** up to +5 projectile levels on a crossbow (lookup: `Data/ModItem.lua`).
+
+### Maces
+
+- **Kit:** a two-hand mace with high physical damage and +5 melee levels [ancestral-cry] chain (the most a
+  two-hander rolls, lookup: `Data/ModItem.lua`); Rage, with Berserk [hotg] §1 (5); Herald of Ice to clear
+  [earthshatter] chain 6.
+- **Levers:** weapon damage and melee levels; Rage; heavy stun, whose payoffs include a Titan's Crushing
+  Impacts, 25% more damage against Heavy Stunned enemies [ancestral-cry] chain; [crossbow] chain 3.
+- **Clear:** warcries and aftershocks: a warcry shatters Earthshatter's spike, an Aftershock repeats the slam
+  [earthshatter] chain 2, 4; [hotg] §1 (8).
+- **Spirit:** Giant's Blood wields a two-hander in one hand, freeing the off hand for a sceptre's Spirit, at
+  triple attribute requirements [supporting-fire] chain 4; [ancestral-cry] chain.
+
+### Quarterstaves
+
+- **Kit:** ronarray's Whirling Assault Martial Artist (11.3K favourites): Whirling Assault and the Heralds to
+  clear; Trinity with Herald of Ash, and Herald of Ice or Wind Dancer with about 60 Spirit on the amulet;
+  Killing Palm on the ascendancy's bells for Power Charges, then Charged Staff, against bosses [ronarray-page]
+  intro, §2; [ronarray-videos] §1.
+- **Levers:** crit (about 80%, on a base with at least 10%), Trinity's element balance, Power Charges and 35%
+  movement speed [ronarray-videos] §1; [ronarray-page] §2.
+
+### Spears
+
+- **Kit:** (thin: two studies) Twister fed by Whirling Slash's whirlwinds, Barrage's repeats and Primal
+  Bounty's projectiles from dodging [twister] chain 3–6; Herald of Ice and Infernal Cry to clear, Concentrated
+  Area on the stab [fangs] arc (09:42, 35:32).
+- **Levers:** projectile count and repeats [twister] chain 4, 6.
+- **Levels:** up to +4 projectile and +4 melee levels on a spear (lookup: `Data/ModItem.lua`).
+
+### Damage over time
+
+- **Kit:** an ailment or debuff that deals the damage, supports for its magnitude, and a spreader: Contagion,
+  triggered by Cast on Elemental Ailment, spreads a chaos ignite [eraser] §1; Wither from Withering Presence
+  [eraser] §1; [hotg] §1 (8); Despair on Blasphemy for chaos [maelstrom] §1 (7).
+- **Levers:** the skill's level, ailment magnitude, enough duration to spread (an ignite of 2–3 s) [eraser] §1;
+  Swift Affliction, Brutality and Herald of Blood on Corrupted Blood [infernal-cry] chain 4, which is said to
+  take its host cry's level, 17 of it from items (unverified, PG-2) [infernal-cry] chain 2.
+- **Campaign:** Contagion and Essence Drain carry chaos spells to the respec [comparison] §2; Contagion early on
+  a bow [fubgun] §2.
+
+### Totems
+
+- **Kit:** (thin: one study) a totem that repeats the combo (Shockwave Totem's slams set off Volcanic
+  Fissure), then supports that keep it alive, then a second totem [empyrean] process 6.
+- **Levers:** totem count, survival and placement speed: Hardy Totems (more life), Reinforced Totems
+  (resistances), Urgent Totems (placement) (lookup: `Data/Skills/sup_str.lua`).
+- **Limits:** Spell Totem and Ancestral Warrior Totem consume three charges per totem (lookup:
+  `Data/Skills/act_str.lua`); Ancestral Bond doubles the limit and drops the charges, at 75 Spirit a totem
+  (lookup: `TreeData/0_5/tree.lua`).
 
 ## 1. Loops and relays
 
@@ -195,6 +339,26 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
   Elemental Sundering consumed the freeze Honourless needed [fangs]. Flicker: Charged Staff spends Flicker's
   charges [flicker].
 - **Cautions:** re-run it whenever a consumer joins.
+
+### Supply by family
+
+- **Shape:** search what the payoff consumes by its whole family and its substitutes, from every kind of
+  source; the best supplier may never name the resource, so follow every term you can't place.
+- **Search:** the family, not the resource: `mechanic "Infusion" (gem)`, not "Cold Infusion"; Grep
+  `-i 'creates: [^|]*<family>'` across `data/rules/` and `data/monsters/monster-mods.md` (`pairs.md` lists a
+  family only when an entry also pays off on it), and the family's word in the league digest's body
+  (`data/league/`); cover gems, uniques, passives, ascendancy nodes and monster modifiers; one lookup per
+  unfamiliar term in a result ("Verisium Infusion") before stopping. Record each supplier in the research
+  file's `## Supply search` (D-404).
+- **PoB:** config stand-in for what the supply makes (Chilled Ground: "Is the enemy on Chilled Ground?"); the
+  supply itself is not modelled: Powered by Verisium (the index: "PoB models it: no") and a beast's trail
+  (PG-56).
+- **Examples:** Navira's Fracturing: Powered by Verisium spends Runic Ward for Verisium Infusions, "used in
+  place of any Elemental Infusions", so Ice Nova lays Chilled Ground without a freeze; a tamed beast's Frozen
+  Ground Trail lays the same ground [comparison]. Our run searched "Cold Infusion" five times and missed it, and
+  two researchers saw "Verisium Infusion Remnant" without asking what it was [feedback].
+- **Cautions:** Powered by Verisium costs Runic Ward (20 at level 1, 155 at level 20), so it needs a Ward source
+  [feedback]; that the guide's Frozen Ground Trail is the table's Trail of Ice is the table's inference.
 
 ## 3. Resource conversions
 
@@ -459,6 +623,24 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Examples:** Spearfield with Delayed Reaction; Profane Ritual at 0.13 s [nerd-interactions].
 - **Cautions:** duration often pays damage too.
 
+### Bank the resource
+
+- **Shape:** a supply stored between packs (infusions held, charges kept full) lets the engine fire as the
+  player arrives, so it clears faster than one made on the spot.
+- **Search:** from the consumed resource, what raises its maximum (`tree "Infusions"`, `mechanic "maximum
+  Power Charges" (passive)`), then what refills it between packs; compare the refill time with the walk to the
+  next pack.
+- **PoB:** not modelled: pace is no output. The record's clear-speed band reads the skill's area, with movement
+  speed beside it (D-407); the card's "How it clears" estimates the time to first damage.
+- **Examples:** Navira's Fracturing banks Verisium Infusions between packs with the three infusion-limit
+  passives (Frozen, Infernal and Shocking Limit: +1 to maximum Cold, Fire or Lightning Infusions, lookup:
+  `TreeData/0_5/tree.lua`), so the nova lays ground on arrival; ours made ground only as skeletons died inside
+  the pack [comparison]. Whirling Assault Monk: Killing Palm on the bells fills Power Charges before a boss
+  [ronarray-videos].
+- **Cautions:** the banking is the comparison's reading, not measured, and whether the elemental limits hold
+  Verisium Infusions is unchecked; a second spender drains the bank (Charged Staff spends the Power Charges
+  Flicker needs) [flicker].
+
 ## 6. Levels, quality and tags
 
 ### Level-carrier host
@@ -514,7 +696,24 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **PoB:** modelled, but Gem Studded ties wrongly (PG-1) and Muster counts by granted effect (PG-3).
 - **Examples:** Stormcaller: unused supports for 17/17/17 [stormcaller]. Supporting Fire: a Muster zoo
   [supporting-fire].
-- **Cautions:** in PoB a 17/17/17 balance gets Red only.
+- **Cautions:** in PoB a 17/17/17 balance gets Red only. When the count multiplies damage, see A count as a
+  multiplier.
+
+### A count as a multiplier
+
+- **Shape:** a multiplier that grows with a count (minion types) is worth building around once the count is
+  high, and something else pays for each step (Spirit for a type); see Filler to satisfy a count for counters
+  that only unlock.
+- **Search:** `mechanic "each different type" (gem)`, then passive; for each count, what pays for one more
+  (Spirit, a socket group), and rough arithmetic before any compile: Muster at eight types is 7% × 8, about
+  ×1.56.
+- **PoB:** modelled for Muster, by PoB's own count, which runs one or two types high (PG-3, PG-53); At your
+  Command adds nothing (PG-52), so a custom modifier stands in at the build's type count.
+- **Examples:** Navira's Fracturing: about eight types on a sceptre's 334 Spirit, where Muster measures ×1.63
+  [comparison]. Supporting Fire: a zoo of the cheapest types for Muster [supporting-fire]. Varashta: a new
+  skeleton type with each Spirit gain [varashta].
+- **Cautions:** at two or three types it loses to a plain damage support, so a slot-by-slot ranking drops it
+  and no run of single upgrades reaches the army [comparison]; count the reviving types by hand (PG-53).
 
 ## 7. Conditions
 
@@ -677,6 +876,25 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **Examples:** Fangs: freeze and slows carried bosses [fangs]. Shockchain: electrocute [shockchain].
 - **Cautions:** say plainly when control carries.
 
+### A tamed rare beast
+
+- **Shape:** a tamed rare beast keeps up to four of its monster modifiers, which supply a condition (a ground
+  trail) or stats (an aura's speed for its allies), and it reserves a percentage of Spirit, not a flat amount.
+- **Search:** the engine's family in the index of `data/monsters/monster-mods.md` (`chilled-ground`), then the
+  block by its heading (`grep -n -A14 '^### Trail of Ice'`): its `Model`, its `Reach` (the beast, or its allies
+  within 5 metres) and its `Config`; the plan names the beast as `companion {species, mods}` (D-402).
+- **PoB:** custom modifier for a `stats` row (`Companions have …` for the beast's own, each an estimate); config
+  stand-in for a `condition` row; not modelled for a `none` row (PG-56). The beast's damage and reserved Spirit
+  are measured from its species (D-402).
+- **Examples:** Navira's Fracturing: a beast with Frozen Ground Trail lays the Chilled Ground the command
+  consumes, in the guide's text only [comparison]. Infernal Cry Gemling: a Plague Harvester with a physical
+  damage aura and "all damage shocks", kept alive by Brutus' Brain [infernal-cry].
+- **Cautions:** the cost is 13.8–56.1% of maximum Spirit by species (32.7% at the median,
+  `Modules/CalcDefence.lua:204`), so it grows with the Spirit a build stacks, unlike a flat-cost minion's (the
+  user, [amendment-8] §4); every keep flag is an inference, and Hasted's speed is the beast's own while Haste
+  Aura's reaches its allies (the table); a minion that deals no damage applying shock is doubtful
+  [infernal-cry].
+
 ## 10. Tree
 
 ### Keystone as pathing anchor
@@ -702,6 +920,22 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 - **PoB:** modelled.
 - **Examples:** Twister: From Nothing near CI reaches Heavy Frost [twister].
 - **Cautions:** From Nothing's radius belongs to one named node.
+
+### A rule changer
+
+- **Shape:** a node, keystone, gem or unique changes how a standard mechanic works, so what it touches (a
+  slot, a resource) becomes worth building around; a naive search misses it, because it doesn't name what it
+  enables.
+- **Search:** read `data/rules/nodes.md`'s section for the brief's ascendancy, and its keystones, whole; Grep
+  `data/rules/uniques.md` and `gems.md` by mechanic or family (`Creates:`, `Pays off on:`), and `pairs.md` for
+  the engine's families; confirm each entry's lines with a lookup (`tree "Stonefist"`, a unique or gem lookup).
+- **PoB:** not modelled where the entry says "PoB models it: no": Way of the Stonefist's transform (PG-36), so
+  type the transformed modifiers; otherwise as the entry's line says, from coverage.
+- **Examples:** Way of the Stonefist (Martial Artist) turns equipped gloves into Fists of Stone with stronger
+  related modifiers [comparison]: flat-damage glove mods become gain as extra [flicker], and +melee levels
+  become gem quality, Shattering Palm's crit [eventide].
+- **Cautions:** a pair is a lead, not a proof; a unique's entry lists only its explicit penalties, while most
+  uniques give up the resistances, life and defences a rare provides (the user, [amendment-8] §1).
 
 ## Sources
 
@@ -739,3 +973,10 @@ Paths are from this file; each title is the source's patch.
 [fangs]: ../../../../docs/build-guide/studies/2026-10-10-gLac8n8iBeA-fangs-of-frost-chronomancer.md "0.3.1"
 [shield-charge]: ../../../../docs/build-guide/studies/2026-10-10-1ZqM9dJ9MF0-shield-charge-chayula.md "0.3.x"
 [nerd-interactions]: ../../../../docs/build-guide/studies/2026-10-16-S1AzLxb3fZw-nerd-interactions.md "0.5.x"
+[comparison]: ../../../../docs/build-guide/studies/2026-10-17-varashta-comparison.md "0.5.5 guide, pin 0.5.4"
+[feedback]: ../../../../docs/build-guide/studies/2026-10-17-varashta-run-feedback.md "pin 0.5.4"
+[amendment-8]: ../../../../docs/build-guide/spec/amendment-8-engine-lens.md "pin 0.5.4"
+[fubgun]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-1-fubgun.md "0.5.5"
+[ronarray-page]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-page.md "0.5.5"
+[ronarray-videos]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-videos.md "0.5"
+[ec-comparison]: ../../../../docs/build-guide/studies/2026-10-14-ec-comparison.md "pin 0.5.4"

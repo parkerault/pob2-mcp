@@ -4617,3 +4617,6 @@ the `m17` engine at `b76967b`.
   criterion stated (a mechanic that works differently is a rule change; a number added, scaled or shared isn't) and
   42 re-judged; a redirect off poe2db.tw refused; ids kept from the digest a new one replaces. Head 203 lines, 3,130
   words. Gate rc 0. The verifier re-checks.
+- **WU-84 verified: PASS** on the re-check (no fixture text from poe2db, the longest span shared with a saved page
+  is generic markup; a fresh `--from` run byte-identical to the committed digest; 164 socketables, 42 judged rule
+  changers). **Merged** into `build-guide/m20` (fast-forward).

@@ -4701,3 +4701,6 @@ the `m17` engine at `b76967b`.
   five per ascendancy through the Ascendancy filter, and the Creator and Community tabs searched for minions,
   spectres, poison, shields, block and bleed. Nothing was read beyond the list pages. The picked list goes to the
   user before any guide is read.
+- **WU-87 verified: PASS** on the re-check (138 tests in its five suites; "Companions have 4 additional Projectiles"
+  parses whole and reaches only companions; a fresh `--from` run gives a byte-identical table). **Merged** into
+  `build-guide/m20` (fast-forward). Seven of eight units are merged; WU-91 (the skill text) starts.

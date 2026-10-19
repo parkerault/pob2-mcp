@@ -4565,3 +4565,9 @@ the `m17` engine at `b76967b`.
   are lines, so the resolver must find the line whose parenthesis starts with that id.
 - **WU-89 told** the node-line citation form (`rules/nodes.md#<node id>` resolves to the line whose parenthesis starts
   with that id).
+- **WU-86 verified: PASS** with 2 should-fix findings (219K tokens). Gate pass (AC-T22 and AC-P37's lever case failed
+  on time at load 24, passing alone); the script run on the saved pages reproduces the committed table; 31 rows read
+  by hand, every config option exists and every `stats` line but one parses. Should-fix: poe2db's Tame Beast list
+  is the whole modifier table with duplicates dropped, so "every modifier keepable" is an inference and the head must
+  say so; and PoB does parse `Companions have …` lines (`ModParser.lua:1272-1273`), so a modifier on the beast itself
+  can be modelled, for WU-87 too. A short fix round with the lows went to the doer.

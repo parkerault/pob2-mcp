@@ -4658,3 +4658,11 @@ the `m17` engine at `b76967b`.
   the Chilled Ground option. **For WU-91:** the skill text still says `schemaVersion: 4`; a companion stage should
   list three companion options as earned state. **For the table:** two `stats` rows can't be parsed as `Companions
   have …` (additional projectiles, crit-resistant). The verifier is running.
+- **WU-90 done by its doer** (`3371c0b`): the library goes from 5,999 to 8,610 words. Questions 11–14 in their own
+  section (AC-W28 counts ten in the first); "Standard kits" for 10 archetypes, 40 lines, 1,313 words, citing 59
+  study sections, 13 lookups and the user twice; three kits labelled thin (crossbows, spears, totems); "A count as a
+  multiplier" beside "Filler to satisfy a count" (unchanged but for a pointer); four shapes; an "Awaiting review" note.
+  Left out for want of a source: named minion damage supports, spectres, shields and block, talismans and
+  shapeshifting, ballistas, poison (the only poison study is PoE1), penetration, Chaos Inoculation casters. Static
+  tests 422 of 422. The review sheet for the user: `studies/2026-10-18-wu90-review.md`. The verifier checks every
+  source before the user sees it.

@@ -4735,3 +4735,13 @@ the `m17` engine at `b76967b`.
   the repository; the browser is closed. The brief gained the saved-page notes and the study brief (`ffe0380`).
   Seventeen study agents are writing one study each under `studies/` (no tests, no network, at most 10 local
   lookups each).
+- **The Mobalytics studies are in** (`docs/build-guide/studies/2026-10-18-mob-*.md`, indexed in the studies
+  README): 17 studies, about 42,000 words, 3.43M subagent tokens. No study copies the guides' prose: the only
+  12-word runs shared with the saved pages are titles, URLs, tab names and gem lists. Static suites pass (435).
+- **The proposal** (`studies/2026-10-18-mobalytics-proposals.md`, 281K tokens): 40 kit lines added, 16 replaced,
+  2 extended, 1 moved; five new kits (Shapeshifting, Plants, Companions, Shields, Automated loops); two new
+  pattern entries and ten updates; fourteen PoB gap candidates (PG-57…PG-70); seven pipeline findings, among them
+  two or more tamed beasts per stage against schema 5's one companion. It waits for the user's approval (C-53).
+- **`main` gained `918cccd`** (the user: the README is generic, with no machine's paths; the README test and D-16
+  follow). `build-guide/m20` was rebased onto it with no conflicts; the hashes cited above from before the rebase
+  remap by subject at the sign-merge.

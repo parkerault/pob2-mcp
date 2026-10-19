@@ -4645,3 +4645,7 @@ the `m17` engine at `b76967b`.
   (§7 binds over AC-W73's looser wording); three formats the file lacked. **Left open (low):** nothing yet requires
   a new run's parts (the rival step, the obvious card, the structure check), since old runs must still check; a
   format version in the run log would let the checker require them. For the live run's review.
+- **WU-89's fix round** (`9bc420f` before the rebase): a plan citing a Markdown data entry fails the checker; a
+  round short for one engine deals no more than 6; the formats file gains the "Not dealt" line, the rival asked for at
+  the brainstorm gate, and "(an estimate)" beside a measured clear speed. Gate rc 0 (140 suites, 2,490 tests). The
+  coordinator read the diff. **Merged** into `build-guide/m20` (fast-forward).

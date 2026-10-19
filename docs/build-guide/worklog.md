@@ -4496,14 +4496,14 @@ the `m17` engine at `b76967b`.
 - **M-20 wave 1 dispatched:** WU-84 (`bg-84`), WU-85 (`bg-85`), WU-86 (`bg-86`) and WU-88 (`bg-88`), each off the
   integration head `f1eaaa7` (worktree `m20`, branch `build-guide/m20`). Commits here are unsigned until the
   sign-rebase.
-- **WU-88 done by its doer** (`41500ad`, 235K tokens). Gate rc 0 (139 suites, 2,463 tests), build rc 0. A skeleton's
+- **WU-88 done by its doer** (`95ad53a`, 235K tokens). Gate rc 0 (139 suites, 2,463 tests), build rc 0. A skeleton's
   record (any endgame stage without a variant) gains `measures {clearSpeed, movementSpeed}`; variant stages gain
   `movementSpeed`. It is PoB's `EffectiveMovementSpeedMod`, a multiplier (1.25 = +25%). `clearSpeed.noArea` marks a
   clear skill with no radius (a Skeletal Warrior's strike). The key-figure line is unchanged, since its text is part
   of the contract. **For WU-89:** print the record's `speed` with the no-area flag, not the band (an on-death step
   can make `speed` medium while the band is slow); `render-audit.mjs` still reads movement speed from `outputs`.
   The verifier is running.
-- **WU-86 done by its doer** (`618e06f`, 311K tokens). Gate rc 0 (139 suites, 2,472 tests), build rc 0. The table
+- **WU-86 done by its doer** (`49f52b5`, 311K tokens). Gate rc 0 (139 suites, 2,472 tests), build rc 0. The table
   holds 97 modifiers, one per name (75 unnamed rows left out): 25 `stats`, 13 `condition`, 59 `none`. All 97 are
   keepable: poe2db's Tame Beast list holds every named modifier, so it doesn't pick out a subset, and the table's
   head says so. "Trail of Ice" is the only ice trail and links the Chilled Ground keyword, so the row takes it to be
@@ -4523,7 +4523,7 @@ the `m17` engine at `b76967b`.
   its budget rung medium). Fix round sent, with a skeleton-against-rung test. **For WU-89:** with no clear skill
   measured, don't print "PoB gives no area"; update `run-log.mjs:701-702` and the comment at
   `buildGuideScripts.test.ts:555`.
-- **WU-84 done by its doer** (`a45d3f4`). Gate rc 0 (138 suites, 2,462 tests), build rc 0. `league-digest.mjs`
+- **WU-84 done by its doer** (`131cf4f`). Gate rc 0 (138 suites, 2,462 tests), build rc 0. `league-digest.mjs`
   with `--from`, `--reflag`, `--save`; the fetch path is tested on a stubbed `fetch` (order, 3 s spacing, the
   User-Agent, no cookie, one retry after 60 s). **The first digest,** `data/league/runes-of-aldur.md`: 324 entries,
   303 in the pin (57 gems, all in the pin; 46 uniques, 44; 163 socketables; 54 other items, 35; 2 ascendancies; 2
@@ -4532,11 +4532,11 @@ the `m17` engine at `b76967b`.
   stay in the body but leave the head (one count line, plus any that change a rule), since the head with them is
   about 5,100 words, twice the estimate, and every researcher reads it whole. Sent back to the doer before
   verification.
-- **WU-88's fix round** (`0089306`): skeletons take the on-death step (the gem texts are fetched for every measured
+- **WU-88's fix round** (`4466309`): skeletons take the on-death step (the gem texts are fetched for every measured
   stage), with a Contagion skeleton-against-rung engine test that fails on the old filter; "every measured stage's
   movement speed". The doer's full gate failed only AC-T22 on time under load (21 s), passing alone. The verifier
   re-checks.
-- **WU-86's fix round** (`379062e`): a modifier's own keyword page, when saved, gives its figures. Haste Aura: 20%
+- **WU-86's fix round** (`e3aecdc`): a modifier's own keyword page, when saved, gives its figures. Haste Aura: 20%
   increased Attack Speed, 20% increased Cast Speed, 10% increased Movement Speed; Extra Physical Damage Aura: 40%
   increased Physical Damage; Energy Shield Aura: "Gain 20% of maximum Life as Extra maximum Energy Shield" (PoB's
   wording); Elemental Resistance Aura: +35% to all Elemental Resistances; each to allies within 5 metres. Gate rc 0
@@ -4545,14 +4545,14 @@ the `m17` engine at `b76967b`.
   verifier is running.
 - **WU-88 verified: PASS** on the re-check (the fix round's targeted suites, 24 tests; the new test fails on the old
   filter); the verifier's total 161K. **Merged** into `build-guide/m20` (fast-forward).
-- **WU-89 dispatched** (`bg-89`, off `7d8799e`, with WU-88 merged). It may also change the dossier template's
+- **WU-89 dispatched** (`bg-89`, off `d1b6b2f`, with WU-88 merged). It may also change the dossier template's
   column line (the checker's column list must match it) and writes its formats to a new
   `studies/2026-10-18-wu89-formats.md`, for WU-91, as WU-81 did for WU-82.
-- **WU-84's ruling done** (`68a00f9`): the digest's head is 206 lines and 3,165 words (was 324 and about 5,100): the
+- **WU-84's ruling done** (`49bda07`): the digest's head is 206 lines and 3,165 words (was 324 and about 5,100): the
   socketables' count line, then 44 socketables the doer judges rule changers (18 Legacy runes), each with a reason.
   The judgments are a committed file, `data/league/runes-of-aldur.rule-changers.json`. The doer's gate failed only
   AC-T22 on time at load 17, passing alone. The verifier samples the judgments.
-- **WU-85 done by its doer** (`7be99fa`, 9 commits). Gate rc 0 (139 suites, 2,474 tests), build rc 0. `nodes.md`:
+- **WU-85 done by its doer** (`d8bb565`, 9 commits). Gate rc 0 (139 suites, 2,474 tests), build rc 0. `nodes.md`:
   241 lines (208 notables, 33 keystones; Devotion to the King is in `tree.json` but not in the tree PoB loads), 125
   `[rule]` (95 notables, 30 keystones); 252 unique blocks; 72 gem blocks of 173 candidates; `pairs.md` 235 lines in 45
   family blocks. 59 doubtful entries were left out of `[rule]`. `candidates` drives the pinned PoB with luajit to
@@ -4572,12 +4572,12 @@ the `m17` engine at `b76967b`.
   is the whole modifier table with duplicates dropped, so "every modifier keepable" is an inference and the head must
   say so; and PoB does parse `Companions have …` lines (`ModParser.lua:1272-1273`), so a modifier on the beast itself
   can be modelled, for WU-87 too. A short fix round with the lows went to the doer.
-- **WU-85's retag** (`91b438b`, rebased onto `ea7485b`): 34 of the 64 entries tagged `none` now carry a family (9
+- **WU-85's retag** (`f62c08b`, rebased onto `5b7a316`): 34 of the 64 entries tagged `none` now carry a family (9
   nodes, 20 uniques, 5 gems); 30 stay `none` (Witchbane, Heartstopper, the wall and grenade supports among them).
   `pairs.md`: 237 pair lines in 47 family blocks (`thorns` and `support-gem` are new). Gate rc 0 (141 suites, 2,489
   tests). The verifier is running, with a content sample of at least 25 `[rule]` entries.
 - **The coordinator's session crashed** (the terminal pane), stopping four agents: WU-86's fix round (its commit
-  `d907df9` had landed), WU-89 (nothing committed; its lane was clean at `7d8799e`), and the WU-84 and WU-85
+  `2df20d8` had landed), WU-89 (nothing committed; its lane was clean at `d1b6b2f`), and the WU-84 and WU-85
   verifiers. No stray test or engine process was left. All four were resumed from their saved transcripts; WU-89 was
   told to commit as it goes.
 - **WU-84 verified: FAIL on one blocker.** All five gate checks pass (rebuilding from the saved pages gives a
@@ -4590,12 +4590,12 @@ the `m17` engine at `b76967b`.
 - **A second crash, and its cause** (the user: "Running the tests is crashing the session. They peg my 16 core Ryzen 9
   9950X3D at 100% … I couldn't even type in the session input before it crashed"). Several lanes ran the full gate
   at once, each with Jest's default of threads − 1 = 31 workers, each able to start a PoB engine, all at normal
-  priority. Memory was fine (2 of 47 GB used). **The fix** (`e2731bc`): `jest.config.cjs` caps a full run at
+  priority. Memory was fine (2 of 47 GB used). **The fix** (`132b2fd`): `jest.config.cjs` caps a full run at
   `maxWorkers: '50%'`; the handoff's M-20 section adds "Running tests": every test call at `nice -n 19`, a full gate
   under one shared `flock` lock so only one runs at a time, started in the background; targeted suites at
   `--maxWorkers=4`. The four stopped agents (WU-84's fix round, WU-86's gate, WU-89, the WU-85 verifier) were resumed
   under the rule.
-- **WU-86's fix round** (`d907df9`): the head calls every keep flag an inference; beast-only `stats` rows are written
+- **WU-86's fix round** (`2df20d8`): the head calls every keep flag an inference; beast-only `stats` rows are written
   as `Companions have …` lines; Slow Resistant becomes `none`, Extra Energy Shield `stats`; static checks that every
   `stats` row has a writable line and every `condition` option exists in the pin; an unmappable aura clause fails the
   script. Gate rc 0 under the new rule (139 suites, 2,485 tests). The verifier re-checks.
@@ -4609,10 +4609,10 @@ the `m17` engine at `b76967b`.
 - **WU-86 verified: PASS** on the re-check (the fix round's two test files 36 of 36; a fresh `--from` run equals the
   committed table); the verifier's total about 230K. **Merged** into `build-guide/m20` (fast-forward). Left low: a
   keyword sentence not in the aura form gives no lines without failing.
-- **WU-87 dispatched** (`bg-87`, off `767fc41`, with WU-86 and WU-88 merged): the plan's `companion {species, mods}`,
+- **WU-87 dispatched** (`bg-87`, off `f0ff6b7`, with WU-86 and WU-88 merged): the plan's `companion {species, mods}`,
   the compile through PoB's beast library, kept modifiers by their table rows (`Companions have …` for beast-only
   lines), the companion's DPS and reserved Spirit in the record.
-- **WU-84's fix round** (`f29441e`, 7 items): the fixtures rewritten by hand for an invented section; repeated lines
+- **WU-84's fix round** (`c2fe67d`, 7 items): the fixtures rewritten by hand for an invented section; repeated lines
   dropped only for quest items; unique head lines from the first explicit or Grants Skill line; the socketable
   criterion stated (a mechanic that works differently is a rule change; a number added, scaled or shared isn't) and
   42 re-judged; a redirect off poe2db.tw refused; ids kept from the digest a new one replaces. Head 203 lines, 3,130
@@ -4620,13 +4620,13 @@ the `m17` engine at `b76967b`.
 - **WU-84 verified: PASS** on the re-check (no fixture text from poe2db, the longest span shared with a saved page
   is generic markup; a fresh `--from` run byte-identical to the committed digest; 164 socketables, 42 judged rule
   changers). **Merged** into `build-guide/m20` (fast-forward).
-- **WU-89 done by its doer** (`fbd098d`, 6 commits). Gate rc 0 (140 suites, 2,489 tests) under the lock. Every
+- **WU-89 done by its doer** (`a1d5d5b`, 6 commits). Gate rc 0 (140 suites, 2,489 tests) under the lock. Every
   AC-W73 item maps to a test in `tests/unit/buildGuideEngineLens.test.ts`; a new fixture run `run-rival`; the five
   older fixtures pass unchanged; formats in `studies/2026-10-18-wu89-formats.md`. **For WU-91:** the dossier's
   eleventh column (clear speed) needs the template, R1b-assemble's "ten columns" and the static test switched
   together; the checker exports `DOSSIER_COLUMNS_D407`. New fields are required only in runs that ran the rival, so
   older runs still check. The verifier is running.
-- **WU-85's fix round** (`83ddc9e`): about 60 blocks now quote their penalty lines, and `check` fails "Penalties:
+- **WU-85's fix round** (`c62830d`): about 60 blocks now quote their penalty lines, and `check` fails "Penalties:
   none" beside one; the false ground and ignite tags fixed (The Taming, Grinning Immolation, the three Berek's rings,
   Sierran Inheritance); Unravelling and Forced Outcome are `[rule]`; the join no longer pairs two ascendancies'
   notables or two uniques of one item type (rings, jewels, charms and flasks excepted); chaos prices caught; 11
@@ -4635,7 +4635,7 @@ the `m17` engine at `b76967b`.
 - **WU-85 verified: PASS** on the re-check (37 of 37 in its suites; `check` and `check --text` pass on the committed
   files; `join` reproduces `pairs.md`; no pair left that one build can't hold; about 2% of rule entries wrong, all
   judgment calls, down from about 9%). **Merged** into `build-guide/m20` (fast-forward).
-- **WU-90 dispatched** (`bg-90`, off `826d2e3`): the library's questions 11–14, "Standard kits" (every line sourced;
+- **WU-90 dispatched** (`bg-90`, off `aa54180`): the library's questions 11–14, "Standard kits" (every line sourced;
   the user reviews them), "A count as a multiplier" beside the unchanged count entry, four new shapes, and a review
   sheet for the user (`studies/2026-10-18-wu90-review.md`). Its gate is the static tests.
 - **WU-89 verified: PASS** (one should-fix, seven lows). Gate rc 0 under the lock (140 suites, 2,489 tests); 25 tests
@@ -4645,7 +4645,7 @@ the `m17` engine at `b76967b`.
   (§7 binds over AC-W73's looser wording); three formats the file lacked. **Left open (low):** nothing yet requires
   a new run's parts (the rival step, the obvious card, the structure check), since old runs must still check; a
   format version in the run log would let the checker require them. For the live run's review.
-- **WU-89's fix round** (`9bc420f` before the rebase): a plan citing a Markdown data entry fails the checker; a
+- **WU-89's fix round** (`c7aa5c3` before the rebase): a plan citing a Markdown data entry fails the checker; a
   round short for one engine deals no more than 6; the formats file gains the "Not dealt" line, the rival asked for at
   the brainstorm gate, and "(an estimate)" beside a measured clear speed. Gate rc 0 (140 suites, 2,490 tests). The
   coordinator read the diff. **Merged** into `build-guide/m20` (fast-forward).
@@ -4658,7 +4658,7 @@ the `m17` engine at `b76967b`.
   the Chilled Ground option. **For WU-91:** the skill text still says `schemaVersion: 4`; a companion stage should
   list three companion options as earned state. **For the table:** two `stats` rows can't be parsed as `Companions
   have …` (additional projectiles, crit-resistant). The verifier is running.
-- **WU-90 done by its doer** (`3371c0b`): the library goes from 5,999 to 8,610 words. Questions 11–14 in their own
+- **WU-90 done by its doer** (`1053728`): the library goes from 5,999 to 8,610 words. Questions 11–14 in their own
   section (AC-W28 counts ten in the first); "Standard kits" for 10 archetypes, 40 lines, 1,313 words, citing 59
   study sections, 13 lookups and the user twice; three kits labelled thin (crossbows, spears, totems); "A count as a
   multiplier" beside "Filler to satisfy a count" (unchanged but for a pointer); four shapes; an "Awaiting review" note.
@@ -4671,7 +4671,7 @@ the `m17` engine at `b76967b`.
   the ×3.1 belongs to one of the two Explosive Concoction builds (the other ×2.2); the tamed-beast entry dropped the
   user's point that Haste is the modifier players prioritize. A fix round with the lows went to the doer, before the
   user's review.
-- **WU-90's fix round** (`88bec28` before the rebase): the ×3.1 against ×2.2; the user's Haste point in the
+- **WU-90's fix round** (`846c036` before the rebase): the ×3.1 against ×2.2; the user's Haste point in the
   tamed-beast entry (Hasted for the beast, Haste Aura for its allies); the +4 fractured amulet; the totem levers marked
   as from the gem text; the damage-over-time leveling line sourced to two guides; `pin:` tags; each study's patch in
   the review sheet. **Merged** into `build-guide/m20` (fast-forward), with the entries marked "Awaiting review" in the
@@ -4691,7 +4691,7 @@ the `m17` engine at `b76967b`.
   references." No corrections, so the library's "Awaiting review" note becomes "Reviewed" (the coordinator, with
   its static test). **Next, after M-20:** the user plans a wider review of Mobalytics guides to thicken the kits; the
   user names the guides, or approves a defined slice the coordinator lists first.
-- **WU-87's fix round** (`54e8101`): a captured Tame Beast is checked at Tame Beast's tier; the compile writes the
+- **WU-87's fix round** (`d393a5e`): a captured Tame Beast is checked at Tame Beast's tier; the compile writes the
   three companion options as earned state (V2 clean); Crit Resistant becomes `none`, while Additional Projectiles stays
   `stats` as "Companions have 4 additional Projectiles", which PoB parses (the table: 24 stats, 13 condition, 60 none);
   the table is read only when a plan names a companion. Gate rc 0 (148 suites, 2,608 tests). The verifier re-checks.
@@ -4704,9 +4704,9 @@ the `m17` engine at `b76967b`.
 - **WU-87 verified: PASS** on the re-check (138 tests in its five suites; "Companions have 4 additional Projectiles"
   parses whole and reaches only companions; a fresh `--from` run gives a byte-identical table). **Merged** into
   `build-guide/m20` (fast-forward). Seven of eight units are merged; WU-91 (the skill text) starts.
-- **WU-91 dispatched** (`bg-91`, off `fd08576`): the skill text to the merged formats, with every "For WU-91" note
+- **WU-91 dispatched** (`bg-91`, off `7ed3eac`): the skill text to the merged formats, with every "For WU-91" note
   from this log in its brief.
-- **WU-91 done by its doer** (`f1730b9`, 4 commits). Gate rc 0 under the lock (149 suites, 2,638 tests). AC-W75 is 12
+- **WU-91 done by its doer** (`8108611`, 4 commits). Gate rc 0 under the lock (149 suites, 2,638 tests). AC-W75 is 12
   static tests; the dossier's eleven columns switched across the template, R1b-assemble and the test; schema 5 in
   D1-build and R1b; a new `stages/RV.md`; `SKILL.md` still at its 230-line cap after trims. Skill words 63,253 →
   66,881. The formats file's rulings were followed over the amendment where they differ. The verifier is running.
@@ -4714,7 +4714,7 @@ the `m17` engine at `b76967b`.
   in `studies/briefs/2026-10-18-mobalytics-review.md`. The optional five weren't taken. It runs after M-20's merge or
   alongside it; saving pages goes through Playwright, one at a time.
 - **Where M-20 stands** (the user compacts the coordinator's context here): seven units merged (WU-84…WU-90); WU-91
-  done by its doer (`f1730b9` on `bg/wu-91`), with its verifier running (report to the scratchpad's
+  done by its doer (`8108611` on `bg/wu-91`), with its verifier running (report to the scratchpad's
   `verify-wu91.md`). Next: WU-91's verdict and any fix round, its merge, the wave gate on `build-guide/m20` (one
   full run under the shared lock), then the sign-rebase and `main`'s fast-forward with the user present (1Password),
   the cited hashes remapped, `main` and `m18` rebuilt, then the user's push and worktree cleanup.
@@ -4723,16 +4723,16 @@ the `m17` engine at `b76967b`.
   name the engine's consumed family); the RV test missing plain-word reads; FI-1 missing `not-in-pin` and
   `not-dealt`; the digest's staleness read and "newest" undefined; the rival's rename against R1b's edit rule and
   the gate-name rule; RV not requiring a structure that differs from every dossier row. The doer fixed all seven
-  (`2c04726`; 382 targeted tests); the re-check passed and left two low gaps, which the coordinator closed
-  (`bc5856d`: the engine's reason first in a two-reason `short:` line; R1b's prompt says when a gate relayed a
-  rival). **Merged** into `build-guide/m20` (fast-forward, head `bc5856d`). All eight units are merged.
+  (`b41c0d6`; 382 targeted tests); the re-check passed and left two low gaps, which the coordinator closed
+  (`93f68ef`: the engine's reason first in a two-reason `short:` line; R1b's prompt says when a gate relayed a
+  rival). **Merged** into `build-guide/m20` (fast-forward, head `93f68ef`). All eight units are merged.
 - **The M-20 wave gate passed** on `build-guide/m20` under the shared lock: test rc 0 (149 suites, 2,638 tests;
   then the two timing suites, compile-plan and trade-query, 3 tests), build rc 0. Next: the sign-rebase into `main` with the user
   present.
 - **The Mobalytics review started** (the user: "You can go ahead and start the guides now"). The user added guide 17,
   Lyrthos's Autobomber Apocalypse Shaman, an automated skill loop (Community tab, 0.5.5). All 17 pages (18 files,
   about 148,000 words) were saved through Playwright, one at a time, to `pob2-mcp-wt/mobalytics-cache/`, outside
-  the repository; the browser is closed. The brief gained the saved-page notes and the study brief (`ffe0380`).
+  the repository; the browser is closed. The brief gained the saved-page notes and the study brief (`1879db5`).
   Seventeen study agents are writing one study each under `studies/` (no tests, no network, at most 10 local
   lookups each).
 - **The Mobalytics studies are in** (`docs/build-guide/studies/2026-10-18-mob-*.md`, indexed in the studies
@@ -4761,3 +4761,15 @@ the `m17` engine at `b76967b`.
   D-290 and D-381 rows. AC-W74's and AC-W28's tests follow (the archetype list, the Companions kit's Spirit line,
   Filler's examples, the word bands). Static suites pass (20 suites, 435 tests). The seven pipeline findings in the
   proposal's §6 are still the user's to take up as amendments.
+- **The full gate passed on `build-guide/m20` at `f5bd2bf`** under the shared lock: test rc 0 (149 suites, 2,638
+  tests; the two timing suites, 3 tests), build rc 0.
+- **M-20 and the Mobalytics review merged to `main`, signed** (the user: "Sign when you're ready"). The 89
+  integration commits above `918cccd` were re-signed with the same trees and metadata (all 89 show good signatures;
+  each commit's tree, author, dates and message match its original, and the tip's tree is identical), and `main`
+  fast-forwarded to them. The unsigned originals are kept locally as `refs/archive/pre-sign-m20-2026-10-19`.
+  - **30 cited hashes remapped** in this log, all by subject: the lane and pre-rebase originals to their signed
+    main-line copies. No line holds two hashes that collapsed into one. Five older citations (WU-63, WU-69, WU-70,
+    D-61, an earlier fast-forward) name commits that were already off `main` before this merge; left as they are.
+  - **Not pushed.**
+  - **Left for the user:** pushing; removing the worktrees `m20` and `bg-84`…`bg-91` and their branches
+    (`build-guide/m20`, `bg/wu-84`…`bg/wu-91`); reconnecting the pob2 server after `build/` is rebuilt.

@@ -4594,3 +4594,14 @@ the `m17` engine at `b76967b`.
   under one shared `flock` lock so only one runs at a time, started in the background; targeted suites at
   `--maxWorkers=4`. The four stopped agents (WU-84's fix round, WU-86's gate, WU-89, the WU-85 verifier) were resumed
   under the rule.
+- **WU-86's fix round** (`d907df9`): the head calls every keep flag an inference; beast-only `stats` rows are written
+  as `Companions have …` lines; Slow Resistant becomes `none`, Extra Energy Shield `stats`; static checks that every
+  `stats` row has a writable line and every `condition` option exists in the pin; an unmappable aura clause fails the
+  script. Gate rc 0 under the new rule (139 suites, 2,485 tests). The verifier re-checks.
+- **WU-85 verified: PASS with 4 should-fix findings** (the gate rerun after the crashes, under the shared lock).
+  About 135 entries sampled: rule sentences accurate, "PoB models it" 20 of 20 against the coverage tool, quoted lines
+  verbatim, nothing legacy, all 1,886 citations in `pairs.md` resolve. Should-fix: about 33 blocks say "Penalties:
+  none" beside a stated penalty; two wrong tags make false pairs (The Taming, Grinning Immolation); two keyword-only
+  notables aren't `[rule]` (Unravelling, Forced Outcome); about 9% of pairs can't be used together (notables of two
+  ascendancies, two uniques for one slot). The verifier's estimate: about 3% of `[rule]` entries wrong in rule or
+  tags, about 9% counting penalties. A fix round went to the doer.

@@ -4676,3 +4676,14 @@ the `m17` engine at `b76967b`.
   as from the gem text; the damage-over-time leveling line sourced to two guides; `pin:` tags; each study's patch in
   the review sheet. **Merged** into `build-guide/m20` (fast-forward), with the entries marked "Awaiting review" in the
   library until the user reviews them.
+- **WU-87 verified: PASS** (one should-fix, seven lows). Gate rc 0 under the lock (148 suites, 2,602 tests). The
+  reserved Spirit is PoB's own (78 at 200 Spirit, 156 at 400, equal to the player's `SpiritReserved`); disabling the
+  beast-list write fails all 8 engine tests. **HG-12 kept:** 7 fixture plans compiled before and after give the same
+  records, saves (canonically), replies and validation. Should-fix: V1 checked the swapped-in companion gem's tier
+  (0) instead of Tame Beast's (7). Fix round sent, with rulings: the compile writes the three companion options as
+  earned state; two `stats` rows PoB can't parse become `none` (ownership granted to WU-87 for that one item); the
+  monster table loads only when a plan names a companion.
+- **Outside the build, to log:** in the fifteen-stage fixture, Earthquake's aftershock area reads 1.8–2.1 or 2.4–3.6
+  depending on what compiled earlier in the same engine session, on the base commit too. It's the clear-speed
+  nondeterminism seen in M-15 (fixed then by measuring the first stat set); clear speed stays rough, so it waits for
+  the live run's review.

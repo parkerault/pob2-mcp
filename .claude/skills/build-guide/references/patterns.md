@@ -64,8 +64,10 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   lines and item-base implicits (`kind` `base`) too (D-299).
 - **Maintenance.** After each study the user supplies, the coordinator proposes entries and the user
   approves them (§7.6, C-53).
-- **Awaiting review.** Questions 11–14, Standard kits, A count as a multiplier, Supply by family, Bank the
-  resource, A tamed rare beast and A rule changer (amendment 8, D-409) bind once the user has reviewed them.
+- **Reviewed.** Questions 11–14, Standard kits, A count as a multiplier, Supply by family, Bank the resource, A
+  tamed rare beast and A rule changer (amendment 8, D-409) were reviewed by the user on 2026-10-18 with no
+  corrections. The kits are thin for want of common-practice sources; a wider review of guides the user names
+  will revise them.
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog].

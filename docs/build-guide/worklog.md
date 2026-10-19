@@ -4687,3 +4687,7 @@ the `m17` engine at `b76967b`.
   depending on what compiled earlier in the same engine session, on the base commit too. It's the clear-speed
   nondeterminism seen in M-15 (fixed then by measuring the first stat set); clear speed stays rough, so it waits for
   the live run's review.
+- **The user's review of WU-90's entries:** "The library looks pretty thin, but that's probably just from a lack of
+  references." No corrections, so the library's "Awaiting review" note becomes "Reviewed" (the coordinator, with
+  its static test). **Next, after M-20:** the user plans a wider review of Mobalytics guides to thicken the kits; the
+  user names the guides, or approves a defined slice the coordinator lists first.

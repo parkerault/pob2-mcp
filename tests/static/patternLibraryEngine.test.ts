@@ -208,8 +208,8 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       }
     });
 
-    it('marks every new entry as awaiting the user\'s review (D-409)', () => {
-      const review = bullets(bodyOf(h2('How to read an entry')!)).find((b) => b.startsWith('- **Awaiting review.**')) ?? '';
+    it('records the user\'s review of every new entry (D-409)', () => {
+      const review = bullets(bodyOf(h2('How to read an entry')!)).find((b) => b.startsWith('- **Reviewed.**')) ?? '';
       expect(review).toContain('D-409');
       for (const name of ['Questions 11–14', 'Standard kits', 'A count as a multiplier', ...SHAPES.map(([t]) => t)]) {
         expect({ name, listed: review.includes(name) }).toEqual({ name, listed: true });

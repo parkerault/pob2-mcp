@@ -49,6 +49,16 @@
 //    `interviews/<gate>-<visit>-q<n>.md` (D-390), the checkpoint's `changes`, `newCards` and `note` in their forms, a
 //    changed card's "Changed at the gate" line, a card made at a gate (`r<k>-g-<n>`) with its "Made at the gate" line
 //    and its deck line, verified in the same round after the picked cards (D-391), and the deck's header (D-392).
+//  - amendment 8's engine lens (WU-89, D-400…D-408): the rival's step `RV` and its card `r<k>-x-<n>` (D-408), once per
+//    run right after the first verification round's assembly, its R1b outside that round's cap of 3 and a second
+//    R1b-assemble pass for its dossier row; the terminal R1b codes `not-in-pin` (D-400) and `not-dealt` (the rival's
+//    identity and sniff checks, D-408); the deck line's `engine: <family> from <family>` in data/rules/vocabulary.md's
+//    words, at most half a round's dealt cards on one engine unless the round is short for that reason or the user's
+//    note for it names that engine, and the header naming each engine and its count (D-405); `waits on the pin:
+//    <entry>` on a card that can't be finalized yet (D-400); the obvious card's `Obvious build:` (D-403); the structure
+//    check's `A stronger structure?` as its last line (D-406); the dossier's clear-speed column (D-407); and a `data`
+//    citation to a Markdown data file by its entry id (`### <Name>` then `- Id: <id>`; in rules/nodes.md, a node line by
+//    its node id). The formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -67,7 +77,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
-import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK } from './run-log.mjs';
+import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
@@ -102,10 +112,15 @@ export const GUIDE_H2 = [
 ];
 /** §7.8, the audit layer as `render-audit.mjs` renders it (D-278, D-355): audit.md's H2s, in order. */
 export const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues'];
-/** §7.2 as D-355 reduces it: the dossier's one table, the verification gate's comparison, these columns in order. */
+/**
+ * §7.2 as D-355 reduces it: the dossier's one table, the verification gate's comparison, these columns in order. A run
+ * that ran the rival (amendment 8) writes `DOSSIER_COLUMNS_D407` instead; a dossier from before it keeps these.
+ */
 export const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
-/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its prices and its league. */
-const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Key prices', 'League'];
+/** D-407, D-408: amendment 8's dossier, with each card's rough clear speed after its EHP. */
+export const DOSSIER_COLUMNS_D407 = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk'];
+/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its clear speed, its prices and its league. */
+const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League'];
 /** The endgame ladder's rungs in order (D-281, D-282): `m`, `b`, `n`. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
 /** Each rung's guide H2, which holds the H3 `Checks` (§8). */
@@ -167,10 +182,11 @@ const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'
 const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'] };
 /**
  * A schema-2 concept id (`c1`), and a schema-3 card id `r<round>-<letter>-<n>` (`r1-a-2`, D-319): the letters a to c
- * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391).
+ * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391), x the rival's (`r1-x-1`, D-408,
+ * `RIVAL_CARD`).
  */
 const CONCEPT_ID = 'c[1-9]\\d*';
-const CARD_ID = 'r[1-9]\\d*-[a-cg]-[1-9]\\d*';
+const CARD_ID = 'r[1-9]\\d*-[a-cgx]-[1-9]\\d*';
 /** A card made at a gate (D-391): `r<k>-g-<n>`, k its brainstorm round, n counting the run's gate-made cards in it. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The id form a run's steps, folders and files use: the card id in schema 3, the concept id in schema 2. */
@@ -221,9 +237,10 @@ const COMMON_OUTCOMES = {
 const STAGE_OUTCOMES = {
   2: { ...COMMON_OUTCOMES, D1: ['done', 'infeasible', CLAIMS_EDITED] },
   // D-390: a gate question step, `Q`, answers the user's question at a gate and writes interviews/<gate>-<visit>-q<n>.md.
-  3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED], Q: ['done'] },
+  // D-408: the rival, `RV`, writes its card (`done`) or finds no faster structure (`none-found`, with what it `tried`).
+  3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED], Q: ['done'], RV: ['done', 'none-found'] },
 };
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED];
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found'];
 /** The D1 steps: schema 3's two (D-356), schema 2's one. */
 const D1_STAGES = ['D1', 'D1-build', 'D1-finish'];
 /**
@@ -236,8 +253,8 @@ const ARTIFACT_WRITERS = { 'plan.json': [...D1_STAGES, 'D1-gate', 'D2'], 'guide.
 const DESIGN_STAGES = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate'];
 /** The producers whose run, unless it only edited claims (`claims-edited`), leaves the final record behind. */
 const PRODUCERS = [...D1_STAGES, 'D2'];
-/** The steps that concern no one concept or card: the rounds' steps, and a gate question step (D-390). */
-const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q'];
+/** The steps that concern no one concept or card: the rounds' steps, a gate question step (D-390) and the rival (D-408). */
+const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q', 'RV'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
 const R1B_ATTEMPTS = 3;
 const GATE_RETRIES = 2;
@@ -505,7 +522,9 @@ function areaLevelOf(variant) {
   const v = factValue('enemies/waystones.json', tier !== undefined ? 'area-level.offset' : 'area-level.max');
   return isNum(v) ? (tier !== undefined ? v + tier : v) : undefined;
 }
+/** Why a `data | <file>#<key>` citation names nothing under data/, or null: a Markdown file's entry, or a JSON fact. */
 function resolveFact(file, key) {
+  if (/\.md$/i.test(file)) return resolveEntry(file, key);
   if (!dataFiles.has(file)) {
     let parsed = null;
     try {
@@ -526,6 +545,62 @@ function resolveFact(file, key) {
   const v = fact.value;
   const ok = Array.isArray(v) ? /^(0|[1-9]\d*)$/.test(m[2]) && Number(m[2]) < v.length : isObj(v) && Object.prototype.hasOwnProperty.call(v, m[2]);
   return ok ? null : `${file}#${m[1]} has no member [${m[2]}]`;
+}
+
+/** The Markdown data files read so far (the league digests, the rule-changer index, the monster table), by path. */
+const markdownFiles = new Map();
+/** An entry id (M-20's handoff): lower-case words or numbers joined by `-`, unique in its file. */
+const ENTRY_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** The rule-changer index's node lines (D-401): `- <Name> (<node id>, <ascendancy or keystone>) …`, cited by the node id. */
+const NODE_LINES = 'rules/nodes.md';
+/**
+ * D-400, D-401, D-402: a citation `data | <path under data/>#<id>` to a Markdown data file names one entry: an H3
+ * `### <Name>` whose next line is `- Id: <id>`, the id unique in its file. In `rules/nodes.md`, whose entries are
+ * lines, an all-digit id names the line whose parenthesis starts with that node id, `- <Name> (<id>, …`. Returns why
+ * the citation names none, or null.
+ */
+function resolveEntry(file, id) {
+  if (!markdownFiles.has(file)) {
+    let text = null;
+    try {
+      const abs = path.resolve(DATA_DIR, file);
+      if (abs.startsWith(DATA_DIR + path.sep)) text = fs.readFileSync(abs, 'utf8');
+    } catch {
+      text = null;
+    }
+    markdownFiles.set(file, text);
+  }
+  const text = markdownFiles.get(file);
+  if (typeof text !== 'string') return `no data file "${file}" under data/`;
+  if (!ENTRY_ID.test(id)) return `"${id}" isn't an entry id, lower-case words or numbers joined by "-"`;
+  const lines = text.split(/\r?\n/);
+  if (file === NODE_LINES && /^\d+$/.test(id)) {
+    const n = lines.filter((l) => new RegExp(`^[-*]\\s+[^(]*\\(${id}[,)]`).test(l)).length;
+    if (n === 1) return null;
+    return n === 0 ? `${file} has no node line "- <Name> (${id}, …)"` : `${file} has ${n} node lines for node ${id}; a node has one`;
+  }
+  const n = lines.filter((l, i) => /^###\s+\S/.test(l) && new RegExp(`^[-*]\\s+Id:\\s*${id}\\s*$`).test(lines[i + 1] ?? '')).length;
+  if (n === 1) return null;
+  return n === 0 ? `${file} has no entry "${id}": an H3 "### <Name>" whose next line is "- Id: ${id}"` : `${file} holds the entry id "${id}" ${n} times; an id is unique in its file`;
+}
+
+/** The mechanic families of data/rules/vocabulary.md (D-401, D-405), `none` among them; null when it can't be read. */
+let vocabulary;
+function vocabularyWords() {
+  if (vocabulary === undefined) {
+    vocabulary = null;
+    try {
+      const words = new Set(['none']);
+      for (const line of fs.readFileSync(path.join(DATA_DIR, 'rules', 'vocabulary.md'), 'utf8').split(/\r?\n/)) {
+        const m = /^[-*]\s+((?:`[a-z0-9-]+`(?:,\s*)?)+):/.exec(line);
+        if (m) for (const w of m[1].matchAll(/`([a-z0-9-]+)`/g)) words.add(w[1]);
+      }
+      if (words.size > 1) vocabulary = words;
+    } catch {
+      vocabulary = null;
+    }
+  }
+  return vocabulary;
 }
 
 /** The server's ledger evaluator, or null when the server isn't built. */
@@ -612,9 +687,11 @@ export async function checkRun(runFolder) {
   const cardIds = new Set();
   for (const f of listDir('cards')) {
     const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
-    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391)`);
+    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391, and x for the rival's, D-408)`);
     else cardIds.add(m[1]);
   }
+  // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
+  const rivalRan = stages.some((s) => s.stage === 'RV' && s.outcome !== 'missing');
   if (completed) {
     for (const rel of ['plan.json', 'compile-record.json', 'dossier.md', 'guide.md', 'audit.md']) {
       if (!exists(rel)) fail('layout', `${rel} is missing; a completed run has plan.json, compile-record.json, dossier.md, guide.md and audit.md (§2)`);
@@ -788,7 +865,9 @@ export async function checkRun(runFolder) {
     if (cite.kind === 'price' && !scope.prices.has(cite.id)) fail('markers', `${where}: price ${show(cite.id)} names no prices[] entry (D-237)`);
     if (cite.kind === 'data') {
       const why = resolveFact(cite.file, cite.key);
-      if (why !== null) fail('markers', `${where}: data ${cite.file}#${cite.key} names no C1/E1 fact (D-232): ${why}`);
+      // D-400: a Markdown data file's entry (the league digest, the rule-changer index, the monster table) by its id.
+      const what = /\.md$/i.test(cite.file) ? "no entry of a Markdown data file (D-400, M-20's entry id)" : 'no C1/E1 fact (D-232)';
+      if (why !== null) fail('markers', `${where}: data ${cite.file}#${cite.key} names ${what}: ${why}`);
     }
   };
   const planScope = (p) => ({
@@ -859,14 +938,6 @@ export async function checkRun(runFolder) {
     if (text !== null) markdownClaims(parseMarkdown(text), `research/${f}`, runScope);
   }
 
-  // ---- Dossier (§7.2, as D-355 reduces it): the verification gate's comparison table -------------------
-  const dossierText = readText('dossier.md');
-  if (dossierText !== null) {
-    const lastAssembly = stages.reduce((at, s, i) => (s.stage === 'R1b-assemble' && s.outcome === 'done' ? i : at), -1);
-    const assembled = [...new Set(stages.slice(0, lastAssembly + 1).filter((s) => s.stage === 'R1b').map((s) => s.concept))];
-    checkDossier(dossierText, assembled, ID, fail);
-  }
-
   // ---- Reports: the gate verdicts and the V4 reports (§2, gates.md, source-markers.md) ---------------
   const gates = [];
   for (const f of listDir('reports/gates')) {
@@ -882,6 +953,19 @@ export async function checkRun(runFolder) {
     if (isObj(rep)) gateReports.set(g.file, rep);
   }
   const lastGate = (stage, concept) => gates.filter((g) => g.stage === stage && g.concept === concept).sort((a, b) => b.attempt - a.attempt)[0];
+
+  // ---- Dossier (§7.2, as D-355 reduces it): the verification gate's comparison table -------------------
+  const dossierText = readText('dossier.md');
+  if (dossierText !== null) {
+    const lastAssembly = stages.reduce((at, s, i) => (s.stage === 'R1b-assemble' && s.outcome === 'done' ? i : at), -1);
+    const assembled = [...new Set(stages.slice(0, lastAssembly + 1).filter((s) => s.stage === 'R1b').map((s) => s.concept))];
+    // D-400, D-408: the terminal code of each card's last R1b attempt, which its row's status says.
+    const terminal = new Map();
+    for (const s of stages.slice(0, lastAssembly + 1)) {
+      if (s.stage === 'R1b' && s.outcome !== 'missing') terminal.set(s.concept, s.outcome === 'fail' ? terminalR1b(gateReports.get(`reports/gates/R1b-${s.concept}-a${s.attempt}.json`)) : null);
+    }
+    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal });
+  }
 
   // The V4 reports (D-352, stages/V4.md): reports/V4-<n>.md, one per logged pass (V4 or V4-recheck), numbered
   // in run order from 1 and never overwritten. The k-th logged pass wrote report k.
@@ -997,7 +1081,10 @@ export async function checkRun(runFolder) {
     verdict: verdictOf,
     /** The plan stage a fault directive breaks (offline-and-test.md): FI-1 the card's skeleton, FI-2 the first endgame stage. */
     faultedStage: (id, concept) => (id === 'FI-1' ? skeletonStage(concept) : id === 'FI-2' ? firstEndgame : null),
-    /** D-334, D-342: the code of an R1b attempt that failed with no compile and that no retry can fix (`not-a-skill`, `wrong-ascendancy`), else null. */
+    /**
+     * D-334, D-342, D-400, D-408: the code of an R1b attempt that failed with no compile and that no retry can fix
+     * (`not-a-skill`, `wrong-ascendancy`, `not-in-pin`, `not-dealt`), else null.
+     */
     terminal: (s) => (s.stage === 'R1b' && s.outcome === 'fail' ? terminalR1b(verdictOf(s)) : null),
     /** Whether the run holds the card a gate answer names (C-52). */
     cardExists: (id) => cardIds.has(id),
@@ -1005,7 +1092,10 @@ export async function checkRun(runFolder) {
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
-    checkDeck(readText('cards.md'), stages, cardIds, fail);
+    checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log) });
+    // D-408: each rival step that wrote a card, and that card; D-403, D-406: the obvious card's line, the structure check.
+    checkRivals(stages, cardIds, fail);
+    checkCardLines(log, cardIds, readText, fail);
     // D-389, D-391: the cards changed and made at the gates, and the interview notes, against the checkpoints.
     checkGateCards(log, cardIds, (id) => parseCard(readText(`cards/${id}.md`)), readText('cards.md'), fail);
     checkInterviews(log, listDir('interviews'), readText, exists, questionProbes, fail);
@@ -1795,7 +1885,7 @@ function checkRunLog(log, fail, schema) {
     const at = `stages[${i}]`;
     if (!isObj(s)) return bad(at, 'is an object');
     // D-326: a probe count (D-338), a short round's reason (D-339) and R1a-assemble (D-287) are schema 3's.
-    if (!v3) for (const [k, why] of [['probes', 'D-338'], ['shortReason', 'D-339']]) if (k in s) bad(at, `has ${k}, which schema 3 added (${why}); a schema-2 log has none (D-326)`);
+    if (!v3) for (const [k, why] of [['probes', 'D-338'], ['shortReason', 'D-339'], ['tried', 'D-408']]) if (k in s) bad(at, `has ${k}, which schema 3 added (${why}); a schema-2 log has none (D-326)`);
     const outcomes = STAGE_OUTCOMES[v3 ? 3 : 2];
     const known = Object.keys(outcomes).filter((x) => v3 || x !== 'R1a-assemble');
     if (!known.includes(s.stage)) {
@@ -1811,6 +1901,11 @@ function checkRunLog(log, fail, schema) {
     // D-339: a short brainstorm round's reason, on its R1a-assemble entry.
     if (v3 && 'shortReason' in s && (s.stage !== 'R1a-assemble' || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
       bad(at, `has shortReason ${show(s.shortReason)}; only an R1a-assemble entry carries one, the reason its return gave for a short round (D-339)`);
+    }
+    // D-408: a rival that found no faster structure (`none-found`) logs what it tried, and only it.
+    const triedOk = typeof s.tried === 'string' && s.tried.trim() !== '';
+    if (v3 && (s.stage === 'RV' && s.outcome === 'none-found' ? !triedOk : 'tried' in s)) {
+      bad(at, `${'tried' in s ? `has tried ${show(s.tried)}` : 'has no tried'}; an RV entry whose outcome is none-found carries tried, what the rival tried, a non-empty text, and no other entry does (D-408)`);
     }
     // D-338: each R1b attempt's probe count, from its return's "probes <n>", so D-292's cap can be audited.
     if (v3 && 'probes' in s && s.stage !== 'R1b') bad(at, `has probes, but only R1b writes probe variants (D-338)`);
@@ -1930,10 +2025,16 @@ const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt $
  *    D2 comes only after a design gate visit answered `accept`, which follows a passing D1 gate or an escalation
  *    accepted there (D-362).
  *  - `caps`: per brainstorm round at most 3 R1a researchers and one R1a-assemble, per verification round at
- *    most 3 cards compiled (NFR-23, D-287; a schema-2 log's research round carries at most 3 concepts, D-235);
- *    R1b at most 3 counted attempts, none after a terminal `not-a-skill` or `wrong-ascendancy` failure (D-334,
- *    D-342); each gate at most 2 counted retries, then an escalation (S6: an attempt-1 fault's failure is free, a
- *    persistent fault's attempts count; a guided retry and an accepted re-run escalate again on failure).
+ *    most 3 cards compiled (NFR-23, D-287; a schema-2 log's research round carries at most 3 concepts, D-235), the
+ *    rival's aside (D-408); R1b at most 3 counted attempts, none after a terminal `not-a-skill`, `wrong-ascendancy`,
+ *    `not-in-pin` or `not-dealt` failure (D-334, D-342, D-400, D-408); each gate at most 2 counted retries, then an
+ *    escalation (S6: an attempt-1 fault's failure is free, a persistent fault's attempts count; a guided retry and an
+ *    accepted re-run escalate again on failure).
+ *  - the rival (D-408): its step `RV` runs once per run right after the R1b-assemble that closes the first
+ *    verification round, before that gate's visit; when it wrote its card `r<k>-x-<n>` (`done`), that card's R1b and a
+ *    second R1b-assemble come next, then the verification gate; when it found no faster structure (`none-found`), the
+ *    gate comes next. Any other RV step runs at a gate the user asked at, like a gate question step, and leads nowhere:
+ *    its card is verified when a gate's answer picks it.
  *  - `verification` (D-352): one full V4 pass per guide; after it, one fix round only when it found something,
  *    then one re-check (V4-recheck); a revision the final gate asked for starts with its owners and checks with a
  *    re-check, never a full pass, and its re-check may have its own fix round and re-check. A claims-only owner
@@ -2022,9 +2123,17 @@ function checkFlow(log, fail, ctx) {
   const answers = Object.fromEntries(GATES.map((g) => [g, checkpoints.filter((c) => c.checkpoint === g)]));
   const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate', design: 'the design gate' };
 
-  // A gate question step (D-390) runs at a gate, between its display and its answer, and leads nowhere: the order
-  // rules read past it.
-  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.outcome !== 'missing' && s.stage !== 'Q');
+  // D-408: the rival's own step, the first RV to return its file right after the R1b-assemble that closes the first
+  // verification round (schema 3's first assembly). Any other RV runs at a gate the user asked at.
+  const firstAssembly = v3 ? stages.findIndex((s) => s.stage === 'R1b-assemble' && s.outcome !== 'missing') : -1;
+  const afterAssembly = firstAssembly >= 0 ? stages.slice(firstAssembly + 1).find((s) => s.outcome !== 'missing') : undefined;
+  const autoRival = afterAssembly?.stage === 'RV' ? afterAssembly : null;
+  const rivalIds = rivalCards(stages);
+  /** A step that runs at a gate, between its display and its answer, and leads nowhere (D-390, D-408). */
+  const atGate = (s) => s.stage === 'Q' || (s.stage === 'RV' && s !== autoRival);
+  // A gate question step (D-390), and a rival the user asked for at a gate (D-408), run at a gate, between its display
+  // and its answer, and lead nowhere: the order rules read past them.
+  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.outcome !== 'missing' && !atGate(s));
   let prev = null;
   let esc = 0;
   let lastEscalation = null;
@@ -2055,7 +2164,9 @@ function checkFlow(log, fail, ctx) {
   const gateAfter = (p, next) => {
     if (!v3 || !p) return null;
     if (p.stage === 'R1a-assemble' && next?.stage !== 'R1a-assemble') return 'brainstorm';
-    if (p.stage === 'R1b-assemble') return 'verification';
+    // D-408: the first verification round's assembly goes on to the rival's step, before the gate's visit.
+    if (p.stage === 'R1b-assemble') return next !== undefined && next === autoRival ? null : 'verification';
+    if (p.stage === 'RV' && p.outcome === 'none-found') return 'verification';
     if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return 'verification';
     // D-362: in the design phase, a passing D1 gate, or one whose escalation the user accepted, goes to the design gate.
     if (p.stage === 'D1-gate' && design !== null && !design.verified && (p.outcome === 'pass' || (p.outcome === 'escalated' && lastEscalation?.choice === 'accept'))) return 'design';
@@ -2139,6 +2250,8 @@ function checkFlow(log, fail, ctx) {
       if (r === undefined) illegal(`follows the verification gate answered ${show(a)}, but no R1b verified ${id} in the run; the gate finalizes a verified card (D-287)`);
       else if (r.terminal === 'not-a-skill') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
       else if (r.terminal === 'wrong-ascendancy') illegal(`follows the verification gate answered ${show(a)}, but ${id}'s ascendancy doesn't own the passive-tree node that grants its skill (its R1b ended wrong-ascendancy), so the build it describes can't exist and it can't be finalized (D-342)`);
+      else if (r.terminal === 'not-in-pin') illegal(`follows the verification gate answered ${show(a)}, but ${id} rests on an entry the PoB pin doesn't know (its R1b ended not-in-pin), so it can't be finalized yet (D-303, D-400)`);
+      else if (r.terminal === 'not-dealt') illegal(`follows the verification gate answered ${show(a)}, but ${id}, the rival's card, failed R1a-assemble's identity and sniff checks (its R1b ended not-dealt), so it can't be finalized (D-408)`);
       if (s.stage !== D1_START) illegal(`follows the verification gate answered ${show(a)}, which finalizes ${id}: its design (${D1_START}) comes next, not ${s.stage}`);
       finalized = id;
       return 'pick';
@@ -2194,6 +2307,9 @@ function checkFlow(log, fail, ctx) {
         // A second assembly in one brainstorm round: the caps name it (NFR-23).
         'R1a-assemble': ['R1a-assemble'],
         R1b: ['R1b', 'R1b-assemble'],
+        // D-408: the first verification round's assembly, then the rival; its card's R1b after a card (`done`).
+        'R1b-assemble': ['RV'],
+        RV: p?.outcome === 'done' ? ['R1b'] : [],
       } : {
         start: ['R1a'],
         R1a: ['R1a', 'R1b', 'R1b-assemble'],
@@ -2257,7 +2373,9 @@ function checkFlow(log, fail, ctx) {
             if (!vround.expected.includes(s.concept)) illegal(`runs R1b for ${s.concept}, which ${vround.gate} didn't pick for verification round ${vround.n}`);
             else if (next !== s.concept) illegal(`verifies ${s.concept} before ${next}; R1b runs the picked cards in the order picked (${vround.expected.join(', ')})`);
             vround.cards.push(s.concept);
-            if (vround.cards.length > ROUND_CAP) fail('caps', `${at(i)}: verification round ${vround.n} compiles ${vround.cards.length} cards; at most ${ROUND_CAP} per verification round (D-287, NFR-23)`);
+            // D-408: the rival's R1b is outside the cap of 3 per verification round.
+            const capped = vround.cards.filter((c) => !RIVAL_CARD.test(c)).length;
+            if (!RIVAL_CARD.test(s.concept) && capped > ROUND_CAP) fail('caps', `${at(i)}: verification round ${vround.n} compiles ${capped} cards; at most ${ROUND_CAP} per verification round (D-287, NFR-23), the rival's aside (D-408)`);
           }
         }
       } else {
@@ -2271,6 +2389,8 @@ function checkFlow(log, fail, ctx) {
       r1bSeen.set(s.concept, r);
       if (r.terminal === 'not-a-skill') illegal(`runs R1b for ${s.concept} again, but its last attempt ended not-a-skill with no compile: its damage source isn't a skill, so no retry can compile it (D-334)`);
       else if (r.terminal === 'wrong-ascendancy') illegal(`runs R1b for ${s.concept} again, but its last attempt ended wrong-ascendancy with no compile: its ascendancy doesn't own the passive-tree node that grants its skill, so no retry can change it (D-342)`);
+      else if (r.terminal === 'not-in-pin') illegal(`runs R1b for ${s.concept} again, but its last attempt ended not-in-pin with no compile: it rests on an entry the PoB pin doesn't know, so no retry can compile it (D-400)`);
+      else if (r.terminal === 'not-dealt') illegal(`runs R1b for ${s.concept} again, but its last attempt ended not-dealt with no compile: the rival's card failed R1a-assemble's identity and sniff checks, so no retry can deal it (D-408)`);
       else if (r.passed) illegal(`runs R1b for ${s.concept} after it compiled`);
       else if (r.counted >= R1B_ATTEMPTS) fail('caps', `${at(i)}: is a counted R1b attempt for ${s.concept} after ${r.counted}; R1b allows 2 counted retries, then the ${v3 ? 'card' : 'concept'} is failed (Q2)`);
       if (p && p.stage === 'R1b' && p.outcome === 'fail' && p.concept !== s.concept && retriesLeft(p.concept)) {
@@ -2288,6 +2408,10 @@ function checkFlow(log, fail, ctx) {
         if (left.length > 0) illegal(`assembles verification round ${vround.n}, but no R1b ran for ${left.join(', ')}, which ${vround.gate} picked`);
         vround = null;
       }
+    }
+    // D-408: the rival's card goes through R1b inside the first verification round, then a second R1b-assemble pass.
+    if (s === autoRival && s.outcome === 'done') {
+      vround = { n: vrounds, gate: "the rival's step (RV, D-408)", expected: [rivalIds.get(s)], cards: [] };
     }
 
     // Designs, chains and caps (gates.md; S6).
@@ -2399,8 +2523,9 @@ function checkFlow(log, fail, ctx) {
   while (end !== null) {
     const c = answers[end].shift();
     const name = GATE_NAME[end];
-    // A gate question step after the last step runs at its gate (D-390), so the run still ends there.
-    const atEnd = stages.filter((x) => x.stage !== 'Q').pop() === prev.s;
+    // A gate question step, or a rival asked for at a gate, after the last step runs at its gate (D-390, D-408), so
+    // the run still ends there.
+    const atEnd = stages.filter((x) => !atGate(x)).pop() === prev.s;
     // D-362: the design gate's "verification" goes on to the verification gate, which takes its own answer.
     if (end === 'design' && c?.answer === 'verification') {
       end = 'verification';
@@ -2415,7 +2540,7 @@ function checkFlow(log, fail, ctx) {
     // of any other card is followed, never turned into a stop.
     const picked = end === 'verification' && c?.answer === 'stop' && c.answeredBy === 'pre-supplied' ? /^pick:(.+)$/.exec(String(c.rule))?.[1] : undefined;
     if (picked !== undefined && !r1bSeen.get(picked)?.terminal) {
-      fail('order', `run-log.json: the verification gate's pre-supplied ${show(c.rule)} ended the run with "stop", but ${picked} can be finalized; a pre-supplied pick stops the run only when its card can't be (its R1b ended wrong-ascendancy or not-a-skill; D-303, D-342)`);
+      fail('order', `run-log.json: the verification gate's pre-supplied ${show(c.rule)} ended the run with "stop", but ${picked} can be finalized; a pre-supplied pick stops the run only when its card can't be (its R1b ended wrong-ascendancy, not-a-skill, not-in-pin or not-dealt; D-303, D-342, D-400, D-408)`);
     }
     end = null;
   }
@@ -2544,6 +2669,10 @@ function checkGateReport(rep, g, fail) {
     if (!allowed.includes(rep.verdict[part])) bad(`verdict.${part} is ${show(rep.verdict[part])}; one of ${allowed.join(', ')}${allowed === BUDGET_PARTS ? ' (the budget never fails, D-371)' : ''}`);
   }
   if (!Array.isArray(rep.findings)) bad('has no findings list');
+  // D-408: only the rival's R1b runs R1a-assemble's identity and sniff checks, and stops not-dealt when they fail.
+  if (g.stage === 'R1b' && list(rep.findings).some((f) => f.code === 'not-dealt') && !RIVAL_CARD.test(g.concept)) {
+    bad(`has the finding not-dealt, but ${g.concept} isn't the rival's card r<k>-x-<n>; only the rival's R1b runs the identity and sniff checks and stops not-dealt (D-408)`);
+  }
   if (g.stage === 'D1-gate') {
     const b = rep.basis;
     if (!isObj(b) || !isObj(b.budget) || !Array.isArray(b.budget.slots) || !Array.isArray(b.budget.rates) || !isObj(b.budget.market) || !Array.isArray(b.budget.totals) || !Array.isArray(b.rolledSkill)) {
@@ -2552,14 +2681,16 @@ function checkGateReport(rep, g, fail) {
   }
 }
 
-/** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342). */
-const TERMINAL_R1B = ['wrong-ascendancy', 'not-a-skill'];
+/** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342, D-400, D-408). */
+const TERMINAL_R1B = ['wrong-ascendancy', 'not-a-skill', 'not-in-pin', 'not-dealt'];
 
 /**
  * An R1b verdict that compiled nothing (`compiles: 0`) and failed with a terminal code, which it returns (else
  * null). `not-a-skill` (D-334): the card's damage source isn't a skill, so no retry can compile it, and the card
  * can't be finalized yet (D-303). `wrong-ascendancy` (D-342): the card's ascendancy doesn't own the passive-tree
  * node that grants its skill, so no retry can change its identity; the card is failed, and can't be finalized.
+ * `not-in-pin` (D-400): the card rests on an entry the PoB pin doesn't know, so nothing compiles it, and it can't be
+ * finalized yet. `not-dealt` (D-408): the rival's card failed R1a-assemble's identity and sniff checks.
  */
 function terminalR1b(rep) {
   if (!isObj(rep) || !isObj(rep.verdict) || rep.verdict.compiled !== 'fail' || rep.compiles !== 0) return null;
@@ -2575,9 +2706,17 @@ function terminalR1b(rep) {
  * accepted only with its reason, the `shortReason` on its R1a-assemble entry. A card made at a gate (`r<k>-g-<n>`)
  * sits under its round, marked `made at the gate`, and counts toward no deal; `checkGateCards` holds it to the log.
  * Every researcher's card of a dealt round is in the deck, dealt or not, and every card `cards/<id>.md` is of a
- * round the log ran.
+ * round the log ran. The rival's card (`r<k>-x-<n>`, D-408) is no deck card.
+ *
+ * Amendment 8: a line's `engine: <family> from <family>` names its engine in data/rules/vocabulary.md's words (D-401,
+ * D-405); once the deck names one, or the run ran the rival (`ctx.rivalRan`), every dealt researcher's card names
+ * one. A round deals at most half its cards on one engine, rounded down (an engine whose consumed family is `none`
+ * is no engine), unless its R1a-assemble entry's `shortReason` says `short: <n> cards share one engine` or the user's
+ * note for the round (`ctx.noteOf(k)`, the `more` answer that opened it) names the engine's consumed family. The
+ * header's "How they differ" names each engine of the deck's dealt cards with its count, `<engine> (<n>)`. A line
+ * `waits on the pin: <entry>` is also marked `can't be finalized yet: <why>` (D-303, D-400).
  */
-function checkDeck(text, stages, cardIds, fail) {
+function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf: () => undefined }) {
   const rounds = [];
   let prev = null;
   stages.forEach((s, i) => {
@@ -2613,15 +2752,33 @@ function checkDeck(text, stages, cardIds, fail) {
   if (deck.h2.includes('Found, not used') && !(found.length === 1 && found[0].raw === 'None.') && (found.length === 0 || found.length > 5 || found.some((l) => !/^[-*]\s+\S/.test(l.raw)))) {
     fail('deck', `cards.md's "Found, not used" holds ${found.length} line(s); it lists up to five strong research findings no card uses, each "- <finding>: <why no card uses it>", or says "None." (D-392)`);
   }
+  // D-401, D-405: each engine part's form and words; D-400: a card waiting on the pin can't be finalized yet.
+  const vocab = vocabularyWords();
+  const engineRequired = ctx.rivalRan || deck.entries.some((d) => d.engines.length > 0);
   for (const d of deck.entries) {
     if (d.name === null || d.name.trim() === '') fail('deck', `cards.md:${d.n}: ${show(d.id)}'s line gives no name; a card line is - <card id> "<Name>" | … (D-392)`);
+    if (d.engines.length > 1) fail('deck', `cards.md:${d.n}: ${d.id}'s line names ${d.engines.length} engines; a deck line names one, engine: <family> from <family> (D-405)`);
+    for (const e of d.engines) {
+      if (!e.ok) fail('deck', `cards.md:${d.n}: ${d.id}'s ${show(e.raw)} isn't "engine: <family> from <family>", the consumed family, then its supply's, each one word of data/rules/vocabulary.md (D-401, D-405)`);
+      else if (vocab === null) fail('deck', `cards.md:${d.n}: ${d.id}'s engine can't be checked: data/rules/vocabulary.md, the mechanic families, can't be read (D-401)`);
+      else for (const w of [e.consumed, e.supply]) if (!vocab.has(w)) fail('deck', `cards.md:${d.n}: ${d.id}'s engine names ${show(w)}, which isn't a family of data/rules/vocabulary.md (or none); an engine uses only its words (D-401, D-405)`);
+    }
+    if (d.waits !== null) {
+      if (!/^waits on the pin:\s*\S/i.test(d.waits)) fail('deck', `cards.md:${d.n}: ${d.id}'s ${show(d.waits)} isn't "waits on the pin: <entry>", the entry the PoB pin doesn't know (D-400)`);
+      if (!d.parts.some((p) => CANT_FINALIZE.test(p))) fail('deck', `cards.md:${d.n}: ${d.id} waits on the pin, but its line isn't marked "can't be finalized yet: <why>"; a card resting on an entry the PoB pin doesn't know is dealt as can't be finalized yet (D-303, D-400)`);
+    }
+    // D-408: the rival's card is no researcher's card of a round; R1b-assemble gives it a dossier row instead.
+    if (RIVAL_CARD.test(d.id)) fail('deck', `cards.md:${d.n}: lists ${d.id}, the rival's card, which the deck doesn't hold; R1b-assemble gives it a dossier row (D-408)`);
   }
   const listed = new Map();
   let underPlayed = 0;
+  /** The deck's engines (the dealt researchers' cards of every round) with their counts, for the header (D-405). */
+  const deckEngines = new Map();
   for (const r of dealtRounds) {
     const dealt = [];
     for (const d of deck.entries.filter((x) => x.round === r.k)) {
       const gate = GATE_CARD.exec(d.id);
+      if (RIVAL_CARD.test(d.id)) continue;
       if (gate) {
         // D-391: a card made at a gate sits under its round, marked; checkGateCards holds it to the checkpoint that made it.
         if (Number(gate[1]) !== r.k) fail('deck', `cards.md:${d.n}: round ${r.k} lists ${d.id}, a card made at a gate in round ${gate[1]}; R1b-assemble adds it under "Round ${gate[1]}" (D-391)`);
@@ -2642,6 +2799,29 @@ function checkDeck(text, stages, cardIds, fail) {
     if (short && !(typeof reason === 'string' && reason.trim() !== '')) {
       fail('deck', `cards.md's round ${r.k} deals ${dealt.length} card(s), and the deck holds ${underPlayed} under-played card(s), short of ${DEAL.min} to ${DEAL.max} dealt and two under-played (D-339), but its R1a-assemble entry, run-log.json stages[${r.assembly.i}], has no shortReason; a short round is accepted only with its reason`);
     }
+    // D-405: no more than half the round's dealt cards on one engine, rounded down.
+    const engines = new Map();
+    for (const d of dealt) {
+      if (engineRequired && d.engines.length === 0) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id} with no "engine: <family> from <family>"; ${ctx.rivalRan ? 'a run that ran the rival (amendment 8, D-408)' : 'a deck that names an engine'} names one on every dealt card's line (D-405)`);
+      const e = d.engines[0];
+      if (!e?.ok || e.consumed === 'none') continue;
+      engines.set(e.key, { consumed: e.consumed, n: (engines.get(e.key)?.n ?? 0) + 1 });
+      deckEngines.set(e.key, (deckEngines.get(e.key) ?? 0) + 1);
+    }
+    const cap = Math.floor(dealt.length / 2);
+    for (const [key, { consumed, n }] of engines) {
+      if (n <= cap) continue;
+      const shortFor = typeof reason === 'string' && new RegExp(`\\bshort: ${n} cards share one engine\\b`).test(reason);
+      const note = ctx.noteOf(r.k);
+      const asked = typeof note === 'string' && new RegExp(`(?<![a-z0-9])${consumed.replace(/-/g, '[- ]')}(?![a-z0-9])`, 'i').test(note);
+      if (!shortFor && !asked) {
+        fail('deck', `cards.md's round ${r.k} deals ${n} of ${dealt.length} cards on the engine "${key}"; a round deals at most half its cards on one engine, rounded down (${cap} of ${dealt.length}), unless it is short for that reason (its R1a-assemble entry's shortReason "short: ${n} cards share one engine") or the user's note for the round asks for that engine (D-405)`);
+      }
+    }
+  }
+  // D-405: the header names each engine and its card count.
+  for (const [key, n] of deckEngines) {
+    if (!(deck.differ ?? '').includes(`${key} (${n})`)) fail('deck', `cards.md's "How they differ" doesn't name the engine "${key}" with its count, "${key} (${n})"; the header names each engine of the deck's dealt cards and its count (D-405)`);
   }
   for (const d of deck.entries.filter((x) => x.round !== null && !dealtRounds.some((r) => r.k === x.round))) {
     fail('deck', `cards.md:${d.n}: lists ${d.id} under "Round ${d.round}", which R1a-assemble didn't deal (D-287)`);
@@ -2655,7 +2835,72 @@ function checkDeck(text, stages, cardIds, fail) {
   const dealtK = new Set(dealtRounds.map((r) => r.k));
   for (const id of cardIds) {
     const k = Number(/^r(\d+)-/.exec(id)[1]);
-    if (dealtK.has(k) && !GATE_CARD.test(id) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+    if (dealtK.has(k) && !GATE_CARD.test(id) && !RIVAL_CARD.test(id) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+  }
+}
+
+/**
+ * D-405: the user's note for brainstorm round `k`: round 1 starts with the run and has none; round k ≥ 2 is opened
+ * by the (k−1)-th `more` answer at the brainstorm or verification gate, whose `note` it is (D-391).
+ */
+function roundNotes(log) {
+  const mores = list(log.checkpoints).filter((c) => ['brainstorm', 'verification'].includes(c.checkpoint) && c.answer === 'more');
+  return (k) => (k >= 2 ? mores[k - 2]?.note : undefined);
+}
+
+/**
+ * D-408: the card each rival step that wrote one (`RV`, outcome `done`) wrote, by its log entry: `r<k>-x-<n>`, k the
+ * brainstorm rounds run before it, n counting the run's rivals that wrote a card in round k.
+ */
+function rivalCards(stages) {
+  const out = new Map();
+  const perRound = new Map();
+  let k = 0;
+  stages.forEach((s, i) => {
+    if (!isObj(s)) return;
+    if (s.stage === 'R1a' && stages[i - 1]?.stage !== 'R1a') k += 1;
+    if (s.stage === 'RV' && s.outcome === 'done') {
+      const n = (perRound.get(k) ?? 0) + 1;
+      perRound.set(k, n);
+      out.set(s, `r${k}-x-${n}`);
+    }
+  });
+  return out;
+}
+
+/** D-408: each rival step that wrote its card (`done`) has it, `cards/r<k>-x-<n>.md`, and every rival's card has its step. */
+function checkRivals(stages, cardIds, fail) {
+  const written = rivalCards(stages);
+  stages.forEach((s, i) => {
+    const id = written.get(s);
+    if (id !== undefined && !cardIds.has(id)) fail('rival', `run-log.json stages[${i}] (RV attempt ${s.attempt}) wrote the rival's card, but cards/${id}.md doesn't exist; the rival writes one card, cards/r<k>-x-<n>.md, k the latest brainstorm round and n counting the run's rivals in it (D-408)`);
+  });
+  const ids = new Set(written.values());
+  for (const id of cardIds) {
+    if (RIVAL_CARD.test(id) && !ids.has(id)) fail('rival', `cards/${id}.md is a rival's card, but run-log.json logs no RV step that wrote it (outcome done; D-408)`);
+  }
+}
+
+/**
+ * D-403, D-406: the obvious card's pitch line `- Obvious build: <the kit it follows>` is on one card, r1-a-1, and only
+ * when the brief names a skill or a playstyle; a card's `### Structure check` sits in its verification half, and its
+ * `- A stronger structure? …` line, when it has one, is the section's last.
+ */
+function checkCardLines(log, cardIds, readText, fail) {
+  const brief = isObj(log.brief) ? log.brief : {};
+  const obviousBrief = (typeof brief.skill === 'string' && brief.skill.trim() !== '') || (Array.isArray(brief.playstyle) && brief.playstyle.length > 0);
+  for (const id of [...cardIds].sort()) {
+    const card = parseCard(readText(`cards/${id}.md`));
+    const obvious = card.fields.get('Obvious build');
+    if (obvious !== undefined) {
+      if (id !== 'r1-a-1') fail('card', `cards/${id}.md:${obvious.line}: carries "- Obvious build:", but only the obvious card, r1-a-1 (researcher a's first card in round 1), does (D-403)`);
+      else if (!obviousBrief) fail('card', `cards/${id}.md:${obvious.line}: carries "- Obvious build:", but the brief names neither a skill nor a playstyle, so the run has no obvious card (D-403)`);
+      if (obvious.value.trim() === '') fail('card', `cards/${id}.md:${obvious.line}: "- Obvious build:" names no kit; it is "- Obvious build: <the kit it follows>" (D-403)`);
+    }
+    const sc = card.structure;
+    if (sc === null) continue;
+    if (sc.h2 !== 'Verification half') fail('card', `cards/${id}.md:${sc.line}: "### Structure check" is under ${sc.h2 === null ? 'no H2' : show(sc.h2)}; it is a heading of the card's verification half (D-406)`);
+    if (!sc.strongerLast) fail('card', `cards/${id}.md:${sc.strongerLine}: "- A stronger structure? …" isn't the structure check's last line; it ends the section (D-406)`);
   }
 }
 
@@ -2811,9 +3056,12 @@ function checkInterviews(log, files, readText, exists, questionProbes, fail) {
  * D-355, templates/dossier-template.md: the dossier is the verification gate's comparison table: one H1, then a
  * `Brief:` line, then one table with `DOSSIER_COLUMNS`, one row `| <id> | …` per card R1b verified before the last
  * assembly, and no H2, H3 or marker. A failed or not-yet-finalizable card has `—` in its number, price and league
- * cells.
+ * cells. Amendment 8: the columns are `DOSSIER_COLUMNS_D407`, with each card's rough clear speed (D-407); a run
+ * that didn't run the rival (`ctx.rivalRan`), recorded before it, may keep `DOSSIER_COLUMNS`. The rival's row comes
+ * from R1b-assemble's second pass (D-408). A card whose R1b ended not-in-pin reads "can't be finalized yet: waits
+ * on the pin" (D-400), and the rival's card whose R1b ended not-dealt "failed …: not dealt …" (D-408).
  */
-function checkDossier(text, assembled, ID, fail) {
+function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, terminal: new Map() }) {
   const bad = (why) => fail('dossier-sections', `dossier.md${why}`);
   // An HTML comment (the template's, left in) is no part of the dossier: blanked, its lines kept for the numbering.
   const md = parseMarkdown(String(text).replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')));
@@ -2830,29 +3078,35 @@ function checkDossier(text, assembled, ID, fail) {
     tables[tables.length - 1].push({ ...l, cells: l.raw.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()) });
   });
   if (tables.length !== 1) {
-    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${DOSSIER_COLUMNS.join(' | ')} (D-355)`);
+    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${DOSSIER_COLUMNS_D407.join(' | ')} (D-355, D-407)`);
     if (tables.length === 0) return;
   }
   const [head, rule, ...rows] = tables[0];
-  if (show(head.cells) !== show(DOSSIER_COLUMNS) || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
-    bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS)}, in that order (D-355)`);
+  // D-407: amendment 8's columns; a dossier from before it (a run that didn't run the rival) may keep D-355's.
+  const columns = show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
+  if (columns === null || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
+    bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS_D407)}, in that order (D-355, D-407)${ctx.rivalRan ? ', in a run that ran the rival (D-408)' : `, or before amendment 8 ${show(DOSSIER_COLUMNS)}`}`);
     return;
   }
   const seen = new Set();
   for (const r of rows) {
     const id = r.cells[0];
-    if (r.cells.length !== DOSSIER_COLUMNS.length || !ID.test(id)) {
-      bad(`:${r.n}: the row ${show(r.raw.length > 60 ? `${r.raw.slice(0, 57)}...` : r.raw)} isn't "| <id> | …" with ${DOSSIER_COLUMNS.length} cells`);
+    if (r.cells.length !== columns.length || !ID.test(id)) {
+      bad(`:${r.n}: the row ${show(r.raw.length > 60 ? `${r.raw.slice(0, 57)}...` : r.raw)} isn't "| <id> | …" with ${columns.length} cells`);
       continue;
     }
     if (seen.has(id)) bad(`:${r.n}: ${id} has a second row; one row per verified card`);
     seen.add(id);
     if (!assembled.includes(id)) bad(`:${r.n}: has a row for ${id}, which no R1b verified before the last R1b-assemble; one row per verified card (D-355)`);
-    const status = r.cells[DOSSIER_COLUMNS.indexOf('Status')];
-    if (/^(failed|can't be finalized)/i.test(status)) {
-      const filled = DOSSIER_EMPTY_CELLS.filter((c) => !isDash(r.cells[DOSSIER_COLUMNS.indexOf(c)]));
+    const status = r.cells[columns.indexOf('Status')];
+    if (/^(failed|can['’]t be finalized)/i.test(status)) {
+      const filled = DOSSIER_EMPTY_CELLS.filter((c) => columns.includes(c) && !isDash(r.cells[columns.indexOf(c)]));
       if (filled.length > 0) bad(`:${r.n}: ${id} is ${show(status.split(/[:;]/)[0])}, but its ${filled.join(', ')} cell(s) aren't "—"; a failed or not-yet-finalizable card has no numbers, prices or league (templates/dossier-template.md)`);
     }
+    // D-400, D-408: the status of a card whose R1b ended with no compile on an entry the pin lacks, or the rival's checks.
+    const code = ctx.terminal?.get(id);
+    if (code === 'not-in-pin' && !/^can['’]t be finalized yet: waits on the pin\b/i.test(status)) bad(`:${r.n}: ${id}'s R1b ended not-in-pin, so its status reads "can't be finalized yet: waits on the pin", not ${show(status)} (D-400)`);
+    if (code === 'not-dealt' && !/^failed\b.*\bnot dealt\b/i.test(status)) bad(`:${r.n}: ${id}'s R1b ended not-dealt, so its status reads "failed …: not dealt: <the check it failed>", not ${show(status)} (D-408)`);
   }
   for (const id of assembled) if (!seen.has(id)) bad(` has no row "| ${id} | …" for ${id}, which R1b verified before the last R1b-assemble (§7.2, D-355)`);
 }

@@ -61,6 +61,17 @@ Added 2026-10-18. For this build, this section overrides the M-19 and older sect
   `/home/parker/projects/pob2-mcp-runs/` is off limits.
 - **Done means:** the unit's AC passes through the real code path; `mise run test` and `pnpm build` exit 0 from a
   clean tree; both waiver files are `[]`; dependencies unchanged.
+- **Running tests (2026-10-18, after full runs in parallel lanes saturated the user's machine and crashed the
+  session).** Every Jest or `mise run test` call runs at the lowest priority, and a full gate holds a shared lock so
+  only one runs at a time across all worktrees:
+  ```
+  cd <lane> && nice -n 19 flock /tmp/claude-1000/-home-parker-projects-pob2-mcp/68a01821-fdbc-4f0e-a6c7-3d9a92cb5935/scratchpad/pob2-gate.lock \
+    sh -c 'mise run test > <a mktemp file> 2>&1; echo "test rc=$?"; pnpm build >> <the same file> 2>&1; echo "build rc=$?"'
+  ```
+  Start it with the Bash tool's `run_in_background: true` (waiting for the lock can take a while) and wait for its
+  notification; read the counts from the file. Targeted suites: `nice -n 19 mise exec -- pnpm exec jest <paths>
+  --maxWorkers=4`, no lock. `jest.config.cjs` caps a full run at half the threads (`maxWorkers: '50%'`) once your
+  lane is rebased onto the integration head.
 
 ## M-19: the server fix batch and the spec fold to v1.6 (built)
 

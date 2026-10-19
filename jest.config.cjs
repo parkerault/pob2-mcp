@@ -9,6 +9,9 @@ module.exports = {
   globalSetup: '<rootDir>/tests/setup/global.ts',
   setupFiles: ['<rootDir>/tests/setup/env.ts'],
   testTimeout: 60000,
+  // Half the machine's threads: each worker can start a PoB engine, and a full run at the default (threads - 1)
+  // saturated a 32-thread box and starved the terminal (2026-10-18).
+  maxWorkers: '50%',
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',

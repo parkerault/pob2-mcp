@@ -4635,3 +4635,6 @@ the `m17` engine at `b76967b`.
 - **WU-85 verified: PASS** on the re-check (37 of 37 in its suites; `check` and `check --text` pass on the committed
   files; `join` reproduces `pairs.md`; no pair left that one build can't hold; about 2% of rule entries wrong, all
   judgment calls, down from about 9%). **Merged** into `build-guide/m20` (fast-forward).
+- **WU-90 dispatched** (`bg-90`, off `826d2e3`): the library's questions 11–14, "Standard kits" (every line sourced;
+  the user reviews them), "A count as a multiplier" beside the unchanged count entry, four new shapes, and a review
+  sheet for the user (`studies/2026-10-18-wu90-review.md`). Its gate is the static tests.

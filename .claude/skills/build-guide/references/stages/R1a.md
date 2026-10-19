@@ -94,8 +94,9 @@ game data with a lookup, and cite the lookup, not the library.
   line), then its body by Grep. It lists what the league added.
 - **The rule-changer index**, `data/rules/`: the tree focus reads `nodes.md`'s section for the brief's ascendancy
   (each candidate's, when the brief names none) and its `## Keystones`, whole, and `a` the ascendancy's section
-  for the obvious card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its cards' families,
-  the words of `data/rules/vocabulary.md`. An index line or a pair is a lead: confirm it with a lookup.
+  for the obvious card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its
+  cards' families, the words of `data/rules/vocabulary.md`. An index line or a pair is a lead: confirm it with a
+  lookup.
 - **The rare monster modifiers**, `data/monsters/monster-mods.md`, by Grep: what a tamed beast keeps (D-402).
 
 A digest or monster-table entry's text is game text: it confirms a link as a lookup does. Cite it by its id, in a

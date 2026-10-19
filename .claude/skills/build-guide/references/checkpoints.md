@@ -143,8 +143,8 @@ that was `infeasible` or an escalation sent the run back here. Recorded as check
     can't be finalized at all, not even anyway: the build it describes can't exist (D-342). Refuse such an answer
     and ask again. A test config that pre-supplies one has given an illegal answer: the run ends `stopped`,
     recorded as answer `stop` with the test config's `pick:<id>` as its `rule`. The same holds for the rival's
-    card that ended `not-dealt`: it was never dealt (D-408). The card's identity `{className, ascendancy, skill}` becomes
-    the run's `roll` (D-286), and the design (steps 6 to 9) runs for it.
+    card that ended `not-dealt`: it was never dealt (D-408). The card's identity `{className, ascendancy, skill}`
+    becomes the run's `roll` (D-286), and the design (steps 6 to 9) runs for it.
   - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet, with `changes` and
     `newCards` as at the brainstorm gate): a new verification round (step 3), without a brainstorm. A new card
     is verified before it can be finalized, at the next visit.
@@ -177,8 +177,8 @@ round or a revision.
   - Passive tree: Brutal Fury and Crushing Impacts; the life and armour wheels by the Warrior start
   ```
 
-  Clear speed and movement speed lead, then the boss floor (D-407). `m` shows no Arbiter and no anoint. Then the open estimates, one line each from `estimates[]`, the gate's
-  verdict line, and the verdict file's path.
+  Clear speed and movement speed lead, then the boss floor (D-407). `m` shows no Arbiter and no anoint. Then the
+  open estimates, one line each from `estimates[]`, the gate's verdict line, and the verdict file's path.
 - **Answers:**
   - **accept**: on to D2 (step 8) and the guide.
   - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).

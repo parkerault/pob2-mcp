@@ -79,20 +79,17 @@ dropped, never kept as a risk. `Tier = 0` isn't legacy: granted skills have it t
 
 ## The committed game data (D-400 to D-402)
 
-Facts the lookups don't hold, committed under `data/`, each file's head saying how to read it:
+Facts the lookups don't hold, under `data/`; each file's head says how to read it:
 
-- `data/league/<slug>.md`, the league digest from poe2db: what a league added. Read its head whole, Grep its body.
-  `[not in pin]` marks an entry the PoB pin doesn't know: no plan can compile it (D-400).
-- `data/rules/`, the rule-changer index: `nodes.md` (every ascendancy notable and keystone, by section),
-  `uniques.md` and `gems.md` (one block per rule changer), `pairs.md` (what one creates against what another pays
-  off on), each tagged with `vocabulary.md`'s families. Grep it; an entry is a lead, confirmed by a lookup.
-- `data/monsters/monster-mods.md`, rare monster modifiers: what a tamed beast keeps, and how a plan models each
-  (D-402). Grep it.
+- `data/league/<slug>.md`, the league digest from poe2db: its head whole, its body by Grep. `[not in pin]` marks an
+  entry the PoB pin doesn't know: no plan can compile it.
+- `data/rules/`, the rule-changer index (`nodes.md`, `uniques.md`, `gems.md` and `pairs.md`, tagged with
+  `vocabulary.md`'s families), by Grep: an entry is a lead, confirmed by a lookup.
+- `data/monsters/monster-mods.md`, rare monster modifiers: what a tamed beast keeps, and how a plan models each.
 
-A digest or monster-table entry's text is game text, as a lookup's is: it confirms a link (D-287 as D-400 and
-D-402 amend it). Cite an entry by its `- Id:` line (a node by its id), `data | <path under data/>#<id>`, only in a
-research file's footnote, or in a card's links table as `data \| <path>#<id>`; never in a plan, whose `data:`
-citations name JSON facts only.
+A digest or monster-table entry's text is game text: it confirms a link (D-287 as D-400 and D-402 amend it). Cite
+an entry by its id, `data | <path under data/>#<id>`, in a research footnote (`data \| …` in a card's links
+table); never in a plan, whose `data:` names JSON facts only.
 
 ## Reading `mcp__pob2__check_model_coverage`
 

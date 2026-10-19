@@ -3549,7 +3549,7 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
     expect(text).toMatch(/compiles nothing, so it has no skeleton, record or probe\. .* `compiles: 0` and `recordPath: null`/);
     expect(text).toMatch(/Nor does a card whose named damage source or load-bearing link is a league-digest entry marked `\[not in pin\]` \(D-400\)/);
     // The skeleton's tamed beast (D-402), at schema 5.
-    expect(text).toMatch(/`companion`, when the card's chain has a tamed beast \(D-402\): `\{species, mods\}`, .* with one `Tame Beast` gem, enabled, in an enabled group\. The compile writes PoB's three companion options and each kept `condition` modifier's option as earned state: list none of them/);
+    expect(text).toMatch(/`companion`, when the card's chain has a tamed beast \(D-402, schema 5\): `\{species, mods\}`, .* with one `Tame Beast` gem, enabled, in an enabled group\. The compile writes PoB's three companion options and each kept `condition` modifier's option as earned state: list none of them/);
     expect(text).toMatch(/A `data:` source names a JSON fact: a claim resting on a digest, index or monster-table entry cites its lookup, or a `judgment` naming the entry \(D-400\)/);
   });
 

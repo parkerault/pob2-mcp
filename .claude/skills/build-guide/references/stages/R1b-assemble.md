@@ -78,10 +78,10 @@ research files and the cards keep the rest: the dossier merges no research.
 
 At most 8 lines: `dossier.md`, then the verification gate's comparison, one line per card of this round in id
 order: its id, its status, its synergy in a few words, its key numbers from the record (the named source's
-Count-scaled figure, `Life`, `TotalEHP` and the clear speed), its key prices (ranges with their day, or `unavailable`), and its main risk; a
-failed card's line names its last verdict file. The figure is labelled `estimate` when its group's Count is
-above 1 or the stage is `computedWithCustomMods` (D-296). A card that can't be finalized yet says so, with no
-numbers, and isn't a failure.
+Count-scaled figure, `Life`, `TotalEHP` and the clear speed), its key prices (ranges with their day, or
+`unavailable`), and its main risk; a failed card's line names its last verdict file. The figure is labelled
+`estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods` (D-296). A card that can't
+be finalized yet says so, with no numbers, and isn't a failure.
 
 ```
 dossier.md

@@ -45,14 +45,14 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 
 ### Entry rules
 
-- **`stages[]`** has one entry per Agent call, in run order: each R1a researcher is its own entry, and so is
-  each of D1's two steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`,
-  `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a
-  gate question step (D-390), and `RV`, the rival (D-408); each V4 entry is one report, `reports/V4-<n>.md`.
-  `concept` is the card id (`r<round>-<letter>-<n>`, D-319), set for every step but R1a, R1a-assemble,
-  R1b-assemble, Q and RV. `attempt`
-  counts the calls of that (stage, card) from 1, re-runs included, and matches the header and the verdict file name; per log name, so a
-  re-check's `attempt` counts that card's re-checks from 1, apart from its full pass (D-368). `outcome`:
+- **`stages[]`** has one entry per Agent call, in run order: each R1a researcher is its own entry, and so is each
+  of D1's two steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`,
+  `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a gate question
+  step (D-390), and `RV`, the rival (D-408); each V4 entry is one report, `reports/V4-<n>.md`. `concept` is the
+  card id (`r<round>-<letter>-<n>`, D-319), set for every step but R1a, R1a-assemble, R1b-assemble, Q and RV.
+  `attempt` counts the calls of that (stage, card) from 1, re-runs included, and matches the header and the
+  verdict file name; per log name, so a re-check's `attempt` counts that card's re-checks from 1, apart from its
+  full pass (D-368). `outcome`:
   - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 entry (`fail`: its report has an
     `unresolved` finding);
   - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-finish, …), `infeasible` for
@@ -154,11 +154,11 @@ Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends
 
 ## Reading the requirements from the log
 
-- **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9
-  cards; per verification round at most 3 cards compiled, the rival's aside (D-408; a second verification
-  round from the same deck has its own 3); one V4 pass, and one re-check per fix round or revision (D-352); at most 2 counted retries per
-  gate (the run checker counts them from
-  `stages[]`, S6 included); and at most 3 agents in flight, which the session's transcript shows.
+- **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards;
+  per verification round at most 3 cards compiled, the rival's aside (D-408; a second verification round from the
+  same deck has its own 3); one V4 pass, and one re-check per fix round or revision (D-352); at most 2 counted
+  retries per gate (the run checker counts them from `stages[]`, S6 included); and at most 3 agents in flight,
+  which the session's transcript shows.
 - **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4.
 - **NFR-22** (no 429s, no lock-outs): no `priceOutcomes` counts a `rate_limited` or `locked_out` call.
 

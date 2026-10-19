@@ -51,8 +51,8 @@ user's words and the line, and fixes only what its findings name, never reworkin
 **The rival's card, first** (D-408), when `concept` is `r<k>-x-<n>`: no one dealt it, so run R1a-assemble's
 identity check and sniff test on it (`R1a-assemble.md`, steps 2 and 3, the lock included). When either fails,
 write only the verdict, as for a gate change, with the finding `{part: "compiled", code: "not-dealt", message:
-"not dealt: <the check that failed>"}`: terminal, never retried, and the card is `failed`. When both pass, give it
-a name no line of `cards.md` has (R1a-assemble's step 7), and go on past the lock, which step 2 ran.
+"not dealt: <the check that failed>"}`: terminal, never retried, and the card is `failed`. When both pass, give
+it a name no line of `cards.md` has (Grep it; R1a-assemble's step 7), and go on past the lock, which step 2 ran.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
@@ -157,11 +157,11 @@ shows it, and the user can make a new card from it. The skeleton still tests the
      group, as step 3 writes it), each group with a `role` (the named source's is `clear` or
      `single_target`), `main` on the named source, and `rolledGroup`; a
      `count` with its `countReason` where the card's chain has several copies act at once (D-293).
-   - `companion`, when the card's chain has a tamed beast (D-402): `{species, mods}`, the species as PoB's beast
-     library names it and `mods` its kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, with one
-     `Tame Beast` gem, enabled, in an enabled group. The compile writes PoB's three companion options and each
-     kept `condition` modifier's option as earned state: list none of them (`docs/build-guide/plan-reference.md`,
-     "A tamed beast").
+   - `companion`, when the card's chain has a tamed beast (D-402, schema 5): `{species, mods}`, the species as
+     PoB's beast library names it and `mods` its kept modifiers' ids in `data/monsters/monster-mods.md`, at most
+     4, with one `Tame Beast` gem, enabled, in an enabled group. The compile writes PoB's three companion options
+     and each kept `condition` modifier's option as earned state: list none of them
+     (`docs/build-guide/plan-reference.md`, "A tamed beast").
    - `config`: the earned states the card relies on, each that is on with its producer and uptime;
      `scenario` lists `enemyIsBoss` and the endgame resistance penalty, each from a data fact with its
      tag, as in the worked example.

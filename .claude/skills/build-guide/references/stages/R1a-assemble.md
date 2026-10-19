@@ -1,9 +1,10 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
-One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the deck the user
-picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card only when
-game text confirms its load-bearing links, at most half a round on one engine, and writes `cards.md`. It compiles nothing, prices
-nothing, and edits a card only to rename it (step 7) or drop its under-played label (step 4).
+One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the
+deck the user picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card
+only when game text confirms its load-bearing links, at most half a round on one engine, and writes `cards.md`.
+It compiles nothing, prices nothing, and edits a card only to rename it (step 7) or drop its under-played label
+(step 4).
 
 ## Inputs
 
@@ -131,10 +132,10 @@ Three engines: bleed from on-hit (3), bleed from on-crit (2), rage from on-hit (
   player terms, in at most 80 words; `## How they differ`, one line on the deck's shape, naming each engine with
   its count of dealt cards over every round, `<consumed> from <supply> (<n>)`, and an engine the user's note
   exempted.
-- **One `## Round <k>` per brainstorm round**, each line one dealt card: its id, its name in quotes, what it
-  adds to the shared core, its engine, then its under-played label and `can't be finalized yet: <why>` (D-303)
-  with `waits on the pin: <entry>` where they apply. "Not confirmed in game" is every card's default, which the display says once: no line repeats it, a
-  links count or "no player evidence".
+- **One `## Round <k>` per brainstorm round**, each line one dealt card: its id, its name in quotes, what it adds
+  to the shared core, its engine, then its under-played label and `can't be finalized yet: <why>` (D-303) with
+  `waits on the pin: <entry>` where they apply. "Not confirmed in game" is every card's default, which the
+  display says once: no line repeats it, a links count or "no player evidence".
 - **`## Not dealt`**: every card held back in any round, with its reason in plain words. The user can still ask
   for one at the brainstorm gate. `None.` when nothing was held back.
 - **`## Found, not used`**, the last H2: up to five strong research findings no card uses, each `- <finding>:

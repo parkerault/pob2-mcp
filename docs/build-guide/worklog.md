@@ -4620,3 +4620,9 @@ the `m17` engine at `b76967b`.
 - **WU-84 verified: PASS** on the re-check (no fixture text from poe2db, the longest span shared with a saved page
   is generic markup; a fresh `--from` run byte-identical to the committed digest; 164 socketables, 42 judged rule
   changers). **Merged** into `build-guide/m20` (fast-forward).
+- **WU-89 done by its doer** (`fbd098d`, 6 commits). Gate rc 0 (140 suites, 2,489 tests) under the lock. Every
+  AC-W73 item maps to a test in `tests/unit/buildGuideEngineLens.test.ts`; a new fixture run `run-rival`; the five
+  older fixtures pass unchanged; formats in `studies/2026-10-18-wu89-formats.md`. **For WU-91:** the dossier's
+  eleventh column (clear speed) needs the template, R1b-assemble's "ten columns" and the static test switched
+  together; the checker exports `DOSSIER_COLUMNS_D407`. New fields are required only in runs that ran the rival, so
+  older runs still check. The verifier is running.

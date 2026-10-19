@@ -4706,3 +4706,7 @@ the `m17` engine at `b76967b`.
   `build-guide/m20` (fast-forward). Seven of eight units are merged; WU-91 (the skill text) starts.
 - **WU-91 dispatched** (`bg-91`, off `fd08576`): the skill text to the merged formats, with every "For WU-91" note
   from this log in its brief.
+- **WU-91 done by its doer** (`f1730b9`, 4 commits). Gate rc 0 under the lock (149 suites, 2,638 tests). AC-W75 is 12
+  static tests; the dossier's eleven columns switched across the template, R1b-assemble and the test; schema 5 in
+  D1-build and R1b; a new `stages/RV.md`; `SKILL.md` still at its 230-line cap after trims. Skill words 63,253 →
+  66,881. The formats file's rulings were followed over the amendment where they differ. The verifier is running.

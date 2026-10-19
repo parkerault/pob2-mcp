@@ -97,8 +97,9 @@ text doesn't give, and never invent one:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).
 5. **The league digest's staleness line** (D-400). Print the newest digest's section and fetch date in your
-   reply, `head -3 data/league/<newest>.md` (`ls data/league` lists them), so a stale digest shows. The user runs
-   `league-digest.mjs` when a league or patch lands; nothing waits on it.
+   reply, `head -3 data/league/<newest>.md` (`ls data/league` lists them; the newest is the one fetched last, by
+   the date on its third line), so a stale digest shows. The user runs `league-digest.mjs` when a league or patch
+   lands; nothing waits on it.
 
 Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
 them. A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1

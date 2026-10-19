@@ -52,7 +52,8 @@ user's words and the line, and fixes only what its findings name, never reworkin
 identity check and sniff test on it (`R1a-assemble.md`, steps 2 and 3, the lock included). When either fails,
 write only the verdict, as for a gate change, with the finding `{part: "compiled", code: "not-dealt", message:
 "not dealt: <the check that failed>"}`: terminal, never retried, and the card is `failed`. When both pass, give
-it a name no line of `cards.md` has (Grep it; R1a-assemble's step 7), and go on past the lock, which step 2 ran.
+it a name no line of `cards.md` has (Grep it; R1a-assemble's step 7), unless the runner relayed it at a gate (a
+name shown at a gate never changes), and go on past the lock, which step 2 ran.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
@@ -289,7 +290,7 @@ verification half ("not compiled: <entry> isn't in the PoB pin" for a `not-in-pi
 
 Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
 (`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
-for a gate's change.
+for a gate's change and the rival's rename.
 
 - **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
   `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled

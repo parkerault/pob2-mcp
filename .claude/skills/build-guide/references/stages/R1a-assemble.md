@@ -84,8 +84,8 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
      that differ first; each card the rule holds back goes under "Not dealt" as `- <id> "<Name>" | the round
      already holds <n> cards on this engine | engine: <consumed> from <supply>`. It yields to the minimum: when
      it would leave fewer than 6 cards, deal the fewest extra that reach 6, and the round is short, `short: <n>
-     cards share one engine`. It yields to the user: when the user's note for the round asks for one engine,
-     the rule skips that engine, and the deck's `How they differ` says so.
+     cards share one engine`. It yields to the user: when the user's note for the round names an engine's
+     consumed family (`chilled ground`), the rule skips that engine, and the deck's `How they differ` says so.
 6. **A short round.** When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two
    under-played cards after this round, the round is short: deal what passes, and give the reason in your
    return as one line, `short: <why>` ("4 of 9 cards passed the sniff test"; "the deck holds one under-played

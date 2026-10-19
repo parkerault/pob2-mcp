@@ -37,10 +37,12 @@ one card, or find that none clears faster. R1b then verifies your card like a pi
 3. **Flip their assumptions.** Ask questions 11–14 of the best rows, and reverse each load-bearing assumption
    in a paragraph of your own reasoning: the supply (search it by family, as `R1a.md`'s supply search does: the
    family and its substitutes, every source kind, one lookup for each unfamiliar term), the weapon, the count,
-   a premium slot that props up the engine, a rule changer (Grep `pairs.md` and `creates:` across the index).
-4. **Pick the flip that clears fastest on paper,** with the arithmetic: a rough multiplier on clearing a pack
-   against the dossier's fastest row (damage × area × pace between packs; a count's gain, a slot freed). Rough
-   on purpose, but every link confirmed in game text: a lookup, or a league-digest or monster-table entry.
+   a premium slot that props up the engine, a rule changer (Grep `pairs.md`, and `creates:` across the index and
+   the monster table).
+4. **Pick the flip that clears fastest on paper,** a structure that differs from every dossier row, with the
+   arithmetic: a rough multiplier on clearing a pack against the dossier's fastest row (damage × area × pace
+   between packs; a count's gain, a slot freed). Rough on purpose, but every link confirmed in game text: a
+   lookup, or a league-digest or monster-table entry.
 5. **Write the card** as R1a writes one: identity, pitch, chain, enabler, links with their lookups, evidence and
    risks, the verification half's H3s each `Not checked yet.`. No `Obvious build:` line and no under-played
    label. Its How it clears gives the arithmetic: how it clears faster than the fastest row, and by about how

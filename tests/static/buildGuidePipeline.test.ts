@@ -3497,8 +3497,13 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
     expect(text).toContain('`- <id> "<Name>" | the round already holds <n> cards on this engine | engine: <consumed> from <supply>`');
     // Exception 1: the minimum; the round deals the fewest extra that reach 6, and says why.
     expect(text).toMatch(/It yields to the minimum: when it would leave fewer than 6 cards, deal the fewest extra that reach 6, and the round is short, `short: <n> cards share one engine`/);
-    // Exception 2: the user's note for the round.
-    expect(text).toMatch(/It yields to the user: when the user's note for the round asks for one engine, the rule skips that engine, and the deck's `How they differ` says so/);
+    // Exception 2: the user's note for the round, when it names the engine's consumed family, as the checker reads it.
+    expect(text).toMatch(/It yields to the user: when the user's note for the round names an engine's consumed family \(`chilled ground`\), the rule skips that engine, and the deck's `How they differ` says so/);
+    // A round short for one engine keeps its whole `short: ` line in the run log, the words the checker looks for.
+    expect(ref('run-log.md')).toMatch(/`short: <why>` without the `short: ` \(D-339\), except for a round short for one engine \(D-405\): that one keeps its whole line, starting `short: <n> cards share one engine` \(any other reason follows a `;`\)/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/as `shortReason` on its `stages\[\]` entry, whole for one engine \(D-405\)/);
+    const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
+    expect(checker).toContain('short: ${n} cards share one engine');
     expect(text).toMatch(/`## How they differ`, one line on the deck's shape, naming each engine with its count of dealt cards over every round, `<consumed> from <supply> \(<n>\)`/);
     // The example deck: every dealt line names an engine in the vocabulary, and the header counts them.
     const deck = /```\n(# Deck[\s\S]*?)\n```/.exec(raw)?.[1] ?? '';
@@ -3544,6 +3549,11 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
     expect(text).toMatch(/\*\*The rival's card, first\*\* \(D-408\), when `concept` is `r<k>-x-<n>`: no one dealt it, so run R1a-assemble's identity check and sniff test on it \(`R1a-assemble\.md`, steps 2 and 3, the lock included\)/);
     expect(text).toMatch(/with the finding `\{part: "compiled", code: "not-dealt", message: "not dealt: <the check that failed>"\}`: terminal, never retried, and the card is `failed`/);
     expect(text).toMatch(/at most 3 per verification round, the rival's card aside \(D-408\)/);
+    // Its rename, the one edit to a brainstorm half besides a gate's change, never for a name shown at a gate.
+    expect(text).toMatch(/give it a name no line of `cards\.md` has \(Grep it; R1a-assemble's step 7\), unless the runner relayed it at a gate \(a name shown at a gate never changes\)/);
+    expect(text).toMatch(/Edit only that half: the brainstorm half is R1a's, but for a gate's change and the rival's rename/);
+    // FI-1 applies to nothing on a card that compiles nothing, the two new codes among them.
+    expect(ref('offline-and-test.md')).toMatch(/Unless the card already failed the ascendancy lock \(`wrong-ascendancy`, D-342\) or is `not-a-skill` \(D-334\), `not-in-pin` \(D-400\) or the rival's `not-dealt` card \(D-408\): it then compiles nothing, so FI-1 applies to nothing/);
     // not-in-pin: like not-a-skill, no skeleton and no compile.
     expect(text).toMatch(/\*\*So does a card that rests on a digest entry the PoB pin doesn't know\*\* \(D-400\), its finding `\{part: "compiled", code: "not-in-pin", message: "not compiled: <entry> isn't in the PoB pin"\}`/);
     expect(text).toMatch(/compiles nothing, so it has no skeleton, record or probe\. .* `compiles: 0` and `recordPath: null`/);
@@ -3590,12 +3600,14 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
     for (const m of read.matchAll(/`([^`]*)`/g)) {
       expect({ path: m[1], shared: /^(research\/|interviews\/|cards\.md|cards\/)/.test(m[1]) }).toEqual({ path: m[1], shared: false });
     }
+    // Nor in plain words.
+    expect(folded(read).match(/research files?|\bdeck\b|interview/gi) ?? []).toEqual([]);
     const never = folded(inputs.slice(inputs.indexOf('- **Never read**')));
     expect(never).toMatch(/\*\*Never read\*\* the run's research files \(`research\/`\), its cards \(`cards\/`, `cards\.md`\) or the interview notes \(`interviews\/`\), apart from your own card/);
     expect(text).toMatch(/`writes: \["cards\/r<k>-x-<n>\.md"\]`, your card/);
     // Its job, bound by the brief, and its returns.
     expect(text).toMatch(/\*\*The brief binds you\*\* where it is fixed: a named ascendancy or skill stays/);
-    expect(text).toMatch(/\*\*Pick the flip that clears fastest on paper,\*\* with the arithmetic/);
+    expect(text).toMatch(/\*\*Pick the flip that clears fastest on paper,\*\* a structure that differs from every dossier row, with the arithmetic/);
     expect(text).toMatch(/\*\*Or none\.\*\* When no structure you can confirm clears faster, write no card/);
     expect(raw).toMatch(/^none-found\ntried: /m);
     expect(text).toMatch(/Only your card, `cards\/r<k>-x-<n>\.md`: no research file and no deck line/);
@@ -3605,8 +3617,9 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
   it('SKILL.md: the digest\'s staleness line at the start, and RV after R1b-assemble and before the verification gate (D-400, D-408)', () => {
     const raw = fs.readFileSync(SKILL_MD, 'utf8');
     const start = folded(raw.slice(raw.indexOf('## 1. Start'), raw.indexOf('## 2. Brainstorm')));
-    expect(start).toMatch(/its last step prints the league digest's staleness line, `head -3 data\/league\/<newest>\.md` \(D-400\)/);
-    expect(ref('start.md')).toMatch(/5\. \*\*The league digest's staleness line\*\* \(D-400\)\. Print the newest digest's section and fetch date in your reply, `head -3 data\/league\/<newest>\.md`/);
+    expect(start).toMatch(/its last step prints the league digest's staleness line, `head -3 data\/league\/<newest>\.md`, the newest by fetch date \(D-400\)/);
+    expect(folded(raw)).toMatch(/\*\*Read only what routes the run:\*\* .* the digest's first lines \(§1\), and at a gate the card and research files/);
+    expect(ref('start.md')).toMatch(/5\. \*\*The league digest's staleness line\*\* \(D-400\)\. Print the newest digest's section and fetch date in your reply, `head -3 data\/league\/<newest>\.md` \(`ls data\/league` lists them; the newest is the one fetched last, by the date on its third line\)/);
     // `head` is on the runner's Bash list.
     expect(folded(raw)).toMatch(/- `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`/);
     // The step list: RV's row between R1b-assemble's and the verification gate's, run by a researcher.

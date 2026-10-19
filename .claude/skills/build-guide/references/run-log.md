@@ -81,10 +81,11 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   compile succeeded). A card's entries add up to the folders under `probes/<card-id>/`, and to at most 4, D-292's
   cap (D-338).
 - **`shortReason`**, on an R1a-assemble entry only: the reason its return gave for a short round, its line
-  `short: <why>` without the `short: ` (D-339). A round is short when it deals fewer than 6 cards, or the deck
-  (every round's dealt cards so far) holds fewer than two under-played cards; the run checker counts both from
-  `cards.md` and accepts a short round only with its reason. A round over D-405's half on one engine holds
-  `short: <n> cards share one engine` and deals no more than 6.
+  `short: <why>` without the `short: ` (D-339), except for a round short for one engine (D-405): that one keeps its
+  whole line, starting `short: <n> cards share one engine` (any other reason follows a `;`), the words the run
+  checker looks for, and the round deals no more than 6. A round is short when it deals fewer than 6 cards, or the
+  deck (every round's dealt cards so far) holds fewer than two under-played cards; the run checker counts both from
+  `cards.md` and accepts a short round only with its reason.
 - **`priceOutcomes`**, on a pricing step (R1b, D1-finish, D1-gate, D2) that made price calls: its calls counted by
   outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
   `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`.

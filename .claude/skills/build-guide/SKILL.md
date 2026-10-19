@@ -35,10 +35,10 @@ as D-295 words it). Each step below is a short card: read a reference only where
   question before any decision, from the card and research files, your lookups, or a gate question step (stage
   `Q`) after one line saying what you start and why, without asking first. Then restate the decision by the
   cards' names and wait for a yes. A question is never a decision.
-- **Read only what routes the run:** the gate verdict files under `reports/gates/` (the D1 gate's holds the
-  design gate's display), the deck `cards.md`, your own `run-log.json`, the test config, the agents' returns, the
-  verifiers' reports, and at a gate the card and research files (D-390). Never read `plan.json`, a compile record,
-  `dossier.md` or `guide.md`, with Read or with Bash; step 14 reads only the `Known issues` lines it edits.
+- **Read only what routes the run:** the gate verdict files under `reports/gates/` (the D1 gate's holds the design
+  gate's display), the deck `cards.md`, `run-log.json`, the test config, the agents' returns, the verifiers' reports,
+  the digest's first lines (§1), and at a gate the card and research files (D-390). Never read `plan.json`, a compile
+  record, `dossier.md` or `guide.md`, with Read or with Bash; step 14 reads only the `Known issues` lines it edits.
 - **Your Bash reads, and runs the run checker and the two scripts; nothing else** (D-265). The whole list:
   - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is fine),
     each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or `-delete` where
@@ -114,18 +114,18 @@ verification never re-checks beyond one re-check after a fix round or a revision
 
 ## 1. Start (step 1)
 
-Read `references/start.md` and do it, in its order, before any agent runs; its last step prints the league
-digest's staleness line, `head -3 data/league/<newest>.md` (D-400). With `--no-ninja` (D-333), tell every
-pricing step, the D1 gate included, to price without currency rates. No Agent tool: the run stops (D-344).
+Read `references/start.md` and do it, in its order, before any agent runs; its last step prints the league digest's
+staleness line, `head -3 data/league/<newest>.md`, the newest by fetch date (D-400). With `--no-ninja` (D-333), tell
+every pricing step, the D1 gate included, to price without currency rates. No Agent tool: the run stops (D-344).
 
 ## 2. Brainstorm (steps 2a to 2c)
 
 - **R1a** (2a), round `k`: three researchers, foci `mechanics`, `items` and `tree`, which you letter `a`, `b` and `c`
   when you start them, so parallel researchers never collide (D-319). Prompt: the brief, the focus and letter (to
   `b`, a reference build the user named, for a seed card, D-393), and in a later round the user's note.
-- **R1a-assemble** (2b), after the round's researchers return. Prompt: the round, the brief, the user's note,
-  and each researcher's letter, research file, cards and whether it returned. **A short round**: it returns
-  `short: <why>`; record the reason in the run log, as `shortReason` on its `stages[]` entry, and say so.
+- **R1a-assemble** (2b), after the round's researchers. Prompt: the round, the brief, the user's note, and each
+  researcher's letter, research file, cards and whether it returned. **A short round**: it returns `short: <why>`;
+  record the reason in the run log, as `shortReason` on its `stages[]` entry, whole for one engine (D-405).
 - **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display, `display brainstorm` (the brief,
   then the deck), whoever answers (Hard rules). Answers: **verify** 1–3 cards, picked or made at the gate (step
   3); **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.

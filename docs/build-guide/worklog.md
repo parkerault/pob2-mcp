@@ -4571,3 +4571,7 @@ the `m17` engine at `b76967b`.
   is the whole modifier table with duplicates dropped, so "every modifier keepable" is an inference and the head must
   say so; and PoB does parse `Companions have …` lines (`ModParser.lua:1272-1273`), so a modifier on the beast itself
   can be modelled, for WU-87 too. A short fix round with the lows went to the doer.
+- **WU-85's retag** (`91b438b`, rebased onto `ea7485b`): 34 of the 64 entries tagged `none` now carry a family (9
+  nodes, 20 uniques, 5 gems); 30 stay `none` (Witchbane, Heartstopper, the wall and grenade supports among them).
+  `pairs.md`: 237 pair lines in 47 family blocks (`thorns` and `support-gem` are new). Gate rc 0 (141 suites, 2,489
+  tests). The verifier is running, with a content sample of at least 25 `[rule]` entries.

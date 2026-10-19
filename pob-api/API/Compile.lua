@@ -709,6 +709,7 @@ end
 local TAME_BEAST = 'TameBeastPlayer'
 local COMPANION = 'SummonBeastPlayer'
 local COMPANION_GEM = 'Metadata/Items/Gems/SkillGemSummonBeast'
+local TAME_BEAST_GEM = 'Metadata/Items/Gems/SkillGemTameBeast'
 
 local function is_companion_gem(gemData)
   local id = type(gemData) == 'table' and gemData.grantedEffectId
@@ -1590,21 +1591,26 @@ local function gem_kind(gem, grantedEffect, level)
 end
 
 -- Every gem of the active skill set's plan groups (PoB's own groups, which have a `source`, left out): its group
--- (the plan's number, D-382) and index, name, level, tier, kind and level requirement at its level.
+-- (the plan's number, D-382) and index, name, level, tier, kind and level requirement at its level. D-402: a captured
+-- Tame Beast, PoB's companion gem (its own Tier 0), has the Tame Beast gem's tier: the gem the player cuts and levels
+-- is Tame Beast, so V1's tier floor still applies to it.
 local function stage_gems()
   local out = {}
   local pob = group_indices()
+  local d = (build and build.data) or data
+  local tameBeast = d.gems and d.gems[TAME_BEAST_GEM]
   for gi, index in ipairs(pob) do
     for k, gem in ipairs(build.skillsTab.socketGroupList[index].gemList or {}) do
       local gemData = gem.gemData
       local ge = gem.grantedEffect or (gemData and gemData.grantedEffect)
       local level = tonumber(gem.level) or 1
       local lv = ge and ge.levels and ge.levels[level]
+      local tierOf = (gemData and gemData.grantedEffectId == COMPANION and tameBeast) or gemData
       out[#out + 1] = {
         group = gi, index = k,
         name = tostring(gem.nameSpec or (gemData and gemData.name) or ''),
         level = level,
-        tier = gemData and tonumber(gemData.Tier) or nil,
+        tier = tierOf and tonumber(tierOf.Tier) or nil,
         kind = gem_kind(gem, ge, level),
         levelRequirement = tonumber(gem.reqLevel) or (lv and tonumber(lv.levelRequirement)) or 0,
       }

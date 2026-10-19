@@ -18,7 +18,9 @@
  *   reserved Spirit, the species' percentage of the player's Spirit: two Spirit totals give two reservations in that
  *   ratio; a kept `stats` modifier (Hasted, Haste Aura) reaches the stage's custom modifiers marked as an estimate; a
  *   `condition` modifier (Trail of Ice) sets its config option; a plan without a companion compiles as before.
- * - D-402's other rules: a `none` modifier adds nothing and the record says so, as for a `stats` line PoB can't parse;
+ * - D-402's other rules: a `none` modifier adds nothing and the record says so; a beast's line PoB can't parse after
+ *   `Companions have ` goes in PoB's wording for a companion; PoB's three companion options are written as earned
+ *   state, so V2 finds them listed; V1 checks a captured Tame Beast at Tame Beast's tier;
  *   the saved build carries PoB's beast library; an unknown species, a name several beasts share and a stage without
  *   the Tame Beast gem are refused before any engine change, by `compile_plan` and by `guide_run`'s validate mode.
  */
@@ -92,6 +94,9 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
   let beasts: { record: CompileRecord; xml: string };
   let plain4: { record: CompileRecord; xml: string };
   let plain5: { record: CompileRecord; xml: string };
+  /** A companion stage whose Tame Beast gem is at gem level 3, and the same stage without the companion. */
+  let low: { record: CompileRecord; xml: string };
+  let lowPlain: { record: CompileRecord; xml: string };
   const boar = boarData();
 
   /** Write `p` into a new run and compile it measure-only; the outcome, and the record and XML when it compiled. */
@@ -123,11 +128,18 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
       'p72-beasts',
       plan([
         stage('a', 100, { species: 'Diretusk Boar', mods: ['hasted', 'haste-aura', 'trail-of-ice', 'temporal-bubble'] }),
-        stage('b', 300, { species: BOAR, mods: ['additional-projectiles'] }),
+        stage('b', 300, { species: BOAR, mods: ['additional-projectiles', 'crit-resistant'] }),
       ]),
     );
     plain4 = await compiled('p72-plain4', plan([stage('a', 100)], 4));
     plain5 = await compiled('p72-plain5', plan([stage('a', 100)], 5));
+    const lowGem = (companion?: Json) => {
+      const s = stage('a', 100, companion);
+      s.skills.groups[1].gems[0].level = 3;
+      return s;
+    };
+    low = await compiled('p72-low', plan([lowGem({ species: 'Diretusk Boar', mods: [] })]));
+    lowPlain = await compiled('p72-low-plain', plan([lowGem()]));
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
@@ -156,6 +168,9 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
       }
       expect(a.spirit).toBe(beasts.record.stages.a.outputs.Spirit);
       expect(b.spirit! - a.spirit!).toBe(200);
+      // The beast is the stages' one Spirit reservation: PoB's own pool total equals it.
+      expect(a.reservedSpirit).toBe(beasts.record.stages.a.outputs.SpiritReserved);
+      expect(b.reservedSpirit).toBe(beasts.record.stages.b.outputs.SpiritReserved);
       // A flat-cost minion would reserve the same at both totals; the beast's reservation follows the Spirit total.
       expect(b.reservedSpirit / a.reservedSpirit).toBeCloseTo(b.spirit! / a.spirit!, 1);
       expect(b.reservedSpirit).toBeGreaterThan(a.reservedSpirit);
@@ -208,15 +223,37 @@ engineDescribe('WU-87: the beast library (D-402)', () => {
   });
 
   describe("D-402's other rules", () => {
-    it('a none modifier adds nothing, and the record says so; so does a stats line PoB cannot parse whole', () => {
+    it("a none modifier adds nothing, and the record says so; a line PoB can't parse after `Companions have ` goes in PoB's wording", () => {
       const none = beasts.record.stages.a.companion!.mods[3];
       expect(none).toMatchObject({ id: 'temporal-bubble', model: 'none', applied: 'nothing' });
       expect(none.how).toMatch(/model is none/);
       const b = beasts.record.stages.b;
+      expect(b.companion!.mods[1]).toMatchObject({ id: 'crit-resistant', model: 'none', applied: 'nothing' });
       const projectiles = b.companion!.mods[0];
-      expect(projectiles).toMatchObject({ id: 'additional-projectiles', model: 'stats', applied: 'nothing' });
-      expect(projectiles.lines).toEqual([{ text: 'Companions have Skills fire 4 additional Projectiles', reaches: 'companion', written: false }]);
-      expect(b.customModsWritten).toEqual(['+300 to Spirit']);
+      expect(projectiles).toMatchObject({ id: 'additional-projectiles', model: 'stats', applied: 'custom-modifiers', estimate: true });
+      expect(projectiles.lines).toEqual([{ text: 'Companions have 4 additional Projectiles', reaches: 'companion', written: true }]);
+      expect(b.customModsWritten).toEqual(['+300 to Spirit', 'Companions have 4 additional Projectiles']);
+    });
+
+    it("PoB's companion options are written on as earned state the Tame Beast produces, so V2 finds every option listed", () => {
+      for (const id of ['a', 'b'] as const) {
+        const s = beasts.record.stages[id];
+        for (const option of ['companionInPresence', 'summonCompanionEnableBuffs', 'summonCompanionEnableCurses']) {
+          expect({ option, written: s.configWritten[option], effective: s.configEffective[option] }).toEqual({
+            option,
+            written: true,
+            effective: { value: true, origin: 'explicit', class: 'earned' },
+          });
+        }
+        expect(s.v2!.findings.filter((f) => /^(companionInPresence|summonCompanion)/.test(String(f.data?.option)))).toEqual([]);
+      }
+    });
+
+    it("V1 checks a captured Tame Beast at Tame Beast's tier: a level-3 gem is below its tier with a companion as without", () => {
+      const below = (r: { record: CompileRecord }) => r.record.stages.a.v1!.findings.filter((f) => f.code === 'gem-below-tier');
+      expect(below(lowPlain)).toEqual([expect.objectContaining({ data: expect.objectContaining({ gem: 'Tame Beast', tier: 7, level: 3 }) })]);
+      expect(below(low)).toEqual([expect.objectContaining({ data: expect.objectContaining({ gem: 'Companion: Diretusk Boar', tier: 7, level: 3 }) })]);
+      expect(low.record.stages.a.companion).toBeDefined();
     });
 
     it("the saved build carries PoB's beast library, and the stages share one skill set with the captured gem", () => {

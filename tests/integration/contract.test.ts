@@ -56,12 +56,6 @@
  * into that beast, adds it to the build's beast library and replies with `companion` (its group, active skill, beast
  * and reserved Spirit; absent without one).
  *
- * WU-87 (D-402; AC-B3, AC-B4): `compile_check` takes a stage's `companion {species, lines, groupsEnabled}` and replies with
- * `companions` (the beast its species names, its Spirit percentage, and whether PoB parses each line; `[]` for none),
- * a disabled Tame Beast group being a defect; `compile_stage` takes `companion {id}`, turns the stage's Tame Beast gem
- * into that beast, adds it to the build's beast library and replies with `companion` (its group, active skill, beast
- * and reserved Spirit; absent without one).
- *
  * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
  * build's granted groups: each granted group with supports (`granted-supports.xml`: a passive's and an item's) gives
  * one entry with the group, its source, the grantor's name and the gems, a group nothing grants carries

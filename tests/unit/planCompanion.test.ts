@@ -18,16 +18,20 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
 import { PLAN_SCHEMA_VERSIONS, TAMED_BEAST_MOD_LIMIT, validatePlan, type PlanError, type Stage } from '../../src/plan/schema';
+import os from 'os';
 import { loadReferenceData } from '../../src/plan/referenceData';
-import { companionLines, MonsterModTableError, parseMonsterMods, reachOf } from '../../src/plan/monsterMods';
+import { companionLine, companionLines, MonsterModTableError, parseMonsterMods, reachOf } from '../../src/plan/monsterMods';
 import {
+  COMPANION_OPTIONS,
   companionCheckOf,
   companionPlanOf,
+  companionPlansOf,
   companionRecordOf,
   TAME_BEAST_GEM,
   withCompanionConditions,
   withCompanionLines,
 } from '../../src/plan/companion';
+import { groupSets } from '../../src/plan/compiler';
 
 type Json = Record<string, any>;
 
@@ -176,6 +180,17 @@ describe('D-402: the monster-modifier table as the server reads it', () => {
     expect(companionLines(table.byId.get('trail-of-ice')!)).toEqual([]);
   });
 
+  it("a line PoB can't parse after `Companions have ` is written in PoB's wording for a companion; Crit Resistant has none, so it is modelled none", () => {
+    expect(companionLine('Skills fire 4 additional Projectiles')).toBe('Companions have 4 additional Projectiles');
+    expect(companionLine('30% increased Movement Speed')).toBe('Companions have 30% increased Movement Speed');
+    const text = fs.readFileSync(path.join(REPO, 'data', 'monsters', 'monster-mods.md'), 'utf8');
+    const block = (name: string) => text.slice(text.indexOf(`### ${name}\n`), text.indexOf('\n\n', text.indexOf(`### ${name}\n`))).replace(/\n  /g, ' ');
+    expect(table.byId.get('additional-projectiles')).toMatchObject({ model: 'stats', lines: ['Skills fire 4 additional Projectiles'] });
+    expect(block('Additional Projectiles')).toContain("PoB can't parse `Companions have Skills fire …`, so the compile writes PoB's wording, `Companions have 4 additional Projectiles`");
+    expect(table.byId.get('crit-resistant')!.model).toBe('none');
+    expect(block('Crit Resistant')).toContain("- Note: PoB can't take its line as `Companions have …`");
+  });
+
   it('reach: the beast, or its allies (the player and minions); anything else is no reach a stats row can have', () => {
     expect(reachOf('the beast')).toBe('companion');
     expect(reachOf('its allies within 5 metres: the player and minions')).toBe('allies');
@@ -222,14 +237,13 @@ describe("D-402: the compile's steps for a tamed beast", () => {
     const plan = companionPlanOf(s, table)!;
     const written = withCompanionConditions(s, plan);
     const added = written.config.earned.slice(s.config.earned.length);
-    expect(added).toEqual([
-      {
-        option: 'conditionEnemyIgnited',
-        value: true,
-        producer: { kind: 'gem', name: 'Tame Beast' },
-        uptime: 'while the tamed beast is out: its kept modifier All Damage Ignites supplies it (D-402, data | monsters/monster-mods.md#all-damage-ignites)',
-      },
-    ]);
+    expect(added[0]).toEqual({
+      option: 'conditionEnemyIgnited',
+      value: true,
+      producer: { kind: 'gem', name: 'Tame Beast' },
+      uptime: 'while the tamed beast is out: its kept modifier All Damage Ignites supplies it (D-402, data | monsters/monster-mods.md#all-damage-ignites)',
+    });
+    expect(added.map((e) => e.option)).toEqual(['conditionEnemyIgnited', ...COMPANION_OPTIONS]);
     // A stage without a companion is left as it is.
     const bare = stageOf({ species: 'Diretusk Boar', mods: [] });
     expect(withCompanionConditions({ ...bare, companion: undefined }, undefined)).toEqual({ ...bare, companion: undefined });
@@ -248,7 +262,9 @@ describe("D-402: the compile's steps for a tamed beast", () => {
     const s = stageOf({ species: 'Diretusk Boar', mods: ['hasted', 'additional-projectiles', 'trail-of-ice', 'temporal-bubble'] });
     s.config.customMods = [{ text: '+10 to Spirit', reason: 'test' }];
     const plan = companionPlanOf(s, table)!;
-    // As compile_check would answer: Hasted's two lines parse, Additional Projectiles' doesn't.
+    // Additional Projectiles' line is PoB's wording for a companion. Here compile_check answers that Hasted's two lines
+    // parse and that one doesn't, to show a line PoB can't parse left out.
+    expect(plan.mods[1].lines).toEqual([{ text: 'Companions have 4 additional Projectiles', reaches: 'companion' }]);
     const check = { parsed: [true, true, false] };
     const written = withCompanionLines(s, plan, check);
     expect(written.config.customMods!.map((m) => m.text)).toEqual([
@@ -282,11 +298,75 @@ describe("D-402: the compile's steps for a tamed beast", () => {
       ['temporal-bubble', 'nothing'],
     ]);
     expect(record.mods[0].estimate).toBe(true);
-    expect(record.mods[1].lines).toEqual([{ text: 'Companions have Skills fire 4 additional Projectiles', reaches: 'companion', written: false }]);
-    expect(record.mods[1].how).toMatch(/PoB can't parse "Companions have Skills fire 4 additional Projectiles" whole/);
+    expect(record.mods[1].lines).toEqual([{ text: 'Companions have 4 additional Projectiles', reaches: 'companion', written: false }]);
+    expect(record.mods[1].how).toMatch(/PoB can't parse "Companions have 4 additional Projectiles" whole/);
     expect(record.mods[2]).toMatchObject({ option: 'conditionEnemyOnChilledGround' });
     expect(record.mods[3].how).toMatch(/model is none/);
     // No line written: the stage is left as it is.
     expect(withCompanionLines(s, plan, { parsed: [false, false, false] })).toBe(s);
+  });
+
+  it("PoB's three companion options are written on as earned state the Tame Beast produces, unless the stage lists one itself", () => {
+    expect(COMPANION_OPTIONS).toEqual(['companionInPresence', 'summonCompanionEnableBuffs', 'summonCompanionEnableCurses']);
+    const s = stageOf({ species: 'Diretusk Boar', mods: [] });
+    const written = withCompanionConditions(s, companionPlanOf(s, table)!).config.earned.slice(s.config.earned.length);
+    expect(written).toEqual(
+      COMPANION_OPTIONS.map((option) => ({
+        option,
+        value: true,
+        producer: { kind: 'gem', name: 'Tame Beast' },
+        uptime: "while the tamed beast is out (D-402): PoB's option for a companion, on by default",
+      })),
+    );
+    // The stage's own entry wins: a beast kept out of the player's presence stays out.
+    const own = stageOf({ species: 'Diretusk Boar', mods: [] });
+    own.config.earned.push({ option: 'companionInPresence', value: false });
+    const kept = withCompanionConditions(own, companionPlanOf(own, table)!).config.earned;
+    expect(kept.filter((e) => e.option === 'companionInPresence')).toEqual([{ option: 'companionInPresence', value: false }]);
+    expect(kept.slice(own.config.earned.length).map((e) => e.option)).toEqual(['summonCompanionEnableBuffs', 'summonCompanionEnableCurses']);
+  });
+
+  it("stages naming different beasts, or one and none, get separate skill sets; the same beast by name and by id shares one", () => {
+    const base = stageOf({ species: 'Diretusk Boar', mods: [] });
+    const make = (id: string, companion?: Json): Stage => ({ ...base, id, loadoutName: `Stage ${id} (L${base.level}) {${id}}`, companion: companion as Stage['companion'] });
+    const BOAR = 'Metadata/Monsters/GoreCharger/GoreCharger';
+    const stages = [
+      make('x', { species: 'Diretusk Boar', mods: [] }),
+      make('y', { species: BOAR, mods: [] }),
+      make('z'),
+      make('w', { species: 'Coconut Crab', mods: [] }),
+    ];
+    const beasts: Record<string, string> = { x: BOAR, y: BOAR, w: 'Metadata/Monsters/CrabMonsters/CrabCoconut' };
+    const skillSets = (g: ReturnType<typeof groupSets>) => g.skill.groups.map((x) => x.stageIds);
+    expect(skillSets(groupSets(stages, (id) => beasts[id]))).toEqual([['x', 'y'], ['z'], ['w']]);
+    // Without the resolved beasts the species names it: a name and an id are two sets.
+    expect(skillSets(groupSets(stages))).toEqual([['x'], ['y'], ['z'], ['w']]);
+    // The other kinds don't look at the companion.
+    expect(groupSets(stages, (id) => beasts[id]).item.groups.map((x) => x.stageIds)).toEqual([['x', 'y', 'z', 'w']]);
+  });
+});
+
+describe('D-402: the monster-modifier table is read only for a plan that names a companion', () => {
+  /** A copy of the committed data/ whose monster table names no modifier, so reading it fails. */
+  function brokenTableData(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-monster-mods-'));
+    fs.cpSync(path.join(REPO, 'data'), dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'monsters', 'monster-mods.md'), '# Rare monster modifiers\n\nnothing here\n');
+    return dir;
+  }
+
+  it('a plan without a companion validates against data whose table is broken; one with a companion errs at it', () => {
+    const dir = brokenTableData();
+    try {
+      const data = loadReferenceData(dir);
+      expect(validatePlan(withCompanion(5), data).ok).toBe(true);
+      expect(companionPlansOf(withCompanion(5).stages, data).size).toBe(0);
+      expect(errorsOf(withCompanion(5, { species: 'Diretusk Boar', mods: ['hasted'] }), data)).toEqual([
+        { path: 'stages[1].companion', message: expect.stringContaining("the companion's modifiers can't be checked: invalid monster-modifier table (D-402)") },
+      ]);
+      expect(() => companionPlansOf(withCompanion(5, { species: 'Diretusk Boar', mods: [] }).stages, data)).toThrow(MonsterModTableError);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

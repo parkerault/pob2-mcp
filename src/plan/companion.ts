@@ -4,8 +4,9 @@
  *
  * A plan names the beast on a stage, `companion {species, mods}`, and holds the Tame Beast gem in an enabled group. The
  * compile:
- * 1. writes each kept `condition` modifier's config option as earned state, on, produced by the Tame Beast gem
- *    (`withCompanionConditions`), before `compile_check`, which checks the option and looks up the producer;
+ * 1. writes each kept `condition` modifier's config option as earned state, on, produced by the Tame Beast gem, and
+ *    PoB's own companion options likewise unless the stage lists them (`withCompanionConditions`), before
+ *    `compile_check`, which checks the options and looks up the producer;
  * 2. sends `compile_check` the species, the custom modifier lines the kept `stats` modifiers write and the groups'
  *    enabled flags (`companionCheckOf`): it resolves the species against PoB's beast library, checks the Tame Beast
  *    gem and reports whether PoB parses each line whole;
@@ -15,15 +16,25 @@
  * 5. records the beast's DPS, the Spirit it reserves and each kept modifier with how it was applied
  *    (`companionRecordOf`).
  *
- * A `none` modifier adds nothing, and the record says so.
+ * A `none` modifier adds nothing, and the record says so. The table is read only for a plan that names a companion
+ * (`companionPlansOf`).
  */
 import type { CompanionCheck, CompileCheckStage, StageCompanion } from '../engine/schemas.js';
 import { companionLines, MONSTER_MODS_FILE, type MonsterMod, type MonsterModTable } from './monsterMods.js';
 import type { CompanionModRecord, CompanionRecord, StageRecord } from './record.js';
+import type { PlanReferenceData } from './referenceData.js';
 import type { Stage } from './schema.js';
 
 /** The gem a plan holds for its companion, as the gem lookup names it (D-402). */
 export const TAME_BEAST_GEM = 'Tame Beast';
+
+/**
+ * PoB's options for a companion, each on by default, which PoB shows once the stage has one (`Modules/ConfigOptions.lua`
+ * at the pin: `summonCompanionEnableBuffs` :628 and `summonCompanionEnableCurses` :631, "Enable buffs:" and "Enable
+ * curses:" for the companion's skills; `companionInPresence` :1014, "Is a Companion in your Presence?"). The compile
+ * writes them on as earned state, so V2 finds them listed (D-250); a stage that lists one keeps its own entry.
+ */
+export const COMPANION_OPTIONS: readonly string[] = ['companionInPresence', 'summonCompanionEnableBuffs', 'summonCompanionEnableCurses'];
 
 type Reaches = 'companion' | 'player' | 'minions';
 
@@ -71,12 +82,36 @@ export function companionPlanOf(stage: Pick<Stage, 'companion'>, table: MonsterM
 }
 
 /**
+ * Each stage's companion against the monster-modifier table, by stage id. The table is read only when a stage names a
+ * companion (`ref.monsterMods` reads the file on first use), so a plan without one never depends on it.
+ */
+export function companionPlansOf(stages: readonly Pick<Stage, 'id' | 'companion'>[], ref: Pick<PlanReferenceData, 'monsterMods'>): Map<string, CompanionPlan> {
+  const out = new Map<string, CompanionPlan>();
+  if (!stages.some((s) => s.companion !== undefined)) return out;
+  const table = ref.monsterMods;
+  if (table === undefined) return out;
+  for (const s of stages) {
+    const plan = companionPlanOf(s, table);
+    if (plan !== undefined) out.set(s.id, plan);
+  }
+  return out;
+}
+
+/**
  * Step 1: each kept `condition` modifier's option, as earned state, on, produced by the Tame Beast gem (V2 finds it as
- * PoB's companion gem, which PoB names "Companion: <beast>"), with its uptime naming the modifier. Validation refused a
- * stage that lists the option itself.
+ * PoB's companion gem, which PoB names "Companion: <beast>"), with its uptime naming the modifier; validation refused a
+ * stage that lists such an option itself. Then PoB's companion options (`COMPANION_OPTIONS`), on, likewise, each one the
+ * stage doesn't list.
  */
 export function withCompanionConditions(stage: Stage, plan: CompanionPlan | undefined): Stage {
   if (plan === undefined) return stage;
+  const listed = new Set([...stage.config.earned, ...stage.config.scenario].map((e) => e.option));
+  const options: Stage['config']['earned'] = COMPANION_OPTIONS.filter((option) => !listed.has(option)).map((option) => ({
+    option,
+    value: true,
+    producer: { kind: 'gem' as const, name: TAME_BEAST_GEM },
+    uptime: `while the tamed beast is out (D-402): PoB's option for a companion, on by default`,
+  }));
   const added: Stage['config']['earned'] = plan.mods.flatMap((m) =>
     m.option === undefined
       ? []
@@ -89,8 +124,7 @@ export function withCompanionConditions(stage: Stage, plan: CompanionPlan | unde
           },
         ],
   );
-  if (added.length === 0) return stage;
-  return { ...stage, config: { ...stage.config, earned: [...stage.config.earned, ...added] } };
+  return { ...stage, config: { ...stage.config, earned: [...stage.config.earned, ...added, ...options] } };
 }
 
 /** Step 2: what `compile_check` reads of the stage's companion. */

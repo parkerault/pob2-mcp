@@ -10,15 +10,15 @@
  * A fact key is a fact id, optionally followed by `[<member>]` to pick one member of an object value (by
  * name, `life.by-level[79]`) or of an array value (by 0-based index).
  *
- * WU-87 (D-402): the loader also reads the rare monster modifier table, `data/monsters/monster-mods.md`
- * (`monsterMods.ts`), which a plan's `companion.mods` cite by row id; an invalid table is an error like an invalid
- * data file.
+ * WU-87 (D-402): the loaded data also gives the rare monster modifier table, `data/monsters/monster-mods.md`
+ * (`monsterMods.ts`), which a plan's `companion.mods` cite by row id. It is read on first use, when a plan names a
+ * companion, so a plan without one never depends on it; an invalid table then throws `MonsterModTableError`.
  */
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { packageRoot } from '../utils/packageRoot.js';
-import { loadMonsterMods, MonsterModTableError, type MonsterModTable } from './monsterMods.js';
+import { loadMonsterMods, type MonsterModTable } from './monsterMods.js';
 import { sourceTagWith, type SourceTag } from './sourceTag.js';
 
 /** The data-file schema versions this server accepts. */
@@ -140,7 +140,8 @@ export interface PlanReferenceData {
   resolveFact(file: string, key: string): FactLookup;
   /**
    * D-402: the rare monster modifier table, which a stage's `companion.mods` cite by row id. When it is absent, a
-   * plan's companion modifiers aren't checked against it.
+   * plan's companion modifiers aren't checked against it. Read it only for a plan that names a companion: the loaded
+   * data reads the file on first use and throws `MonsterModTableError` when it is invalid.
    */
   readonly monsterMods?: MonsterModTable;
 }
@@ -153,7 +154,7 @@ export interface ReferenceData extends PlanReferenceData {
   readonly files: ReadonlyMap<string, DataFile>;
   /** Whether `<key>` resolves in `<file>`. */
   hasFact(file: string, key: string): boolean;
-  /** D-402: the rare monster modifier table (`monsters/monster-mods.md`). */
+  /** D-402: the rare monster modifier table (`monsters/monster-mods.md`), read on first use. */
   readonly monsterMods: MonsterModTable;
 }
 
@@ -241,12 +242,8 @@ function tagOf(source: DataSource, fact: Fact): SourceTag {
   return tag;
 }
 
-function makeReferenceData(
-  dataDir: string,
-  files: ReadonlyMap<string, DataFile>,
-  progressKeys: string[],
-  monsterMods: MonsterModTable,
-): ReferenceData {
+function makeReferenceData(dataDir: string, files: ReadonlyMap<string, DataFile>, progressKeys: string[]): ReferenceData {
+  let monsterMods: MonsterModTable | undefined;
   const resolveFact = (file: string, key: string): FactLookup => {
     const data = files.get(file);
     if (data === undefined) {
@@ -269,14 +266,18 @@ function makeReferenceData(
     progressKeys,
     resolveFact,
     hasFact: (file, key) => resolveFact(file, key).ok,
-    monsterMods,
+    // D-402: read when a plan names a companion, then kept.
+    get monsterMods() {
+      monsterMods ??= loadMonsterMods(dataDir);
+      return monsterMods;
+    },
   };
 }
 
 /**
  * Load every `*.json` under `<dataDir>/campaign` and `<dataDir>/enemies` (default `<packageRoot>/data`),
- * each through the data-file schema, and check C1's progress keys; then the monster-modifier table (D-402).
- * Throws `ReferenceDataError` listing every problem, each naming its file.
+ * each through the data-file schema, and check C1's progress keys. Throws `ReferenceDataError` listing every
+ * problem, each naming its file. The monster-modifier table (D-402) is read later, on first use.
  */
 export function loadReferenceData(dataDir: string = defaultDataDir()): ReferenceData {
   const files = new Map<string, DataFile>();
@@ -307,13 +308,6 @@ export function loadReferenceData(dataDir: string = defaultDataDir()): Reference
   const progress = progressKeysOf(files);
   // An invalid progress file already has its errors; don't add "missing" to them.
   if (!errors.some((e) => e.startsWith(`${PROGRESS_FILE}: `))) errors.push(...progress.errors);
-  let monsterMods: MonsterModTable | undefined;
-  try {
-    monsterMods = loadMonsterMods(dataDir);
-  } catch (e) {
-    if (!(e instanceof MonsterModTableError)) throw e;
-    errors.push(...e.errors);
-  }
-  if (errors.length > 0 || monsterMods === undefined) throw new ReferenceDataError(errors);
-  return makeReferenceData(dataDir, files, progress.keys, monsterMods);
+  if (errors.length > 0) throw new ReferenceDataError(errors);
+  return makeReferenceData(dataDir, files, progress.keys);
 }

@@ -49,9 +49,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   is a C1 progress key, and that each `data:<file>#<key>` claim names a loaded fact (D-214, D-232). They
   run where the server loads that data (`src/plan/referenceData.ts`, C-35), with errors at
   `stages[n].progress` and `stages[n].claims[m].source`, reported together with the schema's errors. The same
-  load reads `data/monsters/monster-mods.md` for a companion's modifiers (D-402): an id the table lacks, or a row
-  that says a tamed beast doesn't keep it, errs at `stages[n].companion.mods[m]`, and an option a kept `condition`
-  modifier writes errs where the stage lists it too (`stages[n].config.earned[m].option`).
+  data gives `data/monsters/monster-mods.md` for a companion's modifiers (D-402), read only for a plan that names a
+  companion: an id the table lacks, or a row that says a tamed beast doesn't keep it, errs at
+  `stages[n].companion.mods[m]`, and an option a kept `condition` modifier writes errs where the stage lists it too
+  (`stages[n].config.earned[m].option`).
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
 node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
@@ -257,9 +258,11 @@ writes each kept modifier as its row in `data/monsters/monster-mods.md` says.
   monster modifiers when summoned"), each once. Each is applied by its row's model:
   - `stats`: its lines join the stage's custom modifiers after the plan's own, each with a reason marking it an
     estimate, so the record marks every figure of the stage, as for any custom modifier. A line on the beast itself
-    (its row's reach is `the beast`) is written `Companions have <line>`, which PoB gives companion skills only; a
-    line that reaches its allies is written as is for the player and as `Minions have <line>` for the minions. A
-    line PoB can't parse whole would add nothing, so the compile leaves it out, and the record says so.
+    (its row's reach is `the beast`) is written `Companions have <line>`, which PoB gives companion skills only, or in
+    PoB's wording for a companion where it can't parse that (`Companions have 4 additional Projectiles` for "Skills
+    fire 4 additional Projectiles"); a line that reaches its allies is written as is for the player and as
+    `Minions have <line>` for the minions. A line PoB can't parse whole would add nothing, so the compile leaves it
+    out, and the record says so.
   - `condition`: the config option its row's `Config` names is written as earned state, on, produced by the Tame
     Beast gem. The stage doesn't list that option itself (an error at the listing).
   - `none`: nothing; PoB can't take it, and the record says so.
@@ -269,8 +272,9 @@ writes each kept modifier as its row in `data/monsters/monster-mods.md` says.
   beasts share, and no Tame Beast gem, two, or one that is disabled or in a disabled group. `guide_run`'s validate
   mode refuses them too.
 - **PoB's companion options.** With a companion, PoB shows three options, each on by default: `companionInPresence`
-  ("Is a Companion in your Presence?"), `summonCompanionEnableBuffs` and `summonCompanionEnableCurses`. V2 reports
-  each one the stage doesn't list (`default-unlisted`, D-250), so a plan lists them as earned state.
+  ("Is a Companion in your Presence?"), `summonCompanionEnableBuffs` and `summonCompanionEnableCurses`. The compile
+  writes each one the stage doesn't list as earned state, on, produced by the Tame Beast gem, so V2 finds them listed
+  (D-250). A stage lists one itself only to change it, such as `companionInPresence` off for a beast kept away.
 - **Shared sets.** Stages that name different beasts, or one names none, never share a skill set.
 - **The record** gives `stages.<id>.companion`: the beast PoB summons (`monster`, `monsterId`), its group,
   active skill and breakdown key, its DPS (its minion's `MinionTotalDPS` there), the player's `spirit`, the

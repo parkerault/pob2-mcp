@@ -49,6 +49,7 @@ import { ACTIVATABLE_SLOTS, ITEM_SLOTS } from '../server/toolSchemas.js';
 import { checkLedgerEntry, ledgerErrorText } from './ledger.js';
 import { PROGRESS_KEY_RE, type PlanReferenceData } from './referenceData.js';
 import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from './sourceTag.js';
+import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 
 export type { PlanReferenceData } from './referenceData.js';
 
@@ -748,10 +749,20 @@ function referenceErrors(value: Record<string, unknown>, ref: PlanReferenceData)
  * join the schema's; a value of the wrong type or form is left to the schema.
  */
 function companionErrors(value: Record<string, unknown>, ref: PlanReferenceData): PlanError[] {
-  const table = ref.monsterMods;
-  if (table === undefined) return [];
-  const errors: PlanError[] = [];
   const stages = Array.isArray(value.stages) ? value.stages : [];
+  const named = stages.findIndex((stage: unknown) => isRecord(stage) && isRecord(stage.companion) && Array.isArray(stage.companion.mods));
+  // The table is read only for a plan that names a companion (D-402); one that can't be read errs at that companion.
+  if (named < 0) return [];
+  let loaded: MonsterModTable | undefined;
+  try {
+    loaded = ref.monsterMods;
+  } catch (e) {
+    if (!(e instanceof MonsterModTableError)) throw e;
+    return [{ path: renderPath(['stages', named, 'companion']), message: `the companion's modifiers can't be checked: ${e.message}` }];
+  }
+  if (loaded === undefined) return [];
+  const table = loaded;
+  const errors: PlanError[] = [];
   stages.forEach((stage: unknown, i) => {
     if (!isRecord(stage) || !isRecord(stage.companion) || !Array.isArray(stage.companion.mods)) return;
     const config = isRecord(stage.config) ? stage.config : {};

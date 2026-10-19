@@ -108,7 +108,7 @@ import {
 import type { ReferenceData, ResolvedFact } from './referenceData.js';
 import {
   companionCheckOf,
-  companionPlanOf,
+  companionPlansOf,
   companionRecordOf,
   withCompanionConditions,
   withCompanionLines,
@@ -892,11 +892,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   );
   // D-353: each endgame stage's omitted reference hits come from the data, before the sets are grouped. D-402: a
   // companion's kept condition modifiers are written as earned state, so the preflight checks them.
-  const companions = new Map<string, CompanionPlan>();
-  for (const s of loaded.plan.stages) {
-    const c = companionPlanOf(s, refData.monsterMods);
-    if (c !== undefined) companions.set(s.id, c);
-  }
+  const companions = companionPlansOf(loaded.plan.stages, refData);
   const checkedPlan: Plan = {
     ...loaded.plan,
     stages: loaded.plan.stages.map((s) => withCompanionConditions(withReferenceHits(s, refData), companions.get(s.id))),
@@ -1198,9 +1194,9 @@ export async function validatePlanFile(
   const refData = env.referenceData();
   const loaded = await loadPlan(env.guidesDirectory, planPath, refData, subset);
   // D-402: a companion is checked as the compile checks it: its species, its Tame Beast gem and its condition options.
-  const table = refData.monsterMods;
+  const companions = companionPlansOf(loaded.compiled, refData);
   const stages = loaded.compiled.map((s) => {
-    const companion = table === undefined ? undefined : companionPlanOf(s, table);
+    const companion = companions.get(s.id);
     return { stage: withCompanionConditions(s, companion), companion };
   });
   const check = await env.ctx.client.compileCheck({

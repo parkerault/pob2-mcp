@@ -316,16 +316,17 @@ function listColumns(html, what) {
 }
 
 /** An entry's lines, each typed (`requires`, `property` or `mod`) so that the head's clause skips requirements and
- * properties; a stack size says nothing about the game and is left out. */
-function linesOf(divs) {
+ * properties; a stack size says nothing about the game and is left out. `dropRepeats` (quest items, whose lines poe2db
+ * prints twice over) drops a line that repeats the one before it; elsewhere a repeat is the item's own, as a unique's
+ * placeholder lines are. */
+function linesOf(divs, dropRepeats = false) {
   const lines = [];
   for (const div of divs) {
     if (hasClass(div, 'separator')) continue;
     const type = hasClass(div, 'requirements') ? 'requires' : hasClass(div, 'property') || hasClass(div, 'enchantMod') ? 'property' : 'mod';
     linesIn([div]).forEach((text, i) => {
       if (type === 'property' && /^Stack Size:/.test(text)) return;
-      // poe2db prints some quest items' lines twice over.
-      if (lines.length > 0 && lines[lines.length - 1].text === text) return;
+      if (dropRepeats && lines.length > 0 && lines[lines.length - 1].text === text) return;
       // `wrapped`: the line goes on from the one before, as one line of the game's that wraps.
       lines.push(i > 0 ? { type, text, wrapped: true } : { type, text });
     });
@@ -382,7 +383,7 @@ export function parseItems(html, base) {
     const name = need(textOf(a), 'an item with no name');
     const wrapper = elementsOf(body).find((el) => el.tag === 'div');
     const divs = wrapper ? elementsOf(wrapper).filter((el) => el.tag === 'div') : [];
-    entries.push({ kind: 'item', name, tags: cls.length > 0 ? [cls[cls.length - 1]] : [], url: absolute(a.attrs.href, base), variants: [linesOf(divs)] });
+    entries.push({ kind: 'item', name, tags: cls.length > 0 ? [cls[cls.length - 1]] : [], url: absolute(a.attrs.href, base), variants: [linesOf(divs, cls.includes('QuestItem'))] });
   }
   return { entries, currency };
 }

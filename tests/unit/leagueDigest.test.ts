@@ -169,6 +169,8 @@ const EXPECTED: Block[] = [
   entry('Fourfold Cord', 'fourfold-cord', 'unique', ['Rope Belt'], true, URL('Fourfold_Cord'), one(
     'Has (1—2) Charm Slots',
     'Echoing Draught',
+    'Echoing Draught',
+    'Echoing Draught',
     'Charms gain 0.5 charges per second',
   )),
   entry("Ferryman's Lantern", 'ferrymans-lantern', 'unique', ['Brass Sceptre'], true, URL('Ferrymans_Lantern'), one(
@@ -200,6 +202,7 @@ const EXPECTED: Block[] = [
     'Requires: Level 38',
     'This item counts as a Belt for Socketed Items',
   )),
+  // poe2db prints a quest item's lines twice over: one is kept. A unique's repeated lines (Fourfold Cord) are its own.
   entry('Crown of the Drowned', 'crown-of-the-drowned', 'item', ['MapFragment', 'QuestItem'], false, URL('Crown_of_the_Drowned'), one(
     'Take this to the Ferryman at Tarn Landing.',
   )),

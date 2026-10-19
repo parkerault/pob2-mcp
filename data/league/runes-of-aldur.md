@@ -1124,6 +1124,9 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
   - 20% of Flask Recovery applied Instantly
   - All Mage's Legacies have (25—50)% increased effect per duplicate Mage's Legacy you have
   - Legacy of Mages Legacy
+  - Legacy of Mages Legacy
+  - Legacy of Mages Legacy
+  - Legacy of Mages Legacy
 
 ### Mastered Domain
 - Id: mastered-domain

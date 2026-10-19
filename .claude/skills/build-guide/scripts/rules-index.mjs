@@ -56,7 +56,7 @@ const POB_API = path.join(REPO, 'pob-api');
 const DEFAULT_DIR = path.join(REPO, 'data', 'rules');
 
 /** The phrases a gem's text must hold to be a candidate (case-insensitive), as the server's mechanic lookup matches. */
-export const RULE_PHRASES = ['in place of', 'count as', 'counts as', 'instead', 'treated as', 'rather than', 'as though', 'as if', 'always', 'never', 'only', 'does not', 'do not', 'regardless', 'no longer'];
+export const RULE_PHRASES = ['in place of', 'count as', 'counts as', 'instead', 'treated as', 'rather than', 'as though', 'as if', 'always', 'never', 'only', 'does not', 'do not', 'regardless', 'no longer', 'apply to', 'fight on'];
 
 /** The one-line penalty rule at the head of uniques.md (D-401). */
 export const PENALTY_RULE = 'Most uniques give up the resistances, life and defences a rare provides; a block lists only the penalties its own lines state.';
@@ -74,9 +74,27 @@ const NODE_TAGS_RE = /^(.+?) creates: ([^|]+?) \| pays off on: ([^|]+?) \| PoB m
 /** A block's heading: a unique's item type and level requirement, a gem's kind and tier. */
 const HEADING_RE = { 'uniques.md': /^### (.+) \(([^(),]+), level (\d+)\)$/, 'gems.md': /^### (.+) \(([^(),]+), tier (\d+)\)$/ };
 const BLOCK_FIELDS = ['Id', 'Rule', 'Lines', 'Creates', 'Penalties', 'PoB models it'];
-/** A price: an amount of a currency, a currency orb, or a `price:` / `priced` label (a name like Blood Price is none). */
-const PRICE_RE = /\b(\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|divine orbs?|exalted orbs?|chaos orbs?|prices?:|priced)/i;
+/** A price: an amount of a currency ("40 chaos", not "40 Chaos damage"), a currency orb, or a `price:` / `priced` label
+ * (a name like Blood Price is none). */
+const PRICE_RE = /\b(\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|\d+(\.\d+)?\s*chaos\b(?!\s+(damage|resistance))|divine orbs?|exalted orbs?|chaos orbs?|prices?:|priced)/i;
 const BLOCK_FILES = ['uniques.md', 'gems.md'];
+
+/**
+ * A line that states a penalty (D-401's explicit penalties): a negative Resistance, "cannot" or "can't" (an
+ * immunity such as "Cannot be Frozen" isn't one), "no longer", "lose", or "% less" of something you want (less damage
+ * taken, less of a penalty, cost or reservation isn't one). A line about what enemies suffer, or about what a support
+ * can support, is none. A block whose Penalties is `none` beside such a line fails.
+ */
+export function isPenaltyLine(line) {
+  // What a support can support, and what enemies suffer, are no penalty of yours.
+  if (/\b(cannot|can't|does not|do not) support\b/i.test(line) || /\b(enem(y|ies)|inflicts)\b/i.test(line)) return false;
+  if (/(^|[\s+])-\(?\d[\d.]*(-\d[\d.]*)?\)?% to [\w ,]*Resistances?\b/i.test(line)) return true;
+  if (/\b(cannot|can't)\b/i.test(line) && !/\b(cannot|can't) (be (shocked|frozen|chilled|ignited|poisoned|blinded|evaded|destroyed|inflicted|light stunned|heavy stunned|stunned)\b|die\b|bypass\b)/i.test(line) && !/\byou cannot be\b/i.test(line)) return true;
+  if (/\bno longer\b/i.test(line) || /^(you )?lose\b/i.test(line)) return true;
+  const less = /\d[\d.]*\)?% less (\w+( \w+)?)/i.exec(line);
+  if (less && !/^take /i.test(line) && !/^(penalty|reservation|cost|mana cost|charges used|recharge)\b/i.test(less[1]) && !/less [\w ]*(taken|penalty|reservation|cost)\b/i.test(line)) return true;
+  return false;
+}
 
 // ------------------------------------------------------------------------------------------------------------
 // The vocabulary
@@ -249,6 +267,9 @@ export function checkBlocks(text, vocabulary, file) {
       const p = parseQuoted(penalties);
       if (!p) problems.push(`${at}: Penalties must be "none" or quoted lines`);
       else entry.penalties = p;
+    } else {
+      const stated = entry.lines.find(isPenaltyLine);
+      if (stated) problems.push(`${at}: Penalties says none, but "${stated}" states a penalty`);
     }
     const model = /^(yes|partly|no)(?: — (.+))?$/.exec(value(5));
     if (!model) problems.push(`${at}: PoB models it must be yes, partly or no`);
@@ -276,8 +297,16 @@ function checkPairs(text, expected, file) {
 export function checkText(entries, candidates) {
   const problems = [];
   const byName = new Map();
-  for (const u of candidates.uniques ?? []) byName.set(`uniques.md|${u.name}`, u.lines.map((l) => l.line));
-  for (const g of candidates.gems ?? []) byName.set(`gems.md|${g.name}`, g.lines.map((l) => l.line));
+  const own = new Map();
+  // An item's own lines, for the penalty check: a unique's lines every variant has, a gem's stat lines.
+  for (const u of candidates.uniques ?? []) {
+    byName.set(`uniques.md|${u.name}`, u.lines.map((l) => l.line));
+    own.set(`uniques.md|${u.name}`, u.lines.filter((l) => !l.variants).map((l) => l.line));
+  }
+  for (const g of candidates.gems ?? []) {
+    byName.set(`gems.md|${g.name}`, g.lines.map((l) => l.line));
+    own.set(`gems.md|${g.name}`, g.lines.filter((l) => l.source !== 'description').map((l) => l.line));
+  }
   for (const e of entries) {
     if (!BLOCK_FILES.includes(path.basename(e.file))) continue;
     const known = byName.get(`${path.basename(e.file)}|${e.name}`);
@@ -288,6 +317,8 @@ export function checkText(entries, candidates) {
     for (const l of [...e.lines, ...e.penalties]) {
       if (!known.some((k) => k === l)) problems.push(`${e.at}: "${l}" isn't one of ${e.name}'s lines`);
     }
+    const stated = e.penalties.length === 0 ? own.get(`${path.basename(e.file)}|${e.name}`).find(isPenaltyLine) : undefined;
+    if (stated) problems.push(`${e.at}: Penalties says none, but ${e.name}'s line "${stated}" states a penalty`);
   }
   return problems;
 }
@@ -334,8 +365,21 @@ const PAIRS_HEAD = [
   '`uniques.md` and `gems.md`; never edit it by hand. One block per family of `vocabulary.md` that some entry creates',
   'and another pays off on. Each line names the family, an entry that creates it, and the entries that pay off on it;',
   'Grep for the family. A pair is a lead, not a proof: confirm the link with a lookup before a card relies on it.',
+  'Two things one build can\'t hold never pair: notables of two ascendancies, or two uniques of one item type other',
+  'than the types a build wears more than one of (rings, jewels, charms and flasks).',
   '',
 ].join('\n');
+
+/** The unique item types a build wears more than one of: two uniques of any other type never pair. */
+export const MULTI_SLOT_TYPES = ['Ring', 'Jewel', 'Charm', 'Flask'];
+
+/** Whether one build can hold both entries: not notables of two ascendancies, not two uniques for one slot. */
+export function canPair(a, b) {
+  const file = (e) => path.basename(e.file);
+  if (file(a) === 'nodes.md' && file(b) === 'nodes.md') return a.group === 'keystone' || b.group === 'keystone' || a.group === b.group;
+  if (file(a) === 'uniques.md' && file(b) === 'uniques.md') return a.kind !== b.kind || MULTI_SLOT_TYPES.includes(a.kind);
+  return true;
+}
 
 function ref(e) {
   return `${e.name} (rules/${path.basename(e.file)}#${e.id})`;
@@ -354,7 +398,7 @@ export function joinPairs(entries) {
     const { creates, pays } = families.get(family);
     const rows = [];
     for (const c of [...creates].sort(order)) {
-      const payers = pays.filter((p) => p !== c).sort(order);
+      const payers = pays.filter((p) => p !== c && canPair(c, p)).sort(order);
       if (payers.length > 0) rows.push(`- ${family}: ${ref(c)} → ${payers.map(ref).join(', ')}`);
     }
     if (rows.length > 0) blocks.push([`### ${family}`, `- Id: ${family}`, ...rows].join('\n'));
@@ -523,7 +567,10 @@ for id, h in pairs(hitsByGem) do
 end
 
 table.sort(out.nodes, function(a, b) return a.id < b.id end)
-table.sort(out.uniques, function(a, b) return a.name < b.name end)
+table.sort(out.uniques, function(a, b)
+  if a.name ~= b.name then return a.name < b.name end
+  return tostring(a.base) < tostring(b.base)
+end)
 table.sort(out.gems, function(a, b) return a.name < b.name end)
 table.sort(out.legacyGems)
 table.sort(out.unobtainableUniques)
@@ -571,8 +618,9 @@ export function shapeCandidates(dump) {
   nodes.sort((a, b) => (order.indexOf(a.ascendancy) - order.indexOf(b.ascendancy)) || a.name.localeCompare(b.name, 'en'));
   const keystones = arr(dump.nodes).filter((n) => n.keystone).map((n) => ({ ...n, lines: arr(n.lines) }));
   keystones.sort((a, b) => a.name.localeCompare(b.name, 'en'));
-  const uniques = arr(dump.uniques).map((u) => ({ ...u, lines: arr(u.lines) }));
-  uniques.sort((a, b) => a.type.localeCompare(b.type, 'en') || a.name.localeCompare(b.name, 'en'));
+  // A unique's sockets come from its base ("Sockets: J" on a ring that holds a jewel), so they show only in its text.
+  const uniques = arr(dump.uniques).map((u) => ({ ...u, lines: arr(u.lines), sockets: /^Sockets: (.+)$/m.exec(u.raw ?? '')?.[1] }));
+  uniques.sort((a, b) => a.type.localeCompare(b.type, 'en') || a.name.localeCompare(b.name, 'en') || String(a.base).localeCompare(String(b.base), 'en'));
   const gems = arr(dump.gems).map((g) => ({ ...g, lines: arr(g.lines), phrases: arr(g.phrases) }));
   return {
     ascendancies: order.filter((a) => nodes.some((n) => n.ascendancy === a)),
@@ -598,7 +646,7 @@ function printCandidates(c, kind, type) {
   if (!kind || kind === 'uniques') {
     const list = c.uniques.filter((u) => !type || u.type.toLowerCase() === type.toLowerCase());
     for (const u of list) {
-      out.push(`- ${u.name} (${u.type}, ${u.base}, level ${u.level})`);
+      out.push(`- ${u.name} (${u.type}, ${u.base}, level ${u.level}${u.sockets ? `, sockets ${u.sockets}` : ''})`);
       for (const l of u.lines) out.push(`    ${l.line}${l.variants ? `  [variants: ${l.variants.join(', ')}]` : ''}`);
     }
     out.push('');

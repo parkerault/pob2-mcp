@@ -41,7 +41,7 @@ not evidence that players build around it.
 - Rule: Life Regeneration no longer heals continuously; every 4 seconds it heals in one pulse instead.
 - Lines: "Life Recovery from Regeneration is not applied", "Every 4 seconds, Recover 1 Life for every 0.2 Life Recovery per second from Regeneration"
 - Creates: none | Pays off on: recovery
-- Penalties: "25% reduced Light Radius"
+- Penalties: "25% reduced Light Radius", "Life Recovery from Regeneration is not applied"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Immaculate Adherence (Amulet, level 30)
@@ -49,7 +49,7 @@ not evidence that players build around it.
 - Rule: Skills cost Divinity, made from your Energy Shield, instead of Mana or Life, and all damage is taken from Mana before Life.
 - Lines: "100% of Damage is taken from Mana before Life", "Cannot have Energy Shield", "Convert 100% of maximum Energy Shield to maximum Divinity", "Skills Cost Divinity instead of Mana or Life"
 - Creates: none | Pays off on: mana, energy-shield
-- Penalties: "20% reduced maximum Divinity per Corrupted Item Equipped"
+- Penalties: "Cannot have Energy Shield", "20% reduced maximum Divinity per Corrupted Item Equipped"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Ligurium Talisman (Amulet, level 35)
@@ -89,7 +89,7 @@ not evidence that players build around it.
 - Rule: Your Critical Hits deal no extra damage.
 - Lines: "You have no Critical Damage Bonus"
 - Creates: crit | Pays off on: none
-- Penalties: none
+- Penalties: "You have no Critical Damage Bonus"
 - PoB models it: yes
 
 ### Bijouborne (Belt, level 44)
@@ -113,7 +113,7 @@ not evidence that players build around it.
 - Rule: Recovery other than Flasks can't raise your Life above Low Life, which keeps you on Low Life.
 - Lines: "Life Recovery other than Flasks cannot Recover Life to above Low Life"
 - Creates: low-life | Pays off on: flask
-- Penalties: none
+- Penalties: "Life Recovery other than Flasks cannot Recover Life to above Low Life"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Coward's Legacy (Belt, level 40)
@@ -297,7 +297,7 @@ not evidence that players build around it.
 - Rule: Your Lightning Resistance no longer reduces Lightning damage you take; instead enemies in your Presence share it, and your Armour applies to Lightning damage.
 - Lines: "+100% of Armour also applies to Lightning Damage", "Enemies in your Presence have Lightning Resistance equal to yours", "Lightning Resistance does not affect Lightning damage taken"
 - Creates: none | Pays off on: resistance, armour
-- Penalties: none
+- Penalties: "Lightning Resistance does not affect Lightning damage taken"
 - PoB models it: yes
 
 ### Forgotten Warden (Body Armour, level 70)
@@ -313,7 +313,7 @@ not evidence that players build around it.
 - Rule: Your maximum Energy Shield is set by your Strength and can't be converted, and you have Zealot's Oath.
 - Lines: "Your maximum Energy Shield is equal to (200-300)% of your Strength", "Maximum Energy Shield cannot be Converted", "Zealot's Oath"
 - Creates: energy-shield | Pays off on: recovery
-- Penalties: none
+- Penalties: "Maximum Energy Shield cannot be Converted"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Ghostwrithe (Body Armour, level 1)
@@ -361,7 +361,7 @@ not evidence that players build around it.
 - Rule: Your Charms use no charges.
 - Lines: "Charms use no Charges"
 - Creates: charm | Pays off on: none
-- Penalties: none
+- Penalties: "-17% to Chaos Resistance"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Prayers for Rain (Body Armour, level 28)
@@ -385,7 +385,7 @@ not evidence that players build around it.
 - Rule: Your Movement Speed comes from your Evasion Rating, and other Movement Speed modifiers except Sprinting don't apply.
 - Lines: "Increases Movement Speed by 25%, plus 1% per 600 Evasion Rating, up to a maximum of 75%", "Other Modifiers to Movement Speed except for Sprinting do not apply"
 - Creates: movement-speed | Pays off on: evasion
-- Penalties: none
+- Penalties: "-(15-10)% to Fire Resistance", "Other Modifiers to Movement Speed except for Sprinting do not apply"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Redflare Conduit (Body Armour, level 33)
@@ -393,7 +393,7 @@ not evidence that players build around it.
 - Rule: Hits grant Power Charges, but reaching the maximum loses them all and Shocks you.
 - Lines: "20% chance to gain a Power Charge on Hit", "Lose all Power Charges on reaching maximum Power Charges"
 - Creates: power-charge | Pays off on: on-hit
-- Penalties: "Shocks you when you reach maximum Power Charges"
+- Penalties: "-15% to Cold Resistance", "Lose all Power Charges on reaching maximum Power Charges", "Shocks you when you reach maximum Power Charges"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Reverie (Body Armour, level 28)
@@ -401,7 +401,7 @@ not evidence that players build around it.
 - Rule: You can't use Life Flasks; instead non-unique Life Flasks apply their effects constantly.
 - Lines: "Cannot use Life Flasks", "Non-Unique Life Flasks apply their Effects constantly"
 - Creates: recovery | Pays off on: flask
-- Penalties: "Recovery from Life Flasks cannot be Instant", "Recovery from your Life Flasks cannot be applied to anything other than you", "(40-60)% less Life Flask Recovery"
+- Penalties: "-10% to Fire Resistance", "Cannot use Life Flasks", "Recovery from Life Flasks cannot be Instant", "Recovery from your Life Flasks cannot be applied to anything other than you", "(40-60)% less Life Flask Recovery"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Sacrosanctum (Body Armour, level 68)
@@ -416,7 +416,7 @@ not evidence that players build around it.
 - Id: sierran-inheritance
 - Rule: Chill on you is reversed and speeds you up, and all damage from Hits you take builds Chill on you.
 - Lines: "All Damage taken from Hits Contributes to Magnitude of Chill inflicted on you", "The Effect of Chill on you is reversed"
-- Creates: movement-speed | Pays off on: chill
+- Creates: movement-speed | Pays off on: none
 - Penalties: none
 - PoB models it: partly — a compile measures only part of what it adds
 
@@ -457,7 +457,7 @@ not evidence that players build around it.
 - Rule: On Low Life, enemies' Hit damage against you is Unlucky, and Hits have a 50% chance not to kill you.
 - Lines: "Damage of Enemies Hitting you is Unlucky while you are on Low Life", "50% chance to Avoid Death from Hits"
 - Creates: none | Pays off on: low-life
-- Penalties: none
+- Penalties: "-(20-10)% to Fire Resistance"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### The Black Doubt (Body Armour, level 11)
@@ -673,7 +673,7 @@ not evidence that players build around it.
 - Rule: Critical Hits inflict Impale, but can't extract it.
 - Lines: "Critical Hits inflict Impale", "Critical Hits cannot Extract Impale"
 - Creates: none | Pays off on: crit
-- Penalties: none
+- Penalties: "Critical Hits cannot Extract Impale"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Empire's Grasp (Gloves, level 52)
@@ -713,7 +713,7 @@ not evidence that players build around it.
 - Rule: Reaching maximum Rage grants a random Charge and empties your Rage.
 - Lines: "Gain a random Charge on reaching Maximum Rage, no more than once every (3-6) seconds", "Lose all Rage on reaching Maximum Rage"
 - Creates: endurance-charge, frenzy-charge, power-charge | Pays off on: rage
-- Penalties: none
+- Penalties: "Lose all Rage on reaching Maximum Rage"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Idle Hands (Gloves, level 28)
@@ -745,7 +745,7 @@ not evidence that players build around it.
 - Rule: Lightning damage from your Hits builds Electrocution.
 - Lines: "Lightning damage from Hits Contributes to Electrocution Buildup"
 - Creates: electrocute | Pays off on: none
-- Penalties: none
+- Penalties: "(10-15)% reduced Attack and Cast Speed"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Leopold's Applause (Gloves, level 52)
@@ -761,7 +761,7 @@ not evidence that players build around it.
 - Rule: You share your Charges with allies in your Presence.
 - Lines: "Share Charges with Allies in your Presence"
 - Creates: none | Pays off on: endurance-charge, frenzy-charge, power-charge
-- Penalties: none
+- Penalties: "(10-15)% reduced maximum Mana"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Maligaro's Virtuosity (Gloves, level 45)
@@ -769,7 +769,7 @@ not evidence that players build around it.
 - Rule: Your Critical Damage Bonus is fixed at 250%, and your Critical Hit chance can't be rerolled.
 - Lines: "Your Critical Hit Chance cannot be Rerolled", "Your Critical Damage Bonus is 250%"
 - Creates: none | Pays off on: crit
-- Penalties: none
+- Penalties: "Your Critical Hit Chance cannot be Rerolled"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Nightscale (Gloves, level 45)
@@ -809,7 +809,7 @@ not evidence that players build around it.
 - Rule: After each Chill, Freeze, Ignite or Shock you are immune to it for 6 seconds, but your Curses are reflected back to you.
 - Lines: "You cannot be Chilled for 6 seconds after being Chilled", "You cannot be Frozen for 6 seconds after being Frozen", "You cannot be Ignited for 6 seconds after being Ignited", "You cannot be Shocked for 6 seconds after being Shocked", "Curses you inflict are reflected back to you"
 - Creates: none | Pays off on: curse
-- Penalties: none
+- Penalties: "Curses you inflict are reflected back to you"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Sine Aequo (Gloves, level 65)
@@ -825,7 +825,7 @@ not evidence that players build around it.
 - Rule: You have Giant's Blood: you can wield Two-Handed Axes, Maces and Swords in one hand.
 - Lines: "Giant's Blood"
 - Creates: none | Pays off on: weapon-slot, offhand-slot
-- Penalties: none
+- Penalties: "5% reduced Attack Speed"
 - PoB models it: yes
 
 ### Valako's Vice (Gloves, level 45)
@@ -865,7 +865,7 @@ not evidence that players build around it.
 - Rule: Your increases and reductions to Spell damage also apply to Attacks.
 - Lines: "Increases and Reductions to Spell damage also apply to Attacks"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "-10% to Fire Resistance"
 - PoB models it: yes
 
 ### Crown of the Pale King (Helmet, level 16)
@@ -945,7 +945,7 @@ not evidence that players build around it.
 - Rule: Spells deal more damage, and skills cost more, by the Mana you spent recently, and only Regeneration can recover your Mana.
 - Lines: "(10-15)% increased Spell damage for each 200 total Mana you have Spent Recently", "Mana Recovery other than Regeneration cannot Recover Mana"
 - Creates: none | Pays off on: mana
-- Penalties: "(5-10)% increased Cost of Skills for each 200 total Mana Spent Recently"
+- Penalties: "(5-10)% increased Cost of Skills for each 200 total Mana Spent Recently", "Mana Recovery other than Regeneration cannot Recover Mana"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Ironride (Helmet, level 16)
@@ -977,7 +977,7 @@ not evidence that players build around it.
 - Rule: You can't have Energy Shield; instead your maximum Energy Shield regenerates Life.
 - Lines: "Cannot have Energy Shield", "Regenerate 0.05 Life per second per Maximum Energy Shield"
 - Creates: recovery | Pays off on: energy-shield
-- Penalties: none
+- Penalties: "Cannot have Energy Shield"
 - PoB models it: yes
 
 ### Mind of the Council (Helmet, level 65)
@@ -1017,7 +1017,7 @@ not evidence that players build around it.
 - Rule: You can't use a Body Armour; the helmet takes its place, with four Augment sockets that grant Body Armour bonuses, and you can wield Two-Handed weapons in one hand.
 - Lines: "Can't use Body Armour", "You can wield Two-Handed Axes, Maces and Swords in one hand", "This item gains bonuses from Socketed Items as though it was a Body Armour", "Has 4 Augment Sockets"
 - Creates: socket | Pays off on: weapon-slot, offhand-slot
-- Penalties: none
+- Penalties: "Can't use Body Armour"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### The Devouring Diadem (Helmet, level 10)
@@ -1088,7 +1088,7 @@ not evidence that players build around it.
 - Id: bereks-grip
 - Rule: Wind skills that Elemental Ground can boost count as boosted by Shocked Ground.
 - Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Shocked Ground"
-- Creates: shocked-ground | Pays off on: none
+- Creates: none | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1096,7 +1096,7 @@ not evidence that players build around it.
 - Id: bereks-pass
 - Rule: Wind skills that Elemental Ground can boost count as boosted by Chilled Ground.
 - Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Chilled Ground"
-- Creates: chilled-ground | Pays off on: none
+- Creates: none | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1104,7 +1104,7 @@ not evidence that players build around it.
 - Id: bereks-respite
 - Rule: Wind skills that Elemental Ground can boost count as boosted by Ignited Ground.
 - Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Ignited Ground"
-- Creates: ignited-ground | Pays off on: none
+- Creates: none | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1121,7 +1121,7 @@ not evidence that players build around it.
 - Rule: Your Bleeding deals Fire damage and Fire damage builds Bleeding, while Bleeding on you deals Fire damage instead of Physical.
 - Lines: "You take Fire Damage instead of Physical Damage from Bleeding", "Fire Damage also Contributes to Bleeding Magnitude", "Bleeding you inflict deals Fire Damage instead of Physical Damage"
 - Creates: bleed | Pays off on: none
-- Penalties: none
+- Penalties: "-(15-10)% to Cold Resistance"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Bursting Decay (Ring, level 60)
@@ -1217,7 +1217,7 @@ not evidence that players build around it.
 - Rule: By ring slot, your Spell Projectiles Fork (left) or Chain one more time (right), and they can't Pierce.
 - Lines: "Left ring slot: Projectiles from Spells cannot Chain", "Left ring slot: Projectiles from Spells Fork", "Right ring slot: Projectiles from Spells Chain +1 times", "Right ring slot: Projectiles from Spells cannot Fork", "Projectiles from Spells cannot Pierce"
 - Creates: projectile | Pays off on: ring-slot
-- Penalties: none
+- Penalties: "Left ring slot: Projectiles from Spells cannot Chain", "Right ring slot: Projectiles from Spells cannot Fork", "Projectiles from Spells cannot Pierce"
 - PoB models it: yes
 
 ### The Burrower (Ring, level 16)
@@ -1225,14 +1225,14 @@ not evidence that players build around it.
 - Rule: Enemies' Lightning Hit damage against you is Unlucky.
 - Lines: "Lightning Damage of Enemies Hitting you is Unlucky"
 - Creates: luck | Pays off on: none
-- Penalties: none
+- Penalties: "-10% to Cold Resistance"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### The Taming (Ring, level 42)
 - Id: the-taming
 - Rule: Wind skills that Elemental Ground can boost count as boosted by Ignited, Shocked and Chilled Ground at once.
 - Lines: "Wind Skills which can be boosted by Elemental Ground Surfaces can be boosted by multiple Elemental Ground Surfaces", "Wind Skills which can be boosted by Elemental Ground Surfaces count", "as being boosted by Ignited, Shocked, and Chilled Ground"
-- Creates: ignited-ground, shocked-ground, chilled-ground | Pays off on: none
+- Creates: none | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1377,7 +1377,7 @@ not evidence that players build around it.
 - Rule: You can't Block; modifiers to maximum Block chance raise your maximum Resistances instead.
 - Lines: "Cannot Block", "Modifiers to Maximum Block Chance instead apply to Maximum Resistances"
 - Creates: resistance | Pays off on: block
-- Penalties: none
+- Penalties: "Cannot Block"
 - PoB models it: yes
 
 ### Svalinn (Shield, level 60)
@@ -1449,7 +1449,7 @@ not evidence that players build around it.
 - Rule: Chaos damage from your Hits also builds Freeze and Electrocution.
 - Lines: "Chaos Damage from Hits also Contributes to Freeze Buildup", "Chaos Damage from Hits also Contributes to Electrocute Buildup"
 - Creates: freeze, electrocute | Pays off on: none
-- Penalties: none
+- Penalties: "(10-15)% reduced Attack Speed"
 - PoB models it: yes
 
 ### Blackgleam (Quiver, level 8)
@@ -1633,7 +1633,7 @@ not evidence that players build around it.
 - Rule: The Flask can't be used manually; it is used when you release a skill with Perfect Timing, and its effect continues at full Life.
 - Lines: "Effect is not removed when Unreserved Life is Filled", "Cannot be Used manually", "Used when you release a skill with Perfect Timing"
 - Creates: none | Pays off on: flask
-- Penalties: none
+- Penalties: "Cannot be Used manually", "(25-50)% reduced Recovery rate"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Uhtred's Chalice (Flask, level 50)
@@ -1641,7 +1641,7 @@ not evidence that players build around it.
 - Rule: During the Flask's effect, Mana recovery from Flasks can exceed your maximum Mana, but you lose Life without Runic Ward.
 - Lines: "Mana Recovery from Flasks can Overflow maximum Mana during Effect"
 - Creates: mana | Pays off on: flask, ward
-- Penalties: "Lose 5% Life per second while you have no Runic Ward during Effect"
+- Penalties: "70% reduced Recovery rate", "(50-60)% reduced Charges", "Lose 5% Life per second while you have no Runic Ward during Effect"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Ironbound (Bow, level 11)
@@ -1657,7 +1657,7 @@ not evidence that players build around it.
 - Rule: Repeatable Attacks with the bow Repeat two more times when no enemies are in your Presence.
 - Lines: "Repeatable Attacks with this Bow Repeat +2 times if no enemies are in your Presence"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "-1 metre to Dodge Roll distance if you've Dodge Rolled Recently"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Periphery (Bow, level 67)
@@ -1705,7 +1705,7 @@ not evidence that players build around it.
 - Rule: The crossbow can't load or fire Ammunition, and Grenade skills build Explosive Rhythm toward Explosive Fervour.
 - Lines: "Cannot load or fire Ammunition", "Gain 1 Explosive Rhythm every (2-3) times you use a Grenade Skill", "Remove all Explosive Rhythm on reaching 10 to gain Explosive Fervour for 10 Seconds"
 - Creates: none | Pays off on: none
-- Penalties: "Hits with this Weapon have no Critical Damage Bonus", "(20-40)% reduced Cooldown Recovery Rate"
+- Penalties: "Cannot load or fire Ammunition", "Hits with this Weapon have no Critical Damage Bonus", "(20-40)% reduced Cooldown Recovery Rate"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### The Last Lament (Crossbow, level 77)
@@ -1713,7 +1713,7 @@ not evidence that players build around it.
 - Rule: Kills can load a bolt into every Crossbow skill, and you can sacrifice Life to keep your last bolt.
 - Lines: "(10-20)% chance to load a bolt into all Crossbow skills on Kill", "Sacrifice 300 Life to not consume the last bolt when firing"
 - Creates: none | Pays off on: on-kill, life
-- Penalties: none
+- Penalties: "(40-60)% reduced Reload Speed"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Frostbreath (One Hand Mace, level 10)
@@ -1769,7 +1769,7 @@ not evidence that players build around it.
 - Rule: Modifiers to your Minions' damage also apply to you.
 - Lines: "Increases and Reductions to Minion Damage also affect you"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "+100 Intelligence Requirement"
 - PoB models it: yes
 
 ### Marohi Erqi (Two Hand Mace, level 60)
@@ -1777,7 +1777,7 @@ not evidence that players build around it.
 - Rule: The maul Crushes enemies on Hit and Heavy Stuns enemies on Full Life.
 - Lines: "Crushes Enemies on Hit", "Heavy Stuns Enemies that are on Full Life"
 - Creates: stun | Pays off on: none
-- Penalties: none
+- Penalties: "+150 Strength Requirement", "-(300-200) to Accuracy Rating", "35% reduced Attack Speed"
 - PoB models it: yes
 
 ### Quecholli (Two Hand Mace, level 38)
@@ -1793,7 +1793,7 @@ not evidence that players build around it.
 - Rule: The maul always Hits.
 - Lines: "Always Hits"
 - Creates: accuracy | Pays off on: none
-- Penalties: none
+- Penalties: "+50 Dexterity Requirement"
 - PoB models it: yes
 
 ### The Empty Roar (Two Hand Mace, level 22)
@@ -1905,7 +1905,7 @@ not evidence that players build around it.
 - Rule: Strikes deal Splash damage, but you can't use Projectile Attacks.
 - Lines: "Strikes deal Splash Damage"
 - Creates: area | Pays off on: none
-- Penalties: "Cannot use Projectile Attacks"
+- Penalties: "(10-15)% reduced Attack Speed", "Cannot use Projectile Attacks"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Atziri's Rule (Staff, level 70)
@@ -1961,7 +1961,7 @@ not evidence that players build around it.
 - Rule: Bear skills convert most Physical damage to Fire, and skills that need Glory generate it over time.
 - Lines: "Bear Skills Convert 80% of Physical Damage to Fire Damage", "Skills which require Glory generate (2-5) Glory every 2 seconds"
 - Creates: damage-conversion, glory | Pays off on: none
-- Penalties: none
+- Penalties: "(15-20)% reduced Attack Speed"
 - PoB models it: partly — a compile measures only part of what it adds
 
 ### Hysseg's Claw (Talisman, level 16)
@@ -1985,7 +1985,7 @@ not evidence that players build around it.
 - Rule: Shapeshifting into an Animal form copies a random modifier from each enemy in your Presence for 30 seconds.
 - Lines: "Copy a random Modifier from each enemy in your Presence when", "you Shapeshift to an Animal form", "Modifiers gained this way are lost after 30 seconds or when you next Shapeshift"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "(30-40)% reduced Presence Area of Effect"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
 ### Enezun's Charge (Wand, level 16)
@@ -2025,5 +2025,13 @@ not evidence that players build around it.
 - Rule: A quarter of your Spells' Mana cost is paid in Life.
 - Lines: "25% of Spell Mana Cost Converted to Life Cost"
 - Creates: none | Pays off on: life
+- Penalties: none
+- PoB models it: yes
+
+### Tangletongue (Spear, level 26)
+- Id: tangletongue
+- Rule: Your Critical Hits Bifurcate: PoB rolls the Critical Hit chance twice.
+- Lines: "Bifurcates Critical Hits"
+- Creates: crit | Pays off on: none
 - Penalties: none
 - PoB models it: yes

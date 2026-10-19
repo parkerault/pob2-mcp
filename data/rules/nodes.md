@@ -13,12 +13,12 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 ## Infernalist
 
 - Altered Flesh (18348, Infernalist) — takes 20% of Physical damage as Chaos and 20% of Lightning and Cold damage as Fire.
-- Beidat's Gaze (36564, Infernalist) [rule] — reserves a quarter of your Life and turns maximum Life into maximum Mana (1 per 6 Life). creates: mana | pays off on: life | PoB models it: yes
-- Beidat's Hand (24039, Infernalist) [rule] — reserves a quarter of your Life and turns maximum Life into maximum Energy Shield (1 per 8 Life). creates: energy-shield | pays off on: life | PoB models it: yes
-- Beidat's Will (46644, Infernalist) [rule] — reserves a quarter of your Life and turns maximum Life into maximum Spirit (1 per 25 Life). creates: spirit | pays off on: life | PoB models it: yes
+- Beidat's Gaze (36564, Infernalist) [rule] — reserves a quarter of your Life and grants 1 maximum Mana per 6 maximum Life. creates: mana | pays off on: life | PoB models it: yes
+- Beidat's Hand (24039, Infernalist) [rule] — reserves a quarter of your Life and grants 1 maximum Energy Shield per 8 maximum Life. creates: energy-shield | pays off on: life | PoB models it: yes
+- Beidat's Will (46644, Infernalist) [rule] — reserves a quarter of your Life and grants 1 maximum Spirit per 25 maximum Life. creates: spirit | pays off on: life | PoB models it: yes
 - Bringer of Flame (18158, Infernalist) [rule] — all damage from you and allies in your Presence counts toward Flammability and Ignite magnitude, not only Fire damage. creates: ignite | pays off on: none | PoB models it: yes
 - Demonic Possession (25239, Infernalist) — grants the skill Demon Form.
-- Grinning Immolation (34419, Infernalist) [rule] — your Critical Hits Ignite you, burning 15% of your Life and Energy Shield per second, for 50% more Critical Damage Bonus. creates: ignite | pays off on: crit | PoB models it: partly
+- Grinning Immolation (34419, Infernalist) [rule] — your Critical Hits Ignite you, burning 15% of your Life and Energy Shield per second, for 50% more Critical Damage Bonus. creates: none | pays off on: crit | PoB models it: partly
 - Loyal Hellhound (17754, Infernalist) — grants the skill Summon Infernal Hound.
 - Mastered Darkness (61267, Infernalist) [rule] — Demon Form's Demonflame has no maximum, so it keeps stacking. creates: none | pays off on: stacking-buff | PoB models it: yes
 - Pyromantic Pact (13174, Infernalist) [rule] — replaces Mana with twice as much Infernal Flame, which skills gain instead of spending Mana; at its maximum you take your Life and Energy Shield as Fire damage and lose it all. creates: none | pays off on: mana | PoB models it: no
@@ -133,7 +133,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Inevitability (42035, Chronomancer) — grants the skill Inevitable Agony.
 - Now and Again (10987, Chronomancer) — Cascadable Spells have a 20% chance to Echo and Repeatable Spells a 20% chance to Repeat.
 - Phased Form (28153, Chronomancer) [rule] — you take 30% less damage, but 4 seconds after an enemy Hit you take 30% of its damage again. creates: none | pays off on: life | PoB models it: partly
-- Quicksand Hourglass (10731, Chronomancer) — grants Sands of Time.
+- Quicksand Hourglass (10731, Chronomancer) — grants Sands of Time, which the pinned PoB doesn't define.
 - Ultimate Command (58747, Chronomancer) — grants the skill Time Freeze.
 - Unbound Encore (3605, Chronomancer) — grants the skill Time Snap.
 
@@ -207,7 +207,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 ## Witchhunter
 
 - Ceremonial Ablution (6935, Witchhunter) — Sorcery Ward's Barrier also takes Physical and Chaos damage from Hits.
-- Judge, Jury, and Executioner (17646, Witchhunter) — grants Decimating Strike.
+- Judge, Jury, and Executioner (17646, Witchhunter) — grants Decimating Strike, which the pinned PoB doesn't define.
 - No Mercy (46535, Witchhunter) — up to 40% more damage against enemies by their missing Concentration.
 - Obsessive Rituals (38601, Witchhunter) — grants the skill Sorcery Ward, for 50% less Armour and Evasion Rating.
 - Pitiless Killer (61973, Witchhunter) — grants Culling Strike.
@@ -259,7 +259,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Inner Turmoil (18826, Acolyte of Chayula) [rule] — inflicting an Elemental Ailment grants Volatility, and Volatility deals you no damage. creates: volatility | pays off on: ignite, chill, freeze, shock, electrocute | PoB models it: no
 - Lucid Dreaming (52395, Acolyte of Chayula) — your Remnants have 50% increased effect and range, and you choose the colour of the Flames of Chayula you manifest: Purple, Blue or Red.
 - Sap of Nightmares (25781, Acolyte of Chayula) [rule] — Leech recovers from your Chaos damage as well as Physical. creates: leech | pays off on: none | PoB models it: yes
-- Unravelling (3781, Acolyte of Chayula) — grants Unravelling.
+- Unravelling (3781, Acolyte of Chayula) [rule] — your Chaos damage also builds Freeze, Ignite or Shock, switching among them every 2 seconds (Unravelling as PoB defines it). creates: freeze, ignite, shock | pays off on: none | PoB models it: yes
 - Waking Dream (50098, Acolyte of Chayula) — grants the skill Into the Breach.
 
 ## Oracle
@@ -267,10 +267,10 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Converging Paths (4197, Oracle) — grants the skill Moment of Vulnerability.
 - Entwined Realities (32905, Oracle) [rule] — non-keystone passives within a medium radius of an allocated keystone can be allocated without connecting them to your tree. creates: passive-tree | pays off on: none | PoB models it: yes
 - Fateful Vision (37782, Oracle) — grants the skill Align Fate.
-- Forced Outcome (55135, Oracle) — grants Inevitable Critical Hits.
+- Forced Outcome (55135, Oracle) [rule] — your Critical Hits are Inevitable: a failed Critical Hit roll is rolled again, up to three times, each later Critical Hit with a smaller Critical Damage Bonus (as PoB defines it). creates: crit | pays off on: none | PoB models it: yes
 - Harmony Within (30904, Oracle) [rule] — while your Mana is higher than your Life, Hit damage is taken from Mana first, for 15% less maximum Life and Mana. creates: none | pays off on: mana | PoB models it: partly
 - The Lesser Harm (34313, Oracle) [rule] — enemies' Critical Hit chance and Hit damage against you are Unlucky. creates: luck | pays off on: none | PoB models it: partly
-- The Unseen Path (5571, Oracle) — Walk the Paths Not Taken.
+- The Unseen Path (5571, Oracle) — grants Walk the Paths Not Taken, which the pinned PoB doesn't define.
 - Unnamed Heartwood (52374, Oracle) [rule] — Totems die 6 seconds after their Life reaches zero, and one more Totem. creates: none | pays off on: totem | PoB models it: partly
 
 ## Shaman

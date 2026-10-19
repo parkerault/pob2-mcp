@@ -130,7 +130,7 @@ describe('the committed rule-changer index (AC-W71, D-401)', () => {
     const rule = head.split('\n').filter((l) => l.startsWith('Most uniques give up the resistances, life and defences a rare provides'));
     expect(rule).toHaveLength(1);
     expect(rule[0]).toMatch(/explicit|penalties/);
-    const price = /\b\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|\b(divine|exalted|chaos) orbs?\b|\bprice[sd]?\b|\bpricing\b/i;
+    const price = /\b\d+(\.\d+)?\s*(div|divines?|ex|exalts?|exalted)\b|\b\d+(\.\d+)?\s*chaos\b(?!\s+(damage|resistance))|\b(divine|exalted|chaos) orbs?\b|\bprice[sd]?\b|\bpricing\b/i;
     for (const file of ['uniques.md', 'gems.md']) {
       expect(blockLines(file).filter((l) => price.test(l))).toEqual([]);
     }

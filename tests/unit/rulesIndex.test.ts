@@ -6,8 +6,14 @@
  * - `check <dir>` passes a well-formed index and fails, naming the line, a malformed node line, a word outside the
  *   vocabulary, a block with a field missing, a price, a unique without the head's penalty rule, and a pairs.md that
  *   isn't the join;
- * - `join <dir>` pairs a fixture's "creates infusion" with its "pays off on infusion", across files, and never pairs
- *   an entry with itself.
+ * - `check` also fails a block whose Penalties is `none` beside a quoted line that states a penalty, and a price in
+ *   chaos;
+ * - `check <dir> --text <dump>` (a small fixture of `candidates --json`'s shape) passes verbatim lines and fails a line
+ *   the item doesn't have, or a `none` beside a penalty line among the item's own lines;
+ * - `join <dir>` pairs a fixture's "creates infusion" with its "pays off on infusion", across files, never pairs an
+ *   entry with itself, notables of two ascendancies, or two uniques for one slot (two rings do pair).
+ *
+ * `candidates` runs against the pinned PoB in tests/integration/rulesIndexCandidates.test.ts.
  *
  * The committed index is checked in tests/static/rulesIndex.test.ts.
  */
@@ -114,6 +120,8 @@ describe('rules-index.mjs check (AC-W71)', () => {
     ['a price', UNIQUES.replace('Cold skills leave', 'Worth 3 divines; Cold skills leave'), 'uniques.md:7: a price'],
     ['no penalty rule in the head', UNIQUES.replace(PENALTY_RULE, 'Uniques.'), 'uniques.md: the head lacks the penalty rule'],
     ['an unmodelled unique that says nothing of the compile', UNIQUES.replace(' — a compile measures what it gives up, not what it adds', ''), 'uniques.md:5: a unique PoB models not at all says so'],
+    ['a price in chaos', UNIQUES.replace('Cold skills leave', 'Trades for 40 chaos; Cold skills leave'), 'uniques.md:7: a price ("40 chaos")'],
+    ['Penalties none beside a quoted penalty line', UNIQUES.replace('"Hits with Cold Skills create a Cold Infusion"', '"Hits with Cold Skills create a Cold Infusion", "-10% to Fire Resistance"').replace('- Penalties: "-20% to Fire Resistance"', '- Penalties: none'), 'uniques.md:5: Penalties says none, but "-10% to Fire Resistance" states a penalty'],
   ])('fails uniques.md with %s', (_name, uniques, problem) => {
     const r = run('check', index({ uniques }, false));
     expect(r.code).toBe(1);
@@ -125,6 +133,15 @@ describe('rules-index.mjs check (AC-W71)', () => {
     expect(r.code).toBe(1);
     expect(r.stdout).toContain('gems.md:3: Pays off on: not in the vocabulary: cold-infusion');
     expect(r.stdout).toContain('gems.md:10: id "fixture-support" used twice');
+  });
+
+  it('fails a gem whose Penalties is none beside "less" or "cannot", and passes one beside an immunity or a damage-taken line', () => {
+    const less = GEMS.replace('"Supported Spells consume an Infusion in place of Mana"', '"Supported Spells consume an Infusion in place of Mana", "Supported Skills deal 50% less Damage"');
+    expect(run('check', index({ gems: less }, false)).stdout).toContain('gems.md:3: Penalties says none, but "Supported Skills deal 50% less Damage" states a penalty');
+    const cannot = GEMS.replace('"Supported Spells consume an Infusion in place of Mana"', '"Supported Spells consume an Infusion in place of Mana", "Supported Skills Cannot inflict Shock"');
+    expect(run('check', index({ gems: cannot }, false)).stdout).toContain('Penalties says none, but "Supported Skills Cannot inflict Shock"');
+    const fine = GEMS.replace('"Supported Spells consume an Infusion in place of Mana"', '"Supported Spells consume an Infusion in place of Mana", "Cannot be Frozen", "Take 40% less Damage from Hits", "Chaos Damage taken is 100 Chaos damage"');
+    expect(run('check', index({ gems: fine })).code).toBe(0);
   });
 
   it('passes a rule changer no family fits, with none in both', () => {
@@ -139,6 +156,43 @@ describe('rules-index.mjs check (AC-W71)', () => {
     const r = run('check', dir);
     expect(r.code).toBe(1);
     expect(r.stdout).toContain('pairs.md: not the join of the entries');
+  });
+});
+
+describe('rules-index.mjs check --text (the verbatim lines and the penalty check against a candidates dump)', () => {
+  /** A dump in `candidates --json`'s shape: the fixture's unique and gem with their lines. */
+  const dump = (uniqueLines: string[], gemLines: { line: string; source: string }[]) => ({
+    uniques: [{ name: 'Fixture Gloves', type: 'Gloves', base: 'Fixture Base', level: 40, lines: uniqueLines.map((line) => ({ line })) }],
+    gems: [{ name: 'Fixture Support', support: true, tier: 1, lines: gemLines }],
+  });
+  const GEM_LINES = [{ line: 'Supports Spells.', source: 'description' }, { line: 'Supported Spells consume an Infusion in place of Mana', source: 'effect 1, stat set 1' }];
+  function checkText(d: object, files: { uniques?: string; gems?: string } = {}) {
+    const dir = index(files);
+    const file = path.join(dir, 'dump.json');
+    fs.writeFileSync(file, JSON.stringify(d));
+    return run('check', dir, '--text', file);
+  }
+
+  it('passes when every quoted line is one of its item\'s lines', () => {
+    const r = checkText(dump(['Hits with Cold Skills create a Cold Infusion', '-20% to Fire Resistance'], GEM_LINES));
+    expect(r).toEqual({ code: 0, stderr: '', stdout: 'rules-index check: ok (2 [rule] nodes, 1 uniques, 1 gems)\n' });
+  });
+
+  it('fails a quoted line the item does not have, and a block that is no candidate', () => {
+    const r = checkText({ uniques: dump(['Hits with Cold Skills create a Cold Infusion', '-25% to Fire Resistance'], []).uniques, gems: [] });
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain(`uniques.md:5: "-20% to Fire Resistance" isn't one of Fixture Gloves's lines`);
+    expect(r.stdout).toContain(`gems.md:3: "Fixture Support" isn't a candidate`);
+  });
+
+  it("fails Penalties none when the item's own lines state a penalty, but not for a variant's line or a gem's description", () => {
+    const uniques = UNIQUES.replace('- Penalties: "-20% to Fire Resistance"', '- Penalties: none');
+    const stated = checkText(dump(['Hits with Cold Skills create a Cold Infusion', '-20% to Fire Resistance'], GEM_LINES), { uniques });
+    expect(stated.code).toBe(1);
+    expect(stated.stdout).toContain(`uniques.md:5: Penalties says none, but Fixture Gloves's line "-20% to Fire Resistance" states a penalty`);
+    const d = dump(['Hits with Cold Skills create a Cold Infusion'], [...GEM_LINES, { line: 'Cannot Support Totems; supported Spells deal 50% less Damage.', source: 'description' }]);
+    (d.uniques[0].lines as { line: string; variants?: string[] }[]).push({ line: '-20% to Fire Resistance', variants: ['Old'] });
+    expect(checkText(d, { uniques }).code).toBe(0);
   });
 });
 
@@ -160,6 +214,27 @@ describe('rules-index.mjs join (AC-W71)', () => {
     expect(run('join', dir, '--write')).toEqual({ code: 0, stderr: '', stdout: 'rules-index join: wrote pairs.md (2 lines)\n' });
     expect(fs.readFileSync(path.join(dir, 'pairs.md'), 'utf8')).toBe(r.stdout);
     expect(run('check', dir).code).toBe(0);
+  });
+
+  it('never pairs notables of two ascendancies or two uniques for one slot, but pairs two rings and a keystone with any', () => {
+    const nodes = NODES.replace(
+      '- Fixture Notable (11111, Martial Artist) — 20% more damage.',
+      '- Fixture Payer (11112, Martial Artist) [rule] — modified gloves pay off. creates: none | pays off on: item-modifiers | PoB models it: yes\n\n## Invoker\n\n- Far Payer (11113, Invoker) [rule] — another ascendancy\'s notable. creates: none | pays off on: item-modifiers | PoB models it: yes',
+    ).replace('pays off on: infusion | PoB models it: partly', 'pays off on: infusion, item-modifiers | PoB models it: partly');
+    const block = (name: string, type: string, creates: string, pays: string) =>
+      [`### ${name} (${type}, level 10)`, `- Id: ${name.toLowerCase().replace(/ /g, '-')}`, '- Rule: a fixture rule changer.', '- Lines: "A line"',
+        `- Creates: ${creates} | Pays off on: ${pays}`, '- Penalties: none', '- PoB models it: yes'].join('\n');
+    const uniques = [UNIQUES.trimEnd(), '', block('Other Gloves', 'Gloves', 'none', 'infusion'), '', block('First Ring', 'Ring', 'curse', 'none'), '',
+      block('Second Ring', 'Ring', 'none', 'curse'), ''].join('\n');
+    const dir = index({ nodes, uniques }, false);
+    const r = run('join', dir);
+    expect(r.code).toBe(0);
+    const rows = r.stdout.split('\n').filter((l) => /^- (item-modifiers|infusion|curse): /.test(l));
+    expect(rows).toEqual([
+      '- curse: First Ring (rules/uniques.md#first-ring) → Second Ring (rules/uniques.md#second-ring)',
+      '- infusion: Fixture Gloves (rules/uniques.md#fixture-gloves) → Fixture Keystone (rules/nodes.md#22222), Fixture Support (rules/gems.md#fixture-support)',
+      '- item-modifiers: Way of the Stonefist (rules/nodes.md#39595) → Fixture Keystone (rules/nodes.md#22222), Fixture Payer (rules/nodes.md#11112)',
+    ]);
   });
 
   it('refuses to join entries that fail the check', () => {

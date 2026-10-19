@@ -17,7 +17,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Casting a damaging Spell consumes a Power Charge to trigger an Abyssal Apparition that casts the same Spell for you.
 - Lines: "Consume a Power Charge when you cast a damaging Spell to trigger an Abyssal Apparition who will also cast that same Spell for you. Does not work with Channelling Spells, Spells with a Cooldown, Triggered Spells, Spells granted by items, or Spells which already consume a Power Charge. This Skill is not directly Supportable."
 - Creates: none | Pays off on: power-charge
-- Penalties: none
+- Penalties: "Spells cast by Apparition deal 50% less Damage"
 - PoB models it: no
 
 ### Adhesive Grenades I (support gem, tier 2)
@@ -25,7 +25,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Grenades don't bounce; they stop where they first land, for lower damage.
 - Lines: "Supports Grenade Skills. Grenades from Supported Skills do not bounce, instead halting movement where they intially land, but doing lower damage when they detonate."
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Grenade Skills deal 10% less Damage"
 - PoB models it: partly
 
 ### Adhesive Grenades II (support gem, tier 3)
@@ -57,7 +57,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Nova skills happen at the targeted location instead of around you.
 - Lines: "Supported Skills Cast at the targeted location instead of around you"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills have 25% less Area of Effect"
 - PoB models it: yes
 
 ### Atalui's Bloodletting (support gem, tier 0)
@@ -81,7 +81,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Warcries consume Fully Broken Armour to set off Physical explosions, but can't Break Armour themselves.
 - Lines: "Supports Warcry Skills. Supported Skills Consume Fully Broken Armour to trigger Physical Damage explosions on Enemies within their range but cannot themselves Break Armour. "
 - Creates: area | Pays off on: armour-break
-- Penalties: none
+- Penalties: "Supported Skills cannot Break Armour"
 - PoB models it: partly
 
 ### Black Powder Blitz (spirit gem, tier 0)
@@ -145,7 +145,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: You can have only one of the supported Totem, which grows stronger with each allied Totem near it.
 - Lines: "Supports Skills which create Totems, preventing you from having more than one of that Totem but granting significant benefits for Supported Totems based how many allied Totems are near them. Does not Support Skills used by Minions.", "Supported Skills can only have one active Totem"
 - Creates: none | Pays off on: totem
-- Penalties: none
+- Penalties: "Supported Skills can only have one active Totem"
 - PoB models it: no
 
 ### Combat Frenzy (spirit gem, tier 8)
@@ -169,7 +169,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Explosions of Ice Crystals from the supported skill Impale, with Cold damage counted as Physical.
 - Lines: "Supports Skills which create Ice Crystals. Damaging Explosions caused by Ice Crystals from Supported Skills will Impale Enemies.", "Ice Crystals created by Supported Skills can Impale with Cold Damage as though it was Physical"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills cannot Extract Impale"
 - PoB models it: no
 
 ### Delayed Reaction (support gem, tier 4)
@@ -177,7 +177,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Hazards can trigger only when created or when they expire, with a much shorter duration and more damage.
 - Lines: "Supports Skills which create Hazards, causing those Hazards to only be able to trigger immediately after creation or at the end of their duration. Created Hazards have significantly lowered duration, and deal more damage."
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Hazards created by Supported Skills have 70% less duration"
 - PoB models it: partly
 
 ### Einhar's Beastrite (support gem, tier 0)
@@ -193,7 +193,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Spells consume Elemental Ailments on Hit to trigger a Discharge of the matching Elements.
 - Lines: "Supports any Spell that Hits enemies, causing it to Consume Elemental Ailments on hit to trigger an Elemental Discharge. Cannot support the skills of Minions or skills which already Consume Elemental Ailments.", "Only deals Damage of Elements matching Consumed Ailments Deals no Damage of other Damage Types"
 - Creates: none | Pays off on: ignite, chill, freeze, shock, electrocute
-- Penalties: none
+- Penalties: "Supported Skills Cannot inflict Freeze, Shock or Ignite"
 - PoB models it: partly
 
 ### Embitter (support gem, tier 2)
@@ -241,7 +241,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported skills consume Ignite on Hit to raise pillars of flame, but can't Ignite themselves.
 - Lines: "Supports any Skill you use yourself which can cause Damaging Hits. Supported Skills Consume Ignite on Hit to create pillars of flame, but cannot themselves inflict Ignite. Cannot Support Skills which already Consume Ignite, and does not modify the Skills of Minions."
 - Creates: none | Pays off on: ignite
-- Penalties: none
+- Penalties: "Supported Skills cannot Ignite"
 - PoB models it: partly
 
 ### Flamepierce (support gem, tier 0)
@@ -249,7 +249,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: The first Projectile of supported skills always Pierces Ignited enemies, but they can't Ignite themselves.
 - Lines: "Supports Skills which can fire Projectiles. Initial Projectile created by Supported Skills will always Pierce Ignited Enemies, but Supported Skills cannot inflict Ignite themselves."
 - Creates: projectile | Pays off on: ignite
-- Penalties: none
+- Penalties: "Supported Skills cannot Ignite"
 - PoB models it: yes
 
 ### Fortress I (support gem, tier 1)
@@ -257,7 +257,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported wall skills create their walls in a circle instead of a line, for less Hit damage.
 - Lines: "Walls from Supported Skills are created in a Circle instead"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills deal 40% less damage with Hits"
 - PoB models it: partly
 
 ### Fortress II (support gem, tier 3)
@@ -265,7 +265,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported wall skills create their walls in a circle instead of a line, for less Hit damage and area.
 - Lines: "Walls from Supported Skills are created in a Circle instead"
 - Creates: none | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills have 20% less Area of Effect", "Supported Skills deal 30% less damage with Hits"
 - PoB models it: partly
 
 ### Freezefork (support gem, tier 0)
@@ -273,7 +273,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Projectiles of supported skills always Fork when the first one Hits a Frozen enemy, but the skills can't build Freeze.
 - Lines: "Supports Skills which can fire Projectiles. Projectiles from Supported Skills always Fork when the initial Projectile Hits Frozen Enemies, but Supported Skills cannot build up Freeze themselves."
 - Creates: projectile | Pays off on: freeze
-- Penalties: none
+- Penalties: "Supported Skills cannot cause Freeze buildup"
 - PoB models it: partly
 
 ### Heightened Accuracy II (support gem, tier 3)
@@ -369,7 +369,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Projectile skills fire extra Projectiles in a circle, for less damage and a cooldown.
 - Lines: "Supports Projectile Skills, making them fire extra Projectiles in a circle, at the cost of Damage and gaining a cooldown. Does not Support Skills which rain down Projectiles from above. Cannot Support Skills which already have a cooldown."
 - Creates: projectile | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills deal 50% less Damage"
 - PoB models it: partly
 
 ### Oisin's Oath (support gem, tier 0)
@@ -409,7 +409,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported skills' Stun buildup modifiers apply to Pin buildup instead, and the skills can't Stun.
 - Lines: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup"
 - Creates: pin | Pays off on: stun
-- Penalties: none
+- Penalties: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup"
 - PoB models it: partly
 
 ### Pin II (support gem, tier 2)
@@ -417,7 +417,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported skills' Stun buildup modifiers apply to Pin buildup instead, and the skills can't Stun.
 - Lines: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup"
 - Creates: pin | Pays off on: stun
-- Penalties: none
+- Penalties: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup"
 - PoB models it: partly
 
 ### Pin III (support gem, tier 5)
@@ -425,7 +425,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported skills' Stun buildup modifiers apply to Pin buildup instead, and the skills can't Stun.
 - Lines: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup"
 - Creates: pin | Pays off on: stun
-- Penalties: none
+- Penalties: "Modifiers to Stun Buildup for Supported Skills instead apply to Pin Buildup Supported Skills cannot cause Stun Buildup", "Hits with Supported Skills cause 60% less Pin buildup"
 - PoB models it: partly
 
 ### Pinnacle of Power (skill gem, tier 0)
@@ -457,7 +457,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported Crossbow Ammunition skills can't reload normally; they load bolts when you Dodge.
 - Lines: "Supports Crossbow Ammunition Skills, causing them to load multiple extra bolts and attack faster. Supported Skills cannot reload normally, instead loading bolts when you Dodge."
 - Creates: none | Pays off on: on-dodge
-- Penalties: none
+- Penalties: "Supported Crossbow Ammunition Skills cannot reload"
 - PoB models it: partly
 
 ### Retaliate II (support gem, tier 4)
@@ -473,7 +473,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Your undead Reviving Minions can be used in place of Corpses, but they Revive more slowly.
 - Lines: "Skills can use your undead Reviving Minions in place of Corpses Minions Revive 40% more slowly"
 - Creates: corpse | Pays off on: minion-revive
-- Penalties: none
+- Penalties: "Skills can use your undead Reviving Minions in place of Corpses Minions Revive 40% more slowly"
 - PoB models it: partly
 
 ### Sacrificial Lamb II (support gem, tier 3)
@@ -521,7 +521,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: You can have only one of the supported Totem, but it splinters into weaker copies after each Attack or Spell.
 - Lines: "Supports Skills which create Totems, preventing having more than one active Totem but causing that Totem to splinter into smaller versions of itself after it uses an Attack or Spell, with each Totem becoming less effective. Each splintered Totem can further splinter, up to a maximum. Does not Support Skills used by Minions. Only one Totem can be splintering at a time.", "Supported Skills can only have one active Totem"
 - Creates: totem | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills can only have one active Totem", "Totems created by Supported Skills have 20% less area of effect for each time they have splintered", "Totems created by Supported Skills deal 20% less damage for each time they have splintered", "Totems created by Supported Skills have 20% less maximum Life for each time they have splintered", "Totems created by Supported Skills have 10% less Skill Speed for each time they have splintered"
 - PoB models it: no
 
 ### Splinter Totem II (support gem, tier 5)
@@ -529,7 +529,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: You can have only one of the supported Totem, but it splinters into weaker copies after each Attack or Spell.
 - Lines: "Supports Skills which create Totems, preventing having more than one active Totem but causing that Totem to splinter into smaller versions of itself after it uses an Attack or Spell, with each Totem becoming less effective. Each splintered Totem can further splinter, up to a maximum. Does not Support Skills used by Minions. Only one Totem can be splintering at a time.", "Supported Skills can only have one active Totem"
 - Creates: totem | Pays off on: none
-- Penalties: none
+- Penalties: "Supported Skills can only have one active Totem", "Totems created by Supported Skills have 15% less area of effect for each time they have splintered", "Totems created by Supported Skills deal 15% less damage for each time they have splintered", "Totems created by Supported Skills have 15% less maximum Life for each time they have splintered", "Totems created by Supported Skills have 7% less Skill Speed for each time they have splintered"
 - PoB models it: no
 
 ### Stormchain (support gem, tier 0)
@@ -537,7 +537,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Rule: Supported skills always Chain when they first Hit a Shocked enemy, but can't Shock.
 - Lines: "Supports Projectile Skills and Skills which can Chain. Supported Skills always Chain when initially Hitting a Shocked Enemy, but cannot themselves inflict Shock. Does not support Skills which cannot Chain."
 - Creates: projectile | Pays off on: shock
-- Penalties: none
+- Penalties: "Supported Skills Cannot inflict Shock"
 - PoB models it: partly
 
 ### Tame Beast (spirit gem, tier 7)
@@ -587,3 +587,83 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Creates: companion, minion-count | Pays off on: none
 - Penalties: none
 - PoB models it: no
+
+### Garukhan's Resolve (support gem, tier 0)
+- Id: garukhans-resolve
+- Rule: Supported Attacks' Critical Hit chance is capped at 50%, but it Bifurcates: PoB rolls it twice.
+- Lines: "Maximum Critical Hit chance with Supported Skills is 50%", "Attack Critical Hit Chance with Supported Skills Bifurcates"
+- Creates: crit | Pays off on: none
+- Penalties: "Maximum Critical Hit chance with Supported Skills is 50%"
+- PoB models it: yes
+
+### Brambleslam (support gem, tier 5)
+- Id: brambleslam
+- Rule: The Brambles of supported Slams scale with Thorns: increases and reductions to Thorns damage apply to their Hit damage.
+- Lines: "Increases and reductions to Thorns Damage apply to Hit Damage with this skill"
+- Creates: none | Pays off on: thorns
+- Penalties: "80% less damage if destroyed within 0.5 seconds by something other than you"
+- PoB models it: partly
+
+### Caltrops (support gem, tier 3)
+- Id: caltrops
+- Rule: Supported Ranged Spear Attacks leave Caltrops, whose Hit damage scales with increases and reductions to Thorns damage.
+- Lines: "Projectiles from Supported Skills trigger Caltrops when they reach the end of their flight", "Increases and reductions to Thorns Damage apply to Hit Damage with this skill"
+- Creates: none | Pays off on: thorns
+- Penalties: none
+- PoB models it: partly
+
+### Last Gasp (support gem, tier 1)
+- Id: last-gasp
+- Rule: Supported Persistent Minions fight on when fatally wounded, dying 4 seconds after their Life reaches zero.
+- Lines: "Supports Skills that create Persistent Minions, causing those Minions to fight on when they are fatally wounded, dying after a short duration.", "Minions from Supported Skills die 4 seconds after their Life is reduced to 0"
+- Creates: none | Pays off on: minion-death
+- Penalties: none
+- PoB models it: no
+
+### Tecrod's Revenge (support gem, tier 0)
+- Id: tecrods-revenge
+- Rule: Supported Persistent Minions fight on for 20 seconds when fatally wounded, with Soul Eater and more Attack and Cast Speed.
+- Lines: "Minions from Supported Skills die 20 seconds after their Life is reduced to 0", "Minions from Supported Skills gain Soul Eater when their Life is reduced to 0", "Minions from Supported Skills gain 40% increased Attack and Cast Speed when their Life is reduced to 0"
+- Creates: none | Pays off on: minion-death
+- Penalties: none
+- PoB models it: no
+
+### Alchemist's Boon (spirit gem, tier 14)
+- Id: alchemists-boon
+- Rule: Recovery from your Flasks also applies, in part, to allies in your Presence.
+- Lines: "While active, grants you Flask charges passively and causes Life and Mana recovery from your Flasks to also apply to Allies in your Presence.", "34% of recovery from your Flasks is also granted to Allies in your Presence"
+- Creates: none | Pays off on: flask
+- Penalties: none
+- PoB models it: partly
+
+### Projectile Acceleration III (support gem, tier 5)
+- Id: projectile-acceleration-iii
+- Rule: Increases and reductions to Projectile speed also apply to the supported skills' Projectile damage.
+- Lines: "Increases and reductions to Projectile speed also apply to Projectile Damage with Supported Skills"
+- Creates: none | Pays off on: projectile
+- Penalties: none
+- PoB models it: yes
+
+### Refraction I (support gem, tier 2)
+- Id: refraction-i
+- Rule: Allies in the supported Banner's Aura gain Refractive Plating: Deflection Rating from Evasion, and part of their Armour applies to Elemental Hits.
+- Lines: "Refractive Plating grants Deflection Rating equal to 15% of Evasion Rating", "Refractive Plating causes 20% of Armour to apply to Elemental Hit Damage taken"
+- Creates: deflection | Pays off on: armour, evasion
+- Penalties: none
+- PoB models it: yes
+
+### Refraction II (support gem, tier 3)
+- Id: refraction-ii
+- Rule: Allies in the supported Banner's Aura gain Refractive Plating: Deflection Rating from Evasion, and part of their Armour applies to Elemental Hits.
+- Lines: "Refractive Plating grants Deflection Rating equal to 20% of Evasion Rating", "Refractive Plating causes 30% of Armour to apply to Elemental Hit Damage taken"
+- Creates: deflection | Pays off on: armour, evasion
+- Penalties: none
+- PoB models it: yes
+
+### Vilenta's Propulsion (support gem, tier 0)
+- Id: vilentas-propulsion
+- Rule: Three quarters of the increases and reductions to Cast Speed also apply to the supported Spells' Projectile speed.
+- Lines: "75% of increases and reductions to Cast speed also apply to Projectile Speed for Supported Skills"
+- Creates: none | Pays off on: cast-speed
+- Penalties: none
+- PoB models it: yes

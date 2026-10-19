@@ -224,7 +224,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Id: eshs-prowess
 - Rule: Supported Lightning skills roll only the minimum or the maximum of their Lightning damage.
 - Lines: "Supported Skills only roll the minimum or maximum Damage value for Lightning Damage"
-- Creates: none | Pays off on: none
+- Creates: luck | Pays off on: none
 - Penalties: none
 - PoB models it: partly
 
@@ -280,7 +280,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Id: heightened-accuracy-ii
 - Rule: Supported Attacks never miss enemies on Full Life.
 - Lines: "Supported Skills Always Hit Enemies on full Life"
-- Creates: none | Pays off on: none
+- Creates: accuracy | Pays off on: none
 - Penalties: none
 - PoB models it: partly
 
@@ -552,7 +552,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Id: uhtreds-augury
 - Rule: The supported skill gains levels only while it has exactly two other supports.
 - Lines: "Supports Skills which can gain levels, granting them additional levels provided exactly two other supports are used with the supported Skill. Does not support skills which do not have levels."
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: support-gem
 - Penalties: none
 - PoB models it: yes
 
@@ -560,7 +560,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Id: uhtreds-exodus
 - Rule: The supported skill gains many levels only while it has no other support.
 - Lines: "Supports Skills which can gain levels, granting them many additional levels provided no other supports are used with the supported Skill. Does not support skills which do not have levels."
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: support-gem
 - Penalties: none
 - PoB models it: yes
 
@@ -568,7 +568,7 @@ gem as a whole (`yes` every line it checks fully parsed and no flag, `no` none f
 - Id: uhtreds-omen
 - Rule: The supported skill gains levels only while it has exactly one other support.
 - Lines: "Supports Skills which can gain levels, granting them additional levels provided exactly one other support is used with the supported Skill. Does not support skills which do not have levels."
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: support-gem
 - Penalties: none
 - PoB models it: yes
 

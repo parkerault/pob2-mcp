@@ -20,7 +20,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Demonic Possession (25239, Infernalist) — grants the skill Demon Form.
 - Grinning Immolation (34419, Infernalist) [rule] — your Critical Hits Ignite you, burning 15% of your Life and Energy Shield per second, for 50% more Critical Damage Bonus. creates: ignite | pays off on: crit | PoB models it: partly
 - Loyal Hellhound (17754, Infernalist) — grants the skill Summon Infernal Hound.
-- Mastered Darkness (61267, Infernalist) [rule] — Demon Form's Demonflame has no maximum, so it keeps stacking. creates: none | pays off on: none | PoB models it: yes
+- Mastered Darkness (61267, Infernalist) [rule] — Demon Form's Demonflame has no maximum, so it keeps stacking. creates: none | pays off on: stacking-buff | PoB models it: yes
 - Pyromantic Pact (13174, Infernalist) [rule] — replaces Mana with twice as much Infernal Flame, which skills gain instead of spending Mana; at its maximum you take your Life and Energy Shield as Fire damage and lose it all. creates: none | pays off on: mana | PoB models it: no
 - Seething Body (10694, Infernalist) [rule] — casting a Spell on high Infernal Flame grants Elemental Archon, which lasts while the Flame stays high and ends when it reaches maximum. creates: none | pays off on: mana | PoB models it: no
 
@@ -64,11 +64,11 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Brew Concoction (57141, Pathfinder) — choose one Concoction skill: Bleeding, Shattering, Explosive, Fulminating or Acidic.
 - Enduring Elixirs (41619, Pathfinder) [rule] — Life Flask effects keep running when your Life is full and no longer queue behind one another. creates: none | pays off on: flask | PoB models it: partly
 - Overwhelming Toxicity (29074, Pathfinder) [rule] — doubles how many of your Poisons a target can have at once, for 50% less Poison duration. creates: none | pays off on: poison | PoB models it: yes
-- Path Seeker (16433, Pathfinder) [rule] — choose to allocate passives from the Sorceress's or the Warrior's starting point as well, with 4 extra passive points. creates: none | pays off on: none | PoB models it: yes
+- Path Seeker (16433, Pathfinder) [rule] — choose to allocate passives from the Sorceress's or the Warrior's starting point as well, with 4 extra passive points. creates: passive-tree | pays off on: none | PoB models it: yes
 - Relentless Pursuit (24868, Pathfinder) — Slows don't affect your speed.
 - Running Assault (61991, Pathfinder) — you can't be Heavy Stunned while Sprinting, and using skills while moving slows you 30% less.
 - Sustainable Practices (40, Pathfinder) [rule] — half your Evasion Rating also grants Elemental damage reduction. creates: none | pays off on: evasion | PoB models it: yes
-- Traveller's Wisdom (46454, Pathfinder) [rule] — Attribute passives can grant 5% increased Damage, defences or Cost Efficiency in place of an Attribute. creates: none | pays off on: none | PoB models it: no
+- Traveller's Wisdom (46454, Pathfinder) [rule] — Attribute passives can grant 5% increased Damage, defences or Cost Efficiency in place of an Attribute. creates: passive-tree | pays off on: none | PoB models it: no
 
 ## Titan
 
@@ -217,11 +217,11 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 
 ## Gemling Legionnaire
 
-- Adaptive Capability (53108, Gemling Legionnaire) [rule] — your highest Attribute can meet any gem's Attribute requirements. creates: none | pays off on: none | PoB models it: yes
+- Adaptive Capability (53108, Gemling Legionnaire) [rule] — your highest Attribute can meet any gem's Attribute requirements. creates: none | pays off on: attribute | PoB models it: yes
 - Advanced Thaumaturgy (14429, Gemling Legionnaire) [rule] — Gem Quality grants socketed skills an additional effect. creates: none | pays off on: none | PoB models it: yes
-- Enhanced Effectiveness (58591, Gemling Legionnaire) [rule] — 20% less Attributes, but the inherent bonuses from Attributes are doubled. creates: none | pays off on: none | PoB models it: yes
+- Enhanced Effectiveness (58591, Gemling Legionnaire) [rule] — 20% less Attributes, but the inherent bonuses from Attributes are doubled. creates: none | pays off on: attribute | PoB models it: yes
 - Essence of Virtue (11641, Gemling Legionnaire) — grants the skill Virtuous Barrier.
-- Gem Studded (30996, Gemling Legionnaire) [rule] — a bonus by the most numerous colour of your socketed Support Gems: red, Hits against you have no Critical Damage Bonus; blue, 30% less skill cost; green, 40% less Movement Speed penalty while using skills. creates: none | pays off on: none | PoB models it: partly
+- Gem Studded (30996, Gemling Legionnaire) [rule] — a bonus by the most numerous colour of your socketed Support Gems: red, Hits against you have no Critical Damage Bonus; blue, 30% less skill cost; green, 40% less Movement Speed penalty while using skills. creates: none | pays off on: support-gem | PoB models it: partly
 - Implanted Gems (60287, Gemling Legionnaire) — choose +2 to the level of all skills with a Strength, an Intelligence or a Dexterity requirement.
 - Integrated Efficiency (57819, Gemling Legionnaire) — skills gain damage, speed or Critical Hit chance per connected red, green or blue Support Gem.
 - Thaumaturgical Infusion (36728, Gemling Legionnaire) — +1% to a maximum Resistance per 3 socketed Support Gems of its colour.
@@ -265,11 +265,11 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 ## Oracle
 
 - Converging Paths (4197, Oracle) — grants the skill Moment of Vulnerability.
-- Entwined Realities (32905, Oracle) [rule] — non-keystone passives within a medium radius of an allocated keystone can be allocated without connecting them to your tree. creates: none | pays off on: none | PoB models it: yes
+- Entwined Realities (32905, Oracle) [rule] — non-keystone passives within a medium radius of an allocated keystone can be allocated without connecting them to your tree. creates: passive-tree | pays off on: none | PoB models it: yes
 - Fateful Vision (37782, Oracle) — grants the skill Align Fate.
 - Forced Outcome (55135, Oracle) — grants Inevitable Critical Hits.
 - Harmony Within (30904, Oracle) [rule] — while your Mana is higher than your Life, Hit damage is taken from Mana first, for 15% less maximum Life and Mana. creates: none | pays off on: mana | PoB models it: partly
-- The Lesser Harm (34313, Oracle) [rule] — enemies' Critical Hit chance and Hit damage against you are Unlucky. creates: none | pays off on: none | PoB models it: partly
+- The Lesser Harm (34313, Oracle) [rule] — enemies' Critical Hit chance and Hit damage against you are Unlucky. creates: luck | pays off on: none | PoB models it: partly
 - The Unseen Path (5571, Oracle) — Walk the Paths Not Taken.
 - Unnamed Heartwood (52374, Oracle) [rule] — Totems die 6 seconds after their Life reaches zero, and one more Totem. creates: none | pays off on: totem | PoB models it: partly
 
@@ -309,7 +309,7 @@ node's lines (`yes` every line fully parsed, `no` none, `partly` some). A multip
 - Oasis (25100, keystone) [rule] — you can't use Charms, for 30% more recovery from Flasks. creates: none | pays off on: flask | PoB models it: yes
 - Pain Attunement (55048, keystone) — 30% more Critical Damage Bonus on Low Life, and 30% less on Full Life.
 - Primal Hunger (37484, keystone) [rule] — Rage has no effect of its own, but its maximum doubles and it regenerates from Rage spent. creates: rage | pays off on: none | PoB models it: partly
-- Resolute Technique (44017, keystone) [rule] — you never deal Critical Hits, and your Accuracy Rating is doubled. creates: none | pays off on: none | PoB models it: partly
+- Resolute Technique (44017, keystone) [rule] — you never deal Critical Hits, and your Accuracy Rating is doubled. creates: accuracy | pays off on: none | PoB models it: partly
 - Resonance (25520, keystone) [rule] — you gain the next Charge type instead: Power in place of Frenzy, Frenzy in place of Endurance, Endurance in place of Power. creates: endurance-charge, frenzy-charge, power-charge | pays off on: none | PoB models it: no
 - Ritual Cadence (11230, keystone) [rule] — Invocation skills trigger their Spells every 2 seconds instead, gaining no Energy meanwhile, and the Spells cost 50% less Energy. creates: none | pays off on: energy | PoB models it: no
 - Scarred Faith (49547, keystone) [rule] — Energy Shield neither recharges nor regenerates and can't exceed your Armour; instead it recoups part of the Physical damage you prevent, more per enemy Power. creates: energy-shield | pays off on: armour | PoB models it: partly

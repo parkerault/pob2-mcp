@@ -240,7 +240,7 @@ not evidence that players build around it.
 - Id: bramblejack
 - Rule: Melee Physical damage you take is reflected to the attacker two and a half times over, but you can't Evade Attacks.
 - Lines: "250% of Melee Physical Damage taken reflected to Attacker"
-- Creates: none | Pays off on: none
+- Creates: thorns | Pays off on: none
 - Penalties: "Cannot Evade Enemy Attacks"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -344,7 +344,7 @@ not evidence that players build around it.
 - Id: irongrasp
 - Rule: You have Iron Grip and Iron Will.
 - Lines: "Iron Grip", "Iron Will"
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: attribute
 - Penalties: none
 - PoB models it: yes
 
@@ -728,7 +728,7 @@ not evidence that players build around it.
 - Id: jarngreipr
 - Rule: Strength can meet the other Attribute requirements of Melee weapons and Melee skills.
 - Lines: "Strength can satisfy other Attribute Requirements of Melee Weapons and Melee Skills"
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: attribute
 - Penalties: none
 - PoB models it: yes
 
@@ -872,7 +872,7 @@ not evidence that players build around it.
 - Id: crown-of-the-pale-king
 - Rule: Your Thorns can Retaliate against every Hit.
 - Lines: "Thorns can Retaliate against all Hits"
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: thorns
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -952,7 +952,7 @@ not evidence that players build around it.
 - Id: ironride
 - Rule: You have no Accuracy penalty at distance.
 - Lines: "You have no Accuracy Penalty at Distance"
-- Creates: none | Pays off on: none
+- Creates: accuracy | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1000,7 +1000,7 @@ not evidence that players build around it.
 - Id: solus-ipse
 - Rule: You can socket two more copies of each Lineage Support Gem, in different skills.
 - Lines: "You can Socket 2 additional copies of each Lineage Support Gem, in different Skills"
-- Creates: none | Pays off on: none
+- Creates: support-gem | Pays off on: none
 - Penalties: "Equipment and Skill Gems have 25% increased Attribute Requirements"
 - PoB models it: yes
 
@@ -1056,7 +1056,7 @@ not evidence that players build around it.
 - Id: the-vertex
 - Rule: Skill Gems have no Attribute requirements (and, by variant, neither does equipment).
 - Lines: "Skill Gems have no Attribute Requirements"
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: attribute
 - Penalties: none
 - PoB models it: yes
 
@@ -1208,7 +1208,7 @@ not evidence that players build around it.
 - Id: prized-pain
 - Rule: Your Melee Attack Hits can deal your Thorns damage.
 - Lines: "(15-25)% chance to deal your Thorns Damage to Enemies you Hit with Melee Attacks"
-- Creates: none | Pays off on: none
+- Creates: none | Pays off on: thorns
 - Penalties: "Skills Gain 10% of Mana Cost as Extra Life Cost"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1224,7 +1224,7 @@ not evidence that players build around it.
 - Id: the-burrower
 - Rule: Enemies' Lightning Hit damage against you is Unlucky.
 - Lines: "Lightning Damage of Enemies Hitting you is Unlucky"
-- Creates: none | Pays off on: none
+- Creates: luck | Pays off on: none
 - Penalties: none
 - PoB models it: no — a compile measures what it gives up, not what it adds
 
@@ -1496,7 +1496,7 @@ not evidence that players build around it.
 - Id: against-the-darkness
 - Rule: Allocated small passives in the jewel's radius grant nothing; instead small and notable passives there also grant the jewel's chosen bonuses.
 - Lines: "Notable Passive Skills in Radius also grant Allocated Small Passive Skills in Radius grant nothing"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1504,7 +1504,7 @@ not evidence that players build around it.
 - Id: controlled-metamorphosis
 - Rule: Passives in the jewel's radius can be allocated without connecting them to your tree.
 - Lines: "Passives in Radius can be Allocated without being connected to your tree"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: "-(20-5)% to all Elemental Resistances"
 - PoB models it: yes
 
@@ -1512,7 +1512,7 @@ not evidence that players build around it.
 - Id: flesh-crucible
 - Rule: The jewel grants a keystone, chosen by variant, for less defences.
 - Lines: "Mind Over Matter"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: "(10-20)% less Armour, Evasion and Energy Shield"
 - PoB models it: yes
 
@@ -1520,7 +1520,7 @@ not evidence that players build around it.
 - Id: from-nothing
 - Rule: Passives in the radius of a keystone, chosen by variant, can be allocated without connecting them to your tree.
 - Lines: "Passives in radius of Ancestral Bond can be Allocated without being connected to your tree", "Passives in radius of Avatar of Fire can be Allocated without being connected to your tree", "Passives in radius of Blackflame Covenant can be Allocated without being connected to your tree"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1528,7 +1528,7 @@ not evidence that players build around it.
 - Id: heroic-tragedy
 - Rule: Passives in the jewel's radius are Conquered by the Kalguur, which transforms them.
 - Lines: "Remembrancing (100-8000) songworthy deeds by the line of Olroth", "Passives in radius are Conquered by the Kalguur"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: partly — a compile measures only part of what it adds
 
@@ -1536,7 +1536,7 @@ not evidence that players build around it.
 - Id: megalomaniac
 - Rule: The jewel allocates notable passives, chosen by variant, without points or a path to them.
 - Lines: "Allocates Abasement"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1544,7 +1544,7 @@ not evidence that players build around it.
 - Id: split-personality
 - Rule: You can allocate passives from another class's starting point, chosen by variant.
 - Lines: "Can Allocate Passive Skills from the Warrior's starting point"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1552,7 +1552,7 @@ not evidence that players build around it.
 - Id: undying-hate
 - Rule: Passives in the jewel's radius are Conquered by the Abyssals, which transforms them.
 - Lines: "Glorifying the defilement of (100-8000) souls in tribute to Ulaman", "Passives in radius are Conquered by the Abyssals"
-- Creates: none | Pays off on: none
+- Creates: passive-tree | Pays off on: none
 - Penalties: none
 - PoB models it: partly — a compile measures only part of what it adds
 
@@ -1696,7 +1696,7 @@ not evidence that players build around it.
 - Id: rampart-raptor
 - Rule: Crossbow Attacks don't spend bolts while you have Reloaded recently.
 - Lines: "Bolts fired by Crossbow Attacks have 100% chance to not expend Ammunition if you've Reloaded Recently"
-- Creates: none | Pays off on: none
+- Creates: ammunition | Pays off on: none
 - Penalties: "30% reduced Reload Speed"
 - PoB models it: yes
 
@@ -1792,7 +1792,7 @@ not evidence that players build around it.
 - Id: shyaba
 - Rule: The maul always Hits.
 - Lines: "Always Hits"
-- Creates: none | Pays off on: none
+- Creates: accuracy | Pays off on: none
 - Penalties: none
 - PoB models it: yes
 
@@ -1872,7 +1872,7 @@ not evidence that players build around it.
 - Id: skysliver
 - Rule: Each damage type rolls only its minimum or maximum value, and the spear deals no Physical damage.
 - Lines: "Rolls only the minimum or maximum Damage value for each Damage Type"
-- Creates: none | Pays off on: none
+- Creates: luck | Pays off on: none
 - Penalties: "No Physical Damage"
 - PoB models it: no — a compile measures what it gives up, not what it adds
 

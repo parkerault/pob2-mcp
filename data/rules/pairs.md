@@ -365,6 +365,14 @@ Grep for the family. A pair is a lead, not a proof: confirm the link with a look
 - stun: Sine Aequo (rules/uniques.md#sine-aequo) → Crushing Impacts (rules/nodes.md#59372), Kaltenhalt (rules/uniques.md#kaltenhalt), Pin I (rules/gems.md#pin-i), Pin II (rules/gems.md#pin-ii), Pin III (rules/gems.md#pin-iii), Trephina (rules/uniques.md#trephina)
 - stun: Spar (rules/gems.md#spar) → Crushing Impacts (rules/nodes.md#59372), Kaltenhalt (rules/uniques.md#kaltenhalt), Pin I (rules/gems.md#pin-i), Pin II (rules/gems.md#pin-ii), Pin III (rules/gems.md#pin-iii), Trephina (rules/uniques.md#trephina)
 
+### support-gem
+- Id: support-gem
+- support-gem: Solus Ipse (rules/uniques.md#solus-ipse) → Gem Studded (rules/nodes.md#30996), Uhtred's Augury (rules/gems.md#uhtreds-augury), Uhtred's Exodus (rules/gems.md#uhtreds-exodus), Uhtred's Omen (rules/gems.md#uhtreds-omen)
+
+### thorns
+- Id: thorns
+- thorns: Bramblejack (rules/uniques.md#bramblejack) → Crown of the Pale King (rules/uniques.md#crown-of-the-pale-king), Prized Pain (rules/uniques.md#prized-pain)
+
 ### totem
 - Id: totem
 - totem: Ancestral Bond (rules/nodes.md#45202) → Cannons, Ready! (rules/nodes.md#37523), Cirel's Cultivation (rules/gems.md#cirels-cultivation), Unnamed Heartwood (rules/nodes.md#52374), Wooden Wall (rules/nodes.md#40915)

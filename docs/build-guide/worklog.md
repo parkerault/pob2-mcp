@@ -4691,3 +4691,13 @@ the `m17` engine at `b76967b`.
   references." No corrections, so the library's "Awaiting review" note becomes "Reviewed" (the coordinator, with
   its static test). **Next, after M-20:** the user plans a wider review of Mobalytics guides to thicken the kits; the
   user names the guides, or approves a defined slice the coordinator lists first.
+- **WU-87's fix round** (`54e8101`): a captured Tame Beast is checked at Tame Beast's tier; the compile writes the
+  three companion options as earned state (V2 clean); Crit Resistant becomes `none`, while Additional Projectiles stays
+  `stats` as "Companions have 4 additional Projectiles", which PoB parses (the table: 24 stats, 13 condition, 60 none);
+  the table is read only when a plan names a companion. Gate rc 0 (148 suites, 2,608 tests). The verifier re-checks.
+- **The Mobalytics selection** (the user, 2026-10-18: "use playwright to navigate the mobalytics builds home page and
+  pick the ones you think we currently have poor coverage on"; then "Use the ascendency filter", and the Creator and
+  Community tabs "will have more content"). Read in a browser: the verified list sorted by Top (all time), the top
+  five per ascendancy through the Ascendancy filter, and the Creator and Community tabs searched for minions,
+  spectres, poison, shields, block and bleed. Nothing was read beyond the list pages. The picked list goes to the
+  user before any guide is read.

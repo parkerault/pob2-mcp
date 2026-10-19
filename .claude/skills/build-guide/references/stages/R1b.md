@@ -16,8 +16,9 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   below), and `writes:
   ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md",
   "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338).
-- **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, and how to
-  price in this run (offline; stopped; or paced; and with `--no-ninja`, no currency rates).
+- **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, whether a
+  gate answer picked a rival's card (the runner relayed it), and how to price in this run (offline; stopped;
+  or paced; and with `--no-ninja`, no currency rates).
 - **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
   the skeleton's `rolledGroup`. A minion skill's group holds its summon and names it as `minionSkill` (D-379).

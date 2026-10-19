@@ -89,8 +89,9 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
 6. **A short round.** When fewer than 6 cards pass steps 1 to 3, or the deck still holds fewer than two
    under-played cards after this round, the round is short: deal what passes, and give the reason in your
    return as one line, `short: <why>` ("4 of 9 cards passed the sniff test"; "the deck holds one under-played
-   card: the other two failed their identity check"). So is a round the engine rule fills to 6 (step 5). The
-   runner records it in the run log, and the brainstorm gate says so.
+   card: the other two failed their identity check"). So is a round the engine rule fills to 6 (step 5); a
+   round short for that and another reason puts the engine's first, `short: <n> cards share one engine;
+   <other>`. The runner records it in the run log, and the brainstorm gate says so.
 7. **Unique names** (D-392). No two cards of the run share a name. On a clash with a card already in
    `cards.md` or another card of the round, rename the newer one (the later id) with Edit, in its `- Name:`
    line and its H1. A name shown at a gate never changes.

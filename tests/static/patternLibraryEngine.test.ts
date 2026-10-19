@@ -7,10 +7,12 @@
  *   cover, damage over time, totems), each with its kit and its levers; every line cites a study by key and section,
  *   the pinned data (`pin:`, a file the pin holds; "lookup" is the lookup tool's word), or the user; the minion
  *   kit carries the user's point on a tamed beast's percentage Spirit cost; about 1,200 words.
+ *   Amended by D-410 (the Mobalytics review, approved by the user 2026-10-19): five more archetypes (companions,
+ *   shapeshifting, plants, shields, automated loops), the tamed beast's line in the Companions kit, about 3,000 words.
  * - "A count as a multiplier" beside an unchanged "Filler to satisfy a count", the two pointing to each other.
  * - The four new shapes (supply by family, bank the resource, a tamed rare beast, a rule changer), each in a family
  *   with its search step, how PoB follows it (one of the six labels), examples and cautions.
- * - The library stays under 10,000 words (D-381).
+ * - The library stays under 12,000 words (D-381, raised by D-410).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -98,6 +100,7 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     const archetypes = kits ? h3sUnder(kits) : [];
     const ARCHETYPES = [
       'Minions',
+      'Companions (tamed beasts)',
       'Spells',
       'Attacks, any weapon',
       'Bows',
@@ -107,6 +110,10 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       'Spears',
       'Damage over time',
       'Totems',
+      'Shapeshifting (talismans)',
+      'Plants',
+      'Shields',
+      'Automated loops',
     ];
 
     it('sits before the ten families, with one entry per archetype, each with its kit and its levers', () => {
@@ -143,16 +150,17 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       }
     });
 
-    it("carries the user's point on a tamed beast in the minion kit: a percentage of Spirit where most minions reserve a flat amount", () => {
+    it("carries the user's point on a tamed beast in the Companions kit: a percentage of Spirit, not a flat amount (D-410)", () => {
       const minions = folded(archetypes.find((a) => a.title === 'Minions')!.body);
       expect(minions).toMatch(/sceptre/);
-      expect(minions).toMatch(/A tamed beast\*\* reserves a percentage of maximum Spirit .* where most minion gems reserve a flat amount, so each point of Spirit buys a little less once a beast is out \(the user, \[amendment-8\] §4/);
+      const companions = folded(archetypes.find((a) => a.title === 'Companions (tamed beasts)')!.body);
+      expect(companions).toMatch(/\*\*Spirit:\*\* a tame reserves 13\.8–56\.1% of maximum Spirit \(32\.7% at the median\), not a flat amount \(the user, \[amendment-8\] §4/);
     });
 
-    it('is about 1,200 words', () => {
+    it('is about 3,000 words (D-410)', () => {
       const words = bodyOf(kits!).split(/\s+/).filter(Boolean).length;
-      expect(words).toBeGreaterThan(900);
-      expect(words).toBeLessThan(1500);
+      expect(words).toBeGreaterThan(2500);
+      expect(words).toBeLessThan(3500);
     });
   });
 
@@ -164,11 +172,12 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     expect(count!.family).toBe(filler!.family);
     const inFamily = entries.filter((e) => e.family === filler!.family).map((e) => e.title);
     expect(inFamily.indexOf('A count as a multiplier')).toBe(inFamily.indexOf('Filler to satisfy a count') + 1);
-    // Filler keeps its support-colour and socket counters: every field as it was; Cautions only gains the pointer.
+    // Filler keeps its support-colour and socket counters: every field as it was; Cautions only gains the pointer, and
+    // Examples the Mobalytics review's Gemlings (D-410).
     expect(field(filler!.body, 'Shape')).toBe('cheap gems or minions raise a counter (support colours, socketed gems, minion types).');
     expect(field(filler!.body, 'Search')).toBe('`mechanic "different type" (gem)`, "for each"; count what the plan holds.');
     expect(field(filler!.body, 'PoB')).toBe('modelled, but Gem Studded ties wrongly (PG-1) and Muster counts by granted effect (PG-3).');
-    expect(field(filler!.body, 'Examples')).toBe('Stormcaller: unused supports for 17/17/17 [stormcaller]. Supporting Fire: a Muster zoo [supporting-fire].');
+    expect(field(filler!.body, 'Examples')).toBe("Stormcaller: unused supports for 17/17/17 [stormcaller]. Supporting Fire: a Muster zoo [supporting-fire]. Three Gemlings: supports picked to tie Gem Studded's colours [mob-arc-totems]; [mob-ballista]; [mob-grenades].");
     expect(field(filler!.body, 'Cautions').startsWith('in PoB a 17/17/17 balance gets Red only.')).toBe(true);
     expect(folded(filler!.body)).toContain('A count as a multiplier');
     const body = folded(count!.body);
@@ -217,7 +226,7 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     });
   });
 
-  it('stays under 10,000 words (D-381)', () => {
-    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(10_000);
+  it('stays under 12,000 words (D-381, D-410)', () => {
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(12_000);
   });
 });

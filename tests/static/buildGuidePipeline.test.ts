@@ -1738,10 +1738,10 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
   });
 });
 
-/** D-381: the pattern library's word cap, raised from D-325's 6,000. */
-const LIBRARY_WORD_CAP = 10_000;
+/** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it). */
+const LIBRARY_WORD_CAP = 12_000;
 
-describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381)', () => {
+describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () => {
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const hs = headings(text);
@@ -1793,10 +1793,10 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381)', () => {
     }
   });
 
-  it('states its rules: shapes only, each use re-checked against game data; one to three examples; the maintenance rule (§7.6)', () => {
+  it('states its rules: shapes only, each use re-checked against game data; one to five examples (D-410); the maintenance rule (§7.6)', () => {
     const flat = folded(text);
     expect(flat).toMatch(/\*\*Shapes only\.\*\* Re-check every use against current game data with a lookup/);
-    expect(flat).toMatch(/\*\*Examples:\*\* one to three builds, each citing its study/);
+    expect(flat).toMatch(/\*\*Examples:\*\* one to five builds, each citing its study/);
     expect(flat).toMatch(/\*\*Maintenance\.\*\* After each study the user supplies, the coordinator proposes entries and the user approves them/);
   });
 
@@ -1828,7 +1828,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381)', () => {
       const examples = /^- \*\*Examples:\*\* ([\s\S]*?)(?=^- \*\*Cautions:)/m.exec(body)![1];
       const cited = [...examples.matchAll(/\[([a-z0-9-]+)\](?!:)/g)].map((m) => m[1]);
       const builds = new Set(cited).size;
-      expect({ title, oneToThree: builds >= 1 && builds <= 3, undefinedKeys: cited.filter((k) => !defined.has(k)) }).toEqual({ title, oneToThree: true, undefinedKeys: [] });
+      expect({ title, oneToFive: builds >= 1 && builds <= 5, undefinedKeys: cited.filter((k) => !defined.has(k)) }).toEqual({ title, oneToFive: true, undefinedKeys: [] });
     }
   });
 
@@ -1839,7 +1839,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381)', () => {
     for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
   });
 
-  it('is at most 10,000 words, so a researcher reads it whole (D-325, D-381)', () => {
+  it('is at most 12,000 words, so a researcher reads it whole (D-325, D-381, D-410)', () => {
     const words = text.split(/\s+/).filter(Boolean).length;
     expect(words).toBeGreaterThan(1000);
     expect(words).toBeLessThanOrEqual(LIBRARY_WORD_CAP);
@@ -3203,7 +3203,7 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
     expect(folded(readStage('W1'))).toMatch(/For a minion skill, say that the player commands the minion and the minion deals the damage \(D-379\)/);
   });
 
-  it("patterns.md's Actor rerouting names `minionSkill` and the unchecked unlock, and the library stays within its word cap (D-325, D-381)", () => {
+  it("patterns.md's Actor rerouting names `minionSkill` and the unchecked unlock, and the library stays within its word cap (D-325, D-381, D-410)", () => {
     const text = fs.readFileSync(path.join(SKILL_DIR, 'references', 'patterns.md'), 'utf8');
     expect(text).toContain('- **PoB:** modelled as the group\'s `minionSkill`, its unlock unchecked (PG-40); Archon not modelled (PG-11).');
     expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(LIBRARY_WORD_CAP);

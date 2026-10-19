@@ -1349,7 +1349,8 @@ exemption from AC-W1's "lists every shared reference" rule.
   coordinator proposes entries and the user approves them. **Amended by D-381 (v1.6):** at most 10,000 words,
   the static test's `LIBRARY_WORD_CAP`, still read whole in one Read (about 18K tokens at the cap); no skill
   file states the number. The five shapes the user approved from the techniques-video study (2026-10-16) had
-  brought it to 6,000 words exactly.
+  brought it to 6,000 words exactly. **Amended by D-410 (amendment 8 §11):** at most 12,000 words; one to five
+  example builds.
 - **Readers** (D-375; since WU-75): every R1a researcher, and D1-build, which reads it whole before designing
   `b` and `n` and asks the brainstorm questions of the build; the file's opening names both readers. A shape is
   a starting point: each use is checked with a lookup and measured with a compile, and the plan's `reason`
@@ -2753,7 +2754,8 @@ WU-71 in series, since they share `SKILL.md`, `check-run.mjs` and the pipeline t
 - **AC-W28 (WU-56).** Static: each `references/patterns.md` entry has its name and shape, search step, how
   PoB follows it (one of the six labels), examples and cautions; the brainstorm questions open the file; and
   the file is at most 6,000 words (D-325). **Amended by D-381 (v1.6):** at most 10,000 words, the static test's
-  `LIBRARY_WORD_CAP`, which both word-count assertions use.
+  `LIBRARY_WORD_CAP`, which both word-count assertions use. **Amended by D-410:** 12,000 words; each entry cites
+  one to five example builds.
 - **AC-W29 (WU-56).** Static: `references/stages/R1b.md` lists the eight checks of §7.7, the result words
   "verified, estimate, risk, not checked", and the probe budget of up to 4 one-stage measure-only variants
   per card, in order.
@@ -3191,7 +3193,7 @@ The last two rows of the first fold came after it: `--no-ninja` (D-333) and a no
 | F12, F20 | No acceptance criteria for WU-59 (amendment 3's "like WU-47") or for the D-122 wording test | **A-33:** each unit's first step pins its criteria in this slice from the amendment's text, and the coordinator reviews them before any work; "like WU-47" means WU-47's recorded procedure with an open brief | WU-59 (AC-W34…AC-W50), AC-W32 |
 | F13 | The final gate's test answers | **D-323:** `answers.brainstorm`, `answers.verification` and `answers.final`; `checkpoint1` and `checkpoint2` retire with run log v3 | §11.2 |
 | F14, F15 | Who sets the popularity threshold for a deck's under-played cards; the poe.ninja tools' details | *Withdrawn → D-335:* D-324 made both outputs of spike WU-50, which found poe.ninja's builds API closed to third parties. There are no tools and no threshold; the under-played cards are the coordinator's judgment from the pattern library (D-298 restated) | §4, §5.2 |
-| F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test; **D-381 (v1.6):** 10,000 words | §7.6, AC-W28 |
+| F16 | The pattern library's word cap | **D-325:** 6,000 words, counted by AC-W28's static test; **D-381 (v1.6):** 10,000 words; **D-410:** 12,000 words | §7.6, AC-W28 |
 | F17 | Whether the checker still accepts schema-2 logs after v3 | **D-326:** both; schema 2 only so recorded runs (WU-47's) still check | FR-W7, §6, AC-W2 (aa) |
 | F19 | Amendment 2's trade-link field | **HG-22** (PROPOSED by the coordinator): if the price tool returns a link, the user decides at WU-48 whether to add the field | WU-48 item 12 |
 | F21 | The entering-maps rung in D-256's area-level tie | **D-327:** `m` follows the tie, at D-281's area level 69 (the coordinator's inference) | §5.3 |

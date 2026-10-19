@@ -1,6 +1,7 @@
 # Mobalytics review: proposed pattern-library changes (2026-10-18)
 
-For the user's approval (C-53); nothing is in `patterns.md` yet. Each proposal reads as it would in the library,
+Approved by the user as proposed on 2026-10-19 (C-53) and applied to `patterns.md` and `pob-gaps.md`, with the
+library's limits raised to fit (D-410, amendment 8 §11). Each proposal reads as it would in the library,
 marked **checked** (a lookup at the pin confirmed it) or **unverified**. Nine lookups (pin 0.5.4) settled lines.
 
 ## 1. Summary

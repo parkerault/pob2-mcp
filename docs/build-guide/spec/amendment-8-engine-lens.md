@@ -358,10 +358,20 @@ Within the 10,000-word cap (D-381; the library is at 5,999 words). The library s
 the remedy by itself (§1). Every new or changed entry waits for the user's review before it binds, as the library's
 maintenance rule asks (C-53, D-290).
 
+**D-410 (the user, 2026-10-19; the coordinator chose the numbers): the Mobalytics review's changes, approved as
+proposed, raise the library's limits.** The review's 17 studies (`../studies/2026-10-18-mob-*.md`) and its proposal
+(`../studies/2026-10-18-mobalytics-proposals.md`) brought the library to 10,872 words, Standard kits to 3,100 words
+and six entries to four or five examples. The library's cap is 12,000 words (`LIBRARY_WORD_CAP`), replacing
+D-381's 10,000; Standard kits is about 3,000 words (AC-W74's band, 2,500–3,500) over fifteen archetypes, the ten
+plus Companions, Shapeshifting, Plants, Shields and Automated loops, and the tamed beast's percentage Spirit cost
+moves from the minion kit to Companions; an entry gives one to five examples (AC-W28). Each R1a researcher and
+D1-build reads about 2K tokens more per run. Still a cap: the next review proposes within it or asks.
+
 - **Brainstorm questions 11–14:** what does the obvious build do, and how is this card faster? What grows with a
   count, and what pays for a bigger count? What does each premium slot serve? Which rule changer touches this engine
   (`data/rules/pairs.md`)?
-- **"Standard kits"** (D-403), about 1,200 words. Brainstorm question 9 points to it.
+- **"Standard kits"** (D-403), about 1,200 words. Brainstorm question 9 points to it. **Amended by D-410:** about
+  3,000 words, fifteen archetypes.
 - **"A count as a multiplier,"** a new entry beside "Filler to satisfy a count", which keeps its support-colour and
   socket counters: a count that grows with minion types (Muster, At your Command) is worth building around, and
   Spirit pays for the types. Muster at eight types is about ×1.56 (the comparison §3 measures ×1.63). The two
@@ -486,7 +496,8 @@ WU-87 follows WU-88 and WU-86; WU-91 is last.
     doesn't.
 - **AC-W74 (WU-90, D-403, D-409).** Static: the library holds questions 11–14, "Standard kits", "A count as a
   multiplier" beside an unchanged "Filler to satisfy a count", and the four new shapes, each with its search step;
-  it stays under 10,000 words.
+  it stays under 10,000 words. **Amended by D-410:** fifteen archetypes, the tamed beast's line in the Companions
+  kit, Standard kits 2,500–3,500 words, Filler's examples gain the Gemlings, under 12,000 words.
 - **AC-W75 (WU-91).** Static, these files carry their new rules:
   - `R1a.md`: the pattern library first, then the digest's head and the index; D-404's three rules and the
     `## Supply search` section; the obvious card for `a`; the seed card for `b`;

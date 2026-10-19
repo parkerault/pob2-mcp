@@ -54,7 +54,7 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   its damage); **custom modifier** (a hand-calculated line PoB applies as a modifier); **config stand-in** (a
   config option stands for the mechanic); **hand calculation** (a ledger entry); **not modelled**. PG-n is
   an entry in [pob-gaps]. "Not established" means no study checked it: count it not modelled until
-  coverage shows the line applies. **Examples:** one to three builds, each citing its study. **Cautions:**
+  coverage shows the line applies. **Examples:** one to five builds, each citing its study. **Cautions:**
   what went wrong, or what to check first.
 - **Lookups in short form.** `mechanic "<phrase>" (<kind>)` is `mcp__pob2__lookup_game_data {mode:
   "mechanic", query, kind}`; "gem lookup" and "unique lookup" are its other modes; `tree "<text>"` is
@@ -66,73 +66,118 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   approves them (§7.6, C-53).
 - **Reviewed.** Questions 11–14, Standard kits, A count as a multiplier, Supply by family, Bank the resource, A
   tamed rare beast and A rule changer (amendment 8, D-409) were reviewed by the user on 2026-10-18 with no
-  corrections. The kits are thin for want of common-practice sources; a wider review of guides the user names
-  will revise them.
+  corrections. The kits were thin for want of common-practice sources; the Mobalytics review of 17 popular
+  guides (the `mob-` keys) revised them, added five kits, Meta trigger as a supply and Self-firing buff, and was
+  approved by the user on 2026-10-19 (C-53).
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
-  Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog].
+  Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
+  carrier (their examples).
 
 ## Standard kits
 
 What an average player reaches for first in each archetype, and its big levers (D-403). Question 9 and the
 obvious card start here; R1b's structure check reads the card's archetype here (D-406). Each line cites a study
 by its key and section, the pinned data (`pin:`, a grep of the files under `vendor/PathOfBuilding-PoE2/src/`,
-2026-10-18) or the user; a line with no source stays out. Kits are common wisdom and go stale after a patch:
-re-check the numbers.
+2026-10-18; a bare "(pin)" is a lookup at the pin) or the user; a line with no source stays out. Where guides
+differ, the line gives both. Kits are common wisdom and go stale after a patch: re-check the numbers.
 
 ### Minions
 
-- **Kit:** a sceptre, lots of Spirit, minion levels on the helmet, amulet and focus, and more minion types
-  [comparison] §7.2 (1). "Sceptres and lots of Spirit" is a minion player's first thought (the user,
-  [amendment-8] §1).
-- **Levers:** minion levels, Spirit, minion types and minion damage supports [comparison] §7.2 (4).
+- **Kit:** a sceptre, lots of Spirit and more minion types [comparison] §7.2 (1); both Infernalist guides keep a
+  Rattling Sceptre (100 Spirit, its own Skeletal Warrior) all game and carry a shield for block, not a focus
+  [mob-mattjestic] §3; [mob-thyworm] §3. "Sceptres and lots of Spirit" is a minion player's first thought (the
+  user, [amendment-8] §1).
+- **Levers:** minion levels (they set minion flat damage), increased minion damage, more multipliers (Muster,
+  Feeding Frenzy II), enemy-side debuffs, then more minions through Spirit [mob-thyworm] §4; the same four as
+  [comparison] §7.2 (4).
 - **Levels:** up to +4 on a sceptre, +3 on an amulet, +2 on a helmet; a focus gets +1–2 only from the "of
   Amanamu" suffix (pin: `Data/ModItem.lua`, `Data/ModVeiled.lua`). Navira's guide reaches +12, counting a
   fractured amulet at +4, above a regular roll's +3 [comparison] §2.
 - **Spirit:** a sceptre's base 100 and up to 65% increased; up to +50 on an amulet and +61 on body armour
-  (pin: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2.
+  (pin: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2. Both
+  Infernalist guides add Enfolding Dawn (+100 Spirit) and Bones of Ullr (20–30% reservation efficiency for undead
+  minions) (pin), and Beidat's Will [mob-mattjestic] §3; [mob-thyworm] §3; an eight-type zoo reserves about 600
+  base Spirit, more than visible gear gives [mob-mattjestic] §6.
 - **Types:** one of each type rather than more of the best one, adding a type with each Spirit gain [varashta]
   §2, §6. Muster (7% more per reviving type, pin: `Data/Skills/sup_int.lua`) and At your Command (10%
   increased command damage per persistent type, pin: `TreeData/0_5/tree.lua`) grow with the count; see A
   count as a multiplier.
+- **Spectres:** picked for the monster's skill, whose tags decide which supports apply: a Vaal Guard grenadier at
+  Act 3 (50 Spirit), then a Powered Zealot casting Spark (55) with Wildshards II and Pierce III [mob-thyworm] §3, §5
+  (pin: `Data/Spectres.lua`); a melee spectre with Minion Splash II in the other guide [mob-mattjestic] §3. The
+  guides differ on the monster; both give it Feeding Frenzy and Muster.
 - **Commands:** a command skill deals minion damage, so minion levels, Muster, Pain Offering and Archon of
   Undeath (25% more minion damage, 200% more command cooldown recovery) scale it [varashta] §2;
   [supporting-fire] chain 6.
-- **Survival:** when the damage or a buff lives on the minions, cap their resistances first (two cheap jewels)
-  [chayula-minions] §2 (6), §6.
-- **A tamed beast** reserves a percentage of maximum Spirit (13.8–56.1% across the pin's 619 monsters, 32.7% at
-  the median) where most minion gems reserve a flat amount, so each point of Spirit buys a little less once a
-  beast is out (the user, [amendment-8] §4; pin: `Modules/CalcDefence.lua:204`, `Data/Spectres.lua`).
+- **Offering:** Pain Offering with Danse Macabre (30% more damage, 30% increased buff effect, pin) in three guides
+  [mob-mattjestic] §3; [mob-thyworm] §3; [mob-beastmaster] §3; two feed it Skeletal Warriors with Sacrificial Lamb,
+  which makes your skills target that skill's minions within 6 metres first (pin).
+- **Survival:** Loyalty on a damageable companion (the Infernal Hound, a tamed beast) takes 10% of your hit damage
+  first, in three guides [mob-mattjestic] §7; [mob-thyworm] §7; [mob-beastmaster] §7; when the damage or a buff
+  lives on the minions, cap their resistances first [chayula-minions] §2 (6), §6.
+- **Campaign:** both Infernalists pair a fire minion with Flame Wall: Raging Spirits, which your fire casts summon
+  [mob-mattjestic] §2, §5, or the Skeletal Sniper's Gas Arrow, ignited by the wall [mob-thyworm] §2, §5.
+
+### Companions (tamed beasts)
+
+- **Kit:** (thin: one study) a Spirit Walker with The Natural Order tames a unique beast, Mighty Silverfist from
+  Act 3 (25% base crit, pin), beside a rare tame kept for its modifier and the Bear Spirit, outside the companion
+  limit [mob-beastmaster] §2, §3.
+- **Rare tame's modifier:** Haste Aura first (20% attack and cast speed, 10% movement speed to allies within 5
+  metres), not Hasted, which speeds the beast alone; then a shock trail or a defensive aura [mob-beastmaster] §5, §8.
+- **Spirit:** a tame reserves 13.8–56.1% of maximum Spirit (32.7% at the median), not a flat amount (the user,
+  [amendment-8] §4; pin: `Modules/CalcDefence.lua:204`); two tames take 78–90%, and reservation efficiency cuts
+  the percentage (Idol of Ralakesh, Idolatry); Sylvan's Effigy allows several types (pin) [mob-beastmaster] §3, §7.
+- **Levers:** companion damage and attack speed, minion levels, and a high-physical main hand for The Catha's
+  Balance (companions gain 60% of its damage, pin) [mob-beastmaster] §4.
 
 ### Spells
 
 - **Kit:** a staff or wand for spell levels: up to +5–6 on a staff, +4 on a wand, +3 on an amulet, +2 on a focus
   (pin: `Data/ModItem.lua`); a +4/+5 staff and Magnified Area are the cheap path [enervating] header.
-- **Levers:** spell levels [enervating] chain 1; copies and repeats (Spell Cascade, Trickster's Shard's mimics,
-  Now and Again) [enervating] chain 5; spell crit [widowhail] §2 (5); maximum mana, through Archmage's extra
-  lightning per 100 mana [mana-flare] chain 2.
+- **Levers:** spell levels first [enervating] chain 1; [mob-ed-lich] §4 (wand, focus, amulet); copies and repeats
+  (Spell Cascade, mimics, Now and Again) [enervating] chain 5; spell crit [widowhail] §2 (5); maximum mana for
+  Archmage [mana-flare] chain 2, about 5k in [mob-arc-totems] §2.
 - **Before calling a spell weak:** placement or multi-cast supports (Astral Projection, Spell Cascade), area
   uniques and curses [bone-cage] arc (15:02), process 5, phases.
 - **Area:** Magnified Area on the clear skill, Concentrated Area on the boss skill [mana-flare] chain 4.
-- **Curses:** Temporal Chains on Blasphemy [enervating] chain 2; a Chronomancer copied it from poe.ninja
-  [fangs] arc (46:16).
-- **Crit:** Cast on Critical into Arc "is standard" [widowhail] §3; Pinpoint Critical trades crit bonus for
-  chance [enervating] chain 6.
+- **Curses:** Temporal Chains on Blasphemy in four more guides [mob-ed-lich] §3; [mob-arc-totems] §7;
+  [mob-invoker] §8; [mob-plants] §6; [enervating] chain 2; [fangs] arc (46:16); Elemental Weakness for elemental
+  hits [mob-arc-totems] §3; [mob-thyworm] §3.
+- **Crit:** Cast on Critical into Arc "is standard" [widowhail] §3; two later guides fire it for what the spell
+  makes: Thunderstorm's wet for Overgrowth [mob-plants] §3, Profane Ritual's Power Charges [mob-invoker] §3;
+  Pinpoint Critical trades crit bonus for chance [enervating] chain 6.
 - **Defence:** Mind over Matter or Eldritch Battery on a large mana pool [enervating] chain 7; [oracle] chain 9.
+- **Weapon set 2:** a Chiming Staff's Sigil of Power (spell damage in its area, growing with mana spent there, pin)
+  in four guides [mob-plants] §3; [mob-ed-lich] §3; [mob-mattjestic] §3; [oracle] chain 4–6; curses and exposure
+  cast from set 2 [mob-ed-lich] §3; [mob-arc-totems] §2.
 
 ### Attacks, any weapon
 
-- **Kit:** Herald of Ice and Herald of Thunder to clear, which fire on a non-Herald attack hit [flicker] §2;
-  Trinity (about 6% more elemental damage per 30 affinity, 100 Spirit) when hits carry two or three elements,
-  and Wind Dancer once an amulet adds about 60 Spirit [ronarray-videos] §1.
+- **Kit:** a Herald to clear, in nine of eleven attack guides at endgame: Herald of Ice explodes enemies a
+  non-Herald attack shatters [mob-bear] §3; [mob-wolfman] §3; [mob-glacial-lance] §3; Herald of Thunder strikes
+  your next attacks' targets after an attack kills a shocked enemy [mob-witchhunter] §3; [mob-spear-amazon] §3;
+  [flicker] §2; Herald of Ash [mob-shield-wall] §3; [mob-grenades] §3; [mob-invoker] §3. Trinity (about 6% more
+  elemental damage per 30 affinity, 100 Spirit) when hits carry two or three elements, and Wind Dancer once an
+  amulet adds about 60 Spirit [ronarray-videos] §1.
 - **Levers:** attack speed, then skill levels and flat added damage on several slots: the better of two
   poe.ninja Explosive Concoction builds beat ours ×3.1 (the other ×2.2), ×1.46 of it from speed and ×1.32 from
   +3 levels and added fire on three slots [ec-comparison] §3; search +level sources for every tag and slot
-  [ec-comparison] §5 (1).
+  [ec-comparison] §5 (1); flat added damage on the weapon and both rings, right for any attack build in three
+  guides [mob-ballista] §8; [mob-spear-amazon] §8; [mob-witchhunter] §4.
 - **Supports:** Elemental Armament II, Rakiata's Flow (enemy elemental resistances inverted), Concentrated Area
   against bosses [flicker] §2; [glacial-bolt] §1.
 - **Defence:** Chaos Inoculation on energy shield and evasion from about 4–6k energy shield, with Ghost Dance
   for recovery [ronarray-videos] §1.
+- **Rage:** Eternal Rage (5 Rage a second, active in both weapon sets, pin; 100 Spirit) in five guides
+  [mob-spear-amazon] §3; [mob-witchhunter] §3; [mob-ballista] §3; [mob-wolfman] §3; [mob-glacial-lance] §3, with
+  Berserk at about 114–230 Spirit [mob-ballista] §3; [mob-witchhunter] §6.
+- **Weapon sets:** lock the one weapon to both sets, so set 2 is a second set of skills and points
+  [mob-witchhunter] §3; [mob-bear] §3; [mob-shield-wall] §2; Rigwald's Ferocity picks the damage set: 30% more
+  damage, 10% reduced attack speed in set II, the reverse trade in set I (pin) [mob-poison] §3; [fubgun] §2.
+- **Crit cap:** Garukhan's Resolve caps the skill's crit chance at 50%, bifurcated, and can't support Cooldown,
+  Triggered or Persistent skills (pin) [mob-wolfman] §3; [mob-invoker] §4.
 
 ### Bows
 
@@ -142,14 +187,28 @@ re-check the numbers.
 - **Levers:** arrows per shot ("Bow Attacks fire an additional Arrow", Surpassing chance), repeats (Barrage on
   Frenzy Charges) and Tornado Shot's copies [stormcaller] §1.
 - **Levels:** up to +4 projectile levels on a bow, +3 on an amulet, +1 on a quiver (pin: `Data/ModItem.lua`).
+- **Campaign:** a high-physical bow with Lightning Arrow and Lightning Rod until the build's skill arrives, in both
+  bow guides [mob-poison] §5, §8; [fubgun] §2.
 
 ### Crossbows
 
-- **Kit:** (thin: two off-meta studies) Fresh Clip II and Rapid Attacks II as flat multipliers, grenades on
-  weapon set 2 against bosses [crossbow] header, chain 5; Emergency Reload, about 50% more for five bolts
-  [glacial-bolt] §1.
-- **Levers:** Trinity, Rage with Berserk, Rakiata's Flow and Elemental Armament II [glacial-bolt] §1.
+- **Kit:** (bolts) Woolie's Witchhunter (4.7K favourites): one crossbow in both sets, a clear ammo on set 1
+  (Galvanic Shards, Herald of Thunder), a boss ammo on set 2 (Stormblast Bolts), Emergency Reload between clips
+  [mob-witchhunter] §2, §3; [glacial-bolt] §1. Fresh Clip II is one off-meta study's [crossbow] header.
+- **Kit:** (grenades) DEADRABB1T's Gemling (1.6K): five grenades from level 1, no bolt skill: Explosive Grenade
+  the main hit, Flash, Gas, Oil, Cluster Grenade at 52, Mirage Archer re-firing Cluster at endgame; Pounce on set 2
+  [mob-grenades] §2, §3.
+- **Levers:** the crossbow's DPS with +Attack or +Projectile levels: 500+ and +2–4 at 1–3 divines, 700+ and +3–5
+  at 10 [mob-witchhunter] §4, §6; Rage with Berserk [glacial-bolt] §1; [mob-ballista] §3; Rakiata's Flow and
+  Elemental Armament II [glacial-bolt] §1; [mob-witchhunter] §3.
+- **Grenade levers:** each grenade waits on a cooldown with stored uses (Explosive 5 s ×3, pin:
+  `Data/Skills/act_str.lua`), so Grenadier's +1 use and cooldown recovery; Demolitionist's 4% extra fire per
+  grenade type fired in 8 s rewards rotating; Multishot II and a base adding a grenade projectile [mob-grenades] §4.
+- **Reloads:** a 1-bolt clip takes reload help: Double Barrel II, then Ratha's Assault (bolts load on a dodge roll)
+  and Arjun's Medal (a kill may load every crossbow skill) [mob-witchhunter] §3.
 - **Levels:** up to +5 projectile levels on a crossbow (pin: `Data/ModItem.lua`).
+- **Campaign:** a freeze shotgun in two guides: Permafrost Bolts, Fragmentation Rounds, Herald of Ice, one ammo per
+  set so neither reloads [mob-ballista] §5; [mob-witchhunter] §5.
 
 ### Maces
 
@@ -169,37 +228,112 @@ re-check the numbers.
   clear; Trinity with Herald of Ash, and Herald of Ice or Wind Dancer with about 60 Spirit on the amulet;
   Killing Palm on the ascendancy's bells for Power Charges, then Charged Staff, against bosses [ronarray-page]
   intro, §2; [ronarray-videos] §1.
-- **Levers:** crit (about 80%, on a base with at least 10%), Trinity's element balance, Power Charges and 35%
-  movement speed [ronarray-videos] §1; [ronarray-page] §2.
+- **Kit:** (Invoker) ronarray's Storm Wave + Flicker Invoker (11.6K favourites): Storm Wave and Heralds of Ash and
+  Thunder to clear; Flicker Strike on bosses after Charged Staff, Infernal Cry and Unbound Avatar [mob-invoker] §2,
+  §3.
+- **Levers:** crit first in both ronarray guides: about 80% on a 10% base [ronarray-videos] §1, 90–100% on 11% with
+  Sunder my Enemies (crits ignore elemental resistance) [mob-invoker] §4; then melee levels, Power Charges, Trinity's
+  balance, 35% movement speed [ronarray-page] §2.
+- **Bosses:** fill Power Charges, cast Charged Staff, then burst: Killing Palm's bells [ronarray-page] §2, or
+  Profane Ritual on set 2's skeletons [mob-invoker] §3.
 
 ### Spears
 
-- **Kit:** (thin: two studies) Twister fed by Whirling Slash's whirlwinds, Barrage's repeats and Primal
-  Bounty's projectiles from dodging [twister] chain 3–6; Herald of Ice and Infernal Cry to clear, Concentrated
-  Area on the stab [fangs] arc (09:42, 35:32).
-- **Levers:** projectile count and repeats [twister] chain 4, 6.
+- **Kit:** Lazy Exile's Lightning Spear Amazon (3.2K favourites): Lightning Spear to clear, Storm Lance then
+  Explosive Spear (a Detonator) on bosses, Herald of Thunder, a Talisman on set 2 [mob-spear-amazon] §2, §3.
+  Twister [twister] chain 3–6 levels a second guide, until Glacial Lance at 40–50% crit [mob-glacial-lance] §3, §5.
+- **Frenzy Charges:** Lightning Spear, Storm Lance, Explosive Spear and Barrage spend them (pin), so both guides
+  ration them [mob-spear-amazon] §2; [mob-glacial-lance] §2; supply: Combat Frenzy with Charge Profusion
+  [mob-glacial-lance] §5.
+- **Levers:** flat damage on the spear and rings, then Spirit for Eternal Rage, Herald of Thunder and Wind Dancer
+  [mob-spear-amazon] §4; crit, flat physical and cold [mob-glacial-lance] §4; projectile count and repeats
+  [twister] chain 4, 6.
 - **Levels:** up to +4 projectile and +4 melee levels on a spear (pin: `Data/ModItem.lua`).
+- **Amazon:** Predatory Instinct first (50% more against an Open Weakness, revealed on rares and uniques), Critical
+  Strike, Elemental Surge; Dance with Death (25% more skill speed, empty off hand) to early maps
+  [mob-spear-amazon] §3; [mob-glacial-lance] §3.
 
 ### Damage over time
 
-- **Kit:** an ailment or debuff that deals the damage, supports for its magnitude, and a spreader: Contagion,
-  triggered by Cast on Elemental Ailment, spreads a chaos ignite [eraser] §1; Wither from Withering Presence
-  [eraser] §1; [hotg] §1 (8); Despair on Blasphemy for chaos [maelstrom] §1 (7).
+- **Kit:** a debuff that deals the damage and a spreader: Contagion, triggered by Cast on Elemental Ailment [eraser]
+  §1, or cast by hand beside Essence Drain, a death spreading Contagion, curses and chaos DoT debuffs
+  [mob-ed-lich] §2, §3; Wither from Withering Presence [eraser] §1; [mob-ed-lich] §3; Despair on Blasphemy
+  [maelstrom] §1 (7) or on set 2 [mob-ed-lich] §3.
 - **Levers:** the skill's level, ailment magnitude, enough duration to spread (an ignite of 2–3 s) [eraser] §1;
   Swift Affliction, Brutality and Herald of Blood on Corrupted Blood [infernal-cry] chain 4, which is said to
   take its host cry's level, 17 of it from items (unverified, PG-2) [infernal-cry] chain 2.
-- **Campaign:** two of the studied guides level with Contagion: Navira's, with Essence Drain and other chaos
-  spells until its Act 2 respec [comparison] §2, and Fubgun's bow build early on [fubgun] §2.
+- **Ramp:** Contagion deals 100% more per spread, up to 300% (pin) [mob-ed-lich] §2.
+- **Bosses:** a hit keyed to the DoT: Dark Effigy bombards only enemies with a chaos DoT debuff (pin)
+  [mob-ed-lich] §3; Toxic Growth's pustules store the poison Gas Arrow's cloud puts on them [mob-poison] §2.
+- **Poison:** one poison per enemy until stack sources add one each (Escalating Poison, Building Toxins, Snakebite);
+  Overwhelming Toxicity doubles them at 50% less duration; Deadly Poison II (100% more magnitude, 30% less hit
+  damage) on every poison skill [mob-poison] §3, §4.
+- **Campaign:** Contagion opens six studied campaigns [comparison] §2; [fubgun] §2; [mob-ed-lich] §5;
+  [mob-autobomber] §5; [mob-mattjestic] §3; [mob-thyworm] §4.
 
 ### Totems
 
-- **Kit:** (thin: one study) a totem that repeats the combo (Shockwave Totem's slams set off Volcanic
-  Fissure), then supports that keep it alive, then a second totem [empyrean] process 6.
-- **Levers:** (from the gem text, not practice) totem count, survival and placement speed: Hardy Totems (more
-  life), Reinforced Totems (resistances), Urgent Totems (placement) (pin: `Data/Skills/sup_str.lua`).
+- **Kit:** two popular kits make the totem the whole damage: Ky's Arc Totems Gemling (1.7K favourites), Spell
+  Totem casting Arc with Dominus' Grasp under Ancestral Bond [mob-arc-totems] §2, §3; Lazy Exile's Mortar Cannon
+  ballistas firing a socketed Cluster Grenade [mob-ballista] §2, §3; or a totem repeats the combo [empyrean]
+  process 6.
+- **Levers:** count, from Spirit under Ancestral Bond (a Spirit amulet beats a +levels one if it reaches the next
+  totem) [mob-arc-totems] §4, or from gem quality and the weapon for ballistas [mob-ballista] §4; Urgent Totems III
+  at every tier [mob-arc-totems] §3; [mob-ballista] §3; the totem gems grant their own resistances (pin).
+- **Order:** guides differ: survival supports before a second totem [empyrean] process 6; count first, with no
+  Hardy or Reinforced Totems [mob-arc-totems] §7; [mob-ballista] §9.
 - **Limits:** Spell Totem and Ancestral Warrior Totem consume three charges per totem (pin:
   `Data/Skills/act_str.lua`); Ancestral Bond doubles the limit and drops the charges, at 75 Spirit a totem
   (pin: `TreeData/0_5/tree.lua`).
+- **Ballistas:** one, +1 from Mortar Cannon's Gemling quality, +1 from an Ulaman crossbow prefix; its grenades take
+  50% less attack speed and damage for 100% increased cooldown recovery [mob-ballista] §4.
+
+### Shapeshifting (talismans)
+
+- **Kit:** a two-hand Talisman, which every bear and wolf skill requires (pin): no off hand without Lord of the
+  Wilds, and it is most of the damage, so replace it often [mob-bear] §3, §4; [mob-wolfman] §3, §4.
+- **Bear:** slams that spend Rage on the hit: Maul builds it, Furious Slam spends 10, Rampage travels and clears;
+  Shaman's Furious Wellspring regenerates 6% of maximum Rage a second, raised by mana regeneration [mob-bear] §2, §3.
+- **Wolf:** cold strikes that freeze: Lunar Assault primes, Arctic Howl freezes, Shred makes Ice Fragments, Cross
+  Slash detonates them; Lunar Blessing (59% of damage as extra cold, longer per Rage spent, pin) [mob-wolfman] §2, §3.
+- **Levers:** weapon physical damage and gain as extra, then melee levels (gloves +2, amulet +3, pin); Rampage's run
+  reads movement speed [mob-bear] §4; Spiny's 11% base crit for a crit wolf [mob-wolfman] §3; Herald of Ice in both,
+  with Polcirkeln's chill-shatter for the bear [mob-bear] §4.
+- **Weapon sets:** one talisman in both sets, buffs cast from set 2 [mob-bear] §3; Savage Fury on set 2 alone is
+  said to reserve no Spirit; Eternal Rage must be active in both sets and Savage Fury needn't (pin), but no text says
+  it reserves nothing [mob-wolfman] §3.
+
+### Plants
+
+- **Kit:** Raxxanterax's Plant Oracle (3.2K favourites): Entangle to clear, Thrashing Vines on bosses, Forced
+  Outcome's crits firing Thunderstorm through Cast on Critical to keep plants Overgrown, Sigil of Power on set 2;
+  the core of [oracle] chain 4–6 [mob-plants] §2, §3.
+- **Supports:** Accelerated Growth II and Branching Fissures II on Entangle; Concentrated Area and Heft on Thrashing
+  Vines, in both builds [mob-plants] §3; [oracle] chain 1, 7.
+- **Levers:** Overgrowth: Thrashing Vines 50% more damage and 50% larger, Entangle 3 more vines per enemy (pin);
+  Thrashing Vines placed once per 8 s, Entangle spammed between [mob-plants] §2, §4.
+- **Costs:** guides differ: life pays and mana defends [oracle] chain 2, 9; costs stay on mana, which Zenith II and
+  Sigil of Power read [mob-plants] §3, §8.
+
+### Shields
+
+- **Kit:** (thin: one guide) a high-armour tower shield in both sets and a one-hand mace; Shield Wall placed,
+  Infernal Cry to empower it, Fortifying Cry to shatter it [mob-shield-wall] §2, §3; Shield Charge reads the same
+  armour [shield-charge].
+- **Levers:** shield armour: Shield Wall and Shield Wave add 5–7 physical per 15, Greatest Defence 4% increased
+  attack damage per 75; about 350 in Act 3, 800–900 in early maps [mob-shield-wall] §4.
+- **Detonation:** a wall your skill shatters deals 100% more, one enemies break inside 0.5 s 80% less; Kaom's
+  Madness on Ahn's Citadel adds 3 fissures [mob-shield-wall] §2, §3.
+- **Fire:** Avatar of Fire only after The Molten One's Gift, which carries Fully Broken Armour to fire
+  [mob-shield-wall] §2, §4.
+
+### Automated loops
+
+- **Kit:** (thin: one study) Entangle fills 100 Glory, Apocalypse fires a disaster every 0.75 s for 12 s,
+  Trampletoe's overkill splash chains the kills, the player sprints; sparse content waits per pack
+  [mob-autobomber] §2.
+- **Levers:** Apocalypse's level from every element's level lines, cast from set 2; Rising Tempest's 12% per element
+  used recently; sprint speed for clear [mob-autobomber] §3, §4.
 
 ## 1. Loops and relays
 
@@ -281,20 +415,41 @@ re-check the numbers.
   by built-in buildup.
 - **PoB:** not modelled until coverage shows otherwise (not established).
 - **Examples:** Walking Calamity: Lunar Assault's 436% more freeze buildup carries Bhatair's Vengeance
-  [walking-calamity].
+  [walking-calamity]. Bear and wolf: Lunar Assault again, the freeze carrier [mob-bear]; [mob-wolfman].
 - **Cautions:** for an unmet condition climb a ladder, cheapest first: supports, a stronger skill, a
   same-weapon skill with a built-in multiplier, a new weapon [walking-calamity].
 
 ### Placed detonator
 
 - **Shape:** one skill places an object and the main skill breaks it for a bigger hit.
-- **Search:** `mechanic "shatter" (gem)`, "explode"; match the text's "your <tag>" to the main skill's
-  types.
-- **PoB:** not modelled until coverage shows otherwise (not established; the study found the data only).
+- **Search:** `mechanic "shatter" (gem)`, "explode"; a Detonator-typed skill (gem lookup); match the text's
+  "your <tag>" to the main skill's types.
+- **PoB:** not modelled until coverage shows otherwise: Storm Lance's detonation and Shield Wall's 100% more are
+  possibly unmodelled (coverage; PG-60, PG-66).
 - **Examples:** Shield Charge: "your Slams, Warcries, and Shield Charge will instantly shatter" Shield Wall
-  [shield-charge].
+  [shield-charge]; Fortifying Cry shatters it too [mob-shield-wall]. Spears and crossbows: Storm Lance and
+  Explosive Spear [mob-spear-amazon]; Stormblast and Mirage Archer [mob-witchhunter]. Wolf: Cross Slash detonates
+  Shred's Ice Fragments [mob-wolfman].
 - **Cautions:** 80% less if enemies break it within 0.5 s; Glacial Bolt's crystals have a like penalty
   [glacial-bolt].
+
+### Meta trigger as a supply
+
+- **Shape:** a Cast on X gem fires a spell for what it makes (a charge, a state), so its damage penalty is free.
+- **Search:** the payoff's resource; spells making it (`mechanic "Power Charge" (gem)`, "Overgrown"); the Energy
+  cap, 10 per 0.1 s of the spell's base cast time.
+- **PoB:** not modelled: meta-gem Energy (PG-9); hand calculation, the resource by config.
+- **Examples:** Invoker: Profane Ritual for Power Charges [mob-invoker]. Plant Oracle: Thunderstorm for Overgrowth
+  [mob-plants]; [oracle].
+- **Cautions:** the spell's level sets its cost [mob-plants].
+
+### Self-firing buff
+
+- **Shape:** a buff fires damage on a timer at targets it picks, so play is moving and refilling its gate.
+- **Search:** Glory-gated buffs (`mechanic "Glory" (gem)`); kill chains (`mechanic "Overkill" (unique)`).
+- **PoB:** hand calculation: each hit is modelled, the interval and Glory aren't (PG-7).
+- **Examples:** Autobomber: Apocalypse on Entangle's Glory [mob-autobomber].
+- **Cautions:** one niche study (20 favourites).
 
 ## 2. State consumers (builder and finisher)
 
@@ -339,8 +494,9 @@ re-check the numbers.
   effects (a gem lookup's `Hit-making children:`, D-299); check the lock reaches each.
 - **PoB:** not modelled: a risk, never a number.
 - **Examples:** Wing Blast: gloves, stags, wolves and curse explosions stole the stun [wing-blast]. Fangs:
-  Elemental Sundering consumed the freeze Honourless needed [fangs]. Flicker: Charged Staff spends Flicker's
-  charges [flicker].
+  Elemental Sundering consumed the freeze Honourless needed [fangs]. Flicker and spears: Charged Staff spends
+  Flicker's charges [flicker]; every spear skill spends the same Frenzy Charges [mob-spear-amazon];
+  [mob-glacial-lance].
 - **Cautions:** re-run it whenever a consumer joins.
 
 ### Supply by family
@@ -504,8 +660,7 @@ re-check the numbers.
 - **Shape:** the skill's damage reads something other than the weapon, so only what reads that source
   counts.
 - **Search:** read the skill's added-damage stats (gem lookup); keep supports and mods that read it.
-- **PoB:** not modelled until coverage shows otherwise (not established; the data has damage per 15
-  shield armour).
+- **PoB:** modelled: shield armour damage parses on Shield Wall and Shield Wave (coverage) [mob-shield-wall].
 - **Examples:** Shield Charge: shield armour is the damage [shield-charge].
 - **Cautions:** re-audit supports when the source moves [shield-charge].
 
@@ -541,7 +696,8 @@ re-check the numbers.
 - **PoB:** Count: mirages (PG-4), Spell Cascade (PG-6), mimics (PG-14), Now and Again (PG-15), aftershocks
   (PG-24); Tornado Shot's copies are zero (PG-21).
 - **Examples:** Mirage Sniper: about 6 Mirage Archers fire Snipe [mirage-sniper]. Enervating Nova: Spell
-  Cascade and mimics [enervating].
+  Cascade and mimics [enervating]. Totems: Spell Totems [mob-arc-totems] and ballistas [mob-ballista], their count
+  unmapped (PG-68).
 - **Cautions:** coverage gives Mirage Archer a false all-clear (PG-49); Count also multiplies per-copy
   reservation [worklog].
 
@@ -690,7 +846,8 @@ re-check the numbers.
 - **PoB:** modelled: level bonuses match tags.
 - **Examples:** Walking Calamity: only "+level of fire skills" applied [walking-calamity]. Fangs: the Area
   tag let area supports hit the stab [fangs].
-- **Cautions:** check which part each support touches (checklist 5).
+- **Cautions:** check which part each support touches (checklist 5); Excise adds the Cooldown type Garukhan's
+  Resolve can't support [mob-invoker].
 
 ### Filler to satisfy a count
 
@@ -698,7 +855,8 @@ re-check the numbers.
 - **Search:** `mechanic "different type" (gem)`, "for each"; count what the plan holds.
 - **PoB:** modelled, but Gem Studded ties wrongly (PG-1) and Muster counts by granted effect (PG-3).
 - **Examples:** Stormcaller: unused supports for 17/17/17 [stormcaller]. Supporting Fire: a Muster zoo
-  [supporting-fire].
+  [supporting-fire]. Three Gemlings: supports picked to tie Gem Studded's colours [mob-arc-totems];
+  [mob-ballista]; [mob-grenades].
 - **Cautions:** in PoB a 17/17/17 balance gets Red only. When the count multiplies damage, see A count as a
   multiplier.
 
@@ -711,10 +869,12 @@ re-check the numbers.
   (Spirit, a socket group), and rough arithmetic before any compile: Muster at eight types is 7% × 8, about
   ×1.56.
 - **PoB:** modelled for Muster, by PoB's own count, which runs one or two types high (PG-3, PG-53); At your
-  Command adds nothing (PG-52), so a custom modifier stands in at the build's type count.
+  Command adds nothing (PG-52), so a custom modifier stands in at the build's type count. Demolitionist: config
+  stand-in, `# different Grenade Types Shot`.
 - **Examples:** Navira's Fracturing: about eight types on a sceptre's 334 Spirit, where Muster measures ×1.63
   [comparison]. Supporting Fire: a zoo of the cheapest types for Muster [supporting-fire]. Varashta: a new
-  skeleton type with each Spirit gain [varashta].
+  skeleton type with each Spirit gain [varashta]. Gemlings: Demolitionist's grenade types [mob-grenades]; Spell
+  Totem's cast-speed line per totem, each 75 Spirit [mob-arc-totems].
 - **Cautions:** at two or three types it loses to a plain damage support, so a slot-by-slot ranking drops it
   and no run of single upgrades reaches the army [comparison]; count the reviving types by hand (PG-53).
 
@@ -811,12 +971,16 @@ re-check the numbers.
 
 ### Weapon set 2 job
 
-- **Shape:** the second weapon set does a non-damage job: casts a buff, primes a resource, unlocks a skill.
+- **Shape:** the second weapon set does what set 1 can't (a buff, a boss button, a more-damage support); one
+  weapon locked to both sets makes it a second set of skills and points.
 - **Search:** skills needing another weapon (gem lookup); items that prime the resource (unique).
 - **PoB:** not modelled: a buff cast from set 2 at its higher level (the level carrying over is unverified: the
-  creator hedges) [ancestral-cry]; Gem Studded counts every set's supports [hotg].
+  creator hedges) [ancestral-cry]; Gem Studded counts every set's supports [hotg]; "active in both weapon sets" is
+  never read (PG-70).
 - **Examples:** HotG: Fury of the King primes Glory [hotg]. Wing Blast: the builder on set 2 [wing-blast].
-- **Cautions:** a swap ritual is input demand.
+  Witchhunter and Poison Pathfinder: a boss ammo on set 2 [mob-witchhunter]; Rigwald's Ferocity's damage set
+  [mob-poison].
+- **Cautions:** a swap ritual is input demand; Eternal Rage and Sacrifice must be active in both sets (pin).
 
 ### Off-tree defence layer
 
@@ -891,11 +1055,13 @@ re-check the numbers.
   are measured from its species (D-402).
 - **Examples:** Navira's Fracturing: a beast with Frozen Ground Trail lays the Chilled Ground the command
   consumes, in the guide's text only [comparison]. Infernal Cry Gemling: a Plague Harvester with a physical
-  damage aura and "all damage shocks", kept alive by Brutus' Brain [infernal-cry].
+  damage aura and "all damage shocks", kept alive by Brutus' Brain [infernal-cry]. Beast Master: a rare tame
+  kept for Haste Aura beside Mighty Silverfist [mob-beastmaster].
 - **Cautions:** the cost is 13.8–56.1% of maximum Spirit by species (32.7% at the median,
   `Modules/CalcDefence.lua:204`), so it grows with the Spirit a build stacks, unlike a flat-cost minion's (the
-  user, [amendment-8] §4); Haste is "usually the mod that most players prioritize" (the user, [amendment-8] §4):
-  the table's Hasted speeds the beast alone, Haste Aura its allies; every keep flag is an inference (the table);
+  user, [amendment-8] §4); Haste is "usually the mod that most players prioritize" (the user, [amendment-8] §4),
+  and the Haste most players prioritize is Haste Aura [mob-beastmaster] §8: the table's Hasted speeds the beast
+  alone, Haste Aura its allies; every keep flag is an inference (the table);
   a minion that deals no damage applying shock is doubtful [infernal-cry].
 
 ## 10. Tree
@@ -983,3 +1149,20 @@ Paths are from this file; each title is the source's patch.
 [ronarray-page]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-page.md "0.5.5"
 [ronarray-videos]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-videos.md "0.5"
 [ec-comparison]: ../../../../docs/build-guide/studies/2026-10-14-ec-comparison.md "pin 0.5.4"
+[mob-mattjestic]: ../../../../docs/build-guide/studies/2026-10-18-mob-mattjestic-minion-infernalist.md "0.5"
+[mob-thyworm]: ../../../../docs/build-guide/studies/2026-10-18-mob-thyworm-minion-infernalist.md "0.5, tagged 0.5.5"
+[mob-beastmaster]: ../../../../docs/build-guide/studies/2026-10-18-mob-captainlance9-beast-master.md "0.5, badge 0.5.5"
+[mob-bear]: ../../../../docs/build-guide/studies/2026-10-18-mob-ronarray-shaman-bear.md "0.5, badge 0.5.5"
+[mob-wolfman]: ../../../../docs/build-guide/studies/2026-10-18-mob-woolie-wolfman-oracle.md "0.5.5"
+[mob-plants]: ../../../../docs/build-guide/studies/2026-10-18-mob-raxx-plant-oracle.md "0.5.5"
+[mob-ed-lich]: ../../../../docs/build-guide/studies/2026-10-18-mob-deadrabbit-ed-contagion-lich.md "0.5.5"
+[mob-poison]: ../../../../docs/build-guide/studies/2026-10-18-mob-path-of-evening-poison-pathfinder.md "0.5.5"
+[mob-shield-wall]: ../../../../docs/build-guide/studies/2026-10-18-mob-lexd-shield-wall-smith.md "0.5.5"
+[mob-arc-totems]: ../../../../docs/build-guide/studies/2026-10-18-mob-ky-arc-totems-gemling.md "0.5.5"
+[mob-ballista]: ../../../../docs/build-guide/studies/2026-10-18-mob-lazy-exile-ballista-grenade.md "0.5.5"
+[mob-grenades]: ../../../../docs/build-guide/studies/2026-10-18-mob-deadrabbit-grenades-gemling.md "0.5.5"
+[mob-witchhunter]: ../../../../docs/build-guide/studies/2026-10-18-mob-woolie-run-n-gun-witchhunter.md "0.5.5"
+[mob-spear-amazon]: ../../../../docs/build-guide/studies/2026-10-18-mob-lazy-exile-lightning-spear-amazon.md "0.5, badge 0.5.5"
+[mob-glacial-lance]: ../../../../docs/build-guide/studies/2026-10-18-mob-misoxshiru-glacial-lance-ritualist.md "0.5.5"
+[mob-invoker]: ../../../../docs/build-guide/studies/2026-10-18-mob-ronarray-storm-wave-invoker.md "0.5, badge 0.5.5"
+[mob-autobomber]: ../../../../docs/build-guide/studies/2026-10-18-mob-lyrthos-autobomber-shaman.md "0.5.5, title 0.5"

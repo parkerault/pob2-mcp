@@ -40,7 +40,7 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
 - **PG-1, Gem Studded gives one colour on a tie.** bug, confirmed.
   - **Where:** `Modules/CalcSetup.lua:2155-2162`. It's an if/elseif: red wins any tie it's in, and green beats
     blue. A 17/17/17 balance gets only Red.
-  - **Seen in:** perra's Gemling builds.
+  - **Seen in:** perra's Gemling builds; the Arc Totems, Ballista and Grenades Gemlings (the Mobalytics review).
   - **Workaround:** a custom mod for the missing colour's bonus.
 - **PG-2, a skill granted by a support takes the support gem's level.** bug (suspected), confirmed in code.
   - **Where:** `Modules/CalcSetup.lua:1850-1876` builds the granted effect with `level = gemInstance.level`,
@@ -57,11 +57,11 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
 - **PG-4, Mirage Archer never produces mirages.** half, confirmed earlier.
   - **Where:** `skill_can_own_mirage_archers` appears only at `Data/SkillStatMap.lua:276`, and no gem has it.
   - **Effect:** PoB shows one player Snipe at the support's 30% less damage, instead of about 6 mirages.
-  - **Seen in:** Mirage Sniper.
+  - **Seen in:** Mirage Sniper; the Run n Gun Witchhunter and the Grenades Gemling (the Mobalytics review).
   - **Workaround:** Count = mirages up at once.
 - **PG-5, Kaom's Madness.** half, reported.
   - **Effect:** the +3 fissures aren't mapped, but the penalties apply.
-  - **Seen in:** Glacial Bolt.
+  - **Seen in:** Glacial Bolt; the Shield Wall Smith, on Ahn's Citadel (PG-60).
   - **Workaround:** Count.
 - **PG-6, Spell Cascade.** half, reported.
   - **Effect:** its 30% less damage applies, but the extra cascades don't.
@@ -72,6 +72,7 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     (`Data/ModCache.lua:1660`).
   - **Effect:** a Glory-gated skill (Hammer of the Gods, Starborn Onslaught, Walking Calamity) computes as if
     spammable.
+  - **Seen in:** the Autobomber Shaman's Apocalypse (the Mobalytics review).
   - **Workaround:** hand calc the usage rate.
 - **PG-8, a lucky roll is averaged as if the roll were uniform.** gap, reported.
   - **Where:** `Modules/CalcOffence.lua:4077` uses min/3 + 2·max/3. With Esh's min-or-max rolls
@@ -115,7 +116,8 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     the PoE2 "Cast on Critical" (`Data/Skills/act_int.lua:2057`). Nothing in `Modules/` models energy.
   - **Affects:** Cast on Critical, Cast on Minion Death, Cast on Elemental Ailment and the other energy meta
     gems.
-  - **Seen in:** Oracle Entangle, Widowhail Spark, Earthshatter, Bone Cage, The Eraser.
+  - **Seen in:** Oracle Entangle, Widowhail Spark, Earthshatter, Bone Cage, The Eraser; the Plant Oracle and the
+    Storm Wave Invoker (Cast on Critical), the Glacial Lance Ritualist (Cast on Charm Use).
 - **PG-10, the Concussive Runes shockwave doesn't exist in PoB.** gap, confirmed.
   - **Where:** `Data/Gems.lua:19614` grants `ConcussiveRunesPlayer`, which has no `skills[...]` entry.
     `support_trigger_pummel_on_heavy_stun` is unmapped.
@@ -129,7 +131,7 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - **Where:**
     - Double Vision's "When you reload, triggers Gemini Surge…" is unparsed (`ModCache.lua:6901`).
     - Double Barrel III's `crossbow_reload_on_heavy_stun` is unmapped.
-  - **Seen in:** Crossbow Titan.
+  - **Seen in:** Crossbow Titan; the Run n Gun Witchhunter's reload items (Ratha's Assault, Arjun's Medal).
   - **Workaround:** hand calc: surge hit × bolts per second.
 - **PG-13, Ancestral Cry's Volcanic Steps rate.** gap, confirmed.
   - **Where:** `ancestral_cry_triggers_shockwave_every_X_units_travelled` is unmapped
@@ -201,7 +203,8 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
 
 - **PG-32, "Your Hits are Crushing Blows" (Titan's Crushing Impacts).** gap, confirmed (`ModCache.lua:7010`).
   - **Workaround:** config "Is the enemy Heavy Stunned?".
-- **PG-33, chill-shatter** (Polcirkeln, Loreweave). gap, confirmed (`ModCache.lua:5259`).
+- **PG-33, chill-shatter** (Polcirkeln, Loreweave). gap, confirmed (`ModCache.lua:5259`). Seen in the Shaman Bear
+  (the Mobalytics review).
 - **PG-34, Spirit of the Wolf** (Rite of Passage). gap, confirmed (`ModCache.lua:6449`).
 - **PG-35, The Taming's multiple ground surfaces.** gap, confirmed (`ModCache.lua:6907, 6915`).
   - **Workaround:** config, ticking all three ground boxes.
@@ -214,6 +217,10 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - Puppet Master stacks (`:1572`, empty parse).
 
   All gaps, confirmed.
+
+  Reported by the Mobalytics review's coverage checks (2026-10-18), not re-checked: The Natural Order's four lines
+  (the Beast Master); Trampletoe's overkill splash, partly parsed and so dropped (the Autobomber); Mind Phylacteries
+  (the Glacial Lance Ritualist).
 - **PG-38, Empowering Remnants.** gap, confirmed (`ModCache.lua:1574`): parsed with text left over, so it isn't
   applied (`Classes/Item.lua:2138`).
 - **PG-39, more unparsed item lines.** gap, reported in the first study:
@@ -281,6 +288,72 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     Fracturing consumes; its PoB has no beast.
   - **Workaround:** each modifier's row in `data/monsters/monster-mods.md` says how a plan models it: `stats` as
     custom modifiers, `condition` as a config entry, `none` stated on the card (D-402).
+
+## Found in the Mobalytics review (2026-10-18)
+
+The review's 17 studies (`studies/2026-10-18-mob-*.md`, each one's §9) ran `check_model_coverage` on the lines
+their builds rely on; the user approved logging these on 2026-10-19. "Reported (coverage)" means coverage called
+the line unmapped or "possibly unmodelled" and no one has read the code; three entries were checked in code.
+
+- **PG-57, Herald of Ice's shatter explosion.** gap, confirmed in code.
+  - **Where:** the gem's `display_herald_of_ice_behaviour` maps to `Condition:EnemiesExplode`
+    (`Data/Skills/act_int.lua:11806`), which no file under `Modules/` or `Classes/` reads.
+  - **Effect:** the explosion, how most of the review's attack builds clear, adds nothing to PoB's figures.
+  - **Seen in:** the Shaman Bear, the Wolfman Oracle, the Glacial Lance Ritualist.
+  - **Workaround:** hand calc.
+- **PG-58, Lunar Blessing's damage gained as cold and its per-Rage duration.** gap, reported (coverage).
+  - **Effect:** the wolf build's biggest damage buff, 59% of damage as extra cold, may be missing from PoB's figure.
+  - **Seen in:** the Wolfman Oracle.
+  - **Workaround:** a custom mod for the gain (untested).
+- **PG-59, Bhatair's Vengeance's buff.** gap, reported (coverage).
+  - **Seen in:** the Shaman Bear.
+  - **Workaround:** a custom mod, 1% extra cold per 2 Rage (the study's stand-in, untested).
+- **PG-60, Shield Wall's detonation.** half, reported (coverage).
+  - **Effect:** Shield Wall's 100% more when your skill shatters it, the 80% less when enemies break it within 0.5 s,
+    and the wall limit are possibly unmodelled. Ahn's Citadel's fissure and Kaom's Madness's 3 extra fissures are
+    too, while Kaom's penalties parse, so PoB charges the cost without the gain (PG-5).
+  - **Seen in:** the Shield Wall Smith.
+- **PG-61, Contagion's ramp,** 100% more per spread, up to 300%. gap, reported (coverage). PG-21 is the spread.
+  - **Seen in:** the ED Contagion Lich.
+- **PG-62, Eldritch Empowerment.** half, reported (coverage).
+  - **Effect:** the 30% more parses; the sacrifice line parses only in part and the recharge line not at all, so
+    PoB shows the damage without the energy shield drain.
+  - **Seen in:** the ED Contagion Lich.
+- **PG-63, plant Overgrowth.** gap, confirmed in code.
+  - **Where:** "overgr" appears in no file under `Modules/`, in `Data/SkillStatMap.lua` or in any skill's own
+    `statMap`, only in gem descriptions. Sigil of Power's per-stage damage parses; its stage gain doesn't (coverage).
+  - **Effect:** Thrashing Vines' 50% more damage and area and Entangle's extra vines on Overgrown plants are missing.
+  - **Seen in:** the Plant Oracle.
+  - **Workaround:** a custom mod for the more damage; config or a custom mod for Sigil of Power's stages.
+- **PG-64, Toxic Growth's stored poison and Gas Arrow's cloud.** gap, reported (coverage).
+  - **Effect:** the poison the pustules store, and the cloud's limit and radius growth, are possibly unmodelled.
+  - **Seen in:** the Poison Pathfinder.
+- **PG-65, Herald of Plague's spread and Herald of Blood's explosions.** gap, reported (coverage). Herald of Blood's
+  share of Blood Loss is possibly unmodelled too (PG-50).
+  - **Seen in:** the Poison Pathfinder.
+- **PG-66, Storm Lance's detonation.** gap, reported (coverage).
+  - **Effect:** the 16-bolt detonation and both spear skills' limit of 3 are "possibly unmodelled; check config".
+  - **Seen in:** the Lightning Spear Amazon.
+- **PG-67, Elemental Surge and Predatory Instinct's reveal.** gap, reported (coverage).
+  - **Effect:** Elemental Surge's trigger is unparsed; Predatory Instinct's 50% more parses, but the reveal of an
+    Open Weakness that it needs doesn't.
+  - **Seen in:** the Lightning Spear Amazon, the Glacial Lance Ritualist.
+- **PG-68, totem count.** gap, reported (coverage).
+  - **Effect:** Spell Totem's and Mortar Cannon's totem stats are unmapped; whether PoB's DPS counts more than one
+    totem is not established.
+  - **Seen in:** the Arc Totems Gemling, the Ballista.
+  - **Workaround:** Count = totems up at once.
+- **PG-69, minion lines.** gap, reported (coverage).
+  - **Effect:** Raging Spirits' summons per cast and its two-per-cast cap, Minion Splash and Sacrificial Lamb (no
+    stat map) aren't modelled; Wildshards II's extra projectiles are possibly unmodelled.
+  - **Seen in:** both Minion Infernalists.
+- **PG-70, "active in both weapon sets" is never read.** gap, confirmed in code.
+  - **Where:** `display_skill_reserves_in_all_weapon_sets` sits on four skills, Blink, Convalescence, Sacrifice and
+    Eternal Rage (`Data/Skills/act_int.lua:1250`, `:4134`, `:17300`; `Data/Skills/act_str.lua:4885`), and no file
+    under `Modules/` or `Classes/`, nor `Data/SkillStatMap.lua`, reads it.
+  - **Effect:** PoB can't tell a buff active in both sets from one on set 2 alone. The Wolfman guide says Savage Fury
+    on set 2 alone reserves no Spirit; PoB presumably counts it (an inference).
+  - **Seen in:** the Wolfman Oracle.
 
 ## Data: missing, out of range, or stale
 

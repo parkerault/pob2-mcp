@@ -4745,3 +4745,19 @@ the `m17` engine at `b76967b`.
 - **`main` gained `918cccd`** (the user: the README is generic, with no machine's paths; the README test and D-16
   follow). `build-guide/m20` was rebased onto it with no conflicts; the hashes cited above from before the rebase
   remap by subject at the sign-merge.
+- **The proposal approved** (the user, 2026-10-19: "Approved as is") **and applied.** `patterns.md`: Standard kits
+  rewritten from the proposal's §2 (fifteen archetypes; the tamed beast's line moved to Companions), Meta trigger
+  as a supply and Self-firing buff added to §1, ten entries updated, the 17 `mob-` Sources lines, and the Reviewed
+  and Seen-in lines. Where an update gave a field no PoB label (Placed detonator), the old label stays and the
+  update follows it with its PG ids. `pob-gaps.md`: PG-57…PG-70 in a new section; PG-57 (Herald of Ice's
+  `Condition:EnemiesExplode`, read nowhere), PG-63 (no `overgr` in any module or stat map) and PG-70
+  (`display_skill_reserves_in_all_weapon_sets` on Blink, Convalescence, Sacrifice and Eternal Rage, read nowhere)
+  were checked in code, the rest are coverage reports; three smaller unparsed lines joined PG-37, and PG-1, 4, 5,
+  7, 9, 12 and 33 gained "Seen in" notes.
+- **D-410 (the user chose "Raise the caps" when asked):** the approved text put the library at 10,872 words (cap
+  10,000, D-381), Standard kits at 3,100 (about 1,200, D-403) and six entries at four or five examples (one to
+  three, AC-W28). The cap is now 12,000 words, the kits about 3,000 (AC-W74's band 2,500–3,500), and an entry
+  gives one to five examples; recorded in amendment 8 §11, `03-pipeline.md` §7.6, AC-W28 and F16, and the spine's
+  D-290 and D-381 rows. AC-W74's and AC-W28's tests follow (the archetype list, the Companions kit's Spirit line,
+  Filler's examples, the word bands). Static suites pass (20 suites, 435 tests). The seven pipeline findings in the
+  proposal's §6 are still the user's to take up as amendments.

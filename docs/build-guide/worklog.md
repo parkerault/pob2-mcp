@@ -4586,3 +4586,11 @@ the `m17` engine at `b76967b`.
   copies. Should-fix: a repeated-line filter cut Mageblood's four lines to one; most unique head lines quote the
   base's implicit line. A fix round went to the doer with the lows (two reasons, the criterion for socketables, a
   redirect off poe2db.tw refused, stable ids across kinds). The head's 27% overshoot is accepted.
+- **A second crash, and its cause** (the user: "Running the tests is crashing the session. They peg my 16 core Ryzen 9
+  9950X3D at 100% … I couldn't even type in the session input before it crashed"). Several lanes ran the full gate
+  at once, each with Jest's default of threads − 1 = 31 workers, each able to start a PoB engine, all at normal
+  priority. Memory was fine (2 of 47 GB used). **The fix** (`e2731bc`): `jest.config.cjs` caps a full run at
+  `maxWorkers: '50%'`; the handoff's M-20 section adds "Running tests": every test call at `nice -n 19`, a full gate
+  under one shared `flock` lock so only one runs at a time, started in the background; targeted suites at
+  `--maxWorkers=4`. The four stopped agents (WU-84's fix round, WU-86's gate, WU-89, the WU-85 verifier) were resumed
+  under the rule.

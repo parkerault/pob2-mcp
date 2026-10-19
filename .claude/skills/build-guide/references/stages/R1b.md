@@ -1,14 +1,16 @@
 # R1b: card skeleton, measure-only compile, key-item prices, the checklist (`build-guide-coordinator`)
 
-One step per picked card, one at a time, at most 3 per verification round. It turns a card into an
-endgame skeleton plan, compiles it measure-only, prices the card's key items, runs the advisory checklist with
-its probes, and writes the card's verification half. **Gate:** the skeleton compiled with no compile error.
+One step per picked card, one at a time, at most 3 per verification round, the rival's card aside (D-408). It
+checks the card's structure on paper, turns the card into an endgame skeleton plan, compiles it measure-only,
+prices the card's key items, runs the advisory checklist with its probes, and writes the card's verification
+half. **Gate:** the skeleton compiled with no compile error.
 You write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
 counted retries; then the card is `failed`, its last verdict the evidence (D-141).
 
 ## Inputs
 
-- **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319), `mode`,
+- **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319; letter `x`
+  for the rival's, D-408), `mode`,
   `runFolder`, `runFolderRel`, `compile: "measure-only"`, `findings` (the earlier attempt's verdict file and
   its findings: fix what each names), `faults` (FI-1, offline test runs only), `changes` (a gate's change,
   below), and `writes:
@@ -22,11 +24,12 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
 - **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks) and the
   round's research files for the mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
   `^#` for its headings and Read the worked example, and "A minion's skill" for a minion skill; when `validate`
-  names a field, Grep that field's row);
-  `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs; `run-log.json`
-  (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited`
-  call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On
-  attempt 2 or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
+  names a field, Grep that field's row); the pattern library's "Standard kits" entry for the card's archetype,
+  for the structure check (Grep `^#` in `.claude/skills/build-guide/references/patterns.md`, Read that entry);
+  `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs and the entries the card
+  cites; `run-log.json` (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or
+  `rate_limited` call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On attempt 2
+  or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
 
 ## Work
 
@@ -44,6 +47,12 @@ A change that breaks the card (a load-bearing link no lookup confirms, a chain t
 attempt: write only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code: "gate-change",
 message: "<why>"}`, `errors: []`, `compiles: 0`, `recordPath: null`, `faultsApplied: []`. A retry keeps the
 user's words and the line, and fixes only what its findings name, never reworking the change.
+
+**The rival's card, first** (D-408), when `concept` is `r<k>-x-<n>`: no one dealt it, so run R1a-assemble's
+identity check and sniff test on it (`R1a-assemble.md`, steps 2 and 3, the lock included). When either fails,
+write only the verdict, as for a gate change, with the finding `{part: "compiled", code: "not-dealt", message:
+"not dealt: <the check that failed>"}`: terminal, never retried, and the card is `failed`. When both pass, give it
+a name no line of `cards.md` has (R1a-assemble's step 7), and go on past the lock, which step 2 ran.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
@@ -74,7 +83,26 @@ node grants it (its stats list `Grants Skill: <skill>`), every such node is an a
 
 A card that passes the lock and whose damage source isn't a skill (D-334) gets none of steps 1 to 8: see "A
 card whose damage source isn't a skill" below. A minion skill is a skill, even one a passive grants: it gets
-every step (D-379).
+every step (D-379). Nor does a card whose named damage source or load-bearing link is a league-digest entry
+marked `[not in pin]` (D-400): the same paragraph says what it gets.
+
+**The structure check** (D-406), on paper, for every card that passes the lock, before step 1: a few paragraphs
+of rough arithmetic and no compile, from the card and its archetype's Standard kits entry.
+
+- **The levers:** for the archetype's big levers, what the card pulls and what it leaves ("100 Spirit on a
+  minion build" is one line).
+- **Flip the assumptions:** the card's two or three load-bearing assumptions, each reversed in a paragraph.
+  "The ground needs a freeze" leads to a supply search by family (`R1a.md`, D-404); "the weapon is a wand", to a
+  sceptre and the army; "one djinn", to a second.
+- **Counts:** what grows with a count (Muster with minion types) and what pays for a bigger count (a sceptre's
+  Spirit), rough on purpose: Muster at eight types is about 7% × 8. A tamed beast reserves a percentage of
+  your Spirit, so each point of Spirit buys a little less once one is out (D-402).
+- **Premium slots:** what each premium slot serves. One that props up the engine rather than the damage is a
+  lead: search for a supply that frees it.
+
+Write it as the card's `### Structure check`, one `- ` line per step. When a flip beats the card on paper, the
+last line is `- A stronger structure? <the flip, in a sentence, and the rough multiplier>`: the verification gate
+shows it, and the user can make a new card from it. The skeleton still tests the card as written.
 
 1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
    card rests on, and for a minion skill the passives that grant it and its summon (the lock's `Grants Skill:`
@@ -96,7 +124,7 @@ every step (D-379).
    `nodes`, `ascendancyNodes`, weapon-set nodes or attribute choices), no item slots, jewels or toggles,
    the named damage source alone in one group (with its `role`, `main` and `rolledGroup`; for a minion skill,
    its summon, with `main.activeSkill` on the summon, never on its "Command" skill, the skill as the group's
-   `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 4`, D-379),
+   `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 5`, D-379),
    the scenario's
    `enemyIsBoss` and resistance penalty, no claims and no prices. Compile it:
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. The engine
@@ -129,12 +157,19 @@ every step (D-379).
      group, as step 3 writes it), each group with a `role` (the named source's is `clear` or
      `single_target`), `main` on the named source, and `rolledGroup`; a
      `count` with its `countReason` where the card's chain has several copies act at once (D-293).
+   - `companion`, when the card's chain has a tamed beast (D-402): `{species, mods}`, the species as PoB's beast
+     library names it and `mods` its kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, with one
+     `Tame Beast` gem, enabled, in an enabled group. The compile writes PoB's three companion options and each
+     kept `condition` modifier's option as earned state: list none of them (`docs/build-guide/plan-reference.md`,
+     "A tamed beast").
    - `config`: the earned states the card relies on, each that is on with its producer and uptime;
      `scenario` lists `enemyIsBoss` and the endgame resistance penalty, each from a data fact with its
      tag, as in the worked example.
    - `claims` may stay empty: the skeleton serves the verification gate, and the guide never cites it. A claim
      is written only where the build hinges (D-351), with its `kind`, `hinge` (a fact whose being wrong would
-     make the build fail) or `reason` (a reason resting on a measurement), and a source. `ledger` is `[]`.
+     make the build fail) or `reason` (a reason resting on a measurement), and a source. A `data:` source names a
+     JSON fact: a claim resting on a digest, index or monster-table entry cites its lookup, or a `judgment`
+     naming the entry (D-400). `ledger` is `[]`.
    - `prices`: offline, the key items' `unavailable` entries of step 6; online, `[]` for now.
 5. **Validate**: `mcp__pob2__guide_run {validate: "<runFolderRel>/concepts/<id>/plan.json"}`. Fix every error it
    reports (schema errors by JSON path; unknown gems with suggestions; item text; nodes and their
@@ -248,7 +283,7 @@ Probes don't count in the verdict's `compiles`.
 
 A card whose damage source isn't a skill (D-334) has no skeleton: run checks 1–4 from the card and the
 lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill" in its
-verification half.
+verification half ("not compiled: <entry> isn't in the PoB pin" for a `not-in-pin` card, D-400).
 
 ## The card's verification half (C-52)
 
@@ -272,7 +307,9 @@ for a gate's change.
 Run checks 1–4, write its verification half as above, and write the verdict with `compiled: "fail"`, one
 finding `{part: "compiled", code: "not-a-skill", message: "not compiled: its damage source isn't a skill
 (D-334)"}`, `compiles: 0` and `recordPath: null`. The runner doesn't re-run it: no retry can compile it, and
-the card can't be finalized yet (D-303).
+the card can't be finalized yet (D-303). **So does a card that rests on a digest entry the PoB pin doesn't
+know** (D-400), its finding `{part: "compiled", code: "not-in-pin", message: "not compiled: <entry> isn't in the
+PoB pin"}`: the pin can't compile it until an upgrade.
 
 ## Writes
 

@@ -1,10 +1,10 @@
 # Stage references
 
 One file per step, `<stage>.md`, named by the task header's `stage` (`task-header.md`): `R1a.md`,
-`R1a-assemble.md`, `R1b.md`, `R1b-assemble.md`, `D1-build.md`, `D1-finish.md` (D1's two steps, D-356),
-`D1-gate.md`, `D2.md`, `D2-gate.md`, `W1.md`, `V4.md`, and `Q.md` (a gate question, D-390). The runner starts
-every step with the Agent tool, its prompt the header and a line naming this file, so the step reads its job
-here.
+`R1a-assemble.md`, `R1b.md`, `R1b-assemble.md`, `RV.md` (the rival, D-408), `D1-build.md`, `D1-finish.md` (D1's
+two steps, D-356), `D1-gate.md`, `D2.md`, `D2-gate.md`, `W1.md`, `V4.md`, and `Q.md` (a gate question, D-390).
+The runner starts every step with the Agent tool, its prompt the header and a line naming this file, so the step
+reads its job here.
 
 A stage reference says, for its step:
 

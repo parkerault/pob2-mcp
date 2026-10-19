@@ -2,11 +2,12 @@
 
 <!--
 Template for cards/<id>.md (slice 03 section 7.5, spine C-52), one candidate build. The id is
-r<round>-<researcher letter>-<n> (r1-a-2), or r<round>-g-<n> for a card made at a gate (D-391). R1a writes the
-brainstorm half, about 250–400 words, from the pattern library (references/patterns.md); R1b writes the
-verification half under it (and first, a gate's change to the brainstorm half, stages/R1b.md). Keep the two H2s
-and their H3s below exactly, in this order, and add no other heading. Replace every <placeholder>, keep a
-line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
+r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), or r<round>-x-<n>
+for the rival's (D-408). R1a (or the rival, RV) writes the brainstorm half, about 250–400 words, from the pattern
+library (references/patterns.md); R1b writes the verification half under it (and first, a gate's change to the
+brainstorm half, stages/R1b.md). Keep the two H2s and their H3s below exactly, in this order, and add no other
+heading. Replace every <placeholder>, keep a line marked [only when ...] only when it applies (and drop the
+marker), and delete this comment.
 
 Status words, used everywhere on the card, exactly as written here, one per link, figure or claim:
 - confirmed in game text: a lookup returned the text;
@@ -28,8 +29,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Named damage source: <the identity's skill: an active skill gem; a minion skill with its summon, "<skill>
   (cast by <minion>, summoned by <gem>)", D-379; or for a damage source that isn't a skill the item, passive or
   modifier that deals it, D-334>
-- [only when the damage source isn't a skill] Can't be finalized yet: its damage source isn't a skill
-  (D-303).
+- [only when the damage source isn't a skill, or the card rests on a league-digest entry the PoB pin doesn't
+  know] Can't be finalized yet: <its damage source isn't a skill | <entry> isn't in the PoB pin> (D-303, D-400).
 - [only when a passive-tree node or a unique grants a skill the card uses, D-342; one line per skill]
   Granted by: <skill>: "<node name>" (<node id>), <a <ascendancy> ascendancy node | allocated by this card>,
   or <the unique>, equipped by this card.
@@ -43,6 +44,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Needs: <the key items, gems and passives; when it comes online (level or act); a respec, if it takes one;
   a rough cost, when known>
 - The catch: <the main risk or cost, in one sentence>
+- [only on the obvious card, r1-a-1; D-403] Obvious build: <the kit it follows: its archetype's standard kit and
+  the ascendancy's intended play>
 - [only on an under-played card, at least one of each researcher's 3; D-339] Under-played (judgment): <the
   pattern-library shape, and why few builds use it with this skill, ascendancy or playstyle>
 - [only when a load-bearing link isn't confirmed in game text] Not confirmed: <the link>: <what it would
@@ -84,6 +87,13 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Resistant bosses: <bosses that resist the damage source's element | none found>
 
 ## Verification half
+
+### Structure check
+
+- <one line each, on paper (D-406): the levers it pulls and leaves; each load-bearing assumption flipped; what
+  grows with a count and what pays for it; what each premium slot serves>
+- [only when a flip beats the card on paper] A stronger structure? <the flip, in a sentence, and the rough
+  multiplier>
 
 ### Verified
 

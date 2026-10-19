@@ -18,7 +18,8 @@ price every slot, write the ledger and the claims, and read the plan and the rec
 - **`changed`**, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`:
   the locations D1-build returned (`plan.json stages[6].items`). Then "After D1-build" below is your job.
 - **Prompt:** how to price in this run (offline; stopped; or paced), and with `--no-ninja` that there are no
-  currency rates; D1-build's `left out:` lines, each a `reason` claim on its first stage (D-396).
+  currency rates; D1-build's `left out:` lines, each a `reason` claim on its first stage (D-396); and its
+  `lever unpulled:` and `override:` lines, each a `reason` claim on the first endgame stage (D-406, D-407).
 - **Read**, the independent calls in one response:
   - each rung: `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` for `m`, `b`
     and `n`, batched. A view gives the stage's section of the plan, its key-figure line from the record and
@@ -101,12 +102,14 @@ price every slot, write the ledger and the claims, and read the plan and the rec
    - `hinge`: a fact whose being wrong would make the build fail at its rung: a trap (an interaction that
      breaks or kills the build, such as a main-hand weapon that switches the skill off, up to 4), the chaos
      exception's reason, an affix whose source narrows its slot's base, a trigger into the next rung;
-   - `reason`: a reason resting on a measurement: why a support, node, item or the anoint is in (a
-     measure-only compile with a temporary stage for the other option, the record or a ledger value; a shape
-     from the pattern library cites its lookup and that measurement, never the library, D-375), a `left out:`
-     gem, an either/or pick (up to 2, the deciding factor measured, and online the price difference), the
-     named source in the single-target role, and each rung's buy order, one claim per rung (`m`'s buys toward its
-     5-divine target, `b`'s buy order, `n`'s upgrade order from `b`), the guide numbering them as you order them.
+   - `reason`: a reason resting on a measurement: why a support, node, item or the anoint is in (a measure-only
+     compile with a temporary stage for the other option, the record or a ledger value; a shape from the pattern
+     library cites its lookup and that measurement, never the library, D-375), a `left out:` gem, a
+     `lever unpulled:` line (the lever, why, and the compiled figure it rests on), an `override:` line (PoB's
+     first choice, ours, and what PoB can't measure that decides it), an either/or pick (up to 2, the deciding
+     factor measured, and online the price difference), the named source in the single-target role, and each
+     rung's buy order, one claim per rung (`m`'s buys toward its 5-divine target, `b`'s buy order, `n`'s upgrade
+     order from `b`), the guide numbering them as you order them.
 
    What the compile proves carries no claim: requirements, gem and stage levels, record numbers, ledger
    values, prices and tree lists, which the guide renders from the plan and the record. Superfluous content
@@ -115,10 +118,11 @@ price every slot, write the ledger and the claims, and read the plan and the rec
    holds; state a support's effect from its gem text, a ledger entry or a record field.
    - **Sources.** Each claim has a `source` tag `{kind, ref, confidence?}` (`pob-computed` with a record field
      `<stageId>.<Field>`, `pob-data` with a lookup result, `judgment` with its reasoning and a confidence) or
-     cites `ledger:<id>`, `price:<id>` or `data:<file>#<key>`. Its source supports every part of it, each
-     number, mechanic and qualifier; it cites each fact it rests on; and it carries its source's caveats (a
-     confidence M or L, a disputed fact, a `judgment`). A `ledger:<id>` claim's numbers are the entry's value or
-     its inputs, an input as written or × 100 as a percentage.
+     cites `ledger:<id>`, `price:<id>` or `data:<file>#<key>`, a JSON fact: a claim resting on a digest, index or
+     monster-table entry cites its lookup, or a `judgment` naming the entry (D-400). Its source supports every
+     part of it, each number, mechanic and qualifier; it cites each fact it rests on; and it carries its source's
+     caveats (a confidence M or L, a disputed fact, a `judgment`). A `ledger:<id>` claim's numbers are the
+     entry's value or its inputs, an input as written or × 100 as a percentage.
    - **Affix sources** (D-277): for each rare affix target, look the affix up
      (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`; with `kind:
      "essence"`, each `[essence]` hit names an essence and the item types it applies to). When the base types

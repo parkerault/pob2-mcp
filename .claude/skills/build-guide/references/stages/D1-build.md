@@ -25,21 +25,23 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
 - **Read**, the independent reads in one response:
   - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its key
     numbers, prices and league (D-355);
-  - the card `cards/<id>.md` (its chain, enabler, links, checklist results and estimates), and its skeleton
-    `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/concepts/<id>/plan.json",
-    stage: "<stage id>"}}`, one call per stage, batched;
+  - the card `cards/<id>.md` (its chain, enabler, links, structure check, checklist results and estimates), and
+    its skeleton `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan:
+    "<runFolderRel>/concepts/<id>/plan.json", stage: "<stage id>"}}`, one call per stage, batched;
   - `docs/build-guide/plan-reference.md` by section, never whole: Grep `^#` for its headings and Read the
     worked example and "Count and custom modifiers" ("A minion's skill" too, for a minion skill); when
     `validate` names a field, Grep that field's table row;
   - the facts under `data/`: `data/campaign/limits.json` (`passive-points.max`, `ascendancy.max`,
     `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`);
   - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
-    and `n` (D-375, step 3).
+    and `n` (D-375, step 3), and the rule-changer index (D-401): `data/rules/nodes.md`'s section for the card's
+    ascendancy and its `## Keystones`, and Grep `uniques.md`, `gems.md` and `pairs.md` there for the build's
+    families. An index line is a lead: confirm it with a lookup.
 
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 4` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
+   `schemaVersion: 5` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
    adds the rares' entries), and only the endgame stages below. A `plan.json` already in the run folder belongs to an earlier design and is
    replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and
    everything D1-finish wrote that your change doesn't touch.
@@ -73,6 +75,10 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      shape is a starting point, never a fact: check every use with a lookup and measure it with a measure-only
      compile like any other change. The `reason` that keeps it in the plan (D1-finish's claim) cites the lookup
      and the measurement, never the library.
+   - **The levers, measured** (D-406). Then redo the levers line of the card's `### Structure check` with the
+     skeleton's compiled figures (its record, by Grep): for each big lever of its archetype's Standard kits
+     entry (minion levels, Spirit and minion types for a minion build), what `b` and `n` pull. Pull what the
+     design can; return each lever it leaves unpulled as `lever unpulled: <lever>: <why>`.
    - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`,
      so each rung's tree contains the one before it, except where its `respec` drops nodes (`respec
      {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the dropped nodes as the tool names
@@ -110,6 +116,13 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      stage, and one whose condition the stage can't meet stays out of it: return it as `left out: <gem> on
      <stages>: <why>`. `mcp__pob2__suggest_supports` ranks supports and lists
      what PoB can't measure (C-47).
+   - **Overriding PoB's ranking** (D-407). PoB ranks by damage and can't measure area, a supply's rate or pace
+     between packs, so clear speed may want a support, passive or item it ranks lower. Return each such choice
+     as `override: <PoB's first choice> → <ours>: <why>`.
+   - **A tamed beast** (D-402) is a stage's `companion {species, mods}`, with one `Tame Beast` gem, enabled, in
+     an enabled group (`docs/build-guide/plan-reference.md`, "A tamed beast"). The compile writes PoB's three
+     companion options and each kept `condition` modifier's option as earned state: list none of them. Its
+     Spirit cost is a percentage of your Spirit, so more Spirit costs it more.
    - **Count and custom modifiers** (D-293; `docs/build-guide/plan-reference.md`, "Count and custom
      modifiers"). Where several copies of a group act at once (totems, minions that each cast it, mirages),
      set the group's `count` with a `countReason` saying why that many act at once and what grants them
@@ -201,8 +214,8 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    measure_only: true}`). Its reply gives each stage's key-figure line (the headline DPS, life, energy shield,
    EHP, the four resistances, the V1 and V2 finding counts, the Arbiter verdict and the rough clear speed) and
    its V1 and V2 findings: read the floor there, and Grep `compile-record.json` only for what the reply
-   lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`). Iterate on damage once
-   the floor holds (D-118). Never a final compile.
+   lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`). Iterate on clear speed and damage
+   once the floor holds (D-118): the rough clear speed leads, and bosses are a floor (D-407). Never a final compile.
    - **A `possibly unread` line** (`mcp__pob2__check_model_coverage`) the variant depends on is confirmed by
      measurement before any hand calculation (D-243): add a temporary stage that copies the stage under
      test without that line, compile measure-only with `stages` naming the two, and compare their
@@ -235,7 +248,7 @@ never write it anew.
 
 At most 8 lines: your claim, `done` or `infeasible` with its reason in a sentence; how many
 `mcp__pob2__compile_plan` calls you made; `league unverified` when no league could be verified online (step 2);
-each `left out:` line; and with findings, the finding ids you fixed and the locations you changed (`plan.json
+each `left out:`, `lever unpulled:` and `override:` line; and with findings, the finding ids you fixed and the locations you changed (`plan.json
 stages[3].items`).
 
 ```

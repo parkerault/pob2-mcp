@@ -12,9 +12,11 @@ The runner assigns the foci and letters you when it starts you: researcher `n` w
 
 | Researcher | Letter | Focus | Sections | Cards |
 |---|---|---|---|---|
-| 1 | `a` | `mechanics` | `Mechanics`, `Config gaps` | 3, each led by a skill, its supports or a mechanic |
-| 2 | `b` | `items` | `Synergy search` | 3, each led by key items (uniques) |
+| 1 | `a` | `mechanics` | `Mechanics`, `Config gaps` | 3, each led by a skill, its supports or a mechanic; in round 1 the first is the obvious card |
+| 2 | `b` | `items` | `Synergy search` | 3, each led by key items (uniques); one is the seed card when your prompt gives one |
 | 3 | `c` | `tree` | `Synergy search` | 3, each led by tree notables, keystones or ascendancy nodes |
+
+Every focus adds a `Supply search` section per resource its cards consume (D-404, below).
 
 Each focus starts from the brief's fixed pieces (D-287):
 
@@ -54,6 +56,15 @@ playstyle. Label it in its pitch, `Under-played (judgment): <the shape, and why 
 It is your judgment, never a measurement: no tool counts what players run (D-335). The brief's `popularity`
 notes may inform it; cite them as the user's notes.
 
+**The obvious card** (D-403). In round 1, researcher `a` writes first, as `r1-a-1`, the build an average player
+makes first: the brief's skill on its ascendancy, with its archetype's standard kit (the library's "Standard
+kits") and the ascendancy's intended play (its section of `data/rules/nodes.md`: Varashta's nodes are djinns, so
+two djinns). Its Pitch carries `- Obvious build: <the kit it follows>`, after `The catch`; no other card does.
+With no skill in the brief, it is the obvious build for the brief's playstyle; a brief with neither has no
+obvious card. One of `a`'s other two cards is the under-played one. Every other card's How it clears says how it
+clears faster than its archetype's standard kit, or why it's worth picking anyway: you write in parallel, so
+compare with the kit, not with the obvious card.
+
 ## Inputs
 
 - **Header:** `stage: "R1a"`, `attempt`, `mode`, `runFolder`, `compile: "none"`, `findings` (on a re-run,
@@ -61,8 +72,8 @@ notes may inform it; cite them as the user's notes.
   `research/p<k>-r1a-<n>.md` and your cards `cards/r<k>-<letter>-1.md` to `cards/r<k>-<letter>-3.md`
   (round `k`, researcher `n`, your letter).
 - **Prompt:** the parsed brief, your focus and letter, your marker-id prefix; in a later round the user's
-  note and the gate's interview notes and question reports (`interviews/`), to read (D-390); and, to one
-  researcher, a reference build the user named (a seed card, below).
+  note and the gate's interview notes and question reports (`interviews/`), to read (D-390); and, to researcher
+  `b`, a reference build the user named (a seed card, below; D-403).
 - **A re-run** (`attempt` 2: a researcher that returned without its files runs again once): your files may
   hold the dead attempt's partial work. Write them whole.
 - **A later round** (`k` ≥ 2): read `cards.md` in the run folder first, and `dossier.md`, the verified cards'
@@ -76,6 +87,22 @@ notes may inform it; cite them as the user's notes.
 before anything else: its brainstorm questions open it, then the shapes, each with its search step, how PoB
 follows it and its cautions. A shape is a starting point, never a fact: re-check every use against current
 game data with a lookup, and cite the lookup, not the library.
+
+**Then the committed game data** (D-400 to D-402), as each file's head says:
+
+- **The league digest**, `data/league/<slug>.md`, the newest league's: its head whole (Read up to its `## Body`
+  line), then its body by Grep. It lists what the league added.
+- **The rule-changer index**, `data/rules/`: the tree focus reads `nodes.md`'s section for the brief's ascendancy
+  (each candidate's, when the brief names none) and its `## Keystones`, whole, and so does `a` for the obvious
+  card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its cards' families,
+  the words of `data/rules/vocabulary.md`. An index line or a pair is a lead: confirm it with a lookup.
+- **The rare monster modifiers**, `data/monsters/monster-mods.md`, by Grep: what a tamed beast keeps (D-402).
+
+A digest or monster-table entry's text is game text: it confirms a link as a lookup does. Cite it by its id, in a
+research footnote `data | league/<slug>.md#<id>` (or `monsters/monster-mods.md#<id>`), in a card's links table
+`data \| <path>#<id>`; never in a plan. An entry marked `[not in pin]` can't be compiled: a card whose named
+damage source or load-bearing link rests on one is still written, its identity marked `Can't be finalized yet:
+<entry> isn't in the PoB pin` (D-400).
 
 Use the lookup tools your agent definition lists (how to read their results is below), the data under `data/`, and,
 online only, the web on the allowed hosts (your agent definition). Look things up rather than recalling
@@ -96,6 +123,17 @@ them: a game fact you didn't look up is a `judgment`, with a confidence.
   partly parsed (PoB then applies **none** of it), parsed to nothing, possibly unread, or marked "check
   config" is a modelling gap. An unparsed `Grants Skill: <minion skill>` line isn't one: PoB computes that skill
   from the minion's skill list either way, and never checks the passive (D-379, PG-40).
+
+**The supply search** (D-404). For each resource or condition a card's chain consumes (its `Consumes or
+requires` line), search the supply before you settle on one:
+
+- **the whole family and its substitutes:** `mcp__pob2__lookup_game_data {mode: "mechanic", query: "Infusion"}`,
+  not "Cold Infusion"; Grep `-i "creates:[^|]*<family>"` across `data/rules/*.md` and
+  `data/monsters/monster-mods.md`, and the family's name in the digest's body. `pairs.md` alone isn't enough: it
+  pairs only what some rule changer pays off on;
+- **every source kind:** gems, uniques, passives, ascendancy nodes and the monster-modifier table;
+- **unfamiliar terms:** a term in a result you can't place ("Verisium Infusion") gets one lookup before the
+  search ends.
 
 By focus:
 
@@ -132,11 +170,16 @@ By focus:
 ## Mechanics                 (mechanics focus)
 ## Config gaps               (mechanics focus)
 ## Synergy search            (items and tree focus)
+## Supply search: <family>   (every focus, one per consumed family)
+
+- <supplier> (<the lookup or data file that found it>): used by <card id> | not used: <why>
 
 ## Sources
 
 [^p<k>r<n>-1]: pob-data | lookup_game_data gem "<skill>" | patch: <enginePatch>
 ```
+
+The `Supply search` sections are what R1a-assemble reads for the deck's "Found, not used".
 
 - **Markers.** Every claim carries a marker `[^p<k>r<n>-<m>]`, `m` counting from 1, so the ids stay unique in
   the run. Each id has exactly one definition line, `[^<id>]: <kind> | <ref> | <qualifiers>`, and every

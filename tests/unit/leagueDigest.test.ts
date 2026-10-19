@@ -456,7 +456,11 @@ describe('the first digest, data/league/runes-of-aldur.md (WU-84, D-400): built 
     lines.forEach((l, i) => {
       if (l.startsWith('### ')) expect(lines[i + 1]).toMatch(/^- Id: /);
     });
-    const judged: Record<string, string> = JSON.parse(fs.readFileSync(path.join(path.dirname(DIGEST), 'runes-of-aldur.rule-changers.json'), 'utf8')).ruleChangers;
+    const judgments = JSON.parse(fs.readFileSync(path.join(path.dirname(DIGEST), 'runes-of-aldur.rule-changers.json'), 'utf8'));
+    // The judgments file opens with the criterion they were judged by.
+    expect(Object.keys(judgments)).toEqual(['criterion', 'ruleChangers']);
+    expect(judgments.criterion).toMatch(/^A socketable is a rule changer when .* It is not one when it adds or scales a number/);
+    const judged: Record<string, string> = judgments.ruleChangers;
     const socketable = (b: Block) => b.fields.Kind === 'item' && b.fields.Tags.split(', ').includes('SoulCore');
     const first = body.findIndex(socketable);
     const shown = body.filter((b) => !socketable(b) || judged[b.fields.Id] !== undefined);

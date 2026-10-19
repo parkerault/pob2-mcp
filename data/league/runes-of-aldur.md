@@ -117,13 +117,13 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Idol of Oak (item, SoulCore) [rule]: in a sceptre, Endurance Charges you would gain go to allies in your Presence instead
 - Idol of Alira (item, SoulCore) [rule]: in a sceptre, Power Charges you would gain go to allies in your Presence instead
 - Idol of Kraityn (item, SoulCore) [rule]: in a sceptre, Frenzy Charges you would gain go to allies in your Presence instead
+- Emergent Vigour (item, SoulCore) [rule]: in boots, hits against you have no Critical Damage Bonus while you're on Consecrated Ground
 - Emergent Instinct (item, SoulCore) [rule]: in a helmet, Blinded, Maimed and Bleeding targets can't Evade your hits
 - Carved Cunning (item, SoulCore) [rule]: in a helmet, enemies on full Life can't Evade your hits
 - Carved Tenacity (item, SoulCore) [rule]: in a helmet, enemies you Blind have no Critical Damage Bonus for 4 seconds
-- Warding Rune of Nourishment (item, SoulCore) [rule]: in armour, Life recovery from flasks also applies to Runic Ward
 - Warding Rune of Annihilation (item, SoulCore) [rule]: in a martial weapon, attacks spend Runic Ward to gain that much added Physical damage
 - Warding Rune of Obsession (item, SoulCore) [rule]: in a wand, all damage taken bypasses Runic Ward and its regeneration doubles
-- Warding Rune of Equinox (item, SoulCore) [rule]: in a caster weapon, Mana regeneration also recovers Runic Ward
+- Warding Rune of Equinox (item, SoulCore) [rule]: in a caster weapon, 40% less Mana regeneration, which also recovers Runic Ward
 - Passion of Aldur (item, SoulCore) [rule]: in a weapon, its Cold and Lightning modifiers become equivalent Fire ones
 - Breath of Aldur (item, SoulCore) [rule]: in a weapon, its Fire and Lightning modifiers become equivalent Cold ones
 - Ire of Aldur (item, SoulCore) [rule]: in a weapon, its Fire and Cold modifiers become equivalent Lightning ones
@@ -139,22 +139,20 @@ Entries: 57 gems, 46 uniques, 217 items, 2 ascendancies, 2 passives; 303 of the 
 - Thrud's Might (item, SoulCore) [rule]: a weapon can roll Destruction modifiers
 - Medved's Tending (item, SoulCore) [rule]: a body armour can roll Soul modifiers
 - Katla's Gloom (item, SoulCore) [rule]: gloves can roll Decay modifiers
+- Legacy of Bramblejack (item, SoulCore) [rule]: in a body armour, 250% of the melee Physical damage you take is reflected to the attacker
+- Legacy of Ashrend (item, SoulCore) [rule]: in a body armour, you can't be Ignited
 - Legacy of Ezomyte Peak (item, SoulCore) [rule]: in a helmet, grants Unwavering Stance
 - Legacy of Deidbell (item, SoulCore) [rule]: in a helmet, Warcries explode corpses for 10% of their Life as Physical damage
-- Legacy of Starkonja's Head (item, SoulCore) [rule]: in a helmet, part of the damage from hits is taken from your Companion's Life first
 - Legacy of Crown of Thorns (item, SoulCore) [rule]: in a helmet, grants the Pain Attunement keystone
-- Legacy of The Smiling Knight (item, SoulCore) [rule]: in a helmet, critical hits with attacks Aggravate Bleeding
 - Legacy of Northpaw (item, SoulCore) [rule]: in gloves, weapon attacks' base Critical Hit Chance becomes 7%, whatever the weapon
 - Legacy of Deathblow (item, SoulCore) [rule]: in gloves, grants Culling Strike
+- Legacy of Trampletoe (item, SoulCore) [rule]: in boots, 10% of Overkill damage hits enemies within 2 metres of the enemy killed
 - Legacy of Bushwhack (item, SoulCore) [rule]: in boots, your Physical damage Pins
 - Legacy of Wanderlust (item, SoulCore) [rule]: in boots, Slows no longer reduce your speed
 - Legacy of The Knight-errant (item, SoulCore) [rule]: in boots, grants the Iron Reflexes keystone
-- Legacy of Chernobog's Pillar (item, SoulCore) [rule]: in a shield, Block chance becomes extra Fire damage
 - Legacy of Trenchtimbre (item, SoulCore) [rule]: in a one-hand mace, your modifiers to minion attack speed also apply to you
-- Legacy of Twisted Empyrean (item, SoulCore) [rule]: in a two-hand mace, maximum Mana adds Cold damage to its attacks
 - Legacy of Brain Rattler (item, SoulCore) [rule]: in a two-hand mace, all its damage builds Electrocution, not only Lightning
 - Legacy of Tyranny's Grip (item, SoulCore) [rule]: in a spear, Strikes deal Splash damage
-- Legacy of Ironbound (item, SoulCore) [rule]: in a bow, Block chance adds Physical damage to its hits
 - Legacy of Svalinn (item, SoulCore) [rule]: in a shield, Block is Lucky but blocked hits still deal 20% of their damage
 - Legacy of Serle's Grit (item, SoulCore) [rule]: in a one-hand mace, its maximum Quality becomes 40%
 - The Triskelion Reforged (item, MapFragment): Travel to the Ruins of Kingsmarch and speak to Makoru to reach the Fallen Star where … [not in pin]

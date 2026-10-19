@@ -552,7 +552,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     ]);
   });
 
-  it("verification, D-407's pace: a skeleton record from before WU-88, with no measures, shows the card's How it clears as the estimate it is; one with WU-88's measures leads with its clear speed and movement speed, How it clears unmarked, then the Bosses line and the figures", () => {
+  it("verification, D-407's pace: a skeleton record from before WU-88, with no measures, shows the card's How it clears as the estimate it is; one with WU-88's measures leads with its clear speed and movement speed, How it clears marked an estimate (its time to first damage, which PoB doesn't measure), then the Bosses line and the figures", () => {
     const dir = copy('run-interview');
     const how = 'Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.';
     // WU-88 measures every card skeleton (D-407); this fixture's skeleton records were written before it, with no
@@ -572,7 +572,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     expect(out.slice(at + 2, at + 8)).toEqual([
       "   Clear speed: fast (a rough estimate from Blood Hunt's area).",
       '   Movement speed: +25% over your base speed.',
-      `   How it clears: ${how}`,
+      `   How it clears: ${how} (an estimate)`,
       '   Bosses: Re-apply bleed, then lunge to consume it; the burst is its boss answer.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",

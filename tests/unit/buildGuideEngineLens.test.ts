@@ -149,10 +149,41 @@ describe('AC-W73 (D-405): no more than half a round on one engine', () => {
     ]);
   });
 
-  it('passes it when the round is short for that reason', () => {
-    const dir = fiveOnHit();
-    editLog(dir, (l) => { l.stages[at(l, 'R1a-assemble')].shortReason = 'short: 5 cards share one engine'; });
-    passes(dir);
+  /**
+   * run-rival as a round short for one engine: seven of its nine cards on bleed from on-hit, so the rule's 3 of 6 plus
+   * the two others would leave 5; it deals the fewest extra cards that reach 6 (4 on the engine), and the other three
+   * on it go under "Not dealt" with D-405's reason.
+   */
+  const shortRound = (): string => {
+    const dir = copy('run-rival');
+    const onHit = ['r1-a-1', 'r1-a-2', 'r1-a-3', 'r1-b-1', 'r1-b-3', 'r1-c-1', 'r1-c-3'];
+    const held = ['r1-a-3', 'r1-c-1', 'r1-c-3'];
+    editText(dir, 'cards.md', (t) => {
+      const kept: string[] = [];
+      const moved: string[] = [];
+      for (const l of t.split('\n')) {
+        const id = /^- (r1-[a-c]-\d) /.exec(l)?.[1];
+        if (id === undefined) kept.push(l);
+        else if (held.includes(id)) moved.push(`- ${id} ${/"[^"]*"/.exec(l)![0]} | the round already holds 4 cards on this engine | engine: bleed from on-hit`);
+        else kept.push(onHit.includes(id) ? l.replace(/engine: \S+ from \S+/, 'engine: bleed from on-hit') : l);
+      }
+      return kept.join('\n')
+        .replace(/^Six engines: .*$/m, 'Three engines: bleed from on-hit (4), bleed from weapon-slot (1) and bleed from on-block (1); short for one engine.')
+        .replace('## Not dealt\n\nNone.', `## Not dealt\n\n${moved.join('\n')}`);
+    });
+    editLog(dir, (l) => { l.stages[at(l, 'R1a-assemble')].shortReason = 'short: 4 cards share one engine'; });
+    return dir;
+  };
+
+  it('passes a round short for that reason, which deals only the fewest extra cards that reach 6; fails the 5-of-9 round marked short (§7 binds)', () => {
+    const six = shortRound();
+    expect(fs.readFileSync(path.join(six, 'cards.md'), 'utf8')).toContain('- r1-c-3 "Blood Hunt rage cycling" | the round already holds 4 cards on this engine | engine: bleed from on-hit');
+    passes(six);
+    const nine = fiveOnHit();
+    editLog(nine, (l) => { l.stages[at(l, 'R1a-assemble')].shortReason = 'short: 5 cards share one engine'; });
+    expect(lines(failing(nine), 'deck')).toEqual([
+      expect.stringMatching(/cards\.md's round 1 is short for one engine \(its shortReason "short: 5 cards share one engine"\), but it deals 9 cards; a round the rule would leave under 6 deals only the fewest extra cards that reach 6, the rest under "Not dealt" \(D-405\)/),
+    ]);
   });
 
   /**
@@ -353,7 +384,8 @@ describe('AC-W73 (D-407): the verification and design displays print clear speed
       '   Why pick it: One lunge spends the bleed you built for a big hit, so rares melt in two presses. The simplest Blood Hunt loop in the deck.',
       "   Clear speed: medium (a rough estimate from Herald of Blood's area).",
       '   Movement speed: +10% over your base speed.',
-      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one.',
+      // The card's time to first damage on a new pack, which PoB doesn't measure: an estimate beside the measured band.
+      '   How it clears: Lunge into the pack with Blood Hunt; Herald of Blood pops the bleeding dead. One button for packs, and the lunge carries you to the next one. (an estimate)',
       '   Bosses: Re-apply bleed, then lunge to consume it; the burst is its boss answer.',
       '   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).',
       "   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).",
@@ -452,6 +484,16 @@ describe('AC-W73 (D-400, D-401): a data citation to a Markdown data file resolve
     editText(dir, 'research/p1-r1a-1.md', replace('fixture-league.md#crimson-test-spear', 'fixture-league.md#no-such-entry'));
     expect(lines(failing(dir), 'markers')).toEqual([
       'check-run: [markers] research/p1-r1a-1.md:14 [^m2]: data league/fixture-league.md#no-such-entry names no entry of a Markdown data file (D-400, M-20\'s entry id): league/fixture-league.md has no entry "no-such-entry": an H3 "### <Name>" whose next line is "- Id: no-such-entry"',
+    ]);
+  });
+
+  it('refuses a Markdown data entry cited in a plan claim: those are cited in research footnotes only, since compile_plan would refuse the plan', () => {
+    const dir = copy('run-rival');
+    editJson(dir, 'concepts/r1-a-1/plan.json', (p) => {
+      p.stages[0].claims = [...(p.stages[0].claims ?? []), { id: 'spear', text: 'The spear adds bleed.', kind: 'reason', source: 'data:league/fixture-league.md#crimson-test-spear' }];
+    });
+    expect(lines(failing(dir), 'markers')).toEqual([
+      expect.stringMatching(/concepts\/r1-a-1\/plan\.json stages\[0\]\.claims\[\d+\]: source "data:league\/fixture-league\.md#crimson-test-spear" cites a Markdown data entry; those are cited only in research footnotes, never in a plan: compile_plan resolves a plan's data: sources in the campaign and enemies JSON facts alone \(D-232, D-400\)/),
     ]);
   });
 

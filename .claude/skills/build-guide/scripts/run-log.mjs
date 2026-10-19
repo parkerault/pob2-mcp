@@ -794,12 +794,13 @@ function verificationDisplay(dir, log) {
     // D-407: the pace leads, the skeleton's measured clear speed and movement speed, then the boss floor (the card's
     // Bosses line: a skeleton has no Arbiter check), then damage and toughness. A record from before WU-88 has no
     // measures, so a verified card's "How it clears" stands in, marked as the estimate it is; when PoB gives the clear
-    // skill no area, the card's estimate leads.
+    // skill no area, the card's estimate leads. Beside a measured clear speed, "How it clears" is the card's estimate of
+    // the time to first damage on a new pack, which PoB doesn't measure, so it is marked "(an estimate)" too.
     const pace = fig?.clear ?? null;
     const how = text(field('How it clears')) ? plain(field('How it clears')) : null;
     if (how && noArea(pace)) out.push(`   How it clears: ${how} (the card's estimate)`);
     if (pace) out.push(`   Clear speed: ${clearPhrase(pace)}.`, `   Movement speed: ${moveWords(fig.move)}.`);
-    if (how && !noArea(pace)) out.push(`   How it clears: ${how}${fig !== null && !pace ? ' (an estimate; measured at the design)' : ''}`);
+    if (how && !noArea(pace)) out.push(`   How it clears: ${how}${pace ? ' (an estimate)' : fig !== null ? ' (an estimate; measured at the design)' : ''}`);
     if (text(field('Bosses'))) out.push(`   Bosses: ${plain(field('Bosses'))}`);
     if (fig) {
       const measured = fig.estimate ? 'an estimate: a Count above 1 or a custom modifier carries it' : 'modelled in PoB';

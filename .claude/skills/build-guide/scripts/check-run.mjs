@@ -58,7 +58,8 @@
 //    <entry>` on a card that can't be finalized yet (D-400); the obvious card's `Obvious build:` (D-403); the structure
 //    check's `A stronger structure?` as its last line (D-406); the dossier's clear-speed column (D-407); and a `data`
 //    citation to a Markdown data file by its entry id (`### <Name>` then `- Id: <id>`; in rules/nodes.md, a node line by
-//    its node id). The formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
+//    its node id), in a research file's footnotes only: a plan citing one fails, since compile_plan refuses it. The
+//    formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -899,7 +900,11 @@ export async function checkRun(runFolder) {
           const m = /^(?:(ledger|price):(\S+)|data:([^#\s]+)#(\S+))$/.exec(c.source);
           if (!m) return fail('source-tags', `${where}: source ${show(c.source)} is neither a tag nor ledger:, price: or data:`);
           const cite = m[1] ? { kind: m[1], id: m[2] } : { kind: 'data', file: m[3], key: m[4] };
-          checkCitation(where, cite, scope);
+          // D-400: a Markdown data entry is cited only in a research file's footnotes; compile_plan's validation resolves
+          // a plan's data: sources in the campaign and enemies JSON facts alone (D-232), so it would refuse the plan.
+          if (cite.kind === 'data' && /\.md$/i.test(cite.file)) {
+            fail('markers', `${where}: source ${show(c.source)} cites a Markdown data entry; those are cited only in research footnotes, never in a plan: compile_plan resolves a plan's data: sources in the campaign and enemies JSON facts alone (D-232, D-400)`);
+          } else checkCitation(where, cite, scope);
           out.push({ kind: cite.kind, at: `stages[${i}].claims[${k}]`, id: c.id });
         } else {
           checkTag(where, c.source);
@@ -2717,7 +2722,8 @@ function terminalR1b(rep) {
  * Amendment 8: a line's `engine: <family> from <family>` names its engine in data/rules/vocabulary.md's words (D-401,
  * D-405); once the deck names one, or the run ran the rival (`ctx.rivalRan`), every dealt researcher's card names
  * one. A round deals at most half its cards on one engine, rounded down (an engine whose consumed family is `none`
- * is no engine), unless its R1a-assemble entry's `shortReason` says `short: <n> cards share one engine` or the user's
+ * is no engine), unless its R1a-assemble entry's `shortReason` says `short: <n> cards share one engine` (the rule
+ * yields to the minimum only: such a round deals the fewest extra cards that reach 6, so no more than 6) or the user's
  * note for the round (`ctx.noteOf(k)`, the `more` answer that opened it) names the engine's consumed family. The
  * header's "How they differ" names each engine of the deck's dealt cards with its count, `<engine> (<n>)`. A line
  * `waits on the pin: <entry>` is also marked `can't be finalized yet: <why>` (D-303, D-400).
@@ -2822,6 +2828,9 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
       const asked = typeof note === 'string' && new RegExp(`(?<![a-z0-9])${consumed.replace(/-/g, '[- ]')}(?![a-z0-9])`, 'i').test(note);
       if (!shortFor && !asked) {
         fail('deck', `cards.md's round ${r.k} deals ${n} of ${dealt.length} cards on the engine "${key}"; a round deals at most half its cards on one engine, rounded down (${cap} of ${dealt.length}), unless it is short for that reason (its R1a-assemble entry's shortReason "short: ${n} cards share one engine") or the user's note for the round asks for that engine (D-405)`);
+      } else if (!asked && dealt.length > DEAL.min) {
+        // D-405 yields to the minimum only: the round deals the fewest extra cards that reach 6, and no more.
+        fail('deck', `cards.md's round ${r.k} is short for one engine (its shortReason "short: ${n} cards share one engine"), but it deals ${dealt.length} cards; a round the rule would leave under ${DEAL.min} deals only the fewest extra cards that reach ${DEAL.min}, the rest under "Not dealt" (D-405)`);
       }
     }
   }

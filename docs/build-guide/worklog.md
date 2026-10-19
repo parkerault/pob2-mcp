@@ -4638,3 +4638,10 @@ the `m17` engine at `b76967b`.
 - **WU-90 dispatched** (`bg-90`, off `826d2e3`): the library's questions 11–14, "Standard kits" (every line sourced;
   the user reviews them), "A count as a multiplier" beside the unchanged count entry, four new shapes, and a review
   sheet for the user (`studies/2026-10-18-wu90-review.md`). Its gate is the static tests.
+- **WU-89 verified: PASS** (one should-fix, seven lows). Gate rc 0 under the lock (140 suites, 2,489 tests); 25 tests
+  for AC-W73, each catching a mutation of its rule. Rulings sent back in a small fix round: Markdown data entries
+  are cited only in research footnotes, never in a plan (the server's plan validation knows only the JSON facts
+  files, and widening it would be an HG-12 change); D-405's short-round exception allows no more than 6 dealt cards
+  (§7 binds over AC-W73's looser wording); three formats the file lacked. **Left open (low):** nothing yet requires
+  a new run's parts (the rival step, the obvious card, the structure check), since old runs must still check; a
+  format version in the run log would let the checker require them. For the live run's review.

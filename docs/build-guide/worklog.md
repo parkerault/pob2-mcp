@@ -5157,3 +5157,10 @@ the `m17` engine at `b76967b`.
   default `stop` ends the run); the endgame reward-pick rule is skipped for a design made before a migrated run's
   first resume (Executioner's Howl). **For WU-95:** point the `run-log.md` example test back at the rewritten
   reference. The verifier is running.
+- **WU-98 verified: PASS** (about 167K tokens; the regression test fails on the old limiter for the right reason).
+  **Merged** into `build-guide/m21` (rebased, fast-forward, `06d85d6`). **Notes for the fold:** C-11 keeps windows
+  per policy and per kind (`auth` is internal); one gap remains, narrow: a process's first anonymous request after
+  only logged-in traffic is still admitted under the logged-in windows (no limit can be hard-coded, S-4), so the
+  next live 429's logged headers decide whether a floor is worth seeding. **After WU-92 merges:** drop the static
+  test's `meta === undefined` branch (`runSettingsExample.test.ts:135-138`). The user's launcher keeps its own deny
+  rule for its `reference/` folder, which the example leaves out.

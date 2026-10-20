@@ -5240,3 +5240,7 @@ the `m17` engine at `b76967b`.
   `reason` claim; the checker's `tree` rule exempts a gate whose compile failed or was refused; `gates.md`'s `keep`
   gains the later rungs' `respec.dropped`. Gate rc 0 (155 suites, 2,761 tests). **For WU-95:** the runner passes
   D1-tree's `unspent:` lines into D1-finish's prompt. The verifier re-checks.
+- **WU-96 re-checked: PASS** (both defects fixed; the checker change is one hunk in `checkTreePart`; the verifier's
+  earlier count was 13 checker cases, not 14). **Merged** (rebased, fast-forward). Wave 2's stage files are in:
+  WU-96, WU-97, WU-98. WU-95 starts after WU-92 and WU-93 merge (it adds `get_node_power` to the coordinator's tool
+  list, which the static tests check against `TOOL_META`).

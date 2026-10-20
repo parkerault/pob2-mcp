@@ -1181,7 +1181,9 @@ function verificationDisplay(dir, log) {
     if (fig) {
       const measured = fig.estimate ? 'an estimate: a Count above 1 or a custom modifier carries it' : 'modelled in PoB';
       out.push(`   Damage: ${whole(fig.dps)} per second from ${fig.minion ? `${fig.skill}'s minions` : fig.skill}, against ${fig.against} (${measured}).`);
-      out.push(`   Toughness: ${whole(fig.life)} life and ${whole(fig.ehp)} effective HP (PoB's estimate of the damage it takes to kill you).`);
+      // D-423: the effective HP names the hit the dossier's EHP column gives ("31,500 vs T15 map hits").
+      const hit = /\bvs\.?\s+(.+)$/i.exec(r.cell('EHP'))?.[1]?.trim();
+      out.push(`   Toughness: ${whole(fig.life)} life and ${whole(fig.ehp)} effective HP${hit ? ` against ${plain(hit)}` : ''} (PoB's estimate of the damage it takes to kill you).`);
     }
     const prices = r.cell('Key prices');
     if (text(prices) && !/^[—-]+$/.test(prices)) out.push(`   Key prices: ${plain(prices)}${/^none\b/i.test(r.cell('League')) || /^[—-]*$/.test(r.cell('League')) ? '' : ` (league: ${r.cell('League')})`}.`);
@@ -1283,7 +1285,9 @@ function designDisplay(dir, log, id) {
     out.push(`- Movement speed: ${moveWords(moveOf(rec))}.`);
     if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
     out.push(`- Damage: ${whole(r.dps)} per second.`);
-    out.push(`- Effective HP: ${whole(r.ehp)}.`);
+    // D-423: the Effective HP line names the hit it was measured against (the rung's `ehpHit`), so it compares with
+    // the dossier's EHP at the verification gate.
+    out.push(`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}.`);
     for (const [k, label] of [['anoint', 'Anoint'], ['gear', 'Gear'], ['gems', 'Gems'], ['tree', 'Passive tree']]) if (text(r[k])) out.push(`- ${label}: ${r[k]}`);
     // D-419: schema 4's tree is the node-power summary, its needs one line each.
     if (isObj(r.tree)) out.push(...treeLines(r.tree));

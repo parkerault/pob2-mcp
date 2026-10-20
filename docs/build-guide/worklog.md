@@ -5221,3 +5221,11 @@ the `m17` engine at `b76967b`.
   drop a rung's anoint when a swap allocates the anointed notable; the order claim is `m-ascendancy-order`; each
   design rung gains `ehpHit`. **Unowned loose ends, given to WU-95 in the handoff:** `stages/README.md`, `D2.md` and
   `D2-gate.md`'s root paths, and `run-log.mjs`'s Effective HP line without the hit. The verifier is running.
+- **WU-96 verified: FAIL on two blockers** (gate rc 0; 14 of 14 real-checker cases on temp copies as expected
+  otherwise): (1) D1-tree's spare-points count uses the tool's untagged count, while V1 counts untagged plus the
+  larger weapon set, so on a rung with weapon-set passives spending overshoots, V1 flags it, the change is undone
+  and the points stay unspent (and D1-build no longer fills them); (2) the merged checker (`check-run.mjs:3805`)
+  rejects `tree: "unverified"` with no tree finding when the compile itself failed. **Coordinator's ruling:** the
+  checker is wrong; WU-96's fix round owns that one rule (exempt `tree` when `compiled` isn't `pass`) with a test.
+  Fix round sent. **For WU-95 (added):** the verification display also names no hit (`run-log.mjs:1184`), with the
+  design display's line; `checkpoints.md:173-177`'s example tree and EHP lines.

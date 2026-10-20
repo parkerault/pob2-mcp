@@ -5146,3 +5146,14 @@ the `m17` engine at `b76967b`.
   `compact` hook). **For WU-95:** copy the script's rule text into `SKILL.md`. **For the fold:** C-11's internal
   interface gains `auth`. **After WU-92 merges:** drop the static test's allowance for `get_node_power` missing from
   `TOOL_META`. The verifier is running.
+- **WU-94 done by its doer** (`de32b26`, one commit, about 750K tokens, the largest so far). Gate rc 0 (150 suites,
+  2,682 tests), build rc 0. Schema 4 through `run-log.mjs` (a `build` kind for `builds[]`; `resume` with the
+  lists' lengths; `init` requiring `noNinja`; `migrate`; `display design|final --build <id>`), `check-run.mjs` per
+  build with every order rule, `render-audit.mjs --build`, `run-usage.mjs` with several transcripts; 44 tests on a
+  two-build fixture. **Formats the stage files must match** (for WU-95 to WU-97): F1's ledger refusal is code
+  `ledger-refused` in part `compiled`; the design display's tree lines follow the Gems line (`- Passive tree: …`,
+  then `- Kept on the tree: <need>` per need); the final display appends each rung's travel; `V4-campaign`'s H1 is
+  `# V4-<n>: campaign pass of rounds/<n-1>`. **Deviations:** a user's design-gate `stop` ends that build only (a
+  default `stop` ends the run); the endgame reward-pick rule is skipped for a design made before a migrated run's
+  first resume (Executioner's Howl). **For WU-95:** point the `run-log.md` example test back at the rewritten
+  reference. The verifier is running.

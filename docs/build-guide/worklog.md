@@ -5018,3 +5018,52 @@ the `m17` engine at `b76967b`.
 - **A PoB gap candidate:** Avatar of Fire with "gain as extra": the user's rule (poe2wiki, pasted at the gate) is
   that gained cold and lightning convert to fire before "Deal no Non-Fire Damage" applies; PoB drops them. Two Q
   steps measured the wand and staff under the rule as estimates. Candidate PG entry, behind an in-game check.
+
+## 2026-10-19: the user's rulings; node power; Gem Studded checked
+
+- **The user's rulings on the endgame-first restructure (all four as recommended):** several cards finalized at the
+  verification gate, and a way back for more after each build's final gate; the output cap per build, not per
+  run; the campaign offered at the final gate and as a later command; no respec list from the user's own PoB file
+  for now.
+- **Gem Studded, checked in game by the user:** only the active weapon set's support gems count. PoB counts the
+  socketed supports of both sets (`Modules/CalcSetup.lua:2104`), so it overstates Gem Studded, and any modifier
+  that counts socketed supports, on a build with a skill in set 2. Candidate PG entry, cited to the user's test;
+  the weapon-set candidates above stand otherwise.
+- **The user's review of Executioner's Howl:** the concept is creative, the passive tree is poor. PoB's "Show node
+  power" (Full DPS) shows dozens of easily reached nodes with large gains left unallocated. Real builds tend to run
+  one main trunk from the start out to their clusters; ours run many long branches to separate clusters of average
+  payoff, spending many points on travel. The user's diagnosis: the designers judge a cluster by its gain and
+  ignore the points its path costs; they should divide the gain by the points.
+- **What the transcripts show:** the tree is built by picking targets and pathing to each. The R1b steps called
+  `find_path_to_node` 22 to 35 times per card with `search_tree_nodes`, and `get_passive_upgrades` never;
+  D1-build, which starts from the skeleton's tree, called `get_passive_upgrades` once and D1-finish once.
+- **Why `get_passive_upgrades` can't stand in for node power** (`src/handlers/treeHandlers.ts:487-600`): it
+  takes notables only, found by text search on up to four keywords ("damage", "critical", "life", "energy
+  shield", "resistance"), the 8 nearest per keyword, so at most 32 candidates; it skips small passives,
+  keystones and every notable whose text lacks those words (warcry speed, area, cooldown, exposure, culling);
+  it measures CombinedDPS or TotalDPS, not Full DPS; it has no distance limit; and it never measures what an
+  allocated branch is worth.
+- **PoB's node power** (`Classes/CalcsTab.lua:521`, `PowerBuilder`; `Classes/TreeTab.lua`,
+  `BuildPowerReportList`): for every normal, notable and keystone node within `nodePowerMaxDepth`, for any stat
+  in `data.powerStatList` ("Full DPS" included): an unallocated node's gain alone and with its whole path, the
+  latter divided by the path's points; an allocated node's loss alone and with every node that depends on it,
+  divided by those points. The second half finds the long branches to weak clusters directly.
+- **Candidates, the next amendment's second headline:**
+  - **A tool, `get_node_power`** {stat from PoB's list, max distance, how many}: runs PoB's own `PowerBuilder` on
+    the loaded build and returns its report, unallocated nodes by gain per point (with the path) and allocated
+    branches by loss per point (the weakest first). `get_passive_upgrades` is rebuilt on it or retired. A
+    spike first: that the builder runs in the headless engine (it runs without a coroutine; its inputs, node
+    paths and the misc calculator, already serve `search_tree_nodes` and `calc_with`) and how long Full DPS takes.
+  - **D1-build's tree step** becomes a swap loop: drop the branch that loses least per point, spend the points on
+    the best per-point nodes in reach, repeat while a swap gains, with the toughness floor's stat beside Full
+    DPS. R1b's skeleton tree stays a sketch.
+  - **The D1 gate** re-runs node power and reports the best swap left; the design display prints the points spent
+    on travel and the top nodes in reach per point, so the user can judge the tree without opening PoB.
+  - **The library** gains the user's observation on tree shape (one main trunk outward to the clusters), cited to
+    the user.
+- **The other card, r1-b-3 "Caster-Staff Warcaller":** the user wants it finalized in a new session, against a
+  real build. Recommended after the amendment: the resume path finalizes it from this run folder with D1 alone,
+  where a run now re-brainstorms (about 0.4M) and re-verifies before D1, and would re-find the tree weakness. The
+  amendment's resume path must accept this schema-3 run folder. Meanwhile R1b's skeleton
+  (`concepts/r1-b-3/compiled-build.xml`, import code in its `compile-record.json`) loads in PoB for a free
+  comparison.

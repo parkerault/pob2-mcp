@@ -5164,3 +5164,6 @@ the `m17` engine at `b76967b`.
   next live 429's logged headers decide whether a floor is worth seeding. **After WU-92 merges:** drop the static
   test's `meta === undefined` branch (`runSettingsExample.test.ts:135-138`). The user's launcher keeps its own deny
   rule for its `reference/` folder, which the example leaves out.
+- **WU-97 dispatched early** (`bg-97`, off `6bd311b`): skill text only (the endgame template, `W1.md`, `V4.md`), it
+  needs no unmerged code, and may read WU-94's scripts in `bg-94` to match the checker's formats. WU-96 waits for
+  WU-92's report (D1-tree must match `get_node_power`'s final arguments).

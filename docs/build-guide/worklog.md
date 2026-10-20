@@ -5167,3 +5167,10 @@ the `m17` engine at `b76967b`.
 - **WU-97 dispatched early** (`bg-97`, off `6bd311b`): skill text only (the endgame template, `W1.md`, `V4.md`), it
   needs no unmerged code, and may read WU-94's scripts in `bg-94` to match the checker's formats. WU-96 waits for
   WU-92's report (D1-tree must match `get_node_power`'s final arguments).
+- **WU-94 verified: PASS** (about 324K tokens; 26 mutated copies of the fixture's log and gate files, each flagged
+  with the right message; controls pass). **Merged** into `build-guide/m21` (rebased, fast-forward, `578efe3`). Its
+  formats for the stage files and `SKILL.md` (the `build` and `resume` kinds, `ledger-refused`, a migrated build's
+  PoB name without the card id, `tool-error` logged `fail`, the default `stop`, the display's tree lines,
+  `V4-campaign`'s H1, `design:<id>` only on an unchanged plan) are added to the handoff's M-21 formats. One
+  temporary weakening: `buildGuideScripts.test.ts:414` holds schema-4 calls inline until WU-95 rewrites
+  `run-log.md`.

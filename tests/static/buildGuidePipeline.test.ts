@@ -1070,7 +1070,8 @@ describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only -
   it("the re-check covers only the set check-run.mjs --changed <n> lists against rounds/<n>/, and a revision runs no full pass", () => {
     const text = v4();
     expect(text).toMatch(/V4 runs once more as a \*\*re-check\*\* \(step 13\) of only what `check-run\.mjs --changed <n>` lists: the claims whose text, source or cited record values changed since the runner's copy in `rounds\/<n>\/`, and the guide's changed H2s\. \*\*A revision runs no full pass\*\*/);
-    expect(text).toMatch(/`changed`: a re-check only: the lines `check-run\.mjs --changed <n-1>` printed, as printed, one item each, `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>`\. Locations, never text/);
+    // WU-97 (D-415): the campaign pass gets the same lines.
+    expect(text).toMatch(/`changed`: a re-check or the campaign pass: the lines `check-run\.mjs --changed <n-1>` printed, as printed, one item each, `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>`\. Locations, never text/);
     expect(text).toMatch(/`## Checked` lists every item of `changed`, as the header gives it\. Nothing else: the rest was checked before\. This is also a revision's check: a revision runs no full pass\. After a fix round's re-check there is no further round/);
     const s = skill();
     expect(s).toMatch(/## Step 13, the re-check Run `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder> --changed <n>`, `<n>` the round copy's number: it prints the claims whose text, source or cited record values changed since `rounds\/<n>\/`, and the guide's changed H2s, one per line( \(`claim stages\[<i>\]\.claims\[<k>\] \(<id>\)`, `section <H2 title>`\))?\. Then start one verifier, `check: "recheck"`, `writes: \["reports\/V4-<n\+1>\.md"\]`, `findings` the ids of report `<n>`'s `unresolved` findings, and `changed` the lines the checker printed, as printed\. It re-checks only those, whether or not an owner recompiled: no re-check covers every claim \(D-352\)/);
@@ -1086,7 +1087,8 @@ describe('AC-W52 (WU-69, D-352): V4 is one pass with no lenses, re-checks only -
 
   it('each pass writes its own reports/V4-<n>.md and never overwrites one; the runner writes no V4 report', () => {
     expect(v4()).toMatch(/## Writes `reports\/V4-<n>\.md`, the one file your header's `writes` names, with one Write, and nothing else \(D-352\)\. \*\*Never overwrite a report:\*\* first Glob `reports\/V4-\*\.md`; if your file exists, write nothing and return `exists: reports\/V4-<n>\.md`/);
-    expect(v4()).toMatch(/`writes`: `\["reports\/V4-<n>\.md"\]`, your report and the one file you write\. `<n>` is this pass's number, one more than the last report's \(1 for the run's first\)/);
+    // WU-97 (D-412): the report is in the build's folder, and numbered per build.
+    expect(v4()).toMatch(/`writes`: `\["<buildFolder>\/reports\/V4-<n>\.md"\]`, your report and the one file you write \(a path from `runFolder`\)\. `<n>` is this pass's number, one more than the build's last report's \(1 for the build's first\)/);
     expect(skill()).toMatch(/[Tt]he verifier writes its own report, `reports\/V4-<n>\.md`, and never overwrites one \(R-5 as D-352 amends it\)/);
     expect(skill()).toMatch(/`<n>` is always one more than the highest `reports\/V4-<n>\.md` the run folder holds \(`ls <runFolder>\/reports`\), 1 for the run's first/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-folder.md'), 'utf8'))).toContain('| `reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) |');
@@ -1924,7 +1926,8 @@ describe('WU-62: W1 writes the reader layer and the audit layer (D-276, D-278, D
   const w1 = () => folded(readStage('W1'));
 
   it("W1 writes guide.md from its template, copies the Checks from the rendered audit.md, and returns both Known issues lines; the header, SKILL.md and the layout say so (D-355)", () => {
-    expect(w1()).toContain('`writes: ["guide.md", "audit.md"]`');
+    // WU-97 (D-412): the guide and audit.md are in the build's folder.
+    expect(w1()).toContain('`writes: ["<buildFolder>/guide.md", "<buildFolder>/audit.md"]`');
     expect(w1()).toContain('`.claude/skills/build-guide/templates/guide-template.md`');
     expect(w1()).toMatch(/`audit\.md`, the audit layer no player is expected to read, is rendered by the runner with `scripts\/render-audit\.mjs` after the final compile \(D-355\): you copy each endgame rung's Checks block from it, and write in it only the accepted gate findings' rows under its `Known issues`/);
     expect(w1()).not.toContain('templates/audit-template.md');

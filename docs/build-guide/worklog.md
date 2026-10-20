@@ -5190,3 +5190,13 @@ the `m17` engine at `b76967b`.
   W1's and V4's `writes` under `<buildFolder>/`; `V4-campaign` and `check: "campaign"`; re-render `audit.md` with
   `--build <id>` before W1's campaign mode; the verifier's and writer's definitions' paths and descriptions. The
   verifier is running.
+- **WU-97 verified: PASS** (the real checker on guides filled from the template: passes at 2,101 and exactly 2,300
+  words, fails at 2,301, without Switching over, or with a reward pick missing). **Merged** (rebased, fast-forward).
+  **Notes:** two cross-check tests still return early if the checker's code shape changes (make them hard
+  assertions at the fold); V4-campaign's carrying of the last report's unresolved findings lives in `V4.md` alone
+  (fold into §9); the template doesn't say what Switching over writes when `requirements.by[]` is empty (a wave-gate
+  nit); the ascendancy order's claim id to align with WU-96's (`m-ascendancy-order` in its draft). **For WU-95:**
+  per-build V4 numbering in `SKILL.md`'s step 13; the campaign route (`--snapshot <n-1> --build <id>`, D2, the D2
+  gate, `render-audit --build`, W1, `V4-campaign` with the last report's unresolved ids as `findings`); a
+  `file-only` build's campaign gets V4's full pass; the writer's definition allows the campaign mode's Write; both
+  descriptions name both guides; `<buildFolder>/` paths in the writer's and verifier's definitions.

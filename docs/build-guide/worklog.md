@@ -5286,3 +5286,7 @@ the `m17` engine at `b76967b`.
   its final gate `accept:verification`, then `design:r1-x-1`; or resume twice. **For the fold:** `new_run`'s reply
   still prints `plan_path for this run: <rel>/plan.json` (`src/handlers/planHandlers.ts:553`), stale with build
   folders; a second `--resume` in one Claude session lifts that session's pricing stop.
+- **WU-95's second fix round** (`eec1e0a`, rebased onto `2b3ad38`): `resume` sets the top-level `noNinja` to the
+  session's flag, with a test; `D2.md`'s `-campaign` sentence; `start.md`'s §8; D1-tree's `not made:` lines under the
+  design display; F1's ledger remedy in §5; three duplicated blocks moved to their references. `SKILL.md` 324 lines,
+  29,965 characters. Gate rc 0 (162 suites, 2,858 tests). The verifier re-checks.

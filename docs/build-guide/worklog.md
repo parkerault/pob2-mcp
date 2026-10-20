@@ -5234,3 +5234,9 @@ the `m17` engine at `b76967b`.
   under PoB's weapon-set rule, in each `protect_for` tree too), the search going on until 5 legal tries (cap 20);
   an optional `heldBranches` in the reply; tests on the L90 rung for the bound and the swap, for `protect_for` and
   `clearUses`. Gate rc 0 (2,660 tests). The verifier re-checks.
+- **WU-96's fix round** (`08d6085`, rebased onto `7965ed3`): D1-tree counts regular points as V1 does (untagged
+  plus the larger weapon set, against V1's allowance with `ExtraPoints`; the Martyr point not spare), spends spare
+  points again after the loop, and returns `unspent: <rung> <k>: <why>` for any left, which D1-finish takes as a
+  `reason` claim; the checker's `tree` rule exempts a gate whose compile failed or was refused; `gates.md`'s `keep`
+  gains the later rungs' `respec.dropped`. Gate rc 0 (155 suites, 2,761 tests). **For WU-95:** the runner passes
+  D1-tree's `unspent:` lines into D1-finish's prompt. The verifier re-checks.

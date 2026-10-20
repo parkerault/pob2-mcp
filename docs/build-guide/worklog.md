@@ -5135,3 +5135,14 @@ the `m17` engine at `b76967b`.
 - **Correction:** WU-93's verifier took about 172K tokens, not 260K.
 - **WU-98 dispatched early** (`bg-98`, off `1795d4d`): it depends on no wave-1 unit (the 429 in `src/trade/`, the
   compaction script, the run-settings example), so it takes the slot WU-93's verifier freed.
+- **WU-98 done by its doer** (`70c71e8`, two commits, about 260K tokens). Gate rc 0 (151 suites, 2,652 tests),
+  build rc 0. **The 429's likely cause, ours:** the trade site gives logged-in requests (`find_upgrades`, with the
+  cookie) and anonymous ones (`get_item_price`, `search_trade_items`) different `Ip` limits under one policy name
+  (search: 60 against 30 per 300 s; fetch 100 against 50), and the limiter kept one window set per policy,
+  overwritten by every response, so after `find_upgrades`' searches an anonymous search was paced at the logged-in
+  limit. The 22nd call (Prism of Belief, a unique, priced anonymously) fits. Fixed: windows per kind, the client
+  passing `auth`; a future 429 logs the site's rate-limit headers and the limiter's counts (no cookie) to confirm.
+  `scripts/compact-reminder.sh` and `docs/build-guide/run-settings.example.json` (allow list, deny list, the
+  `compact` hook). **For WU-95:** copy the script's rule text into `SKILL.md`. **For the fold:** C-11's internal
+  interface gains `auth`. **After WU-92 merges:** drop the static test's allowance for `get_node_power` missing from
+  `TOOL_META`. The verifier is running.

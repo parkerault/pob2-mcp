@@ -49,7 +49,10 @@ tests, fixtures and "done" (its last bullets) apply unchanged.
     `docs/build-guide/run-settings.example.json`.
   - **WU-95:** `SKILL.md`; `references/` `checkpoints.md`, `run-folder.md`, `run-log.md`, `start.md`, `pricing.md`,
     `fix-round.md`, `task-header.md`, `offline-and-test.md`; the four definitions in `.claude/agents/build-guide/`;
-    `tests/static/buildGuidePipeline.test.ts`.
+    `tests/static/buildGuidePipeline.test.ts`. Added after wave 1 (no other unit owns them): `references/stages/README.md`
+    (D1's three steps, `D1-tree.md`, `F1.md`), `references/stages/D2.md` and `D2-gate.md` (`<buildFolder>/` paths, D2
+    keeping D1's reward picks, the PoB name with the card id), and one line of `scripts/run-log.mjs`: the design
+    display's Effective HP line appends the hit (`ehpHit`, D-423), with its test.
   - **The coordinator:** the work-log and the spec.
 - **Serialized files:** `toolSchemas.ts`, `toolRouter.ts`, `toolMeta.ts` and the README table: WU-92, then WU-93,
   which rebases onto WU-92's merge before its own. `tests/static/buildGuidePipeline.test.ts`: WU-95; WU-96 and WU-97

@@ -5213,3 +5213,11 @@ the `m17` engine at `b76967b`.
   depth 6, compact, L90 rung 13.2 s wall; the golden build 41 s (Full DPS about 33 ms per calculation), about 3×
   headroom under 120 s. Fix round sent to the doer; the calling notes (compile first, exact loadout names, always
   pass `clear_group`, the guards' map form, the compact reply's format) sent to WU-96.
+- **WU-96 done by its doer** (`0e4687f`, rebased onto `2bba114`, about 460K tokens). Gate rc 0 (154 suites, 2,755
+  tests), build rc 0. D1-build, the new `D1-tree.md` and `F1.md`, D1-finish, D1-gate, `gates.md`, R1b's league
+  rule, the dossier's EHP hit, the library's travel rule. **Deviations:** the D1 gate verdict gains `planSha1`
+  (F1 compares a measure-only record's with it); F1's codes `plan-changed`, `compile-error`, `final-compile`,
+  `ledger-refused`; D1-tree spends every unspent point (D1-build no longer fills the level's points); D1-tree may
+  drop a rung's anoint when a swap allocates the anointed notable; the order claim is `m-ascendancy-order`; each
+  design rung gains `ehpHit`. **Unowned loose ends, given to WU-95 in the handoff:** `stages/README.md`, `D2.md` and
+  `D2-gate.md`'s root paths, and `run-log.mjs`'s Effective HP line without the hit. The verifier is running.

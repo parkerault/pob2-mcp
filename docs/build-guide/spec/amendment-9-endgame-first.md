@@ -3,7 +3,8 @@
 **Status: DRAFT, revised 2026-10-19.** The user took §21's four recommendations the same day (the targets 1.2M,
 0.75M and 0.4M; the tree threshold failing the D1 gate; M-21 and its live test before M-22; `get_passive_upgrades`
 rebuilt on the power builder) and asked for an independent review before approving the amendment. The review found 5
-blockers, 18 should-fix findings and 12 nits; this revision resolves them (§22), and the reviewer's re-check follows.
+blockers, 18 should-fix findings and 12 nits; the first revision resolved most of them, the reviewer's re-check
+found 1 blocker, 9 should-fix findings and 5 nits left, and this second revision resolves those (§22).
 It carries:
 - the user's direction after the open-clear run: finalize one or more builds, endgame only, with the campaign on
   request (work-log 2026-10-19, "endgame builds first, several per run"), and the user's four rulings on it ("the
@@ -231,17 +232,26 @@ computed from the current tree, so a swap must be searched after its removal, no
   design gate's accept or `accept:file`, it checks that `plan.json`'s sha1 equals the passing D1 gate's record's
   `planSha1` (the plan the user accepted), and runs the final compile with `buildName`. The compile's own V1 and V2
   hold the final record to the rules the checker reads. Its verdict file is `reports/gates/F1-<id>-a<n>.json`.
+  - **Its header** carries `accepted`, as the D2 gate's does: the findings the user accepted at a D1 gate escalation
+    (option 1), which F1 doesn't count as failures.
   - **Its routes:** a pass renders `audit.md` (`render-audit.mjs --build <id>`), then W1, or ends the build
-    `file-only`. A plan that changed since the gate, a V1 or V2 failure, or a compile error on the plan the gate
-    passed is a fault, not a design finding: F1 re-runs once, uncounted; a second failure escalates (§5 of
-    `SKILL.md`), with D1 as the producer for option 2. A refusal by the write ledger (D-211, "already exists" or
-    changed on disk) escalates at once, since no retry changes it.
+    `file-only`. A plan that changed since the gate, a V1 or V2 failure not in `accepted`, or a compile error on the
+    plan the gate passed is a fault, not a design finding: F1 re-runs once, uncounted; a second failure escalates. A
+    refusal by the write ledger (D-211, "already exists" or changed on disk) escalates at once, since no retry
+    changes it.
+  - **Its escalation** (stage `F1`, verdict file `reports/gates/F1-<id>-a<n>.json`, in the escalation forms of
+    `run-log.mjs` and the checker): 1. **accept**, not after a compile failure or a ledger refusal: the failing
+    findings join `accepted`, and F1 runs once more, uncounted; 2. **guidance and one more retry**: D1 (D1-build,
+    D1-tree and D1-finish as the guidance needs), the D1 gate, and the design gate again, since the build changed;
+    then F1; 3. **back to the verification gate**: the build ends `dropped`; 4. **stop**: the build ends
+    `escalated`. For a ledger refusal, the user can also restore or remove the changed file and answer 1 to retry.
   - The D2 gate stays the full build's final compile, with its routes unchanged: it runs only after D2.
 - **The level the build works from:** the compile record gains, per stage, `requirements {level, by[]}`: the
   highest level requirement among the stage's equipped items and socketed gems, as PoB computes them, and which
   items or gems set it. The endgame guide says when the build comes online from `m`'s figure.
-- **The ascendancy order:** D1 lists `m`'s `tree.ascendancyNodes` in the order to take them, with a `reason` claim
-  saying why; `b` and `n` keep that order for the nodes they share.
+- **The ascendancy order:** D1 lists `m`'s `tree.ascendancyNodes` in the order to take them; `b` and `n` keep that
+  order for the nodes they share. D1-finish's `reason` claim for it names the nodes in that order and says why, so
+  W1 renders the claim (W1 reads no node ids, `W1.md:41-43`) and V4 checks its order against `ascendancyNodes`.
 - **Amends:** D-265 (D1 makes the picks when there is no D2); D-208 (the final compile is F1's or the D2 gate's);
   C-33 (the record's `requirements`); `gates.md` and the checker's order rules (F1's routes); `SKILL.md` §4.
 
@@ -276,14 +286,24 @@ it, and the checker fails a mismatch.
 - **Resuming** a run in a later session: `/build-guide --resume <run folder>` (absolute, or relative to the guides
   root) reads the run log, migrating a schema-3 log first, appends a `resumes[]` entry, sets `status` `running`,
   prints the league digest's staleness line and the verification gate's display with every build's status, and goes
-  on from the user's answer. Beyond the verification gate's answers, a resume offers **`guide:<id>`** for a
-  `file-only` build (W1 with the endgame template, V4, the fix round, the re-check, its final gate) and
-  **`campaign:<id>`** for a `completed` or `file-only` build. `--campaign <run folder> <id>` resumes and answers
-  `campaign:<id>`. The brief check doesn't run again (the brief is in the log).
+  on from the user's answer. Beyond the verification gate's answers, a resume offers:
+  - **`guide:<id>`** for a `file-only` build: W1 with the endgame template, V4's full pass, the fix round, the
+    re-check, its final gate;
+  - **`campaign:<id>`** for a `completed` or `file-only` build (below);
+  - **`design:<id>`** for a `stopped` or `dropped` build whose last D1 gate passed on its current plan (`plan.json`'s
+    sha1 equals that gate's record's `planSha1`): its design gate again, from the existing verdict file, at no cost.
+    The open-clear run's r1-x-1 migrates `stopped` with a passing gate, so `design:r1-x-1` then `accept:file` gives
+    the user the PoB file they wanted from it.
+
+  `--campaign <run folder> <id>` resumes and answers `campaign:<id>`. The brief check doesn't run again (the brief is
+  in the log). The runner's own pob2 tools (`SKILL.md:24-27`) gain `guide_run {resume}`.
   - `mcp__pob2__guide_run` gains `{resume: <run folder>}`: with no engine call (a router rule beside `new_run`'s), it
     checks the folder holds a `run-log.json` and returns `runFolder`, `runFolderRel` and `loadedBuildUnsaved`,
     writing nothing. The unsaved-build question is asked once per resume.
   - **A resume writes into an earlier run's folder,** which D-153 forbade; a new run still gets a new folder.
+  - **Where a resume falls:** each `resumes[]` entry records the lengths of `stages[]`, `checkpoints[]`,
+    `escalations[]` and `displays[]` at the moment of the resume, so the rules below and the checker know which
+    entries follow it.
   - **Pricing after a resume:** a pricing stop (a `locked_out` or `rate_limited` call) holds for the session it
     happened in: the rule reads only the `stages[]` entries after the last resume. The open-clear run's 429 doesn't
     stop the live test's pricing (§16).
@@ -292,20 +312,25 @@ it, and the checker fails a mismatch.
     figures are the old pin's, and D1 measures afresh. (No re-verification of a verified card: a card is verified
     once, `run-log.md:140`.)
 - **The campaign** for a build: from the final gate's `campaign`, or `campaign:<id>` after a resume. The build's
-  status goes to `writing`, `guide` to `full` at its end.
-  1. The round copy first (`check-run.mjs --snapshot <n> --build <id>`, A-34).
+  status goes to `writing`, `guide` to `full` at its end. For a `file-only` build, which has no guide and no V4
+  pass, the campaign runs as a full build does today from D2: D2, the D2 gate, W1 writing the full guide, V4's full
+  pass, the fix round, the re-check, the final gate. For a `completed` build:
+  1. The round copy first (`check-run.mjs --snapshot <n> --build <id>`, A-34, `<n>` the build's last V4 report's
+     number, as for a revision).
   2. D2 adds the campaign stages, keeping D1's reward picks; the D2 gate checks every stage and re-runs the final
      compile, rewriting the build's PoB file. A refusal by the write ledger (the user changed the file in PoB, D-211)
      escalates at once rather than spending retries.
   3. `render-audit.mjs --build <id>`; W1 in its **campaign mode** (`W1.md`): it rewrites the guide with the full
      template, keeping the endgame sections' text where the plan didn't change them.
   4. **V4 in its campaign mode:** one pass over the campaign stages' hinge claims and the guide's new and changed
-     H2s; then the fix round and the re-check as after a full pass (steps 12 to 14); then the build's final gate.
+     H2s: stage `V4-campaign`, header `check: "campaign"`, report H1 `campaign pass of rounds/<n>`, numbered as the
+     build's next `reports/V4-<n>.md`; then the fix round and the re-check as after a full pass (steps 12 to 14);
+     then the build's final gate.
 - **Migrating a schema-3 run:** `run-log.mjs <runFolder> migrate` rewrites the log as schema 4. The old run's
   build, when it has one, becomes `builds[0]` with `folder: "."` (its files stay at the root), its `roll`, its status
   from the old `status` and last answer, and `guide` from whether a guide exists; its `design` and `final`
-  checkpoints get `concept` from the D1 gate entry before each; `noNinja`, the pin's commit and the digest are
-  `null`. The checker reads a build in `"."` as today's layout, and accepts entries after a terminal answer only
+  checkpoints get `concept` from the D1 gate entry before each; a final-gate decline's free text gets the
+  `decline:` prefix; `noNinja`, the pin's commit and the digest are `null`. The checker reads a build in `"."` as today's layout, and accepts entries after a terminal answer only
   behind a `resumes[]` entry. The open-clear run migrates this way, so its r1-b-3 can be finalized from it (§16).
 - **Tokens across sessions:** `scripts/run-usage.mjs` takes several transcripts, one per session of the run.
 - **Amends:** D-153 (a resume writes into its own earlier run's folder); D-264 and `W1.md:26` (W1 rewrites the
@@ -338,13 +363,19 @@ The targets are measured after a run, as amendment 4's cap was; no step stops fo
     and ailment chances, block, the avoid chances, movement speed and others). The combined "Offence/Defence" is
     left out: it gives a node's own figures only, with no path or loss (§4). An unknown name fails with the list.
     The first stat ranks; default `["FullDPS", "TotalEHP"]`.
-  - `max_loss`: the largest loss in percent a swap may cost on each other stat, and on any guard field: by default 2
-    for each stat, and 0 for the clear band's inputs (the main skill's radius and uses per second, D-407) and
-    movement speed (`EffectiveMovementSpeedMod`), which are guards whatever `stats` holds.
-  - `max_distance` (points from the tree, default 6, at most 12); `loadout` (the loadout to measure, by name; default
-    the active one); `level` (default the `(L<level>)` in the loadout's name, which every compiled loadout carries);
-    `keep` (allocated node ids no swap may remove); `limit` (rows per list, default 15; 0 returns only the best swap
-    and the travel count, the compact mode for the swap loop).
+  - `max_loss`: the largest loss in percent a swap may cost on each other stat, and on any guard: by default 2 for
+    each stat, and 0 for the guards, which apply whatever `stats` holds: movement speed (`EffectiveMovementSpeedMod`)
+    and the clear band's inputs (D-407), read from the record's clear entry (`clearEntryOf`,
+    `src/plan/record.ts:572-579`): the clear-role group's skill, or its minion's fields for a summon, which isn't
+    the main skill when the named source is a single-target skill (D-148). The tool measures the clear entry with
+    `clear_group` selected inside the call, on each swap it considers (a few calculations), and restores the
+    selection.
+  - `clear_group` (the plan's `role: clear` group, as the compile record numbers it; default the main group);
+    `protect_for` (the loadout names of the later rungs, which must be loaded: D-418); `max_distance` (points from
+    the tree, default 6, at most 12); `loadout` (the loadout to measure, by name; default the active one); `level`
+    (default the `(L<level>)` in the loadout's name, which every compiled loadout carries); `keep` (allocated node ids
+    no swap may remove); `limit` (rows per list, default 15; 0 returns only the best swap and the travel count, the
+    compact mode for the swap loop).
 - **One engine request,** with a 120 s timeout (the bridge's long-action list): the bridge's `node_power` handler
   runs `PowerBuilder`'s computation once (PoB's own misc calculator per node, its `path`, `pathDist` and `depends`,
   and `CalculatePowerStat`), reading every requested stat and guard from each output, so a second stat costs almost
@@ -358,24 +389,30 @@ The targets are measured after a run, as amendment 4's cap was; no step stops fo
   - **weakest allocated:** branches (a node and its dependants) ranked by loss per point on the first stat, leaving
     out every branch that contains a protected node;
   - **travel:** the allocated main-tree nodes that give nothing on any requested stat alone, by count;
-  - **the best swap,** searched on a scratch copy of the tree (D-418): remove the weakest unprotected branch; recompute
-    paths on the tree without it; add the best per-point candidates whose new paths fit the freed points, counting the
-    union of their path nodes once; then measure the swap as one change with the misc calculator. Only a swap that
+  - **the best swap,** searched on a scratch copy of the tree (D-418), for each of the 5 weakest unprotected
+    branches in turn: remove the branch; recompute paths on the tree without it; add the best per-point candidates
+    whose new paths fit the freed points, counting the union of their path nodes once, re-measured on the scratch
+    tree; then measure the swap as one change with the misc calculator. Of these up to 5 swaps, only a swap that
     stays legal is returned: the tree connected; within its points; no second tree on a class start (the tree-shape
     rule, D-360 as D-364 states it); no weapon-set node added or removed (until D-426); no ascendancy node. An added
     attribute node is measured with PoB's default choice and returned with it, so D1 can set its `attributeChoices`.
     The swap is the one that gains most on the first stat within `max_loss`; "no gaining swap" when none does;
   - what PoB can't measure among the nodes listed (C-47's section, as `get_passive_upgrades` gives it).
 - **Protected nodes,** never removed, nor any branch containing them: `keep`; the nodes that grant a skill (a
-  `Grants Skill:` line); weapon-set nodes.
+  `Grants Skill:` line); weapon-set nodes; and every node a later rung builds on: for each loadout in
+  `protect_for`, every node of this rung whose dependants in that loadout's tree (`node.depends` on its spec)
+  include nodes outside this rung's tree. So a swap removes only what no later rung needs to reach its own nodes,
+  and the nodes it adds connect through this rung's tree, which every later rung contains: applied up the ladder,
+  it stays connected there too.
 - **`get_passive_upgrades`** keeps its arguments, its output form and its DPS figure (`CombinedDPS`, else
   `TotalDPS`, and a summon's `MinionTotalDPS`, D-388). Its main-tree candidates come from the same computation at
   depth 6, every node rather than keyword hits; its ascendancy candidates stay as today (`calc_with` on each),
   since the power builder gives ascendancy nodes no path figure.
 - **The power stats a run uses:** Full DPS for damage (the headline figure since 2026-10-10; the compiled groups
   carry `includeInFullDPS`) and TotalEHP for defence; a need with a stat uses that stat (D-418).
-- **Amends:** C-47 and the stabilization spec's D-77 (how `get_passive_upgrades` finds candidates); D-47 (a 120 s
-  long action); the listed tool count (84 to 85: the README table and the tests that count tools).
+- **Amends:** C-47 and the stabilization spec's D-77 (how `get_passive_upgrades` finds candidates); the
+  stabilization spec's D-47 (a 120 s long action); the listed tool count (84 to 85: the README table and the tests
+  that count tools).
 
 ## 12. D-418: the tree minimizes travel (D1-tree)
 
@@ -384,36 +421,48 @@ so the loop's tool output stays out of D1-build's context. Every design attempt 
 in that order; a revision or a gate finding about the tree alone runs D1-tree, then D1-finish. R1b's skeleton tree
 stays a sketch of the card's targets.
 
-- **The plan's needs** (plan schema 6, WU-93): `stages[].tree.needs[] {nodes, stat?, claim}`: the nodes a need keeps,
-  the power stat that measures it when PoB has one, and the id of the stage's `reason` claim saying why. A need's
-  nodes are in the stage's nodes. Like claims and the ledger, `needs` is left out of `buildSha1` (D-266), so a
-  needs-only edit doesn't force a recompile.
+- **The plan's needs** (plan schema 6, WU-93): `stages[].tree.needs[] {nodes, stat?, claim?}`: the nodes a need
+  keeps, the power stat that measures it when PoB has one, and the id of the stage's `reason` claim saying why. A
+  need's nodes are in the stage's nodes (a schema error otherwise). The claims are D1-finish's (D-356), so D1-build
+  and D1-tree write a need without `claim`, and D1-finish writes the claim and sets it; a need with no `claim`, or one
+  naming no claim of the stage, is a V1 finding at the D1 gate (`missing-reason`). Only `claim` is left out of
+  `buildSha1` (D-266): a need's `nodes` and `stat` are in it, since the gate's `tree` verdict keeps them, so changing
+  them recompiles and re-runs the gate.
 - **D1-build writes the needs:** mana or life sustain; an attribute a gem or item requires; area or movement for
   clear; a boss-only gain (penetration and exposure count for nothing on a clear config with no enemy resistances);
-  a defence the floor needs; a node the card's engine names; and every producer of the stage's earned config state
-  (`config.earned[].producer`), which V2 checks.
-- **The swap loop** (D1-tree), in ladder order, after D1-build's compile and only once each rung's floor holds:
-  1. **`m`:** call `get_node_power` (compact mode) with `m`'s loadout and `keep` = the needs' nodes; apply the best
-     swap to `m`, and to `b` and `n`, which contain `m`'s tree (D-282); set any added attribute node's choice; compile
-     `m` alone (`compile_plan {stages}`), and undo the swap if the floor fails.
-  2. **`b`, then `n`:** the same, with `keep` = the needs' nodes and every node of the rung before, so a swap touches
-     only the nodes the rung adds; a swap on `b` is applied to `n` too. A respec is never the loop's: only a stated
-     `respec.dropped` with its reason, as today.
-  3. Repeat on a rung while its best swap gains at least **3%** on the first stat, at most 8 swaps per rung; the
+  a defence the floor needs; a node the card's engine names; every producer of the stage's earned config state
+  (`config.earned[].producer`), which V2 checks; and a node the user asked for in a `revise:` or a gate's `changes`.
+- **The swap loop** (D1-tree), in ladder order, after D1-build's compile and only once each rung's floor holds. Every
+  call has the rung's loadout, `keep` = the rung's needs' nodes, `clear_group`, and `protect_for` = the later rungs,
+  so the rungs a swap touches must be compiled and loaded: D1-tree compiles them together (`compile_plan {stages}`
+  naming them), which also loads the later rungs' loadouts.
+  1. **`m`:** call `get_node_power` (compact mode); apply the best swap to `m`, and to `b` and `n`, which contain
+     `m`'s tree (D-282); `protect_for` = `b` and `n` means the swap removes nothing either builds on, and its added
+     nodes connect through `m`'s tree in both. Set any added attribute node's choice. Compile `m`, `b` and `n`, and
+     undo the swap on all three if any rung's floor or V1 fails.
+  2. **`b`, then `n`:** the same, with `keep` adding every node of the rung before, so a swap touches only the
+     nodes the rung adds; `b`'s swaps go to `n` too (`protect_for` = `n`), compiled with it. A respec is never the
+     loop's: only a stated `respec.dropped` with its reason, as today.
+  3. **Spare points:** when a swap applied up the ladder leaves a rung with unspent points (it already held some of
+     the added nodes), D1-tree spends them on that rung's best per-point nodes, from the tool's unallocated list.
+  4. **An undone swap becomes a need:** its removed nodes are written as a floor need (stat TotalEHP, "a defence the
+     floor needs"), so neither the loop nor the gate proposes it again.
+  5. Repeat on a rung while its best swap gains at least **3%** on the first stat, at most 8 swaps per rung; the
      gate fails at 5% (D-419), so the anoint and prices D1-finish adds can't push a finished loop over the gate's line.
-  4. A need with a stat is met by node power on it: D1-tree calls `get_node_power` on that stat for the cheapest
+  6. A need with a stat is met by node power on it: D1-tree calls `get_node_power` on that stat for the cheapest
      nodes per point that meet it, and keeps those.
 - **D1-tree returns** counts only: each rung's travel before and after, and the swaps made. The swaps' nodes are in
   the plan.
 - **The library** gains the user's rule in its tree advice (`references/patterns.md`): minimize travel distance;
   judge a cluster by its gain per point with its path; cited to the user, 2026-10-19.
-- **Amends:** D-356 (D1 is three steps); C-31 (plan schema 6: `tree.needs`); D-266 (`buildSha1` leaves out the
-  needs); `D1-build.md` step 5.
+- **Amends:** D-356 (D1 is three steps; D1-tree writes needs without claims); C-31 (plan schema 6: `tree.needs`);
+  D-266 (`buildSha1` leaves out a need's `claim`); `D1-build.md` step 5.
 
 ## 13. D-419: the D1 gate checks the tree; the displays show it
 
-- **The D1 gate** calls `get_node_power` (compact mode) on each rung with the same `keep` as D1-tree (the needs'
-  nodes, and the rung before's nodes for `b` and `n`) and the same `max_loss`. A new verdict part, `tree`, fails a
+- **The D1 gate** compiles the plan measure-only as today, which loads every rung, then calls `get_node_power`
+  (compact mode) on each rung with the same arguments as D1-tree: `keep` (the needs' nodes, and the rung before's
+  nodes for `b` and `n`), `protect_for` (the later rungs), `clear_group` and `max_loss`. A new verdict part, `tree`, fails a
   rung whose best swap gains at least **5%** Full DPS (choice 2), with the swap as its finding (code `tree-swap`).
   A failure re-runs D1-tree and D1-finish with the verdict, up to 2 counted retries, then escalates.
 - **A tool failure is not a design failure:** when `get_node_power` fails or times out, the `tree` part is
@@ -461,8 +510,9 @@ From the work-log's 2026-10-19 section ("compaction while a run waits"); Claude 
   list), leaving the trade tools to review. **Amends:** the coordinator's error rule
   (`build-guide-coordinator.md:72-74`) and the other definitions; `gates.md`'s routes; the checker's order rule.
 - **D-422, no trade call after pricing stops.** Once pricing stops (in the session, D-415), no step calls a tool that
-  sends a trade request: `get_leagues`, `get_item_price`, `search_trade_items`, `search_stats`, `find_upgrades`
-  (`trade_query_options` sends none and stays allowed). The rule goes where the calls are made: the coordinator's
+  sends a trade request: `get_leagues`, `get_item_price` for an item, `search_trade_items`, `search_stats`,
+  `find_upgrades`. `trade_query_options` sends none, and `get_item_price` for a Distilled Emotion reads poe.ninja's
+  currency exchange (D-387), so both stay allowed (the latter not with `--no-ninja`). The rule goes where the calls are made: the coordinator's
   league rule (`build-guide-coordinator.md:118`), `D1-build.md:48-56`, `R1b.md:144`, `D1-gate.md` and `pricing.md`.
   With pricing stopped, the plan's league is the one recorded before the stop. The D1 gate's market day keeps its
   computation (`data/economy/prices.json` and the prices' dates, `D1-gate.md:66-71`). **The 429 is investigated:**
@@ -479,7 +529,8 @@ From the work-log's 2026-10-19 section ("compaction while a run waits"); Claude 
 ## 16. The next live test
 
 The user's: migrate the open-clear run (D-415), resume it, finalize r1-b-3 "Caster-Staff Warcaller" endgame-only,
-and compare its rungs with a real build of the same kind that the user picks. The resume's pricing isn't stopped by
+and compare its rungs with a real build of the same kind that the user picks. The same resume can answer
+`design:r1-x-1`, then `accept:file`, for Executioner's Howl's PoB file. The resume's pricing isn't stopped by
 the old 429 (D-415). It should show a tree with little travel and no gaining swap left, the endgame guide, and one
 PoB file named with the card id. The tree comparison judges D-418.
 
@@ -519,11 +570,11 @@ Built after M-21 and its live test (choice 3).
 
 | Unit | What | Milestone |
 |---|---|---|
-| WU-92 | `get_node_power` (C-55): the bridge's `node_power` handler (one pass, every stat, the guards, state restored), the legal best swap on a scratch tree, the 120 s long action, the router and tool metadata; `get_passive_upgrades` drawing its main-tree candidates from it; README table and tool counts | M-21 |
+| WU-92 | `get_node_power` (C-55): the bridge's `node_power` handler (one pass, every stat, the guards, state restored), the legal best swap on a scratch tree with `protect_for` and the clear entry's guard, the 120 s long action, the router and tool metadata; `get_passive_upgrades` drawing its main-tree candidates from it, in the same unit as the swap search; README table and tool counts | M-21 |
 | WU-93 | Plan schema 6 (`tree.needs`, left out of `buildSha1`); the record's `requirements`; skeleton stages measured against the rungs' reference hits (D-423); `guide_run {resume}` with its no-engine router rule | M-21 |
-| WU-94 | `run-log.mjs`: schema 4, `migrate`, `init`'s `noNinja`, pin commit and digest, `resumes[]`, the answer forms (`pick` of several, `accept:file`, `campaign`, `accept:verification`, `decline:<note>`, `guide:<id>`, `campaign:<id>`), the build displays; `check-run.mjs`: builds, `--build`, F1, D1-tree, the `tree` part, `refused` and `tool-refused`, the per-build order rules and run endings, resume markers, the endgame template and reward-pick rules, the pending-decision exemption, the paragraph count; `render-audit.mjs --build`; `run-usage.mjs`'s session filter, several transcripts and per-build groups | M-21 |
+| WU-94 | `run-log.mjs`: schema 4, `migrate`, `init`'s `noNinja`, pin commit and digest, `resumes[]`, the answer forms (`pick` of several, `accept:file`, `campaign`, `accept:verification`, `decline:<note>`, `guide:<id>`, `campaign:<id>`, `design:<id>`), the escalation forms with F1, the build displays; `check-run.mjs`: builds, `--build`, F1 and its escalation, D1-tree, `V4-campaign`, the `tree` part, `refused` and `tool-refused`, the per-build order rules and run endings, resume markers, the endgame template and reward-pick rules, the pending-decision exemption, the paragraph count; `render-audit.mjs --build`; `run-usage.mjs`'s session filter, several transcripts and per-build groups | M-21 |
 | WU-95 | `SKILL.md` (its description, the compaction rule, the queue, the answers, F1, `--resume`, `--campaign`, `guide:<id>`, the refusal route, no trade after a stop) and its references (`checkpoints.md`, `gates.md`, `run-folder.md`, `run-log.md`, `start.md`, `pricing.md`, `fix-round.md`, `task-header.md`, `offline-and-test.md`'s answers); the four agent definitions: the coordinator's tool list gains `get_node_power`, `buildFolder` paths, the refusal rule, the league rule | M-21 |
-| WU-96 | `D1-build.md` (needs, reward picks, ascendancy order), the new `D1-tree.md` and `F1.md`, `D1-finish.md`, `D1-gate.md` (the `tree` part, `tool-error`, the display lines), `R1b.md`'s league rule; the library's travel rule | M-21 |
+| WU-96 | `D1-build.md` (needs, reward picks, ascendancy order), the new `D1-tree.md` and `F1.md`, `D1-finish.md` (the needs' and the order's claims), `D1-gate.md` (the `tree` part, `tool-error`, the display lines), `R1b.md`'s league rule; the library's travel rule | M-21 |
 | WU-97 | The endgame template, `W1.md` (the template from the plan, the campaign mode), `V4.md` (the template's H2s, the campaign mode), the writer's and verifier's descriptions | M-21 |
 | WU-98 | The 429 investigation and its fix (D-422); `scripts/compact-reminder.sh` and `docs/build-guide/run-settings.example.json` (D-420, D-421) | M-21 |
 | WU-99 | The live test (§16): the user's, with the coordinator | M-21 |
@@ -545,15 +596,19 @@ WU-97 (skill files and agent definitions), WU-98 beside them, then WU-99.
   - the best swap, applied to the fixture's plan stage and compiled, gives a tree that is connected, fits its
     points, passes V1's `tree-shape` and `tree-continuity`, and adds no weapon-set or ascendancy node; on a fixture
     whose cheapest gain lies past the removed branch, the swap's points count the new path;
-  - a swap that would cost more than `max_loss` on a stat or lower movement speed is not returned;
+  - on a three-rung fixture, `m`'s best swap with `protect_for` `b` and `n`, applied to all three and compiled,
+    leaves every rung connected and passing `tree-continuity`, and removes no node `b` or `n` builds on;
+  - a swap that would cost more than `max_loss` on a stat, lower movement speed, or lower the clear entry's radius or
+    uses per second (on a fixture whose clear group isn't the main skill) is not returned;
   - Mana regen alone ranks; an unknown stat and "Offence/Defence" are refused with the engine's list;
   - the active loadout, the level and the build's `revision` are the same before and after a call, including one
     that fails;
   - `get_passive_upgrades` ranks a notable whose text holds none of its old keywords, and keeps its DPS field.
 - **AC-P74 (WU-93).** Engine and unit: a stage's record holds `requirements.level` and what sets it (a gem's level
   requirement above the items'); a skeleton's EHP is computed against the rungs' reference hits; a schema-6 plan with
-  `tree.needs` validates and compiles, a need naming a node the stage lacks is refused, and a needs-only edit keeps
-  `buildSha1`; `guide_run {resume}` returns its three lines for a run folder with no engine running, and refuses a
+  `tree.needs` validates and compiles, with or without a need's `claim`; a need naming a node the stage lacks is
+  refused; V1 reports `missing-reason` for a need with no `claim` or one naming no claim of the stage; a change to a
+  need's `claim` keeps `buildSha1`, and a change to its `nodes` changes it; `guide_run {resume}` returns its three lines for a run folder with no engine running, and refuses a
   folder with no run log.
 - **AC-W76 (WU-94).** Script unit, on fixture runs:
   - `migrate` turns a schema-3 run with a build into schema 4 with `builds[0].folder "."` and `concept` on its
@@ -562,8 +617,12 @@ WU-97 (skill files and agent definitions), WU-98 beside them, then WU-99.
     template's H2 list and the endgame one to its reward-pick and 2,300-word rules; fails a `design` checkpoint with
     no `concept`; fails a build whose `guide` field disagrees with its plan;
   - the order rules: F1 after a design `accept` and after `accept:file`; D1-build, D1-tree, D1-finish, the D1 gate;
-    D1-tree after a `tree` failure; a `campaign` answer followed by D2; `accept:verification` followed by a
-    verification visit; `decline:<note>` ending the build `not-accepted`; entries after `stop` only behind a resume;
+    D1-tree after a `tree` failure; a `campaign` answer followed by D2, and for a `completed` build a `V4-campaign`
+    pass; `accept:verification` followed by a verification visit; `decline:<note>` ending the build
+    `not-accepted`; entries after `stop` only behind a resume, placed by the `resumes[]` entry's recorded lengths;
+    `design:<id>` after a resume showing a stopped build's design gate; an F1 escalation with each of its four
+    options;
+  - `migrate` prefixes a schema-3 decline with `decline:`;
   - the checker accepts a re-run after a `refused` entry or a `tool-refused` verdict, and still fails a D1 gate
     after a `fail` entry;
   - `## Pending decision` passes in a notes file, at a visit with or without questions;
@@ -578,8 +637,10 @@ WU-97 (skill files and agent definitions), WU-98 beside them, then WU-99.
     guides;
   - `checkpoints.md`: notes after each answer, and `## Pending decision` before a yes;
   - `D1-build.md`: `tree.needs` with earned-state producers, the reward picks without D2, the ascendancy order;
-    `D1-tree.md`: the ladder order, `keep`, the 3% stop, 8 swaps per rung, the floor first; `F1.md`: the sha1 check
-    and its routes;
+    `D1-tree.md`: the ladder order, `keep` and `protect_for`, compiling every rung a swap touches, the undone swap
+    written as a need, spare points, the 3% stop, 8 swaps per rung, the floor first; `F1.md`: the sha1 check,
+    `accepted`, its routes and its escalation options; `D1-finish.md`: the needs' claims and the ascendancy order's
+    claim;
   - `D1-gate.md` and `gates.md`: the `tree` part, `tree-swap`, `tool-error`, their routes; the display's tree line;
   - `templates/guide-endgame-template.md`: its twelve H2s, Switching over and the 2,300-word cap; `W1.md` picks the
     template by the plan and has its campaign mode; `V4.md` its campaign mode;
@@ -601,8 +662,9 @@ WU-97 (skill files and agent definitions), WU-98 beside them, then WU-99.
   holds the card's targets is the bet. The gate's best-swap check catches a loop that stopped early.
 - **The legal swap search** (a scratch tree, paths recomputed after the removal) is new code over PoB's
   `PassiveSpec`; WU-92 starts with it, and AC-P73 holds its trees to V1's own checks.
-- **Time:** each swap is one node power call (about 15 s for two stats at depth 6) and a one-rung compile; 24 swaps
-  and the gate's three calls are about 12 to 15 minutes of engine time per design.
+- **Time:** each swap is one node power call (about 15 s for the pass at depth 6, plus a few seconds re-measuring
+  up to 5 candidate swaps on the scratch tree) and a compile of the rungs it touches; 24 swaps and the gate's three
+  calls are about 15 to 25 minutes of engine time per design.
 - **More builds, more tokens:** each endgame-only build adds about 0.7M output; the user picks how many.
 - **Schema 4 touches every script, many references and the agent definitions;** the migration keeps old runs
   readable, and the checker's fixtures cover both layouts.
@@ -656,3 +718,23 @@ The nits: N1 (`concept` already on W1 and V4) §3, §6, AC-W76; N2 (114 nodes) �
 `get_passive_upgrades`) §21; N4 (`trade_query_options`) §15; N5 (D1's return) §12; N6 (`resume`'s router rule and
 path form) §9; N7 (one pass for every stat) §11; N8 (group by `concept`) §15; N9 (the final display's source) §13;
 N10 (the descriptions) §8, WU-95, WU-97; N11 (the launcher's settings) §14; N12 (criteria) §19.
+
+**The re-check** (the same reviewer, about 58K more tokens, 433K in all) found 26 findings resolved and 9 partly, and
+1 blocker, 9 should-fix findings and 5 nits left, resolved in the second revision:
+
+| Finding | Resolved in |
+|---|---|
+| R1 a swap on `m` applied up the ladder can disconnect `b`'s and `n`'s own nodes | §11 `protect_for` and Protected nodes; §12 compile every rung a swap touches, undo on any rung's failure; §13 the same at the gate; AC-P73's three-rung fixture |
+| R2 a need's claim belongs to D1-finish; the hash and the gate | §12: `claim` optional until D1-finish, `missing-reason` at V1, only `claim` out of `buildSha1`; AC-P74 |
+| R3 W1 reads no node ids | §7: the order's claim names the nodes; V4 checks it |
+| R4 `resumes[]` can't place a resume | §9: each entry records the four lists' lengths |
+| R5 the clear guard reads the clear entry, not the main skill | §11 `clear_group` and the guard from `clearEntryOf`; AC-P73 |
+| R6 an undone swap comes back | §12 step 4: written as a floor need |
+| R7 F1's `accepted` and escalation | §7: its header, its escalation form and four options; AC-W76 |
+| R8 a file-only build's campaign; the campaign pass's form | §9: a full run from D2 for a file-only build; `V4-campaign`, its `check`, H1 and numbering |
+| R9 a stopped build can't return to its design gate | §9 `design:<id>`; §16 |
+| R10 `get_passive_upgrades` needs the swap search | §18 WU-92: the same unit |
+
+The nits: N1 (the stabilization spec's D-47) §11; N2 (a Distilled Emotion's price) §15; N3 (`migrate`'s `decline:`)
+§9; N4 (up to 5 candidate swaps; the time) §11, §20; N5 (compiling the rungs before a call; a user's node as a need;
+the runner's `guide_run {resume}`) §9, §12.

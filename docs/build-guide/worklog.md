@@ -5083,3 +5083,21 @@ the `m17` engine at `b76967b`.
 - **Amendment 9 drafted:** `docs/build-guide/spec/amendment-9-endgame-first.md`, D-411 to D-428, WU-92 to WU-103,
   M-21 (endgame first, node power and the swap loop, the run's fixes, compaction) and M-22 (the researchers'
   lookups, weapon sets, travel skills, the library). Four choices for the user in its §21.
+
+## 2026-10-19: amendment 9 reviewed and revised twice
+
+- **The user's choices:** all four of §21 as recommended (targets 1.2M, 0.75M and 0.4M; the tree threshold fails the
+  D1 gate; M-21 and its live test before M-22; `get_passive_upgrades` rebuilt on the power builder). The user also
+  asked that `get_node_power` take any stat PoB's node power offers, as its UI does (`2ea67c2`).
+- **The independent review** (one fresh reviewer, read only, about 375K tokens): numbering clean, the spike's claim
+  sound; 5 blockers (the strict plan schema refuses `tree.needs`; the per-rung loop ignores the ladder, D-282; the
+  best swap can describe an illegal tree; the D2 gate's route re-runs D2, which an endgame-only build lacks; the
+  coordinator can't call the new tool), 18 should-fix, 12 nits. Revised at `8755e3a`: plan schema 6, D1-tree as its
+  own step in ladder order, a legal swap searched after the removal, F1 as the endgame-only final compile, the agent
+  definitions in the work units, Amends lines on every decision.
+- **The re-check** (the same reviewer, about 58K more): 26 resolved, 9 partly; 1 blocker left (a swap on `m` applied
+  up the ladder could disconnect `b`'s and `n`'s own nodes), 9 should-fix, 5 nits. Revised at `5021fb6`:
+  `protect_for` and compiling every rung a swap touches; needs' claims written by D1-finish, only `claim` out of
+  `buildSha1`; resume positions by list lengths; the clear entry as the guard; undone swaps kept as needs; F1's
+  escalation; `design:<id>` on resume, which also gives the user Executioner's Howl's PoB file.
+- **Next:** the user's approval, or one more re-check first.

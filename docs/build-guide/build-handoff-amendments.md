@@ -65,6 +65,26 @@ tests, fixtures and "done" (its last bullets) apply unchanged.
   - The run log's schema 4 (§6), `resumes[]` entries with the four lists' lengths (§9), and the answer forms (§5,
     §9): `pick:<id>[,<id>…]`, `accept:file`, `campaign`, `accept:verification`, `decline:<note>`, `guide:<id>`,
     `campaign:<id>`, `design:<id>`.
+  - **As WU-94 built them** (merged at `578efe3`; the stage files and `SKILL.md` follow these, or the checker fails
+    the run):
+    - `run-log.mjs <runFolder> build '{"id", "roll", "status": "queued"}'` adds a build at each finalize; `build
+      '{"id", "status"?, "guide"?, "pobFile"?}'` updates it; `resume '{"noNinja": …}'` writes a `resumes[]` entry
+      `{date, pinCommit, digest, noNinja, lengths: {stages, checkpoints, escalations, displays}}` and sets the
+      status `running`; `init` requires `noNinja`; `migrate` takes no JSON; `display design|final --build <id>`.
+    - F1's write-ledger refusal is code `ledger-refused` in part `compiled`; an F1 escalation's accept after it
+      retries F1 and accepts no finding.
+    - A build in `"."` (a migrated run's) keeps the PoB file name `<slug>-<YYYY-MM-DD>-<n>`, with no card id; F1's
+      `buildName` follows the checker (`check-run.mjs`, the PoB file name rule).
+    - A D1 gate whose `tree` part is `unverified` with `tool-error` is logged with outcome `fail`, and the next step
+      is the D1 gate alone.
+    - A user's `stop` at a design gate ends that build only; a default (test-config) `stop` at the design or final
+      gate ends the run, the queued cards `stopped`; the test config's `not-accept` resolves to `decline:<note>`.
+    - The design display's tree lines follow its Gems line: `- Passive tree: <travel> of <points> points on travel;
+      best swap left: none | +<x>% Full DPS by moving <n> points from <removed> to <added>`, then `- Kept on the
+      tree: <need>`, one per need; the final display appends each rung's travel.
+    - `V4-campaign`'s report H1 is exactly `# V4-<n>: campaign pass of rounds/<n-1>`.
+    - The endgame reward-pick rule is skipped for a design whose last D1 gate came before a migrated run's first
+      resume; `design:<id>` is offered only while the plan is unchanged since that gate (F1 checks it).
 - **No network** beyond GitHub and npm for a worktree's bootstrap. WU-98 investigates the 429 by reading the
   limiter's code and testing it through `fixtureFetch`; nothing contacts the trade site.
 

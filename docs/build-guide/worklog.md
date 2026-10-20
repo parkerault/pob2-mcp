@@ -5067,3 +5067,19 @@ the `m17` engine at `b76967b`.
   amendment's resume path must accept this schema-3 run folder. Meanwhile R1b's skeleton
   (`concepts/r1-b-3/compiled-build.xml`, import code in its `compile-record.json`) loads in PoB for a free
   comparison.
+
+## 2026-10-19: the node power spike; amendment 9 drafted
+
+- **The spike** (a scratch script booting the vanilla headless wrapper, run from the pin's `src/` with temp `HOME`,
+  `POB_DIRECTORY` and `XDG_STATE_HOME`; nothing committed): PoB's `CalcsTab:PowerBuilder` runs headless with no
+  change, on the open-clear run's rung `n`. Full DPS within 4 points: 8.8 s CPU, 1,041 nodes; within 6: 12.9 s
+  (TotalEHP 13.8 s); within 8: 15.0 s, 1,776 nodes. Each of Rhythm of Ice (4 points), Warcry Speed (5), Bringer of
+  Order (5) and Cold Nature (6) adds 13–19% Full DPS alone. 64 of the 114 allocated main-tree nodes give neither Full
+  DPS nor TotalEHP alone: two Dexterity branches of 7 and 8 points, Cold Penetration (the clear config gives the
+  enemy no resistances), and mana sustain the two stats don't see. So a tree step on node power needs the build's
+  needs listed and kept.
+- **The user's phrasing** for the tree rule: "minimize travel distance"; trees should then grow along one route
+  through their clusters.
+- **Amendment 9 drafted:** `docs/build-guide/spec/amendment-9-endgame-first.md`, D-411 to D-428, WU-92 to WU-103,
+  M-21 (endgame first, node power and the swap loop, the run's fixes, compaction) and M-22 (the researchers'
+  lookups, weapon sets, travel skills, the library). Four choices for the user in its §21.

@@ -1,6 +1,8 @@
 # Amendment 9: endgame builds first, and trees that minimize travel
 
-**Status: DRAFT for the user's approval, 2026-10-19.** It carries:
+**Status: DRAFT, 2026-10-19.** The user took §21's four recommendations the same day (the targets 1.2M, 0.75M and
+0.4M; the tree threshold failing the D1 gate; M-21 and its live test before M-22; `get_passive_upgrades` rebuilt on
+the power builder) and asked for an independent review before approving the amendment. It carries:
 - the user's direction after the open-clear run: finalize one or more builds, endgame only, with the campaign on
   request (work-log 2026-10-19, "endgame builds first, several per run"), and the user's four rulings on it ("the
   user's rulings; node power; Gem Studded checked");
@@ -469,6 +471,9 @@ Order in M-21: WU-92, WU-93 and WU-94 in parallel lanes (server, record, scripts
   user's choice.
 
 ## 21. Choices for the user
+
+All four taken as recommended (the user, 2026-10-19).
+
 
 1. **The output targets** (D-416): shared phases 1.2M, an endgame-only build 0.75M, a campaign 0.4M
    (recommended), or other figures.

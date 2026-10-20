@@ -276,7 +276,7 @@ describe('AC-W73 (D-408): the run log takes stage RV, the card id r1-x-1 and the
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     const write = (kind: string, entry: Json) => node(RUN_LOG, dir, kind, JSON.stringify(entry));
-    expect(write('init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none' }).code).toBe(0);
+    expect(write('init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
     expect(write('stage', { stage: 'RV', attempt: 1, outcome: 'done' })).toEqual({ code: 0, stdout: 'run-log: wrote stages[0]\n', stderr: '' });
     expect(write('stage', { stage: 'R1b', concept: 'r1-x-1', attempt: 1, outcome: 'fail', probes: 0 })).toEqual({ code: 0, stdout: 'run-log: wrote stages[1]\n', stderr: '' });
     expect(write('stage', { stage: 'RV', attempt: 1, outcome: 'none-found', tried: 'a slam opener and a second weapon set' }).code).toBe(0);

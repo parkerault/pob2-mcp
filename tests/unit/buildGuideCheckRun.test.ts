@@ -631,7 +631,8 @@ function stoppedAtVerification(): string {
 
 describe('AC-W2 (aa): the run log is schema 3, or schema 2 for a recorded run; its roll stays null until the verification gate finalizes a card (D-286, D-289, D-326)', () => {
   it('fails a run log whose schemaVersion is neither 2 nor 3', () => {
-    for (const v of [4, 1, '3']) {
+    // Amendment 9 adds schema 4 (D-412), so 5 stands in for an unknown version.
+    for (const v of [5, 1, '3']) {
       const dir = copyOf('run-ok');
       editLog(dir, (l) => (l.schemaVersion = v));
       expect(lines(failing(dir), 'run-log')).toContainEqual(expect.stringMatching(new RegExp(`schemaVersion: is ${JSON.stringify(v)}; it is 3, or 2 for a run recorded before amendment 3 \\(D-289, D-326\\)`)));
@@ -1362,8 +1363,9 @@ describe("D-392 (WU-81): the deck's header says what the cards share and how the
     editText(share, 'cards.md', (t) => t.replace(/(## What the cards share\n\n)(.*)\n/, (m, h, x) => `${h}${x} ${'more words here '.repeat(20)}\n`));
     expect(failing(share)).toMatch(/\[deck\] cards\.md's "What the cards share" holds \d+ words; it says the cards' common core once, in player terms, in 1 to 80 words \(D-392\)/);
     const differ = copyOf('run-ok');
-    editText(differ, 'cards.md', replace('the add-on that clears packs.\n', 'the add-on that clears packs.\nA second line.\n'));
-    expect(failing(differ)).toMatch(/\[deck\] cards\.md's "How they differ" holds 2 lines; it is one line on the deck's shape/);
+    // D-424: the rule counts paragraphs, so a second one fails, where a wrapped line passes (AC-W76).
+    editText(differ, 'cards.md', replace('the add-on that clears packs.\n', 'the add-on that clears packs.\n\nA second paragraph.\n'));
+    expect(failing(differ)).toMatch(/\[deck\] cards\.md's "How they differ" holds 2 paragraphs; it is one paragraph on the deck's shape/);
     const found = copyOf('run-ok');
     editText(found, 'cards.md', (t) => t.replace(/(## Found, not used\n\n)/, `$1${['a', 'b', 'c', 'd', 'e'].map((x) => `- finding ${x}: unused\n`).join('')}`));
     expect(failing(found)).toMatch(/\[deck\] cards\.md's "Found, not used" holds 6 line\(s\); it lists up to five strong research findings/);
@@ -3299,7 +3301,7 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
     expect({ code: missing.code, stdout: missing.stdout, stderr: missing.stderr }).toEqual({ code: 1, stdout: '', stderr: "check-run: rounds/1/ doesn't exist; make the round copy first (--snapshot 1, A-34)\n" });
     for (const flags of [['--changed', '0'], ['--changed', 'x'], ['--snapshot'], ['--snapshot', '1', '2'], ['--partial'], ['--partial', '1']]) {
       const r = runChecker(dir, ...flags);
-      expect({ flags, code: r.code, stderr: r.stderr }).toEqual({ flags, code: 2, stderr: 'usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>]\n' });
+      expect({ flags, code: r.code, stderr: r.stderr }).toEqual({ flags, code: 2, stderr: 'usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>] [--build <card id>]\n' });
     }
     expect(fs.existsSync(path.join(dir, 'rounds'))).toBe(false);
   });

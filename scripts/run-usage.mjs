@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // Per-run token counter over Claude Code session transcripts (build-guide WU-64, D-357).
 //
-//   node scripts/run-usage.mjs <session.jsonl> [--telemetry <events.jsonl>] [--json <out.json>] [--fit]
+//   node scripts/run-usage.mjs <session.jsonl> [<session.jsonl> …] [--telemetry <events.jsonl>] [--json <out.json>] [--fit]
 //   node scripts/run-usage.mjs --telemetry <events.jsonl> [--json <out.json>]
 //
-// <session.jsonl> is a main-session transcript; the subagent transcripts beside it, in
-// <session>/subagents/*.jsonl, are read too. Entries are deduplicated per API request (message id, else
+// Each <session.jsonl> is a main-session transcript, one per session of the run (a resumed run has several,
+// build-guide D-415); the subagent transcripts beside each, in <session>/subagents/*.jsonl, are read too. With
+// transcripts, `--telemetry` counts only their sessions' events (the `session.id` attribute; a session's id is its
+// transcript entries' `sessionId`, else its file name), since the launcher's telemetry file holds every session
+// (D-424). The design steps are also grouped per build, by the task header's `concept` (D-416). Entries are deduplicated per API request (message id, else
 // request id) and each request keeps its most complete usage record. Claude Code logs one entry per
 // content block; when a request has several blocks, some or all entries can carry the stale
 // message_start usage (a 60K-character Write logged at 8 output tokens). A complete record carries
@@ -66,6 +69,18 @@ function stepKind(firstPrompt, meta, isMain) {
   const m = /"stage"\s*:\s*"([^"]+)"/.exec(firstPrompt.slice(0, 4000));
   if (m) return m[1];
   return (meta.agentType || 'agent').replace(/^build-guide-/, '');
+}
+
+/** D-416: the build a step works for, its task header's `"concept"` (the card id), or null. */
+function stepConcept(firstPrompt, isMain) {
+  if (isMain) return null;
+  return /"concept"\s*:\s*"(r[1-9]\d*-[a-cgx]-[1-9]\d*)"/.exec(firstPrompt.slice(0, 4000))?.[1] ?? null;
+}
+
+/** A transcript's session id: its entries' `sessionId`, else its file name without `.jsonl`. */
+export function sessionIdOf(file) {
+  for (const e of readJsonl(file)) if (typeof e.sessionId === 'string' && e.sessionId !== '') return e.sessionId;
+  return path.basename(file, '.jsonl');
 }
 
 /** The thinking and visible features of one request's content blocks. */
@@ -152,6 +167,7 @@ function readAgentFile(file, meta, isMain) {
     agents.push({
       agent: isMain && agentKey === 'self' ? 'main' : agentKey === 'self' ? path.basename(file, '.jsonl').replace(/^agent-/, '') : agentKey,
       kind: stepKind(firstUser ? promptText(firstUser) : '', meta, isMain && agentKey === 'self'),
+      concept: stepConcept(firstUser ? promptText(firstUser) : '', isMain && agentKey === 'self'),
       description: isMain && agentKey === 'self' ? 'main session' : meta.description || '',
       requests,
     });
@@ -182,7 +198,7 @@ function summarizeAgent(a) {
   const comp = reqs.filter((r) => r.complete);
   const k = calibrate(comp);
   const s = {
-    agent: a.agent, kind: a.kind, description: a.description,
+    agent: a.agent, kind: a.kind, concept: a.concept ?? null, description: a.description,
     turns: reqs.length, completeTurns: comp.length,
     recorded: 0, estimated: 0, thinking: 0, visible: 0,
     input: 0, cacheRead: 0, cacheWrite: 0, peakContext: 0,
@@ -266,6 +282,20 @@ export function countTranscript(mainFile) {
   return { agents, costState };
 }
 
+/** The sessions' cost ledgers (cost-state), summed per model; null when none has one. */
+function mergeCostStates(states) {
+  const present = states.filter((x) => x && typeof x === 'object');
+  if (present.length === 0) return null;
+  const out = {};
+  for (const st of present) {
+    for (const [model, m] of Object.entries(st)) {
+      out[model] ??= {};
+      for (const [k, v] of Object.entries(m ?? {})) if (Number.isFinite(v)) out[model][k] = (out[model][k] ?? 0) + v;
+    }
+  }
+  return out;
+}
+
 /** Least-squares fit of the constants in K over complete records (`--fit`). */
 function fit(agents) {
   const rows = agents.flatMap((a) => a.requests.filter((r) => r.complete));
@@ -304,12 +334,17 @@ function fit(agents) {
 
 // ---------------------------------------------------------------- telemetry (scripts/otlp-receiver.mjs)
 
-function readTelemetry(file) {
+/**
+ * The telemetry's api_request events and metrics; with `sessions`, only those of the given sessions (their
+ * `session.id` attribute, D-424): the launcher's file holds every session it ran.
+ */
+export function readTelemetry(file, sessions = null) {
   const events = [];
   const metrics = [];
+  const ours = (attrs) => sessions === null || sessions.has(attrs?.['session.id']);
   for (const e of readJsonl(file)) {
-    if (e.kind === 'event' && e.name === 'api_request') events.push(e.attributes || {});
-    else if (e.kind === 'metric') metrics.push(e);
+    if (e.kind === 'event' && e.name === 'api_request' && ours(e.attributes)) events.push(e.attributes || {});
+    else if (e.kind === 'metric' && ours(e.attributes)) metrics.push(e);
   }
   return { events, metrics };
 }
@@ -421,26 +456,30 @@ function table(title, rows, label) {
 }
 
 function main(argv) {
-  const opts = { transcript: null, telemetry: null, json: null, fit: false };
+  const opts = { transcripts: [], telemetry: null, json: null, fit: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--telemetry') opts.telemetry = argv[++i];
     else if (a === '--json') opts.json = argv[++i];
     else if (a === '--fit') opts.fit = true;
     else if (a === '-h' || a === '--help') opts.help = true;
-    else if (!opts.transcript) opts.transcript = a;
-    else throw new Error(`unexpected argument: ${a}`);
+    else if (a.startsWith('--')) throw new Error(`unexpected argument: ${a}`);
+    else opts.transcripts.push(a);
   }
-  if (opts.help || (!opts.transcript && !opts.telemetry)) {
-    console.log('usage: node scripts/run-usage.mjs <session.jsonl> [--telemetry <events.jsonl>] [--json <out.json>] [--fit]');
+  if (opts.help || (opts.transcripts.length === 0 && !opts.telemetry)) {
+    console.log('usage: node scripts/run-usage.mjs <session.jsonl> [<session.jsonl> …] [--telemetry <events.jsonl>] [--json <out.json>] [--fit]');
     return opts.help ? 0 : 2;
   }
   const result = { constants: K };
   const text = [];
   let agents = [];
-  if (opts.transcript) {
-    const counted = countTranscript(opts.transcript);
+  // D-415, D-424: one transcript per session of the run; the telemetry is filtered to their sessions.
+  const sessions = opts.transcripts.length > 0 ? new Set(opts.transcripts.map(sessionIdOf)) : null;
+  if (opts.transcripts.length > 0) {
+    const all = opts.transcripts.map(countTranscript);
+    const counted = { agents: all.flatMap((c) => c.agents), costState: mergeCostStates(all.map((c) => c.costState)) };
     agents = counted.agents;
+    result.sessions = sessions.size;
     if (opts.fit) {
       result.fit = fit(agents);
       text.push(`fit over ${result.fit.records} complete records: ${JSON.stringify(result.fit)}`);
@@ -449,14 +488,17 @@ function main(argv) {
     const kinds = rollup(rows, (r) => r.kind);
     const families = rollup(rows, (r) => family(r.kind));
     const [total] = rollup(rows, () => 'total');
-    for (const t of [...kinds, ...families, total]) {
+    // D-416: per build, the steps whose task header names its card (`concept`).
+    const builds = rollup(rows.filter((r) => r.concept !== null), (r) => r.concept);
+    for (const t of [...kinds, ...families, ...builds, total]) {
       t.check.uncalibratedErrPct = errPct(t.check.uncalibrated, t.check.recorded);
       t.check.calibratedErrPct = errPct(t.check.calibrated, t.check.recorded);
     }
-    Object.assign(result, { agents: rows, kinds, families, total, sessionLedger: counted.costState });
+    Object.assign(result, { agents: rows, kinds, families, builds, total, sessionLedger: counted.costState });
     text.push(table('Per agent', rows.map((r) => ({ ...r, label: r.description || r.agent })), 'agent'));
     text.push(table('\nPer step kind', kinds.map((r) => ({ ...r, label: `${r.key} (${r.agents})`, kind: '' })), 'kind (agents)'));
     text.push(table('\nPer family', families.map((r) => ({ ...r, label: `${r.key} (${r.agents})`, kind: '' })), 'family (agents)'));
+    if (builds.length > 0) text.push(table('\nPer build (the task header\'s concept)', builds.map((r) => ({ ...r, label: `${r.key} (${r.agents})`, kind: '' })), 'build (agents)'));
     text.push(table('\nTotal', [{ ...total, label: `total (${total.agents} agents)`, kind: '' }], ''));
     text.push(
       `\ncheck over ${total.check.records} complete records: recorded ${fmtK(total.check.recorded)}; estimate, K only ` +
@@ -469,10 +511,10 @@ function main(argv) {
     }
   }
   if (opts.telemetry) {
-    const tel = readTelemetry(opts.telemetry);
+    const tel = readTelemetry(opts.telemetry, sessions);
     result.telemetry = summarizeTelemetry(tel);
     const t = result.telemetry;
-    text.push(`\nTelemetry: ${t.total.requests} api_request events, output ${fmtK(t.total.output)}, cache read ${fmtK(t.total.cacheRead)}`);
+    text.push(`\nTelemetry${sessions ? ` (the ${sessions.size} session${sessions.size === 1 ? '' : 's'} given)` : ''}: ${t.total.requests} api_request events, output ${fmtK(t.total.output)}, cache read ${fmtK(t.total.cacheRead)}`);
     for (const s of t.bySource) text.push(`  ${pad(s.key, 60)} ${pad(s.requests, 5, 1)} req  output ${pad(fmtK(s.output), 8, 1)}`);
     for (const [k, v] of Object.entries(t.tokenMetric)) text.push(`  token.usage ${pad(k, 50)} ${pad(fmtK(v), 9, 1)}`);
     if (agents.length) {

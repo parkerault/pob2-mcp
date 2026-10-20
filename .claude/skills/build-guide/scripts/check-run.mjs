@@ -2,8 +2,11 @@
 // The build-guide run checker (slice 03 FR-W7, as amendments 1 to 3 change it).
 //
 //   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
-//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --snapshot <n>
-//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --changed <n>
+//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --snapshot <n> [--build <card id>]
+//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --changed <n> [--build <card id>]
+//
+// A schema-4 run (amendment 9) keeps each build in its folder, `builds/<id>/` ("." for a migrated run's build): its
+// round copy and its comparison take `--build <card id>`, and are that folder's `rounds/<n>/`.
 //
 // `--snapshot <n>` makes the round copy (A-34): plan.json, compile-record.json and guide.md into rounds/<n>/,
 // never over an existing round. `--changed <n>` prints what changed since rounds/<n>/ (D-352), one line each and
@@ -61,6 +64,18 @@
 //    its node id), in a research file's footnotes only: a plan citing one fails, since compile_plan refuses it. The
 //    formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
 //
+//  - amendment 9's schema 4 (WU-94, D-411…D-424): the run log's builds[], resumes[], noNinja, pin commit, digest and
+//    run-wide dossier (D-412); each build's artifacts in its folder, held to its card's steps, a build in "." read as
+//    the root's (`checkBuild`); the PoB file `<slug>-<YYYY-MM-DD>-<n>-<card id>`; the guide by the template its plan
+//    decides, the endgame guide's 12 H2s, its 2,300-word cap and its reward picks named in Switching over, and the log's
+//    `guide` field agreeing with the plan (D-413, D-414); the D1 gate's `tree` part, its shape and its agreement with
+//    its findings (D-419); F1's verdict files (the D2 gate's shape) and its ledger refusal (`ledger-refused`); V4's
+//    campaign pass (`V4-campaign`, H1 `campaign pass of rounds/<n-1>`, D-415); the control flow per build
+//    (`checkFlow4`): the queue, D1-tree, F1 and its escalation, the final gate's campaign and accept:verification, a
+//    decline, the resume's answers and the entries after a run's end placed by each resume's lengths, a refused call
+//    re-run next (D-421); `## Pending decision` exempt in the interview notes (D-420); the deck's "How they differ" one
+//    paragraph (D-424).
+//
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
 // `build/plan/buildHash.js` (D-266; it imports only crypto) and the audit render beside this file,
@@ -78,7 +93,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
-import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE } from './run-log.mjs';
+import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
@@ -111,6 +126,28 @@ export const GUIDE_H2 = [
   'FAQ',
   'Changelog',
 ];
+/**
+ * D-414, the endgame guide (`templates/guide-endgame-template.md`), for a plan with no campaign stage: its 12 H2s, in
+ * order (amendment 9 §8). Leveling, Campaign route and rewards, and Gem and ascendancy timing give way to Switching over.
+ */
+export const ENDGAME_GUIDE_H2 = [
+  'At a glance',
+  'Your PoB file',
+  'Switching over',
+  'Survival by stage',
+  'Priorities',
+  'Endgame: entering maps',
+  'Endgame: budget',
+  'Endgame: non-budget',
+  'How to play it',
+  "What PoB can't show",
+  'FAQ',
+  'Changelog',
+];
+/** D-414: the endgame guide's word cap (the full guide's stays WORD_CAP), the H1, the import code and Known issues aside. */
+const ENDGAME_WORD_CAP = 2300;
+/** D-414: the endgame guide's H2 that names each campaign reward pick D1 makes (D-413). */
+const SWITCHING_H2 = 'Switching over';
 /** §7.8, the audit layer as `render-audit.mjs` renders it (D-278, D-355): audit.md's H2s, in order. */
 export const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn't model", 'Inputs by confidence', 'Known issues'];
 /**
@@ -160,13 +197,28 @@ const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS];
 /** The steps that price (pricing.md): R1b, D1-finish (D1 in schema 2), the D1 gate's re-price pass and D2. */
 const PRICING_STAGES = { 2: ['R1b', 'D1', 'D1-gate', 'D2'], 3: ['R1b', 'D1-finish', 'D1-gate', 'D2'] };
 
-/** D-326: the run-log schema versions the checker reads: 3 (D-289), and 2 only so recorded runs still check. */
-const SCHEMA_VERSIONS = [2, 3];
-/** The run log's fields: schema 2 (amendment 1 §4.1, D-270); schema 3 adds the parsed brief (D-289, C-51). */
+/**
+ * D-326, D-412: the run-log schema versions the checker reads: 4 (amendment 9), 3 (D-289), and 2 only so recorded runs
+ * still check.
+ */
+const SCHEMA_VERSIONS = [2, 3, 4];
+/**
+ * The run log's fields: schema 2 (amendment 1 §4.1, D-270); schema 3 adds the parsed brief (D-289, C-51); schema 4
+ * (D-412, D-415) drops `roll` and `outputs` for `builds[]` and the run-wide `dossier`, and adds `noNinja`, the pin's
+ * commit, the digest and `resumes[]`.
+ */
 const RUN_LOG_FIELDS = {
   2: ['schemaVersion', 'runFolder', 'slug', 'roll', 'status', 'mode', 'testConfig', 'stages', 'checkpoints', 'escalations', 'faults', 'outputs'],
   3: ['schemaVersion', 'runFolder', 'slug', 'brief', 'roll', 'status', 'mode', 'testConfig', 'stages', 'checkpoints', 'escalations', 'faults', 'outputs'],
+  4: ['schemaVersion', 'runFolder', 'slug', 'brief', 'status', 'mode', 'testConfig', 'noNinja', 'pinCommit', 'digest', 'dossier', 'builds', 'stages', 'checkpoints', 'displays', 'escalations', 'faults', 'resumes'],
 };
+/** D-412: a build's status, its fields in builds[], and its end statuses. */
+const BUILD_STATUSES = ['queued', 'designing', 'writing', 'completed', 'file-only', 'not-accepted', 'dropped', 'stopped', 'escalated'];
+const BUILD_FIELDS = ['id', 'roll', 'status', 'folder', 'guide', 'pobFile'];
+const IN_PROGRESS = ['queued', 'designing', 'writing'];
+/** D-415: a resume's entry, and the four lists whose lengths it records. */
+const RESUME_FIELDS = ['date', 'pinCommit', 'digest', 'noNinja', 'lengths'];
+const RESUME_LISTS = ['stages', 'checkpoints', 'escalations', 'displays'];
 /** C-51, D-285, D-335: the brief's fields, every one optional. */
 const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity'];
 /** C-51: the playstyle vocabulary (delivery, buttons, focus, defence, pace), which cards use too. */
@@ -176,11 +228,12 @@ const PLAYSTYLE_TAGS = ['melee', 'ranged-attack', 'spell', 'minion', 'totem-trap
  * the guide checkpoints 1 and 2.
  */
 const CHECKPOINTS = { 2: [1, 2, 'unsaved-build', 'escalation'], 3: ['brainstorm', 'verification', 'design', 'final', 'unsaved-build', 'escalation'] };
+CHECKPOINTS[4] = CHECKPOINTS[3];
 /** Schema 3's gate visits that print a display first; run-log.mjs records each in `displays[]` (D-367). */
 const DISPLAYED = ['brainstorm', 'verification', 'design', 'final', 'escalation'];
 const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'];
 /** An escalation's choices (D-236): schema 3 goes back to the verification gate, schema 2 to checkpoint 1 (D-289). */
-const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'] };
+const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'], 4: ['accept', 'retry', 'verification', 'stop'] };
 /**
  * A schema-2 concept id (`c1`), and a schema-3 card id `r<round>-<letter>-<n>` (`r1-a-2`, D-319): the letters a to c
  * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391), x the rival's (`r1-x-1`, D-408,
@@ -191,7 +244,7 @@ const CARD_ID = 'r[1-9]\\d*-[a-cgx]-[1-9]\\d*';
 /** A card made at a gate (D-391): `r<k>-g-<n>`, k its brainstorm round, n counting the run's gate-made cards in it. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The id form a run's steps, folders and files use: the card id in schema 3, the concept id in schema 2. */
-const idSource = (schema) => (schema === 2 ? CONCEPT_ID : schema === 3 ? CARD_ID : `(?:${CONCEPT_ID}|${CARD_ID})`);
+const idSource = (schema) => (schema === 2 ? CONCEPT_ID : schema === 3 || schema === 4 ? CARD_ID : `(?:${CONCEPT_ID}|${CARD_ID})`);
 const idForm = (schema) => (schema === 2 ? 'the concept id c<n>' : 'the card id r<round>-<letter>-<n>');
 /** D-292: a card's probe variants, beyond R1b's two compiles. */
 const PROBE_CAP = 4;
@@ -199,6 +252,8 @@ const PROBE_CAP = 4;
 const INTERVIEW_GATES = '(brainstorm|verification|design|final|escalation)';
 /** D-390: a gate question step's compiled variant `probes/q-<gate>-<visit>-<n>/`. */
 const QUESTION_PROBE = new RegExp(`^q-${INTERVIEW_GATES}-([1-9]\\d*)-([1-9]\\d*)$`);
+/** D-420: the H2 of a visit's notes that holds the restated decision before the user's yes; no question. */
+const PENDING_DECISION = 'Pending decision';
 /** D-389, D-390: `interviews/<gate>-<visit>.md`, the visit's notes, and `interviews/<gate>-<visit>-q<n>.md`, a gate question step's report. */
 const INTERVIEW_FILE = new RegExp(`^${INTERVIEW_GATES}-([1-9]\\d*)(?:-q([1-9]\\d*))?\\.md$`);
 /** D-287, D-339: a brainstorm round deals 6–9 cards, and the deck keeps at least two under-played ones. */
@@ -211,7 +266,20 @@ const ARTIFACTS = ['plan.json', 'guide.md'];
 const CLAIM_KINDS = ['hinge', 'reason'];
 const PARTS = ['pass', 'fail', 'unverified'];
 const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
-const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'] };
+/** D-413: F1, the endgame-only build's final compile, writes a verdict in the D2 gate's shape. */
+const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'], F1: ['compiled', 'v1', 'v2'] };
+/** D-419: schema 4's D1 gate adds the part `tree`, PoB's node power on each rung (a legacy D1 gate, before it, has none). */
+const D1_PARTS4 = [...GATE_PARTS['D1-gate'], 'tree'];
+/** D-419: a rung fails the tree part when its best swap left gains at least this much Full DPS, in percent. */
+const TREE_FAIL_PERCENT = 5;
+/** D-419, D-421: the tree part's codes: a swap left (`tree-swap`), `get_node_power` failing (`tool-error`), a refused call. */
+const TREE_CODES = { fail: ['tree-swap'], unverified: ['tool-error', 'tool-refused'] };
+/** D-413: F1's ledger refusal (D-211: the PoB file exists, or changed on disk), which escalates at once. */
+const LEDGER_REFUSED = 'ledger-refused';
+/** D-421: the code of a gate part a refused tool call left unverified; the gate re-runs alone, routed to no producer. */
+const TOOL_REFUSED = 'tool-refused';
+/** D-419: the code of the tree part `get_node_power` failed or timed out on; the gate re-runs alone, once, uncounted. */
+const TOOL_ERROR = 'tool-error';
 /**
  * D-264: a fix-round (or revision) owner, D1 or D2, that edited claims in place and compiled nothing. No gate
  * follows it, the final record stays the last D2 gate's, and the re-check stays targeted.
@@ -241,9 +309,13 @@ const STAGE_OUTCOMES = {
   // D-408: the rival, `RV`, writes its card (`done`) or finds no faster structure (`none-found`, with what it `tried`).
   3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED], Q: ['done'], RV: ['done', 'none-found'] },
 };
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found'];
-/** The D1 steps: schema 3's two (D-356), schema 2's one. */
-const D1_STAGES = ['D1', 'D1-build', 'D1-finish'];
+// Amendment 9 (schema 4): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415).
+STAGE_OUTCOMES[4] = { ...STAGE_OUTCOMES[3], 'D1-tree': ['done'], F1: ['pass', 'fail', 'escalated'], 'V4-campaign': ['pass', 'fail'] };
+/** D-421: a step the permission system refused, logged so and re-run alone, uncounted (schema 4). */
+const REFUSED = 'refused';
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED];
+/** The D1 steps: schema 3's two (D-356), schema 2's one, and schema 4's tree step (D-418). */
+const D1_STAGES = ['D1', 'D1-build', 'D1-tree', 'D1-finish'];
 /**
  * The steps that write each artifact a V4 report locates its findings in (stages/V4.md). audit.md is written by
  * the render script and W1's Known-issues rows (D-355), and the runner's step-14 edits add only `Known issues`
@@ -251,9 +323,13 @@ const D1_STAGES = ['D1', 'D1-build', 'D1-finish'];
  */
 const ARTIFACT_WRITERS = { 'plan.json': [...D1_STAGES, 'D1-gate', 'D2'], 'guide.md': ['W1'], 'audit.md': ['render-audit.mjs', 'W1'] };
 /** The steps that write plan.json or compile it: after one of them, an earlier guide is out of date. */
-const DESIGN_STAGES = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate'];
+const DESIGN_STAGES = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1'];
 /** The producers whose run, unless it only edited claims (`claims-edited`), leaves the final record behind. */
 const PRODUCERS = [...D1_STAGES, 'D2'];
+/** D-413: the steps that run a build's final compile: the D2 gate's (a full build), or F1 (an endgame-only build). */
+const FINAL_GATES = ['D2-gate', 'F1'];
+/** A step's entry that produced nothing to read: a missing return, or a refused call (D-421). */
+const idle = (s) => s.outcome === 'missing' || s.outcome === REFUSED;
 /** The steps that concern no one concept or card: the rounds' steps, a gate question step (D-390) and the rival (D-408). */
 const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q', 'RV'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
@@ -628,10 +704,9 @@ async function loadLedgerModule() {
 // The checker
 // ---------------------------------------------------------------------------------------------------
 
-export async function checkRun(runFolder) {
-  const violations = [];
-  const fail = (rule, message) => violations.push({ rule, message });
-  const abs = (rel) => path.join(runFolder, ...rel.split('/'));
+/** Reads inside a folder: paths relative to `base`, each read failure a violation under `rule` (`layout` by default). */
+function folderIO(base, fail) {
+  const abs = (rel) => path.join(base, ...rel.split('/'));
   const exists = (rel) => fs.existsSync(abs(rel));
   const isDir = (rel) => exists(rel) && fs.statSync(abs(rel)).isDirectory();
   const listDir = (rel) => (isDir(rel) ? fs.readdirSync(abs(rel)).sort() : []);
@@ -646,207 +721,14 @@ export async function checkRun(runFolder) {
       return null;
     }
   };
+  return { abs, exists, isDir, listDir, readText, readJson };
+}
 
-  if (!fs.existsSync(runFolder) || !fs.statSync(runFolder).isDirectory()) {
-    fail('layout', `${runFolder} is not a folder`);
-    return violations;
-  }
-
-  // ---- The run log (amendment 1 §4.1) and the control flow it records -------------------------------
-  const log = readJson('run-log.json', 'run-log');
-  if (!isObj(log)) {
-    if (!exists('run-log.json')) fail('layout', 'run-log.json is missing; every run writes it from the start (FR-W2)');
-    return violations;
-  }
-  // D-326: a schema-2 log is a run recorded before amendment 3, checked by its own rules; any other version is
-  // checked as schema 3, the current one (a log of neither version fails checkRunLog).
-  const schema = SCHEMA_VERSIONS.includes(log.schemaVersion) ? log.schemaVersion : null;
-  const v3 = schema !== 2;
-  const ID = new RegExp(`^${idSource(schema)}$`);
-  checkRunLog(log, fail, schema);
-  const mode = log.mode;
-  const offline = mode === 'offline';
-  const completed = log.status === 'completed';
-  const stages = list(log.stages);
-  const escalations = list(log.escalations);
-  const runDir = typeof log.runFolder === 'string' ? log.runFolder.replace(/\\/g, '/').replace(/\/+$/, '') : '';
-  const runName = runDir.split('/').slice(-2).join('-'); // <slug>-<YYYY-MM-DD>-<n>: the PoB file's build_name (§2)
-  const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
-
-  // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
-  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
-  // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
-  for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
-    if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2); agents write only the files §2 names`);
-  }
-  // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else.
-  if (exists('rounds') && !isDir('rounds')) fail('layout', 'rounds is a file; §2 names the folder rounds/, of round copies rounds/<n>/ (A-34)');
-  for (const n of listDir('rounds').filter((x) => !ROUND_TMP.test(x))) {
-    if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
-    else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
-  }
-  for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true], ['interviews', true]]) {
-    if (exists(name) && isDir(name) !== dir) fail('layout', `${name} is a ${dir ? 'file' : 'folder'}; §2 names ${dir ? `the folder ${name}/` : `the file ${name}`}`);
-    // D-326: the cards, the deck and the probes are schema 3's layout (D-319, D-338); a schema-2 run has none.
-    if (!v3 && exists(name)) fail('layout', `${name}${dir ? '/' : ''} is part of schema 3's layout (${name === 'interviews' ? 'the interview notes, D-389' : 'the cards, the deck and the probes, D-338'}); a schema-2 run, recorded before amendment 3, has none (D-326)`);
-  }
-  // C-52, D-319: R1a writes each card at cards/<id>.md, and R1b its verification half; nothing else goes there.
-  const cardIds = new Set();
-  for (const f of listDir('cards')) {
-    const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
-    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391, and x for the rival's, D-408)`);
-    else cardIds.add(m[1]);
-  }
-  // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
-  const rivalRan = stages.some((s) => s.stage === 'RV' && s.outcome !== 'missing');
-  if (completed) {
-    for (const rel of ['plan.json', 'compile-record.json', 'dossier.md', 'guide.md', 'audit.md']) {
-      if (!exists(rel)) fail('layout', `${rel} is missing; a completed run has plan.json, compile-record.json, dossier.md, guide.md and audit.md (§2)`);
-    }
-  }
-  const researchFiles = listDir('research');
-  for (const f of researchFiles) {
-    if (!/^p[1-9]\d*-r1a-[1-9]\d*\.md$/.test(f)) fail('layout', `research/${f} isn't named p<round>-r1a-<n>.md (§2)`);
-  }
-
-  // A measure-only plan folder (a skeleton or a probe): its plan, and the record and XML compile_plan writes beside it.
-  const PLAN_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml'];
-  const measureOnlyFolder = (rel, what) => {
-    for (const f of listDir(rel)) if (!PLAN_FILES.includes(f)) fail('layout', `${rel}/${f} isn't part of the layout (§2)`);
-    const rec = readJson(`${rel}/compile-record.json`);
-    if (rec === null) return;
-    // D-208: it compiles measure-only; its record names the XML beside it.
-    const named = isObj(rec.pobFile) ? String(rec.pobFile.path ?? '') : '';
-    if (rec.mode !== 'measure-only' || rec.pobFile?.location !== 'run') {
-      fail('layout', `${rel}/compile-record.json is a ${show(rec.mode)} compile; ${what} compile measure-only (D-208)`);
-    } else if (!named.endsWith(`${rel}/${path.posix.basename(named)}`) || !exists(`${rel}/${path.posix.basename(named)}`)) {
-      fail('layout', `${rel}/compile-record.json names ${show(named)}, which isn't the compiled XML beside it (D-208)`);
-    }
-  };
-
-  // Plans: the run's own, the skeletons and the probes; prices and ledger ids resolve across the first two.
-  const plan = readJson('plan.json');
-  const conceptPlans = new Map();
-  for (const id of listDir('concepts')) {
-    if (!ID.test(id) || !isDir(`concepts/${id}`)) {
-      fail('layout', `concepts/${id} isn't a skeleton folder named by ${idForm(schema)} (§2)`);
-      continue;
-    }
-    if (!exists(`concepts/${id}/plan.json`)) fail('layout', `concepts/${id}/plan.json is missing; R1b writes the ${v3 ? "card's" : "concept's"} skeleton plan there (§2)`);
-    const p = readJson(`concepts/${id}/plan.json`);
-    if (p !== null) conceptPlans.set(id, p);
-    measureOnlyFolder(`concepts/${id}`, 'skeletons');
-  }
-  // D-331, D-338: a card's probe variants, probes/<card-id>/<n>/ with n from 1 in run order, each a one-stage
-  // plan with the measure-only record and XML beside it; at most 4 per card (D-292).
-  const probePlans = new Map();
-  const probeCounts = new Map();
-  // D-390: a gate question step's coordinator may compile one variant, probes/q-<gate>-<visit>-<n>/, its question
-  // report interviews/<gate>-<visit>-q<n>.md; it counts toward no card's probes.
-  const questionProbes = [];
-  for (const id of listDir('probes')) {
-    const q = QUESTION_PROBE.exec(id);
-    if (q && isDir(`probes/${id}`)) {
-      questionProbes.push({ dir: id, report: `interviews/${q[1]}-${q[2]}-q${q[3]}.md` });
-      if (!exists(`probes/${id}/plan.json`)) fail('layout', `probes/${id}/plan.json is missing; a gate question step writes the variant it compiles there (D-390)`);
-      const p = readJson(`probes/${id}/plan.json`);
-      if (p !== null) probePlans.set(id, p);
-      measureOnlyFolder(`probes/${id}`, "a gate question step's variants");
-      continue;
-    }
-    if (!new RegExp(`^${CARD_ID}$`).test(id) || !isDir(`probes/${id}`)) {
-      fail('layout', `probes/${id} isn't a card's probe folder probes/<card-id>/, the id r<round>-<letter>-<n> (§2, D-331), or a gate question step's variant probes/q-<gate>-<visit>-<n>/ (D-390)`);
-      continue;
-    }
-    const ns = [];
-    for (const n of listDir(`probes/${id}`)) {
-      if (!/^[1-9]\d*$/.test(n) || !isDir(`probes/${id}/${n}`)) {
-        fail('layout', `probes/${id}/${n} isn't a probe variant folder probes/${id}/<n>/, n from 1 (§2, D-331)`);
-        continue;
-      }
-      ns.push(Number(n));
-      if (!exists(`probes/${id}/${n}/plan.json`)) fail('layout', `probes/${id}/${n}/plan.json is missing; R1b writes each probe's one-stage plan there (§7.7, D-338)`);
-      const p = readJson(`probes/${id}/${n}/plan.json`);
-      if (p !== null) probePlans.set(`${id}/${n}`, p);
-      measureOnlyFolder(`probes/${id}/${n}`, 'probe variants');
-    }
-    ns.sort((a, b) => a - b);
-    if (ns.some((n, k) => n !== k + 1)) fail('layout', `probes/${id}/ holds variants ${ns.join(', ')}; they are numbered from 1 in run order, with no gap (§7.7)`);
-    if (ns.length > PROBE_CAP) fail('probes', `probes/${id}/ holds ${ns.length} probe variants; a card has at most ${PROBE_CAP} (D-292)`);
-    probeCounts.set(id, ns.length);
-  }
-  const allPlans = [...(isObj(plan) ? [plan] : []), ...[...conceptPlans.values()].filter(isObj)];
-  const ledgerIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.ledger) ? p.ledger.map((e) => e?.id) : [])));
-  const priceIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.prices) ? p.prices.map((e) => e?.id) : [])));
-  const record = readJson('compile-record.json');
-  if (isObj(record) && record.mode === 'measure-only' && !exists('compiled-build.xml')) {
-    fail('layout', "compile-record.json is a measure-only record, but compiled-build.xml isn't beside it (D-208)");
-  }
-  const finalRecord = isObj(record) && record.mode === 'final' ? record : null;
-  const planStages = isObj(plan) && Array.isArray(plan.stages) ? plan.stages.filter(isObj) : [];
-  const endgame = planStages.filter((s) => s.variant !== undefined);
-  const campaign = planStages.filter((s) => s.variant === undefined);
-  // Which artifacts are current, from the log (the runner can't delete files): the guide is current when no
-  // design step ran after the last W1 (a revision, a fix round that escalated, or another concept's design
-  // leaves an older guide behind), and the final record is current when no producer ran after the last D2 gate.
-  const lastAt = (pred) => stages.reduce((at, s, i) => (pred(s) ? i : at), -1);
-  const lastW1 = lastAt((s) => s.stage === 'W1' && s.outcome !== 'missing');
-  const lastDesign = lastAt((s) => DESIGN_STAGES.includes(s.stage));
-  const guideText0 = readText('guide.md');
-  const guideCurrent = guideText0 !== null && (lastW1 < 0 || lastW1 > lastDesign);
-  const guideText = guideCurrent ? guideText0 : null;
-  if (guideText0 !== null && !guideCurrent && completed) {
-    fail('layout', `status is "completed", but guide.md is from ${describe(stages[lastW1])}, and design steps ran after it; a completed run ends with a current guide`);
-  }
-  // A claims-only owner (D-264) compiles nothing, so it leaves the final record current.
-  const lastFinalGate = lastAt((s) => s.stage === 'D2-gate' && s.outcome !== 'missing');
-  const recordCurrent = finalRecord !== null && !(lastAt((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
-  /** The claims-only owner entries after the last D2 gate, whose edits the final record predates. */
-  const claimsOnlyAfterFinal = stages.slice(lastFinalGate + 1).filter((s) => PRODUCERS.includes(s.stage) && s.outcome === CLAIMS_EDITED);
-  if (guideText !== null && isObj(record) && !finalRecord) {
-    fail('layout', `guide.md exists, but compile-record.json is a ${show(record.mode)} record; W1 writes the guide from the final compile's record (§5.3)`);
-  }
-  // D-352, D-365: each ledger entry's value is the plan's current formula over the record, by the server's own
-  // evaluator, wherever the checker reads one: never the record's stored value, which a ledger-only fix leaves stale.
-  const ledgerModule = await loadLedgerModule();
-  const ledgerNow = ledgerModule !== null && isObj(plan) && isObj(record) ? ledgerResults(ledgerModule, plan, record) : {};
-
-  // ---- Outputs and the final record (§2, §4.1 outputs) --------------------------------------------
-  if (completed && isObj(log.outputs)) {
-    const o = log.outputs;
-    for (const k of ['plan', 'record', 'dossier', 'guide']) {
-      if (typeof o[k] !== 'string' || !exists(o[k])) fail('run-log', `outputs.${k} is ${show(o[k])}, which names no file in the run folder`);
-    }
-    if (finalRecord && o.pobFile !== finalRecord.pobFile?.path) fail('run-log', `outputs.pobFile is ${show(o.pobFile)}; the record's PoB file is ${show(finalRecord.pobFile?.path)}`);
-  }
-  if (finalRecord) {
-    const pob = isObj(finalRecord.pobFile) ? finalRecord.pobFile : {};
-    const base = path.posix.basename(String(pob.path ?? '')).replace(/\.xml$/i, '');
-    if (pob.location !== 'builds' || base !== runName) {
-      fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${runName}", the run folder's last two segments joined (§2)`);
-    }
-    const compiled = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
-    if (recordCurrent) for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);
-  }
-
-  // ---- Offline mode (§11.1, D-233; AC-W2 k) -----------------------------------------------------
-  if (offline) {
-    const labelled = [['plan.json', plan], ...[...conceptPlans].map(([id, cp]) => [`concepts/${id}/plan.json`, cp]), ...[...probePlans].map(([at, pp]) => [`probes/${at}/plan.json`, pp])];
-    for (const [label, p] of labelled) {
-      if (!isObj(p)) continue;
-      if (p.league !== null) fail('offline-prices', `${label}: league is ${show(p.league)}; offline, the plan's league is null (D-233)`);
-      for (const pr of Array.isArray(p.prices) ? p.prices : []) {
-        if (!isObj(pr)) continue;
-        if (pr.status !== 'unavailable' || pr.note !== OFFLINE_NOTE || pr.league !== null) {
-          fail('offline-prices', `${label}: price ${show(pr.id)} is ${show(pr.status)} (note ${show(pr.note)}); offline, every price is unavailable with note "${OFFLINE_NOTE}" and league null (§11.1)`);
-        } else if (runDate && pr.date !== runDate) {
-          fail('offline-prices', `${label}: price ${show(pr.id)} is dated ${show(pr.date)}; offline prices are dated the run folder's date ${runDate} (D-164)`);
-        }
-      }
-    }
-  }
-
-  // ---- Source tags and markers (§7.3, C-30; AC-W2 d, e, f, g) -------------------------------------
+/**
+ * The source-tag and marker checks (§7.3, C-30; AC-W2 d, e, f, g), bound to a `fail` and the run's mode: a plan's
+ * claims, a markdown artifact's definitions and markers.
+ */
+function sourceChecks(fail, offline, mode) {
   const checkTag = (where, tag) => {
     if (!isObj(tag) || typeof tag.kind !== 'string') return fail('source-tags', `${where}: not a source tag`);
     if (!SOURCE_KINDS.includes(tag.kind)) return fail('source-tags', `${where}: kind ${show(tag.kind)} isn't one of ${SOURCE_KINDS.join(', ')}`);
@@ -881,7 +763,6 @@ export async function checkRun(runFolder) {
     ledger: new Set(isObj(p) && Array.isArray(p.ledger) ? p.ledger.map((e) => e?.id) : []),
     prices: new Set(isObj(p) && Array.isArray(p.prices) ? p.prices.map((e) => e?.id) : []),
   });
-  const runScope = { ledger: ledgerIds, prices: priceIds };
 
   /** Claims of a plan: one per stages[].claims[] entry, with its source's kind and location. */
   const planClaims = (p, label) => {
@@ -939,31 +820,212 @@ export async function checkRun(runFolder) {
     }
     return out;
   };
+  return { checkTag, checkCitation, planScope, planClaims, markdownClaims };
+}
 
-  const claims = { plan: [], guide: [] };
-  if (isObj(plan)) claims.plan = planClaims(plan, 'plan.json');
-  for (const [id, cp] of conceptPlans) planClaims(cp, `concepts/${id}/plan.json`);
-  for (const [at, pp] of probePlans) planClaims(pp, `probes/${at}/plan.json`);
-  for (const f of researchFiles) {
-    const text = readText(`research/${f}`);
-    if (text !== null) markdownClaims(parseMarkdown(text), `research/${f}`, runScope);
+/**
+ * D-415: the part of a migrated run's log that schema 3's pipeline recorded: the entries before its first resume (all of
+ * them before any resume), by the lengths that resume recorded. Null for a log recorded in schema 4 from its start, a
+ * migrated run's mark being its build in "." (D-412).
+ */
+function legacyPart(log) {
+  if (log.schemaVersion !== 4 || !list(log.builds).some((b) => b.folder === '.')) return null;
+  const first = list(log.resumes).find((r) => isObj(r.lengths));
+  const len = (k) => (Array.isArray(log[k]) ? log[k].length : 0);
+  return Object.fromEntries(RESUME_LISTS.map((k) => [k, isInt(first?.lengths?.[k]) ? first.lengths[k] : len(k)]));
+}
+
+export async function checkRun(runFolder) {
+  const violations = [];
+  const fail = (rule, message) => violations.push({ rule, message });
+  const { abs, exists, isDir, listDir, readText, readJson } = folderIO(runFolder, fail);
+
+  if (!fs.existsSync(runFolder) || !fs.statSync(runFolder).isDirectory()) {
+    fail('layout', `${runFolder} is not a folder`);
+    return violations;
   }
 
-  // ---- Reports: the gate verdicts and the V4 reports (§2, gates.md, source-markers.md) ---------------
+  // ---- The run log (amendment 1 §4.1) and the control flow it records -------------------------------
+  const log = readJson('run-log.json', 'run-log');
+  if (!isObj(log)) {
+    if (!exists('run-log.json')) fail('layout', 'run-log.json is missing; every run writes it from the start (FR-W2)');
+    return violations;
+  }
+  // D-326: a schema-2 log is a run recorded before amendment 3, checked by its own rules; schema 4 is amendment 9's
+  // (D-412); any other version is checked as schema 3 (a log of none of them fails checkRunLog).
+  const schema = SCHEMA_VERSIONS.includes(log.schemaVersion) ? log.schemaVersion : null;
+  const v3 = schema !== 2;
+  const v4 = schema === 4;
+  const ID = new RegExp(`^${idSource(schema)}$`);
+  checkRunLog(log, fail, schema);
+  const mode = log.mode;
+  const offline = mode === 'offline';
+  const stages = list(log.stages);
+  const escalations = list(log.escalations);
+  const runDir = typeof log.runFolder === 'string' ? log.runFolder.replace(/\\/g, '/').replace(/\/+$/, '') : '';
+  const runName = runDir.split('/').slice(-2).join('-'); // <slug>-<YYYY-MM-DD>-<n>: the PoB file's build_name (§2)
+  const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
+  // D-412: the run's builds: schema 4's builds[] (a migrated run's build in "."), else the one build at the root.
+  const builds = v4 ? list(log.builds).filter((b) => typeof b.id === 'string' && typeof b.folder === 'string') : [{ id: null, folder: '.', status: null }];
+  const rootBuild = builds.find((b) => b.folder === '.') ?? null;
+  /** D-415: a migrated run's entries recorded by schema 3's pipeline, before its first resume; null for any other run. */
+  const legacy = legacyPart(log);
+
+  // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
+  // D-412: a schema-4 run holds its builds in builds/<id>/; only a migrated run's build stays at the root.
+  const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'rounds'];
+  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
+  // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
+  for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
+    if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2)${v4 && BUILD_TOP.includes(name) ? "; a schema-4 run keeps each build's files in its folder builds/<id>/ (D-412)" : ''}; agents write only the files §2 names`);
+  }
+  if (v4) {
+    // D-412: builds/<id>/, one folder per build builds[] names, and nothing else.
+    if (exists('builds') && !isDir('builds')) fail('layout', 'builds is a file; §2 names the folder builds/, one builds/<id>/ per build (D-412)');
+    for (const f of listDir('builds')) {
+      if (!isDir(`builds/${f}`) || !builds.some((b) => b.folder === `builds/${f}`)) fail('layout', `builds/${f} isn't the folder of a build run-log.json's builds[] names (D-412)`);
+    }
+  }
+  for (const [name, dir] of [['cards', true], ['cards.md', false], ['probes', true], ['interviews', true]]) {
+    if (exists(name) && isDir(name) !== dir) fail('layout', `${name} is a ${dir ? 'file' : 'folder'}; §2 names ${dir ? `the folder ${name}/` : `the file ${name}`}`);
+    // D-326: the cards, the deck and the probes are schema 3's layout (D-319, D-338); a schema-2 run has none.
+    if (!v3 && exists(name)) fail('layout', `${name}${dir ? '/' : ''} is part of schema 3's layout (${name === 'interviews' ? 'the interview notes, D-389' : 'the cards, the deck and the probes, D-338'}); a schema-2 run, recorded before amendment 3, has none (D-326)`);
+  }
+  // C-52, D-319: R1a writes each card at cards/<id>.md, and R1b its verification half; nothing else goes there.
+  const cardIds = new Set();
+  for (const f of listDir('cards')) {
+    const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
+    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391, and x for the rival's, D-408)`);
+    else cardIds.add(m[1]);
+  }
+  // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
+  const rivalRan = stages.some((s) => s.stage === 'RV' && s.outcome !== 'missing');
+  if (log.status === 'completed' && !exists('dossier.md')) fail('layout', 'dossier.md is missing; a completed run has its dossier (§2)');
+  if (v4 && log.dossier !== null && log.dossier !== undefined && (typeof log.dossier !== 'string' || !exists(log.dossier))) fail('run-log', `dossier is ${show(log.dossier)}, which names no file in the run folder (D-412)`);
+  const researchFiles = listDir('research');
+  for (const f of researchFiles) {
+    if (!/^p[1-9]\d*-r1a-[1-9]\d*\.md$/.test(f)) fail('layout', `research/${f} isn't named p<round>-r1a-<n>.md (§2)`);
+  }
+
+  // A measure-only plan folder (a skeleton or a probe): its plan, and the record and XML compile_plan writes beside it.
+  const PLAN_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml'];
+  const measureOnlyFolder = (rel, what) => {
+    for (const f of listDir(rel)) if (!PLAN_FILES.includes(f)) fail('layout', `${rel}/${f} isn't part of the layout (§2)`);
+    const rec = readJson(`${rel}/compile-record.json`);
+    if (rec === null) return;
+    // D-208: it compiles measure-only; its record names the XML beside it.
+    const named = isObj(rec.pobFile) ? String(rec.pobFile.path ?? '') : '';
+    if (rec.mode !== 'measure-only' || rec.pobFile?.location !== 'run') {
+      fail('layout', `${rel}/compile-record.json is a ${show(rec.mode)} compile; ${what} compile measure-only (D-208)`);
+    } else if (!named.endsWith(`${rel}/${path.posix.basename(named)}`) || !exists(`${rel}/${path.posix.basename(named)}`)) {
+      fail('layout', `${rel}/compile-record.json names ${show(named)}, which isn't the compiled XML beside it (D-208)`);
+    }
+  };
+
+  // Plans: each build's own, the skeletons and the probes; prices and ledger ids resolve across the first two.
+  const buildPlans = new Map(builds.map((b) => [b, readJson(inFolder(b.folder, 'plan.json'))]));
+  const conceptPlans = new Map();
+  for (const id of listDir('concepts')) {
+    if (!ID.test(id) || !isDir(`concepts/${id}`)) {
+      fail('layout', `concepts/${id} isn't a skeleton folder named by ${idForm(schema)} (§2)`);
+      continue;
+    }
+    if (!exists(`concepts/${id}/plan.json`)) fail('layout', `concepts/${id}/plan.json is missing; R1b writes the ${v3 ? "card's" : "concept's"} skeleton plan there (§2)`);
+    const p = readJson(`concepts/${id}/plan.json`);
+    if (p !== null) conceptPlans.set(id, p);
+    measureOnlyFolder(`concepts/${id}`, 'skeletons');
+  }
+  // D-331, D-338: a card's probe variants, probes/<card-id>/<n>/ with n from 1 in run order, each a one-stage
+  // plan with the measure-only record and XML beside it; at most 4 per card (D-292).
+  const probePlans = new Map();
+  const probeCounts = new Map();
+  // D-390: a gate question step's coordinator may compile one variant, probes/q-<gate>-<visit>-<n>/, its question
+  // report interviews/<gate>-<visit>-q<n>.md; it counts toward no card's probes.
+  const questionProbes = [];
+  for (const id of listDir('probes')) {
+    const q = QUESTION_PROBE.exec(id);
+    if (q && isDir(`probes/${id}`)) {
+      questionProbes.push({ dir: id, report: `interviews/${q[1]}-${q[2]}-q${q[3]}.md` });
+      if (!exists(`probes/${id}/plan.json`)) fail('layout', `probes/${id}/plan.json is missing; a gate question step writes the variant it compiles there (D-390)`);
+      const p = readJson(`probes/${id}/plan.json`);
+      if (p !== null) probePlans.set(id, p);
+      measureOnlyFolder(`probes/${id}`, "a gate question step's variants");
+      continue;
+    }
+    if (!new RegExp(`^${CARD_ID}$`).test(id) || !isDir(`probes/${id}`)) {
+      fail('layout', `probes/${id} isn't a card's probe folder probes/<card-id>/, the id r<round>-<letter>-<n> (§2, D-331), or a gate question step's variant probes/q-<gate>-<visit>-<n>/ (D-390)`);
+      continue;
+    }
+    const ns = [];
+    for (const n of listDir(`probes/${id}`)) {
+      if (!/^[1-9]\d*$/.test(n) || !isDir(`probes/${id}/${n}`)) {
+        fail('layout', `probes/${id}/${n} isn't a probe variant folder probes/${id}/<n>/, n from 1 (§2, D-331)`);
+        continue;
+      }
+      ns.push(Number(n));
+      if (!exists(`probes/${id}/${n}/plan.json`)) fail('layout', `probes/${id}/${n}/plan.json is missing; R1b writes each probe's one-stage plan there (§7.7, D-338)`);
+      const p = readJson(`probes/${id}/${n}/plan.json`);
+      if (p !== null) probePlans.set(`${id}/${n}`, p);
+      measureOnlyFolder(`probes/${id}/${n}`, 'probe variants');
+    }
+    ns.sort((a, b) => a - b);
+    if (ns.some((n, k) => n !== k + 1)) fail('layout', `probes/${id}/ holds variants ${ns.join(', ')}; they are numbered from 1 in run order, with no gap (§7.7)`);
+    if (ns.length > PROBE_CAP) fail('probes', `probes/${id}/ holds ${ns.length} probe variants; a card has at most ${PROBE_CAP} (D-292)`);
+    probeCounts.set(id, ns.length);
+  }
+  const allPlans = [...[...buildPlans.values()].filter(isObj), ...[...conceptPlans.values()].filter(isObj)];
+  const ledgerIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.ledger) ? p.ledger.map((e) => e?.id) : [])));
+  const priceIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.prices) ? p.prices.map((e) => e?.id) : [])));
+
+  // ---- Offline mode (§11.1, D-233; AC-W2 k) -----------------------------------------------------
+  if (offline) {
+    const labelled = [
+      ...[...buildPlans].map(([b, p]) => [inFolder(b.folder, 'plan.json'), p]),
+      ...[...conceptPlans].map(([id, cp]) => [`concepts/${id}/plan.json`, cp]),
+      ...[...probePlans].map(([at, pp]) => [`probes/${at}/plan.json`, pp]),
+    ];
+    for (const [label, p] of labelled) {
+      if (!isObj(p)) continue;
+      if (p.league !== null) fail('offline-prices', `${label}: league is ${show(p.league)}; offline, the plan's league is null (D-233)`);
+      for (const pr of Array.isArray(p.prices) ? p.prices : []) {
+        if (!isObj(pr)) continue;
+        if (pr.status !== 'unavailable' || pr.note !== OFFLINE_NOTE || pr.league !== null) {
+          fail('offline-prices', `${label}: price ${show(pr.id)} is ${show(pr.status)} (note ${show(pr.note)}); offline, every price is unavailable with note "${OFFLINE_NOTE}" and league null (§11.1)`);
+        } else if (runDate && pr.date !== runDate) {
+          fail('offline-prices', `${label}: price ${show(pr.id)} is dated ${show(pr.date)}; offline prices are dated the run folder's date ${runDate} (D-164)`);
+        }
+      }
+    }
+  }
+
+  // ---- Source tags and markers (§7.3, C-30; AC-W2 d, e, f, g) -------------------------------------
+  const sources = sourceChecks(fail, offline, mode);
+  const runScope = { ledger: ledgerIds, prices: priceIds };
+  for (const [id, cp] of conceptPlans) sources.planClaims(cp, `concepts/${id}/plan.json`);
+  for (const [at, pp] of probePlans) sources.planClaims(pp, `probes/${at}/plan.json`);
+  for (const f of researchFiles) {
+    const text = readText(`research/${f}`);
+    if (text !== null) sources.markdownClaims(parseMarkdown(text), `research/${f}`, runScope);
+  }
+
+  // ---- Reports: the gate verdicts (§2, gates.md), run-wide in reports/gates/ ---------------------------
   const gates = [];
+  const GATE_FILE = new RegExp(`^(R1b|D1-gate|D2-gate${v4 ? '|F1' : ''})-(${idSource(schema)})-a([1-9]\\d*)\\.json$`);
   for (const f of listDir('reports/gates')) {
-    const m = new RegExp(`^(R1b|D1-gate|D2-gate)-(${idSource(schema)})-a([1-9]\\d*)\\.json$`).exec(f);
+    const m = GATE_FILE.exec(f);
     if (!m) fail('layout', `reports/gates/${f} isn't named <stage>-<${v3 ? 'card' : 'concept'}>-a<attempt>.json, with ${idForm(schema)} (§2)`);
     else gates.push({ file: `reports/gates/${f}`, stage: m[1], concept: m[2], attempt: Number(m[3]) });
   }
+  // D-415: a D1 gate verdict written before a migrated run's first resume is schema 3's, with no `tree` part.
+  const loggedAt = new Map(stages.map((s, i) => [`reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`, i]));
+  const legacyGate = (file) => !v4 || (legacy !== null && (loggedAt.get(file) ?? -1) < legacy.stages);
   const gateReports = new Map();
   for (const g of gates) {
     const rep = readJson(g.file, 'gate-report');
     if (rep === null) continue;
-    checkGateReport(rep, g, fail);
+    checkGateReport(rep, g, fail, { v4, legacy: legacyGate(g.file) });
     if (isObj(rep)) gateReports.set(g.file, rep);
   }
-  const lastGate = (stage, concept) => gates.filter((g) => g.stage === stage && g.concept === concept).sort((a, b) => b.attempt - a.attempt)[0];
 
   // ---- Dossier (§7.2, as D-355 reduces it): the verification gate's comparison table -------------------
   const dossierText = readText('dossier.md');
@@ -978,85 +1040,8 @@ export async function checkRun(runFolder) {
     checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal });
   }
 
-  // The V4 reports (D-352, stages/V4.md): reports/V4-<n>.md, one per logged pass (V4 or V4-recheck), numbered
-  // in run order from 1 and never overwritten. The k-th logged pass wrote report k.
-  const v4Entries = stages.map((s, i) => ({ s, i })).filter(({ s }) => (s.stage === 'V4' || s.stage === 'V4-recheck') && s.outcome !== 'missing');
-  const v4 = new Map();
-  for (const f of listDir('reports')) {
-    if (f === 'gates') continue;
-    const m = /^V4-([1-9]\d*)\.md$/.exec(f);
-    if (!m || isDir(`reports/${f}`)) {
-      fail('layout', `reports/${f} isn't a V4 report reports/V4-<n>.md, n from 1 (§2, D-352); a report named by its lens (v4-<lens>.json) is from before amendment 4`);
-      continue;
-    }
-    const n = Number(m[1]);
-    v4.set(n, { file: `reports/${f}`, n, entry: v4Entries[n - 1], report: parseV4Report(readText(`reports/${f}`)) });
-  }
-  const v4Numbers = [...v4.keys()].sort((a, b) => a - b);
-  if (v4Numbers.some((n, k) => n !== k + 1)) fail('reports', `reports/ holds the V4 reports ${v4Numbers.map((n) => `V4-${n}.md`).join(', ')}; they are numbered from 1 in run order, with no gap (D-352)`);
-  if (v4Entries.length > v4.size) {
-    fail('reports', `run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck), but reports/ holds ${v4.size} V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)`);
-  } else if (v4.size > v4Entries.length) {
-    fail('reports', `reports/ holds ${v4.size} V4 report(s), but run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck); every report is a logged pass's (D-352)`);
-  }
-  for (const r of [...v4.values()].sort((a, b) => a.n - b.n)) r.parsed = checkV4Report(r, mode, fail, ID);
-
-  // The concept designed last: the one whose D1 gate ran last (the log orders the files), or the only concept
-  // with D1 gate reports. The gate file of a logged attempt is the one its log entry names.
-  const d1Concepts = [...new Set(gates.filter((g) => g.stage === 'D1-gate').map((g) => g.concept))];
-  const lastD1GateAt = lastAt((s) => s.stage === 'D1-gate' && s.outcome !== 'missing');
-  let designConcept = lastD1GateAt >= 0 ? stages[lastD1GateAt].concept : null;
-  if (designConcept === null && d1Concepts.length === 1) designConcept = d1Concepts[0];
-  else if (designConcept === null && d1Concepts.length > 1) fail('reports', `D1 gate reports exist for ${d1Concepts.join(', ')}, and the run log doesn't say which ran last`);
-  /** The verdict file of a gate's last logged attempt for `concept` before log index `before`, or its highest-numbered file. */
-  const gateFor = (stage, concept, before = stages.length) => {
-    const at = stages.slice(0, before).reduce((found, s, i) => (s.stage === stage && s.concept === concept && s.outcome !== 'missing' ? i : found), -1);
-    if (at >= 0) return gates.find((g) => g.stage === stage && g.concept === concept && g.attempt === stages[at].attempt) ?? { file: `reports/gates/${stage}-${concept}-a${stages[at].attempt}.json`, stage, concept, attempt: stages[at].attempt };
-    return stages.some((s) => s.stage === stage && s.concept === concept) ? undefined : lastGate(stage, concept);
-  };
-  // The concept the current guide is for: its last W1's.
-  const guideConcept = guideText !== null ? (lastW1 >= 0 ? stages[lastW1].concept : designConcept) : null;
-  const guideBefore = lastW1 >= 0 ? lastW1 : stages.length;
-  // The V4 reports of the current guide: the passes logged for its card after the last step about another card
-  // (an earlier design's reports aren't held to the current plan).
-  const lastOther = guideConcept === null ? stages.length : lastAt((s) => typeof s.concept === 'string' && s.concept !== guideConcept);
-  const guideReports = [...v4.values()].filter((r) => r.entry !== undefined && r.entry.i > lastOther && r.entry.s.concept === guideConcept).sort((a, b) => a.n - b.n);
-  if (guideText !== null) {
-    if (guideConcept === null || !gateFor('D1-gate', guideConcept, guideBefore)) fail('reports', 'guide.md exists, but no reports/gates/D1-gate-<concept>-a<n>.json does; W1 runs only after the D1 gate passed (§5.3)');
-    else if (!gateFor('D2-gate', guideConcept, guideBefore)) fail('reports', `guide.md exists, but no reports/gates/D2-gate-${guideConcept}-a<n>.json does; W1 runs only after the D2 gate passed (§5.3)`);
-    if (!guideReports.some((r) => r.parsed?.check === 'full')) fail('reports', `guide.md exists, but no V4 full pass of it does (a reports/V4-<n>.md "full pass" logged as V4 for ${guideConcept}); every guide gets one full pass (D-352)`);
-  }
-  // A re-check (D-352, A-34): of the round copy rounds/<n-1>/, it reports again every finding the report before it
-  // left open, and its "## Checked" lists every item `--changed <n-1>` prints: the claims and guide H2s that changed
-  // since that copy, as they stood when it ran (rounds/<n>/ when a later round copied them, else the run folder,
-  // once no step wrote the plan, the record or the guide after it). The runner's step-14 Known issues lines are no
-  // change: they come after the re-check.
-  const PASS_WRITERS = [...DESIGN_STAGES, 'W1'];
-  for (const r of [...v4.values()].sort((a, b) => a.n - b.n)) {
-    if (r.parsed?.check !== 'recheck') continue;
-    const prev = v4.get(r.n - 1);
-    if (prev?.parsed) {
-      const ids = new Set(r.parsed.findings.map((f) => f.id));
-      for (const f of prev.parsed.findings.filter((x) => x.status === 'unresolved')) {
-        if (!ids.has(f.id)) fail('recheck', `${r.file} doesn't report ${prev.file}'s unresolved finding ${f.id} again; a re-check reports every finding still open under its id, fixed or unresolved (stages/V4.md)`);
-      }
-    }
-    if (!isDir(`rounds/${r.n - 1}`)) {
-      fail('recheck', `${r.file} is a re-check of rounds/${r.n - 1}, but rounds/${r.n - 1}/ doesn't exist; the runner makes the round copy (--snapshot ${r.n - 1}) before the fix round or revision (A-34)`);
-      continue;
-    }
-    let now = null;
-    if (isDir(`rounds/${r.n}`)) now = abs(`rounds/${r.n}`);
-    else if (r.entry && !stages.slice(r.entry.i + 1).some((s) => PASS_WRITERS.includes(s.stage) && s.outcome !== 'missing')) now = runFolder;
-    if (now === null || ledgerModule === null) continue;
-    const want = changedBetween(ledgerModule, abs(`rounds/${r.n - 1}`), now, { knownIssues: false });
-    const checked = new Set(r.parsed.checked);
-    for (const line of want) {
-      if (!checked.has(line)) fail('recheck', `${r.file}'s "## Checked" misses "${line}", which check-run.mjs --changed ${r.n - 1} lists (it changed since rounds/${r.n - 1}/); a re-check covers every item --changed lists (D-352)`);
-    }
-  }
-
   // ---- Escalations name their verdict files; accepted gate findings (§5.4, D-236) ------------------
+  // D-411: in schema 4 an accepted finding is its build's: it covers only gate findings of the same card.
   const accepted = [];
   for (const [i, e] of escalations.entries()) {
     const want = `reports/gates/${e.stage}-${e.concept}-a`;
@@ -1066,32 +1051,40 @@ export async function checkRun(runFolder) {
       continue;
     }
     if (e.choice !== 'accept') continue;
+    // D-413: after F1's ledger refusal, the answer accept retries F1 once the user restored or removed the file; it
+    // accepts no finding.
+    if (e.stage === 'F1' && ledgerRefused(rep)) continue;
     for (const f of list(rep.findings)) {
       if (rep.verdict?.[f.part] !== 'fail' || INFO_CODES.includes(f.code)) continue;
       if (f.part === 'compiled') {
-        fail('escalation', `escalations[${i}] accepts ${e.verdict}'s compile failure; accept isn't offered for a compile error (D-236)`);
+        fail('escalation', `escalations[${i}] accepts ${e.verdict}'s compile failure; accept isn't offered for a compile error (D-236${e.stage === 'F1' ? ', D-413' : ''})`);
         continue;
       }
-      accepted.push({ gate: rep.stage, stage: typeof f.stage === 'string' ? f.stage : null, part: f.part, code: f.code, message: f.message });
+      accepted.push({ gate: rep.stage, concept: e.concept, stage: typeof f.stage === 'string' ? f.stage : null, part: f.part, code: f.code, message: f.message });
     }
   }
-  /** A gate failure the user accepted at an escalation (same plan stage, part and code) fails nothing. */
-  const covered = (f) => accepted.some((a) => a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  /** A gate failure the user accepted at an escalation (same plan stage, part and code; in schema 4 the same card) fails nothing. */
+  const coveredFor = (concept) => (f) => accepted.some((a) => (!v4 || a.concept === concept) && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
   for (const [file, rep] of gateReports) {
     for (const f of list(rep.findings)) {
-      if (f.accepted === true && !covered(f)) fail('gates', `${file} marks finding ${f.code} (stage ${f.stage}) accepted, but no escalation accepted it (§5.4)`);
+      if (f.accepted === true && !coveredFor(rep.concept)(f)) fail('gates', `${file} marks finding ${f.code} (stage ${f.stage}) accepted, but no escalation accepted it (§5.4)`);
     }
   }
 
   // ---- The control flow, read from the log and tied to the verdict files it routed on --------------------
+  /** The plan of the build that designs `concept`: its build folder's in schema 4, else the root's. */
+  const planOf = (concept) => {
+    const b = v4 ? builds.find((x) => x.id === concept) : builds[0];
+    return b ? buildPlans.get(b) : null;
+  };
   // FI-2 breaks the first endgame stage: the ladder's first rung (`m` when the plan has one), then plan order.
-  const firstEndgame = [...endgame].sort((a, b) => RUNGS.indexOf(a.variant) - RUNGS.indexOf(b.variant))[0]?.id ?? null;
+  const firstEndgameOf = (concept) => list(planOf(concept)?.stages).filter((s) => s.variant !== undefined).sort((a, b) => RUNGS.indexOf(a.variant) - RUNGS.indexOf(b.variant))[0]?.id ?? null;
   const verdictOf = (s) => gateReports.get(`reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`);
-  checkFlow(log, fail, {
+  const flowCtx = {
     schema,
     verdict: verdictOf,
     /** The plan stage a fault directive breaks (offline-and-test.md): FI-1 the card's skeleton, FI-2 the first endgame stage. */
-    faultedStage: (id, concept) => (id === 'FI-1' ? skeletonStage(concept) : id === 'FI-2' ? firstEndgame : null),
+    faultedStage: (id, concept) => (id === 'FI-1' ? skeletonStage(concept) : id === 'FI-2' ? firstEndgameOf(concept) : null),
     /**
      * D-334, D-342, D-400, D-408: the code of an R1b attempt that failed with no compile and that no retry can fix
      * (`not-a-skill`, `wrong-ascendancy`, `not-in-pin`, `not-dealt`), else null.
@@ -1099,7 +1092,10 @@ export async function checkRun(runFolder) {
     terminal: (s) => (s.stage === 'R1b' && s.outcome === 'fail' ? terminalR1b(verdictOf(s)) : null),
     /** Whether the run holds the card a gate answer names (C-52). */
     cardExists: (id) => cardIds.has(id),
-  });
+    legacy,
+  };
+  if (v4) checkFlow4(log, fail, flowCtx);
+  else checkFlow(log, fail, flowCtx);
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
@@ -1124,12 +1120,211 @@ export async function checkRun(runFolder) {
       if (sum > PROBE_CAP) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probes; a card has at most ${PROBE_CAP} (D-292)`);
       if (sum !== folders) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probe(s), but probes/${id}/ holds ${folders}; the runner logs each R1b return's "probes <n>", every probe run, a probe whose compile failed included (D-338)`);
     }
-    // D-286: the card the verification gate finalized gives the run its roll, its skeleton's identity.
-    const finalized = list(log.checkpoints).filter((c) => c.checkpoint === 'verification' && /^pick:/.test(String(c.answer))).map((c) => c.answer.slice(5)).pop();
-    const skeleton = finalized !== undefined ? conceptPlans.get(finalized) : undefined;
-    if (isObj(log.roll) && isObj(skeleton?.roll)) {
-      const differs = ['className', 'ascendancy', 'skill'].filter((k) => log.roll[k] !== skeleton.roll[k]);
-      if (differs.length > 0) fail('run-log', `run-log.json roll is ${show(log.roll)}, but the verification gate finalized ${finalized}, whose identity (concepts/${finalized}/plan.json's roll) is ${show(skeleton.roll)}; the finalized card's identity becomes the run's roll (D-286)`);
+    // D-286: the card the verification gate finalized gives its build its roll, its skeleton's identity.
+    const finalized = v4 ? builds.map((b) => [b.id, b.roll, `builds[] ${b.id}'s roll`])
+      : [[list(log.checkpoints).filter((c) => c.checkpoint === 'verification' && /^pick:/.test(String(c.answer))).map((c) => c.answer.slice(5)).pop(), log.roll, 'run-log.json roll']];
+    for (const [id, roll, where] of finalized) {
+      const skeleton = id !== undefined ? conceptPlans.get(id) : undefined;
+      if (!isObj(roll) || !isObj(skeleton?.roll)) continue;
+      const differs = ['className', 'ascendancy', 'skill'].filter((k) => roll[k] !== skeleton.roll[k]);
+      if (differs.length > 0) fail('run-log', `${where} is ${show(roll)}, but the verification gate finalized ${id}, whose identity (concepts/${id}/plan.json's roll) is ${show(skeleton.roll)}; the finalized card's identity becomes ${v4 ? "its build's" : "the run's"} roll (D-286)`);
+    }
+  }
+
+  // ---- Each build's artifacts, in its folder (D-412; a schema-2 or schema-3 run's one build at the root) ---------
+  const ledgerModule = await loadLedgerModule();
+  const otherIds = new Set(builds.filter((b) => b.folder !== '.').map((b) => b.id));
+  for (const build of builds) {
+    // A build's own steps: its card's (in "." also those of cards with no folder of their own), refused calls aside.
+    const mine = v4 ? stages.filter((s) => s.outcome !== REFUSED && (build.folder === '.' ? !otherIds.has(s.concept) : s.concept === build.id)) : stages;
+    await checkBuild({
+      runFolder, build, log, schema, stages: mine, gates, gateReports, accepted: v4 ? accepted.filter((a) => a.concept === build.id) : accepted,
+      ledgerModule, runName, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate,
+      fail: build.folder === '.' ? fail : (rule, message) => fail(rule, `${build.folder}: ${message}`),
+    });
+  }
+  // D-412: a schema-4 run with no build at the root holds no V4 report there: each build's are in its folder.
+  if (v4 && !rootBuild) for (const f of listDir('reports').filter((x) => x !== 'gates')) fail('layout', `reports/${f} is at the run folder's root; a schema-4 run's V4 reports are each build's, builds/<id>/reports/V4-<n>.md (D-412)`);
+  return violations;
+}
+
+/**
+ * One build's artifacts in its folder (D-412): the plan, the final record and its PoB file, the guide (by the template
+ * its plan decides, D-414), audit.md, the V4 reports and the round copies, the D1 gate recomputed, held to the steps the
+ * log records for its card. A schema-2 or schema-3 run's one build is the root's, held to the whole log.
+ */
+async function checkBuild(c) {
+  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, offline, mode, ID, plan, sources, fail, legacy, legacyGate } = c;
+  const v4 = schema === 4;
+  const folder = build.folder;
+  const { abs, exists, isDir, listDir, readText, readJson } = folderIO(path.join(runFolder, folder), fail);
+  const completed = v4 ? build.status === 'completed' : log.status === 'completed';
+  const covered = (f) => accepted.some((a) => a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+
+  // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else.
+  if (exists('rounds') && !isDir('rounds')) fail('layout', 'rounds is a file; §2 names the folder rounds/, of round copies rounds/<n>/ (A-34)');
+  for (const n of listDir('rounds').filter((x) => !ROUND_TMP.test(x))) {
+    if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
+    else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
+  }
+  if (v4 && folder !== '.') {
+    // D-412: a build's folder holds what the root held for the one build: plan.json, the record and its XML, guide.md,
+    // audit.md, reports/V4-<n>.md and rounds/<n>/.
+    for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, reports/, rounds/; D-412)`);
+  }
+  if (completed) {
+    for (const rel of ['plan.json', 'compile-record.json', 'guide.md', 'audit.md']) {
+      if (!exists(rel)) fail('layout', `${rel} is missing; a completed ${v4 ? 'build' : 'run'} has plan.json, compile-record.json, guide.md and audit.md (§2${v4 ? ', D-412' : ''})`);
+    }
+  }
+  if (v4 && build.status === 'file-only') for (const rel of ['plan.json', 'compile-record.json']) if (!exists(rel)) fail('layout', `${rel} is missing; a file-only build has its plan and its final record (D-411)`);
+
+  const record = readJson('compile-record.json');
+  if (isObj(record) && record.mode === 'measure-only' && !exists('compiled-build.xml')) {
+    fail('layout', "compile-record.json is a measure-only record, but compiled-build.xml isn't beside it (D-208)");
+  }
+  const finalRecord = isObj(record) && record.mode === 'final' ? record : null;
+  const planStages = isObj(plan) && Array.isArray(plan.stages) ? plan.stages.filter(isObj) : [];
+  const endgame = planStages.filter((s) => s.variant !== undefined);
+  const campaign = planStages.filter((s) => s.variant === undefined);
+  /** D-414: the guide a plan decides: no campaign stage, the endgame guide (schema 4's); else the full guide. */
+  const template = v4 && isObj(plan) && campaign.length === 0 ? 'endgame' : 'full';
+  // D-414: the run log's guide field records the template its plan decides; the checker fails a mismatch.
+  if (v4 && isObj(plan) && build.guide !== null && build.guide !== undefined && build.guide !== template) {
+    fail('run-log', `builds[] ${build.id}'s guide is ${show(build.guide)}, but its plan ${campaign.length === 0 ? 'has no campaign stage, so its guide is the endgame guide' : `has ${campaign.length} campaign stage(s), so its guide is the full guide`}: "${template}" (D-414)`);
+  }
+  // Which artifacts are current, from the log (the runner can't delete files): the guide is current when no
+  // design step ran after the last W1 (a revision, a fix round that escalated, or another concept's design
+  // leaves an older guide behind), and the final record is current when no producer ran after the last final gate.
+  const lastAt = (pred) => stages.reduce((at, s, i) => (pred(s) ? i : at), -1);
+  const lastW1 = lastAt((s) => s.stage === 'W1' && s.outcome !== 'missing');
+  const lastDesign = lastAt((s) => DESIGN_STAGES.includes(s.stage));
+  const guideText0 = readText('guide.md');
+  const guideCurrent = guideText0 !== null && (lastW1 < 0 || lastW1 > lastDesign);
+  const guideText = guideCurrent ? guideText0 : null;
+  if (guideText0 !== null && !guideCurrent && completed) {
+    fail('layout', `status is "completed", but guide.md is from ${describe(stages[lastW1])}, and design steps ran after it; a completed ${v4 ? 'build' : 'run'} ends with a current guide`);
+  }
+  if (v4 && guideText !== null && (build.guide === null || build.guide === undefined)) fail('run-log', `builds[] ${build.id}'s guide is null, but its folder holds a current guide.md; the runner records the guide its plan decides, "${template}" (D-414)`);
+  // A claims-only owner (D-264) compiles nothing, so it leaves the final record current.
+  const lastFinalGate = lastAt((s) => FINAL_GATES.includes(s.stage) && s.outcome !== 'missing');
+  const recordCurrent = finalRecord !== null && !(lastAt((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
+  /** The claims-only owner entries after the last final gate, whose edits the final record predates. */
+  const claimsOnlyAfterFinal = stages.slice(lastFinalGate + 1).filter((s) => PRODUCERS.includes(s.stage) && s.outcome === CLAIMS_EDITED);
+  if (guideText !== null && isObj(record) && !finalRecord) {
+    fail('layout', `guide.md exists, but compile-record.json is a ${show(record.mode)} record; W1 writes the guide from the final compile's record (§5.3)`);
+  }
+  // D-352, D-365: each ledger entry's value is the plan's current formula over the record, by the server's own
+  // evaluator, wherever the checker reads one: never the record's stored value, which a ledger-only fix leaves stale.
+  const ledgerNow = ledgerModule !== null && isObj(plan) && isObj(record) ? ledgerResults(ledgerModule, plan, record) : {};
+
+  // ---- Outputs and the final record (§2, §4.1 outputs; D-412 builds[]) ---------------------------------
+  if (!v4 && completed && isObj(log.outputs)) {
+    const o = log.outputs;
+    for (const k of ['plan', 'record', 'dossier', 'guide']) {
+      if (typeof o[k] !== 'string' || !exists(o[k])) fail('run-log', `outputs.${k} is ${show(o[k])}, which names no file in the run folder`);
+    }
+    if (finalRecord && o.pobFile !== finalRecord.pobFile?.path) fail('run-log', `outputs.pobFile is ${show(o.pobFile)}; the record's PoB file is ${show(finalRecord.pobFile?.path)}`);
+  }
+  if (v4 && (build.pobFile !== null && build.pobFile !== undefined ? true : ['completed', 'file-only'].includes(build.status)) && finalRecord && build.pobFile !== finalRecord.pobFile?.path) {
+    fail('run-log', `builds[] ${build.id}'s pobFile is ${show(build.pobFile)}; the final record's PoB file is ${show(finalRecord.pobFile?.path)} (D-412)`);
+  }
+  if (finalRecord) {
+    const pob = isObj(finalRecord.pobFile) ? finalRecord.pobFile : {};
+    const base = path.posix.basename(String(pob.path ?? '')).replace(/\.xml$/i, '');
+    // D-412: a build in its own folder writes `<slug>-<YYYY-MM-DD>-<n>-<card id>`, so two builds never share a file.
+    const want = v4 && folder !== '.' ? `${runName}-${build.id}` : runName;
+    if (pob.location !== 'builds' || base !== want) {
+      fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${want}", the run folder's last two segments joined${want !== runName ? ', then the card id (D-412)' : ''} (§2)`);
+    }
+    const compiled = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
+    if (recordCurrent) for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);
+  }
+
+  // ---- Source tags and markers of the build's plan (§7.3, C-30) -------------------------------------
+  if (isObj(plan)) sources.planClaims(plan, 'plan.json');
+
+  // ---- The V4 reports (D-352, stages/V4.md): reports/V4-<n>.md, one per logged pass (V4, V4-recheck, and schema 4's
+  // V4-campaign, D-415), numbered in the build's run order from 1 and never overwritten. The k-th logged pass wrote
+  // report k.
+  const v4Entries = stages.map((s, i) => ({ s, i })).filter(({ s }) => V4_STAGES.includes(s.stage) && s.outcome !== 'missing');
+  const passes = new Map();
+  for (const f of listDir('reports')) {
+    if (f === 'gates' && folder === '.') continue;
+    const m = /^V4-([1-9]\d*)\.md$/.exec(f);
+    if (!m || isDir(`reports/${f}`)) {
+      fail('layout', `reports/${f} isn't a V4 report reports/V4-<n>.md, n from 1 (§2, D-352); a report named by its lens (v4-<lens>.json) is from before amendment 4`);
+      continue;
+    }
+    const n = Number(m[1]);
+    passes.set(n, { file: `reports/${f}`, n, entry: v4Entries[n - 1], report: parseV4Report(readText(`reports/${f}`)) });
+  }
+  const v4Numbers = [...passes.keys()].sort((a, b) => a - b);
+  if (v4Numbers.some((n, k) => n !== k + 1)) fail('reports', `reports/ holds the V4 reports ${v4Numbers.map((n) => `V4-${n}.md`).join(', ')}; they are numbered from 1 in run order, with no gap (D-352)`);
+  if (v4Entries.length > passes.size) {
+    fail('reports', `run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck), but reports/ holds ${passes.size} V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)`);
+  } else if (passes.size > v4Entries.length) {
+    fail('reports', `reports/ holds ${passes.size} V4 report(s), but run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck); every report is a logged pass's (D-352)`);
+  }
+  for (const r of [...passes.values()].sort((a, b) => a.n - b.n)) r.parsed = checkV4Report(r, mode, fail, ID);
+
+  // The concept designed last: the one whose D1 gate ran last (the log orders the files), or the only concept
+  // with D1 gate reports. The gate file of a logged attempt is the one its log entry names.
+  const myGates = v4 ? gates.filter((g) => stages.some((s) => s.concept === g.concept)) : gates;
+  const d1Concepts = [...new Set(myGates.filter((g) => g.stage === 'D1-gate').map((g) => g.concept))];
+  const lastD1GateAt = lastAt((s) => s.stage === 'D1-gate' && s.outcome !== 'missing');
+  let designConcept = lastD1GateAt >= 0 ? stages[lastD1GateAt].concept : null;
+  if (designConcept === null && d1Concepts.length === 1) designConcept = d1Concepts[0];
+  else if (designConcept === null && d1Concepts.length > 1 && !v4) fail('reports', `D1 gate reports exist for ${d1Concepts.join(', ')}, and the run log doesn't say which ran last`);
+  const lastGate = (stage, concept) => gates.filter((g) => g.stage === stage && g.concept === concept).sort((a, b) => b.attempt - a.attempt)[0];
+  /** The verdict file of a gate's last logged attempt for `concept` before log index `before`, or its highest-numbered file. */
+  const gateFor = (stage, concept, before = stages.length) => {
+    const at = stages.slice(0, before).reduce((found, s, i) => (s.stage === stage && s.concept === concept && s.outcome !== 'missing' ? i : found), -1);
+    if (at >= 0) return gates.find((g) => g.stage === stage && g.concept === concept && g.attempt === stages[at].attempt) ?? { file: `reports/gates/${stage}-${concept}-a${stages[at].attempt}.json`, stage, concept, attempt: stages[at].attempt };
+    return stages.some((s) => s.stage === stage && s.concept === concept) ? undefined : lastGate(stage, concept);
+  };
+  // The concept the current guide is for: its last W1's.
+  const guideConcept = guideText !== null ? (lastW1 >= 0 ? stages[lastW1].concept : designConcept) : null;
+  const guideBefore = lastW1 >= 0 ? lastW1 : stages.length;
+  // The V4 reports of the current guide: the passes logged for its card after the last step about another card
+  // (an earlier design's reports aren't held to the current plan).
+  const lastOther = guideConcept === null ? stages.length : lastAt((s) => typeof s.concept === 'string' && s.concept !== guideConcept);
+  const guideReports = [...passes.values()].filter((r) => r.entry !== undefined && r.entry.i > lastOther && r.entry.s.concept === guideConcept).sort((a, b) => a.n - b.n);
+  if (guideText !== null) {
+    if (guideConcept === null || !gateFor('D1-gate', guideConcept, guideBefore)) fail('reports', 'guide.md exists, but no reports/gates/D1-gate-<concept>-a<n>.json does; W1 runs only after the D1 gate passed (§5.3)');
+    // D-413: the final compile W1 writes from is the D2 gate's, or, for an endgame-only build, F1's.
+    else if (!gateFor('D2-gate', guideConcept, guideBefore) && !(v4 && gateFor('F1', guideConcept, guideBefore))) fail('reports', `guide.md exists, but no reports/gates/D2-gate-${guideConcept}-a<n>.json${v4 ? ` or reports/gates/F1-${guideConcept}-a<n>.json` : ''} does; W1 runs only after the ${v4 ? 'final compile (the D2 gate, or F1)' : 'D2 gate'} passed (§5.3${v4 ? ', D-413' : ''})`);
+    if (!guideReports.some((r) => r.parsed?.check === 'full')) fail('reports', `guide.md exists, but no V4 full pass of it does (a reports/V4-<n>.md "full pass" logged as V4 for ${guideConcept}); every guide gets one full pass (D-352)`);
+  }
+  // A re-check (D-352, A-34): of the round copy rounds/<n-1>/, it reports again every finding the report before it
+  // left open, and its "## Checked" lists every item `--changed <n-1>` prints: the claims and guide H2s that changed
+  // since that copy, as they stood when it ran (rounds/<n>/ when a later round copied them, else the run folder,
+  // once no step wrote the plan, the record or the guide after it). The runner's step-14 Known issues lines are no
+  // change: they come after the re-check. D-415: a campaign pass is of rounds/<n-1>/ too, and covers every guide H2
+  // --changed lists, the campaign's new and changed H2s.
+  const PASS_WRITERS = [...DESIGN_STAGES, 'W1'];
+  for (const r of [...passes.values()].sort((a, b) => a.n - b.n)) {
+    const check = r.parsed?.check;
+    if (check !== 'recheck' && check !== 'campaign') continue;
+    const prev = passes.get(r.n - 1);
+    if (check === 'recheck' && prev?.parsed) {
+      const ids = new Set(r.parsed.findings.map((f) => f.id));
+      for (const f of prev.parsed.findings.filter((x) => x.status === 'unresolved')) {
+        if (!ids.has(f.id)) fail('recheck', `${r.file} doesn't report ${prev.file}'s unresolved finding ${f.id} again; a re-check reports every finding still open under its id, fixed or unresolved (stages/V4.md)`);
+      }
+    }
+    if (!isDir(`rounds/${r.n - 1}`)) {
+      fail('recheck', `${r.file} is a ${check === 'campaign' ? 'campaign pass' : 're-check'} of rounds/${r.n - 1}, but rounds/${r.n - 1}/ doesn't exist; the runner makes the round copy (--snapshot ${r.n - 1}${v4 && folder !== '.' ? ` --build ${build.id}` : ''}) before ${check === 'campaign' ? 'the campaign (D-415)' : 'the fix round or revision (A-34)'}`);
+      continue;
+    }
+    let now = null;
+    if (isDir(`rounds/${r.n}`)) now = abs(`rounds/${r.n}`);
+    else if (r.entry && !stages.slice(r.entry.i + 1).some((s) => PASS_WRITERS.includes(s.stage) && s.outcome !== 'missing')) now = abs('.');
+    if (now === null || ledgerModule === null) continue;
+    const want = changedBetween(ledgerModule, abs(`rounds/${r.n - 1}`), now, { knownIssues: false }).filter((line) => check === 'recheck' || line.startsWith('section '));
+    const checked = new Set(r.parsed.checked);
+    for (const line of want) {
+      if (!checked.has(line)) fail('recheck', `${r.file}'s "## Checked" misses "${line}", which check-run.mjs --changed ${r.n - 1} lists (it changed since rounds/${r.n - 1}/); a ${check === 'campaign' ? 'campaign pass covers every guide H2' : 're-check covers every item'} --changed lists (D-352${check === 'campaign' ? ', D-415' : ''})`);
     }
   }
 
@@ -1138,26 +1333,28 @@ export async function checkRun(runFolder) {
   const lastReport = guideText !== null ? guideReports[guideReports.length - 1] : undefined;
   const open = (lastReport?.parsed?.findings ?? []).filter((f) => f.status === 'unresolved').map((f) => ({ ...f, file: lastReport.file }));
 
-  // ---- Guide (§8: the reader layer, D-276) and the audit layer (§7.8, D-278) ------------------------
-  // The guide renders the plan: it carries no markers, so the plan's claims hold its sources (claims.guide
-  // stays empty, and an accepted-offline finding can name only a plan claim).
+  // ---- Guide (§8: the reader layer, D-276; D-414's endgame guide) and the audit layer (§7.8, D-278) --------------
+  // The guide renders the plan: it carries no markers, so the plan's claims hold its sources.
   let guide = null;
   let audit = null;
+  const wantH2 = template === 'endgame' ? ENDGAME_GUIDE_H2 : GUIDE_H2;
+  const cap = template === 'endgame' ? ENDGAME_WORD_CAP : WORD_CAP;
+  const which = template === 'endgame' ? "the endgame guide's (D-414)" : '§8';
   if (guideText !== null) {
     guide = parseMarkdown(guideText);
     const h1 = guide.headings.filter((h) => h.level === 1);
-    const roll = isObj(log.roll) ? log.roll : {};
+    const roll = isObj(v4 ? build.roll : log.roll) ? (v4 ? build.roll : log.roll) : {};
     if (h1.length !== 1) fail('guide-sections', `guide.md has ${h1.length} H1s; it has one, naming the roll (§8)`);
     else if (!norm(h1[0].title).includes(norm(roll.ascendancy ?? '')) || !norm(h1[0].title).includes(norm(roll.skill ?? ''))) {
       fail('guide-sections', `guide.md's H1 "${h1[0].title}" doesn't name the roll ${roll.ascendancy} / ${roll.skill}`);
     }
-    // (b) The reader layer's 14 H2s, in order, and no other (D-276, D-283).
+    // (b) The reader layer's H2s, in order, and no other (D-276, D-283): the full guide's 14, the endgame guide's 12.
     const titles = guide.h2.map((h) => h.title);
-    if (show(titles) !== show(GUIDE_H2)) {
-      const missing = GUIDE_H2.filter((t) => !titles.includes(t));
-      const extra = titles.filter((t) => !GUIDE_H2.includes(t));
+    if (show(titles) !== show(wantH2)) {
+      const missing = wantH2.filter((t) => !titles.includes(t));
+      const extra = titles.filter((t) => !wantH2.includes(t));
       const why = missing.length > 0 ? `missing ${show(missing)}` : extra.length > 0 ? `unexpected ${show(extra)}` : 'out of order';
-      fail('guide-sections', `guide.md's H2s are ${why}; §8 wants ${show(GUIDE_H2)} in that order`);
+      fail('guide-sections', `guide.md's H2s are ${why}; ${which === '§8' ? '§8 wants' : `${which} H2s are`} ${show(wantH2)} in that order${template === 'endgame' ? ': its plan has no campaign stage' : ''}`);
     }
     for (const title of Object.values(VARIANT_H2)) {
       const h = h2Named(guide, title);
@@ -1194,13 +1391,14 @@ export async function checkRun(runFolder) {
       }
     }
 
-    // (v) The word cap: at most 3,000 words, the H1, the import code and the Known issues list not counted (D-283).
+    // (v) The word cap: at most 3,000 words (the endgame guide 2,300, D-414), the H1, the import code and the Known
+    // issues list not counted (D-283).
     const kiH3 = showH3.find((h) => h.title === KNOWN_ISSUES) ?? null;
     const ki = kiH3 ? guide.sectionOf(kiH3) : null;
     const words = countWords(guide.lines, (i) =>
       h1.some((h) => h.line === i) || (importBlock !== null && i >= importBlock.start && i <= importBlock.end) || (ki !== null && i > ki.start && i < ki.end));
-    if (words > WORD_CAP) {
-      fail('word-cap', `guide.md has ${words} words, over the ${WORD_CAP}-word cap (the H1, the import code and the Known issues list not counted; D-276, D-283)`);
+    if (words > cap) {
+      fail('word-cap', `guide.md has ${words} words, over the ${cap}-word cap${template === 'endgame' ? " of the endgame guide (D-414)" : ''} (the H1, the import code and the Known issues list not counted; D-276, D-283)`);
     }
 
     // (w) No pipeline text: no footnote marker, confidence label or finding id, anywhere outside the import code.
@@ -1220,7 +1418,7 @@ export async function checkRun(runFolder) {
   const auditText = readText('audit.md');
   let auditInputs = null;
   if (guideText !== null) {
-    if (auditText === null) fail('audit-sections', "guide.md exists, but audit.md doesn't; the runner renders it with scripts/render-audit.mjs before W1 (§7.8, D-355)");
+    if (auditText === null) fail('audit-sections', `guide.md exists, but audit.md doesn't; the runner renders it with scripts/render-audit.mjs${v4 ? ` --build ${build.id}` : ''} before W1 (§7.8, D-355)`);
     else {
       audit = parseMarkdown(auditText);
       const titles = audit.h2.map((h) => h.title);
@@ -1231,7 +1429,7 @@ export async function checkRun(runFolder) {
         fail('audit-sections', `audit.md's H2s are ${why}; §7.8 wants ${show(AUDIT_H2)} in that order (D-278, D-355)`);
       }
       try {
-        auditInputs = await loadAuditInputs(runFolder);
+        auditInputs = await loadAuditInputs(runFolder, v4 ? build.id : undefined);
       } catch (e) {
         fail('audit-render', `audit.md can't be compared with its render: ${e.message} (D-355)`);
       }
@@ -1254,13 +1452,18 @@ export async function checkRun(runFolder) {
     }
     // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
     const guideD1 = guideConcept !== null ? gateFor('D1-gate', guideConcept, guideBefore) : undefined;
-    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, v3);
+    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, schema !== 2);
     // (l) Known issues by sentence in the guide, with each finding's id in audit.md (D-276, D-283).
     checkKnownIssues(guide, audit, accepted, open, fail);
   }
 
   // ---- Campaign rewards (D-265 c): every reward choice the campaign passes is picked, and the guide says so ----
   if (isObj(plan) && campaign.length > 0) checkRewardPicks(planStages, campaign, guide, fail);
+  // D-413, D-414: a plan with no campaign stage carries every reward choice the campaign offers on every rung, D1's
+  // picks, and its endgame guide's Switching over names each; a design from before amendment 9 (a migrated run's, its
+  // D1 gate schema 3's) made none.
+  const d1Last = designConcept !== null ? gateFor('D1-gate', designConcept) : undefined;
+  if (v4 && isObj(plan) && campaign.length === 0 && endgame.length > 0 && d1Last && !legacyGate(d1Last.file)) checkEndgameRewardPicks(endgame, guide, fail);
 
   // accepted-offline (C-30, stages/V4.md): only for a claim tagged external-unavailable, which the location names. A
   // report is held to the plan as it was when it ran (D-265 a): the round copy rounds/<n>/ made after it, or the
@@ -1282,15 +1485,16 @@ export async function checkRun(runFolder) {
 
   // ---- The D1 gate, recomputed from the plan and the record (Q3; AC-W2 o, p, q, u) ------------------
   const ruleOf = (part) => (part === 'rolledSkill' ? 'rolled-skill' : ['floor', 'budget'].includes(part) ? part : 'gates');
-  // The last D1 gate of the concept designed last. Only the budget may be unverified (D-164): a gate whose
-  // compile ran reads every other part from its record, and a gate that didn't fail has that record.
-  const d1 = designConcept !== null ? gateFor('D1-gate', designConcept) : undefined;
+  // The last D1 gate of the concept designed last. Only the budget may be unverified (D-164), and in schema 4 the tree
+  // (D-419: get_node_power failed, or the call was refused): a gate whose compile ran reads every other part from its
+  // record, and a gate that didn't fail has that record.
+  const d1 = d1Last;
   const d1rep = d1 ? gateReports.get(d1.file) : null;
   const holdsEndgame = isObj(record) && isObj(record.stages) && endgame.length > 0 && endgame.every((s) => isObj(record.stages[s.id]?.outputs));
   const compileFailed = isObj(d1rep) && isObj(d1rep.verdict) && d1rep.verdict.compiled === 'fail';
   if (d1 && isObj(d1rep) && isObj(d1rep.verdict) && !compileFailed) {
     for (const part of GATE_PARTS['D1-gate'].filter((x) => x !== 'budget')) {
-      if (d1rep.verdict[part] === 'unverified') fail(ruleOf(part), `${d1.file} says ${part}: "unverified"; only the budget may be unverified: a gate whose compile ran reads every other part from its record (gates.md)`);
+      if (d1rep.verdict[part] === 'unverified') fail(ruleOf(part), `${d1.file} says ${part}: "unverified"; only the budget${v4 ? ' and the tree' : ''} may be unverified: a gate whose compile ran reads every other part from its record (gates.md)`);
     }
     if (!isObj(plan)) fail('layout', `${d1.file} exists, but plan.json doesn't; the gate can't be recomputed`);
     else if (!holdsEndgame) fail('gates', `${d1.file} doesn't fail its compile, but compile-record.json holds no values for the endgame stages; a gate that didn't fail has its compile's record`);
@@ -1315,7 +1519,7 @@ export async function checkRun(runFolder) {
         if (said(part) !== got.verdict && said(part) !== effective) fail(ruleOf(part), `${d1.file} says ${part}: ${show(said(part))}, but the records give ${show(got.verdict)}${why ? `: ${why}` : ''}`);
       }
       // A guide is written only after the gate passed: no recomputed failure stands unless accepted.
-      if (guideText !== null) for (const f of openFailures) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to D2 (§5.3)`);
+      if (guideText !== null) for (const f of openFailures) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to ${v4 ? 'the final compile' : 'D2'} (§5.3)`);
     }
   }
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
@@ -1325,14 +1529,14 @@ export async function checkRun(runFolder) {
       fail('rolled-skill', `campaign stage ${s.id}'s main group is ${show(s.skills?.main?.group)}, but its rolledGroup is ${s.skills.rolledGroup}; a stage with the named damage source makes it the main skill (S7)`);
     }
   }
-  // Once a guide is current, the D1 and D2 gates it rests on (the last attempts before its W1) passed: a failing
-  // part stands only where accepted findings cover it.
+  // Once a guide is current, the D1 gate and the final compile it rests on (the last attempts before its W1) passed:
+  // a failing part stands only where accepted findings cover it.
   if (guideText !== null && guideConcept !== null) {
-    for (const stage of ['D1-gate', 'D2-gate']) {
+    for (const stage of ['D1-gate', ...FINAL_GATES]) {
       const g = gateFor(stage, guideConcept, guideBefore);
       const rep = g ? gateReports.get(g.file) : null;
       if (!isObj(rep) || !isObj(rep.verdict)) continue;
-      for (const part of GATE_PARTS[stage]) {
+      for (const part of partsOf(rep, stage)) {
         // The budget never fails (D-371): a `fail` there is an unknown value, which the gate-report check names.
         if (rep.verdict[part] !== 'fail' || part === 'budget') continue;
         const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
@@ -1359,11 +1563,11 @@ export async function checkRun(runFolder) {
     }
   }
   // D-264: a claims-only owner (claims-edited) compiles nothing, so the record is still the final compile the last
-  // D2 gate ran, whatever the owner edited: claims, sources and the ledger (D-352).
+  // final gate ran, whatever the owner edited: claims, sources and the ledger (D-352).
   if (claimsOnlyAfterFinal.length > 0 && lastFinalGate >= 0) {
     const who = claimsOnlyAfterFinal.map(describe).join(', ');
     const gate = stages[lastFinalGate];
-    const named = gateReports.get(`reports/gates/D2-gate-${gate.concept}-a${gate.attempt}.json`)?.finalCompile?.pobFile;
+    const named = gateReports.get(`reports/gates/${gate.stage}-${gate.concept}-a${gate.attempt}.json`)?.finalCompile?.pobFile;
     if (isObj(record) && record.mode !== 'final') {
       fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but compile-record.json is a ${show(record.mode)} record, not the final compile of ${describe(gate)}: a claims-only edit compiles nothing (D-264)`);
     } else if (finalRecord && typeof named === 'string' && finalRecord.pobFile?.path !== named) {
@@ -1427,23 +1631,33 @@ export async function checkRun(runFolder) {
       const entries = new Map(plan.ledger.filter((x) => isObj(x) && typeof x.id === 'string').map((x) => [x.id, x]));
       const num = (w) => Number(w.replace(/,/g, '').replace(/−/g, '-'));
       const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
-      planStages.forEach((s, i) => list(s.claims).forEach((c, k) => {
-        const id = /^ledger:(\S+)$/.exec(typeof c.source === 'string' ? c.source : '')?.[1];
+      planStages.forEach((s, i) => list(s.claims).forEach((cl, k) => {
+        const id = /^ledger:(\S+)$/.exec(typeof cl.source === 'string' ? cl.source : '')?.[1];
         const value = id !== undefined ? ledgerNow[id]?.value : undefined;
         if (!isNum(value)) return;
         const inputs = list(entries.get(id)?.inputs).filter((x) => isObj(x) && isNum(x.value));
-        const written = [...String(c.text ?? '').matchAll(/[−-]?\d[\d,]*(?:\.\d+)?/g)].map((m) => m[0]);
+        const written = [...String(cl.text ?? '').matchAll(/[−-]?\d[\d,]*(?:\.\d+)?/g)].map((m) => m[0]);
         const near = (w) => matchesWritten(w, value) || Math.abs(num(w) - value) <= 0.05 * Math.abs(value);
         const input = (w) => inputs.some((x) => same(num(w), x.value) || same(num(w), x.value * 100));
         if (written.length > 0 && !written.some((w) => near(w) || input(w))) {
           const ins = inputs.length > 0 ? ` and its inputs are ${inputs.map((x) => `${x.name} ${x.value}`).join(', ')}` : '';
-          fail('ledger', `plan.json stages[${i}].claims[${k}] (${c.id}) cites ledger:${id}, whose current formula gives ${round2(value)} over the final record${ins}, but the claim states ${written.join(', ')}; a claim citing a ledger entry states its value or its inputs (D-365)`);
+          fail('ledger', `plan.json stages[${i}].claims[${k}] (${cl.id}) cites ledger:${id}, whose current formula gives ${round2(value)} over the final record${ins}, but the claim states ${written.join(', ')}; a claim citing a ledger entry states its value or its inputs (D-365)`);
         }
       }));
     }
   }
-  return violations;
 }
+
+/** D-412: what a build's folder `builds/<id>/` holds (the root's files for its one build). */
+const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
+/** The V4 passes a build's reports/V4-<n>.md number: the full pass, a re-check, and schema 4's campaign pass (D-415). */
+const V4_STAGES = ['V4', 'V4-recheck', 'V4-campaign'];
+/** A gate verdict's parts: its stage's, and in schema 4 the D1 gate's `tree` (D-419) when the verdict has it. */
+const partsOf = (rep, stage) => (stage === 'D1-gate' && isObj(rep?.verdict) && 'tree' in rep.verdict ? D1_PARTS4 : GATE_PARTS[stage] ?? []);
+/** D-413: whether an F1 verdict is the write ledger's refusal (D-211), which escalates at once. */
+const ledgerRefused = (rep) => list(rep?.findings).some((f) => f.code === LEDGER_REFUSED);
+/** D-421: whether a gate verdict carries a refused tool call: it routes to no producer, and the gate re-runs alone. */
+const toolRefused = (rep) => list(rep?.findings).some((f) => f.code === TOOL_REFUSED);
 
 /**
  * D-265 (c): the campaign reward choices C1 lists (`q.<key>.options` in data/campaign/progress.json), each with
@@ -1491,6 +1705,34 @@ function checkRewardPicks(planStages, campaign, guide, fail) {
     const h2 = h2Named(guide, REWARDS_H2);
     if (!h2 || !norm(sectionText(guide, h2)).includes(norm(first))) {
       fail('campaign-rewards', `the plan picks ${show(values[0])} for ${c.quest}, but guide.md's "${REWARDS_H2}" doesn't name it by its first line "${first}"; W1 writes every pick there (D-265, D-283)`);
+    }
+  }
+}
+
+/**
+ * D-413, D-414: for a plan with no campaign stage, D1 makes the campaign's reward picks: every rung carries the same pick
+ * for each reward choice the campaign offers (data/campaign/progress.json), a `config.scenario` (or earned) entry of
+ * its option with one of its values, and the endgame guide's `Switching over` names each pick by its first line.
+ */
+function checkEndgameRewardPicks(endgame, guide, fail) {
+  const { choices } = rewardChoices();
+  const h2 = guide ? h2Named(guide, SWITCHING_H2) : null;
+  for (const c of choices) {
+    const picks = endgame.map((s) => ({ id: s.id, value: [...list(s.config?.earned), ...list(s.config?.scenario)].find((o) => o.option === c.option)?.value }));
+    const unpicked = picks.filter((p) => !c.options.includes(p.value));
+    if (unpicked.length > 0) {
+      fail('campaign-rewards', `rung${unpicked.length === 1 ? '' : 's'} ${unpicked.map((p) => p.id).join(', ')} of a plan with no campaign stage pick${unpicked.length === 1 ? 's' : ''} no reward for ${c.quest}: D1 makes each reward choice the campaign offers, option ${show(c.option)} with one of the ${c.options.length} values of data/campaign/progress.json#${c.quest}.options in config.scenario, on all three rungs (D-413)`);
+      continue;
+    }
+    const values = [...new Set(picks.map((p) => p.value))];
+    if (values.length > 1) {
+      fail('campaign-rewards', `rungs ${picks.map((p) => p.id).join(', ')} pick ${c.quest}'s reward ${values.length} different ways; the player picks once, so every rung carries the same pick (D-413)`);
+      continue;
+    }
+    if (!guide) continue;
+    const first = String(values[0]).split('\n')[0].trim();
+    if (!h2 || !norm(sectionText(guide, h2)).includes(norm(first))) {
+      fail('campaign-rewards', `the plan picks ${show(values[0])} for ${c.quest}, but guide.md's "${SWITCHING_H2}" doesn't name it by its first line "${first}"; the endgame guide names every pick there (D-413, D-414)`);
     }
   }
 }
@@ -1744,6 +1986,26 @@ const GATE_RULES = {
   'unsaved-build': /^(?:proceed|stop)$/,
   escalation: /^(?:accept|retry:.+|verification|stop)$/s,
 };
+/**
+ * Schema 4's answers (amendment 9; D-411, D-415): the verification gate finalizes 1–3 cards and, after a resume, takes
+ * `guide:<id>`, `campaign:<id>` and `design:<id>`; the design gate adds `accept:file`; the final gate's answers are
+ * `accept`, `accept:verification`, `campaign`, `revise:<text>` and `decline:<note>`, its `stop` the default only. A
+ * test config's final `not-accept` resolves to a decline.
+ */
+const GATE_ANSWERS4 = {
+  ...GATE_ANSWERS,
+  verification: new RegExp(`^(?:pick:${IDS(3)}|verify:(?:${IDS(3)})?|(?:guide|campaign|design):${CARD_ID}|more|stop)$`),
+  design: /^(?:accept|accept:file|revise:.+|verification|stop)$/s,
+  final: /^(?:accept|accept:verification|campaign|revise:.+|decline:.+|stop)$/s,
+};
+const GATE_RULES4 = {
+  ...GATE_RULES,
+  verification: new RegExp(`^(?:first-viable|pick:${IDS(3)}|verify:(?:${IDS(3)})?|more|stop)$`),
+  design: /^(?:accept|accept:file|revise:.+|verification|stop)$/s,
+  final: /^(?:accept|accept:verification|campaign|not-accept|revise:.+|decline:.+)$/s,
+};
+/** D-415: a resume's own answers at the verification gate, each naming a build. */
+const RESUME_ANSWER = new RegExp(`^(guide|campaign|design):(${CARD_ID})$`);
 /** What each gate's answers look like, for the messages. */
 const ANSWER_FORMS = {
   brainstorm: 'pick:<id>[,<id>…] (1–3 cards, new cards included), more or stop',
@@ -1752,6 +2014,12 @@ const ANSWER_FORMS = {
   final: 'accept, revise:<text> or the user\'s note',
   'unsaved-build': 'proceed or stop',
   escalation: 'accept, retry:<guidance>, verification or stop',
+};
+const ANSWER_FORMS4 = {
+  ...ANSWER_FORMS,
+  verification: 'pick:<id>[,<id>…] (finalize 1–3 cards), verify:<id>[,<id>…] (1–3 cards, new cards included), more, stop, or after a resume guide:<id>, campaign:<id> or design:<id> (D-411, D-415)',
+  design: 'accept, accept:file, revise:<text>, verification or stop (D-362, D-411)',
+  final: 'accept, accept:verification, campaign, revise:<text> or decline:<note> (D-411)',
 };
 
 /** The card ids a `pick:` or `verify:` answer names; none for any other answer. */
@@ -1767,10 +2035,18 @@ const PICK_CAP = 3;
  * `[{id: "r<k>-g-<n>", name, from, words}]` with a brainstorm `pick:` or a verification `verify:`, the picks and the
  * new cards 1–3 together; `note` only with `more`.
  */
-function checkGateChoice(c, at, ids, bad) {
+function checkGateChoice(c, at, ids, bad, schema = 3) {
   const gate = c.checkpoint;
   const a = String(c.answer);
-  for (const k of Object.keys(c)) if (!CHECKPOINT_FIELDS.includes(k)) bad(at, `has "${k}", which isn't a field of a checkpoint (${CHECKPOINT_FIELDS.join(', ')})`);
+  // D-412: schema 4's design and final checkpoints name their build, `concept`; no other checkpoint does.
+  const fields = schema === 4 ? [...CHECKPOINT_FIELDS, 'concept'] : CHECKPOINT_FIELDS;
+  for (const k of Object.keys(c)) if (!fields.includes(k)) bad(at, `has "${k}", which isn't a field of a checkpoint (${fields.join(', ')})`);
+  if (schema === 4) {
+    const per = ['design', 'final'].includes(gate);
+    if (per && !new RegExp(`^${CARD_ID}$`).test(String(c.concept))) bad(at, `is a ${gate} checkpoint with concept ${show(c.concept)}; in schema 4 a ${gate} checkpoint names its build, the card id (D-412)`);
+    else if (!per && 'concept' in c) bad(at, `has concept, which only a design or final checkpoint carries (D-412)`);
+    if (gate === 'final' && a === 'stop' && c.answeredBy !== 'default') bad(at, "answers stop, which at the final gate is the default only; a user who declines answers decline:<note> (D-411)");
+  }
   if ('questions' in c) {
     if (!DISPLAYED.includes(gate)) bad(at, "has questions; only a gate's or an escalation's answer counts the user's questions, and the unsaved-build question is a fixed one (D-389)");
     else if (!isInt(c.questions)) bad(at, `questions is ${show(c.questions)}; it counts the questions the user asked at the visit, a whole number from 0 (D-389)`);
@@ -1802,15 +2078,16 @@ function checkGateChoice(c, at, ids, bad) {
 }
 
 /** A schema-3 checkpoint entry's answer and rule (D-288, D-323; checkpoints.md's pre-supplied answers). */
-function checkGateAnswer(c, at, bad) {
+function checkGateAnswer(c, at, bad, schema = 3) {
   const gate = c.checkpoint;
-  if (!Object.prototype.hasOwnProperty.call(GATE_ANSWERS, gate) || typeof c.answer !== 'string') return;
+  const [answers, forms, rules] = schema === 4 ? [GATE_ANSWERS4, ANSWER_FORMS4, GATE_RULES4] : [GATE_ANSWERS, ANSWER_FORMS, GATE_RULES];
+  if (!Object.prototype.hasOwnProperty.call(answers, gate) || typeof c.answer !== 'string') return;
   if (gate === 'escalation' && c.answer === 'checkpoint-1') {
     bad(at, 'answers "checkpoint-1", which schema 3 retires: going back to the verification gate is "verification" (D-289)');
-  } else if (!GATE_ANSWERS[gate].test(c.answer)) bad(at, `answers ${show(c.answer)}; the ${gate} ${['unsaved-build', 'escalation'].includes(gate) ? 'question' : 'gate'}'s answer is ${ANSWER_FORMS[gate]} (D-287, D-289)`);
+  } else if (!answers[gate].test(c.answer)) bad(at, `answers ${show(c.answer)}; the ${gate} ${['unsaved-build', 'escalation'].includes(gate) ? 'question' : 'gate'}'s answer is ${forms[gate]} (D-287, D-289${schema === 4 ? ', D-411' : ''})`);
   const ids = idsOf(c.answer);
   if (new Set(ids).size !== ids.length) bad(at, `answers ${show(c.answer)}, which names a card twice`);
-  checkGateChoice(c, at, ids, bad);
+  checkGateChoice(c, at, ids, bad, schema);
   if (typeof c.rule !== 'string' || c.rule.trim() === '') return;
   // D-323: the test config's keys and answers are schema 3's; checkpoint1, checkpoint2 and checkpoint-1 are retired.
   if (/checkpoint-?[12]/.test(c.rule)) bad(at, `has rule ${show(c.rule)}, which names a retired test-config key or answer (checkpoint1, checkpoint2, checkpoint-1); schema 3's are answers.brainstorm, answers.verification, answers.design, answers.final and the escalation answer "verification" (D-323, D-362)`);
@@ -1819,7 +2096,7 @@ function checkGateAnswer(c, at, bad) {
     return;
   }
   if (c.answeredBy !== 'pre-supplied') return;
-  if (!GATE_RULES[gate].test(c.rule)) {
+  if (!rules[gate].test(c.rule)) {
     bad(at, `has rule ${show(c.rule)}, which isn't an answers.${gate === 'unsaved-build' ? 'unsavedBuild' : gate} value of the test config (checkpoints.md)`);
     return;
   }
@@ -1828,19 +2105,81 @@ function checkGateAnswer(c, at, bad) {
   const n = /^first-n:([1-3])$/.exec(c.rule)?.[1];
   const resolved = n !== undefined ? c.answer === 'stop' || (/^pick:/.test(c.answer) && ids.length <= Number(n))
     : c.rule === 'first-viable' ? c.answer === 'stop' || new RegExp(`^pick:${CARD_ID}$`).test(c.answer)
-      : c.answer === c.rule || (gate === 'verification' && /^pick:/.test(c.rule) && c.answer === 'stop');
+      : c.answer === c.rule || (gate === 'verification' && /^pick:/.test(c.rule) && c.answer === 'stop') || (schema === 4 && gate === 'final' && c.rule === 'not-accept' && /^decline:./s.test(c.answer));
   if (!resolved) bad(at, `answers ${show(c.answer)}, but its rule ${show(c.rule)} resolves to ${n !== undefined ? `pick: with at most ${n} card(s), or stop` : c.rule === 'first-viable' ? 'pick:<one card>, or stop' : show(c.rule)} (checkpoints.md)`);
+}
+
+/**
+ * Schema 4's own fields (amendment 9; D-412, D-415): no run-level `roll` or `outputs`; `noNinja` true or false (null in
+ * a migrated run), the pin's commit and the digest's file name (or null); the run-wide `dossier`; `builds[]`, one per
+ * finalized card in finalize order, `{id, roll, status, folder, guide, pobFile}`, a migrated run's build alone in "."; and
+ * `resumes[]`, `{date, pinCommit, digest, noNinja, lengths}`, the lengths of the four lists at each resume, in order.
+ */
+function checkSchema4Fields(log, bad) {
+  for (const k of ['roll', 'outputs']) if (k in log) bad(k, `is schema 3's; schema 4 records each build's roll and PoB file in builds[], and the dossier run-wide (D-412)`);
+  // D-415: a migrated log's three nulls (its run predates them); a log init wrote holds true or false.
+  const migrated = list(log.builds).some((b) => b.folder === '.') || (log.pinCommit === null && log.digest === null);
+  if ('noNinja' in log && !(typeof log.noNinja === 'boolean' || (migrated && log.noNinja === null))) bad('noNinja', `is ${show(log.noNinja)}; init records true or false (--no-ninja), null only in a migrated run (D-412, D-415)`);
+  for (const k of ['pinCommit', 'digest']) if (k in log && log[k] !== null && (typeof log[k] !== 'string' || log[k].trim() === '')) bad(k, `is ${show(log[k])}; the ${k === 'pinCommit' ? "pin's commit, read from pob-pin.json" : "newest league digest's file name"}, or null (D-412)`);
+  if ('dossier' in log && log.dossier !== null && (typeof log.dossier !== 'string' || log.dossier.trim() === '')) bad('dossier', `is ${show(log.dossier)}; the dossier's path in the run folder, or null (D-412)`);
+  if ('builds' in log && !Array.isArray(log.builds)) bad('builds', 'is a list, one build per finalized card (D-412)');
+  const ids = new Set();
+  list(log.builds).forEach((b, i) => {
+    const at = `builds[${i}]`;
+    const keys = Object.keys(b);
+    if (show(keys) !== show(BUILD_FIELDS)) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}} (D-412)`);
+    if (!new RegExp(`^${CARD_ID}$`).test(String(b.id))) bad(at, `id ${show(b.id)} isn't a card id r<round>-<letter>-<n> (D-412)`);
+    else if (ids.has(b.id)) bad(at, `${b.id} has a second build; a card with a build in the run isn't finalized again (D-411)`);
+    ids.add(b.id);
+    if (!(isObj(b.roll) && ['className', 'ascendancy', 'skill'].every((k) => typeof b.roll[k] === 'string' && b.roll[k] !== ''))) bad(at, `roll is ${show(b.roll)}; it is the card's identity {className, ascendancy, skill} (D-286, D-412)`);
+    else if (isObj(log.brief)) {
+      for (const k of ['ascendancy', 'skill']) {
+        if (typeof log.brief[k] === 'string' && norm(b.roll[k]) !== norm(log.brief[k])) bad(at, `roll names ${k} ${show(b.roll[k])}, but the brief fixes ${show(log.brief[k])}; no card contradicting the brief's ${k} is dealt (R1a-assemble, D-285)`);
+      }
+    }
+    if (!BUILD_STATUSES.includes(b.status)) bad(at, `status is ${show(b.status)}; one of ${BUILD_STATUSES.join(', ')} (D-412)`);
+    if (b.folder !== `builds/${b.id}` && !(b.folder === '.' && i === 0)) bad(at, `folder is ${show(b.folder)}; a build's folder is builds/<id>, or "." for a migrated run's build, builds[0] (D-412, D-415)`);
+    if (![null, 'endgame', 'full'].includes(b.guide)) bad(at, `guide is ${show(b.guide)}; null, endgame or full, as the plan decides (D-414)`);
+    if (b.pobFile !== null && (typeof b.pobFile !== 'string' || b.pobFile.trim() === '')) bad(at, `pobFile is ${show(b.pobFile)}; the final compile's PoB file path, or null (D-412)`);
+  });
+  if ('resumes' in log && !Array.isArray(log.resumes)) bad('resumes', 'is a list, one entry per resume (D-415)');
+  let before = Object.fromEntries(RESUME_LISTS.map((k) => [k, 0]));
+  list(log.resumes).forEach((r, i) => {
+    const at = `resumes[${i}]`;
+    const keys = Object.keys(r);
+    if (show(keys) !== show(RESUME_FIELDS)) bad(at, `has the fields ${keys.join(', ')}; a resume is {${RESUME_FIELDS.join(', ')}} (D-415)`);
+    if (typeof r.date !== 'string' || !ISO_DATE.test(r.date)) bad(at, `date is ${show(r.date)}; YYYY-MM-DD`);
+    if (typeof r.noNinja !== 'boolean') bad(at, `noNinja is ${show(r.noNinja)}; the session's --no-ninja, true or false (D-415)`);
+    for (const k of ['pinCommit', 'digest']) if (r[k] !== null && (typeof r[k] !== 'string' || r[k].trim() === '')) bad(at, `${k} is ${show(r[k])}; text or null (D-415)`);
+    const l = isObj(r.lengths) ? r.lengths : null;
+    if (!l || show(Object.keys(l)) !== show(RESUME_LISTS) || !RESUME_LISTS.every((k) => isInt(l[k]))) {
+      bad(at, `lengths is ${show(r.lengths)}; it is {${RESUME_LISTS.join(', ')}}, each list's length at the resume, so the entries after it can be placed (D-415)`);
+      return;
+    }
+    for (const k of RESUME_LISTS) {
+      const len = Array.isArray(log[k]) ? log[k].length : 0;
+      if (l[k] > len || l[k] < before[k]) bad(at, `lengths.${k} is ${l[k]}; it lies between the last resume's ${before[k]} and the log's ${len} ${k} entries: a resume is recorded when it happens (D-415)`);
+    }
+    before = l;
+  });
 }
 
 function checkRunLog(log, fail, schema) {
   const v3 = schema !== 2;
-  for (const k of RUN_LOG_FIELDS[v3 ? 3 : 2]) if (!(k in log)) fail('run-log', `run-log.json has no ${k} (§6)`);
+  const v4 = schema === 4;
+  for (const k of RUN_LOG_FIELDS[v4 ? 4 : v3 ? 3 : 2]) if (!(k in log)) fail('run-log', `run-log.json has no ${k} (§6${v4 ? ', D-412' : ''})`);
   const bad = (field, why) => fail('run-log', `run-log.json ${field}: ${why}`);
   if ('schemaVersion' in log && !SCHEMA_VERSIONS.includes(log.schemaVersion)) {
-    bad('schemaVersion', `is ${show(log.schemaVersion)}; it is 3, or 2 for a run recorded before amendment 3 (D-289, D-326)`);
+    bad('schemaVersion', `is ${show(log.schemaVersion)}; it is 3, or 2 for a run recorded before amendment 3 (D-289, D-326), and 4 from amendment 9 on (D-412)`);
   }
   const roll = log.roll;
-  if (!v3) {
+  if (v4) {
+    if ('brief' in log) checkBrief(log.brief, bad);
+    if ('slug' in log && isObj(log.brief) && log.slug !== slugOfBrief(log.brief)) {
+      bad('slug', `is ${show(log.slug)}; the brief's slug is "${slugOfBrief(log.brief)}": the slug comes from the brief, and the cards finalized later go in builds[], not in the folder name (§2, D-285, D-412)`);
+    }
+    checkSchema4Fields(log, bad);
+  } else if (!v3) {
     // D-326: the parsed brief is schema 3's (C-51, D-289); a schema-2 run's roll is set from the start.
     if ('brief' in log) bad('brief', "is schema 3's parsed brief (C-51, D-289); a schema-2 log has none: its roll is set from the start, and its slug comes from the roll (D-326)");
     if ('roll' in log && !(isObj(roll) && typeof roll.ascendancy === 'string' && typeof roll.skill === 'string')) bad('roll', 'is {ascendancy, skill}');
@@ -1897,15 +2236,18 @@ function checkRunLog(log, fail, schema) {
     if (!isObj(s)) return bad(at, 'is an object');
     // D-326: a probe count (D-338), a short round's reason (D-339) and R1a-assemble (D-287) are schema 3's.
     if (!v3) for (const [k, why] of [['probes', 'D-338'], ['shortReason', 'D-339'], ['tried', 'D-408']]) if (k in s) bad(at, `has ${k}, which schema 3 added (${why}); a schema-2 log has none (D-326)`);
-    const outcomes = STAGE_OUTCOMES[v3 ? 3 : 2];
+    const outcomes = STAGE_OUTCOMES[v4 ? 4 : v3 ? 3 : 2];
     const known = Object.keys(outcomes).filter((x) => v3 || x !== 'R1a-assemble');
     if (!known.includes(s.stage)) {
       const why = !v3 && s.stage === 'R1a-assemble' ? "; R1a-assemble is schema 3's (D-287), and a schema-2 log has none (D-326)"
         : v3 && s.stage === 'D1' ? '; D1 is two steps, D1-build then D1-finish (D-356)'
           : /^V4-(ledger|sources|prose)/.test(String(s.stage)) ? '; V4 is one pass with no lenses, V4 or V4-recheck, each entry one report reports/V4-<n>.md (D-352)'
-            : !v3 && ['D1-build', 'D1-finish'].includes(s.stage) ? "; a schema-2 log's D1 is one step (D-326)" : '';
+            : !v3 && ['D1-build', 'D1-finish'].includes(s.stage) ? "; a schema-2 log's D1 is one step (D-326)"
+              : !v4 && ['D1-tree', 'F1', 'V4-campaign'].includes(s.stage) ? `; ${s.stage} is schema 4's (amendment 9, D-412)` : '';
       return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}${why}`);
     }
+    // D-421: a refused call is schema 4's outcome; in schema 3 the permission system's refusal had no entry of its own.
+    if (!v4 && s.outcome === REFUSED) return bad(at, `outcome "refused" is schema 4's (D-421); a schema-${schema ?? 3} log has none`);
     if (ROUND_STAGES.includes(s.stage) ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
       bad(at, ROUND_STAGES.includes(s.stage) ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}`);
     }
@@ -1927,10 +2269,10 @@ function checkRunLog(log, fail, schema) {
     }
     if (!isInt(s.attempt, 1)) bad(at, 'attempt is an integer from 1');
     if (!OUTCOMES.includes(s.outcome)) bad(at, `outcome ${show(s.outcome)} isn't one of ${OUTCOMES.join(', ')}`);
-    else if (s.outcome === 'escalated' && !['D1-gate', 'D2-gate'].includes(s.stage)) {
-      fail('escalation', `run-log.json ${at}: ${s.stage} is logged escalated; only the D1 and D2 gates escalate, and verification never does (S2)`);
-    } else if (s.outcome !== 'missing' && !outcomes[s.stage].includes(s.outcome)) {
-      bad(at, `a ${s.stage} entry's outcome is one of ${[...outcomes[s.stage], 'missing'].join(', ')}, not ${show(s.outcome)}`);
+    else if (s.outcome === 'escalated' && !['D1-gate', 'D2-gate', ...(v4 ? ['F1'] : [])].includes(s.stage)) {
+      fail('escalation', `run-log.json ${at}: ${s.stage} is logged escalated; only the D1 and D2 gates${v4 ? ' and F1' : ''} escalate, and verification never does (S2${v4 ? ', D-413' : ''})`);
+    } else if (!['missing', REFUSED].includes(s.outcome) && !outcomes[s.stage].includes(s.outcome)) {
+      bad(at, `a ${s.stage} entry's outcome is one of ${[...outcomes[s.stage], 'missing', ...(v4 ? [REFUSED] : [])].join(', ')}, not ${show(s.outcome)}`);
     }
     if ('priceOutcomes' in s) {
       const p = s.priceOutcomes;
@@ -1961,7 +2303,7 @@ function checkRunLog(log, fail, schema) {
       visits.set(c.checkpoint, want);
       if (c.visit !== want) bad(at, `is visit ${c.visit} of ${show(c.checkpoint)}, but it is that checkpoint's entry ${want}; visit counts its visits from 1`);
     }
-    if (v3) checkGateAnswer(c, at, bad);
+    if (v3) checkGateAnswer(c, at, bad, schema);
     // D-367: run-log.mjs records a gate visit's display in displays[] before it logs that visit's answer.
     if (v3 && DISPLAYED.includes(c.checkpoint) && !displays.some((d) => d.checkpoint === c.checkpoint && d.visit === c.visit)) {
       fail('display', `run-log.json ${at}: ${c.checkpoint} visit ${c.visit} has no display in displays[]; every gate visit prints its display first, run-log.mjs display ${c.checkpoint}, and only then logs its answer (D-367)`);
@@ -1981,7 +2323,7 @@ function checkRunLog(log, fail, schema) {
   arr('escalations').forEach((e, i) => {
     const at = `escalations[${i}]`;
     if (!isObj(e)) return bad(at, 'is {stage, concept, verdict, choice, guidance?}');
-    if (!['D1-gate', 'D2-gate'].includes(e.stage)) fail('escalation', `run-log.json ${at}: stage is ${show(e.stage)}; only the D1 and D2 gates escalate (S2)`);
+    if (!['D1-gate', 'D2-gate', ...(v4 ? ['F1'] : [])].includes(e.stage)) fail('escalation', `run-log.json ${at}: stage is ${show(e.stage)}; only the D1 and D2 gates${v4 ? ' and F1' : ''} escalate (S2${v4 ? ', D-413' : ''})`);
     if (!ID.test(e.concept ?? '')) bad(at, `concept is ${idForm(schema)}`);
     if (typeof e.verdict !== 'string') bad(at, 'verdict is the path of the escalated attempt\'s verdict file; the log copies no findings (§6)');
     if ('findings' in e) bad(at, 'copies findings; the verdict file holds them, and verdict names it (§6)');
@@ -1998,7 +2340,7 @@ function checkRunLog(log, fail, schema) {
     }
   });
   if (Array.isArray(log.faults) && log.faults.length > 0 && log.testConfig !== 'accepted') bad('faults', 'fault directives apply only in offline test mode (§11.3)');
-  if ('outputs' in log) {
+  if ('outputs' in log && !v4) {
     const o = log.outputs;
     if (!isObj(o) || !['plan', 'record', 'dossier', 'guide', 'pobFile'].every((k) => k in o)) {
       bad('outputs', 'is {plan, record, dossier, guide, pobFile}');
@@ -2015,7 +2357,7 @@ function checkRunLog(log, fail, schema) {
 /** Whether a fault target names `concept`. */
 const targets = (target, concept) => isObj(target) && (target.concepts === 'all' || (Array.isArray(target.concepts) && target.concepts.includes(concept)));
 /** A step's family for the order rules: a V4 lens's full pass is `V4`, its re-check `V4r`. */
-const familyOf = (s) => (s.stage === 'V4-recheck' ? 'V4r' : s.stage);
+const familyOf = (s) => (s.stage === 'V4-recheck' ? 'V4r' : s.stage === 'V4-campaign' ? 'V4c' : s.stage);
 const sameStep = (a, b) => a.stage === b.stage && (a.concept ?? null) === (b.concept ?? null);
 const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt ${s.attempt}`;
 
@@ -2603,13 +2945,761 @@ function checkFlow(log, fail, ctx) {
 }
 
 /**
+ * Where a schema-4 gate verdict routes (gates.md as amendment 9 amends it): `forced` (FI-3); for F1, `ledger` (the
+ * write ledger refused the final compile, D-211: it escalates at once) or `hard`; `hard` (a compile, V1 or V2 failure,
+ * or a part other than the budget and the tree unverified); `soft` (floor or the named damage source); `tree` (only the
+ * tree part: a swap left that gains 5% or more, D-419, which re-runs D1-tree); `toolError` (only the tree unverified,
+ * `get_node_power` failed: the gate re-runs alone, once); or `pass`. A failing part whose findings an escalation
+ * accepted passes.
+ */
+function gateClass4(rep, stage, covered) {
+  if (rep.forced === 'infeasible') return 'forced';
+  if (stage === 'F1') return ledgerRefused(rep) ? 'ledger' : gateClass(rep, 'F1', covered) === 'pass' ? 'pass' : 'hard';
+  const parts = partsOf(rep, stage);
+  const failing = parts.filter((part) => {
+    if (part === 'budget') return false;
+    const v = rep.verdict[part];
+    if (part === 'tree' && v === 'unverified') return false;
+    if (v === 'unverified') return true;
+    if (v !== 'fail') return v !== 'pass';
+    const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
+    return part === 'compiled' || findings.length === 0 || findings.some((f) => !covered(f));
+  });
+  if (failing.some((part) => ['compiled', 'v1', 'v2'].includes(part))) return 'hard';
+  if (failing.some((part) => ['floor', 'rolledSkill'].includes(part))) return 'soft';
+  if (failing.includes('tree')) return 'tree';
+  if (parts.includes('tree') && rep.verdict.tree === 'unverified') return list(rep.findings).some((f) => f.part === 'tree' && f.code === TOOL_ERROR) ? 'toolError' : 'hard';
+  return 'pass';
+}
+/** The steps about one build (D-411): its design, final compile, guide and checks. */
+const BUILD_STEPS = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4-recheck', 'V4-campaign'];
+const describeClass4 = (cls) => ({ ledger: "is the write ledger's refusal (ledger-refused)", tree: 'fails only its tree part (a swap left gains 5% or more)', toolError: "leaves only its tree unverified, get_node_power having failed (tool-error)" })[cls] ?? describeClass(cls);
+
+/**
+ * Schema 4's control flow (amendment 9: D-411…D-415, D-418, D-419, D-421), read from `stages[]` with `checkpoints[]`,
+ * `escalations[]` and `resumes[]`, per build:
+ *  - the research and verification rounds as in schema 3; the verification gate's `pick:<id>[,<id>…]` queues 1–3 cards,
+ *    in the user's order and ahead of the cards still queued, and the first queued card's design comes next;
+ *  - a design: D1-build, D1-tree, D1-finish, the D1 gate (D-418), then the design gate; a `tree` failure re-runs D1-tree,
+ *    then D1-finish; a `tool-error` re-runs the gate alone, once, and a second escalates (D-419);
+ *  - the design gate: `accept` and `accept:file` go to F1, `revise:<text>` to D1 (D1-build, D1-tree or D1-finish),
+ *    `verification` drops the build, `stop` stops it and the next queued card's design starts;
+ *  - F1 (D-413): a pass goes to W1, or after `accept:file` ends the build `file-only`; a failure re-runs F1 once, a
+ *    second escalates, and the write ledger's refusal escalates at once; its escalation's four options: accept (F1
+ *    again), guidance (D1, its gate, the design gate, F1), verification (dropped) and stop (escalated);
+ *  - W1, V4's full pass, the fix round and the re-check, then the final gate: `accept` completes the build,
+ *    `accept:verification` too, the verification gate following once the queue is empty, `decline:<note>` ends it
+ *    `not-accepted`, `campaign` reopens it for D2, the D2 gate, W1 and V4's campaign pass (`V4-campaign`, a
+ *    completed build's), `revise:<text>` is a revision;
+ *  - a build that ends hands over to the next queued card, the verification gate an answer asked for, or the run's
+ *    end; once it ends, entries come only behind a resume (D-415), whose verification visit takes the next answer;
+ *    entries are placed by the lengths each `resumes[]` entry recorded, and a resume offers `guide:<id>` (a file-only
+ *    build's guide), `campaign:<id>` (a completed or file-only build's campaign) and `design:<id>` (a stopped or
+ *    dropped build's design gate, when its last D1 gate passed);
+ *  - a step the permission system refused (outcome `refused`, or a gate verdict with `tool-refused`, D-421) is re-run
+ *    next, alone, uncounted, and routes to no producer;
+ *  - the run's status: `completed` when any build ended completed or file-only, else the last build's end, or stopped
+ *    when no card was finalized; each build's status in builds[] its end, builds[] in finalize order.
+ * A migrated run's entries before its first resume (`ctx.legacy`) were recorded by schema 3's pipeline: there a design
+ * runs D1-build then D1-finish, and the design gate's `accept` goes to D2 (D-415).
+ */
+function checkFlow4(log, fail, ctx) {
+  if (!Array.isArray(log.stages) || !log.stages.every(isObj)) return;
+  const stages = log.stages;
+  const escalations = list(log.escalations);
+  const checkpoints = list(log.checkpoints);
+  const faults = list(log.faults);
+  const resumes = list(log.resumes).filter((r) => isObj(r.lengths) && RESUME_LISTS.every((k) => isInt(r.lengths[k])));
+  const at = (i) => `run-log.json stages[${i}] (${describe(stages[i])})`;
+  const illegal = (i, why) => fail('order', i === undefined ? `run-log.json: ${why}` : `${at(i)}: ${why}`);
+  const legacyEnd = ctx.legacy ? ctx.legacy.stages : 0;
+  const legacyAt = (i) => i !== undefined && i < legacyEnd;
+  const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate', design: 'the design gate', final: 'the final gate' };
+
+  // Attempts number every call of a (stage, concept), from 1 (run-log.md), refused calls included.
+  const counts = new Map();
+  stages.forEach((s, i) => {
+    if (ROUND_STAGES.includes(s.stage)) return;
+    const key = `${s.stage}|${s.concept}`;
+    const want = (counts.get(key) ?? 0) + 1;
+    counts.set(key, want);
+    if (s.attempt !== want) illegal(i, `is call ${want} of ${s.stage} for ${s.concept}, so its attempt is ${want}; every call counts, re-runs included`);
+  });
+  // A missing return re-runs once, uncounted, within its block; a second miss of the step ends the run stopped.
+  const blockOf = (i) => {
+    let start = i;
+    while (start > 0 && familyOf(stages[start - 1]) === familyOf(stages[i])) start -= 1;
+    let end = i + 1;
+    while (end < stages.length && familyOf(stages[end]) === familyOf(stages[i])) end += 1;
+    return { start, end };
+  };
+  stages.forEach((s, i) => {
+    if (s.outcome !== 'missing') return;
+    const { start, end } = blockOf(i);
+    const before = stages.slice(start, i).filter((x) => sameStep(x, s)).pop();
+    const second = before !== undefined && before.outcome === 'missing';
+    const rerun = stages.slice(i + 1, end).findIndex((x) => sameStep(x, s));
+    if (second) {
+      if (rerun >= 0) illegal(i, 'is a second missing return of the step, which still re-ran; a second miss ends the run stopped');
+      else if (end < stages.length || log.status !== 'stopped') illegal(i, `is a second missing return of the step; the run then ends stopped, naming the step, but it ${end < stages.length ? 'goes on' : `ends ${show(log.status)}`}`);
+    } else if (rerun < 0) illegal(i, 'returned without its file and never re-ran; a missing return re-runs once, uncounted');
+  });
+  // D-421: a refused call (outcome refused, or a gate verdict with tool-refused) re-runs next, alone, once the user
+  // allowed the tool; it counts against no cap and routes to no producer.
+  const refusedLike = (s) => s.outcome === REFUSED || (['D1-gate', 'D2-gate', 'F1'].includes(s.stage) && toolRefused(ctx.verdict(s)));
+  stages.forEach((s, i) => {
+    if (!refusedLike(s) || i + 1 >= stages.length) return;
+    if (!sameStep(stages[i + 1], s)) illegal(i, `was refused by the permission system${s.outcome === REFUSED ? '' : ` (its verdict's ${TOOL_REFUSED})`}, but ${describe(stages[i + 1])} follows; the runner asks the user to allow the tool and re-runs the refused step alone, next, uncounted (D-421)`);
+  });
+
+  // The findings accepted so far, per card (D-411): an acceptance covers that build's gate attempts after it.
+  const acceptedSoFar = [];
+  const coveredSoFar = (concept) => (f) => acceptedSoFar.some((a) => a.concept === concept && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  const freeFault = (s) => {
+    if (s.attempt !== 1 || s.outcome !== 'fail') return false;
+    const rep = ctx.verdict(s);
+    const failing = failingFindings(rep, s.stage, coveredSoFar(s.concept));
+    return faults.some(
+      (f) => ['FI-1', 'FI-2'].includes(f.id) && FAULT_STAGE[f.id] === s.stage && f.target?.persistent !== true && targets(f.target, s.concept) &&
+        list(rep?.faultsApplied).some((a) => a.id === f.id) && failing.length > 0 && failing.every((x) => x.stage === ctx.faultedStage(f.id, s.concept)),
+    );
+  };
+  const forcedByFault = (s) => faults.some((f) => f.id === 'FI-3' && targets(f.target, s.concept) && (f.target?.persistent === true || s.attempt === 1));
+
+  // Each gate's answers in checkpoints[] order, with their indices, placed against the resumes (D-415).
+  const answers = Object.fromEntries(Object.keys(GATE_NAME).map((g) => [g, checkpoints.map((c, k) => ({ c, k })).filter(({ c }) => c.checkpoint === g)]));
+  let seg = 0;
+  const hi = () => (seg < resumes.length ? resumes[seg].lengths.checkpoints : Infinity);
+  const take = (kind) => {
+    const a = answers[kind][0];
+    if (!a || a.k >= hi()) return undefined;
+    answers[kind].shift();
+    return a;
+  };
+
+  // The research rounds (schema 3's rules), the rival, and the builds.
+  const firstAssembly = stages.findIndex((s) => s.stage === 'R1b-assemble' && s.outcome !== 'missing');
+  const afterAssembly = firstAssembly >= 0 ? stages.slice(firstAssembly + 1).find((s) => s.outcome !== 'missing') : undefined;
+  const autoRival = afterAssembly?.stage === 'RV' ? afterAssembly : null;
+  const rivalIds = rivalCards(stages);
+  const atGate = (s) => s.stage === 'Q' || (s.stage === 'RV' && s !== autoRival);
+  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => !idle(s) && !refusedLike(s) && !atGate(s));
+  let round = null;
+  let rounds = 0;
+  let vround = null;
+  let vrounds = 0;
+  const r1bSeen = new Map();
+  const retriesLeft = (cid) => {
+    const r = r1bSeen.get(cid);
+    return r !== undefined && !r.passed && !r.terminal && r.counted < R1B_ATTEMPTS;
+  };
+
+  /** Each finalized card's build, as the flow sees it (D-412). */
+  const B = new Map();
+  const buildOf = (id) => {
+    if (!B.has(id)) B.set(id, { id, status: 'queued', full: false, verified: false, cycle: null, campaign: null, after: null, d1: null, chains: new Map(), lastD1: null, everCompleted: false, legacy: false, guide: false, toolError: false });
+    return B.get(id);
+  };
+  const finalizeOrder = [];
+  const ended = [];
+  let queue = [];
+  let cur = null;
+  let wantVerification = false;
+  let runEnded = null; // why the run ended, or null
+  let started = null; // the D1-build that just started a design
+  const chain = (b, gate) => {
+    if (!b.chains.has(gate)) b.chains.set(gate, { counted: 0, guided: false, failed: 0 });
+    return b.chains.get(gate);
+  };
+  const freshChain = (b, gate) => b.chains.set(gate, { counted: 0, guided: false, failed: 0 });
+  const endBuild = (b, status) => {
+    b.status = status;
+    if (['completed', 'file-only'].includes(status)) b.everCompleted = true;
+    ended.push({ id: b.id, status });
+    if (cur === b) cur = null;
+  };
+  const newCycle = (start) => ({ start, first: 'none', failed: false, fix: false, recheck: 'none' });
+  const cycleDone = (c) => c !== null && c.first === 'done' && (!c.failed || c.recheck === 'done');
+
+  /** The first queued card's design starts at its D1-build (D-411). */
+  const startDesign = (s, i) => {
+    if (s.stage !== 'D1-build' || s.concept !== queue[0]) {
+      illegal(i, `follows a finalize, so the first queued card's design comes next: ${queue[0]}'s D1-build, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-411)`);
+      return;
+    }
+    queue.shift();
+    const b = buildOf(s.concept);
+    b.status = 'designing';
+    b.verified = false;
+    b.cycle = null;
+    b.after = null;
+    freshChain(b, 'D1-gate');
+    cur = b;
+    started = s;
+  };
+  /** A build ended: the next queued card's design, the verification gate an answer asked for, or the run's end. */
+  const afterBuild = (s, i, why) => {
+    cur = null;
+    if (queue.length > 0) {
+      if (s !== undefined) startDesign(s, i);
+      return 'design';
+    }
+    if (wantVerification) {
+      wantVerification = false;
+      return followGate('verification', s, i);
+    }
+    runEnded = why;
+    if (s !== undefined) {
+      illegal(i, `follows ${why}, which ends the run: no card is queued and no answer asked for the verification gate; entries after it come only behind a resume (D-411, D-415)`);
+      runEnded = null;
+    }
+    return 'end';
+  };
+  /** Whether a run of the verification gate's resume answers may follow: only after a resume (D-415). */
+  const resumedBefore = (k) => resumes.some((r) => r.lengths.checkpoints <= k);
+
+  /**
+   * The step after a gate visit follows that visit's answer, the gate's next one in checkpoints[] (D-287, D-411);
+   * `s` undefined when no step follows yet. Returns the answer's kind.
+   */
+  const followGate = (kind, s, i) => {
+    const got = take(kind);
+    const name = GATE_NAME[kind];
+    if (got === undefined) {
+      if (s === undefined) return 'waiting';
+      if (kind === 'design' && ['D2', 'F1'].includes(s.stage)) fail('design-gate', `${at(i)}: reaches ${s.stage} without a design gate visit: checkpoints[] records no design answer after ${cur?.id ?? s.concept}'s D1 gate; the design gate runs between the D1 gate and the final compile, whoever answers (D-362, D-411)`);
+      else illegal(i, `follows a visit of ${name}, but checkpoints[] records no ${kind} answer for it${seg > 0 ? ' after the resume' : ''}; each visit records its answer (D-289)`);
+      return undefined;
+    }
+    const { c, k } = got;
+    const a = String(c.answer);
+    const where = `checkpoints[${k}] (${kind} visit ${c.visit})`;
+    if (['design', 'final'].includes(kind) && cur && c.concept !== undefined && c.concept !== cur.id) fail('order', `run-log.json ${where} names ${c.concept}, but the build at ${name} is ${cur.id}; a ${kind} checkpoint names its build (D-412)`);
+    if (a === 'stop') {
+      if (['design', 'final'].includes(kind) && cur && c.answeredBy !== 'default') {
+        endBuild(cur, 'stopped');
+        return afterBuild(s, i, `${name} answered "stop"`);
+      }
+      // The run stops: the queued cards stop with it (D-411); a default stop is a test config with no answer left.
+      if (cur) endBuild(cur, 'stopped');
+      for (const id of queue) endBuild(buildOf(id), 'stopped');
+      queue = [];
+      runEnded = `${name} answered "stop"`;
+      if (s !== undefined) {
+        illegal(i, `follows ${name} answered "stop", which ends the run stopped; entries after it come only behind a resume (D-415)`);
+        runEnded = null;
+      }
+      return 'stop';
+    }
+    if (kind === 'design') {
+      if (cur === null) {
+        illegal(i, `follows ${where}, but no build is at the design gate`);
+        return undefined;
+      }
+      if (a === 'accept' || a === 'accept:file') {
+        cur.after = a === 'accept' ? 'guide' : 'file';
+        if (s === undefined) return 'accept';
+        // D-413: the accepted design goes to F1, the final compile; a migrated run's schema-3 design went to D2.
+        const want = legacyAt(i) && a === 'accept' ? ['D2', 'F1'] : ['F1'];
+        if (!want.includes(s.stage) || s.concept !== cur.id) illegal(i, `follows the design gate answered ${show(a)}, which goes on to ${cur.id}'s final compile, F1, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-413)`);
+        return 'accept';
+      }
+      if (a.startsWith('revise:')) {
+        if (s !== undefined && (!['D1-build', 'D1-tree', 'D1-finish'].includes(s.stage) || s.concept !== cur.id)) illegal(i, `follows the design gate answered ${show(a)}, which runs ${cur.id}'s D1 again (D1-build, D1-tree or D1-finish), not ${s.stage} (D-362, D-418)`);
+        return 'revise';
+      }
+      if (a === 'verification') {
+        endBuild(cur, 'dropped');
+        return followGate('verification', s, i);
+      }
+      illegal(i, `follows the design gate answered ${show(a)}, which isn't an answer of that gate`);
+      return undefined;
+    }
+    if (kind === 'final') {
+      if (cur === null) {
+        illegal(i, `follows ${where}, but no build is at the final gate`);
+        return undefined;
+      }
+      if (a === 'accept' || a === 'accept:verification') {
+        if (a === 'accept:verification') wantVerification = true;
+        endBuild(cur, 'completed');
+        return afterBuild(s, i, `the final gate answered ${show(a)}`);
+      }
+      if (a.startsWith('decline:')) {
+        endBuild(cur, 'not-accepted');
+        return afterBuild(s, i, `the final gate answered ${show(a)}`);
+      }
+      if (a === 'campaign') {
+        // D-415: the build ends completed with its endgame guide, then reopens for its campaign: D2 next.
+        cur.everCompleted = true;
+        ended.push({ id: cur.id, status: 'completed' });
+        cur.status = 'writing';
+        cur.campaign = 'campaign';
+        if (s !== undefined && (s.stage !== 'D2' || s.concept !== cur.id)) illegal(i, `follows the final gate answered "campaign", which reopens ${cur.id} for its campaign: D2 next, after the round copy (D-415)`);
+        return 'campaign';
+      }
+      if (a.startsWith('revise:')) {
+        if (s !== undefined && (!['D1-finish', 'D2', 'W1'].includes(s.stage) || s.concept !== cur.id)) illegal(i, `follows the final gate answered ${show(a)}, a revision, whose owners are D1 (D1-finish first), D2 and W1 for ${cur.id}, not ${s.stage} (D-236, D-352)`);
+        return 'revise';
+      }
+      illegal(i, `follows the final gate answered ${show(a)}, which isn't an answer of that gate`);
+      return undefined;
+    }
+    if (a === 'more') {
+      if (s !== undefined && s.stage !== 'R1a') illegal(i, `follows ${name} answered "more", which starts a brainstorm round (R1a), not ${s.stage}`);
+      return 'more';
+    }
+    const m = /^(pick|verify):(.*)$/s.exec(a);
+    if (m && ((kind === 'brainstorm' && m[1] === 'pick') || (kind === 'verification' && m[1] === 'verify'))) {
+      const ids = m[2].split(',').filter((x) => x !== '');
+      for (const id of ids) if (!ctx.cardExists(id)) fail('deck', `run-log.json checkpoints: ${name} answered ${show(a)}, but ${id} is no card of the run (cards/${id}.md, C-52)`);
+      const made = list(c.newCards).map((n) => n.id);
+      const shown = made.length > 0 ? `${show(a)} with the new card(s) ${made.join(', ')}` : show(a);
+      if (s !== undefined && s.stage !== 'R1b') illegal(i, `follows ${name} answered ${shown}, which starts a verification round (R1b), not ${s.stage}`);
+      vrounds += 1;
+      vround = { n: vrounds, gate: `${name}'s ${shown}`, expected: [...ids, ...made], cards: [] };
+      return 'verify';
+    }
+    if (m && kind === 'verification' && m[1] === 'pick') {
+      // D-411: 1–3 cards finalized, in the user's order, ahead of the cards still queued.
+      const ids = m[2].split(',').filter((x) => x !== '');
+      for (const id of ids) {
+        const r = r1bSeen.get(id);
+        if (r === undefined) illegal(i, `follows the verification gate answered ${show(a)}, but no R1b verified ${id} in the run; the gate finalizes a verified card (D-287)`);
+        else if (r.terminal === 'not-a-skill') illegal(i, `follows the verification gate answered ${show(a)}, but ${id}'s damage source isn't a skill (its R1b ended not-a-skill), so it can't be finalized yet (D-303, D-334)`);
+        else if (r.terminal === 'wrong-ascendancy') illegal(i, `follows the verification gate answered ${show(a)}, but ${id}'s ascendancy doesn't own the passive-tree node that grants its skill (its R1b ended wrong-ascendancy), so it can't be finalized (D-342)`);
+        else if (r.terminal === 'not-in-pin') illegal(i, `follows the verification gate answered ${show(a)}, but ${id} rests on an entry the PoB pin doesn't know (its R1b ended not-in-pin), so it can't be finalized yet (D-303, D-400)`);
+        else if (r.terminal === 'not-dealt') illegal(i, `follows the verification gate answered ${show(a)}, but ${id}, the rival's card, failed R1a-assemble's identity and sniff checks (its R1b ended not-dealt), so it can't be finalized (D-408)`);
+        if (B.has(id) && !legacyAt(i)) illegal(i, `follows the verification gate answered ${show(a)}, but ${id} already has a build (${B.get(id).status}); a second design of it is a revise at its design gate, or a new card made from it (D-411)`);
+        const b = buildOf(id);
+        b.status = 'queued';
+        b.legacy = legacyAt(i);
+        if (!finalizeOrder.includes(id)) finalizeOrder.push(id);
+      }
+      queue = [...ids, ...queue.filter((id) => !ids.includes(id))];
+      if (s !== undefined) startDesign(s, i);
+      return 'pick';
+    }
+    const r = kind === 'verification' ? RESUME_ANSWER.exec(a) : null;
+    if (r) {
+      // D-415: a resume's answers, each about one build of the run.
+      const b = B.get(r[2]);
+      const want = { guide: ['file-only'], campaign: ['completed', 'file-only'], design: ['stopped', 'dropped'] }[r[1]];
+      if (!resumedBefore(k)) illegal(i, `follows the verification gate answered ${show(a)}, an answer a resume offers, but no resume precedes ${where} (D-415)`);
+      if (!b) {
+        illegal(i, `follows the verification gate answered ${show(a)}, but ${r[2]} has no build in the run (D-415)`);
+        return undefined;
+      }
+      if (!want.includes(b.status)) illegal(i, `follows the verification gate answered ${show(a)}, but ${r[2]} is ${b.status}; ${r[1]}:<id> takes a ${want.join(' or ')} build (D-415)`);
+      cur = b;
+      if (r[1] === 'guide') {
+        b.status = 'writing';
+        b.campaign = null;
+        if (s !== undefined && (s.stage !== 'W1' || s.concept !== b.id)) illegal(i, `follows the verification gate answered ${show(a)}, which writes ${b.id}'s endgame guide: W1 next (D-415)`);
+        return 'guide';
+      }
+      if (r[1] === 'campaign') {
+        b.campaign = b.status === 'completed' ? 'campaign' : 'full';
+        b.status = 'writing';
+        if (s !== undefined && (s.stage !== 'D2' || s.concept !== b.id)) illegal(i, `follows the verification gate answered ${show(a)}, which adds ${b.id}'s campaign: D2 next${b.campaign === 'campaign' ? ', after the round copy' : ''} (D-415)`);
+        return 'campaign';
+      }
+      // design:<id>: its design gate again, from the existing verdict file, when its last D1 gate passed.
+      if (!b.lastD1) illegal(i, `follows the verification gate answered ${show(a)}, but ${b.id}'s last D1 gate didn't pass; design:<id> shows the design gate of a build whose last D1 gate passed on its current plan (D-415)`);
+      b.status = 'designing';
+      b.verified = false;
+      return followGate('design', s, i);
+    }
+    illegal(i, `follows ${name} answered ${show(a)}, which isn't an answer of that gate`);
+    return undefined;
+  };
+
+  /** What follows a step: a gate, a build's end, an escalation's choice, or SKILL.md's step list. */
+  let lastEscalation = null;
+  const transition = (p, s) => {
+    if (!p) return { table: true };
+    const b = typeof p.concept === 'string' ? B.get(p.concept) : undefined;
+    if (p.stage === 'R1a-assemble' && s?.stage !== 'R1a-assemble') return { gate: 'brainstorm' };
+    if (p.stage === 'R1b-assemble') return s !== undefined && s === autoRival ? { table: true } : { gate: 'verification' };
+    if (p.stage === 'RV' && p.outcome === 'none-found') return { gate: 'verification' };
+    if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return { gate: 'verification' };
+    if (p.outcome === 'escalated') {
+      const choice = lastEscalation?.choice;
+      if (choice === 'verification') return { gate: 'verification' };
+      if (choice === 'stop') return { end: `${p.stage} ${p.concept}'s escalation answered stop` };
+      if (choice === 'accept' && p.stage === 'D1-gate' && b && !b.verified) return { gate: 'design' };
+      return { escalation: choice };
+    }
+    if (p.stage === 'D1-gate' && p.outcome === 'pass' && b && !b.verified) return { gate: 'design' };
+    if (p.stage === 'F1' && p.outcome === 'pass' && b && b.status === 'file-only') return { end: `${p.concept}'s F1 passed after the design gate's accept:file, which ends the build file-only` };
+    if (V4_STAGES.includes(p.stage) && b && cycleDone(b.cycle)) return { gate: 'final' };
+    return { table: true };
+  };
+
+  let prev = null;
+  let esc = 0;
+  /** A resume (D-415): what the step before it led to settles with no step after it, then its verification visit. */
+  let resumeVisit = false;
+  const settle = () => {
+    if (resumeVisit) {
+      resumeVisit = false;
+      followGate('verification', undefined, undefined);
+      return;
+    }
+    const p = prev?.s;
+    if (!p) return;
+    const t = transition(p, undefined);
+    if (t.gate) followGate(t.gate, undefined, undefined);
+    else if (t.end) afterBuild(undefined, undefined, t.end);
+  };
+  const openResume = (r, n) => {
+    for (const kind of Object.keys(answers)) {
+      while (answers[kind].length > 0 && answers[kind][0].k < r.lengths.checkpoints) {
+        const { c, k } = answers[kind].shift();
+        fail('order', `run-log.json checkpoints[${k}] (${kind} visit ${c.visit}) is recorded before resumes[${n}] (at checkpoints[${r.lengths.checkpoints}]), but no step before the resume follows it; entries are placed by the resume's recorded lengths (D-415)`);
+      }
+    }
+    if (esc < escalations.length && esc > r.lengths.escalations) fail('order', `run-log.json resumes[${n}] records ${r.lengths.escalations} escalation(s), but ${esc} were logged before it (D-415)`);
+    runEnded = null;
+    // D-415: the resume prints the verification gate's display; a build in progress waits there with the queue.
+    if (cur && !['queued', 'designing', 'writing'].includes(cur.status)) cur = null;
+    resumeVisit = true;
+  };
+
+  for (const { s, i } of steps) {
+    const f = familyOf(s);
+    // The resumes recorded before this step: what the last step led to settles, then each resume's visit.
+    while (seg < resumes.length && resumes[seg].lengths.stages <= i) {
+      settle();
+      openResume(resumes[seg], seg);
+      seg += 1;
+    }
+    const p = prev?.s;
+    const pf = p ? familyOf(p) : 'start';
+    const same = p !== undefined && p.concept === s.concept;
+    const postVerify = ['V4', 'V4r', 'V4c'].includes(pf) && !resumeVisit;
+    started = null;
+    let via = null;
+    if (runEnded !== null && !resumeVisit) {
+      illegal(i, `follows ${runEnded}, which ended the run; entries after it come only behind a resume (D-415)`);
+      runEnded = null;
+    }
+    if (resumeVisit) {
+      resumeVisit = false;
+      via = followGate('verification', s, i) ?? null;
+    } else {
+      const t = transition(p, s);
+      if (t.gate) via = followGate(t.gate, s, i) ?? null;
+      else if (t.end) via = afterBuild(s, i, t.end);
+      else if (t.escalation !== undefined) {
+        const choice = t.escalation;
+        const b = buildOf(p.concept);
+        const ok = !same ? false
+          : choice === 'accept' ? (p.stage === 'D1-gate' ? (b.full ? ['D2', 'D2-gate'] : ['F1']).includes(s.stage) : s.stage === p.stage)
+            : choice === 'retry' ? (p.stage === 'D1-gate' ? ['D1-build', 'D1-tree'] : p.stage === 'D2-gate' ? ['D2'] : ['D1-build', 'D1-tree', 'D1-finish']).includes(s.stage)
+              : false;
+        if (!ok) illegal(i, `follows ${p.stage} ${p.concept}'s escalation answered ${show(choice)}, which doesn't lead to ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-236${p.stage === 'F1' ? ', D-413' : ''})`);
+      } else {
+        const b = typeof p?.concept === 'string' ? B.get(p.concept) : undefined;
+        const cls = p && ['D1-gate', 'D2-gate', 'F1'].includes(p.stage) && isObj(ctx.verdict(p)?.verdict) ? gateClass4(ctx.verdict(p), p.stage, coveredSoFar(p.concept)) : null;
+        const owners = ['D1-finish', 'D2', 'W1'];
+        const nextCheck = b?.cycle ? (b.cycle.first === 'done' ? (b.cycle.fix ? 'V4r' : 'V4') : b.cycle.start === 'revision' ? 'V4r' : b.cycle.start === 'campaign' ? 'V4c' : 'V4') : 'V4';
+        const legacy = legacyAt(prev?.i);
+        const allowed = {
+          start: ['R1a'],
+          R1a: ['R1a', 'R1a-assemble'],
+          'R1a-assemble': ['R1a-assemble'],
+          R1b: ['R1b', 'R1b-assemble'],
+          'R1b-assemble': ['RV'],
+          RV: p?.outcome === 'done' ? ['R1b'] : [],
+          // D-418: D1-build, then D1-tree; a schema-3 design (a migrated run's) and a D1-build claiming infeasible may
+          // go on to D1-finish.
+          'D1-build': legacy ? ['D1-finish'] : p?.outcome === 'infeasible' ? ['D1-tree', 'D1-finish'] : ['D1-tree'],
+          'D1-tree': ['D1-finish'],
+          'D1-finish': p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : b?.d1 && !b.d1.built ? ['D1-gate', 'D1-build', 'D1-tree'] : ['D1-gate'],
+          'D1-gate': p?.outcome === 'pass' ? (b?.full ? ['D2', 'D2-gate'] : ['F1'])
+            : p?.outcome === 'fail' ? (cls === 'tree' ? ['D1-tree'] : cls === 'toolError' ? ['D1-gate'] : ['D1-build']) : [],
+          D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
+          'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
+          F1: p?.outcome === 'pass' ? ['W1'] : ['F1'],
+          W1: [nextCheck],
+          V4: ['V4', ...owners],
+          V4r: ['V4r', ...owners],
+          V4c: ['V4c', ...owners],
+        }[pf] ?? [];
+        if (!allowed.includes(f)) illegal(i, `can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}${cls && cls !== 'pass' ? `; its verdict ${describeClass4(cls)}` : ''}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck').replace(/\bV4c\b/g, 'V4-campaign') || 'nothing'} next`);
+        const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c'].includes(pf);
+        if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !same) illegal(i, `is about ${s.concept}, but the build before it is ${p.concept}'s; a build's steps run for its own card until it ends (D-411)`);
+      }
+    }
+    // D-264: a claims-only owner edits in place before any gate of its fix round or revision.
+    if (s.outcome === CLAIMS_EDITED && !((postVerify && s.stage !== 'D1-build') || (s.stage === 'D2' && pf === 'D1-finish' && p?.outcome === CLAIMS_EDITED))) {
+      illegal(i, `edits claims without a compile (${CLAIMS_EDITED}), which an owner does only in the fix round or a revision, before any gate of it re-runs (D-264)`);
+    }
+
+    // Brainstorm rounds (D-287, NFR-23).
+    if (s.stage === 'R1a' && pf !== 'R1a') {
+      rounds += 1;
+      round = { n: rounds, r1a: 0, assembles: 0 };
+    }
+    if (s.stage === 'R1a' && round) {
+      round.r1a += 1;
+      if (round.r1a > ROUND_CAP) fail('caps', `${at(i)}: brainstorm round ${round.n} runs ${round.r1a} R1a researchers; at most ${ROUND_CAP} (NFR-23)`);
+    }
+    if (s.stage === 'R1a-assemble' && round) {
+      round.assembles += 1;
+      if (round.assembles > 1) fail('caps', `${at(i)}: brainstorm round ${round.n} runs ${round.assembles} R1a-assemble steps; one deals the round's deck (D-287, NFR-23)`);
+    }
+    if (s.stage === 'R1b') {
+      const seen = r1bSeen.get(s.concept);
+      if (vround === null) illegal(i, `runs R1b for ${s.concept} outside a verification round; only a gate's pick:<ids> or verify:<ids> opens one`);
+      else {
+        if (seen && seen.round !== vround.n) illegal(i, `verifies ${s.concept} again in verification round ${vround.n}; a card is verified once, and "verify other cards" picks cards not verified yet (D-287)`);
+        if (!vround.cards.includes(s.concept)) {
+          const next = vround.expected[vround.cards.length];
+          if (!vround.expected.includes(s.concept)) illegal(i, `runs R1b for ${s.concept}, which ${vround.gate} didn't pick for verification round ${vround.n}`);
+          else if (next !== s.concept) illegal(i, `verifies ${s.concept} before ${next}; R1b runs the picked cards in the order picked (${vround.expected.join(', ')})`);
+          vround.cards.push(s.concept);
+          const capped = vround.cards.filter((x) => !RIVAL_CARD.test(x)).length;
+          if (!RIVAL_CARD.test(s.concept) && capped > ROUND_CAP) fail('caps', `${at(i)}: verification round ${vround.n} compiles ${capped} cards; at most ${ROUND_CAP} per verification round (D-287, NFR-23), the rival's aside (D-408)`);
+        }
+      }
+      const r = seen ?? { round: vround?.n, counted: 0, passed: false, terminal: null };
+      r1bSeen.set(s.concept, r);
+      if (r.terminal) illegal(i, `runs R1b for ${s.concept} again, but its last attempt ended ${r.terminal} with no compile, which no retry changes (D-334, D-342, D-400, D-408)`);
+      else if (r.passed) illegal(i, `runs R1b for ${s.concept} after it compiled`);
+      else if (r.counted >= R1B_ATTEMPTS) fail('caps', `${at(i)}: is a counted R1b attempt for ${s.concept} after ${r.counted}; R1b allows 2 counted retries, then the card is failed (Q2)`);
+      if (p && p.stage === 'R1b' && p.outcome === 'fail' && p.concept !== s.concept && retriesLeft(p.concept)) illegal(i, `R1b ${p.concept} failed with retries left, but the next R1b is ${s.concept}'s; a failed compile re-runs first`);
+      if (s.outcome === 'pass') r.passed = true;
+      const terminal = ctx.terminal(s);
+      if (terminal) r.terminal = terminal;
+      if (s.outcome === 'pass' || !freeFault(s)) r.counted += 1;
+    }
+    if (s.stage === 'R1b-assemble') {
+      if (p?.stage === 'R1b' && p.outcome === 'fail' && retriesLeft(p.concept)) illegal(i, `R1b ${p.concept} failed with retries left, but the round assembles; a failed compile re-runs first`);
+      if (vround !== null) {
+        const left = vround.expected.filter((x) => !vround.cards.includes(x));
+        if (left.length > 0) illegal(i, `assembles verification round ${vround.n}, but no R1b ran for ${left.join(', ')}, which ${vround.gate} picked`);
+        vround = null;
+      }
+    }
+    if (s === autoRival && s.outcome === 'done') vround = { n: vrounds, gate: "the rival's step (RV, D-408)", expected: [rivalIds.get(s)], cards: [] };
+
+    // Builds: their designs, final compiles, guides and checks (D-411…D-415).
+    if (BUILD_STEPS.includes(s.stage) && typeof s.concept === 'string' && !B.has(s.concept)) illegal(i, `is about ${s.concept}, which no verification gate finalized (D-411)`);
+    const b = BUILD_STEPS.includes(s.stage) && typeof s.concept === 'string' ? buildOf(s.concept) : null;
+    /** A step about a build after its V4 checks: the fix round when the last check found something, else a revision. */
+    const afterVerification = () => {
+      if (b.cycle === null) {
+        illegal(i, 'follows the V4 checks of another build');
+        return;
+      }
+      if (b.cycle.first === 'done' && b.cycle.failed && !b.cycle.fix) b.cycle.fix = true;
+      else b.cycle = newCycle('revision');
+      b.verified = true;
+    };
+    if (b && D1_STAGES.includes(s.stage)) {
+      const continues = same && p && ((s.stage === 'D1-tree' && p.stage === 'D1-build') || (s.stage === 'D1-finish' && ['D1-build', 'D1-tree'].includes(p.stage))
+        || (['D1-build', 'D1-tree'].includes(s.stage) && p.stage === 'D1-finish' && p.outcome === 'done' && b.d1 && !b.d1.built));
+      if (!continues) {
+        b.d1 = { built: false, infeasible: false };
+        if (pf === 'D1-gate' && p.outcome === 'fail' && same) {
+          // a counted retry (or a free one, or a tool's re-run)
+        } else if (pf === 'D1-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
+          chain(b, 'D1-gate').guided = true;
+        } else if (pf === 'F1' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
+          // D-413: guidance after F1: D1, its gate and the design gate again, then F1 once more, escalating on failure.
+          freshChain(b, 'D1-gate');
+          b.f1Guided = true;
+          b.verified = false;
+        } else if (postVerify && via !== 'campaign') {
+          afterVerification();
+          freshChain(b, 'D1-gate');
+        } else if (via === 'revise') {
+          freshChain(b, 'D1-gate');
+        }
+      }
+      if (s.stage === 'D1-build' || s.stage === 'D1-tree') b.d1.built = true;
+      if (s.stage === 'D1-build' && s.outcome === 'infeasible') b.d1.infeasible = true;
+    }
+    if (b && s.stage === 'D2') {
+      b.full = true;
+      if (pf === 'D2-gate' && p.outcome === 'fail' && same) {
+        // a retry
+      } else if (pf === 'D2-gate' && p.outcome === 'escalated' && same && lastEscalation?.choice === 'retry') {
+        chain(b, 'D2-gate').guided = true;
+      } else {
+        if (postVerify && via !== 'campaign') afterVerification();
+        freshChain(b, 'D2-gate');
+      }
+    }
+    if (b && s.stage === 'D2-gate' && pf === 'D1-gate') freshChain(b, 'D2-gate');
+    // F1's chain starts at the design gate's accept, or a fix round's D1 gate; after an F1 escalation's guidance its
+    // next failure escalates again (D-413).
+    if (b && s.stage === 'F1' && (pf === 'D1-gate' || via === 'accept')) {
+      freshChain(b, 'F1');
+      chain(b, 'F1').guided = b.f1Guided === true;
+      b.f1Guided = false;
+    }
+    if (b && ['D2-gate', 'F1'].includes(s.stage) && pf === s.stage && p.outcome === 'escalated' && lastEscalation?.choice === 'accept') chain(b, s.stage).guided = true;
+    if (b && s.stage === 'W1') {
+      if (postVerify && via !== 'guide') afterVerification();
+      // A guide's first W1: after the final compile (F1, or the D2 gate), or a resume's guide:<id> (D-415).
+      if ((FINAL_GATES.includes(pf) && b.cycle === null) || (pf === 'D2-gate' && b.campaign !== null) || via === 'guide') {
+        b.cycle = newCycle(b.campaign === 'campaign' && pf === 'D2-gate' ? 'campaign' : 'full');
+        b.campaign = null;
+        b.status = 'writing';
+      }
+      b.guide = true;
+    }
+
+    // Each gate attempt routes as its own verdict file says (gates.md's outcome tables, amendment 9's).
+    if (['D1-gate', 'D2-gate', 'F1', 'R1b'].includes(s.stage)) {
+      const rep = ctx.verdict(s);
+      const file = `reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`;
+      const ch = s.stage !== 'R1b' ? chain(b, s.stage) : null;
+      if (!isObj(rep) || !isObj(rep.verdict)) fail('routing', `${at(i)}: has no verdict file ${file}; a gate step writes its own, and the runner routes on it (§3)`);
+      else if (s.stage === 'R1b') {
+        const cls = gateClass(rep, 'R1b', () => false);
+        if ((s.outcome === 'pass') !== (cls === 'pass')) fail('routing', `${at(i)}: is routed ${s.outcome}, but its verdict ${describeClass(cls)} (${file})`);
+      } else {
+        const cls = gateClass4(rep, s.stage, coveredSoFar(s.concept));
+        const claimedInfeasible = s.stage === 'D1-gate' && b.d1?.infeasible === true;
+        const toolAgain = s.stage === 'D1-gate' && cls === 'toolError' && b.toolError;
+        const why = {
+          pass: cls === 'pass' ? null : `its verdict ${describeClass4(cls)}, which isn't a pass`,
+          fail: s.stage === 'F1' ? (cls === 'hard' ? (ch.guided || ch.failed >= 1 ? 'F1 re-runs once, uncounted, and a second failure (or one after a guided retry or an accepted re-run) escalates (D-413)' : null) : cls === 'ledger' ? "the write ledger's refusal escalates at once: no retry changes it (D-413)" : `its verdict ${describeClass4(cls)}, which isn't a failure`)
+            : ['hard', 'soft', 'tree'].includes(cls) ? (ch.guided ? 'a guided retry or an accepted re-run that fails escalates again' : null)
+              : cls === 'toolError' ? (toolAgain ? 'a second tool failure escalates (D-419)' : null) : `its verdict ${describeClass4(cls)}, which isn't a failure`,
+          escalated: s.stage === 'F1' ? (cls === 'ledger' || (cls === 'hard' && (ch.failed >= 1 || ch.guided)) ? null : `its verdict ${describeClass4(cls)}; F1 escalates on its second failure, or at once on the write ledger's refusal (D-413)`)
+            : cls === 'hard' || cls === 'tree' || (ch.guided && cls === 'soft') || toolAgain ? null : `its verdict ${describeClass4(cls)}; only a compile, V1, V2 or tree failure escalates, a second tool failure, or any failure of a guided retry`,
+          infeasible: s.stage !== 'D1-gate' ? 'only the D1 gate is infeasible'
+            : cls === 'forced' ? (forcedByFault(s) ? null : 'its verdict is forced infeasible, but no FI-3 directive targets this attempt')
+              : cls !== 'soft' ? `its verdict ${describeClass4(cls)}; infeasible is FI-3's forced verdict, or a floor or named-damage-source (rolledSkill) failure (the budget never fails, D-371)`
+                : ch.guided ? 'a guided retry that fails escalates again'
+                  : claimedInfeasible || ch.counted >= GATE_RETRIES ? null : `D1-build claimed done and the gate has ${ch.counted} counted retr${ch.counted === 1 ? 'y' : 'ies'}; a floor or named-damage-source (rolledSkill) failure re-runs D1 until its 2 counted retries, unless D1-build claimed infeasible`,
+        }[s.outcome];
+        if (cls === 'forced' && s.outcome !== 'infeasible') fail('routing', `${at(i)}: is routed ${s.outcome}, but ${file} is forced infeasible (FI-3)`);
+        else if (why) fail('routing', `${at(i)}: is routed ${s.outcome}, but ${why} (${file})`);
+        if (s.stage === 'D1-gate') b.toolError = cls === 'toolError';
+        // Counted failures and the escalation caps.
+        if (s.outcome === 'fail' && s.stage !== 'F1' && cls !== 'toolError' && !freeFault(s)) {
+          if (ch.guided) fail('caps', `${at(i)}: fails after a guided retry or an accepted re-run, and the producer re-runs; such a failure escalates again (D-236)`);
+          ch.counted += 1;
+          if (ch.counted > GATE_RETRIES) fail('caps', `${at(i)}: is counted failure ${ch.counted} of ${s.stage} for ${s.concept} in one chain, and the producer re-runs again; a gate allows ${GATE_RETRIES} counted retries, then escalates (S6: only an attempt-1 fault's failure is free)`);
+        }
+        if (s.outcome === 'fail' && s.stage === 'F1') ch.failed += 1;
+        if (s.outcome === 'escalated' && s.stage !== 'F1' && !ch.guided && ch.counted < GATE_RETRIES && !toolAgain) {
+          fail('caps', `${at(i)}: escalates after ${ch.counted} counted retr${ch.counted === 1 ? 'y' : 'ies'}; a gate escalates only after its ${GATE_RETRIES} counted retries, when a guided retry fails again, or on a second tool failure`);
+        }
+      }
+      if (s.stage === 'D1-gate') b.lastD1 = s.outcome === 'pass';
+      if (s.stage === 'D1-gate' && s.outcome === 'infeasible') endBuild(b, 'dropped');
+      if (s.stage === 'F1' && s.outcome === 'pass' && b.after === 'file' && !b.verified) endBuild(b, 'file-only');
+      if (s.stage === 'F1' && s.outcome === 'pass' && !(b.after === 'file' && !b.verified)) b.status = 'writing';
+    }
+    if (s.outcome === 'escalated') {
+      const e = escalations[esc];
+      esc += 1;
+      lastEscalation = e ?? null;
+      if (!e) fail('escalation', `${at(i)}: escalated, but escalations[] has no entry ${esc - 1} for it`);
+      else if (e.stage !== s.stage || e.concept !== s.concept) fail('escalation', `${at(i)}: escalated, but escalations[${esc - 1}] is ${e.stage} ${e.concept}'s; the escalations are logged in stages[] order`);
+      else if (!e.verdict?.endsWith?.(`-a${s.attempt}.json`)) fail('escalation', `${at(i)}: escalated, but escalations[${esc - 1}].verdict ${show(e.verdict)} isn't this attempt's verdict file`);
+      if (e?.choice === 'accept' && !(s.stage === 'F1' && ledgerRefused(ctx.verdict(s)))) {
+        for (const x of failingFindings(ctx.verdict(s), s.stage, coveredSoFar(s.concept))) acceptedSoFar.push({ concept: s.concept, stage: typeof x.stage === 'string' ? x.stage : null, part: x.part, code: x.code });
+      }
+      if (e?.choice === 'accept' && s.stage === 'D1-gate') b.lastD1 = true;
+      if (e?.choice === 'verification') endBuild(b, 'dropped');
+      if (e?.choice === 'stop') endBuild(b, 'escalated');
+    }
+
+    // The V4 checks (D-352, D-415), per build.
+    if (b && f === 'V4') {
+      if (b.cycle === null) illegal(i, 'runs a V4 pass with no guide written for this build');
+      else if (b.cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what check-run.mjs --changed lists (D-352)`);
+      else if (b.cycle.start === 'campaign') fail('verification', `${at(i)}: runs a full V4 pass after a completed build's campaign; the campaign gets V4's campaign pass, V4-campaign (D-415)`);
+      else if (b.cycle.first === 'done') fail('verification', `${at(i)}: starts a second full V4 pass for one guide; after the fix round a re-check (V4-recheck) covers what changed, and a revision the final gate asked for checks with a re-check too (D-352)`);
+      else {
+        b.cycle.first = 'done';
+        b.cycle.failed = s.outcome === 'fail';
+      }
+    }
+    if (b && f === 'V4c') {
+      if (b.cycle === null || b.cycle.start !== 'campaign' || b.cycle.first !== 'none') fail('verification', `${at(i)}: runs V4's campaign pass, which checks a completed build's campaign once, after its W1 (D-415)`);
+      else {
+        b.cycle.first = 'done';
+        b.cycle.failed = s.outcome === 'fail';
+      }
+    }
+    if (b && f === 'V4r') {
+      const c = b.cycle;
+      if (c !== null && c.start === 'revision' && c.first === 'none') {
+        c.first = 'done';
+        c.failed = s.outcome === 'fail';
+      } else if (!c || c.first !== 'done' || !c.fix) fail('verification', `${at(i)}: re-checks with no fix round or revision before it; a re-check follows the owners of a fix round (after a check that found something) or of a revision (D-352)`);
+      else if (c.recheck === 'done') fail('verification', `${at(i)}: starts a second re-check after one fix round; there is no further round, what stays open is a known issue (D-352)`);
+      else c.recheck = 'done';
+    }
+    prev = { s, i };
+  }
+
+  // The resumes after the last step, then what the last step leads to (D-415).
+  while (seg < resumes.length) {
+    settle();
+    openResume(resumes[seg], seg);
+    seg += 1;
+  }
+  settle();
+  for (const kind of Object.keys(answers)) {
+    if (answers[kind].length > 0) fail('order', `run-log.json: checkpoints[] records ${answers[kind].length} ${kind} answer(s) more than the run visits ${GATE_NAME[kind]}; each visit records one answer, in order (D-289)`);
+  }
+  if (esc !== escalations.length) fail('escalation', `run-log.json escalations[] has ${escalations.length} entr${escalations.length === 1 ? 'y' : 'ies'}, but stages[] logs ${esc} escalated gate attempt(s); every escalation is logged once, in order`);
+  const asked = checkpoints.filter((c) => c.checkpoint === 'escalation');
+  escalations.forEach((e, k) => {
+    const c = asked[k];
+    const want = e.choice === 'retry' ? `retry:${e.guidance}` : e.choice;
+    if (c === undefined) fail('escalation', `run-log.json escalations[${k}] (${e.stage} ${e.concept}) has no escalation answer: checkpoints[] records ${asked.length} escalation question(s); each escalation records its question's answer as checkpoint "escalation", in order (checkpoints.md)`);
+    else if (c.answer !== want) fail('escalation', `run-log.json escalations[${k}] logs the choice ${show(e.choice)}${e.choice === 'retry' ? ` with guidance ${show(e.guidance)}` : ''}, but checkpoints[${checkpoints.indexOf(c)}], escalation answer ${k + 1}, is ${show(c.answer)}; the choice is the answer, and retry:<guidance> is retry with that guidance (checkpoints.md)`);
+  });
+  if (asked.length > escalations.length) fail('escalation', `run-log.json checkpoints[] records ${asked.length} escalation answer(s), but escalations[] has ${escalations.length} entr${escalations.length === 1 ? 'y' : 'ies'}; each answer is an escalation's, logged in escalations[] in order (checkpoints.md)`);
+
+  // The run's end (D-411): completed when any build ended completed or file-only, else the last build's end
+  // (a dropped build's visit stops it), or stopped when no card was finalized; a run with a step to come is running.
+  const any = [...B.values()].some((x) => x.everCompleted);
+  const last = ended[ended.length - 1]?.status;
+  const ends = any ? 'completed' : last === undefined || last === 'dropped' ? 'stopped' : last;
+  if (runEnded !== null && log.status !== ends) {
+    fail('order', `run-log.json: the run ended (${runEnded}), so its status is ${show(ends)}${any ? ', a build having ended completed or file-only' : last !== undefined ? `, its last build's end` : ''}, not ${show(log.status)} (D-411)`);
+  } else if (runEnded === null && !['running', 'stopped'].includes(log.status)) {
+    fail('order', `run-log.json: status is ${show(log.status)}, but the run hasn't ended: ${queue.length > 0 ? `${queue.join(', ')} still queued` : 'a step or an answer is still to come'}; it is running (D-411)`);
+  }
+  // builds[]: one per finalized card, in finalize order, each with its status as the flow ends it (D-412).
+  const logged = list(log.builds);
+  for (const id of finalizeOrder) {
+    const x = B.get(id);
+    const entry = logged.find((y) => y.id === id);
+    if (!entry) {
+      if (!x.legacy) fail('run-log', `run-log.json builds[] has no build for ${id}, which the verification gate finalized (D-412)`);
+      continue;
+    }
+    const inProgress = IN_PROGRESS.includes(x.status);
+    if (inProgress ? !IN_PROGRESS.includes(entry.status) : entry.status !== x.status) {
+      fail('run-log', `run-log.json builds[] ${id}'s status is ${show(entry.status)}, but the run log's steps and answers ${inProgress ? `leave it in progress (${x.status})` : `end it ${show(x.status)}`} (D-411, D-412)`);
+    }
+  }
+  for (const entry of logged) if (!finalizeOrder.includes(entry.id)) fail('run-log', `run-log.json builds[] lists ${show(entry.id)}, which no verification gate answer finalized (D-411, D-412)`);
+  const order = finalizeOrder.filter((id) => logged.some((y) => y.id === id));
+  if (show(logged.map((y) => y.id)) !== show(order)) fail('run-log', `run-log.json builds[] is in the order ${logged.map((y) => y.id).join(', ')}; it is the finalize order, ${order.join(', ')} (D-412)`);
+}
+
+/**
  * A gate verdict's failing findings: those of a part that fails, information codes and accepted findings aside.
  * A part other than the budget that is `unverified` fails too (only the budget may stay unverified, D-164). The
  * budget's findings never fail (D-371): `over-target` is information and `unverified` is allowed.
  */
 function failingFindings(rep, stage, covered) {
   if (!isObj(rep) || !isObj(rep.verdict)) return [];
-  return list(rep.findings).filter((f) => GATE_PARTS[stage]?.includes(f.part) && f.part !== 'budget' && ['fail', 'unverified'].includes(rep.verdict[f.part]) && !INFO_CODES.includes(f.code) && !covered(f));
+  return list(rep.findings).filter((f) => partsOf(rep, stage).includes(f.part) && f.part !== 'budget' && ['fail', 'unverified'].includes(rep.verdict[f.part]) && !INFO_CODES.includes(f.code) && !covered(f));
 }
 
 /**
@@ -2667,14 +3757,17 @@ function firstDifference(got, want, key = (l) => l.replace(/\s+$/, '')) {
 // Reports (gates.md verdict files, source-markers.md V4 reports)
 // ---------------------------------------------------------------------------------------------------
 
-function checkGateReport(rep, g, fail) {
+function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
   const bad = (why) => fail('gate-report', `${g.file}: ${why}`);
   if (!isObj(rep)) return bad('is a JSON object');
   if (rep.stage !== g.stage || rep.concept !== g.concept || rep.attempt !== g.attempt) {
     bad(`says ${show({ stage: rep.stage, concept: rep.concept, attempt: rep.attempt })}; its name says ${show({ stage: g.stage, concept: g.concept, attempt: g.attempt })}`);
   }
   if (!isObj(rep.verdict)) return bad('has no verdict object');
-  for (const part of GATE_PARTS[g.stage]) {
+  // D-419: schema 4's D1 gate has the part `tree`; one written before a migrated run's first resume has none.
+  const parts = g.stage === 'D1-gate' && opts.v4 && !opts.legacy ? D1_PARTS4 : GATE_PARTS[g.stage];
+  if (g.stage === 'D1-gate' && opts.v4 && !opts.legacy) checkTreePart(rep, bad);
+  for (const part of parts) {
     // D-371: the D1 gate's budget is pass or unverified, never fail: a `fail` there is an unknown value.
     const allowed = g.stage === 'D1-gate' && part === 'budget' ? BUDGET_PARTS : PARTS;
     if (!allowed.includes(rep.verdict[part])) bad(`verdict.${part} is ${show(rep.verdict[part])}; one of ${allowed.join(', ')}${allowed === BUDGET_PARTS ? ' (the budget never fails, D-371)' : ''}`);
@@ -2690,6 +3783,47 @@ function checkGateReport(rep, g, fail) {
       bad('has no basis {budget: {rates, market, slots, totals}, rolledSkill: [...]}: the slot→price map, its rates, market and totals, and the figures the run checker recomputes the gate from (gates.md)');
     }
   }
+}
+
+/**
+ * D-419: the D1 gate's `tree` part, checked for its shape and its agreement with its findings: the checker can't
+ * recompute node power without the engine. `pass` has no `tree-swap` finding; `fail` has one or more, each naming a
+ * rung; `unverified` has a `tool-error` (get_node_power failed or timed out) or `tool-refused` (D-421) finding and no
+ * `tree-swap`. The `design` field's rungs, when the gate wrote it, each carry `tree: {travel, points, bestSwap, needs}`:
+ * travel and points whole numbers, travel at most points, `bestSwap` null or `{gainPercent, removed: [names], added:
+ * [names]}`, `needs` the needs' reasons as text; a rung whose best swap gains 5% or more Full DPS is exactly a rung with a
+ * `tree-swap` finding.
+ */
+function checkTreePart(rep, bad) {
+  const v = rep.verdict.tree;
+  const findings = list(rep.findings).filter((f) => f.part === 'tree');
+  const swaps = findings.filter((f) => f.code === 'tree-swap');
+  const tools = findings.filter((f) => TREE_CODES.unverified.includes(f.code));
+  for (const f of findings) if (![...TREE_CODES.fail, ...TREE_CODES.unverified].includes(f.code)) bad(`has the tree finding ${show(f.code)}; the tree part's codes are tree-swap, tool-error and tool-refused (D-419, D-421)`);
+  if (v === 'pass' && (swaps.length > 0 || tools.length > 0)) bad(`says tree: "pass" beside ${swaps.length > 0 ? 'a tree-swap finding' : `a ${tools[0].code} finding`}; a passing tree part leaves no swap and had its tool (D-419)`);
+  if (v === 'fail' && (swaps.length === 0 || tools.length > 0)) bad(`says tree: "fail" ${swaps.length === 0 ? 'with no tree-swap finding' : `beside a ${tools[0].code} finding`}; a failing tree part names each rung's swap, a tree-swap finding (D-419)`);
+  if (v === 'unverified' && (tools.length === 0 || swaps.length > 0)) bad(`says tree: "unverified" ${tools.length === 0 ? 'with no tool-error or tool-refused finding' : 'beside a tree-swap finding'}; the tree is unverified only when get_node_power failed (tool-error) or the call was refused (tool-refused) (D-419, D-421)`);
+  for (const f of swaps) if (typeof f.stage !== 'string') bad(`has a tree-swap finding with no stage; it names the rung the swap is on (D-419)`);
+  const rungs = list(rep.design?.rungs);
+  if (rungs.length === 0) return;
+  const failing = new Set();
+  for (const r of rungs) {
+    const t = r.tree;
+    const at = `design.rungs's ${show(r.stage)}`;
+    if (!isObj(t)) {
+      bad(`${at} has tree ${show(t)}; schema 4's design rung carries tree: {travel, points, bestSwap, needs} (D-419)`);
+      continue;
+    }
+    if (!isInt(t.travel) || !isInt(t.points) || t.travel > t.points) bad(`${at} tree has travel ${show(t.travel)} of points ${show(t.points)}; both whole numbers, travel at most points (D-419)`);
+    const s = t.bestSwap;
+    const strings = (x) => Array.isArray(x) && x.length > 0 && x.every((n) => typeof n === 'string' && n.trim() !== '');
+    if (s !== null && !(isObj(s) && isNum(s.gainPercent) && strings(s.removed) && strings(s.added))) bad(`${at} tree's bestSwap is ${show(s)}; null, or {gainPercent, removed: [names], added: [names]} (D-419)`);
+    if (!Array.isArray(t.needs) || !t.needs.every((n) => typeof n === 'string' && n.trim() !== '')) bad(`${at} tree's needs are ${show(t.needs)}; the needs' reasons, as text (D-418, D-419)`);
+    if (isObj(s) && isNum(s.gainPercent) && s.gainPercent >= TREE_FAIL_PERCENT) failing.add(r.stage);
+  }
+  if (v === 'unverified') return;
+  for (const stage of failing) if (!swaps.some((f) => f.stage === stage)) bad(`rung ${stage}'s best swap left gains ${list(rep.design.rungs).find((r) => r.stage === stage).tree.bestSwap.gainPercent}% Full DPS, at least ${TREE_FAIL_PERCENT}%, but no tree-swap finding names it: the tree part fails that rung (D-419)`);
+  for (const f of swaps) if (typeof f.stage === 'string' && !failing.has(f.stage)) bad(`has a tree-swap finding on rung ${f.stage}, whose best swap left gains under ${TREE_FAIL_PERCENT}% Full DPS (design.rungs's tree): a rung fails only at ${TREE_FAIL_PERCENT}% or more (D-419)`);
 }
 
 /** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342, D-400, D-408). */
@@ -2759,7 +3893,9 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
     const words = countWords(body('What the cards share').map((l) => l.raw));
     if (words === 0 || words > 80) fail('deck', `cards.md's "What the cards share" holds ${words} words; it says the cards' common core once, in player terms, in 1 to 80 words (D-392)`);
   }
-  if (deck.h2.includes('How they differ') && body('How they differ').length !== 1) fail('deck', `cards.md's "How they differ" holds ${body('How they differ').length} lines; it is one line on the deck's shape (D-392)`);
+  // D-424: one paragraph, however many lines it wraps over: a paragraph is a run of lines with no blank line between.
+  const paragraphs = body('How they differ').filter((l, k, all) => k === 0 || l.n !== all[k - 1].n + 1).length;
+  if (deck.h2.includes('How they differ') && paragraphs !== 1) fail('deck', `cards.md's "How they differ" holds ${paragraphs} paragraphs; it is one paragraph on the deck's shape (D-392, D-424)`);
   const found = body('Found, not used');
   if (deck.h2.includes('Found, not used') && !(found.length === 1 && found[0].raw === 'None.') && (found.length === 0 || found.length > 5 || found.some((l) => !/^[-*]\s+\S/.test(l.raw)))) {
     fail('deck', `cards.md's "Found, not used" holds ${found.length} line(s); it lists up to five strong research findings no card uses, each "- <finding>: <why no card uses it>", or says "None." (D-392)`);
@@ -3009,9 +4145,15 @@ function checkInterviews(log, files, readText, exists, questionProbes, fail) {
     if (!visited(key)) fail('interview', `${rel} is the notes of ${key.replace(/-(\d+)$/, ' visit $1')}, but displays[] records no such visit; the notes are a gate visit's (D-389)`);
     const lines = (readText(rel) ?? '').split('\n');
     const qs = [];
+    // D-420: the restated decision waiting for the user's yes, `## Pending decision`, is no question: its block is
+    // exempt from the question rules and the count, at a visit with questions or without.
+    let pending = false;
     lines.forEach((l, i) => {
-      if (/^##\s/.test(l)) qs.push({ head: l.replace(/^##\s+/, '').trim(), n: i + 1, body: [] });
-      else if (qs.length > 0 && !/^#\s/.test(l)) qs[qs.length - 1].body.push({ raw: l, n: i + 1 });
+      if (/^##\s/.test(l)) {
+        const head = l.replace(/^##\s+/, '').trim();
+        pending = head === PENDING_DECISION;
+        if (!pending) qs.push({ head, n: i + 1, body: [] });
+      } else if (!pending && qs.length > 0 && !/^#\s/.test(l)) qs[qs.length - 1].body.push({ raw: l, n: i + 1 });
     });
     qs.forEach((q, k) => {
       const head = /^Q([1-9]\d*):\s*(\S.*)$/.exec(q.head);
@@ -3182,16 +4324,19 @@ function checkV4Report(r, mode, fail, ID) {
   const bad = (why) => fail('report-shape', `${r.file}: ${why}`);
   const rep = r.report;
   for (const e of rep.errors) bad(e);
-  const h1 = /^V4-([1-9]\d*): (?:(full pass)|re-check of rounds\/([1-9]\d*))$/.exec(rep.h1 ?? '');
-  if (!h1 || Number(h1[1]) !== r.n || (h1[3] !== undefined && Number(h1[3]) !== r.n - 1)) {
-    bad(`its H1 is ${show(rep.h1)}; it is "# V4-${r.n}: full pass" or "# V4-${r.n}: re-check of rounds/${r.n - 1}" (stages/V4.md)`);
+  // D-415: V4's campaign pass, `# V4-<n>: campaign pass of rounds/<n-1>`, `check: campaign`.
+  const h1 = /^V4-([1-9]\d*): (?:(full pass)|re-check of rounds\/([1-9]\d*)|(campaign pass) of rounds\/([1-9]\d*))$/.exec(rep.h1 ?? '');
+  const of = h1 ? (h1[3] ?? h1[5]) : undefined;
+  if (!h1 || Number(h1[1]) !== r.n || (of !== undefined && Number(of) !== r.n - 1)) {
+    bad(`its H1 is ${show(rep.h1)}; it is "# V4-${r.n}: full pass" or "# V4-${r.n}: re-check of rounds/${r.n - 1}" (stages/V4.md), or for V4's campaign pass "# V4-${r.n}: campaign pass of rounds/${r.n - 1}" (D-415)`);
   }
-  const check = h1 ? (h1[2] ? 'full' : 'recheck') : rep.fields.check;
-  if (rep.fields.check !== check || !['full', 'recheck'].includes(check)) bad(`check is ${show(rep.fields.check ?? null)}; it is "full" or "recheck", as its H1 says (stages/V4.md)`);
+  const check = h1 ? (h1[2] ? 'full' : h1[4] ? 'campaign' : 'recheck') : rep.fields.check;
+  if (rep.fields.check !== check || !['full', 'recheck', 'campaign'].includes(check)) bad(`check is ${show(rep.fields.check ?? null)}; it is "full" or "recheck", as its H1 says (stages/V4.md), or "campaign" for V4's campaign pass (D-415)`);
   const entry = r.entry?.s;
+  const KIND = { full: 'full pass', recheck: 're-check', campaign: 'campaign pass' };
   if (entry !== undefined) {
-    const want = entry.stage === 'V4' ? 'full' : 'recheck';
-    if (check !== want) fail('reports', `${r.file} is a ${check === 'full' ? 'full pass' : 're-check'}, but the V4 pass it is, run-log.json's V4 entry ${r.n} (${describe(entry)}), is a ${want === 'full' ? 'full pass (V4)' : 're-check (V4-recheck)'}; each pass writes its own report and never overwrites one (D-352)`);
+    const want = entry.stage === 'V4' ? 'full' : entry.stage === 'V4-campaign' ? 'campaign' : 'recheck';
+    if (check !== want) fail('reports', `${r.file} is a ${KIND[check] ?? check}, but the V4 pass it is, run-log.json's V4 entry ${r.n} (${describe(entry)}), is a ${{ full: 'full pass (V4)', recheck: 're-check (V4-recheck)', campaign: 'campaign pass (V4-campaign)' }[want]}; each pass writes its own report and never overwrites one (D-352)`);
     if (rep.fields.concept !== entry.concept) bad(`concept is ${show(rep.fields.concept ?? null)}, but the pass that wrote it, ${describe(entry)}, is about ${entry.concept}`);
   } else if (!ID.test(rep.fields.concept ?? '')) bad(`concept is ${show(rep.fields.concept ?? null)}; it is the guide's card`);
   if (rep.fields.mode !== mode) bad(`mode is ${show(rep.fields.mode ?? null)}; the run is ${show(mode)}`);
@@ -3199,7 +4344,7 @@ function checkV4Report(r, mode, fail, ID) {
   if (rep.checked === null) bad('has no "## Checked"; it lists what the pass checked (stages/V4.md)');
   else for (const item of rep.checked) if (!CHECKED_ITEM.test(item)) bad(`## Checked lists ${show(item)}, which is neither "claim stages[<i>].claims[<k>] (<id>)" nor "section <H2 title>" (D-352)`);
   if (rep.findings === null) bad('has no "## Findings"; it holds one "### <id>" per finding, or "None." (stages/V4.md)');
-  const statuses = check === 'recheck' ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
+  const statuses = check !== 'full' ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
   const ids = new Set();
   const findings = [];
   for (const f of rep.findings ?? []) {
@@ -3564,18 +4709,19 @@ const ROUND_TMP = /^\.[1-9]\d*\.tmp-\w{6}$/;
  * working folder inside `rounds/` and renamed to `<n>` once whole, so a copy failing midway leaves no round and can
  * be made again. Returns null, or why not.
  */
-export function snapshotRound(runFolder, n) {
-  const rounds = path.join(runFolder, 'rounds');
+export function snapshotRound(runFolder, n, folder = '.') {
+  const base = path.join(runFolder, folder);
+  const rounds = path.join(base, 'rounds');
   const dir = path.join(rounds, String(n));
   if (fs.existsSync(rounds) && !fs.statSync(rounds).isDirectory()) return 'rounds is a file; the round copies go in the folder rounds/ (A-34)';
   if (fs.existsSync(dir)) return `rounds/${n}/ exists; a round copy is never overwritten (A-34)`;
-  const missing = ROUND_FILES.filter((f) => !fs.existsSync(path.join(runFolder, f)));
+  const missing = ROUND_FILES.filter((f) => !fs.existsSync(path.join(base, f)));
   if (missing.length > 0) return `the run folder has no ${missing.join(', ')}; the round copy holds ${ROUND_FILES.join(', ')} (A-34)`;
   let tmp = null;
   try {
     fs.mkdirSync(rounds, { recursive: true });
     tmp = fs.mkdtempSync(path.join(rounds, `.${n}.tmp-`));
-    for (const f of ROUND_FILES) fs.copyFileSync(path.join(runFolder, f), path.join(tmp, f), fs.constants.COPYFILE_EXCL);
+    for (const f of ROUND_FILES) fs.copyFileSync(path.join(base, f), path.join(tmp, f), fs.constants.COPYFILE_EXCL);
     fs.renameSync(tmp, dir);
     tmp = null;
     return null;
@@ -3701,43 +4847,71 @@ function changedBetween(ledgerModule, thenDir, nowDir, options = {}) {
  * D-352: what changed since the round copy `rounds/<n>/`, as the lines `--changed <n>` prints (`changedBetween`,
  * the round copy against the run folder). Returns `{lines}`, or `{error}`.
  */
-export async function changedSince(runFolder, n) {
-  const dir = path.join(runFolder, 'rounds', String(n));
+export async function changedSince(runFolder, n, folder = '.') {
+  const base = path.join(runFolder, folder);
+  const dir = path.join(base, 'rounds', String(n));
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return { error: `rounds/${n}/ doesn't exist; make the round copy first (--snapshot ${n}, A-34)` };
   const ledgerModule = await loadLedgerModule();
   if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)` };
   try {
-    if (!isObj(JSON.parse(fs.readFileSync(path.join(runFolder, 'plan.json'), 'utf8')))) throw new Error('not an object');
+    if (!isObj(JSON.parse(fs.readFileSync(path.join(base, 'plan.json'), 'utf8')))) throw new Error('not an object');
   } catch {
     return { error: "plan.json is missing or isn't JSON" };
   }
-  return { lines: changedBetween(ledgerModule, dir, runFolder) };
+  return { lines: changedBetween(ledgerModule, dir, base) };
 }
 
 // ---------------------------------------------------------------------------------------------------
 // Command line
 // ---------------------------------------------------------------------------------------------------
 
+/**
+ * D-412: the folder a `--snapshot` or `--changed` works in: a schema-4 run's build folder, named by `--build <card id>`
+ * (`builds/<id>`, or "." for a migrated run's build); the root for a schema-2 or schema-3 run. `{folder}` or `{error}`.
+ */
+function buildFolderFor(runFolder, id) {
+  let log = null;
+  try {
+    log = JSON.parse(fs.readFileSync(path.join(runFolder, 'run-log.json'), 'utf8'));
+  } catch {
+    log = null;
+  }
+  const v4 = isObj(log) && log.schemaVersion === 4;
+  if (id === undefined) return v4 ? { error: 'a schema-4 run keeps each build in its folder: name the build with --build <card id> (D-412)' } : { folder: '.' };
+  if (!v4) return { error: '--build is schema 4\'s (amendment 9); this run log isn\'t a schema-4 log' };
+  const b = list(log.builds).find((x) => x.id === id);
+  if (!b || typeof b.folder !== 'string') return { error: `run-log.json has no build ${id}; builds[] holds ${list(log.builds).map((x) => x.id).join(', ') || 'none'} (D-412)` };
+  return { folder: b.folder };
+}
+
 async function main(argv) {
   const args = argv.slice(2);
   const usage = () => {
-    process.stderr.write('usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>]\n');
+    process.stderr.write('usage: node check-run.mjs <runFolder> [--snapshot <n> | --changed <n>] [--build <card id>]\n');
     return 2;
   };
   if (args.length === 0 || args[0].startsWith('--')) return usage();
-  if (args.length === 3 && ['--snapshot', '--changed'].includes(args[1]) && ROUND_N.test(args[2])) {
+  // D-412: in a schema-4 run the round copy and its comparison are a build's, in its folder: --build <card id>.
+  const withBuild = args.length === 5 && args[3] === '--build';
+  if ((args.length === 3 || withBuild) && ['--snapshot', '--changed'].includes(args[1]) && ROUND_N.test(args[2])) {
     const folder = path.resolve(args[0]);
     const n = Number(args[2]);
+    const where = buildFolderFor(folder, withBuild ? args[4] : undefined);
+    if (where.error !== undefined) {
+      process.stderr.write(`check-run: ${where.error}\n`);
+      return 1;
+    }
+    const prefix = where.folder === '.' ? '' : `${where.folder}/`;
     if (args[1] === '--snapshot') {
-      const why = snapshotRound(folder, n);
+      const why = snapshotRound(folder, n, where.folder);
       if (why !== null) {
         process.stderr.write(`check-run: ${why}\n`);
         return 1;
       }
-      process.stdout.write(`check-run: copied ${ROUND_FILES.join(', ')} to rounds/${n}/\n`);
+      process.stdout.write(`check-run: copied ${ROUND_FILES.map((f) => `${prefix}${f}`).join(', ')} to ${prefix}rounds/${n}/\n`);
       return 0;
     }
-    const { lines, error } = await changedSince(folder, n);
+    const { lines, error } = await changedSince(folder, n, where.folder);
     if (error !== undefined) {
       process.stderr.write(`check-run: ${error}\n`);
       return 1;

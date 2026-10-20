@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // The build-guide audit render (slice 03 §7.8, as D-355 amends it).
 //
-//   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder>
+//   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> [--build <card id>]
+//
+// A schema-4 run (amendment 9, D-412) renders one build's audit.md, `--build <card id>`: from its folder's plan.json,
+// compile-record.json and audit.md (`builds/<id>/`, or "." for a migrated run's build), and its card's last D1 gate
+// verdict file; a schema-3 run renders the root's, with no --build.
 //
 // It writes audit.md in the form of ../templates/audit-template.md from plan.json, the final compile-record.json
 // and the D1 gate's last verdict file (the run log's last D1-gate entry), and keeps the lines under an existing
@@ -196,7 +200,7 @@ export function rungBudget(stage, plan, budget, market, table) {
  * price-day conversion (`priceTable`).
  * Throws an Error naming what is missing.
  */
-export async function loadAuditInputs(runFolder) {
+export async function loadAuditInputs(runFolder, build) {
   const file = (rel) => path.join(runFolder, ...rel.split('/'));
   const json = (rel) => {
     let text;
@@ -211,11 +215,18 @@ export async function loadAuditInputs(runFolder) {
       throw new Error(`${rel} isn't valid JSON: ${e.message}`);
     }
   };
-  const plan = json('plan.json');
-  const record = json('compile-record.json');
   const log = json('run-log.json');
-  const entry = list(log.stages).filter((s) => s.stage === 'D1-gate' && s.outcome !== 'missing').pop();
-  if (!entry) throw new Error('run-log.json has no D1-gate entry; the render reads the D1 gate\'s last verdict file');
+  // D-412: a schema-4 run holds one folder per build, `builds/<id>/` ("." for a migrated run's build); the render reads
+  // that build's plan, record and audit.md, and its card's last D1 gate verdict file.
+  if (build !== undefined && log.schemaVersion !== 4) throw new Error('--build is schema 4\'s (amendment 9); this run log is schema 3');
+  if (build === undefined && log.schemaVersion === 4) throw new Error('a schema-4 run holds one folder per build: render-audit.mjs <runFolder> --build <card id> (D-412)');
+  const entryOf = build === undefined ? null : list(log.builds).find((b) => b.id === build);
+  if (build !== undefined && !entryOf) throw new Error(`run-log.json has no build ${build}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
+  const folder = entryOf && entryOf.folder !== '.' ? `${entryOf.folder}/` : '';
+  const plan = json(`${folder}plan.json`);
+  const record = json(`${folder}compile-record.json`);
+  const entry = list(log.stages).filter((s) => s.stage === 'D1-gate' && !['missing', 'refused'].includes(s.outcome) && (build === undefined || s.concept === build)).pop();
+  if (!entry) throw new Error(`run-log.json has no D1-gate entry${build === undefined ? '' : ` for ${build}`}; the render reads the D1 gate's last verdict file`);
   const gateFile = `reports/gates/D1-gate-${entry.concept}-a${entry.attempt}.json`;
   const gate = json(gateFile);
   let title = String(entry.concept);
@@ -224,11 +235,11 @@ export async function loadAuditInputs(runFolder) {
   } catch {
     // no card file: the card id stands in for its title
   }
-  const audit = fs.existsSync(file('audit.md')) ? fs.readFileSync(file('audit.md'), 'utf8') : null;
+  const audit = fs.existsSync(file(`${folder}audit.md`)) ? fs.readFileSync(file(`${folder}audit.md`), 'utf8') : null;
   if (!fs.existsSync(LEDGER_MODULE)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)`);
   const ledgerModule = await import(pathToFileURL(LEDGER_MODULE).href);
   const prices = priceTable();
-  return { plan, record, gate, gateFile, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
+  return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
 }
 
 /** Each ledger entry's value: its current formula over the record's stages (D-365), null when it errs. */
@@ -506,20 +517,21 @@ function byConfidence({ plan, offline }) {
 
 async function main(argv) {
   const args = argv.slice(2);
-  if (args.length !== 1 || args[0].startsWith('--')) {
-    process.stderr.write('usage: node render-audit.mjs <runFolder>\n');
+  const withBuild = args.length === 3 && args[1] === '--build' && /^r[1-9]\d*-[a-cgx]-[1-9]\d*$/.test(args[2]);
+  if ((args.length !== 1 && !withBuild) || args[0].startsWith('--')) {
+    process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id>]\n');
     return 2;
   }
   const folder = path.resolve(args[0]);
   let inputs;
   try {
-    inputs = await loadAuditInputs(folder);
+    inputs = await loadAuditInputs(folder, withBuild ? args[2] : undefined);
   } catch (e) {
     process.stderr.write(`render-audit: ${e.message}\n`);
     return 1;
   }
-  fs.writeFileSync(path.join(folder, 'audit.md'), renderAudit(inputs));
-  process.stdout.write(`render-audit: wrote audit.md from plan.json, compile-record.json and ${inputs.gateFile}\n`);
+  fs.writeFileSync(path.join(folder, ...`${inputs.folder}audit.md`.split('/')), renderAudit(inputs));
+  process.stdout.write(`render-audit: wrote ${inputs.folder}audit.md from ${inputs.folder}plan.json, ${inputs.folder}compile-record.json and ${inputs.gateFile}\n`);
   return 0;
 }
 

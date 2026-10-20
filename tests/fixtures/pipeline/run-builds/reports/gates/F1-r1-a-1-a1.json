@@ -1,0 +1,17 @@
+{
+  "stage": "F1",
+  "concept": "r1-a-1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "finalCompile": {
+    "compiled": true,
+    "errors": [],
+    "recordPath": "builds/r1-a-1/compile-record.json",
+    "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-1.xml"
+  }
+}

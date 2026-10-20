@@ -308,32 +308,42 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   const ok = (dir: string, kind: string, entry: Json, wrote: string) => expect(log(dir, kind, entry)).toEqual({ code: 0, stdout: `run-log: wrote ${wrote}\n`, stderr: '' });
   /** Prints a gate's display on a run folder, as the runner does before it logs that visit's answer (D-367). */
   const shown = (dir: string, gate: string) => expect(run(RUN_LOG, dir, 'display', gate)).toMatchObject({ code: 0, stderr: '' });
+  /** Schema 4's design and final gates are a build's: their display names it (D-411). */
+  const shownFor = (dir: string, gate: string) => expect(run(RUN_LOG, dir, 'display', gate, '--build', CARD)).toMatchObject({ code: 0, stderr: '' });
   const started = () => {
     const dir = folder();
-    ok(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted' }, 'the first log');
+    // Amendment 9 (WU-94): init writes schema 4, and the runner states noNinja (D-412).
+    ok(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted', noNinja: false }, 'the first log');
     return dir;
   };
+  /** Schema 4: a design or final checkpoint names a build of the run (D-412), so the card is finalized first. */
+  const finalized = (dir: string) => ok(dir, 'build', { id: CARD, roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' }, 'builds[0]');
 
   it("init writes run-log.md's first write, the run folder given, and never overwrites a log", () => {
     const dir = started();
+    // Amendment 9 (WU-94, D-412): schema 4, with noNinja, the pin's commit and the newest league digest.
     expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
-      schemaVersion: 3,
+      schemaVersion: 4,
       runFolder: dir,
       slug: 'titan-blood-hunt',
       brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },
-      roll: null,
       status: 'running',
       mode: 'offline',
       testConfig: 'accepted',
+      noNinja: false,
+      pinCommit: readJson(REPO, 'pob-pin.json').commit,
+      digest: 'runes-of-aldur.md',
+      dossier: null,
+      builds: [],
       stages: [],
       checkpoints: [],
       displays: [],
       escalations: [],
       faults: [],
-      outputs: { plan: null, record: null, dossier: null, guide: null, pobFile: null },
+      resumes: [],
     }, null, 2)}\n`);
     const before = fs.readFileSync(path.join(dir, 'run-log.json'));
-    expect(log(dir, 'init', { slug: 'x', brief: {}, mode: 'online', testConfig: 'none' })).toEqual({ code: 1, stdout: '', stderr: 'run-log: run-log.json exists; init writes the first log only\n' });
+    expect(log(dir, 'init', { slug: 'x', brief: {}, mode: 'online', testConfig: 'none', noNinja: false })).toEqual({ code: 1, stdout: '', stderr: 'run-log: run-log.json exists; init writes the first log only\n' });
     expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
   });
 
@@ -344,25 +354,27 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     ok(dir, 'stage', { stage: 'D1-build', concept: CARD, attempt: 1, outcome: 'done' }, 'stages[2]');
     ok(dir, 'stage', { outcome: 'done', priceOutcomes: { ok: 3, would_wait: 1 }, attempt: 1, concept: CARD, stage: 'D1-finish' }, 'stages[3]');
     ok(dir, 'stage', { stage: 'D1-gate', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[4]');
-    shown(dir, 'design');
-    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' }, 'checkpoints[0]');
+    finalized(dir);
+    shownFor(dir, 'design');
+    ok(dir, 'checkpoint', { checkpoint: 'design', concept: CARD, visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' }, 'checkpoints[0]');
     ok(dir, 'stage', { stage: 'D1-finish', concept: CARD, attempt: 2, outcome: 'claims-edited' }, 'stages[5]');
-    shown(dir, 'design');
-    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 2, answer: 'accept', answeredBy: 'user' }, 'checkpoints[1]');
+    shownFor(dir, 'design');
+    ok(dir, 'checkpoint', { checkpoint: 'design', concept: CARD, visit: 2, answer: 'accept', answeredBy: 'user' }, 'checkpoints[1]');
     ok(dir, 'stage', { stage: 'V4', concept: CARD, attempt: 1, outcome: 'fail' }, 'stages[6]');
     ok(dir, 'stage', { stage: 'V4-recheck', concept: CARD, attempt: 1, outcome: 'pass' }, 'stages[7]');
     ok(dir, 'escalation', { stage: 'D2-gate', concept: CARD, verdict: `reports/gates/D2-gate-${CARD}-a3.json`, choice: 'retry', guidance: 'drop the second curse' }, 'escalations[0]');
-    ok(dir, 'set', { status: 'completed', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, outputs: { plan: 'plan.json', record: 'compile-record.json', dossier: 'dossier.md', guide: 'guide.md', pobFile: '/x/b.xml' } }, 'status, roll, outputs');
+    ok(dir, 'build', { id: CARD, status: 'completed', guide: 'full', pobFile: '/x/b.xml' }, 'builds[0]');
+    ok(dir, 'set', { status: 'completed', dossier: 'dossier.md' }, 'status, dossier');
     const l = readJson(dir, 'run-log.json');
     expect(l.stages.map((s: Json) => s.stage)).toEqual(['R1a', 'R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D1-finish', 'V4', 'V4-recheck']);
     expect(Object.keys(l.stages[3])).toEqual(['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes']);
     expect(l.stages[3]).toEqual({ stage: 'D1-finish', concept: CARD, attempt: 1, outcome: 'done', priceOutcomes: { ok: 3, would_wait: 1 } });
     expect(l.checkpoints).toEqual([
-      { checkpoint: 'design', visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' },
-      { checkpoint: 'design', visit: 2, answer: 'accept', answeredBy: 'user' },
+      { checkpoint: 'design', concept: CARD, visit: 1, answer: 'revise:a cheaper helmet', answeredBy: 'pre-supplied', rule: 'revise:a cheaper helmet' },
+      { checkpoint: 'design', concept: CARD, visit: 2, answer: 'accept', answeredBy: 'user' },
     ]);
     expect(l.escalations).toEqual([{ stage: 'D2-gate', concept: CARD, verdict: `reports/gates/D2-gate-${CARD}-a3.json`, choice: 'retry', guidance: 'drop the second curse' }]);
-    expect({ status: l.status, roll: l.roll, pobFile: l.outputs.pobFile }).toEqual({ status: 'completed', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, pobFile: '/x/b.xml' });
+    expect({ status: l.status, dossier: l.dossier, roll: l.builds[0].roll, pobFile: l.builds[0].pobFile }).toEqual({ status: 'completed', dossier: 'dossier.md', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, pobFile: '/x/b.xml' });
     expect(fs.existsSync(path.join(dir, 'run-log.json.tmp'))).toBe(false);
   });
 
@@ -392,28 +404,38 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     }
     expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
     // A default answer at the design gate is stop, with its rule (D-362), after the visit's display (D-367).
-    shown(dir, 'design');
-    ok(dir, 'checkpoint', { checkpoint: 'design', visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
+    finalized(dir);
+    shownFor(dir, 'design');
+    ok(dir, 'checkpoint', { checkpoint: 'design', concept: CARD, visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
   });
 
-  it("accepts run-log.md's example calls, and init writes its first-write example", () => {
-    const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
-    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (?:(\w+) - <<'JSON'\n(.*)\nJSON|display (\w+))$/gm)].map((m) => (m[3] ? ['display', m[3]] : [m[1], `${m[2]}\n`]));
-    expect(calls.map(([kind]) => kind)).toEqual(['init', 'stage', 'display', 'checkpoint', 'escalation', 'set']);
+  // Amendment 9 (WU-94): run-log.md's examples are schema 3's until WU-95 rewrites the reference for schema 4 (D-412),
+  // so these are the schema-4 calls it gives; WU-95 points this test back at run-log.md's examples.
+  it("accepts schema 4's example calls (run-log.md's, once rewritten), and init writes its first write", () => {
+    const calls: [string, string][] = [
+      ['init', '{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted", "noNinja": false}'],
+      ['build', '{"id": "r1-a-2", "roll": {"className": "Warrior", "ascendancy": "Titan", "skill": "Blood Hunt"}, "status": "queued"}'],
+      ['stage', '{"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}'],
+      ['display', 'design --build r1-a-2'],
+      ['checkpoint', '{"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "revise:the build\'s helmet costs too much", "answeredBy": "user", "questions": 0}'],
+      ['escalation', '{"stage": "F1", "concept": "r1-a-2", "verdict": "reports/gates/F1-r1-a-2-a2.json", "choice": "stop"}'],
+      ['build', '{"id": "r1-a-2", "status": "escalated"}'],
+      ['set', '{"status": "escalated", "dossier": "dossier.md"}'],
+    ];
     const dir = folder();
-    for (const [kind, arg] of calls) expect({ kind, ...(kind === 'display' ? run(RUN_LOG, dir, kind, arg) : runWith(arg, RUN_LOG, dir, kind, '-')) }).toMatchObject({ kind, code: 0, stderr: '' });
+    for (const [kind, arg] of calls) expect({ kind, ...(kind === 'display' ? run(RUN_LOG, dir, kind, ...arg.split(' ')) : runWith(`${arg}\n`, RUN_LOG, dir, kind, '-')) }).toMatchObject({ kind, code: 0, stderr: '' });
     const first = folder();
-    expect(runWith(calls[0][1], RUN_LOG, first, 'init', '-').code).toBe(0);
-    const example = JSON.parse(/## A first write[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]) as Json;
-    expect(readJson(first, 'run-log.json')).toEqual({ ...example, runFolder: first });
+    expect(runWith(`${calls[0][1]}\n`, RUN_LOG, first, 'init', '-').code).toBe(0);
+    expect(readJson(first, 'run-log.json')).toMatchObject({ schemaVersion: 4, runFolder: first, noNinja: false, builds: [], resumes: [] });
   });
 
   it("reads the entry from stdin for -, as a quoted heredoc gives it: a text with an apostrophe needs no shell quoting", () => {
     const dir = started();
     const answer = "revise:the build's helmet costs too much; keep Blood Hunt's leap";
-    shown(dir, 'design');
-    expect(runWith(`${JSON.stringify({ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' })}\n`, RUN_LOG, dir, 'checkpoint', '-')).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
-    expect(readJson(dir, 'run-log.json').checkpoints).toEqual([{ checkpoint: 'design', visit: 1, answer, answeredBy: 'user' }]);
+    finalized(dir);
+    shownFor(dir, 'design');
+    expect(runWith(`${JSON.stringify({ checkpoint: 'design', concept: CARD, visit: 1, answer, answeredBy: 'user' })}\n`, RUN_LOG, dir, 'checkpoint', '-')).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
+    expect(readJson(dir, 'run-log.json').checkpoints).toEqual([{ checkpoint: 'design', concept: CARD, visit: 1, answer, answeredBy: 'user' }]);
     // Through a real shell heredoc too, the form references/run-log.md gives.
     const sh = spawnSync('/bin/sh', ['-c', `"${process.execPath}" "${RUN_LOG}" "${dir}" escalation - <<'JSON'\n{"stage": "D1-gate", "concept": "${CARD}", "verdict": "reports/gates/D1-gate-${CARD}-a1.json", "choice": "retry", "guidance": "don't drop the helmet's life"}\nJSON\n`], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
     expect({ code: sh.status, stdout: sh.stdout, stderr: sh.stderr }).toEqual({ code: 0, stdout: 'run-log: wrote escalations[0]\n', stderr: '' });
@@ -428,7 +450,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     expect(log(empty, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' })).toEqual({ code: 1, stdout: '', stderr: "run-log: run-log.json can't be read (ENOENT); write the first log with init\n" });
     const old = folder();
     fs.writeFileSync(path.join(old, 'run-log.json'), JSON.stringify({ schemaVersion: 2, stages: [] }));
-    expect(log(old, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' }).stderr).toBe("run-log: run-log.json isn't a schema-3 log; this script writes only schema 3\n");
+    expect(log(old, 'stage', { stage: 'R1a', attempt: 1, outcome: 'done' }).stderr).toBe("run-log: run-log.json isn't a schema-3 or schema-4 log; this script writes schema 4, and appends to a schema-3 log until migrate rewrites it\n");
     expect(run(RUN_LOG, empty, 'stage', '{stage: R1a}').code).toBe(1);
     expect(run(RUN_LOG, empty, 'append', '{}').code).toBe(2);
     expect(run(RUN_LOG, empty, 'stage').code).toBe(2);
@@ -765,13 +787,20 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
 
   it("checkpoint refuses a gate's answer until that visit's display is recorded; printing it again records nothing new; the unsaved-build question has no display", () => {
     const dir = folder();
-    expect(run(RUN_LOG, dir, 'init', JSON.stringify({ slug: 'titan-blood-hunt', brief: {}, mode: 'offline', testConfig: 'accepted' })).code).toBe(0);
-    const answer = (visit: number) => run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'design', visit, answer: 'accept', answeredBy: 'user' }));
+    // Amendment 9 (WU-94): init writes schema 4, whose design gate is a build's (D-411, D-412).
+    expect(run(RUN_LOG, dir, 'init', JSON.stringify({ slug: 'titan-blood-hunt', brief: {}, mode: 'offline', testConfig: 'accepted', noNinja: false })).code).toBe(0);
+    expect(run(RUN_LOG, dir, 'build', JSON.stringify({ id: CARD, roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' })).code).toBe(0);
+    const answer = (visit: number) => run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'design', concept: CARD, visit, answer: 'accept', answeredBy: 'user' }));
     const before = fs.readFileSync(path.join(dir, 'run-log.json'));
     expect(answer(1)).toEqual({ code: 1, stdout: '', stderr: "run-log: checkpoint entry refused: the design gate's visit 1 printed no display; run run-log.mjs <runFolder> display design first and print its output (D-367)\n" });
     expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
-    expect(display(dir, 'design')).toEqual(['## The design gate, visit 1', '', 'No D1 gate in the run log.', '']);
-    display(dir, 'design');
+    const designShown = () => {
+      const r = run(RUN_LOG, dir, 'display', 'design', '--build', CARD);
+      expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+      return r.stdout.split('\n');
+    };
+    expect(designShown()).toEqual(['## The design gate, visit 1', '', `No D1 gate for ${CARD} in the run log.`, '']);
+    designShown();
     expect(readJson(dir, 'run-log.json').displays).toEqual([{ checkpoint: 'design', visit: 1 }]);
     expect(answer(1)).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
     // The next visit needs its own display.

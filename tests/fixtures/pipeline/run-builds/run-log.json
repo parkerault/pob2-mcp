@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 4,
+  "runFolder": "/tmp/pob2-guides/titan-blood-hunt/2026-10-08-1",
+  "slug": "titan-blood-hunt",
+  "brief": {
+    "ascendancy": "Titan",
+    "skill": "Blood Hunt"
+  },
+  "status": "completed",
+  "mode": "offline",
+  "testConfig": "accepted",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": "runes-of-aldur.md",
+  "dossier": "dossier.md",
+  "builds": [
+    {
+      "id": "r1-a-1",
+      "roll": {
+        "className": "Warrior",
+        "ascendancy": "Titan",
+        "skill": "Blood Hunt"
+      },
+      "status": "completed",
+      "folder": "builds/r1-a-1",
+      "guide": "full",
+      "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-1.xml"
+    },
+    {
+      "id": "r1-a-2",
+      "roll": {
+        "className": "Warrior",
+        "ascendancy": "Titan",
+        "skill": "Blood Hunt"
+      },
+      "status": "completed",
+      "folder": "builds/r1-a-2",
+      "guide": "endgame",
+      "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-2.xml"
+    }
+  ],
+  "stages": [
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a-assemble",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1b",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "pass",
+      "probes": 2
+    },
+    {
+      "stage": "R1b",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "pass",
+      "probes": 0
+    },
+    {
+      "stage": "R1b-assemble",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-build",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-tree",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-finish",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-gate",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "F1",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "D1-build",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-tree",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-finish",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-gate",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "F1",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "W1",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "V4",
+      "concept": "r1-a-2",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "D2",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D2-gate",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "W1",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "V4",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "fail"
+    },
+    {
+      "stage": "W1",
+      "concept": "r1-a-1",
+      "attempt": 2,
+      "outcome": "done"
+    },
+    {
+      "stage": "V4-recheck",
+      "concept": "r1-a-1",
+      "attempt": 1,
+      "outcome": "fail"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1,
+      "answer": "pick:r1-a-1,r1-a-2",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1,
+      "answer": "pick:r1-a-1,r1-a-2",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "design",
+      "concept": "r1-a-1",
+      "visit": 1,
+      "answer": "accept:file",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "design",
+      "concept": "r1-a-2",
+      "visit": 2,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "final",
+      "concept": "r1-a-2",
+      "visit": 1,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 2,
+      "answer": "campaign:r1-a-1",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "final",
+      "concept": "r1-a-1",
+      "visit": 2,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0
+    }
+  ],
+  "displays": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1
+    },
+    {
+      "checkpoint": "design",
+      "visit": 1
+    },
+    {
+      "checkpoint": "design",
+      "visit": 2
+    },
+    {
+      "checkpoint": "final",
+      "visit": 1
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 2
+    },
+    {
+      "checkpoint": "final",
+      "visit": 2
+    }
+  ],
+  "escalations": [],
+  "faults": [],
+  "resumes": [
+    {
+      "date": "2026-10-09",
+      "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+      "digest": "runes-of-aldur.md",
+      "noNinja": false,
+      "lengths": {
+        "stages": 19,
+        "checkpoints": 5,
+        "escalations": 0,
+        "displays": 5
+      }
+    }
+  ]
+}

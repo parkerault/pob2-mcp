@@ -7,7 +7,8 @@
  * - **Cookie** (FR-T1). `Cookie: POESESSID=…` goes only on search and fetch, and only with
  *   `auth: true`; the credential getter is read per request. `auth: true` without a session throws
  *   `no_session` without sending. `Set-Cookie` is ignored.
- * - **Limiter.** Every search and fetch passes through the rate limiter (C-11).
+ * - **Limiter.** Every search and fetch passes through the rate limiter (C-11), as a logged-in
+ *   request when it carries the cookie and an anonymous one otherwise (D-422).
  * - **Timeout.** Each request gets `min(15 s, deadline - now)` from a `setTimeout`-driven controller
  *   (Jest fake timers drive it; `AbortSignal.timeout` would not fire under them).
  * - **Classification** (D-24): the caller's abort is rethrown; then timeout; then a fetch failure is
@@ -234,6 +235,8 @@ export class TradeApiClient {
               deadline: opts.deadline,
               signal: opts.signal,
               maxWaitMs: opts.maxWaitMs,
+              // The trade site gives logged-in and anonymous requests different windows (D-422).
+              auth: cookieSent,
             });
       const text = await response.text();
       return { response, text, cookieSent };

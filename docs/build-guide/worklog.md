@@ -5244,3 +5244,13 @@ the `m17` engine at `b76967b`.
   earlier count was 13 checker cases, not 14). **Merged** (rebased, fast-forward). Wave 2's stage files are in:
   WU-96, WU-97, WU-98. WU-95 starts after WU-92 and WU-93 merge (it adds `get_node_power` to the coordinator's tool
   list, which the static tests check against `TOOL_META`).
+- **WU-92 re-checked: PASS** (L90 `get_passive_upgrades` about 2.6K chars with 10 ranked entries and the count
+  line; rung `n`'s swap +16.5% Full DPS with 25 branches held; the protection walk's cost negligible; calls 10–11 s
+  on the three rungs, 37 s on the golden build). **Merged** (rebased cleanly onto `2c2a000`, fast-forward).
+  **Notes:** the narrowing of `get_passive_upgrades`' can't-measure section (the D-417 clarification) is to be
+  folded into C-47, D-246, AC-K21 and D-388 (whose "minion notables first" is gone), and told to the user; a
+  no-value candidate now appears only in the count line. **Coordinator's ruling on the guards:** at 0 the
+  `clearUses` guard refused `m`'s strongest swap (+44.7% Full DPS) for a 1.85% drop in the clear skill's uses per
+  second, though uses per second is already in DPS; D1-tree and the D1 gate pass `max_loss` `{clearUses: 2}` (the
+  stats' 2%), keeping `clearRadius` and `movement` at 0. Given to WU-95 with its other loose ends (the text in
+  `D1-tree.md` and `D1-gate.md`, and the pinned test). WU-93 rebases onto WU-92 next.

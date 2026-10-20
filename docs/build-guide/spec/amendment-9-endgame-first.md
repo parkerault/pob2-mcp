@@ -440,7 +440,9 @@ stays a sketch of the card's targets.
   1. **`m`:** call `get_node_power` (compact mode); apply the best swap to `m`, and to `b` and `n`, which contain
      `m`'s tree (D-282); `protect_for` = `b` and `n` means the swap removes nothing either builds on, and its added
      nodes connect through `m`'s tree in both. Set any added attribute node's choice. Compile `m`, `b` and `n`, and
-     undo the swap on all three if any rung's floor or V1 fails.
+     undo the swap on all three if any rung's floor fails or V1 gains a finding it didn't have before the swap (a need's
+     `missing-reason` is expected until D1-finish writes the claims, so V1 is compared before and after, not required
+     to pass).
   2. **`b`, then `n`:** the same, with `keep` adding every node of the rung before, so a swap touches only the
      nodes the rung adds; `b`'s swaps go to `n` too (`protect_for` = `n`), compiled with it. A respec is never the
      loop's: only a stated `respec.dropped` with its reason, as today.
@@ -522,7 +524,8 @@ From the work-log's 2026-10-19 section ("compaction while a run waits"); Claude 
   are per IP and account) explains it, and fixes what is ours. **Amends:** `pricing.md`'s stop rule (D-160).
 - **D-423, comparable Effective HP.** A skeleton's stage is measured against the same reference hits as the rungs
   (the T15 map hit the compile writes, `configWritten`), so the verification gate's and the design gate's Effective
-  HP compare; each display names the hit it used. **Amends:** D-294 (the verification display's EHP).
+  HP compare; each display names the hit it used: R1b-assemble's dossier names it in its EHP column, and the D1
+  gate's design text on each rung's Effective HP line. **Amends:** D-294 (the verification display's EHP).
 - **D-424, small fixes.** `scripts/run-usage.mjs` filters telemetry to the transcripts' session ids and groups the
   design steps by the header's `concept` (D-416). The checker's `[deck]` rule counts paragraphs, not physical lines.
   **Amends:** D-392's check.

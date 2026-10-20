@@ -5126,3 +5126,9 @@ the `m17` engine at `b76967b`.
   `loadedBuildUnsaved: …` and accepts only a true run folder. **For WU-95:** those reply lines in `run-folder.md`.
   **For WU-96:** `D1-build.md` and `R1b.md` still say `schemaVersion: 5` (pinned in the pipeline static test). The
   verifier is running.
+- **WU-93 verified: PASS** (all five checks; the new suites fail on the old source; about 260K tokens for the
+  verifier). It merges after WU-92 (the serialized tool files), rebased, with the README table regenerated and the
+  gate re-run. **Two spec clarifications from the verifier's notes,** committed here: D1-tree compares V1 before and
+  after a swap rather than requiring a pass (a need's `missing-reason` is expected until D1-finish writes the
+  claims), and D-423's "each display names the hit" is WU-96's (the dossier's EHP column via `R1b-assemble.md` and
+  the dossier template, and the D1 gate's design text), added to its files in the handoff.

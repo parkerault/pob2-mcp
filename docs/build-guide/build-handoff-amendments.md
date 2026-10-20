@@ -41,8 +41,9 @@ tests, fixtures and "done" (its last bullets) apply unchanged.
     `toolRouter.ts`.
   - **WU-94:** `.claude/skills/build-guide/scripts/check-run.mjs`, `run-log.mjs`, `render-audit.mjs`,
     `scripts/run-usage.mjs`, `tests/fixtures/pipeline/`.
-  - **WU-96:** `references/stages/D1-build.md`, `D1-finish.md`, `D1-gate.md`, the new `D1-tree.md` and `F1.md`,
-    `R1b.md` (its league rule only), `references/gates.md`, `references/patterns.md` (the travel rule only).
+  - **WU-96:** `references/stages/D1-build.md` (and its `schemaVersion: 6`), `D1-finish.md`, `D1-gate.md`, the new
+    `D1-tree.md` and `F1.md`, `R1b.md` (its league rule only), `R1b-assemble.md` and `templates/dossier-template.md`
+    (D-423: the dossier's EHP names the hit), `references/gates.md`, `references/patterns.md` (the travel rule only).
   - **WU-97:** the new `templates/guide-endgame-template.md`, `references/stages/W1.md`, `references/stages/V4.md`.
   - **WU-98:** `src/trade/` (the 429's fix, if it is ours), `scripts/compact-reminder.sh`,
     `docs/build-guide/run-settings.example.json`.

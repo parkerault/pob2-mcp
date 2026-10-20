@@ -56,6 +56,9 @@
  * into that beast, adds it to the build's beast library and replies with `companion` (its group, active skill, beast
  * and reserved Spirit; absent without one).
  *
+ * WU-92 (C-55, D-417; AC-B4): `node_power` (`API/NodePower.lua`) replies with node power's lists, the travel count,
+ * the swaps tried and the best one; with `upgrades`, get_passive_upgrades' candidates. Both shapes match the schema.
+ *
  * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
  * build's granted groups: each granted group with supports (`granted-supports.xml`: a passive's and an item's) gives
  * one entry with the group, its source, the grantor's name and the gems, a group nothing grants carries
@@ -253,6 +256,8 @@ const CASES: Record<ActionName, Case> = {
   // `remainder`, `unread`, `joinedWith`, `nodeId` and `stat` are all in the reply; the real scan (D-243).
   // WU-54: plus a node and gems that raise every flag, so `flags` holds each kind, with and without `line`.
   check_coverage: { setup: async () => coverageParams() },
+  // C-55 (WU-92): node power for two stats, within 2 points, three rows per list, with the best swap searched.
+  node_power: { params: { stats: ['Life', 'TotalEHP'], maxDistance: 2, limit: 3 } },
 };
 
 /** The flag kinds of WU-54 (D-300, D-336). */
@@ -309,6 +314,13 @@ interface Variant extends Case {
   adds: string;
 }
 const VARIANTS: Variant[] = [
+  {
+    // D-417 (WU-92): get_passive_upgrades' candidates, every unallocated main-tree node of the pass with its path's fields.
+    name: 'node_power with upgrades (D-417)',
+    action: 'node_power',
+    adds: 'result',
+    params: { upgrades: { fields: ['CombinedDPS', 'TotalEHP', 'MinionTotalDPS'] }, maxDistance: 2 },
+  },
   {
     name: 'get_stats with breakdown of the Gas Grenade group (C-45)',
     action: 'get_stats',

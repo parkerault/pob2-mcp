@@ -17,7 +17,7 @@ import { engineBusyStopText, engineDeadlineStopText } from "../trade/findUpgrade
 // Import handlers
 import { handleListBuilds, handleAnalyzeBuild, handleCompareBuilds, handleGetBuildStats, handleGetBuildNotes, handleSetBuildNotes } from "../handlers/buildHandlers.js";
 import { handleStartWatching, handleStopWatching, handleGetRecentChanges, handleWatchStatus } from "../handlers/watchHandlers.js";
-import { handleCompareTrees, handleGetNearbyNodes, handleFindPath, handleGetPassiveUpgrades } from "../handlers/treeHandlers.js";
+import { handleCompareTrees, handleGetNearbyNodes, handleFindPath, handleGetPassiveUpgrades, handleGetNodePower, type NodePowerArgs } from "../handlers/treeHandlers.js";
 import { handleGetBuildIssues, formatIssuesResponse } from "../handlers/buildGoalsHandlers.js";
 import { handleLuaStart, handleLuaStop, handleLuaNewBuild, handleLuaSaveBuild, handleLuaLoadBuild, handleLuaGetStats, handleLuaGetTree, handleLuaSetTree, handleSearchTreeNodes, handleListGems, handleGetClasses, handleLuaGetBuildInfo, handleLuaReloadBuild, handleUpdateTreeDelta, handleCreateSpec, handleListSpecs, handleSelectSpec, handleDeleteSpec, handleRenameSpec, handleListItemSets, handleSelectItemSet } from "../handlers/luaHandlers.js";
 import { handleAnalyzeSkillsPoe2, handleSuggestSupportsPoe2 } from "../handlers/poe2SkillHandlers.js";
@@ -760,6 +760,18 @@ async function dispatch(
       }
       return await handleGetPassiveUpgrades(upgradesContext, focus, maxResults, includeAscendancy === true);
     }
+
+    // C-55 (D-417): PoB's node power on a loadout, with the best legal swap; one 120 s engine request.
+    case "get_node_power":
+      return await handleGetNodePower(
+        {
+          getLuaClient: deps.getLuaClient,
+          ensureLuaClient: deps.ensureLuaClient,
+          // C-47's section: C-38's line statuses need the server's scan of the PoB source the engine runs.
+          sourceScan: () => pobSourceScan(resolvePobSrc(deps.env)),
+        },
+        (args ?? {}) as NodePowerArgs,
+      );
 
     case "plan_leveling":
       return await handlePlanLeveling(

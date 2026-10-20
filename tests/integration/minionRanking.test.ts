@@ -34,13 +34,13 @@ engineDescribe('D-388: the ranking tools rank a summon main skill by its minion\
   }, T);
   afterAll(async () => f?.close(), 30_000);
 
-  it('get_passive_upgrades measures DPS as MinionTotalDPS, says so, and finds notables that improve it', async () => {
+  it('get_passive_upgrades measures DPS as MinionTotalDPS, says so, and finds passives that improve it', async () => {
     const out = await f.call('get_passive_upgrades', { focus: 'dps', max_results: 5 });
     expect(out.isError).toBe(false);
     const base = /^Base DPS: ([\d,]+) \(MinionTotalDPS: the main skill's minion deals its damage\)/m.exec(out.text);
     expect(base).not.toBeNull();
     expect(Number(base![1].replace(/,/g, ''))).toBeGreaterThan(0);
-    expect(out.text).not.toContain('None of the measured notables improves DPS');
+    expect(out.text).not.toContain('None of the measured passives improves DPS');
     expect(out.text).toMatch(/^1\. \*\*.+\*\* \[\d+\]$/m);
   }, T);
 

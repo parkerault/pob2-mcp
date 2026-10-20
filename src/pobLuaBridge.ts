@@ -40,6 +40,10 @@ import {
   type CompileCheckResult,
   type CompileStageResult,
   type CompileFinishResult,
+  type NodePowerParams,
+  type NodePowerResult,
+  type NodePowerUpgradesParams,
+  type NodePowerUpgradesResult,
   type RenameSpecResult,
   type SelectItemSetResult,
   type SelectSpecResult,
@@ -72,7 +76,7 @@ export interface PoBLuaApiOptions {
 }
 
 export interface RequestOptions {
-  /** Overrides the default timeout (POB_TIMEOUT_MS, or 60 s for `trade_generate_query`, D-47). */
+  /** Overrides the default timeout (POB_TIMEOUT_MS, or the long action's: 60 s for `trade_generate_query`, 120 s for `node_power`, D-47). */
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -84,9 +88,13 @@ const BANNER_TIMEOUT_MS = 15_000;
 const STDERR_RING_LINES = 50;
 const STDERR_SHOWN_LINES = 20;
 const QUIT_GRACE_MS = 2000;
-/** D-47 request timeouts. */
+/**
+ * D-47 request timeouts. The long actions: `trade_generate_query` (60 s) and `node_power` (120 s, amended by D-417:
+ * one pass of PoB's misc calculator over every node within the distance, about 15 s on a level-95 build, plus the
+ * swap search).
+ */
 const DEFAULT_TIMEOUT_MS = 30_000;
-const LONG_ACTION_TIMEOUTS: Readonly<Record<string, number>> = { trade_generate_query: 60_000 };
+const LONG_ACTION_TIMEOUTS: Readonly<Record<string, number>> = { trade_generate_query: 60_000, node_power: 120_000 };
 /** After `exit`, how long to wait for `close` (stdio drained) before failing pending requests anyway. */
 const EXIT_SETTLE_MS = 250;
 
@@ -965,6 +973,22 @@ export class PoBLuaApiClient {
   async compileFinish(params: ActionParams<"compile_finish">, opts?: RequestOptions): Promise<CompileFinishResult> {
     const res = await this.request("compile_finish", params, opts);
     return res.result;
+  }
+
+  /**
+   * C-55 (D-417, D-418): PoB's node power on a loadout for 1 to 3 stats in one pass (`API/NodePower.lua`): the best
+   * unallocated nodes, the weakest allocated branches, the travel count and the best legal swap. The loadout, level and
+   * selection the call changes are put back. A long action: 120 s (D-47).
+   */
+  async nodePower(params: NodePowerParams, opts?: RequestOptions): Promise<NodePowerResult> {
+    const res = await this.request("node_power", params, opts);
+    return res.result as NodePowerResult;
+  }
+
+  /** `get_passive_upgrades`' candidates (D-417): every unallocated main-tree node of the pass, its path and its fields. */
+  async nodePowerUpgrades(params: NodePowerUpgradesParams, opts?: RequestOptions): Promise<NodePowerUpgradesResult> {
+    const res = await this.request("node_power", params, opts);
+    return res.result as NodePowerUpgradesResult;
   }
 
   // Lua trade actions (C-13). Each takes the request options, so a caller can clip the timeout to its

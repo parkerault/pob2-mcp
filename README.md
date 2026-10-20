@@ -18,7 +18,7 @@ Building's trade dialog does.
   site, scores every listing against your build in the engine, prices it with poe.ninja rates and ranks
   the upgrades within your budget.
 
-84 tools are listed by default; the full table is [below](#tools).
+85 tools are listed by default; the full table is [below](#tools).
 
 ## Setup
 
@@ -51,7 +51,7 @@ claude mcp add pob2 -s user -e "POB_DIRECTORY=<your PoB2 Builds folder>" -- mise
 PoB2 installed on Windows, the builds folder is `/mnt/c/Users/<you>/Documents/Path of Building (PoE2)/Builds`.
 
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
-Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 84 tools.
+Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 85 tools.
 
 ## Configuration
 
@@ -213,7 +213,8 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `load_config_preset` | core | Apply a saved config preset to the loaded build: every option in the preset is set to its saved value, and options the build sets that the preset doesn't hold are cleared to PoB's default; then the build is recalculated |
 | `list_config_presets` | core | List the saved config presets (names to use with load_config_preset) |
 | `get_build_issues` | core | The loaded build's issues as PoB2 judges them: PoB's own warning lines, what PoB's data says the game won't allow (a passive whose unlock constraint is unmet), resistances below their maximum (Missing&lt;Elem&gt;Resist &gt; 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons), plus the empty gear slots PoB shows, stated as facts. |
-| `get_passive_upgrades` | core | Find the best unallocated notable passives to pick up next. |
+| `get_passive_upgrades` | core | Find the best unallocated passives to pick up next. |
+| `get_node_power` | core | Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. |
 | `analyze_defenses` | core | The defence values PoB2 computes for a build: effective hit pool (TotalEHP), Life/Energy Shield/Mana/Spirit with their unreserved amounts, armour, evasion, physical damage reduction, evade, deflect and effective block chance, each resistance with the amount missing to its maximum, and each damage type's max hit taken against the configured enemy's hit of that type. |
 | `validate_build` | core | Validate a build on PoB2's own judgments only: PoB's own warning lines (unmet attribute requirements, unreserved Life below 1, negative unreserved Mana or Spirit, too many passive points or gem groups, and so on), what PoB's own data says the game won't allow though PoB loads it (an allocated passive whose unlock constraint is unmet, such as an Oracle-only node in another class's tree), resistances below their maximum (Missing&lt;Elem&gt;Resist &gt; 0), and each damage type's max hit taken below the configured enemy's hit of that type (engine comparisons). |
 | `export_build` | core | Export a copy of a build file. |

@@ -1601,7 +1601,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_passive_upgrades",
-      description: "Find the best unallocated notable passives to pick up next. Each nearby notable is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every notable it measured: a notable with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value. When the main skill summons a minion, DPS is the minion's (MinionTotalDPS) and minion notables are searched first.",
+      description: "Find the best unallocated passives to pick up next. Every unallocated main-tree passive within 6 points of the tree (small passives, notables and keystones) is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every passive it measured: one with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value. When the main skill summons a minion, DPS is the minion's (MinionTotalDPS).",
       inputSchema: {
         type: "object",
         properties: {
@@ -1617,6 +1617,65 @@ export function getBuildGoalsToolSchemas(): any[] {
           include_ascendancy: {
             type: "boolean",
             description: "Also measure every unallocated, reachable notable of the build's own ascendancy, priced in ascendancy points, and rank them in their own section. A notable that needs more ascendancy points than the build has left is marked over budget, not hidden (default: false).",
+          },
+        },
+      },
+    },
+    {
+      name: "get_node_power",
+      description: "Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. It is PoB's own \"Show node power\" and power report, for 1 to 3 of the stats PoB offers it on, by PoB's id or label (FullDPS, TotalEHP, Life, ManaRegen, Armour, the attributes, the minion stats and the rest; an unknown name, or the combined Offence/Defence view, is refused with the list). One pass of PoB's own calculator measures every node within max_distance points of the tree: each unallocated node alone and with its whole path, ranked by path gain per point on the first stat, and each allocated node with the nodes that depend on it (its branch), ranked by loss per point. It counts travel, the allocated points that give nothing alone on any stat asked for, and searches the best swap: for each of the 5 weakest branches, remove it, then add the best nodes whose new paths fit the freed points, all measured as one change. A swap is returned only when it is legal (every node connected, no more points, no second tree on a start, no weapon-set or ascendancy node added or removed; an added attribute node takes PoB's default choice, which is named) and gains on the first stat with no other stat losing more than max_loss and no loss of movement speed or of the clear skill's radius or uses per second. Never removed, with any branch holding them: keep, a node that grants a skill, a weapon-set node, and a node a loadout in protect_for builds on. The loadout and level are selected inside the call and put back after, so the build is unchanged. Lists what PoB can't fully measure among the nodes listed.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          stats: {
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
+            maxItems: 3,
+            description: "1 to 3 stats by PoB's id or label; the first ranks (default: [\"FullDPS\", \"TotalEHP\"]).",
+          },
+          max_loss: {
+            anyOf: [
+              { type: "number", minimum: 0 },
+              { type: "object", additionalProperties: { type: "number", minimum: 0 } },
+            ],
+            description: "The largest loss in percent a swap may cost: a number for every stat after the first (default 2), or a map by stat id and by guard: movement, clearRadius, clearUses (default 0 each).",
+          },
+          clear_group: {
+            type: "integer",
+            minimum: 1,
+            description: "The socket group of the clear skill whose radius and uses per second a swap may not lower, measured with it as the main skill (default: the main group).",
+          },
+          protect_for: {
+            type: "array",
+            items: { type: "string" },
+            description: "The later loadouts (their names) whose trees contain this one's: a node they build on is never removed.",
+          },
+          max_distance: {
+            type: "integer",
+            minimum: 1,
+            maximum: 12,
+            description: "Points from the tree to measure (default 6).",
+          },
+          loadout: {
+            type: "string",
+            description: "The loadout to measure, by name (default: the active one).",
+          },
+          level: {
+            type: "integer",
+            minimum: 1,
+            maximum: 100,
+            description: "The character level to measure at (default: the (L<level>) in the loadout's name, else the build's level).",
+          },
+          keep: {
+            type: "array",
+            items: { type: "integer" },
+            description: "Allocated node ids no swap may remove.",
+          },
+          limit: {
+            type: "integer",
+            minimum: 0,
+            description: "Rows per list (default 15); 0 returns only the best swap and the travel count.",
           },
         },
       },

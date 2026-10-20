@@ -2,10 +2,11 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationChange, PassiveTreeData } from "../types.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
+import type { NodePowerParams, NodePowerResult } from "../engine/schemas.js";
+import { wrapHandler } from "../utils/errorHandling.js";
 import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
 import { summonsMinion } from "../plan/record.js";
-import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import { formatLoadedBuild } from "./luaHandlers.js";
 
 export interface TreeHandlerContext {
@@ -362,14 +363,17 @@ export async function handleFindPath(
 }
 
 
-/** The calculator outputs `get_passive_upgrades` measures (`calc_with` fields). */
+/** The calculator outputs `get_passive_upgrades` measures (each path's fields, and `calc_with`'s for the ascendancy). */
 const UPGRADE_FIELDS = ['CombinedDPS', 'TotalDPS', 'MinionTotalDPS', 'TotalEHP', 'Life'];
 const DPS_FIELDS = ['CombinedDPS', 'TotalDPS'];
 /** D-388: a summon main skill's DPS field, its minion's, as the compile record reads it (D-378, D-385). */
 const MINION_DPS_FIELDS = ['MinionTotalDPS'];
 const EHP_FIELDS = ['TotalEHP', 'Life'];
-/** Candidates measured per search keyword: the nearest unallocated notables by PoB's path cost. */
-const CANDIDATES_PER_KEYWORD = 8;
+/**
+ * D-417: the main-tree candidates are node power's pass at this distance (`node_power {upgrades}`): every
+ * unallocated main-tree node within 6 points of the tree, small passives and keystones included.
+ */
+const UPGRADE_DISTANCE = 6;
 /** The ascendancy points a character can spend (C-48's cap). */
 const ASCENDANCY_POINTS = 8;
 
@@ -386,7 +390,7 @@ export interface PassiveUpgrade {
   score: number;
 }
 
-/** A candidate notable: PoB's own path to it (`node.path`) and its point cost (`node.pathDist`). */
+/** A candidate node: PoB's own path to it (`node.path`) and its point cost (`node.pathDist`). */
 interface UpgradeCandidate {
   id: number;
   name: string;
@@ -490,59 +494,24 @@ export async function handleGetPassiveUpgrades(
   const luaClient = context.getLuaClient();
   if (!luaClient) throw new Error('Lua bridge not active. Use lua_start and lua_load_build first.');
 
-  // Step 1: the build's issues, to pick search keywords
-  const { issues } = await handleGetBuildIssues(context);
-
+  // Steps 1-3 (D-417): the main-tree candidates and their measurements come from node power's pass at depth 6, one
+  // engine request: every unallocated main-tree node within 6 points of the tree that PoB measures (a Normal, Notable
+  // or Keystone node with modifiers, not granted by an item), each with PoB's own path (`node.path`) and point cost
+  // (`node.pathDist`), measured by PoB's misc calculator with its whole path allocated, as PoB's tree tooltip does
+  // ("Allocating this node and all nodes leading to it"). Ascendancy nodes cost ascendancy points, so they are never
+  // among them; only include_ascendancy measures them, in their own section (C-47, D-197).
+  const pass = await luaClient.nodePowerUpgrades({ upgrades: { fields: UPGRADE_FIELDS }, maxDistance: UPGRADE_DISTANCE });
   // The base: PoB's calculator with nothing added. D-388: when the main skill summons a minion (PoB gives its
-  // minion's output, so calc_with returns MinionTotalDPS, a number), its damage is the minion's: the player's
-  // CombinedDPS and TotalDPS are 0, so DPS is MinionTotalDPS, and the search starts from minion notables. The
-  // compile record decides a group's figure by the same test (`summonsMinion`, D-397).
-  const base = await luaClient.calcWith({ fields: UPGRADE_FIELDS });
+  // minion's output, so the base holds MinionTotalDPS, a number), its damage is the minion's: the player's
+  // CombinedDPS and TotalDPS are 0, so DPS is MinionTotalDPS. The compile record decides a group's figure by the
+  // same test (`summonsMinion`, D-397).
+  const base: Record<string, unknown> = pass.base;
   const minion = summonsMinion(base);
-
-  // Step 2: map focus + issues to search keywords
-  const keywords: string[] = [];
-
-  if (focus === 'dps' || focus === 'both') {
-    keywords.push(...(minion ? ['minion', 'damage'] : ['damage', 'critical']));
-  }
-
-  if (focus === 'defence' || focus === 'both') {
-    keywords.push('life', 'energy shield');
-    // If a resistance is below its maximum (judge(), FR-A1), add resistance keywords
-    const hasResistIssue = issues.some(i => i.kind === 'missing_resist');
-    if (hasResistIssue) {
-      keywords.push('resistance');
-    }
-  }
-
-  // Step 3: the nearest unallocated main-tree notables per keyword, by PoB's own path cost.
-  // Unreachable nodes (another ascendancy, a blocked path) carry no path and are skipped. Ascendancy
-  // notables are skipped too: search_nodes types them 'notable', and the build's own ascendancy has
-  // real paths, but they cost ascendancy points (capped separately), not passive points. Only
-  // include_ascendancy measures them, in their own section (C-47, D-197).
-  const seen = new Set<number>();
-  const candidates: UpgradeCandidate[] = [];
-
-  for (const keyword of keywords.slice(0, 4)) {
-    const results = await luaClient.searchNodes({
-      keyword,
-      nodeType: 'notable',
-      maxResults: 1000,
-      includeAllocated: false,
-    });
-    const nearest = results.nodes
-      .filter((n) => !n.ascendancyName && reachable(n))
-      .sort((a, b) => a.pathDist! - b.pathDist! || a.name.localeCompare(b.name) || a.id - b.id);
-    let taken = 0;
-    for (const n of nearest) {
-      if (taken >= CANDIDATES_PER_KEYWORD) break;
-      if (seen.has(n.id)) continue;
-      seen.add(n.id);
-      candidates.push({ id: n.id, name: n.name, stats: n.stats, path: n.path!, pathCost: n.pathDist!, ascendancy: false });
-      taken++;
-    }
-  }
+  const passById = new Map(pass.candidates.map((c) => [c.id, c]));
+  const candidates: UpgradeCandidate[] = pass.candidates
+    .filter((n) => reachable({ allocated: false, path: n.path, pathDist: n.distance }))
+    .sort((a, b) => a.distance - b.distance || a.name.localeCompare(b.name) || a.id - b.id)
+    .map((n) => ({ id: n.id, name: n.name, stats: n.stats, path: n.path, pathCost: n.distance, ascendancy: false }));
 
   const asc = includeAscendancy ? await ascendancyPool(luaClient) : null;
   const ascCandidates = asc?.candidates ?? [];
@@ -551,30 +520,21 @@ export async function handleGetPassiveUpgrades(
     return {
       content: [{
         type: 'text' as const,
-        text: `=== Passive Upgrades (focus: ${focus}) ===\n\nNo reachable unallocated notable candidates found. Make sure a build is loaded.\n`,
+        text: `=== Passive Upgrades (focus: ${focus}) ===\n\nNo reachable unallocated passive within ${UPGRADE_DISTANCE} points of the tree. Make sure a build is loaded.\n`,
       }],
     };
   }
 
-  // Step 4: measure each candidate with PoB's calculator (calc_with), allocating the whole path to
-  // it, as PoB's tree tooltip does ("Allocating this node and all nodes leading to it"). The base is
-  // the same calculator with nothing added. A candidate whose measurement returns no value for the
-  // requested stat(s), or fails in the engine, isn't ranked: it goes to the can't-measure section (C-47).
+  // Step 4: each candidate's measurement. A main-tree candidate's is its path's output from the pass; an ascendancy
+  // notable is measured with PoB's calculator (calc_with) along its whole path. A candidate whose measurement
+  // returns no value for the requested stat(s), or fails in the engine, isn't ranked: it goes to the can't-measure
+  // section (C-47).
   const baseDPS = dpsOf(base, minion);
   const baseEHP = ehpOf(base);
   const rel = (delta: number, of: number) => (of > 0 ? delta / of : 0);
   const unmeasured = new Map<number, string>();
 
-  const measure = async (c: UpgradeCandidate): Promise<PassiveUpgrade | null> => {
-    let out: Record<string, unknown>;
-    try {
-      out = await luaClient.calcWith({ addNodes: c.path, fields: UPGRADE_FIELDS });
-    } catch (error) {
-      // The engine refused this one calculation; a stopped or stuck engine still fails the call.
-      if (!(error instanceof EngineActionError)) throw error;
-      unmeasured.set(c.id, `PoB's calculator failed: ${error.message}`);
-      return null;
-    }
+  const score = (c: UpgradeCandidate, out: Record<string, unknown>): PassiveUpgrade | null => {
     const missing: string[] = [];
     if (focus !== 'defence' && !hasValue(out, minion ? MINION_DPS_FIELDS : DPS_FIELDS)) missing.push('DPS');
     if (focus !== 'dps' && !hasValue(out, EHP_FIELDS)) missing.push('EHP');
@@ -589,6 +549,27 @@ export async function handleGetPassiveUpgrades(
         : focus === 'defence' ? rel(ehpDelta, baseEHP)
           : rel(dpsDelta, baseDPS) + rel(ehpDelta, baseEHP);
     return { id: c.id, name: c.name, stats: c.stats, pathCost: c.pathCost, dpsDelta, ehpDelta, score: gain / c.pathCost };
+  };
+
+  const measure = async (c: UpgradeCandidate): Promise<PassiveUpgrade | null> => {
+    if (!c.ascendancy) {
+      const measured = passById.get(c.id);
+      if (measured?.error !== undefined) {
+        unmeasured.set(c.id, `PoB's calculator failed: ${measured.error}`);
+        return null;
+      }
+      return score(c, measured?.fields ?? {});
+    }
+    let out: Record<string, unknown>;
+    try {
+      out = await luaClient.calcWith({ addNodes: c.path, fields: UPGRADE_FIELDS });
+    } catch (error) {
+      // The engine refused this one calculation; a stopped or stuck engine still fails the call.
+      if (!(error instanceof EngineActionError)) throw error;
+      unmeasured.set(c.id, `PoB's calculator failed: ${error.message}`);
+      return null;
+    }
+    return score(c, out);
   };
 
   const scored: PassiveUpgrade[] = [];
@@ -676,16 +657,16 @@ export async function handleGetPassiveUpgrades(
     const textLines: string[] = [`=== Passive Upgrades (focus: ${focus}) ===`, ''];
     if (note) textLines.push(note, '');
     if (candidates.length === 0) {
-      textLines.push('No reachable unallocated notable candidates found. Make sure a build is loaded.', '');
+      textLines.push(`No reachable unallocated passive within ${UPGRADE_DISTANCE} points of the tree. Make sure a build is loaded.`, '');
     } else {
       textLines.push(
         `Base DPS: ${Math.round(baseDPS).toLocaleString()} (${minion ? "MinionTotalDPS: the main skill's minion deals its damage" : 'CombinedDPS, else TotalDPS'})  |  Base EHP: ${Math.round(baseEHP).toLocaleString()}`,
-        `Measured ${candidates.length} nearby notables with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
+        `Measured ${candidates.length} nearby passives (every unallocated main-tree node within ${UPGRADE_DISTANCE} points of the tree) with PoB's calculator, allocating each one's full path; ${improving.length} improve ${measured}. Ranked by relative ${measured} gain per passive point:`,
         '',
       );
       for (let i = 0; i < plan.mainShown; i++) renderUpgrade(textLines, top[i], i + 1, 'point', '', plan.stats);
       if (top.length === 0) {
-        textLines.push(`None of the measured notables improves ${measured}. Try a different focus.`);
+        textLines.push(`None of the measured passives improves ${measured}. Try a different focus.`);
       }
     }
 
@@ -715,11 +696,11 @@ export async function handleGetPassiveUpgrades(
     if (pool.length > 0) {
       textLines.push('', "## What PoB can't fully measure", '');
       if (cantMeasure.length === 0) {
-        textLines.push("Nothing: every measured notable's lines are fully parsed, and every measurement returned a value.");
+        textLines.push("Nothing: every measured passive's lines are fully parsed, and every measurement returned a value.");
       } else {
         const kinds = (Object.keys(KINDS) as Array<keyof typeof KINDS>).filter((k) => kindsShown.has(k));
         textLines.push(
-          "PoB may not apply some of these notables' lines, or measure them at all, so their gain may be missing or wrong " +
+          "PoB may not apply some of these passives' lines, or measure them at all, so their gain may be missing or wrong " +
             `(check_model_coverage gives each line's status). ${kinds.map((k) => `${k}: ${KINDS[k]}`).join('. ')}.`,
           ...cantMeasure,
         );
@@ -767,6 +748,251 @@ export async function handleGetPassiveUpgrades(
     content: [{ type: 'text' as const, text: fit(OUTPUT_LIMIT) }],
     refit: (reservedChars: number) => fit(OUTPUT_LIMIT - Math.max(0, reservedChars)),
   };
+}
+
+// ---------------------------------------------------------------------------------------------------
+// get_node_power (C-55, D-417, D-418)
+
+/** `get_node_power`'s arguments, as the router passes them. */
+export interface NodePowerArgs {
+  stats?: unknown;
+  max_loss?: unknown;
+  clear_group?: unknown;
+  protect_for?: unknown;
+  max_distance?: unknown;
+  loadout?: unknown;
+  level?: unknown;
+  keep?: unknown;
+  limit?: unknown;
+}
+
+/** The default stats (D-417): Full DPS ranks, Effective Hit Pool beside it. */
+export const NODE_POWER_DEFAULT_STATS = ['FullDPS', 'TotalEHP'];
+/** The distance limit: points from the tree (D-417). */
+const NODE_POWER_MAX_DISTANCE = 12;
+/** The guards' keys in a `max_loss` map (the bridge's names). */
+const GUARD_LABELS: Record<string, string> = {
+  movement: 'movement speed',
+  clearRadius: "the clear skill's radius",
+  clearUses: "the clear skill's uses per second",
+};
+
+function wholeNumber(value: unknown, name: string, lo: number, hi?: number): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < lo || (hi !== undefined && value > hi)) {
+    throw new Error(`${name} must be a whole number from ${lo}${hi !== undefined ? ` to ${hi}` : ''}`);
+  }
+  return value;
+}
+
+/** The bridge's params from the tool's arguments; a bad argument throws, naming it. */
+export function nodePowerParams(args: NodePowerArgs): NodePowerParams {
+  let stats = NODE_POWER_DEFAULT_STATS;
+  if (args.stats !== undefined) {
+    if (!Array.isArray(args.stats) || args.stats.length < 1 || args.stats.length > 3 || !args.stats.every((s) => typeof s === 'string' && s.trim() !== '')) {
+      throw new Error("stats must list 1 to 3 of PoB's power stats, by id or label (default FullDPS and TotalEHP)");
+    }
+    stats = args.stats as string[];
+  }
+  const params: NodePowerParams = { stats };
+  if (args.max_loss !== undefined) {
+    const loss = args.max_loss;
+    const pctOk = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+    if (pctOk(loss)) params.maxLoss = loss as number;
+    else if (loss !== null && typeof loss === 'object' && !Array.isArray(loss) && Object.values(loss).every(pctOk)) {
+      params.maxLoss = loss as Record<string, number>;
+    } else {
+      throw new Error('max_loss must be a percentage, 0 or more, or a map of percentages by stat id or guard (movement, clearRadius, clearUses)');
+    }
+  }
+  if (args.clear_group !== undefined) params.clearGroup = wholeNumber(args.clear_group, 'clear_group', 1);
+  if (args.protect_for !== undefined) {
+    if (!Array.isArray(args.protect_for) || !args.protect_for.every((n) => typeof n === 'string' && n !== '')) {
+      throw new Error("protect_for must list loadout names, as manage_sets' loadout list shows them");
+    }
+    params.protectFor = args.protect_for as string[];
+  }
+  if (args.max_distance !== undefined) params.maxDistance = wholeNumber(args.max_distance, 'max_distance', 1, NODE_POWER_MAX_DISTANCE);
+  if (args.loadout !== undefined) {
+    if (typeof args.loadout !== 'string' || args.loadout === '') throw new Error("loadout must be a loadout's name, as manage_sets' loadout list shows it");
+    params.loadout = args.loadout;
+  }
+  if (args.level !== undefined) params.level = wholeNumber(args.level, 'level', 1, 100);
+  if (args.keep !== undefined) {
+    if (!Array.isArray(args.keep) || !args.keep.every((n) => typeof n === 'number' && Number.isInteger(n))) {
+      throw new Error('keep must list allocated node ids');
+    }
+    params.keep = args.keep as number[];
+  }
+  if (args.limit !== undefined) params.limit = wholeNumber(args.limit, 'limit', 0);
+  return params;
+}
+
+/** A figure for the text: thousands separators from 100, two decimals from 1, three significant digits below. */
+function figure(v: number | null | undefined): string {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '?';
+  if (Math.abs(v) >= 100) return Math.round(v).toLocaleString('en-US');
+  if (Math.abs(v) >= 1 || v === 0) return String(Math.round(v * 100) / 100);
+  return String(Number(v.toPrecision(3)));
+}
+const signed = (v: number | null | undefined): string => (typeof v === 'number' && v >= 0 ? '+' : '') + figure(v);
+const percent = (v: number | null | undefined): string =>
+  typeof v === 'number' && Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : 'n/a';
+
+/** The change of `delta` against `base`, in percent; null when the base is 0. */
+function relative(delta: number | null | undefined, base: number | null | undefined): number | null {
+  return typeof delta === 'number' && typeof base === 'number' && base !== 0 ? (delta / Math.abs(base)) * 100 : null;
+}
+
+const nodeRef = (n: { id: number; name: string }) => `${n.name} [${n.id}]`;
+const typeText = (n: { type: string; attribute?: boolean }) => `${n.type}${n.attribute ? ' (attribute)' : ''}`;
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** The best swap, or why there is none, in one paragraph (the compact mode's line). */
+function swapText(r: NodePowerResult): string {
+  const s = r.bestSwap;
+  const first = r.stats[0];
+  if (!s) {
+    const others = r.stats.slice(1).map((x) => x.label);
+    const limits = [
+      ...(others.length > 0 ? [`${others.join(' and ')} may lose at most the max_loss (default 2%)`] : []),
+      'movement speed and the clear skill\'s radius and uses per second none (default)',
+    ];
+    return `Best swap: none: no legal swap of the ${r.swaps.length} weakest unprotected branches gains ${first.label} within the limits (${limits.join('; ')}).`;
+  }
+  const gains = r.stats.map((x, i) =>
+    i === 0 ? `${percent(s.gainPercent?.[i])} ${x.label} (${signed(s.gain?.[i])})` : `${x.label} ${percent(s.gainPercent?.[i])} (${signed(s.gain?.[i])})`,
+  );
+  const removed = s.removed ?? [];
+  const added = s.added ?? [];
+  const addedText = added.map((n) => `${nodeRef(n)}${n.attributeChoice ? ` (attribute: ${n.attributeChoice})` : ''}`);
+  return (
+    `Best swap: ${gains[0]}${gains.length > 1 ? `; ${gains.slice(1).join('; ')}` : ''}. ` +
+    `Remove ${plural(removed.length, 'point')}: ${removed.map(nodeRef).join(', ')}. ` +
+    `Add ${plural(added.length, 'point')}: ${addedText.join(', ')}. ` +
+    `Searched from branch ${s.branchName} [${s.branch}]: its new paths use ${s.used ?? added.length} of the ${plural(s.freed, 'freed point')}, counted after the branch is removed.`
+  );
+}
+
+/**
+ * `get_node_power` (C-55): PoB's node power on a loadout, with the best legal swap (D-417, D-418). One engine
+ * request (`node_power`, a 120 s long action) measures every stat; then `check_coverage` rates the listed nodes'
+ * lines for what PoB can't measure (C-47's section).
+ */
+export async function handleGetNodePower(context: PassiveUpgradesContext, args: NodePowerArgs) {
+  return wrapHandler('get node power', async () => {
+    const params = nodePowerParams(args ?? {});
+    await context.ensureLuaClient();
+    const luaClient = context.getLuaClient();
+    if (!luaClient) throw new Error('Lua bridge not active. Use lua_start and lua_load_build first.');
+    const r = await luaClient.nodePower(params);
+    const compact = (params.limit ?? 15) === 0;
+    const first = r.stats[0];
+    const lines: string[] = [];
+    const where = r.loadout ? `loadout "${r.loadout}"` : 'the active sets (no loadout matches them)';
+    lines.push(`=== Node power: ${where}, level ${r.level}${compact ? ' (compact)' : ''} ===`);
+    const statNames = r.stats.map((s) => `${s.label} (${s.id})`);
+    const named = r.stats.map((s) => s.label).join(' or ');
+    if (!compact) {
+      lines.push(
+        `Ranked by ${statNames[0]}${statNames.length > 1 ? `; also measured: ${statNames.slice(1).join(', ')}` : ''}. ` +
+          `${r.measuredNodes} nodes within ${r.maxDistance} points of the tree measured with PoB's calculator ` +
+          `(${r.calculations} calculations, ${r.cpuSeconds.toFixed(1)} s CPU).`,
+      );
+      const clear = r.clear;
+      const clearText =
+        clear.error !== undefined
+          ? `clear group ${clear.group}: not measured (${clear.error})`
+          : `clear group ${clear.group}${clear.label ? ` (${clear.label})` : ''}${clear.minion ? ", its minion's" : ''}: ` +
+            `${typeof clear.radius === 'number' ? `radius ${figure(clear.radius)} m` : 'no radius'}, ` +
+            `${typeof clear.usesPerSecond === 'number' ? `${figure(clear.usesPerSecond)} uses per second` : 'no use rate'}`;
+      lines.push(
+        `Base: ${r.stats.map((s, i) => `${s.label} ${figure(r.base[i])}`).join(' | ')} | movement speed ×${figure(r.movement)} | ${clearText}`,
+      );
+    }
+    lines.push(`Travel: ${r.travel} of ${plural(r.points, 'point')} give nothing alone on ${named}.`);
+    lines.push(swapText(r));
+    const keepUnallocated = r.keepNotAllocated;
+    if (keepUnallocated.length > 0) {
+      lines.push(`keep: ${keepUnallocated.join(', ')} ${keepUnallocated.length === 1 ? "isn't" : "aren't"} allocated in this loadout, so ${keepUnallocated.length === 1 ? 'it protects' : 'they protect'} nothing.`);
+    }
+
+    if (!compact) {
+      const prot = Object.entries(r.protected ?? {}).map(([why, n]) => `${n} ${why}`);
+      if (prot.length > 0) lines.push(`Protected nodes (never removed, nor any branch holding one): ${prot.join(', ')}.`);
+      if (r.swaps.length > 0) {
+        lines.push('', `Swaps tried (the ${plural(r.swaps.length, 'weakest unprotected branch', 'weakest unprotected branches')}):`);
+        for (const s of r.swaps) {
+          const gain = s.gainPercent?.[0] !== undefined ? ` (${percent(s.gainPercent[0])} ${first.label})` : '';
+          lines.push(`- ${s.branchName} [${s.branch}], ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);
+        }
+      }
+      lines.push('', `## Best unallocated nodes, by path gain per point on ${first.label}`, '');
+      if (r.best.length === 0) lines.push(`No unallocated node within ${r.maxDistance} points gains ${first.label}.`);
+      r.best.forEach((n, i) => {
+        lines.push(
+          `${i + 1}. **${n.name}** [${n.id}] ${typeText(n)}, ${plural(n.distance, 'point')}: ${signed(n.perPoint)} ${first.label} per point (${percent(relative(n.perPoint, r.base[0]))})`,
+        );
+        const alone = r.stats.map((s, k) => `${s.label} ${signed(n.alone[k])}`).join(', ');
+        const withPath = r.stats.map((s, k) => `${s.label} ${signed(n.withPath[k])}`).join(', ');
+        lines.push(`   Alone: ${alone} | with its path: ${withPath}`);
+        lines.push(`   Path: ${n.path.join(', ')}`);
+      });
+      lines.push('', `## Weakest allocated branches, by loss per point on ${first.label}`, '');
+      if (r.weakest.length === 0) lines.push('No unprotected allocated branch.');
+      r.weakest.forEach((n, i) => {
+        lines.push(
+          `${i + 1}. **${n.name}** [${n.id}] ${typeText(n)}, branch of ${plural(n.points, 'point')}: ${signed(n.lossPerPoint === null ? null : -n.lossPerPoint)} ${first.label} per point removed`,
+        );
+        const branch = r.stats.map((s, k) => `${s.label} ${signed(n.loss[k] === null ? null : -n.loss[k]!)}`).join(', ');
+        const alone = r.stats.map((s, k) => `${s.label} ${signed(n.lossAlone[k] === null ? null : -n.lossAlone[k]!)}`).join(', ');
+        lines.push(`   Removing the branch: ${branch} | the node alone: ${alone}`);
+        lines.push(`   Branch: ${n.branch.join(', ')}`);
+      });
+    }
+
+    // C-47's section over the nodes listed: the ranked nodes, the listed branches' nodes and the best swap's nodes.
+    const listed = new Map<number, string>();
+    for (const n of r.best) listed.set(n.id, n.name);
+    for (const n of r.weakest) listed.set(n.id, n.name);
+    for (const n of [...(r.bestSwap?.removed ?? []), ...(r.bestSwap?.added ?? [])]) listed.set(n.id, n.name);
+    const branchIds = new Set<number>();
+    for (const n of r.weakest) for (const id of n.branch) if (!listed.has(id)) branchIds.add(id);
+    const coverageIds = [...listed.keys(), ...branchIds];
+    const reasons = new Map<number, string[]>();
+    const names = new Map(listed);
+    if (coverageIds.length > 0) {
+      const scan = await context.sourceScan();
+      const coverage = await luaClient.checkCoverage({ nodes: coverageIds, sourceNames: [...scan.names], sourceTemplates: scan.templates });
+      for (const e of coverage.entries) {
+        if (e.kind !== 'node' || e.nodeId === undefined || e.status === 'fully parsed') continue;
+        const kind = e.status === 'possibly unread' ? 'advisory' : 'not applied';
+        const list = reasons.get(e.nodeId) ?? [];
+        list.push(`${kind}: [${e.status}] ${[e.line, ...(e.joinedWith ?? [])].join(' ')}`);
+        reasons.set(e.nodeId, list);
+        if (!names.has(e.nodeId)) names.set(e.nodeId, (/^Node \d+ (.*)$/.exec(e.source ?? '')?.[1]) ?? String(e.nodeId));
+      }
+    }
+    for (const f of r.failures) {
+      const list = reasons.get(f.id) ?? [];
+      list.push(`no value: PoB's calculator failed: ${f.error}`);
+      reasons.set(f.id, list);
+      names.set(f.id, f.name);
+    }
+    if (reasons.size > 0 || !compact) {
+      lines.push('', "## What PoB can't fully measure", '');
+      if (reasons.size === 0) {
+        lines.push("Nothing: every listed node's lines are fully parsed, and every measurement returned a value.");
+      } else {
+        lines.push(
+          "PoB may not apply some of these nodes' lines, or measure them at all, so their figures may be missing or wrong " +
+            "(check_model_coverage gives each line's status). not applied: PoB applies nothing from the line; advisory: PoB parses " +
+            'a possibly unread line but may never read a mod it makes; no value: the calculation failed.',
+        );
+        for (const [id, list] of [...reasons].sort((a, b) => a[0] - b[0])) lines.push(`- **${names.get(id) ?? id}** [${id}]: ${list.join(' | ')}`);
+      }
+    }
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  });
 }
 
 // Helper function

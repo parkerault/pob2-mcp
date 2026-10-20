@@ -82,6 +82,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   export_build_summary: core('read'),
   get_build_issues: core('read'),
   get_passive_upgrades: core('read'),
+  // C-55: node power on a loadout and the best swap; the loadout and level it selects are put back (D-176, D-417)
+  get_node_power: core('read'),
   // C-50: run folders and plan validation. A call carrying new_run never touches the engine: the router runs
   // it as `none` (D-216, `engineKindFor`); validate is a read.
   guide_run: core('read'),

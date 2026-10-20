@@ -3,7 +3,8 @@
  *
  * Every reply the bridge client receives with `ok:true` is validated by `replySchemas[action]` before
  * it reaches a caller (C-4). Every non-test action registered in `pob-api/API/Handlers.lua` and the
- * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`, `API/Sets.lua`, `API/Compile.lua`) has a schema here (checked statically and on
+ * modules it merges (`API/Trade.lua`, `API/Lookup.lua`, `API/Coverage.lua`, `API/Sets.lua`, `API/Compile.lua`,
+ * `API/NodePower.lua`) has a schema here (checked statically and on
  * the golden build by `tests/integration/contract.test.ts`, AC-E24). The registry stays mutable, and an action with no entry
  * still passes through unvalidated (C-4). The `__test_*` actions (C-2) are not in `ActionName` and never
  * get a schema.
@@ -66,6 +67,7 @@ export const ACTION_NAMES = [
   'compile_check',
   'compile_stage',
   'compile_finish',
+  'node_power',
 ] as const;
 
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -1427,6 +1429,140 @@ export const compileFinishReply = baseReply.extend({
 });
 export type CompileFinishResult = z.infer<typeof compileFinishReply>['result'];
 
+// ---------------------------------------------------------------------------------------------------
+// Node power (C-55, `pob-api/API/NodePower.lua`, D-417, D-418)
+
+/** One of PoB's power stats (`data.powerStatList`): its id and label. */
+const powerStatSchema = z.object({ id: z.string(), label: z.string() }).passthrough();
+/** A node the reply names: its id, name and PoB type; `attribute` for an attribute node ("+5 to any Attribute"). */
+const powerNodeSchema = z
+  .object({ id: z.number().int(), name: z.string(), type: z.string(), attribute: z.boolean().optional() })
+  .passthrough();
+/** One figure per requested stat, in `stats` order (PoB's CalculatePowerStat; null for NaN). */
+const powerFiguresSchema = luaArray(luaNumber);
+
+/** An unallocated node: its distance and path (allocation order), its gain alone and with its path, per point. */
+export const powerBestSchema = powerNodeSchema.extend({
+  distance: z.number(),
+  path: luaArray(z.number().int()),
+  alone: powerFiguresSchema,
+  withPath: powerFiguresSchema,
+  perPoint: luaNumber,
+});
+export type PowerBest = z.infer<typeof powerBestSchema>;
+
+/** An allocated branch (the node and its dependants): what removing the node alone, and the branch, takes away. */
+export const powerWeakSchema = powerNodeSchema.extend({
+  points: z.number().int(),
+  branch: luaArray(z.number().int()),
+  lossAlone: powerFiguresSchema,
+  loss: powerFiguresSchema,
+  lossPerPoint: luaNumber,
+});
+export type PowerWeak = z.infer<typeof powerWeakSchema>;
+
+export const POWER_SWAP_VERDICTS = ['legal', 'illegal', 'no-candidate', 'no-gain', 'over-loss', 'error'] as const;
+
+/**
+ * One swap tried on a branch: its verdict and, once measured, its figures; a legal one carries its nodes (net), `used`
+ * (the points its new paths take, counted after the branch is removed) and each added attribute node's choice.
+ */
+export const powerSwapSchema = z
+  .object({
+    branch: z.number().int(),
+    branchName: z.string(),
+    freed: z.number().int(),
+    verdict: z.enum(POWER_SWAP_VERDICTS),
+    reason: optString,
+    gain: powerFiguresSchema.optional(),
+    gainPercent: powerFiguresSchema.optional(),
+    movement: optNumber,
+    clear: z.object({ radius: optNumber, usesPerSecond: optNumber }).passthrough().optional(),
+    used: z.number().int().optional(),
+    removed: luaArray(powerNodeSchema).optional(),
+    added: luaArray(powerNodeSchema.extend({ attributeChoice: optString })).optional(),
+  })
+  .passthrough();
+export type PowerSwap = z.infer<typeof powerSwapSchema>;
+
+const powerResultSchema = z
+  .object({
+    stats: luaArray(powerStatSchema),
+    loadout: optString,
+    level: z.number(),
+    maxDistance: z.number().int(),
+    base: powerFiguresSchema,
+    movement: optNumber,
+    measuredNodes: z.number().int(),
+    points: z.number().int(),
+    travel: z.number().int(),
+    travelNodes: luaArray(z.number().int()).optional(),
+    clear: z
+      .object({
+        group: z.number().int(),
+        label: optString,
+        radius: optNumber,
+        usesPerSecond: optNumber,
+        minion: z.boolean().optional(),
+        error: optString,
+      })
+      .passthrough(),
+    keepNotAllocated: luaArray(z.number().int()),
+    /** Protected main-tree nodes by reason: keep, grants a skill, weapon set, later rung. */
+    protected: luaMap(z.number().int()),
+    best: luaArray(powerBestSchema),
+    weakest: luaArray(powerWeakSchema),
+    bestSwap: powerSwapSchema.optional(),
+    swaps: luaArray(powerSwapSchema),
+    failures: luaArray(z.object({ id: z.number().int(), name: z.string(), error: z.string() }).passthrough()),
+    calculations: z.number().int(),
+    cpuSeconds: z.number(),
+  })
+  .passthrough();
+export type NodePowerResult = z.infer<typeof powerResultSchema>;
+
+/** `get_passive_upgrades`' candidates: every unallocated main-tree node of the pass, with its path's raw fields. */
+const powerUpgradesResultSchema = z
+  .object({
+    maxDistance: z.number().int(),
+    base: luaMap(luaNumber),
+    candidates: luaArray(
+      powerNodeSchema.extend({
+        distance: z.number(),
+        path: luaArray(z.number().int()),
+        stats: luaArray(z.string()),
+        fields: luaMap(luaNumber).optional(),
+        error: optString,
+      }),
+    ),
+    calculations: z.number().int(),
+    cpuSeconds: z.number(),
+  })
+  .passthrough();
+export type NodePowerUpgradesResult = z.infer<typeof powerUpgradesResultSchema>;
+
+/** `node_power`: a power reply, or with `upgrades` the candidates (C-55, D-417). */
+export const nodePowerReply = baseReply.extend({ result: z.union([powerResultSchema, powerUpgradesResultSchema]) });
+
+/** `node_power` params (C-55): the stats by PoB's id or label; `maxLoss` a percentage or a map by stat or guard. */
+export interface NodePowerParams {
+  stats: string[];
+  maxDistance?: number;
+  loadout?: string;
+  level?: number;
+  keep?: number[];
+  protectFor?: string[];
+  clearGroup?: number;
+  maxLoss?: number | Record<string, number>;
+  limit?: number;
+}
+
+/** `node_power` with `upgrades`: `get_passive_upgrades`' candidates and the raw output fields of each path. */
+export interface NodePowerUpgradesParams {
+  upgrades: { fields: string[] };
+  maxDistance?: number;
+}
+
 /** What `compile_check` reads of one stage (the plan's own shapes, C-31). */
 export interface CompileCheckStage {
   id: string;
@@ -1615,6 +1751,7 @@ const definedSchemas = {
   compile_check: compileCheckReply,
   compile_stage: compileStageReply,
   compile_finish: compileFinishReply,
+  node_power: nodePowerReply,
 } satisfies { [A in ActionName]: z.ZodTypeAny };
 type DefinedSchemas = typeof definedSchemas;
 
@@ -1792,6 +1929,8 @@ export interface ActionParamsMap {
   compile_stage: CompileStageParams;
   /** C-41 step 8: the loadout check, the highest stage's loadout and the auto-mode level. */
   compile_finish: CompileFinishParams;
+  /** C-55: node power on a loadout, with the best swap; or with `upgrades`, get_passive_upgrades' candidates. */
+  node_power: NodePowerParams | NodePowerUpgradesParams;
 }
 
 /** Request params (camelCase, C-2) for an action. */

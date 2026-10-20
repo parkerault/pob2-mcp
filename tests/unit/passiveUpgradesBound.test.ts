@@ -11,7 +11,10 @@ import type { PoBLuaApiClient } from '../../src/pobLuaBridge';
 
 const LONG = (id: number, words: number) => `Line of node ${id}: ${'with a long description '.repeat(words)}end`;
 
-/** A stub engine: 4 keywords x 8 reachable notables, an ascendancy of 8, long lines on every node. */
+/**
+ * A stub engine: node power's pass gives 32 reachable main-tree candidates (D-417), the ascendancy has 8, long lines
+ * on every node.
+ */
 function stubEngine(opts: { statWords: number; unparsed: number; lineWords: number }) {
   const mainNode = (k: number, i: number) => {
     const id = 1000 + k * 100 + i;
@@ -21,24 +24,32 @@ function stubEngine(opts: { statWords: number; unparsed: number; lineWords: numb
     const id = 9000 + i;
     return { id, name: `Asc ${id}`, type: 'notable', allocated: false, ascendancyName: 'Testasc', stats: [LONG(id, opts.statWords)], path: [id], pathDist: 1 + (i % 2) };
   };
-  const keywordCalls: string[] = [];
+  // Every candidate improves both stats, the lower ids more.
+  const measured = (id: number) => ({ CombinedDPS: 1000 + 100000 / id, TotalEHP: 1000 + 50000 / id });
   const client = {
     getWarnings: async () => [],
     getStats: async () => ({ _meta: { level: 90 } }),
     getItems: async () => [],
     getRuleBreaks: async () => ({ lockedNodes: [] }),
     getTree: async () => ({ ascendClassId: 1, ascendClassName: 'Testasc', nodes: [] }),
-    searchNodes: async (params: { keyword?: string; ascendancy?: string }) => {
+    searchNodes: async (params: { ascendancy?: string }) => {
       if (params.ascendancy) return { nodes: Array.from({ length: 8 }, (_, i) => ascNode(i)), count: 8, total: 8 };
-      keywordCalls.push(params.keyword!);
-      const k = keywordCalls.length - 1;
-      return { nodes: Array.from({ length: 8 }, (_, i) => mainNode(k, i)), count: 8, total: 8 };
+      throw new Error('the main-tree candidates come from node power (D-417)');
     },
-    // Every candidate improves both stats, the lower ids more.
+    nodePowerUpgrades: async () => ({
+      maxDistance: 6,
+      base: { CombinedDPS: 1000, TotalEHP: 1000 },
+      candidates: Array.from({ length: 32 }, (_, n) => {
+        const node = mainNode(Math.floor(n / 8), n % 8);
+        return { id: node.id, name: node.name, type: 'Notable', distance: node.pathDist, path: node.path, stats: node.stats, fields: measured(node.id) };
+      }),
+      calculations: 32,
+      cpuSeconds: 1,
+    }),
+    // The ascendancy notables are measured with calc_with, as before.
     calcWith: async (params: { addNodes?: number[] }) => {
       if (!params.addNodes) return { CombinedDPS: 1000, TotalEHP: 1000 };
-      const id = params.addNodes[0];
-      return { CombinedDPS: 1000 + 100000 / id, TotalEHP: 1000 + 50000 / id };
+      return measured(params.addNodes[0]);
     },
     checkCoverage: async (params: { nodes: number[] }) => ({
       counts: {},

@@ -5258,3 +5258,6 @@ the `m17` engine at `b76967b`.
   "For WU-95" note above, the guard ruling's text, the D-423 display line in `run-log.mjs`, the static tests'
   follow-ups (the `run-log.md` example test, the run-settings test's `TOOL_META` branch) and the endgame template's
   empty `by[]` clause.
+- **WU-93 merged** (rebased onto WU-92's merge with no conflict; the README table already right at 85 tools). Its
+  re-gate on the combined code was the first integration check: test rc 0 (159 suites, 2,810 tests), build rc 0,
+  no failure from any merged unit. Six of the seven units are in; WU-95 is the last.

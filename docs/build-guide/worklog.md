@@ -5261,3 +5261,11 @@ the `m17` engine at `b76967b`.
 - **WU-93 merged** (rebased onto WU-92's merge with no conflict; the README table already right at 85 tools). Its
   re-gate on the combined code was the first integration check: test rc 0 (159 suites, 2,810 tests), build rc 0,
   no failure from any merged unit. Six of the seven units are in; WU-95 is the last.
+- **WU-95 done by its doer** (`4f3f3c5`, rebased onto `7ed7130`, about 660K tokens). Gate rc 0 (160 suites, 2,845
+  tests), build rc 0; the 31 new AC-W77 tests fail on the old text. `SKILL.md` grew to 352 lines (its test cap
+  raised from 230 to 360). **Coordinator's ruling (a D-415 clarification), sent back as a fix round before
+  verification:** a campaign's final compile writes a new PoB file, the build's name plus `-campaign`, leaving the
+  endgame file as it was; a user who asks for the campaign has likely saved the endgame file in PoB, so a rewrite
+  would meet the ledger's refusal every time with no escalation option that finishes the run. The fix round also
+  takes four unowned loose ends (`D1-finish.md`'s retry chain without D1-tree, `R1b.md`'s "rest of the run",
+  `Q.md`'s plan path, the compaction script's `--build`) and asks for `SKILL.md` as lean as the content allows.

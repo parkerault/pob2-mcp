@@ -742,3 +742,43 @@ N10 (the descriptions) §8, WU-95, WU-97; N11 (the launcher's settings) §14; N1
 The nits: N1 (the stabilization spec's D-47) §11; N2 (a Distilled Emotion's price) §15; N3 (`migrate`'s `decline:`)
 §9; N4 (up to 5 candidate swaps; the time) §11, §20; N5 (compiling the rungs before a call; a user's node as a need;
 the runner's `guide_run {resume}`) §9, §12.
+
+## 23. Clarifications and rulings during the M-21 build
+
+Made by the coordinator while building, each recorded in the work-log with its evidence; the fold into the spine
+takes them with the decisions they touch.
+
+- **D-417, `get_passive_upgrades`' can't-measure section** lists the C-47 lines for the entries the output shows (the
+  ranked ones and the ascendancy section's), then one line counting the rest of the measured pool. On a level-90
+  build the pool is about 1,100 passives, and the whole-pool section alone broke D-246's 5,000-character bound.
+  Amends C-47's row, D-246's and AC-K21's pool text, and D-388 (no more "minion notables first": every node is a
+  candidate). A no-value candidate appears only in the count line.
+- **D-417, the swap search** protects any branch whose removal would disconnect a node outside it, walked under
+  PoB's weapon-set rule (PoB's `depends` misses weapon-set nodes hanging off an untagged branch), and goes on until 5
+  legal tries (at most 20); the reply gains `heldBranches`.
+- **D-418 and D-419, the guards:** D1-tree and the D1 gate pass `max_loss` as `{clearUses: 2}`: the clear skill's
+  uses per second may drop up to 2%, like the stats, since uses per second is already in DPS (at 0 it refused a
+  +44.7% Full DPS swap for a 1.85% drop); `clearRadius` and `movement` stay at 0.
+- **D-418, D1-tree's points:** D1-build no longer fills the level's points; D1-tree spends every unspent regular
+  point, counted as V1 counts them (untagged nodes plus the larger weapon set, against V1's allowance with PoB's
+  `ExtraPoints`; the Martyr point isn't spare), and returns `unspent: <rung> <k>: <why>` for any left, which
+  D1-finish writes as a `reason` claim. D1-tree may drop a rung's anoint when a swap allocates the anointed notable;
+  D1-finish anoints it again. The ascendancy order's claim id is `m-ascendancy-order`.
+- **D-419, the D1 gate:** its verdict gains `planSha1` (F1 compares a measure-only record's with it) and each design
+  rung `ehpHit`; the `tree` part needs no finding of its own when the compile failed or was refused; a `tool-error`
+  gate is logged `fail`, and the next step is the gate alone.
+- **D-413, F1:** its failure codes are `plan-changed`, `compile-error`, `final-compile` and `ledger-refused`, all in
+  part `compiled`; a build in `"."` (a migrated run's) keeps the PoB name without the card id.
+- **D-411 and D-415, the routes as built:** a user's `stop` at a design gate ends that build; a default (test-config)
+  `stop` at a design or final gate ends the run; `design:<id>` is offered for a `stopped` or `dropped` build whose
+  last D1 gate passed, and F1 checks the plan is unchanged; the endgame reward-pick rule is skipped for a design made
+  before a migrated run's first resume.
+- **D-415, V4's campaign pass** carries the build's last report's unresolved findings as its `findings` and reports
+  them again, so the endgame guide's open known issues survive the campaign; its H1 is `# V4-<n>: campaign pass of
+  rounds/<n-1>`.
+- **D-415, `guide_run {resume}`'s reply:** `Resuming run folder <abs>`, `runFolderRel: <rel>`, `loadedBuildUnsaved:
+  …`; it accepts only a run folder two levels below the guides root.
+- **D-422, the 429:** the trade site gives logged-in and anonymous requests different limits under one policy name,
+  and the limiter kept one window set per policy; it now keeps windows per kind (C-11's internal interface gains
+  `auth`), and a 429 logs the site's rate-limit headers. One narrow gap stays: a process's first anonymous request
+  after only logged-in traffic is admitted under the logged-in windows (no limit can be hard-coded, S-4).

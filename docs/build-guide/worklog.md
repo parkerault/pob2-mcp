@@ -5290,3 +5290,15 @@ the `m17` engine at `b76967b`.
   session's flag, with a test; `D2.md`'s `-campaign` sentence; `start.md`'s §8; D1-tree's `not made:` lines under the
   design display; F1's ledger remedy in §5; three duplicated blocks moved to their references. `SKILL.md` 324 lines,
   29,965 characters. Gate rc 0 (162 suites, 2,858 tests). The verifier re-checks.
+- **WU-95 re-checked: PASS** (the `noNinja` fix confirmed on the real scripts; the moved blocks lost nothing). **Merged**
+  (rebased, fast-forward, `8a56eae`). All seven M-21 units are merged.
+- **The M-21 wave gate: PASS** on `build-guide/m21` from a clean build (`rm -rf build coverage`, Jest cache cleared):
+  test rc 0 (162 suites, 2,858 tests; the timing step 2 suites, 3 tests), build rc 0; both waiver files `[]`.
+- **M-21's agents** (the harness's subagent counts): doers about 3.7M tokens with their fix rounds (WU-95 761K,
+  WU-94 735K, WU-92 672K, WU-96 516K, WU-93 436K, WU-97 310K, WU-98 258K); verifiers about 1.8M; the amendment's
+  review 433K before the build. About 5.5M for the build against the 4–5M estimate, the fix rounds on WU-92, WU-96
+  and WU-95 most of the difference.
+- **Next:** the sign-rebase onto `main` with the user present (HG-8), the cited hashes remapped, then `m18` updated
+  for the live test (WU-99). **For the user's launcher:** copy `docs/build-guide/run-settings.example.json`'s allow
+  list and `compact` hook into the run settings, keeping its own `reference/` deny rule. **The live test's order:**
+  finalize r1-b-3 first and answer its final gate `accept:verification`, then `design:r1-x-1` and `accept:file`.

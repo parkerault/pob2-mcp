@@ -1,6 +1,6 @@
 # Gates and their verdict files
 
-A gate is the check a step must pass before the run moves on. A gate step (R1b, the D1 gate, the D2 gate)
+A gate is the check a step must pass before the run moves on. A gate step (R1b, the D1 gate, the D2 gate, F1)
 writes its verdict itself, to `reports/gates/<stage>-<concept>-a<attempt>.json` (`run-folder.md`), and
 returns one verdict line; the runner reads the file to route. The run checker re-reads the last D1 gate's
 file and recomputes it from the plan and the record, so the shapes below are a contract: keep the field
@@ -23,7 +23,9 @@ names exactly.
 - `stage`, `concept` and `attempt` match the file name and the step's header.
 - Each `verdict` part is `pass`, `fail` or `unverified`. Only the budget may stay `unverified` (D-164): a
   gate whose compile failed leaves its other parts `unverified`, and any other part `unverified` is a failure,
-  routed as a compile, V1 or V2 failure.
+  routed as a compile, V1 or V2 failure. Two exceptions (amendment 9): the D1 gate's `tree` part `unverified`
+  with `tool-error` re-runs the gate alone (D-419), and a part `unverified` with `tool-refused` takes the refused
+  route, to no producer (D-421; both below).
 - Each finding names the `part` it belongs to, a stable `code`, the plan `stage` it concerns (a plan
   stage id such as `b`; omitted only for a finding about no one stage), and a `message` citing record
   fields and C1/E1 keys. A V1 or V2 finding keeps the `code` the compile record gives it; floor, budget
@@ -33,19 +35,22 @@ names exactly.
 - **Two findings are equal when their plan `stage`, `part` and `code` are**, whichever gate reports them:
   a V1 finding the user accepted at the D1 gate is the same finding when the D2 gate or the final record
   reports it again, and it covers that plan stage only.
-- Extra fields are allowed (for example R1b's `errors`, the D2 gate's `finalCompile`, FI-3's `forced`).
+- Extra fields are allowed (for example R1b's `errors`, the D2 gate's and F1's `finalCompile`, the D1 gate's
+  and F1's `planSha1`, FI-3's `forced`).
 
 | Gate | Parts | Passes when |
 |---|---|---|
 | `R1b` | `compiled` | the skeleton compiled with no compile error (C-36) |
-| `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill` | see below |
+| `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill`, `tree` | see below |
 | `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192: the campaign track, then the endgame ladder `m` → `b` → `n`, each rung's respec and gold cost checked, D-282); the final compile then succeeded |
+| `F1` | `compiled`, `v1`, `v2` | the endgame-only build's final compile (D-413, `stages/F1.md`): the plan is the one the passing D1 gate compiled (its `planSha1`), it compiled measure-only with V1 and V2 passing for every stage, and the final compile then succeeded; its verdict file is `reports/gates/F1-<id>-a<n>.json`, in the D2 gate's shape with `stage: "F1"` |
 
 ## The D1 gate's parts (slice 03 §5.3)
 
-The D1 gate compiles `plan.json` measure-only and reads the record. "Endgame stages" are the plan's
-stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), budget (`b`) and non-budget
-(`n`), each gated the same way (D-281).
+The D1 gate compiles `plan.json` measure-only, reads the record, and measures each rung's tree with PoB's node
+power. "Endgame stages" are the plan's stages with a `variant`: the rungs of the endgame ladder, entering maps
+(`m`), budget (`b`) and non-budget (`n`), each gated the same way (D-281). D1 is three steps, each a fresh
+coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
 
 - **floor** (the survival floor; D-118, D-119, D-234). Per endgame stage, at the Endgame resistance
   penalty (−60%):
@@ -106,6 +111,19 @@ stages with a `variant`: the rungs of the endgame ladder, entering maps (`m`), b
   Count-scaled one (D-294), is the one the user sees as PoB's Full DPS. On every stage with a `rolledGroup`,
   `skills.main.group` is that group; D1 sets `skills.main.statSet`; and the named source's figure, directly or
   every breakdown field its ledger formula reads, is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
+- **tree**, the passive tree's travel (D-418, D-419). After the compile, which loads every rung, the gate calls
+  `mcp__pob2__get_node_power` in compact mode on each rung with D1-tree's arguments: the rung's loadout; `keep`,
+  the nodes of its needs (`tree.needs`), and for `b` and `n` every node of the rung before; `protect_for`, the
+  later rungs' loadouts; `clear_group` and `max_loss` (`stages/D1-tree.md`). A rung **fails** when its best swap
+  left gains at least **5%** Full DPS within `max_loss`, with the swap as its finding (code `tree-swap`); the
+  part passes when no rung does. D1-tree stops its loop under 3%, so a finished loop leaves room for the anoint
+  and the prices D1-finish adds. **A tool failure is not a design failure:** when `get_node_power` fails or times
+  out, the part is `unverified` with code `tool-error`, and no `tree-swap` finding (a rung measured at 5% or more
+  included): the gate re-runs alone (the outcome table). The design field's rungs carry each one's `tree:
+  {travel, points, bestSwap, needs}`: `travel` and `points` whole numbers, the travel at most the points;
+  `bestSwap` `null` or `{gainPercent, removed: [names], added: [names]}`; `needs` the needs' reasons as text. The
+  run checker checks the part's shape and that its verdict agrees with its findings and the rungs' `bestSwap`;
+  it can't recompute node power without the engine.
 
 ### The basis: what the run checker reads from the D1 gate's file
 
@@ -206,7 +224,8 @@ price day by steps 2 to 4 at the file's `market` and rates, rounded by step 6.
 ### Finding codes the gate names
 
 The run checker recomputes the floor, budget and rolledSkill parts and names each failure by their codes; the
-`v1` row's code is the compile record's, and the gate reports and routes it as every V1 finding. Either way an
+`v1` row's code is the compile record's, and the gate reports and routes it as every V1 finding. The tree part it
+checks for shape and agreement only (D-419). Either way an
 accepted finding (same plan stage, part and code) covers the matching failure. The budget has no failure code:
 it never fails (D-371).
 
@@ -225,40 +244,91 @@ it never fails (D-371).
 | rolledSkill | `rolled-not-main` | the stage's `skills.main.group` isn't its `rolledGroup` |
 | rolledSkill | `rolled-stat-set` | the stage sets no `skills.main.statSet`, or the rolled figure (or a breakdown field its ledger formula reads) isn't the main skill's stat set |
 | rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
+| tree | `tree-swap` | a rung's best swap left gains at least 5% Full DPS within `max_loss`: its message names the rung, the gain, and the nodes moved from and to (D-419) |
+| tree | `tool-error` | `mcp__pob2__get_node_power` failed or timed out on a rung: the part is `unverified`, and the gate re-runs alone (D-419) |
+| any part | `tool-refused` | the permission system refused the tool call the part needed: `unverified`, the refused route (D-421) |
 | v1 | `not-granted` | a group whose skill gem, or whose `minionSkill`, a passive grants (`Grants Skill:`), on a stage that allocates none of those passives (D-380): PoB measures the skill anyway, the game doesn't give it. The compile passes (D-192), the `v1` part fails, and D1 or D2 allocates a granting passive from that stage on |
 
 ## The D1 gate's outcome
 
 The runner routes by the verdict file and D1's claim, D1-build's return (slice 03 §5.3's table; a pass now goes to
 the design gate, D-362). The budget is `pass` or `unverified`, never a failure: no budget finding routes back to D1
-(D-371).
+(D-371). When several parts fail, the first row that applies routes: a compile, V1 or V2 failure before the floor
+and `rolledSkill`, and both before the tree. "D1 re-runs" is its three steps, D1-build, D1-tree and D1-finish
+(D-418), then the gate; the gate's 2 counted retries are one count, whichever part fails.
 
 | Gate verdict | D1's claim | Outcome |
 |---|---|---|
-| compiled, V1, V2, floor, rolledSkill pass; budget pass or unverified | any | the design gate (D-362), then D2 after its `accept` |
+| compiled, V1, V2, floor, rolledSkill and tree pass; budget pass or unverified | any | the design gate (D-362), then F1 after its `accept` or `accept:file` (D-413); D2 runs only for a build's campaign (D-415) |
 | compile, V1 or V2 fails | any | D1 re-runs with the findings; after 2 counted retries, `escalated` |
 | only floor or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |
 | only floor or rolledSkill fails | `done` | D1 re-runs with the findings; after 2 counted retries, `infeasible` |
+| only the tree fails (`tree-swap`) | any | D1-tree, then D1-finish, then the gate, with the verdict as `findings` (D-418, D-419); after 2 counted retries, `escalated` |
+| only the tree `unverified`, with `tool-error` | any | logged `fail`; the gate alone re-runs, once, uncounted; a second `tool-error` escalates (D-419) |
+| any part `unverified` with `tool-refused` | any | the refused route (below): logged `refused`, then the gate again, uncounted, routed to no producer (D-421) |
 | any part but the budget `unverified` | any | as a compile, V1 or V2 failure |
 | `"forced": "infeasible"` (FI-3) | any | `infeasible`, evidence `FI-3 (injected)` |
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
 
+An escalation's option 2 (guidance) after the D1 gate runs D1 from the step the guidance needs (D1-build, or
+D1-tree for the tree alone), then the gate.
+
 ## The D2 gate's outcome
 
 The D2 gate compiles measure-only and, when the compile, V1 and V2 pass for every stage, runs the final
-compile in the same step (`stages/D2-gate.md`). A pass goes to W1. A failure, a failed or refused final
-compile included (part `compiled`, code `final-compile`), re-runs D2 with the findings; after 2 counted
+compile in the same step (`stages/D2-gate.md`). It runs only after D2, which adds a build's campaign on request
+(D-413, D-415); an endgame-only build's final compile is F1's. A pass goes to W1. A failure, a failed or refused
+final compile included (part `compiled`, code `final-compile`), re-runs D2 with the findings; after 2 counted
 retries, `escalated`. After a guided retry or an accepted re-run, any failure escalates again.
+
+## F1's outcome (D-413)
+
+F1 (`stages/F1.md`), a fresh coordinator step after the design gate's `accept` or `accept:file`, is the final
+compile of an endgame-only build. It checks that the plan is the one the passing D1 gate compiled (the gate's
+`planSha1`, the plan the user accepted), compiles it measure-only, and when the compile, V1 and V2 pass for every
+stage runs the final compile with `buildName`. Its header carries `accepted`, as the D2 gate's does: the findings
+the user accepted at a D1 gate escalation (option 1), which F1 doesn't count as failures. Its compile's own V1 and
+V2 hold the final record to the rules the checker reads.
+
+| F1's verdict | Outcome |
+|---|---|
+| compiled, V1 and V2 pass; the final compile written | `render-audit.mjs <runFolder> --build <id>`, then W1; after `accept:file`, the build ends `file-only` |
+| a fault, not a design finding: the plan changed since the gate (`plan-changed`), a V1 or V2 failure not in `accepted`, or a compile error on the plan the gate passed (`compile-error`, `final-compile`) | F1 re-runs once, uncounted; a second failure escalates |
+| `ledger-refused` (part `compiled`): the write ledger refused the final compile (D-211: the PoB file already exists, or changed on disk) | escalates at once, since no retry changes it |
+| any failure, after a guided retry or an accepted re-run | escalates again |
+
+**F1's escalation** (stage `F1`, the verdict file `reports/gates/F1-<id>-a<n>.json`), in the escalation forms of
+`run-log.mjs` and the checker:
+1. **accept**, not after a compile failure or a ledger refusal: the failing findings join `accepted`, and F1
+   runs once more, uncounted;
+2. **guidance and one more retry**: D1 (D1-build, D1-tree and D1-finish as the guidance needs), the D1 gate,
+   and the design gate again, since the build changed; then F1;
+3. **back to the verification gate**: the build ends `dropped`;
+4. **stop**: the build ends `escalated`.
+
+For a ledger refusal, the user can also restore or remove the changed file and answer 1: F1 runs again and
+accepts no finding.
+
+## The refused route (D-421)
+
+Claude Code's permission system can refuse a tool call inside a step. A refused call isn't a tool error: the
+step stops, and its return carries the line `refused: <tool>`. A gate step first writes its verdict file, the
+part the call served `unverified` with code `tool-refused`: `compiled` for `mcp__pob2__compile_plan` (every other
+part `unverified` with it), `tree` for `mcp__pob2__get_node_power`. The runner, on that line or that code, logs
+the step with outcome `refused`, asks the user to allow the tool, and re-runs the refused step alone, next,
+uncounted. A verdict with `tool-refused` routes to no producer: never back to D1 or D2, and no retry is spent.
+
+## Logging and accepted findings
 
 The runner logs each gate attempt with the outcome its verdict file routes to, and the run checker holds the
 log to the files: a pass is a verdict that passes, an `infeasible` one is forced by FI-3 or fails only floor
 or `rolledSkill` (with D1 claiming infeasible, or after 2 counted retries), and an attempt failed by a
 fault on attempt 1 runs free only when the verdict's `faultsApplied` names the fault and every failing finding
-is on the stage the fault breaks (S6).
+is on the stage the fault breaks (S6). A D1 gate whose only issue is the tree's `tool-error` is logged `fail`.
 
 A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
 nor a later one (`checkpoints.md`). A current guide passed every gate: the run checker fails a run whose
 guide is current (no design step ran after its W1) and whose recomputed floor or named damage
-source fails, or whose D1 or D2 gate before that W1 has a failing part, unless accepted findings cover every
-failure. Only a pass, or an `unverified` budget,
-proceeds, to the design gate and after its `accept` to D2.
+source fails, or whose D1 or D2 gate or F1 before that W1 has a failing part, unless accepted findings cover
+every failure. Only a pass, or an `unverified` budget,
+proceeds, to the design gate and after its `accept` or `accept:file` to F1.

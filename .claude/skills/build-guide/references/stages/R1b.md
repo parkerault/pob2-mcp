@@ -144,7 +144,11 @@ shows it, and the user can make a new card from it. The skeleton still tests the
    - `league`: offline, `null`; online, the current trade league from `mcp__pob2__get_leagues`. If trade can't be
      reached, reuse the league of another plan in this run, else `Standard`, and return
      `leagueUnverified: true`. The dossier then marks the league unverified, and **D1 doesn't take its
-     league from a skeleton whose league is unverified**.
+     league from a skeleton whose league is unverified**. **Once pricing has stopped** (step 6's test: the prompt
+     says so, or a `run-log.json` `stages[]` entry after the last resume, from index
+     `resumes[<last>].lengths.stages`, counts a `locked_out` or `rate_limited` call in `priceOutcomes`), make no
+     trade call, `mcp__pob2__get_leagues` included (D-422): the league is one a plan of this run recorded before
+     the stop (not one marked unverified); with none, `Standard`, and return `leagueUnverified: true`.
    - **One stage**, `id` the card id without its hyphens, then `e` (`r1a2e` for card `r1-a-2`: a stage id
      is letters and digits only, so a dossier ref like `r1a2e.Life` names this card's record),
      `progress: "endgame"`, no `variant`, a `level` the card is meant to play at (90 when the card doesn't

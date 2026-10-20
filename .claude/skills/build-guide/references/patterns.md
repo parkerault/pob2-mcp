@@ -1066,6 +1066,20 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 ## 10. Tree
 
+### Minimize travel distance
+
+- **Shape:** judge a cluster by its gain per point with its path, never by its gain alone: a tree that runs one
+  route out through its clusters beats long branches to separate clusters of average payoff (the user,
+  2026-10-19: "minimize travel distance").
+- **Search:** `mcp__pob2__get_node_power` on the loaded build: unallocated nodes by path gain per point, allocated
+  branches by loss per point, the travel count (points that give nothing alone) and the best legal swap.
+- **PoB:** modelled: node power is PoB's own ranking, on any stat it offers; it can't see sustain, area, a
+  boss-only gain on a clear config or an attribute a gem needs, so those are the tree's needs.
+- **Examples:** Executioner's Howl (Warbringer, Arctic Howl): reachable nodes worth 13–19% Full DPS each sat
+  unallocated while two Dexterity branches of 7 and 8 points gave nothing [amendment-9] §1, §4.
+- **Cautions:** gains aren't additive, and paths change once a branch is removed: measure a swap on the tree
+  after the removal; a branch that looks idle may hold the floor or the sustain.
+
 ### Keystone as pathing anchor
 
 - **Shape:** passives near a keystone are allocated without a path, so keystones are taken for their radius.
@@ -1145,6 +1159,7 @@ Paths are from this file; each title is the source's patch.
 [comparison]: ../../../../docs/build-guide/studies/2026-10-17-varashta-comparison.md "0.5.5 guide, pin 0.5.4"
 [feedback]: ../../../../docs/build-guide/studies/2026-10-17-varashta-run-feedback.md "pin 0.5.4"
 [amendment-8]: ../../../../docs/build-guide/spec/amendment-8-engine-lens.md "pin 0.5.4"
+[amendment-9]: ../../../../docs/build-guide/spec/amendment-9-endgame-first.md "pin 0.5.4"
 [fubgun]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-1-fubgun.md "0.5.5"
 [ronarray-page]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-page.md "0.5.5"
 [ronarray-videos]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-videos.md "0.5"

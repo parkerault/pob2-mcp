@@ -27,9 +27,9 @@ research files and the cards keep the rest: the dossier merges no research.
   - where it compiled, its record's key numbers, by Grep, never the record whole: in
     `concepts/<id>/compile-record.json`, the named damage source's Count-scaled figure
     (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields`, its group's `count`; `MinionTotalDPS` when the
-    group names a minion skill, else `TotalDPS`, D-378), `Life`, `TotalEHP`, `computedWithCustomMods` and
-    `measures.clearSpeed` (its `speed`, `noArea` and `skill`); and its key-item prices, converted, from the card's
-    `Key item prices`.
+    group names a minion skill, else `TotalDPS`, D-378), `Life`, `TotalEHP`, `configWritten` (the reference
+    hits EHP was measured against), `computedWithCustomMods` and `measures.clearSpeed` (its `speed`, `noArea` and
+    `skill`); and its key-item prices, converted, from the card's `Key item prices`.
 
 ## Work
 
@@ -46,7 +46,10 @@ research files and the cards keep the rest: the dossier merges no research.
      its note, each verification round with its cards.
    - **A viable card's row:** the named source's Count-scaled figure with its field, labelled `estimate` when its
      group's Count is above 1 or the stage is `computedWithCustomMods` (D-296); `Life`; `TotalEHP` as `EHP`
-     (D-294); the clear speed (D-407), the record's `speed` with `(rough)`, or `<speed> (PoB gives no area)` when
+     (D-294), naming the hit it was measured against (D-423), so it compares with the design gate's: the compile
+     measures a skeleton against the budget rung's reference hits, the T15 map hits of area 79, which its
+     record's `configWritten` holds (`31,500 vs T15 map hits`); `vs PoB's default hit` when it holds none (a
+     record from an older server); the clear speed (D-407), the record's `speed` with `(rough)`, or `<speed> (PoB gives no area)` when
      `noArea` is true and it names a skill; each key-item price as the card gives it, a range with its day
      (`about 3.2–7.2 divines around day 7`), or `unavailable` with its note; the league (offline:
      `none (offline)`; online: the skeleton's league, and `<league>, unverified` when its verdict has
@@ -85,8 +88,8 @@ be finalized yet says so, with no numbers, and isn't a failure.
 
 ```
 dossier.md
-r1-a-2 viable: bleed burst on rares; Blood Hunt 50,000 DPS (r1a2e g1s1p1 TotalDPS), Life 4,210, EHP 31,500, clear medium (rough); prices unavailable (offline); risk: chaos resistance
-r1-b-2 viable: totem relay; Ancestral Warrior Totem 84,000 DPS, estimate (Count 2: two totems), Life 3,900, EHP 27,800, clear slow (PoB gives no area); prices unavailable (offline); risk: totem placement
+r1-a-2 viable: bleed burst on rares; Blood Hunt 50,000 DPS (r1a2e g1s1p1 TotalDPS), Life 4,210, EHP 31,500 vs T15 map hits, clear medium (rough); prices unavailable (offline); risk: chaos resistance
+r1-b-2 viable: totem relay; Ancestral Warrior Totem 84,000 DPS, estimate (Count 2: two totems), Life 3,900, EHP 27,800 vs T15 map hits, clear slow (PoB gives no area); prices unavailable (offline); risk: totem placement
 r1-b-1 failed after 3 attempts: FI-1 Unknown Gem (reports/gates/R1b-r1-b-1-a3.json)
 r1-c-3 can't be finalized yet: its damage source isn't a skill (a flask nova); read-only checks only
 ```

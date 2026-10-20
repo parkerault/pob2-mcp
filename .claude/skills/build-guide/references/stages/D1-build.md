@@ -1,23 +1,33 @@
 # D1-build: the endgame rungs' build (`build-guide-coordinator`)
 
-The first of D1's two steps (D-356). You design the three endgame stages of `plan.json`, the rungs of the
-endgame ladder: entering maps (`m`), budget (`b`) and non-budget (`n`), and take them to a passing survival
-floor with measure-only compiles. The endgame is designed first, and the campaign is planned backward from it
-(D-104). D1-finish (`D1-finish.md`), a fresh step, then adds the anoint, the prices, the ledger and the claims;
-a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the user's design gate.
+The first of D1's three steps (D-356, D-418). You design the three endgame stages of `plan.json`, the rungs of
+the endgame ladder: entering maps (`m`), budget (`b`) and non-budget (`n`), with the needs their trees keep, and
+take them to a passing survival floor with measure-only compiles. The endgame is designed first, and a campaign,
+when the user asks for one, is planned backward from it (D-104). D1-tree (`D1-tree.md`), a fresh step, then
+spends the trees' spare points and shortens their travel by PoB's node power; D1-finish (`D1-finish.md`), a fresh
+step, then adds the anoint, the prices, the ledger and the claims; a fresh D1 gate step (`D1-gate.md`) checks
+them all; after the user's design gate, F1 (`F1.md`) runs the final compile, and D2 adds the campaign only on
+request (D-411, D-413).
 
 ## Inputs
 
-- **Header:** `stage: "D1-build"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`,
-  `compile: "measure-only"`, `writes: ["plan.json"]`, `accepted` (findings the user accepted at an
+- **The build's folder** (D-412): the header's `buildFolder` under `runFolder`, `builds/<id>`, or `.` for a run
+  migrated from schema 3. `plan.json`, `compile-record.json` and the compiled XML are there; below, a bare
+  `plan.json` or `compile-record.json` is that folder's, and `<plan>` is `<runFolderRel>/<buildFolder>/plan.json`
+  (`<runFolderRel>/plan.json` when `buildFolder` is `.`). The cards, the dossier and `run-log.json` are at the run
+  folder's root.
+- **Header:** `stage: "D1-build"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
+  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json"]`, `accepted` (findings the user accepted at an
   escalation; they need no fix), and `findings`:
   - on a D1 gate retry, the earlier verdict file and its findings (`{part, code, stage, message}`): fix what
-    each failing one names (an `over-target` or `chaos-exception` finding is information: leave it); a note
-    when an earlier attempt returned without writing;
+    each failing one names (an `over-target` or `chaos-exception` finding is information: leave it; a
+    `tree-swap` finding is D1-tree's, which runs after you); a note when an earlier attempt returned without
+    writing;
   - on a guided retry, the escalated verdict's findings, then the user's guidance (`code: "user-guidance"`),
     which you follow;
   - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
-    card the verification gate finalized (D-391); the design gate's `revise:<text>`; a final-gate revision;
+    card the verification gate finalized (D-391); the design gate's `revise:<text>`; a final-gate revision. A
+    passive node the user asks for is a need (step 5);
   - in the fix round, the V4 findings D1-finish handed on as build changes (`{id, artifact, location, claim,
     issue, evidence, owner}`).
 - **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it, and the gate's
@@ -32,7 +42,11 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
     worked example and "Count and custom modifiers" ("A minion's skill" too, for a minion skill); when
     `validate` names a field, Grep that field's table row;
   - the facts under `data/`: `data/campaign/limits.json` (`passive-points.max`, `ascendancy.max`,
-    `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`);
+    `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`); with
+    no campaign stage, `data/campaign/progress.json`'s reward choices (step 7);
+  - `run-log.json`, at the run folder's root: has pricing stopped in this session (D-415, D-422)? A `stages[]`
+    entry after the last resume (from index `resumes[<last>].lengths.stages`; every entry when the log has no
+    resume) whose `priceOutcomes` counts a `locked_out` or `rate_limited` call;
   - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
     and `n` (D-375, step 3), and the rule-changer index (D-401): `data/rules/nodes.md`'s section for the card's
     ascendancy and its `## Keystones`, and Grep `uniques.md`, `gems.md` and `pairs.md` there for the build's
@@ -41,13 +55,16 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 5` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
-   adds the rares' entries), and only the endgame stages below. A `plan.json` already in the run folder belongs to an earlier design and is
+   `schemaVersion: 6` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
+   adds the rares' entries), and only the endgame stages below. A `plan.json` already in the build's folder belongs to an earlier design and is
    replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and
-   everything D1-finish wrote that your change doesn't touch.
-2. **League** (C-31, D-233):
+   everything D1-tree and D1-finish wrote that your change doesn't touch.
+2. **League** (C-31, D-233, D-422):
    - offline: `null`;
    - online: `mcp__pob2__get_leagues`' current trade league (not Standard, Hardcore or a private league);
+   - **once pricing has stopped** (Read, above), no trade call at all, `mcp__pob2__get_leagues` included: keep the
+     league the plan already has, else take the league a price result of this run recorded before the stop (an
+     `ok` entry of a card's skeleton);
    - if `mcp__pob2__get_leagues` can't be reached, a league a price result of this run recorded (an `ok` entry of a
      card's skeleton, whose league the trade site gave);
    - **never** a league the dossier or a skeleton marks unverified (R1b's fallback, `leagueUnverified`),
@@ -79,10 +96,15 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      skeleton's compiled figures (its record, by Grep): for each big lever of its archetype's Standard kits
      entry (minion levels, Spirit and minion types for a minion build), what `b` and `n` pull. Pull what the
      design can; return each lever it leaves unpulled as `lever unpulled: <lever>: <why>`.
-   - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`,
-     so each rung's tree contains the one before it, except where its `respec` drops nodes (`respec
-     {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the dropped nodes as the tool names
-     them, since W1 reads no node ids); V1 checks each rung's respec and its gold cost.
+   - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b` (`m`
+     from none when the plan has no campaign stage), so each rung's tree contains the one before it, except where
+     its `respec` drops nodes (`respec {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the
+     dropped nodes as the tool names them, since W1 reads no node ids); V1 checks each rung's respec and its gold
+     cost.
+   - **The ascendancy order** (D-413): list `m`'s `tree.ascendancyNodes` in the order to take them, each node
+     before the one that paths through it, the one the build needs first earliest; `b` and `n` keep that order
+     for the nodes they share and add theirs after. D1-finish's claim names them in that order, which the guide
+     gives the reader.
 4. **Skills** (D-120, D-122, D-148, D-217, D-295). The card's named damage source is the plan's
    `roll.skill` (D-286).
    - **The build's named damage source is the main source of damage, never a token role.** (D-122, as D-295
@@ -134,21 +156,42 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
      (`computedWithCustomMods`), and the guide lists each with its reason. **After setting Count** on a group
      whose skill reserves once per copy, on totems under Ancestral Bond, or on a group whose Umbral Well buffs
      it scales, check the stage's reservation and those buffs in the record: Count multiplies them too.
-5. **Tree.** A complete node list within the points the level allows (`data/campaign/limits.json`:
+5. **Tree.** A node list within the points the level allows (`data/campaign/limits.json`:
    `passive-points.max`; the ascendancy at most `ascendancy.max`), with its weapon-set nodes and attribute
-   choices. Start from the skeleton's tree. **The tree's shape** (D-360, as the coordinator's ruling D-364
-   states it), on every stage:
-   - a tree is a connected group of allocated nodes, the class start not counted;
-   - a start holds at most one tree, so a loop through two exits of one start is one tree, and legal;
-   - an alternate start, such as Path of the Sorceress (12795, which links exits 4739 and 44871), is opened
-     only while its node is allocated: so at most two trees with it, and one without;
-   - the ascendancy tree is connected to its start;
-   - the compile's V1 check `tree-shape` refuses the rest, naming the stage, the start and the trees.
+   choices. Start from the skeleton's tree, a sketch of the card's targets (D-418): keep its targets with their
+   paths, and path to what the needs below require; never path to a further target for damage or clear. That
+   tuning is D1-tree's: it spends the points you leave unspent on each rung's best nodes per point, their paths
+   counted, and swaps weak branches by PoB's node power, minimizing travel (the user's rule, `patterns.md`).
+   - **The needs** (D-418, plan schema 6): what each rung's tree must keep whatever node power says, as
+     `tree.needs[] {nodes, stat?}`, written **without `claim`** (D1-finish writes the `reason` claim and sets
+     it). `nodes` are nodes of that stage's `tree.nodes` (a schema error otherwise); `stat` is the power stat
+     that measures the need, by PoB's id as `mcp__pob2__get_node_power` names it (`ManaRegen`, `TotalEHP`),
+     when PoB has one, and none for one it can't measure (area for clear). Write a need on the first rung that
+     holds its nodes: the later rungs keep it, since D1-tree's `keep` holds the rung before's nodes. Node
+     power can't see these, so each is a need:
+     - mana or life sustain the build's skills run on;
+     - an attribute a gem or item of the stage requires;
+     - area or movement for clear;
+     - a boss-only gain: penetration and exposure count for nothing on a clear config with no enemy
+       resistances;
+     - a defence the floor needs;
+     - a node the card's engine names, and a node that grants a skill of the stage (`Grants Skill:`);
+     - **every producer of the stage's earned config state** that is a passive node
+       (`config.earned[].producer`, step 7), which V2 checks is present;
+     - a node the user asked for, in a `revise:` or a gate's `changes`.
+   - **The tree's shape** (D-360, as the coordinator's ruling D-364 states it), on every stage:
+     - a tree is a connected group of allocated nodes, the class start not counted;
+     - a start holds at most one tree, so a loop through two exits of one start is one tree, and legal;
+     - an alternate start, such as Path of the Sorceress (12795, which links exits 4739 and 44871), is opened
+       only while its node is allocated: so at most two trees with it, and one without;
+     - the ascendancy tree is connected to its start;
+     - the compile's V1 check `tree-shape` refuses the rest, naming the stage, the start and the trees.
 
    After a compile, the loaded build answers `mcp__pob2__find_path_to_node`, `mcp__pob2__get_nearby_nodes`
    and `mcp__pob2__get_passive_upgrades` (with `include_ascendancy: true` for ascendancy notables); both rankers
    list what PoB can't measure (C-47). The two path tools never open a second tree on a start; the tools that
    follow PoB's own paths (`mcp__pob2__get_passive_upgrades`) are caught only by `tree-shape` at the compile.
+   Leave `mcp__pob2__get_node_power` to D1-tree.
 6. **Items.** Every slot the variant uses (`Weapon 1` first) and every tree jewel, flasks and charms with
    their toggles. `b` and `n` wear an amulet: D1-finish anoints it (D-358), and leaves `m` without an anoint. A
    unique's text comes from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`. A rare is an
@@ -184,10 +227,18 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    - **Campaign reward picks** (D-265): the endgame stages carry the campaign's reward picks. For every
      reward choice a campaign stage picks (a `config.scenario` entry whose `source` is
      `campaign/progress.json#q.<key>.options[<i>]`), `m`, `b` and `n` list the same entry, the same pick, so
-     the record's endgame numbers include the reward the guide tells the player to take. D2 adds them to the
-     three rungs when it makes the picks (you design the endgame first); whenever you edit a plan that has
-     campaign stages, keep them, and add any a campaign stage picks that a rung lacks. The run checker fails an
-     endgame stage that leaves a picked choice at Nothing or picks it another way.
+     the record's endgame numbers include the reward the guide tells the player to take. Whenever you edit a
+     plan that has campaign stages, keep them, and add any a campaign stage picks that a rung lacks. The run
+     checker fails an endgame stage that leaves a picked choice at Nothing or picks it another way.
+   - **The reward picks without D2** (D-413): a plan with no campaign stage (an endgame-only build) gets its
+     picks from you. For **every** reward choice the campaign offers, each quest with a `q.<key>.options` fact in
+     `data/campaign/progress.json`, its PoB option the quest's `q.<key>.pob-config-key`, pick the option this
+     build gains most from (what its skills use, or the defence its endgame leans on), and list it on **all
+     three rungs**, the same pick on each: `{"option": <the pob-config-key's value>, "value": <the picked option,
+     exactly as the fact lists it>, "source": {"file": "campaign/progress.json", "key": "q.<key>.options[<i>]"},
+     "tag": <the fact's tag>}` in `config.scenario`. The endgame numbers then include them, and the endgame guide
+     names each pick. D2 keeps your picks when the campaign is added later. The run checker fails a rung without
+     a pick, or rungs that pick a choice two ways.
    - **Scenario inputs**, `{option, value, source: {file, key}, tag}`, each value the cited fact's own,
      with the fact's tag copied:
      - `enemyIsBoss` from `enemies/map-monsters.json#pob-enemy-is-boss`: the variants model mapping
@@ -209,13 +260,15 @@ a fresh D1 gate step (`D1-gate.md`) checks both; D2 adds the campaign after the 
    going far over its price target) add `chaosResistException {reason, tag}` to that stage: one sentence naming what makes
    the cap infeasible, tagged. Never add it to avoid work; a stage with the exception and a capped chaos
    resistance needs none.
-9. **Measure.** Validate with `mcp__pob2__guide_run {validate: "<runFolderRel>/plan.json"}` until it reports no
-   error, then compile measure-only (`mcp__pob2__compile_plan {plan_path: "<runFolderRel>/plan.json",
+9. **Measure.** Validate with `mcp__pob2__guide_run {validate: "<plan>"}` until it reports no
+   error, then compile measure-only (`mcp__pob2__compile_plan {plan_path: "<plan>",
    measure_only: true}`). Its reply gives each stage's key-figure line (the headline DPS, life, energy shield,
    EHP, the four resistances, the V1 and V2 finding counts, the Arbiter verdict and the rough clear speed) and
    its V1 and V2 findings: read the floor there, and Grep `compile-record.json` only for what the reply
    lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`). Iterate on clear speed and damage
-   once the floor holds (D-118): the rough clear speed leads, and bosses are a floor (D-407). Never a final compile.
+   once the floor holds (D-118), with the gear, gems and config: the rough clear speed leads, and bosses are a
+   floor (D-407); the tree's points beyond its targets and needs are D1-tree's. A V1 `missing-reason` on a need
+   (`tree.needs[<m>].claim`) is expected: D1-finish writes the claims. Never a final compile.
    - **A `possibly unread` line** (`mcp__pob2__check_model_coverage`) the variant depends on is confirmed by
      measurement before any hand calculation (D-243): add a temporary stage that copies the stage under
      test without that line, compile measure-only with `stages` naming the two, and compare their
@@ -235,25 +288,29 @@ never write it anew.
 
 1. **Recompile only for a build change**: gear (an item, a tree jewel, a flask or charm), the tree, the gems
    or the config (earned or scenario). Every change you make is one of these, so measure it as step 9 does;
-   D1-finish then prices and claims what moved, and the D1 gate runs after it.
+   D1-tree runs after you (it keeps your needs and spends the points you leave), D1-finish then prices and
+   claims what moved, and the D1 gate runs after it. A node you add or a need you change is a tree change like
+   any other: write a node the user asked for as a need (step 5).
 2. **Leave the rest to D1-finish.** The anoint, the prices, the ledger and the claims are D1-finish's. A
    change to a ledger entry's formula or inputs needs no recompile: the record's `buildSha1` leaves out the
    ledger, and the run checker re-evaluates the plan's current ledger (D-352).
 
 ## Writes
 
-`plan.json` only. The server writes the record and the XML beside it.
+`<buildFolder>/plan.json` only. The server writes the record and the XML beside it.
 
 ## Returns
 
 At most 8 lines: your claim, `done` or `infeasible` with its reason in a sentence; how many
 `mcp__pob2__compile_plan` calls you made; `league unverified` when no league could be verified online (step 2);
-each `left out:`, `lever unpulled:` and `override:` line; and with findings, the finding ids you fixed and the locations you changed (`plan.json
-stages[3].items`).
+each `left out:`, `lever unpulled:` and `override:` line; with findings, the finding ids you fixed and the locations you changed (`plan.json
+stages[3].items`); and for D1-tree, which runs after you, one line `for D1-tree:` with each rung's floor (`floor
+holds on m, b, n`, or the rungs where it fails) and its needs counted (`needs m 3, b 2, n 1`).
 
 ```
 D1-build r1-a-2 attempt 1: done
 compiles: 4
+for D1-tree: floor holds on m, b, n; needs m 3, b 2, n 1
 ```
 
 ```

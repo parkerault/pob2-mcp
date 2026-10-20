@@ -520,7 +520,8 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
     expect(body[1][2]).toMatch(/reports\/gates\/R1b-r1-b-1-a<N>\.json/);
     // D-294, D-296: TotalEHP beside Life, and the figure labelled an estimate on Count or custom modifiers.
     expect(body[0][4]).toMatch(/"estimate" when its group's Count is above 1 or the stage is computedWithCustomMods \(D-296\)/);
-    expect(body[0][6]).toBe('<TotalEHP>');
+    // D-423 (WU-96): the EHP names the hit it was measured against.
+    expect(body[0][6]).toMatch(/^<TotalEHP> vs <the hit it was measured against/);
     // D-407: the rough clear speed, or the no-area wording, from the skeleton's record; "—" on a card with no record.
     expect(body[0][7]).toMatch(/measures\.clearSpeed\.speed> \(rough\), or <speed> \(PoB gives no area\)/);
     for (const row of body.slice(1)) expect(row[7]).toBe('—');
@@ -1541,7 +1542,8 @@ describe('D-264: the fix round edits claims in place and recompiles only for a b
       expect({ stage, inPlace: /## The fix round and revisions \(D-264(, D-352)?\) With V4 findings or the user's requests in `findings`, you edit the plan in place/.test(text) }).toEqual({ stage, inPlace: true });
       expect({ stage, returns: /`recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed/.test(text) }).toEqual({ stage, returns: true });
       // D-264's rule as D-352 amends it: the ledger is no build change (AC-W59, WU-70); D-386: nor is a price's note.
-      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* A claims-only edit changes only `stages\[\]\.claims`, `source` and `tag` fields, the `ledger` and prices' `note`s; anything else, a respec's note .*is a build change \(step 2\)\. After your edits, validate once \(`mcp__pob2__guide_run \{validate: "<runFolderRel>\/plan\.json"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan without its claims, sources, tags, ledger and price notes to equal the final record's `buildSha1` \(D-266, D-352, D-386\)/.test(text) }).toEqual({ stage, none: true });
+      // Amendment 9 (WU-96): D1-finish's claims-only edit also sets a need's claim (D-418), and its plan is `<plan>` (D-412).
+      expect({ stage, none: /\*\*Otherwise compile nothing\.\*\* A claims-only edit changes only `stages\[\]\.claims`, `source` and `tag` fields, (a need's `claim` \(D-266 leaves it out of `buildSha1`\), )?the `ledger` and prices' `note`s; anything else, a respec's note .*is a build change \(step 2\)\. After your edits, validate once \(`mcp__pob2__guide_run \{validate: "(<runFolderRel>\/plan\.json|<plan>)"\}`\) so the plan still validates, and leave `compile-record\.json` and the PoB file as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan without its claims, sources, tags, ledger and price notes to equal the final record's `buildSha1` \(D-266, D-352, D-386\)/.test(text) }).toEqual({ stage, none: true });
     }
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/Recompile only when a fix changes the build .* Otherwise compile nothing, validate once, and leave the final record as it is\. Return `recompiled: yes` or `no`/);
   });
@@ -2017,7 +2019,8 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(text).toMatch(/\*\*The anoint\*\* \(D-358\), on `b` and `n` only; `m` has none/);
     expect(text).toMatch(/\*\*One tree track\*\* \(D-282\): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b`/);
     expect(text).toMatch(/each rung's buy order, one claim per rung \(`m`'s buys toward its 5-divine target, `b`'s buy order, `n`'s upgrade order from `b`\), the guide numbering them as you order them/);
-    expect(text).toContain('at `schemaVersion: 5`');
+    // Amendment 9 (WU-96): plan schema 6, for tree.needs (D-418).
+    expect(text).toContain('at `schemaVersion: 6`');
   });
 
   it("D1-finish writes claims only where the build hinges, each with its kind, and none for what the compile proves (D-351, amending D-279; traps and either/or picks, D-277)", () => {
@@ -2571,13 +2574,16 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
     expect(ref('stages/README.md')).toContain('`D1-build.md`, `D1-finish.md` (D1\'s two steps, D-356)');
     expect(ref('run-log.md')).toMatch(/`stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` \(the one full pass, D-352\) or `V4-recheck` \(a re-check\)/);
     expect(folded(readStage('D1-build'))).toMatch(/D1-finish \(`D1-finish\.md`\), a fresh step, then adds the anoint, the prices, the ledger and the claims/);
-    expect(folded(readStage('D1-finish'))).toMatch(/The second of D1's two steps \(D-356\), a fresh coordinator step after D1-build/);
+    // Amendment 9 (WU-96, D-418): D1 is three steps; D1-finish is the last, after D1-build and D1-tree.
+    expect(folded(readStage('D1-finish'))).toMatch(/The last of D1's three steps \(D-356, D-418\), a fresh coordinator step after D1-build/);
   });
 
   it('D1-finish reads the plan and the record through guide_run\'s views, and anchors an Edit with Read or Grep on plan.json', () => {
     const finish = folded(readStage('D1-finish'));
-    expect(finish).toContain('`mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` for `m`, `b` and `n`, batched');
-    expect(finish).toContain('`mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", claims: true}}`');
+    // Amendment 9 (WU-96, D-412): the plan is in the build's folder, `<plan>`.
+    expect(finish).toContain('`<plan>` is `<runFolderRel>/<buildFolder>/plan.json`');
+    expect(finish).toContain('`mcp__pob2__guide_run {view: {plan: "<plan>", stage: "<id>"}}` for `m`, `b` and `n`, batched');
+    expect(finish).toContain('`mcp__pob2__guide_run {view: {plan: "<plan>", claims: true}}`');
     expect(finish).toMatch(/Its JSON isn't `plan\.json`'s formatting: to anchor an Edit, Grep or Read `plan\.json` at that place/);
     // compile_plan's key-figure lines replace Grepping the record after a compile.
     expect(folded(readStage('D1-build'))).toMatch(/Its reply gives each stage's key-figure line .* read the floor there, and Grep `compile-record\.json` only for what the reply lacks/);
@@ -2725,7 +2731,8 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     const example = /```json\n([\s\S]*?)\n```/.exec(readStage('D1-gate'))?.[1] ?? '';
     const verdict = JSON.parse(example);
     expect(Object.keys(verdict.design)).toEqual(['rungs', 'estimates']);
-    expect(Object.keys(verdict.design.rungs[0])).toEqual(['stage', 'dps', 'ehp', 'arbiter', 'clearSpeed', 'anoint', 'gear', 'gems', 'tree']);
+    // Amendment 9 (WU-96): `ehpHit`, the hit the EHP was measured against (D-423); `tree` the node-power summary (D-419).
+    expect(Object.keys(verdict.design.rungs[0])).toEqual(['stage', 'dps', 'ehp', 'ehpHit', 'arbiter', 'clearSpeed', 'anoint', 'gear', 'gems', 'tree']);
   });
 
   it('no design gate runs in the fix round or a revision; the final gate\'s revise is for guide-level changes', () => {
@@ -3187,7 +3194,8 @@ describe("AC-W65 (WU-79, D-378, D-379): a minion's skill can be the named damage
   it("D1-build, R1b's bootstrap and the coordinator put a minion skill in its summon's group: `minionSkill`, `minionStatSet` for several stat sets, `main.activeSkill` on the summon, at schema version 5 (D-402's companion needs it)", () => {
     const d1 = folded(readStage('D1-build'));
     expect(d1).toMatch(/\*\*A minion skill\*\* \(D-379\) is its group's `minionSkill`, by the gem lookup's name: the group holds the summon its `Cast by:` line names, and `main\.activeSkill` is the summon, never its "Command" skill\. Add `minionStatSet` when the skill has several stat sets/);
-    expect(d1).toContain('at `schemaVersion: 5`');
+    // Amendment 9 (WU-96): D1-build writes plan schema 6 (D-418); R1b's skeleton stays at 5.
+    expect(d1).toContain('at `schemaVersion: 6`');
     expect(folded(readStage('R1b'))).toMatch(/for a minion skill, its summon, with `main\.activeSkill` on the summon, never on its "Command" skill, the skill as the group's `minionSkill`, `minionStatSet` when it has several stat sets, and the plan at `schemaVersion: 5`, D-379/);
     expect(folded(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))).toMatch(/A minion skill \(D-379\) is its group's `minionSkill`, with `minionStatSet` for a skill of several stat sets: the group holds the summon, `main\.activeSkill` is the summon, never its "Command" skill/);
   });

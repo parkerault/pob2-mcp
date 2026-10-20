@@ -1,16 +1,27 @@
 # D1-finish: the anoint, prices, ledger and claims (`build-guide-coordinator`)
 
-The second of D1's two steps (D-356), a fresh coordinator step after D1-build (`D1-build.md`). D1-build left
-the three endgame rungs of `plan.json` (`m`, `b`, `n`) built and measured; you add the anoint on `b` and `n`,
-price every slot, write the ledger and the claims, and read the plan and the record through
-`mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`D1-gate.md`) then checks the plan.
+The last of D1's three steps (D-356, D-418), a fresh coordinator step after D1-build (`D1-build.md`) and D1-tree
+(`D1-tree.md`). D1-build left the three endgame rungs of `plan.json` (`m`, `b`, `n`) built and measured, with
+their needs, and D1-tree spent their spare points and shortened their travel; you add the anoint on `b` and `n`,
+price every slot, write the ledger and the claims, the needs' and the ascendancy order's among them, and read
+the plan and the record through `mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`D1-gate.md`)
+then checks the plan.
 
 ## Inputs
 
-- **Header:** `stage: "D1-finish"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`,
-  `compile: "measure-only"`, `writes: ["plan.json"]`, `accepted` (findings the user accepted; they need no
-  fix), and `findings`:
+- **The build's folder** (D-412): the header's `buildFolder` under `runFolder`, `builds/<id>`, or `.` for a run
+  migrated from schema 3. `plan.json`, `compile-record.json` and the compiled XML are there; below, a bare
+  `plan.json` or `compile-record.json` is that folder's, and `<plan>` is `<runFolderRel>/<buildFolder>/plan.json`
+  (`<runFolderRel>/plan.json` when `buildFolder` is `.`). The cards, `run-log.json` and the other builds' folders
+  are at the run folder's root.
+- **Header:** `stage: "D1-finish"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
+  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json"]`, `accepted` (findings the user accepted; they
+  need no fix), and `findings`:
   - on a D1 gate retry, the findings D1-build had: fix the ones that are yours (a price, the anoint, a claim);
+  - on a D1 gate retry for its `tree` part (`tree-swap`), or a tree revision, D1-tree ran before you and moved
+    the trees: re-measure the anoint (step 1), anoint a rung D1-tree left without one (it removes an anoint whose
+    notable a swap allocated), write the claims of the needs it added (step 4), and fix every claim that names a
+    node the tree no longer holds;
   - the user's request from the design gate's `revise:<text>` or a final-gate revision (`code:
     "user-request"`), when it concerns the anoint, the prices, the ledger or the claims, which you make;
   - in the fix round, the V4 findings routed to D1 (`{id, artifact, location, claim, issue, evidence, hinge,
@@ -21,15 +32,17 @@ price every slot, write the ledger and the claims, and read the plan and the rec
   currency rates; D1-build's `left out:` lines, each a `reason` claim on its first stage (D-396); and its
   `lever unpulled:` and `override:` lines, each a `reason` claim on the first endgame stage (D-406, D-407).
 - **Read**, the independent calls in one response:
-  - each rung: `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<id>"}}` for `m`, `b`
-    and `n`, batched. A view gives the stage's section of the plan, its key-figure line from the record and
-    whether the plan's build changed since that compile. Its JSON isn't `plan.json`'s formatting: to anchor an
-    Edit, Grep or Read `plan.json` at that place;
-  - the claims: `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", claims: true}}`, one line each;
+  - each rung: `mcp__pob2__guide_run {view: {plan: "<plan>", stage: "<id>"}}` for `m`, `b`
+    and `n`, batched. A view gives the stage's section of the plan (its `tree.needs` among it), its key-figure
+    line from the record and whether the plan's build changed since that compile. Its JSON isn't `plan.json`'s
+    formatting: to anchor an Edit, Grep or Read `plan.json` at that place;
+  - the claims: `mcp__pob2__guide_run {view: {plan: "<plan>", claims: true}}`, one line each;
   - the card `cards/<id>.md` (its chain, enabler, links and estimates: the hinge facts), and `run-log.json`
-    (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or `rate_limited`
-    call);
-  - prices to reuse: Grep the run's other plans (`concepts/*/plan.json`) for `"prices"` and Read the hits.
+    (has pricing stopped in this session, D-415? a `stages[]` entry after the last resume, from index
+    `resumes[<last>].lengths.stages`, or any entry when the log has no resume, whose `priceOutcomes` counts a
+    `locked_out` or `rate_limited` call);
+  - prices to reuse: Grep the run's other plans (`concepts/*/plan.json`, `builds/*/plan.json`) for `"prices"`
+    and Read the hits.
 
 ## Work
 
@@ -41,7 +54,7 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      <notable>` on the stage's amulet, which PoB grants with no path and no point, and refuses a notable with
      no recipe of three Distilled Emotions, one the tree allocates, or a stage without an amulet.
    - **Measure it** with a measure-only compile (`mcp__pob2__compile_plan {plan_path:
-     "<runFolderRel>/plan.json", measure_only: true, stages: ["b", "n"]}`), against the key-figure lines
+     "<plan>", measure_only: true, stages: ["b", "n"]}`), against the key-figure lines
      before it. Prefer what the rung lacks: EHP or the Arbiter verdict when the Arbiter one-shots it, else the
      headline DPS. `reason` states what it adds, as measured, and why it isn't on the tree.
    - The record gives its recipe (`stages.<id>.anoint`: the notable, its node id and the three emotions);
@@ -85,12 +98,17 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again
      later; its third refusal makes it `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop
-     pricing for the rest of the run: every remaining item `unavailable`); any other kind, `unavailable`. The
+     pricing for the rest of the run's session, D-415: every remaining item `unavailable`); any other kind,
+     `unavailable`. The
      prefix may stand anywhere in the line: `mcp__pob2__find_upgrades` reads `Stopped early: [trade:<kind>]
      <reason>.`.
    - Offline: no price call; every entry is `unavailable`, note `offline run`, `league` null, dated the run
      folder's date, D1-build's `not priced yet` entries included. Pricing stopped: no call; `unavailable`,
-     note `pricing stopped`. League `unverified` (D1-build's return): `unavailable`, note `trade unreachable`.
+     note `pricing stopped`, and no tool that sends a trade request at all (D-422: `mcp__pob2__get_leagues`,
+     `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats`,
+     `mcp__pob2__find_upgrades`); `mcp__pob2__trade_query_options` sends none, and a Distilled Emotion's
+     `mcp__pob2__get_item_price` reads poe.ninja's currency exchange, so both stay allowed (the latter not with
+     `--no-ninja`). League `unverified` (D1-build's return): `unavailable`, note `trade unreachable`.
      Count every call by its outcome for your return.
 3. **Ledger** (D-106, as D-352 and D-353 narrow it). A ledger entry `{id, claim, formula, inputs}`, its
    inputs tagged, holds a hand calculation only where PoB doesn't model a mechanic the build relies on: a
@@ -109,10 +127,28 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      first choice, ours, and what PoB can't measure that decides it), an either/or pick (up to 2, the deciding
      factor measured, and online the price difference), the named source in the single-target role, and each
      rung's buy order, one claim per rung (`m`'s buys toward its 5-divine target, `b`'s buy order, `n`'s upgrade
-     order from `b`), the guide numbering them as you order them.
+     order from `b`), the guide numbering them as you order them;
+   - `reason`, for the tree and the reward picks (D-413, D-418):
+     - **the needs:** every need of every rung's `tree.needs` gets a `reason` claim on its own stage, and you set
+       its `claim` to that claim's id (one claim may cover several needs of its stage). It says what the nodes
+       keep, naming them as `mcp__pob2__search_tree_nodes` names them, and why node power can't see it: sustain,
+       an attribute a gem or item requires, area or movement for clear, a boss-only gain, the producer of an
+       earned state, the user's request; a need with `stat` `TotalEHP` holds the floor (D1-tree writes one for a
+       swap that failed the floor or V1 when measured). It cites the need's `stat` as a record field
+       (`<stageId>.<stat>`) where it has one, else a lookup or a `judgment`. A need with no `claim`, or one
+       naming no claim of its stage, is the D1 gate's V1 finding `missing-reason`; until you set them, every
+       compile reports it, as expected;
+     - **the ascendancy order:** one claim on `m`, id `m-ascendancy-order`, naming every node of `m`'s
+       `tree.ascendancyNodes` by the name `mcp__pob2__search_tree_nodes {ascendancy: "<the roll's
+       ascendancy>"}` gives it, in that array's order and no other, and why that order (what each adds when it is
+       taken), tagged `pob-data` with the lookup as its ref. W1 renders it, since it reads no node ids, and V4
+       checks its order against `ascendancyNodes`;
+     - **the reward picks without D2**, in a plan with no campaign stage: one claim on `m` per pick D1-build
+       made, the quest, the option taken and a one-line reason, citing
+       `data:campaign/progress.json#q.<key>.options[<i>]`. The endgame guide names each pick with its reason.
 
    What the compile proves carries no claim: requirements, gem and stage levels, record numbers, ledger
-   values, prices and tree lists, which the guide renders from the plan and the record. Superfluous content
+   values, prices and tree lists (a need's nodes aside), which the guide renders from the plan and the record. Superfluous content
    (kill times, minor picks) gets none: the run aims at most 56 claims. Never quote a
    `mcp__pob2__suggest_supports` gain as a number in a claim: it is a transient measurement no record field
    holds; state a support's effect from its gem text, a ledger entry or a record field.
@@ -131,7 +167,7 @@ price every slot, write the ledger and the claims, and read the plan and the rec
      Affix targets are text: no tier labels and no trade links.
    - Offline: a claim that would need an external source is tagged `external-unavailable` (ref exactly
      `external source unavailable (offline run)`, with a confidence).
-5. **Validate** with `mcp__pob2__guide_run {validate: "<runFolderRel>/plan.json"}` until it reports no error.
+5. **Validate** with `mcp__pob2__guide_run {validate: "<plan>"}` until it reports no error.
    No final compile: the D1 gate compiles.
 6. **Claim.** `done`. A price over its target is information for the user (D-371): it never sends the design
    back.
@@ -158,15 +194,15 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
    recompile and no gate: the record's `buildSha1` leaves out the ledger, and the run checker re-evaluates
    the plan's current ledger (D-352). A price's `note` is wording too, which `buildSha1` leaves out (D-386).
 4. **Otherwise compile nothing.** A claims-only edit changes only `stages[].claims`, `source` and `tag` fields,
-   the `ledger` and prices' `note`s; anything else, a respec's note or a `chaosResistException`'s reason included, is a build
+   a need's `claim` (D-266 leaves it out of `buildSha1`), the `ledger` and prices' `note`s; anything else, a respec's note or a `chaosResistException`'s reason included, is a build
    change (step 2). After your edits, validate once (`mcp__pob2__guide_run {validate:
-   "<runFolderRel>/plan.json"}`) so the plan still validates, and leave `compile-record.json` and the PoB file
+   "<plan>"}`) so the plan still validates, and leave `compile-record.json` and the PoB file
    as the final compile left them: no gate runs after you, and the run checker requires the sha1 of the plan
    without its claims, sources, tags, ledger and price notes to equal the final record's `buildSha1` (D-266, D-352, D-386).
 
 ## Writes
 
-`plan.json` only. The server writes the record and the XML beside it.
+`<buildFolder>/plan.json` only. The server writes the record and the XML beside it.
 
 ## Returns
 

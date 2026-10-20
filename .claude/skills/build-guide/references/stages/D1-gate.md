@@ -1,22 +1,30 @@
 # D1-gate: check the endgame variants (`build-guide-coordinator`)
 
-A fresh coordinator step after every D1 attempt (D1-build, then D1-finish): it runs the final re-price pass,
-compiles `plan.json` measure-only, reads the record, and writes the D1 gate's verdict file, which the runner
-routes on and the run checker recomputes, with the design gate's display in it (A-35). You check; you don't
-design. Fix nothing in the plan: a failure goes back to D1 as findings.
+A fresh coordinator step after every D1 attempt (D1-build, D1-tree, then D1-finish): it runs the final re-price
+pass, compiles `plan.json` measure-only, reads the record, measures each rung's tree with PoB's node power, and
+writes the D1 gate's verdict file, which the runner routes on and the run checker recomputes, with the design
+gate's display in it (A-35). You check; you don't design. Fix nothing in the plan: a failure goes back to D1 as
+findings.
 
 ## Inputs
 
+- **The build's folder** (D-412): the header's `buildFolder` under `runFolder`, `builds/<id>`, or `.` for a run
+  migrated from schema 3. `plan.json`, `compile-record.json` and the compiled XML are there; below, a bare
+  `plan.json` or `compile-record.json` is that folder's, and `<plan>` is `<runFolderRel>/<buildFolder>/plan.json`
+  (`<runFolderRel>/plan.json` when `buildFolder` is `.`). `run-log.json` and the verdict files are at the run
+  folder's root.
 - **Header:** `stage: "D1-gate"`, `attempt` (counts this concept's D1 gate attempts), `concept`, `mode`,
-  `runFolder`, `runFolderRel`, `compile: "measure-only"`, `accepted` (findings the user accepted),
-  `faults` (FI-2, FI-3: offline test runs only), `writes`: the verdict file
-  `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.json` when the re-price pass or FI-2 may edit
-  it.
+  `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `accepted` (findings the user
+  accepted), `faults` (FI-2, FI-3: offline test runs only), `writes`: the verdict file
+  `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` when the re-price pass or
+  FI-2 may edit it.
 - **Prompt:** with `--no-ninja`, that there are no currency rates (D-333).
 - **Read**, the independent calls in one response: each rung through `mcp__pob2__guide_run {view: {plan:
-  "<runFolderRel>/plan.json", stage: "<id>"}}` (`m`, `b`, `n`), and Grep `plan.json` for its `prices` entries;
-  `run-log.json` (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or
-  `rate_limited` call); and `data/economy/prices.json`, the league table and the conversion table. After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, and
+  "<plan>", stage: "<id>"}}` (`m`, `b`, `n`: its `tree` with its `needs`, its `loadoutName`, `respec`,
+  `skills.groups` and claims), and Grep `plan.json` for its `prices` entries; `run-log.json` (has pricing stopped
+  in this session, D-415? a `stages[]` entry after the last resume, from index `resumes[<last>].lengths.stages`,
+  or any entry when the log has no resume, whose `priceOutcomes` counts a `locked_out` or `rate_limited` call);
+  and `data/economy/prices.json`, the league table and the conversion table. After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, and
   every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
   `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Grep the record for the fields the text
   lacks; never Read it whole. This page states the parts and codes (`gates.md` holds the same table).
@@ -32,13 +40,23 @@ design. Fix nothing in the plan: a failure goes back to D1 as findings.
    `target`) needs its rung loaded: compile measure-only as step 3 does, select the rung's loadout
    (`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<its loadout name>"}`) and call
    `mcp__pob2__find_upgrades` with the arguments its `query` records; step 3 then compiles the re-priced plan. Count every call by its outcome for your return. Offline, or once pricing has stopped, skip it.
-3. **Compile** the whole plan measure-only: `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/plan.json",
-   measure_only: true}`, with no `stages`. A compile error is part `compiled` failing (code
-   `compile-error`, the error line as the message, the plan stage it names as `stage`); then every other
-   part is `unverified`, and you write the verdict file.
+   **No trade call once pricing has stopped** (D-422), in any step: no `mcp__pob2__get_leagues`,
+   `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` or
+   `mcp__pob2__find_upgrades`. The market's league is the plan's, recorded before the stop, and the market day
+   keeps its computation (step 4). `mcp__pob2__get_currency_rates` reads poe.ninja, not the trade site, and stays
+   allowed (not with `--no-ninja`).
+3. **Compile** the whole plan measure-only: `mcp__pob2__compile_plan {plan_path: "<plan>",
+   measure_only: true}`, with no `stages`; it loads every rung's loadout. A compile error is part `compiled`
+   failing (code `compile-error`, the error line as the message, the plan stage it names as `stage`); then every
+   other part is `unverified`, and you write the verdict file. A compile the permission system refused (D-421)
+   isn't a compile error: part `compiled` is `unverified` with code `tool-refused`, every other part
+   `unverified`; write the verdict file and return `refused: mcp__pob2__compile_plan`. Grep the new
+   `compile-record.json` for `"planSha1"`: the verdict file carries it (F1 checks the plan the user accepts
+   against it, D-413).
 4. **Read the record** (`compile-record.json`, C-33) and fill each part (`gates.md`). "Endgame stages" are
    the plan's stages with a `variant`: the rungs `m`, `b` and `n`, each gated the same way (D-281). Once the compile ran, every part but the budget is `pass` or `fail`:
-   only the budget may stay `unverified` (D-164).
+   only the budget may stay `unverified` (D-164), and the tree when `mcp__pob2__get_node_power` fails
+   (`tool-error`) or is refused (`tool-refused`, D-421).
    - **v1, v2**: `fail` when any endgame stage's `v1` or `v2` verdict in the record has a finding. Each
      record finding becomes a gate finding with its record `code`, part `v1` or `v2`, and the plan stage.
    - **floor**: per endgame stage, `MissingFireResist`, `MissingColdResist` and `MissingLightningResist`
@@ -99,6 +117,25 @@ design. Fix nothing in the plan: a failure goes back to D1 as findings.
      `rolled-not-main`), and a stage without `statSet`, a rolled figure `g<group>s<skill>p<n>` other than
      `g<main.group>s<main.activeSkill>p<main.statSet>`, or a rolled `ledger:<id>` figure whose formula reads
      another breakdown field fails with `rolled-stat-set`.
+   - **tree** (D-419), PoB's node power on each rung, after the compile loaded them: call
+     `mcp__pob2__get_node_power` in compact mode on `m`, `b` and `n`, in that order, with D1-tree's arguments
+     (`D1-tree.md`, "The arguments"): `loadout` the rung's loadout name, exactly as the record has it
+     (`stages.<id>.loadoutName`); `keep` the nodes of its `tree.needs`, for `b` and `n` also every node of the
+     rung before's `tree.nodes`, and every node a later rung's `respec.dropped` lists; `protect_for` the later
+     rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the
+     rung's first enabled `role: "clear"` group (the `g<N>` of its `skillOutputs` keys), else the main group's
+     (the tool's default is the main group); `max_loss` at its default (2% on TotalEHP; the guards, movement
+     speed and the clear skill's radius and uses per second, at 0), as D1-tree uses it; `limit: 0`. Step 3's
+     compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
+     `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Full
+     DPS (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>
+     points: <Name> [<id>], …`, the nodes by name. A rung whose best swap gains **5%** Full DPS or more fails the part, one `tree-swap` finding per such
+     rung, its message the swap (`b: +6.2% Full DPS by moving 5 points from Dexterity, Agile Succession to Cold
+     Nature, Rhythm of Ice`); else the part passes. When a call fails or times out, the part is `unverified`
+     with one `tool-error` finding, its `stage` the rung and its message the error line, and no `tree-swap`
+     finding even on a rung measured at 5% or more: the gate re-runs alone and judges every rung then. A refused
+     call (D-421) is `unverified` with `tool-refused`: stop calling, write the verdict file, and return
+     `refused: mcp__pob2__get_node_power`.
 5. **Accepted findings.** Report every failure the record shows. One equal to a finding in the header's
    `accepted` (same plan stage, part and code) is reported with `"accepted": true`, and fails no part.
 6. **The design gate's display** (D-362, A-35). Whenever the compile ran, write the verdict file's `design`
@@ -107,25 +144,37 @@ design. Fix nothing in the plan: a failure goes back to D1 as findings.
    - `stage`; `dps` and `ehp`, the record's `measures.dps` and `measures.ehp`, rounded to whole numbers;
      `arbiter`, on `b` and `n`, the verdict of `measures.arbiter` with its worst hit and ratio (`survives,
      worst physical 0.82`), else `null`; `clearSpeed`, `measures.clearSpeed.speed` (a rough estimate);
+   - `ehpHit` (D-423), the hit that `ehp` was measured against, which the display's Effective HP line names:
+     the rung's reference hits as the record's `configWritten` holds them, by map tier, area level and the
+     physical hit (`T15 map hits, area 79: 402 physical`), so it compares with the dossier's EHP;
    - `anoint`: the notable and its recipe from the record's `stages.<id>.anoint` (`Unbending: Ire, Guilt,
      Greed`), or `null` (`m`);
-   - `gear`, `gems` and `tree`: one short line each, under 120 characters: the key uniques and rare targets;
-     the named source's group and its main supports; the ascendancy notables and the tree's main clusters.
+   - `gear` and `gems`: one short line each, under 120 characters: the key uniques and rare targets; the named
+     source's group and its main supports;
+   - `tree` (D-419): `{travel, points, bestSwap, needs}` from the tree part: `travel` and `points`, whole
+     numbers, from the rung's `Travel:` line; `bestSwap` `null` when the reply says none, else `{gainPercent,
+     removed: [<names>], added: [<names>]}`, `gainPercent` the swap's Full DPS gain as a number, the names as the
+     reply gives them; `needs`, one short line per need of the rung's `tree.needs`, under 120 characters, what
+     it keeps and why, from its claim (`Mana on Kill and Mana Regeneration: the howl spam's mana`). The display
+     prints the travel and the swap left, then each need, so the user sees why a long branch stays. A rung the
+     tool didn't measure (`tool-error`, `tool-refused`): `{"travel": 0, "points": 0, "bestSwap": null, "needs":
+     [...]}`, and an `estimates[]` line saying so.
 
    Then `estimates[]`, one short line per open estimate the display rests on: a group's Count, a custom
-   modifier, a ledger hand calculation, an `unverified` budget, and the rough clear speed once.
+   modifier, a ledger hand calculation, an `unverified` budget, the rough clear speed once, and a rung whose
+   tree wasn't measured (`b: the passive tree wasn't measured: the node power call failed`).
 
 ## Writes
 
-The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.json` only where the header's
-`writes` names it (FI-2 and the re-price pass). The field names are a contract (`gates.md`):
+The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` only where the
+header's `writes` names it (FI-2 and the re-price pass). The field names are a contract (`gates.md`):
 
 ```json
 {
   "stage": "D1-gate",
   "concept": "r1-a-2",
   "attempt": 1,
-  "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass", "floor": "pass", "budget": "unverified", "rolledSkill": "pass" },
+  "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass", "floor": "pass", "budget": "unverified", "rolledSkill": "pass", "tree": "pass" },
   "findings": [
     { "part": "budget", "code": "unverified", "stage": "b", "message": "every budget price is unavailable (offline run)" },
     { "part": "floor", "code": "chaos-exception", "stage": "b", "message": "ChaosResist 28: no slot can carry chaos resistance without dropping a core item or going far over its price target" }
@@ -145,15 +194,18 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
   },
   "design": {
     "rungs": [
-      { "stage": "b", "dps": 98412, "ehp": 31250, "arbiter": "survives, worst physical 0.82",
+      { "stage": "b", "dps": 98412, "ehp": 31250, "ehpHit": "T15 map hits, area 79: 402 physical",
+        "arbiter": "survives, worst physical 0.82",
         "clearSpeed": "fast", "anoint": "Unbending: Ire, Guilt, Greed",
         "gear": "Sekhema's Resolve; rare boots, 30% movement speed and resistances",
         "gems": "Blood Hunt with Martial Tempo and Rupture; Herald of Blood",
-        "tree": "Brutal Fury and Crushing Impacts; the life and armour wheels by the Warrior start" }
+        "tree": { "travel": 9, "points": 113, "bestSwap": { "gainPercent": 3.4, "removed": ["Dexterity", "Agile Succession"], "added": ["Cold Nature", "Rhythm of Ice"] },
+                  "needs": [ "Mana on Kill and Mana Regeneration: Blood Hunt's mana in long fights", "Iron Reflexes: the floor's armour" ] } }
     ],
     "estimates": [ "b: clear speed is a rough estimate from the skill's area" ]
   },
-  "recordPath": "compile-record.json",
+  "planSha1": "4f0c3b9e1d2a7c6b5e8f9a0b1c2d3e4f5a6b7c8d",
+  "recordPath": "builds/r1-a-2/compile-record.json",
   "faultsApplied": []
 }
 ```
@@ -170,18 +222,22 @@ The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `plan.js
   rule), and W1 quotes the totals and the figures.
 - `design`: the design gate's display (step 6), `rungs[]` and `estimates[]`; absent only when the compile
   failed.
+- `planSha1`: the record's `planSha1` after step 3's compile, the plan this gate passed; F1 compiles only that
+  plan (D-413), and `design:<id>` after a resume is offered only while `plan.json` is still it.
+- `recordPath`: the record, from `runFolder` (`<buildFolder>/compile-record.json`).
 - `faultsApplied`: `[{"id": "FI-2", "observed": "<the V1 finding it caused>"}]`, and for FI-3
   `{"id": "FI-3", "observed": "gate run as usual; outcome forced to infeasible"}`, for each directive the
   header held.
 
 ## Returns
 
-At most 8 lines: the verdict in one line, the verdict file, and the re-price pass's calls counted by
-outcome.
+At most 8 lines: the verdict in one line, the verdict file, each rung's travel, the re-price pass's calls
+counted by outcome, and `refused: <tool>` when the permission system refused a call (D-421).
 
 ```
-D1-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass
+D1-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass, floor pass, budget unverified, rolledSkill pass, tree pass
 reports/gates/D1-gate-r1-a-2-a1.json
+travel: m 8 of 88, b 9 of 113, n 12 of 120
 prices: none (offline)
 ```
 

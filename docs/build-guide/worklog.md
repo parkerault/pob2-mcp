@@ -5174,3 +5174,11 @@ the `m17` engine at `b76967b`.
   `V4-campaign`'s H1, `design:<id>` only on an unchanged plan) are added to the handoff's M-21 formats. One
   temporary weakening: `buildGuideScripts.test.ts:414` holds schema-4 calls inline until WU-95 rewrites
   `run-log.md`.
+- **WU-92 done by its doer** (`b952dcf`, one commit, about 614K tokens). Gate rc 0 (150 suites, 2,656 tests), build
+  rc 0. `get_node_power` over `pob-api/API/NodePower.lua`, one `node_power` request, figures equal to PoB's
+  `PowerBuilder`, the legal best swap with `keep`, `protect_for`, the clear guard and `max_loss` (a number, or a
+  map by stat id and the guards `movement`, `clearRadius`, `clearUses`); `get_passive_upgrades` on the same pass
+  (its "upgrades" mode, about 3 s on the golden build). 12 engine tests. **Watch:** Full DPS on the golden build
+  took 33–66 s CPU per pass under load (timeout 120 s); `get_passive_upgrades`' description now says "passives" and
+  its default output drops some stat lines (the verifier judges the HG-12 scope). The verifier is running.
+- **WU-96 dispatched** (`bg-96`, off `ddb71ea`), reading WU-92's interface from `bg-92`.

@@ -5269,3 +5269,10 @@ the `m17` engine at `b76967b`.
   would meet the ledger's refusal every time with no escalation option that finishes the run. The fix round also
   takes four unowned loose ends (`D1-finish.md`'s retry chain without D1-tree, `R1b.md`'s "rest of the run",
   `Q.md`'s plan path, the compaction script's `--build`) and asks for `SKILL.md` as lean as the content allows.
+- **WU-95's fix round** (`6f6675b`, rebased onto `6348f82`): the `-campaign` PoB file in the skill text, the task
+  header, the coordinator's definition and the checker's name rule (only for a final record from a D2 gate after a
+  campaign answer), the run-builds fixture's `r1-a-1` renamed; `D1-finish.md`'s retry chain with D1-tree; `R1b.md`'s
+  stop per session; `Q.md`'s build folder; the compaction script's `[--build <id>]`. `SKILL.md` 339 lines, 31,319
+  characters (230 and 20.7K before amendment 9; its detail moved to `start.md`, `fix-round.md`, `gates.md` and
+  `checkpoints.md`). Gate rc 0 (161 suites, 2,854 tests). The verifier is running, with an end-to-end read of the
+  routes a real run takes.

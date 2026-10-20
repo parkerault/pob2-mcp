@@ -5114,3 +5114,6 @@ the `m17` engine at `b76967b`.
   display field, the refused route, V4's campaign pass, the answer forms).
 - **The estimate:** about 4–5M tokens for the seven units, their verifiers, fix rounds and the wave gate (M-20's
   eight units were estimated at 4.5–5.5M).
+- **M-21 wave 1 dispatched:** WU-92 (`bg-92`), WU-93 (`bg-93`) and WU-94 (`bg-94`), each off the integration head
+  `2e81806` (worktree `m21`, branch `build-guide/m21`, off `main`). The work-log continues here, unsigned until the
+  sign-rebase.

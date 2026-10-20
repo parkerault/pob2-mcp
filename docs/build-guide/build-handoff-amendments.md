@@ -4,7 +4,70 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-20: amendment 8, finding the build's engine (read this first)
+## M-21: amendment 9, endgame builds first and trees that minimize travel (read this first)
+
+Added 2026-10-19. For this build, this section overrides the M-20 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged.
+
+- **Spec.** `docs/build-guide/spec/amendment-9-endgame-first.md` is binding: D-411…D-424, WU-92…WU-98 (§18) and
+  their ACs (§19). M-22 (§17: D-425…D-428, WU-100…WU-103) is not part of this build; WU-99 is the user's live test
+  after the wave gate. The spine and slices are v1.6, with amendment 8 built; where amendment 9 and they disagree
+  inside D-411…D-424's scope, amendment 9 wins; anywhere else report a conflict. Read §3, §4, the decisions your
+  unit touches, its row in §18 and its AC in §19.
+- **Approved** by the user on 2026-10-19 ("Draft looks good, go ahead"), after an independent review and its
+  re-check (§22).
+- **HG-12 is granted for the amendment's tool changes only:** the new tool `get_node_power` (C-55, group `core`,
+  engine `read`, its 120 s long action); `get_passive_upgrades`'s candidate source (its arguments and output
+  unchanged); `guide_run {resume}` (no engine call); the compile record's `requirements` and skeleton stages
+  measured against the rungs' reference hits; plan schema 6 (`tree.needs`, only `claim` out of `buildSha1`); the
+  listed tool count 84 to 85. Any other tool-contract change is still HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m21`, branch `build-guide/m21`, off `main`. Lanes
+  `bg-<nn>` on `bg/wu-<nn>`, off the integration head when the unit starts. Never touched: the main checkout,
+  `/home/parker/projects/pob2-mcp-wt/m18` (the live runs'), and the stale M-20 worktrees (`m20`, `bg-84`…`bg-91`).
+- **Waves.** Wave 1: WU-92, WU-93, WU-94 in parallel. Wave 2, after wave 1 merges: WU-96, WU-97 and WU-98 in
+  parallel, then WU-95 (it owns the pipeline static test and the references the stage files point at). The
+  coordinator merges each unit after its verifier passes.
+- **Who owns what** (each unit also owns its new tests, in new files):
+  - **WU-92:** the bridge's `node_power` handler (a new `pob-api/API/NodePower.lua`, registered in
+    `pob-api/API/Handlers.lua`); its reply schema in `src/engine/schemas.ts`, its wrapper and long-action timeout in
+    `src/pobLuaBridge.ts`, its case in `tests/integration/contract.test.ts`; `src/handlers/treeHandlers.ts`
+    (`get_node_power`, and `get_passive_upgrades`' candidates); its entries in `src/server/toolSchemas.ts`,
+    `toolMeta.ts` and `toolRouter.ts`; the README table (`pnpm build && pnpm docs:tools --write`) and the tool-count
+    sites.
+  - **WU-93:** `src/plan/schema.ts`, `src/plan/buildHash.ts`, `src/plan/compiler.ts`, `src/plan/record.ts`,
+    `src/plan/checks/` (V1's `missing-reason` for needs), `docs/build-guide/plan-reference.md`,
+    `src/handlers/planHandlers.ts` (`guide_run {resume}`) and `guide_run`'s entries in `toolSchemas.ts` and
+    `toolRouter.ts`.
+  - **WU-94:** `.claude/skills/build-guide/scripts/check-run.mjs`, `run-log.mjs`, `render-audit.mjs`,
+    `scripts/run-usage.mjs`, `tests/fixtures/pipeline/`.
+  - **WU-96:** `references/stages/D1-build.md`, `D1-finish.md`, `D1-gate.md`, the new `D1-tree.md` and `F1.md`,
+    `R1b.md` (its league rule only), `references/gates.md`, `references/patterns.md` (the travel rule only).
+  - **WU-97:** the new `templates/guide-endgame-template.md`, `references/stages/W1.md`, `references/stages/V4.md`.
+  - **WU-98:** `src/trade/` (the 429's fix, if it is ours), `scripts/compact-reminder.sh`,
+    `docs/build-guide/run-settings.example.json`.
+  - **WU-95:** `SKILL.md`; `references/` `checkpoints.md`, `run-folder.md`, `run-log.md`, `start.md`, `pricing.md`,
+    `fix-round.md`, `task-header.md`, `offline-and-test.md`; the four definitions in `.claude/agents/build-guide/`;
+    `tests/static/buildGuidePipeline.test.ts`.
+  - **The coordinator:** the work-log and the spec.
+- **Serialized files:** `toolSchemas.ts`, `toolRouter.ts`, `toolMeta.ts` and the README table: WU-92, then WU-93,
+  which rebases onto WU-92's merge before its own. `tests/static/buildGuidePipeline.test.ts`: WU-95; WU-96 and WU-97
+  put their static checks in new files, and when their text breaks a pinned assertion there, update only that
+  assertion and say so in the report.
+- **Formats fixed before the build,** so the scripts (WU-94) and the stage files (WU-95 to WU-97) agree:
+  - F1's verdict file: `reports/gates/F1-<id>-a<n>.json`, the D2 gate verdict's shape (`gates.md`), `stage: "F1"`.
+  - The D1 gate verdict gains part `tree` (`pass`, `fail` or `unverified`), finding codes `tree-swap` and
+    `tool-error`; its `design` field gains, per rung, `tree: {travel, points, bestSwap, needs}`, `bestSwap` null or
+    `{gainPercent, removed: [names], added: [names]}`, `needs` the needs' reasons as text.
+  - The refused route: stage outcome `refused`; verdict code `tool-refused`; return line `refused: <tool>`.
+  - V4's campaign pass: stage `V4-campaign`, header `check: "campaign"`, report H1 `campaign pass of rounds/<n>`.
+  - The run log's schema 4 (§6), `resumes[]` entries with the four lists' lengths (§9), and the answer forms (§5,
+    §9): `pick:<id>[,<id>…]`, `accept:file`, `campaign`, `accept:verification`, `decline:<note>`, `guide:<id>`,
+    `campaign:<id>`, `design:<id>`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap. WU-98 investigates the 429 by reading the
+  limiter's code and testing it through `fixtureFetch`; nothing contacts the trade site.
+
+## M-20: amendment 8, finding the build's engine (built)
 
 Added 2026-10-18. For this build, this section overrides the M-19 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here.

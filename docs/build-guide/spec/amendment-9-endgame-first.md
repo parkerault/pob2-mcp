@@ -1,6 +1,7 @@
 # Amendment 9: endgame builds first, and trees that minimize travel
 
-**Status: DRAFT, revised 2026-10-19.** The user took §21's four recommendations the same day (the targets 1.2M,
+**Status: APPROVED by the user, 2026-10-19** ("Draft looks good, go ahead"), after the independent review and its
+re-check; the M-21 build starts. The user took §21's four recommendations the same day (the targets 1.2M,
 0.75M and 0.4M; the tree threshold failing the D1 gate; M-21 and its live test before M-22; `get_passive_upgrades`
 rebuilt on the power builder) and asked for an independent review before approving the amendment. The review found 5
 blockers, 18 should-fix findings and 12 nits; the first revision resolved most of them, the reviewer's re-check

@@ -5101,3 +5101,16 @@ the `m17` engine at `b76967b`.
   `buildSha1`; resume positions by list lengths; the clear entry as the guard; undone swaps kept as needs; F1's
   escalation; `design:<id>` on resume, which also gives the user Executioner's Howl's PoB file.
 - **Next:** the user's approval, or one more re-check first.
+
+## 2026-10-19: amendment 9 approved; the M-21 build starts
+
+- **The user's ruling:** "Draft looks good, go ahead." Amendment 9's status is APPROVED; the build of M-21
+  (WU-92…WU-98) starts, M-22 waits for M-21's live test (choice 3).
+- **HG-12** is granted for the amendment's own tool changes, listed in the handoff's new M-21 section: `get_node_power`,
+  `get_passive_upgrades`' candidates, `guide_run {resume}`, the record's `requirements` and the skeletons' reference
+  hits, plan schema 6, the tool count 84 to 85.
+- **The handoff** gains an M-21 section: waves (WU-92, WU-93, WU-94; then WU-96, WU-97, WU-98; then WU-95), owners,
+  serialized files, and the formats the scripts and the stage files share (F1's verdict, the `tree` part and its
+  display field, the refused route, V4's campaign pass, the answer forms).
+- **The estimate:** about 4–5M tokens for the seven units, their verifiers, fix rounds and the wave gate (M-20's
+  eight units were estimated at 4.5–5.5M).

@@ -5276,3 +5276,13 @@ the `m17` engine at `b76967b`.
   characters (230 and 20.7K before amendment 9; its detail moved to `start.md`, `fix-round.md`, `gates.md` and
   `checkpoints.md`). Gate rc 0 (161 suites, 2,854 tests). The verifier is running, with an end-to-end read of the
   routes a real run takes.
+- **WU-95 verified: FAIL on one blocker** (gate rc 0, 161 suites, 2,854 tests; the end-to-end read as the runner
+  rebuilt the run-builds log from `SKILL.md`'s calls and matched the fixture; the campaign, the migrated resume and a
+  compaction all passed the real checker): a resumed run ignores the session's `--no-ninja` (`resume` records it
+  only in `resumes[]`, the runner reads the top-level field). Second fix round sent: `resume` sets the top-level
+  field; `D2.md`'s stale rewrite sentence; `start.md`'s §7 → §8; D1-tree's `not made:` lines shown at the design gate;
+  F1's ledger option in `SKILL.md` §5; three duplicated blocks moved out of `SKILL.md`. **For the live test (§16),
+  noted for the user:** `design:r1-x-1` then `accept:file` ends the resumed run, so finalize r1-b-3 first and answer
+  its final gate `accept:verification`, then `design:r1-x-1`; or resume twice. **For the fold:** `new_run`'s reply
+  still prints `plan_path for this run: <rel>/plan.json` (`src/handlers/planHandlers.ts:553`), stale with build
+  folders; a second `--resume` in one Claude session lifts that session's pricing stop.

@@ -5132,3 +5132,6 @@ the `m17` engine at `b76967b`.
   after a swap rather than requiring a pass (a need's `missing-reason` is expected until D1-finish writes the
   claims), and D-423's "each display names the hit" is WU-96's (the dossier's EHP column via `R1b-assemble.md` and
   the dossier template, and the D1 gate's design text), added to its files in the handoff.
+- **Correction:** WU-93's verifier took about 172K tokens, not 260K.
+- **WU-98 dispatched early** (`bg-98`, off `1795d4d`): it depends on no wave-1 unit (the 429 in `src/trade/`, the
+  compaction script, the run-settings example), so it takes the slot WU-93's verifier freed.

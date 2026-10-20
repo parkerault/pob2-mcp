@@ -4773,3 +4773,248 @@ the `m17` engine at `b76967b`.
   - **Not pushed.**
   - **Left for the user:** pushing; removing the worktrees `m20` and `bg-84`…`bg-91` and their branches
     (`build-guide/m20`, `bg/wu-84`…`bg/wu-91`); reconnecting the pob2 server after `build/` is rebuilt.
+
+## 2026-10-19: compaction while a run waits; candidates for the next amendment
+
+- **The user's question:** Claude Code compacts an idle session over 200K tokens, and a run often waits at a gate
+  while the user is away; what could a compaction lose? The user started the first engine-lens run in `m18`
+  (amendment 8 §16) and asked for a review of the skill: anything found goes to the next amendment.
+- **Claude Code's behaviour** (code.claude.com docs, read 2026-10-19 by a docs agent, 67K tokens):
+  - idle compaction fires after about 54 minutes without a request, at 200,000 tokens or more
+    (`CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS`, floor 100,000); `idleCompaction: false` turns it off, and threshold
+    compaction near the window still runs;
+  - after a compaction an invoked skill's body is re-injected, capped at 5,000 tokens per skill and keeping the
+    start; the references a skill read are not;
+  - background subagents keep running through a compaction, and Claude Code says which still are;
+  - a `SessionStart` hook with the `compact` matcher fires after every compaction, and its output joins the
+    context; a plugin's `hooks/hooks.json` carries such a hook with the plugin.
+- **What a waiting run holds only in the runner's context:**
+  1. **The interview's answers before the decision.** `checkpoints.md` writes `interviews/<gate>-<visit>.md` only
+     once the user decides; the runner's own answers (card files, lookups) live in its context until then. A gate
+     question step's report is on disk already. W1 builds the guide's FAQ from these notes.
+  2. **The decision awaiting a yes:** the restatement, a revision's `changes` in the user's own words, a new
+     card's proposed name and id. All are logged only on the yes.
+  3. **`--no-ninja`** is recorded neither in `run-log.json` nor in the task header; the runner tells each pricing
+     step from memory.
+  4. **SKILL.md is about 20,700 characters,** roughly 5,200 to 5,900 tokens: the re-injected copy can lose its end
+     (§5 escalations to §7 finish). The references read before the gate (`checkpoints.md`'s interview procedure,
+     `gates.md`'s routing) aren't re-injected at all.
+  - Low: after a final-gate revision that doesn't re-run W1, step 14 uses W1's earlier `known-issues-line`
+    numbers; a `grep -n` recovers them.
+  - Fine as it is: progress, verdicts, cards, research and question reports are files; `display <gate>` reprints
+    a visit without recording a second one (`run-log.mjs`); attempts and pricing state come from `stages[]`.
+- **Candidates for the next amendment:**
+  - write the visit's notes after each answer, not at the decision;
+  - write the pending decision, with the user's words verbatim, into the notes before asking for the yes, and log
+    the checkpoint from them;
+  - record `--no-ninja` in the run log's `init`;
+  - a hard rule near SKILL.md's top: after a compaction, re-read SKILL.md whole, `run-log.json`, the current
+    step's reference and the visit's notes, reprint the gate's display, and act on no yes the notes don't hold;
+  - the launcher (and the plugin, when packaged) gains a `SessionStart` `compact` hook printing that rule, so it
+    fires whatever the summary kept; optionally `idleCompaction: false` for run sessions, at the cost of
+    re-caching the whole context once (200K tokens or more) when the user returns after an hour.
+- **Until then:** after a compaction at a gate, the user tells the runner to re-read `SKILL.md`,
+  `references/checkpoints.md` and `run-log.json` and print the gate's display again, and re-asks any question
+  whose answer matters.
+
+## 2026-10-19: agents search PoB's own files; candidate tools for the next amendment
+
+- **The user's question:** researchers often Grep `vendor/PathOfBuilding-PoE2/src/` (`BaseMaximumRage|MaximumRageBase`
+  in the current run); fine, or missing tools? The researcher's rules give it the lookup tools and Grep only on
+  `data/league/`, `data/rules/` and `data/monsters/`, so this is drift past the rules.
+- **The count** (tool calls only, from the transcripts of the Varashta run and the current run so far): 433 Grep and
+  Read calls into PoB's files, 379 in the Varashta run (R1a 182 over six researchers, R1b 61, D1-build 57, D2 39,
+  D1-finish 23, R1a-assemble and V4 8 each) and 54 by the current run's three researchers. They returned about
+  960,000 characters, roughly 275K tokens, before any re-read from cache.
+- **What they look for, and what no tool gives:**
+  - **The tree's layout** (140 calls, about 80K tokens, `TreeData/0_5/tree.lua`): node ids to names, ascendancy
+    nodes (`unlockConstraint`), connections and class starts, to judge how far a notable is from a start.
+    `search_tree_nodes` gives no location or distance, and `find_path_to_node` needs a loaded build and is not a
+    researcher's tool. The current run read the file in chunks to place Primal Hunger (37484).
+  - **Skill data** (92 calls, `Data/Skills`): Spirit reservation (`spiritReservationFlat`), internal ids, ground
+    durations. The gem lookup prints no reservation (checked on Herald of Ice).
+  - **Item bases** (21 calls, `Data/Bases`, mostly D1 and D2): bases by slot, level requirement, implicit and
+    defences, for campaign gear. The mechanic lookup's `base` kind is a text search only.
+  - **Config options** (17 calls, `ConfigOptions.lua`): which option models a mechanic (warcry power, fully broken
+    armour). `get_config` needs a loaded build and is a coordinator's tool.
+  - **Constants** (9 calls, `Data/Misc`): base maximum Rage and the like.
+  - **How the engine computes a mechanic** (about 50 calls, `CalcPerform`, `CalcOffence`, `CalcSetup`,
+    `ModParser`): beyond what `check_model_coverage` says per line. This is reading code, as the PoB gaps' "confirmed
+    in code" entries are; no tool would replace it.
+- **Candidates for the next amendment:** a tree distance (path length from a class start, or from a named node,
+  with no build loaded, on `search_tree_nodes` hits or its own mode); the gem lookup's reservation, cost and
+  cooldown by level; a base lookup by slot and level with implicits and defences; a static config-option search
+  for researchers; the constants in mechanic mode; and a rule that allows Grep in PoB's `Modules/` for how the
+  engine computes something, cited by file and line, while the data questions go through the tools.
+- **Scratch builds for researchers** (the user asked whether they would help): not recommended. The server holds
+  one loaded build, so parallel researchers would overwrite one another's (FR-W3 keeps every engine-changing call
+  in a coordinator step that overlaps no other agent). The data questions above need no build: the tree's
+  shortest path already runs in TypeScript over the static tree (`src/services/treeService.ts`), with the build
+  only as its start. Measurements already have their places: R1b's probes, and a gate question step sent to a
+  coordinator.
+
+## 2026-10-19: weapon sets, under-used by the researchers
+
+- **The user's note:** researchers rarely use weapon sets. A skill can be assigned to a weapon set, and using it
+  switches to that set; each set can hold up to 24 passive points of its own, so two skills that scale differently
+  can each have their own tree; skills can rotate across different weapons; an item can be pinned to one or both
+  sets (a mace in set 1 and a wand in set 2 sharing one shield, or both items in both sets so the swap only changes
+  the tree).
+- **What the pipeline has:** the plan holds set-tagged passives (`weaponSetNodes`), set-2 slots and
+  `useSecondWeaponSet`; the compiler checks the weapon-set points against the quest books and PoB's pathing rule
+  (D-213). The pattern library's "Weapon set 2 job" frames set 2 as the job set 1 can't do (a buff, a boss button),
+  with two kit lines (one weapon locked to both sets; one talisman in both).
+- **Why researchers rarely use them:** `R1a.md`, `RV.md` and the card template never mention weapon sets, and
+  the library has no entry for a second tree per skill. A card that used one would also be measured on one set:
+  a stage computes with one active set, so the second skill's figures would be missing (the Mobalytics proposal's
+  §6 findings on per-set skills and on a set-2 buff).
+- **PoB's model** (pin): one active set per item set; set-tagged passives apply only on their set
+  (`Condition:WeaponSet<n>`, `Modules/CalcSetup.lua:854`); a skill group follows a set only through the slot it is
+  socketed in (`:1729`), so a group in the inactive set is disabled and one with no slot runs in both; the count of
+  socketed support gems by colour, which per-support-gem modifiers read, includes both sets' groups (`:2104`, a pin
+  comment); "active in both sets" is never read (PG-70); there is no "item in both sets", so the plan equips the
+  same item in both slots.
+- **The wiki's entry** (poe2wiki "Weapon set", pasted by the user on 2026-10-19; poe2wiki refuses agents; not saved
+  in the repository), paraphrased:
+  - a skill is assigned to set 1, set 2 or both, and using a skill of the other set swaps to it; some skills, Blink
+    among them, must be on both;
+  - weapon-set points are converted regular points, not extra ones: up to 24 per set from twelve campaign sources,
+    each set allocating them its own way; keystones and jewel sockets can't be set passives; Weapon Master
+    (Witchhunter) converts 100 more;
+  - Spirit can differ by set (a sceptre, set passives, persistent skills on one set), and a swap re-enables or
+    disables persistent skills to fit;
+  - a swap recalculates the character at once: Life, Energy Shield and Runic Ward drop to a lower new maximum, Mana
+    decays to it;
+  - a skill's own modifiers are fixed when it is used: a buff cast from set 2 keeps set 2's duration and effect
+    while set 1 is out (the wiki's Mana Tempest and Arcane Surge example);
+  - 0.3.0 added an item in both sets; 0.5.5 stopped auras and supports of the inactive set from applying, and
+    skills of the other set from being used without the swap.
+- **Checked against the compiler:** it already follows the wiki on points (PoB's regular count, `PointsUsed −
+  min(ws1, ws2)`, is the conversion) and refuses set tags on keystones, jewel sockets and ascendancy nodes
+  (`pob-api/API/Compile.lua:230`). PoB's own allocation does the same (`Classes/PassiveSpec.lua:931`).
+- **Candidates for the next amendment:** the card names its weapon-set use (none, a second tree, a second weapon,
+  a set-2 buff), and R1a and RV check for it; the library gains an entry for the user's three shapes, cited to the
+  user and the wiki; D1 and its gate measure every set a card's skills use, folded with the two §6 findings, with
+  Spirit checked on each set and a set-2 buff's effect measured on set 2 and carried to set 1 as a custom modifier
+  with its reason; the guide says what a swap costs in Life when set 2's tree holds less; a PoB gap for the
+  support-gem count across both sets (confirmed in code), unless the game counts both sets too.
+- **The user's check, due before the amendment is built:** on their Gemling, whether the game's per-support-gem
+  modifiers (Gem Studded's "most numerous colour") count the supports of both sets or only the active one. The
+  [hotg] study's line, "Gem Studded counts every set's supports", predates 0.5.5's fix to the inactive set.
+
+## 2026-10-19: travel skills as a clear-speed lever
+
+- **The user's note:** skills with a fixed travel distance move faster as attack, cast or skill speed rises, so some
+  builds scale those for clear speed instead of movement speed. The game data agrees: Leap Slam adds "+0.65 seconds
+  to Total Attack Time, plus up to +0.5 seconds based on distance travelled", Molten Crash +0.55 and up to +0.3.
+- **The library has it in part:** "Travel by action" (§1) says to buy an action's rate or reach rather than movement
+  speed, with Boneshatter and Lightning Warp as examples. It doesn't name the Travel tag or the attack-time
+  mechanism, and its search terms ("teleport", "Dodge Roll distance") miss most travel skills. A mechanic search
+  for "Travel" returns 33 gem hits, mostly projectiles; the gem lookup of a support for Travel skills lists them
+  exactly (Stomping Ground: 14 of 399 active gems, Black Powder Blitz to Vaulting Impact).
+- **The clear-speed estimate** (D-407's band; the record's `measures {clearSpeed, movementSpeed}`) reads movement
+  speed only, so a build that travels by attack speed gets no pace from it, as with the Mobalytics finding on
+  Rampage and sprinting.
+- **Candidates for the next amendment:** "Travel by action" gains the user's mechanism, cited to the user, and a
+  search line through a Travel support's list; the clear band reads a travel skill's rate (uses a second and
+  distance per use) beside movement speed, folded with the Rampage and sprint finding; the build-free tools gain a
+  gem search by skill type.
+
+## 2026-10-19: endgame builds first, several per run; the campaign on request
+
+- **The user's direction:** brainstorm, verify, then finalize one or more builds, endgame only; a campaign guide for
+  a finalized build is optional, asked for afterward. Why: the current run (`open-clear/2026-10-19-1`) verified two
+  builds worth finishing and could finalize one, since the run folder holds one build; community guides often give
+  only the endgame build ("level with any <class> build"), above all when it needs gems or items usable only at
+  level 60 or above; and a player who already has the ascendancy respecs instead of levelling, so a campaign
+  guide is wasted tokens.
+- **What already fits:**
+  - D1 designs the endgame ladder (entering maps `m`, budget `b`, non-budget `n`) before D2 adds the campaign, with
+    the design gate between them (D-362): endgame only is the run going on from the design gate's accept without D2.
+  - The plan compiler compiles a plan with no campaign stage: the ladder's first rung continues "from none when
+    there is no campaign stage" (slice 02, `tree-continuity`).
+  - The deck, the cards, the dossier and the interviews are run-wide, and R1b keeps each verified card's plan
+    under `concepts/<id>/`.
+- **What changes:**
+  - **The verification gate** finalizes 1 to 3 verified cards, designed in turn (FR-W3: one engine, one loaded
+    build), each through D1-build, D1-finish, the D1 gate and its own design gate. After a build's final gate, the
+    user can go back to the verification gate and finalize another.
+  - **The campaign reward picks** (D-265) are D2's today, copied onto the rungs. Without D2, D1 makes them, so the
+    endgame numbers include them and the guide names them.
+  - **The final compile** is the D2 gate's today (step 9). An endgame-only build gets it from a final check step
+    (the D2 gate on a plan with no campaign stage, or a lighter step). One PoB file per build; `buildName` gains
+    the card id.
+  - **The run folder** gets one folder per build, `builds/<card id>/` (plan, compile record, PoB file, guide,
+    audit, gate verdicts, V4 reports). The run log goes to schema 4 with `builds[]`, each with its roll, status,
+    stages and gates; the run checker, the `run-log.mjs` displays and `render-audit.mjs` take a build. The run's
+    status is set once every build's final gate is answered.
+  - **The endgame guide** is a second template. One section, "Switching over", replaces Leveling, Campaign route
+    and rewards, and Gem and ascendancy timing: level with any <class> build; the level the build works from (the
+    highest level requirement among its hinge gems and items, from the compile record); the ascendancy and its node
+    order; the campaign reward picks it wants; for a respec, that the PoB file holds the whole tree. Survival by
+    stage covers the three rungs. The run checker's H2 list follows the template the build used.
+  - **The campaign, on request:** at a build's final gate, or later as `/build-guide --campaign <run folder> <card
+    id>`: D2, the D2 gate and its final compile, W1 adding the campaign sections (the full template), and a V4
+    re-check of what changed. A later session needs a way back into a run log; the same path could finalize
+    another verified card from an old run, which answers the earlier question of revisiting a card.
+- **Open for the user** (recommended first): several builds finalized at the gate and more after a final gate, or
+  only one of the two; the 1M output cap (amendment 4) per build rather than per run; the campaign as a later flag,
+  a final-gate answer, or both; a respec list from the user's own PoB file (`compare_trees`), not recommended now.
+- **Cost check after the current run:** what D2, the D2 gate and the campaign half of W1 and V4 cost
+  (`run-usage.mjs`), so an extra endgame-only build has an estimate.
+- **The current run** can't finalize a second card. Until the amendment is built, a second card needs a new run.
+
+## 2026-10-19: the open-clear run's notes, so far
+
+- **The blocker:** the D1 gate's measure-only `compile_plan` (r1-x-1, Warbringer / Arctic Howl, attempt 1) was refused
+  by Claude Code's auto-mode classifier ("[Interfere With Workloads]") before it reached the engine; the same tool
+  had passed about 20 times earlier in the run. The gate wrote `compiled: fail`, code `compile-error`, every other
+  part `unverified`. The skill has no route for a refusal by the harness: a compile failure re-runs D1-build and
+  D1-finish (about 900K subagent tokens to change nothing). The runner stopped and asked the user.
+- **Why the classifier reviews it at all:** the launcher's `cfg/settings.json` allows no pob2 tool, so in auto mode
+  every pob2 call goes to the classifier, which is not deterministic.
+- **Candidates for the next amendment:** the launcher's settings allow the engine and file-writing pob2 tools
+  (`compile_plan`, `guide_run`, the read-only engine tools), leaving the trade tools to review; the skill gains a
+  route for a harness refusal: the user allows the tool, and the refused step re-runs uncounted, logged
+  `refused`, with no producer re-run and no checker violation.
+- **Pricing:** D1-finish's 22nd price call got an HTTP 429 (Prism of Belief), so pricing stopped as the skill
+  requires; 21 entries are unavailable and all three rung totals are `unverified`. The gate then made one
+  `get_leagues` call to the trade site after pricing had stopped. Candidates: no trade-site call of any kind once
+  pricing stops; a look at D1-finish's pace, since 22 calls hit the limit.
+- **Compaction:** the run session was compacted during the run and went on without a visible loss (a data point
+  for the compaction section above).
+
+## 2026-10-19: the open-clear run, reviewed (stopped at the design gate)
+
+- **The run:** an open brief (warcries as the damage, clear, fast, any ascendancy). Brainstorm: 6 cards dealt on 4
+  engines. Verification: r1-a-2, r1-b-3 and r1-c-1 picked, plus the rival; all 4 compiled on attempt 1. The user
+  finalized the rival's card, r1-x-1 "Executioner's Howl" (Warbringer / Arctic Howl). D1 designed the three rungs;
+  the D1 gate passed on its re-run after the classifier refusal (above). The user stopped at the design gate: they
+  wanted the endgame build only. No PoB file reached the builds folder, since the final compile is the D2 gate's;
+  the D1 gate's measure-only compile left `compiled-build.xml` and the import code (`compile-record.json`,
+  `importCode`) in the run folder.
+- **Amendment 8's first live test:**
+  - **The obvious card** was dealt: r1-a-1 "Seismic Bellow Spam". It follows the Maces kit's "clear with warcries"
+    line, since the library has no warcry kit. Candidate: a warcry Standard kit.
+  - **The supply search** works: each researcher's Rage, corpse and Glory sections list substitutes with why each
+    went unused (a warcry isn't a melee hit, so the Rage-on-melee-hit sources fail).
+  - **The rival beat the picks:** Culling Strike with Myris Uxor's doubled threshold kills normal monsters at 70%,
+    with Warcaller's Bellow's corpse explosions; the user finalized it. Its cost, RV 83K and its R1b 78K output,
+    fits §17's 150–170K.
+- **Tokens** (telemetry filtered to the run's session; the transcript's estimate agrees at 1.43M): 1.45M output,
+  275M cache read, 5.2M cache write, before any campaign, guide or verification. By family (output): R1b 434K
+  (4 cards), R1a 412K (3 researchers and the deck), D1 286K (build, finish, two gate attempts), the runner 110K,
+  Q 90K (3 questions), RV 83K. The 1M cap (amendment 4) predates the rival and the lens's reading; the next
+  amendment restates it. For an extra endgame-only build: D1 here 286K, plus W1 and V4 (the lean run: W1 226K,
+  V4 134K, both with the campaign), so roughly 0.5M output; skipping D2 saved about 167K (the lean run's D2).
+- **`scripts/run-usage.mjs` bug:** its telemetry section sums every session in the shared `events.jsonl` (3.98M
+  output here, three days of runs). Fix: filter by the transcript's session id.
+- **The checker's three violations:** the 429 (NFR-22) and the gate re-run's order (the refusal), both above; and
+  `[deck]` "How they differ holds 3 lines", which is one paragraph hard-wrapped over 3 lines. Fix: the checker
+  counts paragraphs, not physical lines.
+- **The design gate's question:** "the EHP in the cards was much higher": R1b measured the card against PoB's
+  default enemy hit, D1's rungs against the T15 map hit, so the figures don't compare (a Q step, 27K output, to
+  explain it). Candidate: R1b measures against the rungs' enemy hit, or both displays name the hit they used.
+- **A PoB gap candidate:** Avatar of Fire with "gain as extra": the user's rule (poe2wiki, pasted at the gate) is
+  that gained cold and lightning convert to fire before "Deal no Non-Fire Damage" applies; PoB drops them. Two Q
+  steps measured the wand and staff under the rule as estimates. Candidate PG entry, behind an in-game check.

@@ -265,10 +265,17 @@ The targets are measured after a run, as amendment 4's cap was; no step stops fo
 
 `mcp__pob2__get_node_power` (group `core`, engine `read`, as `get_passive_upgrades`), on the loaded build:
 
-- **Arguments:** `stats` (one or two of PoB's power stat labels or ids, default `["FullDPS", "TotalEHP"]`),
-  `max_distance` (points from the tree, default 6, at most 12), `loadout` (the loadout to measure, by name; default
-  the active one), `keep` (allocated node ids no swap may remove: the build's needs, D-418), `limit` (rows per list,
-  default 15).
+- **Arguments:**
+  - `stats`: 1 to 3 of the stats PoB's tree tab offers for node power, by PoB's id or label (the user asked for the
+    same inputs as PoB's UI, 2026-10-19). The list is `data.powerStatList` less its item-only entry: 49 stats (Full
+    DPS, Hit DPS, Average Hit, the ailment DPS, Life, Mana, Mana regen, Energy Shield, Spirit, Armour, Evasion, the
+    attributes, the effective maximum hit and the damage taken by type, crit and ailment chances, block, the avoid
+    chances, movement speed and others) and PoB's combined
+    "Offence/Defence". The tool reads it from the engine, so it follows the pin. An unknown name fails with the list.
+    Default `["FullDPS", "TotalEHP"]`.
+  - `max_distance` (points from the tree, default 6, at most 12); `loadout` (the loadout to measure, by name; default
+    the active one); `keep` (allocated node ids no swap may remove: the build's needs, D-418); `limit` (rows per
+    list, default 15).
 - **It runs PoB's own `PowerBuilder`** once per stat, with `powerStat` and `nodePowerMaxDepth` set, and returns:
   - **best unallocated:** nodes ranked by path gain per point over the stats (each stat's gain relative to the
     build's figure, summed), each with its name, type, points, path, and each stat's gain alone and with its path;
@@ -279,8 +286,8 @@ The targets are measured after a run, as amendment 4's cap was; no step stops fo
     together with `calc_with` (the swap measured as one change, since gains aren't additive): each stat's change, in
     percent. "No gaining swap" when none gains.
   - what PoB can't measure among the nodes it listed (C-47's section, as `get_passive_upgrades` gives it).
-- **Its request timeout** is 120 s (the bridge's long-action list, D-47), since two stats at depth 6 took about 27 s
-  in the spike.
+- **One engine request per stat,** each with a 120 s timeout (the bridge's long-action list, D-47): one stat at
+  depth 6 took about 13 s in the spike, and a request that outlives its timeout kills the engine (C-4).
 - **`get_passive_upgrades`** keeps its arguments and output, and draws its candidates from the power builder (every
   node in reach on Full DPS and TotalEHP, by its focus), so it stops missing nodes whose text lacks its keywords.
 - **The power stats a run uses:** Full DPS for damage (the generalization's headline figure, decided 2026-10-10; the
@@ -295,6 +302,9 @@ efficient.
   (a `reason` claim each): mana or life sustain, an attribute a gem or item requires, area or movement for clear,
   a boss-only gain (penetration and exposure count for nothing on a clear config with no enemy resistances), a
   defence the floor needs, a node the card's engine names. A need's nodes go in `keep`.
+- **A need with a stat is met by node power on it.** When PoB has a stat for the need (Mana regen for sustain, an
+  attribute for a requirement, movement speed), D1-build calls `get_node_power` on that stat for the cheapest nodes
+  per point that meet it, and keeps those; a need without one (area, a boss-only gain) carries its reason alone.
 - **The swap loop,** per rung, after the first compile: call `get_node_power` with the rung's loadout and `keep`;
   apply its best swap when it gains (the plan's nodes edited, a measure-only compile); repeat until no swap gains
   more than the threshold, at most 8 swaps per rung. The loop replaces picking clusters and pathing to each:
@@ -417,8 +427,8 @@ Order in M-21: WU-92, WU-93 and WU-94 in parallel lanes (server, record, scripts
 - **AC-P73 (WU-92).** Engine, on a fixture build: `get_node_power` lists unallocated nodes by path gain per point,
   small passives and keystones included, with their paths; lists allocated branches by loss per point, `keep`
   excluded; counts travel; reports a best swap whose change equals a `calc_with` of the swap; finishes within its
-  timeout at depth 6 with two stats; `get_passive_upgrades` ranks a notable whose text holds none of its old
-  keywords.
+  timeout at depth 6 with two stats; ranks by Mana regen alone, and refuses an unknown stat with the list the
+  engine gives; `get_passive_upgrades` ranks a notable whose text holds none of its old keywords.
 - **AC-P74 (WU-93).** Engine: a stage's record holds `requirements.level` and what sets it (a gem's level
   requirement above the items'); a skeleton's EHP is computed against the rungs' reference hits.
 - **AC-W76 (WU-94).** Script unit, on fixture runs:

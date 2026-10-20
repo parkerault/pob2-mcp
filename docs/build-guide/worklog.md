@@ -5117,3 +5117,12 @@ the `m17` engine at `b76967b`.
 - **M-21 wave 1 dispatched:** WU-92 (`bg-92`), WU-93 (`bg-93`) and WU-94 (`bg-94`), each off the integration head
   `2e81806` (worktree `m21`, branch `build-guide/m21`, off `main`). The work-log continues here, unsigned until the
   sign-rebase.
+- **WU-93 done by its doer** (`c4473d8`, one commit, about 430K tokens). Gate rc 0 (152 suites, 2,665 tests), build
+  rc 0. Plan schema 6 (`tree.needs`; an ascendancy node or a node the stage lacks refused; `stat` any non-empty
+  string), V1 `missing-reason` for a need without a resolving claim, `buildSha1` leaving out only `needs[].claim`;
+  the record's `requirements` from `gemInstance.reqLevel` and `item.requirements.level`, using V1's existing
+  inputs (no engine reply changed; tree jewels not counted); skeletons (no `variant`, `progress` `endgame`) get the
+  budget rung's T15 hits. `guide_run {resume}` replies `Resuming run folder <abs>` / `runFolderRel: <rel>` /
+  `loadedBuildUnsaved: …` and accepts only a true run folder. **For WU-95:** those reply lines in `run-folder.md`.
+  **For WU-96:** `D1-build.md` and `R1b.md` still say `schemaVersion: 5` (pinned in the pipeline static test). The
+  verifier is running.

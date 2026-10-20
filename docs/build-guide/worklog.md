@@ -5229,3 +5229,8 @@ the `m17` engine at `b76967b`.
   checker is wrong; WU-96's fix round owns that one rule (exempt `tree` when `compiled` isn't `pass`) with a test.
   Fix round sent. **For WU-95 (added):** the verification display also names no hit (`run-log.mjs:1184`), with the
   design display's line; `checkpoints.md:173-177`'s example tree and EHP lines.
+- **WU-92's fix round** (`085528a`): the can't-measure section per the ruling (shown entries plus the ascendancy
+  pool, then a count line); a branch protected when its removal would disconnect any node outside it (walked
+  under PoB's weapon-set rule, in each `protect_for` tree too), the search going on until 5 legal tries (cap 20);
+  an optional `heldBranches` in the reply; tests on the L90 rung for the bound and the swap, for `protect_for` and
+  `clearUses`. Gate rc 0 (2,660 tests). The verifier re-checks.

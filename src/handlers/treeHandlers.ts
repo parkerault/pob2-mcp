@@ -618,18 +618,22 @@ export async function handleGetPassiveUpgrades(
   }
 
   // The can't-measure entries, one line each, every reason labelled with its kind (explained once, below).
+  // D-417 (the coordinator's clarification): the pool is every node within 6 points, so the section lists the
+  // lines of the entries the output lists (the ranked main-tree entries shown, and the ascendancy section's
+  // notables), then one line counting the rest of the measured pool PoB can't fully measure, as get_node_power
+  // lists them among the nodes it lists (§11).
   const KINDS = {
     'not applied': 'PoB applies nothing from the line (unparsed, partly parsed, parsed to nothing)',
     advisory: 'PoB parses a possibly unread line but may never read a mod it makes; the measured change may already include it',
     choice: 'a multiple-choice notable, measured with no option chosen',
     'no value': "PoB's calculator returned nothing for it",
   } as const;
-  const kindsShown = new Set<keyof typeof KINDS>();
-  const cantMeasure: string[] = [];
+  const cantMeasure = new Map<number, { line: string; kinds: Array<keyof typeof KINDS> }>();
   for (const c of pool) {
     const reasons: string[] = [];
+    const kinds: Array<keyof typeof KINDS> = [];
     const reason = (kind: keyof typeof KINDS, text: string) => {
-      kindsShown.add(kind);
+      kinds.push(kind);
       reasons.push(`${kind}: ${text}`);
     };
     const lost = notApplied.get(c.id);
@@ -644,8 +648,9 @@ export async function handleGetPassiveUpgrades(
     if (failure) reason('no value', failure);
     if (reasons.length === 0) continue;
     const cost = c.ascendancy ? `, ${c.pathCost} ascendancy point${c.pathCost === 1 ? '' : 's'}` : '';
-    cantMeasure.push(`- **${c.name}** [${c.id}]${cost}: ${reasons.join(' | ')}${overBudgetMark(c, asc)}`);
+    cantMeasure.set(c.id, { line: `- **${c.name}** [${c.id}]${cost}: ${reasons.join(' | ')}${overBudgetMark(c, asc)}`, kinds });
   }
+  const mainIssues = candidates.filter((c) => cantMeasure.has(c.id));
 
   const measured = focus === 'dps' ? 'DPS' : focus === 'defence' ? 'EHP' : 'DPS + EHP';
   const ascImproving = ascScored.filter((u) => u.score > 0).sort(byScore);
@@ -692,18 +697,36 @@ export async function handleGetPassiveUpgrades(
       }
     }
 
-    // C-47: what PoB can't fully measure, over the whole measured pool, not only the ranked candidates.
+    // C-47: what PoB can't fully measure among the entries listed (the main-tree entries shown, in rank order,
+    // and the ascendancy section's notables), then a count of the rest of the measured pool (D-417).
     if (pool.length > 0) {
       textLines.push('', "## What PoB can't fully measure", '');
-      if (cantMeasure.length === 0) {
+      const shown = new Set(top.slice(0, plan.mainShown).map((u) => u.id));
+      const listed = [
+        ...top.slice(0, plan.mainShown).filter((u) => cantMeasure.has(u.id)).map((u) => cantMeasure.get(u.id)!),
+        ...ascCandidates.filter((c) => cantMeasure.has(c.id)).map((c) => cantMeasure.get(c.id)!),
+      ];
+      const rest = mainIssues.filter((c) => !shown.has(c.id));
+      if (listed.length === 0 && rest.length === 0) {
         textLines.push("Nothing: every measured passive's lines are fully parsed, and every measurement returned a value.");
       } else {
-        const kinds = (Object.keys(KINDS) as Array<keyof typeof KINDS>).filter((k) => kindsShown.has(k));
-        textLines.push(
-          "PoB may not apply some of these passives' lines, or measure them at all, so their gain may be missing or wrong " +
-            `(check_model_coverage gives each line's status). ${kinds.map((k) => `${k}: ${KINDS[k]}`).join('. ')}.`,
-          ...cantMeasure,
-        );
+        if (listed.length > 0) {
+          const kindsShown = new Set(listed.flatMap((e) => e.kinds));
+          const kinds = (Object.keys(KINDS) as Array<keyof typeof KINDS>).filter((k) => kindsShown.has(k));
+          textLines.push(
+            "PoB may not apply some of these passives' lines, or measure them at all, so their gain may be missing or wrong " +
+              `(check_model_coverage gives each line's status). ${kinds.map((k) => `${k}: ${KINDS[k]}`).join('. ')}.`,
+            ...listed.map((e) => e.line),
+          );
+        }
+        if (rest.length > 0) {
+          const failed = rest.filter((c) => unmeasured.has(c.id));
+          const failures = failed.length > 0 ? `; ${failed.length} of them have no value (${unmeasured.get(failed[0].id)})` : '';
+          textLines.push(
+            `…and ${rest.length} more passive${rest.length === 1 ? '' : 's'} in reach that PoB can't fully measure ` +
+              `(check_model_coverage gives their lines)${failures}.`,
+          );
+        }
       }
     }
 
@@ -857,7 +880,11 @@ function swapText(r: NodePowerResult): string {
       ...(others.length > 0 ? [`${others.join(' and ')} may lose at most the max_loss (default 2%)`] : []),
       'movement speed and the clear skill\'s radius and uses per second none (default)',
     ];
-    return `Best swap: none: no legal swap of the ${r.swaps.length} weakest unprotected branches gains ${first.label} within the limits (${limits.join('; ')}).`;
+    const legal = r.swaps.filter((s) => s.verdict !== 'illegal').length;
+    return (
+      `Best swap: none: of the weakest unprotected branches, ${plural(r.swaps.length, 'was', 'were')} tried (${legal} legal), ` +
+      `and none gains ${first.label} within the limits (${limits.join('; ')}).`
+    );
   }
   const gains = r.stats.map((x, i) =>
     i === 0 ? `${percent(s.gainPercent?.[i])} ${x.label} (${signed(s.gain?.[i])})` : `${x.label} ${percent(s.gainPercent?.[i])} (${signed(s.gain?.[i])})`,
@@ -919,8 +946,14 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
     if (!compact) {
       const prot = Object.entries(r.protected ?? {}).map(([why, n]) => `${n} ${why}`);
       if (prot.length > 0) lines.push(`Protected nodes (never removed, nor any branch holding one): ${prot.join(', ')}.`);
+      if ((r.heldBranches ?? 0) > 0) {
+        lines.push(
+          `Also left out: ${plural(r.heldBranches!, 'branch', 'branches')} whose removal would disconnect a node outside it ` +
+            "(a weapon-set node PoB's depends leaves out, or a node a protect_for loadout builds on).",
+        );
+      }
       if (r.swaps.length > 0) {
-        lines.push('', `Swaps tried (the ${plural(r.swaps.length, 'weakest unprotected branch', 'weakest unprotected branches')}):`);
+        lines.push('', `Swaps tried (the weakest unprotected branches, until 5 legal tries):`);
         for (const s of r.swaps) {
           const gain = s.gainPercent?.[0] !== undefined ? ` (${percent(s.gainPercent[0])} ${first.label})` : '';
           lines.push(`- ${s.branchName} [${s.branch}], ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);

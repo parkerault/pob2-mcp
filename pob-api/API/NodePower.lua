@@ -28,8 +28,8 @@
 -- level mode at the end and on any error, so the exported build is unchanged. Measuring the clear group selects it
 -- as the main group for its calculations only, and puts back the selection and every gem's fields after.
 --
--- The best swap (D-418) is searched on a scratch PassiveSpec (built as BuildOps' set_tree builds one), for each of
--- the 5 weakest unprotected branches in turn: remove the branch,
+-- The best swap (D-418) is searched on a scratch PassiveSpec (built as BuildOps' set_tree builds one), for the weakest
+-- unprotected branches in turn until 5 give a legal swap (at most 20 tried): remove the branch,
 -- import the tree without it so PoB recomputes every path, then add, greedily, the unallocated nodes with the best
 -- gain per point on the first stat whose new paths fit the freed points, counting the union of their path nodes
 -- once (a node's gain is its own measured gain alone; a removed node's, the loss its removal measured). The swap is
@@ -46,7 +46,9 @@
 --
 -- Protected, never removed with any branch containing them: `keep`; a node with a "Grants Skill:" line; a
 -- weapon-set node; for each loadout of `protectFor`, every node of this tree whose dependants in that loadout's
--- spec (node.depends there) include a node outside this tree.
+-- spec (node.depends there) include a node outside this tree. A branch whose removal would disconnect any node
+-- outside it, in this tree or a protectFor loadout's (walked under the weapon-set rule, since PoB's depends leaves
+-- out a weapon-set node hanging off an untagged branch), is protected too.
 --
 -- Registered by one line in Handlers.lua.
 
@@ -70,6 +72,8 @@ end
 local DEFAULT_DISTANCE, MAX_DISTANCE = 6, 12
 local DEFAULT_LIMIT = 15
 local SWAP_BRANCHES = 5
+-- The branches tried at most, illegal ones included, while looking for SWAP_BRANCHES legal tries.
+local MAX_TRIES = 20
 local DEFAULT_MAX_LOSS, GUARD_MAX_LOSS = 2, 0
 local GUARDS = { 'movement', 'clearRadius', 'clearUses' }
 -- The node types the tree tab's power report lists (TreeTab:BuildPowerReportList).
@@ -549,6 +553,57 @@ local function shape_ok(spec, set, origCounts)
 end
 
 -- ---------------------------------------------------------------------------------------------------
+-- Connectivity under PoB's weapon-set rule (PassiveSpec:CanPathThroughAllocMode): an untagged node connects through
+-- untagged nodes only, a node tagged with weapon set n through untagged nodes and nodes tagged n. PoB's node.depends
+-- explores from an untagged node through untagged nodes only, so it leaves out a weapon-set node that hangs off an
+-- untagged branch; removing such a branch disconnects that node. This walks the tree itself.
+
+-- The allocated main-tree nodes of `alloc` (an id set over `spec`'s nodes) outside `removed` that no start reaches.
+local function unreached(spec, alloc, removed)
+  local nodes = spec.nodes
+  local reach = {}
+  for mode = 0, 2 do
+    local seen, queue, qi = {}, {}, 1
+    local function seed(id)
+      if not seen[id] then seen[id] = true; queue[#queue + 1] = id end
+    end
+    local classStart = spec.curClass and spec.curClass.startNodeId
+    if classStart and nodes[classStart] then seed(classStart) end
+    -- The ascendancy hangs from its own start; an allocated alternate start opens its main-tree exits.
+    for id in pairs(alloc) do
+      local n = nodes[id]
+      if n and not removed[id] and (n.ascendancyName or is_start(n)) then seed(id) end
+    end
+    while qi <= #queue do
+      local cur = nodes[queue[qi]]; qi = qi + 1
+      if cur and cur.type ~= 'Mastery' then
+        for _, o in ipairs(cur.linked or {}) do
+          if alloc[o.id] and not removed[o.id] and not seen[o.id] and is_main(o) then
+            local m = o.allocMode or 0
+            if m == 0 or m == mode then seed(o.id) end
+          end
+        end
+      end
+    end
+    reach[mode] = seen
+  end
+  local out = {}
+  for id in pairs(alloc) do
+    local n = nodes[id]
+    if not removed[id] and is_main(n) and not reach[n.allocMode or 0][id] then out[id] = true end
+  end
+  return out
+end
+
+-- A node of `alloc` that removing `removed` would disconnect, ignoring those `before` (unreached already), or nil.
+local function disconnected(spec, alloc, removed, before)
+  for id in pairs(unreached(spec, alloc, removed)) do
+    if not before[id] then return id end
+  end
+  return nil
+end
+
+-- ---------------------------------------------------------------------------------------------------
 -- The best swap
 
 local function new_scratch(spec)
@@ -857,7 +912,21 @@ local function measure_call(params, ctx)
     return a.id < b.id
   end)
 
-  -- Weakest allocated branches, by loss per point on the first stat, unprotected only.
+  -- Weakest allocated branches, by loss per point on the first stat, unprotected only. A branch is protected when it
+  -- holds a protected node, or when removing it would disconnect a node outside it: in this tree (a weapon-set node
+  -- PoB's depends leaves out), or in a protect_for loadout's tree (a node a later rung builds on).
+  local allocSet = {}
+  for id in pairs(spec.allocNodes) do allocSet[id] = true end
+  local trees = { { spec = spec, alloc = allocSet, before = unreached(spec, allocSet, {}) } }
+  for _, lo in ipairs(ctx.protectFor) do
+    local other = build.treeTab.specList[lo.specId]
+    if other then
+      local set = {}
+      for id in pairs(other.allocNodes) do set[id] = true end
+      trees[#trees + 1] = { spec = other, alloc = set, before = unreached(other, set, {}), name = lo.name }
+    end
+  end
+  local held = 0
   local weak = {}
   for _, e in ipairs(alloc) do
     local deps = e.node.depends or {}
@@ -872,6 +941,16 @@ local function measure_call(params, ctx)
       for id in pairs(e.set) do
         local n = spec.nodes[id]
         if prot[id] or not is_main(n) then protectedBy = prot[id] or 'ascendancy'; break end
+      end
+      if not protectedBy then
+        for _, t in ipairs(trees) do
+          local lost = disconnected(t.spec, t.alloc, e.set, t.before)
+          if lost then
+            protectedBy = t.name and ('built on by ' .. t.name) or ('holds up ' .. node_name(spec.nodes[lost]))
+            held = held + 1
+            break
+          end
+        end
       end
       e.protected = protectedBy
       e.lossPerPoint = -e.branch.delta[1] / e.points
@@ -927,17 +1006,21 @@ local function measure_call(params, ctx)
     v = ctx.measure(node.modKey, { addNodes = { [node] = true } })
     return v.err and 0 or v.delta[1]
   end
-  local picked = {}
-  for i = 1, math.min(SWAP_BRANCHES, #weak) do picked[i] = { row = weak[i], set = weak[i].set } end
+  result.heldBranches = held
+  -- The weakest branches in turn, until SWAP_BRANCHES of them give a legal swap to measure (an illegal one doesn't
+  -- count), the list ends, or MAX_TRIES are tried.
   local swaps = {}
   local bestSwap
-  if #picked > 0 then
+  if #weak > 0 then
     local orig = {}
     for id in pairs(spec.allocNodes) do orig[id] = true end
     local origCounts = start_counts(spec, orig)
     local scratch = new_scratch(spec)
-    for _, p in ipairs(picked) do
-      local s = try_swap(ctx, scratch, orig, origCounts, p)
+    local legalTries = 0
+    for i, e in ipairs(weak) do
+      if legalTries >= SWAP_BRANCHES or i > MAX_TRIES then break end
+      local s = try_swap(ctx, scratch, orig, origCounts, { row = e, set = e.set })
+      if s.verdict ~= 'illegal' then legalTries = legalTries + 1 end
       if s.verdict == 'legal' then
         local gain = s.measured.delta[1]
         s.gain = {}

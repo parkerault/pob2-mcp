@@ -175,6 +175,30 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
       return out`);
   }
 
+  /** The nodes PoB drops when it imports `loadout`'s tree without `remove` (PassiveSpec:ImportFromNodeList on a copy). */
+  async function droppedWithout(loadout: string, remove: number[]): Promise<number[]> {
+    const dropped = await lua<number[]>(`
+      local l = build:GetLoadoutByName(${JSON.stringify(loadout)})
+      local spec = build.treeTab.specList[l.specId]
+      local gone = {}
+      for _, id in ipairs({ ${remove.join(', ')} }) do gone[id] = true end
+      local ids, tags = {}, {}
+      for id, n in pairs(spec.allocNodes) do
+        if not gone[id] then
+          ids[#ids + 1] = id
+          if (n.allocMode or 0) ~= 0 then tags[id] = n.allocMode end
+        end
+      end
+      local copy = new('PassiveSpec', build, spec.treeVersion)
+      copy.jewels = copyTable(spec.jewels or {})
+      copy:ImportFromNodeList(nil, spec.curClassId, spec.curAscendClassId, spec.curSecondaryAscendClassId or 0, ids, tags,
+        copyTable(spec.hashOverrides or {}, true), {})
+      local out = {}
+      for _, id in ipairs(ids) do if not copy.allocNodes[id] then out[#out + 1] = id end end
+      return out`);
+    return Array.isArray(dropped) ? dropped : [];
+  }
+
   beforeAll(async () => {
     f = await startSessionFixture({
       testActions: true,
@@ -296,6 +320,76 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
     );
 
     it(
+      "D-246 at level 90 (D-417): get_passive_upgrades {focus: 'both'} on rung n keeps within 5000 chars with no truncation notice and its 10 ranked entries, every can't-measure line whole, the rest of the pool counted",
+      async () => {
+        const text = await ok('get_passive_upgrades', { focus: 'both' });
+        expect(text.length).toBeLessThanOrEqual(5000);
+        expect(text).not.toContain('[Response truncated');
+        expect(Number(/^Measured (\d+) nearby passives/m.exec(text)![1])).toBeGreaterThan(1000);
+        const ranked = [...text.matchAll(/^\d+\. \*\*.+?\*\* \[(\d+)\]\n {3}Path cost: /gm)].map((m) => Number(m[1]));
+        expect(ranked).toHaveLength(10);
+        const cant = text.slice(text.indexOf("## What PoB can't fully measure"));
+        const entries = [...cant.matchAll(/^- \*\*.+?\*\* \[(\d+)\]: (.*)$/gm)].map((m) => ({ id: Number(m[1]), line: m[2] }));
+        // Each listed entry is a ranked one, with every line check_model_coverage doesn't rate fully parsed, whole.
+        for (const e of entries) {
+          expect(ranked).toContain(e.id);
+          const lines = (await ok('check_model_coverage', { nodes: [e.id] })).split('\n').filter((l) => /^\[[^\]]+\] /.test(l) && !l.startsWith('[fully parsed] '));
+          expect(lines.length).toBeGreaterThan(0);
+          for (const line of lines) expect(e.line).toContain(line);
+        }
+        expect(cant).toMatch(/^…and \d+ more passives? in reach that PoB can't fully measure \(check_model_coverage gives their lines\)/m);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "the swap search on rung n leaves out the branches weapon-set nodes hang off (PoB's depends misses them), so every branch it tries gives a legal swap and a gaining one is found",
+      async () => {
+        const r = await power({ loadout: N, limit: 1000 });
+        expect(r.heldBranches).toBeGreaterThan(0);
+        expect(r.swaps.length).toBeGreaterThan(0);
+        expect(r.swaps.filter((s) => s.verdict === 'illegal').map((s) => s.branch)).toEqual([]);
+        if (!r.bestSwap) expect(r.swaps.filter((s) => s.verdict !== 'illegal')).toHaveLength(5);
+        expect(r.bestSwap).toBeDefined();
+        expect(r.bestSwap!.gain![0]).toBeGreaterThan(0);
+        // PoB's own import agrees: removing each tried branch drops nothing else; the branches the search used to waste
+        // its tries on (removing them drops weapon-set nodes) are no longer listed.
+        const branchOf = new Map(r.weakest.map((w) => [w.id, w.branch]));
+        for (const s of r.swaps) expect({ branch: s.branch, dropped: await droppedWithout(N, branchOf.get(s.branch)!) }).toEqual({ branch: s.branch, dropped: [] });
+        const facts = await specFacts(N);
+        const tagged = new Set(facts.tagged);
+        for (const id of [16168, 36629, 45916, 5692, 26532]) {
+          const dropped = await droppedWithout(N, facts.depends[String(id)]);
+          expect(dropped.length).toBeGreaterThan(0);
+          expect(dropped.every((x) => tagged.has(x))).toBe(true);
+          expect({ id, listed: branchOf.has(id) }).toEqual({ id, listed: false });
+        }
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "AC-P73 (4): protect_for leaves out every branch b or n builds on: m's weakest list holds such branches without it (27373's among them), and none with it",
+      async () => {
+        const m = await specFacts(M);
+        const inM = new Set(m.alloc);
+        const builtOn = new Set<number>();
+        for (const later of [B, N]) {
+          const s = await specFacts(later);
+          for (const id of m.alloc) if ((s.depends[String(id)] ?? []).some((d) => !inM.has(d))) builtOn.add(id);
+        }
+        expect(builtOn.has(27373)).toBe(true);
+        const holding = (rows: Array<{ id: number; branch: number[] }>) => rows.filter((w) => w.branch.some((id) => builtOn.has(id))).map((w) => w.id);
+        const without = await power({ loadout: M, limit: 1000 });
+        expect(holding(without.weakest)).toContain(27373);
+        const protectedFor = await power({ loadout: M, protectFor: [B, N], limit: 1000 });
+        expect(holding(protectedFor.weakest)).toEqual([]);
+        expect(protectedFor.protected['later rung']).toBeGreaterThan(0);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
       'AC-P73 (5): a swap that costs another stat more than max_loss is not returned, and is returned when max_loss allows it',
       async () => {
         // Keep everything but the Armour branch (26532, 41657, 46023): only it and its parts can be removed.
@@ -355,6 +449,28 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         const mainGroup = await power({ loadout: M, keep, limit: 0 });
         expect(mainGroup.clear.group).toBe(1);
         expect(mainGroup.bestSwap?.branch).toBe(AREA);
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "AC-P73 (5): with a clear group that isn't the main skill, a swap lowering its uses per second is not returned (clearUses)",
+      async () => {
+        // Keep everything but node 24880, "3% increased Attack Speed": the only swap removes it, and Earthquake (group
+        // 4, an attack) uses itself less often.
+        const facts = await specFacts(M);
+        expect(facts.depends['24880']).toEqual([24880]);
+        const keep = facts.alloc.filter((id) => id !== 24880);
+        const guarded = await power({ loadout: M, keep, clearGroup: 4, limit: 0 });
+        const tried = guarded.swaps.find((s) => s.branch === 24880) as PowerSwap;
+        expect(tried.gain![0]).toBeGreaterThan(0);
+        expect(tried.clear!.radius).toBe(guarded.clear.radius);
+        expect(tried.clear!.usesPerSecond!).toBeLessThan(guarded.clear.usesPerSecond!);
+        expect(tried.verdict).toBe('over-loss');
+        expect(tried.reason).toMatch(/^the clear skill's uses per second would fall [\d.]+%, more than 0%$/);
+        expect(guarded.bestSwap).toBeUndefined();
+        const allowed = await power({ loadout: M, keep, clearGroup: 4, limit: 0, maxLoss: { clearUses: 100 } });
+        expect(allowed.bestSwap?.branch).toBe(24880);
       },
       ENGINE_TIMEOUT,
     );

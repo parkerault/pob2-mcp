@@ -233,6 +233,40 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
     }
   }
 
+  /**
+   * D-417 (the coordinator's clarification): the can't-measure section lists the C-47 lines of the entries the output
+   * lists (the main-tree entries ranked and shown, and the ascendancy pool's notables), then one line counting the
+   * rest of the main pool PoB can't fully measure. Checks the section of `out` against the pools derived from PoB.
+   * Returns the listed entries.
+   */
+  function expectCantMeasure(
+    out: string,
+    main: PoolNode[],
+    ascendancy: PoolNode[],
+    nullIds: Set<number>,
+    notFull: Map<number, string[]>,
+  ): Array<{ name: string; id: number; line: string }> {
+    const issue = (c: PoolNode) => notFull.has(c.id) || nullIds.has(c.id) || (c.ascendancy && c.lines === 0);
+    const shown = new Set(rankedEntries(ranking(out)).map((e) => e.id));
+    const expected = [...main.filter((c) => shown.has(c.id) && issue(c)), ...ascendancy.filter(issue)].map((c) => c.id).sort((a, b) => a - b);
+    const cant = section(out, CANT_MEASURE);
+    expect(cant).not.toBeNull();
+    const entries = passiveEntries(cant!);
+    expect(entries.map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
+    expect(new Set(entries.map((e) => e.id)).size).toBe(entries.length);
+    for (const e of entries) {
+      const lines = notFull.get(e.id) ?? [];
+      expect(lines.length > 0 || nullIds.has(e.id) || ascendancy.some((c) => c.id === e.id)).toBe(true);
+      for (const line of lines) expect(e.line).toContain(line);
+      expectKinds(e, lines);
+      if (nullIds.has(e.id)) expect(e.line).toContain('no value');
+    }
+    const rest = main.filter((c) => !shown.has(c.id) && issue(c)).length;
+    const more = /^…and (\d+) more passives? in reach that PoB can't fully measure \(check_model_coverage gives their lines\)/m.exec(cant!);
+    expect(more === null ? 0 : Number(more[1])).toBe(rest);
+    return entries;
+  }
+
   beforeAll(async () => {
     f = await startSessionFixture({ testActions: true });
   }, ENGINE_TIMEOUT);
@@ -308,7 +342,7 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
     );
 
     it(
-      'AC-K21: get_passive_upgrades {focus:"both", max_results:3} lists in its can\'t-measure section exactly the measured pool\'s candidates (D-417: every node within 6 points) with a line check_model_coverage doesn\'t rate fully parsed or a null measurement; no output id is an ascendancy node; the output stays within 5000 chars',
+      'AC-K21: get_passive_upgrades {focus:"both", max_results:3} lists in its can\'t-measure section exactly the ranked candidates with a line check_model_coverage doesn\'t rate fully parsed, then counts the rest of the measured pool (D-417: every node within 6 points) with such a line or a null measurement; no output id is an ascendancy node; the output stays within 5000 chars',
       async () => {
         const out = await okTool('get_passive_upgrades', { focus: 'both', max_results: 3 });
 
@@ -324,20 +358,10 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         const nullIds = await nullMeasured(pool, 'both');
         const notFull = await notFullyParsed(pool);
 
-        const expected = pool.filter((c) => notFull.has(c.id) || nullIds.has(c.id)).map((c) => c.id).sort((a, b) => a - b);
+        // The listed entries (the ranked ones with such a line), each line whole, then the rest counted (D-417).
+        const entries = expectCantMeasure(out, pool, [], nullIds, notFull);
+        expect(pool.filter((c) => notFull.has(c.id) || nullIds.has(c.id)).length).toBeGreaterThan(entries.length);
         const cant = section(out, CANT_MEASURE);
-        expect(cant).not.toBeNull();
-        const entries = passiveEntries(cant!);
-        expect(entries.map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
-        expect(new Set(entries.map((e) => e.id)).size).toBe(entries.length);
-        // Each entry has such a line (shown with its status, under its kind) or a null measurement.
-        for (const e of entries) {
-          const lines = notFull.get(e.id) ?? [];
-          expect(lines.length > 0 || nullIds.has(e.id)).toBe(true);
-          for (const line of lines) expect(e.line).toContain(line);
-          expectKinds(e, lines);
-          if (nullIds.has(e.id)) expect(e.line).toContain('no value');
-        }
         // D-243: a possibly unread line is advisory, never "not applied". On the golden build Battle-hardened's
         // "+5 to Strength and Dexterity" is one: PoB applies Str and Dex, it only never reads the StrDex name.
         const hardened = entries.find((e) => e.name === 'Battle-hardened');
@@ -357,15 +381,13 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         expect(defaults.length).toBeLessThanOrEqual(5000);
         expect(defaults).not.toContain('[Response truncated');
         expect(defaults).toContain(CANT_MEASURE);
-        // D-417: the pool is every node within 6 points, so its can't-measure section is longer; the default output
-        // gives up the ranked entries' stat lines at most, never a ranked entry.
-        expect(defaults).not.toMatch(/passive-point ranks/);
+        expect(defaults).not.toContain('Shortened to stay within');
       },
       ENGINE_TIMEOUT,
     );
 
     it(
-      'C-47 null measurements: a candidate whose calculation fails in PoB (a Lua hook on calcs.initEnv) is not ranked, and each ranker lists it in its can\'t-measure section with the error; the call still succeeds',
+      'C-47 null measurements: a candidate whose calculation fails in PoB (a Lua hook on calcs.initEnv) is not ranked, and each ranker reports it in its can\'t-measure section with the error (get_passive_upgrades in its count of the rest, D-417); the call still succeeds',
       async () => {
         const hook = (condition: string) =>
           luaQuery(`
@@ -390,9 +412,12 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
           await unhook();
         }
         expect(rankedEntries(ranking(passives)).map((e) => e.id)).not.toContain(top.id);
-        const failed = passiveEntries(section(passives, CANT_MEASURE) ?? '').find((e) => e.id === top.id);
-        expect(failed?.line).toContain("no value: PoB's calculator failed:");
-        expect(failed?.line).toContain('wu34 forced failure');
+        // D-417: it is no listed entry now, so the count of the rest says how many have no value, with the error.
+        const more = /^…and \d+ more passives? in reach that PoB can't fully measure \(check_model_coverage gives their lines\); (\d+) of them have no value \((.*)\)\.$/m.exec(section(passives, CANT_MEASURE) ?? '');
+        expect(more).not.toBeNull();
+        expect(Number(more![1])).toBeGreaterThanOrEqual(1);
+        expect(more![2]).toContain("PoB's calculator failed:");
+        expect(more![2]).toContain('wu34 forced failure');
 
         // suggest_supports: the best candidate fails to calculate on group 11.
         const supportsBefore = await okTool('suggest_supports', { group_index: 11, count: 3 });
@@ -431,13 +456,9 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         const plain = await okTool('get_passive_upgrades', { focus: 'dps' });
         const out = await okTool('get_passive_upgrades', { focus: 'dps', include_ascendancy: true });
         expect(out).toContain(`Gemling Legionnaire: ${pob.used} of 8 ascendancy points used, ${left} left.`);
-        // The passive-point ranking is the same with and without the option: the longer text may show fewer of its
-        // entries (D-246 drops ranks from the bottom, and says so), never others or in another order.
+        // The passive-point ranking is the same with and without the option.
         const ids = (text: string) => rankedEntries(ranking(text)).map((e) => [e.id, e.cost]);
-        const shown = ids(out);
-        expect(shown.length).toBeGreaterThan(0);
-        expect(shown).toEqual(ids(plain).slice(0, shown.length));
-        if (shown.length < ids(plain).length) expect(out).toMatch(new RegExp(`passive-point ranks ${shown.length + 1}-${ids(plain).length}`));
+        expect(ids(out)).toEqual(ids(plain));
 
         const asc = section(out, ASCENDANCY_SECTION);
         expect(asc).not.toBeNull();
@@ -465,7 +486,7 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
     );
 
     it.each([{ include_ascendancy: true }, { include_ascendancy: true, max_results: 20 }])(
-      'D-246: get_passive_upgrades %j keeps within 5000 chars with no truncation notice, and its can\'t-measure section lists exactly the main and ascendancy pools\' candidates with a line not fully parsed, a null measurement, or (D-247) no stat lines of their own',
+      'D-246: get_passive_upgrades %j keeps within 5000 chars with no truncation notice, and its can\'t-measure section lists exactly the ranked main candidates and the ascendancy pool\'s with a line not fully parsed, a null measurement, or (D-247) no stat lines of their own, then counts the rest (D-417)',
       async (args) => {
         const out = await okTool('get_passive_upgrades', args);
         expect(out.length).toBeLessThanOrEqual(5000);
@@ -478,21 +499,8 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
         const pool = [...main, ...ascendancy];
         const nullIds = await nullMeasured(pool, 'both');
         const notFull = await notFullyParsed(pool);
-        const expected = pool
-          .filter((c) => notFull.has(c.id) || nullIds.has(c.id) || (c.ascendancy && c.lines === 0))
-          .map((c) => c.id)
-          .sort((a, b) => a - b);
-        expect(expected.some((id) => ascendancy.some((c) => c.id === id))).toBe(true);
-
-        const cant = section(out, CANT_MEASURE);
-        expect(cant).not.toBeNull();
-        const entries = passiveEntries(cant!);
-        expect(entries.map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
-        for (const e of entries) {
-          const lines = notFull.get(e.id) ?? [];
-          for (const line of lines) expect(e.line).toContain(line);
-          expectKinds(e, lines);
-        }
+        const entries = expectCantMeasure(out, main, ascendancy, nullIds, notFull);
+        expect(entries.some((e) => ascendancy.some((c) => c.id === e.id))).toBe(true);
 
         // When the text had to be shortened, one line says what was left out, and the ranked entries
         // left are each ranking's first ones, in order.
@@ -532,19 +540,17 @@ engineDescribe('M2: ranker amendments (WU-34, C-47)', () => {
           expect(out).not.toContain('[Response truncated');
           expect(out).toMatch(/^Shortened to stay within 5000 characters; left out: .*the closing tip/m);
 
-          // The can't-measure section is whole: the same entries, line for line, as without the notice.
-          const entries = (text: string) => passiveEntries(section(text, CANT_MEASURE) ?? '').map((e) => e.line);
-          expect(entries(out)).toEqual(entries(plain));
+          // The can't-measure section is whole: each entry it lists is the same line as without the notice, and it
+          // lists the entries the shortened text lists, the rest counted (D-417).
+          const plainLines = new Map(passiveEntries(section(plain, CANT_MEASURE) ?? '').map((e) => [e.id, e.line]));
           const main = await mainPool();
           const ascendancy = await ascendancyPool();
           const pool = [...main, ...ascendancy];
           const nullIds = await nullMeasured(pool, 'both');
           const notFull = await notFullyParsed(pool);
-          const expected = pool
-            .filter((c) => notFull.has(c.id) || nullIds.has(c.id) || (c.ascendancy && c.lines === 0))
-            .map((c) => c.id)
-            .sort((a, b) => a - b);
-          expect(passiveEntries(section(out, CANT_MEASURE) ?? '').map((e) => e.id).sort((a, b) => a - b)).toEqual(expected);
+          const entries = expectCantMeasure(out, main, ascendancy, nullIds, notFull);
+          for (const e of entries) if (plainLines.has(e.id)) expect(e.line).toBe(plainLines.get(e.id));
+          expectCantMeasure(plain, main, ascendancy, nullIds, notFull);
         } finally {
           await okTool('lua_load_build', { build_name: 'grenadator.xml' });
           fs.rmSync(path.join(f.builds, '1'.repeat(150)), { recursive: true, force: true });

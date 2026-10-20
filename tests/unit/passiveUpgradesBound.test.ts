@@ -78,6 +78,13 @@ async function run(client: PoBLuaApiClient, maxResults: number): Promise<string>
 
 const ranks = (text: string): number[] => [...text.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
 
+/** The can't-measure section's listed entries plus the count of the rest (D-417). */
+function listedPlusCounted(cant: string): number {
+  const listed = [...cant.matchAll(/^- \*\*(.+?)\*\* \[(\d+)\]/gm)].length;
+  const more = /^…and (\d+) more passives? in reach that PoB can't fully measure/m.exec(cant);
+  return listed + (more ? Number(more[1]) : 0);
+}
+
 describe('D-246: get_passive_upgrades keeps its whole text within 5000 characters', () => {
   it('a text that fits is left whole, with no note', async () => {
     const text = await run(stubEngine({ statWords: 1, unparsed: 2, lineWords: 1 }), 3);
@@ -120,10 +127,11 @@ describe('D-246: get_passive_upgrades keeps its whole text within 5000 character
     else expect(mainShown.length).toBeGreaterThanOrEqual(8);
     expect(mainShown.length).toBeGreaterThan(0);
 
-    // The can't-measure section is complete: one whole line per unparsed node.
+    // The can't-measure section is complete: one whole line per listed unparsed node (D-417: a ranked one shown,
+    // or an ascendancy notable), and one line counting the rest.
     const cant = text.slice(text.indexOf("## What PoB can't fully measure"));
+    expect(listedPlusCounted(cant)).toBe(unparsed);
     const entries = [...cant.matchAll(/^- \*\*(.+?)\*\* \[(\d+)\].*: not applied: \[unparsed\] (.*)$/gm)];
-    expect(entries).toHaveLength(unparsed);
     for (const e of entries) expect(e[3]).toBe(LONG(Number(e[2]), 7));
   });
 
@@ -153,7 +161,7 @@ describe('D-246: get_passive_upgrades keeps its whole text within 5000 character
       expect({ reserved, fits: text.length + reserved <= 5000 }).toEqual({ reserved, fits: true });
       expect(text).toMatch(/^Shortened to stay within 5000 characters; left out: /m);
       const entries = [...text.matchAll(/^- \*\*(.+?)\*\* \[(\d+)\].*: not applied: \[unparsed\] (.*)$/gm)];
-      expect(entries).toHaveLength(unparsed);
+      expect(listedPlusCounted(text.slice(text.indexOf("## What PoB can't fully measure")))).toBe(unparsed);
       for (const e of entries) expect(e[3]).toBe(LONG(Number(e[2]), 7));
     }
     // With no room reserved, refit renders what the plain result holds.

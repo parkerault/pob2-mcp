@@ -1601,7 +1601,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_passive_upgrades",
-      description: "Find the best unallocated passives to pick up next. Every unallocated main-tree passive within 6 points of the tree (small passives, notables and keystones) is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among every passive it measured: one with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value. When the main skill summons a minion, DPS is the minion's (MinionTotalDPS).",
+      description: "Find the best unallocated passives to pick up next. Every unallocated main-tree passive within 6 points of the tree (small passives, notables and keystones) is measured with PoB's calculator with its whole path allocated (PoB's own pathing, as its tree tooltip does), and ranked by relative DPS/EHP gain per passive point; the output shows each path cost in points. After the ranking, it lists what PoB can't fully measure among the passives it lists (the ranked ones, and the ascendancy notables): one with a line check_model_coverage doesn't rate fully parsed (with the line and its status), or one whose measurement returned no value; one line counts the rest of the measured passives PoB can't fully measure. When the main skill summons a minion, DPS is the minion's (MinionTotalDPS).",
       inputSchema: {
         type: "object",
         properties: {

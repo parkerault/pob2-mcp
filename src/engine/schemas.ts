@@ -1510,6 +1510,8 @@ const powerResultSchema = z
     keepNotAllocated: luaArray(z.number().int()),
     /** Protected main-tree nodes by reason: keep, grants a skill, weapon set, later rung. */
     protected: luaMap(z.number().int()),
+    /** Branches left out because removing them would disconnect a node outside them (in this tree or a protect_for one). */
+    heldBranches: z.number().int().optional(),
     best: luaArray(powerBestSchema),
     weakest: luaArray(powerWeakSchema),
     bestSwap: powerSwapSchema.optional(),

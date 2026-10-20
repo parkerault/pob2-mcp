@@ -5182,3 +5182,11 @@ the `m17` engine at `b76967b`.
   took 33–66 s CPU per pass under load (timeout 120 s); `get_passive_upgrades`' description now says "passives" and
   its default output drops some stat lines (the verifier judges the HG-12 scope). The verifier is running.
 - **WU-96 dispatched** (`bg-96`, off `ddb71ea`), reading WU-92's interface from `bg-92`.
+- **WU-97 done by its doer** (`51cd005`, rebased by the coordinator to `41b4ccd` onto `dd46114` so its two
+  checker cross-checks run; about 310K tokens). Gate rc 0 before the rebase (152 suites, 2,672 tests), build rc 0.
+  The endgame template (§8's twelve H2s, Switching over, the 2,300-word cap, budgets summing to 2,100), `W1.md`'s
+  template choice and campaign mode (detected from the files), `V4.md`'s campaign pass (H1 `# V4-<n>: campaign
+  pass of rounds/<n-1>`, carrying the last report's unresolved findings). **For WU-95:** the header's `buildFolder`;
+  W1's and V4's `writes` under `<buildFolder>/`; `V4-campaign` and `check: "campaign"`; re-render `audit.md` with
+  `--build <id>` before W1's campaign mode; the verifier's and writer's definitions' paths and descriptions. The
+  verifier is running.

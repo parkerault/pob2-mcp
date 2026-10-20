@@ -131,13 +131,10 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
   it('allows no pob2 tool in group trade or ninja (they stay with review)', () => {
     const allowed = settings().permissions.allow.filter((t) => t.startsWith(POB2));
     for (const tool of allowed) {
+      // Every allowed pob2 tool is a tool of the server (get_node_power among them since WU-92, C-55), in group core.
       const meta = TOOL_META[tool.slice(POB2.length)];
-      if (meta === undefined) {
-        // Only get_node_power may be missing from TOOL_META, until WU-92 registers it (group core, C-55).
-        expect(tool).toBe(`${POB2}get_node_power`);
-      } else {
-        expect({ tool, group: meta.group }).toEqual({ tool, group: 'core' });
-      }
+      expect({ tool, registered: meta !== undefined }).toEqual({ tool, registered: true });
+      expect({ tool, group: meta?.group }).toEqual({ tool, group: 'core' });
     }
     // The coordinator's trade and poe.ninja tools are all left out.
     const tradeOrNinja = coordinatorTools().filter((t) => t.startsWith(POB2) && isTradeOrNinja(t));

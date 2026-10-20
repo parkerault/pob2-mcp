@@ -58,4 +58,7 @@ focus and your letter, or the question.
   (`.claude/skills/build-guide/references/source-markers.md`): PoB's own data and the lookup results are
   `pob-data`; your reasoning is `judgment`, with a confidence. On a card, each link's lookup in its links
   table, and the card template's status words.
+- **A refused call** (D-421). If Claude Code's permission system refuses one of your tool calls, it isn't an
+  error to work around: stop the step, and return the line `refused: <tool>`, the tool's full name; the runner
+  asks the user to allow it and re-runs your step.
 - **End with at most 8 lines**, as your stage reference says.

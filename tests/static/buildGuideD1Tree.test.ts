@@ -164,7 +164,10 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/- `protect_for`: the later rungs' loadout names, exactly as the record has them, `m`'s `b` and `n`, `b`'s `n`, none for `n`/);
     // WU-92's verifier: the tool defaults to the main group, so the clear group is always passed.
     expect(tree).toMatch(/- `clear_group`, \*\*always\*\*: the record's group number of the rung's first enabled `role: "clear"` group .* else the main group's/);
-    expect(tree).toMatch(/- `max_loss` left at its default: 2% on each stat after the first \(TotalEHP\), and 0 on the guards \(`movement`, `clearRadius`, `clearUses`/);
+    // The coordinator's guard ruling (amendment 9 §23): the clear skill's uses per second may drop up to 2%, as the
+    // stats may; movement speed and the clear skill's radius stay at 0.
+    expect(tree).toMatch(/- `max_loss: \{clearUses: 2\}`, the map form .*: the clear skill's uses per second may drop up to 2%, as each stat after the first \(TotalEHP\) may.* the other guards keep their default 0 \(`movement` and `clearRadius`/);
+    expect(tree).not.toMatch(/`max_loss` left at its default/);
     expect(tree).toMatch(/`limit: 0`, the compact mode, for a swap/);
   });
 
@@ -304,7 +307,7 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
   it('measures each rung with get_node_power in compact mode, with D1-tree\'s arguments, after the compile', () => {
     expect(gate).toMatch(/- \*\*tree\*\* \(D-419\), PoB's node power on each rung, after the compile loaded them: call `mcp__pob2__get_node_power` in compact mode on `m`, `b` and `n`, in that order, with D1-tree's arguments/);
     expect(gate).toMatch(/`keep` the nodes of its `tree\.needs`, for `b` and `n` also every node of the rung before's `tree\.nodes`/);
-    expect(gate).toMatch(/`protect_for` the later rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the rung's first enabled `role: "clear"` group .*; `max_loss` at its default .*; `limit: 0`/);
+    expect(gate).toMatch(/`protect_for` the later rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the rung's first enabled `role: "clear"` group .*; `max_loss: \{clearUses: 2\}`, as D1-tree passes it \(2% on TotalEHP and on the clear skill's uses per second; movement speed and the clear skill's radius at 0\); `limit: 0`/);
   });
 
   it(`fails a rung at ${GATE_LINE}% with tree-swap; a tool failure is unverified with tool-error; a refusal tool-refused`, () => {

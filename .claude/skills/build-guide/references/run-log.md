@@ -3,28 +3,60 @@
 The runner writes `run-log.json` in the run folder as soon as the folder exists, and adds to it after every
 step, gate and question, so an interrupted run still leaves one (FR-W2). Only the runner writes it, and only
 through `scripts/run-log.mjs` (D-356, "Writing it" below), never with Write or Edit. It records the run's control flow; the artifacts record the rest, and the run checker reads both
-(`run-folder.md`). This page is **schema version 3** (D-289), the run log of the three phases and their gates;
-the run checker also reads schema 2, only so runs recorded before amendment 3 still check (D-326, the last
-section).
+(`run-folder.md`). This page is **schema version 4** (D-412), the run log of the three phases and their gates
+with one build per finalized card (D-411); `run-log.mjs <runFolder> migrate` rewrites a schema-3 log as schema 4
+(D-415), and the run checker also reads schemas 3 and 2, so runs recorded before amendments 9 and 3 still check
+(D-326, the last section).
 
 ## Fields
 
 | Field | Content |
 |---|---|
-| `schemaVersion` | `3` |
+| `schemaVersion` | `4` |
 | `runFolder` | the absolute path `mcp__pob2__guide_run {new_run}` returned |
 | `slug` | the run's slug, from the brief (`run-folder.md`, D-285) |
 | `brief` | the parsed brief (below, C-51); `{}` for an empty brief, "surprise me" |
-| `roll` | `null` until the verification gate finalizes a card; then that card's identity `{className, ascendancy, skill}`, `skill` its named damage source, the names exactly as the tools gave them (D-286) |
-| `status` | `running`, then `completed`, `not-accepted`, `stopped` or `escalated` |
+| `status` | the run's: `running`, then `completed`, `not-accepted`, `stopped` or `escalated` (D-411: `completed` when any build ended `completed` or `file-only`, else the last build's end, or `stopped` when no card was finalized); a resume sets it `running` again |
 | `mode` | `offline` or `online` |
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
+| `noNinja` | `true` or `false`: whether the run prices without poe.ninja's currency rates (`--no-ninja`, D-333). Every pricing step is told from here, never from memory (D-412, D-420); `null` in a migrated run |
+| `pinCommit` | the PoB pin's commit when `init` ran, which `run-log.mjs` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
+| `digest` | the newest league digest's file name when `init` ran (`data/league/<name>.md`, newest by its fetch date), or `null` |
+| `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
+| `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, shortReason?, tried?}` |
-| `checkpoints[]` | `{checkpoint, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}` |
+| `checkpoints[]` | `{checkpoint, concept?, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}`; `concept`, the build's card id, on a design or final checkpoint only |
 | `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below) |
 | `escalations[]` | gate escalations only: `{stage, concept, verdict, choice, guidance?}` |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}`; empty otherwise |
-| `outputs` | `{plan, record, dossier, guide, pobFile}`: run-folder paths and the record's PoB path; `null` until produced. No import code: the record holds it (D-260) |
+| `resumes[]` | one per resume (D-415): `{date, pinCommit, digest, noNinja, lengths: {stages, checkpoints, escalations, displays}}` |
+
+No run-level `roll` or `outputs` (schema 3's): each build records its own identity and PoB file, and no log
+holds the import code, whose one home is the record (D-260).
+
+### Builds (D-411, D-412)
+
+`builds[]` holds one entry per card the verification gate finalized, in finalize order, written only with
+`run-log.mjs build` (below):
+
+| Field | Content |
+|---|---|
+| `id` | the card id (`r1-a-2`); a card with a build is never finalized again (D-411) |
+| `roll` | the card's identity `{className, ascendancy, skill}`, `skill` its named damage source, the names exactly as the tools gave them (D-286) |
+| `status` | `queued` at the finalize; `designing` from its D1-build; `writing` once its final compile passed, and while its campaign runs; then its end: `completed` (the final gate's `accept`, `accept:verification` or `campaign`), `file-only` (F1 after the design gate's `accept:file`), `not-accepted` (`decline:<note>`), `dropped` (back to the verification gate), `stopped` or `escalated` |
+| `folder` | `builds/<id>`, the build's folder; `.` for a migrated run's build, whose files stayed at the root |
+| `guide` | `null`, `endgame` or `full`: the template its plan decides (D-414: no campaign stage, the endgame guide), set once W1 wrote it |
+| `pobFile` | `null` until a final compile wrote the PoB file (F1, or the D2 gate after its campaign); then the final record's PoB path, the verdict's `finalCompile.pobFile` |
+
+### Resumes (D-415)
+
+`resume` appends one entry per session that resumes the run: the date, the pin's commit and the newest digest as
+the repository holds them then, the session's `noNinja`, and `lengths`, how many entries `stages[]`,
+`checkpoints[]`, `escalations[]` and `displays[]` held at the resume. So every entry after it can be placed: the
+run checker accepts entries after a build's or the run's end only behind a resume, and the pricing stop holds
+only for the session it happened in (a `stages[]` entry from index `resumes[<last>].lengths.stages` on,
+`pricing.md`). When the pin's commit or the digest differs from the run's last recorded one, the verification
+display says so.
 
 ### The brief
 
@@ -46,17 +78,19 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 ### Entry rules
 
 - **`stages[]`** has one entry per Agent call, in run order: each R1a researcher is its own entry, and so is each
-  of D1's two steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`,
+  of D1's three steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`,
   `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a gate question
-  step (D-390), and `RV`, the rival (D-408); each V4 entry is one report, `reports/V4-<n>.md`. `concept` is the
-  card id (`r<round>-<letter>-<n>`, D-319), set for every step but R1a, R1a-assemble, R1b-assemble, Q and RV.
+  step (D-390), and `RV`, the rival (D-408); and schema 4's `D1-tree` (D-418), `F1`, an endgame-only build's final
+  compile (D-413), and `V4-campaign`, V4's campaign pass (D-415). Each V4 entry is one report, its build's
+  `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`, D-319), set for every step but R1a,
+  R1a-assemble, R1b-assemble, Q and RV: a build's steps name their build.
   `attempt` counts the calls of that (stage, card) from 1, re-runs included, and matches the header and the
   verdict file name; per log name, so a re-check's `attempt` counts that card's re-checks from 1, apart from its
   full pass (D-368). `outcome`:
-  - `pass` or `fail` for a gate step (R1b, D1-gate, D2-gate) and a V4 entry (`fail`: its report has an
-    `unresolved` finding);
-  - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-finish, …), `infeasible` for
-    D1-build claiming it and for a D1 gate routed so;
+  - `pass` or `fail` for a gate step (R1b, D1-gate, F1, D2-gate) and a V4 entry (`fail`: its report has an
+    `unresolved` finding); a D1 gate whose only issue is its tree part's `tool-error` is `fail` (D-419);
+  - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-tree, D1-finish, …), `infeasible`
+    for D1-build claiming it and for a D1 gate routed so;
   - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no` with no
     gate after it: it edited claims in place and compiled nothing (D-264). A D1-finish after D1-build, and a D2
     after a recompiled D1, are `done` whatever they return: their gate follows. The run checker
@@ -66,7 +100,10 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   - `escalated` for the gate attempt that escalated;
   - for RV, `done` when it wrote its card, or `none-found` with `tried`, what it tried in a sentence (only
     there);
-  - `missing` for an agent that returned without its file.
+  - `missing` for an agent that returned without its file;
+  - `refused` for any step the permission system refused a tool call in (D-421): its return's `refused: <tool>`
+    line, or a gate verdict with code `tool-refused`. The same step is re-run next, alone, and counts against no
+    retry cap, though its `attempt` counts the call.
   A gate attempt's outcome is the one its verdict file routes to (`gates.md`), and the run checker holds the
   two together. An R1b `fail` whose verdict's finding is `not-a-skill` with `compiles: 0` is final: its card's
   damage source isn't a skill and no retry can compile it, so it never re-runs (D-334). So is one whose
@@ -88,18 +125,25 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `cards.md` and accepts a short round only with its reason.
 - **`priceOutcomes`**, on a pricing step (R1b, D1-finish, D1-gate, D2) that made price calls: its calls counted by
   outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
-  `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`.
+  `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`. Pricing stops
+  for the rest of the session at one, counted from the last resume's `lengths.stages` (D-415, D-422).
 - **`checkpoints[]`**: `checkpoint` is `brainstorm`, `verification`, `design` (D-362), `final`,
   `unsaved-build` or `escalation` (`checkpoints.md`); `visit` counts that checkpoint's visits from 1; `answer` is the effective answer:
   - the brainstorm gate: `pick:<id>[,<id>…]` (1–3 cards to verify, new cards included; `pick:` alone makes
     only new cards), `more` or `stop`;
-  - the verification gate: `pick:<id>` (finalize that card; its identity becomes `roll`), `verify:<id>[,<id>…]`
-    (1–3 more cards from the deck, a verification round without a brainstorm; `verify:` alone, new cards
-    only), `more` or `stop`;
-  - the design gate: `accept` (on to D2), `revise:<text>` (D1 again, its gate and the design gate again),
-    `verification` (back to the verification gate) or `stop`;
-  - the final gate: `accept`, `revise:<text>`, or the note of a user who declines the guide (the run ends
-    `not-accepted`);
+  - the verification gate: `pick:<id>[,<id>…]` (finalize 1–3 cards, in the user's order, each logged with
+    `build` as a queued build with its identity, D-411), `verify:<id>[,<id>…]` (1–3 more cards from the deck, a
+    verification round without a brainstorm; `verify:` alone, new cards only), `more` or `stop`; after a resume
+    (D-415) also `guide:<id>` (a `file-only` build's endgame guide), `campaign:<id>` (a `completed` or
+    `file-only` build's campaign) and `design:<id>` (a `stopped` or `dropped` build's design gate again);
+  - the design gate, with `concept` its build: `accept` (on to F1, then the guide), `accept:file` (F1 alone: the
+    build ends `file-only`), `revise:<text>` (D1 again, its gate and the design gate again), `verification` (the
+    build ends `dropped`, back to the verification gate) or `stop` (the build ends `stopped`; the default `stop`
+    ends the run);
+  - the final gate, with `concept` its build: `accept` (`completed`), `accept:verification` (`completed`, then
+    the verification gate once the queue is empty), `campaign` (`completed`, then its campaign), `revise:<text>`,
+    or `decline:<note>`, a user who declines the guide, the note after the prefix (the build ends
+    `not-accepted`); its `stop` is the default only, and ends the run;
   - the unsaved-build question: `proceed` or `stop`; an escalation: `accept`, `retry:<guidance>`, `verification`
     or `stop`.
 
@@ -116,7 +160,7 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   its interview notes hold as many (D-389). `changes`,
   `newCards` and `note` carry a pick's revisions, the cards made at the gate and a `more` answer's note
   (D-391, `checkpoints.md`).
-- **`escalations[]`**: `stage` is `D1-gate` or `D2-gate`; `verdict` is the escalated attempt's verdict file,
+- **`escalations[]`**: `stage` is `D1-gate`, `D2-gate` or `F1` (D-413); `verdict` is the escalated attempt's verdict file,
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with
   the user's `guidance` for `retry`. The escalations are in the order of the `stages[]` entries whose outcome is
@@ -125,9 +169,9 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 - **`faults[]`**: each directive the test config gave, with its `target` as written (`{concepts, persistent}`,
   `concepts` a list of card ids or `"all"`), `applied` (how many headers carried it) and `observed` (what failed
   as a result).
-- **`outputs`**: `plan`, `record`, `dossier` and `guide` are paths relative to the run folder; `pobFile` is
-  the D2 gate verdict's `finalCompile.pobFile`. Don't copy the import code into the log: its one home is
-  `compile-record.json`, which `record` names, and the guide holds a copy (D-260).
+- **`builds[]`** and **`resumes[]`**: above. Log each build's status, guide and PoB file as they change: its
+  `pobFile` is the F1 or D2 gate verdict's `finalCompile.pobFile`. Don't copy the import code into the log: its
+  one home is the build's `compile-record.json`, and the guide holds a copy (D-260).
 
 ### Rounds, read from the gates
 
@@ -141,87 +185,136 @@ Only the user starts a round (D-287), so the log's gate answers say where every 
   between that R1b-assemble and the gate (D-408): `RV done`, R1b for its card, a second R1b-assemble; or `RV
   none-found`. A rival the user asks for at a gate runs between the visit's display and its answer, like a gate
   question step; its card is verified when a later answer picks it.
-- **The design** follows a verification `pick:<id>`: D1-build, D1-finish and the D1 gate, then the design gate
-  (D-362), and D2 only after its `accept`. A design `revise:<text>` runs D1 again (D1-build then D1-finish for a
-  build change, D1-finish alone otherwise), the D1 gate and the design gate again. Every route back from the
+- **A build** follows a verification `pick:<ids>`, one at a time in the queue's order (D-411): its design,
+  D1-build, D1-tree, D1-finish and the D1 gate, then the design gate (D-362), and F1 only after its `accept` or
+  `accept:file` (D-413); after F1, W1, the V4 full pass, the fix round and the re-check, then its final gate. A
+  design `revise:<text>` runs D1 again (D1-build, D1-tree, then D1-finish for a build change; D1-tree then
+  D1-finish for the tree alone; D1-finish alone otherwise), the D1 gate and the design gate again; a D1 gate's
+  `tree` failure runs D1-tree, then D1-finish. D2 and the D2 gate run only for a campaign (the final gate's
+  `campaign`, or `campaign:<id>`), followed for a `completed` build by `V4-campaign`. Every route back from a
   design (an `infeasible` D1 gate, an escalation's or the design gate's `verification`, FI-3) returns to the
-  verification gate.
-- **The fix round and a revision** (D-352): each starts with the round copy, `rounds/<n>/`, which the run
-  checker's `--snapshot <n>` makes (`SKILL.md` step 12); no design gate is asked in them. A D1 finding runs
-  D1-finish first; when it returns `build: <ids>`, D1-build runs with those findings, then D1-finish again,
-  then the gates.
+  verification gate, the cards still queued waiting behind the visit.
+- **The fix round, a revision and a campaign** (D-352, D-415): each starts with the round copy, `rounds/<n>/` in
+  the build's folder, which the run checker's `--snapshot <n> --build <id>` makes (`SKILL.md` step 12); no design
+  gate is asked in them. A D1 finding runs D1-finish first; when it returns `build: <ids>`, D1-build runs with
+  those findings, then D1-tree, then D1-finish again, then the gates.
+- **A resume** (D-415) places its entries by its `resumes[]` lengths: after a build's or the run's end, the next
+  entries follow a resume and its verification visit.
 
-Each gate visit records its one answer in `checkpoints[]`, in order; `stop` ends the run `stopped`.
+Each gate visit records its one answer in `checkpoints[]`, in order; the run ends when the queue is empty and the
+last answer didn't ask for the verification gate.
 
 ## Reading the requirements from the log
 
 - **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards;
   per verification round at most 3 cards compiled, the rival's aside (D-408; a second verification round from the
-  same deck has its own 3); one V4 pass, and one re-check per fix round or revision (D-352); at most 2 counted
+  same deck has its own 3); one V4 pass per guide, and one re-check per fix round or revision (D-352); at most 2 counted
   retries per gate (the run checker counts them from `stages[]`, S6 included); and at most 3 agents in flight,
   which the session's transcript shows.
 - **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4.
 - **NFR-22** (no 429s, no lock-outs): no `priceOutcomes` counts a `rate_limited` or `locked_out` call.
+- **D-416's output targets**, measured after the run by `scripts/run-usage.mjs` over its sessions' transcripts,
+  grouped per build by the header's `concept`: the shared phases 1.2M, an endgame-only build 0.75M, a campaign
+  0.4M. No step stops for them.
 
 ## Writing it (D-356)
 
 One call per write, the entry as JSON on stdin (`-` in place of the JSON argument) through a quoted heredoc, so
 an apostrophe in a brief's notes, a `revise:` text, a retry's guidance or a final-gate note needs no escaping;
-its fields exactly as above, `<runFolder>` the absolute path `mcp__pob2__guide_run {new_run}` returned:
+its fields exactly as above, `<runFolder>` the absolute path `mcp__pob2__guide_run {new_run}` (or `{resume}`)
+returned:
 
 ```
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> init - <<'JSON'
-{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted"}
+{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted", "noNinja": false}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build - <<'JSON'
+{"id": "r1-a-2", "roll": {"className": "Warrior", "ascendancy": "Titan", "skill": "Blood Hunt"}, "status": "queued"}
 JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
 {"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}
 JSON
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display design
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display design --build r1-a-2
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
-{"checkpoint": "design", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user", "questions": 0}
+{"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "revise:the build's helmet costs too much", "answeredBy": "user", "questions": 0}
 JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation - <<'JSON'
-{"stage": "D1-gate", "concept": "r1-a-2", "verdict": "reports/gates/D1-gate-r1-a-2-a3.json", "choice": "stop"}
+{"stage": "F1", "concept": "r1-a-2", "verdict": "reports/gates/F1-r1-a-2-a2.json", "choice": "stop"}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build - <<'JSON'
+{"id": "r1-a-2", "status": "escalated"}
 JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set - <<'JSON'
-{"status": "completed", "outputs": {"plan": "plan.json", "record": "compile-record.json", "dossier": "dossier.md", "guide": "guide.md", "pobFile": "<the D2 gate's pobFile>"}}
+{"status": "escalated", "dossier": "dossier.md"}
 JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> resume - <<'JSON'
+{"noNinja": false}
+JSON
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
 ```
 
-- `init` writes the first log (below): `runFolder` the folder given, `roll` null, the lists empty and every
-  `outputs` path null, `status` `running`, or `stopped` with a refused test config. It never overwrites a log.
+- `init` writes the first log (below): `runFolder` the folder given, `noNinja` the run's `--no-ninja` (`true` or
+  `false`, required), the pin's commit and the newest digest as the script reads them, `dossier` null, the lists
+  empty, `status` `running`, or `stopped` with a refused test config. It never overwrites a log.
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
   `escalations[]`.
+- `build` (D-412) adds a finalized card's build, `{"id", "roll", "status": "queued"}`, its folder `builds/<id>`,
+  once per card the verification gate finalizes; then `{"id", "status"?, "guide"?, "pobFile"?}` updates it. A card
+  with a build is refused as a new one, and a build keeps its card's identity.
+- `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
+  `noNinja` (its `--no-ninja`) and the four lists' lengths, and sets `status` `running`. It runs once per resume,
+  before the resume's unsaved-build question and verification visit.
+- `migrate` (D-415), with no JSON, rewrites a schema-3 log as schema 4: its finalized card becomes `builds[0]` with
+  `folder: "."` (its files stay at the root), its status from the old `status` and last answer, `guide` from
+  whether a guide exists; its design and final checkpoints get `concept` from the D1 gate entry before each; a
+  final-gate decline's note gets the `decline:` prefix; `noNinja`, `pinCommit` and `digest` are `null`. It refuses a
+  log that is already schema 4. A resume of a schema-3 run migrates first, before `resume`.
 - `display <gate>` (D-367; `brainstorm`, `verification`, `design`, `final` or `escalation`) prints that gate
   visit's display, built from the run folder's files (`checkpoints.md`), and records the visit in `displays[]`;
-  printing it again records nothing new. A `checkpoint` entry for one of those gates is refused until its visit's
-  display is recorded; the unsaved-build question has no display.
-- `set` replaces `status`, `roll` (the verification gate's `pick:`), `outputs` or `faults` (`SKILL.md` §7).
+  printing it again records nothing new. The design and final gates are a build's: `display design --build <id>`
+  and `display final --build <id>` (D-411). A `checkpoint` entry for one of those gates is refused until its
+  visit's display is recorded; the unsaved-build question has no display.
+- `set` replaces `status`, `dossier` (once R1b-assemble wrote it) or `faults` (`SKILL.md` §8).
 - An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
   written. The run checker checks the whole log and the flow it records.
 
 ## A first write
 
-The log before any agent runs (`SKILL.md` §1, step 3), as `init` writes it: the brief as parsed and no roll yet.
+The log before any agent runs (`SKILL.md` §1, step 3), as `init` writes it: the brief as parsed, no build yet, and
+the pin's commit and newest digest as `run-log.mjs` reads them from the repository.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "slug": "titan-blood-hunt",
   "brief": { "ascendancy": "Titan", "skill": "Blood Hunt" },
-  "roll": null,
   "status": "running",
   "mode": "offline",
   "testConfig": "accepted",
+  "noNinja": false,
+  "pinCommit": "<the pin's commit, from pob-pin.json>",
+  "digest": "<the newest league digest's file name>",
+  "dossier": null,
+  "builds": [],
   "stages": [],
   "checkpoints": [],
   "displays": [],
   "escalations": [],
   "faults": [],
-  "outputs": { "plan": null, "record": null, "dossier": null, "guide": null, "pobFile": null }
+  "resumes": []
 }
 ```
+
+## Schema 3: runs recorded before amendment 9
+
+The run checker reads a `schemaVersion: 3` log, and `run-log.mjs` appends to one in its own form until `migrate`
+rewrites it (D-415). Never start one. It differs from schema 4 in these fields: a run-level `roll` (the one
+finalized card's identity, `null` until the verification gate's `pick:<id>`, one card) and `outputs` (`{plan,
+record, dossier, guide, pobFile}`) in place of `builds[]` and `dossier`; no `noNinja`, `pinCommit`, `digest` or
+`resumes[]`; its one build's files at the root; D1 as two steps, D1-build and D1-finish, with no `D1-tree`, `F1` or
+`V4-campaign`; the design gate's `accept` going on to D2 and the D2 gate, its final compile the run's; checkpoints
+with no `concept`; and a final-gate decline recorded as the user's note alone.
 
 ## Schema 2: runs recorded before amendment 3
 

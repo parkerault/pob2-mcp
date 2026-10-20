@@ -24,7 +24,9 @@ for a player who levels with any build of the class and switches to this one for
 - Switching over, about 250 words, says four things, in this order:
   - level with any build of the class (the card's Class); the build works from level <m's requirements.level in
     compile-record.json>, because of <what sets it: m's requirements.by[] in the record, an item {kind: "item",
-    name, slot} by its name and slot, a gem {kind: "gem", name, group, gemLevel} by its name and gem level>;
+    name, slot} by its name and slot, a gem {kind: "gem", name, group, gemLevel} by its name and gem level>; when
+    requirements.by[] is empty (no item or gem sets the level), say the build works from the rung's own level, m's
+    level, with no item or gem holding it back;
   - the ascendancy, and the order to take its nodes: the order the plan's reason claim on m names them in (D1-finish
     writes it, D-413), with the reason it gives. W1 reads no node ids: the claim is the names' and the order's
     only source;
@@ -78,7 +80,7 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 [About 250 words.]
 
-Level with any <the card's Class> build you like: this one works from level <m's requirements.level in compile-record.json>, because <what sets it, in plain words: each item of m's requirements.by[] by its name and slot, each gem by its name and gem level>.
+Level with any <the card's Class> build you like: this one works from level <m's requirements.level in compile-record.json>, because <what sets it, in plain words: each item of m's requirements.by[] by its name and slot, each gem by its name and gem level>. [With requirements.by[] empty, no item or gem sets a level: write instead that the build works from the rung's own level, m's level in the plan.]
 
 - **Ascendancy:** <the ascendancy>. I take its nodes in this order: <the nodes, in the order the plan's reason claim names them>, because <the reason that claim gives>.
 - [one line per reward choice the plan picks, in route order] **<Act and quest>:** take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.

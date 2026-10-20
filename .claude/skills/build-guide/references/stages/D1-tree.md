@@ -45,10 +45,11 @@ and every later rung), and has:
 - `clear_group`, **always**: the record's group number of the rung's first enabled `role: "clear"` group (the
   `g<N>` of its keys in `skillOutputs`), else the main group's (`skills.main.group`). The tool's default is the
   main group, not the clear group, and its guards measure the group you pass;
-- `max_loss` left at its default: 2% on each stat after the first (TotalEHP), and 0 on the guards (`movement`,
-  `clearRadius`, `clearUses`: movement speed and the clear skill's radius and uses per second), which a plain
-  number never loosens, so any guard loss rejects a swap. Change it only where the build states why, in the
-  map form by stat id and guard, the same at the gate;
+- `max_loss: {clearUses: 2}`, the map form (the coordinator's ruling on the guards, amendment 9 §23): the clear
+  skill's uses per second may drop up to 2%, as each stat after the first (TotalEHP) may, since uses per second
+  is already in the DPS the swap gains; the other guards keep their default 0 (`movement` and `clearRadius`:
+  movement speed and the clear skill's radius), so any loss there rejects a swap. The gate passes the same map;
+  never a plain number, which leaves the guards at 0;
 - `stats` left out (`["FullDPS", "TotalEHP"]`: Full DPS ranks), except for a need's own stat (step 3);
 - `limit: 0`, the compact mode, for a swap; `limit: 15` when you need its best unallocated list (step 3's needs
   and spare points).

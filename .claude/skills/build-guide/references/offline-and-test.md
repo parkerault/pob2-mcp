@@ -1,6 +1,6 @@
 # Offline mode, the test config and fault directives
 
-(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335, D-362, D-394)
+(slice 03 §11; D-201, D-233, A-28, D-157, D-288, D-323, D-333, D-335, D-362, D-394, D-411)
 
 ## Offline mode (`--offline`)
 
@@ -58,10 +58,20 @@ brief's `popularity` notes speak to it, cited as the user's notes.
 }
 ```
 
-The answers are `brainstorm`, `verification`, `design` and `final`, one per gate (D-323, D-362;
-`checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. `answers.design[]`
-answers the design gate, one per visit: `accept`, `revise:<text>`, `verification` or `stop`; when it runs out,
-the answer is `stop` (`answeredBy: "default"`, rule `no design answer left: stop`), so the run ends `stopped`.
+The answers are `brainstorm`, `verification`, `design` and `final`, one per gate visit (D-323, D-362;
+`checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. The answer forms
+(D-411):
+- `answers.verification[]`: `first-viable`, `pick:<id>[,<id>…]` (1–3 cards finalized, in order), `verify:<id>[,<id>…]`,
+  `more` or `stop`;
+- `answers.design[]`, one per design gate visit, whichever build is at it: `accept`, `accept:file` (F1 only: the
+  build ends `file-only`), `revise:<text>`, `verification` or `stop`;
+- `answers.final[]`, one per final gate visit: `accept`, `accept:verification`, `campaign`, `revise:<text>`,
+  `decline:<note>`, or `not-accept`, which resolves to `decline:<note>`, its note saying the test config declined
+  (recorded as that answer, `rule` `not-accept`).
+
+When the design or final answers run out, the answer is `stop` (`answeredBy: "default"`, rule `no design answer
+left: stop` or `no final answer left: stop`): **a default `stop` at a design or final gate ends the run**, the
+build at the gate and every queued card `stopped`, where a user's `stop` at a design gate ends that build only.
 `checkpoint1` and `checkpoint2` are retired with the run log's schema 3. A fault's `concepts` lists
 card ids (D-319), or `"all"`.
 

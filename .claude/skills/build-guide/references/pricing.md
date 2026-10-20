@@ -1,7 +1,7 @@
 # Pricing
 
 How a coordinator step prices items (slice 03 §9; D-112, D-133, D-160, D-164, D-169, D-202, D-218,
-D-370…D-373). Only coordinator steps price; no other agent type has a price tool (D-178).
+D-370…D-373, D-415, D-422). Only coordinator steps price; no other agent type has a price tool (D-178).
 
 ## Never
 
@@ -44,7 +44,7 @@ The league is the price's `league`, and the date part of the `Checked:` time is 
 ## Order (D-133)
 
 1. R1b prices each concept's key items.
-2. D1-finish, D1's second step (D-356), prices every filled slot **and every tree jewel** (D-249) of the three
+2. D1-finish, D1's last step (D-356, D-418), prices every filled slot **and every tree jewel** (D-249) of the three
    endgame rungs, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), and
    the anoint of `b` and `n` like a slot (`b-anoint`, `n-anoint`, D-358), each with the tool "Which tool"
    names. Each slot or jewel gets its own entry, except slots holding identical item text, which may share one.
@@ -171,8 +171,8 @@ after it. A result with a prefix records no price from its listings.
 |---|---|---|
 | `ok` | a dated price | record it |
 | `would_wait` | the limiter refused a wait over 30 s and sent nothing | price other items, then call this one again later |
-| `locked_out` | the account is locked out | stop pricing for the rest of the run |
-| `rate_limited` | the trade site answered 429 | stop pricing for the rest of the run |
+| `locked_out` | the account is locked out | stop pricing for the rest of the session ("After pricing stops") |
+| `rate_limited` | the trade site answered 429 | stop pricing for the rest of the session ("After pricing stops") |
 | `http`, `network`, `timeout`, `no_session`, `disabled`, … | the call failed | the item is `unavailable` |
 | `error` | an error, or a stop, without the prefix | the item is `unavailable` |
 
@@ -182,8 +182,27 @@ The limiter sleeps through a wait of 30 s or less inside the call, and refuses a
 `would_wait`, sending nothing. A coordinator has no clock, so it paces by order: on `would_wait`, price
 other items first and re-call the refused one later. **An item's third refusal makes it `unavailable`**
 (note `rate-limited`), as does the step ending before the item is priced. On `locked_out` or
-`rate_limited`, stop pricing for the rest of the run: every remaining item is `unavailable`, and later
-steps make no price call.
+`rate_limited`, stop pricing for the rest of the session: every remaining item is `unavailable`, and later
+steps make no trade request ("After pricing stops", below).
+
+## After pricing stops (D-415, D-422)
+
+**The stop holds for the session it happened in.** Pricing has stopped when a `stages[]` entry after the last
+resume counts a `locked_out` or `rate_limited` call in its `priceOutcomes`: read `run-log.json`, from index
+`resumes[<last>].lengths.stages` (every entry when the log has no `resumes[]` entry). A stop in an earlier
+session doesn't hold after a resume: the new session prices afresh.
+
+**Once pricing stops, no step calls a tool that sends a trade request:** `mcp__pob2__get_leagues`,
+`mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` and
+`mcp__pob2__find_upgrades`. Two calls stay allowed, since neither sends one: `mcp__pob2__trade_query_options`
+(the trade ids, from the server's own data), and `mcp__pob2__get_item_price` for a Distilled Emotion, which reads
+poe.ninja's currency exchange (D-387), not with `--no-ninja`. With pricing stopped:
+- every item still to price is `unavailable`, note `rate-limited` (or `locked out`), and the rung's total
+  `unverified` (D-164);
+- the plan's league is the one recorded before the stop: a plan, skeleton or price entry of this run that
+  carries it (D-233); never a `get_leagues` call to check it;
+- the D1 gate's final re-price pass is skipped, and its market day keeps its computation from
+  `data/economy/prices.json` and the prices' dates (`gates.md`).
 
 ## The final re-price pass
 
@@ -228,8 +247,8 @@ recomputes it from the plan's prices and `data/economy/prices.json`.
 A coordinator step counts its price-tool calls by outcome and returns the counts in one line,
 `prices: ok 12, would_wait 1` (or `prices: none`). The runner records them as that step's `priceOutcomes`
 in the run log's `stages[]` (`run-log.md`): each key `ok`, `error` or a `[trade:<kind>]` kind. Once any
-step's counts hold a `locked_out` or `rate_limited` call, pricing has stopped for the rest of the run, and
-the runner tells every later coordinator step so. A `find_upgrades` call is a price call; `manage_sets` and
+step's counts hold a `locked_out` or `rate_limited` call, pricing has stopped for the rest of the session, and
+the runner tells every later coordinator step so ("After pricing stops"). A `find_upgrades` call is a price call; `manage_sets` and
 `trade_query_options` aren't.
 
 ## Offline mode (D-201, D-233)

@@ -124,8 +124,8 @@ findings.
      rung before's `tree.nodes`, and every node a later rung's `respec.dropped` lists; `protect_for` the later
      rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the
      rung's first enabled `role: "clear"` group (the `g<N>` of its `skillOutputs` keys), else the main group's
-     (the tool's default is the main group); `max_loss` at its default (2% on TotalEHP; the guards, movement
-     speed and the clear skill's radius and uses per second, at 0), as D1-tree uses it; `limit: 0`. Step 3's
+     (the tool's default is the main group); `max_loss: {clearUses: 2}`, as D1-tree passes it (2% on TotalEHP and on the
+     clear skill's uses per second; movement speed and the clear skill's radius at 0); `limit: 0`. Step 3's
      compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
      `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Full
      DPS (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>

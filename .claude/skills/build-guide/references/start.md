@@ -1,7 +1,7 @@
 # Start: the brief, the run folder and the run log (step 1)
 
 The runner's step 1 in full (slice 03 FR-W1, FR-W2; C-51; `SKILL.md` §1): read this once, at the start, and do it
-in its order before any agent runs.
+in its order before any agent runs. A resume of an earlier run has its own order ("Resuming a run", below).
 
 ## The invocation and the brief
 
@@ -18,7 +18,10 @@ always `ascendancy` and the second always `skill`, whatever the lookups find (D-
   gate (D-157). No `--test`: `testConfig: "none"`.
 - `--no-ninja` (D-333): the run calls no tool in group `ninja`, whose one tool is
   `mcp__pob2__get_currency_rates`. Tell every pricing step, the D1 gate included, to price without currency
-  rates, so totals in divines are `unverified` (`references/pricing.md`).
+  rates, so totals in divines are `unverified` (`references/pricing.md`). The run log records it as `noNinja`
+  (D-412, D-420), and you read it there for every pricing step, never from memory: a compaction may drop it.
+- `--resume <run folder>` and `--campaign <run folder> <id>` (D-415) go on with an earlier run instead of starting
+  one: "Resuming a run", below.
 
 **The brief** (D-285, D-335). Parse the free text into these fields, every one optional. Leave out a field the
 text doesn't give, and never invent one:
@@ -81,9 +84,9 @@ text doesn't give, and never invent one:
      name those summons. A failed lock gives its reason instead: the nodes that grant the skill, each
      with its id and ascendancy, so a re-run names one of those ascendancies or none. Create no run folder
      and write nothing.
-   - Use the names exactly as the tools gave them from here on. The run's `roll`,
+   - Use the names exactly as the tools gave them from here on. A build's `roll`,
      `{className, ascendancy, skill}`, is set only at the verification gate, from the card the user
-     finalizes (D-286).
+     finalizes (D-286): one build per finalized card (D-411, D-412).
 2. **Run folder.** Call `mcp__pob2__guide_run {new_run: <slug>}`, the slug from the brief
    (`references/run-folder.md`: `titan-blood-hunt`, `titan-open`, `open-<first playstyle tag>`). Keep its
    absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
@@ -91,8 +94,9 @@ text doesn't give, and never invent one:
 3. **Run log.** Check the test config if one was given with `--offline`: `node
    .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
    `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
-   Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, the parsed brief and no
-   roll yet. Either first write is `run-log.mjs <runFolder> init`, never Write (`references/run-log.md`).
+   Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, `noNinja` (`true` with
+   `--no-ninja`, else `false`) and the parsed brief; no build yet. Either first write is `run-log.mjs <runFolder>
+   init`, with `noNinja` always (`init` refuses an entry without it), never Write (`references/run-log.md`).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`references/checkpoints.md`).
@@ -108,3 +112,29 @@ gets no folder, and a test config refused in step 3 gets no unsaved-build questi
 **No Agent tool** (D-344): if the Agent tool isn't available when the first agent step is due, the run stops
 there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (`SKILL.md` §7), and give the reason
 in your reply, as for a refused test config (`stopped: the Agent tool isn't available`).
+
+## Resuming a run (`--resume`, `--campaign`; D-415)
+
+`/build-guide --resume <run folder> [--no-ninja]` goes on with an earlier run in a later session, in
+that run's own folder (D-153 as D-415 amends it); `/build-guide --campaign <run folder> <id>` resumes it and
+answers `campaign:<id>` at the resume's verification visit. The run folder is absolute, or relative to the guides
+root (`<slug>/<YYYY-MM-DD>-<n>`). A resume has no brief: the brief is in the run log, and the brief check doesn't
+run again. In this order:
+
+1. **The folder.** Call `mcp__pob2__guide_run {resume: <run folder>}`. It makes no engine call and writes
+   nothing; it refuses a folder with no `run-log.json`, and replies `Resuming run folder <abs>`, `runFolderRel:
+   <rel>` and `loadedBuildUnsaved: …` (`references/run-folder.md`). Keep the three as for a new run.
+2. **A schema-3 log** (a run from before amendment 9: `"schemaVersion": 3` in `run-log.json`, `head -3`):
+   `run-log.mjs <runFolder> migrate`, which rewrites it as schema 4, its build at the root (`folder: "."`).
+3. **The resume entry:** `run-log.mjs <runFolder> resume` with `{"noNinja": <this session's --no-ninja>}`. It
+   records the session (the pin's commit, the digest, the lists' lengths) and sets `status` `running`. Pricing
+   starts afresh in the new session: a stop in an earlier session doesn't hold (D-415, `references/pricing.md`).
+4. **Unsaved build** (D-210), once per resume: as step 4 above, when `loadedBuildUnsaved` is `true`.
+5. **The league digest's staleness line**, as step 5 above.
+6. **The verification gate** (`SKILL.md` §3, `references/checkpoints.md`): `display verification` lists every
+   build of the run with its status, and says when PoB's version or the digest changed since the run last ran.
+   Beside its own answers, a resume offers `guide:<id>` (a `file-only` build), `campaign:<id>` (a `completed` or
+   `file-only` build) and `design:<id>` (a `stopped` or `dropped` build whose last D1 gate passed). With
+   `--campaign`, its answer is `campaign:<id>`, logged as the user's.
+
+A resume takes no `--offline` or `--test`: the run's mode is the log's, and the user answers every gate.

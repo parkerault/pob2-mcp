@@ -409,24 +409,38 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     ok(dir, 'checkpoint', { checkpoint: 'design', concept: CARD, visit: 1, answer: 'stop', answeredBy: 'default', rule: 'no design answer left: stop' }, 'checkpoints[0]');
   });
 
-  // Amendment 9 (WU-94): run-log.md's examples are schema 3's until WU-95 rewrites the reference for schema 4 (D-412),
-  // so these are the schema-4 calls it gives; WU-95 points this test back at run-log.md's examples.
-  it("accepts schema 4's example calls (run-log.md's, once rewritten), and init writes its first write", () => {
-    const calls: [string, string][] = [
-      ['init', '{"slug": "titan-blood-hunt", "brief": {"ascendancy": "Titan", "skill": "Blood Hunt"}, "mode": "offline", "testConfig": "accepted", "noNinja": false}'],
-      ['build', '{"id": "r1-a-2", "roll": {"className": "Warrior", "ascendancy": "Titan", "skill": "Blood Hunt"}, "status": "queued"}'],
-      ['stage', '{"stage": "D1-finish", "concept": "r1-a-2", "attempt": 1, "outcome": "done", "priceOutcomes": {"ok": 12}}'],
-      ['display', 'design --build r1-a-2'],
-      ['checkpoint', '{"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "revise:the build\'s helmet costs too much", "answeredBy": "user", "questions": 0}'],
-      ['escalation', '{"stage": "F1", "concept": "r1-a-2", "verdict": "reports/gates/F1-r1-a-2-a2.json", "choice": "stop"}'],
-      ['build', '{"id": "r1-a-2", "status": "escalated"}'],
-      ['set', '{"status": "escalated", "dossier": "dossier.md"}'],
-    ];
+  it("accepts run-log.md's example calls, schema 4's (D-412, D-415), and init writes its first-write example", () => {
+    const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
+    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (?:(\w+) - <<'JSON'\n(.*)\nJSON|display (\w+(?: --build \S+)?)|(migrate))$/gm)].map((m) =>
+      m[3] ? ['display', m[3]] : m[4] ? ['migrate', ''] : [m[1], `${m[2]}\n`],
+    );
+    expect(calls.map(([kind]) => kind)).toEqual(['init', 'build', 'stage', 'display', 'checkpoint', 'escalation', 'build', 'set', 'resume', 'migrate']);
     const dir = folder();
-    for (const [kind, arg] of calls) expect({ kind, ...(kind === 'display' ? run(RUN_LOG, dir, kind, ...arg.split(' ')) : runWith(`${arg}\n`, RUN_LOG, dir, kind, '-')) }).toMatchObject({ kind, code: 0, stderr: '' });
+    for (const [kind, arg] of calls.filter(([kind]) => kind !== 'migrate')) {
+      expect({ kind, ...(kind === 'display' ? run(RUN_LOG, dir, kind, ...arg.split(' ')) : runWith(arg, RUN_LOG, dir, kind, '-')) }).toMatchObject({ kind, code: 0, stderr: '' });
+    }
+    // The calls wrote a schema-4 log: the build escalated, the resume recorded, the run running again.
+    expect(readJson(dir, 'run-log.json')).toMatchObject({
+      schemaVersion: 4,
+      dossier: 'dossier.md',
+      status: 'running',
+      builds: [{ id: 'r1-a-2', status: 'escalated', folder: 'builds/r1-a-2', guide: null, pobFile: null }],
+      resumes: [{ noNinja: false, lengths: { stages: 1, checkpoints: 1, escalations: 1, displays: 1 } }],
+    });
+    // migrate, with no JSON, rewrites a schema-3 log (a recorded run's), and refuses one that is already schema 4.
+    const old = folder();
+    fs.cpSync(path.join(FIXTURES, 'run-ok'), old, { recursive: true });
+    expect(readJson(old, 'run-log.json').schemaVersion).toBe(3);
+    expect(run(RUN_LOG, old, 'migrate')).toMatchObject({ code: 0, stderr: '' });
+    expect(readJson(old, 'run-log.json').schemaVersion).toBe(4);
+    expect(run(RUN_LOG, dir, 'migrate')).toMatchObject({ code: 1, stderr: expect.stringMatching(/already a schema-4 log/) });
+    // init writes run-log.md's first write, the pin's commit and the newest digest as the script reads them.
     const first = folder();
-    expect(runWith(`${calls[0][1]}\n`, RUN_LOG, first, 'init', '-').code).toBe(0);
-    expect(readJson(first, 'run-log.json')).toMatchObject({ schemaVersion: 4, runFolder: first, noNinja: false, builds: [], resumes: [] });
+    expect(runWith(calls[0][1], RUN_LOG, first, 'init', '-').code).toBe(0);
+    const example = JSON.parse(/## A first write[\s\S]*?```json\n([\s\S]*?)\n```/.exec(md)![1]) as Json;
+    const written = readJson(first, 'run-log.json');
+    expect(written).toEqual({ ...example, runFolder: first, pinCommit: written.pinCommit, digest: written.digest });
+    expect(typeof written.pinCommit).toBe('string');
   });
 
   it("reads the entry from stdin for -, as a quoted heredoc gives it: a text with an apostrophe needs no shell quoting", () => {

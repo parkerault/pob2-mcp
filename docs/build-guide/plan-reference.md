@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 5)
+# Build plan reference (`plan.json`, schema version 6)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 5`. Versions `1`, `2`, `3`, `4` and `5` are accepted.
+- **Version first.** A new plan declares `schemaVersion: 6`. Versions `1`, `2`, `3`, `4`, `5` and `6` are accepted.
   Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 4 still validates and compiles, with its
+  `[1, 2, 3, 4, 5, 6]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 5 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -40,6 +40,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
 
   Version 5 added (D-402):
   - a stage's tamed beast, `companion` (`stages[].companion`); an earlier plan has none, and the key is an error.
+
+  Version 6 added (D-418):
+  - a stage's tree needs, `tree.needs` (`stages[].tree.needs`); an earlier plan has none, and the key is an error.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -60,7 +63,8 @@ each custom modifier line whole, an anoint's notable (it has a three-emotion rec
 doesn't allocate it, and the stage has an amulet), a group's minion skill (its group holds one summon
 whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), and a companion's species and its
 Tame Beast gem (D-402). A missing `countReason` or custom-modifier `reason` isn't a
-schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322).
+schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322), and so is a tree need
+with no `claim`, or one naming no claim of its stage (D-418).
 
 ## Terms
 
@@ -150,6 +154,31 @@ respec, or when `respec.dropped` isn't exactly the dropped set.
   order; within a rung, stages follow plan order. A rung the plan doesn't have is skipped, so without `m`,
   `b` continues from the last campaign stage. In a plan with no campaign stage, the first rung continues from
   none.
+
+### A tree's needs (D-418)
+
+Schema version 6 lets a stage's tree say what it keeps whatever node power says: `tree.needs[] {nodes, stat?, claim?}`.
+Node power (PoB's ranking of passives by what each adds to one stat per point) can't see sustain, area for clear, a
+boss-only gain on a clear config, an attribute a gem needs, or what PoB doesn't model, so the tree step (D1-tree) keeps a
+need's nodes out of every swap.
+
+- **`nodes`** lists the nodes the need keeps, at least one, each one of the stage's `tree.nodes`: a node the stage's
+  tree lacks errs at `stages[n].tree.needs[m].nodes[k]`.
+- **`stat`** names the node power stat that measures the need when PoB has one, by its PoB id (`ManaRegen`,
+  `TotalEHP`); none for a need PoB can't measure, such as area for clear.
+- **`claim`** is the id of the stage's `reason` claim saying why the tree keeps these nodes. D1-build and D1-tree write a
+  need without it, and D1-finish writes the claim and sets it. A need with no `claim`, or one naming no claim of its
+  stage, is the compile's V1 finding `missing-reason` (`data.path` `tree.needs[<m>].claim`), not a schema error.
+- **`buildSha1`** leaves out only `claim` (D-266): setting or changing a need's claim needs no recompile, while a change
+  to its `nodes` or `stat` changes the hash, so it recompiles and re-runs the D1 gate, whose tree verdict keeps them.
+- The compile reads no need: a plan with needs compiles as it would without them.
+
+```json
+"needs": [
+  { "nodes": [44683, 18496], "stat": "ManaRegen", "claim": "b-mana-sustain" },
+  { "nodes": [36778] }
+]
+```
 
 ### Count and custom modifiers (D-293)
 
@@ -322,6 +351,9 @@ top of `mods.increased-monster-damage` / 100), and × the top of `mods.extra-dam
 cold, lightning and chaos, rounded up to a whole number after rounding to 2 decimals (D-254, D-256): 402 and 97
 at level 79. A hit the plan lists stays as listed. The record's `configWritten` holds every hit written.
 
+A card skeleton (an endgame stage with no `variant`, `progress` `endgame`) gets the budget rung's hits, the T15 map hit
+at area level 79, filled the same way, so its Effective HP compares with the rungs' (D-423). A campaign stage gets none.
+
 The compiler also measures each endgame stage (`stages.<id>.measures` in the record), so no plan needs a
 ledger entry for them: `dps` (the main group's Count-scaled figure: its minion's `MinionTotalDPS` when it names a
 minion skill, else `TotalDPS`; D-294, D-378), `ehp` (`TotalEHP`), on `b` and `n`
@@ -355,6 +387,24 @@ Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
   Key figures: DPS 5; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
 ```
 
+### The level the build works from (D-413)
+
+Every compiled stage's record gives `requirements {level, by[]}` (`stages.<id>.requirements`): the highest level
+requirement among the stage's equipped items and socketed gems, as PoB computes them, and which items or gems set it.
+The endgame guide says when the build comes online from `m`'s.
+
+- A gem's requirement is PoB's for its gem level (the gem's `levelRequirement` at that level, as PoB's skills tab sets
+  it), for every gem of the plan's groups, enabled or not; an item's is PoB's `requirements.level` (its text's
+  `Requires Level` or `LevelReq`, else its base's, raised to its runes'), for every item in the item slots. These are
+  the figures V1's `gem-level-requirement` and `item-level-requirement` compare with the stage's level.
+- `level` is the highest of them, at least 1. `by` lists every item and gem whose requirement is `level`, items first
+  in slot order, then gems in group order: an item as `{kind: "item", name, slot}`, a gem as `{kind: "gem", name,
+  group, gemLevel}`, `group` the plan's group number. `by` is empty when nothing requires a level.
+
+```json
+"requirements": { "level": 90, "by": [{ "kind": "gem", "name": "Wolf Pack", "group": 1, "gemLevel": 20 }] }
+```
+
 ### Shared sets (A-P2)
 
 The compiler gives every stage its own tree, titled `loadoutName`. Stages whose `items` (likewise
@@ -370,7 +420,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4` or `5` | yes | `5` for a new plan; `1` to `4` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5` or `6` | yes | `6` for a new plan; `1` to `5` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -425,6 +475,10 @@ rule may require an optional key in some cases.
 | `stages[].tree.attributeChoices` | object[] | yes | The attribute picked on each `+5 to any Attribute` node | C-31 |
 | `stages[].tree.attributeChoices[].node` | integer | yes | In `tree.nodes` | C-31 |
 | `stages[].tree.attributeChoices[].attribute` | `strength`, `dexterity` or `intelligence` | yes | The attribute the node grants | C-31 |
+| `stages[].tree.needs` | object[] | no | What the tree keeps whatever node power says: sustain, an attribute a gem needs, area for clear, a boss-only gain, a node that grants the skill (see a tree's needs above). Schema version 6 | D-418 |
+| `stages[].tree.needs[].nodes` | integer[] | yes | At least one. The nodes the need keeps, each in `tree.nodes` (error at `nodes[k]`) | D-418 |
+| `stages[].tree.needs[].stat` | string | no | Non-empty. The node power stat that measures the need, by PoB's id (`ManaRegen`), when PoB has one | D-418 |
+| `stages[].tree.needs[].claim` | string | no | Non-empty. The id of the stage's `reason` claim saying why; set by D1-finish. Missing, or naming no claim of the stage, V1 reports `missing-reason`. Left out of `buildSha1` | D-266, D-418 |
 | `stages[].respec` | object | no | Present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost | D-144, D-282 |
 | `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |

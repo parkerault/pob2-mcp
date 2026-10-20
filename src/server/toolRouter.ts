@@ -132,15 +132,17 @@ const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options",
  * the call's kind, or undefined for the tool's `TOOL_META` kind.
  * - D-244: `manage_sets {action: "list"}` is a `read`, so a listing neither bumps `revision` nor marks
  *   the build unsaved; its other actions are `mutate`.
- * - D-216: `guide_run` carrying `new_run` is `none`; `guide_run {validate}` is its `read`.
+ * - D-216: `guide_run` carrying `new_run` (or, D-415, `resume`) is `none`; `guide_run {validate}` is its `read`.
  */
 const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
   manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
   // D-216: guide_run's run-folder mode never enters the session: no lock, no event, no engine start. Only a
-  // validate call (without new_run or view) runs as a read; a view (D-356) reads files only, and any other
-  // argument mix is refused without the engine.
+  // validate call (without new_run, resume or view) runs as a read; a view (D-356) reads files only, a resume
+  // (D-415) checks a run folder's files only, and any other argument mix is refused without the engine.
   guide_run: (args) =>
-    args?.validate === undefined || args?.new_run !== undefined || args?.view !== undefined ? "none" : undefined,
+    args?.validate === undefined || args?.new_run !== undefined || args?.resume !== undefined || args?.view !== undefined
+      ? "none"
+      : undefined,
 };
 
 /** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */

@@ -53,6 +53,11 @@
  * share a skill set. `compile_stage` turns the Tame Beast gem into the beast, and the record gives the beast's DPS, the
  * Spirit it reserves and how each kept modifier was applied.
  *
+ * WU-93 (amendment 9): a card skeleton (an endgame stage with no `variant`) gets the budget rung's reference hits, the
+ * T15 map hit, as `withReferenceHits` fills them for the rungs (D-423), so its Effective HP compares with theirs; and
+ * every stage's record gives `requirements`, the highest level requirement among its items and gems and what sets it
+ * (D-413, `stageRequirements`). A plan's `tree.needs` (schema 6, D-418) compiles as written: the compile reads no need.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -97,6 +102,7 @@ import {
   recordText,
   selectionKey,
   stageMeasures,
+  stageRequirements,
   unresolvedRefs,
   versionNotes,
   type CompileMode,
@@ -565,16 +571,31 @@ export function referenceHits(variant: PlanVariant, ref: PlanReferenceData): Sta
 }
 
 /**
+ * D-423: the rung whose reference hits a card skeleton (an endgame stage with no `variant`, `measuredStage`) is
+ * measured against: the budget rung's, the T15 map hit, so the verification gate's Effective HP compares with the
+ * design gate's.
+ */
+export const SKELETON_HIT_RUNG: PlanVariant = 'budget';
+
+/** The rung whose reference hits a stage gets (D-353, D-423): its own variant's, a skeleton's `b`'s, else none. */
+export function referenceHitRung(stage: Pick<Stage, 'variant' | 'progress'>): PlanVariant | undefined {
+  if (stage.variant !== undefined) return stage.variant;
+  return measuredStage(stage) ? SKELETON_HIT_RUNG : undefined;
+}
+
+/**
  * D-353: an endgame stage with every reference hit its scenario omits added from the data (`referenceHits`), so
  * it is written, grouped (A-P2) and checked like a listed one; a hit the plan lists, as earned or scenario, keeps
- * its own value. Any other stage is returned as it is.
+ * its own value. D-423: a card skeleton gets the budget rung's hits (`referenceHitRung`). Any other stage is returned
+ * as it is.
  */
 export function withReferenceHits(stage: Stage, ref: PlanReferenceData): Stage {
-  if (stage.variant === undefined) return stage;
+  const rung = referenceHitRung(stage);
+  if (rung === undefined) return stage;
   const listed = stageConfig(stage);
   const missing = REFERENCE_HITS.filter((h) => listed[h.option] === undefined);
   if (missing.length === 0) return stage;
-  const filled = referenceHits(stage.variant, ref).filter((e) => missing.some((h) => h.option === e.option));
+  const filled = referenceHits(rung, ref).filter((e) => missing.some((h) => h.option === e.option));
   return { ...stage, config: { ...stage.config, scenario: [...stage.config.scenario, ...filled] } };
 }
 
@@ -1115,6 +1136,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         statSets: [...m.statSets],
         skills: [...m.skills],
       })),
+      // D-413: the level the stage works from, and the items or gems that set it.
+      requirements: stageRequirements(reply.checks),
     };
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
     if (measuredStage(stage)) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);

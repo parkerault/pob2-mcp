@@ -6,7 +6,10 @@
  * a ledger-only edit (D-352: an entry's claim, formula or inputs, an entry added or removed; the run checker
  * re-evaluates the plan's current ledger itself) leave it unchanged; a change to an item, a gem, the tree, the
  * config or a price changes it. D-386: a price's `note` is its wording only, so it is left out too: a note-only
- * fix (the Varashta run's) needs no recompile, no gate and no new PoB file.
+ * fix (the Varashta run's) needs no recompile, no gate and no new PoB file. D-418 (schema 6): a tree need's `claim`,
+ * the id of the claim saying why the tree keeps its nodes, is a citation, so it is left out as well: D1-finish sets it
+ * after D1-tree with no recompile. A need's `nodes` and `stat` stay in, since the D1 gate's tree verdict keeps them,
+ * so changing them recompiles and re-runs the gate.
  *
  * The compiler writes it beside `planSha1`, and the build-guide run checker loads this module's compiled form
  * (`build/plan/buildHash.js`) to hold a plan edited after the final compile to it. It imports only
@@ -25,9 +28,26 @@ const NON_BUILD_KEYS = new Set(['ledger']);
 /** A price's fields that are wording only (D-386): its note. */
 const PRICE_TEXT_KEYS = new Set(['note']);
 
+/** A tree need's fields that are citations (D-418): the id of its reason claim. */
+const NEED_CITATION_KEYS = new Set(['claim']);
+
+/** A stage's tree without each need's `claim` (D-418); anything else as it is. */
+function withoutNeedClaims(tree: unknown): unknown {
+  if (!isRecord(tree) || !Array.isArray(tree.needs)) return tree;
+  return {
+    ...tree,
+    needs: tree.needs.map((n) => {
+      if (!isRecord(n)) return n;
+      const rest = { ...n };
+      for (const k of NEED_CITATION_KEYS) delete rest[k];
+      return rest;
+    }),
+  };
+}
+
 /**
- * The plan without `ledger`, without `stages[].claims`, without any `source` or `tag` field and without each
- * price's `note` (D-386).
+ * The plan without `ledger`, without `stages[].claims`, without any `source` or `tag` field, without each
+ * price's `note` (D-386) and without each tree need's `claim` (D-418).
  */
 export function buildProjection(plan: unknown): unknown {
   const strip = (v: unknown): unknown => {
@@ -52,6 +72,7 @@ export function buildProjection(plan: unknown): unknown {
       if (!isRecord(s)) return s;
       const rest = { ...s };
       delete rest.claims;
+      if ('tree' in rest) rest.tree = withoutNeedClaims(rest.tree);
       return rest;
     });
   }

@@ -207,7 +207,7 @@ describe('WU-68 (D-356): guide_run views read a plan without the engine', () => 
       [{ view: { stage: '1' } }, /view\.plan must be a non-empty string/],
       [{ view: PLAN }, /view must be an object: \{plan, stage\}/],
       [{ view: { ...view, page: 2 } }, /view takes only plan, stage, claims; it has no key "page"/],
-      [{ view, validate: PLAN }, /validate and view conflict: give exactly one of new_run, validate and view/],
+      [{ view, validate: PLAN }, /validate and view conflict: give exactly one of new_run, resume, validate and view/],
       [{ view, new_run: 'x' }, /new_run and view conflict/],
       [{ view, stages: ['1'] }, /stages goes only with validate, not with view/],
       [{ view: { plan: 'fifteen/nowhere/plan.json', stage: '1' } }, /view\.plan "fifteen\/nowhere\/plan\.json" names no file in the guides root/],

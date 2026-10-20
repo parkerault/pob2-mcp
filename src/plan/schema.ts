@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 5; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 6; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 5 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 6 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -37,6 +37,12 @@
  * keep, and a `condition` modifier's config option the stage lists itself are errors (the compile writes that option).
  * The species and the Tame Beast gem are checked against PoB by `compile_check`, as gem names are.
  *
+ * **A tree's needs** (D-418, version 6; WU-93). `tree.needs[] {nodes, stat?, claim?}` names what the stage's tree keeps
+ * whatever node power says: the nodes a need keeps (each one of the stage's `tree.nodes`, a schema error otherwise), the
+ * power stat that measures it when PoB has one, and the id of the stage's `reason` claim saying why. D1-build and D1-tree
+ * write a need without `claim`, and D1-finish sets it; a need with no `claim`, or one naming no claim of the stage, is a
+ * V1 finding (`missing-reason`), not a schema error. Only `claim` is left out of `buildSha1` (`buildHash.ts`, D-266).
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -54,7 +60,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -101,6 +107,19 @@ const claimSchema = z
   })
   .strict();
 
+/**
+ * D-418 (schema version 6): one thing the stage's tree keeps whatever node power says: its nodes, the power stat that
+ * measures it when PoB has one (a node power stat id, such as `ManaRegen`), and the id of the stage's `reason` claim
+ * saying why, which D1-finish sets (V1's `missing-reason` until then).
+ */
+const needSchema = z
+  .object({
+    nodes: z.array(nodeId).min(1, { message: 'a need keeps at least one node' }),
+    stat: text('stat').optional(),
+    claim: text('claim').optional(),
+  })
+  .strict();
+
 const treeSchema = z
   .object({
     nodes: z.array(nodeId),
@@ -109,10 +128,17 @@ const treeSchema = z
     attributeChoices: z.array(
       z.object({ node: nodeId, attribute: z.enum(['strength', 'dexterity', 'intelligence']) }).strict(),
     ),
+    needs: z.array(needSchema).optional(),
   })
   .strict()
   .superRefine((tree, ctx) => {
     const nodes = new Set(tree.nodes);
+    // D-418: a need keeps nodes the stage's tree allocates.
+    (tree.needs ?? []).forEach((need, i) => {
+      need.nodes.forEach((n, k) => {
+        if (!nodes.has(n)) issue(ctx, ['needs', i, 'nodes', k], `node ${n} isn't in tree.nodes: a need keeps nodes the stage's tree allocates (D-418)`);
+      });
+    });
     const set1 = new Set(tree.weaponSetNodes.set1);
     tree.weaponSetNodes.set1.forEach((n, i) => {
       if (!nodes.has(n)) issue(ctx, ['weaponSetNodes', 'set1', i], `node ${n} isn't in tree.nodes`);
@@ -513,6 +539,12 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     what: "a stage's companion, the tamed beast (D-402)",
     before: 'no companion',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.companion !== undefined ? [['stages', i, 'companion']] : [])),
+  },
+  {
+    since: 6,
+    what: "a tree's needs (D-418)",
+    before: 'no tree needs',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.needs !== undefined ? [['stages', i, 'tree', 'needs']] : [])),
   },
 ];
 

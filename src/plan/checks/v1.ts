@@ -19,7 +19,7 @@
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
- * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. One finding per group or entry; `data.path` is the missing field's path in the stage |
+ * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. Also (D-418, schema 6) a `tree.needs` entry with no `claim`, or whose `claim` names no claim id of the stage: a need keeps nodes node power may call weak, so the plan says why. One finding per group, entry or need; `data.path` is the missing field's path in the stage |
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
@@ -466,9 +466,11 @@ function checkContinuity(stage: Stage, predecessor: Stage | null, findings: Find
 
 /**
  * D-293, D-322: Count above 1 and every custom modifier are hand-made estimates, so each carries its reason.
- * A group without `count` counts as 1 and needs none.
+ * A group without `count` counts as 1 and needs none. D-418: each tree need names the stage's claim saying why the
+ * tree keeps its nodes (`claim`, which D1-finish sets); a need without one, or naming no claim of the stage, is a
+ * finding at its `claim`.
  */
-export function checkReasons(stage: Pick<Stage, 'skills' | 'config'>, findings: Finding[]): void {
+export function checkReasons(stage: Pick<Stage, 'skills' | 'config' | 'tree' | 'claims'>, findings: Finding[]): void {
   stage.skills.groups.forEach((g, k) => {
     const count = g.count ?? 1;
     if (count > 1 && g.countReason === undefined) {
@@ -485,6 +487,23 @@ export function checkReasons(stage: Pick<Stage, 'skills' | 'config'>, findings: 
         code: 'missing-reason',
         message: `custom modifier ${k + 1} ("${m.text}") has no reason: say what it stands for and how it was calculated (D-293)`,
         data: { path: `config.customMods[${k}].reason`, text: m.text },
+      });
+    }
+  });
+  const claimIds = new Set(stage.claims.map((c) => c.id));
+  (stage.tree.needs ?? []).forEach((need, k) => {
+    const what = `tree need ${k + 1} (node${need.nodes.length === 1 ? '' : 's'} ${need.nodes.join(', ')}${need.stat !== undefined ? `, stat ${need.stat}` : ''})`;
+    if (need.claim === undefined) {
+      findings.push({
+        code: 'missing-reason',
+        message: `${what} has no claim: name the stage's reason claim saying why the tree keeps these nodes (D-418)`,
+        data: { path: `tree.needs[${k}].claim`, need: k + 1, nodes: need.nodes },
+      });
+    } else if (!claimIds.has(need.claim)) {
+      findings.push({
+        code: 'missing-reason',
+        message: `${what} names claim "${need.claim}", which isn't a claim of this stage: name the stage's reason claim saying why the tree keeps these nodes (D-418)`,
+        data: { path: `tree.needs[${k}].claim`, need: k + 1, nodes: need.nodes, claim: need.claim },
       });
     }
   });

@@ -13,10 +13,14 @@
  * - `guide_run {view: {plan, stage}}` and `{view: {plan, claims: true}}` (D-356) read part of a plan without
  *   the engine (kind `none`): one stage's section with its key figures from the record beside the plan, or
  *   every claim, compact. Each reply stays under the 25K-token cut-off of Read and of an MCP tool reply.
+ * - `guide_run {resume: <run folder>}` (D-415) finds an earlier run's folder, absolute or relative to the guides
+ *   root, resolved and confined as `new_run`'s paths are, and checks it holds a `run-log.json`; it returns the folder
+ *   and `loadedBuildUnsaved` as `new_run` does, writes nothing and never touches the engine (kind `none`).
  *
  * Only these argument combinations are accepted; any other is refused, naming the conflict, before
  * anything is done.
  */
+import type { Stats } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { performance } from 'perf_hooks';
@@ -53,9 +57,9 @@ export interface PlanContext {
 }
 
 const COMPILE_ARGS = ['plan_path', 'build_name', 'measure_only', 'stages'] as const;
-const GUIDE_RUN_ARGS = ['new_run', 'validate', 'view', 'stages'] as const;
-/** `guide_run`'s modes: a call gives exactly one of them (C-50, D-356). */
-const GUIDE_RUN_MODES = ['new_run', 'validate', 'view'] as const;
+const GUIDE_RUN_ARGS = ['new_run', 'resume', 'validate', 'view', 'stages'] as const;
+/** `guide_run`'s modes: a call gives exactly one of them (C-50, D-356, D-415). */
+const GUIDE_RUN_MODES = ['new_run', 'resume', 'validate', 'view'] as const;
 const VIEW_KEYS = ['plan', 'stage', 'claims'] as const;
 
 /** Arguments the other plan tool takes, and where they belong (D-216). */
@@ -195,6 +199,7 @@ export type PlanView = { kind: 'stage'; planPath: string; stage: string } | { ki
 
 export type GuideRunRequest =
   | { mode: 'new_run'; slug: string }
+  | { mode: 'resume'; runFolder: string }
   | { mode: 'validate'; planPath: string; stages?: string[] }
   | { mode: 'view'; view: PlanView };
 
@@ -222,16 +227,19 @@ function planViewOf(value: unknown): PlanView {
   return { kind: 'stage', planPath, stage: nonEmptyString(v.stage, 'view.stage') };
 }
 
-/** `guide_run`'s modes (C-50, D-356): exactly one of `new_run`, `validate` and `view`; `stages` only with `validate`. */
+/**
+ * `guide_run`'s modes (C-50, D-356, D-415): exactly one of `new_run`, `resume`, `validate` and `view`; `stages` only
+ * with `validate`.
+ */
 export function guideRunRequestOf(args: Record<string, unknown> | undefined): GuideRunRequest {
   const a = args ?? {};
   refuseUnknown('guide_run', a, GUIDE_RUN_ARGS);
   const given = GUIDE_RUN_MODES.filter((m) => a[m] !== undefined);
-  if (given.length > 1) throw new Error(`${listed(given)} conflict: give exactly one of new_run, validate and view. Nothing was done.`);
+  if (given.length > 1) throw new Error(`${listed(given)} conflict: give exactly one of new_run, resume, validate and view. Nothing was done.`);
   if (given.length === 0) {
     throw new Error(
-      'give new_run (a slug, to create a run folder), validate (a plan_path, to check a plan) or view (a plan and a ' +
-        'stage, or claims: true, to read part of a plan). Nothing was done.',
+      'give new_run (a slug, to create a run folder), resume (a run folder, to go on with an earlier run), validate (a ' +
+        'plan_path, to check a plan) or view (a plan and a stage, or claims: true, to read part of a plan). Nothing was done.',
     );
   }
   const mode = given[0];
@@ -240,6 +248,7 @@ export function guideRunRequestOf(args: Record<string, unknown> | undefined): Gu
     if (typeof a.new_run !== 'string') throw new Error('new_run must be a slug string');
     return { mode: 'new_run', slug: a.new_run };
   }
+  if (mode === 'resume') return { mode: 'resume', runFolder: nonEmptyString(a.resume, 'resume') };
   if (mode === 'view') return { mode: 'view', view: planViewOf(a.view) };
   const planPath = nonEmptyString(a.validate, 'validate');
   return { mode: 'validate', planPath, ...(a.stages !== undefined ? { stages: stringList(a.stages, 'stages') } : {}) };
@@ -433,12 +442,98 @@ async function renderClaimsView(guidesDirectory: string, view: Extract<PlanView,
   return lines.join('\n');
 }
 
+// ---------------------------------------------------------------------------------------------------
+// Resuming a run (WU-93, D-415)
+
+/** The run log a build-guide run keeps in its run folder (`run-log.mjs init` writes it); `resume` needs it there. */
+export const RUN_LOG_FILE = 'run-log.json';
+
+/** A path's stat, or null when nothing is there. */
+async function statOrNull(p: string): Promise<Stats | null> {
+  try {
+    return await fs.stat(p);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') return null;
+    throw error;
+  }
+}
+
+/** `target` is inside `base`, or equal to it (as `guidesPath.ts` decides it). */
+function isInside(base: string, target: string): boolean {
+  const rel = path.relative(base, target);
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
+}
+
 /**
- * `guide_run` (C-50). `new_run` and `view` run outside the engine session (D-216, D-356); `validate` inside a
- * `read` run.
+ * D-415: the run folder `resume` names, absolute or relative to the guides root, resolved and confined as `new_run`'s
+ * and the plans' paths are (`resolveInGuidesRoot`: no NUL byte, no `..` segment, symlinks resolved, the real path
+ * inside the root's real path). It is a run folder, `<slug>/<YYYY-MM-DD>-<n>`: two folders under the guides root, the
+ * write ledger's key (D-211), so a resumed run's final compile still finds its run; and it holds a `run-log.json` file.
+ * Returns its absolute path under the guides root as configured (as `new_run` gives it) and its root-relative path.
+ */
+export async function resolveRunFolder(guidesDirectory: string, given: string): Promise<{ absPath: string; relPath: string }> {
+  const refused = (why: string) => new Error(`resume ${JSON.stringify(given)} ${why}; guides root: ${guidesDirectory}. Nothing was done.`);
+  if (given.includes('\0')) throw refused('contains a NUL byte');
+  if (given.split(/[\\/]/).includes('..')) throw refused('has a ".." segment: it must stay inside the guides root');
+  let rel = given;
+  if (path.posix.isAbsolute(given)) {
+    const realRoot = await realPathInGuides(guidesDirectory);
+    const real = await realPathInGuides(given);
+    if (!isInside(realRoot, real)) throw refused(`resolves to ${real}, outside the guides root's real path ${realRoot}`);
+    rel = path.relative(realRoot, real).split(path.sep).join('/');
+    if (rel === '') throw refused('is the guides root itself, not a run folder: give <slug>/<YYYY-MM-DD>-<n>');
+  } else if (path.win32.isAbsolute(given)) {
+    throw refused("is a Windows path: give the run folder's path on this machine, absolute or relative to the guides root");
+  }
+  const real = await resolveInGuidesRoot(guidesDirectory, rel, 'resume');
+  const realRoot = await realPathInGuides(guidesDirectory);
+  const segments = path.relative(realRoot, real).split(path.sep).filter((s) => s !== '' && s !== '.');
+  if (segments.length !== 2) {
+    throw refused(
+      segments.length === 0
+        ? 'is the guides root itself, not a run folder: give <slug>/<YYYY-MM-DD>-<n>'
+        : `is ${segments.join('/')} in the guides root, not a run folder: a run folder is <slug>/<YYYY-MM-DD>-<n>, two folders under the guides root`,
+    );
+  }
+  const relPath = segments.join('/');
+  const stat = await statOrNull(real);
+  if (stat === null) throw refused(`names no folder in the guides root (${relPath})`);
+  if (!stat.isDirectory()) throw refused(`names ${relPath} in the guides root, which isn't a folder`);
+  const logStat = await statOrNull(await resolveInGuidesRoot(guidesDirectory, `${relPath}/${RUN_LOG_FILE}`, 'resume'));
+  if (logStat === null || !logStat.isFile()) {
+    throw refused(`names ${relPath}, which holds no ${RUN_LOG_FILE}: only a run the build-guide skill started can be resumed; a new run starts with new_run`);
+  }
+  return { absPath: path.join(path.resolve(guidesDirectory), ...segments), relPath };
+}
+
+/** D-210: the line `new_run` and `resume` add when the engine's loaded build has unsaved changes. */
+function unsavedLine(context: PlanContext): string {
+  const name = context.loadedBuild()?.displayName ?? 'the loaded build';
+  return (
+    `The engine's loaded build "${name}" has unsaved changes. The next compile_plan replaces it, so save it ` +
+    `first (lua_save_build) or confirm the changes may be discarded.`
+  );
+}
+
+/**
+ * `guide_run` (C-50). `new_run`, `resume` and `view` run outside the engine session (D-216, D-356, D-415); `validate`
+ * inside a `read` run.
  */
 export async function handleGuideRun(context: PlanContext, args: Record<string, unknown> | undefined) {
   const request = await wrapHandler('run guide_run', async () => guideRunRequestOf(args));
+  if (request.mode === 'resume') {
+    const given = request.runFolder;
+    return wrapHandler('resume the run folder', async () => {
+      await checkGuidesRoot(context.guidesDirectory, context.pobDirectory);
+      const run = await resolveRunFolder(context.guidesDirectory, given);
+      // D-210, D-415: read without the lock, as new_run does; the skill asks the user once per resume.
+      const unsaved = context.isDirty();
+      const lines = [`Resuming run folder ${run.absPath}`, `runFolderRel: ${run.relPath}`, `loadedBuildUnsaved: ${unsaved}`];
+      if (unsaved) lines.push(unsavedLine(context));
+      return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+    });
+  }
   if (request.mode === 'view') {
     const view = request.view;
     return wrapHandler(view.kind === 'stage' ? 'view the plan stage' : "view the plan's claims", async () => {
@@ -458,13 +553,7 @@ export async function handleGuideRun(context: PlanContext, args: Record<string, 
         `plan_path for this run: ${run.relPath}/plan.json`,
         `loadedBuildUnsaved: ${unsaved}`,
       ];
-      if (unsaved) {
-        const name = context.loadedBuild()?.displayName ?? 'the loaded build';
-        lines.push(
-          `The engine's loaded build "${name}" has unsaved changes. The next compile_plan replaces it, so save it ` +
-            `first (lua_save_build) or confirm the changes may be discarded.`,
-        );
-      }
+      if (unsaved) lines.push(unsavedLine(context));
       return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
     });
   }

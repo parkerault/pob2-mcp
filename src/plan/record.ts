@@ -47,7 +47,16 @@
  * Spirit, the species' Spirit percentage and PoB's reservation for it, and each kept modifier with how it was applied
  * (`companion.ts`). Its `stats` lines are custom modifiers, so they are in `customModsWritten` and the stage carries the
  * custom-modifier mark.
+ *
+ * **The level the build works from** (WU-93, D-413; C-33, the user's HG-12 grant), additive. Every stage gets
+ * `requirements {level, by[]}`: the highest level requirement among its equipped items and socketed gems, as PoB
+ * computes them, and the items and gems that set it (`stageRequirements`). They are `compile_stage`'s V1 inputs, the
+ * ones V1's `gem-level-requirement` and `item-level-requirement` read: a gem's is PoB's `reqLevel`, its granted
+ * effect's `levelRequirement` at its level (`Classes/SkillsTab.lua:1308`), for every gem of the plan's groups; an
+ * item's is PoB's `requirements.level` (`Classes/Item.lua:1287-1288`: the item text's, else its base's, raised to
+ * its runes'), for every item in the item slots.
  */
+import type { StageChecks } from '../engine/schemas.js';
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
 import type { Plan, Stage } from './schema.js';
@@ -652,6 +661,42 @@ export interface CompanionRecord {
   mods: CompanionModRecord[];
 }
 
+/** WU-93 (D-413): an item or a gem that sets a stage's level requirement. */
+export interface RequirementSource {
+  kind: 'item' | 'gem';
+  /** The item's name, or the gem's, as PoB holds them. */
+  name: string;
+  /** An item's slot. */
+  slot?: string;
+  /** A gem's group (the plan's number, 1-based) and its gem level. */
+  group?: number;
+  gemLevel?: number;
+}
+
+/**
+ * WU-93 (D-413, C-33): the level a stage works from: the highest level requirement among its equipped items and
+ * socketed gems, as PoB computes them (at least 1), and every item and gem whose requirement it is (none when nothing
+ * requires a level above 0). The endgame guide says when the build comes online from `m`'s.
+ */
+export interface StageRequirements {
+  level: number;
+  by: RequirementSource[];
+}
+
+/**
+ * D-413: a stage's requirements from `compile_stage`'s V1 inputs: its items (in slot order) and its plan groups' gems
+ * (in group order), each with PoB's level requirement (`checks.items[].levelRequirement`,
+ * `checks.gems[].levelRequirement`), the same inputs V1's level-requirement findings read.
+ */
+export function stageRequirements(checks: Pick<StageChecks, 'items' | 'gems'>): StageRequirements {
+  const all: { req: number; source: RequirementSource }[] = [
+    ...checks.items.map((i) => ({ req: i.levelRequirement, source: { kind: 'item' as const, name: i.name, slot: i.slot } })),
+    ...checks.gems.map((g) => ({ req: g.levelRequirement, source: { kind: 'gem' as const, name: g.name, group: g.group, gemLevel: g.level } })),
+  ].filter((x) => Number.isFinite(x.req));
+  const level = Math.max(1, ...all.map((x) => x.req));
+  return { level, by: all.filter((x) => x.req === level).map((x) => x.source) };
+}
+
 export interface StageRecord {
   loadoutName: string;
   level: number;
@@ -702,6 +747,11 @@ export interface StageRecord {
    * modifiers, each with how it was applied.
    */
   companion?: CompanionRecord;
+  /**
+   * WU-93, D-413: the highest level requirement among the stage's equipped items and socketed gems, and what sets it
+   * (`stageRequirements`). Absent from records written before amendment 9.
+   */
+  requirements?: StageRequirements;
 }
 
 export interface CompileRecord {

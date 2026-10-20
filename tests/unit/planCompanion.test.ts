@@ -55,8 +55,8 @@ function errorsOf(input: unknown, data = ref): PlanError[] {
 }
 
 describe('D-402: schema version 5, a stage\'s companion', () => {
-  it('version 5 is the current version, and versions 1 to 4 stay accepted (D-320, D-332)', () => {
-    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5]);
+  it('version 5 added the companion, and versions 1 to 4 stay accepted (D-320, D-332); version 6 (D-418) is the current one', () => {
+    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6]);
     for (const version of [3, 4, 5]) {
       const r = validatePlan(withCompanion(version), ref);
       expect({ version, ok: r.ok ? true : r.errors }).toEqual({ version, ok: true });

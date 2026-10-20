@@ -36,7 +36,8 @@
 //    writing, completed, file-only, not-accepted, dropped, stopped, escalated), its `guide` (null, endgame or full) or
 //    its `pobFile`; a card with a build is never finalized again;
 //  - `resume` appends `{date, pinCommit, digest, noNinja, lengths: {stages, checkpoints, escalations, displays}}`, the
-//    session's --no-ninja and each list's length at the resume, and sets `status` running;
+//    session's --no-ninja and each list's length at the resume, sets the top-level `noNinja` to the session's flag (the
+//    field every pricing step reads is the current session's; WU-95's fix round) and sets `status` running;
 //  - `migrate` rewrites a schema-3 log: its finalized card as `builds[0]` with `folder: "."`, its design and final
 //    checkpoints given `concept` from the D1 gate entry before each, a final-gate decline's note prefixed `decline:`,
 //    `noNinja`, `pinCommit` and `digest` null;
@@ -432,6 +433,9 @@ export function writeLog(runFolder, kind, entry) {
     } else if (kind === 'resume') {
       if (!Array.isArray(log.resumes)) log.resumes = [];
       log.resumes.push(resumeEntry(log, entry.noNinja));
+      // D-415, D-420: the top-level noNinja is the current session's, which every pricing step reads; each resumes[]
+      // entry keeps its own session's record (a migrated run's null, or init's flag, is replaced here).
+      log.noNinja = entry.noNinja;
       log.status = 'running';
       saveLog(file, log);
       return `resumes[${log.resumes.length - 1}], status running`;

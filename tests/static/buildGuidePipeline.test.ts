@@ -1499,7 +1499,8 @@ describe('Review of bg/amend-1: the references', () => {
   const gates = () => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8'));
 
   it('1: only the budget may be unverified; any other unverified part routes as a compile, V1 or V2 failure (SKILL.md §4, gates.md)', () => {
-    expect(skill()).toMatch(/any part but the budget `unverified` \(only the budget may stay unverified, D-164\): a failure, routed as a compile, V1 or V2 failure/);
+    // WU-95's second fix round: SKILL.md routes the D1 gate by gates.md's outcome table, which holds this row.
+    expect(skill()).toMatch(/Route by its verdict file and D1-build's claim, by the table in `references\/gates\.md`, "The D1 gate's outcome"/);
     expect(gates()).toMatch(/Only the budget may stay `unverified` \(D-164\): a gate whose compile failed leaves its other parts `unverified`, and any other part `unverified` is a failure/);
     expect(gates()).toContain('| any part but the budget `unverified` | any | as a compile, V1 or V2 failure |');
     expect(folded(readStage('D1-gate'))).toMatch(/Once the compile ran, every part but the budget is `pass` or `fail`: only the budget may stay `unverified` \(D-164\)/);
@@ -2519,13 +2520,13 @@ describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a miss
     expect(at).toBeGreaterThan(0);
     expect(rule).toMatch(/Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before them\./);
     expect(rule).toMatch(/A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1 gets no folder, and a test config refused in step 3 gets no unsaved-build question\./);
-    expect(rule).toMatch(/\*\*No Agent tool\*\* \(D-344\): if the Agent tool isn't available when the first agent step is due, the run stops there, and no agent runs\. Set `status: "stopped"` with no `stages\[\]` entry, finish \(`SKILL\.md` §7\), and give the reason in your reply/);
+    expect(rule).toMatch(/\*\*No Agent tool\*\* \(D-344\): if the Agent tool isn't available when the first agent step is due, the run stops there, and no agent runs\. Set `status: "stopped"` with no `stages\[\]` entry, finish \(`SKILL\.md` §8\), and give the reason in your reply/);
   });
 
   it('step 3: a test config refused with --offline stops the run: the log is written stopped, the run finishes (§7), and the reply gives the reason', () => {
     const flat = folded(raw());
     const step3 = flat.slice(flat.indexOf('3. **Run log.**'), flat.indexOf('4. **Unsaved build**'));
-    expect(step3).toMatch(/A file that can't be read or isn't the documented shape is refused, and the run stops: write `run-log\.json` with `testConfig: "refused"` and `status: "stopped"`, finish \(`SKILL\.md` §7\), and give the reason in your reply \(`references\/offline-and-test\.md`\)\. Otherwise write `run-log\.json` with `status: "running"`/);
+    expect(step3).toMatch(/A file that can't be read or isn't the documented shape is refused, and the run stops: write `run-log\.json` with `testConfig: "refused"` and `status: "stopped"`, finish \(`SKILL\.md` §8\), and give the reason in your reply \(`references\/offline-and-test\.md`\)\. Otherwise write `run-log\.json` with `status: "running"`/);
   });
 
   it('AC-W48 requires the refused-without---offline run to stop at its first agent step (D-344)', () => {
@@ -2668,7 +2669,8 @@ describe("WU-70 (AC-W59's static clause, D-352): D1-build, D1-finish and D2 reco
     expect(finish).toMatch(/\*\*After D1-build\*\* \(your header has `changed`\): D1-build made the build changes; you follow them\. Re-price each slot whose item changed, re-measure the anoint on a changed rung \(step 1's measure-only compile\), and fix the claims and the ledger on what moved\. Never return `build:` for a finding D1-build handled/);
     expect(folded(fs.readFileSync(FIX_ROUND_MD, 'utf8'))).toMatch(/then D1-finish once more, its header's `changed` the locations D1-build returned: it re-prices, re-measures and re-claims what moved, and returns no `build:`/);
     expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'))).toMatch(/and a D1-finish after D1-build \(the locations D1-build returned\)/);
-    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/else D1-finish \(on `build:`, D1-build, D1-tree, then D1-finish with its `changed`\)/);
+    // WU-95's second fix round: the design gate's revise routing is checkpoints.md's; SKILL.md points at it.
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/and when it returns `build: <ids>`, D1-build with those, D1-tree, then D1-finish with its `changed`/);
     expect(folded(readStage('D1-build'))).toMatch(/D1-finish then prices and claims what moved/);
   });
 });
@@ -2725,7 +2727,7 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     expect(order).toEqual([...order].sort((a, b) => a - b));
     const skill = folded(raw);
     expect(skill).toMatch(/compiled, V1, V2, floor, `rolledSkill` and tree pass, budget pass or unverified: the design gate \(7b\)/);
-    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display, `display design --build <id>` \(the D1 gate verdict file's `design` field, A-35\), whoever answers \(Hard rules\)\. Answers \(checkpoint `design`, `concept` the card id\): \*\*accept\*\*, F1 \(step 8\), then the endgame guide; \*\*file only\*\* \(`accept:file`\), F1 alone: the build ends `file-only`; \*\*revise\*\* \(`revise:<text>`\), D1 again with the text as `findings` \(`code: "user-request"`\): D1-build, D1-tree, then D1-finish for a build change, D1-tree then D1-finish for the tree alone, else D1-finish \(on `build:`, D1-build, D1-tree, then D1-finish with its `changed`\), then the D1 gate and this gate again; \*\*verification\*\*: the build ends `dropped`, step 5; \*\*stop\*\*: the build ends `stopped`, the next queued card's design next\. A default `stop` \(`answers\.design\[\]` used up\) ends the run, the queued cards `stopped`\./);
+    expect(skill).toMatch(/- \*\*The design gate\*\* \(7b; D-362; `references\/checkpoints\.md`\)\. Print its display, `display design --build <id>` \(the D1 gate verdict file's `design` field, A-35\), whoever answers \(Hard rules\)\. Answers \(checkpoint `design`, `concept` the card id\): \*\*accept\*\*, F1 \(step 8\), then the endgame guide; \*\*file only\*\* \(`accept:file`\), F1 alone: the build ends `file-only`; \*\*revise\*\* \(`revise:<text>`\), D1 again from the step the change needs \(`references\/checkpoints\.md`\), with the text as `findings` \(`code: "user-request"`\), then the D1 gate and this gate again; \*\*verification\*\*: the build ends `dropped`, step 5; \*\*stop\*\*: the build ends `stopped`, the next queued card's design next\. A default `stop` \(`answers\.design\[\]` used up\) ends the run, the queued cards `stopped`\./);
     expect(skill).toMatch(/the gate verdict files under `reports\/gates\/` \(the D1 gate's holds the design gate's display\)/);
   });
 
@@ -2785,7 +2787,7 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
     // needs every run, its gate detail in checkpoints.md. Amendment 9 (WU-95) adds the compaction rule, the builds
     // and their queue, D1-tree, F1, the campaign and the resume, the refused route and the stop of trade requests:
     // the detail of each in checkpoints.md, start.md and fix-round.md.
-    expect(lines).toBeLessThanOrEqual(345);
+    expect(lines).toBeLessThanOrEqual(325);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/Each step below is a short card: read a reference only where its card names one/);
     expect(skill).toMatch(/Read `references\/start\.md` and do it, in its order, before any agent runs/);
@@ -3120,7 +3122,7 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     expect(text).toContain('Only the entries the slots name count, here as in step 5: a fallback (`<id>-fallback`) carries its slot\'s target but is in no slot, so it is never counted and never over target.');
     expect(file).toContain('| only floor or rolledSkill fails | `infeasible` | `infeasible`, with the verdict as evidence (D-141) |');
     expect(readStage('D1-gate')).toContain('"market": { "league": null, "day": null, "late": false }');
-    expect(folded(runnerText())).toMatch(/only floor or `rolledSkill` failing \(the budget never fails, D-371\): `infeasible`, back to the verification gate with the verdict as evidence/);
+    expect(folded(runnerText())).toMatch(/`infeasible`, back to the verification gate with the verdict as evidence/);
   });
 
   it('data/economy/prices.json holds the conversion table and the league dates as judgment facts of confidence L, citing the study (D-373)', () => {
@@ -3769,9 +3771,15 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
     expect(folded(readStage('D1-build'))).toMatch(/one line `for D1-tree:` with each rung's floor/);
     expect(folded(readStage('D1-tree'))).toMatch(/\*\*Prompt:\*\* D1-build's `for D1-tree:` line/);
     expect(folded(readStage('D1-finish'))).toMatch(/D1-tree's `unspent: <rung> <k>: <why>` lines/);
-    // The D1 gate's routes: the tree part, its tool-error and the refusal.
-    expect(s).toMatch(/only the tree failing \(`tree-swap`, D-419\): D1-tree, then D1-finish, then the gate, with the verdict as `findings`/);
-    expect(s).toMatch(/only the tree `unverified` with `tool-error`: logged `fail`; the gate alone re-runs, once, uncounted, and a second `tool-error` escalates/);
+    // The D1 gate's routes, the tree part's among them, are gates.md's outcome table (WU-96), which SKILL.md routes by.
+    expect(s).toMatch(/Route by its verdict file and D1-build's claim, by the table in `references\/gates\.md`, "The D1 gate's outcome"/);
+    const gates = fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8');
+    expect(gates).toContain('| only the tree fails (`tree-swap`) | any | D1-tree, then D1-finish, then the gate, with the verdict as `findings` (D-418, D-419); after 2 counted retries, `escalated` |');
+    expect(gates).toContain('| only the tree `unverified`, with `tool-error` | any | logged `fail`; the gate alone re-runs, once, uncounted; a second `tool-error` escalates (D-419) |');
+    // D1-tree's `not made:` lines reach the user at the design gate.
+    expect(s).toMatch(/a `not made:` line for each tree change the user asked for that it couldn't make: print those under the design gate's display, so the user hears it/);
+    expect(folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'checkpoints.md'), 'utf8'))).toMatch(/Under the display, in your reply, give each `not made:` line D1-tree returned in this design/);
+    expect(folded(readStage('D1-tree'))).toMatch(/returned as `not made: <the request>: <why>`/);
   });
 
   it("the final gate's campaign, accept:verification and decline:<note> (D-411, D-415)", () => {
@@ -3797,13 +3805,15 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
   });
 
   it("the campaign route: the round copy with --build, D2, the D2 gate, the render, W1's campaign mode and V4's campaign pass (D-415)", () => {
-    const s = skill();
-    expect(s).toMatch(/A `completed` build: the round copy \(`check-run\.mjs <runFolder> --snapshot <n> --build <id>`, `<n>` its last V4 report's number\); \*\*D2\*\* \(9a\), told how to price, adds the campaign stages, keeping D1's reward picks; \*\*the D2 gate\*\* \(9b\) runs the final compile with `buildName` the build's name and `-campaign`, a new PoB file beside the endgame one, which stays as it was/);
-    expect(s).toMatch(/then V4's campaign pass \(`V4-campaign`, `check: "campaign"`, `findings` report `<n>`'s `unresolved` ids, `changed` the lines of `check-run\.mjs <runFolder> --changed <n> --build <id>`\)/);
-    expect(s).toMatch(/A `file-only` build: D2, the D2 gate, the render, W1's full guide, V4's full pass \(step 11\)/);
+    // WU-95's second fix round: SKILL.md points at fix-round.md's chain, which holds it.
+    expect(skill()).toMatch(/- \*\*A build's campaign\*\*, from its final gate's `campaign` or a resume's `campaign:<id>`, runs the chain in `references\/fix-round\.md`, "A build's campaign": D2 \(9a\) and the D2 gate \(9b\), whose `buildName` adds `-campaign`/);
     const fix = folded(fs.readFileSync(FIX_ROUND_MD, 'utf8'));
     expect(fix).toMatch(/## A build's campaign \(steps 9a and 9b; D-415\)/);
-    expect(fix).toMatch(/stage `V4-campaign`, `check: "campaign"`, `writes: \["<buildFolder>\/reports\/V4-<n\+1>\.md"\]`, `findings` the ids of report `<n>`'s `unresolved` findings/);
+    expect(fix).toMatch(/1\. \*\*The round copy\*\*: `check-run\.mjs <runFolder> --snapshot <n> --build <id>`, `<n>` the number of the build's last V4 report/);
+    expect(fix).toMatch(/2\. \*\*D2\*\* \(9a\): it adds the campaign stages to the build's plan, keeping D1's reward picks \(D-413\); tell it how to price/);
+    expect(fix).toMatch(/3\. \*\*On a pass\*\*: log the build's `pobFile` .* render `audit\.md` \(`render-audit\.mjs <runFolder> --build <id>`\), then \*\*W1 in its campaign mode\*\*/);
+    expect(fix).toMatch(/4\. \*\*V4's campaign pass\*\*: `check-run\.mjs <runFolder> --changed <n> --build <id>`, then one verifier: stage `V4-campaign`, `check: "campaign"`, `writes: \["<buildFolder>\/reports\/V4-<n\+1>\.md"\]`, `findings` the ids of report `<n>`'s `unresolved` findings/);
+    expect(fix).toMatch(/\*\*A `file-only` build\*\* has no guide and no V4 pass: D2, the D2 gate, `render-audit\.mjs <runFolder> --build <id>`, W1 writing the full guide in a first pass, V4's full pass \(step 11\)/);
     // V4's campaign report's H1, as the checker reads it (WU-94): `# V4-<n>: campaign pass of rounds/<n-1>`.
     expect(fix).toMatch(/Its report's H1 is `# V4-<n\+1>: campaign pass of rounds\/<n>`/);
     expect(readStage('V4')).toContain('campaign pass of rounds/<n-1>');
@@ -3812,7 +3822,7 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
   it('the refused route: refused: <tool> or tool-refused, the user allows the tool, the step logged refused and re-run alone, uncounted (D-421)', () => {
     const s = skill();
     expect(s).toMatch(/- \*\*A refused call\*\* \(D-421; `references\/gates\.md`, "The refused route"\)\. .* The step stops and returns `refused: <tool>`; a gate step's verdict file has the part the call served `unverified` with code `tool-refused`\. On that line or that code, log the step with outcome `refused`, ask the user to allow the tool, then re-run the step alone, next, uncounted: it routes to no producer and spends no retry/);
-    expect(s).toMatch(/any part `unverified` with `tool-refused`: the refused route/);
+    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'gates.md'), 'utf8')).toContain('| any part `unverified` with `tool-refused` | any | the refused route (below)');
   });
 
   it('no trade tool after pricing stops, in the session (D-415, D-422)', () => {
@@ -3884,7 +3894,9 @@ describe('AC-W77 (WU-95): the references carry amendment 9\'s rules', () => {
     const text = ref('run-log.md');
     expect(text).toMatch(/This page is \*\*schema version 4\*\* \(D-412\)/);
     expect(text).toContain('| `resumes[]` | one per resume (D-415): `{date, pinCommit, digest, noNinja, lengths: {stages, checkpoints, escalations, displays}}` |');
-    expect(text).toMatch(/\| `noNinja` \| `true` or `false`: whether the run prices without poe\.ninja's currency rates \(`--no-ninja`, D-333\)\. Every pricing step is told from here, never from memory \(D-412, D-420\)/);
+    // WU-95's second fix round: the top-level noNinja is the current session's; each resume replaces it.
+    expect(text).toMatch(/\| `noNinja` \| `true` or `false`: whether the \*\*current session\*\* prices without poe\.ninja's currency rates \(`--no-ninja`, D-333\): `init` records the first session's flag, and each `resume` replaces it with its session's .* Every pricing step is told from here, never from memory \(D-412, D-420\)/);
+    expect(text).toMatch(/sets the top-level `noNinja` to this session's flag/);
     expect(text).toMatch(/- `build` \(D-412\) adds a finalized card's build, `\{"id", "roll", "status": "queued"\}`/);
     expect(text).toMatch(/- `resume` \(D-415\) appends a `resumes\[\]` entry, `\{date, pinCommit, digest, noNinja, lengths\}`/);
     // Its statuses are run-log.mjs's (D-412).
@@ -4004,7 +4016,8 @@ describe("WU-95's fix round: the coordinator's ruling on a campaign's PoB file, 
   const ref = (name: string) => folded(fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8'));
 
   it("a campaign's final compile writes a new -campaign PoB file and leaves the endgame file as it was (D-415): SKILL.md, D2-gate.md, run-folder.md, fix-round.md, the header", () => {
-    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/\*\*the D2 gate\*\* \(9b\) runs the final compile with `buildName` the build's name and `-campaign`, a new PoB file beside the endgame one, which stays as it was/);
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/D2 \(9a\) and the D2 gate \(9b\), whose `buildName` adds `-campaign`/);
+    expect(folded(readStage('D2'))).toMatch(/runs the campaign's final compile, its own `-campaign` PoB file beside the endgame one, which stays as it was \(D-415\)/);
     expect(folded(readStage('D2-gate'))).toMatch(/`<slug>-<YYYY-MM-DD>-<n>-<card id>-campaign` .* for a build in `\.`, a migrated run's, `<slug>-<YYYY-MM-DD>-<n>-campaign`\)\. The campaign's final compile writes a \*\*new\*\* file and leaves the endgame file F1 wrote as it was \(D-415\)/);
     expect(ref('run-folder.md')).toMatch(/\*\*A campaign writes its own file\*\* \(D-415\): the D2 gate after a campaign compiles with the build's name and `-campaign` \(`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`, or `<slug>-<YYYY-MM-DD>-<n>-campaign` in `\.`\), and leaves the endgame file F1 wrote as it was/);
     expect(ref('run-folder.md')).toMatch(/A re-compile of the build \(the fix round's or a revision's\) rewrites its current file: F1's for an endgame-only build, the `-campaign` file after its campaign/);
@@ -4014,6 +4027,11 @@ describe("WU-95's fix round: the coordinator's ruling on a campaign's PoB file, 
     expect(ref('task-header.md')).toMatch(/A D2 gate after a campaign adds `-campaign`, a new file beside the endgame one \(D-415\)/);
     // The checker holds the name (tests/unit/buildGuideCampaignPob.test.ts runs it on the fixture).
     expect(fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8')).toContain('const want = campaignFile ? `${name}-campaign` : name;');
+  });
+
+  it("§5 offers F1's ledger refusal its remedy: restore or remove the changed file, then accept, which retries F1 (D-413)", () => {
+    expect(folded(fs.readFileSync(SKILL_MD, 'utf8'))).toMatch(/After F1's ledger refusal the user can also restore or remove the changed PoB file and answer accept: F1 runs again and accepts no finding/);
+    expect(folded(readStage('F1'))).toMatch(/For a ledger refusal, the user can also restore or remove the changed file and answer 1, which retries F1 and accepts no finding/);
   });
 
   it('D1-finish hands a build change to D1-build, then D1-tree, as the checker requires (D-418)', () => {

@@ -229,7 +229,8 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   best swap PoB's node power still finds (`+<x>% Full DPS by moving <n> points from <nodes> to <nodes>`, or
   `none`); then each need the tree keeps whatever node power says, one line each, so the user sees why a long
   branch stays. Then the open estimates, one line each from `estimates[]`, the gate's verdict line, and the
-  verdict file's path.
+  verdict file's path. Under the display, in your reply, give each `not made:` line D1-tree returned in this design
+  (a tree change the user asked for that it couldn't make, with its why), so the user hears it before deciding.
 - **Answers:**
   - **accept**: F1, the final compile (step 8), then the endgame guide, its checks and the build's final gate.
   - **file only** (`accept:file`, D-411): F1 and nothing after it: the build ends `file-only`, its PoB file and no
@@ -238,7 +239,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     A build change (gear, the gems or the config, with or without the tree) runs D1-build with it, then D1-tree,
     then D1-finish; a change to the tree alone runs D1-tree with it, then D1-finish (a node the user asks for
     becomes a need, D-418); a change to the anoint, the prices, the ledger or the claims runs D1-finish alone
-    with it. Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
+    with it, and when it returns `build: <ids>`, D1-build with those, D1-tree, then D1-finish with its `changed`. Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
     keeps its 2 counted retries. A change that isn't a revision of the finalized build (a new card, by the rule
     above) isn't a revise: say so, and offer **verification**. There the user's words carry into the
     restatement, as a new card whose `from` is the finalized card.

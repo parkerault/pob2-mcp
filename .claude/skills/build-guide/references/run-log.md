@@ -19,7 +19,7 @@ with one build per finalized card (D-411); `run-log.mjs <runFolder> migrate` rew
 | `status` | the run's: `running`, then `completed`, `not-accepted`, `stopped` or `escalated` (D-411: `completed` when any build ended `completed` or `file-only`, else the last build's end, or `stopped` when no card was finalized); a resume sets it `running` again |
 | `mode` | `offline` or `online` |
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
-| `noNinja` | `true` or `false`: whether the run prices without poe.ninja's currency rates (`--no-ninja`, D-333). Every pricing step is told from here, never from memory (D-412, D-420); `null` in a migrated run |
+| `noNinja` | `true` or `false`: whether the **current session** prices without poe.ninja's currency rates (`--no-ninja`, D-333): `init` records the first session's flag, and each `resume` replaces it with its session's (its `resumes[]` entry keeps that session's record). Every pricing step is told from here, never from memory (D-412, D-420); `null` in a migrated run until its first resume |
 | `pinCommit` | the PoB pin's commit when `init` ran, which `run-log.mjs` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
 | `digest` | the newest league digest's file name when `init` ran (`data/league/<name>.md`, newest by its fetch date), or `null` |
 | `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
@@ -262,7 +262,8 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   once per card the verification gate finalizes; then `{"id", "status"?, "guide"?, "pobFile"?}` updates it. A card
   with a build is refused as a new one, and a build keeps its card's identity.
 - `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
-  `noNinja` (its `--no-ninja`) and the four lists' lengths, and sets `status` `running`. It runs once per resume,
+  `noNinja` (its `--no-ninja`) and the four lists' lengths, sets the top-level `noNinja` to this session's flag, and
+  sets `status` `running`. It runs once per resume,
   before the resume's unsaved-build question and verification visit.
 - `migrate` (D-415), with no JSON, rewrites a schema-3 log as schema 4: its finalized card becomes `builds[0]` with
   `folder: "."` (its files stay at the root), its status from the old `status` and last answer, `guide` from

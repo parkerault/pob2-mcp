@@ -93,7 +93,7 @@ text doesn't give, and never invent one:
    finalized later goes in the run log, not in the folder name.
 3. **Run log.** Check the test config if one was given with `--offline`: `node
    .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
-   `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`SKILL.md` §7), and give the reason in your reply (`references/offline-and-test.md`).
+   `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`SKILL.md` §8), and give the reason in your reply (`references/offline-and-test.md`).
    Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, `noNinja` (`true` with
    `--no-ninja`, else `false`) and the parsed brief; no build yet. Either first write is `run-log.mjs <runFolder>
    init`, with `noNinja` always (`init` refuses an entry without it), never Write (`references/run-log.md`).
@@ -110,7 +110,7 @@ them. A stop in step 1, 3 or 4 ends the run there, and the later steps don't run
 gets no folder, and a test config refused in step 3 gets no unsaved-build question.
 
 **No Agent tool** (D-344): if the Agent tool isn't available when the first agent step is due, the run stops
-there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (`SKILL.md` §7), and give the reason
+there, and no agent runs. Set `status: "stopped"` with no `stages[]` entry, finish (`SKILL.md` §8), and give the reason
 in your reply, as for a refused test config (`stopped: the Agent tool isn't available`).
 
 ## Resuming a run (`--resume`, `--campaign`; D-415)

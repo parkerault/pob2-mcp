@@ -159,8 +159,8 @@ round or a revision.
 
 Read `references/start.md` and do it, in its order, before any agent runs; its last step prints the league digest's
 staleness line, `head -3 data/league/<newest>.md`, the newest by fetch date (D-400). `init` records `--no-ninja` as
-`noNinja` (D-412, D-420): read it from `run-log.json` for every pricing step, the D1 gate included, which then
-prices without currency rates (D-333). No Agent tool: the run stops (D-344).
+`noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every pricing
+step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
 
 **A resume** (D-415; `references/start.md`, "Resuming a run", has its order): `/build-guide --resume <run folder>`
 goes on with an earlier run in its own folder, and `--campaign <run folder> <id>` resumes it and answers
@@ -223,32 +223,23 @@ D1-tree, then D1-finish.
   last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason, and
   its `for D1-tree:` line.
 - **D1-tree** (6b): prompt, D1-build's `for D1-tree:` line as it returned it, when D1-build ran before it;
-  `findings`, a `tree-swap` verdict or the user's tree request. Returns each rung's travel, and `unspent:` and `not
-  made:` lines.
+  `findings`, a `tree-swap` verdict or the user's tree request. Returns each rung's travel, `unspent:` lines, and a
+  `not made:` line for each tree change the user asked for that it couldn't make: print those under the design
+  gate's display, so the user hears it.
 - **D1-finish** (6c): prompt, how to price (offline; stopped, Hard rules; or paced), no currency rates when the
   log's `noNinja` is true, D1-tree's `unspent:` lines as it returned them, and D1-build's `left out:` lines, with
   its `lever unpulled:` and `override:` lines (D-406, D-407). Log its `priceOutcomes`.
-- **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim:
-  - compiled, V1, V2, floor, `rolledSkill` and tree pass, budget pass or unverified: the design gate (7b);
-  - a compile, V1 or V2 failure: D1 re-runs with the verdict, up to 2 counted retries; the third escalates (§5);
-  - only the tree failing (`tree-swap`, D-419): D1-tree, then D1-finish, then the gate, with the verdict as
-    `findings`, within the same 2 counted retries;
-  - only the tree `unverified` with `tool-error`: logged `fail`; the gate alone re-runs, once, uncounted, and a
-    second `tool-error` escalates; any part `unverified` with `tool-refused`: the refused route (Calling an agent);
-  - any part but the budget `unverified` (only the budget may stay unverified, D-164): a failure, routed as a
-    compile, V1 or V2 failure;
-  - only floor or `rolledSkill` failing (the budget never fails, D-371): `infeasible`, back to the verification gate
-    with the verdict as evidence, when D1-build claimed it; else D1 re-runs, up to 2 counted retries, then `infeasible`;
-  - `"forced": "infeasible"` (FI-3): `infeasible`; after a guided retry or an accepted re-run, any failure
-    escalates again. Log each gate attempt with the outcome its verdict file routes to; the run checker holds
-    the log to the files.
+- **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim, by the table in
+  `references/gates.md`, "The D1 gate's outcome": compiled, V1, V2, floor, `rolledSkill` and tree pass, budget pass
+  or unverified: the design gate (7b); a failure re-runs the D1 steps the table names, up to 2 counted retries, then
+  escalates (§5); `infeasible`, back to the verification gate with the verdict as evidence. Log each gate attempt
+  with the outcome its verdict file routes to; the run checker holds the log to the files.
 - **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display, `display design --build <id>`
   (the D1 gate verdict file's `design` field, A-35), whoever answers (Hard rules). Answers (checkpoint `design`,
   `concept` the card id): **accept**, F1 (step 8), then the endgame guide; **file only** (`accept:file`), F1 alone:
-  the build ends `file-only`; **revise** (`revise:<text>`), D1 again with the text as `findings` (`code:
-  "user-request"`): D1-build, D1-tree, then D1-finish for a build change, D1-tree then D1-finish for the tree alone,
-  else D1-finish (on `build:`, D1-build, D1-tree, then D1-finish with its `changed`), then the D1 gate and this gate
-  again; **verification**: the build ends `dropped`, step 5; **stop**: the build ends `stopped`, the next queued
+  the build ends `file-only`; **revise** (`revise:<text>`), D1 again from the step the change needs
+  (`references/checkpoints.md`), with the text as `findings` (`code: "user-request"`), then the D1 gate and this
+  gate again; **verification**: the build ends `dropped`, step 5; **stop**: the build ends `stopped`, the next queued
   card's design next. A default `stop` (`answers.design[]` used up) ends the run, the queued cards `stopped`.
 - **F1** (8; D-413; `stages/F1.md`), fresh, after the design gate's `accept` or `accept:file`: header `compile:
   "final"`, `buildName`, and `accepted` (this build's accepted findings); its prompt names the passing D1 gate's
@@ -269,7 +260,8 @@ once more, uncounted); 2. **guidance and one more retry**: the producer (D1 or D
 design gate again, then F1) gets one more attempt, uncounted, with the verdict and the user's guidance in
 `findings`, then its gate. If the gate fails, whatever part fails, it escalates again; 3. **back to the
 verification gate** (the choice `verification`): the build ends `dropped`; 4. **stop**: the build ends
-`escalated`, the next queued card's design next.
+`escalated`, the next queued card's design next. After F1's ledger refusal the user can also restore or remove the
+changed PoB file and answer accept: F1 runs again and accepts no finding.
 
 ## 6. Write, verify and the final gate (steps 10 to 16)
 
@@ -307,15 +299,8 @@ Each build's own: its folder's guide, audit and reports, its V4 reports numbered
 
 ## 7. The campaign, and a resume's answers (steps 9a and 9b; D-415)
 
-- **A build's campaign** (`references/fix-round.md`, "A build's campaign"), from its final gate's `campaign` or a
-  resume's `campaign:<id>`: log it `writing`. A `completed` build: the round copy (`check-run.mjs <runFolder>
-  --snapshot <n> --build <id>`, `<n>` its last V4 report's number); **D2** (9a), told how to price, adds the
-  campaign stages, keeping D1's reward picks; **the D2 gate** (9b) runs the final compile with `buildName` the
-  build's name and `-campaign`, a new PoB file beside the endgame one, which stays as it was; a failure re-runs D2,
-  ≤ 2 counted retries, then escalates; on a pass its `pobFile`, `render-audit.mjs --build <id>` and W1's campaign
-  mode; then V4's campaign pass (`V4-campaign`, `check: "campaign"`, `findings` report `<n>`'s `unresolved` ids,
-  `changed` the lines of `check-run.mjs <runFolder> --changed <n> --build <id>`); then steps 12 to 16. A
-  `file-only` build: D2, the D2 gate, the render, W1's full guide, V4's full pass (step 11), steps 12 to 16.
+- **A build's campaign**, from its final gate's `campaign` or a resume's `campaign:<id>`, runs the chain in
+  `references/fix-round.md`, "A build's campaign": D2 (9a) and the D2 gate (9b), whose `buildName` adds `-campaign`.
 - **A resume's answers** at the verification gate, each naming one build (`references/checkpoints.md`):
   `guide:<id>`, a `file-only` build (log it `writing`, the render, W1 with the endgame template, V4's full pass,
   steps 12 to 16); `campaign:<id>`, a `completed` or `file-only` build's campaign, which `--campaign <run folder>

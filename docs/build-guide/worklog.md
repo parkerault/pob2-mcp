@@ -5254,3 +5254,7 @@ the `m17` engine at `b76967b`.
   second, though uses per second is already in DPS; D1-tree and the D1 gate pass `max_loss` `{clearUses: 2}` (the
   stats' 2%), keeping `clearRadius` and `movement` at 0. Given to WU-95 with its other loose ends (the text in
   `D1-tree.md` and `D1-gate.md`, and the pinned test). WU-93 rebases onto WU-92 next.
+- **WU-95 dispatched** (`bg-95`, off `b50d0d5`), in parallel with WU-93's rebase (no shared files), with every
+  "For WU-95" note above, the guard ruling's text, the D-423 display line in `run-log.mjs`, the static tests'
+  follow-ups (the `run-log.md` example test, the run-settings test's `TOOL_META` branch) and the endgame template's
+  empty `by[]` clause.

@@ -113,8 +113,9 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   every breakdown field its ledger formula reads, is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
 - **tree**, the passive tree's travel (D-418, D-419). After the compile, which loads every rung, the gate calls
   `mcp__pob2__get_node_power` in compact mode on each rung with D1-tree's arguments: the rung's loadout; `keep`,
-  the nodes of its needs (`tree.needs`), and for `b` and `n` every node of the rung before; `protect_for`, the
-  later rungs' loadouts; `clear_group` and `max_loss` (`stages/D1-tree.md`). A rung **fails** when its best swap
+  the nodes of its needs (`tree.needs`), for `b` and `n` every node of the rung before, and every node a later
+  rung's `respec.dropped` lists; `protect_for`, the later rungs' loadouts; `clear_group` and `max_loss`
+  (`stages/D1-tree.md`). A rung **fails** when its best swap
   left gains at least **5%** Full DPS within `max_loss`, with the swap as its finding (code `tree-swap`); the
   part passes when no rung does. D1-tree stops its loop under 3%, so a finished loop leaves room for the anoint
   and the prices D1-finish adds. **A tool failure is not a design failure:** when `get_node_power` fails or times

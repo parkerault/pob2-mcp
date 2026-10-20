@@ -99,18 +99,33 @@ Each one runs the same way:
       replacement a change. Keep it only when the rung's `<stat>` output in the record (Grep
       `compile-record.json` for `"<stat>":`) is at least what it was, else undo it (no need is written: the need
       still holds); and set the need's `nodes` to the nodes that now meet it. Otherwise the need stays.
-   2. **Spare points**: the points the rung's level allows, `level` − 1 plus the campaign's books
-      (`passive-points.max` less `passive-points.from-levels`), less the tool's `points`. D1-build leaves them
-      unspent, and a swap applied up the ladder can free some (the rung already held some of the added nodes).
-      Spend them on the rung's best nodes per point: call the tool with `limit: 15` and take its best unallocated
-      nodes in rank order, each with every node of its `Path` the rung lacks, counting a shared path node once,
-      while they fit; one change; call again while points remain and a node fits, at most 3 calls per rung.
+   2. **Spare points**, counted as V1 counts them (its `passive-points` check, PoB's own count): the rung's
+      **regular points** are its `tree.nodes` (the class start not among them), weapon-set nodes included, less
+      the smaller weapon set, `min(|set1|, |set2|)` of `weaponSetNodes`: its untagged nodes plus the larger weapon
+      set. (The tool's `points` count the untagged nodes only, so never take spare points from them on a rung
+      with weapon-set nodes.) The **allowance** is V1's: `level` − 1, plus the quests' passive points at
+      `endgame` (the books, `passive-points.max` less `passive-points.from-levels`), plus PoB's `ExtraPoints`
+      (a `Grants <n> Passive Skill Point` line of a node or item the rung holds: Grep `compile-record.json` for
+      `"ExtraPoints":` with line numbers, a hit inside the rung's block of `stages`; none is 0). The Martyr point
+      isn't spare: V1 only tolerates it at the last progress key, and a guide doesn't count on it. **Spare
+      points** are the allowance less the regular points. D1-build leaves them unspent, and a swap can free
+      some: one applied up the ladder (the rung already held some of the added nodes), or one whose new paths
+      use fewer points than it freed (its reply says how many). Spend them on the rung's best nodes per point:
+      call the tool with `limit: 15` and take its best unallocated nodes in rank order, each with every node of
+      its `Path` the rung lacks, counting a shared path node once, while they fit; that is one change. Call again
+      while points remain; when points remain and no listed node fits, call once with `limit: 50` and take the
+      best that fit. At most 5 calls per rung. A fill V1 refuses with `passive-points` names PoB's count and
+      allowance in its message: undo it, and spend the difference it gives instead.
    3. **The swap loop**: call the tool in compact mode. While its best swap gains at least **3%** Full DPS, make
       it a change, and call again; stop at "Best swap: none", under 3%, or after **8 swaps** on the rung, an
       undone one counted. The D1 gate fails a rung at 5%, so the anoint and the prices D1-finish adds can't push
       a finished loop over the gate's line.
-   The rung's travel **before** is the `Travel:` count of its first call with the default stats (step 2's, else
-   step 3's), and **after** its last call's: travel depends on the stats asked for.
+   4. **No unspent point**: after the loop, spend the rung's spare points again as step 2 does, so the rung
+      ends with every regular point the level allows spent. A point left (no node within reach fits, or each
+      fill was undone) is returned with its reason, `unspent: <rung> <k>: <why>`, which D1-finish writes as a
+      `reason` claim on the rung.
+   The rung's travel **before** is the `Travel:` count of its first call with the default stats (step 2's), and
+   **after** its last such call's: travel depends on the stats asked for.
 
 Nothing else changes: no item but a removed anoint, no gem, no config, no claim (D1-finish writes the needs'
 claims), no respec. Validate with `mcp__pob2__guide_run {validate: "<plan>"}` after your last edit, until it
@@ -124,15 +139,17 @@ reports no error.
 ## Returns
 
 At most 8 lines, counts only (the swaps' nodes are in the plan): `done`; your `mcp__pob2__compile_plan` and
-`mcp__pob2__get_node_power` calls; each rung's travel before and after, its swaps and how many were undone, and
-the spare points spent; `no loop: <rungs>' floor fails` when step 1 stopped; each `not made:` line.
+`mcp__pob2__get_node_power` calls; each rung's travel before and after, its swaps and how many were undone, the
+spare points spent, and its regular points left unspent (0 unless step 4 couldn't spend them); `no loop: <rungs>'
+floor fails` when step 1 stopped; each `unspent:` and `not made:` line.
 
 ```
 D1-tree r1-a-2 attempt 1: done
 compiles: 14, node power calls: 19
-m: travel 21 → 8; swaps 4, 1 undone; spare points 0
-b: travel 26 → 11; swaps 5; spare points 6
-n: travel 30 → 13; swaps 3; spare points 4
+m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0
+b: travel 26 → 11; swaps 5; spare points 6; unspent 0
+n: travel 30 → 13; swaps 3; spare points 5; unspent 1
+unspent: n 1: each fill of the last point failed the floor when measured
 ```
 
 ## Fault directives

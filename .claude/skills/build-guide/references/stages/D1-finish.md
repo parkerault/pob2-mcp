@@ -29,8 +29,10 @@ then checks the plan.
 - **`changed`**, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`:
   the locations D1-build returned (`plan.json stages[6].items`). Then "After D1-build" below is your job.
 - **Prompt:** how to price in this run (offline; stopped; or paced), and with `--no-ninja` that there are no
-  currency rates; D1-build's `left out:` lines, each a `reason` claim on its first stage (D-396); and its
-  `lever unpulled:` and `override:` lines, each a `reason` claim on the first endgame stage (D-406, D-407).
+  currency rates; D1-tree's `unspent: <rung> <k>: <why>` lines, each a `reason` claim on that rung saying why
+  its regular points aren't all spent (D-418); D1-build's `left out:` lines, each a `reason` claim on its first
+  stage (D-396); and its `lever unpulled:` and `override:` lines, each a `reason` claim on the first endgame
+  stage (D-406, D-407).
 - **Read**, the independent calls in one response:
   - each rung: `mcp__pob2__guide_run {view: {plan: "<plan>", stage: "<id>"}}` for `m`, `b`
     and `n`, batched. A view gives the stage's section of the plan (its `tree.needs` among it), its key-figure

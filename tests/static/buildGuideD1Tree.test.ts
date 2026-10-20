@@ -182,10 +182,25 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/An undone swap's removed nodes become a floor need on its rung, `\{"nodes": \[<the removed nodes>\], "stat": "TotalEHP"\}` \("a defence the floor needs"\), so neither the loop nor the gate proposes it again/);
   });
 
-  it('spends spare points on the rung\'s best nodes per point', () => {
-    expect(tree).toMatch(/\*\*Spare points\*\*: the points the rung's level allows/);
-    expect(tree).toMatch(/a swap applied up the ladder can free some \(the rung already held some of the added nodes\)/);
+  it('spends spare points on the rung\'s best nodes per point, counted as V1 counts them (weapon sets included)', () => {
+    expect(tree).toMatch(/\*\*Spare points\*\*, counted as V1 counts them \(its `passive-points` check, PoB's own count\)/);
+    expect(tree).toMatch(/less the smaller weapon set, `min\(\|set1\|, \|set2\|\)` of `weaponSetNodes`: its untagged nodes plus the larger weapon set/);
+    expect(tree).toMatch(/The tool's `points` count the untagged nodes only, so never take spare points from them on a rung with weapon-set nodes/);
+    expect(tree).toMatch(/The \*\*allowance\*\* is V1's: `level` − 1, plus the quests' passive points at `endgame` .* plus PoB's `ExtraPoints`/);
+    expect(tree).toMatch(/The Martyr point isn't spare/);
+    expect(tree).toMatch(/a swap can free some: one applied up the ladder \(the rung already held some of the added nodes\), or one whose new paths use fewer points than it freed/);
     expect(tree).toMatch(/Spend them on the rung's best nodes per point: call the tool with `limit: 15` and take its best unallocated nodes in rank order/);
+    // V1's own rule, which the count above restates: regular points are allocated less the smaller weapon set.
+    const v1 = read(path.join(REPO, 'src', 'plan', 'checks', 'v1.ts'));
+    expect(v1).toContain('const regular = used - Math.min(weaponSet1, weaponSet2);');
+    expect(v1).toContain('let allowed = fromLevels + fromQuests + extra;');
+  });
+
+  it('ends each rung with no unspent regular point, or returns the points left with a reason D1-finish claims', () => {
+    expect(tree).toMatch(/\*\*No unspent point\*\*: after the loop, spend the rung's spare points again as step 2 does, so the rung ends with every regular point the level allows spent\. A point left .* is returned with its reason, `unspent: <rung> <k>: <why>`, which D1-finish writes as a `reason` claim on the rung/);
+    expect(tree).toMatch(/and its regular points left unspent \(0 unless step 4 couldn't spend them\)/);
+    expect(readStage('D1-tree')).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0');
+    expect(folded(readStage('D1-finish'))).toMatch(/D1-tree's `unspent: <rung> <k>: <why>` lines, each a `reason` claim on that rung/);
   });
 
   it(`stops at ${LOOP_STOP}% and ${LOOP_CAP} swaps per rung, under the gate's ${GATE_LINE}%`, () => {
@@ -202,7 +217,7 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/a respec is never the loop's: only a stated `respec\.dropped` with its reason/);
     expect(tree).toMatch(/no respec\. Validate/);
     expect(tree).toMatch(/each rung's travel before and after, its swaps and how many were undone/);
-    expect(raw).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0');
+    expect(raw).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0');
   });
 });
 
@@ -330,6 +345,9 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
 
   it('gates.md: the part list, D1 as three steps, and the tree\'s routes', () => {
     expect(ref('gates.md')).toContain('| `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill`, `tree` | see below |');
+    expect(gates).toMatch(/`keep`, the nodes of its needs \(`tree\.needs`\), for `b` and `n` every node of the rung before, and every node a later rung's `respec\.dropped` lists/);
+    // A compile that didn't pass leaves the tree unverified with every part after it, no tree finding needed.
+    expect(gates).toMatch(/a gate whose compile failed leaves its other parts `unverified`/);
     expect(gates).toMatch(/D1 is three steps, each a fresh coordinator step: D1-build, D1-tree and D1-finish \(D-356, D-418\), then the gate/);
     expect(ref('gates.md')).toContain('| only the tree fails (`tree-swap`) | any | D1-tree, then D1-finish, then the gate, with the verdict as `findings` (D-418, D-419); after 2 counted retries, `escalated` |');
     expect(ref('gates.md')).toContain('| only the tree `unverified`, with `tool-error` | any | logged `fail`; the gate alone re-runs, once, uncounted; a second `tool-error` escalates (D-419) |');

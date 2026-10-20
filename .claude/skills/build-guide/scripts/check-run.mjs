@@ -3789,20 +3789,23 @@ function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
  * D-419: the D1 gate's `tree` part, checked for its shape and its agreement with its findings: the checker can't
  * recompute node power without the engine. `pass` has no `tree-swap` finding; `fail` has one or more, each naming a
  * rung; `unverified` has a `tool-error` (get_node_power failed or timed out) or `tool-refused` (D-421) finding and no
- * `tree-swap`. The `design` field's rungs, when the gate wrote it, each carry `tree: {travel, points, bestSwap, needs}`:
+ * `tree-swap`, except when the compile didn't pass: then every other part is `unverified` with no finding of its own
+ * (gates.md, "Every verdict file"; the WU-96 fix round), the tree included. The `design` field's rungs, when the gate wrote it, each carry `tree: {travel, points, bestSwap, needs}`:
  * travel and points whole numbers, travel at most points, `bestSwap` null or `{gainPercent, removed: [names], added:
  * [names]}`, `needs` the needs' reasons as text; a rung whose best swap gains 5% or more Full DPS is exactly a rung with a
  * `tree-swap` finding.
  */
 function checkTreePart(rep, bad) {
   const v = rep.verdict.tree;
+  // A gate whose compile failed, or was refused, never reached node power: its tree is unverified as every part is.
+  const compiled = rep.verdict.compiled === 'pass';
   const findings = list(rep.findings).filter((f) => f.part === 'tree');
   const swaps = findings.filter((f) => f.code === 'tree-swap');
   const tools = findings.filter((f) => TREE_CODES.unverified.includes(f.code));
   for (const f of findings) if (![...TREE_CODES.fail, ...TREE_CODES.unverified].includes(f.code)) bad(`has the tree finding ${show(f.code)}; the tree part's codes are tree-swap, tool-error and tool-refused (D-419, D-421)`);
   if (v === 'pass' && (swaps.length > 0 || tools.length > 0)) bad(`says tree: "pass" beside ${swaps.length > 0 ? 'a tree-swap finding' : `a ${tools[0].code} finding`}; a passing tree part leaves no swap and had its tool (D-419)`);
   if (v === 'fail' && (swaps.length === 0 || tools.length > 0)) bad(`says tree: "fail" ${swaps.length === 0 ? 'with no tree-swap finding' : `beside a ${tools[0].code} finding`}; a failing tree part names each rung's swap, a tree-swap finding (D-419)`);
-  if (v === 'unverified' && (tools.length === 0 || swaps.length > 0)) bad(`says tree: "unverified" ${tools.length === 0 ? 'with no tool-error or tool-refused finding' : 'beside a tree-swap finding'}; the tree is unverified only when get_node_power failed (tool-error) or the call was refused (tool-refused) (D-419, D-421)`);
+  if (v === 'unverified' && ((tools.length === 0 && compiled) || swaps.length > 0)) bad(`says tree: "unverified" ${swaps.length > 0 ? 'beside a tree-swap finding' : 'with no tool-error or tool-refused finding'}; the tree is unverified only when get_node_power failed (tool-error), the call was refused (tool-refused), or the compile didn't pass (D-419, D-421)`);
   for (const f of swaps) if (typeof f.stage !== 'string') bad(`has a tree-swap finding with no stage; it names the rung the swap is on (D-419)`);
   const rungs = list(rep.design?.rungs);
   if (rungs.length === 0) return;

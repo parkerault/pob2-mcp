@@ -48,11 +48,11 @@ findings.
 3. **Compile** the whole plan measure-only: `mcp__pob2__compile_plan {plan_path: "<plan>",
    measure_only: true}`, with no `stages`; it loads every rung's loadout. A compile error is part `compiled`
    failing (code `compile-error`, the error line as the message, the plan stage it names as `stage`); then every
-   other part is `unverified`, and you write the verdict file. A compile the permission system refused (D-421)
-   isn't a compile error: part `compiled` is `unverified` with code `tool-refused`, every other part
-   `unverified`; write the verdict file and return `refused: mcp__pob2__compile_plan`. Grep the new
-   `compile-record.json` for `"planSha1"`: the verdict file carries it (F1 checks the plan the user accepts
-   against it, D-413).
+   other part is `unverified`, the tree included, with no finding of its own (no node power call runs), and you
+   write the verdict file. A compile the permission system refused (D-421) isn't a compile error: part
+   `compiled` is `unverified` with code `tool-refused`, every other part `unverified` as above; write the verdict
+   file and return `refused: mcp__pob2__compile_plan`. Grep the new `compile-record.json` for `"planSha1"`: the
+   verdict file carries it (F1 checks the plan the user accepts against it, D-413).
 4. **Read the record** (`compile-record.json`, C-33) and fill each part (`gates.md`). "Endgame stages" are
    the plan's stages with a `variant`: the rungs `m`, `b` and `n`, each gated the same way (D-281). Once the compile ran, every part but the budget is `pass` or `fail`:
    only the budget may stay `unverified` (D-164), and the tree when `mcp__pob2__get_node_power` fails

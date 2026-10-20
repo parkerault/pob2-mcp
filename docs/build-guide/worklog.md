@@ -5117,7 +5117,7 @@ the `m17` engine at `b76967b`.
 - **M-21 wave 1 dispatched:** WU-92 (`bg-92`), WU-93 (`bg-93`) and WU-94 (`bg-94`), each off the integration head
   `2e81806` (worktree `m21`, branch `build-guide/m21`, off `main`). The work-log continues here, unsigned until the
   sign-rebase.
-- **WU-93 done by its doer** (`c4473d8`, one commit, about 430K tokens). Gate rc 0 (152 suites, 2,665 tests), build
+- **WU-93 done by its doer** (`ea047ac`, one commit, about 430K tokens). Gate rc 0 (152 suites, 2,665 tests), build
   rc 0. Plan schema 6 (`tree.needs`; an ascendancy node or a node the stage lacks refused; `stat` any non-empty
   string), V1 `missing-reason` for a need without a resolving claim, `buildSha1` leaving out only `needs[].claim`;
   the record's `requirements` from `gemInstance.reqLevel` and `item.requirements.level`, using V1's existing
@@ -5133,9 +5133,9 @@ the `m17` engine at `b76967b`.
   claims), and D-423's "each display names the hit" is WU-96's (the dossier's EHP column via `R1b-assemble.md` and
   the dossier template, and the D1 gate's design text), added to its files in the handoff.
 - **Correction:** WU-93's verifier took about 172K tokens, not 260K.
-- **WU-98 dispatched early** (`bg-98`, off `1795d4d`): it depends on no wave-1 unit (the 429 in `src/trade/`, the
+- **WU-98 dispatched early** (`bg-98`, off `1efa173`): it depends on no wave-1 unit (the 429 in `src/trade/`, the
   compaction script, the run-settings example), so it takes the slot WU-93's verifier freed.
-- **WU-98 done by its doer** (`70c71e8`, two commits, about 260K tokens). Gate rc 0 (151 suites, 2,652 tests),
+- **WU-98 done by its doer** (`49d6b0f`, two commits, about 260K tokens). Gate rc 0 (151 suites, 2,652 tests),
   build rc 0. **The 429's likely cause, ours:** the trade site gives logged-in requests (`find_upgrades`, with the
   cookie) and anonymous ones (`get_item_price`, `search_trade_items`) different `Ip` limits under one policy name
   (search: 60 against 30 per 300 s; fetch 100 against 50), and the limiter kept one window set per policy,
@@ -5146,7 +5146,7 @@ the `m17` engine at `b76967b`.
   `compact` hook). **For WU-95:** copy the script's rule text into `SKILL.md`. **For the fold:** C-11's internal
   interface gains `auth`. **After WU-92 merges:** drop the static test's allowance for `get_node_power` missing from
   `TOOL_META`. The verifier is running.
-- **WU-94 done by its doer** (`de32b26`, one commit, about 750K tokens, the largest so far). Gate rc 0 (150 suites,
+- **WU-94 done by its doer** (`22c9b43`, one commit, about 750K tokens, the largest so far). Gate rc 0 (150 suites,
   2,682 tests), build rc 0. Schema 4 through `run-log.mjs` (a `build` kind for `builds[]`; `resume` with the
   lists' lengths; `init` requiring `noNinja`; `migrate`; `display design|final --build <id>`), `check-run.mjs` per
   build with every order rule, `render-audit.mjs --build`, `run-usage.mjs` with several transcripts; 44 tests on a
@@ -5158,31 +5158,31 @@ the `m17` engine at `b76967b`.
   first resume (Executioner's Howl). **For WU-95:** point the `run-log.md` example test back at the rewritten
   reference. The verifier is running.
 - **WU-98 verified: PASS** (about 167K tokens; the regression test fails on the old limiter for the right reason).
-  **Merged** into `build-guide/m21` (rebased, fast-forward, `06d85d6`). **Notes for the fold:** C-11 keeps windows
+  **Merged** into `build-guide/m21` (rebased, fast-forward, `49d6b0f`). **Notes for the fold:** C-11 keeps windows
   per policy and per kind (`auth` is internal); one gap remains, narrow: a process's first anonymous request after
   only logged-in traffic is still admitted under the logged-in windows (no limit can be hard-coded, S-4), so the
   next live 429's logged headers decide whether a floor is worth seeding. **After WU-92 merges:** drop the static
   test's `meta === undefined` branch (`runSettingsExample.test.ts:135-138`). The user's launcher keeps its own deny
   rule for its `reference/` folder, which the example leaves out.
-- **WU-97 dispatched early** (`bg-97`, off `6bd311b`): skill text only (the endgame template, `W1.md`, `V4.md`), it
+- **WU-97 dispatched early** (`bg-97`, off `3b8234b`): skill text only (the endgame template, `W1.md`, `V4.md`), it
   needs no unmerged code, and may read WU-94's scripts in `bg-94` to match the checker's formats. WU-96 waits for
   WU-92's report (D1-tree must match `get_node_power`'s final arguments).
 - **WU-94 verified: PASS** (about 324K tokens; 26 mutated copies of the fixture's log and gate files, each flagged
-  with the right message; controls pass). **Merged** into `build-guide/m21` (rebased, fast-forward, `578efe3`). Its
+  with the right message; controls pass). **Merged** into `build-guide/m21` (rebased, fast-forward, `22c9b43`). Its
   formats for the stage files and `SKILL.md` (the `build` and `resume` kinds, `ledger-refused`, a migrated build's
   PoB name without the card id, `tool-error` logged `fail`, the default `stop`, the display's tree lines,
   `V4-campaign`'s H1, `design:<id>` only on an unchanged plan) are added to the handoff's M-21 formats. One
   temporary weakening: `buildGuideScripts.test.ts:414` holds schema-4 calls inline until WU-95 rewrites
   `run-log.md`.
-- **WU-92 done by its doer** (`b952dcf`, one commit, about 614K tokens). Gate rc 0 (150 suites, 2,656 tests), build
+- **WU-92 done by its doer** (`dea1ed1`, one commit, about 614K tokens). Gate rc 0 (150 suites, 2,656 tests), build
   rc 0. `get_node_power` over `pob-api/API/NodePower.lua`, one `node_power` request, figures equal to PoB's
   `PowerBuilder`, the legal best swap with `keep`, `protect_for`, the clear guard and `max_loss` (a number, or a
   map by stat id and the guards `movement`, `clearRadius`, `clearUses`); `get_passive_upgrades` on the same pass
   (its "upgrades" mode, about 3 s on the golden build). 12 engine tests. **Watch:** Full DPS on the golden build
   took 33–66 s CPU per pass under load (timeout 120 s); `get_passive_upgrades`' description now says "passives" and
   its default output drops some stat lines (the verifier judges the HG-12 scope). The verifier is running.
-- **WU-96 dispatched** (`bg-96`, off `ddb71ea`), reading WU-92's interface from `bg-92`.
-- **WU-97 done by its doer** (`51cd005`, rebased by the coordinator to `41b4ccd` onto `dd46114` so its two
+- **WU-96 dispatched** (`bg-96`, off `7e09792`), reading WU-92's interface from `bg-92`.
+- **WU-97 done by its doer** (`51cd005`, rebased by the coordinator to `75a45c6` onto `f8286c7` so its two
   checker cross-checks run; about 310K tokens). Gate rc 0 before the rebase (152 suites, 2,672 tests), build rc 0.
   The endgame template (§8's twelve H2s, Switching over, the 2,300-word cap, budgets summing to 2,100), `W1.md`'s
   template choice and campaign mode (detected from the files), `V4.md`'s campaign pass (H1 `# V4-<n>: campaign
@@ -5213,7 +5213,7 @@ the `m17` engine at `b76967b`.
   depth 6, compact, L90 rung 13.2 s wall; the golden build 41 s (Full DPS about 33 ms per calculation), about 3×
   headroom under 120 s. Fix round sent to the doer; the calling notes (compile first, exact loadout names, always
   pass `clear_group`, the guards' map form, the compact reply's format) sent to WU-96.
-- **WU-96 done by its doer** (`0e4687f`, rebased onto `2bba114`, about 460K tokens). Gate rc 0 (154 suites, 2,755
+- **WU-96 done by its doer** (`8f9b8ba`, rebased onto `7eaab95`, about 460K tokens). Gate rc 0 (154 suites, 2,755
   tests), build rc 0. D1-build, the new `D1-tree.md` and `F1.md`, D1-finish, D1-gate, `gates.md`, R1b's league
   rule, the dossier's EHP hit, the library's travel rule. **Deviations:** the D1 gate verdict gains `planSha1`
   (F1 compares a measure-only record's with it); F1's codes `plan-changed`, `compile-error`, `final-compile`,
@@ -5229,12 +5229,12 @@ the `m17` engine at `b76967b`.
   checker is wrong; WU-96's fix round owns that one rule (exempt `tree` when `compiled` isn't `pass`) with a test.
   Fix round sent. **For WU-95 (added):** the verification display also names no hit (`run-log.mjs:1184`), with the
   design display's line; `checkpoints.md:173-177`'s example tree and EHP lines.
-- **WU-92's fix round** (`085528a`): the can't-measure section per the ruling (shown entries plus the ascendancy
+- **WU-92's fix round** (`6da04ad`): the can't-measure section per the ruling (shown entries plus the ascendancy
   pool, then a count line); a branch protected when its removal would disconnect any node outside it (walked
   under PoB's weapon-set rule, in each `protect_for` tree too), the search going on until 5 legal tries (cap 20);
   an optional `heldBranches` in the reply; tests on the L90 rung for the bound and the swap, for `protect_for` and
   `clearUses`. Gate rc 0 (2,660 tests). The verifier re-checks.
-- **WU-96's fix round** (`08d6085`, rebased onto `7965ed3`): D1-tree counts regular points as V1 does (untagged
+- **WU-96's fix round** (`8bc6c1d`, rebased onto `039e168`): D1-tree counts regular points as V1 does (untagged
   plus the larger weapon set, against V1's allowance with `ExtraPoints`; the Martyr point not spare), spends spare
   points again after the loop, and returns `unspent: <rung> <k>: <why>` for any left, which D1-finish takes as a
   `reason` claim; the checker's `tree` rule exempts a gate whose compile failed or was refused; `gates.md`'s `keep`
@@ -5246,7 +5246,7 @@ the `m17` engine at `b76967b`.
   list, which the static tests check against `TOOL_META`).
 - **WU-92 re-checked: PASS** (L90 `get_passive_upgrades` about 2.6K chars with 10 ranked entries and the count
   line; rung `n`'s swap +16.5% Full DPS with 25 branches held; the protection walk's cost negligible; calls 10–11 s
-  on the three rungs, 37 s on the golden build). **Merged** (rebased cleanly onto `2c2a000`, fast-forward).
+  on the three rungs, 37 s on the golden build). **Merged** (rebased cleanly onto `5f4126f`, fast-forward).
   **Notes:** the narrowing of `get_passive_upgrades`' can't-measure section (the D-417 clarification) is to be
   folded into C-47, D-246, AC-K21 and D-388 (whose "minion notables first" is gone), and told to the user; a
   no-value candidate now appears only in the count line. **Coordinator's ruling on the guards:** at 0 the
@@ -5254,14 +5254,14 @@ the `m17` engine at `b76967b`.
   second, though uses per second is already in DPS; D1-tree and the D1 gate pass `max_loss` `{clearUses: 2}` (the
   stats' 2%), keeping `clearRadius` and `movement` at 0. Given to WU-95 with its other loose ends (the text in
   `D1-tree.md` and `D1-gate.md`, and the pinned test). WU-93 rebases onto WU-92 next.
-- **WU-95 dispatched** (`bg-95`, off `b50d0d5`), in parallel with WU-93's rebase (no shared files), with every
+- **WU-95 dispatched** (`bg-95`, off `98bd994`), in parallel with WU-93's rebase (no shared files), with every
   "For WU-95" note above, the guard ruling's text, the D-423 display line in `run-log.mjs`, the static tests'
   follow-ups (the `run-log.md` example test, the run-settings test's `TOOL_META` branch) and the endgame template's
   empty `by[]` clause.
 - **WU-93 merged** (rebased onto WU-92's merge with no conflict; the README table already right at 85 tools). Its
   re-gate on the combined code was the first integration check: test rc 0 (159 suites, 2,810 tests), build rc 0,
   no failure from any merged unit. Six of the seven units are in; WU-95 is the last.
-- **WU-95 done by its doer** (`4f3f3c5`, rebased onto `7ed7130`, about 660K tokens). Gate rc 0 (160 suites, 2,845
+- **WU-95 done by its doer** (`7869e0c`, rebased onto `3a25262`, about 660K tokens). Gate rc 0 (160 suites, 2,845
   tests), build rc 0; the 31 new AC-W77 tests fail on the old text. `SKILL.md` grew to 352 lines (its test cap
   raised from 230 to 360). **Coordinator's ruling (a D-415 clarification), sent back as a fix round before
   verification:** a campaign's final compile writes a new PoB file, the build's name plus `-campaign`, leaving the
@@ -5269,7 +5269,7 @@ the `m17` engine at `b76967b`.
   would meet the ledger's refusal every time with no escalation option that finishes the run. The fix round also
   takes four unowned loose ends (`D1-finish.md`'s retry chain without D1-tree, `R1b.md`'s "rest of the run",
   `Q.md`'s plan path, the compaction script's `--build`) and asks for `SKILL.md` as lean as the content allows.
-- **WU-95's fix round** (`6f6675b`, rebased onto `6348f82`): the `-campaign` PoB file in the skill text, the task
+- **WU-95's fix round** (`5718dac`, rebased onto `b6fe57f`): the `-campaign` PoB file in the skill text, the task
   header, the coordinator's definition and the checker's name rule (only for a final record from a D2 gate after a
   campaign answer), the run-builds fixture's `r1-a-1` renamed; `D1-finish.md`'s retry chain with D1-tree; `R1b.md`'s
   stop per session; `Q.md`'s build folder; the compaction script's `[--build <id>]`. `SKILL.md` 339 lines, 31,319
@@ -5286,12 +5286,12 @@ the `m17` engine at `b76967b`.
   its final gate `accept:verification`, then `design:r1-x-1`; or resume twice. **For the fold:** `new_run`'s reply
   still prints `plan_path for this run: <rel>/plan.json` (`src/handlers/planHandlers.ts:553`), stale with build
   folders; a second `--resume` in one Claude session lifts that session's pricing stop.
-- **WU-95's second fix round** (`eec1e0a`, rebased onto `2b3ad38`): `resume` sets the top-level `noNinja` to the
+- **WU-95's second fix round** (`41a106e`, rebased onto `e79eb1a`): `resume` sets the top-level `noNinja` to the
   session's flag, with a test; `D2.md`'s `-campaign` sentence; `start.md`'s §8; D1-tree's `not made:` lines under the
   design display; F1's ledger remedy in §5; three duplicated blocks moved to their references. `SKILL.md` 324 lines,
   29,965 characters. Gate rc 0 (162 suites, 2,858 tests). The verifier re-checks.
 - **WU-95 re-checked: PASS** (the `noNinja` fix confirmed on the real scripts; the moved blocks lost nothing). **Merged**
-  (rebased, fast-forward, `8a56eae`). All seven M-21 units are merged.
+  (rebased, fast-forward, `41a106e`). All seven M-21 units are merged.
 - **The M-21 wave gate: PASS** on `build-guide/m21` from a clean build (`rm -rf build coverage`, Jest cache cleared):
   test rc 0 (162 suites, 2,858 tests; the timing step 2 suites, 3 tests), build rc 0; both waiver files `[]`.
 - **M-21's agents** (the harness's subagent counts): doers about 3.7M tokens with their fix rounds (WU-95 761K,
@@ -5302,3 +5302,18 @@ the `m17` engine at `b76967b`.
   for the live test (WU-99). **For the user's launcher:** copy `docs/build-guide/run-settings.example.json`'s allow
   list and `compact` hook into the run settings, keeping its own `reference/` deny rule. **The live test's order:**
   finalize r1-b-3 first and answer its final gate `accept:verification`, then `design:r1-x-1` and `accept:file`.
+- **M-21 merged to `main`, signed** (the user: "Yes"). Signing ran unattended under the user's new rule: `git fetch`
+  finished without a 1Password prompt, so the agent was already unlocked. The 41 integration commits above `2e81806`
+  were re-signed with the same trees and metadata (all 41 show good signatures; each commit's tree, author,
+  committer, dates and message match its original, and the tip's tree is identical), and `main` fast-forwarded to
+  them (`9efb779`). The unsigned originals are kept locally as `refs/archive/pre-sign-m21-2026-10-20`.
+  - **26 cited hashes remapped** (25 in this log, 1 in the handoff): the integration commits exactly, the lane
+    originals by subject to their signed main-line copies. WU-97's doer commit (`51cd005`), which the coordinator
+    rebased before the merge, stays as the lane original, so its line doesn't cite one commit twice. Seven older
+    citations name commits that were already off `main` before this merge; left as they are.
+  - **Not pushed.**
+  - **`m18` not updated yet:** the user's open-clear run session from 2026-10-19 is still open, with its pob2 server
+    running from `m18`'s `build/`. `m18` moves to `main` and is rebuilt once that session is closed.
+  - **Left for the user:** closing the old run session; the launcher's settings (the allow list and the `compact`
+    hook from `run-settings.example.json`); pushing; removing the worktrees `m20`, `m21`, `bg-84`…`bg-98` and their
+    branches (`build-guide/m20`, `build-guide/m21`, `bg/wu-84`…`bg/wu-98`).

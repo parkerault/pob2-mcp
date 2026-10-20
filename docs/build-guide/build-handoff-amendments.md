@@ -68,7 +68,7 @@ tests, fixtures and "done" (its last bullets) apply unchanged.
   - The run log's schema 4 (§6), `resumes[]` entries with the four lists' lengths (§9), and the answer forms (§5,
     §9): `pick:<id>[,<id>…]`, `accept:file`, `campaign`, `accept:verification`, `decline:<note>`, `guide:<id>`,
     `campaign:<id>`, `design:<id>`.
-  - **As WU-94 built them** (merged at `578efe3`; the stage files and `SKILL.md` follow these, or the checker fails
+  - **As WU-94 built them** (merged at `22c9b43`; the stage files and `SKILL.md` follow these, or the checker fails
     the run):
     - `run-log.mjs <runFolder> build '{"id", "roll", "status": "queued"}'` adds a build at each finalize; `build
       '{"id", "status"?, "guide"?, "pobFile"?}'` updates it; `resume '{"noNinja": …}'` writes a `resumes[]` entry

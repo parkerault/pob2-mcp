@@ -5200,3 +5200,16 @@ the `m17` engine at `b76967b`.
   gate, `render-audit --build`, W1, `V4-campaign` with the last report's unresolved ids as `findings`); a
   `file-only` build's campaign gets V4's full pass; the writer's definition allows the campaign mode's Write; both
   descriptions name both guides; `<buildFolder>/` paths in the writer's and verifier's definitions.
+- **WU-92 verified: FAIL on two blockers** (about the gate: rc 0; the defects hide on the golden build):
+  1. `get_passive_upgrades` on an L90 build (the fifteen-stage plan's stage 15) measures 1,102 passives, its
+     can't-measure section covers the whole pool (37 entries, over 5,000 chars alone), and the D-246 fit drops every
+     ranked entry: 0 ranked, "[Response truncated". **Coordinator's ruling (D-417 clarification):** the
+     can't-measure section lists the C-47 lines for the entries the output lists, then one line counting the rest of
+     the pool, as §11 already says for `get_node_power`.
+  2. The swap search wastes its 5 tries on branches weapon-set nodes hang off (PoB's `depends` misses them): on rung
+     `n` (23 weapon-set nodes) all 5 were illegal, so "none", while `m` and `b` found +34% and +36% Full DPS. Fix:
+     protect a branch whose removal would disconnect a protected node, and keep going until 5 legal tries.
+  Also: a test that fails without `protect_for`, and a `clearUses` guard test. Performance probe: two stats at
+  depth 6, compact, L90 rung 13.2 s wall; the golden build 41 s (Full DPS about 33 ms per calculation), about 3×
+  headroom under 120 s. Fix round sent to the doer; the calling notes (compile first, exact loadout names, always
+  pass `clear_group`, the guards' map form, the compact reply's format) sent to WU-96.

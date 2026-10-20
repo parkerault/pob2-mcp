@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:poe2db.tw)",
+      "WebFetch(domain:www.poe2db.tw)",
+      "Bash(node .claude/skills/build-guide/scripts/check-run.mjs:*)",
+      "Bash(node .claude/skills/build-guide/scripts/run-log.mjs:*)",
+      "Bash(node .claude/skills/build-guide/scripts/render-audit.mjs:*)",
+      "mcp__pob2__compile_plan",
+      "mcp__pob2__guide_run",
+      "mcp__pob2__get_node_power",
+      "mcp__pob2__manage_sets",
+      "mcp__pob2__lookup_game_data",
+      "mcp__pob2__check_model_coverage",
+      "mcp__pob2__search_tree_nodes",
+      "mcp__pob2__list_gems",
+      "mcp__pob2__get_classes",
+      "mcp__pob2__lua_get_stats",
+      "mcp__pob2__lua_get_build_info",
+      "mcp__pob2__lua_get_tree",
+      "mcp__pob2__get_equipped_items",
+      "mcp__pob2__get_skill_setup",
+      "mcp__pob2__analyze_skills",
+      "mcp__pob2__get_config",
+      "mcp__pob2__analyze_defenses",
+      "mcp__pob2__validate_build",
+      "mcp__pob2__get_build_issues",
+      "mcp__pob2__suggest_supports",
+      "mcp__pob2__get_passive_upgrades",
+      "mcp__pob2__get_nearby_nodes",
+      "mcp__pob2__find_path_to_node",
+      "mcp__pob2__list_specs",
+      "mcp__pob2__list_item_sets",
+      "mcp__pob2__encode_build_code"
+    ],
+    "deny": [
+      "WebSearch",
+      "WebFetch(domain:mobalytics.gg)",
+      "WebFetch(domain:www.mobalytics.gg)",
+      "WebFetch(domain:maxroll.gg)",
+      "WebFetch(domain:www.maxroll.gg)",
+      "WebFetch(domain:game8.co)",
+      "WebFetch(domain:www.game8.co)",
+      "WebFetch(domain:poe-vault.com)",
+      "WebFetch(domain:www.poe-vault.com)",
+      "WebFetch(domain:pobb.in)",
+      "WebFetch(domain:www.pobb.in)",
+      "WebFetch(domain:poe.ninja)",
+      "WebFetch(domain:www.poe.ninja)",
+      "WebFetch(domain:youtube.com)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:youtu.be)",
+      "WebFetch(domain:www.youtu.be)",
+      "WebFetch(domain:twitch.tv)",
+      "WebFetch(domain:www.twitch.tv)",
+      "WebFetch(domain:reddit.com)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:old.reddit.com)",
+      "Read(//**/.env)",
+      "Edit(//mnt/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/compact-reminder.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

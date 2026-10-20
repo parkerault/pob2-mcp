@@ -28,8 +28,8 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   names a field, Grep that field's row); the pattern library's "Standard kits" entry for the card's archetype,
   for the structure check (Grep `^#` in `.claude/skills/build-guide/references/patterns.md`, Read that entry);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs and the entries the card
-  cites; `run-log.json` (has pricing stopped? a `stages[]` entry whose `priceOutcomes` counts a `locked_out` or
-  `rate_limited` call); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On attempt 2
+  cites; `run-log.json` (has pricing stopped in this session? a `stages[]` entry after the last resume whose
+  `priceOutcomes` counts a `locked_out` or `rate_limited` call, step 6); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On attempt 2
   or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
 
 ## Work
@@ -187,14 +187,16 @@ shows it, and the user can make a new card from it. The skeleton still tests the
    - **offline:** no price call. Each entry is `unavailable` with note `offline run`, `amount`,
      `currency` and `league` null, dated the run folder's date (the `YYYY-MM-DD` in its last path
      segment).
-   - **pricing stopped** (the prompt says so, or a `run-log.json` `stages[]` entry's `priceOutcomes` counts
-     a `locked_out` or `rate_limited` call): no price call; each entry is `unavailable`, note `pricing stopped`.
+   - **pricing stopped** (the prompt says so, or a `run-log.json` `stages[]` entry after the last resume, from
+     index `resumes[<last>].lengths.stages`, every entry when the log has no resume, counts a `locked_out` or
+     `rate_limited` call in its `priceOutcomes`: the stop holds for the session, D-415): no price call; each entry
+     is `unavailable`, note `pricing stopped`.
    - **online:** reuse an entry with the same item, query and league from any plan of this run first;
      otherwise one call per item (`mcp__pob2__get_item_price` for a unique), paced by order. An entry is
      `{id, item, query, amount, currency, date, league, status}`: each result's league and its `Checked:` date;
      `unavailable` has `amount` and `currency` null and a `note`. Classify a failed call by its
      `[trade:<kind>]` prefix only: `would_wait` (price others, call it again later; its third refusal makes it
-     `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop pricing for the rest of the run:
+     `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop pricing for the rest of the session:
      every remaining item `unavailable`); any other kind, `unavailable`. Count every call by its outcome for
      your return.
    - **converted for the card** (D-373, D-374): a key price reaches the user as a range at a league day, never

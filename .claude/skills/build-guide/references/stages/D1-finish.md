@@ -187,7 +187,7 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
    entry), the tree, the gems or the config (earned or scenario). The anoint and a price entry are yours:
    change them, measure as step 1 does, and the D1 gate runs after you. Any other build change is
    D1-build's: make none, and return its finding ids as `build: <ids>`; the runner runs D1-build with them,
-   then you once more, then the gates.
+   then D1-tree (every D1-build is followed by the tree step, D-418), then you once more, then the gates.
    - **After D1-build** (your header has `changed`): D1-build made the build changes; you follow them.
      Re-price each slot whose item changed, re-measure the anoint on a changed rung (step 1's measure-only
      compile), and fix the claims and the ledger on what moved. Never return `build:` for a finding D1-build

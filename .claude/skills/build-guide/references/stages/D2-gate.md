@@ -3,8 +3,8 @@
 A fresh coordinator step after every D2 attempt, which adds a build's campaign on request (D-415), and after a D1
 gate in the fix round or a revision of a build with its campaign. It compiles the build's whole plan measure-only
 and checks that it compiled and that V1 (the tree's shape included, `tree-shape`) and V2 pass for **every**
-stage. When they do, it runs the build's final compile in the same step, rewriting the PoB file F1 wrote (D-413),
-the only write into the builds folder. You check; you don't design. Fix nothing in the plan: a failure goes back to
+stage. When they do, it runs the build's final compile in the same step, the only write into the builds folder:
+the campaign's own PoB file, beside the endgame one F1 wrote, which stays as it was (D-413, D-415). You check; you don't design. Fix nothing in the plan: a failure goes back to
 D2 as findings.
 
 ## Inputs
@@ -15,9 +15,12 @@ D2 as findings.
 - **Header:** `stage: "D2-gate"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
   `compile: "final"`, `buildName`, `accepted` (the findings the user accepted for this build), `writes`: the
   verdict file `reports/gates/D2-gate-<concept>-a<attempt>.json` (at the run folder's root).
-- **`buildName`**, as the runner builds it by the run checker's PoB file name rule: `<slug>-<YYYY-MM-DD>-<n>-<card
-  id>`, the run folder's last two segments and the card id joined with `-` (D-412), the name F1 wrote; for a build
-  in `.` (a migrated run's), `<slug>-<YYYY-MM-DD>-<n>`, with no card id. Use it as given: never pick another.
+- **`buildName`**, as the runner builds it by the run checker's PoB file name rule: the build's PoB name and
+  `-campaign`, `<slug>-<YYYY-MM-DD>-<n>-<card id>-campaign` (the run folder's last two segments and the card id
+  joined with `-`, D-412; for a build in `.`, a migrated run's, `<slug>-<YYYY-MM-DD>-<n>-campaign`). The campaign's
+  final compile writes a **new** file and leaves the endgame file F1 wrote as it was (D-415): the user has likely
+  saved that one in PoB since, and the write ledger would refuse a rewrite (D-211). A later fix round or revision of
+  the full build rewrites the `-campaign` file, under the ledger. Use the name as given: never pick another.
 - **Read:** nothing before the compile: you compile `plan.json` by its path and judge only what the compile
   reports. After each compile, `mcp__pob2__compile_plan`'s text: each stage's line with its V1 and V2 verdict,
   and every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
@@ -60,7 +63,7 @@ record, the XML and the PoB file.
   "attempt": 1,
   "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass" },
   "findings": [],
-  "finalCompile": { "compiled": true, "errors": [], "recordPath": "builds/r1-a-2/compile-record.json", "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-2.xml" }
+  "finalCompile": { "compiled": true, "errors": [], "recordPath": "builds/r1-a-2/compile-record.json", "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-2-campaign.xml" }
 }
 ```
 
@@ -77,7 +80,7 @@ it.
 ```
 D2-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass; final compile written
 reports/gates/D2-gate-r1-a-2-a1.json
-titan-blood-hunt-2026-10-08-1-r1-a-2.xml
+titan-blood-hunt-2026-10-08-1-r1-a-2-campaign.xml
 ```
 
 ## Fault directives

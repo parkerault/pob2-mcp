@@ -104,11 +104,12 @@ final gate comes back at the end.
 1. **The round copy**: `check-run.mjs <runFolder> --snapshot <n> --build <id>`, `<n>` the number of the build's
    last V4 report, as for a revision.
 2. **D2** (9a): it adds the campaign stages to the build's plan, keeping D1's reward picks (D-413); tell it how to
-   price. **The D2 gate** (9b) checks every stage and re-runs the final compile with the build's `buildName`
-   (`SKILL.md` §4), rewriting its PoB file. A failure re-runs D2 with the findings, up to 2 counted retries; the
-   third escalates (`SKILL.md` §5). The write ledger refuses the compile when the user changed the PoB file in PoB
-   since F1 wrote it (D-211): the D2 gate reports it as a failed final compile (`final-compile`, routed as any D2
-   gate failure); tell the user at once, who can restore or remove the changed file.
+   price. **The D2 gate** (9b) checks every stage and runs the final compile with the campaign's `buildName`, the
+   build's PoB name and `-campaign` (`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`; `<slug>-<YYYY-MM-DD>-<n>-campaign` for a
+   build in `.`): a **new** PoB file, so the endgame file F1 wrote, which the user has likely saved in PoB since,
+   stays as it was and the write ledger has nothing to refuse (D-211, D-415). A failure re-runs D2 with the findings,
+   up to 2 counted retries; the third escalates (`SKILL.md` §5). A later fix round or revision of the full build
+   rewrites the `-campaign` file, under the ledger as any re-compile.
 3. **On a pass**: log the build's `pobFile` (the D2 gate verdict's `finalCompile.pobFile`), render `audit.md`
    (`render-audit.mjs <runFolder> --build <id>`), then **W1 in its campaign mode** (`stages/W1.md`): it rewrites the
    guide with the full template, keeping the endgame sections' text where the plan didn't change them.

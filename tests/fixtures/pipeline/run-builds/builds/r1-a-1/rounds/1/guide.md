@@ -16,7 +16,7 @@ Import this code in PoB2 (Import/Export Build, then Import from code):
 eJy1kk9Lw0AQxc_NpxjmlBxq_kikhWyKiooQtNCoR9luxriY7IbNJgjB7y5blCo9Wo9vBt7vPWay1XvbwEiml1oxjE8iBFJCV1LVDB_K6_kCV7mXrbl9vX-5GGTjNknuzbKdgIZGahguUwTLTU328dsreo4RRMP7_o63xPCJGyO1QeC9IFVd7jeltFwhtFyqjRZvZG-MHjqGMYYOVBoi4MLKkTYdCYYp5t5sljkBVtqGGJ4LCzH4xSKAKf5AsIboR5L0K8ltxTD5lcBNYgSlK-oZ7oCHzgn4xWkUwJQc1fpKWTJS1dDyrge_OEsDmNojI6qatwTboarJgl8sXY3tvzCUVvM9x3VRf-Rkobt97mXhwf99AqX32ZQ=
 ```
 
-The file is `titan-blood-hunt-2026-10-08-1-r1-a-1.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Made offline, so no prices were checked.
+The file is `titan-blood-hunt-2026-10-08-1-r1-a-1-campaign.xml`. Its loadouts, in order: Act 1 (L8) {1} → Act 2 (L30) {2} at 9 → Entering maps (L65) {m} when the campaign is done → Endgame budget (L90) {b} once you own both rings → Endgame non-budget (L95) {n} when you can afford it. The items are stat examples: match the affixes, not the item. Engine: PoB2 v0.23.1 (patch 0.5.4); boss data 0.5.5. Made offline, so no prices were checked.
 
 ## Survival by stage
 

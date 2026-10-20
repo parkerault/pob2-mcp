@@ -99,11 +99,16 @@ Only a build's final compile writes a PoB file into the builds folder, through t
 an endgame-only build (D-413), or the D2 gate's once the build has its campaign. Its `build_name` is
 `<slug>-<YYYY-MM-DD>-<n>-<id>`: the run folder's last two segments and the card id, joined with `-`, so every run
 writes new files and two builds of one run never share one (D-113, D-199, D-412). A build migrated from schema 3,
-in `.`, keeps `<slug>-<YYYY-MM-DD>-<n>`, with no card id: the run checker's PoB file name rule. Every earlier
-compile, the concept skeletons' and the D1 gate's included, is measure-only and writes only the record and the
-compiled XML beside its plan.
+in `.`, keeps `<slug>-<YYYY-MM-DD>-<n>`, with no card id: the run checker's PoB file name rule. **A campaign writes
+its own file** (D-415): the D2 gate after a campaign compiles with the build's name and `-campaign`
+(`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`, or `<slug>-<YYYY-MM-DD>-<n>-campaign` in `.`), and leaves the endgame file
+F1 wrote as it was: the user has likely opened and saved that one in PoB by then, and a rewrite would meet the
+write ledger's refusal every time. The build's `pobFile` is then the `-campaign` file. Every earlier compile, the
+concept skeletons' and the D1 gate's included, is measure-only and writes only the record and the compiled XML
+beside its plan.
 
-A re-compile of the build (the fix round's, a revision's, or its campaign's D2 gate) rewrites that same file. The
+A re-compile of the build (the fix round's or a revision's) rewrites its current file: F1's for an endgame-only
+build, the `-campaign` file after its campaign. The
 server's write ledger allows it only while the file is unchanged since this run wrote it; otherwise
 `mcp__pob2__compile_plan` refuses, with C-17's changed-on-disk wording when someone edited the file (the user, in
 PoB), or its "already exists" wording when the ledger has no entry for this run (D-211). A refusal is reported,

@@ -246,7 +246,9 @@ describe('F1 (AC-W77): the endgame-only build\'s final compile (D-413)', () => {
   it('names the PoB file by the checker\'s rule: the card id, none for a build in "."', () => {
     expect(f1).toMatch(/`<slug>-<YYYY-MM-DD>-<n>-<card id>`, the run folder's last two segments and the card id joined with `-` \(D-412\)/);
     expect(f1).toMatch(/for a build in `\.` \(a migrated run's\), `<slug>-<YYYY-MM-DD>-<n>`, with no card id/);
-    expect(checker).toMatch(/const want = v4 && folder !== '\.' \? `\$\{runName\}-\$\{build\.id\}` : runName;/);
+    // WU-95's fix round (the coordinator's D-415 ruling): F1's name; a campaign's D2 gate adds `-campaign`.
+    expect(checker).toMatch(/const name = v4 && folder !== '\.' \? `\$\{runName\}-\$\{build\.id\}` : runName;/);
+    expect(checker).toMatch(/const want = campaignFile \? `\$\{name\}-campaign` : name;/);
   });
 
   it('writes reports/gates/F1-<id>-a<n>.json in the D2 gate\'s shape, as the checker\'s fixture holds it', () => {

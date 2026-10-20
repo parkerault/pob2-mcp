@@ -107,7 +107,7 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 | `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, node power on each rung, and the verdict file on the compile, V1, V2, the survival floor, the budget, the named damage source and the tree, with the design gate's display |
 | `F1` | `.claude/skills/build-guide/references/stages/F1.md` | a fresh check that the plan is the one the user accepted at the design gate, then an endgame-only build's final compile with the header's `buildName`, in the same step |
 | `D2` | `.claude/skills/build-guide/references/stages/D2.md` | a build's campaign, on request: the campaign stages, planned backward from the endgame, keeping D1's reward picks, campaign uniques priced |
-| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the build's final compile with the header's `buildName` again, in the same step |
+| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the campaign's final compile with the header's `buildName`, its own `-campaign` file, in the same step |
 
 The rules every design step keeps:
 
@@ -145,8 +145,9 @@ The rules every design step keeps:
   armour, evasion, resistances and crit from E1. At a region's last progress key either region's
   resistance penalty is accepted (D-251).
 - **One final compile per F1 or D2 gate.** Only F1 (an endgame-only build's, D-413) and the D2 gate (a build's
-  campaign) compile with `build_name`, once, with the header's `buildName` (`<slug>-<YYYY-MM-DD>-<n>-<id>`, D-412),
-  after the measure-only check passed; every other compile is measure-only. A final compile the write ledger
+  campaign) compile with `build_name`, once, with the header's `buildName` (`<slug>-<YYYY-MM-DD>-<n>-<id>`, D-412; a
+  campaign's D2 gate adds `-campaign`, its own file beside the endgame one, D-415), after the measure-only check
+  passed; every other compile is measure-only. A final compile the write ledger
   refuses is reported, never worked around.
 
 ## The fix round and revisions (SKILL.md steps 12 and 16)

@@ -28,7 +28,8 @@ const RULE_SENTENCES = [
   "the run's `run-log.json`",
   "the current step's reference",
   "the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`)",
-  'print its display again with `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate>`',
+  // WU-95's fix round: the design and final gates' displays take the build (D-411).
+  'print its display again with `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate)',
   'which records no second visit',
   "Act on no yes the notes don't hold",
   'restate the pending decision and wait for it',

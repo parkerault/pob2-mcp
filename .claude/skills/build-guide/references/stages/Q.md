@@ -9,7 +9,9 @@ compiled. **You edit no plan (`plan.json` or a concept plan) and no card.**
 
 - **Header:** `stage: "Q"`, `attempt`, `mode`, `runFolder`, `runFolderRel`, `compile` (`none`; a coordinator's
   `measure-only`), `findings: []`, and `writes`: your report `interviews/<gate>-<visit>-q<n>.md`, and a
-  coordinator's variant folder `probes/q-<gate>-<visit>-<n>/`.
+  coordinator's variant folder `probes/q-<gate>-<visit>-<n>/`. A question about a finalized build (at its design
+  or final gate, or an escalation of it) also carries `concept` and `buildFolder`, the build's folder under
+  `runFolder` (`builds/<id>`, or `.` for a build migrated from schema 3; D-412).
 - **Prompt:** the question, in the user's words; the gate and its visit; the cards it concerns.
 - **Read** only what it needs: the cards, the research files, `cards.md`; a coordinator also `dossier.md`, the
   gate verdict files and the records, by Grep.
@@ -17,8 +19,10 @@ compiled. **You edit no plan (`plan.json` or a concept plan) and no card.**
 ## Work
 
 1. **Look it up**, as `.claude/skills/build-guide/references/lookups.md` says.
-2. **A coordinator measures** when the answer is a number, from the card's concept plan at the verification
-   gate, else from `plan.json`. Write a variant of only the stage the question needs, with the one change it
+2. **A coordinator measures** when the answer is a number, from the card's skeleton plan,
+   `concepts/<id>/plan.json`, at the verification gate, else from the finalized build's plan,
+   `<buildFolder>/plan.json` (its `plan_path` `<runFolderRel>/<buildFolder>/plan.json`, or
+   `<runFolderRel>/plan.json` for `.`). Write a variant of only the stage the question needs, with the one change it
    asks about, to `probes/q-<gate>-<visit>-<n>/plan.json`, as R1b writes its probes (`R1b.md`, "From compile
    variants"): the stage through `mcp__pob2__guide_run {view: {plan, stage}}`, the other fields by Grep, never
    the plan whole. Compile it measure-only with `mcp__pob2__compile_plan` and compare the records. One variant; no price call.

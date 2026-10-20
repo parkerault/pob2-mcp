@@ -1233,9 +1233,18 @@ async function checkBuild(c) {
     const pob = isObj(finalRecord.pobFile) ? finalRecord.pobFile : {};
     const base = path.posix.basename(String(pob.path ?? '')).replace(/\.xml$/i, '');
     // D-412: a build in its own folder writes `<slug>-<YYYY-MM-DD>-<n>-<card id>`, so two builds never share a file.
-    const want = v4 && folder !== '.' ? `${runName}-${build.id}` : runName;
+    // D-415 (the coordinator's ruling during M-21): a campaign's final compile writes a new file, the build's name and
+    // `-campaign`, and leaves the endgame file F1 wrote as it was, which the user has likely saved in PoB since (D-211).
+    // So a build whose final record is a D2 gate's after a campaign answer (the final gate's `campaign`, or a resume's
+    // `campaign:<id>`) has the `-campaign` name; an endgame-only build's, F1's, has none.
+    const campaignAsked = v4 && list(log.checkpoints).some((c) => (c.checkpoint === 'final' && c.concept === build.id && c.answer === 'campaign') || (c.checkpoint === 'verification' && c.answer === `campaign:${build.id}`));
+    const lastFinal = stages.filter((s) => FINAL_GATES.includes(s.stage) && s.outcome === 'pass').pop();
+    const campaignFile = campaignAsked && lastFinal?.stage === 'D2-gate';
+    const name = v4 && folder !== '.' ? `${runName}-${build.id}` : runName;
+    const want = campaignFile ? `${name}-campaign` : name;
     if (pob.location !== 'builds' || base !== want) {
-      fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${want}", the run folder's last two segments joined${want !== runName ? ', then the card id (D-412)' : ''} (§2)`);
+      const why = [name !== runName ? 'then the card id (D-412)' : null, campaignFile ? "then -campaign, the campaign's own file beside the endgame one (D-415)" : null].filter(Boolean);
+      fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${want}", the run folder's last two segments joined${why.length > 0 ? `, ${why.join(', ')}` : ''} (§2)`);
     }
     const compiled = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
     if (recordCurrent) for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);

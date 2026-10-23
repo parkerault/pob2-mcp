@@ -5371,3 +5371,24 @@ the `m17` engine at `b76967b`.
 - **Amendment 10 drafted** (`spec/amendment-10-synthesis.md`, D-429…D-435, WU-104…WU-109, M-23): composites, the
   research files' Ideas, synthesis questions 16–19, the gate's pieces, leave-one-out measures in R1b, the design that
   keeps synthesizing, the live test's fixes. Waiting for the user's read, then an independent review.
+
+## 2026-10-23: amendment 10 reviewed and approved; M-22 wave 1
+
+- **Amendment 10** (`spec/amendment-10-synthesis.md`, on `main`): the independent review (one reviewer, fresh context,
+  about 398K tokens) found 5 blockers, 17 should-fix findings and 9 nits; revision 1 resolved them; the re-check (about
+  72K more) found 24 resolved, 7 partly, and 2 new blockers (no plan field for a skill on set 2; a "total" summing
+  per-corpse and boss figures), 2 should-fix and 8 nits; revision 2 resolved those. The user took choices 6 (engine
+  keys under one shared identity), 7 (the shared phases' target at 1.3M) and 8 (a skill on a weapon set, in M-22,
+  HG-12 granted), and approved revision 2 with no second re-check ("Approved, no second re-check"). M-23 follows M-22.
+- **The reference build's PoB files** (the user found the character on poe.ninja): measured in our engine; the study's
+  §9 uses the snapshot without Mageblood (the user: Mageblood costs 200 divines or more). PoB sizes corpse explosions
+  per corpse from a normal monster's base life at the enemy level; its Full DPS counts each source once a second with
+  its ignite against the configured boss, so about half of the reference's Full DPS is one explosion's ignite.
+- **M-22's spec grew, all in §24 on this branch:** the user's damage-order rule and the ailment-conversion entry
+  (`77bd695`), the corpse-explosion line (`aa3c3bf`), the library's cap at 13,000 (`77bd695`), and a skill on a weapon
+  set, `skills.groups[].weaponSet` and `skillOutputsSet2`, for WU-102 (`98c828f`, the user's HG-12 grant).
+- **WU-100 done by its doer** (`2a6a9e3`, two commits, about 437K tokens). Gate rc 0 (164 suites, 2,882 tests), build
+  rc 0. Declared deviations: `get_config` prints each option's label (`configHandlers.ts`); `constant` is a full
+  mechanic kind; base mode's kind is `item-base`; an exact node name several nodes share fails listing their ids; no
+  `tool-calls.json` samples for the new modes. `lookup_game_data`'s description is at 2,035 of 2,048 characters. The
+  verifier is running.

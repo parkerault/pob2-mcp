@@ -17,7 +17,8 @@
  * | `item-level-requirement` | an equipped item's level requirement exceeds the stage level |
  * | `attributes` | Str < ReqStr, Dex < ReqDex or Int < ReqInt, naming the item or gem |
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
- * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know; and (D-426) PoB's Spirit warning on weapon set 2, from the stage's set-2 measure (`checkSetTwoSpirit`) |
+ * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know, and other than the skill-slot line below; and (D-426) PoB's Spirit warning on weapon set 2, from the stage's set-2 measure (`checkSetTwoSpirit`) |
+ * | `skill-slots` | (D-428) PoB's warning past its skill slots (`SKILL_SLOTS_WARNING`): more groups that no item or passive grants than its 9 slots plus one per "Grants 1 additional Skill Slot"; the message names the Unset Ring as the remedy. PoB's own count, no new one; the line stays in `pobWarnings.kept` |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. Also (D-418, schema 6) a `tree.needs` entry with no `claim`, or whose `claim` names no claim id of the stage: a need keeps nodes node power may call weak, so the plan says why. One finding per group, entry or need; `data.path` is the missing field's path in the stage |
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
@@ -53,6 +54,18 @@ export const TOO_MANY_PASSIVES_WARNING = /^You have too many passive points allo
 /** PoB's Spirit warning (Modules/BuildDisplayStats.lua:140): unreserved Spirit below 0. */
 export const SPIRIT_WARNING = 'Your unreserved Spirit is negative';
 
+/**
+ * D-428: PoB's warning past its skill slots (Modules/Build.lua:2222). CalcPerform.lua:3604-3609 compares the enabled
+ * groups that no item or passive grants (Classes/SkillsTab.lua:1570-1608) with `SkillSlots`: 9 (CalcSetup.lua:728) plus
+ * one per "Grants 1 additional Skill Slot" (ModCache.lua:5697), the Unset Ring's implicit (Data/Bases/ring.lua:85).
+ * Captures PoB's allowed count and the stage's.
+ */
+export const SKILL_SLOTS_WARNING =
+  /^You have too many gem groups allocated\. Max allowed is (\d+)\. You have (\d+) non-item\/non-granted gem groups allocated\.$/;
+
+/** The remedy `skill-slots` names (D-428). */
+export const SKILL_SLOT_REMEDY = 'an Unset Ring ("Grants 1 additional Skill Slot")';
+
 /** The plan option V1 reads (C-32). */
 const RESISTANCE_PENALTY = 'resistancePenalty';
 
@@ -73,7 +86,7 @@ export interface V1Input {
 
 export interface V1Result {
   verdict: Verdict;
-  /** PoB's warning lines: kept (each a `pob-warning` finding) and filtered (informational). */
+  /** PoB's warning lines: kept (each a `pob-warning` finding, or `skill-slots` for that line) and filtered (informational). */
   pobWarnings: { kept: string[]; filtered: string[] };
 }
 
@@ -433,8 +446,20 @@ function checkWarnings(checks: StageChecks, martyrSpent: boolean, findings: Find
   const kept: string[] = [];
   const filtered: string[] = [];
   for (const line of checks.warnings) {
+    const slots = SKILL_SLOTS_WARNING.exec(line);
     if (INFORMATIONAL_WARNING.test(line) || (martyrSpent && TOO_MANY_PASSIVES_WARNING.test(line))) {
       filtered.push(line);
+    } else if (slots) {
+      const allowed = Number(slots[1]);
+      const groups = Number(slots[2]);
+      kept.push(line);
+      findings.push({
+        code: 'skill-slots',
+        message:
+          `PoB allows ${allowed} skill slots and the stage has ${groups} groups that no item or passive grants: ` +
+          `${SKILL_SLOT_REMEDY} in a ring slot adds one slot, or drop ${groups - allowed} of the groups`,
+        data: { line, allowed, groups },
+      });
     } else {
       kept.push(line);
       findings.push({ code: 'pob-warning', message: line, data: { line } });
